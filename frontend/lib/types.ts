@@ -127,6 +127,20 @@ export interface WorkerProfile {
   level: string;
 }
 
+export type NotificationType =
+  | "shift_assigned"
+  | "shift_confirmed"
+  | "shift_rejected";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string | null;
+}
+
 export interface CompanyProfile {
   id: string;
   user_id: string;

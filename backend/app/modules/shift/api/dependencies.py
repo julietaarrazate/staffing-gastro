@@ -10,21 +10,34 @@ from app.core.database import get_session
 from app.modules.company.api.dependencies import get_company_service
 from app.modules.company.application.services import CompanyProfileService
 from app.modules.company.domain.exceptions import CompanyProfileNotFoundError
+from app.modules.company.infrastructure.repositories import (
+    SqlAlchemyCompanyProfileRepository,
+)
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.notification.infrastructure.repositories import (
+    SqlAlchemyNotificationRepository,
+)
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.worker.api.dependencies import get_worker_service
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.exceptions import WorkerProfileNotFoundError
+from app.modules.worker.infrastructure.repositories import (
+    SqlAlchemyWorkerProfileRepository,
+)
 
 
 def get_shift_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ShiftService:
-    repository = SqlAlchemyShiftRepository(session)
-    return ShiftService(repository)
+    return ShiftService(
+        shifts=SqlAlchemyShiftRepository(session),
+        workers=SqlAlchemyWorkerProfileRepository(session),
+        companies=SqlAlchemyCompanyProfileRepository(session),
+        notifications=SqlAlchemyNotificationRepository(session),
+    )
 
 
 async def get_my_company_id(
