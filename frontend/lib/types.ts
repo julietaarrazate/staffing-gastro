@@ -106,6 +106,9 @@ export interface Shift {
 export interface CandidateMatch {
   profile_id: string;
   user_id: string;
+  full_name: string;
+  photo_url: string | null;
+  rating: number;
   score: number;
   distance_km: number | null;
 }
