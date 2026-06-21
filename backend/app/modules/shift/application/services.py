@@ -115,6 +115,9 @@ class ShiftService:
     async def list_company_shifts(self, company_id: UUID) -> list[Shift]:
         return await self._shifts.list_by_company(company_id)
 
+    async def list_worker_shifts(self, worker_profile_id: UUID) -> list[Shift]:
+        return await self._shifts.list_by_worker(worker_profile_id)
+
     async def list_feed(
         self,
         *,

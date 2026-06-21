@@ -101,6 +101,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_by_worker(self, worker_profile_id: UUID) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(ShiftModel.worker_profile_id == worker_profile_id)
+            .order_by(ShiftModel.created_at.desc())
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_open(
         self,
         *,
