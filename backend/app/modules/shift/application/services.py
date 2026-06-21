@@ -4,7 +4,10 @@ from uuid import UUID
 
 from app.modules.shift.application.dtos import ShiftData
 from app.modules.shift.domain.entities import Shift
-from app.modules.shift.domain.exceptions import ShiftNotFoundError
+from app.modules.shift.domain.exceptions import (
+    ShiftNotAssignedToWorkerError,
+    ShiftNotFoundError,
+)
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -72,6 +75,36 @@ class ShiftService:
         shift = await self._get_owned(company_id, shift_id)
         shift.cancel()
         return await self._shifts.update(shift)
+
+    async def assign_worker(
+        self, company_id: UUID, shift_id: UUID, worker_profile_id: UUID
+    ) -> Shift:
+        """El comercio asigna el turno a uno de los candidatos recomendados."""
+        shift = await self._get_owned(company_id, shift_id)
+        shift.assign(worker_profile_id)
+        return await self._shifts.update(shift)
+
+    async def confirm_assignment(
+        self, worker_profile_id: UUID, shift_id: UUID
+    ) -> Shift:
+        """El trabajador asignado confirma su asistencia al turno."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.confirm()
+        return await self._shifts.update(shift)
+
+    async def reject_assignment(
+        self, worker_profile_id: UUID, shift_id: UUID
+    ) -> Shift:
+        """El trabajador asignado rechaza el turno; vuelve a buscar personal."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.reject()
+        return await self._shifts.update(shift)
+
+    async def _get_assigned_to(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        shift = await self.get_shift(shift_id)
+        if shift.worker_profile_id != worker_profile_id:
+            raise ShiftNotAssignedToWorkerError(str(shift_id))
+        return shift
 
     async def get_shift(self, shift_id: UUID) -> Shift:
         shift = await self._shifts.get_by_id(shift_id)

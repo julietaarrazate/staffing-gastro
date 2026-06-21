@@ -51,4 +51,11 @@ class ShiftResponse(BaseModel):
     title: str | None
     description: str | None
     status: ShiftStatus
+    worker_profile_id: UUID | None
     created_at: datetime | None = None
+
+
+class AssignWorkerRequest(BaseModel):
+    """Payload para asignar el turno a un candidato."""
+
+    worker_profile_id: UUID

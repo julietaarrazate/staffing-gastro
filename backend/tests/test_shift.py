@@ -186,3 +186,91 @@ async def test_feed_filters_by_position(client: AsyncClient):
     assert feed.status_code == 200
     positions = {s["position"] for s in feed.json()}
     assert positions == {"bartender"}
+
+
+async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, str]:
+    headers = await _auth_headers(client, "worker", email)
+    profile = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=headers,
+        json={"skills": ["mozo"]},
+    )
+    return headers, profile.json()["id"]
+
+
+async def test_assign_confirm_flow(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp8@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_assign@staffya.com"
+    )
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    assert assigned.status_code == 200
+    assert assigned.json()["status"] == "asignado"
+    assert assigned.json()["worker_profile_id"] == worker_profile_id
+
+    confirmed = await client.post(
+        f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers
+    )
+    assert confirmed.status_code == 200
+    assert confirmed.json()["status"] == "confirmado"
+
+
+async def test_reject_assignment_reopens_search(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp9@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_reject@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+
+    rejected = await client.post(
+        f"/api/v1/shifts/{shift_id}/reject", headers=worker_headers
+    )
+    assert rejected.status_code == 200
+    assert rejected.json()["status"] == "buscando_personal"
+    assert rejected.json()["worker_profile_id"] is None
+
+
+async def test_other_worker_cannot_confirm_someone_elses_assignment(
+    client: AsyncClient,
+):
+    employer_headers = await _employer_with_company(client, "emp10@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    _assigned_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_owner@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+
+    other_headers, _ = await _worker_with_profile(client, "w_other@staffya.com")
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/confirm", headers=other_headers
+    )
+    assert response.status_code == 404

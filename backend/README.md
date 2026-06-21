@@ -27,7 +27,10 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 - **company** ✅ — PerfilComercio: datos (logo, rubro, ubicación, capacidad, horarios)
   y métricas.
 - **shift** ✅ — Publicación de turnos: entidad Turno con los estados del "Modo Uber",
-  feed público con filtros y ciclo de vida (borrador → publicado → ... / cancelado).
+  feed público con filtros y ciclo de vida (borrador → publicado → asignado →
+  confirmado / rechazado / cancelado). La asignación conecta con el top de
+  candidatos del módulo matching: el comercio elige a quién ofrecerle el turno
+  y el trabajador confirma o rechaza.
 - **matching** ✅ — Motor de scoring de candidatos para un turno: distancia (Haversine),
   experiencia, reputación, puntualidad e historial de desempeño. La afinidad con el
   local queda fuera hasta que exista historial de asignaciones (Fase 3+). No depende
@@ -93,6 +96,9 @@ Con el servidor corriendo:
 | POST   | `/api/v1/shifts/{id}/publish` | Publicar un turno en borrador                |
 | POST   | `/api/v1/shifts/{id}/cancel`  | Cancelar un turno                            |
 | GET    | `/api/v1/shifts/{id}/candidates` | Top de candidatos recomendados para un turno propio (rol employer) |
+| POST   | `/api/v1/shifts/{id}/assign`  | Asignar el turno a un candidato (rol employer) |
+| POST   | `/api/v1/shifts/{id}/confirm` | Confirmar la asistencia a un turno asignado (rol worker) |
+| POST   | `/api/v1/shifts/{id}/reject`  | Rechazar un turno asignado (rol worker)      |
 
 ## Tests
 ```bash

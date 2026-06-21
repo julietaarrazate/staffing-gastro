@@ -45,6 +45,7 @@ class Shift:
     description: str | None = None
 
     status: ShiftStatus = ShiftStatus.BORRADOR
+    worker_profile_id: UUID | None = None
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
@@ -79,6 +80,28 @@ class Shift:
     def start_searching(self) -> None:
         """PUBLICADO → BUSCANDO_PERSONAL."""
         self._transition(ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
+
+    def assign(self, worker_profile_id: UUID) -> None:
+        """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato."""
+        if self.status not in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL):
+            raise InvalidShiftTransitionError(
+                f"No se puede asignar un turno en estado {self.status.value}"
+            )
+        self.worker_profile_id = worker_profile_id
+        self.status = ShiftStatus.ASIGNADO
+
+    def confirm(self) -> None:
+        """ASIGNADO → CONFIRMADO: el trabajador asignado confirma su asistencia."""
+        self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO)
+
+    def reject(self) -> None:
+        """ASIGNADO → BUSCANDO_PERSONAL: el trabajador asignado rechaza el turno."""
+        if self.status != ShiftStatus.ASIGNADO:
+            raise InvalidShiftTransitionError(
+                f"No se puede rechazar un turno en estado {self.status.value}"
+            )
+        self.worker_profile_id = None
+        self.status = ShiftStatus.BUSCANDO_PERSONAL
 
     def cancel(self) -> None:
         """Cancela el turno desde cualquier estado no terminal."""
