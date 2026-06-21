@@ -5,6 +5,7 @@ de aplicación y de las entidades de dominio.
 """
 
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -12,11 +13,22 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
 
+class RegisterableRole(str, Enum):
+    """Roles que un usuario puede elegir al registrarse por su cuenta.
+
+    ADMIN queda deliberadamente afuera: no es un rol autoasignable desde el
+    registro público.
+    """
+
+    WORKER = "worker"
+    EMPLOYER = "employer"
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=255)
-    role: UserRole = UserRole.WORKER
+    role: RegisterableRole = RegisterableRole.WORKER
 
 
 class LoginRequest(BaseModel):

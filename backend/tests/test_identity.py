@@ -108,3 +108,9 @@ async def test_refresh_token_cannot_access_me(client: AsyncClient):
 async def test_me_requires_auth(client: AsyncClient):
     me = await client.get("/api/v1/auth/me")
     assert me.status_code in (401, 403)
+
+
+async def test_register_cannot_self_assign_admin_role(client: AsyncClient):
+    """El registro público no debe permitir elegir el rol admin."""
+    response = await _register(client, role="admin")
+    assert response.status_code == 422

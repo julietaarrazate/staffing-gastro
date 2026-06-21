@@ -25,6 +25,7 @@ from app.modules.identity.domain.exceptions import (
     InvalidTokenError,
     UserNotFoundError,
 )
+from app.modules.identity.domain.value_objects import UserRole
 
 router = APIRouter(prefix="/auth", tags=["identity"])
 
@@ -44,7 +45,7 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
                 email=payload.email,
                 password=payload.password,
                 full_name=payload.full_name,
-                role=payload.role,
+                role=UserRole(payload.role.value),
             )
         )
     except EmailAlreadyExistsError as exc:
