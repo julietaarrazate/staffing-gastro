@@ -52,6 +52,13 @@ def _to_entity(model: ShiftModel) -> Shift:
         description=model.description,
         status=ShiftStatus(model.status),
         worker_profile_id=model.worker_profile_id,
+        check_in_latitude=model.check_in_latitude,
+        check_in_longitude=model.check_in_longitude,
+        check_in_at=model.check_in_at,
+        check_out_latitude=model.check_out_latitude,
+        check_out_longitude=model.check_out_longitude,
+        check_out_at=model.check_out_at,
+        paid_at=model.paid_at,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -65,6 +72,13 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
         setattr(model, name, value)
     model.status = shift.status.value
     model.worker_profile_id = shift.worker_profile_id
+    model.check_in_latitude = shift.check_in_latitude
+    model.check_in_longitude = shift.check_in_longitude
+    model.check_in_at = shift.check_in_at
+    model.check_out_latitude = shift.check_out_latitude
+    model.check_out_longitude = shift.check_out_longitude
+    model.check_out_at = shift.check_out_at
+    model.paid_at = shift.paid_at
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):

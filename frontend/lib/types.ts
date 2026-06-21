@@ -93,6 +93,13 @@ export interface Shift {
   description: string | null;
   status: ShiftStatus;
   worker_profile_id: string | null;
+  check_in_latitude: number | null;
+  check_in_longitude: number | null;
+  check_in_at: string | null;
+  check_out_latitude: number | null;
+  check_out_longitude: number | null;
+  check_out_at: string | null;
+  paid_at: string | null;
   created_at: string | null;
 }
 

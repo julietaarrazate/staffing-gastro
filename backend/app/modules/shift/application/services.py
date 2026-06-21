@@ -135,6 +135,61 @@ class ShiftService:
         )
         return updated
 
+    async def depart(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        """El trabajador asignado marca que salió hacia el turno."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.depart()
+        return await self._shifts.update(shift)
+
+    async def check_in(
+        self, worker_profile_id: UUID, shift_id: UUID, latitude: float, longitude: float
+    ) -> Shift:
+        """El trabajador marca su llegada al turno con su ubicación."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.check_in(latitude, longitude)
+        return await self._shifts.update(shift)
+
+    async def start_working(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        """El trabajador marca el inicio efectivo del turno."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.start_working()
+        return await self._shifts.update(shift)
+
+    async def check_out(
+        self, worker_profile_id: UUID, shift_id: UUID, latitude: float, longitude: float
+    ) -> Shift:
+        """El trabajador marca el fin del turno con su ubicación."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.check_out(latitude, longitude)
+        updated = await self._shifts.update(shift)
+        await self._notify_company(
+            updated.company_id,
+            NotificationType.SHIFT_CHECKED_OUT,
+            "Terminó un turno",
+            f"El trabajador terminó el turno \"{updated.title or updated.position.value}\".",
+        )
+        return updated
+
+    async def finish(self, company_id: UUID, shift_id: UUID) -> Shift:
+        """El comercio cierra el turno trabajado."""
+        shift = await self._get_owned(company_id, shift_id)
+        shift.finish()
+        return await self._shifts.update(shift)
+
+    async def mark_paid(self, company_id: UUID, shift_id: UUID) -> Shift:
+        """El comercio confirma que pagó el turno finalizado."""
+        shift = await self._get_owned(company_id, shift_id)
+        shift.mark_paid()
+        updated = await self._shifts.update(shift)
+        if updated.worker_profile_id is not None:
+            await self._notify_worker(
+                updated.worker_profile_id,
+                NotificationType.SHIFT_PAID,
+                "Te pagaron un turno",
+                f"Te pagaron el turno \"{updated.title or updated.position.value}\".",
+            )
+        return updated
+
     async def _notify_worker(
         self, worker_profile_id: UUID, type_: NotificationType, title: str, message: str
     ) -> None:

@@ -43,6 +43,18 @@ export default function MyShiftsPage() {
     load();
   }
 
+  async function finish(id: string) {
+    if (!token) return;
+    await api.post(`/shifts/${id}/finish`, undefined, token);
+    load();
+  }
+
+  async function markPaid(id: string) {
+    if (!token) return;
+    await api.post(`/shifts/${id}/mark-paid`, undefined, token);
+    load();
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="flex items-center justify-between">
@@ -88,6 +100,25 @@ export default function MyShiftsPage() {
                 >
                   Cancelar
                 </button>
+              )}
+              {shift.status === "check_out" && (
+                <button
+                  onClick={() => finish(shift.id)}
+                  className="rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+                >
+                  ✅ Cerrar turno
+                </button>
+              )}
+              {shift.status === "finalizado" && (
+                <button
+                  onClick={() => markPaid(shift.id)}
+                  className="rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
+                >
+                  💰 Marcar como pagado
+                </button>
+              )}
+              {shift.status === "pagado" && (
+                <span className="text-sm font-semibold text-green-700">✅ Pagado</span>
               )}
             </div>
           </ShiftCard>

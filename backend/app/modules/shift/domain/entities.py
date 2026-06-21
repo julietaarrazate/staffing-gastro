@@ -5,7 +5,7 @@ Encapsula los datos del turno y las reglas de transición de estado del
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -46,6 +46,14 @@ class Shift:
 
     status: ShiftStatus = ShiftStatus.BORRADOR
     worker_profile_id: UUID | None = None
+
+    check_in_latitude: float | None = None
+    check_in_longitude: float | None = None
+    check_in_at: datetime | None = None
+    check_out_latitude: float | None = None
+    check_out_longitude: float | None = None
+    check_out_at: datetime | None = None
+    paid_at: datetime | None = None
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
@@ -110,6 +118,37 @@ class Shift:
                 f"No se puede cancelar un turno en estado {self.status.value}"
             )
         self.status = ShiftStatus.CANCELADO
+
+    def depart(self) -> None:
+        """CONFIRMADO → EN_CAMINO: el trabajador sale hacia el turno."""
+        self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO)
+
+    def check_in(self, latitude: float, longitude: float) -> None:
+        """EN_CAMINO → CHECK_IN: el trabajador llega y marca su ubicación."""
+        self._transition(ShiftStatus.EN_CAMINO, ShiftStatus.CHECK_IN)
+        self.check_in_latitude = latitude
+        self.check_in_longitude = longitude
+        self.check_in_at = datetime.now(timezone.utc)
+
+    def start_working(self) -> None:
+        """CHECK_IN → TRABAJANDO: el trabajador empieza su turno."""
+        self._transition(ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO)
+
+    def check_out(self, latitude: float, longitude: float) -> None:
+        """TRABAJANDO → CHECK_OUT: el trabajador termina y marca su ubicación."""
+        self._transition(ShiftStatus.TRABAJANDO, ShiftStatus.CHECK_OUT)
+        self.check_out_latitude = latitude
+        self.check_out_longitude = longitude
+        self.check_out_at = datetime.now(timezone.utc)
+
+    def finish(self) -> None:
+        """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""
+        self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO)
+
+    def mark_paid(self) -> None:
+        """FINALIZADO → PAGADO: el comercio confirma que pagó el turno."""
+        self._transition(ShiftStatus.FINALIZADO, ShiftStatus.PAGADO)
+        self.paid_at = datetime.now(timezone.utc)
 
     def _transition(self, expected: ShiftStatus, target: ShiftStatus) -> None:
         if self.status != expected:

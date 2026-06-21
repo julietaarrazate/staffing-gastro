@@ -27,10 +27,13 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 - **company** ✅ — PerfilComercio: datos (logo, rubro, ubicación, capacidad, horarios)
   y métricas.
 - **shift** ✅ — Publicación de turnos: entidad Turno con los estados del "Modo Uber",
-  feed público con filtros y ciclo de vida (borrador → publicado → asignado →
-  confirmado / rechazado / cancelado). La asignación conecta con el top de
-  candidatos del módulo matching: el comercio elige a quién ofrecerle el turno
-  y el trabajador confirma o rechaza.
+  feed público con filtros y ciclo de vida completo (borrador → publicado →
+  asignado → confirmado/rechazado → en_camino → check_in → trabajando →
+  check_out → finalizado → pagado, o cancelado en cualquier punto no terminal).
+  La asignación conecta con el top de candidatos del módulo matching: el
+  comercio elige a quién ofrecerle el turno y el trabajador confirma o
+  rechaza. El check-in/check-out del trabajador captura su ubicación
+  geográfica.
 - **matching** ✅ — Motor de scoring de candidatos para un turno: distancia (Haversine),
   experiencia, reputación, puntualidad e historial de desempeño. La afinidad con el
   local queda fuera hasta que exista historial de asignaciones (Fase 3+). No depende
@@ -38,7 +41,9 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 - **notification** ✅ — Notificaciones in-app: se generan al asignar, confirmar o
   rechazar un turno, y se exponen para que cada usuario consulte las suyas y las
   marque como leídas. No incluye push ni chat en tiempo real (Fase 3+).
-- attendance, payment, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
+- payment, ai — _pendientes (ver roadmap en `CLAUDE.md`). El check-in/check-out
+  geolocalizado (asistencia) ya vive dentro de `shift`; `payment` falta para
+  procesar el cobro real, hoy `mark-paid` sólo registra que el comercio pagó._
 
 ## Requisitos
 - Python 3.11+
@@ -103,6 +108,12 @@ Con el servidor corriendo:
 | POST   | `/api/v1/shifts/{id}/assign`  | Asignar el turno a un candidato (rol employer) |
 | POST   | `/api/v1/shifts/{id}/confirm` | Confirmar la asistencia a un turno asignado (rol worker) |
 | POST   | `/api/v1/shifts/{id}/reject`  | Rechazar un turno asignado (rol worker)      |
+| POST   | `/api/v1/shifts/{id}/depart`  | Marcar salida hacia el turno (rol worker)    |
+| POST   | `/api/v1/shifts/{id}/check-in` | Marcar llegada con ubicación (rol worker)   |
+| POST   | `/api/v1/shifts/{id}/start-working` | Marcar inicio efectivo del turno (rol worker) |
+| POST   | `/api/v1/shifts/{id}/check-out` | Marcar fin con ubicación (rol worker)      |
+| POST   | `/api/v1/shifts/{id}/finish`  | Cerrar un turno trabajado (rol employer)     |
+| POST   | `/api/v1/shifts/{id}/mark-paid` | Confirmar el pago de un turno (rol employer) |
 | GET    | `/api/v1/notifications`       | Mis notificaciones                           |
 | POST   | `/api/v1/notifications/{id}/read` | Marcar una notificación como leída       |
 

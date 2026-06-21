@@ -14,6 +14,7 @@ from app.modules.shift.api.dependencies import (
 )
 from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
+    GeoCheckRequest,
     ShiftInput,
     ShiftResponse,
 )
@@ -205,6 +206,108 @@ async def reject_assignment(
     try:
         return await service.reject_assignment(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/depart",
+    response_model=ShiftResponse,
+    summary="Marcar que salí hacia el turno (trabajador)",
+)
+async def depart(
+    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.depart(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/check-in",
+    response_model=ShiftResponse,
+    summary="Marcar llegada al turno con ubicación (trabajador)",
+)
+async def check_in(
+    shift_id: UUID,
+    payload: GeoCheckRequest,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+):
+    try:
+        return await service.check_in(
+            worker_profile_id, shift_id, payload.latitude, payload.longitude
+        )
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/start-working",
+    response_model=ShiftResponse,
+    summary="Marcar el inicio efectivo del turno (trabajador)",
+)
+async def start_working(
+    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.start_working(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/check-out",
+    response_model=ShiftResponse,
+    summary="Marcar fin del turno con ubicación (trabajador)",
+)
+async def check_out(
+    shift_id: UUID,
+    payload: GeoCheckRequest,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+):
+    try:
+        return await service.check_out(
+            worker_profile_id, shift_id, payload.latitude, payload.longitude
+        )
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/finish",
+    response_model=ShiftResponse,
+    summary="Cerrar un turno ya trabajado (comercio)",
+)
+async def finish(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+    try:
+        return await service.finish(company_id, shift_id)
+    except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/mark-paid",
+    response_model=ShiftResponse,
+    summary="Confirmar el pago de un turno finalizado (comercio)",
+)
+async def mark_paid(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+    try:
+        return await service.mark_paid(company_id, shift_id)
+    except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
