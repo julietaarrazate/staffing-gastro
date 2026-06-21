@@ -1,0 +1,28 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# --- Entorno / secretos ---
+.env
+*.local
+
+# --- Base de datos local ---
+*.sqlite3
+*.db
+
+# --- Node / Frontend (futuro) ---
+node_modules/
+.next/
+dist/
+build/
+
+# --- Editores / SO ---
+.vscode/
+.idea/
+.DS_Store
