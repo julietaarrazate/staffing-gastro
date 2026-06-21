@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...salvo la URL pública del backend en producción (no es un secreto:
+# las vars NEXT_PUBLIC_* se exponen al browser de todos modos).
+!.env.production
 
 # vercel
 .vercel
