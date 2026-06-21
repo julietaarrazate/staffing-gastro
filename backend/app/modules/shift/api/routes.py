@@ -7,13 +7,22 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.modules.identity.api.dependencies import get_current_user
 from app.modules.identity.domain.entities import User
-from app.modules.shift.api.dependencies import get_my_company_id, get_shift_service
-from app.modules.shift.api.schemas import ShiftInput, ShiftResponse
+from app.modules.shift.api.dependencies import (
+    get_my_company_id,
+    get_my_worker_profile_id,
+    get_shift_service,
+)
+from app.modules.shift.api.schemas import (
+    AssignWorkerRequest,
+    ShiftInput,
+    ShiftResponse,
+)
 from app.modules.shift.application.dtos import ShiftData
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
+    ShiftNotAssignedToWorkerError,
     ShiftNotEditableError,
     ShiftNotFoundError,
 )
@@ -23,6 +32,7 @@ router = APIRouter(prefix="/shifts", tags=["shifts"])
 
 ServiceDep = Annotated[ShiftService, Depends(get_shift_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
+WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 AuthUserDep = Annotated[User, Depends(get_current_user)]
 
 
@@ -133,6 +143,59 @@ async def cancel_shift(shift_id: UUID, company_id: CompanyIdDep, service: Servic
     try:
         return await service.cancel_shift(company_id, shift_id)
     except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/assign",
+    response_model=ShiftResponse,
+    summary="Asignar el turno a uno de los candidatos recomendados",
+)
+async def assign_worker(
+    shift_id: UUID,
+    payload: AssignWorkerRequest,
+    company_id: CompanyIdDep,
+    service: ServiceDep,
+):
+    try:
+        return await service.assign_worker(
+            company_id, shift_id, payload.worker_profile_id
+        )
+    except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/confirm",
+    response_model=ShiftResponse,
+    summary="Confirmar la asistencia a un turno asignado (trabajador)",
+)
+async def confirm_assignment(
+    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.confirm_assignment(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
+    "/{shift_id}/reject",
+    response_model=ShiftResponse,
+    summary="Rechazar un turno asignado (trabajador)",
+)
+async def reject_assignment(
+    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.reject_assignment(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc

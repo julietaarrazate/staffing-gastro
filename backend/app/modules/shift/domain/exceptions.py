@@ -19,3 +19,7 @@ class ShiftNotEditableError(ShiftError):
 
 class InvalidShiftScheduleError(ShiftError):
     """El horario del turno es inválido (p. ej. fin anterior al inicio)."""
+
+
+class ShiftNotAssignedToWorkerError(ShiftError):
+    """El turno no está asignado al trabajador que intenta confirmarlo/rechazarlo."""

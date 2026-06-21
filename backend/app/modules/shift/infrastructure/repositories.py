@@ -51,6 +51,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         title=model.title,
         description=model.description,
         status=ShiftStatus(model.status),
+        worker_profile_id=model.worker_profile_id,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -63,6 +64,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
             value = value.value
         setattr(model, name, value)
     model.status = shift.status.value
+    model.worker_profile_id = shift.worker_profile_id
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):
