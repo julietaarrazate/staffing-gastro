@@ -17,7 +17,9 @@ from app.core.database import Base
 
 # --- Registrar la metadata de todos los modelos ---
 # El import tiene efecto secundario: registra las tablas en Base.metadata.
+from app.modules.company.infrastructure import models as company_models  # noqa: E402,F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: E402,F401
+from app.modules.worker.infrastructure import models as worker_models  # noqa: E402,F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

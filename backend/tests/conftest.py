@@ -14,7 +14,9 @@ from app.core.database import Base, get_session
 from app.main import app
 
 # Importar modelos para registrarlos en la metadata antes de create_all
-from app.modules.identity.infrastructure import models  # noqa: F401
+from app.modules.company.infrastructure import models as company_models  # noqa: F401
+from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
+from app.modules.worker.infrastructure import models as worker_models  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 

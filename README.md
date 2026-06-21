@@ -23,9 +23,9 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 
 ## Estado actual
 
-**Fase 1 — Autenticación** (en progreso):
-- ✅ `identity-service`: registro, login, JWT + refresh tokens, roles.
-- ⏳ Perfiles (Trabajador / Comercio).
+**Fase 1 — Autenticación y perfiles** (en progreso):
+- ✅ `identity`: registro, login, JWT + refresh tokens, roles.
+- ✅ `worker` / `company`: Perfiles de Trabajador y Comercio.
 - ⏳ Publicación de turnos.
 
 Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).

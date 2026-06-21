@@ -8,7 +8,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.modules.company.api.routes import router as company_router
 from app.modules.identity.api.routes import router as identity_router
+from app.modules.worker.api.routes import router as worker_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -32,3 +34,5 @@ async def health() -> dict[str, str]:
 
 # --- Routers de los módulos ---
 app.include_router(identity_router, prefix="/api/v1")
+app.include_router(worker_router, prefix="/api/v1")
+app.include_router(company_router, prefix="/api/v1")

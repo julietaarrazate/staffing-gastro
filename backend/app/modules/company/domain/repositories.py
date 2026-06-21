@@ -1,0 +1,30 @@
+"""Puerto del repositorio de perfiles de comercio."""
+
+from abc import ABC, abstractmethod
+from uuid import UUID
+
+from app.modules.company.domain.entities import CompanyProfile
+
+
+class CompanyProfileRepository(ABC):
+    """Puerto de persistencia para PerfilComercio."""
+
+    @abstractmethod
+    async def add(self, profile: CompanyProfile) -> CompanyProfile:
+        """Persiste un nuevo perfil y lo devuelve."""
+
+    @abstractmethod
+    async def update(self, profile: CompanyProfile) -> CompanyProfile:
+        """Actualiza un perfil existente y lo devuelve."""
+
+    @abstractmethod
+    async def get_by_id(self, profile_id: UUID) -> CompanyProfile | None:
+        """Busca un perfil por su id."""
+
+    @abstractmethod
+    async def get_by_user_id(self, user_id: UUID) -> CompanyProfile | None:
+        """Busca el perfil asociado a un usuario."""
+
+    @abstractmethod
+    async def exists_by_user_id(self, user_id: UUID) -> bool:
+        """Indica si el usuario ya tiene un perfil de comercio."""

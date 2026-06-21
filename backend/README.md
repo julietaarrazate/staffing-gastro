@@ -22,7 +22,11 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 ### Módulos
 - **identity** ✅ — Autenticación con email/password, JWT + refresh tokens, roles
   (Trabajador / Empleador / Administrador).
-- worker, company, shift, matching, attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
+- **worker** ✅ — PerfilTrabajador: datos (foto, ciudad, habilidades, idiomas,
+  experiencia, geolocalización), métricas e insignias.
+- **company** ✅ — PerfilComercio: datos (logo, rubro, ubicación, capacidad, horarios)
+  y métricas.
+- shift, matching, attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
 
 ## Requisitos
 - Python 3.11+
@@ -67,6 +71,14 @@ Con el servidor corriendo:
 | POST   | `/api/v1/auth/login`      | Iniciar sesión (devuelve tokens)  |
 | POST   | `/api/v1/auth/refresh`    | Renovar el par de tokens          |
 | GET    | `/api/v1/auth/me`         | Datos del usuario autenticado     |
+| POST   | `/api/v1/workers/me/profile`   | Crear mi perfil de trabajador (rol worker)   |
+| GET    | `/api/v1/workers/me/profile`   | Ver mi perfil de trabajador                  |
+| PUT    | `/api/v1/workers/me/profile`   | Actualizar mi perfil de trabajador           |
+| GET    | `/api/v1/workers/{id}`         | Ver perfil público de un trabajador          |
+| POST   | `/api/v1/companies/me/profile` | Crear mi perfil de comercio (rol employer)   |
+| GET    | `/api/v1/companies/me/profile` | Ver mi perfil de comercio                    |
+| PUT    | `/api/v1/companies/me/profile` | Actualizar mi perfil de comercio             |
+| GET    | `/api/v1/companies/{id}`       | Ver perfil público de un comercio            |
 
 ## Tests
 ```bash
