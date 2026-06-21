@@ -41,9 +41,10 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 - **notification** ✅ — Notificaciones in-app: se generan al asignar, confirmar o
   rechazar un turno, y se exponen para que cada usuario consulte las suyas y las
   marque como leídas. No incluye push ni chat en tiempo real (Fase 3+).
-- payment, ai — _pendientes (ver roadmap en `CLAUDE.md`). El check-in/check-out
-  geolocalizado (asistencia) ya vive dentro de `shift`; `payment` falta para
-  procesar el cobro real, hoy `mark-paid` sólo registra que el comercio pagó._
+- payment, chat, ai — _pendientes (ver roadmap en [`../CLAUDE.md`](../CLAUDE.md)).
+  El check-in/check-out geolocalizado (asistencia) ya vive dentro de `shift`;
+  `payment` falta para procesar el cobro real, hoy `mark-paid` sólo registra que
+  el comercio pagó._
 
 ## Requisitos
 - Python 3.11+
