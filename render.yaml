@@ -1,0 +1,28 @@
+databases:
+  - name: staffya-db
+    plan: free
+    databaseName: staffya
+    user: staffya
+
+services:
+  - type: web
+    name: staffya-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: staffya-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: CORS_ORIGINS
+        value: http://localhost:3000
+    autoDeploy: true

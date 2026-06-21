@@ -6,6 +6,7 @@ Esta es la única fuente de verdad para la configuración del backend.
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,15 @@ class Settings(BaseSettings):
 
     # --- Base de datos ---
     database_url: str = "postgresql+asyncpg://staffya:staffya@localhost:5432/staffya"
+
+    @field_validator("database_url")
+    @classmethod
+    def _force_asyncpg_driver(cls, value: str) -> str:
+        # Proveedores como Render entregan una connection string "postgresql://"
+        # (driver psycopg2 por defecto); el proyecto usa SQLAlchemy async + asyncpg.
+        if value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
 
     # --- JWT ---
     jwt_secret_key: str = "cambiar-esto-en-produccion"
