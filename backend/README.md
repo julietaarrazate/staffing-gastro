@@ -91,6 +91,7 @@ Con el servidor corriendo:
 | POST   | `/api/v1/shifts`              | Publicar un turno (rol employer, crea en BORRADOR) |
 | GET    | `/api/v1/shifts/feed`         | Feed de turnos abiertos (con filtros)        |
 | GET    | `/api/v1/shifts/me`           | Mis turnos (comercio)                        |
+| GET    | `/api/v1/shifts/mine`         | Mis turnos asignados (rol worker)            |
 | GET    | `/api/v1/shifts/{id}`         | Ver un turno                                 |
 | PUT    | `/api/v1/shifts/{id}`         | Editar un turno (BORRADOR / PUBLICADO)       |
 | POST   | `/api/v1/shifts/{id}/publish` | Publicar un turno en borrador                |

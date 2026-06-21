@@ -250,6 +250,31 @@ async def test_reject_assignment_reopens_search(client: AsyncClient):
     assert rejected.json()["worker_profile_id"] is None
 
 
+async def test_worker_sees_assigned_shifts_in_mine(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp11@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_mine@staffya.com"
+    )
+
+    mine_before = await client.get("/api/v1/shifts/mine", headers=worker_headers)
+    assert mine_before.json() == []
+
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+
+    mine_after = await client.get("/api/v1/shifts/mine", headers=worker_headers)
+    assert any(s["id"] == shift_id for s in mine_after.json())
+
+
 async def test_other_worker_cannot_confirm_someone_elses_assignment(
     client: AsyncClient,
 ):

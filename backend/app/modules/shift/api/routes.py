@@ -88,6 +88,15 @@ async def my_shifts(company_id: CompanyIdDep, service: ServiceDep):
 
 
 @router.get(
+    "/mine",
+    response_model=list[ShiftResponse],
+    summary="Mis turnos asignados (trabajador)",
+)
+async def my_assigned_shifts(worker_profile_id: WorkerProfileIdDep, service: ServiceDep):
+    return await service.list_worker_shifts(worker_profile_id)
+
+
+@router.get(
     "/{shift_id}",
     response_model=ShiftResponse,
     summary="Ver un turno",

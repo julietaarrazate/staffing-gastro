@@ -35,3 +35,7 @@ class ShiftRepository(ABC):
         urgent: bool | None = None,
     ) -> list[Shift]:
         """Lista los turnos abiertos del feed público, con filtros opcionales."""
+
+    @abstractmethod
+    async def list_by_worker(self, worker_profile_id: UUID) -> list[Shift]:
+        """Lista los turnos asignados a un trabajador (más recientes primero)."""
