@@ -28,7 +28,11 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
   y métricas.
 - **shift** ✅ — Publicación de turnos: entidad Turno con los estados del "Modo Uber",
   feed público con filtros y ciclo de vida (borrador → publicado → ... / cancelado).
-- matching, attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
+- **matching** ✅ — Motor de scoring de candidatos para un turno: distancia (Haversine),
+  experiencia, reputación, puntualidad e historial de desempeño. La afinidad con el
+  local queda fuera hasta que exista historial de asignaciones (Fase 3+). No depende
+  de las entidades de `worker`/`shift`: usa DTOs propios para mantenerse testeable.
+- attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
 
 ## Requisitos
 - Python 3.11+
@@ -88,6 +92,7 @@ Con el servidor corriendo:
 | PUT    | `/api/v1/shifts/{id}`         | Editar un turno (BORRADOR / PUBLICADO)       |
 | POST   | `/api/v1/shifts/{id}/publish` | Publicar un turno en borrador                |
 | POST   | `/api/v1/shifts/{id}/cancel`  | Cancelar un turno                            |
+| GET    | `/api/v1/shifts/{id}/candidates` | Top de candidatos recomendados para un turno propio (rol employer) |
 
 ## Tests
 ```bash
