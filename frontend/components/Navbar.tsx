@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -36,6 +37,7 @@ export default function Navbar() {
               </Link>
             </>
           )}
+          {!loading && user && <NotificationBell />}
           {!loading && user && (
             <button
               onClick={logout}

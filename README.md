@@ -36,8 +36,9 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 - ✅ Frontend web (Next.js): login/registro, perfiles, feed de turnos con tarjetas,
   publicación de turnos, vista de candidatos y asignación, panel del trabajador
   para confirmar/rechazar turnos asignados.
-- ⬜ Notificaciones · Chat.
-- ⬜ Despliegue (Render + Vercel).
+- ✅ Notificaciones in-app: asignación, confirmación y rechazo de turnos.
+- ⬜ Chat.
+- ✅ Despliegue (Render + Vercel).
 
 Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).
 

@@ -2,6 +2,10 @@
 
 from uuid import UUID
 
+from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.notification.domain.entities import Notification
+from app.modules.notification.domain.repositories import NotificationRepository
+from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import ShiftData
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
@@ -9,14 +13,24 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 
 class ShiftService:
     """Servicio de aplicación para gestionar turnos."""
 
-    def __init__(self, shifts: ShiftRepository) -> None:
+    def __init__(
+        self,
+        shifts: ShiftRepository,
+        workers: WorkerProfileRepository,
+        companies: CompanyProfileRepository,
+        notifications: NotificationRepository,
+    ) -> None:
         self._shifts = shifts
+        self._workers = workers
+        self._companies = companies
+        self._notifications = notifications
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -82,7 +96,14 @@ class ShiftService:
         """El comercio asigna el turno a uno de los candidatos recomendados."""
         shift = await self._get_owned(company_id, shift_id)
         shift.assign(worker_profile_id)
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        await self._notify_worker(
+            worker_profile_id,
+            NotificationType.SHIFT_ASSIGNED,
+            "Te asignaron un turno",
+            f"Te asignaron el turno \"{updated.title or updated.position.value}\". Confirmá tu asistencia.",
+        )
+        return updated
 
     async def confirm_assignment(
         self, worker_profile_id: UUID, shift_id: UUID
@@ -90,7 +111,14 @@ class ShiftService:
         """El trabajador asignado confirma su asistencia al turno."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         shift.confirm()
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        await self._notify_company(
+            updated.company_id,
+            NotificationType.SHIFT_CONFIRMED,
+            "Confirmaron un turno",
+            f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.value}\".",
+        )
+        return updated
 
     async def reject_assignment(
         self, worker_profile_id: UUID, shift_id: UUID
@@ -98,7 +126,34 @@ class ShiftService:
         """El trabajador asignado rechaza el turno; vuelve a buscar personal."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         shift.reject()
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        await self._notify_company(
+            updated.company_id,
+            NotificationType.SHIFT_REJECTED,
+            "Rechazaron un turno",
+            f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.value}\". Volvió a buscar personal.",
+        )
+        return updated
+
+    async def _notify_worker(
+        self, worker_profile_id: UUID, type_: NotificationType, title: str, message: str
+    ) -> None:
+        profile = await self._workers.get_by_id(worker_profile_id)
+        if profile is None:
+            return
+        await self._notifications.add(
+            Notification(user_id=profile.user_id, type=type_, title=title, message=message)
+        )
+
+    async def _notify_company(
+        self, company_id: UUID, type_: NotificationType, title: str, message: str
+    ) -> None:
+        profile = await self._companies.get_by_id(company_id)
+        if profile is None:
+            return
+        await self._notifications.add(
+            Notification(user_id=profile.user_id, type=type_, title=title, message=message)
+        )
 
     async def _get_assigned_to(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
         shift = await self.get_shift(shift_id)

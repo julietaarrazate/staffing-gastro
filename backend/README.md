@@ -35,7 +35,10 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
   experiencia, reputación, puntualidad e historial de desempeño. La afinidad con el
   local queda fuera hasta que exista historial de asignaciones (Fase 3+). No depende
   de las entidades de `worker`/`shift`: usa DTOs propios para mantenerse testeable.
-- attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
+- **notification** ✅ — Notificaciones in-app: se generan al asignar, confirmar o
+  rechazar un turno, y se exponen para que cada usuario consulte las suyas y las
+  marque como leídas. No incluye push ni chat en tiempo real (Fase 3+).
+- attendance, payment, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
 
 ## Requisitos
 - Python 3.11+
@@ -100,6 +103,8 @@ Con el servidor corriendo:
 | POST   | `/api/v1/shifts/{id}/assign`  | Asignar el turno a un candidato (rol employer) |
 | POST   | `/api/v1/shifts/{id}/confirm` | Confirmar la asistencia a un turno asignado (rol worker) |
 | POST   | `/api/v1/shifts/{id}/reject`  | Rechazar un turno asignado (rol worker)      |
+| GET    | `/api/v1/notifications`       | Mis notificaciones                           |
+| POST   | `/api/v1/notifications/{id}/read` | Marcar una notificación como leída       |
 
 ## Tests
 ```bash
