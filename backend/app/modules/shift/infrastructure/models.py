@@ -60,6 +60,14 @@ class ShiftModel(Base):
         index=True,
     )
 
+    check_in_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    check_in_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    check_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    check_out_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    check_out_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    check_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

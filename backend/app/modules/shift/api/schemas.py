@@ -52,6 +52,13 @@ class ShiftResponse(BaseModel):
     description: str | None
     status: ShiftStatus
     worker_profile_id: UUID | None
+    check_in_latitude: float | None
+    check_in_longitude: float | None
+    check_in_at: datetime | None
+    check_out_latitude: float | None
+    check_out_longitude: float | None
+    check_out_at: datetime | None
+    paid_at: datetime | None
     created_at: datetime | None = None
 
 
@@ -59,3 +66,10 @@ class AssignWorkerRequest(BaseModel):
     """Payload para asignar el turno a un candidato."""
 
     worker_profile_id: UUID
+
+
+class GeoCheckRequest(BaseModel):
+    """Payload de check-in/check-out con la ubicación del trabajador."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)

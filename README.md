@@ -36,8 +36,11 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 - ✅ Frontend web (Next.js): login/registro, perfiles, feed de turnos con tarjetas,
   publicación de turnos, vista de candidatos y asignación, panel del trabajador
   para confirmar/rechazar turnos asignados.
-- ✅ Notificaciones in-app: asignación, confirmación y rechazo de turnos.
+- ✅ Notificaciones in-app: asignación, confirmación, rechazo, check-out y pago de turnos.
+- ✅ Asistencia geolocalizada: en_camino → check-in (con ubicación) → trabajando →
+  check-out (con ubicación) → finalizado → pagado.
 - ⬜ Chat.
+- ⬜ Pagos reales (hoy `mark-paid` sólo registra que el comercio pagó, no procesa el cobro).
 - ✅ Despliegue (Render + Vercel).
 
 Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).
