@@ -23,10 +23,12 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 
 ## Estado actual
 
-**Fase 1 — Autenticación y perfiles** (en progreso):
+**Fase 1 — Completa** ✅:
 - ✅ `identity`: registro, login, JWT + refresh tokens, roles.
 - ✅ `worker` / `company`: Perfiles de Trabajador y Comercio.
-- ⏳ Publicación de turnos.
+- ✅ `shift`: Publicación de turnos (estados del "Modo Uber" + feed).
+
+**Próximo (Fase 2):** Motor de matching · Notificaciones · Chat.
 
 Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).
 

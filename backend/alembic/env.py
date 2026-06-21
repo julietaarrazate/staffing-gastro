@@ -19,6 +19,7 @@ from app.core.database import Base
 # El import tiene efecto secundario: registra las tablas en Base.metadata.
 from app.modules.company.infrastructure import models as company_models  # noqa: E402,F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: E402,F401
+from app.modules.shift.infrastructure import models as shift_models  # noqa: E402,F401
 from app.modules.worker.infrastructure import models as worker_models  # noqa: E402,F401
 
 config = context.config

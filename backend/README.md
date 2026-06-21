@@ -26,7 +26,9 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
   experiencia, geolocalización), métricas e insignias.
 - **company** ✅ — PerfilComercio: datos (logo, rubro, ubicación, capacidad, horarios)
   y métricas.
-- shift, matching, attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
+- **shift** ✅ — Publicación de turnos: entidad Turno con los estados del "Modo Uber",
+  feed público con filtros y ciclo de vida (borrador → publicado → ... / cancelado).
+- matching, attendance, payment, notification, ai — _pendientes (ver roadmap en `CLAUDE.md`)._
 
 ## Requisitos
 - Python 3.11+
@@ -79,6 +81,13 @@ Con el servidor corriendo:
 | GET    | `/api/v1/companies/me/profile` | Ver mi perfil de comercio                    |
 | PUT    | `/api/v1/companies/me/profile` | Actualizar mi perfil de comercio             |
 | GET    | `/api/v1/companies/{id}`       | Ver perfil público de un comercio            |
+| POST   | `/api/v1/shifts`              | Publicar un turno (rol employer, crea en BORRADOR) |
+| GET    | `/api/v1/shifts/feed`         | Feed de turnos abiertos (con filtros)        |
+| GET    | `/api/v1/shifts/me`           | Mis turnos (comercio)                        |
+| GET    | `/api/v1/shifts/{id}`         | Ver un turno                                 |
+| PUT    | `/api/v1/shifts/{id}`         | Editar un turno (BORRADOR / PUBLICADO)       |
+| POST   | `/api/v1/shifts/{id}/publish` | Publicar un turno en borrador                |
+| POST   | `/api/v1/shifts/{id}/cancel`  | Cancelar un turno                            |
 
 ## Tests
 ```bash
