@@ -97,6 +97,9 @@ def rank_candidates(
             MatchResult(
                 profile_id=candidate.profile_id,
                 user_id=candidate.user_id,
+                full_name=candidate.full_name,
+                photo_url=candidate.photo_url,
+                rating=candidate.rating,
                 score=breakdown.total(weights),
                 distance_km=breakdown.distance_km,
             )

@@ -17,6 +17,8 @@ class CandidateProfile:
 
     profile_id: UUID
     user_id: UUID
+    full_name: str
+    photo_url: str | None
     skills: tuple[WorkerSkill, ...]
     years_experience: int
     rating: float
@@ -43,5 +45,8 @@ class MatchResult:
 
     profile_id: UUID
     user_id: UUID
+    full_name: str
+    photo_url: str | None
+    rating: float
     score: float
     distance_km: float | None
