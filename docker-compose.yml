@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: staffya-db
+    environment:
+      POSTGRES_USER: staffya
+      POSTGRES_PASSWORD: staffya
+      POSTGRES_DB: staffya
+    ports:
+      - "5432:5432"
+    volumes:
+      - staffya_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U staffya"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: staffya-redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    container_name: staffya-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://staffya:staffya@db:5432/staffya
+      JWT_SECRET_KEY: dev-secret-change-me
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  staffya_pgdata:

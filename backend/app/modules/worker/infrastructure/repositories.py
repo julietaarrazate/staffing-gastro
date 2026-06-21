@@ -1,0 +1,95 @@
+"""Adaptador SQLAlchemy del WorkerProfileRepository."""
+
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.modules.worker.domain.entities import WorkerProfile
+from app.modules.worker.domain.repositories import WorkerProfileRepository
+from app.modules.worker.domain.value_objects import (
+    GamificationLevel,
+    WorkerBadge,
+    WorkerSkill,
+)
+from app.modules.worker.infrastructure.models import WorkerProfileModel
+
+
+def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
+    return WorkerProfile(
+        id=model.id,
+        user_id=model.user_id,
+        photo_url=model.photo_url,
+        birth_date=model.birth_date,
+        city=model.city,
+        bio=model.bio,
+        latitude=model.latitude,
+        longitude=model.longitude,
+        skills=[WorkerSkill(s) for s in (model.skills or [])],
+        years_experience=model.years_experience,
+        languages=list(model.languages or []),
+        certifications=list(model.certifications or []),
+        cv_url=model.cv_url,
+        is_available=model.is_available,
+        rating=model.rating,
+        events_completed=model.events_completed,
+        punctuality_rate=model.punctuality_rate,
+        cancellations=model.cancellations,
+        badges=[WorkerBadge(b) for b in (model.badges or [])],
+        level=GamificationLevel(model.level),
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+    )
+
+
+def _apply_editable_fields(model: WorkerProfileModel, profile: WorkerProfile) -> None:
+    """Copia los campos editables del perfil al modelo (no toca métricas)."""
+    model.photo_url = profile.photo_url
+    model.birth_date = profile.birth_date
+    model.city = profile.city
+    model.bio = profile.bio
+    model.latitude = profile.latitude
+    model.longitude = profile.longitude
+    model.skills = [s.value for s in profile.skills]
+    model.years_experience = profile.years_experience
+    model.languages = profile.languages
+    model.certifications = profile.certifications
+    model.cv_url = profile.cv_url
+    model.is_available = profile.is_available
+
+
+class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, profile: WorkerProfile) -> WorkerProfile:
+        model = WorkerProfileModel(id=profile.id, user_id=profile.user_id)
+        _apply_editable_fields(model, profile)
+        self._session.add(model)
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _to_entity(model)
+
+    async def update(self, profile: WorkerProfile) -> WorkerProfile:
+        model = await self._session.get(WorkerProfileModel, profile.id)
+        if model is None:
+            raise ValueError("El perfil no existe")
+        _apply_editable_fields(model, profile)
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _to_entity(model)
+
+    async def get_by_id(self, profile_id: UUID) -> WorkerProfile | None:
+        model = await self._session.get(WorkerProfileModel, profile_id)
+        return _to_entity(model) if model else None
+
+    async def get_by_user_id(self, user_id: UUID) -> WorkerProfile | None:
+        stmt = select(WorkerProfileModel).where(WorkerProfileModel.user_id == user_id)
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _to_entity(model) if model else None
+
+    async def exists_by_user_id(self, user_id: UUID) -> bool:
+        stmt = select(WorkerProfileModel.id).where(WorkerProfileModel.user_id == user_id)
+        result = await self._session.execute(stmt)
+        return result.first() is not None

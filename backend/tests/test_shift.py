@@ -1,0 +1,188 @@
+"""Tests de integración del módulo shift (publicación y ciclo de vida del turno)."""
+
+import pytest
+from httpx import AsyncClient
+
+pytestmark = pytest.mark.asyncio
+
+
+async def _auth_headers(client: AsyncClient, role: str, email: str) -> dict:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "supersecreta123",
+            "full_name": "Test User",
+            "role": role,
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "supersecreta123"},
+    )
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def _employer_with_company(client: AsyncClient, email: str) -> dict:
+    """Empleador con perfil de comercio listo para publicar turnos."""
+    headers = await _auth_headers(client, "employer", email)
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=headers,
+        json={"name": "Bar Palermo", "city": "Palermo"},
+    )
+    return headers
+
+
+def _shift_payload(**overrides) -> dict:
+    payload = {
+        "position": "mozo",
+        "quantity": 2,
+        "start_at": "2026-06-28T20:00:00",
+        "end_at": "2026-06-29T03:00:00",
+        "pay_amount": "70000.00",
+        "tips": True,
+        "dress_code": "Camisa negra",
+        "urgent": True,
+        "city": "Palermo",
+    }
+    payload.update(overrides)
+    return payload
+
+
+async def test_employer_creates_shift_as_draft(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp1@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["position"] == "mozo"
+    assert body["quantity"] == 2
+    assert float(body["pay_amount"]) == 70000.0
+    assert body["status"] == "borrador"
+    assert body["urgent"] is True
+
+
+async def test_employer_without_company_cannot_publish(client: AsyncClient):
+    headers = await _auth_headers(client, "employer", "emp_nc@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    assert response.status_code == 400
+
+
+async def test_worker_cannot_create_shift(client: AsyncClient):
+    headers = await _auth_headers(client, "worker", "mozo_s@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    assert response.status_code == 403
+
+
+async def test_invalid_schedule_rejected(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp2@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts",
+        headers=headers,
+        json=_shift_payload(
+            start_at="2026-06-28T20:00:00", end_at="2026-06-28T19:00:00"
+        ),
+    )
+    assert response.status_code == 400
+
+
+async def test_publish_flow_and_feed(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp3@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+
+    # En borrador todavía no aparece en el feed.
+    feed_before = await client.get("/api/v1/shifts/feed", headers=headers)
+    assert all(s["id"] != shift_id for s in feed_before.json())
+
+    published = await client.post(
+        f"/api/v1/shifts/{shift_id}/publish", headers=headers
+    )
+    assert published.status_code == 200
+    assert published.json()["status"] == "publicado"
+
+    # Ahora sí aparece en el feed.
+    feed_after = await client.get("/api/v1/shifts/feed", headers=headers)
+    assert any(s["id"] == shift_id for s in feed_after.json())
+
+
+async def test_cannot_publish_twice(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp4@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    second = await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    assert second.status_code == 400
+
+
+async def test_cancel_shift(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp5@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    cancelled = await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "cancelado"
+
+
+async def test_cannot_edit_after_cancel(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp6@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
+    update = await client.put(
+        f"/api/v1/shifts/{shift_id}",
+        headers=headers,
+        json=_shift_payload(quantity=5),
+    )
+    assert update.status_code == 400
+
+
+async def test_other_company_cannot_see_or_touch_shift(client: AsyncClient):
+    headers_a = await _employer_with_company(client, "empA@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers_a, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+
+    headers_b = await _employer_with_company(client, "empB@staffya.com")
+    # No aparece en "mis turnos" del otro comercio.
+    mine_b = await client.get("/api/v1/shifts/me", headers=headers_b)
+    assert all(s["id"] != shift_id for s in mine_b.json())
+    # Y no puede cancelarlo.
+    cancel_b = await client.post(
+        f"/api/v1/shifts/{shift_id}/cancel", headers=headers_b
+    )
+    assert cancel_b.status_code == 404
+
+
+async def test_feed_filters_by_position(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp7@staffya.com")
+    for position in ("mozo", "bartender"):
+        created = await client.post(
+            "/api/v1/shifts", headers=headers, json=_shift_payload(position=position)
+        )
+        await client.post(
+            f"/api/v1/shifts/{created.json()['id']}/publish", headers=headers
+        )
+
+    feed = await client.get(
+        "/api/v1/shifts/feed", headers=headers, params={"position": "bartender"}
+    )
+    assert feed.status_code == 200
+    positions = {s["position"] for s in feed.json()}
+    assert positions == {"bartender"}
