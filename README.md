@@ -28,7 +28,10 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 - ✅ `worker` / `company`: Perfiles de Trabajador y Comercio.
 - ✅ `shift`: Publicación de turnos (estados del "Modo Uber" + feed).
 
-**Próximo (Fase 2):** Motor de matching · Notificaciones · Chat.
+**Fase 2 — En progreso** 🚧:
+- ✅ `matching`: motor de scoring (distancia, experiencia, reputación, puntualidad,
+  historial de desempeño) y top de candidatos recomendados por turno.
+- ⬜ Notificaciones · Chat.
 
 Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).
 
