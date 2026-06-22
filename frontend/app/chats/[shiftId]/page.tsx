@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { ChatMessage } from "@/lib/types";
 import { ChevronLeftIcon } from "@/components/icons";
+import { formatShiftTime } from "@/lib/datetime";
 
 export default function ConversationPage() {
   const { token, user } = useAuth();
@@ -89,10 +90,7 @@ export default function ConversationPage() {
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <p className={`mt-1 text-right text-[10px] ${mine ? "text-orange-100" : "text-zinc-400"}`}>
-                  {new Date(m.created_at).toLocaleTimeString("es-AR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatShiftTime(m.created_at)}
                 </p>
               </div>
             </div>
