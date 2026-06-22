@@ -41,7 +41,10 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 - **notification** ✅ — Notificaciones in-app: se generan al asignar, confirmar o
   rechazar un turno, y se exponen para que cada usuario consulte las suyas y las
   marque como leídas. No incluye push ni chat en tiempo real (Fase 3+).
-- payment, chat, ai — _pendientes (ver roadmap en [`../CLAUDE.md`](../CLAUDE.md)).
+- **chat** ✅ — Mensajería trabajador↔comercio por turno: la conversación la
+  integran el comercio y el trabajador asignado. Inbox con la última actividad y
+  no leídos, y avisa al destinatario con una notificación. Polling, sin websockets.
+- payment, ai — _pendientes (ver roadmap en [`../CLAUDE.md`](../CLAUDE.md)).
   El check-in/check-out geolocalizado (asistencia) ya vive dentro de `shift`;
   `payment` falta para procesar el cobro real, hoy `mark-paid` sólo registra que
   el comercio pagó._
@@ -117,6 +120,9 @@ Con el servidor corriendo:
 | POST   | `/api/v1/shifts/{id}/mark-paid` | Confirmar el pago de un turno (rol employer) |
 | GET    | `/api/v1/notifications`       | Mis notificaciones                           |
 | POST   | `/api/v1/notifications/{id}/read` | Marcar una notificación como leída       |
+| GET    | `/api/v1/chats`               | Mis conversaciones (inbox)                   |
+| GET    | `/api/v1/chats/{shift_id}/messages` | Mensajes de la conversación de un turno |
+| POST   | `/api/v1/chats/{shift_id}/messages` | Enviar un mensaje en un turno           |
 
 ## Tests
 ```bash

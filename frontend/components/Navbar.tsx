@@ -22,6 +22,9 @@ export default function Navbar() {
               <Link href="/my-shifts" className="hover:text-orange-600">
                 Mis turnos
               </Link>
+              <Link href="/chats" className="hover:text-orange-600">
+                Mensajes
+              </Link>
               <Link href="/profile" className="hover:text-orange-600">
                 Mi perfil
               </Link>
@@ -31,6 +34,9 @@ export default function Navbar() {
             <>
               <Link href="/shifts" className="hover:text-orange-600">
                 Mis turnos
+              </Link>
+              <Link href="/chats" className="hover:text-orange-600">
+                Mensajes
               </Link>
               <Link href="/profile" className="hover:text-orange-600">
                 Mi comercio

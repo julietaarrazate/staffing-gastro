@@ -77,6 +77,14 @@ export default function MyShiftsPage() {
         {shifts.map((shift) => (
           <ShiftCard key={shift.id} shift={shift}>
             <div className="flex flex-wrap gap-2">
+              {shift.worker_profile_id && shift.status !== "cancelado" && (
+                <Link
+                  href={`/chats/${shift.id}`}
+                  className="rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                >
+                  💬 Chat
+                </Link>
+              )}
               {shift.status === "borrador" && (
                 <button
                   onClick={() => publish(shift.id)}

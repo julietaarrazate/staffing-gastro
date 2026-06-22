@@ -39,7 +39,7 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 - ✅ Notificaciones in-app: asignación, confirmación, rechazo, check-out y pago de turnos.
 - ✅ Asistencia geolocalizada: en_camino → check-in (con ubicación) → trabajando →
   check-out (con ubicación) → finalizado → pagado.
-- ⬜ Chat.
+- ✅ Chat trabajador↔comercio por turno (inbox + conversación con burbujas).
 - ⬜ Pagos reales (hoy `mark-paid` sólo registra que el comercio pagó, no procesa el cobro).
 - ✅ Despliegue (Render + Vercel).
 

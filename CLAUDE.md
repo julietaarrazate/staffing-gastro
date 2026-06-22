@@ -34,20 +34,20 @@ check-in y check-out capturan geolocalización. `reject` vuelve a `BUSCANDO_PERS
 | `worker` / `company` | ✅ | Perfiles + métricas (rating, puntualidad, etc.). |
 | `shift` | ✅ | Publicación, feed y ciclo de vida completo (incluye asistencia geolocalizada). |
 | `matching` | ✅ | Ranking de candidatos (distancia, experiencia, reputación, puntualidad, desempeño). Devuelve nombre, foto y rating. |
-| `notification` | ✅ | In-app: asignación, confirmación, rechazo, check-out, pago. Polling, sin push. |
+| `notification` | ✅ | In-app: asignación, confirmación, rechazo, check-out, pago, mensaje de chat. Polling, sin push. |
+| `chat` | ✅ | Mensajería trabajador↔comercio por turno. Inbox tipo Rappi + vista de conversación con burbujas. |
 | `payment` | ⬜ | Pendiente. Hoy `mark-paid` sólo registra que el comercio pagó, no procesa cobro. |
-| `chat` | ⬜ | Pendiente. |
 | `ai` | ⬜ | Pendiente (recomendaciones, pricing, antifraude). |
 
 ## Qué falta (próximo valor)
-1. **Chat** trabajador↔comercio (no depende de nada externo).
-2. **Pagos reales** — probable **MercadoPago** (Argentina). Requiere decisión de proveedor.
-3. **Panel de administración** (el rol `admin` existe pero no tiene pantallas).
+1. **Pagos reales** — probable **MercadoPago** (Argentina). Requiere decisión de proveedor.
+2. **Panel de administración** (el rol `admin` existe pero no tiene pantallas).
+3. **Landing pública** y logotipo/ícono de la PWA (marca).
 - Futuro (Fase 3): afinidad local en matching, reseñas bidireccionales, push, app nativa (React Native), IA.
 
 ## Deuda técnica
 - `payment` es placeholder (no procesa cobros).
-- Sólo notificaciones in-app con polling (sin push ni chat en tiempo real).
+- Notificaciones y chat son in-app con polling (sin push ni websockets en tiempo real).
 - Rol `admin` sin panel.
 - Algunos warnings de lint pre-existentes en el frontend (`setState` síncrono en `useEffect`).
 

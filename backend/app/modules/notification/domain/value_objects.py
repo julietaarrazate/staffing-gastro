@@ -11,3 +11,4 @@ class NotificationType(str, Enum):
     SHIFT_REJECTED = "shift_rejected"
     SHIFT_CHECKED_OUT = "shift_checked_out"
     SHIFT_PAID = "shift_paid"
+    CHAT_MESSAGE = "chat_message"
