@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from app.core.ws_manager import ws_manager
 from app.modules.chat.application.dtos import ConversationSummary
 from app.modules.chat.domain.entities import ChatMessage
 from app.modules.chat.domain.exceptions import (
@@ -19,6 +20,17 @@ from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 _SNIPPET_MAX = 80
+
+
+def _serialize_message(message: ChatMessage) -> dict:
+    return {
+        "id": str(message.id),
+        "shift_id": str(message.shift_id),
+        "sender_user_id": str(message.sender_user_id),
+        "body": message.body,
+        "read": message.read,
+        "created_at": message.created_at.isoformat() if message.created_at else None,
+    }
 
 
 class ChatService:
@@ -67,7 +79,12 @@ class ChatService:
             worker_user_id if user_id == company_user_id else company_user_id
         )
         await self._notify_recipient(recipient_id, user_id, body)
+        await ws_manager.broadcast_chat(shift_id, _serialize_message(message))
         return message
+
+    async def assert_participant(self, user_id: UUID, shift_id: UUID) -> None:
+        """Verifica que el usuario participe de la conversación (uso en websockets)."""
+        await self._authorize(user_id, shift_id)
 
     async def list_conversations(self, user_id: UUID) -> list[ConversationSummary]:
         """Inbox: una tarjeta por turno con mensajes en el que participa el usuario."""

@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useWebSocket } from "@/lib/useWebSocket";
 import { Notification } from "@/lib/types";
-
-const POLL_INTERVAL_MS = 30_000;
 
 export default function NotificationBell() {
   const { token } = useAuth();
@@ -15,24 +14,19 @@ export default function NotificationBell() {
 
   useEffect(() => {
     if (!token) return;
-
-    let cancelled = false;
-    async function load() {
-      try {
-        const data = await api.get<Notification[]>("/notifications", token);
-        if (!cancelled) setNotifications(data);
-      } catch {
-        // Silenciamos errores de polling: no son críticos para la UX.
-      }
-    }
-
-    load();
-    const interval = setInterval(load, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    api
+      .get<Notification[]>("/notifications", token)
+      .then(setNotifications)
+      .catch(() => {
+        // Si falla la carga inicial, el websocket igual irá entregando lo nuevo.
+      });
   }, [token]);
+
+  useWebSocket<Notification>(token ? "/notifications/ws" : null, token, (notification) => {
+    setNotifications((prev) =>
+      prev.some((n) => n.id === notification.id) ? prev : [notification, ...prev]
+    );
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

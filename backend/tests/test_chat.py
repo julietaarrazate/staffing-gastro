@@ -1,7 +1,13 @@
 """Tests del módulo chat (conversación trabajador ↔ comercio por turno)."""
 
 import pytest
+from fastapi.testclient import TestClient
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from starlette.websockets import WebSocketDisconnect
+
+from app.core.database import Base, get_session
+from app.main import app
 
 pytestmark = pytest.mark.asyncio
 
@@ -156,6 +162,110 @@ async def test_outsider_cannot_access_conversation(client: AsyncClient):
         json={"body": "déjenme entrar"},
     )
     assert send.status_code == 404
+
+
+def test_chat_websocket_pushes_new_messages():
+    """El websocket de la conversación entrega en vivo el mensaje que llega por HTTP."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
+    factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def _create_schema() -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    async def override_get_session():
+        async with factory() as session:
+            yield session
+
+    import asyncio
+
+    asyncio.get_event_loop().run_until_complete(_create_schema())
+    app.dependency_overrides[get_session] = override_get_session
+
+    try:
+        with TestClient(app) as client:
+            employer = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "ws_emp@staffya.com",
+                    "password": "supersecreta123",
+                    "full_name": "Bar WS",
+                    "role": "employer",
+                },
+            )
+            assert employer.status_code == 201
+            employer_login = client.post(
+                "/api/v1/auth/login",
+                json={"email": "ws_emp@staffya.com", "password": "supersecreta123"},
+            )
+            employer_token = employer_login.json()["access_token"]
+            employer_headers = {"Authorization": f"Bearer {employer_token}"}
+            client.post(
+                "/api/v1/companies/me/profile",
+                headers=employer_headers,
+                json={"name": "Bar WS", "city": "Palermo"},
+            )
+
+            worker_register = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "ws_worker@staffya.com",
+                    "password": "supersecreta123",
+                    "full_name": "Worker WS",
+                    "role": "worker",
+                },
+            )
+            assert worker_register.status_code == 201
+            worker_login = client.post(
+                "/api/v1/auth/login",
+                json={"email": "ws_worker@staffya.com", "password": "supersecreta123"},
+            )
+            worker_token = worker_login.json()["access_token"]
+            worker_headers = {"Authorization": f"Bearer {worker_token}"}
+            worker_profile = client.post(
+                "/api/v1/workers/me/profile",
+                headers=worker_headers,
+                json={"skills": ["mozo"]},
+            )
+            worker_profile_id = worker_profile.json()["id"]
+
+            created = client.post(
+                "/api/v1/shifts",
+                headers=employer_headers,
+                json={
+                    "position": "mozo",
+                    "quantity": 1,
+                    "start_at": "2026-06-28T20:00:00",
+                    "end_at": "2026-06-29T03:00:00",
+                    "pay_amount": "70000.00",
+                    "city": "Palermo",
+                },
+            )
+            shift_id = created.json()["id"]
+            client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+            client.post(
+                f"/api/v1/shifts/{shift_id}/assign",
+                headers=employer_headers,
+                json={"worker_profile_id": worker_profile_id},
+            )
+
+            with client.websocket_connect(
+                f"/api/v1/chats/{shift_id}/ws?token={worker_token}"
+            ) as ws:
+                client.post(
+                    f"/api/v1/chats/{shift_id}/messages",
+                    headers=employer_headers,
+                    json={"body": "¡Llegó tu turno!"},
+                )
+                received = ws.receive_json()
+                assert received["body"] == "¡Llegó tu turno!"
+
+            # Sin token, el handshake se rechaza.
+            with pytest.raises(WebSocketDisconnect):
+                with client.websocket_connect(f"/api/v1/chats/{shift_id}/ws"):
+                    pass
+    finally:
+        app.dependency_overrides.clear()
 
 
 async def test_no_chat_before_worker_assigned(client: AsyncClient):

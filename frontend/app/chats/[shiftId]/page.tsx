@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useWebSocket } from "@/lib/useWebSocket";
 import { ChatMessage } from "@/lib/types";
 import { ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
@@ -36,9 +37,11 @@ export default function ConversationPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
   }, [load]);
+
+  useWebSocket<ChatMessage>(token ? `/chats/${shiftId}/ws` : null, token, (message) => {
+    setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+  });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

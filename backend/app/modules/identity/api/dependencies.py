@@ -7,7 +7,7 @@ y resuelve el usuario autenticado a partir del token Bearer.
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, WebSocket, WebSocketException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,6 +44,25 @@ async def get_current_user(
             detail="No autorizado",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+
+
+async def get_current_user_ws(
+    websocket: WebSocket,
+    service: Annotated[IdentityService, Depends(get_identity_service)],
+    token: Annotated[str | None, Query()] = None,
+) -> User:
+    """Resuelve el usuario autenticado en un handshake WebSocket.
+
+    No hay header Authorization disponible en un WebSocket del navegador,
+    así que el access token viaja como query param (`?token=...`).
+    """
+    if token is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+    try:
+        return await service.get_current_user(token)
+    except (InvalidTokenError, UserNotFoundError, InactiveUserError) as exc:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
 
 
 def require_roles(*roles: UserRole) -> Callable[[User], User]:
