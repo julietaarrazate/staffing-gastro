@@ -6,7 +6,18 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
-import { CheckCircleIcon, MessageIcon, WalletIcon } from "@/components/icons";
+import {
+  CardSkeletons,
+  EmptyState,
+  ErrorBanner,
+  PageHeader,
+} from "@/components/PageState";
+import {
+  CheckCircleIcon,
+  ClipboardIcon,
+  MessageIcon,
+  WalletIcon,
+} from "@/components/icons";
 
 export default function MyShiftsPage() {
   const { token } = useAuth();
@@ -58,20 +69,27 @@ export default function MyShiftsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Mis turnos</h1>
-        <Link
-          href="/shifts/new"
-          className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-        >
-          + Publicar turno
-        </Link>
-      </div>
+      <PageHeader
+        title="Mis turnos"
+        subtitle="Publicá y gestioná los turnos de tu comercio."
+        action={
+          <Link
+            href="/shifts/new"
+            className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+          >
+            + Publicar turno
+          </Link>
+        }
+      />
 
-      {loading && <p className="mt-8 text-zinc-500">Cargando...</p>}
-      {error && <p className="mt-8 text-red-600">{error}</p>}
-      {!loading && shifts.length === 0 && !error && (
-        <p className="mt-8 text-zinc-500">Todavía no publicaste ningún turno.</p>
+      {loading && <CardSkeletons />}
+      {error && <ErrorBanner message={error} />}
+      {!loading && !error && shifts.length === 0 && (
+        <EmptyState
+          icon={<ClipboardIcon size={26} />}
+          title="Todavía no publicaste turnos"
+          subtitle="Creá tu primer turno y empezá a recibir candidatos en minutos."
+        />
       )}
 
       <div className="mt-6 grid gap-4">

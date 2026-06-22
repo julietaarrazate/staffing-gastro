@@ -8,6 +8,13 @@ import { Shift } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
 import {
+  CardSkeletons,
+  EmptyState,
+  ErrorBanner,
+  PageHeader,
+} from "@/components/PageState";
+import {
+  BriefcaseIcon,
   CheckIcon,
   MapPinIcon,
   MessageIcon,
@@ -90,16 +97,20 @@ export default function MyAssignedShiftsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Mis turnos asignados</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Acá aparecen los turnos que un comercio te asignó. Confirmá tu asistencia o rechazá si no podés.
-      </p>
+      <PageHeader
+        title="Mis turnos asignados"
+        subtitle="Acá aparecen los turnos que un comercio te asignó. Confirmá tu asistencia o rechazá si no podés."
+      />
 
-      {loading && <p className="mt-8 text-zinc-500">Cargando...</p>}
-      {error && <p className="mt-8 text-red-600">{error}</p>}
-      {geoError && <p className="mt-4 text-red-600">{geoError}</p>}
-      {!loading && shifts.length === 0 && !error && (
-        <p className="mt-8 text-zinc-500">Todavía no tenés turnos asignados.</p>
+      {loading && <CardSkeletons />}
+      {error && <ErrorBanner message={error} />}
+      {geoError && <ErrorBanner message={geoError} />}
+      {!loading && !error && shifts.length === 0 && (
+        <EmptyState
+          icon={<BriefcaseIcon size={26} />}
+          title="Todavía no tenés turnos asignados"
+          subtitle="Cuando un comercio te asigne un turno del feed, va a aparecer acá."
+        />
       )}
 
       <div className="mt-6 grid gap-4">

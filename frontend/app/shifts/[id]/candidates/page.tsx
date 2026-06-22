@@ -6,6 +6,13 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
+import {
+  CardSkeletons,
+  EmptyState,
+  ErrorBanner,
+  PageHeader,
+} from "@/components/PageState";
+import { UsersIcon } from "@/components/icons";
 
 export default function ShiftCandidatesPage() {
   const { token } = useAuth();
@@ -44,15 +51,19 @@ export default function ShiftCandidatesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Candidatos</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Estos son los trabajadores recomendados para este turno, ordenados por afinidad.
-      </p>
+      <PageHeader
+        title="Candidatos"
+        subtitle="Estos son los trabajadores recomendados para este turno, ordenados por afinidad."
+      />
 
-      {loading && <p className="mt-8 text-zinc-500">Cargando candidatos...</p>}
-      {error && <p className="mt-8 text-red-600">{error}</p>}
-      {!loading && candidates.length === 0 && !error && (
-        <p className="mt-8 text-zinc-500">No hay candidatos disponibles para este turno todavía.</p>
+      {loading && <CardSkeletons />}
+      {error && <ErrorBanner message={error} />}
+      {!loading && !error && candidates.length === 0 && (
+        <EmptyState
+          icon={<UsersIcon size={26} />}
+          title="Sin candidatos por ahora"
+          subtitle="Todavía no hay trabajadores disponibles para este turno. El sistema sigue buscando en tiempo real."
+        />
       )}
 
       <div className="mt-6 grid gap-4">
