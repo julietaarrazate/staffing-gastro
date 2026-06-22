@@ -18,8 +18,16 @@ class UserRepository(ABC):
         """Persiste un nuevo usuario y lo devuelve."""
 
     @abstractmethod
+    async def update(self, user: User) -> User:
+        """Actualiza un usuario existente (rol, estado, verificación) y lo devuelve."""
+
+    @abstractmethod
     async def get_by_id(self, user_id: UUID) -> User | None:
         """Busca un usuario por su id."""
+
+    @abstractmethod
+    async def list_all(self) -> list[User]:
+        """Lista todos los usuarios (más recientes primero)."""
 
     @abstractmethod
     async def get_by_email(self, email: str) -> User | None:

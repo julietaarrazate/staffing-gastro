@@ -17,29 +17,29 @@ export default function Navbar() {
         <nav className="flex items-center gap-4 text-sm font-medium">
           {!loading && user?.role === "worker" && (
             <>
-              <Link href="/feed" className="hover:text-orange-600">
+              <Link href="/feed" className="hidden hover:text-orange-600 md:inline">
                 Turnos
               </Link>
-              <Link href="/my-shifts" className="hover:text-orange-600">
+              <Link href="/my-shifts" className="hidden hover:text-orange-600 md:inline">
                 Mis turnos
               </Link>
-              <Link href="/chats" className="hover:text-orange-600">
+              <Link href="/chats" className="hidden hover:text-orange-600 md:inline">
                 Mensajes
               </Link>
-              <Link href="/profile" className="hover:text-orange-600">
+              <Link href="/profile" className="hidden hover:text-orange-600 md:inline">
                 Mi perfil
               </Link>
             </>
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <Link href="/shifts" className="hover:text-orange-600">
+              <Link href="/shifts" className="hidden hover:text-orange-600 md:inline">
                 Mis turnos
               </Link>
-              <Link href="/chats" className="hover:text-orange-600">
+              <Link href="/chats" className="hidden hover:text-orange-600 md:inline">
                 Mensajes
               </Link>
-              <Link href="/profile" className="hover:text-orange-600">
+              <Link href="/profile" className="hidden hover:text-orange-600 md:inline">
                 Mi comercio
               </Link>
             </>
@@ -48,7 +48,7 @@ export default function Navbar() {
           {!loading && user && (
             <button
               onClick={logout}
-              className="rounded-full bg-zinc-100 px-3 py-1.5 hover:bg-zinc-200"
+              className="hidden rounded-full bg-zinc-100 px-3 py-1.5 hover:bg-zinc-200 md:inline"
             >
               Salir ({user.full_name})
             </button>

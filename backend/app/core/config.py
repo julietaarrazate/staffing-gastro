@@ -47,6 +47,19 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    # --- Administración ---
+    # Emails que se promueven a rol admin al iniciar la app (separados por coma).
+    # Permite dar de alta al primer administrador sin endpoint de auto-registro.
+    admin_emails: str = ""
+
+    @property
+    def admin_emails_list(self) -> list[str]:
+        return [
+            email.strip().lower()
+            for email in self.admin_emails.split(",")
+            if email.strip()
+        ]
+
 
 @lru_cache
 def get_settings() -> Settings:

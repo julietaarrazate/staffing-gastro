@@ -1,0 +1,53 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import {
+  CalendarIcon,
+  ClipboardIcon,
+  MessageIcon,
+  UsersIcon,
+} from "@/components/icons";
+
+const WORKER_TABS = [
+  { href: "/feed", label: "Turnos", Icon: CalendarIcon },
+  { href: "/my-shifts", label: "Mis turnos", Icon: ClipboardIcon },
+  { href: "/chats", label: "Mensajes", Icon: MessageIcon },
+  { href: "/profile", label: "Perfil", Icon: UsersIcon },
+];
+
+const EMPLOYER_TABS = [
+  { href: "/shifts", label: "Mis turnos", Icon: ClipboardIcon },
+  { href: "/chats", label: "Mensajes", Icon: MessageIcon },
+  { href: "/profile", label: "Comercio", Icon: UsersIcon },
+];
+
+export default function BottomNav() {
+  const { user, loading } = useAuth();
+  const pathname = usePathname();
+
+  if (loading || !user) return null;
+
+  const tabs = user.role === "worker" ? WORKER_TABS : EMPLOYER_TABS;
+
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      {tabs.map(({ href, label, Icon }) => {
+        const active = pathname === href || pathname.startsWith(`${href}/`);
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium ${
+              active ? "text-orange-600" : "text-zinc-400"
+            }`}
+          >
+            <Icon size={22} />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
