@@ -140,7 +140,29 @@ export interface WorkerProfile {
 export type NotificationType =
   | "shift_assigned"
   | "shift_confirmed"
-  | "shift_rejected";
+  | "shift_rejected"
+  | "shift_checked_out"
+  | "shift_paid"
+  | "chat_message";
+
+export interface ChatMessage {
+  id: string;
+  shift_id: string;
+  sender_user_id: string;
+  body: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface Conversation {
+  shift_id: string;
+  shift_title: string;
+  other_party_name: string;
+  other_party_photo: string | null;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+}
 
 export interface Notification {
   id: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
@@ -97,6 +98,14 @@ export default function MyAssignedShiftsPage() {
       <div className="mt-6 grid gap-4">
         {shifts.map((shift) => (
           <ShiftCard key={shift.id} shift={shift}>
+            {shift.status !== "cancelado" && (
+              <Link
+                href={`/chats/${shift.id}`}
+                className="mb-2 inline-block rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+              >
+                💬 Chatear con el comercio
+              </Link>
+            )}
             {shift.status === "asignado" && (
               <div className="flex flex-wrap gap-2">
                 <button

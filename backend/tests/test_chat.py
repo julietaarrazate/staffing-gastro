@@ -1,0 +1,181 @@
+"""Tests del módulo chat (conversación trabajador ↔ comercio por turno)."""
+
+import pytest
+from httpx import AsyncClient
+
+pytestmark = pytest.mark.asyncio
+
+
+async def _auth_headers(client: AsyncClient, role: str, email: str, name: str) -> dict:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "supersecreta123",
+            "full_name": name,
+            "role": role,
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "supersecreta123"},
+    )
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def _employer_with_company(client: AsyncClient, email: str) -> dict:
+    headers = await _auth_headers(client, "employer", email, "Bar Palermo")
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=headers,
+        json={"name": "Bar Palermo", "city": "Palermo"},
+    )
+    return headers
+
+
+async def _worker_with_profile(client: AsyncClient, email: str, name: str):
+    headers = await _auth_headers(client, "worker", email, name)
+    profile = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=headers,
+        json={"skills": ["mozo"]},
+    )
+    return headers, profile.json()["id"]
+
+
+async def _assigned_shift(client: AsyncClient, emp_email: str, worker_email: str):
+    employer_headers = await _employer_with_company(client, emp_email)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": "2026-06-28T20:00:00",
+            "end_at": "2026-06-29T03:00:00",
+            "pay_amount": "70000.00",
+            "city": "Palermo",
+        },
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, worker_email, "Juana Trabajadora"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    return shift_id, employer_headers, worker_headers
+
+
+async def test_send_and_read_messages(client: AsyncClient):
+    shift_id, employer_headers, worker_headers = await _assigned_shift(
+        client, "chat_emp1@staffya.com", "chat_w1@staffya.com"
+    )
+
+    sent = await client.post(
+        f"/api/v1/chats/{shift_id}/messages",
+        headers=employer_headers,
+        json={"body": "Hola! ¿Confirmás que venís?"},
+    )
+    assert sent.status_code == 201
+    assert sent.json()["body"] == "Hola! ¿Confirmás que venís?"
+
+    reply = await client.post(
+        f"/api/v1/chats/{shift_id}/messages",
+        headers=worker_headers,
+        json={"body": "Sí, ahí voy"},
+    )
+    assert reply.status_code == 201
+
+    messages = await client.get(
+        f"/api/v1/chats/{shift_id}/messages", headers=worker_headers
+    )
+    assert messages.status_code == 200
+    bodies = [m["body"] for m in messages.json()]
+    assert bodies == ["Hola! ¿Confirmás que venís?", "Sí, ahí voy"]
+
+
+async def test_recipient_gets_notification(client: AsyncClient):
+    shift_id, employer_headers, worker_headers = await _assigned_shift(
+        client, "chat_emp2@staffya.com", "chat_w2@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/chats/{shift_id}/messages",
+        headers=employer_headers,
+        json={"body": "Traé tu uniforme negro"},
+    )
+    notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert any(n["type"] == "chat_message" for n in notifications.json())
+
+
+async def test_inbox_lists_conversation_with_unread_count(client: AsyncClient):
+    shift_id, employer_headers, worker_headers = await _assigned_shift(
+        client, "chat_emp3@staffya.com", "chat_w3@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/chats/{shift_id}/messages",
+        headers=employer_headers,
+        json={"body": "¿Llegás en horario?"},
+    )
+
+    inbox = await client.get("/api/v1/chats", headers=worker_headers)
+    assert inbox.status_code == 200
+    convos = inbox.json()
+    assert len(convos) == 1
+    assert convos[0]["shift_id"] == shift_id
+    assert convos[0]["other_party_name"] == "Bar Palermo"
+    assert convos[0]["last_message"] == "¿Llegás en horario?"
+    assert convos[0]["unread_count"] == 1
+
+    # Al abrir la conversación, los mensajes recibidos quedan leídos.
+    await client.get(f"/api/v1/chats/{shift_id}/messages", headers=worker_headers)
+    inbox_after = await client.get("/api/v1/chats", headers=worker_headers)
+    assert inbox_after.json()[0]["unread_count"] == 0
+
+
+async def test_outsider_cannot_access_conversation(client: AsyncClient):
+    shift_id, _employer_headers, _worker_headers = await _assigned_shift(
+        client, "chat_emp4@staffya.com", "chat_w4@staffya.com"
+    )
+    intruder_headers, _ = await _worker_with_profile(
+        client, "chat_intruder@staffya.com", "Intruso"
+    )
+    response = await client.get(
+        f"/api/v1/chats/{shift_id}/messages", headers=intruder_headers
+    )
+    assert response.status_code == 404
+
+    send = await client.post(
+        f"/api/v1/chats/{shift_id}/messages",
+        headers=intruder_headers,
+        json={"body": "déjenme entrar"},
+    )
+    assert send.status_code == 404
+
+
+async def test_no_chat_before_worker_assigned(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "chat_emp5@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": "2026-06-28T20:00:00",
+            "end_at": "2026-06-29T03:00:00",
+            "pay_amount": "70000.00",
+            "city": "Palermo",
+        },
+    )
+    shift_id = created.json()["id"]
+    response = await client.post(
+        f"/api/v1/chats/{shift_id}/messages",
+        headers=employer_headers,
+        json={"body": "hola?"},
+    )
+    assert response.status_code == 404

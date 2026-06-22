@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.modules.chat.api.routes import router as chat_router
 from app.modules.company.api.routes import router as company_router
 from app.modules.identity.api.routes import router as identity_router
 from app.modules.matching.api.routes import router as matching_router
@@ -42,3 +43,4 @@ app.include_router(company_router, prefix="/api/v1")
 app.include_router(shift_router, prefix="/api/v1")
 app.include_router(matching_router, prefix="/api/v1")
 app.include_router(notification_router, prefix="/api/v1")
+app.include_router(chat_router, prefix="/api/v1")
