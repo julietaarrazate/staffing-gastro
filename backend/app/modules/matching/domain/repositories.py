@@ -10,7 +10,7 @@ class CandidateRepository(ABC):
     """Puerto de lectura de candidatos elegibles para un turno."""
 
     @abstractmethod
-    async def list_available_by_skill(
-        self, skill: WorkerSkill
+    async def list_available(
+        self, skill: WorkerSkill | None = None
     ) -> list[CandidateProfile]:
-        """Lista trabajadores disponibles que tengan la habilidad pedida."""
+        """Lista trabajadores disponibles, opcionalmente filtrados por habilidad."""

@@ -126,3 +126,47 @@ async def test_worker_cannot_request_candidates(client: AsyncClient):
         f"/api/v1/shifts/{shift_id}/candidates", headers=worker_headers
     )
     assert response.status_code == 403
+
+
+async def test_search_workers_filters_by_skill_and_radius(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp4@staffya.com")
+    await _worker_profile(client, "near_mozo@staffya.com", skills=["mozo"])
+    await _worker_profile(
+        client,
+        "far_mozo@staffya.com",
+        skills=["mozo"],
+        latitude=-31.4,
+        longitude=-64.2,
+    )
+    await _worker_profile(client, "near_bartender@staffya.com", skills=["bartender"])
+
+    response = await client.get(
+        "/api/v1/matching/search",
+        headers=employer_headers,
+        params={
+            "skill": "mozo",
+            "latitude": -34.58,
+            "longitude": -58.43,
+            "radius_km": 25,
+        },
+    )
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 1
+    assert results[0]["distance_km"] < 1
+
+
+async def test_search_workers_without_filters_returns_all_available(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp5@staffya.com")
+    await _worker_profile(client, "any1@staffya.com", skills=["mozo"])
+    await _worker_profile(client, "any2@staffya.com", skills=["bartender"])
+
+    response = await client.get("/api/v1/matching/search", headers=employer_headers)
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+
+
+async def test_worker_cannot_search_map(client: AsyncClient):
+    worker_headers = await _auth_headers(client, "worker", "w6@staffya.com")
+    response = await client.get("/api/v1/matching/search", headers=worker_headers)
+    assert response.status_code == 403

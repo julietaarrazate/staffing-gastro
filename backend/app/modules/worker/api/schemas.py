@@ -34,6 +34,7 @@ class WorkerProfileResponse(BaseModel):
 
     id: UUID
     user_id: UUID
+    full_name: str | None = None
     photo_url: str | None
     birth_date: date | None
     age: int | None

@@ -3,6 +3,7 @@ export type UserRole = "worker" | "employer" | "admin";
 export type WorkerSkill =
   | "mozo"
   | "bartender"
+  | "barista"
   | "runner"
   | "cocinero"
   | "cajero"
@@ -14,6 +15,7 @@ export type WorkerSkill =
 export const WORKER_SKILLS: WorkerSkill[] = [
   "mozo",
   "bartender",
+  "barista",
   "runner",
   "cocinero",
   "cajero",
@@ -26,6 +28,7 @@ export const WORKER_SKILLS: WorkerSkill[] = [
 export const SKILL_LABELS: Record<WorkerSkill, string> = {
   mozo: "Mozo/a",
   bartender: "Bartender",
+  barista: "Barista",
   runner: "Runner",
   cocinero: "Cocinero/a",
   cajero: "Cajero/a",
@@ -110,6 +113,18 @@ export interface CandidateMatch {
   photo_url: string | null;
   rating: number;
   score: number;
+  distance_km: number | null;
+}
+
+export interface WorkerMapResult {
+  profile_id: string;
+  user_id: string;
+  full_name: string;
+  photo_url: string | null;
+  rating: number;
+  skills: WorkerSkill[];
+  latitude: number | null;
+  longitude: number | null;
   distance_km: number | null;
 }
 

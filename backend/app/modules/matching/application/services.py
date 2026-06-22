@@ -2,7 +2,12 @@
 
 from uuid import UUID
 
-from app.modules.matching.domain.entities import MatchResult, ShiftRequirement
+from app.core.geo import haversine_km
+from app.modules.matching.domain.entities import (
+    MatchResult,
+    ShiftRequirement,
+    WorkerMapResult,
+)
 from app.modules.matching.domain.repositories import CandidateRepository
 from app.modules.matching.domain.scoring import rank_candidates
 from app.modules.matching.domain.value_objects import (
@@ -12,6 +17,7 @@ from app.modules.matching.domain.value_objects import (
 )
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.worker.domain.value_objects import WorkerSkill
 
 
 class MatchingService:
@@ -43,6 +49,40 @@ class MatchingService:
             latitude=shift.latitude,
             longitude=shift.longitude,
         )
-        candidates = await self._candidates.list_available_by_skill(shift.position)
+        candidates = await self._candidates.list_available(shift.position)
         ranked = rank_candidates(candidates, requirement, weights, max_radius_km)
         return ranked[:limit]
+
+    async def search_workers(
+        self,
+        *,
+        skill: WorkerSkill | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        radius_km: float | None = None,
+    ) -> list[WorkerMapResult]:
+        """Busca trabajadores disponibles para mostrar en el mapa, por rol y distancia."""
+        candidates = await self._candidates.list_available(skill)
+        results = []
+        for candidate in candidates:
+            distance_km = haversine_km(
+                candidate.latitude, candidate.longitude, latitude, longitude
+            )
+            if radius_km is not None and (distance_km is None or distance_km > radius_km):
+                continue
+            results.append(
+                WorkerMapResult(
+                    profile_id=candidate.profile_id,
+                    user_id=candidate.user_id,
+                    full_name=candidate.full_name,
+                    photo_url=candidate.photo_url,
+                    rating=candidate.rating,
+                    skills=candidate.skills,
+                    latitude=candidate.latitude,
+                    longitude=candidate.longitude,
+                    distance_km=distance_km,
+                )
+            )
+        return sorted(
+            results, key=lambda r: (r.distance_km is None, r.distance_km or 0.0)
+        )

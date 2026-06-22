@@ -8,6 +8,7 @@ class WorkerSkill(str, Enum):
 
     MOZO = "mozo"
     BARTENDER = "bartender"
+    BARISTA = "barista"
     RUNNER = "runner"
     COCINERO = "cocinero"
     CAJERO = "cajero"

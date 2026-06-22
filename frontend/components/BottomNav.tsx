@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   CalendarIcon,
   ClipboardIcon,
+  MapPinIcon,
   MessageIcon,
   ShieldIcon,
   UsersIcon,
@@ -20,6 +21,7 @@ const WORKER_TABS = [
 
 const EMPLOYER_TABS = [
   { href: "/shifts", label: "Mis turnos", Icon: ClipboardIcon },
+  { href: "/search", label: "Buscar", Icon: MapPinIcon },
   { href: "/chats", label: "Mensajes", Icon: MessageIcon },
   { href: "/profile", label: "Comercio", Icon: UsersIcon },
 ];

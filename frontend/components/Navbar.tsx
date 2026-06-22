@@ -36,6 +36,9 @@ export default function Navbar() {
               <Link href="/shifts" className="hidden hover:text-orange-600 md:inline">
                 Mis turnos
               </Link>
+              <Link href="/search" className="hidden hover:text-orange-600 md:inline">
+                Buscar
+              </Link>
               <Link href="/chats" className="hidden hover:text-orange-600 md:inline">
                 Mensajes
               </Link>
