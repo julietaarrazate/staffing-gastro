@@ -140,3 +140,28 @@ alembic revision --autogenerate -m "descripcion"
 # Aplicar
 alembic upgrade head
 ```
+
+## Base de datos en producción: Neon en vez del Postgres de Render
+
+El Postgres free tier de Render **expira a los 90 días y se borra**, lo cual no
+sirve para un proyecto en producción. [Neon](https://neon.tech) es Postgres
+serverless, sin expiración, con soporte nativo de PostGIS (lo necesitamos para
+matching por distancia) y branching de base de datos. El backend (FastAPI +
+SQLAlchemy async + asyncpg) no necesita ningún cambio de código: Neon entrega
+una connection string `postgresql://` estándar y `Settings._force_asyncpg_driver`
+(`app/core/config.py`) ya la convierte a `postgresql+asyncpg://` automáticamente.
+
+Pasos para migrar (todo se hace en los dashboards, nunca pegando credenciales en el chat):
+1. Crear un proyecto en [neon.tech](https://neon.tech) (plan free) y copiar la
+   connection string que ofrece (con `?sslmode=require`).
+2. En Render, abrir el servicio del backend → **Environment** → actualizar la
+   variable `DATABASE_URL` con la connection string de Neon.
+3. Activar PostGIS en Neon (una vez, desde el SQL editor de Neon):
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS postgis;
+   ```
+4. Aplicar las migraciones contra la base de Neon: con `DATABASE_URL` apuntando
+   a Neon en el entorno local, correr `alembic upgrade head`.
+5. Redeploy del servicio en Render para que tome la nueva variable.
+6. Una vez confirmado que todo funciona, eliminar la instancia de Postgres
+   vieja en Render para no dejar datos sensibles huérfanos.
