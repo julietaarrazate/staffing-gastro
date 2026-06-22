@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import User
@@ -61,3 +61,18 @@ class SqlAlchemyUserRepository(UserRepository):
         stmt = select(UserModel.id).where(func.lower(UserModel.email) == email.lower())
         result = await self._session.execute(stmt)
         return result.first() is not None
+
+    async def update(self, user: User) -> User:
+        model = await self._session.get(UserModel, user.id)
+        model.role = user.role.value
+        model.status = user.status.value
+        model.is_verified = user.is_verified
+        model.full_name = user.full_name
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _to_entity(model)
+
+    async def list_all(self) -> list[User]:
+        stmt = select(UserModel).order_by(desc(UserModel.created_at))
+        result = await self._session.execute(stmt)
+        return [_to_entity(model) for model in result.scalars().all()]

@@ -35,3 +35,9 @@ class User:
 
     def suspend(self) -> None:
         self.status = UserStatus.SUSPENDED
+
+    def activate(self) -> None:
+        self.status = UserStatus.ACTIVE
+
+    def promote_to_admin(self) -> None:
+        self.role = UserRole.ADMIN
