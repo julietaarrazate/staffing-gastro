@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
+import { localInputToArgentinaISO } from "@/lib/datetime";
+import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 
 export default function NewShiftPage() {
   const { token } = useAuth();
@@ -20,8 +22,8 @@ export default function NewShiftPage() {
   const [dressCode, setDressCode] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +37,8 @@ export default function NewShiftPage() {
     const payload = {
       position,
       quantity,
-      start_at: startAt,
-      end_at: endAt,
+      start_at: localInputToArgentinaISO(startAt),
+      end_at: localInputToArgentinaISO(endAt),
       pay_amount: payAmount,
       currency,
       tips,
@@ -44,8 +46,8 @@ export default function NewShiftPage() {
       dress_code: dressCode || null,
       address: address || null,
       city: city || null,
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null,
+      latitude,
+      longitude,
       title: title || null,
       description: description || null,
     };
@@ -168,42 +170,37 @@ export default function NewShiftPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">Dirección</label>
-          <input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
+          <label className="block text-sm font-medium text-zinc-700">Ubicación</label>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Elegí provincia y barrio/ciudad: completamos las coordenadas solas para
+            recomendarte a la gente más cercana.
+          </p>
+          <div className="mt-2">
+            <LocationPicker
+              onSelect={(loc: LocationSelection) => {
+                setCity(loc.city);
+                setLatitude(loc.latitude);
+                setLongitude(loc.longitude);
+              }}
+            />
+          </div>
+          {city && (
+            <p className="mt-2 text-sm font-medium text-zinc-700">
+              Ubicación seleccionada: <span className="text-orange-600">{city}</span>
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">Ciudad</label>
+          <label className="block text-sm font-medium text-zinc-700">
+            Dirección <span className="font-normal text-zinc-400">(opcional)</span>
+          </label>
           <input
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Calle y número, piso, referencia…"
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Latitud</label>
-            <input
-              value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
-              placeholder="-34.58"
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Longitud</label>
-            <input
-              value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
-              placeholder="-58.43"
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-            />
-          </div>
         </div>
 
         <div>

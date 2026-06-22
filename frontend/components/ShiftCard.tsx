@@ -1,5 +1,6 @@
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { CalendarIcon, FlameIcon, UsersIcon } from "@/components/icons";
+import { formatShiftRange } from "@/lib/datetime";
 
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-zinc-200 text-zinc-700",
@@ -23,9 +24,6 @@ export default function ShiftCard({
   shift: Shift;
   children?: React.ReactNode;
 }) {
-  const start = new Date(shift.start_at);
-  const end = new Date(shift.end_at);
-
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 transition hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
@@ -56,8 +54,7 @@ export default function ShiftCard({
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-zinc-600">
         <span className="inline-flex items-center gap-1.5">
           <CalendarIcon size={15} className="text-zinc-400" />
-          {start.toLocaleDateString("es-AR")} · {start.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} a{" "}
-          {end.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+          {formatShiftRange(shift.start_at, shift.end_at)}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <UsersIcon size={15} className="text-zinc-400" />

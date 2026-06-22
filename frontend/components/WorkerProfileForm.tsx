@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
+import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 
 export default function WorkerProfileForm() {
   const { token } = useAuth();
@@ -12,8 +13,8 @@ export default function WorkerProfileForm() {
   const [city, setCity] = useState("");
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
   const [yearsExperience, setYearsExperience] = useState(0);
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -29,8 +30,8 @@ export default function WorkerProfileForm() {
         setCity(p.city ?? "");
         setSkills(p.skills);
         setYearsExperience(p.years_experience);
-        setLatitude(p.latitude?.toString() ?? "");
-        setLongitude(p.longitude?.toString() ?? "");
+        setLatitude(p.latitude ?? null);
+        setLongitude(p.longitude ?? null);
         setIsAvailable(p.is_available);
       })
       .catch(() => setExists(false))
@@ -51,8 +52,8 @@ export default function WorkerProfileForm() {
       city: city || null,
       skills,
       years_experience: yearsExperience,
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null,
+      latitude,
+      longitude,
       is_available: isAvailable,
     };
     try {
@@ -81,33 +82,24 @@ export default function WorkerProfileForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Ciudad</label>
-        <input
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Latitud</label>
-          <input
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            placeholder="-34.58"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+        <label className="block text-sm font-medium text-zinc-700">Ubicación</label>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          Tu zona define a qué turnos te recomendamos primero (los más cercanos).
+        </p>
+        <div className="mt-2">
+          <LocationPicker
+            onSelect={(loc: LocationSelection) => {
+              setCity(loc.city);
+              setLatitude(loc.latitude);
+              setLongitude(loc.longitude);
+            }}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Longitud</label>
-          <input
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            placeholder="-58.43"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
+        {city && (
+          <p className="mt-2 text-sm font-medium text-zinc-700">
+            Tu zona: <span className="text-orange-600">{city}</span>
+          </p>
+        )}
       </div>
 
       <div>

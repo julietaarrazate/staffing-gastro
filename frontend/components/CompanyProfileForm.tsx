@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
+import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
   const [exists, setExists] = useState(false);
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -24,8 +25,8 @@ export default function CompanyProfileForm() {
         setExists(true);
         setName(p.name);
         setCity(p.city ?? "");
-        setLatitude(p.latitude?.toString() ?? "");
-        setLongitude(p.longitude?.toString() ?? "");
+        setLatitude(p.latitude ?? null);
+        setLongitude(p.longitude ?? null);
       })
       .catch(() => setExists(false))
       .finally(() => setLoading(false));
@@ -38,8 +39,8 @@ export default function CompanyProfileForm() {
     const payload = {
       name,
       city: city || null,
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null,
+      latitude,
+      longitude,
     };
     try {
       exists
@@ -66,32 +67,21 @@ export default function CompanyProfileForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Ciudad</label>
-        <input
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Latitud</label>
-          <input
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            placeholder="-34.58"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+        <label className="block text-sm font-medium text-zinc-700">Ubicación del comercio</label>
+        <div className="mt-2">
+          <LocationPicker
+            onSelect={(loc: LocationSelection) => {
+              setCity(loc.city);
+              setLatitude(loc.latitude);
+              setLongitude(loc.longitude);
+            }}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Longitud</label>
-          <input
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            placeholder="-58.43"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
+        {city && (
+          <p className="mt-2 text-sm font-medium text-zinc-700">
+            Ubicación: <span className="text-orange-600">{city}</span>
+          </p>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
