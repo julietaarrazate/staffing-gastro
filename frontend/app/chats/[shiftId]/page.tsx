@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { ChatMessage } from "@/lib/types";
+import { ChevronLeftIcon } from "@/components/icons";
 
 export default function ConversationPage() {
   const { token, user } = useAuth();
@@ -60,8 +61,11 @@ export default function ConversationPage() {
 
   return (
     <div className="mx-auto flex h-[calc(100vh-57px)] max-w-2xl flex-col px-4 py-4">
-      <Link href="/chats" className="text-sm text-orange-600 hover:underline">
-        ← Volver a mensajes
+      <Link
+        href="/chats"
+        className="inline-flex items-center gap-1 text-sm text-orange-600 hover:underline"
+      >
+        <ChevronLeftIcon size={16} /> Volver a mensajes
       </Link>
 
       <div className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-2xl bg-zinc-50 p-4 ring-1 ring-zinc-100">

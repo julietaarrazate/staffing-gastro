@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
+import { CheckCircleIcon, MessageIcon, WalletIcon } from "@/components/icons";
 
 export default function MyShiftsPage() {
   const { token } = useAuth();
@@ -80,9 +81,9 @@ export default function MyShiftsPage() {
               {shift.worker_profile_id && shift.status !== "cancelado" && (
                 <Link
                   href={`/chats/${shift.id}`}
-                  className="rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
                 >
-                  💬 Chat
+                  <MessageIcon size={16} /> Chat
                 </Link>
               )}
               {shift.status === "borrador" && (
@@ -112,21 +113,23 @@ export default function MyShiftsPage() {
               {shift.status === "check_out" && (
                 <button
                   onClick={() => finish(shift.id)}
-                  className="rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
                 >
-                  ✅ Cerrar turno
+                  <CheckCircleIcon size={16} /> Cerrar turno
                 </button>
               )}
               {shift.status === "finalizado" && (
                 <button
                   onClick={() => markPaid(shift.id)}
-                  className="rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
                 >
-                  💰 Marcar como pagado
+                  <WalletIcon size={16} /> Marcar como pagado
                 </button>
               )}
               {shift.status === "pagado" && (
-                <span className="text-sm font-semibold text-green-700">✅ Pagado</span>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                  <CheckCircleIcon size={16} /> Pagado
+                </span>
               )}
             </div>
           </ShiftCard>

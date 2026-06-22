@@ -1,4 +1,5 @@
 import { CandidateMatch } from "@/lib/types";
+import { StarIcon } from "@/components/icons";
 
 export default function CandidateCard({
   candidate,
@@ -26,8 +27,9 @@ export default function CandidateCard({
           )}
           <div>
             <h3 className="text-lg font-bold text-zinc-900">{candidate.full_name}</h3>
-            <p className="text-sm text-zinc-500">
-              ⭐ {candidate.rating.toFixed(1)} ·{" "}
+            <p className="inline-flex items-center gap-1 text-sm text-zinc-500">
+              <StarIcon size={14} filled className="text-amber-400" />
+              {candidate.rating.toFixed(1)} ·{" "}
               {candidate.distance_km != null
                 ? `${candidate.distance_km.toFixed(1)} km de distancia`
                 : "Distancia desconocida"}

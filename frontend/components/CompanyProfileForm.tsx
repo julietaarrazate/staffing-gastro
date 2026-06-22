@@ -95,7 +95,7 @@ export default function CompanyProfileForm() {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {saved && <p className="text-sm text-green-600">Perfil guardado ✓</p>}
+      {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
 
       <button
         type="submit"

@@ -3,30 +3,39 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import Logo from "@/components/Logo";
+import {
+  BellIcon,
+  BoltIcon,
+  CheckCircleIcon,
+  ClipboardIcon,
+  MapPinIcon,
+  MessageIcon,
+  StarIcon,
+} from "@/components/icons";
 
 const STEPS = [
   {
-    emoji: "📝",
+    Icon: ClipboardIcon,
     title: "Publicá el turno",
     text: "Cargá la posición, el horario y la paga. En segundos queda visible.",
   },
   {
-    emoji: "⚡",
+    Icon: BoltIcon,
     title: "Te recomendamos personal",
     text: "Nuestro motor rankea candidatos por cercanía, experiencia y reputación.",
   },
   {
-    emoji: "✅",
+    Icon: CheckCircleIcon,
     title: "Asignás y listo",
     text: "El trabajador confirma, hace check-in con ubicación y coordinan por chat.",
   },
 ];
 
 const FEATURES = [
-  { emoji: "📍", title: "Asistencia con GPS", text: "Check-in y check-out geolocalizado para saber que todo salió bien." },
-  { emoji: "💬", title: "Chat integrado", text: "Coordiná los detalles de cada turno sin salir de la app." },
-  { emoji: "⭐", title: "Reputación", text: "Rating, puntualidad e historial para elegir con confianza." },
-  { emoji: "🔔", title: "Notificaciones", text: "Enterate al instante de asignaciones, confirmaciones y pagos." },
+  { Icon: MapPinIcon, title: "Asistencia con GPS", text: "Check-in y check-out geolocalizado para saber que todo salió bien." },
+  { Icon: MessageIcon, title: "Chat integrado", text: "Coordiná los detalles de cada turno sin salir de la app." },
+  { Icon: StarIcon, title: "Reputación", text: "Rating, puntualidad e historial para elegir con confianza." },
+  { Icon: BellIcon, title: "Notificaciones", text: "Enterate al instante de asignaciones, confirmaciones y pagos." },
 ];
 
 export default function Home() {
@@ -97,10 +106,12 @@ export default function Home() {
               key={s.title}
               className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-zinc-100"
             >
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-2xl">
-                {s.emoji}
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                <s.Icon size={24} />
               </div>
-              <p className="mt-3 text-sm font-bold text-orange-600">Paso {i + 1}</p>
+              <p className="mt-3 text-xs font-bold uppercase tracking-wide text-orange-600">
+                Paso {i + 1}
+              </p>
               <h3 className="mt-1 font-bold text-zinc-900">{s.title}</h3>
               <p className="mt-2 text-sm text-zinc-600">{s.text}</p>
             </div>
@@ -119,7 +130,9 @@ export default function Home() {
               key={f.title}
               className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 transition hover:shadow-md"
             >
-              <div className="text-3xl">{f.emoji}</div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                <f.Icon size={22} />
+              </div>
               <h3 className="mt-3 font-bold text-zinc-900">{f.title}</h3>
               <p className="mt-2 text-sm text-zinc-600">{f.text}</p>
             </div>
