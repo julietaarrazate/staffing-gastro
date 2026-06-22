@@ -1,4 +1,5 @@
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
+import { CalendarIcon, FlameIcon, UsersIcon } from "@/components/icons";
 
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-zinc-200 text-zinc-700",
@@ -38,8 +39,8 @@ export default function ShiftCard({
         </div>
         <div className="flex flex-col items-end gap-1">
           {shift.urgent && (
-            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-              🔥 Urgente
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600">
+              <FlameIcon size={13} /> Urgente
             </span>
           )}
           <span
@@ -52,12 +53,16 @@ export default function ShiftCard({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-600">
-        <span>
-          📅 {start.toLocaleDateString("es-AR")} · {start.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} a{" "}
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-zinc-600">
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarIcon size={15} className="text-zinc-400" />
+          {start.toLocaleDateString("es-AR")} · {start.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} a{" "}
           {end.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
         </span>
-        <span>👥 {shift.quantity} persona(s)</span>
+        <span className="inline-flex items-center gap-1.5">
+          <UsersIcon size={15} className="text-zinc-400" />
+          {shift.quantity} persona(s)
+        </span>
       </div>
 
       <div className="mt-3 flex items-center justify-between">

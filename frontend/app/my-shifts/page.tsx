@@ -7,6 +7,13 @@ import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
+import {
+  CheckIcon,
+  MapPinIcon,
+  MessageIcon,
+  PlayIcon,
+  RouteIcon,
+} from "@/components/icons";
 
 export default function MyAssignedShiftsPage() {
   const { token } = useAuth();
@@ -101,9 +108,9 @@ export default function MyAssignedShiftsPage() {
             {shift.status !== "cancelado" && (
               <Link
                 href={`/chats/${shift.id}`}
-                className="mb-2 inline-block rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
               >
-                💬 Chatear con el comercio
+                <MessageIcon size={16} /> Chatear con el comercio
               </Link>
             )}
             {shift.status === "asignado" && (
@@ -125,33 +132,33 @@ export default function MyAssignedShiftsPage() {
             {shift.status === "confirmado" && (
               <button
                 onClick={() => depart(shift.id)}
-                className="rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
               >
-                🚗 Salir hacia el turno
+                <RouteIcon size={16} /> Salir hacia el turno
               </button>
             )}
             {shift.status === "en_camino" && (
               <button
                 onClick={() => checkIn(shift.id)}
-                className="rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
               >
-                📍 Marcar llegada
+                <MapPinIcon size={16} /> Marcar llegada
               </button>
             )}
             {shift.status === "check_in" && (
               <button
                 onClick={() => startWorking(shift.id)}
-                className="rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+                className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
               >
-                ▶️ Empezar a trabajar
+                <PlayIcon size={15} /> Empezar a trabajar
               </button>
             )}
             {shift.status === "trabajando" && (
               <button
                 onClick={() => checkOut(shift.id)}
-                className="rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
+                className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
               >
-                📍 Marcar salida
+                <MapPinIcon size={16} /> Marcar salida
               </button>
             )}
             {shift.status === "check_out" && (
@@ -161,7 +168,9 @@ export default function MyAssignedShiftsPage() {
               <p className="text-sm text-zinc-500">Turno finalizado, esperando el pago.</p>
             )}
             {shift.status === "pagado" && (
-              <p className="text-sm font-semibold text-green-700">✅ Turno pagado</p>
+              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                <CheckIcon size={16} /> Turno pagado
+              </p>
             )}
           </ShiftCard>
         ))}
