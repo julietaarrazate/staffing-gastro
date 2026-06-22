@@ -44,6 +44,11 @@ export default function Navbar() {
               </Link>
             </>
           )}
+          {!loading && user?.role === "admin" && (
+            <Link href="/admin" className="hidden hover:text-orange-600 md:inline">
+              Administración
+            </Link>
+          )}
           {!loading && user && <NotificationBell />}
           {!loading && user && (
             <button
