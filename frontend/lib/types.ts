@@ -173,6 +173,26 @@ export interface Notification {
   created_at: string | null;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  status: string;
+  is_verified: boolean;
+  created_at: string | null;
+}
+
+export interface PlatformStats {
+  total_users: number;
+  workers: number;
+  employers: number;
+  admins: number;
+  active: number;
+  suspended: number;
+  verified: number;
+}
+
 export interface CompanyProfile {
   id: string;
   user_id: string;

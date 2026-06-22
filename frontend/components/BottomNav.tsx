@@ -7,6 +7,7 @@ import {
   CalendarIcon,
   ClipboardIcon,
   MessageIcon,
+  ShieldIcon,
   UsersIcon,
 } from "@/components/icons";
 
@@ -23,13 +24,24 @@ const EMPLOYER_TABS = [
   { href: "/profile", label: "Comercio", Icon: UsersIcon },
 ];
 
+const ADMIN_TABS = [
+  { href: "/admin", label: "Panel", Icon: ShieldIcon },
+  { href: "/profile", label: "Perfil", Icon: UsersIcon },
+];
+
+const TABS_BY_ROLE: Record<string, typeof WORKER_TABS> = {
+  worker: WORKER_TABS,
+  employer: EMPLOYER_TABS,
+  admin: ADMIN_TABS,
+};
+
 export default function BottomNav() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
   if (loading || !user) return null;
 
-  const tabs = user.role === "worker" ? WORKER_TABS : EMPLOYER_TABS;
+  const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">

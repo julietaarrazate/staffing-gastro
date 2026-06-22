@@ -36,19 +36,20 @@ check-in y check-out capturan geolocalización. `reject` vuelve a `BUSCANDO_PERS
 | `matching` | ✅ | Ranking de candidatos (distancia, experiencia, reputación, puntualidad, desempeño). Devuelve nombre, foto y rating. |
 | `notification` | ✅ | In-app: asignación, confirmación, rechazo, check-out, pago, mensaje de chat. Polling, sin push. |
 | `chat` | ✅ | Mensajería trabajador↔comercio por turno. Inbox tipo Rappi + vista de conversación con burbujas. |
+| `admin` | ✅ | Panel sólo-admin: métricas y moderación de usuarios (suspender, reactivar, verificar, promover). Primer admin vía `ADMIN_EMAILS`. |
 | `payment` | ⬜ | Pendiente. Hoy `mark-paid` sólo registra que el comercio pagó, no procesa cobro. |
 | `ai` | ⬜ | Pendiente (recomendaciones, pricing, antifraude). |
 
 ## Qué falta (próximo valor)
 1. **Pagos reales** — probable **MercadoPago** (Argentina). Requiere decisión de proveedor.
-2. **Panel de administración** (el rol `admin` existe pero no tiene pantallas).
-3. **Landing pública** y logotipo/ícono de la PWA (marca).
+2. **Pulir lo visual** del resto de pantallas (Turnos/Candidatos) al mismo lenguaje (tema claro, tarjetas, bottom nav).
+3. **Migrar la DB a Neon** (el Postgres free de Render expira a los 90 días). Pasos en `backend/README.md`.
 - Futuro (Fase 3): afinidad local en matching, reseñas bidireccionales, push, app nativa (React Native), IA.
 
 ## Deuda técnica
 - `payment` es placeholder (no procesa cobros).
 - Notificaciones y chat son in-app con polling (sin push ni websockets en tiempo real).
-- Rol `admin` sin panel.
+- DB en Render expira a los 90 días (free tier) — migrar a Neon.
 - Algunos warnings de lint pre-existentes en el frontend (`setState` síncrono en `useEffect`).
 
 ## Convenciones de trabajo (importante para mantener consistencia)

@@ -44,6 +44,10 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 - **chat** ✅ — Mensajería trabajador↔comercio por turno: la conversación la
   integran el comercio y el trabajador asignado. Inbox con la última actividad y
   no leídos, y avisa al destinatario con una notificación. Polling, sin websockets.
+- **admin** ✅ — Panel de administración (sólo rol ADMIN): métricas de la
+  plataforma y moderación de usuarios (listar, suspender, reactivar, verificar,
+  promover a admin). Reutiliza el repositorio de identidad. El primer admin se
+  da de alta vía `ADMIN_EMAILS` (no hay auto-registro como admin).
 - payment, ai — _pendientes (ver roadmap en [`../CLAUDE.md`](../CLAUDE.md)).
   El check-in/check-out geolocalizado (asistencia) ya vive dentro de `shift`;
   `payment` falta para procesar el cobro real, hoy `mark-paid` sólo registra que
@@ -123,6 +127,12 @@ Con el servidor corriendo:
 | GET    | `/api/v1/chats`               | Mis conversaciones (inbox)                   |
 | GET    | `/api/v1/chats/{shift_id}/messages` | Mensajes de la conversación de un turno |
 | POST   | `/api/v1/chats/{shift_id}/messages` | Enviar un mensaje en un turno           |
+| GET    | `/api/v1/admin/stats`         | Métricas de la plataforma (rol admin)        |
+| GET    | `/api/v1/admin/users`         | Listar usuarios (rol admin)                  |
+| POST   | `/api/v1/admin/users/{id}/suspend`  | Suspender un usuario (rol admin)       |
+| POST   | `/api/v1/admin/users/{id}/activate` | Reactivar un usuario (rol admin)       |
+| POST   | `/api/v1/admin/users/{id}/verify`   | Verificar un usuario (rol admin)       |
+| POST   | `/api/v1/admin/users/{id}/promote`  | Promover a admin (rol admin)           |
 
 ## Tests
 ```bash
