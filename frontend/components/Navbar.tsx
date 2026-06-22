@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
+import Logo from "@/components/Logo";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -10,8 +11,8 @@ export default function Navbar() {
   return (
     <header className="border-b border-zinc-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-xl font-bold text-orange-600">
-          Staffya
+        <Link href="/" aria-label="Inicio">
+          <Logo />
         </Link>
         <nav className="flex items-center gap-4 text-sm font-medium">
           {!loading && user?.role === "worker" && (
