@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ws_manager import ws_manager
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
@@ -23,6 +24,19 @@ def _to_entity(model: NotificationModel) -> Notification:
     )
 
 
+def _serialize(notification: Notification) -> dict:
+    return {
+        "id": str(notification.id),
+        "type": notification.type.value,
+        "title": notification.title,
+        "message": notification.message,
+        "read": notification.read,
+        "created_at": notification.created_at.isoformat()
+        if notification.created_at
+        else None,
+    }
+
+
 class SqlAlchemyNotificationRepository(NotificationRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -39,7 +53,9 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         self._session.add(model)
         await self._session.commit()
         await self._session.refresh(model)
-        return _to_entity(model)
+        entity = _to_entity(model)
+        await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
+        return entity
 
     async def list_by_user(self, user_id: UUID) -> list[Notification]:
         stmt = (

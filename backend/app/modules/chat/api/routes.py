@@ -3,8 +3,17 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    WebSocketException,
+    status,
+)
 
+from app.core.ws_manager import ws_manager
 from app.modules.chat.api.dependencies import get_chat_service
 from app.modules.chat.api.schemas import (
     ConversationResponse,
@@ -16,7 +25,7 @@ from app.modules.chat.domain.exceptions import (
     ConversationNotFoundError,
     EmptyMessageError,
 )
-from app.modules.identity.api.dependencies import get_current_user
+from app.modules.identity.api.dependencies import get_current_user, get_current_user_ws
 from app.modules.identity.domain.entities import User
 
 router = APIRouter(prefix="/chats", tags=["chat"])
@@ -75,3 +84,27 @@ async def send_message(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="El mensaje no puede estar vacío",
         ) from exc
+
+
+@router.websocket("/{shift_id}/ws")
+async def chat_stream(
+    websocket: WebSocket,
+    shift_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user_ws)],
+    service: ServiceDep,
+):
+    """Push en tiempo real de mensajes nuevos para la conversación de un turno."""
+    try:
+        await service.assert_participant(current_user.id, shift_id)
+    except ConversationNotFoundError as exc:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
+
+    await websocket.accept()
+    ws_manager.connect_chat(shift_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        ws_manager.disconnect_chat(shift_id, websocket)
