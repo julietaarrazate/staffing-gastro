@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CandidateMatch } from "@/lib/types";
 import { StarIcon } from "@/components/icons";
 
@@ -26,7 +27,12 @@ export default function CandidateCard({
             </div>
           )}
           <div>
-            <h3 className="text-lg font-bold text-zinc-900">{candidate.full_name}</h3>
+            <Link
+              href={`/workers/${candidate.profile_id}`}
+              className="text-lg font-bold text-zinc-900 hover:text-orange-600"
+            >
+              {candidate.full_name}
+            </Link>
             <p className="inline-flex items-center gap-1 text-sm text-zinc-500">
               <StarIcon size={14} filled className="text-amber-400" />
               {candidate.rating.toFixed(1)} ·{" "}

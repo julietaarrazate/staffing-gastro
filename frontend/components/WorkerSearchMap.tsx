@@ -56,7 +56,9 @@ export default function WorkerSearchMap({
           >
             <Popup>
               <div className="text-sm">
-                <p className="font-semibold">{worker.full_name}</p>
+                <a href={`/workers/${worker.profile_id}`} className="font-semibold hover:text-orange-600">
+                  {worker.full_name}
+                </a>
                 <p>
                   ★ {worker.rating.toFixed(1)} ·{" "}
                   {worker.distance_km != null

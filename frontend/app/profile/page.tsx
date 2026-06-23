@@ -3,6 +3,7 @@
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
+import ReceivedReviews from "@/components/ReceivedReviews";
 import { LogOutIcon, ShieldIcon } from "@/components/icons";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,13 @@ export default function ProfilePage() {
         <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
         <div className="mt-2 rounded-2xl bg-white p-4 shadow-sm">
           {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
+        </div>
+      </div>
+
+      <div className="mt-7">
+        <SectionLabel>Reseñas recibidas</SectionLabel>
+        <div className="mt-2 rounded-2xl bg-white p-4 shadow-sm">
+          <ReceivedReviews />
         </div>
       </div>
 

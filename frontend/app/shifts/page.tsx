@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
+import ReviewBox from "@/components/ReviewBox";
 import {
   CardSkeletons,
   EmptyState,
@@ -97,12 +98,20 @@ export default function MyShiftsPage() {
           <ShiftCard key={shift.id} shift={shift}>
             <div className="flex flex-wrap gap-2">
               {shift.worker_profile_id && shift.status !== "cancelado" && (
-                <Link
-                  href={`/chats/${shift.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                >
-                  <MessageIcon size={16} /> Chat
-                </Link>
+                <>
+                  <Link
+                    href={`/chats/${shift.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                  >
+                    <MessageIcon size={16} /> Chat
+                  </Link>
+                  <Link
+                    href={`/workers/${shift.worker_profile_id}`}
+                    className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                  >
+                    Ver trabajador
+                  </Link>
+                </>
               )}
               {shift.status === "borrador" && (
                 <button
@@ -150,6 +159,11 @@ export default function MyShiftsPage() {
                 </span>
               )}
             </div>
+            {(shift.status === "finalizado" || shift.status === "pagado") && (
+              <div className="mt-3">
+                <ReviewBox shiftId={shift.id} />
+              </div>
+            )}
           </ShiftCard>
         ))}
       </div>

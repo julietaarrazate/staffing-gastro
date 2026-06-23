@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
@@ -47,7 +48,14 @@ export default function FeedPage() {
 
       <div className="mt-6 grid gap-4">
         {shifts.map((shift) => (
-          <ShiftCard key={shift.id} shift={shift} />
+          <ShiftCard key={shift.id} shift={shift}>
+            <Link
+              href={`/companies/${shift.company_id}`}
+              className="text-sm font-semibold text-orange-600 hover:underline"
+            >
+              Ver el comercio
+            </Link>
+          </ShiftCard>
         ))}
       </div>
     </div>
