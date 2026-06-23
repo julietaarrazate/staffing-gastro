@@ -37,7 +37,7 @@ check-in y check-out capturan geolocalización. `reject` vuelve a `BUSCANDO_PERS
 | `notification` | ✅ | In-app: asignación, confirmación, rechazo, check-out, pago, mensaje de chat. Polling, sin push. |
 | `chat` | ✅ | Mensajería trabajador↔comercio por turno. Inbox tipo Rappi + vista de conversación con burbujas. |
 | `admin` | ✅ | Panel sólo-admin: métricas y moderación de usuarios (suspender, reactivar, verificar, promover). Primer admin vía `ADMIN_EMAILS`. |
-| `review` | ✅ | Reseñas bidireccionales trabajador↔comercio al finalizar un turno (rating + comentario). Actualiza el rating promedio del perfil calificado y notifica (`REVIEW_RECEIVED`). Falta la UI de frontend (picker de estrellas, listado de reseñas recibidas). |
+| `review` | ✅ | Reseñas bidireccionales trabajador↔comercio al finalizar un turno (rating + comentario). Actualiza el rating promedio del perfil calificado y notifica (`REVIEW_RECEIVED`). UI completa: picker de estrellas en turnos finalizados/pagados y listado de reseñas recibidas en el perfil propio. |
 | `payment` | ⬜ | Pendiente. Hoy `mark-paid` sólo registra que el comercio pagó, no procesa cobro. |
 | `ai` | ⬜ | Pendiente (recomendaciones, pricing, antifraude). |
 
@@ -45,12 +45,14 @@ check-in y check-out capturan geolocalización. `reject` vuelve a `BUSCANDO_PERS
 1. **Pagos reales** — probable **MercadoPago** (Argentina). Requiere decisión de proveedor.
 2. **Pulir lo visual** del resto de pantallas (Turnos/Candidatos) al mismo lenguaje (tema claro, tarjetas, bottom nav).
 3. **Migrar la DB a Neon** (el Postgres free de Render expira a los 90 días). Pasos en `backend/README.md`.
-4. **Frontend de reviews** — falta wirear `GET/POST /reviews/...` (picker de estrellas + comentario, reseñas recibidas en el perfil).
-5. **Perfiles estilo OkCupid** — vista de perfil con foto, ubicación, edad, rol, etc. El backend ya expone `full_name`/`owner_full_name` en worker/company como prerequisito; falta la pantalla de frontend.
 - Futuro (Fase 3): afinidad local en matching, push, app nativa (React Native), IA.
 
-## Novedades recientes (2026-06-22)
-- **Reviews/reputación** (`backend/app/modules/review/`): módulo nuevo completo (domain/application/infrastructure/api) + migración `0008_create_reviews_table`. Pendiente la UI.
+## Novedades recientes (2026-06-23)
+- **UI de reviews**: `ReviewBox` (estrellas + comentario) en `/my-shifts` y `/shifts` para turnos `finalizado`/`pagado`, una sola reseña por usuario por turno. `ReceivedReviews` lista las reseñas recibidas en `/profile`. Componente `StarRating` reutilizable (picker interactivo y display de sólo lectura).
+- **Perfiles públicos estilo OkCupid**: páginas `/workers/[id]` y `/companies/[id]` (foto/logo grande, nombre, edad o rubro, ubicación, rating, bio/descripción, skills, métricas). Enlazadas desde el feed de turnos, los candidatos, el mapa de búsqueda (`/search`) y los turnos asignados/publicados.
+
+## Novedades anteriores (2026-06-22)
+- **Reviews/reputación** (`backend/app/modules/review/`): módulo nuevo completo (domain/application/infrastructure/api) + migración `0008_create_reviews_table`.
 - **`full_name`/`owner_full_name`** expuestos en `WorkerProfileResponse`/`CompanyProfileResponse`, resueltos en la capa `api/` vía `UserRepository` inyectado (no acopla el dominio a identity).
 - **Búsqueda de trabajadores por mapa**: nuevo endpoint `GET /api/v1/matching/search` (rol employer) — filtra por rol (suma el skill `barista`) y radio de distancia (Haversine), sin usar el scoring ponderado de `matching` (es un filtro+orden simple). Frontend: página `/search` con mapa Leaflet/OSM (sin API key, sin `localhost`), geolocalización del navegador con fallback al Obelisco.
 - **Datos de demo**: `backend/scripts/seed_demo_data.py`, idempotente, siembra 6 comercios y 8 trabajadores repartidos por barrios de CABA (Palermo, Recoleta, San Telmo, Belgrano, Caballito, Microcentro). Contraseña demo: `staffyaDemo123`.
