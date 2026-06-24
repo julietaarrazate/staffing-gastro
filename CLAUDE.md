@@ -43,15 +43,21 @@ check-in y check-out capturan geolocalización. `reject` vuelve a `BUSCANDO_PERS
 
 ## Qué falta (próximo valor)
 1. **Pagos reales** — probable **MercadoPago** (Argentina). Requiere decisión de proveedor.
-2. **Subida de foto de perfil** — hoy `photo_url`/`logo_url` se muestran si existen pero no hay UI de carga.
-3. **Terminar el rediseño visual estilo Morfi** en mapa de búsqueda (`/search`) y perfiles públicos (`/workers/[id]`, `/companies/[id]`); ya aplicado en `ShiftCard`/`CandidateCard`/estados de listado.
-4. **Migrar la DB a Neon** (el Postgres free de Render expira a los 90 días). Pasos en `backend/README.md`.
-- Futuro (Fase 3): afinidad local en matching, push nativo (más allá del WebSocket in-app), app nativa (React Native), asistente de IA por voz (ver Novedades).
+2. **Migrar la DB a Neon** (el Postgres free de Render expira a los 90 días). Pasos en `backend/README.md`.
+3. **Asistente de IA por voz** — el comercio pide "necesito un bachero para tal hora en Palermo" y recibe candidatos disponibles; el trabajador pregunta qué turnos hay cerca y recibe el feed filtrado. Se apoyaría en transcripción + function-calling (ej. Gemini) mapeado a `/matching/search` y `/shifts/feed` existentes — no implementado todavía.
+- Futuro (Fase 3): afinidad local en matching, push nativo (más allá del WebSocket in-app), app nativa (React Native).
 
 ## Novedades recientes (2026-06-24)
-- **Rediseño visual de tarjetas (estilo Morfi)**: `ShiftCard` y `CandidateCard` pasan a tener identidad visual por tipo de puesto (banda con gradiente + ícono, vía `lib/skill-style.tsx`), badges flotantes (urgente, score) y feedback táctil. `EmptyState`/`CardSkeletons` actualizados al mismo lenguaje. Ajustes globales de PWA (`-webkit-tap-highlight-color`, `touch-action`) para que se sienta app y no página web.
-- Mergeado a `main` vía PR #27 (incluye también lo de 2026-06-22/23 listado abajo), reconciliado con `admin`, el selector de ubicación AR y chat/notificaciones por WebSocket que ya estaban en `main` (PRs #22, #24, #25, #26).
-- Próximo en la mira: asistente de IA por voz — el comercio pide "necesito un bachero para tal hora en Palermo" y recibe candidatos disponibles; el trabajador pregunta qué turnos hay cerca y recibe el feed filtrado. Se apoyaría en transcripción + function-calling (ej. Gemini) mapeado a `/matching/search` y `/shifts/feed` existentes — no implementado todavía.
+- **Sesión persistente**: el frontend ahora usa el `refresh_token` (antes sólo se usaba el access token de 15 min, lo que cortaba la sesión sola). Se guarda en `localStorage` y se renueva automáticamente al cargar la app y cada 10 min mientras se use.
+- **Tarjetas grandes estilo app**: `ShiftCard` muestra logo/nombre del comercio (vía `CompanyProfileRepository` inyectado en las rutas de `shift`, sin acoplar dominios) y un mini-mapa (`MiniMap.tsx`, Leaflet no interactivo) de la ubicación del turno. `/search` agrega tarjetas grandes por trabajador (foto, rating, distancia, skills) debajo del mapa, no sólo pines.
+- **Datos de demo ampliados**: `seed_demo_data.py` pasa de 6 a 12 comercios y de 8 a 14 trabajadores ficticios, repartidos por más barrios de CABA, con foto/logo (placeholders, no se scrapea Google Maps por sus términos de uso) y descripción.
+- **Subida de foto de perfil/logo** vía Cloudinary (`ImageUpload.tsx`, `lib/cloudinary.ts`).
+- **Rediseño Morfi de la landing (`/`)** y, ya completado también, de `/search` y los perfiles públicos (`/workers/[id]`, `/companies/[id]`).
+- Mergeado a `main` vía PR #28 (landing + foto de perfil) y PR #29 (sesión persistente + demo data + tarjetas grandes).
+
+## Novedades anteriores (2026-06-23/24, PR #27)
+- **Rediseño visual de tarjetas (estilo Morfi)**: `ShiftCard` y `CandidateCard` con identidad visual por tipo de puesto (banda con gradiente + ícono, vía `lib/skill-style.tsx`), badges flotantes (urgente, score) y feedback táctil. `EmptyState`/`CardSkeletons` al mismo lenguaje. Ajustes globales de PWA (`-webkit-tap-highlight-color`, `touch-action`).
+- Reconciliado con `admin`, el selector de ubicación AR y chat/notificaciones por WebSocket que ya estaban en `main` (PRs #22, #24, #25, #26).
 
 ## Novedades anteriores (2026-06-23)
 - **UI de reviews**: `ReviewBox` (estrellas + comentario) en `/my-shifts` y `/shifts` para turnos `finalizado`/`pagado`, una sola reseña por usuario por turno. `ReceivedReviews` lista las reseñas recibidas en `/profile`. Componente `StarRating` reutilizable (picker interactivo y display de sólo lectura).
