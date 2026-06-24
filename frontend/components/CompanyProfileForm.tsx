@@ -5,11 +5,13 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import ImageUpload from "@/components/ImageUpload";
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
   const [exists, setExists] = useState(false);
   const [name, setName] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [city, setCity] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -24,6 +26,7 @@ export default function CompanyProfileForm() {
       .then((p) => {
         setExists(true);
         setName(p.name);
+        setLogoUrl(p.logo_url);
         setCity(p.city ?? "");
         setLatitude(p.latitude ?? null);
         setLongitude(p.longitude ?? null);
@@ -38,6 +41,7 @@ export default function CompanyProfileForm() {
     setSaved(false);
     const payload = {
       name,
+      logo_url: logoUrl,
       city: city || null,
       latitude,
       longitude,
@@ -57,6 +61,8 @@ export default function CompanyProfileForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <ImageUpload value={logoUrl} onChange={setLogoUrl} fallbackLabel={name || "C"} shape="square" />
+
       <div>
         <label className="block text-sm font-medium text-zinc-700">Nombre del comercio</label>
         <input

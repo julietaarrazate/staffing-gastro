@@ -5,11 +5,13 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import ImageUpload from "@/components/ImageUpload";
 
 export default function WorkerProfileForm() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [exists, setExists] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [city, setCity] = useState("");
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
   const [yearsExperience, setYearsExperience] = useState(0);
@@ -27,6 +29,7 @@ export default function WorkerProfileForm() {
       .then((p) => {
         setProfile(p);
         setExists(true);
+        setPhotoUrl(p.photo_url);
         setCity(p.city ?? "");
         setSkills(p.skills);
         setYearsExperience(p.years_experience);
@@ -49,6 +52,7 @@ export default function WorkerProfileForm() {
     setError(null);
     setSaved(false);
     const payload = {
+      photo_url: photoUrl,
       city: city || null,
       skills,
       years_experience: yearsExperience,
@@ -72,6 +76,12 @@ export default function WorkerProfileForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <ImageUpload
+        value={photoUrl}
+        onChange={setPhotoUrl}
+        fallbackLabel={profile?.full_name ?? user?.full_name ?? "T"}
+      />
+
       {profile && (
         <div className="flex flex-wrap gap-3 rounded-xl bg-white p-4 text-sm shadow-sm">
           <Metric label="Rating" value={profile.rating.toFixed(1)} />
