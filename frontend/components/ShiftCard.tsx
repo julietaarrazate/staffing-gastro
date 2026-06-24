@@ -1,5 +1,6 @@
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
-import { CalendarIcon, FlameIcon, UsersIcon } from "@/components/icons";
+import { SKILL_STYLES } from "@/lib/skill-style";
+import { CalendarIcon, FlameIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -24,56 +25,62 @@ export default function ShiftCard({
   shift: Shift;
   children?: React.ReactNode;
 }) {
+  const { Icon, gradient } = SKILL_STYLES[shift.position];
+
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100 transition hover:shadow-md">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-lg font-bold text-zinc-900">
+    <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99] hover:shadow-lg">
+      <div className={`relative flex h-24 items-end bg-gradient-to-br ${gradient} px-5 pb-3`}>
+        <Icon size={64} className="absolute -right-2 -top-2 text-white/15" />
+        {shift.urgent && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-xs font-bold text-red-600 shadow-sm">
+            <FlameIcon size={13} /> Urgente
+          </span>
+        )}
+        <div className="relative z-10">
+          <h3 className="text-lg font-extrabold leading-tight text-white drop-shadow-sm">
             {SKILL_LABELS[shift.position]}
           </h3>
-          <p className="text-sm text-zinc-500">
+          <p className="inline-flex items-center gap-1 text-sm font-medium text-white/85">
+            <MapPinIcon size={13} />
             {shift.city ?? "Ubicación a confirmar"}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600">
-              <FlameIcon size={13} /> Urgente
-            </span>
-          )}
+      </div>
+
+      <div className="px-5 pb-5 pt-4">
+        <div className="flex items-center justify-between gap-2">
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
               STATUS_COLORS[shift.status] ?? "bg-zinc-100 text-zinc-700"
             }`}
           >
             {STATUS_LABELS[shift.status]}
           </span>
+          <div className="text-right">
+            <p className="text-xl font-extrabold text-orange-600">
+              {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+            </p>
+            {shift.tips && <p className="text-xs font-medium text-zinc-400">+ propinas</p>}
+          </div>
         </div>
+
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-zinc-600">
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarIcon size={15} className="text-zinc-400" />
+            {formatShiftRange(shift.start_at, shift.end_at)}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <UsersIcon size={15} className="text-zinc-400" />
+            {shift.quantity} persona(s)
+          </span>
+        </div>
+
+        {shift.dress_code && (
+          <p className="mt-2 text-xs text-zinc-500">Dress code: {shift.dress_code}</p>
+        )}
+
+        {children && <div className="mt-4">{children}</div>}
       </div>
-
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-zinc-600">
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarIcon size={15} className="text-zinc-400" />
-          {formatShiftRange(shift.start_at, shift.end_at)}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <UsersIcon size={15} className="text-zinc-400" />
-          {shift.quantity} persona(s)
-        </span>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between">
-        <p className="text-xl font-extrabold text-orange-600">
-          {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
-        </p>
-        {shift.tips && <span className="text-xs text-zinc-500">+ propinas</span>}
-      </div>
-
-      {shift.dress_code && (
-        <p className="mt-2 text-xs text-zinc-500">Dress code: {shift.dress_code}</p>
-      )}
-
-      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 }

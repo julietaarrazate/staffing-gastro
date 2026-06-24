@@ -4,7 +4,7 @@
  */
 import type { SVGProps } from "react";
 
-type IconProps = SVGProps<SVGSVGElement> & { size?: number };
+export type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
 function base({ size = 20, ...props }: IconProps) {
   return {
@@ -220,6 +220,34 @@ export function HomeIcon(props: IconProps) {
     <svg {...base(props)}>
       <path d="m3 10 9-7 9 7" />
       <path d="M5 9.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9.5" />
+    </svg>
+  );
+}
+
+export function CoffeeIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M17 8h1a3 3 0 0 1 0 6h-1" />
+      <path d="M3 8h14v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8Z" />
+      <path d="M6 2v2M10 2v2M14 2v2" />
+    </svg>
+  );
+}
+
+export function GlassIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 3h12l-1.5 9a4.5 4.5 0 0 1-9 0L6 3Z" />
+      <path d="M12 13.5V21M8 21h8" />
+    </svg>
+  );
+}
+
+export function ChefHatIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 14a4 4 0 0 1-1-7.87A4 4 0 0 1 12 3a4 4 0 0 1 6 3.13A4 4 0 0 1 17 14" />
+      <path d="M7 14h10v5a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-5Z" />
     </svg>
   );
 }
