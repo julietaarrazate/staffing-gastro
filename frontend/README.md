@@ -1,5 +1,18 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Variables de entorno
+
+| Variable | Descripción |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | URL base del backend (ver `.env.production`). |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloud name de la cuenta de [Cloudinary](https://cloudinary.com) usada para subir foto de perfil/logo. |
+| `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | Nombre de un *upload preset* **unsigned** en esa cuenta de Cloudinary (Settings → Upload → Upload presets → Add upload preset, Signing mode: Unsigned). |
+
+Sin estas dos últimas, el botón de subir foto en `/profile` muestra un error
+("La subida de imágenes no está configurada todavía") pero el resto de la
+app funciona igual: la subida va directo del navegador a Cloudinary (no pasa
+por nuestro backend) y sólo guardamos la URL resultante en `photo_url`/`logo_url`.
+
 ## Getting Started
 
 First, run the development server:

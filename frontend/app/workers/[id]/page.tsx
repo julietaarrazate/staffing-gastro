@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
+import { SKILL_STYLES } from "@/lib/skill-style";
 import { ErrorBanner } from "@/components/PageState";
 import StarRating from "@/components/StarRating";
 import { BriefcaseIcon, MapPinIcon } from "@/components/icons";
@@ -33,7 +34,7 @@ export default function PublicWorkerProfilePage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
         <div className="relative h-56 w-full bg-gradient-to-br from-orange-200 to-orange-400">
           {profile.photo_url ? (
             <img src={profile.photo_url} alt={name} className="h-full w-full object-cover" />
@@ -43,7 +44,7 @@ export default function PublicWorkerProfilePage() {
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-white drop-shadow-sm">
               {name}
               {profile.age != null && <span className="font-normal">, {profile.age}</span>}
             </h1>
@@ -66,14 +67,17 @@ export default function PublicWorkerProfilePage() {
 
           {profile.skills.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {profile.skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700"
-                >
-                  {SKILL_LABELS[skill]}
-                </span>
-              ))}
+              {profile.skills.map((skill) => {
+                const { Icon, gradient } = SKILL_STYLES[skill];
+                return (
+                  <span
+                    key={skill}
+                    className={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br ${gradient} px-3 py-1.5 text-sm font-semibold text-white shadow-sm`}
+                  >
+                    <Icon size={14} /> {SKILL_LABELS[skill]}
+                  </span>
+                );
+              })}
             </div>
           )}
 
@@ -112,7 +116,7 @@ export default function PublicWorkerProfilePage() {
                 {profile.badges.map((badge) => (
                   <span
                     key={badge}
-                    className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600"
+                    className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700 shadow-sm"
                   >
                     <BriefcaseIcon size={12} /> {badge}
                   </span>
@@ -128,7 +132,7 @@ export default function PublicWorkerProfilePage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+    <div className="rounded-2xl bg-zinc-50 px-3 py-2.5 ring-1 ring-zinc-100">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="font-semibold text-zinc-800">{value}</p>
     </div>

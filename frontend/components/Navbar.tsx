@@ -9,7 +9,7 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
 
   return (
-    <header className="border-b border-zinc-200 bg-white">
+    <header className="sticky top-0 z-30 border-b border-zinc-100 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />
@@ -68,7 +68,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-orange-600 px-3 py-1.5 text-white hover:bg-orange-700"
+                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-3.5 py-1.5 text-white shadow-sm shadow-orange-500/30 transition active:scale-95 hover:shadow-md"
               >
                 Crear cuenta
               </Link>

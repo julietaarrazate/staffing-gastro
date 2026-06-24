@@ -18,153 +18,199 @@ const STEPS = [
     Icon: ClipboardIcon,
     title: "Publicá el turno",
     text: "Cargá la posición, el horario y la paga. En segundos queda visible.",
+    gradient: "from-orange-500 to-red-500",
   },
   {
     Icon: BoltIcon,
     title: "Te recomendamos personal",
     text: "Nuestro motor rankea candidatos por cercanía, experiencia y reputación.",
+    gradient: "from-amber-500 to-orange-600",
   },
   {
     Icon: CheckCircleIcon,
     title: "Asignás y listo",
     text: "El trabajador confirma, hace check-in con ubicación y coordinan por chat.",
+    gradient: "from-emerald-500 to-teal-600",
   },
 ];
 
 const FEATURES = [
-  { Icon: MapPinIcon, title: "Asistencia con GPS", text: "Check-in y check-out geolocalizado para saber que todo salió bien." },
-  { Icon: MessageIcon, title: "Chat integrado", text: "Coordiná los detalles de cada turno sin salir de la app." },
-  { Icon: StarIcon, title: "Reputación", text: "Rating, puntualidad e historial para elegir con confianza." },
-  { Icon: BellIcon, title: "Notificaciones", text: "Enterate al instante de asignaciones, confirmaciones y pagos." },
+  {
+    Icon: MapPinIcon,
+    title: "Asistencia con GPS",
+    text: "Check-in y check-out geolocalizado para saber que todo salió bien.",
+    gradient: "from-sky-500 to-blue-600",
+  },
+  {
+    Icon: MessageIcon,
+    title: "Chat integrado",
+    text: "Coordiná los detalles de cada turno sin salir de la app.",
+    gradient: "from-purple-500 to-indigo-600",
+  },
+  {
+    Icon: StarIcon,
+    title: "Reputación",
+    text: "Rating, puntualidad e historial para elegir con confianza.",
+    gradient: "from-amber-400 to-orange-500",
+  },
+  {
+    Icon: BellIcon,
+    title: "Notificaciones",
+    text: "Enterate al instante de asignaciones, confirmaciones y pagos.",
+    gradient: "from-pink-500 to-rose-500",
+  },
 ];
 
 export default function Home() {
   const { user, loading } = useAuth();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16">
-      {/* Hero */}
-      <section className="text-center">
-        <div className="flex justify-center">
-          <Logo size={64} withWordmark={false} />
-        </div>
-        <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
-          Cubrí un turno en{" "}
-          <span className="text-orange-600">menos de 10 minutos</span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600">
-          Staffya conecta comercios gastronómicos y eventos con personal eventual,
-          en tiempo real. Como pedir un delivery, pero de staff.
-        </p>
+    <div className="relative overflow-hidden">
+      {/* Glow decorativo de fondo, le da profundidad a la sección hero */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-orange-200 via-amber-100 to-transparent opacity-70 blur-3xl"
+      />
 
-        {!loading && !user && (
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link
-              href="/register"
-              className="rounded-full bg-orange-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-orange-700"
-            >
-              Crear cuenta gratis
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-full border border-zinc-300 px-6 py-3 font-semibold transition hover:bg-zinc-100"
-            >
-              Ya tengo cuenta
-            </Link>
+      <div className="mx-auto max-w-5xl px-4 py-14">
+        {/* Hero */}
+        <section className="text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 shadow-lg shadow-orange-500/30">
+            <Logo size={40} withWordmark={false} />
           </div>
-        )}
-
-        {!loading && user?.role === "worker" && (
-          <div className="mt-8">
-            <Link
-              href="/feed"
-              className="rounded-full bg-orange-600 px-6 py-3 font-semibold text-white hover:bg-orange-700"
-            >
-              Ver turnos disponibles
-            </Link>
-          </div>
-        )}
-
-        {!loading && user?.role === "employer" && (
-          <div className="mt-8">
-            <Link
-              href="/shifts"
-              className="rounded-full bg-orange-600 px-6 py-3 font-semibold text-white hover:bg-orange-700"
-            >
-              Ver mis turnos
-            </Link>
-          </div>
-        )}
-      </section>
-
-      {/* Cómo funciona */}
-      <section className="mt-20">
-        <h2 className="text-center text-2xl font-bold text-zinc-900">Cómo funciona</h2>
-        <div className="mt-8 grid gap-5 sm:grid-cols-3">
-          {STEPS.map((s, i) => (
-            <div
-              key={s.title}
-              className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-zinc-100"
-            >
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-                <s.Icon size={24} />
-              </div>
-              <p className="mt-3 text-xs font-bold uppercase tracking-wide text-orange-600">
-                Paso {i + 1}
-              </p>
-              <h3 className="mt-1 font-bold text-zinc-900">{s.title}</h3>
-              <p className="mt-2 text-sm text-zinc-600">{s.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="mt-20">
-        <h2 className="text-center text-2xl font-bold text-zinc-900">
-          Todo lo que necesitás para resolver el staffing
-        </h2>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 transition hover:shadow-md"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-                <f.Icon size={22} />
-              </div>
-              <h3 className="mt-3 font-bold text-zinc-900">{f.title}</h3>
-              <p className="mt-2 text-sm text-zinc-600">{f.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA final */}
-      {!loading && !user && (
-        <section className="mt-20 rounded-3xl bg-gradient-to-b from-orange-500 to-orange-600 px-6 py-12 text-center text-white">
-          <h2 className="text-2xl font-bold sm:text-3xl">
-            ¿Listo para cubrir tu próximo turno?
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-orange-50">
-            Sumate gratis. Sin contratos, sin vueltas: publicás y resolvés.
+          <h1 className="mt-7 text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
+            Cubrí un turno en{" "}
+            <span className="bg-gradient-to-br from-orange-500 to-red-500 bg-clip-text text-transparent">
+              menos de 10 minutos
+            </span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600">
+            Staffya conecta comercios gastronómicos y eventos con personal eventual,
+            en tiempo real. Como pedir un delivery, pero de staff.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <Link
-              href="/register"
-              className="rounded-full bg-white px-6 py-3 font-semibold text-orange-600 transition hover:bg-orange-50"
-            >
-              Crear cuenta
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-full border border-white/60 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
-            >
-              Ingresar
-            </Link>
+
+          {!loading && !user && (
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/register"
+                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
+              >
+                Crear cuenta gratis
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-full bg-white px-7 py-3.5 font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition active:scale-95 hover:bg-zinc-50"
+              >
+                Ya tengo cuenta
+              </Link>
+            </div>
+          )}
+
+          {!loading && user?.role === "worker" && (
+            <div className="mt-8">
+              <Link
+                href="/feed"
+                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
+              >
+                Ver turnos disponibles
+              </Link>
+            </div>
+          )}
+
+          {!loading && user?.role === "employer" && (
+            <div className="mt-8">
+              <Link
+                href="/shifts"
+                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
+              >
+                Ver mis turnos
+              </Link>
+            </div>
+          )}
+        </section>
+
+        {/* Cómo funciona */}
+        <section className="mt-24">
+          <h2 className="text-center text-2xl font-extrabold tracking-tight text-zinc-900">
+            Cómo funciona
+          </h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <div
+                key={s.title}
+                className="relative overflow-hidden rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99] hover:shadow-lg"
+              >
+                <span className="absolute right-3 top-3 text-3xl font-extrabold text-zinc-100">
+                  {i + 1}
+                </span>
+                <div
+                  className={`relative z-10 mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${s.gradient} text-white shadow-md`}
+                >
+                  <s.Icon size={26} />
+                </div>
+                <p className="relative z-10 mt-4 text-xs font-bold uppercase tracking-wide text-orange-600">
+                  Paso {i + 1}
+                </p>
+                <h3 className="relative z-10 mt-1 font-bold text-zinc-900">{s.title}</h3>
+                <p className="relative z-10 mt-2 text-sm text-zinc-600">{s.text}</p>
+              </div>
+            ))}
           </div>
         </section>
-      )}
+
+        {/* Features */}
+        <section className="mt-20">
+          <h2 className="text-center text-2xl font-extrabold tracking-tight text-zinc-900">
+            Todo lo que necesitás para resolver el staffing
+          </h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99] hover:shadow-lg"
+              >
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${f.gradient} text-white shadow-md`}
+                >
+                  <f.Icon size={22} />
+                </div>
+                <h3 className="mt-4 font-bold text-zinc-900">{f.title}</h3>
+                <p className="mt-2 text-sm text-zinc-600">{f.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA final */}
+        {!loading && !user && (
+          <section className="relative mt-20 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-6 py-14 text-center text-white shadow-xl shadow-orange-500/30">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-white/10 blur-2xl"
+            />
+            <h2 className="relative z-10 text-2xl font-extrabold sm:text-3xl">
+              ¿Listo para cubrir tu próximo turno?
+            </h2>
+            <p className="relative z-10 mx-auto mt-2 max-w-xl text-orange-50">
+              Sumate gratis. Sin contratos, sin vueltas: publicás y resolvés.
+            </p>
+            <div className="relative z-10 mt-7 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/register"
+                className="rounded-full bg-white px-7 py-3.5 font-semibold text-orange-600 shadow-lg transition active:scale-95 hover:bg-orange-50"
+              >
+                Crear cuenta
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-full border border-white/60 px-7 py-3.5 font-semibold text-white transition active:scale-95 hover:bg-white/10"
+              >
+                Ingresar
+              </Link>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

@@ -40,8 +40,8 @@ export default function PublicCompanyProfilePage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-        <div className="relative h-56 w-full bg-gradient-to-br from-zinc-300 to-zinc-500">
+      <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
+        <div className="relative h-56 w-full bg-gradient-to-br from-zinc-600 to-zinc-800">
           {profile.logo_url ? (
             <img
               src={profile.logo_url}
@@ -54,7 +54,7 @@ export default function PublicCompanyProfilePage() {
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-            <h1 className="text-2xl font-bold text-white">{profile.name}</h1>
+            <h1 className="text-2xl font-bold text-white drop-shadow-sm">{profile.name}</h1>
             {profile.city && (
               <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
                 <MapPinIcon size={14} /> {profile.city}
@@ -78,7 +78,7 @@ export default function PublicCompanyProfilePage() {
 
           {profile.category && (
             <div className="mt-4">
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
+              <span className="rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 px-3 py-1.5 text-sm font-semibold text-white shadow-sm">
                 {CATEGORY_LABELS[profile.category] ?? profile.category}
               </span>
             </div>
@@ -103,7 +103,7 @@ export default function PublicCompanyProfilePage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+    <div className="rounded-2xl bg-zinc-50 px-3 py-2.5 ring-1 ring-zinc-100">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="font-semibold text-zinc-800">{value}</p>
     </div>
