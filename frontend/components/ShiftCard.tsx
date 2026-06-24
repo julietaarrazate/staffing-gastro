@@ -1,7 +1,14 @@
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_STYLES } from "@/lib/skill-style";
 import { CalendarIcon, FlameIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
+
+const MiniMap = dynamic(() => import("@/components/MiniMap"), {
+  ssr: false,
+  loading: () => <div className="h-28 w-full animate-pulse rounded-2xl bg-zinc-100" />,
+});
 
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-zinc-200 text-zinc-700",
@@ -29,6 +36,25 @@ export default function ShiftCard({
 
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99] hover:shadow-lg">
+      {shift.company_name && (
+        <Link
+          href={`/companies/${shift.company_id}`}
+          className="flex items-center gap-2 border-b border-zinc-100 px-5 py-2.5 hover:bg-zinc-50"
+        >
+          {shift.company_logo_url ? (
+            <img
+              src={shift.company_logo_url}
+              alt={shift.company_name}
+              className="h-7 w-7 rounded-full object-cover ring-1 ring-zinc-100"
+            />
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-500">
+              {shift.company_name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="text-sm font-semibold text-zinc-700">{shift.company_name}</span>
+        </Link>
+      )}
       <div className={`relative flex h-24 items-end bg-gradient-to-br ${gradient} px-5 pb-3`}>
         <Icon size={64} className="absolute -right-2 -top-2 text-white/15" />
         {shift.urgent && (
@@ -77,6 +103,12 @@ export default function ShiftCard({
 
         {shift.dress_code && (
           <p className="mt-2 text-xs text-zinc-500">Dress code: {shift.dress_code}</p>
+        )}
+
+        {shift.latitude != null && shift.longitude != null && (
+          <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-zinc-100">
+            <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
+          </div>
         )}
 
         {children && <div className="mt-4">{children}</div>}

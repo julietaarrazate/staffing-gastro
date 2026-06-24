@@ -4,9 +4,12 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { ErrorBanner, PageHeader } from "@/components/PageState";
 import { MapPinIcon } from "@/components/icons";
+import { SKILL_STYLES } from "@/lib/skill-style";
+import StarRating from "@/components/StarRating";
 
 const WorkerSearchMap = dynamic(() => import("@/components/WorkerSearchMap"), {
   ssr: false,
@@ -121,6 +124,53 @@ export default function SearchPage() {
         {workers.length} trabajador{workers.length === 1 ? "" : "es"} disponible
         {workers.length === 1 ? "" : "s"} en el radio seleccionado.
       </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {workers.map((worker) => (
+          <Link
+            key={worker.profile_id}
+            href={`/workers/${worker.profile_id}`}
+            className="flex gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99] hover:shadow-lg"
+          >
+            {worker.photo_url ? (
+              <img
+                src={worker.photo_url}
+                alt={worker.full_name}
+                className="h-16 w-16 rounded-2xl object-cover ring-1 ring-zinc-100"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-200 to-orange-400 text-xl font-bold text-white">
+                {worker.full_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1">
+              <p className="font-semibold text-zinc-800">{worker.full_name}</p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <StarRating value={Math.round(worker.rating)} size={13} />
+                <span className="text-xs text-zinc-500">{worker.rating.toFixed(1)}</span>
+                {worker.distance_km != null && (
+                  <span className="text-xs text-zinc-400">
+                    · {worker.distance_km.toFixed(1)} km
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {worker.skills.map((s) => {
+                  const { Icon, gradient } = SKILL_STYLES[s];
+                  return (
+                    <span
+                      key={s}
+                      className={`inline-flex items-center gap-1 rounded-full bg-gradient-to-br ${gradient} px-2 py-0.5 text-xs font-semibold text-white`}
+                    >
+                      <Icon size={11} /> {SKILL_LABELS[s]}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
