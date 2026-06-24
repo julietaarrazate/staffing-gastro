@@ -31,24 +31,41 @@ check-in y check-out capturan geolocalización. `reject` vuelve a `BUSCANDO_PERS
 | Módulo | Estado | Nota |
 |--------|--------|------|
 | `identity` | ✅ | Login/registro, JWT + refresh, roles. No se permite auto-registro como admin. |
-| `worker` / `company` | ✅ | Perfiles + métricas (rating, puntualidad, etc.). |
+| `worker` / `company` | ✅ | Perfiles + métricas (rating, puntualidad, etc.). Ubicación vía selector de barrios/ciudades (Argentina), no lat/lng manual. |
 | `shift` | ✅ | Publicación, feed y ciclo de vida completo (incluye asistencia geolocalizada). |
 | `matching` | ✅ | Ranking de candidatos (distancia, experiencia, reputación, puntualidad, desempeño). Devuelve nombre, foto y rating. |
-| `notification` | ✅ | In-app: asignación, confirmación, rechazo, check-out, pago, mensaje de chat. Polling, sin push. |
-| `chat` | ✅ | Mensajería trabajador↔comercio por turno. Inbox tipo Rappi + vista de conversación con burbujas. |
+| `notification` | ✅ | Tiempo real vía WebSocket (antes polling 30s): asignación, confirmación, rechazo, check-out, pago, mensaje de chat. |
+| `chat` | ✅ | Mensajería trabajador↔comercio por turno, tiempo real vía WebSocket (antes polling 5s, con reconexión por backoff exponencial). Inbox tipo Rappi + vista de conversación con burbujas. |
 | `admin` | ✅ | Panel sólo-admin: métricas y moderación de usuarios (suspender, reactivar, verificar, promover). Primer admin vía `ADMIN_EMAILS`. |
+| `review` | ✅ | Reseñas bidireccionales trabajador↔comercio al finalizar un turno (rating + comentario). Actualiza el rating promedio del perfil calificado y notifica (`REVIEW_RECEIVED`). UI completa: picker de estrellas en turnos finalizados/pagados y listado de reseñas recibidas en el perfil propio. |
 | `payment` | ⬜ | Pendiente. Hoy `mark-paid` sólo registra que el comercio pagó, no procesa cobro. |
-| `ai` | ⬜ | Pendiente (recomendaciones, pricing, antifraude). |
+| `ai` | ⬜ | Pendiente (recomendaciones, pricing, antifraude, asistente por voz). |
 
 ## Qué falta (próximo valor)
 1. **Pagos reales** — probable **MercadoPago** (Argentina). Requiere decisión de proveedor.
-2. **Pulir lo visual** del resto de pantallas (Turnos/Candidatos) al mismo lenguaje (tema claro, tarjetas, bottom nav).
-3. **Migrar la DB a Neon** (el Postgres free de Render expira a los 90 días). Pasos en `backend/README.md`.
-- Futuro (Fase 3): afinidad local en matching, reseñas bidireccionales, push, app nativa (React Native), IA.
+2. **Subida de foto de perfil** — hoy `photo_url`/`logo_url` se muestran si existen pero no hay UI de carga.
+3. **Terminar el rediseño visual estilo Morfi** en mapa de búsqueda (`/search`) y perfiles públicos (`/workers/[id]`, `/companies/[id]`); ya aplicado en `ShiftCard`/`CandidateCard`/estados de listado.
+4. **Migrar la DB a Neon** (el Postgres free de Render expira a los 90 días). Pasos en `backend/README.md`.
+- Futuro (Fase 3): afinidad local en matching, push nativo (más allá del WebSocket in-app), app nativa (React Native), asistente de IA por voz (ver Novedades).
+
+## Novedades recientes (2026-06-24)
+- **Rediseño visual de tarjetas (estilo Morfi)**: `ShiftCard` y `CandidateCard` pasan a tener identidad visual por tipo de puesto (banda con gradiente + ícono, vía `lib/skill-style.tsx`), badges flotantes (urgente, score) y feedback táctil. `EmptyState`/`CardSkeletons` actualizados al mismo lenguaje. Ajustes globales de PWA (`-webkit-tap-highlight-color`, `touch-action`) para que se sienta app y no página web.
+- Mergeado a `main` vía PR #27 (incluye también lo de 2026-06-22/23 listado abajo), reconciliado con `admin`, el selector de ubicación AR y chat/notificaciones por WebSocket que ya estaban en `main` (PRs #22, #24, #25, #26).
+- Próximo en la mira: asistente de IA por voz — el comercio pide "necesito un bachero para tal hora en Palermo" y recibe candidatos disponibles; el trabajador pregunta qué turnos hay cerca y recibe el feed filtrado. Se apoyaría en transcripción + function-calling (ej. Gemini) mapeado a `/matching/search` y `/shifts/feed` existentes — no implementado todavía.
+
+## Novedades anteriores (2026-06-23)
+- **UI de reviews**: `ReviewBox` (estrellas + comentario) en `/my-shifts` y `/shifts` para turnos `finalizado`/`pagado`, una sola reseña por usuario por turno. `ReceivedReviews` lista las reseñas recibidas en `/profile`. Componente `StarRating` reutilizable (picker interactivo y display de sólo lectura).
+- **Perfiles públicos estilo OkCupid**: páginas `/workers/[id]` y `/companies/[id]` (foto/logo grande, nombre, edad o rubro, ubicación, rating, bio/descripción, skills, métricas). Enlazadas desde el feed de turnos, los candidatos, el mapa de búsqueda (`/search`) y los turnos asignados/publicados.
+
+## Novedades anteriores (2026-06-22)
+- **Reviews/reputación** (`backend/app/modules/review/`): módulo nuevo completo (domain/application/infrastructure/api) + migración `0008_create_reviews_table`.
+- **`full_name`/`owner_full_name`** expuestos en `WorkerProfileResponse`/`CompanyProfileResponse`, resueltos en la capa `api/` vía `UserRepository` inyectado (no acopla el dominio a identity).
+- **Búsqueda de trabajadores por mapa**: nuevo endpoint `GET /api/v1/matching/search` (rol employer) — filtra por rol (suma el skill `barista`) y radio de distancia (Haversine), sin usar el scoring ponderado de `matching` (es un filtro+orden simple). Frontend: página `/search` con mapa Leaflet/OSM (sin API key, sin `localhost`), geolocalización del navegador con fallback al Obelisco.
+- **Datos de demo**: `backend/scripts/seed_demo_data.py`, idempotente, siembra 6 comercios y 8 trabajadores repartidos por barrios de CABA (Palermo, Recoleta, San Telmo, Belgrano, Caballito, Microcentro). Contraseña demo: `staffyaDemo123`.
+- **Panel admin, selector de ubicación AR y tiempo real (chat/notificaciones) vía WebSocket**: mergeados a `main` en paralelo (PRs #22, #25, #26) — ver filas de la tabla de módulos arriba.
 
 ## Deuda técnica
 - `payment` es placeholder (no procesa cobros).
-- Notificaciones y chat son in-app con polling (sin push ni websockets en tiempo real).
 - DB en Render expira a los 90 días (free tier) — migrar a Neon.
 - Algunos warnings de lint pre-existentes en el frontend (`setState` síncrono en `useEffect`).
 

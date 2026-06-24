@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
+import ReviewBox from "@/components/ReviewBox";
 import {
   CardSkeletons,
   EmptyState,
@@ -117,12 +118,20 @@ export default function MyAssignedShiftsPage() {
         {shifts.map((shift) => (
           <ShiftCard key={shift.id} shift={shift}>
             {shift.status !== "cancelado" && (
-              <Link
-                href={`/chats/${shift.id}`}
-                className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-              >
-                <MessageIcon size={16} /> Chatear con el comercio
-              </Link>
+              <div className="mb-2 flex flex-wrap gap-2">
+                <Link
+                  href={`/chats/${shift.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                >
+                  <MessageIcon size={16} /> Chatear con el comercio
+                </Link>
+                <Link
+                  href={`/companies/${shift.company_id}`}
+                  className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                >
+                  Ver el comercio
+                </Link>
+              </div>
             )}
             {shift.status === "asignado" && (
               <div className="flex flex-wrap gap-2">
@@ -176,12 +185,18 @@ export default function MyAssignedShiftsPage() {
               <p className="text-sm text-zinc-500">Esperando que el comercio cierre el turno.</p>
             )}
             {shift.status === "finalizado" && (
-              <p className="text-sm text-zinc-500">Turno finalizado, esperando el pago.</p>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-zinc-500">Turno finalizado, esperando el pago.</p>
+                <ReviewBox shiftId={shift.id} />
+              </div>
             )}
             {shift.status === "pagado" && (
-              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
-                <CheckIcon size={16} /> Turno pagado
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                  <CheckIcon size={16} /> Turno pagado
+                </p>
+                <ReviewBox shiftId={shift.id} />
+              </div>
             )}
           </ShiftCard>
         ))}

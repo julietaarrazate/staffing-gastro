@@ -50,3 +50,18 @@ class MatchResult:
     rating: float
     score: float
     distance_km: float | None
+
+
+@dataclass(frozen=True)
+class WorkerMapResult:
+    """Trabajador disponible ubicado en el mapa de búsqueda por rol/distancia."""
+
+    profile_id: UUID
+    user_id: UUID
+    full_name: str
+    photo_url: str | None
+    rating: float
+    skills: tuple[WorkerSkill, ...]
+    latitude: float | None
+    longitude: float | None
+    distance_km: float | None

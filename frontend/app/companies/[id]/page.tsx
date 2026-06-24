@@ -1,0 +1,111 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { CompanyProfile } from "@/lib/types";
+import { ErrorBanner } from "@/components/PageState";
+import StarRating from "@/components/StarRating";
+import { MapPinIcon } from "@/components/icons";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  restaurante: "Restaurante",
+  bar: "Bar",
+  cafeteria: "Cafetería",
+  salon_eventos: "Salón de eventos",
+  catering: "Catering",
+  empresa_gastronomica: "Empresa gastronómica",
+};
+
+export default function PublicCompanyProfilePage() {
+  const { token } = useAuth();
+  const params = useParams<{ id: string }>();
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    api
+      .get<CompanyProfile>(`/companies/${params.id}`, token)
+      .then(setProfile)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "No se pudo cargar el perfil"))
+      .finally(() => setLoading(false));
+  }, [token, params.id]);
+
+  if (loading) return <p className="px-4 py-16 text-center text-zinc-500">Cargando...</p>;
+  if (error) return <ErrorBanner message={error} />;
+  if (!profile) return null;
+
+  return (
+    <div className="mx-auto max-w-xl px-4 py-8">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="relative h-56 w-full bg-gradient-to-br from-zinc-300 to-zinc-500">
+          {profile.logo_url ? (
+            <img
+              src={profile.logo_url}
+              alt={profile.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-white/90">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
+            <h1 className="text-2xl font-bold text-white">{profile.name}</h1>
+            {profile.city && (
+              <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
+                <MapPinIcon size={14} /> {profile.city}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="px-5 py-5">
+          <div className="flex items-center gap-2">
+            <StarRating value={Math.round(profile.rating)} size={18} />
+            <span className="text-sm font-semibold text-zinc-700">{profile.rating.toFixed(1)}</span>
+            <span className="text-sm text-zinc-400">· {profile.events_published} turnos publicados</span>
+          </div>
+
+          {profile.owner_full_name && (
+            <p className="mt-2 text-sm text-zinc-500">A cargo de {profile.owner_full_name}</p>
+          )}
+
+          {profile.description && <p className="mt-4 text-sm text-zinc-700">{profile.description}</p>}
+
+          {profile.category && (
+            <div className="mt-4">
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
+                {CATEGORY_LABELS[profile.category] ?? profile.category}
+              </span>
+            </div>
+          )}
+
+          <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+            <Metric
+              label="Pago a tiempo"
+              value={`${Math.round(profile.on_time_payment_rate * 100)}%`}
+            />
+            {profile.capacity != null && (
+              <Metric label="Capacidad" value={`${profile.capacity} personas`} />
+            )}
+            {profile.opening_hours && <Metric label="Horario" value={profile.opening_hours} />}
+            {profile.address && <Metric label="Dirección" value={profile.address} />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="font-semibold text-zinc-800">{value}</p>
+    </div>
+  );
+}

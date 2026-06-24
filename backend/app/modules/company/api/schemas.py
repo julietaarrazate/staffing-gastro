@@ -28,6 +28,7 @@ class CompanyProfileResponse(BaseModel):
 
     id: UUID
     user_id: UUID
+    owner_full_name: str | None = None
     name: str
     logo_url: str | None
     category: CompanyCategory | None

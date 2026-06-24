@@ -93,3 +93,10 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         stmt = select(WorkerProfileModel.id).where(WorkerProfileModel.user_id == user_id)
         result = await self._session.execute(stmt)
         return result.first() is not None
+
+    async def update_rating(self, profile_id: UUID, rating: float) -> None:
+        model = await self._session.get(WorkerProfileModel, profile_id)
+        if model is None:
+            return
+        model.rating = rating
+        await self._session.commit()

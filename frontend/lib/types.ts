@@ -3,6 +3,7 @@ export type UserRole = "worker" | "employer" | "admin";
 export type WorkerSkill =
   | "mozo"
   | "bartender"
+  | "barista"
   | "runner"
   | "cocinero"
   | "cajero"
@@ -14,6 +15,7 @@ export type WorkerSkill =
 export const WORKER_SKILLS: WorkerSkill[] = [
   "mozo",
   "bartender",
+  "barista",
   "runner",
   "cocinero",
   "cajero",
@@ -26,6 +28,7 @@ export const WORKER_SKILLS: WorkerSkill[] = [
 export const SKILL_LABELS: Record<WorkerSkill, string> = {
   mozo: "Mozo/a",
   bartender: "Bartender",
+  barista: "Barista",
   runner: "Runner",
   cocinero: "Cocinero/a",
   cajero: "Cajero/a",
@@ -113,9 +116,22 @@ export interface CandidateMatch {
   distance_km: number | null;
 }
 
+export interface WorkerMapResult {
+  profile_id: string;
+  user_id: string;
+  full_name: string;
+  photo_url: string | null;
+  rating: number;
+  skills: WorkerSkill[];
+  latitude: number | null;
+  longitude: number | null;
+  distance_km: number | null;
+}
+
 export interface WorkerProfile {
   id: string;
   user_id: string;
+  full_name?: string | null;
   photo_url: string | null;
   birth_date: string | null;
   age: number | null;
@@ -143,7 +159,18 @@ export type NotificationType =
   | "shift_rejected"
   | "shift_checked_out"
   | "shift_paid"
-  | "chat_message";
+  | "chat_message"
+  | "review_received";
+
+export interface Review {
+  id: string;
+  shift_id: string;
+  reviewer_user_id: string;
+  reviewee_user_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
 
 export interface ChatMessage {
   id: string;
@@ -196,6 +223,7 @@ export interface PlatformStats {
 export interface CompanyProfile {
   id: string;
   user_id: string;
+  owner_full_name?: string | null;
   name: string;
   logo_url: string | null;
   category: string | null;

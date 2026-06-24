@@ -28,3 +28,7 @@ class WorkerProfileRepository(ABC):
     @abstractmethod
     async def exists_by_user_id(self, user_id: UUID) -> bool:
         """Indica si el usuario ya tiene un perfil de trabajador."""
+
+    @abstractmethod
+    async def update_rating(self, profile_id: UUID, rating: float) -> None:
+        """Actualiza el promedio de reputación calculado a partir de las reseñas."""

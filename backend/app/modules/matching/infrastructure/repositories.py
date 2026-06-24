@@ -36,8 +36,8 @@ class SqlAlchemyCandidateRepository(CandidateRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def list_available_by_skill(
-        self, skill: WorkerSkill
+    async def list_available(
+        self, skill: WorkerSkill | None = None
     ) -> list[CandidateProfile]:
         stmt = (
             select(WorkerProfileModel, UserModel.full_name)
@@ -51,5 +51,5 @@ class SqlAlchemyCandidateRepository(CandidateRepository):
         return [
             _to_candidate(model, full_name)
             for model, full_name in rows
-            if skill.value in (model.skills or [])
+            if skill is None or skill.value in (model.skills or [])
         ]

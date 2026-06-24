@@ -113,6 +113,7 @@ Con el servidor corriendo:
 | POST   | `/api/v1/shifts/{id}/publish` | Publicar un turno en borrador                |
 | POST   | `/api/v1/shifts/{id}/cancel`  | Cancelar un turno                            |
 | GET    | `/api/v1/shifts/{id}/candidates` | Top de candidatos recomendados para un turno propio (rol employer) |
+| GET    | `/api/v1/matching/search`     | Buscar trabajadores disponibles por rol y distancia, para el mapa (rol employer) |
 | POST   | `/api/v1/shifts/{id}/assign`  | Asignar el turno a un candidato (rol employer) |
 | POST   | `/api/v1/shifts/{id}/confirm` | Confirmar la asistencia a un turno asignado (rol worker) |
 | POST   | `/api/v1/shifts/{id}/reject`  | Rechazar un turno asignado (rol worker)      |
@@ -133,6 +134,20 @@ Con el servidor corriendo:
 | POST   | `/api/v1/admin/users/{id}/activate` | Reactivar un usuario (rol admin)       |
 | POST   | `/api/v1/admin/users/{id}/verify`   | Verificar un usuario (rol admin)       |
 | POST   | `/api/v1/admin/users/{id}/promote`  | Promover a admin (rol admin)           |
+
+## Datos de prueba (locales y trabajadores de demo)
+Para probar manualmente el matching, la búsqueda por mapa y los perfiles sin
+crear cuentas a mano, hay un script que carga comercios y trabajadores de
+ejemplo repartidos por distintos barrios de CABA (Palermo, Recoleta, San
+Telmo, Belgrano, Caballito, Microcentro):
+```bash
+cd backend
+source .venv/bin/activate
+python -m scripts.seed_demo_data
+```
+Es idempotente (omite los emails que ya existan) y usa la `DATABASE_URL`
+configurada en el entorno. La contraseña de todas las cuentas demo es
+`staffyaDemo123`.
 
 ## Tests
 ```bash
