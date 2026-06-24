@@ -20,34 +20,82 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+// El access token vence a los 15 minutos (ver `access_token_expire_minutes`
+// en el backend); lo renovamos antes con el refresh token (30 días) para que
+// la sesión se mantenga abierta mientras la app esté en uso.
+const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+
+function persistTokens(access: string, refresh: string) {
+  localStorage.setItem("staffya_token", access);
+  localStorage.setItem("staffya_refresh", refresh);
+}
+
+function clearTokens() {
+  localStorage.removeItem("staffya_token");
+  localStorage.removeItem("staffya_refresh");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function tryRefresh(): Promise<string | null> {
+    const refreshToken = localStorage.getItem("staffya_refresh");
+    if (!refreshToken) return null;
+    try {
+      const tokens = await api.post<{ access_token: string; refresh_token: string }>(
+        "/auth/refresh",
+        { refresh_token: refreshToken }
+      );
+      persistTokens(tokens.access_token, tokens.refresh_token);
+      setToken(tokens.access_token);
+      return tokens.access_token;
+    } catch {
+      return null;
+    }
+  }
+
   useEffect(() => {
     const stored = localStorage.getItem("staffya_token");
-    if (stored) {
-      setToken(stored);
-      api
-        .get<User>("/auth/me", stored)
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem("staffya_token");
-          setToken(null);
-        })
-        .finally(() => setLoading(false));
-    } else {
+    if (!stored) {
       setLoading(false);
+      return;
     }
+    setToken(stored);
+    api
+      .get<User>("/auth/me", stored)
+      .then(setUser)
+      .catch(async () => {
+        const refreshed = await tryRefresh();
+        if (!refreshed) {
+          clearTokens();
+          setToken(null);
+          return;
+        }
+        try {
+          setUser(await api.get<User>("/auth/me", refreshed));
+        } catch {
+          clearTokens();
+          setToken(null);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(tryRefresh, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   async function login(email: string, password: string) {
-    const tokens = await api.post<{ access_token: string }>("/auth/login", {
-      email,
-      password,
-    });
-    localStorage.setItem("staffya_token", tokens.access_token);
+    const tokens = await api.post<{ access_token: string; refresh_token: string }>(
+      "/auth/login",
+      { email, password }
+    );
+    persistTokens(tokens.access_token, tokens.refresh_token);
     setToken(tokens.access_token);
     const me = await api.get<User>("/auth/me", tokens.access_token);
     setUser(me);
@@ -64,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
-    localStorage.removeItem("staffya_token");
+    clearTokens();
     setToken(null);
     setUser(null);
   }

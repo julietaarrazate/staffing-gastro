@@ -36,7 +36,9 @@ from app.modules.worker.infrastructure.repositories import (
 
 DEMO_PASSWORD = "staffyaDemo123"
 
-# Comercios repartidos por distintos barrios de CABA.
+# Comercios ficticios repartidos por distintos barrios de CABA. Direcciones y
+# coordenadas son aproximadas a cada barrio (no son negocios reales: son datos
+# de prueba hasta tener altas reales).
 COMPANIES = [
     {
         "email": "demo.palermo@staffya.com",
@@ -48,6 +50,8 @@ COMPANIES = [
         "latitude": -34.5885,
         "longitude": -58.4308,
         "capacity": 80,
+        "description": "Bar de tragos de autor en el corazón de Palermo Soho.",
+        "logo_url": "https://picsum.photos/seed/staffya-palermo-bar/600/400",
     },
     {
         "email": "demo.recoleta@staffya.com",
@@ -59,6 +63,8 @@ COMPANIES = [
         "latitude": -34.5895,
         "longitude": -58.3925,
         "capacity": 60,
+        "description": "Cocina de mercado y carta de vinos en Recoleta.",
+        "logo_url": "https://picsum.photos/seed/staffya-recoleta-resto/600/400",
     },
     {
         "email": "demo.santelmo@staffya.com",
@@ -70,6 +76,8 @@ COMPANIES = [
         "latitude": -34.6210,
         "longitude": -58.3731,
         "capacity": 40,
+        "description": "Café de especialidad en una casona de San Telmo.",
+        "logo_url": "https://picsum.photos/seed/staffya-santelmo-cafe/600/400",
     },
     {
         "email": "demo.belgrano@staffya.com",
@@ -81,6 +89,8 @@ COMPANIES = [
         "latitude": -34.5631,
         "longitude": -58.4566,
         "capacity": 70,
+        "description": "Cantina familiar con cocina italiana en Belgrano.",
+        "logo_url": "https://picsum.photos/seed/staffya-belgrano-cantina/600/400",
     },
     {
         "email": "demo.caballito@staffya.com",
@@ -92,6 +102,8 @@ COMPANIES = [
         "latitude": -34.6190,
         "longitude": -58.4420,
         "capacity": 200,
+        "description": "Salón de eventos para casamientos y fiestas corporativas.",
+        "logo_url": "https://picsum.photos/seed/staffya-caballito-eventos/600/400",
     },
     {
         "email": "demo.microcentro@staffya.com",
@@ -103,10 +115,91 @@ COMPANIES = [
         "latitude": -34.5995,
         "longitude": -58.3753,
         "capacity": 50,
+        "description": "Bar de oficinistas en pleno Microcentro porteño.",
+        "logo_url": "https://picsum.photos/seed/staffya-microcentro-bar/600/400",
+    },
+    {
+        "email": "demo.villacrespo@staffya.com",
+        "full_name": "Cervecería Villa Crespo",
+        "name": "Cervecería Villa Crespo",
+        "category": CompanyCategory.BAR,
+        "city": "Villa Crespo",
+        "address": "Av. Corrientes 5100",
+        "latitude": -34.5990,
+        "longitude": -58.4390,
+        "capacity": 90,
+        "description": "Cervecería artesanal con barra y patio al fondo.",
+        "logo_url": "https://picsum.photos/seed/staffya-villacrespo-cerveceria/600/400",
+    },
+    {
+        "email": "demo.almagro@staffya.com",
+        "full_name": "Pizzería Almagro",
+        "name": "Pizzería Almagro",
+        "category": CompanyCategory.RESTAURANTE,
+        "city": "Almagro",
+        "address": "Av. Rivadavia 3400",
+        "latitude": -34.6080,
+        "longitude": -58.4190,
+        "capacity": 55,
+        "description": "Pizzería de barrio con horno a leña, abierta hasta tarde.",
+        "logo_url": "https://picsum.photos/seed/staffya-almagro-pizzeria/600/400",
+    },
+    {
+        "email": "demo.puertomadero@staffya.com",
+        "full_name": "Catering Puerto Madero",
+        "name": "Catering Puerto Madero",
+        "category": CompanyCategory.CATERING,
+        "city": "Puerto Madero",
+        "address": "Av. Alicia Moreau de Justo 1900",
+        "latitude": -34.6080,
+        "longitude": -58.3650,
+        "capacity": 150,
+        "description": "Catering corporativo para eventos sobre los diques.",
+        "logo_url": "https://picsum.photos/seed/staffya-puertomadero-catering/600/400",
+    },
+    {
+        "email": "demo.nunez@staffya.com",
+        "full_name": "Café Núñez",
+        "name": "Café Núñez",
+        "category": CompanyCategory.CAFETERIA,
+        "city": "Núñez",
+        "address": "Av. Cabildo 3700",
+        "latitude": -34.5450,
+        "longitude": -58.4630,
+        "capacity": 35,
+        "description": "Cafetería de especialidad cerca del Monumental.",
+        "logo_url": "https://picsum.photos/seed/staffya-nunez-cafe/600/400",
+    },
+    {
+        "email": "demo.boedo@staffya.com",
+        "full_name": "Bodegón Boedo",
+        "name": "Bodegón Boedo",
+        "category": CompanyCategory.RESTAURANTE,
+        "city": "Boedo",
+        "address": "Av. Boedo 1100",
+        "latitude": -34.6280,
+        "longitude": -58.4170,
+        "capacity": 65,
+        "description": "Bodegón tradicional con cocina porteña de toda la vida.",
+        "logo_url": "https://picsum.photos/seed/staffya-boedo-bodegon/600/400",
+    },
+    {
+        "email": "demo.colegiales@staffya.com",
+        "full_name": "Empresa Gastronómica Colegiales",
+        "name": "Empresa Gastronómica Colegiales",
+        "category": CompanyCategory.EMPRESA_GASTRONOMICA,
+        "city": "Colegiales",
+        "address": "Av. Federico Lacroze 2200",
+        "latitude": -34.5760,
+        "longitude": -58.4480,
+        "capacity": 300,
+        "description": "Operador gastronómico con varios locales en CABA.",
+        "logo_url": "https://picsum.photos/seed/staffya-colegiales-empresa/600/400",
     },
 ]
 
-# Trabajadores repartidos cerca de los comercios anteriores, con distintos roles.
+# Trabajadores ficticios repartidos cerca de los comercios anteriores, con
+# distintos roles. `img` selecciona la foto en i.pravatar.cc.
 WORKERS = [
     {
         "email": "demo.mozo.palermo@staffya.com",
@@ -116,6 +209,7 @@ WORKERS = [
         "latitude": -34.5850,
         "longitude": -58.4280,
         "years_experience": 3,
+        "img": 12,
     },
     {
         "email": "demo.bartender.palermo@staffya.com",
@@ -125,6 +219,7 @@ WORKERS = [
         "latitude": -34.5910,
         "longitude": -58.4330,
         "years_experience": 5,
+        "img": 47,
     },
     {
         "email": "demo.barista.recoleta@staffya.com",
@@ -134,6 +229,7 @@ WORKERS = [
         "latitude": -34.5880,
         "longitude": -58.3950,
         "years_experience": 2,
+        "img": 65,
     },
     {
         "email": "demo.runner.santelmo@staffya.com",
@@ -143,6 +239,7 @@ WORKERS = [
         "latitude": -34.6230,
         "longitude": -58.3710,
         "years_experience": 1,
+        "img": 22,
     },
     {
         "email": "demo.cocinero.belgrano@staffya.com",
@@ -152,6 +249,7 @@ WORKERS = [
         "latitude": -34.5610,
         "longitude": -58.4540,
         "years_experience": 6,
+        "img": 33,
     },
     {
         "email": "demo.mozo.caballito@staffya.com",
@@ -161,6 +259,7 @@ WORKERS = [
         "latitude": -34.6170,
         "longitude": -58.4400,
         "years_experience": 4,
+        "img": 51,
     },
     {
         "email": "demo.bartender.microcentro@staffya.com",
@@ -170,6 +269,7 @@ WORKERS = [
         "latitude": -34.6010,
         "longitude": -58.3770,
         "years_experience": 7,
+        "img": 28,
     },
     {
         "email": "demo.barista.palermo@staffya.com",
@@ -179,6 +279,67 @@ WORKERS = [
         "latitude": -34.5870,
         "longitude": -58.4350,
         "years_experience": 1,
+        "img": 19,
+    },
+    {
+        "email": "demo.cocinero.villacrespo@staffya.com",
+        "full_name": "Federico Romero",
+        "skills": [WorkerSkill.COCINERO, WorkerSkill.AYUDANTE_COCINA],
+        "city": "Villa Crespo",
+        "latitude": -34.5995,
+        "longitude": -58.4370,
+        "years_experience": 8,
+        "img": 36,
+    },
+    {
+        "email": "demo.mozo.almagro@staffya.com",
+        "full_name": "Agustina Díaz",
+        "skills": [WorkerSkill.MOZO, WorkerSkill.RECEPCIONISTA],
+        "city": "Almagro",
+        "latitude": -34.6090,
+        "longitude": -58.4200,
+        "years_experience": 2,
+        "img": 41,
+    },
+    {
+        "email": "demo.eventos.puertomadero@staffya.com",
+        "full_name": "Nicolás Aguirre",
+        "skills": [WorkerSkill.PERSONAL_EVENTOS, WorkerSkill.PERSONAL_SALON],
+        "city": "Puerto Madero",
+        "latitude": -34.6070,
+        "longitude": -58.3660,
+        "years_experience": 5,
+        "img": 60,
+    },
+    {
+        "email": "demo.barista.nunez@staffya.com",
+        "full_name": "Lucía Medina",
+        "skills": [WorkerSkill.BARISTA],
+        "city": "Núñez",
+        "latitude": -34.5460,
+        "longitude": -58.4610,
+        "years_experience": 3,
+        "img": 8,
+    },
+    {
+        "email": "demo.mozo.boedo@staffya.com",
+        "full_name": "Matías Cabrera",
+        "skills": [WorkerSkill.MOZO, WorkerSkill.CAJERO],
+        "city": "Boedo",
+        "latitude": -34.6270,
+        "longitude": -58.4150,
+        "years_experience": 4,
+        "img": 15,
+    },
+    {
+        "email": "demo.cocinero.colegiales@staffya.com",
+        "full_name": "Florencia Torres",
+        "skills": [WorkerSkill.COCINERO, WorkerSkill.PERSONAL_SALON],
+        "city": "Colegiales",
+        "latitude": -34.5770,
+        "longitude": -58.4460,
+        "years_experience": 6,
+        "img": 24,
     },
 ]
 
@@ -208,7 +369,9 @@ async def _seed_companies(session) -> None:
                 user.id,
                 CompanyProfileData(
                     name=entry["name"],
+                    logo_url=entry["logo_url"],
                     category=entry["category"],
+                    description=entry["description"],
                     city=entry["city"],
                     address=entry["address"],
                     latitude=entry["latitude"],
@@ -245,6 +408,7 @@ async def _seed_workers(session) -> None:
             await worker_service.create_profile(
                 user.id,
                 WorkerProfileData(
+                    photo_url=f"https://i.pravatar.cc/300?img={entry['img']}",
                     skills=entry["skills"],
                     city=entry["city"],
                     latitude=entry["latitude"],

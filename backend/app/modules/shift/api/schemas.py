@@ -60,6 +60,8 @@ class ShiftResponse(BaseModel):
     check_out_at: datetime | None
     paid_at: datetime | None
     created_at: datetime | None = None
+    company_name: str | None = None
+    company_logo_url: str | None = None
 
 
 class AssignWorkerRequest(BaseModel):

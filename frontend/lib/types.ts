@@ -104,6 +104,8 @@ export interface Shift {
   check_out_at: string | null;
   paid_at: string | null;
   created_at: string | null;
+  company_name: string | null;
+  company_logo_url: string | null;
 }
 
 export interface CandidateMatch {

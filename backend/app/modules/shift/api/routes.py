@@ -5,6 +5,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.modules.company.api.dependencies import get_company_repository
+from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.api.dependencies import get_current_user
 from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import (
@@ -20,6 +22,7 @@ from app.modules.shift.api.schemas import (
 )
 from app.modules.shift.application.dtos import ShiftData
 from app.modules.shift.application.services import ShiftService
+from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
@@ -35,10 +38,30 @@ ServiceDep = Annotated[ShiftService, Depends(get_shift_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 AuthUserDep = Annotated[User, Depends(get_current_user)]
+CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 
 
 def _to_data(payload: ShiftInput) -> ShiftData:
     return ShiftData(**payload.model_dump())
+
+
+async def _with_company_info(
+    shifts: list[Shift], companies: CompanyProfileRepository
+) -> list[ShiftResponse]:
+    """Suma el nombre/logo del comercio a cada turno (resuelto vía company,
+    sin acoplar el dominio de shift a company)."""
+    cache: dict[UUID, object] = {}
+    responses = []
+    for shift in shifts:
+        if shift.company_id not in cache:
+            cache[shift.company_id] = await companies.get_by_id(shift.company_id)
+        company = cache[shift.company_id]
+        response = ShiftResponse.model_validate(shift)
+        if company:
+            response.company_name = company.name
+            response.company_logo_url = company.logo_url
+        responses.append(response)
+    return responses
 
 
 def _bad_request(detail: str) -> HTTPException:
@@ -71,12 +94,14 @@ async def create_shift(
 )
 async def feed(
     service: ServiceDep,
+    companies: CompaniesDep,
     _current_user: AuthUserDep,
     city: Annotated[str | None, Query()] = None,
     position: Annotated[WorkerSkill | None, Query()] = None,
     urgent: Annotated[bool | None, Query()] = None,
 ):
-    return await service.list_feed(city=city, position=position, urgent=urgent)
+    shifts = await service.list_feed(city=city, position=position, urgent=urgent)
+    return await _with_company_info(shifts, companies)
 
 
 @router.get(
@@ -93,8 +118,11 @@ async def my_shifts(company_id: CompanyIdDep, service: ServiceDep):
     response_model=list[ShiftResponse],
     summary="Mis turnos asignados (trabajador)",
 )
-async def my_assigned_shifts(worker_profile_id: WorkerProfileIdDep, service: ServiceDep):
-    return await service.list_worker_shifts(worker_profile_id)
+async def my_assigned_shifts(
+    worker_profile_id: WorkerProfileIdDep, service: ServiceDep, companies: CompaniesDep
+):
+    shifts = await service.list_worker_shifts(worker_profile_id)
+    return await _with_company_info(shifts, companies)
 
 
 @router.get(
