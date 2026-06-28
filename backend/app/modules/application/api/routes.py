@@ -1,0 +1,100 @@
+"""Rutas HTTP del módulo application (postulación del trabajador a un turno)."""
+
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_session
+from app.modules.application.api.dependencies import get_application_service
+from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
+from app.modules.application.application.services import ApplicationService
+from app.modules.application.domain.exceptions import (
+    AlreadyAppliedError,
+    ShiftNotApplicableError,
+)
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
+from app.modules.worker.infrastructure.repositories import (
+    SqlAlchemyWorkerProfileRepository,
+)
+
+router = APIRouter(prefix="/applications", tags=["applications"])
+
+ServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
+WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
+CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
+_SHIFT_NOT_FOUND = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="Turno no encontrado o no disponible para postularse",
+)
+
+
+@router.post(
+    "/shifts/{shift_id}",
+    response_model=ApplicationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Postularme a un turno abierto (trabajador)",
+)
+async def apply_to_shift(
+    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.apply(worker_profile_id, shift_id)
+    except ShiftNotApplicableError as exc:
+        raise _SHIFT_NOT_FOUND from exc
+    except AlreadyAppliedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya te postulaste a este turno",
+        ) from exc
+
+
+@router.get(
+    "/mine",
+    response_model=list[ApplicationResponse],
+    summary="Mis postulaciones (trabajador)",
+)
+async def my_applications(worker_profile_id: WorkerProfileIdDep, service: ServiceDep):
+    return await service.list_my_applications(worker_profile_id)
+
+
+@router.get(
+    "/shifts/{shift_id}",
+    response_model=list[ApplicantResponse],
+    summary="Postulantes de un turno propio (comercio)",
+)
+async def shift_applicants(
+    shift_id: UUID,
+    company_id: CompanyIdDep,
+    service: ServiceDep,
+    session: SessionDep,
+):
+    try:
+        applications = await service.list_applicants(company_id, shift_id)
+    except ShiftNotApplicableError as exc:
+        raise _SHIFT_NOT_FOUND from exc
+
+    workers = SqlAlchemyWorkerProfileRepository(session)
+    users = SqlAlchemyUserRepository(session)
+    applicants: list[ApplicantResponse] = []
+    for application in applications:
+        worker = await workers.get_by_id(application.worker_profile_id)
+        if worker is None:
+            continue
+        user = await users.get_by_id(worker.user_id)
+        applicants.append(
+            ApplicantResponse(
+                application_id=application.id,
+                worker_profile_id=application.worker_profile_id,
+                full_name=user.full_name if user else "Trabajador",
+                photo_url=worker.photo_url,
+                rating=worker.rating,
+                status=application.status.value,
+                created_at=application.created_at,
+            )
+        )
+    return applicants
