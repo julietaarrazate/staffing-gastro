@@ -1,144 +1,162 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { SKILL_LABELS, Shift, WorkerSkill } from "@/lib/types";
-import { SKILL_STYLES } from "@/lib/skill-style";
-import ShiftCard from "@/components/ShiftCard";
-import { CardSkeletons, EmptyState, ErrorBanner } from "@/components/PageState";
-import { CalendarIcon } from "@/components/icons";
+import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
+import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
+import SwipeDeck from "@/components/worker/SwipeDeck";
+import OpportunityCard from "@/components/worker/OpportunityCard";
+import { CalendarIcon, MapPinIcon } from "@/components/icons";
 
-export default function FeedPage() {
+export default function WorkerHomePage() {
   const { token, user } = useAuth();
+  const toast = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const [available, setAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<WorkerSkill | "todos">("todos");
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!token) return;
-    api
-      .get<Shift[]>("/shifts/feed", token)
-      .then(setShifts)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Error al cargar el feed"))
-      .finally(() => setLoading(false));
+    setLoading(true);
+    setError(null);
+    try {
+      const [feed, prof, applied] = await Promise.all([
+        api.get<Shift[]>("/shifts/feed", token),
+        api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
+        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+      ]);
+      const appliedIds = new Set(applied.map((a) => a.shift_id));
+      setShifts(feed.filter((s) => !appliedIds.has(s.id)));
+      if (prof) {
+        setProfile(prof);
+        setAvailable(prof.is_available);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
-  // Sólo ofrecemos como chips los roles que realmente aparecen en el feed,
-  // para no mostrar categorías vacías (como hace Morfi con sus categorías).
-  const availableSkills = useMemo(() => {
-    const present = new Set(shifts.map((s) => s.position));
-    return (Object.keys(SKILL_STYLES) as WorkerSkill[]).filter((s) => present.has(s));
-  }, [shifts]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const visibleShifts = useMemo(
-    () => (filter === "todos" ? shifts : shifts.filter((s) => s.position === filter)),
-    [shifts, filter]
-  );
+  async function toggleAvailable() {
+    if (!token || !profile) return;
+    const next = !available;
+    setAvailable(next); // optimista
+    try {
+      await api.put<WorkerProfile>(
+        "/workers/me/profile",
+        {
+          photo_url: profile.photo_url,
+          birth_date: profile.birth_date,
+          city: profile.city,
+          bio: profile.bio,
+          latitude: profile.latitude,
+          longitude: profile.longitude,
+          skills: profile.skills,
+          years_experience: profile.years_experience,
+          languages: profile.languages,
+          certifications: profile.certifications,
+          cv_url: profile.cv_url,
+          is_available: next,
+        },
+        token
+      );
+      toast(next ? "Estás disponible" : "Te marcaste como no disponible");
+    } catch {
+      setAvailable(!next); // revertir
+      toast("No se pudo actualizar tu disponibilidad", "error");
+    }
+  }
+
+  async function onDecide(shift: Shift, decision: "like" | "pass") {
+    if (decision === "pass" || !token) return;
+    try {
+      await api.post(`/applications/shifts/${shift.id}`, undefined, token);
+      toast("¡Te postulaste! El comercio ya te puede ver");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        toast("Ya te habías postulado a este turno");
+      } else {
+        toast("No se pudo enviar tu postulación", "error");
+      }
+    }
+  }
 
   const firstName = user?.full_name?.split(" ")[0];
 
   return (
-    <div className="min-h-full">
-      {/* Header estilo app: saludo + chips de filtro pegados arriba. */}
-      <div className="sticky top-16 z-20 -mt-px bg-zinc-50/95 px-4 pb-3 pt-4 backdrop-blur">
-        <div className="mx-auto max-w-2xl">
-          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">
-            {firstName ? `Hola, ${firstName}` : "Turnos disponibles"}
-          </h1>
-          <p className="mt-0.5 text-sm text-zinc-500">
-            Turnos abiertos cerca tuyo, en tiempo real.
-          </p>
+    <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)]">
+      {/* Header: saludo + disponibilidad */}
+      <header className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="lg" />
+          <div>
+            <h1 className="text-xl font-extrabold leading-tight text-zinc-900">
+              {firstName ? `Hola, ${firstName}` : "Hola"}
+            </h1>
+            <p className="inline-flex items-center gap-1 text-sm text-zinc-500">
+              <MapPinIcon size={13} className="text-zinc-400" />
+              {profile?.city ?? "Sin ubicación"}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggleAvailable}
+          className="flex flex-col items-center gap-1"
+          aria-label="Cambiar disponibilidad"
+        >
+          <span
+            className={`relative h-7 w-12 rounded-full transition-colors ${
+              available ? "bg-secondary" : "bg-zinc-300"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                available ? "left-[22px]" : "left-0.5"
+              }`}
+            />
+          </span>
+          <span className={`text-[11px] font-semibold ${available ? "text-secondary" : "text-zinc-400"}`}>
+            {available ? "Disponible" : "No disp."}
+          </span>
+        </button>
+      </header>
 
-          {availableSkills.length > 0 && (
-            <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <FilterChip
-                active={filter === "todos"}
-                onClick={() => setFilter("todos")}
-                label="Todos"
+      {/* Deck */}
+      <div className="min-h-0 flex-1">
+        {loading ? (
+          <CardSkeleton />
+        ) : error ? (
+          <EmptyState
+            icon={<CalendarIcon size={30} />}
+            title="No se pudo cargar"
+            subtitle={error}
+            primaryAction={{ label: "Reintentar", onClick: load }}
+          />
+        ) : (
+          <SwipeDeck
+            shifts={shifts}
+            onDecide={onDecide}
+            renderCard={(shift) => <OpportunityCard shift={shift} />}
+            empty={
+              <EmptyState
+                icon={<CalendarIcon size={30} />}
+                title="No hay más turnos cerca"
+                subtitle="Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato."
+                primaryAction={{ label: "Actualizar", onClick: load }}
               />
-              {availableSkills.map((skill) => {
-                const { Icon, gradient } = SKILL_STYLES[skill];
-                return (
-                  <FilterChip
-                    key={skill}
-                    active={filter === skill}
-                    onClick={() => setFilter(skill)}
-                    label={SKILL_LABELS[skill]}
-                    icon={<Icon size={14} />}
-                    gradient={gradient}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-2xl px-4 pb-10">
-        {loading && <CardSkeletons />}
-        {error && <ErrorBanner message={error} />}
-        {!loading && !error && shifts.length === 0 && (
-          <EmptyState
-            icon={<CalendarIcon size={26} />}
-            title="No hay turnos publicados"
-            subtitle="Todavía no hay turnos abiertos cerca tuyo. Volvé en un rato: aparecen en tiempo real."
+            }
           />
         )}
-        {!loading && !error && shifts.length > 0 && visibleShifts.length === 0 && (
-          <EmptyState
-            icon={<CalendarIcon size={26} />}
-            title="Sin turnos de ese rol"
-            subtitle="No hay turnos abiertos para ese rol ahora mismo. Probá con otro filtro."
-          />
-        )}
-
-        <div className="mt-4 grid gap-4">
-          {visibleShifts.map((shift) => (
-            <ShiftCard key={shift.id} shift={shift}>
-              <Link
-                href={`/companies/${shift.company_id}`}
-                className="text-sm font-semibold text-orange-600 hover:underline"
-              >
-                Ver el comercio
-              </Link>
-            </ShiftCard>
-          ))}
-        </div>
       </div>
     </div>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  label,
-  icon,
-  gradient,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  icon?: React.ReactNode;
-  gradient?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition active:scale-95 ${
-        active
-          ? gradient
-            ? `bg-gradient-to-br ${gradient} text-white shadow-md`
-            : "bg-zinc-900 text-white shadow-md"
-          : "bg-white text-zinc-600 ring-1 ring-zinc-200"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }

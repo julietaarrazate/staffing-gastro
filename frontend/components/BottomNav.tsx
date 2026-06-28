@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import {
-  CalendarIcon,
   ClipboardIcon,
+  HomeIcon,
   MapPinIcon,
   MessageIcon,
   ShieldIcon,
@@ -13,9 +13,9 @@ import {
 } from "@/components/icons";
 
 const WORKER_TABS = [
-  { href: "/feed", label: "Turnos", Icon: CalendarIcon },
-  { href: "/my-shifts", label: "Mis turnos", Icon: ClipboardIcon },
-  { href: "/chats", label: "Mensajes", Icon: MessageIcon },
+  { href: "/feed", label: "Inicio", Icon: HomeIcon },
+  { href: "/my-shifts", label: "Matches", Icon: ClipboardIcon },
+  { href: "/chats", label: "Chats", Icon: MessageIcon },
   { href: "/profile", label: "Perfil", Icon: UsersIcon },
 ];
 
