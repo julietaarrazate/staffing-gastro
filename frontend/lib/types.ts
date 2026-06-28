@@ -162,7 +162,28 @@ export type NotificationType =
   | "shift_checked_out"
   | "shift_paid"
   | "chat_message"
-  | "review_received";
+  | "review_received"
+  | "new_applicant";
+
+export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
+
+export interface ShiftApplication {
+  id: string;
+  shift_id: string;
+  worker_profile_id: string;
+  status: ApplicationStatus;
+  created_at: string | null;
+}
+
+export interface Applicant {
+  application_id: string;
+  worker_profile_id: string;
+  full_name: string;
+  photo_url: string | null;
+  rating: number;
+  status: ApplicationStatus;
+  created_at: string | null;
+}
 
 export interface Review {
   id: string;
