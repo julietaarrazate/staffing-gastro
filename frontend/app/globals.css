@@ -1,14 +1,30 @@
 @import "tailwindcss";
 
 /*
- * Staffya usa un único tema claro (como Morfi), siempre.
- * Seguir prefers-color-scheme hacía que con el modo oscuro del
- * sistema activado el fondo se pusiera negro mientras los componentes
- * (pensados para fondo claro) mantenían sus colores, perdiendo contraste.
+ * Staffya — Design System.
+ * Tema claro único (con variables preparadas para modo oscuro futuro).
+ * Paleta: primario naranja #FF6B00, secundario verde #22C55E, error rojo,
+ * fondo blanco y superficie gris muy clara. Bordes amplios, sombras suaves.
  */
 :root {
-  --background: #fafafa;
+  --background: #ffffff;
   --foreground: #18181b;
+
+  /* Radios amplios y sombras suaves (se usan vía clases arbitrarias). */
+  --radius-card: 1.5rem; /* 24px */
+  --radius-sheet: 1.75rem; /* 28px */
+  --shadow-soft: 0 4px 20px rgba(24, 24, 27, 0.06);
+  --shadow-float: 0 8px 30px rgba(24, 24, 27, 0.12);
+}
+
+/* Colores de marca: registrados como tokens de Tailwind v4 (generan
+ * utilidades bg-primary, text-secondary, ring-danger, etc.). */
+@theme {
+  --color-primary: #ff6b00;
+  --color-primary-strong: #e85f00;
+  --color-secondary: #22c55e;
+  --color-danger: #ef4444;
+  --color-surface: #f7f7f7;
 }
 
 @theme inline {
@@ -38,4 +54,20 @@ a,
 button {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+/* Oculta scrollbars en carruseles/filas horizontales sin perder el scroll. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Respeta el área segura (notch / home indicator) en PWA. */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top);
 }

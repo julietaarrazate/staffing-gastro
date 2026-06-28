@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.modules.admin.api.routes import router as admin_router
 from app.modules.admin.bootstrap import promote_configured_admins
+from app.modules.application.api.routes import router as application_router
 from app.modules.chat.api.routes import router as chat_router
 from app.modules.company.api.routes import router as company_router
 from app.modules.identity.api.routes import router as identity_router
@@ -61,3 +62,4 @@ app.include_router(notification_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(review_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(application_router, prefix="/api/v1")

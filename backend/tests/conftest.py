@@ -14,6 +14,7 @@ from app.core.database import Base, get_session
 from app.main import app
 
 # Importar modelos para registrarlos en la metadata antes de create_all
+from app.modules.application.infrastructure import models as application_models  # noqa: F401
 from app.modules.chat.infrastructure import models as chat_models  # noqa: F401
 from app.modules.company.infrastructure import models as company_models  # noqa: F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
