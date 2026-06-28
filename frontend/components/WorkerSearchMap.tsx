@@ -28,17 +28,14 @@ const originIcon = L.divIcon({
 export default function WorkerSearchMap({
   center,
   workers,
+  className = "h-[60vh] w-full rounded-2xl ring-1 ring-zinc-200",
 }: {
   center: [number, number];
   workers: WorkerMapResult[];
+  className?: string;
 }) {
   return (
-    <MapContainer
-      center={center}
-      zoom={13}
-      scrollWheelZoom
-      className="h-[60vh] w-full rounded-2xl ring-1 ring-zinc-200"
-    >
+    <MapContainer center={center} zoom={13} scrollWheelZoom className={className}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
