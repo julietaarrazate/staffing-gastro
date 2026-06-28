@@ -6,16 +6,14 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { WorkerMapResult } from "@/lib/types";
 import { SKILL_LABELS } from "@/lib/types";
 
-// Los íconos default de Leaflet apuntan a assets que Webpack no resuelve;
-// se reconstruye el ícono con las imágenes servidas por el propio paquete.
-const workerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+// Pin propio (sin imágenes externas: los assets default de Leaflet apuntan a un
+// CDN y Webpack no los resuelve). Un "gota" naranja con la marca.
+const workerIcon = L.divIcon({
+  className: "",
+  html: '<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#f97316,#dc2626);border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>',
+  iconSize: [26, 26],
+  iconAnchor: [13, 26],
+  popupAnchor: [0, -24],
 });
 
 const originIcon = L.divIcon({
@@ -35,7 +33,13 @@ export default function WorkerSearchMap({
   className?: string;
 }) {
   return (
-    <MapContainer center={center} zoom={13} scrollWheelZoom className={className}>
+    <MapContainer
+      center={center}
+      zoom={13}
+      scrollWheelZoom
+      zoomControl={false}
+      className={className}
+    >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
