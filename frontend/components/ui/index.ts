@@ -10,4 +10,7 @@ export { default as TextField } from "./TextField";
 export { default as SearchInput } from "./SearchInput";
 export { default as EmptyState } from "./EmptyState";
 export { default as Sheet } from "./Sheet";
+export { default as Modal } from "./Modal";
+export { default as SegmentedControl } from "./SegmentedControl";
+export { default as FAB } from "./FAB";
 export { ToastProvider, useToast } from "./Toast";

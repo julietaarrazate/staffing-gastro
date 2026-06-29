@@ -4,17 +4,19 @@ import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "danger" | "surface" | "ghost";
+type Variant = "primary" | "dark" | "secondary" | "danger" | "surface" | "ghost";
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-primary text-white shadow-[0_8px_20px_rgba(255,107,0,0.30)] hover:brightness-105",
+    "bg-primary text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] hover:brightness-[1.04]",
+  // "dark" / énfasis neutro de marca (#111).
+  dark: "bg-ink text-white hover:brightness-150",
   secondary:
-    "bg-secondary text-white shadow-[0_8px_20px_rgba(34,197,94,0.28)] hover:brightness-105",
-  danger: "bg-danger text-white shadow-[0_8px_20px_rgba(239,68,68,0.25)] hover:brightness-105",
-  surface: "bg-surface text-zinc-800 ring-1 ring-zinc-200 hover:bg-zinc-100",
-  ghost: "bg-transparent text-zinc-700 hover:bg-zinc-100",
+    "bg-secondary text-white shadow-[0_8px_20px_rgba(34,197,94,0.25)] hover:brightness-[1.04]",
+  danger: "bg-danger text-white shadow-[0_8px_20px_rgba(239,68,68,0.22)] hover:brightness-[1.04]",
+  surface: "bg-white text-ink ring-1 ring-line hover:bg-surface",
+  ghost: "bg-transparent text-ink/80 hover:bg-surface",
 };
 
 // Touch targets >= 44px (accesibilidad móvil).
@@ -60,7 +62,7 @@ export default function Button({
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold transition-[filter,background-color] outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center rounded-[var(--radius-btn)] font-semibold transition-[filter,background-color] outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50 disabled:pointer-events-none",
         VARIANTS[variant],
         SIZES[size],
         fullWidth && "w-full",

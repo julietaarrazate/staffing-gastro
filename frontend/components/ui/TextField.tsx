@@ -46,7 +46,7 @@ export default function TextField({
           min={min}
           max={max}
           className={cn(
-            "min-h-[48px] w-full rounded-2xl bg-surface px-4 text-[15px] text-zinc-900 outline-none ring-1 ring-zinc-200 transition focus:bg-white focus:ring-2 focus:ring-primary/40",
+            "min-h-[48px] w-full rounded-[var(--radius-input)] bg-white px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40",
             Boolean(leftIcon) && "pl-11"
           )}
         />

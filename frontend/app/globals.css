@@ -2,19 +2,25 @@
 
 /*
  * Staffya — Design System.
- * Tema claro único (con variables preparadas para modo oscuro futuro).
- * Paleta: primario naranja #FF6B00, secundario verde #22C55E, error rojo,
- * fondo blanco y superficie gris muy clara. Bordes amplios, sombras suaves.
+ * Identidad monocromática de marca: muchísimo blanco, negro de marca (#111)
+ * y un único acento naranja (#FF6B00). Nada de gradientes arcoíris ni violetas.
+ * Bordes amplios (cards 24 / botones 20 / inputs 18), sombras muy suaves que
+ * hacen flotar las tarjetas.
  */
 :root {
-  --background: #ffffff;
-  --foreground: #18181b;
+  --background: #f8f9fa; /* fondo de la app */
+  --foreground: #111111; /* ink / negro de marca */
+  --line: #ececee; /* bordes 1px */
 
-  /* Radios amplios y sombras suaves (se usan vía clases arbitrarias). */
+  /* Radios */
   --radius-card: 1.5rem; /* 24px */
+  --radius-btn: 1.25rem; /* 20px */
+  --radius-input: 1.125rem; /* 18px */
   --radius-sheet: 1.75rem; /* 28px */
-  --shadow-soft: 0 4px 20px rgba(24, 24, 27, 0.06);
-  --shadow-float: 0 8px 30px rgba(24, 24, 27, 0.12);
+
+  /* Sombras suaves: las cards flotan, nunca sombras pesadas. */
+  --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
+  --shadow-float: 0 16px 40px rgba(17, 17, 17, 0.12);
 }
 
 /* Colores de marca: registrados como tokens de Tailwind v4 (generan
@@ -22,9 +28,13 @@
 @theme {
   --color-primary: #ff6b00;
   --color-primary-strong: #e85f00;
+  --color-ink: #111111;
   --color-secondary: #22c55e;
+  --color-success: #22c55e;
+  --color-warning: #fbbf24;
   --color-danger: #ef4444;
-  --color-surface: #f7f7f7;
+  --color-surface: #f1f3f5; /* relleno neutro tenue (chips, tracks, inputs idle) */
+  --color-line: #ececee;
 }
 
 @theme inline {
