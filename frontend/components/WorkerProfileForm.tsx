@@ -82,14 +82,6 @@ export default function WorkerProfileForm() {
         fallbackLabel={profile?.full_name ?? user?.full_name ?? "T"}
       />
 
-      {profile && (
-        <div className="flex flex-wrap gap-3 rounded-xl bg-white p-4 text-sm shadow-sm">
-          <Metric label="Rating" value={profile.rating.toFixed(1)} />
-          <Metric label="Eventos completados" value={profile.events_completed} />
-          <Metric label="Puntualidad" value={`${Math.round(profile.punctuality_rate * 100)}%`} />
-          <Metric label="Nivel" value={profile.level} />
-        </div>
-      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">Ubicación</label>
@@ -163,14 +155,5 @@ export default function WorkerProfileForm() {
         {exists ? "Guardar cambios" : "Crear perfil"}
       </button>
     </form>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex-1 min-w-[100px]">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="text-lg font-bold">{value}</p>
-    </div>
   );
 }

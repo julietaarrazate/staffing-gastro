@@ -22,6 +22,8 @@ export default function CandidateCard({
           <img
             src={candidate.photo_url}
             alt={candidate.full_name}
+            loading="lazy"
+            decoding="async"
             className="h-14 w-14 rounded-full object-cover ring-2 ring-orange-100"
           />
         ) : (

@@ -37,7 +37,7 @@ export default function PublicWorkerProfilePage() {
       <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
         <div className="relative h-56 w-full bg-gradient-to-br from-orange-200 to-orange-400">
           {profile.photo_url ? (
-            <img src={profile.photo_url} alt={name} className="h-full w-full object-cover" />
+            <img src={profile.photo_url} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-white/90">
               {name.charAt(0).toUpperCase()}
