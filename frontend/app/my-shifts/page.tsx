@@ -1,206 +1,204 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Shift } from "@/lib/types";
+import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
-import {
-  CardSkeletons,
-  EmptyState,
-  ErrorBanner,
-  PageHeader,
-} from "@/components/PageState";
+import { Button, Chip, EmptyState, useToast } from "@/components/ui";
+import { CardSkeletons, ErrorBanner } from "@/components/PageState";
 import {
   BriefcaseIcon,
   CheckIcon,
+  ClockIcon,
   MapPinIcon,
   MessageIcon,
   PlayIcon,
   RouteIcon,
 } from "@/components/icons";
 
-export default function MyAssignedShiftsPage() {
-  const { token } = useAuth();
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [geoError, setGeoError] = useState<string | null>(null);
+type Tab = "asignados" | "postulaciones";
 
-  async function load() {
+const APPLICATION_LABELS: Record<string, string> = {
+  pendiente: "Postulado · esperando respuesta",
+  aceptada: "¡Te eligieron!",
+  rechazada: "No quedaste esta vez",
+  retirada: "Retiraste la postulación",
+};
+
+export default function MatchesPage() {
+  const { token } = useAuth();
+  const toast = useToast();
+  const [tab, setTab] = useState<Tab>("asignados");
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [applications, setApplications] = useState<ShiftApplication[]>([]);
+  const [appShifts, setAppShifts] = useState<Record<string, Shift>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const data = await api.get<Shift[]>("/shifts/mine", token);
-      setShifts(data);
+      const [assigned, apps] = await Promise.all([
+        api.get<Shift[]>("/shifts/mine", token),
+        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+      ]);
+      setShifts(assigned);
+      setApplications(apps);
+      // Resuelve el detalle de cada turno postulado (para mostrar la tarjeta).
+      const entries = await Promise.all(
+        apps.map(async (a) => {
+          try {
+            return [a.shift_id, await api.get<Shift>(`/shifts/${a.shift_id}`, token)] as const;
+          } catch {
+            return null;
+          }
+        })
+      );
+      setAppShifts(Object.fromEntries(entries.filter((e): e is [string, Shift] => e !== null)));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al cargar tus turnos");
+      setError(err instanceof ApiError ? err.message : "Error al cargar tus matches");
     } finally {
       setLoading(false);
     }
-  }
+  }, [token]);
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, [load]);
 
-  async function confirm(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/confirm`, undefined, token);
-    load();
-  }
-
-  async function reject(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/reject`, undefined, token);
-    load();
-  }
-
-  async function depart(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/depart`, undefined, token);
-    load();
-  }
-
-  async function checkIn(id: string) {
+  async function act(id: string, path: string, geo = false) {
     if (!token) return;
     setGeoError(null);
     try {
-      const { latitude, longitude } = await getCurrentPosition();
-      await api.post(`/shifts/${id}/check-in`, { latitude, longitude }, token);
+      const body = geo ? await getCurrentPosition() : undefined;
+      await api.post(`/shifts/${id}/${path}`, body, token);
       load();
     } catch (err) {
-      setGeoError(err instanceof Error ? err.message : "No se pudo marcar la llegada");
+      const msg = err instanceof Error ? err.message : "No se pudo completar la acción";
+      if (geo) setGeoError(msg);
+      else toast(msg, "error");
     }
   }
 
-  async function startWorking(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/start-working`, undefined, token);
-    load();
-  }
-
-  async function checkOut(id: string) {
-    if (!token) return;
-    setGeoError(null);
-    try {
-      const { latitude, longitude } = await getCurrentPosition();
-      await api.post(`/shifts/${id}/check-out`, { latitude, longitude }, token);
-      load();
-    } catch (err) {
-      setGeoError(err instanceof Error ? err.message : "No se pudo marcar la salida");
-    }
-  }
+  // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
+  const pending = applications.filter((a) => a.status === "pendiente");
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <PageHeader
-        title="Mis turnos asignados"
-        subtitle="Acá aparecen los turnos que un comercio te asignó. Confirmá tu asistencia o rechazá si no podés."
-      />
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+      <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Matches</h1>
+      <p className="mt-0.5 text-sm text-zinc-500">Tus turnos asignados y tus postulaciones.</p>
+
+      <div className="mt-4 flex gap-2">
+        <Chip active={tab === "asignados"} onClick={() => setTab("asignados")}>
+          Asignados {shifts.length > 0 && `(${shifts.length})`}
+        </Chip>
+        <Chip active={tab === "postulaciones"} onClick={() => setTab("postulaciones")}>
+          Postulaciones {pending.length > 0 && `(${pending.length})`}
+        </Chip>
+      </div>
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} />}
       {geoError && <ErrorBanner message={geoError} />}
-      {!loading && !error && shifts.length === 0 && (
-        <EmptyState
-          icon={<BriefcaseIcon size={26} />}
-          title="Todavía no tenés turnos asignados"
-          subtitle="Cuando un comercio te asigne un turno del feed, va a aparecer acá."
-        />
+
+      {!loading && !error && tab === "asignados" && (
+        <div className="mt-5 grid gap-4">
+          {shifts.length === 0 ? (
+            <EmptyState
+              icon={<BriefcaseIcon size={28} />}
+              title="Todavía no tenés turnos asignados"
+              subtitle="Cuando un comercio te elija de entre los postulantes, el turno aparece acá."
+            />
+          ) : (
+            shifts.map((shift) => (
+              <ShiftCard key={shift.id} shift={shift}>
+                {shift.status !== "cancelado" && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    <Link
+                      href={`/chats/${shift.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200"
+                    >
+                      <MessageIcon size={16} /> Chatear
+                    </Link>
+                  </div>
+                )}
+                {shift.status === "asignado" && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => act(shift.id, "confirm")}>
+                      Confirmar
+                    </Button>
+                    <Button size="sm" variant="surface" onClick={() => act(shift.id, "reject")}>
+                      Rechazar
+                    </Button>
+                  </div>
+                )}
+                {shift.status === "confirmado" && (
+                  <Button size="sm" onClick={() => act(shift.id, "depart")} leftIcon={<RouteIcon size={16} />}>
+                    Salir hacia el turno
+                  </Button>
+                )}
+                {shift.status === "en_camino" && (
+                  <Button size="sm" onClick={() => act(shift.id, "check-in", true)} leftIcon={<MapPinIcon size={16} />}>
+                    Marcar llegada
+                  </Button>
+                )}
+                {shift.status === "check_in" && (
+                  <Button size="sm" variant="secondary" onClick={() => act(shift.id, "start-working")} leftIcon={<PlayIcon size={15} />}>
+                    Empezar a trabajar
+                  </Button>
+                )}
+                {shift.status === "trabajando" && (
+                  <Button size="sm" onClick={() => act(shift.id, "check-out", true)} leftIcon={<MapPinIcon size={16} />}>
+                    Marcar salida
+                  </Button>
+                )}
+                {shift.status === "check_out" && (
+                  <p className="text-sm text-zinc-500">Esperando que el comercio cierre el turno.</p>
+                )}
+                {(shift.status === "finalizado" || shift.status === "pagado") && (
+                  <div className="flex flex-col gap-2">
+                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary">
+                      <CheckIcon size={16} /> {shift.status === "pagado" ? "Turno pagado" : "Turno finalizado"}
+                    </p>
+                    <ReviewBox shiftId={shift.id} />
+                  </div>
+                )}
+              </ShiftCard>
+            ))
+          )}
+        </div>
       )}
 
-      <div className="mt-6 grid gap-4">
-        {shifts.map((shift) => (
-          <ShiftCard key={shift.id} shift={shift}>
-            {shift.status !== "cancelado" && (
-              <div className="mb-2 flex flex-wrap gap-2">
-                <Link
-                  href={`/chats/${shift.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                >
-                  <MessageIcon size={16} /> Chatear con el comercio
-                </Link>
-                <Link
-                  href={`/companies/${shift.company_id}`}
-                  className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                >
-                  Ver el comercio
-                </Link>
-              </div>
-            )}
-            {shift.status === "asignado" && (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => confirm(shift.id)}
-                  className="rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
-                >
-                  Confirmar
-                </button>
-                <button
-                  onClick={() => reject(shift.id)}
-                  className="rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                >
-                  Rechazar
-                </button>
-              </div>
-            )}
-            {shift.status === "confirmado" && (
-              <button
-                onClick={() => depart(shift.id)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                <RouteIcon size={16} /> Salir hacia el turno
-              </button>
-            )}
-            {shift.status === "en_camino" && (
-              <button
-                onClick={() => checkIn(shift.id)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                <MapPinIcon size={16} /> Marcar llegada
-              </button>
-            )}
-            {shift.status === "check_in" && (
-              <button
-                onClick={() => startWorking(shift.id)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
-              >
-                <PlayIcon size={15} /> Empezar a trabajar
-              </button>
-            )}
-            {shift.status === "trabajando" && (
-              <button
-                onClick={() => checkOut(shift.id)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
-              >
-                <MapPinIcon size={16} /> Marcar salida
-              </button>
-            )}
-            {shift.status === "check_out" && (
-              <p className="text-sm text-zinc-500">Esperando que el comercio cierre el turno.</p>
-            )}
-            {shift.status === "finalizado" && (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm text-zinc-500">Turno finalizado, esperando el pago.</p>
-                <ReviewBox shiftId={shift.id} />
-              </div>
-            )}
-            {shift.status === "pagado" && (
-              <div className="flex flex-col gap-2">
-                <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
-                  <CheckIcon size={16} /> Turno pagado
-                </p>
-                <ReviewBox shiftId={shift.id} />
-              </div>
-            )}
-          </ShiftCard>
-        ))}
-      </div>
+      {!loading && !error && tab === "postulaciones" && (
+        <div className="mt-5 grid gap-4">
+          {pending.length === 0 ? (
+            <EmptyState
+              icon={<ClockIcon size={28} />}
+              title="No tenés postulaciones activas"
+              subtitle="Deslizá turnos a la derecha en Inicio para postularte. Acá vas a seguir su estado."
+            />
+          ) : (
+            pending.map((application) => {
+              const shift = appShifts[application.shift_id];
+              if (!shift) return null;
+              return (
+                <ShiftCard key={application.id} shift={shift}>
+                  <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
+                    <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
+                  </p>
+                </ShiftCard>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }
