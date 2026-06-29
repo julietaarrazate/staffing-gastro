@@ -60,6 +60,8 @@ export default function ChatsPage() {
               <img
                 src={c.other_party_photo}
                 alt={c.other_party_name}
+                loading="lazy"
+                decoding="async"
                 className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-zinc-100"
               />
             ) : (

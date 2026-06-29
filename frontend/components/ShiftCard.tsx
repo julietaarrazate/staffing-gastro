@@ -45,6 +45,8 @@ export default function ShiftCard({
             <img
               src={shift.company_logo_url}
               alt={shift.company_name}
+              loading="lazy"
+              decoding="async"
               className="h-7 w-7 rounded-full object-cover ring-1 ring-zinc-100"
             />
           ) : (

@@ -46,6 +46,8 @@ export default function PublicCompanyProfilePage() {
             <img
               src={profile.logo_url}
               alt={profile.name}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
             />
           ) : (

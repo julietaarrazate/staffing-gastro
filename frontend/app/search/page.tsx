@@ -129,6 +129,8 @@ export default function SearchPage() {
                 <img
                   src={worker.photo_url}
                   alt={worker.full_name}
+                  loading="lazy"
+                  decoding="async"
                   className="h-16 w-16 rounded-2xl object-cover ring-1 ring-zinc-100"
                 />
               ) : (
