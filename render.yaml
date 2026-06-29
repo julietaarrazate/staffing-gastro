@@ -25,4 +25,8 @@ services:
         value: "false"
       - key: CORS_ORIGINS
         value: https://staffing-gastro.vercel.app
+      # Siembra cuentas/comercios/turnos demo en el arranque (idempotente).
+      # Permite probar la app sin registrarse, con datos realistas.
+      - key: SEED_DEMO_DATA
+        value: "true"
     autoDeploy: true
