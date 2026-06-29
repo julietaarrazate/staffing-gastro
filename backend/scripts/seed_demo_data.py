@@ -12,6 +12,8 @@ el resto. Usa la misma `DATABASE_URL` configurada en `.env`/entorno.
 """
 
 import asyncio
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from app.core.database import AsyncSessionLocal
 from app.modules.company.application.dtos import CompanyProfileData
@@ -26,6 +28,12 @@ from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.exceptions import EmailAlreadyExistsError
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.notification.infrastructure.repositories import (
+    SqlAlchemyNotificationRepository,
+)
+from app.modules.shift.application.dtos import ShiftData
+from app.modules.shift.application.services import ShiftService
+from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.worker.application.dtos import WorkerProfileData
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.exceptions import WorkerProfileAlreadyExistsError
@@ -35,6 +43,22 @@ from app.modules.worker.infrastructure.repositories import (
 )
 
 DEMO_PASSWORD = "staffyaDemo123"
+
+# Fotos temáticas de gastronomía por rubro (LoremFlickr: imágenes reales por
+# palabra clave, estables con ?lock=N). No se scrapea Google Maps.
+_CATEGORY_KEYWORD = {
+    CompanyCategory.BAR: "bar,drinks",
+    CompanyCategory.RESTAURANTE: "restaurant,food",
+    CompanyCategory.CAFETERIA: "cafe,coffee",
+    CompanyCategory.SALON_EVENTOS: "event,party",
+    CompanyCategory.CATERING: "catering,buffet",
+    CompanyCategory.EMPRESA_GASTRONOMICA: "restaurant,kitchen",
+}
+
+
+def _company_photo(category: CompanyCategory, lock: int) -> str:
+    keyword = _CATEGORY_KEYWORD.get(category, "restaurant")
+    return f"https://loremflickr.com/600/400/{keyword}?lock={lock + 10}"
 
 # Comercios ficticios repartidos por distintos barrios de CABA. Direcciones y
 # coordenadas son aproximadas a cada barrio (no son negocios reales: son datos
@@ -344,13 +368,16 @@ WORKERS = [
 ]
 
 
-async def _seed_companies(session) -> None:
+async def _seed_companies(session) -> set[str]:
+    """Crea comercios demo. Devuelve los emails recién creados (para que el
+    seed de turnos sólo siembre para comercios nuevos y sea idempotente)."""
     users = SqlAlchemyUserRepository(session)
     companies = SqlAlchemyCompanyProfileRepository(session)
     identity_service = IdentityService(users)
     company_service = CompanyProfileService(companies)
+    created: set[str] = set()
 
-    for entry in COMPANIES:
+    for i, entry in enumerate(COMPANIES):
         try:
             user = await identity_service.register(
                 RegisterCommand(
@@ -369,7 +396,7 @@ async def _seed_companies(session) -> None:
                 user.id,
                 CompanyProfileData(
                     name=entry["name"],
-                    logo_url=entry["logo_url"],
+                    logo_url=_company_photo(entry["category"], i),
                     category=entry["category"],
                     description=entry["description"],
                     city=entry["city"],
@@ -379,9 +406,12 @@ async def _seed_companies(session) -> None:
                     capacity=entry["capacity"],
                 ),
             )
+            created.add(entry["email"])
             print(f"  [ok] comercio {entry['name']} ({entry['city']})")
         except CompanyProfileAlreadyExistsError:
             print(f"  [omitido] perfil de {entry['email']} ya existe")
+
+    return created
 
 
 async def _seed_workers(session) -> None:
@@ -422,12 +452,86 @@ async def _seed_workers(session) -> None:
             print(f"  [omitido] perfil de {entry['email']} ya existe")
 
 
+# Turnos demo publicados, para que el Inicio del trabajador tenga oportunidades
+# que deslizar. (email del comercio, puesto, cantidad, pago, urgente, dress code)
+SHIFTS = [
+    ("demo.palermo@staffya.com", WorkerSkill.BARTENDER, 2, 18000, True, "Negro formal"),
+    ("demo.palermo@staffya.com", WorkerSkill.MOZO, 3, 15000, False, "Camisa blanca"),
+    ("demo.recoleta@staffya.com", WorkerSkill.MOZO, 2, 16000, False, "Elegante sport"),
+    ("demo.recoleta@staffya.com", WorkerSkill.COCINERO, 1, 22000, True, None),
+    ("demo.santelmo@staffya.com", WorkerSkill.BARISTA, 1, 14000, False, "Delantal del local"),
+    ("demo.belgrano@staffya.com", WorkerSkill.RUNNER, 2, 12000, False, None),
+    ("demo.caballito@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 5, 17000, True, "Uniforme provisto"),
+    ("demo.microcentro@staffya.com", WorkerSkill.CAJERO, 1, 15000, False, None),
+    ("demo.villacrespo@staffya.com", WorkerSkill.BARTENDER, 1, 19000, False, "Casual"),
+    ("demo.almagro@staffya.com", WorkerSkill.MOZO, 2, 15500, True, "Remera del local"),
+    ("demo.puertomadero@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 4, 20000, True, "Uniforme provisto"),
+    ("demo.nunez@staffya.com", WorkerSkill.BARISTA, 1, 14500, False, None),
+    ("demo.boedo@staffya.com", WorkerSkill.MOZO, 2, 15000, False, "Mandil del bodegón"),
+    ("demo.colegiales@staffya.com", WorkerSkill.COCINERO, 2, 23000, True, None),
+]
+
+
+async def _seed_shifts(session, created_company_emails: set[str]) -> None:
+    """Publica turnos demo, sólo para los comercios recién creados (idempotente)."""
+    if not created_company_emails:
+        print("  [omitido] no hay comercios nuevos: no se siembran turnos")
+        return
+
+    users = SqlAlchemyUserRepository(session)
+    companies = SqlAlchemyCompanyProfileRepository(session)
+    service = ShiftService(
+        shifts=SqlAlchemyShiftRepository(session),
+        workers=SqlAlchemyWorkerProfileRepository(session),
+        companies=companies,
+        notifications=SqlAlchemyNotificationRepository(session),
+    )
+    by_email = {c["email"]: c for c in COMPANIES}
+    start = datetime.now(timezone.utc) + timedelta(hours=5)
+
+    for email, position, qty, pay, urgent, dress in SHIFTS:
+        if email not in created_company_emails:
+            continue
+        user = await users.get_by_email(email)
+        if user is None:
+            continue
+        company = await companies.get_by_user_id(user.id)
+        if company is None:
+            continue
+        meta = by_email[email]
+        shift = await service.create_shift(
+            company.id,
+            ShiftData(
+                position=position,
+                quantity=qty,
+                start_at=start,
+                end_at=start + timedelta(hours=6),
+                pay_amount=Decimal(str(pay)),
+                currency="ARS",
+                tips=True,
+                dress_code=dress,
+                urgent=urgent,
+                address=meta["address"],
+                city=meta["city"],
+                latitude=meta["latitude"],
+                longitude=meta["longitude"],
+                title=None,
+                description="Turno de demostración para probar la app.",
+            ),
+        )
+        await service.publish_shift(company.id, shift.id)
+        print(f"  [ok] turno {position.value} en {meta['city']}")
+        start += timedelta(hours=2)
+
+
 async def main() -> None:
     async with AsyncSessionLocal() as session:
         print("Comercios de prueba:")
-        await _seed_companies(session)
+        created = await _seed_companies(session)
         print("Trabajadores de prueba:")
         await _seed_workers(session)
+        print("Turnos de prueba:")
+        await _seed_shifts(session, created)
     print(f"\nListo. Contraseña de todas las cuentas demo: {DEMO_PASSWORD}")
 
 
