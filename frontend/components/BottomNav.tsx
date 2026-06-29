@@ -14,6 +14,7 @@ import {
 
 const WORKER_TABS = [
   { href: "/feed", label: "Inicio", Icon: HomeIcon },
+  { href: "/map", label: "Mapa", Icon: MapPinIcon },
   { href: "/my-shifts", label: "Matches", Icon: ClipboardIcon },
   { href: "/chats", label: "Chats", Icon: MessageIcon },
   { href: "/profile", label: "Perfil", Icon: UsersIcon },
