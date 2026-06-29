@@ -7,18 +7,39 @@ import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
+import { CardSkeletons, EmptyState, ErrorBanner } from "@/components/PageState";
 import {
-  CardSkeletons,
-  EmptyState,
-  ErrorBanner,
-  PageHeader,
-} from "@/components/PageState";
-import {
+  BoltIcon,
   CheckCircleIcon,
   ClipboardIcon,
+  ClockIcon,
   MessageIcon,
   WalletIcon,
 } from "@/components/icons";
+
+const ACTIVE = ["asignado", "confirmado", "en_camino", "check_in", "trabajando", "check_out"];
+const SEARCHING = ["publicado", "buscando_personal"];
+const DONE = ["finalizado", "pagado"];
+
+function Kpi({
+  icon,
+  value,
+  label,
+  tone,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  tone: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 rounded-2xl bg-white p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-zinc-100">
+      <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}>{icon}</span>
+      <span className="mt-0.5 text-2xl font-extrabold leading-none text-zinc-900">{value}</span>
+      <span className="text-[11px] font-medium text-zinc-500">{label}</span>
+    </div>
+  );
+}
 
 export default function MyShiftsPage() {
   const { token } = useAuth();
@@ -68,20 +89,33 @@ export default function MyShiftsPage() {
     load();
   }
 
+  const kpis = {
+    active: shifts.filter((s) => ACTIVE.includes(s.status)).length,
+    searching: shifts.filter((s) => SEARCHING.includes(s.status)).length,
+    done: shifts.filter((s) => DONE.includes(s.status)).length,
+  };
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <PageHeader
-        title="Mis turnos"
-        subtitle="Publicá y gestioná los turnos de tu comercio."
-        action={
-          <Link
-            href="/shifts/new"
-            className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-          >
-            + Publicar turno
-          </Link>
-        }
-      />
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Panel</h1>
+          <p className="mt-0.5 text-sm text-zinc-500">Gestioná los turnos de tu comercio.</p>
+        </div>
+        <Link
+          href="/shifts/new"
+          className="shrink-0 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(255,107,0,0.3)] transition active:scale-95"
+        >
+          + Publicar
+        </Link>
+      </div>
+
+      {/* KPIs */}
+      <div className="mt-4 grid grid-cols-3 gap-2.5">
+        <Kpi icon={<BoltIcon size={18} />} value={kpis.active} label="Activos" tone="bg-orange-50 text-primary" />
+        <Kpi icon={<ClockIcon size={18} />} value={kpis.searching} label="Buscando" tone="bg-blue-50 text-blue-600" />
+        <Kpi icon={<CheckCircleIcon size={18} />} value={kpis.done} label="Finalizados" tone="bg-green-50 text-secondary" />
+      </div>
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} />}
@@ -124,9 +158,9 @@ export default function MyShiftsPage() {
               {(shift.status === "publicado" || shift.status === "buscando_personal") && (
                 <Link
                   href={`/shifts/${shift.id}/candidates`}
-                  className="rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
+                  className="rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white transition active:scale-95"
                 >
-                  Ver candidatos
+                  Ver postulantes
                 </Link>
               )}
               {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (

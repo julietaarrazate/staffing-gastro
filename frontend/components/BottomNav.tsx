@@ -21,10 +21,10 @@ const WORKER_TABS = [
 ];
 
 const EMPLOYER_TABS = [
-  { href: "/shifts", label: "Mis turnos", Icon: ClipboardIcon },
+  { href: "/shifts", label: "Panel", Icon: HomeIcon },
   { href: "/search", label: "Buscar", Icon: MapPinIcon },
-  { href: "/chats", label: "Mensajes", Icon: MessageIcon },
-  { href: "/profile", label: "Comercio", Icon: UsersIcon },
+  { href: "/chats", label: "Chats", Icon: MessageIcon },
+  { href: "/profile", label: "Perfil", Icon: UsersIcon },
 ];
 
 const ADMIN_TABS = [
