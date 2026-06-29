@@ -3,6 +3,7 @@
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
+import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import { LogOutIcon, ShieldIcon } from "@/components/icons";
 
@@ -47,18 +48,22 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xl font-bold text-orange-600">
-          {user.full_name.charAt(0).toUpperCase()}
+      {user.role === "worker" ? (
+        <WorkerGameCard />
+      ) : (
+        <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xl font-bold text-orange-600">
+            {user.full_name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-bold text-zinc-900">{user.full_name}</h1>
+            <p className="truncate text-sm text-zinc-500">{user.email}</p>
+            <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+              Comercio
+            </span>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold text-zinc-900">{user.full_name}</h1>
-          <p className="truncate text-sm text-zinc-500">{user.email}</p>
-          <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
-            {user.role === "worker" ? "Trabajador/a" : "Comercio"}
-          </span>
-        </div>
-      </div>
+      )}
 
       <div className="mt-7">
         <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>

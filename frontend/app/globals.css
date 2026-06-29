@@ -43,11 +43,10 @@ body {
 html {
   color-scheme: light;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
-}
-
-body {
-  overflow-x: hidden;
+  /* `clip` evita el desplazamiento horizontal SIN crear un contenedor de
+   * scroll (a diferencia de `hidden`, que fuerza overflow-y a auto y, junto
+   * al de body, generaba dos scrolls anidados que trababan el scroll vertical). */
+  overflow-x: clip;
 }
 
 a,
