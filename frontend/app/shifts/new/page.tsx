@@ -2,227 +2,306 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
+import { SKILL_STYLES } from "@/lib/skill-style";
 import { localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import { Button, TextField, useToast } from "@/components/ui";
+import { ChevronLeftIcon, FlameIcon, MapPinIcon } from "@/components/icons";
 
-export default function NewShiftPage() {
+const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
+
+export default function NewShiftWizard() {
   const { token } = useAuth();
   const router = useRouter();
-  const [position, setPosition] = useState<WorkerSkill>(WORKER_SKILLS[0]);
+  const toast = useToast();
+
+  const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);
+  const [position, setPosition] = useState<WorkerSkill | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [payAmount, setPayAmount] = useState("");
-  const [currency, setCurrency] = useState("ARS");
-  const [tips, setTips] = useState(false);
+  const [tips, setTips] = useState(true);
   const [urgent, setUrgent] = useState(false);
   const [dressCode, setDressCode] = useState("");
-  const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!token) return;
-    setError(null);
+  function go(next: number) {
+    setDir(next > step ? 1 : -1);
+    setStep(next);
+  }
+
+  const canNext =
+    (step === 0 && position !== null) ||
+    (step === 1 && quantity >= 1) ||
+    (step === 2 && startAt !== "" && endAt !== "" && endAt > startAt) ||
+    (step === 3 && Number(payAmount) > 0) ||
+    step === 4;
+
+  async function publish() {
+    if (!token || position === null) return;
     setSubmitting(true);
-    const payload = {
-      position,
-      quantity,
-      start_at: localInputToArgentinaISO(startAt),
-      end_at: localInputToArgentinaISO(endAt),
-      pay_amount: payAmount,
-      currency,
-      tips,
-      urgent,
-      dress_code: dressCode || null,
-      address: address || null,
-      city: city || null,
-      latitude,
-      longitude,
-      title: title || null,
-      description: description || null,
-    };
     try {
-      await api.post("/shifts", payload, token);
+      const created = await api.post<{ id: string }>(
+        "/shifts",
+        {
+          position,
+          quantity,
+          start_at: localInputToArgentinaISO(startAt),
+          end_at: localInputToArgentinaISO(endAt),
+          pay_amount: payAmount,
+          currency: "ARS",
+          tips,
+          urgent,
+          dress_code: dressCode || null,
+          city: city || null,
+          latitude,
+          longitude,
+        },
+        token
+      );
+      await api.post(`/shifts/${created.id}/publish`, undefined, token);
+      toast("¡Turno publicado! Ya pueden postularse");
       router.push("/shifts");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo crear el turno");
-    } finally {
+      toast(err instanceof ApiError ? err.message : "No se pudo publicar", "error");
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Publicar turno</h1>
-
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Título</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Puesto</label>
-          <select
-            value={position}
-            onChange={(e) => setPosition(e.target.value as WorkerSkill)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+    <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)]">
+      {/* Header con progreso */}
+      <div className="flex items-center gap-3">
+        {step > 0 ? (
+          <button
+            onClick={() => go(step - 1)}
+            aria-label="Atrás"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-zinc-600 ring-1 ring-zinc-200"
           >
-            {WORKER_SKILLS.map((skill) => (
-              <option key={skill} value={skill}>
-                {SKILL_LABELS[skill]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Cantidad de personas</label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+            <ChevronLeftIcon size={18} />
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push("/shifts")}
+            aria-label="Cerrar"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-zinc-600 ring-1 ring-zinc-200"
+          >
+            <ChevronLeftIcon size={18} />
+          </button>
+        )}
+        <div className="flex flex-1 gap-1.5">
+          {STEPS.map((_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-zinc-200"}`}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Moneda</label>
-            <input
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-              maxLength={3}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-            />
-          </div>
+          ))}
         </div>
+      </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Inicio</label>
-            <input
-              required
-              type="datetime-local"
-              value={startAt}
-              onChange={(e) => setStartAt(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Fin</label>
-            <input
-              required
-              type="datetime-local"
-              value={endAt}
-              onChange={(e) => setEndAt(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-            />
-          </div>
-        </div>
+      {/* Pasos */}
+      <div className="relative flex-1 overflow-hidden pt-6">
+        <AnimatePresence mode="wait" custom={dir}>
+          <motion.div
+            key={step}
+            custom={dir}
+            initial={{ opacity: 0, x: dir * 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: dir * -40 }}
+            transition={{ duration: 0.25 }}
+            className="h-full"
+          >
+            {step === 0 && (
+              <div>
+                <h1 className="text-2xl font-extrabold text-zinc-900">¿Qué necesitás?</h1>
+                <p className="mt-1 text-sm text-zinc-500">Elegí el puesto a cubrir.</p>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {WORKER_SKILLS.map((skill) => {
+                    const { Icon, gradient } = SKILL_STYLES[skill];
+                    const active = position === skill;
+                    return (
+                      <motion.button
+                        key={skill}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setPosition(skill)}
+                        className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
+                          active ? "bg-orange-50 ring-primary" : "bg-white ring-zinc-100"
+                        }`}
+                      >
+                        <span className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-white`}>
+                          <Icon size={22} />
+                        </span>
+                        <span className="text-sm font-semibold text-zinc-800">{SKILL_LABELS[skill]}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Pago</label>
-          <input
-            required
-            type="number"
-            min={0}
-            step="0.01"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
+            {step === 1 && (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <h1 className="text-2xl font-extrabold text-zinc-900">¿Cuántas personas?</h1>
+                <p className="mt-1 text-sm text-zinc-500">Para este puesto.</p>
+                <div className="mt-10 flex items-center gap-6">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="flex h-14 w-14 items-center justify-center rounded-full bg-surface text-3xl font-bold text-zinc-700 ring-1 ring-zinc-200 active:scale-90"
+                  >
+                    −
+                  </button>
+                  <span className="w-20 text-6xl font-extrabold text-zinc-900">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity((q) => Math.min(100, q + 1))}
+                    className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-3xl font-bold text-white active:scale-90"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
 
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <input type="checkbox" checked={tips} onChange={(e) => setTips(e.target.checked)} />
-            Acepta propinas
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
-            Urgente
-          </label>
-        </div>
+            {step === 2 && (
+              <div>
+                <h1 className="text-2xl font-extrabold text-zinc-900">¿Cuándo?</h1>
+                <p className="mt-1 text-sm text-zinc-500">Inicio y fin del turno.</p>
+                <div className="mt-6 flex flex-col gap-4">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-zinc-700">Inicio</span>
+                    <input
+                      type="datetime-local"
+                      value={startAt}
+                      onChange={(e) => setStartAt(e.target.value)}
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-zinc-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-zinc-700">Fin</span>
+                    <input
+                      type="datetime-local"
+                      value={endAt}
+                      onChange={(e) => setEndAt(e.target.value)}
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-zinc-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Dress code</label>
-          <input
-            value={dressCode}
-            onChange={(e) => setDressCode(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
+            {step === 3 && (
+              <div>
+                <h1 className="text-2xl font-extrabold text-zinc-900">¿Cuánto pagás?</h1>
+                <p className="mt-1 text-sm text-zinc-500">Por persona, en pesos.</p>
+                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-zinc-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
+                  <span className="text-2xl font-bold text-zinc-400">$</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    placeholder="15000"
+                    className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-zinc-900 outline-none"
+                  />
+                </div>
+                <div className="mt-5 flex flex-col gap-3">
+                  <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
+                  <Toggle
+                    label="Urgente"
+                    checked={urgent}
+                    onChange={setUrgent}
+                    icon={<FlameIcon size={16} className="text-danger" />}
+                  />
+                </div>
+                <div className="mt-5">
+                  <TextField label="Dress code (opcional)" value={dressCode} onChange={setDressCode} placeholder="Ej: camisa negra" />
+                </div>
+              </div>
+            )}
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Ubicación</label>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            Elegí provincia y barrio/ciudad: completamos las coordenadas solas para
-            recomendarte a la gente más cercana.
-          </p>
-          <div className="mt-2">
-            <LocationPicker
-              onSelect={(loc: LocationSelection) => {
-                setCity(loc.city);
-                setLatitude(loc.latitude);
-                setLongitude(loc.longitude);
-              }}
-            />
-          </div>
-          {city && (
-            <p className="mt-2 text-sm font-medium text-zinc-700">
-              Ubicación seleccionada: <span className="text-orange-600">{city}</span>
-            </p>
-          )}
-        </div>
+            {step === 4 && (
+              <div>
+                <h1 className="text-2xl font-extrabold text-zinc-900">¿Dónde es?</h1>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
+                </p>
+                <div className="mt-5">
+                  <LocationPicker
+                    onSelect={(loc: LocationSelection) => {
+                      setCity(loc.city);
+                      setLatitude(loc.latitude);
+                      setLongitude(loc.longitude);
+                    }}
+                  />
+                </div>
+                {city && (
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
+                    <MapPinIcon size={15} /> {city}
+                  </p>
+                )}
+                {/* Resumen */}
+                <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-zinc-700">
+                  <p className="font-bold text-zinc-900">{position && SKILL_LABELS[position]}</p>
+                  <p className="mt-1 text-zinc-500">
+                    {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
+                    {Number(payAmount || 0).toLocaleString("es-AR")}
+                    {urgent && " · Urgente"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Dirección <span className="font-normal text-zinc-400">(opcional)</span>
-          </label>
-          <input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Calle y número, piso, referencia…"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Descripción</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </div>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-full bg-orange-600 px-4 py-2 font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
-        >
-          {submitting ? "Publicando..." : "Publicar turno"}
-        </button>
-      </form>
+      {/* Acción */}
+      <div className="pt-3">
+        {step < STEPS.length - 1 ? (
+          <Button fullWidth size="lg" disabled={!canNext} onClick={() => go(step + 1)}>
+            Continuar
+          </Button>
+        ) : (
+          <Button fullWidth size="lg" loading={submitting} onClick={publish}>
+            Publicar turno
+          </Button>
+        )}
+      </div>
     </div>
+  );
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+  icon,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-zinc-100"
+    >
+      <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
+        {icon} {label}
+      </span>
+      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-secondary" : "bg-zinc-300"}`}>
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
+      </span>
+    </button>
   );
 }
