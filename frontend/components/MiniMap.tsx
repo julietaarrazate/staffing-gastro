@@ -3,6 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import { MAP_TILE_SUBDOMAINS, MAP_TILE_URL } from "@/lib/map-tiles";
 
 const pinIcon = L.divIcon({
   className: "",
@@ -32,7 +33,7 @@ export default function MiniMap({
       attributionControl={false}
       className={`${className} rounded-2xl`}
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer url={MAP_TILE_URL} subdomains={MAP_TILE_SUBDOMAINS} detectRetina />
       <Marker position={[latitude, longitude]} icon={pinIcon} />
     </MapContainer>
   );
