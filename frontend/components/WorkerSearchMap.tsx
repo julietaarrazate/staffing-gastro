@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { WorkerMapResult } from "@/lib/types";
+import { MAP_TILE_ATTRIBUTION, MAP_TILE_SUBDOMAINS, MAP_TILE_URL } from "@/lib/map-tiles";
 import { SKILL_LABELS } from "@/lib/types";
 
 // Pin propio (sin imágenes externas: los assets default de Leaflet apuntan a un
@@ -41,8 +42,10 @@ export default function WorkerSearchMap({
       className={className}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        url={MAP_TILE_URL}
+        attribution={MAP_TILE_ATTRIBUTION}
+        subdomains={MAP_TILE_SUBDOMAINS}
+        detectRetina
       />
       <Marker position={center} icon={originIcon}>
         <Popup>Tu ubicación de búsqueda</Popup>

@@ -9,7 +9,7 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-100 bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />

@@ -5,6 +5,7 @@ import L from "leaflet";
 import { useEffect } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { Shift } from "@/lib/types";
+import { MAP_TILE_ATTRIBUTION, MAP_TILE_SUBDOMAINS, MAP_TILE_URL } from "@/lib/map-tiles";
 
 function shiftPin(active: boolean) {
   const size = active ? 34 : 24;
@@ -52,7 +53,12 @@ export default function ShiftMap({
       scrollWheelZoom
       className="absolute inset-0 h-full w-full"
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer
+        url={MAP_TILE_URL}
+        attribution={MAP_TILE_ATTRIBUTION}
+        subdomains={MAP_TILE_SUBDOMAINS}
+        detectRetina
+      />
       <Marker position={center} icon={originPin} />
       {shifts
         .filter((s) => s.latitude != null && s.longitude != null)
