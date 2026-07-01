@@ -40,8 +40,9 @@
     dueño, trabajador asignado) en cada acción sensible.
 12. **Toda acción importante deja rastro.** Los hitos del turno (asignación,
     confirmación, rechazo, check-in/out, pago) y las reseñas **notifican** y
-    quedan reflejados en el estado. La auditoría formal se documenta en
-    `BUSINESS_RULES.md` / `EVENTS.md` (Fase 3).
+    quedan reflejados en el estado. El patrón de efectos se documenta en
+    [EVENTS.md](./EVENTS.md); la auditoría formal, en `BUSINESS_RULES.md` (fase de
+    reglas operativas).
 13. **Credenciales fuera del código y del chat.** Se configuran como variables de
     entorno en Render/Vercel. Si se filtran, se revocan de inmediato.
 14. **Sin `localhost` en configuración.** El frontend apunta al backend remoto por
