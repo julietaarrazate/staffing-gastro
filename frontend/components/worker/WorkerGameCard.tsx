@@ -13,13 +13,14 @@ import {
   StarIcon,
 } from "@/components/icons";
 
-// Gradiente del "nivel" del jugador (gamificación).
-const LEVEL_GRADIENT: Record<string, string> = {
-  bronce: "from-amber-500 to-orange-700",
-  plata: "from-zinc-400 to-zinc-600",
-  oro: "from-yellow-400 to-amber-500",
-  platino: "from-cyan-400 to-blue-600",
-  diamante: "from-fuchsia-500 to-indigo-600",
+// Hero oscuro tipo Apple Wallet; el nivel se distingue por un punto de color
+// (tonos cálidos/metálicos, sin violetas).
+const LEVEL_DOT: Record<string, string> = {
+  bronce: "bg-amber-500",
+  plata: "bg-zinc-300",
+  oro: "bg-yellow-400",
+  platino: "bg-sky-300",
+  diamante: "bg-teal-300",
 };
 
 function StatTile({
@@ -34,8 +35,8 @@ function StatTile({
   return (
     <div className="flex flex-col items-center gap-1 rounded-2xl bg-surface px-2 py-3 text-center">
       <span className="text-primary">{icon}</span>
-      <span className="text-lg font-extrabold leading-none text-zinc-900">{value}</span>
-      <span className="text-[11px] font-medium text-zinc-500">{label}</span>
+      <span className="text-lg font-extrabold leading-none text-ink">{value}</span>
+      <span className="text-[11px] font-medium text-ink/50">{label}</span>
     </div>
   );
 }
@@ -58,18 +59,18 @@ export default function WorkerGameCard() {
   if (!profile) return null;
 
   const level = (profile.level ?? "bronce").toLowerCase();
-  const gradient = LEVEL_GRADIENT[level] ?? LEVEL_GRADIENT.bronce;
+  const dot = LEVEL_DOT[level] ?? LEVEL_DOT.bronce;
 
   return (
-    <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-zinc-100">
-      {/* Hero con nivel */}
-      <div className={`relative flex flex-col items-center bg-gradient-to-br ${gradient} px-5 pb-5 pt-6 text-white`}>
-        <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/40" />
+    <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+      {/* Hero oscuro estilo Apple Wallet */}
+      <div className="relative flex flex-col items-center bg-gradient-to-br from-zinc-900 to-zinc-700 px-5 pb-5 pt-6 text-white">
+        <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/20" />
         <h2 className="mt-3 text-xl font-extrabold">{user?.full_name}</h2>
-        <span className="mt-1 rounded-full bg-white/25 px-3 py-0.5 text-xs font-bold uppercase tracking-wide backdrop-blur">
-          Nivel {level}
+        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold uppercase tracking-wide">
+          <span className={`h-2 w-2 rounded-full ${dot}`} /> Nivel {level}
         </span>
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-sm font-extrabold text-zinc-900">
+        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-sm font-extrabold text-ink">
           <StarIcon size={16} filled className="text-amber-400" />
           {profile.rating.toFixed(1)}
         </div>

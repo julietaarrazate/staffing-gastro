@@ -7,9 +7,9 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
-import { SKILL_STYLES } from "@/lib/skill-style";
-import { Avatar, Button, EmptyState, useToast } from "@/components/ui";
-import { CalendarIcon, FlameIcon, MapPinIcon, WalletIcon } from "@/components/icons";
+import { SKILL_ACCENT } from "@/lib/skill-style";
+import { Button, EmptyState, useToast } from "@/components/ui";
+import { CalendarIcon, FlameIcon, MapPinIcon } from "@/components/icons";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   ssr: false,
@@ -133,7 +133,7 @@ export default function MapPage() {
           className="no-scrollbar absolute inset-x-0 bottom-3 z-10 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1"
         >
           {shifts.map((shift) => {
-            const { Icon, gradient } = SKILL_STYLES[shift.position];
+            const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
                 ? haversineKm(center, [shift.latitude, shift.longitude])
@@ -141,42 +141,43 @@ export default function MapPage() {
             return (
               <div
                 key={shift.id}
-                className="w-[86%] shrink-0 snap-center overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-float)] ring-1 ring-zinc-100"
+                className="w-[86%] shrink-0 snap-center overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-float)] ring-1 ring-line"
               >
-                <div className={`relative flex h-20 items-end bg-gradient-to-br ${gradient} px-4 pb-2.5`}>
-                  <Icon size={64} className="absolute -right-2 -top-2 text-white/15" />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${bg} ${fg}`}>
+                      <Icon size={22} />
+                    </span>
+                    <div>
+                      <h3 className="text-base font-extrabold leading-tight text-ink">
+                        {SKILL_LABELS[shift.position]}
+                      </h3>
+                      <Link
+                        href={`/companies/${shift.company_id}`}
+                        className="text-xs font-medium text-ink/50"
+                      >
+                        {shift.company_name ?? "Comercio"}
+                      </Link>
+                    </div>
+                  </div>
                   {shift.urgent && (
-                    <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-bold text-danger">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-danger">
                       <FlameIcon size={11} /> Urgente
                     </span>
                   )}
-                  <h3 className="relative z-10 text-lg font-extrabold text-white drop-shadow-sm">
-                    {SKILL_LABELS[shift.position]}
-                  </h3>
                 </div>
-                <div className="space-y-2 p-4">
-                  <Link
-                    href={`/companies/${shift.company_id}`}
-                    className="flex items-center gap-2"
-                  >
-                    <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Comercio"} size="sm" />
-                    <span className="truncate text-sm font-semibold text-zinc-700">
-                      {shift.company_name ?? "Comercio"}
-                    </span>
-                  </Link>
-                  <div className="flex items-center justify-between">
-                    <p className="inline-flex items-center gap-1 text-xl font-extrabold text-primary">
-                      <WalletIcon size={18} /> {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
-                    </p>
-                    <p className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500">
-                      <MapPinIcon size={13} />
-                      {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
-                    </p>
-                  </div>
-                  <Button fullWidth size="sm" variant="secondary" onClick={() => apply(shift)}>
-                    Me interesa
-                  </Button>
+                <div className="mt-3 flex items-end justify-between">
+                  <p className="text-xl font-extrabold text-primary">
+                    {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+                  </p>
+                  <p className="inline-flex items-center gap-1 text-xs font-medium text-ink/50">
+                    <MapPinIcon size={13} />
+                    {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
+                  </p>
                 </div>
+                <Button fullWidth size="sm" className="mt-3" onClick={() => apply(shift)}>
+                  Me interesa
+                </Button>
               </div>
             );
           })}

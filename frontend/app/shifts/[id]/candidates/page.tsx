@@ -7,7 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
-import { Avatar, Button, Chip, EmptyState, Rating, useToast } from "@/components/ui";
+import { Avatar, Button, EmptyState, Rating, SegmentedControl, useToast } from "@/components/ui";
 import { CardSkeletons, ErrorBanner } from "@/components/PageState";
 import { UsersIcon } from "@/components/icons";
 
@@ -68,13 +68,15 @@ export default function ShiftCandidatesPage() {
         Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano.
       </p>
 
-      <div className="mt-4 flex gap-2">
-        <Chip active={tab === "postulantes"} onClick={() => setTab("postulantes")}>
-          Postulantes {applicants.length > 0 && `(${applicants.length})`}
-        </Chip>
-        <Chip active={tab === "recomendados"} onClick={() => setTab("recomendados")}>
-          Recomendados {candidates.length > 0 && `(${candidates.length})`}
-        </Chip>
+      <div className="mt-4">
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "postulantes", label: `Postulantes${applicants.length > 0 ? ` (${applicants.length})` : ""}` },
+            { value: "recomendados", label: `Recomendados${candidates.length > 0 ? ` (${candidates.length})` : ""}` },
+          ]}
+        />
       </div>
 
       {loading && <CardSkeletons />}
