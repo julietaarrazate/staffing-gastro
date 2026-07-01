@@ -10,8 +10,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from app.core.config import settings
 from app.core.database import Base, get_session
 from app.main import app
+
+# El rate limiting de login/registro es por IP y global al proceso; los tests
+# comparten la IP del cliente ASGI, así que se desactiva salvo en el test que
+# lo ejercita explícitamente (test_identity::test_rate_limit_*).
+settings.rate_limit_enabled = False
 
 # Importar modelos para registrarlos en la metadata antes de create_all
 from app.modules.application.infrastructure import models as application_models  # noqa: F401

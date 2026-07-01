@@ -6,8 +6,13 @@ Esta es la única fuente de verdad para la configuración del backend.
 
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Secreto JWT por defecto: sólo válido en desarrollo. En producción DEBE
+# reemplazarse por env var (en Render se genera automáticamente). El arranque
+# falla si este valor llega a producción (ver _reject_insecure_defaults).
+_DEFAULT_JWT_SECRET = "cambiar-esto-en-produccion"
 
 
 class Settings(BaseSettings):
@@ -35,10 +40,14 @@ class Settings(BaseSettings):
         return value
 
     # --- JWT ---
-    jwt_secret_key: str = "cambiar-esto-en-produccion"
+    jwt_secret_key: str = _DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
+
+    # --- Seguridad ---
+    # Rate limiting en memoria de endpoints sensibles (login/registro).
+    rate_limit_enabled: bool = True
 
     # --- CORS ---
     cors_origins: str = "http://localhost:3000"
@@ -59,6 +68,21 @@ class Settings(BaseSettings):
             for email in self.admin_emails.split(",")
             if email.strip()
         ]
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() == "production"
+
+    @model_validator(mode="after")
+    def _reject_insecure_defaults(self) -> "Settings":
+        # En producción no se permite arrancar con el secreto JWT por defecto:
+        # firmaría tokens con una clave pública conocida. Fail-fast explícito.
+        if self.is_production and self.jwt_secret_key == _DEFAULT_JWT_SECRET:
+            raise ValueError(
+                "JWT_SECRET_KEY no configurado: en producción debe definirse "
+                "una clave secreta propia (env var), no el valor por defecto."
+            )
+        return self
 
 
 @lru_cache

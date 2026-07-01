@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.rate_limit import RateLimiter
 from app.modules.identity.api.dependencies import (
     get_current_user,
     get_identity_service,
@@ -31,12 +32,19 @@ router = APIRouter(prefix="/auth", tags=["identity"])
 
 ServiceDep = Annotated[IdentityService, Depends(get_identity_service)]
 
+# Límite por IP para frenar fuerza bruta / abuso de alta de cuentas.
+_login_rate_limit = RateLimiter(max_attempts=10, window_seconds=60, name="login")
+_register_rate_limit = RateLimiter(
+    max_attempts=5, window_seconds=60, name="register"
+)
+
 
 @router.post(
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Registrar un nuevo usuario",
+    dependencies=[Depends(_register_rate_limit)],
 )
 async def register(payload: RegisterRequest, service: ServiceDep) -> User:
     try:
@@ -55,7 +63,12 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
         ) from exc
 
 
-@router.post("/login", response_model=TokenResponse, summary="Iniciar sesión")
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Iniciar sesión",
+    dependencies=[Depends(_login_rate_limit)],
+)
 async def login(payload: LoginRequest, service: ServiceDep) -> TokenResponse:
     try:
         tokens = await service.authenticate(

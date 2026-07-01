@@ -6,13 +6,15 @@
 
 ## Seguridad (rápidas y críticas)
 
-1. **Fallar el arranque si `jwt_secret_key` es el default en producción.** Un
-   `field_validator` en `Settings` que rechace `"cambiar-esto-en-produccion"`
-   cuando `environment == "production"`, y exija ≥ 32 bytes. Elimina el riesgo
-   S1 sin cambiar el flujo. *(esfuerzo: bajo · impacto: alto)*
-2. **Rate limit básico en `/auth/login`.** Evita fuerza bruta. *(bajo · alto)*
-3. **Security headers** (CSP básica, `X-Content-Type-Options`, `Referrer-Policy`,
-   HSTS) vía middleware / `next.config` headers. *(bajo · medio)*
+1. ✅ **HECHO — Fallar el arranque si `jwt_secret_key` es el default en
+   producción.** `Settings._reject_insecure_defaults` rechaza el valor por
+   defecto cuando `environment == "production"`. *(esfuerzo: bajo · impacto: alto)*
+2. ✅ **HECHO — Rate limit en `/auth/login` (10/min) y `/auth/register`
+   (5/min).** En memoria (`app/core/rate_limit.py`), configurable con
+   `RATE_LIMIT_ENABLED`. *(bajo · alto)*
+3. ✅ **HECHO — Security headers** vía `SecurityHeadersMiddleware`
+   (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+   `Permissions-Policy`, HSTS en producción). *(bajo · medio)*
 
 ## Frontend / Design System (cierre de deuda de diseño)
 
