@@ -2,8 +2,10 @@
 
 > Cómo está construido el sistema. Complementa [DOMAIN.md](./DOMAIN.md) (qué
 > modela) y [PRINCIPLES.md](./PRINCIPLES.md) (con qué criterios). El detalle
-> técnico por área se profundiza en la Fase 4 (MODULES.md, API.md, DATABASE.md,
-> WEBSOCKETS.md, AUTH.md, DEPLOY.md, …).
+> técnico por área se profundiza en [MODULES.md](./MODULES.md),
+> [API.md](./API.md), [DATABASE.md](./DATABASE.md), [EVENTS.md](./EVENTS.md),
+> [SECURITY.md](./SECURITY.md), [TESTING.md](./TESTING.md),
+> [DEPLOY.md](./DEPLOY.md) y [OBSERVABILITY.md](./OBSERVABILITY.md).
 
 ## Stack
 
@@ -104,7 +106,8 @@ Dos canales, además del REST:
 - **Notificaciones:** `WS /api/v1/notifications/ws` — avisos del usuario en vivo.
 
 Reemplazan el polling anterior (chat 5s, notificaciones 30s). El frontend
-reconecta con backoff exponencial. Detalle en `WEBSOCKETS.md` (Fase 4).
+reconecta con backoff exponencial. Detalle en
+[API.md](./API.md#tiempo-real-websocket).
 
 ## "Eventos"
 
@@ -112,8 +115,8 @@ No hay un bus de eventos formal (event sourcing / broker) — es un punto a
 **no asumir**. Lo que hoy llamamos "eventos" son **efectos de dominio dentro del
 caso de uso**: al asignar/confirmar/rechazar/cerrar/pagar un turno o recibir una
 reseña, el servicio **crea una `Notification`** (y la empuja por WebSocket). Si en
-el futuro se introduce un bus/outbox, debe registrarse como ADR (Fase 10) y
-documentarse en `EVENTS.md` (Fase 3).
+el futuro se introduce un bus/outbox, debe registrarse como ADR y documentarse en
+[EVENTS.md](./EVENTS.md).
 
 ## Frontend (Next.js)
 
@@ -134,7 +137,7 @@ documentarse en `EVENTS.md` (Fase 3).
   producción.
 - **Credenciales nunca en el repo ni en el chat**: se configuran como env vars en
   Render/Vercel.
-- Detalle en `ENVIRONMENT.md` / `DEPLOY.md` (Fase 4).
+- Detalle en [DEPLOY.md](./DEPLOY.md) y [SECURITY.md](./SECURITY.md).
 
 ## Deploy
 
@@ -150,4 +153,4 @@ documentarse en `EVENTS.md` (Fase 3).
 - Backend: `pytest` con **SQLite en memoria** (sin DB externa); las tablas se
   crean con `Base.metadata.create_all` desde `tests/conftest.py`.
 - Frontend: `npx tsc --noEmit` + `npm run build`.
-- Ver `TESTING.md` (Fase 5).
+- Ver [TESTING.md](./TESTING.md).
