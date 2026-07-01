@@ -8,7 +8,7 @@ import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
-import { Button, Chip, EmptyState, useToast } from "@/components/ui";
+import { Button, EmptyState, SegmentedControl, useToast } from "@/components/ui";
 import { CardSkeletons, ErrorBanner } from "@/components/PageState";
 import {
   BriefcaseIcon,
@@ -93,15 +93,17 @@ export default function MatchesPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
       <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Matches</h1>
-      <p className="mt-0.5 text-sm text-zinc-500">Tus turnos asignados y tus postulaciones.</p>
+      <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados y tus postulaciones.</p>
 
-      <div className="mt-4 flex gap-2">
-        <Chip active={tab === "asignados"} onClick={() => setTab("asignados")}>
-          Asignados {shifts.length > 0 && `(${shifts.length})`}
-        </Chip>
-        <Chip active={tab === "postulaciones"} onClick={() => setTab("postulaciones")}>
-          Postulaciones {pending.length > 0 && `(${pending.length})`}
-        </Chip>
+      <div className="mt-4">
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "asignados", label: `Asignados${shifts.length > 0 ? ` (${shifts.length})` : ""}` },
+            { value: "postulaciones", label: `Postulaciones${pending.length > 0 ? ` (${pending.length})` : ""}` },
+          ]}
+        />
       </div>
 
       {loading && <CardSkeletons />}
