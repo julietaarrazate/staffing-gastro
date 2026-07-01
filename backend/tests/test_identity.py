@@ -3,6 +3,9 @@
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
+from app.core.rate_limit import reset_all_rate_limiters
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -114,3 +117,22 @@ async def test_register_cannot_self_assign_admin_role(client: AsyncClient):
     """El registro público no debe permitir elegir el rol admin."""
     response = await _register(client, role="admin")
     assert response.status_code == 422
+
+
+async def test_login_rate_limited(client: AsyncClient):
+    """Tras superar el límite por IP, el login responde 429."""
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        await _register(client)
+        creds = {"email": "mozo@staffya.com", "password": "incorrecta"}
+        statuses = [
+            (await client.post("/api/v1/auth/login", json=creds)).status_code
+            for _ in range(12)
+        ]
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+    # El límite es 10/min: las primeras responden 401 y luego aparece un 429.
+    assert 429 in statuses
+    assert statuses.index(429) >= 10

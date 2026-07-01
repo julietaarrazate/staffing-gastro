@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.middleware import SecurityHeadersMiddleware
 from app.modules.admin.api.routes import router as admin_router
 from app.modules.admin.bootstrap import promote_configured_admins
 from app.modules.application.api.routes import router as application_router
@@ -44,6 +45,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Headers de seguridad en cada respuesta; HSTS sólo en producción (HTTPS).
+app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
 
 
 @app.get("/health", tags=["system"], summary="Healthcheck")

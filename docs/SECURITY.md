@@ -43,23 +43,32 @@ asignado del turno; en notificaciones, el propio usuario. Ver
 - CORS restringido a los orígenes de `CORS_ORIGINS` (sólo el dominio de
   producción; sin `localhost` en config de producto).
 
+## Endurecimiento ya aplicado
+
+- **`JWT_SECRET_KEY` no puede quedar en el default en producción.** Un validador
+  de configuración (`Settings._reject_insecure_defaults`) **falla el arranque**
+  si `ENVIRONMENT=production` y el secreto sigue siendo el valor por defecto. En
+  Render el secreto se genera (`generateValue: true`).
+- **Security headers en toda respuesta** (`SecurityHeadersMiddleware`):
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, y `Strict-Transport-Security` (HSTS) **sólo en
+  producción** (no en desarrollo local por HTTP).
+- **Rate limiting por IP** en `login` (10/min) y `register` (5/min), en memoria
+  (`app/core/rate_limit.py`); superar el límite responde **429**. Configurable
+  con `RATE_LIMIT_ENABLED`. Es por proceso: escalar a varios workers requeriría
+  un store compartido (Redis) y un **ADR**.
+
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 
-> Estas son deudas reales, ya señaladas en la auditoría
-> ([TECH_DEBT.md](./TECH_DEBT.md), [QUICK_WINS.md](./QUICK_WINS.md)):
+> Deudas reales pendientes (ver [TECH_DEBT.md](./TECH_DEBT.md),
+> [QUICK_WINS.md](./QUICK_WINS.md)):
 >
-> 1. **`JWT_SECRET_KEY` con default inseguro** (`"cambiar-esto-en-produccion"`).
->    En Render se genera (`generateValue: true`), pero el default del código no
->    debe permitir arrancar en `ENVIRONMENT=production`. **Quick win:** fallar el
->    arranque si el secreto es el default en producción.
-> 2. **Sin rate limiting** en `login`/`register` (fuerza bruta). Falta límite por
->    IP/usuario.
-> 3. **Sin security headers** (HSTS, X-Content-Type-Options, etc.) ni middleware
->    que los agregue.
-> 4. **Sin revocación de refresh tokens** (no hay lista de invalidados / logout
->    server-side): un refresh robado vale 30 días.
-> 5. **Rotación de secretos** no documentada.
+> 1. **Sin revocación de refresh tokens** (no hay lista de invalidados / logout
+>    server-side): un refresh robado vale 30 días. Requiere modelo de sesión →
+>    **ADR**.
+> 2. **Rotación de secretos** no documentada.
+> 3. **Rate limiting por proceso**, no distribuido: al escalar horizontalmente
+>    pierde efectividad (necesita store compartido + ADR).
 >
 > Priorización y pasos en [QUICK_WINS.md](./QUICK_WINS.md) y
-> [RECOMMENDATIONS.md](./RECOMMENDATIONS.md). Cambios de modelo (revocación,
-> sesiones) → **ADR**.
+> [RECOMMENDATIONS.md](./RECOMMENDATIONS.md).
