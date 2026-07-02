@@ -7,7 +7,7 @@ reactivar, verificar, promover) reutiliza el repositorio de identidad.
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.modules.admin.api.dependencies import get_admin_service
 from app.modules.admin.api.schemas import AdminUserResponse, PlatformStatsResponse
@@ -24,6 +24,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 ServiceDep = Annotated[AdminService, Depends(get_admin_service)]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
+LimitDep = Annotated[int, Query(ge=1, le=100)]
+OffsetDep = Annotated[int, Query(ge=0)]
 
 
 @router.get("/stats", response_model=PlatformStatsResponse, summary="Métricas de la plataforma")
@@ -32,8 +34,10 @@ async def stats(_: AdminDep, service: ServiceDep):
 
 
 @router.get("/users", response_model=list[AdminUserResponse], summary="Listar usuarios")
-async def list_users(_: AdminDep, service: ServiceDep):
-    return await service.list_users()
+async def list_users(
+    _: AdminDep, service: ServiceDep, limit: LimitDep = 50, offset: OffsetDep = 0
+):
+    return await service.list_users(limit=limit, offset=offset)
 
 
 @router.post(

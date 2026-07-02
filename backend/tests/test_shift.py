@@ -292,3 +292,46 @@ async def test_other_worker_cannot_confirm_someone_elses_assignment(
         f"/api/v1/shifts/{shift_id}/confirm", headers=other_headers
     )
     assert response.status_code == 404
+
+
+async def test_feed_pagination(client: AsyncClient):
+    """R2.1: `/shifts/feed` pagina con `limit`/`offset` sin cambiar el shape
+    de la respuesta (sigue siendo una lista simple)."""
+    headers = await _employer_with_company(client, "emp_pag@staffya.com")
+    created_ids = []
+    for i in range(5):
+        created = await client.post(
+            "/api/v1/shifts",
+            headers=headers,
+            json=_shift_payload(city=f"PagCity{i}"),
+        )
+        shift_id = created.json()["id"]
+        await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+        created_ids.append(shift_id)
+
+    def _ours(payload: list[dict]) -> list[str]:
+        return [s["id"] for s in payload if s["id"] in created_ids]
+
+    first_page = await client.get(
+        "/api/v1/shifts/feed", headers=headers, params={"limit": 2, "offset": 0}
+    )
+    assert first_page.status_code == 200
+    first_ids = _ours(first_page.json())
+    assert len(first_ids) == 2
+
+    second_page = await client.get(
+        "/api/v1/shifts/feed", headers=headers, params={"limit": 3, "offset": 2}
+    )
+    assert second_page.status_code == 200
+    second_ids = _ours(second_page.json())
+
+    # Sin solapamiento entre páginas y unión = todo lo creado (paginación
+    # real en SQL, no slicing en memoria de una lista ya completa).
+    assert set(first_ids).isdisjoint(second_ids)
+    assert set(first_ids) | set(second_ids) == set(created_ids)
+
+    # `limit` fuera de rango (tope 100) es rechazado por la ruta.
+    invalid = await client.get(
+        "/api/v1/shifts/feed", headers=headers, params={"limit": 101}
+    )
+    assert invalid.status_code == 422

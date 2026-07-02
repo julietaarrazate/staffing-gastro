@@ -3,10 +3,8 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.database import get_session
 from app.modules.application.api.dependencies import get_application_service
 from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
 from app.modules.application.application.services import ApplicationService
@@ -14,18 +12,15 @@ from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
     ShiftNotApplicableError,
 )
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
-from app.modules.worker.infrastructure.repositories import (
-    SqlAlchemyWorkerProfileRepository,
-)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 ServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+LimitDep = Annotated[int, Query(ge=1, le=100)]
+OffsetDep = Annotated[int, Query(ge=0)]
 
 _SHIFT_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
@@ -58,8 +53,13 @@ async def apply_to_shift(
     response_model=list[ApplicationResponse],
     summary="Mis postulaciones (trabajador)",
 )
-async def my_applications(worker_profile_id: WorkerProfileIdDep, service: ServiceDep):
-    return await service.list_my_applications(worker_profile_id)
+async def my_applications(
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
+):
+    return await service.list_my_applications(worker_profile_id, limit=limit, offset=offset)
 
 
 @router.get(
@@ -71,30 +71,23 @@ async def shift_applicants(
     shift_id: UUID,
     company_id: CompanyIdDep,
     service: ServiceDep,
-    session: SessionDep,
 ):
     try:
-        applications = await service.list_applicants(company_id, shift_id)
+        applicants = await service.list_applicants(company_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
 
-    workers = SqlAlchemyWorkerProfileRepository(session)
-    users = SqlAlchemyUserRepository(session)
-    applicants: list[ApplicantResponse] = []
-    for application in applications:
-        worker = await workers.get_by_id(application.worker_profile_id)
-        if worker is None:
-            continue
-        user = await users.get_by_id(worker.user_id)
-        applicants.append(
-            ApplicantResponse(
-                application_id=application.id,
-                worker_profile_id=application.worker_profile_id,
-                full_name=user.full_name if user else "Trabajador",
-                photo_url=worker.photo_url,
-                rating=worker.rating,
-                status=application.status.value,
-                created_at=application.created_at,
-            )
+    # Enriquecido ya viene resuelto del repo (JOIN, sin N+1): sólo se mapea
+    # al esquema de respuesta (mismo shape que antes).
+    return [
+        ApplicantResponse(
+            application_id=applicant.application_id,
+            worker_profile_id=applicant.worker_profile_id,
+            full_name=applicant.full_name,
+            photo_url=applicant.photo_url,
+            rating=applicant.rating,
+            status=applicant.status.value,
+            created_at=applicant.created_at,
         )
-    return applicants
+        for applicant in applicants
+    ]

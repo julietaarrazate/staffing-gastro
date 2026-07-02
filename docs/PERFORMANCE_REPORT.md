@@ -22,6 +22,12 @@ individualmente bien escritas (índices correctos, `func.avg` en vez de Python
 donde importa), pero sin ningún límite de tamaño en las rutas de lectura ni
 capa de caché, y con un N+1 severo en el inbox de chat.
 
+> **Actualización (R2.1–R2.3):** P1 (inbox de chat), P2 (postulantes), P4
+> (matching sin acotar) y la paginación transversal (sección 1.3) están
+> resueltos — ver los recuadros ✅ en cada hallazgo. Quedan abiertos P3
+> (comercio N+1 en feed/mine, Media) y P5 (`/admin/stats` full scan, Media);
+> no se re-corrió el puntaje global todavía.
+
 ---
 
 ## 1. Backend
@@ -29,6 +35,15 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 ### 1.1 Consultas N+1 reales
 
 #### P1 — Inbox de chat: hasta ~6 queries por conversación, secuenciales
+
+> ✅ **Resuelto (R2.2).** `list_conversations` ahora arma el inbox en 3
+> queries totales, independientes del número de conversaciones: 1) JOIN
+> turno-comercio-trabajador-usuario (`ChatMessageRepository.list_inbox_candidates`,
+> `chat/infrastructure/repositories.py`), 2) último mensaje por turno en lote
+> (`last_messages`, `ROW_NUMBER()` portable SQLite/Postgres), 3) no leídos por
+> turno en lote (`unread_counts_by_shift`, `GROUP BY`). Medido: 10
+> conversaciones → 4 queries totales (3 del inbox + 1 de auth), antes ~60.
+> Mismo shape de respuesta (`ConversationResponse`), tests en `test_chat.py`.
 
 - **Archivo:** `backend/app/modules/chat/application/services.py:89-121`
   (`list_conversations`), con sus helpers `_participants` (138-146),
@@ -62,6 +77,14 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 
 #### P2 — Postulantes de un turno: 2N+1 queries
 
+> ✅ **Resuelto (R2.2).** `ShiftApplicationRepository.list_by_shift_enriched`
+> (`application/infrastructure/repositories.py`) trae postulación + perfil +
+> usuario con un único `JOIN`/`OUTER JOIN`, invocado desde
+> `ApplicationService.list_applicants`; la ruta (`application/api/routes.py`)
+> ya no instancia repos "a mano". Medido: 15 postulantes → 4 queries totales
+> (2 de auth/ownership + 1 de shift + 1 del JOIN), antes 2N+1 = 31. Mismo
+> shape de respuesta (`ApplicantResponse`), tests en `test_application.py`.
+
 - **Archivo:** `backend/app/modules/application/api/routes.py:84-99`
   (`shift_applicants`).
 - **Descripción:** por cada `ShiftApplication` del turno, hace
@@ -87,6 +110,13 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 
 #### P3 — Feed/mis-turnos: N queries de comercio (mitigado por caché local, no por batch)
 
+> ⏳ **No resuelto en R2.**  Fuera del alcance de esta tanda (R2.1–R2.3, que
+> cubrió P1/P2/P4 y paginación); sigue como pendiente de prioridad Media. La
+> paginación de `/shifts/feed`/`/mine`/`/me` (R2.1, ver sección 1.3) acota el
+> tamaño del problema (máximo 50-100 turnos por página en vez de la tabla
+> completa) pero no lo resuelve: sigue siendo 1 query de comercio por comercio
+> distinto en la página.
+
 - **Archivo:** `backend/app/modules/shift/api/routes.py:48-64`
   (`_with_company_info`).
 - **Descripción:** por cada turno se resuelve `company_id` con un `dict`
@@ -108,6 +138,17 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 ### 1.2 Costo del matching (`app/modules/matching`)
 
 #### P4 — El motor de recomendación carga y filtra en Python, sin acotar por SQL
+
+> ✅ **Resuelto parcialmente (R2.3).** `CandidateRepository.list_available`
+> (`matching/infrastructure/repositories.py`) ahora filtra `is_available` y
+> `skill` en SQL: `is_available = true` en el `WHERE` (ya estaba) + `skill`
+> con `CAST(skills AS TEXT) LIKE '%"<skill>"%'` — portable SQLite/Postgres,
+> comentado en el repo (por qué no hay operador nativo de "contiene" en JSON
+> genérico de SQLAlchemy que funcione en ambos motores). El scoring
+> ponderado (Haversine, experiencia, etc.) sigue en Python sobre el
+> subconjunto ya acotado, porque es lógica de dominio, no de acceso a datos.
+> **Pendiente:** filtro por ciudad/bounding box de lat-lng (queda para R4.2,
+> "Feed por bbox para multi-ciudad"); tests en `test_matching.py`.
 
 - **Archivos:**
   `backend/app/modules/matching/infrastructure/repositories.py:39-55`
@@ -150,6 +191,18 @@ capa de caché, y con un N+1 severo en el inbox de chat.
   sobre un subconjunto acotado (cientos, no miles, de filas).
 
 ### 1.3 Listados sin límite ni paginación
+
+> ✅ **Resuelto en su mayoría (R2.1).** `limit`/`offset` (default 50, tope
+> 100) agregados a `GET /shifts/feed`, `/shifts/me`, `/shifts/mine`,
+> `/applications/mine`, `/notifications`, `/admin/users` y `/matching/search`
+> (el listado/búsqueda real de trabajadores; ver nota de `API.md` sobre la
+> fila `GET /workers`, que no existe). `LIMIT`/`OFFSET` en SQL, no slicing en
+> Python (excepto `/matching/search`, que ordena por distancia en Python
+> antes de paginar — documentado en `matching/application/services.py` y en
+> `API.md#paginación`). Shape de respuesta sin cambios (lista simple, sin
+> envelope `total`/cursor — decisión documentada en `API.md`).
+> **Pendiente:** `GET /reviews/received` (no pedido en R2.1) y `GET
+> /admin/stats` (necesita el total real; ver P5, no resuelto en R2).
 
 - **Hallazgo transversal:** ningún endpoint de listado del backend acepta
   `limit`/`offset` ni los aplica por defecto. Confirmado por búsqueda de

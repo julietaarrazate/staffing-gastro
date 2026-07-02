@@ -22,9 +22,9 @@ class AdminService:
     def __init__(self, users: UserRepository) -> None:
         self._users = users
 
-    async def list_users(self) -> list[User]:
-        """Lista todos los usuarios (más recientes primero)."""
-        return await self._users.list_all()
+    async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[User]:
+        """Lista usuarios paginados (más recientes primero)."""
+        return await self._users.list_all(limit=limit, offset=offset)
 
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma."""

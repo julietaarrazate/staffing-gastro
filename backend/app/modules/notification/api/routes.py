@@ -3,7 +3,15 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 
 from app.core.ws_manager import ws_manager
 from app.modules.identity.api.dependencies import get_current_user, get_current_user_ws
@@ -17,6 +25,8 @@ router = APIRouter(prefix="/notifications", tags=["notification"])
 
 ServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+LimitDep = Annotated[int, Query(ge=1, le=100)]
+OffsetDep = Annotated[int, Query(ge=0)]
 
 
 @router.get(
@@ -24,8 +34,13 @@ CurrentUserDep = Annotated[User, Depends(get_current_user)]
     response_model=list[NotificationResponse],
     summary="Mis notificaciones",
 )
-async def my_notifications(current_user: CurrentUserDep, service: ServiceDep):
-    return await service.list_mine(current_user.id)
+async def my_notifications(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
+):
+    return await service.list_mine(current_user.id, limit=limit, offset=offset)
 
 
 @router.post(

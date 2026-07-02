@@ -35,9 +35,9 @@
 
 | # | Tarea | Esfuerzo | Dependencias |
 |---|-------|----------|--------------|
-| R2.1 | **Paginación** en todos los listados (feed, mine, inbox, admin users) | medio | — |
-| R2.2 | **Fix N+1**: inbox de chat (query agregada) y postulantes (join/`in_`) | medio | — |
-| R2.3 | **Matching acotado en SQL** (filtro por skill+disponibilidad+bbox en query; scoring en Python sobre el subconjunto) | medio | — |
+| R2.1 | ✅ **Paginación** en los listados largos (`/shifts/feed`, `/shifts/mine`, `/shifts/me`, `/applications/mine`, `/notifications`, `/admin/users`, `/matching/search`): `limit`/`offset` con `LIMIT`/`OFFSET` en SQL (no slicing en Python), default 50/tope 100, mismo shape de respuesta. Detalle y excepciones (`/matching/search` pagina *después* de ordenar por distancia) en [API.md](./API.md#paginación) | medio | — |
+| R2.2 | ✅ **Fix N+1**: inbox de chat resuelto en 3 queries agregadas (JOIN turno-comercio-trabajador-usuario + batch de último mensaje + batch de no leídos, vía `ChatMessageRepository`) en vez de ~6 por conversación (P1 del reporte); postulantes de un turno enriquecidos con un JOIN en `ShiftApplicationRepository.list_by_shift_enriched` en vez de 2N+1 (P2) | medio | — |
+| R2.3 | ✅ **Matching acotado en SQL**: `is_available` y `skill` se filtran en la query (`CandidateRepository.list_available`); `skill` usa `CAST(skills AS TEXT) LIKE '%"<skill>"%'` (portable SQLite/Postgres, ver comentario en el repo) en vez de traer todo y filtrar en Python (P4 del reporte). El scoring ponderado (Haversine, experiencia, etc.) sigue en Python sobre el subconjunto ya acotado, porque es lógica de dominio; falta bbox por lat/lng (queda para R4.2) | medio | — |
 | R2.4 | **Métricas de reputación reales**: `punctuality_rate`, `events_completed`, `cancellations` derivadas del ciclo del turno; reglas de insignias/niveles (BUSINESS_RULES.md) | alto | decisión de reglas |
 | R2.5 | **Imágenes propias** (Cloudinary ya integrado) en lugar de loremflickr en seed/demo | bajo | — |
 

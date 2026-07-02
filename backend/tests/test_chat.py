@@ -127,6 +127,50 @@ async def test_inbox_lists_conversation_with_unread_count(client: AsyncClient):
     assert inbox_after.json()[0]["unread_count"] == 0
 
 
+async def test_inbox_with_multiple_conversations_both_sides(client: AsyncClient):
+    """Cubre la query agregada del inbox (P1) con más de una conversación: un
+    comercio con turno propio y, por separado, un trabajador viendo su propio
+    inbox — ambos armados con la consulta JOIN + batch, sin loop de queries."""
+    shift_id_1, employer_headers_1, worker_headers_1 = await _assigned_shift(
+        client, "chat_multi_emp1@staffya.com", "chat_multi_w1@staffya.com"
+    )
+    shift_id_2, _employer_headers_2, worker_headers_2 = await _assigned_shift(
+        client, "chat_multi_emp2@staffya.com", "chat_multi_w2@staffya.com"
+    )
+
+    await client.post(
+        f"/api/v1/chats/{shift_id_1}/messages",
+        headers=worker_headers_1,
+        json={"body": "Primer mensaje"},
+    )
+    await client.post(
+        f"/api/v1/chats/{shift_id_2}/messages",
+        headers=worker_headers_2,
+        json={"body": "Segundo mensaje, más reciente"},
+    )
+
+    # Son dos comercios distintos (uno por turno armado por
+    # `_assigned_shift`), así que el comercio del turno 1 sólo ve esa
+    # conversación.
+    inbox_1 = await client.get("/api/v1/chats", headers=employer_headers_1)
+    assert inbox_1.status_code == 200
+    convos_1 = inbox_1.json()
+    assert len(convos_1) == 1
+    assert convos_1[0]["shift_id"] == shift_id_1
+    assert convos_1[0]["other_party_name"] == "Juana Trabajadora"
+    assert convos_1[0]["last_message"] == "Primer mensaje"
+
+    # El trabajador del turno 2 ve su propia conversación con el nombre del
+    # comercio como contraparte.
+    inbox_worker_2 = await client.get("/api/v1/chats", headers=worker_headers_2)
+    assert inbox_worker_2.status_code == 200
+    convos_w2 = inbox_worker_2.json()
+    assert len(convos_w2) == 1
+    assert convos_w2[0]["shift_id"] == shift_id_2
+    assert convos_w2[0]["other_party_name"] == "Bar Palermo"
+    assert convos_w2[0]["last_message"] == "Segundo mensaje, más reciente"
+
+
 async def test_outsider_cannot_access_conversation(client: AsyncClient):
     shift_id, _employer_headers, _worker_headers = await _assigned_shift(
         client, "chat_emp4@staffya.com", "chat_w4@staffya.com"

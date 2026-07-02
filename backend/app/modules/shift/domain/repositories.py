@@ -23,8 +23,10 @@ class ShiftRepository(ABC):
         """Busca un turno por su id."""
 
     @abstractmethod
-    async def list_by_company(self, company_id: UUID) -> list[Shift]:
-        """Lista los turnos publicados por un comercio (más recientes primero)."""
+    async def list_by_company(
+        self, company_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Shift]:
+        """Lista los turnos publicados por un comercio (más recientes primero, paginado)."""
 
     @abstractmethod
     async def list_open(
@@ -33,9 +35,13 @@ class ShiftRepository(ABC):
         city: str | None = None,
         position: WorkerSkill | None = None,
         urgent: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Shift]:
-        """Lista los turnos abiertos del feed público, con filtros opcionales."""
+        """Lista los turnos abiertos del feed público, con filtros opcionales (paginado)."""
 
     @abstractmethod
-    async def list_by_worker(self, worker_profile_id: UUID) -> list[Shift]:
-        """Lista los turnos asignados a un trabajador (más recientes primero)."""
+    async def list_by_worker(
+        self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Shift]:
+        """Lista los turnos asignados a un trabajador (más recientes primero, paginado)."""

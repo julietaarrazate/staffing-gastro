@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.modules.application.domain.entities import ShiftApplication
+from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
 
 
 class ShiftApplicationRepository(ABC):
@@ -28,5 +28,12 @@ class ShiftApplicationRepository(ABC):
         """Lista las postulaciones a un turno (más recientes primero)."""
 
     @abstractmethod
-    async def list_by_worker(self, worker_profile_id: UUID) -> list[ShiftApplication]:
-        """Lista las postulaciones de un trabajador (más recientes primero)."""
+    async def list_by_worker(
+        self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[ShiftApplication]:
+        """Lista las postulaciones de un trabajador (más recientes primero, paginado)."""
+
+    @abstractmethod
+    async def list_by_shift_enriched(self, shift_id: UUID) -> list[EnrichedApplicant]:
+        """Postulantes de un turno con datos del trabajador (perfil + usuario),
+        en pocas consultas (JOIN) en vez de 2 por postulante."""

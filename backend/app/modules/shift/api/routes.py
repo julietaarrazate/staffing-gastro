@@ -39,6 +39,11 @@ CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 AuthUserDep = Annotated[User, Depends(get_current_user)]
 CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
+# Paginación (R2.1, docs/API.md#paginación): límite generoso por defecto para
+# no romper pantallas existentes, tope duro de 100 para no exponer tablas
+# completas cuando la plataforma crezca.
+LimitDep = Annotated[int, Query(ge=1, le=100)]
+OffsetDep = Annotated[int, Query(ge=0)]
 
 
 def _to_data(payload: ShiftInput) -> ShiftData:
@@ -99,8 +104,12 @@ async def feed(
     city: Annotated[str | None, Query()] = None,
     position: Annotated[WorkerSkill | None, Query()] = None,
     urgent: Annotated[bool | None, Query()] = None,
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
 ):
-    shifts = await service.list_feed(city=city, position=position, urgent=urgent)
+    shifts = await service.list_feed(
+        city=city, position=position, urgent=urgent, limit=limit, offset=offset
+    )
     return await _with_company_info(shifts, companies)
 
 
@@ -109,8 +118,13 @@ async def feed(
     response_model=list[ShiftResponse],
     summary="Mis turnos publicados (comercio)",
 )
-async def my_shifts(company_id: CompanyIdDep, service: ServiceDep):
-    return await service.list_company_shifts(company_id)
+async def my_shifts(
+    company_id: CompanyIdDep,
+    service: ServiceDep,
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
+):
+    return await service.list_company_shifts(company_id, limit=limit, offset=offset)
 
 
 @router.get(
@@ -119,9 +133,13 @@ async def my_shifts(company_id: CompanyIdDep, service: ServiceDep):
     summary="Mis turnos asignados (trabajador)",
 )
 async def my_assigned_shifts(
-    worker_profile_id: WorkerProfileIdDep, service: ServiceDep, companies: CompaniesDep
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    companies: CompaniesDep,
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
 ):
-    shifts = await service.list_worker_shifts(worker_profile_id)
+    shifts = await service.list_worker_shifts(worker_profile_id, limit=limit, offset=offset)
     return await _with_company_info(shifts, companies)
 
 

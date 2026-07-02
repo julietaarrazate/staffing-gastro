@@ -141,6 +141,35 @@ async def test_worker_lists_own_applications(client: AsyncClient):
     assert any(a["shift_id"] == shift_id for a in mine.json())
 
 
+async def test_my_applications_pagination(client: AsyncClient):
+    """R2.1: `/applications/mine` pagina con `limit`/`offset`."""
+    employer = await _employer_with_company(client, "emp_app_pag@staffya.com")
+    worker, _ = await _worker_with_profile(client, "w_app_pag@staffya.com")
+
+    shift_ids = []
+    for _ in range(3):
+        shift_id = await _published_shift(client, employer)
+        await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+        shift_ids.append(shift_id)
+
+    all_mine = await client.get("/api/v1/applications/mine", headers=worker)
+    assert len(all_mine.json()) == 3
+
+    page1 = await client.get(
+        "/api/v1/applications/mine", headers=worker, params={"limit": 2, "offset": 0}
+    )
+    assert page1.status_code == 200
+    assert len(page1.json()) == 2
+
+    page2 = await client.get(
+        "/api/v1/applications/mine", headers=worker, params={"limit": 2, "offset": 2}
+    )
+    assert len(page2.json()) == 1
+    assert {a["id"] for a in page1.json()} | {a["id"] for a in page2.json()} == {
+        a["id"] for a in all_mine.json()
+    }
+
+
 async def test_applying_notifies_company(client: AsyncClient):
     employer = await _employer_with_company(client, "emp_app8@staffya.com")
     shift_id = await _published_shift(client, employer)

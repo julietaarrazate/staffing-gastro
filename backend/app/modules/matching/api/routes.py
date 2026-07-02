@@ -21,6 +21,8 @@ search_router = APIRouter(prefix="/matching", tags=["matching"])
 ServiceDep = Annotated[MatchingService, Depends(get_matching_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
+LimitDep = Annotated[int, Query(ge=1, le=100)]
+OffsetDep = Annotated[int, Query(ge=0)]
 
 
 @router.get(
@@ -54,7 +56,14 @@ async def search_workers(
     latitude: float | None = Query(default=None, ge=-90, le=90),
     longitude: float | None = Query(default=None, ge=-180, le=180),
     radius_km: float | None = Query(default=None, ge=1, le=200),
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
 ):
     return await service.search_workers(
-        skill=skill, latitude=latitude, longitude=longitude, radius_km=radius_km
+        skill=skill,
+        latitude=latitude,
+        longitude=longitude,
+        radius_km=radius_km,
+        limit=limit,
+        offset=offset,
     )

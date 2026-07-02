@@ -222,11 +222,17 @@ class ShiftService:
             raise ShiftNotFoundError(str(shift_id))
         return shift
 
-    async def list_company_shifts(self, company_id: UUID) -> list[Shift]:
-        return await self._shifts.list_by_company(company_id)
+    async def list_company_shifts(
+        self, company_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Shift]:
+        return await self._shifts.list_by_company(company_id, limit=limit, offset=offset)
 
-    async def list_worker_shifts(self, worker_profile_id: UUID) -> list[Shift]:
-        return await self._shifts.list_by_worker(worker_profile_id)
+    async def list_worker_shifts(
+        self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Shift]:
+        return await self._shifts.list_by_worker(
+            worker_profile_id, limit=limit, offset=offset
+        )
 
     async def list_feed(
         self,
@@ -234,8 +240,12 @@ class ShiftService:
         city: str | None = None,
         position: WorkerSkill | None = None,
         urgent: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Shift]:
-        return await self._shifts.list_open(city=city, position=position, urgent=urgent)
+        return await self._shifts.list_open(
+            city=city, position=position, urgent=urgent, limit=limit, offset=offset
+        )
 
     async def _get_owned(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._shifts.get_by_id(shift_id)

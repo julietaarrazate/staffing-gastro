@@ -23,3 +23,22 @@ class ShiftApplication:
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class EnrichedApplicant:
+    """Postulación de un turno junto con los datos del trabajador para la UI.
+
+    Se arma con un único JOIN postulación-trabajador-usuario para evitar el
+    2N+1 de pedir `worker`/`user` por cada postulante (ver
+    `ShiftApplicationRepository.list_by_shift_enriched` y
+    `docs/PERFORMANCE_REPORT.md` P2).
+    """
+
+    application_id: UUID
+    worker_profile_id: UUID
+    full_name: str
+    photo_url: str | None
+    rating: float
+    status: ApplicationStatus
+    created_at: datetime | None

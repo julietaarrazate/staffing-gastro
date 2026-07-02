@@ -141,6 +141,45 @@ async def test_reject_notifies_company(client: AsyncClient):
     assert body[0]["type"] == "shift_rejected"
 
 
+async def test_notifications_pagination(client: AsyncClient):
+    """R2.1: `/notifications` pagina con `limit`/`offset`."""
+    employer_headers = await _employer_with_company(client, "n_pag_emp@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "n_pag_worker@staffya.com"
+    )
+
+    shift_ids = []
+    for _ in range(3):
+        created = await client.post(
+            "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+        )
+        shift_id = created.json()["id"]
+        await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+        await client.post(
+            f"/api/v1/shifts/{shift_id}/assign",
+            headers=employer_headers,
+            json={"worker_profile_id": worker_profile_id},
+        )
+        shift_ids.append(shift_id)
+
+    all_notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert len(all_notifications.json()) == 3
+
+    limited = await client.get(
+        "/api/v1/notifications", headers=worker_headers, params={"limit": 1, "offset": 0}
+    )
+    assert limited.status_code == 200
+    assert len(limited.json()) == 1
+
+    rest = await client.get(
+        "/api/v1/notifications", headers=worker_headers, params={"limit": 2, "offset": 1}
+    )
+    assert len(rest.json()) == 2
+    assert {n["id"] for n in limited.json()} | {n["id"] for n in rest.json()} == {
+        n["id"] for n in all_notifications.json()
+    }
+
+
 async def test_cannot_mark_someone_elses_notification_as_read(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "n_emp4@staffya.com")
     created = await client.post(

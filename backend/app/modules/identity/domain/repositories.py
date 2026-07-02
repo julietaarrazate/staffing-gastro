@@ -26,8 +26,14 @@ class UserRepository(ABC):
         """Busca un usuario por su id."""
 
     @abstractmethod
-    async def list_all(self) -> list[User]:
-        """Lista todos los usuarios (más recientes primero)."""
+    async def list_all(self, *, limit: int | None = None, offset: int = 0) -> list[User]:
+        """Lista usuarios (más recientes primero).
+
+        `limit=None` (default) trae todos: lo usa `AdminService.get_stats`,
+        que necesita el total real para las métricas agregadas (P5 de
+        `docs/PERFORMANCE_REPORT.md`, fuera de alcance de R2.1). El endpoint
+        `GET /admin/users` sí pagina, pasando `limit`/`offset` explícitos.
+        """
 
     @abstractmethod
     async def get_by_email(self, email: str) -> User | None:

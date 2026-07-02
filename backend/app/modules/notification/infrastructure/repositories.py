@@ -57,11 +57,15 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
         return entity
 
-    async def list_by_user(self, user_id: UUID) -> list[Notification]:
+    async def list_by_user(
+        self, user_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Notification]:
         stmt = (
             select(NotificationModel)
             .where(NotificationModel.user_id == user_id)
             .order_by(NotificationModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]

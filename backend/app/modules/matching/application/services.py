@@ -60,8 +60,16 @@ class MatchingService:
         latitude: float | None = None,
         longitude: float | None = None,
         radius_km: float | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[WorkerMapResult]:
         """Busca trabajadores disponibles para mostrar en el mapa, por rol y distancia."""
+        # `list_available` ya filtra is_available+skill en SQL (P3/P4 de
+        # PERFORMANCE_REPORT.md); el orden final por distancia es Haversine en
+        # Python (no hay PostGIS todavía), así que el límite/offset (R2.1) se
+        # aplica DESPUÉS de ordenar, no como LIMIT/OFFSET de SQL: paginar antes
+        # de ordenar por distancia devolvería una página con los trabajadores
+        # equivocados. Ver decisión documentada en docs/API.md#paginación.
         candidates = await self._candidates.list_available(skill)
         results = []
         for candidate in candidates:
@@ -83,6 +91,7 @@ class MatchingService:
                     distance_km=distance_km,
                 )
             )
-        return sorted(
+        ordered = sorted(
             results, key=lambda r: (r.distance_km is None, r.distance_km or 0.0)
         )
+        return ordered[offset : offset + limit]
