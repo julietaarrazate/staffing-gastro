@@ -36,7 +36,22 @@ class Settings(BaseSettings):
         # Proveedores como Render entregan una connection string "postgresql://"
         # (driver psycopg2 por defecto); el proyecto usa SQLAlchemy async + asyncpg.
         if value.startswith("postgresql://"):
-            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+            value = value.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        # Proveedores gestionados (Neon) agregan parámetros de libpq que asyncpg
+        # NO acepta y rompen el arranque ("unexpected keyword argument 'sslmode'").
+        # Se traducen: sslmode/channel_binding se quitan y, si pedían TLS, se
+        # deja `ssl=require` (parámetro que el dialecto asyncpg sí entiende).
+        if "+asyncpg" in value and ("sslmode=" in value or "channel_binding=" in value):
+            from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+            parts = urlsplit(value)
+            params = dict(parse_qsl(parts.query))
+            sslmode = params.pop("sslmode", None)
+            params.pop("channel_binding", None)
+            if sslmode and sslmode != "disable" and "ssl" not in params:
+                params["ssl"] = "require"
+            value = urlunsplit(parts._replace(query=urlencode(params)))
         return value
 
     # --- JWT ---
