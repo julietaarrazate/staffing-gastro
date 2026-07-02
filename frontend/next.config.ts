@@ -29,7 +29,7 @@ const CSP = [
   "frame-ancestors 'none'",
   "script-src 'self' 'unsafe-inline' blob: https://vercel.live",
   "style-src 'self' 'unsafe-inline'",
-  `connect-src 'self' ${API_ORIGIN} ${API_WS_ORIGIN} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://api.cloudinary.com https://vercel.live`,
+  `connect-src 'self' ${API_ORIGIN} ${API_WS_ORIGIN} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://api.cloudinary.com https://vercel.live https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io`,
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
