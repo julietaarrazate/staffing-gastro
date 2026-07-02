@@ -87,33 +87,43 @@ class ChatService:
         await self._authorize(user_id, shift_id)
 
     async def list_conversations(self, user_id: UUID) -> list[ConversationSummary]:
-        """Inbox: una tarjeta por turno con mensajes en el que participa el usuario."""
+        """Inbox: una tarjeta por turno con mensajes en el que participa el usuario.
+
+        Arma el inbox en 3 consultas totales en vez de una por conversación
+        (fix de P1, `docs/PERFORMANCE_REPORT.md`): 1) turnos + ambas
+        contrapartes posibles vía JOIN, 2) último mensaje por turno, 3) no
+        leídos por turno. Todo agregado por lote (`IN`), sin loop de `await`.
+        """
+        candidates = await self._messages.list_inbox_candidates(user_id)
+        shift_ids = [c.shift_id for c in candidates]
+        if not shift_ids:
+            return []
+
+        last_messages = await self._messages.last_messages(shift_ids)
+        unread_counts = await self._messages.unread_counts_by_shift(shift_ids, user_id)
+
         summaries: list[ConversationSummary] = []
-        for shift in await self._shifts_for_user(user_id):
-            last = await self._messages.last_message(shift.id)
+        for candidate in candidates:
+            last = last_messages.get(candidate.shift_id)
             if last is None or last.created_at is None:
                 continue
-            try:
-                company_user_id, worker_user_id = await self._participants(shift)
-            except ConversationNotFoundError:
-                continue
 
-            if user_id == company_user_id:
-                name, photo = await self._worker_display(shift, worker_user_id)
-            elif user_id == worker_user_id:
-                name, photo = await self._company_display(shift)
+            if user_id == candidate.company_user_id:
+                name, photo = candidate.worker_full_name, candidate.worker_photo_url
+            elif user_id == candidate.worker_user_id:
+                name, photo = candidate.company_name, candidate.company_logo_url
             else:
                 continue
 
             summaries.append(
                 ConversationSummary(
-                    shift_id=shift.id,
-                    shift_title=shift.title or shift.position.value,
+                    shift_id=candidate.shift_id,
+                    shift_title=candidate.shift_title,
                     other_party_name=name,
                     other_party_photo=photo,
                     last_message=last.body,
                     last_message_at=last.created_at,
-                    unread_count=await self._messages.count_unread(shift.id, user_id),
+                    unread_count=unread_counts.get(candidate.shift_id, 0),
                 )
             )
 
@@ -144,31 +154,6 @@ class ChatService:
         if company is None or worker is None:
             raise ConversationNotFoundError(str(shift.id))
         return company.user_id, worker.user_id
-
-    async def _worker_display(
-        self, shift: Shift, worker_user_id: UUID
-    ) -> tuple[str, str | None]:
-        worker = await self._workers.get_by_id(shift.worker_profile_id)
-        user = await self._users.get_by_id(worker_user_id)
-        name = user.full_name if user is not None else "Trabajador"
-        photo = worker.photo_url if worker is not None else None
-        return name, photo
-
-    async def _company_display(self, shift: Shift) -> tuple[str, str | None]:
-        company = await self._companies.get_by_id(shift.company_id)
-        name = company.name if company is not None else "Comercio"
-        photo = company.logo_url if company is not None else None
-        return name, photo
-
-    async def _shifts_for_user(self, user_id: UUID) -> list[Shift]:
-        shifts: list[Shift] = []
-        company = await self._companies.get_by_user_id(user_id)
-        if company is not None:
-            shifts.extend(await self._shifts.list_by_company(company.id))
-        worker = await self._workers.get_by_user_id(user_id)
-        if worker is not None:
-            shifts.extend(await self._shifts.list_by_worker(worker.id))
-        return shifts
 
     async def _notify_recipient(
         self, recipient_id: UUID, sender_id: UUID, body: str

@@ -14,8 +14,10 @@ class NotificationRepository(ABC):
         """Persiste una nueva notificación y la devuelve."""
 
     @abstractmethod
-    async def list_by_user(self, user_id: UUID) -> list[Notification]:
-        """Lista las notificaciones de un usuario (más recientes primero)."""
+    async def list_by_user(
+        self, user_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Notification]:
+        """Lista las notificaciones de un usuario (más recientes primero, paginado)."""
 
     @abstractmethod
     async def mark_read(self, notification_id: UUID, user_id: UUID) -> Notification | None:

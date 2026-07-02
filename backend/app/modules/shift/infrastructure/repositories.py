@@ -106,20 +106,28 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         model = await self._session.get(ShiftModel, shift_id)
         return _to_entity(model) if model else None
 
-    async def list_by_company(self, company_id: UUID) -> list[Shift]:
+    async def list_by_company(
+        self, company_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Shift]:
         stmt = (
             select(ShiftModel)
             .where(ShiftModel.company_id == company_id)
             .order_by(ShiftModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
-    async def list_by_worker(self, worker_profile_id: UUID) -> list[Shift]:
+    async def list_by_worker(
+        self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
+    ) -> list[Shift]:
         stmt = (
             select(ShiftModel)
             .where(ShiftModel.worker_profile_id == worker_profile_id)
             .order_by(ShiftModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
@@ -130,6 +138,8 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         city: str | None = None,
         position: WorkerSkill | None = None,
         urgent: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Shift]:
         stmt = select(ShiftModel).where(
             ShiftModel.status.in_([s.value for s in OPEN_STATUSES])
@@ -141,6 +151,10 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         if urgent is not None:
             stmt = stmt.where(ShiftModel.urgent.is_(urgent))
         # Urgentes primero, luego los más recientes.
-        stmt = stmt.order_by(ShiftModel.urgent.desc(), ShiftModel.created_at.desc())
+        stmt = (
+            stmt.order_by(ShiftModel.urgent.desc(), ShiftModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]

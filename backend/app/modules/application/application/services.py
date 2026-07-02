@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.modules.application.domain.entities import ShiftApplication
+from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
     ShiftNotApplicableError,
@@ -68,16 +68,19 @@ class ApplicationService:
 
     async def list_applicants(
         self, company_id: UUID, shift_id: UUID
-    ) -> list[ShiftApplication]:
-        """Lista los postulantes a un turno propio del comercio."""
+    ) -> list[EnrichedApplicant]:
+        """Lista los postulantes a un turno propio del comercio, ya enriquecidos
+        con los datos del trabajador (sin N+1, ver P2 en PERFORMANCE_REPORT.md)."""
         shift = await self._shifts.get_by_id(shift_id)
         # No-disclosure: turno ajeno o inexistente se trata igual (404).
         if shift is None or shift.company_id != company_id:
             raise ShiftNotApplicableError(str(shift_id))
-        return await self._applications.list_by_shift(shift_id)
+        return await self._applications.list_by_shift_enriched(shift_id)
 
     async def list_my_applications(
-        self, worker_profile_id: UUID
+        self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[ShiftApplication]:
         """Lista las postulaciones del trabajador (para su pantalla de Matches)."""
-        return await self._applications.list_by_worker(worker_profile_id)
+        return await self._applications.list_by_worker(
+            worker_profile_id, limit=limit, offset=offset
+        )

@@ -76,8 +76,10 @@ class SqlAlchemyUserRepository(UserRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def list_all(self) -> list[User]:
-        stmt = select(UserModel).order_by(desc(UserModel.created_at))
+    async def list_all(self, *, limit: int | None = None, offset: int = 0) -> list[User]:
+        stmt = select(UserModel).order_by(desc(UserModel.created_at)).offset(offset)
+        if limit is not None:
+            stmt = stmt.limit(limit)
         result = await self._session.execute(stmt)
         return [_to_entity(model) for model in result.scalars().all()]
 

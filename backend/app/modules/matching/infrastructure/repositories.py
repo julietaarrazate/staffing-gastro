@@ -4,7 +4,7 @@ Lee directamente de `worker_profiles` (módulo worker) y mapea a los DTOs
 livianos del dominio de matching, sin depender de sus entidades.
 """
 
-from sqlalchemy import select
+from sqlalchemy import String, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.infrastructure.models import UserModel
@@ -39,17 +39,29 @@ class SqlAlchemyCandidateRepository(CandidateRepository):
     async def list_available(
         self, skill: WorkerSkill | None = None
     ) -> list[CandidateProfile]:
+        # P3 (docs/PERFORMANCE_REPORT.md): antes se traían TODOS los
+        # `worker_profiles` disponibles y se filtraba por `skill` en Python
+        # (full scan). Ahora is_available + skill se filtran en SQL; el
+        # scoring ponderado (Haversine, experiencia, etc.) sigue en Python
+        # sobre el subconjunto ya acotado, porque es lógica de dominio.
+        #
+        # `skills` es una columna JSON (lista de strings). SQLAlchemy no
+        # tiene un operador "contiene" portable entre SQLite y Postgres para
+        # el tipo genérico `JSON` (Postgres tendría `@>`/`?|` sobre JSONB,
+        # SQLite no). En cambio, `CAST(skills AS TEXT) LIKE '%"mozo"%'` sí es
+        # portable: ambos motores serializan el string como JSON entrecomillado
+        # (`"mozo"`), y como buscamos el token completo entre comillas (no un
+        # substring libre), no matchea skills que sólo comparten prefijo
+        # (p. ej. filtrar por "mozo" no matchea un skill guardado como
+        # "mozo_bar").
         stmt = (
             select(WorkerProfileModel, UserModel.full_name)
             .join(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(WorkerProfileModel.is_available.is_(True))
         )
+        if skill is not None:
+            needle = f'%"{skill.value}"%'
+            stmt = stmt.where(cast(WorkerProfileModel.skills, String).like(needle))
         result = await self._session.execute(stmt)
         rows = result.all()
-        # El filtro por habilidad se hace en Python: `skills` es JSON y su
-        # representación varía entre motores de base de datos (Postgres/SQLite).
-        return [
-            _to_candidate(model, full_name)
-            for model, full_name in rows
-            if skill is None or skill.value in (model.skills or [])
-        ]
+        return [_to_candidate(model, full_name) for model, full_name in rows]
