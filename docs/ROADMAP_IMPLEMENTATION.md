@@ -24,9 +24,10 @@
 |---|-------|----------|--------------|
 | R1.1 | **Sentry** (backend+frontend) + logging estructurado JSON con `request_id` | medio | — |
 | R1.2 | ✅ **Sesiones revocables**: tabla de refresh tokens (jti), logout server-side, rotación en refresh — **ADR-0002** | medio | — |
-| R1.3 | **CSP** y endurecimiento de headers del frontend (next.config) | bajo | — |
+| R1.3 | ✅ **CSP** y endurecimiento de headers del frontend (`next.config.ts`, sólo en producción) | bajo | — |
 | R1.4 | ✅ **Decisión `quantity`**: capado a 1 en UI+API (opción rápida elegida; multi-asignación real queda para más adelante con ADR si se decide) | bajo | decisión de producto |
-| R1.5 | **Unit tests del scoring de matching** (casos límite: sin geo, radio, pesos) + **3–4 E2E Playwright** (login→postular→asignar→confirmar) en CI | medio | R0.3 |
+| R1.5a | ✅ **Unit tests del scoring de matching** (25 tests: pesos, casos límite sin geo/radio/tope de experiencia, orden del ranking con trade-offs) | medio | — |
+| R1.5b | **E2E Playwright** (3–4 flujos: login→postular→asignar→confirmar) en CI | medio | R0.3 ✅ |
 | R1.6 | **Interruptor de demo**: apagar `SEED_DEMO_DATA` y purgar cuentas demo al lanzar (runbook en DEPLOY.md) | bajo | momento del lanzamiento |
 
 ## R2 — Rendimiento y confianza del marketplace (1–2 semanas) 🟡

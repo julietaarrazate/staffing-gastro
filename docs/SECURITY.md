@@ -63,6 +63,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   (`app/core/rate_limit.py`); superar el límite responde **429**. Configurable
   con `RATE_LIMIT_ENABLED`. Es por proceso: escalar a varios workers requeriría
   un store compartido (Redis) y un **ADR**.
+- **Content-Security-Policy** (R1.3, `frontend/next.config.ts`, sólo en
+  producción): restringe scripts/estilos/conexiones al propio origen + backend
+  + tiles vectoriales de CARTO (ADR-0001) + Cloudinary; sin `frame-ancestors`
+  (mitiga XSS/clickjacking). Mitiga el impacto de un eventual XSS dado que los
+  tokens viven en `localStorage` (ver brecha abajo).
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 

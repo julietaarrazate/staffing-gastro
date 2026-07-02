@@ -36,10 +36,14 @@ la cuenta).
 | Mapas F3 (adiós Leaflet) | #52 | `WorkerSearchMap` (marcador avatar+rating, tarjeta DS en vez de popup) y `MiniMap` sobre MapLibre; tiempos por modo "aprox." (`lib/map/travel-time.ts`) en el carrusel; botón "Cómo llegar" (deep-link Google Maps) en `ShiftCard`; **leaflet/react-leaflet desinstalados**, `map-tiles.ts` eliminado, cero referencias |
 | R1.2 + R1.4 (sesiones revocables + capar `quantity`) | #53 | Tabla `refresh_sessions` (migración `0010`) con rotación de refresh token y detección de reuso (revoca todas las sesiones), `POST /auth/logout`, `ADR-0002`; `quantity` capado a 1 en `ShiftInput` (API) y en el wizard (`shifts/new/page.tsx`). `pytest -q` verde (87 tests), `tsc --noEmit` limpio |
 | R2.1–R2.3 (rendimiento backend: paginación + fix N+1 + matching en SQL) | #54 | Inbox de chat (P1) reescrito a 3 queries agregadas (JOIN + batch de último mensaje + batch de no leídos) en vez de ~6 por conversación; postulantes de un turno (P2) enriquecidos con un JOIN en el repo en vez de 2N+1; matching (P4 del reporte) filtra `is_available`+`skill` en SQL (antes full scan + filtro en Python) y sólo scorea en Python el subconjunto ya acotado; `limit`/`offset` agregados a `/shifts/feed`, `/shifts/mine`, `/shifts/me`, `/applications/mine`, `/notifications`, `/admin/users` y `/matching/search` (default 50, tope 100, sin cambiar el shape de la respuesta). Sin cambios de comportamiento visible. `pytest -q` verde (91 tests, +4 de paginación/inbox) |
+| R1.3 + R1.5a (CSP + unit tests del scoring) | #55 | CSP en `next.config.ts` (sólo producción; permite backend propio, WS, tiles CARTO y Cloudinary); 25 unit tests puros de `matching/domain/scoring.py` (pesos, casos límite, orden con trade-offs — un test traía una expectativa incorrecta, corregida: el orden real `equilibrada > lejos_pero_excelente > cerca_pero_nueva` es el comportamiento correcto de los pesos documentados, no un bug). `pytest -q` verde (116 tests) |
 
 ## En vuelo ahora
 
-- Nada — próximo bloque: CSP (R1.3) y tests de scoring + E2E (R1.5).
+- **R1.5b — E2E Playwright** y **R2.4/R2.5** (agentes despachados; el intento
+  anterior de ambos chocó con el límite de sesión del proveedor sin avanzar,
+  se relanzan). Bloqueados en Julieta: **R0.1 Neon** y **R1.1 Sentry** (tiene
+  las cuentas, faltan los env vars en Render/Vercel — instrucciones dadas).
 
 ## Próximos pasos (orden acordado)
 
