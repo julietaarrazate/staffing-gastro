@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { AdminUser, PlatformStats } from "@/lib/types";
+import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Spinner } from "@/components/ui";
 import {
   CheckCircleIcon,
   ShieldIcon,
@@ -16,18 +17,23 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  suspended: "bg-red-100 text-red-700",
-  deleted: "bg-zinc-200 text-zinc-600",
+const STATUS_TONE: Record<string, "secondary" | "danger" | "neutral"> = {
+  active: "secondary",
+  suspended: "danger",
+  deleted: "neutral",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Activo",
+  suspended: "Suspendido",
 };
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-100">
-      <p className="text-2xl font-extrabold text-zinc-900">{value}</p>
+    <Card className="p-4">
+      <p className="text-2xl font-extrabold text-ink">{value}</p>
       <p className="text-xs font-medium text-zinc-500">{label}</p>
-    </div>
+    </Card>
   );
 }
 
@@ -70,18 +76,22 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) return <p className="px-4 py-16 text-center text-zinc-500">Cargando...</p>;
+  if (loading) {
+    return (
+      <div className="flex justify-center px-4 py-16">
+        <Spinner size={28} className="text-zinc-400" />
+      </div>
+    );
+  }
 
   if (!user || user.role !== "admin") {
     return (
-      <div className="mx-auto max-w-md px-4 py-20 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
-          <ShieldIcon size={24} />
-        </div>
-        <h1 className="mt-4 text-xl font-bold text-zinc-900">Acceso restringido</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Esta sección es sólo para administradores.
-        </p>
+      <div className="mx-auto max-w-md px-4 py-20">
+        <EmptyState
+          icon={<ShieldIcon size={26} />}
+          title="Acceso restringido"
+          subtitle="Esta sección es sólo para administradores."
+        />
       </div>
     );
   }
@@ -89,11 +99,11 @@ export default function AdminPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex items-center gap-2">
-        <ShieldIcon size={22} className="text-orange-600" />
-        <h1 className="text-2xl font-bold text-zinc-900">Panel de administración</h1>
+        <ShieldIcon size={22} className="text-primary" />
+        <h1 className="text-2xl font-bold text-ink">Panel de administración</h1>
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <ErrorBanner message={error} />}
 
       {stats && (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -110,82 +120,76 @@ export default function AdminPage() {
         </p>
         <div className="mt-2 grid gap-3">
           {users.map((u) => (
-            <div
-              key={u.id}
-              className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-100"
-            >
+            <Card key={u.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">
-                    {u.full_name.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar name={u.full_name} size="md" />
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 truncate font-semibold text-zinc-900">
+                    <p className="flex items-center gap-1.5 truncate font-semibold text-ink">
                       {u.full_name}
                       {u.is_verified && (
-                        <CheckCircleIcon size={15} className="text-green-600" />
+                        <CheckCircleIcon size={15} className="text-secondary" />
                       )}
                     </p>
                     <p className="truncate text-xs text-zinc-500">{u.email}</p>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
-                    <UsersIcon size={11} />
+                  <Badge tone="neutral" icon={<UsersIcon size={11} />}>
                     {ROLE_LABELS[u.role] ?? u.role}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      STATUS_STYLES[u.status] ?? "bg-zinc-100 text-zinc-600"
-                    }`}
-                  >
-                    {u.status === "active"
-                      ? "Activo"
-                      : u.status === "suspended"
-                        ? "Suspendido"
-                        : u.status}
-                  </span>
+                  </Badge>
+                  <Badge tone={STATUS_TONE[u.status] ?? "neutral"}>
+                    {STATUS_LABELS[u.status] ?? u.status}
+                  </Badge>
                 </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {u.status === "active" ? (
-                  <button
-                    onClick={() => act(u.id, "suspend")}
+                  <Button
+                    size="sm"
+                    variant="danger"
                     disabled={busy !== null || u.id === user.id}
-                    className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-40"
+                    loading={busy === `${u.id}:suspend`}
+                    onClick={() => act(u.id, "suspend")}
                   >
                     {u.id === user.id ? "Sos vos" : "Suspender"}
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={() => act(u.id, "activate")}
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     disabled={busy !== null}
-                    className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-40"
+                    loading={busy === `${u.id}:activate`}
+                    onClick={() => act(u.id, "activate")}
                   >
                     Reactivar
-                  </button>
+                  </Button>
                 )}
                 {!u.is_verified && (
-                  <button
-                    onClick={() => act(u.id, "verify")}
+                  <Button
+                    size="sm"
+                    variant="surface"
                     disabled={busy !== null}
-                    className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-200 disabled:opacity-40"
+                    loading={busy === `${u.id}:verify`}
+                    onClick={() => act(u.id, "verify")}
                   >
                     Verificar
-                  </button>
+                  </Button>
                 )}
                 {u.role !== "admin" && (
-                  <button
-                    onClick={() => act(u.id, "promote")}
+                  <Button
+                    size="sm"
+                    variant="primary"
                     disabled={busy !== null}
-                    className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-40"
+                    loading={busy === `${u.id}:promote`}
+                    onClick={() => act(u.id, "promote")}
                   >
                     Hacer admin
-                  </button>
+                  </Button>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
