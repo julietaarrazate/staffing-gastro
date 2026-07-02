@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.repositories import WorkerProfileRepository
+from app.modules.worker.domain.rules import compute_badges, compute_level
 from app.modules.worker.domain.value_objects import (
     GamificationLevel,
     WorkerBadge,
@@ -115,4 +116,23 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
             model.punctuality_rate * previous_events + (1.0 if punctual else 0.0)
         ) / new_events
         model.events_completed = new_events
+        self._recompute_badges_and_level(model)
         await self._session.commit()
+
+    async def record_cancellation(self, profile_id: UUID) -> None:
+        model = await self._session.get(WorkerProfileModel, profile_id)
+        if model is None:
+            return
+        model.cancellations += 1
+        self._recompute_badges_and_level(model)
+        await self._session.commit()
+
+    @staticmethod
+    def _recompute_badges_and_level(model: WorkerProfileModel) -> None:
+        """Recalcula `badges`/`level` a partir de las métricas ya actualizadas
+        del modelo (ADR-0004), usando las funciones puras de dominio."""
+        profile = _to_entity(model)
+        badges = compute_badges(profile)
+        # Orden estable (el del catálogo `WorkerBadge`), no el de iteración de un set.
+        model.badges = [b.value for b in WorkerBadge if b in badges]
+        model.level = compute_level(profile).value

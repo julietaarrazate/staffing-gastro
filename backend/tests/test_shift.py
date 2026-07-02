@@ -243,6 +243,107 @@ async def test_reject_assignment_reopens_search(client: AsyncClient):
     assert rejected.json()["worker_profile_id"] is None
 
 
+async def test_worker_cancel_confirmed_shift_reopens_search(client: AsyncClient):
+    """ADR-0004: el trabajador puede cancelar su asignación sólo desde
+    CONFIRMADO; el turno vuelve a buscar personal, pierde el trabajador
+    asignado, reaparece en el feed, incrementa `cancellations` del
+    trabajador y notifica al comercio."""
+    employer_headers = await _employer_with_company(client, "emp_wcancel@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json=_shift_payload(city="WorkerCancelCity"),
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_cancel@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers)
+
+    cancelled = await client.post(
+        f"/api/v1/shifts/{shift_id}/worker-cancel", headers=worker_headers
+    )
+    assert cancelled.status_code == 200
+    body = cancelled.json()
+    assert body["status"] == "buscando_personal"
+    assert body["worker_profile_id"] is None
+
+    # Vuelve a aparecer en el feed.
+    feed = await client.get(
+        "/api/v1/shifts/feed",
+        headers=employer_headers,
+        params={"city": "WorkerCancelCity"},
+    )
+    assert any(s["id"] == shift_id for s in feed.json())
+
+    # Se registra la cancelación en el perfil del trabajador.
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    assert profile.json()["cancellations"] == 1
+
+    # El comercio recibe una notificación de que el turno se reabrió.
+    notifications = await client.get("/api/v1/notifications", headers=employer_headers)
+    assert any(n["type"] == "shift_reopened" for n in notifications.json())
+
+
+async def test_worker_cannot_cancel_before_confirming(client: AsyncClient):
+    """Sólo desde CONFIRMADO: en ASIGNADO todavía no puede "cancelar" (eso
+    es `reject`)."""
+    employer_headers = await _employer_with_company(client, "emp_wcancel2@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_cancel2@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/worker-cancel", headers=worker_headers
+    )
+    assert response.status_code == 400
+
+
+async def test_other_worker_cannot_cancel_someone_elses_confirmed_shift(
+    client: AsyncClient,
+):
+    employer_headers = await _employer_with_company(client, "emp_wcancel3@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_cancel3@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers)
+
+    other_headers, _ = await _worker_with_profile(client, "w_cancel_other@staffya.com")
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/worker-cancel", headers=other_headers
+    )
+    assert response.status_code == 404
+
+
 async def test_worker_sees_assigned_shifts_in_mine(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "emp11@staffya.com")
     created = await client.post(

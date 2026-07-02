@@ -27,9 +27,11 @@ y una ubicación. Representa la unidad de intercambio del marketplace.
 ```
 BORRADOR → PUBLICADO → BUSCANDO_PERSONAL → ASIGNADO → CONFIRMADO →
 EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
-                         ▲                                     
-                         └──── (rechazo del trabajador) ───────┘
-CANCELADO: alcanzable desde cualquier estado no terminal.
+                         ▲              │
+                         │              └── (cancelación del trabajador,
+                         │                   ADR-0004) ──────┐
+                         └──── (rechazo del trabajador) ─────┘
+CANCELADO: alcanzable desde cualquier estado no terminal (comercio).
 ```
 
 - **BORRADOR:** creado por el comercio; editable; no visible.
@@ -37,12 +39,22 @@ CANCELADO: alcanzable desde cualquier estado no terminal.
   los trabajadores se postulan (ver [MATCHING.md](./MATCHING.md)).
 - **ASIGNADO:** el comercio eligió un trabajador; espera confirmación.
 - **CONFIRMADO:** el trabajador aceptó. Si en vez de aceptar **rechaza**, el turno
-  vuelve a `buscando_personal`.
+  vuelve a `buscando_personal`. **([ADR-0004](./adr/ADR-0004-cancelacion-trabajador-e-insignias.md))**
+  desde acá el trabajador también puede **cancelar** su asignación
+  (`POST /shifts/{id}/worker-cancel`) — antes de salir hacia el turno, no
+  después de hacer check-in. Igual que el rechazo, el turno vuelve a
+  `buscando_personal` (se limpia `worker_profile_id`), pero además incrementa
+  `WorkerProfile.cancellations` del trabajador (afecta insignias/nivel, ver
+  [REPUTATION.md](./REPUTATION.md)) y notifica al comercio
+  (`shift_reopened`).
 - **EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT:** asistencia; check-in y
-  check-out **capturan geolocalización**.
+  check-out **capturan geolocalización**. Una vez hecho el check-in, el
+  trabajador ya no puede "cancelar" — un abandono en este punto es un
+  problema distinto (detección de **no-show**), explícitamente fuera de
+  alcance de ADR-0004 (requeriría un job en background, ver `TECH_DEBT.md`).
 - **FINALIZADO:** el comercio cierra el turno trabajado.
 - **PAGADO:** el comercio registró el pago (ver [PAYMENTS.md](./PAYMENTS.md)).
-- **CANCELADO:** cancelado antes de terminar.
+- **CANCELADO:** cancelado antes de terminar (por el comercio; terminal).
 
 **Estados terminales:** `finalizado`, `pagado`, `cancelado` (no admiten más
 transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
@@ -54,10 +66,12 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
 - **Visibilidad:** un turno aparece en el feed **sólo** en estados abiertos.
 - **Propiedad:** las acciones del lado comercio (publicar, editar, cancelar,
   asignar, finalizar, pagar) sólo las hace el **comercio dueño**; ajeno = 404.
-- **Acciones del trabajador** (confirmar, rechazar, salir, check-in/out) sólo las
-  hace el **trabajador asignado**; si no, 404 (no-disclosure).
-- **Reversibilidad del match:** un rechazo reabre la búsqueda; un turno abierto no
-  "recuerda" postulantes descartados salvo su postulación registrada.
+- **Acciones del trabajador** (confirmar, rechazar, cancelar, salir,
+  check-in/out) sólo las hace el **trabajador asignado**; si no, 404
+  (no-disclosure).
+- **Reversibilidad del match:** un rechazo o una cancelación del trabajador
+  (ADR-0004) reabren la búsqueda; un turno abierto no "recuerda" postulantes
+  descartados salvo su postulación registrada.
 - **Cierre → reputación:** al llegar a `finalizado`/`pagado` se habilita la
   **calificación bidireccional** (ver [REPUTATION.md](./REPUTATION.md)).
 

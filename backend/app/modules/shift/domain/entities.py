@@ -112,12 +112,30 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
 
     def cancel(self) -> None:
-        """Cancela el turno desde cualquier estado no terminal."""
+        """Cancela el turno desde cualquier estado no terminal (comercio, terminal)."""
         if self.is_terminal:
             raise InvalidShiftTransitionError(
                 f"No se puede cancelar un turno en estado {self.status.value}"
             )
         self.status = ShiftStatus.CANCELADO
+
+    def worker_cancel(self) -> None:
+        """CONFIRMADO → BUSCANDO_PERSONAL: el trabajador cancela su asignación ya
+        confirmada (ADR-0004).
+
+        A diferencia de `cancel()` (cancelación del comercio, terminal), esta
+        transición **reabre** el turno: el comercio sigue necesitando cubrir el
+        puesto, así que vuelve al estado de búsqueda abierta y pierde el
+        trabajador asignado. Sólo alcanzable desde `CONFIRMADO` — antes de
+        confirmar, el trabajador ya puede `reject()`; después de hacer
+        check-in, cancelar sería abandono (fuera de alcance, ver TECH_DEBT.md).
+        """
+        if self.status != ShiftStatus.CONFIRMADO:
+            raise InvalidShiftTransitionError(
+                f"No se puede cancelar la asignación desde el estado {self.status.value}"
+            )
+        self.worker_profile_id = None
+        self.status = ShiftStatus.BUSCANDO_PERSONAL
 
     def depart(self) -> None:
         """CONFIRMADO → EN_CAMINO: el trabajador sale hacia el turno."""

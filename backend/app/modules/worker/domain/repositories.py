@@ -39,5 +39,12 @@ class WorkerProfileRepository(ABC):
 
         Incrementa `events_completed` en 1 y recalcula `punctuality_rate` como
         promedio móvil simple sobre los eventos completados (incluye el que se
-        está registrando ahora).
+        está registrando ahora). También recalcula `badges`/`level` (ADR-0004).
+        """
+
+    @abstractmethod
+    async def record_cancellation(self, profile_id: UUID) -> None:
+        """Registra que el trabajador canceló una asignación ya confirmada
+        (ADR-0004). Incrementa `cancellations` en 1 y recalcula `badges`/
+        `level`, igual que `record_completed_shift`.
         """

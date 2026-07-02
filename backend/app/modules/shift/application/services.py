@@ -140,6 +140,34 @@ class ShiftService:
         )
         return updated
 
+    async def worker_cancel(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        """El trabajador asignado cancela su asignación ya confirmada
+        (ADR-0004): sólo alcanzable desde `CONFIRMADO`, antes del check-in.
+
+        A diferencia de `cancel_shift` (comercio, terminal), esta acción
+        **reabre** el turno (vuelve a `BUSCANDO_PERSONAL`, sin trabajador
+        asignado) porque el comercio sigue necesitando cubrir el puesto.
+        También registra la cancelación en el perfil del trabajador
+        (`WorkerProfile.cancellations`), lo que puede afectar sus
+        insignias/nivel (ver `worker/domain/rules.py`), y notifica al
+        comercio.
+        """
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.worker_cancel()
+        updated = await self._shifts.update(shift)
+        await self._workers.record_cancellation(worker_profile_id)
+        await self._notify_company(
+            updated.company_id,
+            NotificationType.SHIFT_REOPENED,
+            "El trabajador canceló su asignación",
+            (
+                f"El trabajador canceló su asignación al turno "
+                f"\"{updated.title or updated.position.value}\" luego de "
+                "confirmarla. Volvió a buscar personal."
+            ),
+        )
+        return updated
+
     async def depart(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
         """El trabajador asignado marca que salió hacia el turno."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)

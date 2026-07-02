@@ -70,9 +70,24 @@ fecha de esta auditoría (2026-07-02).
   `quantity` a 1 en el wizard y comunicarlo, para no prometer algo que el
   sistema no cumple.
 
-### P2 — Insignias y niveles sin lógica de otorgamiento 🟠 Alta
+### P2 — Insignias y niveles sin lógica de otorgamiento ✅ Resuelto
 
-- **Descripción:** `WorkerBadge` (`worker/domain/value_objects.py:21`) y
+> **Actualización 2026-07-02 ([ADR-0004](./adr/ADR-0004-cancelacion-trabajador-e-insignias.md)):**
+> resuelto. `compute_badges`/`compute_level` (`worker/domain/rules.py`, funciones
+> puras sin DB) definen reglas por umbral sobre `events_completed`,
+> `rating` y `cancellations` (ya reales desde R2.4 + este ADR).
+> Se recalculan sin histéresis en `WorkerProfileRepository
+> .record_completed_shift` (al finalizar un turno) y en el nuevo
+> `record_cancellation` (al cancelar una asignación confirmada, ver P3
+> abajo). `perfil_verificado` queda **sin otorgamiento automático**
+> (decisión explícita: `is_verified` vive en `User`/`identity`, no en
+> `WorkerProfile`; cruzarlo violaría capas — ver ADR-0004). Tests:
+> `backend/tests/test_worker_rules.py` (unitarios, casos límite de cada
+> regla) y `backend/tests/test_attendance.py`
+> (`test_badges_and_level_recompute_after_finish_and_worker_cancel`,
+> integración).
+
+- **Descripción (histórica):** `WorkerBadge` (`worker/domain/value_objects.py:21`) y
   `GamificationLevel` (`worker/domain/value_objects.py:31`) son catálogos
   completos, se serializan en la API
   (`worker/api/schemas.py:56-57`) y se muestran en el perfil, pero **ningún**
@@ -97,7 +112,7 @@ fecha de esta auditoría (2026-07-02).
   insignias/nivel en la UI si no aporta información real (ver
   `QUICK_WINS.md` #9 de la v1, todavía no ejecutado).
 
-### P3 — Métricas de reputación derivadas nunca se actualizan 🟠 Alta (parcial, ver R2.4)
+### P3 — Métricas de reputación derivadas nunca se actualizan 🟠 Alta (parcial — `cancellations` ✅ resuelto en ADR-0004)
 
 > **Actualización 2026-07-02 (R2.4):** resuelto para el trabajador
 > `punctuality_rate` y `events_completed` — `ShiftService.finish()`
@@ -108,10 +123,29 @@ fecha de esta auditoría (2026-07-02).
 > check-in dentro de ±15 min de `start_at` (promedio móvil simple). Tests en
 > `backend/tests/test_attendance.py`
 > (`test_finish_with_punctual_checkin_updates_worker_metrics`,
-> `test_finish_with_late_checkin_does_not_count_as_punctual`). **Sigue
-> pendiente:** `cancellations` (worker) y `on_time_payment_rate`/
-> `events_published` (company) — ver detalle y motivo en
-> `REPUTATION.md` ("Inconsistencias a resolver").
+> `test_finish_with_late_checkin_does_not_count_as_punctual`).
+>
+> **Actualización 2026-07-02 ([ADR-0004](./adr/ADR-0004-cancelacion-trabajador-e-insignias.md)):**
+> resuelto `cancellations` (worker). Decisión de producto: nueva transición
+> `Shift.worker_cancel()` (sólo desde `confirmado`, reabre el turno a
+> `buscando_personal` — distinta de `Shift.cancel()` del comercio, que sigue
+> siendo terminal), endpoint `POST /shifts/{id}/worker-cancel`,
+> `WorkerProfileRepository.record_cancellation` incrementa
+> `cancellations`. Tests en `backend/tests/test_shift.py`
+> (`test_worker_cancel_confirmed_shift_reopens_search`,
+> `test_worker_cannot_cancel_before_confirming`,
+> `test_other_worker_cannot_cancel_someone_elses_confirmed_shift`).
+> **Sigue pendiente:** `on_time_payment_rate`/`events_published` (company) —
+> ver detalle y motivo en `REPUTATION.md` ("Inconsistencias a resolver").
+>
+> **Nuevo pendiente derivado (no implementado, fuera de alcance de
+> ADR-0004):** detección de **no-show** (el trabajador no cancela ni hace
+> check-in y el turno queda colgado en `confirmado`/`en_camino` pasado el
+> horario). Requeriría un job en background/cron para barrer turnos vencidos
+> sin check-in — infraestructura nueva (el repo hoy no tiene ningún
+> scheduler) sin necesidad demostrada todavía. Si se prioriza, entra como
+> ítem propio de este catálogo con su propio ADR (agrega un estado o una
+> forma de marcar abandono).
 
 - **Descripción:** `punctuality_rate`, `events_completed`, `cancellations`
   (worker) y `on_time_payment_rate`, `events_published` (company) se leen en
@@ -500,6 +534,6 @@ fecha de esta auditoría (2026-07-02).
 | Prioridad | Ítems |
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
-| 🟠 Alta | P2 (badges), P3 (métricas reputación), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
+| 🟠 Alta | P2 (badges, resuelto ADR-0004), P3 (métricas reputación, `cancellations` resuelto ADR-0004 — pendiente `on_time_payment_rate`/`events_published`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
 | 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |
