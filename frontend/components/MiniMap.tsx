@@ -1,17 +1,13 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
-import { MAP_TILE_SUBDOMAINS, MAP_TILE_URL } from "@/lib/map-tiles";
+import { Marker } from "@vis.gl/react-maplibre";
+import MapView from "@/components/map/MapView";
 
-const pinIcon = L.divIcon({
-  className: "",
-  html: '<div style="width:16px;height:16px;border-radius:50%;background:#ea580c;border:3px solid white;box-shadow:0 0 0 2px rgba(234,88,12,0.4)"></div>',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
-});
-
+/**
+ * Thumbnail estático (no interactivo) del detalle de turno, reimplementado
+ * sobre `MapView` con el mismo motor vectorial que el resto del mapa (antes
+ * era un `<img>` de tiles raster de Leaflet). Ver docs/MAPS_REDESIGN.md §8.
+ */
 export default function MiniMap({
   latitude,
   longitude,
@@ -22,19 +18,16 @@ export default function MiniMap({
   className?: string;
 }) {
   return (
-    <MapContainer
+    <MapView
       center={[latitude, longitude]}
       zoom={14}
-      dragging={false}
-      zoomControl={false}
-      scrollWheelZoom={false}
-      doubleClickZoom={false}
-      touchZoom={false}
-      attributionControl={false}
+      interactive={false}
+      attribution={false}
       className={`${className} rounded-2xl`}
     >
-      <TileLayer url={MAP_TILE_URL} subdomains={MAP_TILE_SUBDOMAINS} detectRetina />
-      <Marker position={[latitude, longitude]} icon={pinIcon} />
-    </MapContainer>
+      <Marker longitude={longitude} latitude={latitude} anchor="center">
+        <div className="h-4 w-4 rounded-full border-[3px] border-white bg-primary shadow-[0_0_0_2px_rgba(255,107,0,0.35)]" />
+      </Marker>
+    </MapView>
   );
 }

@@ -2,8 +2,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { Avatar } from "@/components/ui";
-import { CalendarIcon, FlameIcon, MapPinIcon, UsersIcon } from "@/components/icons";
+import { Avatar, Button } from "@/components/ui";
+import { CalendarIcon, FlameIcon, MapPinIcon, RouteIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
@@ -105,9 +105,27 @@ export default function ShiftCard({
         )}
 
         {shift.latitude != null && shift.longitude != null && (
-          <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
-            <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
-          </div>
+          <>
+            <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
+              <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
+            </div>
+            <Button
+              variant="surface"
+              size="sm"
+              fullWidth
+              className="mt-2"
+              leftIcon={<RouteIcon size={15} />}
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
+                  "_blank",
+                  "noopener,noreferrer"
+                )
+              }
+            >
+              Cómo llegar
+            </Button>
+          </>
         )}
 
         {children && <div className="mt-4">{children}</div>}
