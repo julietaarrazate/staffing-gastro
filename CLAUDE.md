@@ -18,6 +18,10 @@ Roles: `worker`, `employer`, `admin`. Producto en **español (AR/LATAM)**.
 
 ## Mapa de la documentación (`docs/`)
 
+**Al arrancar una sesión, leé primero [docs/STATUS.md](docs/STATUS.md)**: es la
+bitácora viva (qué se hizo, qué está en vuelo, qué sigue). Actualizala en cada
+merge relevante.
+
 Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 
 - **Fundación** — [PRODUCT.md](docs/PRODUCT.md) · [DOMAIN.md](docs/DOMAIN.md) ·
