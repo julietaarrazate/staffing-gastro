@@ -148,12 +148,9 @@ export default function MyShiftsPage() {
                 </>
               )}
               {shift.status === "borrador" && (
-                <button
-                  onClick={() => publish(shift.id)}
-                  className="rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-                >
+                <Button size="sm" onClick={() => publish(shift.id)}>
                   Publicar
-                </button>
+                </Button>
               )}
               {(shift.status === "publicado" || shift.status === "buscando_personal") && (
                 <Link
