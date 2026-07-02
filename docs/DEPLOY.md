@@ -52,14 +52,48 @@ Config declarativa en `render.yaml` (raíz del repo).
   `config.py`). No es config de producto.
 - **production:** Render + Vercel con las env vars de arriba.
 
+## DB en Neon: backups y restore (R0.1/R0.2)
+
+La DB productiva vive en **Neon** (la free de Render expiraba a los 90 días;
+`DATABASE_URL` en Render apunta a Neon — el connection string con
+`sslmode`/`channel_binding` se normaliza solo en `config.py`, PR #56).
+
+- **Backups:** Neon guarda historial continuo (point-in-time restore) según el
+  plan; en el free tier el retention es limitado (~24 h–7 días). Para respaldo
+  frío adicional: `pg_dump "$DATABASE_URL" > staffya-$(date +%F).sql` (usar el
+  connection string **sin** `+asyncpg`, el de la consola de Neon) — conviene
+  correrlo antes de cualquier migración riesgosa.
+- **Restore point-in-time:** consola de Neon → Branches → *Restore* al
+  timestamp deseado (crea una branch con el estado pasado; se puede promover o
+  copiar datos). Restore desde dump: `psql "$CONNECTION_STRING" < backup.sql`.
+- **Verificación post-cambio de DB:** el deploy corre `alembic upgrade head` al
+  arrancar; si falla, Render conserva el deploy anterior. Chequear
+  `GET /health` y los logs del servicio.
+
+## Runbook de lanzamiento: apagar el modo demo (R1.6)
+
+`SEED_DEMO_DATA=true` siembra ~26 cuentas demo **con contraseña pública
+conocida** — correcto para la etapa de demostración, inaceptable con usuarios
+reales. Antes de abrir la beta:
+
+1. **Apagar el seed:** en Render → Environment → `SEED_DEMO_DATA=false` (o
+   borrar la variable). Redeploy automático; el arranque salta el seed (es
+   idempotente pero ya no debe correr).
+2. **Purgar las cuentas demo:** todas usan emails `demo.*@staffya.com` /
+   `*.demo@staffya.com` (ver `scripts/seed_demo_data.py`). Borrarlas en cascada
+   (turnos, postulaciones, chats, reseñas y sesiones cuelgan de ellas) desde un
+   `psql` contra Neon, **después de un `pg_dump` de respaldo**. Verificar con
+   `SELECT count(*) FROM users WHERE email LIKE '%@staffya.com'` → 0.
+3. **Rotar secretos si hace falta:** si las credenciales demo aparecieron en
+   material público (pitchs, videos), no basta con borrar las cuentas — revisar
+   que no exista otra cuenta con esa misma contraseña.
+4. **Smoke test:** login con una cuenta real, publicar un turno, postularse,
+   chat. `GET /health` OK y sin errores en Sentry.
+
 ## Riesgos / pendientes
 
-> - **DB free de Render expira a los 90 días** → pérdida de datos. Migración a
->   **Neon** prevista (pasos en `backend/README.md`). Ver
->   [TECH_DEBT.md](./TECH_DEBT.md).
-> - **Seed en producción:** `SEED_DEMO_DATA=true` está pensado para la etapa demo;
->   apagarlo antes de datos reales de usuarios.
-> - **Migraciones al arrancar:** una migración fallida bloquea el deploy (deseable
->   como fail-fast, pero conviene plan de rollback).
-> - **CI/CD:** validar si hay gates obligatorios por PR (ver
->   [TESTING.md](./TESTING.md)); si no, es una mejora de la Fase de Calidad.
+> - **Seed en producción:** sigue activo a propósito durante la demo; ver
+>   runbook de lanzamiento arriba para apagarlo.
+> - **Migraciones al arrancar:** una migración fallida bloquea el deploy
+>   (deseable como fail-fast); el plan de rollback es el restore de Neon
+>   (arriba).

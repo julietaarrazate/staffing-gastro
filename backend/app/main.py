@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.middleware import SecurityHeadersMiddleware
+from app.core.observability import RequestIdMiddleware, setup_logging, setup_sentry
 from app.modules.admin.api.routes import router as admin_router
 from app.modules.admin.bootstrap import promote_configured_admins
 from app.modules.application.api.routes import router as application_router
@@ -22,6 +23,11 @@ from app.modules.notification.api.routes import router as notification_router
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.worker.api.routes import router as worker_router
+
+
+# Observabilidad (R1.1): logging estructurado + Sentry (no-op sin SENTRY_DSN).
+setup_logging()
+setup_sentry()
 
 
 @asynccontextmanager
@@ -48,6 +54,9 @@ app.add_middleware(
 
 # Headers de seguridad en cada respuesta; HSTS sólo en producción (HTTPS).
 app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
+
+# request_id por request (header X-Request-ID), correlacionado en los logs.
+app.add_middleware(RequestIdMiddleware)
 
 
 @app.get("/health", tags=["system"], summary="Healthcheck")

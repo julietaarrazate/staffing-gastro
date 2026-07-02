@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     # Rate limiting en memoria de endpoints sensibles (login/registro).
     rate_limit_enabled: bool = True
 
+    # --- Observabilidad ---
+    # DSN de Sentry (captura de errores). Vacío = Sentry desactivado; se
+    # enciende solo con setear la env var SENTRY_DSN en Render (R1.1).
+    sentry_dsn: str = ""
+    # Logging estructurado JSON con request_id (apto para agregadores).
+    # En desarrollo conviene texto plano legible.
+    log_json: bool = False
+
     # --- CORS ---
     cors_origins: str = "http://localhost:3000"
 
