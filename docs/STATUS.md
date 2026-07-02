@@ -32,6 +32,8 @@ gran pendiente: migrar la DB a Neon (R0.1, bloqueado en crear la cuenta).
 | CI | #50 | GitHub Actions: `pytest` + `tsc` + `build` en cada PR/push a main (R0.3 ✅) |
 
 | Mapas F1+F2 (MapLibre) | #51 | Módulo `components/map/` (`maplibre-gl` + `@vis.gl/react-maplibre` + `supercluster`), ADR-0001, `/map` premium: sheet 40/60 de 3 alturas, marcadores por rubro con stagger/halo, clustering, sync mapa↔tarjetas. Verificado con Playwright (smoke con mocks). Leaflet convive hasta F3 |
+| Mapas F3 (adiós Leaflet) | #52 | `WorkerSearchMap` (marcador avatar+rating, tarjeta DS en vez de popup) y `MiniMap` sobre MapLibre; tiempos por modo "aprox." (`lib/map/travel-time.ts`) en el carrusel; botón "Cómo llegar" (deep-link Google Maps) en `ShiftCard`; **leaflet/react-leaflet desinstalados**, `map-tiles.ts` eliminado, cero referencias |
+| R1.2 + R1.4 (sesiones revocables + capar `quantity`) | #53 | Tabla `refresh_sessions` (migración `0010`) con rotación de refresh token y detección de reuso (revoca todas las sesiones), `POST /auth/logout`, `ADR-0002`; `quantity` capado a 1 en `ShiftInput` (API) y en el wizard (`shifts/new/page.tsx`). `pytest -q` verde (87 tests), `tsc --noEmit` limpio |
 
 ## En vuelo ahora
 
@@ -44,8 +46,9 @@ gran pendiente: migrar la DB a Neon (R0.1, bloqueado en crear la cuenta).
 2. **R0.1 — DB a Neon** 🔴: bloqueado en que Julieta cree la cuenta/DB en Neon
    y cargue `DATABASE_URL` en Render. Es el riesgo más grave (la DB free de
    Render **expira a los 90 días**).
-3. **R1 (go-live)**: Sentry + logging estructurado, sesiones revocables
-   (ADR-0002), CSP, capar `quantity` a 1, runbook para apagar seed demo.
+3. **R1 (go-live)**: Sentry + logging estructurado, CSP, runbook para apagar
+   seed demo. (Sesiones revocables y capar `quantity` — R1.2/R1.4 — ya
+   implementados, ver bloque arriba.)
 4. **R2**: paginación, fix N+1 (chat inbox, postulantes), matching acotado en
    SQL, métricas de reputación reales.
 5. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
@@ -58,9 +61,10 @@ gran pendiente: migrar la DB a Neon (R0.1, bloqueado en crear la cuenta).
   Sonnet implementan y auditan; Haiku para lo trivial (pedido explícito para
   no gastar de más).
 - **ADR obligatorio** para infra nueva (Redis, sesiones, multi-asignación,
-  pagos). ADR-0001 (MapLibre) en curso con F1.
-- `quantity>1` es un bug de producto conocido: se capa a 1 en R1 salvo
-  decisión de implementar multi-asignación.
+  pagos). ADR-0001 (MapLibre), ADR-0002 (sesiones revocables).
+- `quantity>1` era un bug de producto conocido: **ya se capó a 1** (API +
+  wizard, R1.4). Multi-asignación real queda pendiente, sólo si el negocio la
+  pide (nuevo ADR).
 - Cuentas demo con contraseña pública: **correcto para la etapa demo**, apagar
   y purgar antes de usuarios reales (checklist en PRODUCTION_READINESS).
 

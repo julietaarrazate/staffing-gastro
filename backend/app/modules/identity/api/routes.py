@@ -24,6 +24,7 @@ from app.modules.identity.domain.exceptions import (
     InactiveUserError,
     InvalidCredentialsError,
     InvalidTokenError,
+    RefreshTokenRevokedError,
     UserNotFoundError,
 )
 from app.modules.identity.domain.value_objects import UserRole
@@ -91,7 +92,8 @@ async def login(payload: LoginRequest, service: ServiceDep) -> TokenResponse:
 async def refresh(payload: RefreshRequest, service: ServiceDep) -> TokenResponse:
     try:
         tokens = await service.refresh(payload.refresh_token)
-    except (InvalidTokenError, UserNotFoundError) as exc:
+    except (InvalidTokenError, UserNotFoundError, RefreshTokenRevokedError) as exc:
+        # No-disclosure: un jti revocado/reusado responde igual que uno inválido.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token inválido",
@@ -102,6 +104,21 @@ async def refresh(payload: RefreshRequest, service: ServiceDep) -> TokenResponse
             detail="La cuenta no está activa",
         ) from exc
     return TokenResponse(**tokens.__dict__)
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cerrar sesión (revoca el refresh token)",
+)
+async def logout(payload: RefreshRequest, service: ServiceDep) -> None:
+    try:
+        await service.logout(payload.refresh_token)
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido",
+        ) from exc
 
 
 @router.get(

@@ -38,6 +38,7 @@ Historial en `backend/alembic/versions/` (lineal, una cabeza):
 | `0007` | `chat_messages` |
 | `0008` | `reviews` |
 | `0009` | `shift_applications` (postulaciones) |
+| `0010` | `refresh_sessions` (sesiones de refresh token revocables, ADR-0002) |
 
 **Regla:** toda tabla o columna nueva entra por una migración Alembic; nunca se
 crea el esquema a mano en producción. En Render, el arranque corre
@@ -49,12 +50,17 @@ crea el esquema a mano en producción. En Render, el arranque corre
 - `shifts` N—1 `company_profiles` (dueño) y 0/1 `worker_profiles` (asignado).
 - `shift_applications` N—1 `shifts` y N—1 `worker_profiles`.
 - `chat_messages`, `reviews`, `notifications` cuelgan del turno/usuario.
+- `refresh_sessions` N—1 `users` (una fila por refresh token emitido).
 
 ## Inconsistencias / pendientes
 
 > - **`quantity` vs asignación única.** El turno tiene `quantity`, pero el modelo
->   guarda **un solo** `worker_profile_id` asignado. Cubrir varios cupos por
->   turno requeriría una tabla de asignaciones N—N (ver [SHIFT.md](./SHIFT.md)).
+>   guarda **un solo** `worker_profile_id` asignado. **Mitigado en R1.4:** la API
+>   capa `quantity` a `1` en la creación/edición (`le=1` en el schema), así que
+>   ya no se puede publicar un turno que prometa más cupos de los que el modelo
+>   puede cubrir. Cubrir varios cupos por turno de verdad requeriría una tabla
+>   de asignaciones N—N (multi-asignación, decisión de producto pendiente — ver
+>   [SHIFT.md](./SHIFT.md)).
 > - **PostGIS no está en uso.** Las coordenadas se guardan como columnas simples
 >   y la distancia se calcula en Python (Haversine, `app/core/geo.py`), no en la
 >   DB. PostGIS está **previsto**, no adoptado (sería un ADR).

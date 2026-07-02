@@ -8,10 +8,16 @@
 
 - **Tokens** (`app/core/security.py`):
   - **Access token** — vida corta (**15 min** por defecto), viaja como
-    `Authorization: Bearer <token>`.
+    `Authorization: Bearer <token>`, **stateless** (no hay tabla de sesión).
   - **Refresh token** — vida larga (**30 días**), renueva el access sin re-login
-    (`POST /api/v1/auth/refresh`).
-  - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`, `exp`.
+    (`POST /api/v1/auth/refresh`). **Revocable server-side** (tabla
+    `refresh_sessions`, ADR-0002): cada refresh se identifica por un claim
+    `jti` único, se **rota** en cada `/auth/refresh` (el usado queda
+    revocado) y `POST /api/v1/auth/logout` lo revoca explícitamente. Reusar
+    un `jti` ya revocado se trata como robo: revoca **todas** las sesiones
+    del usuario.
+  - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
+    `exp`, y `jti` sólo en el refresh.
 - **Contraseñas:** hash **bcrypt** (`passlib`). Nunca se guarda ni se loguea la
   contraseña en claro.
 - **Frontend:** access + refresh en `localStorage`, renovado al cargar y
@@ -63,9 +69,8 @@ asignado del turno; en notificaciones, el propio usuario. Ver
 > Deudas reales pendientes (ver [TECH_DEBT.md](./TECH_DEBT.md),
 > [QUICK_WINS.md](./QUICK_WINS.md)):
 >
-> 1. **Sin revocación de refresh tokens** (no hay lista de invalidados / logout
->    server-side): un refresh robado vale 30 días. Requiere modelo de sesión →
->    **ADR**.
+> 1. ~~Sin revocación de refresh tokens~~ — **resuelto** (R1.2, ADR-0002):
+>    tabla `refresh_sessions` con rotación y logout server-side.
 > 2. **Rotación de secretos** no documentada.
 > 3. **Rate limiting por proceso**, no distribuido: al escalar horizontalmente
 >    pierde efectividad (necesita store compartido + ADR).

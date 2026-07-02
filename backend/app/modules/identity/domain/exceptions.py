@@ -27,3 +27,11 @@ class InactiveUserError(IdentityError):
 
 class InvalidTokenError(IdentityError):
     """El token provisto es inválido, expiró o no es del tipo esperado."""
+
+
+class RefreshTokenRevokedError(IdentityError):
+    """El refresh token ya estaba revocado (rotado, deslogueado o reusado).
+
+    Si se recibe en `/auth/refresh`, se interpreta como reuso de un token
+    rotado: posible robo. Se revocan todas las sesiones del usuario.
+    """

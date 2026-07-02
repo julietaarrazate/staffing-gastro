@@ -20,7 +20,10 @@ from app.modules.identity.domain.exceptions import (
     UserNotFoundError,
 )
 from app.modules.identity.domain.value_objects import UserRole
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.identity.infrastructure.repositories import (
+    SqlAlchemyRefreshSessionRepository,
+    SqlAlchemyUserRepository,
+)
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 
@@ -28,8 +31,9 @@ _bearer_scheme = HTTPBearer(auto_error=True)
 def get_identity_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> IdentityService:
-    repository = SqlAlchemyUserRepository(session)
-    return IdentityService(repository)
+    users = SqlAlchemyUserRepository(session)
+    sessions = SqlAlchemyRefreshSessionRepository(session)
+    return IdentityService(users, sessions)
 
 
 async def get_current_user(

@@ -68,10 +68,15 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
 - Los estados terminales no cambian.
 - check-out no puede ocurrir sin check-in previo; las transiciones de asistencia
   respetan el orden del ciclo.
-- La cantidad (`quantity`) representa cuántas personas se necesitan para el puesto.
+- La cantidad (`quantity`) representa cuántas personas se necesitan para el
+  puesto. **Decisión de producto (R1.4):** por ahora **un turno = una
+  persona** — `quantity` queda capado a `1` en la API (`ShiftInput`) y en el
+  wizard del comercio. Para cubrir varios puestos hay que crear varios
+  turnos.
 
-> **Inconsistencia a resolver (cantidad > 1):** el turno tiene `quantity`, pero el
-> modelo de asignación guarda **un** `worker_profile_id`. Es decir, hoy el ciclo
-> asume **un trabajador por turno** aunque `quantity` pueda ser mayor. Debe
-> definirse cómo se cubren turnos de varias personas (múltiples asignaciones /
-> múltiples turnos) y registrarse la decisión (ADR + `BUSINESS_RULES.md`).
+> **Resuelto (era "inconsistencia a resolver, cantidad > 1"):** el modelo de
+> asignación guarda **un** `worker_profile_id`, y ahora `quantity` no puede
+> ser mayor a 1, así que ya no hay divergencia entre lo que se promete y lo
+> que el ciclo de vida del turno puede cubrir. Si en el futuro se decide
+> soportar turnos multi-persona de verdad (varias asignaciones sobre el mismo
+> turno), eso requiere un rediseño con **ADR** — ver `TECH_DEBT.md#p1`.

@@ -23,9 +23,9 @@
 | # | Tarea | Esfuerzo | Dependencias |
 |---|-------|----------|--------------|
 | R1.1 | **Sentry** (backend+frontend) + logging estructurado JSON con `request_id` | medio | — |
-| R1.2 | **Sesiones revocables**: tabla de refresh tokens (jti), logout server-side, rotación en refresh — **ADR-0002** | medio | — |
+| R1.2 | ✅ **Sesiones revocables**: tabla de refresh tokens (jti), logout server-side, rotación en refresh — **ADR-0002** | medio | — |
 | R1.3 | **CSP** y endurecimiento de headers del frontend (next.config) | bajo | — |
-| R1.4 | **Decisión `quantity`**: capar a 1 en UI+API (rápido) o asignación múltiple (tabla N–N, **ADR-0003**) | bajo / alto | decisión de producto |
+| R1.4 | ✅ **Decisión `quantity`**: capado a 1 en UI+API (opción rápida elegida; multi-asignación real queda para más adelante con ADR si se decide) | bajo | decisión de producto |
 | R1.5 | **Unit tests del scoring de matching** (casos límite: sin geo, radio, pesos) + **3–4 E2E Playwright** (login→postular→asignar→confirmar) en CI | medio | R0.3 |
 | R1.6 | **Interruptor de demo**: apagar `SEED_DEMO_DATA` y purgar cuentas demo al lanzar (runbook en DEPLOY.md) | bajo | momento del lanzamiento |
 

@@ -27,7 +27,17 @@ fecha de esta auditoría (2026-07-02).
 
 ### P1 — `quantity` del turno no soporta asignación múltiple 🔴 Crítica
 
-- **Descripción:** el wizard de creación de turno permite pedir de 1 a 100
+> **Actualización 2026-07-02 (R1.4):** mitigado con la opción rápida sugerida
+> abajo — `quantity` queda **capado a 1** en `ShiftInput`
+> (`backend/app/modules/shift/api/schemas.py`, `le=1` + mensaje en español) y
+> en el wizard (`frontend/app/shifts/new/page.tsx`, paso "¿Cuántas
+> personas?" deshabilitado con nota). Ya no se puede publicar un turno que
+> prometa más cupos de los que el sistema cubre. La multi-asignación real
+> (tabla N—N) sigue **sin implementar**; se retoma con ADR si el negocio la
+> necesita.
+
+- **Descripción (histórica, previa a R1.4):** el wizard de creación de turno
+  permitía pedir de 1 a 100
   personas (`frontend/app/shifts/new/page.tsx:151-171`,
   `backend/app/modules/shift/api/schemas.py:17`,
   `Field(default=1, ge=1, le=100)`), y el campo `quantity` se persiste
@@ -231,7 +241,16 @@ fecha de esta auditoría (2026-07-02).
 
 ### S1 — Tokens en `localStorage` sin revocación de refresh 🔴 Crítica
 
-- **Descripción:** access y refresh token se guardan en `localStorage`
+> **Actualización 2026-07-02 (R1.2, ADR-0002):** el backend ya implementa
+> tabla `refresh_sessions` con rotación (cada `/auth/refresh` invalida el
+> token usado y emite uno nuevo), detección de reuso (revoca todas las
+> sesiones del usuario) y `POST /auth/logout` server-side. Queda **pendiente**
+> lo de almacenamiento: el refresh token sigue viajando y guardándose igual
+> que antes (`localStorage`, sin cookie `httpOnly`) — el frontend tampoco
+> llama todavía a `/auth/logout` en el botón de cerrar sesión. Ver ADR-0002
+> para el detalle de diseño.
+
+- **Descripción (histórica, previa a R1.2):** access y refresh token se guardan en `localStorage`
   (`frontend/lib/auth-context.tsx:29-30,44,60`) — vulnerable a robo por XSS
   (cualquier script inyectado puede leerlos, a diferencia de cookies
   `httpOnly`). Del lado del backend, `IdentityService.refresh()`
@@ -441,7 +460,7 @@ fecha de esta auditoría (2026-07-02).
 
 | Prioridad | Ítems |
 |---|---|
-| 🔴 Crítica | P1 (quantity), S1 (tokens/revocación), I1 (DB 90 días), T1 (sin CI) |
+| 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges), P3 (métricas reputación), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
 | 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

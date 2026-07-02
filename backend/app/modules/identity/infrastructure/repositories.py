@@ -1,14 +1,18 @@
-"""Adaptador de persistencia: implementación SQLAlchemy del UserRepository."""
+"""Adaptador de persistencia: implementación SQLAlchemy de los repos de identity."""
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.identity.domain.entities import User
-from app.modules.identity.domain.repositories import UserRepository
+from app.modules.identity.domain.entities import RefreshSession, User
+from app.modules.identity.domain.repositories import (
+    RefreshSessionRepository,
+    UserRepository,
+)
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
-from app.modules.identity.infrastructure.models import UserModel
+from app.modules.identity.infrastructure.models import RefreshSessionModel, UserModel
 
 
 def _to_entity(model: UserModel) -> User:
@@ -76,3 +80,60 @@ class SqlAlchemyUserRepository(UserRepository):
         stmt = select(UserModel).order_by(desc(UserModel.created_at))
         result = await self._session.execute(stmt)
         return [_to_entity(model) for model in result.scalars().all()]
+
+
+def _session_to_entity(model: RefreshSessionModel) -> RefreshSession:
+    """Mapea un modelo ORM de sesión de refresh a la entidad de dominio."""
+    return RefreshSession(
+        id=model.id,
+        user_id=model.user_id,
+        jti=model.jti,
+        expires_at=model.expires_at,
+        revoked_at=model.revoked_at,
+        created_at=model.created_at,
+    )
+
+
+class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
+    """Implementación del puerto RefreshSessionRepository sobre SQLAlchemy async."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, session: RefreshSession) -> RefreshSession:
+        model = RefreshSessionModel(
+            id=session.id,
+            user_id=session.user_id,
+            jti=session.jti,
+            expires_at=session.expires_at,
+            revoked_at=session.revoked_at,
+        )
+        self._session.add(model)
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _session_to_entity(model)
+
+    async def get_by_jti(self, jti: str) -> RefreshSession | None:
+        stmt = select(RefreshSessionModel).where(RefreshSessionModel.jti == jti)
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _session_to_entity(model) if model else None
+
+    async def revoke(self, jti: str) -> None:
+        stmt = select(RefreshSessionModel).where(RefreshSessionModel.jti == jti)
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        if model is not None and model.revoked_at is None:
+            model.revoked_at = datetime.now(timezone.utc)
+            await self._session.commit()
+
+    async def revoke_all_for_user(self, user_id: UUID) -> None:
+        stmt = select(RefreshSessionModel).where(
+            RefreshSessionModel.user_id == user_id,
+            RefreshSessionModel.revoked_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        now = datetime.now(timezone.utc)
+        for model in result.scalars().all():
+            model.revoked_at = now
+        await self._session.commit()

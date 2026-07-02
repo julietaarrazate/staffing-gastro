@@ -67,6 +67,7 @@ async def test_login_wrong_password(client: AsyncClient):
 
 
 async def test_refresh_rotates_tokens(client: AsyncClient):
+    """Cada /auth/refresh rota la sesión: el refresh usado deja de servir (ADR-0002)."""
     await register_user(client)
     tokens = await login(client, "mozo@staffya.com")
     refresh_token = tokens["refresh_token"]
@@ -75,7 +76,104 @@ async def test_refresh_rotates_tokens(client: AsyncClient):
         "/api/v1/auth/refresh", json={"refresh_token": refresh_token}
     )
     assert refreshed.status_code == 200
-    assert refreshed.json()["access_token"]
+    new_tokens = refreshed.json()
+    assert new_tokens["access_token"]
+    assert new_tokens["refresh_token"]
+    assert new_tokens["refresh_token"] != refresh_token
+
+    # El nuevo refresh token sí sirve (se verifica antes de "gastar" la
+    # detección de reuso, que revocaría también esta sesión nueva).
+    again = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": new_tokens["refresh_token"]}
+    )
+    assert again.status_code == 200
+
+    # El refresh token original (ya rotado en el primer /refresh) no debe
+    # servir para renovar de nuevo.
+    reused = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": refresh_token}
+    )
+    assert reused.status_code == 401
+
+
+async def test_refresh_reuse_revokes_all_sessions(client: AsyncClient):
+    """Reusar un refresh token ya rotado se trata como robo: revoca todas las sesiones."""
+    await register_user(client)
+    tokens_a = await login(client, "mozo@staffya.com")
+
+    # Segunda sesión (p. ej. otro dispositivo).
+    tokens_b = await login(client, "mozo@staffya.com")
+
+    # Se rota la sesión A con normalidad.
+    refreshed_a = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": tokens_a["refresh_token"]}
+    )
+    assert refreshed_a.status_code == 200
+    rotated_a = refreshed_a.json()["refresh_token"]
+
+    # Alguien reusa el refresh token viejo de la sesión A (posible token robado).
+    reuse = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": tokens_a["refresh_token"]}
+    )
+    assert reuse.status_code == 401
+
+    # El reuso revoca TODAS las sesiones del usuario: la sesión A rotada...
+    rotated_a_refresh = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": rotated_a}
+    )
+    assert rotated_a_refresh.status_code == 401
+
+    # ...y también la sesión B, que nunca se usó de forma indebida.
+    session_b_refresh = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": tokens_b["refresh_token"]}
+    )
+    assert session_b_refresh.status_code == 401
+
+
+async def test_logout_revokes_refresh_token(client: AsyncClient):
+    await register_user(client)
+    tokens = await login(client, "mozo@staffya.com")
+
+    logout_response = await client.post(
+        "/api/v1/auth/logout", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert logout_response.status_code == 204
+
+    # El refresh token ya deslogueado no debe servir para renovar.
+    refreshed = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert refreshed.status_code == 401
+
+
+async def test_logout_invalid_token_returns_401(client: AsyncClient):
+    logout_response = await client.post(
+        "/api/v1/auth/logout", json={"refresh_token": "no-es-un-jwt"}
+    )
+    assert logout_response.status_code == 401
+
+
+async def test_login_still_works_end_to_end_after_logout(client: AsyncClient):
+    """Un logout no afecta la posibilidad de volver a loguearse y operar normalmente."""
+    await register_user(client)
+    tokens = await login(client, "mozo@staffya.com")
+    await client.post("/api/v1/auth/logout", json={"refresh_token": tokens["refresh_token"]})
+
+    new_tokens = await login(client, "mozo@staffya.com")
+    assert new_tokens["access_token"]
+    assert new_tokens["refresh_token"]
+
+    me = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {new_tokens['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == "mozo@staffya.com"
+
+    refreshed = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": new_tokens["refresh_token"]}
+    )
+    assert refreshed.status_code == 200
 
 
 async def test_refresh_token_cannot_access_me(client: AsyncClient):
