@@ -3,29 +3,13 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.conftest import auth_headers
+
 pytestmark = pytest.mark.asyncio
 
 
-async def _auth_headers(client: AsyncClient, role: str, email: str) -> dict:
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "supersecreta123",
-            "full_name": "Test User",
-            "role": role,
-        },
-    )
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
-    headers = await _auth_headers(client, "employer", email)
+    headers = await auth_headers(client, "employer", email)
     await client.post(
         "/api/v1/companies/me/profile",
         headers=headers,
@@ -37,7 +21,7 @@ async def _employer_with_company(client: AsyncClient, email: str) -> dict:
 async def _worker_profile(
     client: AsyncClient, email: str, **overrides
 ) -> dict:
-    headers = await _auth_headers(client, "worker", email)
+    headers = await auth_headers(client, "worker", email)
     payload = {
         "skills": ["mozo"],
         "years_experience": 2,
@@ -121,7 +105,7 @@ async def test_worker_cannot_request_candidates(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "emp3@staffya.com")
     shift_id = await _publish_shift(client, employer_headers)
 
-    worker_headers = await _auth_headers(client, "worker", "w5@staffya.com")
+    worker_headers = await auth_headers(client, "worker", "w5@staffya.com")
     response = await client.get(
         f"/api/v1/shifts/{shift_id}/candidates", headers=worker_headers
     )
@@ -167,6 +151,6 @@ async def test_search_workers_without_filters_returns_all_available(client: Asyn
 
 
 async def test_worker_cannot_search_map(client: AsyncClient):
-    worker_headers = await _auth_headers(client, "worker", "w6@staffya.com")
+    worker_headers = await auth_headers(client, "worker", "w6@staffya.com")
     response = await client.get("/api/v1/matching/search", headers=worker_headers)
     assert response.status_code == 403

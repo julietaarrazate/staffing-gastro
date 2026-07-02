@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
+import { Button } from "@/components/ui";
 
 export default function ReviewBox({ shiftId }: { shiftId: string }) {
   const { token, user } = useAuth();
@@ -76,13 +77,11 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
         className="mt-2 w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm"
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={rating === 0 || submitting}
-        className="mt-2 rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
-      >
-        {submitting ? "Enviando..." : "Enviar calificación"}
-      </button>
+      <div className="mt-2">
+        <Button type="submit" size="sm" disabled={rating === 0 || submitting}>
+          {submitting ? "Enviando..." : "Enviar calificación"}
+        </Button>
+      </div>
     </form>
   );
 }

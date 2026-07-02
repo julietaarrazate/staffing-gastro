@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import ImageUpload from "@/components/ImageUpload";
+import { Button } from "@/components/ui";
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
@@ -93,12 +94,7 @@ export default function CompanyProfileForm() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
 
-      <button
-        type="submit"
-        className="rounded-full bg-orange-600 px-4 py-2 font-semibold text-white hover:bg-orange-700"
-      >
-        {exists ? "Guardar cambios" : "Crear perfil"}
-      </button>
+      <Button type="submit">{exists ? "Guardar cambios" : "Crear perfil"}</Button>
     </form>
   );
 }

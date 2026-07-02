@@ -6,9 +6,9 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
-import { ErrorBanner } from "@/components/PageState";
+import { ErrorBanner } from "@/components/ui";
 import { SearchIcon } from "@/components/icons";
-import { SKILL_STYLES } from "@/lib/skill-style";
+import { SKILL_ACCENT } from "@/lib/skill-style";
 import StarRating from "@/components/StarRating";
 import BottomSheet from "@/components/BottomSheet";
 
@@ -151,11 +151,11 @@ export default function SearchPage() {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {worker.skills.map((s) => {
-                    const { Icon, gradient } = SKILL_STYLES[s];
+                    const { Icon, bg, fg } = SKILL_ACCENT[s];
                     return (
                       <span
                         key={s}
-                        className={`inline-flex items-center gap-1 rounded-full bg-gradient-to-br ${gradient} px-2 py-0.5 text-xs font-semibold text-white`}
+                        className={`inline-flex items-center gap-1 rounded-full ${bg} ${fg} px-2 py-0.5 text-xs font-semibold`}
                       >
                         <Icon size={11} /> {SKILL_LABELS[s]}
                       </span>

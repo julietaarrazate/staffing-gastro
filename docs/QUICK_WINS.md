@@ -18,21 +18,24 @@
 
 ## Frontend / Design System (cierre de deuda de diseño)
 
-4. **Unificar EmptyState/encabezados**: migrar los ~6 usos de `PageState` al DS
-   (`components/ui`) y **borrar `PageState.tsx`**. Elimina un sistema duplicado.
-   *(medio · alto)*
-5. **Migrar los 3 usos restantes de `SKILL_STYLES` a `SKILL_ACCENT`** (`search`,
-   `shifts/new`, `workers/[id]`) y **eliminar `SKILL_STYLES`**: cierra la
-   transición monocromática. *(medio · alto)*
-6. **Reemplazar botones inline por `Button`** del DS (empezar por las pantallas
-   con más usos). *(medio · medio)*
+4. ✅ **HECHO — EmptyState unificado.** Los 6 usos de `PageState` migraron al DS
+   (`ui/EmptyState`, `ui/ErrorBanner` y `ui/CardSkeletons` nuevos) y
+   `PageState.tsx` fue **eliminado**. *(medio · alto)*
+5. ✅ **HECHO — `SKILL_STYLES` eliminado.** `search`, `shifts/new` y
+   `workers/[id]` migraron a `SKILL_ACCENT`; cerrada la transición
+   monocromática. *(medio · alto)*
+6. ✅ **HECHO (casos claros) — Botones inline → `Button`** en login, register,
+   formularios de perfil y ReviewBox. Quedan a propósito los controles con
+   estilo genuinamente único (gestos de swipe, controles de mapa, iconos
+   puros). *(medio · medio)*
 
 ## Backend / tests
 
-7. **Extraer `_auth_headers` (y helpers de registro) a `tests/conftest.py`**:
-   borra duplicación en ~18 archivos de test. *(bajo · medio)*
-8. **Limpiar dato muerto en el seed:** el campo `logo_url` hardcodeado en
-   `COMPANIES` quedó sin uso tras computar la foto por categoría. *(bajo · bajo)*
+7. ✅ **HECHO — Helpers compartidos en `tests/conftest.py`**
+   (`register_user`, `login`, `auth_headers`): eliminada la duplicación en los
+   11 archivos de test. *(bajo · medio)*
+8. ✅ **HECHO — Seed limpio:** eliminado el campo `logo_url` muerto de
+   `COMPANIES`. *(bajo · bajo)*
 
 ## Producto / claridad
 

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
-import { ErrorBanner } from "@/components/PageState";
+import { ErrorBanner } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import { MapPinIcon } from "@/components/icons";
 

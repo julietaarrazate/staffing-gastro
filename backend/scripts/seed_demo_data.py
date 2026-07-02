@@ -75,7 +75,6 @@ COMPANIES = [
         "longitude": -58.4308,
         "capacity": 80,
         "description": "Bar de tragos de autor en el corazón de Palermo Soho.",
-        "logo_url": "https://picsum.photos/seed/staffya-palermo-bar/600/400",
     },
     {
         "email": "demo.recoleta@staffya.com",
@@ -88,7 +87,6 @@ COMPANIES = [
         "longitude": -58.3925,
         "capacity": 60,
         "description": "Cocina de mercado y carta de vinos en Recoleta.",
-        "logo_url": "https://picsum.photos/seed/staffya-recoleta-resto/600/400",
     },
     {
         "email": "demo.santelmo@staffya.com",
@@ -101,7 +99,6 @@ COMPANIES = [
         "longitude": -58.3731,
         "capacity": 40,
         "description": "Café de especialidad en una casona de San Telmo.",
-        "logo_url": "https://picsum.photos/seed/staffya-santelmo-cafe/600/400",
     },
     {
         "email": "demo.belgrano@staffya.com",
@@ -114,7 +111,6 @@ COMPANIES = [
         "longitude": -58.4566,
         "capacity": 70,
         "description": "Cantina familiar con cocina italiana en Belgrano.",
-        "logo_url": "https://picsum.photos/seed/staffya-belgrano-cantina/600/400",
     },
     {
         "email": "demo.caballito@staffya.com",
@@ -127,7 +123,6 @@ COMPANIES = [
         "longitude": -58.4420,
         "capacity": 200,
         "description": "Salón de eventos para casamientos y fiestas corporativas.",
-        "logo_url": "https://picsum.photos/seed/staffya-caballito-eventos/600/400",
     },
     {
         "email": "demo.microcentro@staffya.com",
@@ -140,7 +135,6 @@ COMPANIES = [
         "longitude": -58.3753,
         "capacity": 50,
         "description": "Bar de oficinistas en pleno Microcentro porteño.",
-        "logo_url": "https://picsum.photos/seed/staffya-microcentro-bar/600/400",
     },
     {
         "email": "demo.villacrespo@staffya.com",
@@ -153,7 +147,6 @@ COMPANIES = [
         "longitude": -58.4390,
         "capacity": 90,
         "description": "Cervecería artesanal con barra y patio al fondo.",
-        "logo_url": "https://picsum.photos/seed/staffya-villacrespo-cerveceria/600/400",
     },
     {
         "email": "demo.almagro@staffya.com",
@@ -166,7 +159,6 @@ COMPANIES = [
         "longitude": -58.4190,
         "capacity": 55,
         "description": "Pizzería de barrio con horno a leña, abierta hasta tarde.",
-        "logo_url": "https://picsum.photos/seed/staffya-almagro-pizzeria/600/400",
     },
     {
         "email": "demo.puertomadero@staffya.com",
@@ -179,7 +171,6 @@ COMPANIES = [
         "longitude": -58.3650,
         "capacity": 150,
         "description": "Catering corporativo para eventos sobre los diques.",
-        "logo_url": "https://picsum.photos/seed/staffya-puertomadero-catering/600/400",
     },
     {
         "email": "demo.nunez@staffya.com",
@@ -192,7 +183,6 @@ COMPANIES = [
         "longitude": -58.4630,
         "capacity": 35,
         "description": "Cafetería de especialidad cerca del Monumental.",
-        "logo_url": "https://picsum.photos/seed/staffya-nunez-cafe/600/400",
     },
     {
         "email": "demo.boedo@staffya.com",
@@ -205,7 +195,6 @@ COMPANIES = [
         "longitude": -58.4170,
         "capacity": 65,
         "description": "Bodegón tradicional con cocina porteña de toda la vida.",
-        "logo_url": "https://picsum.photos/seed/staffya-boedo-bodegon/600/400",
     },
     {
         "email": "demo.colegiales@staffya.com",
@@ -218,7 +207,6 @@ COMPANIES = [
         "longitude": -58.4480,
         "capacity": 300,
         "description": "Operador gastronómico con varios locales en CABA.",
-        "logo_url": "https://picsum.photos/seed/staffya-colegiales-empresa/600/400",
     },
 ]
 

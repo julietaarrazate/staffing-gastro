@@ -7,6 +7,17 @@ export default function Skeleton({ className }: { className?: string }) {
   );
 }
 
+/** Lista de skeletons de tarjeta para pantallas de listado en carga. */
+export function CardSkeletons({ count = 3 }: { count?: number }) {
+  return (
+    <div className="mt-6 grid gap-4" aria-hidden>
+      {Array.from({ length: count }).map((_, i) => (
+        <CardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 /** Skeleton de una tarjeta grande tipo turno/oportunidad. */
 export function CardSkeleton() {
   return (

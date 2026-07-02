@@ -8,8 +8,14 @@ import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
-import { Button, EmptyState, SegmentedControl, useToast } from "@/components/ui";
-import { CardSkeletons, ErrorBanner } from "@/components/PageState";
+import {
+  Button,
+  CardSkeletons,
+  EmptyState,
+  ErrorBanner,
+  SegmentedControl,
+  useToast,
+} from "@/components/ui";
 import {
   BriefcaseIcon,
   CheckIcon,

@@ -5,26 +5,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from tests.conftest import auth_headers, login
 
 pytestmark = pytest.mark.asyncio
-
-
-async def _register(client: AsyncClient, role: str, email: str) -> dict:
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "supersecreta123",
-            "full_name": "Test User",
-            "role": role,
-        },
-    )
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
 
 
 async def _make_admin(
@@ -33,30 +16,27 @@ async def _make_admin(
     email: str,
 ) -> dict:
     """Registra un usuario y lo promueve a admin directamente en la DB."""
-    await _register(client, "employer", email)
+    await auth_headers(client, "employer", email)
     async with session_factory() as session:
         repo = SqlAlchemyUserRepository(session)
         user = await repo.get_by_email(email)
         user.promote_to_admin()
         await repo.update(user)
     # Re-login para obtener un token con el rol actualizado en los claims.
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    tokens = await login(client, email)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 async def test_non_admin_cannot_access(client: AsyncClient):
-    headers = await _register(client, "worker", "worker@test.com")
+    headers = await auth_headers(client, "worker", "worker@test.com")
     resp = await client.get("/api/v1/admin/users", headers=headers)
     assert resp.status_code == 403
 
 
 async def test_admin_lists_users_and_stats(client, session_factory):
     admin = await _make_admin(client, session_factory, "admin@test.com")
-    await _register(client, "worker", "w1@test.com")
-    await _register(client, "employer", "e1@test.com")
+    await auth_headers(client, "worker", "w1@test.com")
+    await auth_headers(client, "employer", "e1@test.com")
 
     users = await client.get("/api/v1/admin/users", headers=admin)
     assert users.status_code == 200
@@ -73,7 +53,7 @@ async def test_admin_lists_users_and_stats(client, session_factory):
 
 async def test_admin_suspends_and_activates_user(client, session_factory):
     admin = await _make_admin(client, session_factory, "admin@test.com")
-    await _register(client, "worker", "target@test.com")
+    await auth_headers(client, "worker", "target@test.com")
 
     users = await client.get("/api/v1/admin/users", headers=admin)
     target_id = next(u["id"] for u in users.json() if u["email"] == "target@test.com")
@@ -105,7 +85,7 @@ async def test_admin_cannot_suspend_self(client, session_factory):
 
 async def test_admin_promotes_and_verifies_user(client, session_factory):
     admin = await _make_admin(client, session_factory, "admin@test.com")
-    await _register(client, "worker", "target@test.com")
+    await auth_headers(client, "worker", "target@test.com")
 
     users = await client.get("/api/v1/admin/users", headers=admin)
     target_id = next(u["id"] for u in users.json() if u["email"] == "target@test.com")

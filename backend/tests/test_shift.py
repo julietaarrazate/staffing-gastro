@@ -3,30 +3,14 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.conftest import auth_headers
+
 pytestmark = pytest.mark.asyncio
-
-
-async def _auth_headers(client: AsyncClient, role: str, email: str) -> dict:
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "supersecreta123",
-            "full_name": "Test User",
-            "role": role,
-        },
-    )
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
 
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
     """Empleador con perfil de comercio listo para publicar turnos."""
-    headers = await _auth_headers(client, "employer", email)
+    headers = await auth_headers(client, "employer", email)
     await client.post(
         "/api/v1/companies/me/profile",
         headers=headers,
@@ -66,7 +50,7 @@ async def test_employer_creates_shift_as_draft(client: AsyncClient):
 
 
 async def test_employer_without_company_cannot_publish(client: AsyncClient):
-    headers = await _auth_headers(client, "employer", "emp_nc@staffya.com")
+    headers = await auth_headers(client, "employer", "emp_nc@staffya.com")
     response = await client.post(
         "/api/v1/shifts", headers=headers, json=_shift_payload()
     )
@@ -74,7 +58,7 @@ async def test_employer_without_company_cannot_publish(client: AsyncClient):
 
 
 async def test_worker_cannot_create_shift(client: AsyncClient):
-    headers = await _auth_headers(client, "worker", "mozo_s@staffya.com")
+    headers = await auth_headers(client, "worker", "mozo_s@staffya.com")
     response = await client.post(
         "/api/v1/shifts", headers=headers, json=_shift_payload()
     )
@@ -189,7 +173,7 @@ async def test_feed_filters_by_position(client: AsyncClient):
 
 
 async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, str]:
-    headers = await _auth_headers(client, "worker", email)
+    headers = await auth_headers(client, "worker", email)
     profile = await client.post(
         "/api/v1/workers/me/profile",
         headers=headers,

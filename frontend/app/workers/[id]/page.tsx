@@ -5,8 +5,8 @@ import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
-import { SKILL_STYLES } from "@/lib/skill-style";
-import { ErrorBanner } from "@/components/PageState";
+import { SKILL_ACCENT } from "@/lib/skill-style";
+import { ErrorBanner } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import { BriefcaseIcon, MapPinIcon } from "@/components/icons";
 
@@ -68,11 +68,11 @@ export default function PublicWorkerProfilePage() {
           {profile.skills.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {profile.skills.map((skill) => {
-                const { Icon, gradient } = SKILL_STYLES[skill];
+                const { Icon, bg, fg } = SKILL_ACCENT[skill];
                 return (
                   <span
                     key={skill}
-                    className={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br ${gradient} px-3 py-1.5 text-sm font-semibold text-white shadow-sm`}
+                    className={`inline-flex items-center gap-1.5 rounded-full ${bg} ${fg} px-3 py-1.5 text-sm font-semibold`}
                   >
                     <Icon size={14} /> {SKILL_LABELS[skill]}
                   </span>

@@ -3,29 +3,13 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.conftest import auth_headers
+
 pytestmark = pytest.mark.asyncio
 
 
-async def _auth_headers(client: AsyncClient, role: str, email: str) -> dict:
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "supersecreta123",
-            "full_name": "Test User",
-            "role": role,
-        },
-    )
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
-    headers = await _auth_headers(client, "employer", email)
+    headers = await auth_headers(client, "employer", email)
     await client.post(
         "/api/v1/companies/me/profile",
         headers=headers,
@@ -35,7 +19,7 @@ async def _employer_with_company(client: AsyncClient, email: str) -> dict:
 
 
 async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, str]:
-    headers = await _auth_headers(client, "worker", email)
+    headers = await auth_headers(client, "worker", email)
     profile = await client.post(
         "/api/v1/workers/me/profile",
         headers=headers,
@@ -61,14 +45,14 @@ def _shift_payload(**overrides) -> dict:
 
 
 async def test_no_notifications_initially(client: AsyncClient):
-    headers = await _auth_headers(client, "worker", "n1@staffya.com")
+    headers = await auth_headers(client, "worker", "n1@staffya.com")
     response = await client.get("/api/v1/notifications", headers=headers)
     assert response.status_code == 200
     assert response.json() == []
 
 
 async def test_mark_unknown_notification_as_read_returns_404(client: AsyncClient):
-    headers = await _auth_headers(client, "worker", "n2@staffya.com")
+    headers = await auth_headers(client, "worker", "n2@staffya.com")
     response = await client.post(
         "/api/v1/notifications/00000000-0000-0000-0000-000000000000/read",
         headers=headers,
@@ -176,7 +160,7 @@ async def test_cannot_mark_someone_elses_notification_as_read(client: AsyncClien
     notifications = await client.get("/api/v1/notifications", headers=worker_headers)
     notification_id = notifications.json()[0]["id"]
 
-    other_headers = await _auth_headers(client, "worker", "n_other@staffya.com")
+    other_headers = await auth_headers(client, "worker", "n_other@staffya.com")
     response = await client.post(
         f"/api/v1/notifications/{notification_id}/read", headers=other_headers
     )
