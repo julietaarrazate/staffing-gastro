@@ -7,10 +7,11 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { haversineKm } from "@/lib/map/geo";
+import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { Button, EmptyState, useToast } from "@/components/ui";
-import { CalendarIcon, FlameIcon, MapPinIcon } from "@/components/icons";
+import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon } from "@/components/icons";
 import MapSheet from "@/components/worker/MapSheet";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
@@ -171,6 +172,27 @@ export default function MapPage() {
                     {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
                   </p>
                 </div>
+                {distance != null && (
+                  <p className="mt-1.5 flex items-center gap-2.5 text-xs font-medium text-ink/45">
+                    {(() => {
+                      const { walkMin, bikeMin, carMin } = estimateTravelTimes(distance);
+                      return (
+                        <>
+                          <span className="inline-flex items-center gap-0.5">
+                            <FootprintsIcon size={12} /> {walkMin}&apos;
+                          </span>
+                          <span className="inline-flex items-center gap-0.5">
+                            <BikeIcon size={12} /> {bikeMin}&apos;
+                          </span>
+                          <span className="inline-flex items-center gap-0.5">
+                            <CarIcon size={12} /> {carMin}&apos;
+                          </span>
+                          <span className="text-ink/30">aprox.</span>
+                        </>
+                      );
+                    })()}
+                  </p>
+                )}
                 <Button fullWidth size="sm" className="mt-3" onClick={() => apply(shift)}>
                   Me interesa
                 </Button>

@@ -7,10 +7,12 @@
 import type { ComponentType } from "react";
 import {
   Bell,
+  Bike,
   Briefcase,
   Building2,
   Calendar,
   Camera,
+  Car,
   Check,
   CheckCircle2,
   ChefHat,
@@ -20,6 +22,7 @@ import {
   Clock,
   Coffee,
   Flame,
+  Footprints,
   Home,
   type LucideProps,
   LogOut,
@@ -34,6 +37,7 @@ import {
   Users,
   Wallet,
   Wine,
+  X,
   Zap,
 } from "lucide-react";
 
@@ -81,3 +85,7 @@ export const CoffeeIcon = make(Coffee);
 export const GlassIcon = make(Wine);
 export const ChefHatIcon = make(ChefHat);
 export const CameraIcon = make(Camera);
+export const CloseIcon = make(X);
+export const FootprintsIcon = make(Footprints);
+export const BikeIcon = make(Bike);
+export const CarIcon = make(Car);

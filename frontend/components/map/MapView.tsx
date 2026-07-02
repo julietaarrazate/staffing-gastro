@@ -16,6 +16,10 @@ export interface MapViewProps {
   onLoad?: (map: MapRef) => void;
   onMoveEnd?: (event: ViewStateChangeEvent) => void;
   className?: string;
+  /** `false` desactiva todo gesto (pan/zoom/rotate) — thumbnails estáticos como `MiniMap`. */
+  interactive?: boolean;
+  /** `false` oculta el control de atribución compacto (miniaturas chicas). */
+  attribution?: boolean;
 }
 
 /**
@@ -24,7 +28,7 @@ export interface MapViewProps {
  * ADR-0001). Estilo CARTO Voyager GL, atribución compacta, sin logo.
  */
 const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
-  { center, zoom = 14, children, onLoad, onMoveEnd, className },
+  { center, zoom = 14, children, onLoad, onMoveEnd, className, interactive = true, attribution = true },
   forwardedRef
 ) {
   const mapRef = useRef<MapRef>(null);
@@ -35,6 +39,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
       <MapGl
         ref={mapRef}
         reuseMaps
+        interactive={interactive}
         initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
         mapStyle={MAP_STYLE_URL}
         attributionControl={false}
@@ -44,7 +49,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
         }}
         onMoveEnd={onMoveEnd}
       >
-        <AttributionControl compact position="bottom-right" />
+        {attribution && <AttributionControl compact position="bottom-right" />}
         {children}
       </MapGl>
     </div>
