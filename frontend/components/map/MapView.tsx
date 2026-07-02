@@ -31,22 +31,23 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   useImperativeHandle(forwardedRef, () => mapRef.current as MapRef, []);
 
   return (
-    <MapGl
-      ref={mapRef}
-      reuseMaps
-      initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
-      mapStyle={MAP_STYLE_URL}
-      attributionControl={false}
-      style={{ width: "100%", height: "100%" }}
-      className={className}
-      onLoad={() => {
-        if (mapRef.current) onLoad?.(mapRef.current);
-      }}
-      onMoveEnd={onMoveEnd}
-    >
-      <AttributionControl compact position="bottom-right" />
-      {children}
-    </MapGl>
+    <div className={className}>
+      <MapGl
+        ref={mapRef}
+        reuseMaps
+        initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
+        mapStyle={MAP_STYLE_URL}
+        attributionControl={false}
+        style={{ width: "100%", height: "100%" }}
+        onLoad={() => {
+          if (mapRef.current) onLoad?.(mapRef.current);
+        }}
+        onMoveEnd={onMoveEnd}
+      >
+        <AttributionControl compact position="bottom-right" />
+        {children}
+      </MapGl>
+    </div>
   );
 });
 

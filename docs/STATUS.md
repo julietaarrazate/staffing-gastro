@@ -12,7 +12,7 @@ apenas quedan verdes (pedido de Julieta).*
 ## Estado en una línea
 
 Producto demo completo y auditado (~65/100 production-readiness); documentación
-al día; CI activo; **en curso: migración de mapas a MapLibre (F1+F2)**; próximo
+al día; CI activo; **mapas F1+F2 sobre MapLibre listos** (falta F3); próximo
 gran pendiente: migrar la DB a Neon (R0.1, bloqueado en crear la cuenta).
 
 ## Hecho y mergeado (cronológico, con PR)
@@ -31,18 +31,16 @@ gran pendiente: migrar la DB a Neon (R0.1, bloqueado en crear la cuenta).
 | Auditoría integral v2 | #49 | 9 reportes con puntajes (`PRODUCTION_READINESS` ~65/100) + `ROADMAP_IMPLEMENTATION.md` (R0–R4) + `RECOMMENDATIONS` v2 |
 | CI | #50 | GitHub Actions: `pytest` + `tsc` + `build` en cada PR/push a main (R0.3 ✅) |
 
+| Mapas F1+F2 (MapLibre) | #51 | Módulo `components/map/` (`maplibre-gl` + `@vis.gl/react-maplibre` + `supercluster`), ADR-0001, `/map` premium: sheet 40/60 de 3 alturas, marcadores por rubro con stagger/halo, clustering, sync mapa↔tarjetas. Verificado con Playwright (smoke con mocks). Leaflet convive hasta F3 |
+
 ## En vuelo ahora
 
-- **Mapas F1+F2** (agente Sonnet implementando): módulo `components/map/`
-  sobre `maplibre-gl` + `@vis.gl/react-maplibre` + `supercluster` (deps ya
-  commiteadas), ADR-0001, `/map` premium 40/60 con sheet de 3 alturas,
-  marcadores por rubro, clustering, sync mapa↔tarjetas. Al terminar: gates →
-  PR → merge. Leaflet convive hasta F3.
+- Nada — próximo bloque: Mapas F3.
 
 ## Próximos pasos (orden acordado)
 
-1. **Mapas F3**: migrar `/search` y `MiniMap`, tiempos por modo, "cómo llegar"
-   (deep-link), desinstalar Leaflet.
+1. **Mapas F3**: migrar `/search` y `MiniMap` a MapLibre, tiempos por modo,
+   "cómo llegar" (deep-link), desinstalar Leaflet.
 2. **R0.1 — DB a Neon** 🔴: bloqueado en que Julieta cree la cuenta/DB en Neon
    y cargue `DATABASE_URL` en Render. Es el riesgo más grave (la DB free de
    Render **expira a los 90 días**).

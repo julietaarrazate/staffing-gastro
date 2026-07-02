@@ -22,8 +22,11 @@ export default function ClusterMarker({ longitude, latitude, count, delayMs = 0,
         onClick();
       }}
     >
+      {/* Fill `both`: mantiene scale(0) durante el delay. NO usar `scale-0`
+          (propiedad `scale` de Tailwind v4, se compone con el transform de la
+          animación y deja la burbuja invisible). */}
       <div
-        className="scale-0 [animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_forwards]"
+        className="[animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_both]"
         style={{ animationDelay: `${delayMs}ms` }}
       >
         <button

@@ -43,9 +43,12 @@ export default function ShiftMarker({
     >
       {/* Envoltorio: sólo maneja la animación de aparición (scale-in con
           stagger). El escalado por selección vive en el botón interior para
-          no pelear transforms con la misma propiedad CSS. */}
+          no pelear transforms con la misma propiedad CSS. El fill `both`
+          mantiene scale(0) durante el delay del stagger; NO usar la clase
+          `scale-0` (en Tailwind v4 setea la propiedad `scale`, que se compone
+          con el transform de la animación y deja el marcador invisible). */}
       <div
-        className="origin-bottom scale-0 [animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_forwards]"
+        className="origin-bottom [animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_both]"
         style={{ animationDelay: `${delayMs}ms` }}
       >
         <button

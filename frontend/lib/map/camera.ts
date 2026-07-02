@@ -1,4 +1,4 @@
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { MapRef } from "@vis.gl/react-maplibre";
 
 /**
  * Helpers de cámara sobre la instancia real de MapLibre (`flyTo`/`easeTo`),
@@ -20,7 +20,7 @@ interface CameraOptions {
 
 /** Vuelo largo con curva (apertura de pantalla, "centrarme"). */
 export function flyToPoint(
-  map: MapLibreMap | null | undefined,
+  map: MapRef | null | undefined,
   center: [number, number],
   { zoom, duration = 1400 }: CameraOptions = {}
 ): void {
@@ -36,7 +36,7 @@ export function flyToPoint(
 
 /** Paneo corto y suave (seguir la tarjeta activa del carrusel, expandir cluster). */
 export function easeToPoint(
-  map: MapLibreMap | null | undefined,
+  map: MapRef | null | undefined,
   center: [number, number],
   { zoom, duration = 500 }: CameraOptions = {}
 ): void {
