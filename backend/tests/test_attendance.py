@@ -1,5 +1,7 @@
 """Tests del flujo de asistencia geolocalizada (en_camino → ... → pagado)."""
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from httpx import AsyncClient
 
@@ -42,10 +44,12 @@ def _shift_payload(**overrides) -> dict:
     return payload
 
 
-async def _confirmed_shift(client: AsyncClient, emp_email: str, worker_email: str):
+async def _confirmed_shift(
+    client: AsyncClient, emp_email: str, worker_email: str, **shift_overrides
+):
     employer_headers = await _employer_with_company(client, emp_email)
     created = await client.post(
-        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload(**shift_overrides)
     )
     shift_id = created.json()["id"]
     await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
@@ -144,3 +148,65 @@ async def test_employer_cannot_finish_before_check_out(client: AsyncClient):
     await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
     response = await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=employer_headers)
     assert response.status_code == 400
+
+
+async def _run_full_flow_to_finish(
+    client: AsyncClient, shift_id: str, employer_headers: dict, worker_headers: dict
+) -> None:
+    """Corre depart → check-in → start-working → check-out → finish."""
+    await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/start-working", headers=worker_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/check-out",
+        headers=worker_headers,
+        json={"latitude": -34.59, "longitude": -58.44},
+    )
+    finished = await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=employer_headers)
+    assert finished.status_code == 200
+
+
+async def test_finish_with_punctual_checkin_updates_worker_metrics(client: AsyncClient):
+    """R2.4: check-in dentro de la tolerancia (±15 min) del horario pactado
+    suma un evento completado y deja punctuality_rate en 1.0 (primer evento)."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "att_emp5@staffya.com",
+        "att_w5@staffya.com",
+        start_at=now.isoformat(),
+        end_at=(now + timedelta(hours=5)).isoformat(),
+    )
+
+    await _run_full_flow_to_finish(client, shift_id, employer_headers, worker_headers)
+
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    assert profile.status_code == 200
+    body = profile.json()
+    assert body["events_completed"] == 1
+    assert body["punctuality_rate"] == pytest.approx(1.0)
+
+
+async def test_finish_with_late_checkin_does_not_count_as_punctual(client: AsyncClient):
+    """R2.4: check-in muy posterior al horario pactado (fuera de tolerancia)
+    suma el evento completado pero no cuenta como puntual (rate en 0.0)."""
+    late_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=2)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "att_emp6@staffya.com",
+        "att_w6@staffya.com",
+        start_at=late_start.isoformat(),
+        end_at=(late_start + timedelta(hours=5)).isoformat(),
+    )
+
+    await _run_full_flow_to_finish(client, shift_id, employer_headers, worker_headers)
+
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    assert profile.status_code == 200
+    body = profile.json()
+    assert body["events_completed"] == 1
+    assert body["punctuality_rate"] == pytest.approx(0.0)

@@ -98,7 +98,21 @@ fecha de esta auditoría (2026-07-02).
   insignias/nivel en la UI si no aporta información real (ver
   `QUICK_WINS.md` #9 de la v1, todavía no ejecutado).
 
-### P3 — Métricas de reputación derivadas nunca se actualizan 🟠 Alta
+### P3 — Métricas de reputación derivadas nunca se actualizan 🟠 Alta (parcial, ver R2.4)
+
+> **Actualización 2026-07-02 (R2.4):** resuelto para el trabajador
+> `punctuality_rate` y `events_completed` — `ShiftService.finish()`
+> (`backend/app/modules/shift/application/services.py`) ahora llama a
+> `WorkerProfileRepository.record_completed_shift(profile_id, punctual=...)`
+> (nuevo puerto + adaptador en `worker/infrastructure/repositories.py`) al
+> cerrar con éxito un turno (siempre pasó por check-in/check-out). Puntual =
+> check-in dentro de ±15 min de `start_at` (promedio móvil simple). Tests en
+> `backend/tests/test_attendance.py`
+> (`test_finish_with_punctual_checkin_updates_worker_metrics`,
+> `test_finish_with_late_checkin_does_not_count_as_punctual`). **Sigue
+> pendiente:** `cancellations` (worker) y `on_time_payment_rate`/
+> `events_published` (company) — ver detalle y motivo en
+> `REPUTATION.md` ("Inconsistencias a resolver").
 
 - **Descripción:** `punctuality_rate`, `events_completed`, `cancellations`
   (worker) y `on_time_payment_rate`, `events_published` (company) se leen en
@@ -112,16 +126,23 @@ fecha de esta auditoría (2026-07-02).
   desempeño con datos que nunca cambian — en la práctica esos dos factores
   son ruido constante (siempre 0), no señal real. Afecta la calidad del
   ranking de candidatos, que es un diferencial de producto declarado en
-  `PRODUCT.md`.
+  `PRODUCT.md`. Con R2.4, `punctuality_rate`/`events_completed` del
+  trabajador ya son señal real; `cancellations` y las métricas de comercio
+  siguen siendo ruido constante.
 - **Riesgo:** medio-alto — degrada silenciosamente la calidad del matching
   sin que nadie lo note (no hay alerta, sólo scoring subóptimo).
 - **Prioridad:** 🟠 Alta.
 - **Esfuerzo:** medio — enganchar actualizaciones a las transiciones ya
-  existentes del ciclo de turno: `check_in` a tiempo → `punctuality_rate`;
-  `finish`/`mark_paid` → `events_completed`/`events_published`; `cancel`
-  sobre un turno asignado → `cancellations`.
-- **Dependencias:** ninguna externa; es lógica de aplicación pura sobre
-  transiciones que ya existen en `shift/domain/entities.py`.
+  existentes del ciclo de turno: `check_in` a tiempo → `punctuality_rate`
+  ✅ hecho (R2.4); `finish` → `events_completed` ✅ hecho (R2.4);
+  `mark_paid` → `events_published` (company, pendiente); `cancel`/no-show
+  sobre un turno asignado → `cancellations` (pendiente — **requiere primero**
+  que el dominio distinga quién cancela o agregar un estado `no_show`; no se
+  puede derivar honestamente de `Shift.cancel()` tal como existe hoy, que es
+  siempre disparado por el comercio).
+- **Dependencias:** ninguna externa para lo ya resuelto; lo pendiente de
+  `cancellations` depende de una decisión de producto/ADR sobre el modelo de
+  cancelación (actor + posible `no_show`).
 - **Solución sugerida:** agregar estos efectos dentro de
   `ShiftService`/`ReviewService` (mismo patrón que ya usan para crear
   `Notification`), documentado en `REPUTATION.md`.
@@ -313,6 +334,25 @@ fecha de esta auditoría (2026-07-02).
   `backend/README.md`.
 
 ### I2 — `SEED_DEMO_DATA=true` activo en producción con imágenes externas 🟠 Alta
+
+> **Nota 2026-07-02 (R2.5, intentado y no ejecutado):** se evaluó reemplazar
+> `loremflickr`/`pravatar` en `backend/scripts/seed_demo_data.py` por un set
+> fijo de imágenes ya subidas a Cloudinary (hardcodeadas, subidas una sola
+> vez), reusando el helper existente (`frontend/lib/cloudinary.ts`,
+> `uploadImage`, que sube vía `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` +
+> `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` sin signing). **No se ejecutó**:
+> este entorno no tiene esas credenciales configuradas (no hay
+> `.env`/`.env.local` de frontend ni backend con valores de Cloudinary, sólo
+> `.env.example`/`.env.production` sin esas claves) ni acceso de red para
+> confirmarlas contra la cuenta real del proyecto, así que no hay forma de
+> subir archivos reales a Cloudinary desde acá sin improvisar credenciales.
+> **Queda pendiente como tarea manual**: alguien con acceso a la cuenta de
+> Cloudinary del proyecto debe (1) subir un set fijo de fotos placeholder
+> (perfiles de trabajador/comercio usados por el seed), (2) pegar las URLs
+> `secure_url` resultantes como constantes en
+> `backend/scripts/seed_demo_data.py` en reemplazo de las URLs de
+> `loremflickr.com`/`pravatar.cc`, y (3) correr `pytest -q` de nuevo para
+> confirmar que el seed sigue siendo válido.
 
 - **Descripción:** `render.yaml` fija `SEED_DEMO_DATA: "true"` para el
   servicio de producción; el seed usa `loremflickr.com` como fuente de fotos

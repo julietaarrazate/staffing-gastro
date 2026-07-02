@@ -1,5 +1,6 @@
 """Casos de uso del módulo shift (publicación y ciclo de vida del turno)."""
 
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from app.modules.company.domain.repositories import CompanyProfileRepository
@@ -15,6 +16,10 @@ from app.modules.shift.domain.exceptions import (
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+# R2.4: tolerancia para considerar "puntual" un check-in respecto del
+# horario pactado (start_at). Ver docs/REPUTATION.md.
+PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 
 
 class ShiftService:
@@ -171,10 +176,40 @@ class ShiftService:
         return updated
 
     async def finish(self, company_id: UUID, shift_id: UUID) -> Shift:
-        """El comercio cierra el turno trabajado."""
+        """El comercio cierra el turno trabajado.
+
+        R2.4: al finalizar con éxito (el turno sólo llega acá habiendo pasado
+        por check-in y check-out, ver `Shift._transition`) se actualizan las
+        métricas de reputación reales del trabajador asignado:
+        `events_completed` (+1) y `punctuality_rate` (promedio móvil simple
+        sobre si el check-in ocurrió dentro de la tolerancia del horario
+        pactado). Mismo patrón que las notificaciones: el efecto vive dentro
+        del caso de uso que cierra el ciclo, no en un job aparte.
+        """
         shift = await self._get_owned(company_id, shift_id)
         shift.finish()
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        if updated.worker_profile_id is not None:
+            await self._workers.record_completed_shift(
+                updated.worker_profile_id, punctual=self._was_punctual(updated)
+            )
+        return updated
+
+    @staticmethod
+    def _was_punctual(shift: Shift) -> bool:
+        """Puntual = check-in dentro de ±15 min del horario pactado (start_at).
+
+        Normaliza a "naive" antes de comparar: en SQLite (tests) los
+        datetimes vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ`
+        sí lo preservan. Se asume que ambos valores están en UTC.
+        """
+        if shift.check_in_at is None:
+            return False
+
+        def _naive(dt: datetime) -> datetime:
+            return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
+
+        return abs(_naive(shift.check_in_at) - _naive(shift.start_at)) <= PUNCTUALITY_TOLERANCE
 
     async def mark_paid(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio confirma que pagó el turno finalizado."""
