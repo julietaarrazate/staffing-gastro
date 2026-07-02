@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
-import { CardSkeletons, EmptyState, ErrorBanner } from "@/components/PageState";
+import { Button, CardSkeletons, EmptyState, ErrorBanner } from "@/components/ui";
 import {
   BoltIcon,
   CheckCircleIcon,
@@ -164,28 +164,24 @@ export default function MyShiftsPage() {
                 </Link>
               )}
               {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
-                <button
-                  onClick={() => cancel(shift.id)}
-                  className="rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                >
+                <Button size="sm" variant="surface" onClick={() => cancel(shift.id)}>
                   Cancelar
-                </button>
+                </Button>
               )}
               {shift.status === "check_out" && (
-                <button
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<CheckCircleIcon size={16} />}
                   onClick={() => finish(shift.id)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
                 >
-                  <CheckCircleIcon size={16} /> Cerrar turno
-                </button>
+                  Cerrar turno
+                </Button>
               )}
               {shift.status === "finalizado" && (
-                <button
-                  onClick={() => markPaid(shift.id)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
-                >
-                  <WalletIcon size={16} /> Marcar como pagado
-                </button>
+                <Button size="sm" leftIcon={<WalletIcon size={16} />} onClick={() => markPaid(shift.id)}>
+                  Marcar como pagado
+                </Button>
               )}
               {shift.status === "pagado" && (
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">

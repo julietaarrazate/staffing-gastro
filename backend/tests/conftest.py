@@ -3,7 +3,7 @@
 from collections.abc import AsyncGenerator
 
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -59,3 +59,49 @@ async def client(
         yield ac
 
     app.dependency_overrides.clear()
+
+
+# --- Helpers compartidos de registro/login/auth headers -------------------
+# No son fixtures: son funciones async normales que reciben el `client` de la
+# fixture de arriba. Se importan explícitamente en cada test_*.py
+# (`from tests.conftest import ...`) para evitar duplicar estos patrones.
+
+DEFAULT_PASSWORD = "supersecreta123"
+
+
+async def register_user(
+    client: AsyncClient,
+    email: str = "mozo@staffya.com",
+    password: str = DEFAULT_PASSWORD,
+    full_name: str = "Juan Mozo",
+    role: str = "worker",
+    **overrides,
+) -> Response:
+    """Registra un usuario y devuelve la respuesta cruda (para inspeccionar
+    status_code/body, p. ej. en tests de validación del registro)."""
+    payload = {
+        "email": email,
+        "password": password,
+        "full_name": full_name,
+        "role": role,
+    }
+    payload.update(overrides)
+    return await client.post("/api/v1/auth/register", json=payload)
+
+
+async def login(client: AsyncClient, email: str, password: str = DEFAULT_PASSWORD) -> dict:
+    """Inicia sesión y devuelve el body de tokens (access_token, refresh_token, token_type)."""
+    response = await client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password}
+    )
+    return response.json()
+
+
+async def auth_headers(
+    client: AsyncClient, role: str, email: str, full_name: str = "Test User"
+) -> dict:
+    """Registra un usuario, inicia sesión y devuelve el header Authorization listo
+    para usar en requests autenticados."""
+    await register_user(client, email=email, full_name=full_name, role=role)
+    tokens = await login(client, email)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}

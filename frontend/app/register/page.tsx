@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
+import { Button } from "@/components/ui";
 
 const inputClass =
   "rounded-xl border border-zinc-300 px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
@@ -93,13 +94,9 @@ export default function RegisterPage() {
               className={inputClass}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-full bg-orange-600 px-4 py-2.5 font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
-            >
+            <Button type="submit" fullWidth disabled={submitting}>
               {submitting ? "Creando..." : "Crear cuenta"}
-            </button>
+            </Button>
           </form>
         </div>
 

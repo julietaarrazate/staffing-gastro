@@ -3,29 +3,13 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.conftest import auth_headers
+
 pytestmark = pytest.mark.asyncio
 
 
-async def _auth_headers(client: AsyncClient, role: str, email: str, name: str) -> dict:
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "supersecreta123",
-            "full_name": name,
-            "role": role,
-        },
-    )
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
-    headers = await _auth_headers(client, "employer", email, "Bar Palermo")
+    headers = await auth_headers(client, "employer", email, "Bar Palermo")
     await client.post(
         "/api/v1/companies/me/profile",
         headers=headers,
@@ -35,7 +19,7 @@ async def _employer_with_company(client: AsyncClient, email: str) -> dict:
 
 
 async def _worker_with_profile(client: AsyncClient, email: str, name: str):
-    headers = await _auth_headers(client, "worker", email, name)
+    headers = await auth_headers(client, "worker", email, name)
     profile = await client.post(
         "/api/v1/workers/me/profile",
         headers=headers,

@@ -7,8 +7,16 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
-import { Avatar, Button, EmptyState, Rating, SegmentedControl, useToast } from "@/components/ui";
-import { CardSkeletons, ErrorBanner } from "@/components/PageState";
+import {
+  Avatar,
+  Button,
+  CardSkeletons,
+  EmptyState,
+  ErrorBanner,
+  Rating,
+  SegmentedControl,
+  useToast,
+} from "@/components/ui";
 import { UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";

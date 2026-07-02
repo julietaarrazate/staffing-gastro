@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
-import { SKILL_STYLES } from "@/lib/skill-style";
+import { SKILL_ACCENT } from "@/lib/skill-style";
 import { localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { Button, TextField, useToast } from "@/components/ui";
@@ -126,7 +126,7 @@ export default function NewShiftWizard() {
                 <p className="mt-1 text-sm text-zinc-500">Elegí el puesto a cubrir.</p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   {WORKER_SKILLS.map((skill) => {
-                    const { Icon, gradient } = SKILL_STYLES[skill];
+                    const { Icon, bg, fg } = SKILL_ACCENT[skill];
                     const active = position === skill;
                     return (
                       <motion.button
@@ -137,7 +137,7 @@ export default function NewShiftWizard() {
                           active ? "bg-orange-50 ring-primary" : "bg-white ring-zinc-100"
                         }`}
                       >
-                        <span className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-white`}>
+                        <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} ${fg}`}>
                           <Icon size={22} />
                         </span>
                         <span className="text-sm font-semibold text-zinc-800">{SKILL_LABELS[skill]}</span>

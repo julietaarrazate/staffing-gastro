@@ -3,29 +3,13 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.conftest import auth_headers
+
 pytestmark = pytest.mark.asyncio
 
 
-async def _auth_headers(client: AsyncClient, role: str, email: str) -> dict:
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "supersecreta123",
-            "full_name": "Test User",
-            "role": role,
-        },
-    )
-    login = await client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": "supersecreta123"},
-    )
-    token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
 async def test_employer_creates_profile(client: AsyncClient):
-    headers = await _auth_headers(client, "employer", "rest1@staffya.com")
+    headers = await auth_headers(client, "employer", "rest1@staffya.com")
     response = await client.post(
         "/api/v1/companies/me/profile",
         headers=headers,
@@ -44,7 +28,7 @@ async def test_employer_creates_profile(client: AsyncClient):
 
 
 async def test_company_name_is_required(client: AsyncClient):
-    headers = await _auth_headers(client, "employer", "rest2@staffya.com")
+    headers = await auth_headers(client, "employer", "rest2@staffya.com")
     response = await client.post(
         "/api/v1/companies/me/profile", headers=headers, json={"city": "Centro"}
     )
@@ -52,7 +36,7 @@ async def test_company_name_is_required(client: AsyncClient):
 
 
 async def test_employer_cannot_create_two_profiles(client: AsyncClient):
-    headers = await _auth_headers(client, "employer", "rest3@staffya.com")
+    headers = await auth_headers(client, "employer", "rest3@staffya.com")
     await client.post(
         "/api/v1/companies/me/profile", headers=headers, json={"name": "Resto"}
     )
@@ -63,7 +47,7 @@ async def test_employer_cannot_create_two_profiles(client: AsyncClient):
 
 
 async def test_worker_cannot_create_company_profile(client: AsyncClient):
-    headers = await _auth_headers(client, "worker", "mozo_c@staffya.com")
+    headers = await auth_headers(client, "worker", "mozo_c@staffya.com")
     response = await client.post(
         "/api/v1/companies/me/profile", headers=headers, json={"name": "Resto"}
     )
@@ -71,7 +55,7 @@ async def test_worker_cannot_create_company_profile(client: AsyncClient):
 
 
 async def test_company_get_and_update(client: AsyncClient):
-    headers = await _auth_headers(client, "employer", "rest4@staffya.com")
+    headers = await auth_headers(client, "employer", "rest4@staffya.com")
     await client.post(
         "/api/v1/companies/me/profile", headers=headers, json={"name": "Café Centro"}
     )
