@@ -1,64 +1,72 @@
-# RECOMMENDATIONS.md — Recomendaciones estratégicas (Fase 0)
+# RECOMMENDATIONS.md — Recomendaciones estratégicas (v2, post-auditoría integral)
 
-> Cierre de la auditoría: qué hacer y en qué orden, alineado al **Master
-> Implementation Plan**. Basado en [AUDIT_REPORT.md](./AUDIT_REPORT.md) y
-> [TECH_DEBT.md](./TECH_DEBT.md).
+> Versión 2 — reemplaza las recomendaciones de la Fase 0 (sus quick wins ya
+> fueron implementados y verificados). Se apoya en
+> [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) (veredicto y
+> puntuaciones) y [ROADMAP_IMPLEMENTATION.md](./ROADMAP_IMPLEMENTATION.md)
+> (plan por fases R0–R4).
 
-## Principio rector
+## 1. Para salir al mercado: menos es más
 
-Staffya tiene un **núcleo sano** (dominio + arquitectura) y una **presentación en
-transición**. La recomendación central: **consolidar antes de expandir.** Cerrar
-la deuda de diseño y endurecer para producción antes de sumar verticales o IA.
+La app ya tiene **más producto del que necesita una beta** (swipe, mapa, chat
+en vivo, reseñas, gamificación visual). Lo que la separa del mercado no son
+features: es **operación**. Recomendación central:
 
-## Riesgos principales (atender primero)
+> **Congelar features nuevas hasta cerrar R0+R1** (DB durable, CI, Sentry,
+> sesiones revocables, decisión de `quantity`). Son ~1–2 semanas y convierten
+> la demo en un negocio que no pierde datos ni usuarios.
 
-1. 🔴 **Pérdida de datos por expiración del Postgres de Render (90 días).** Es el
-   riesgo más grave y de causa externa. **Migrar a Neon ya** (no depende de
-   ninguna fase; hacerlo cuanto antes).
-2. 🔴 **Secreto JWT por defecto.** Si algún entorno arranca sin setear
-   `JWT_SECRET_KEY`, la seguridad se cae. Blindar con validación (ver
-   [QUICK_WINS.md](./QUICK_WINS.md) #1).
-3. 🟠 **Deuda de diseño duplicada** (dos sistemas de componentes/estilos): cada
-   pantalla nueva la multiplica. Cerrar la migración antes de rediseñar más.
+La única excepción razonable es Mapas F1–F3 (ya diseñado y aprobado), porque es
+el diferencial visible del producto — puede correr **en paralelo** sin tocar
+backend.
 
-## Orden recomendado sobre el master plan
+## 2. Lanzamiento por etapas (no big bang)
 
-El master plan es sólido. Ajustes de ejecución sugeridos:
+1. **Hoy — demo comercial:** el deploy actual sirve para mostrar a inversores y
+   comercios piloto (con las cuentas demo). No requiere nada.
+2. **Beta cerrada (post R0+R1):** 3–5 comercios reales + 20–50 trabajadores en
+   1–2 barrios de CABA (Palermo primero: densidad gastronómica). El radio de
+   25 km del matching ya sobra. Seed demo apagado, datos reales.
+3. **Beta abierta (post R2):** paginación y N+1 resueltos, métricas de
+   reputación reales — el marketplace ya "aprende".
+4. **Escala (R4):** sólo cuando el tráfico lo pida, con ADRs.
 
-- **Adelantar 2 quick wins de seguridad** (secret JWT + rate limit login) y la
-  **migración a Neon** aunque formalmente sean de fases posteriores: son baratos
-  y mitigan riesgos reales. Requieren tu OK por tocar infra/seguridad.
-- **Fase 4 (Refactor):** que su primer objetivo sea **eliminar la duplicación de
-  presentación** (unificar EmptyState/PageState, migrar `SKILL_STYLES`→`SKILL_ACCENT`,
-  botones inline→`Button`). Es el mayor retorno de "limpieza".
-- **Fase 5–6 (Design System / UX):** gran parte ya existe (DS v2 monocromático,
-  Lucide, foto-first, mapas CARTO). Formalizar la doc (BRAND/DESIGN_SYSTEM/
-  COMPONENT_LIBRARY) y **terminar la propagación** a Employer y Admin (hoy el
-  Worker está casi migrado; Employer parcial; Admin sin migrar).
-- **Fase 8 (Calidad):** introducir **tests de frontend + E2E** (hoy inexistentes)
-  antes de crecer en funcionalidad. Es la mayor brecha de calidad.
-- **Fase 10 (Marketplace inteligente):** el `matching` ya tiene scoring por
-  factores; el paso natural es sumar la **afinidad histórica** (requiere historial
-  de asignaciones) y ranking dinámico — encaja sin reescribir el dominio.
-- **Fase 12 (Pagos):** desbloquea el placeholder de `payment`; alto valor de
-  negocio pero con dependencia externa (MercadoPago) — planificar bien el flujo
-  financiero y los estados.
+## 3. Decisiones de producto que no puede tomar el código
 
-## Qué NO hacer todavía
+Estas tres necesitan definición del negocio **antes de la beta cerrada**:
 
-- No introducir **Redis/colas/PostGIS/microservicios** hasta que el volumen lo
-  justifique (Fase 13). Mantener la simplicidad (principio #10).
-- No sumar **IA/pagos/verticales** sobre una base con deuda de diseño y sin tests
-  de frontend: consolidar primero.
-- No cambiar decisiones arquitectónicas sin **ADR** (Fase 10 del plan de docs
-  original / registro de decisiones).
+- **`quantity`**: ¿un turno = una persona (capar YA, honesto y barato) o
+  soportar cuadrillas (asignación múltiple, más valor para eventos pero ~1
+  semana de trabajo)? Recomendación: **capar a 1 para la beta**,
+  multi-asignación en R2/R3 con ADR.
+- **Pagos**: la beta puede vivir con "pago fuera de la app + marcar pagado"
+  (como hoy). MercadoPago recién cuando haya liquidez real de turnos (R4) —
+  integra costos regulatorios que una beta no amortiza.
+- **Reglas de reputación**: definir umbrales de insignias/niveles y qué
+  penaliza una cancelación (hoy son datos inertes). Sin esto, el matching
+  pondera números que nunca cambian.
 
-## Métrica de éxito de la consolidación
+## 4. Higiene de ingeniería permanente
 
-Antes de pasar a expansión (IA/pagos/verticales), idealmente:
-- Un solo sistema de componentes (cero `PageState`, cero `SKILL_STYLES`, cero
-  botones inline).
-- Seguridad de producción básica (secret validado, rate limit, headers).
-- DB migrada a Neon.
-- Tests de frontend + un flujo E2E crítico (match completo).
-- Lighthouse > 90 (meta de la Fase 7).
+- **CI primero, todo lo demás después** (R0.3): con auto-deploy a producción
+  desde `main`, cada PR sin gates es una ruleta.
+- **Un ADR por decisión de infraestructura** (sesiones revocables, Redis,
+  multi-asignación, pagos): ya es principio del repo; mantenerlo.
+- **Doc↔código sincronizados**: la auditoría detectó y corrigió una
+  inconsistencia (índices en DATABASE.md); mantener la regla de frenar cuando
+  código y doc difieren.
+- **Orquestación de modelos** (operativa de desarrollo con IA): usar el modelo
+  grande sólo para arquitectura, síntesis y revisión; delegar implementación
+  mecánica y auditorías de área a modelos medianos con instrucciones precisas y
+  verificación central de gates. Es el esquema con el que se produjo esta
+  auditoría.
+
+## 5. Qué NO hacer ahora
+
+- ❌ Microservicios, colas, Kafka, Kubernetes — la arquitectura modular actual
+  escala de sobra para los próximos 2 órdenes de magnitud.
+- ❌ Redis "por las dudas" — recién con 2+ workers (R4, con señal real).
+- ❌ Apps nativas — la PWA cubre la beta; nativo es decisión post
+  product-market-fit.
+- ❌ Más gamificación visual sin lógica detrás — primero R2.4 (métricas
+  reales), después brillo.
