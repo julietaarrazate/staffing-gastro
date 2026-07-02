@@ -60,5 +60,8 @@ crea el esquema a mano en producción. En Render, el arranque corre
 >   DB. PostGIS está **previsto**, no adoptado (sería un ADR).
 > - **DB de Render (free) expira a los 90 días.** Migración a **Neon** prevista;
 >   pasos en `backend/README.md`. Ver [TECH_DEBT.md](./TECH_DEBT.md).
-> - **Sin índices documentados** para las búsquedas frecuentes (feed por estado,
->   candidatos por skill/disponibilidad): revisar al escalar.
+> - **Índices:** las migraciones ya crean índices en las FKs y columnas de
+>   filtro frecuente (`shifts.company_id/position/status/worker`, perfiles,
+>   `notifications`, `reviews`, `shift_applications`). Revisar cobertura para
+>   consultas nuevas al escalar (detalle en
+>   [PERFORMANCE_REPORT.md](./PERFORMANCE_REPORT.md)).
