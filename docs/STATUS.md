@@ -7,14 +7,18 @@
 
 *Última actualización: 2026-07-02 · rama de trabajo:
 `claude/staffya-platform-spec-40hf7l` · todos los PRs se mergean con squash
-apenas quedan verdes (pedido de Julieta).*
+apenas quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
+auto-merge, confirmado explícitamente por Julieta) para retomar el backlog no
+bloqueado sin esperar "seguí" en cada paso.*
 
 ## Estado en una línea
 
-Producto demo completo y auditado; documentación al día; CI activo; **mapas
-100% MapLibre (Leaflet eliminado)**; sesiones revocables y performance R2.1–R2.3
-listos; próximo gran pendiente: migrar la DB a Neon (R0.1, bloqueado en crear
-la cuenta).
+**Todo el backlog implementable sin credenciales/decisiones de Julieta está
+cerrado** (R0.3, R1.1–R1.6, R2.1–R2.4, R3.1, R3.2 ✅). Lo único que falta:
+🔶 confirmar en Render que el deploy quedó verde contra Neon (código ya en
+`main`), cargar los DSN de Sentry cuando quiera, y decisiones de producto con
+ADR (multi-asignación, cancelaciones, imágenes propias). **R4 se deja afuera a
+propósito** hasta que haya señal real de carga (regla del propio roadmap).
 
 ## Hecho y mergeado (cronológico, con PR)
 
@@ -41,29 +45,34 @@ la cuenta).
 | R1.5b (E2E Playwright en CI) | #58 | 3 specs (`auth`, `worker-apply`, `employer-wizard`) con API 100% mockeada (sin backend ni red externa), viewport móvil 390×844; job `e2e` nuevo en el workflow (build + `playwright test`, artifact del reporte si falla). Corrida local: 3 passed |
 | R1.1 + R1.6 + R0.2 (observabilidad + runbooks) | #59 | Sentry opcional en backend (`SENTRY_DSN`) y frontend (`NEXT_PUBLIC_SENTRY_DSN`) — no-op sin DSN, se enciende al cargar las env vars; logging estructurado JSON (`LOG_JSON=true`) con `request_id` por request (header `X-Request-ID`); CSP permite el ingest de Sentry. DEPLOY.md: runbook de lanzamiento (apagar seed demo + purga) y backups/restore de Neon |
 | R1.3 + R1.5a (CSP + unit tests del scoring) | #55 | CSP en `next.config.ts` (sólo producción; permite backend propio, WS, tiles CARTO y Cloudinary); 25 unit tests puros de `matching/domain/scoring.py` (pesos, casos límite, orden con trade-offs — un test traía una expectativa incorrecta, corregida: el orden real `equilibrada > lejos_pero_excelente > cerca_pero_nueva` es el comportamiento correcto de los pesos documentados, no un bug). `pytest -q` verde (116 tests) |
+| R3.2 (DS v2 en Employer/Admin) | #60, #61 | `/admin` migrado a `Card`/`Badge`/`Button`/`Avatar`/`EmptyState`/`ErrorBanner`/`Spinner` (verificado por mí, no solo por el reporte del agente); color fuera de paleta (`bg-blue-600`) corregido en el botón "Publicar" de `/shifts`. Sin deuda visual restante en pantallas employer/admin |
+| Coherencia doc↔código del roadmap | *(commit directo)* | R0.2, R0.3, R1.1, R1.6 y R3.2 estaban implementados (mergeados en #50/#56/#59/#60/#61) pero sin tildar en `ROADMAP_IMPLEMENTATION.md`; corregido. R0.1 actualizado a 🔶 (código listo, falta confirmación de Julieta en Render) |
 
 ## En vuelo ahora
 
-- Tren de PRs cerrándose (#58 E2E, #59 observabilidad). **Bloqueados en
-  Julieta:** confirmar que el deploy de Render quedó verde contra Neon (el
-  hotfix #56 ya está en main) y cargar los DSN de Sentry (`SENTRY_DSN` en
-  Render, `NEXT_PUBLIC_SENTRY_DSN` en Vercel) — el código ya está listo y se
-  enciende solo.
+- **Nada.** El backlog implementable sin intervención de Julieta está agotado
+  — el loop se detiene acá en vez de inventar trabajo (regla explícita del
+  roadmap: nada de R4 sin señal real de carga).
 
-## Próximos pasos (orden acordado)
+## Bloqueado en Julieta (único trabajo pendiente)
 
-1. **Validar Neon** (Julieta): deploy de Render verde contra la DB nueva +
-   `pg_dump` de respaldo inicial (runbook en DEPLOY.md).
-2. **Encender Sentry** (Julieta): cargar los dos DSN; el código ya está.
-3. **Pendientes de producto con decisión previa**: multi-asignación
-   (`quantity`>1, ADR), modelo de cancelación por actor (deriva
-   `cancellations`, ADR), insignias/niveles con reglas (BUSINESS_RULES.md),
-   imágenes propias en el seed (subir set a Cloudinary, TECH_DEBT I2).
-4. **R3.2**: DS v2 en pantallas Employer/Admin restantes.
-5. **R4** (cuando el tráfico lo pida): Redis para WS/rate-limit, bbox
-   multi-ciudad, mapas F4–F5 (rutas OSRM), pagos MercadoPago.
+1. 🔶 **Confirmar Render/Neon**: el hotfix (#56) y el `DATABASE_URL` ya están
+   cargados; falta chequear en el dashboard de Render que el deploy quedó
+   verde y `alembic upgrade head` corrió contra Neon. Sin acceso a Render
+   desde acá para verificarlo.
+2. **Encender Sentry**: cargar `SENTRY_DSN` (Render) y `NEXT_PUBLIC_SENTRY_DSN`
+   (Vercel) cuando quiera — el código ya está y es no-op sin esos valores.
+3. **Decisiones de producto con ADR** (bajo demanda, no urgentes):
+   multi-asignación (`quantity`>1), modelo de cancelación por actor (deriva
+   `cancellations`), reglas de insignias/niveles (BUSINESS_RULES.md).
+4. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
+   Cloudinary del proyecto (TECH_DEBT I2), manual, sin credenciales no se
+   puede automatizar.
+5. **R4** — deliberadamente en espera hasta que haya señal real de tráfico
+   (Redis, bbox multi-ciudad, rutas OSRM, pagos MercadoPago).
 6. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
-   [RECOMMENDATIONS.md](./RECOMMENDATIONS.md)).
+   [RECOMMENDATIONS.md](./RECOMMENDATIONS.md)) — decisión de negocio, no de
+   código.
 
 ## Decisiones clave vigentes
 

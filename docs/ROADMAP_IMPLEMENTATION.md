@@ -12,9 +12,9 @@
 
 | # | Tarea | Esfuerzo | Dependencias |
 |---|-------|----------|--------------|
-| R0.1 | **Migrar la DB a Neon** (dump/restore + `DATABASE_URL` en Render) y validar `alembic upgrade head` | bajo | acceso a Render/Neon |
-| R0.2 | **Backups automatizados** (Neon los da; documentar restore en DEPLOY.md) | bajo | R0.1 |
-| R0.3 | **CI en GitHub Actions**: workflow que corre `pytest -q`, `tsc --noEmit` y `npm run build` como checks obligatorios de PR | bajo | ninguna |
+| R0.1 | 🔶 **Migrar la DB a Neon**: Julieta cargó el `DATABASE_URL` de Neon en Render; el hotfix de compatibilidad asyncpg (PR #56) ya está en `main`. Falta confirmar en el dashboard de Render que el deploy quedó verde con `alembic upgrade head` corrido contra Neon (sin acceso a Render desde acá para verificarlo) | bajo | acceso a Render/Neon |
+| R0.2 | ✅ **Backups automatizados**: point-in-time restore de Neon + `pg_dump` frío documentados en [DEPLOY.md](./DEPLOY.md#db-en-neon-backups-y-restore-r01r02) | bajo | R0.1 |
+| R0.3 | ✅ **CI en GitHub Actions**: `pytest -q` + `tsc --noEmit` + `npm run build` + E2E Playwright en cada PR/push a `main` (`.github/workflows/ci.yml`, PR #50) | bajo | ninguna |
 
 ## R1 — Listos para usuarios reales (1 semana) 🟠
 
@@ -22,13 +22,13 @@
 
 | # | Tarea | Esfuerzo | Dependencias |
 |---|-------|----------|--------------|
-| R1.1 | **Sentry** (backend+frontend) + logging estructurado JSON con `request_id` | medio | — |
+| R1.1 | ✅ **Sentry** (backend `sentry-sdk`+frontend `@sentry/nextjs`, no-op sin DSN) + logging estructurado JSON con `request_id` (`core/observability.py`, `RequestIdMiddleware`) | medio | DSN pendiente de Julieta para activarlo |
 | R1.2 | ✅ **Sesiones revocables**: tabla de refresh tokens (jti), logout server-side, rotación en refresh — **ADR-0002** | medio | — |
 | R1.3 | ✅ **CSP** y endurecimiento de headers del frontend (`next.config.ts`, sólo en producción) | bajo | — |
 | R1.4 | ✅ **Decisión `quantity`**: capado a 1 en UI+API (opción rápida elegida; multi-asignación real queda para más adelante con ADR si se decide) | bajo | decisión de producto |
 | R1.5a | ✅ **Unit tests del scoring de matching** (25 tests: pesos, casos límite sin geo/radio/tope de experiencia, orden del ranking con trade-offs) | medio | — |
 | R1.5b | ✅ **E2E Playwright** en CI: 3 specs móviles (`auth`, `worker-apply`, `employer-wizard`) con API mockeada, job `e2e` en el workflow | medio | R0.3 ✅ |
-| R1.6 | **Interruptor de demo**: apagar `SEED_DEMO_DATA` y purgar cuentas demo al lanzar (runbook en DEPLOY.md) | bajo | momento del lanzamiento |
+| R1.6 | ✅ **Runbook de lanzamiento**: apagar `SEED_DEMO_DATA` y purgar cuentas demo, documentado en [DEPLOY.md](./DEPLOY.md#runbook-de-lanzamiento-apagar-el-modo-demo-r16) | bajo | ejecutar al momento del lanzamiento |
 
 ## R2 — Rendimiento y confianza del marketplace (1–2 semanas) 🟡
 
@@ -47,7 +47,7 @@
 | # | Tarea | Esfuerzo | Dependencias |
 |---|-------|----------|--------------|
 | R3.1 | ✅ **Mapas F1–F3** ([MAPS_REDESIGN.md](./MAPS_REDESIGN.md), aprobado): base MapLibre vectorial → `/map` premium (40/60, clustering, sync) → `/search` + tiempos por modo + "cómo llegar" (deep-link) → desinstalar Leaflet | alto | diseño aprobado ✅ |
-| R3.2 | DS v2 en pantallas Employer/Admin restantes | medio | — |
+| R3.2 | ✅ **DS v2 en pantallas Employer/Admin**: `/admin` migrado a `Card`/`Badge`/`Button`/`Avatar`/`EmptyState`/`ErrorBanner`/`Spinner`; color fuera de paleta corregido en `/shifts`. Sin deuda visual restante (los controles custom que quedan en el wizard son legítimos, no CTAs genéricos) | medio | — |
 
 ## R4 — Escala (cuando el tráfico lo pida, no antes)
 
