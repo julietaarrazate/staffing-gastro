@@ -59,12 +59,18 @@ def create_access_token(subject: str, extra_claims: dict[str, Any] | None = None
     )
 
 
-def create_refresh_token(subject: str) -> str:
-    """Genera un refresh token de larga duración."""
+def create_refresh_token(subject: str, jti: str) -> str:
+    """Genera un refresh token de larga duración.
+
+    `jti` identifica la sesión (tabla `refresh_sessions`) para permitir
+    revocación server-side y rotación (ADR-0002). Lo genera y persiste quien
+    llama (capa de aplicación), no esta función.
+    """
     return _create_token(
         subject,
         REFRESH_TOKEN,
         timedelta(days=settings.refresh_token_expire_days),
+        extra_claims={"jti": jti},
     )
 
 

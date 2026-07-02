@@ -27,7 +27,10 @@ from app.modules.identity.application.dtos import RegisterCommand
 from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.exceptions import EmailAlreadyExistsError
 from app.modules.identity.domain.value_objects import UserRole
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.identity.infrastructure.repositories import (
+    SqlAlchemyRefreshSessionRepository,
+    SqlAlchemyUserRepository,
+)
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
@@ -361,7 +364,7 @@ async def _seed_companies(session) -> set[str]:
     seed de turnos sólo siembre para comercios nuevos y sea idempotente)."""
     users = SqlAlchemyUserRepository(session)
     companies = SqlAlchemyCompanyProfileRepository(session)
-    identity_service = IdentityService(users)
+    identity_service = IdentityService(users, SqlAlchemyRefreshSessionRepository(session))
     company_service = CompanyProfileService(companies)
     created: set[str] = set()
 
@@ -405,7 +408,7 @@ async def _seed_companies(session) -> set[str]:
 async def _seed_workers(session) -> None:
     users = SqlAlchemyUserRepository(session)
     workers = SqlAlchemyWorkerProfileRepository(session)
-    identity_service = IdentityService(users)
+    identity_service = IdentityService(users, SqlAlchemyRefreshSessionRepository(session))
     worker_service = WorkerProfileService(workers)
 
     for entry in WORKERS:
@@ -442,21 +445,22 @@ async def _seed_workers(session) -> None:
 
 # Turnos demo publicados, para que el Inicio del trabajador tenga oportunidades
 # que deslizar. (email del comercio, puesto, cantidad, pago, urgente, dress code)
+# `cantidad` queda fija en 1: un turno = una persona (R1.4), la API la capa.
 SHIFTS = [
-    ("demo.palermo@staffya.com", WorkerSkill.BARTENDER, 2, 18000, True, "Negro formal"),
-    ("demo.palermo@staffya.com", WorkerSkill.MOZO, 3, 15000, False, "Camisa blanca"),
-    ("demo.recoleta@staffya.com", WorkerSkill.MOZO, 2, 16000, False, "Elegante sport"),
+    ("demo.palermo@staffya.com", WorkerSkill.BARTENDER, 1, 18000, True, "Negro formal"),
+    ("demo.palermo@staffya.com", WorkerSkill.MOZO, 1, 15000, False, "Camisa blanca"),
+    ("demo.recoleta@staffya.com", WorkerSkill.MOZO, 1, 16000, False, "Elegante sport"),
     ("demo.recoleta@staffya.com", WorkerSkill.COCINERO, 1, 22000, True, None),
     ("demo.santelmo@staffya.com", WorkerSkill.BARISTA, 1, 14000, False, "Delantal del local"),
-    ("demo.belgrano@staffya.com", WorkerSkill.RUNNER, 2, 12000, False, None),
-    ("demo.caballito@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 5, 17000, True, "Uniforme provisto"),
+    ("demo.belgrano@staffya.com", WorkerSkill.RUNNER, 1, 12000, False, None),
+    ("demo.caballito@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 1, 17000, True, "Uniforme provisto"),
     ("demo.microcentro@staffya.com", WorkerSkill.CAJERO, 1, 15000, False, None),
     ("demo.villacrespo@staffya.com", WorkerSkill.BARTENDER, 1, 19000, False, "Casual"),
-    ("demo.almagro@staffya.com", WorkerSkill.MOZO, 2, 15500, True, "Remera del local"),
-    ("demo.puertomadero@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 4, 20000, True, "Uniforme provisto"),
+    ("demo.almagro@staffya.com", WorkerSkill.MOZO, 1, 15500, True, "Remera del local"),
+    ("demo.puertomadero@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 1, 20000, True, "Uniforme provisto"),
     ("demo.nunez@staffya.com", WorkerSkill.BARISTA, 1, 14500, False, None),
-    ("demo.boedo@staffya.com", WorkerSkill.MOZO, 2, 15000, False, "Mandil del bodegón"),
-    ("demo.colegiales@staffya.com", WorkerSkill.COCINERO, 2, 23000, True, None),
+    ("demo.boedo@staffya.com", WorkerSkill.MOZO, 1, 15000, False, "Mandil del bodegón"),
+    ("demo.colegiales@staffya.com", WorkerSkill.COCINERO, 1, 23000, True, None),
 ]
 
 

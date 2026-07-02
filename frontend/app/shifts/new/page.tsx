@@ -22,7 +22,8 @@ export default function NewShiftWizard() {
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [position, setPosition] = useState<WorkerSkill | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  // Por ahora, un turno = una persona (R1.4): la cantidad queda fija.
+  const quantity = 1;
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [payAmount, setPayAmount] = useState("");
@@ -154,19 +155,25 @@ export default function NewShiftWizard() {
                 <p className="mt-1 text-sm text-zinc-500">Para este puesto.</p>
                 <div className="mt-10 flex items-center gap-6">
                   <button
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="flex h-14 w-14 items-center justify-center rounded-full bg-surface text-3xl font-bold text-zinc-700 ring-1 ring-zinc-200 active:scale-90"
+                    disabled
+                    aria-disabled
+                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-surface text-3xl font-bold text-zinc-300 ring-1 ring-zinc-200"
                   >
                     −
                   </button>
                   <span className="w-20 text-6xl font-extrabold text-zinc-900">{quantity}</span>
                   <button
-                    onClick={() => setQuantity((q) => Math.min(100, q + 1))}
-                    className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-3xl font-bold text-white active:scale-90"
+                    disabled
+                    aria-disabled
+                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-zinc-200 text-3xl font-bold text-zinc-400"
                   >
                     +
                   </button>
                 </div>
+                <p className="mt-6 max-w-xs text-sm text-zinc-500">
+                  Por ahora, un turno = una persona. Para varios puestos creá varios
+                  turnos.
+                </p>
               </div>
             )}
 

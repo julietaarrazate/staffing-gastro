@@ -22,7 +22,7 @@ async def _employer_with_company(client: AsyncClient, email: str) -> dict:
 def _shift_payload(**overrides) -> dict:
     payload = {
         "position": "mozo",
-        "quantity": 2,
+        "quantity": 1,
         "start_at": "2026-06-28T20:00:00",
         "end_at": "2026-06-29T03:00:00",
         "pay_amount": "70000.00",
@@ -43,7 +43,7 @@ async def test_employer_creates_shift_as_draft(client: AsyncClient):
     assert response.status_code == 201
     body = response.json()
     assert body["position"] == "mozo"
-    assert body["quantity"] == 2
+    assert body["quantity"] == 1
     assert float(body["pay_amount"]) == 70000.0
     assert body["status"] == "borrador"
     assert body["urgent"] is True
@@ -63,6 +63,15 @@ async def test_worker_cannot_create_shift(client: AsyncClient):
         "/api/v1/shifts", headers=headers, json=_shift_payload()
     )
     assert response.status_code == 403
+
+
+async def test_quantity_greater_than_one_rejected(client: AsyncClient):
+    """R1.4: un turno = una persona hasta implementar multi-asignación."""
+    headers = await _employer_with_company(client, "emp_qty@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload(quantity=2)
+    )
+    assert response.status_code == 422
 
 
 async def test_invalid_schedule_rejected(client: AsyncClient):
@@ -131,7 +140,7 @@ async def test_cannot_edit_after_cancel(client: AsyncClient):
     update = await client.put(
         f"/api/v1/shifts/{shift_id}",
         headers=headers,
-        json=_shift_payload(quantity=5),
+        json=_shift_payload(dress_code="Traje formal"),
     )
     assert update.status_code == 400
 

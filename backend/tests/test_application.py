@@ -31,7 +31,7 @@ async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, s
 def _shift_payload(**overrides) -> dict:
     payload = {
         "position": "mozo",
-        "quantity": 2,
+        "quantity": 1,
         "start_at": "2026-06-28T20:00:00",
         "end_at": "2026-06-29T03:00:00",
         "pay_amount": "70000.00",

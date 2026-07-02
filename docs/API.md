@@ -25,7 +25,8 @@ Rutas relativas al prefijo del módulo (todas bajo `/api/v1`).
 |--------|------|----------|
 | POST | `/register` | Alta de usuario (worker/employer) |
 | POST | `/login` | Login → access + refresh token |
-| POST | `/refresh` | Renueva tokens con el refresh token |
+| POST | `/refresh` | Renueva tokens con el refresh token (rota la sesión, ADR-0002) |
+| POST | `/logout` | Revoca la sesión del refresh token dado (204) |
 | GET | `/me` | Usuario autenticado |
 
 ### `worker` — `/workers`

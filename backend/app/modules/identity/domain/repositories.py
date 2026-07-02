@@ -7,7 +7,7 @@ concretas (adaptadores) viven en la capa de infraestructura.
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.entities import RefreshSession, User
 
 
 class UserRepository(ABC):
@@ -36,3 +36,23 @@ class UserRepository(ABC):
     @abstractmethod
     async def exists_by_email(self, email: str) -> bool:
         """Indica si ya existe un usuario con ese email."""
+
+
+class RefreshSessionRepository(ABC):
+    """Puerto de persistencia para las sesiones de refresh token (R1.2, ADR-0002)."""
+
+    @abstractmethod
+    async def add(self, session: RefreshSession) -> RefreshSession:
+        """Persiste una nueva sesión de refresh y la devuelve."""
+
+    @abstractmethod
+    async def get_by_jti(self, jti: str) -> RefreshSession | None:
+        """Busca una sesión por el `jti` del refresh token."""
+
+    @abstractmethod
+    async def revoke(self, jti: str) -> None:
+        """Revoca la sesión identificada por `jti` (no-op si no existe o ya lo está)."""
+
+    @abstractmethod
+    async def revoke_all_for_user(self, user_id: UUID) -> None:
+        """Revoca todas las sesiones activas de un usuario (reuso detectado = posible robo)."""

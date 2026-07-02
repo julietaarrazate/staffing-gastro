@@ -5,7 +5,7 @@ La persistencia se hace mediante un mapeo en la capa de infraestructura.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
@@ -41,3 +41,29 @@ class User:
 
     def promote_to_admin(self) -> None:
         self.role = UserRole.ADMIN
+
+
+@dataclass
+class RefreshSession:
+    """Sesión de refresh token: registro server-side que permite revocación.
+
+    Cada refresh token emitido queda identificado por su claim `jti` (único).
+    La sesión se revoca al rotar (usarse en `/auth/refresh`), al hacer logout,
+    o en bloque si se detecta reuso de un token ya revocado (posible robo).
+    """
+
+    user_id: UUID
+    jti: str
+    expires_at: datetime
+    id: UUID = field(default_factory=uuid4)
+    revoked_at: datetime | None = None
+    created_at: datetime | None = None
+
+    @property
+    def is_revoked(self) -> bool:
+        return self.revoked_at is not None
+
+    def revoke(self) -> None:
+        """Marca la sesión como revocada (idempotente)."""
+        if self.revoked_at is None:
+            self.revoked_at = datetime.now(timezone.utc)
