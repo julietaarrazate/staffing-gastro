@@ -6,10 +6,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getCurrentPosition } from "@/lib/geolocation";
+import { haversineKm } from "@/lib/map/geo";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { Button, EmptyState, useToast } from "@/components/ui";
 import { CalendarIcon, FlameIcon, MapPinIcon } from "@/components/icons";
+import MapSheet from "@/components/worker/MapSheet";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   ssr: false,
@@ -17,17 +19,6 @@ const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
 });
 
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
-
-function haversineKm(a: [number, number], b: [number, number]): number {
-  const R = 6371;
-  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
-  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
-  const lat1 = (a[0] * Math.PI) / 180;
-  const lat2 = (b[0] * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 
 export default function MapPage() {
   const { token } = useAuth();
@@ -38,6 +29,7 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getCurrentPosition()
@@ -103,7 +95,10 @@ export default function MapPage() {
   const activeId = shifts[activeIndex]?.id ?? null;
 
   return (
-    <div className="relative h-[calc(100dvh-4rem-5rem)] overflow-hidden md:h-[calc(100dvh-4rem)]">
+    <div
+      ref={containerRef}
+      className="relative h-[calc(100dvh-4rem-5rem)] overflow-hidden md:h-[calc(100dvh-4rem)]"
+    >
       <ShiftMap shifts={shifts} center={center} activeId={activeId} onSelect={selectById} />
 
       {/* Encabezado flotante */}
@@ -114,7 +109,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      {/* Carrusel de tarjetas grandes */}
+      {/* Sheet inferior arrastrable (25% / 58% / 88%) con el carrusel de tarjetas */}
       {!loading && shifts.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-10 px-4">
           <div className="rounded-[var(--radius-card)] bg-white p-2 shadow-[var(--shadow-float)]">
@@ -127,11 +122,12 @@ export default function MapPage() {
           </div>
         </div>
       ) : (
-        <div
-          ref={carouselRef}
-          onScroll={onCarouselScroll}
-          className="no-scrollbar absolute inset-x-0 bottom-3 z-10 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1"
-        >
+        <MapSheet containerRef={containerRef}>
+          <div
+            ref={carouselRef}
+            onScroll={onCarouselScroll}
+            className="no-scrollbar flex h-full items-start snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
+          >
           {shifts.map((shift) => {
             const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
             const distance =
@@ -181,7 +177,8 @@ export default function MapPage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        </MapSheet>
       )}
     </div>
   );

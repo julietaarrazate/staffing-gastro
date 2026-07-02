@@ -1,38 +1,35 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { useEffect } from "react";
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MapRef, ViewStateChangeEvent } from "@vis.gl/react-maplibre";
+import MapView from "@/components/map/MapView";
+import UserPuck from "@/components/map/UserPuck";
+import RadiusRing from "@/components/map/RadiusRing";
+import ShiftMarker from "@/components/map/ShiftMarker";
+import ClusterMarker from "@/components/map/ClusterMarker";
+import { buildShiftClusterIndex, isCluster, type ShiftClusterFeature } from "@/lib/map/clustering";
+import { easeToPoint, flyToPoint } from "@/lib/map/camera";
+import { haversineKm } from "@/lib/map/geo";
 import { Shift } from "@/lib/types";
-import { MAP_TILE_ATTRIBUTION, MAP_TILE_SUBDOMAINS, MAP_TILE_URL } from "@/lib/map-tiles";
 
-function shiftPin(active: boolean) {
-  const size = active ? 34 : 24;
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#ff8a00,#ea580c);border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,${active ? 0.45 : 0.3})"></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-  });
+/** Radio de búsqueda mostrado en el anillo (ver docs/MAPS_REDESIGN.md §4.1). */
+const SEARCH_RADIUS_KM = 2;
+
+interface Viewport {
+  bbox: [number, number, number, number];
+  zoom: number;
 }
 
-const originPin = L.divIcon({
-  className: "",
-  html: '<div style="width:16px;height:16px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 0 0 3px rgba(37,99,235,0.3)"></div>',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
-});
-
-/** Mantiene el mapa centrado en la tarjeta activa del carrusel. */
-function PanTo({ lat, lng }: { lat: number | null; lng: number | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (lat != null && lng != null) map.panTo([lat, lng], { animate: true, duration: 0.4 });
-  }, [lat, lng, map]);
-  return null;
+function boundsToBbox(map: MapRef): [number, number, number, number] {
+  const bounds = map.getBounds();
+  return [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
 }
 
+/**
+ * Mapa del worker en `/map`, reimplementado sobre el módulo `components/map/`
+ * (MapLibre vectorial) manteniendo la misma interfaz de props que la versión
+ * Leaflet anterior. Ver docs/MAPS_REDESIGN.md §4/§5 y ADR-0001.
+ */
 export default function ShiftMap({
   shifts,
   center,
@@ -44,33 +41,106 @@ export default function ShiftMap({
   activeId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const mapRef = useRef<MapRef | null>(null);
+  const [viewport, setViewport] = useState<Viewport | null>(null);
+  const initialCenterRef = useRef(center);
+  const hasCenteredOnUserRef = useRef(false);
+
+  const handleLoad = useCallback((map: MapRef) => {
+    mapRef.current = map;
+    setViewport({ bbox: boundsToBbox(map), zoom: map.getZoom() });
+  }, []);
+
+  const handleMoveEnd = useCallback((event: ViewStateChangeEvent) => {
+    const map = event.target as unknown as MapRef;
+    setViewport({ bbox: boundsToBbox(map), zoom: event.viewState.zoom });
+  }, []);
+
+  // Apertura: cuando se detecta la ubicación real (el `center` pasa de CABA
+  // al usuario), volamos con una curva suave. Sólo la primera vez.
+  useEffect(() => {
+    if (hasCenteredOnUserRef.current || !mapRef.current) return;
+    const [initLat, initLng] = initialCenterRef.current;
+    if (center[0] === initLat && center[1] === initLng) return;
+    hasCenteredOnUserRef.current = true;
+    flyToPoint(mapRef.current, center, { zoom: 14, duration: 1400 });
+  }, [center]);
+
   const active = shifts.find((s) => s.id === activeId);
+  const activeLat = active?.latitude;
+  const activeLng = active?.longitude;
+
+  // Scroll del carrusel -> tarjeta activa -> paneo suave al marcador.
+  useEffect(() => {
+    if (!mapRef.current || activeLat == null || activeLng == null) return;
+    easeToPoint(mapRef.current, [activeLat, activeLng], { duration: 450 });
+  }, [activeLat, activeLng]);
+
+  const clusterIndex = useMemo(() => buildShiftClusterIndex(shifts), [shifts]);
+
+  const clusters = useMemo<ShiftClusterFeature[]>(() => {
+    if (!viewport) return [];
+    return clusterIndex.getClusters(viewport.bbox, Math.round(viewport.zoom));
+  }, [clusterIndex, viewport]);
+
+  // Stagger de aparición del más cercano al más lejano (docs/MAPS_REDESIGN.md §5).
+  const orderedClusters = useMemo(
+    () =>
+      [...clusters].sort((a, b) => {
+        const da = haversineKm(center, [a.geometry.coordinates[1], a.geometry.coordinates[0]]);
+        const db = haversineKm(center, [b.geometry.coordinates[1], b.geometry.coordinates[0]]);
+        return da - db;
+      }),
+    [clusters, center]
+  );
+
+  const handleClusterClick = useCallback(
+    (clusterId: number, lng: number, lat: number) => {
+      if (!mapRef.current) return;
+      const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), 18);
+      easeToPoint(mapRef.current, [lat, lng], { zoom: expansionZoom, duration: 600 });
+    },
+    [clusterIndex]
+  );
+
   return (
-    <MapContainer
+    <MapView
       center={center}
       zoom={14}
-      zoomControl={false}
-      scrollWheelZoom
+      onLoad={handleLoad}
+      onMoveEnd={handleMoveEnd}
       className="absolute inset-0 h-full w-full"
     >
-      <TileLayer
-        url={MAP_TILE_URL}
-        attribution={MAP_TILE_ATTRIBUTION}
-        subdomains={MAP_TILE_SUBDOMAINS}
-        detectRetina
-      />
-      <Marker position={center} icon={originPin} />
-      {shifts
-        .filter((s) => s.latitude != null && s.longitude != null)
-        .map((s) => (
-          <Marker
-            key={s.id}
-            position={[s.latitude as number, s.longitude as number]}
-            icon={shiftPin(s.id === activeId)}
-            eventHandlers={{ click: () => onSelect(s.id) }}
+      <UserPuck center={center} />
+      <RadiusRing center={center} radiusKm={SEARCH_RADIUS_KM} />
+      {orderedClusters.map((feature, index) => {
+        const [lng, lat] = feature.geometry.coordinates;
+        if (isCluster(feature)) {
+          return (
+            <ClusterMarker
+              key={`cluster-${feature.properties.cluster_id}`}
+              longitude={lng}
+              latitude={lat}
+              count={feature.properties.point_count}
+              delayMs={index * 80}
+              onClick={() => handleClusterClick(feature.properties.cluster_id, lng, lat)}
+            />
+          );
+        }
+        const { shiftId, position, urgent } = feature.properties;
+        return (
+          <ShiftMarker
+            key={shiftId}
+            longitude={lng}
+            latitude={lat}
+            position={position}
+            urgent={urgent}
+            active={shiftId === activeId}
+            delayMs={index * 80}
+            onClick={() => onSelect(shiftId)}
           />
-        ))}
-      {active && <PanTo lat={active.latitude} lng={active.longitude} />}
-    </MapContainer>
+        );
+      })}
+    </MapView>
   );
 }

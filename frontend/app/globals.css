@@ -93,3 +93,58 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- Mapa vectorial (MapLibre) — components/map/, ver ADR-0001 ---- */
+
+/* Puck de ubicación: halo azul pulsante. */
+@keyframes puckHalo {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* Aparición de marcadores (turno/cluster): scale-in con rebote, con stagger
+ * por `animation-delay` desde cada componente. */
+@keyframes markerPop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Halo naranja del marcador de turno seleccionado. */
+@keyframes markerHalo {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* Punto rojo de turno urgente. */
+@keyframes urgentPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.35);
+  }
+}
+
+/* Oculta el logo/attribution grande de MapLibre; dejamos sólo el botón
+ * compacto ("i") que agregamos vía <AttributionControl compact />. */
+.maplibregl-ctrl-logo {
+  display: none !important;
+}
+
