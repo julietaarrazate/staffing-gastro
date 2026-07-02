@@ -1,0 +1,48 @@
+# CI de Staffya: los mismos gates que exige CLAUDE.md, ahora obligatorios en
+# cada PR y push a main (el deploy a Render/Vercel es automático desde main,
+# así que nada entra sin pasar por acá). Ver docs/TESTING.md y ROADMAP R0.3.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Tests
+        run: pytest -q
+
+  frontend:
+    name: Frontend (tsc + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
