@@ -25,16 +25,15 @@ fecha de esta auditoría (2026-07-02).
 
 ## Producto / negocio incompleto
 
-### P1 — `quantity` del turno no soporta asignación múltiple 🔴 Crítica
+### P1 — `quantity` del turno no soporta asignación múltiple ✅ Resuelto (decisión permanente)
 
-> **Actualización 2026-07-02 (R1.4):** mitigado con la opción rápida sugerida
-> abajo — `quantity` queda **capado a 1** en `ShiftInput`
-> (`backend/app/modules/shift/api/schemas.py`, `le=1` + mensaje en español) y
-> en el wizard (`frontend/app/shifts/new/page.tsx`, paso "¿Cuántas
-> personas?" deshabilitado con nota). Ya no se puede publicar un turno que
-> prometa más cupos de los que el sistema cubre. La multi-asignación real
-> (tabla N—N) sigue **sin implementar**; se retoma con ADR si el negocio la
-> necesita.
+> **Actualización 2026-07-02 ([ADR-0003](./adr/ADR-0003-quantity-single-assignment.md)):**
+> cerrado como **decisión de producto permanente**, no como mitigación
+> temporal. Un turno = una persona; un comercio con varios puestos publica
+> varios turnos (el feed/matching/postulación ya lo soportan sin cambios).
+> `quantity` capado a 1 en `ShiftInput` (`le=1`) y en el wizard desde R1.4; la
+> multi-asignación real (tabla N—N) **no se va a construir** salvo demanda de
+> negocio explícita con su propio ADR nuevo.
 
 - **Descripción (histórica, previa a R1.4):** el wizard de creación de turno
   permitía pedir de 1 a 100
