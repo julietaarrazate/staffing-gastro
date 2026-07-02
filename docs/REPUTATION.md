@@ -22,9 +22,19 @@ bidireccional: comercio y trabajador se califican mutuamente.
 
 ### Trabajador
 - `rating` — promedio de reseñas recibidas (impacta el matching).
-- `punctuality_rate` — tasa de puntualidad.
-- `events_completed` — trabajos completados.
-- `cancellations` — cancelaciones.
+- `punctuality_rate` — tasa de puntualidad. **(R2.4)** se recalcula al
+  finalizar cada turno (`ShiftService.finish`,
+  `backend/app/modules/shift/application/services.py`) como promedio móvil
+  simple sobre los turnos completados: puntual = check-in dentro de **±15
+  minutos** del horario pactado (`start_at`). `finish()` sólo es alcanzable
+  habiendo pasado por check-in y check-out (ver
+  `Shift._transition` en `shift/domain/entities.py`), así que siempre hay un
+  check-in real para evaluar.
+- `events_completed` — trabajos completados. **(R2.4)** se incrementa en el
+  mismo punto (`ShiftService.finish`), un evento por turno finalizado con
+  éxito.
+- `cancellations` — cancelaciones. **Sigue sin cálculo automático** — ver
+  limitación abajo.
 - `badges` — insignias (catálogo `WorkerBadge`): `nunca_falto`, `top_mozo`,
   `top_bartender`, `eventos_premium`, `perfil_verificado`.
 - `level` — nivel de gamificación (`bronce`, `plata`, `oro`, `platino`).
@@ -48,12 +58,29 @@ bidireccional: comercio y trabajador se califican mutuamente.
 > 1. **Insignias y niveles sin lógica de otorgamiento.** El catálogo de
 >    `WorkerBadge` y los `GamificationLevel` existen, pero no hay reglas que las
 >    asignen ni suban de nivel automáticamente. Hoy son presentacionales.
-> 2. **Métricas derivadas sin fuente clara.** Sólo el `rating` se recalcula (por
->    reseñas). `punctuality_rate`, `events_completed`, `cancellations` y
->    `on_time_payment_rate` **no tienen aún un cálculo automático** a partir del
->    ciclo del turno (check-in a tiempo, no-shows, pagos). Debe definirse cómo y
->    cuándo se actualizan.
+>    Fuera de alcance de R2.4 (es un ítem más grande, ver `TECH_DEBT.md` P2).
+> 2. **`cancellations` (trabajador) y `on_time_payment_rate`/`events_published`
+>    (comercio) siguen sin cálculo automático.** R2.4 resolvió
+>    `punctuality_rate` y `events_completed` del trabajador (ver arriba), pero
+>    el resto queda pendiente:
+>    - `cancellations`: el dominio actual **no distingue quién cancela** un
+>      turno. `Shift.cancel()` (`shift/domain/entities.py`) es una transición
+>      genérica alcanzable desde cualquier estado no terminal, y en la API
+>      sólo el comercio la dispara (`POST /shifts/{id}/cancel`, protegido por
+>      `company_id` — no existe una ruta de cancelación por parte del
+>      trabajador). Tampoco existe un estado `no_show`. Contar
+>      `Shift.cancel()` como "cancelación del trabajador" sería incorrecto:
+>      hoy siempre es el comercio quien cancela. `reject_assignment()` (el
+>      trabajador rechaza una asignación antes de confirmarla) es una acción
+>      distinta y ya notificada aparte; no se asimila a "cancelación" sin una
+>      definición de producto explícita. **No se inventa un estado nuevo** —
+>      requiere decisión de producto + ADR si se quiere distinguir el actor o
+>      agregar `no_show` (ver `TECH_DEBT.md` P3).
+>    - `on_time_payment_rate`/`events_published` (comercio): sin tocar en
+>      R2.4, mismo motivo (fuera del alcance acotado: se centró en las
+>      métricas del trabajador derivables honestamente del ciclo del turno).
 >
-> Propuesta: derivar puntualidad/desempeño del ciclo de vida del turno (asistencia
-> y cierres) y otorgar insignias/niveles por umbrales; documentarlo en
-> `BUSINESS_RULES.md` y, si cambia el modelo, con un ADR.
+> Propuesta: otorgar insignias/niveles por umbrales sobre `events_completed`/
+> `punctuality_rate` (ya derivados); para `cancellations`, definir primero en
+> `BUSINESS_RULES.md` quién puede cancelar y si se agrega `no_show`, con ADR
+> si cambia el modelo de estados.

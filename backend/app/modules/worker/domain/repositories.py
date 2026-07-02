@@ -32,3 +32,12 @@ class WorkerProfileRepository(ABC):
     @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
+
+    @abstractmethod
+    async def record_completed_shift(self, profile_id: UUID, *, punctual: bool) -> None:
+        """Registra un turno finalizado con éxito para el trabajador.
+
+        Incrementa `events_completed` en 1 y recalcula `punctuality_rate` como
+        promedio móvil simple sobre los eventos completados (incluye el que se
+        está registrando ahora).
+        """

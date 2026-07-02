@@ -100,3 +100,19 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
             return
         model.rating = rating
         await self._session.commit()
+
+    async def record_completed_shift(self, profile_id: UUID, *, punctual: bool) -> None:
+        model = await self._session.get(WorkerProfileModel, profile_id)
+        if model is None:
+            return
+        # Promedio móvil simple: el nuevo rate pondera todos los eventos
+        # completados hasta ahora (incluido el actual). `events_completed`
+        # todavía no fue incrementado en este punto, así que representa la
+        # cantidad de eventos previos.
+        previous_events = model.events_completed
+        new_events = previous_events + 1
+        model.punctuality_rate = (
+            model.punctuality_rate * previous_events + (1.0 if punctual else 0.0)
+        ) / new_events
+        model.events_completed = new_events
+        await self._session.commit()

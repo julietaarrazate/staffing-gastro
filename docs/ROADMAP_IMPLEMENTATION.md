@@ -27,7 +27,7 @@
 | R1.3 | ✅ **CSP** y endurecimiento de headers del frontend (`next.config.ts`, sólo en producción) | bajo | — |
 | R1.4 | ✅ **Decisión `quantity`**: capado a 1 en UI+API (opción rápida elegida; multi-asignación real queda para más adelante con ADR si se decide) | bajo | decisión de producto |
 | R1.5a | ✅ **Unit tests del scoring de matching** (25 tests: pesos, casos límite sin geo/radio/tope de experiencia, orden del ranking con trade-offs) | medio | — |
-| R1.5b | **E2E Playwright** (3–4 flujos: login→postular→asignar→confirmar) en CI | medio | R0.3 ✅ |
+| R1.5b | ✅ **E2E Playwright** en CI: 3 specs móviles (`auth`, `worker-apply`, `employer-wizard`) con API mockeada, job `e2e` en el workflow | medio | R0.3 ✅ |
 | R1.6 | **Interruptor de demo**: apagar `SEED_DEMO_DATA` y purgar cuentas demo al lanzar (runbook en DEPLOY.md) | bajo | momento del lanzamiento |
 
 ## R2 — Rendimiento y confianza del marketplace (1–2 semanas) 🟡
@@ -39,14 +39,14 @@
 | R2.1 | ✅ **Paginación** en los listados largos (`/shifts/feed`, `/shifts/mine`, `/shifts/me`, `/applications/mine`, `/notifications`, `/admin/users`, `/matching/search`): `limit`/`offset` con `LIMIT`/`OFFSET` en SQL (no slicing en Python), default 50/tope 100, mismo shape de respuesta. Detalle y excepciones (`/matching/search` pagina *después* de ordenar por distancia) en [API.md](./API.md#paginación) | medio | — |
 | R2.2 | ✅ **Fix N+1**: inbox de chat resuelto en 3 queries agregadas (JOIN turno-comercio-trabajador-usuario + batch de último mensaje + batch de no leídos, vía `ChatMessageRepository`) en vez de ~6 por conversación (P1 del reporte); postulantes de un turno enriquecidos con un JOIN en `ShiftApplicationRepository.list_by_shift_enriched` en vez de 2N+1 (P2) | medio | — |
 | R2.3 | ✅ **Matching acotado en SQL**: `is_available` y `skill` se filtran en la query (`CandidateRepository.list_available`); `skill` usa `CAST(skills AS TEXT) LIKE '%"<skill>"%'` (portable SQLite/Postgres, ver comentario en el repo) en vez de traer todo y filtrar en Python (P4 del reporte). El scoring ponderado (Haversine, experiencia, etc.) sigue en Python sobre el subconjunto ya acotado, porque es lógica de dominio; falta bbox por lat/lng (queda para R4.2) | medio | — |
-| R2.4 | **Métricas de reputación reales**: `punctuality_rate`, `events_completed`, `cancellations` derivadas del ciclo del turno; reglas de insignias/niveles (BUSINESS_RULES.md) | alto | decisión de reglas |
-| R2.5 | **Imágenes propias** (Cloudinary ya integrado) en lugar de loremflickr en seed/demo | bajo | — |
+| R2.4 | ✅ (parcial honesto) **Métricas de reputación reales**: `events_completed` y `punctuality_rate` derivados al finalizar el turno (check-in ±15 min). `cancellations` NO derivable sin modelo de cancelación por actor (decisión de producto + ADR, ver TECH_DEBT P3); insignias/niveles siguen pendientes | alto | decisión de reglas |
+| R2.5 | **Imágenes propias** en el seed: requiere subir manualmente un set de fotos a la cuenta Cloudinary del proyecto y actualizar las URLs (TECH_DEBT I2; sin credenciales no se puede automatizar) | bajo | acceso a Cloudinary |
 
 ## R3 — Producto premium (en paralelo a R2 cuando R0–R1 cierren)
 
 | # | Tarea | Esfuerzo | Dependencias |
 |---|-------|----------|--------------|
-| R3.1 | **Mapas F1–F3** ([MAPS_REDESIGN.md](./MAPS_REDESIGN.md), aprobado): base MapLibre vectorial → `/map` premium (40/60, clustering, sync) → `/search` + tiempos por modo + "cómo llegar" (deep-link) → desinstalar Leaflet | alto | diseño aprobado ✅ |
+| R3.1 | ✅ **Mapas F1–F3** ([MAPS_REDESIGN.md](./MAPS_REDESIGN.md), aprobado): base MapLibre vectorial → `/map` premium (40/60, clustering, sync) → `/search` + tiempos por modo + "cómo llegar" (deep-link) → desinstalar Leaflet | alto | diseño aprobado ✅ |
 | R3.2 | DS v2 en pantallas Employer/Admin restantes | medio | — |
 
 ## R4 — Escala (cuando el tráfico lo pida, no antes)
