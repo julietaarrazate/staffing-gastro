@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -86,8 +88,29 @@ const FEATURES = [
   },
 ];
 
+// Home de cada rol: a dónde mandamos a un usuario ya logueado. La landing es
+// marketing (para visitantes sin sesión); quien ya entró va directo a su app.
+const HOME_BY_ROLE: Record<string, string> = {
+  worker: "/feed",
+  employer: "/shifts",
+  admin: "/admin",
+};
+
 export default function Home() {
   const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Si ya hay sesión, no mostramos la landing de marketing: redirigimos a la
+  // home del rol. La landing queda sólo para visitantes sin cuenta.
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace(HOME_BY_ROLE[user.role] ?? "/feed");
+    }
+  }, [loading, user, router]);
+
+  // Mientras carga la sesión o se está redirigiendo a un usuario logueado,
+  // no parpadeamos la landing.
+  if (loading || user) return null;
 
   return (
     <div className="relative overflow-hidden">
@@ -122,48 +145,27 @@ export default function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600">
-            Staffya conecta comercios gastronómicos y eventos con personal eventual,
-            en tiempo real. Como pedir un delivery, pero de staff.
+            Staffya conecta comercios gastronómicos y de eventos con
+            profesionales del rubro, en tiempo real. Publicás la vacante y
+            encontrás a la persona indicada, al instante.
           </p>
 
-          {!loading && !user && (
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/register"
-                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
-              >
-                Crear cuenta gratis
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-full bg-white px-7 py-3.5 font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition active:scale-95 hover:bg-zinc-50"
-              >
-                Ya tengo cuenta
-              </Link>
-            </div>
-          )}
-
-          {!loading && user?.role === "worker" && (
-            <div className="mt-8">
-              <Link
-                href="/feed"
-                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
-              >
-                Ver turnos disponibles
-              </Link>
-            </div>
-          )}
-
-          {!loading && user?.role === "employer" && (
-            <div className="mt-8">
-              <Link
-                href="/shifts"
-                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
-              >
-                Ver mis turnos
-              </Link>
-            </div>
-          )}
+          {/* Sólo visitantes sin sesión llegan hasta acá (los logueados se
+              redirigen a su home antes de renderizar). */}
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/register"
+              className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/30 transition active:scale-95 hover:shadow-xl"
+            >
+              Crear cuenta gratis
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full bg-white px-7 py-3.5 font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition active:scale-95 hover:bg-zinc-50"
+            >
+              Ya tengo cuenta
+            </Link>
+          </div>
         </motion.section>
 
         {/* Cómo funciona */}
