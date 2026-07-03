@@ -69,17 +69,23 @@ export default function MapPage() {
     if (idx !== activeIndex && idx >= 0 && idx < shifts.length) setActiveIndex(idx);
   }
 
-  // Click en un pin -> scrollea el carrusel a esa tarjeta.
-  function selectById(id: string) {
-    const idx = shifts.findIndex((s) => s.id === id);
-    if (idx < 0) return;
-    setActiveIndex(idx);
-    const el = carouselRef.current;
-    if (el) {
-      const cardWidth = el.scrollWidth / Math.max(shifts.length, 1);
-      el.scrollTo({ left: cardWidth * idx, behavior: "smooth" });
-    }
-  }
+  // Click en un pin -> scrollea el carrusel a esa tarjeta. Estable
+  // (useCallback) para que `ShiftMap` pueda pasar un `onClick` de referencia
+  // fija a cada marcador y `React.memo` evite re-renderizar los N marcadores
+  // al seleccionar uno solo (ver components/worker/ShiftMap.tsx).
+  const selectById = useCallback(
+    (id: string) => {
+      const idx = shifts.findIndex((s) => s.id === id);
+      if (idx < 0) return;
+      setActiveIndex(idx);
+      const el = carouselRef.current;
+      if (el) {
+        const cardWidth = el.scrollWidth / Math.max(shifts.length, 1);
+        el.scrollTo({ left: cardWidth * idx, behavior: "smooth" });
+      }
+    },
+    [shifts]
+  );
 
   async function apply(shift: Shift) {
     if (!token) return;

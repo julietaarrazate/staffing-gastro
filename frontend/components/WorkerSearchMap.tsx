@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import MapView from "@/components/map/MapView";
 import UserPuck from "@/components/map/UserPuck";
@@ -42,9 +42,11 @@ export default function WorkerSearchMap({
   );
   const selected = located.find((w) => w.profile_id === selectedId) ?? null;
 
-  function toggle(id: string) {
+  // Handler estable: junto con `React.memo` en `WorkerMarker`, evita que
+  // los N marcadores se re-rendericen todos al seleccionar uno solo.
+  const toggle = useCallback((id: string) => {
     setSelectedId((current) => (current === id ? null : id));
-  }
+  }, []);
 
   return (
     // Wrapper externo: conserva exactamente el `className` del caller (tamaño/
@@ -59,6 +61,7 @@ export default function WorkerSearchMap({
           {located.map((worker, index) => (
             <WorkerMarker
               key={worker.profile_id}
+              id={worker.profile_id}
               longitude={worker.longitude}
               latitude={worker.latitude}
               photoUrl={worker.photo_url}
@@ -66,7 +69,7 @@ export default function WorkerSearchMap({
               rating={worker.rating}
               active={worker.profile_id === selectedId}
               delayMs={index * 60}
-              onClick={() => toggle(worker.profile_id)}
+              onClick={toggle}
             />
           ))}
         </MapView>

@@ -12,6 +12,13 @@
 > acotado a rutas específicas · 🟡 bajo impacto o cosmético. ✅ = quick win
 > aplicado en este PR. Sin ✅ = recomendación para que decida Julieta (esfuerzo
 > y riesgo detallados).
+>
+> **Actualización 2026-07-03 (PR de optimizaciones aprobadas):** se
+> implementaron los hallazgos 1 (Sentry lazy-load), 4 (`prefers-reduced-motion`
+> en los componentes de mayor movimiento) y 5 (memo + handler estable en
+> marcadores de mapa). El hallazgo 2 (`whileTap` de Button/Card/Chip a CSS) se
+> mantiene sin tocar por decisión explícita — no se cambia la sensación táctil
+> de los botones. Detalle de cada uno en sus secciones abajo.
 
 ## Nota metodológica sobre el bundle
 
@@ -29,11 +36,11 @@ inicial de esa ruta, no un estimado.
 
 | # | Hallazgo | Severidad | Estado |
 |---|---|---|---|
-| 1 | `@sentry/nextjs` se importa entero (namespace) en todas las rutas: ~138 KB gzip en el 100% de las páginas | 🔴 | Recomendación |
-| 2 | `motion` (Button/Card/Chip/Sheet/Modal/Toast/...) va en el bundle de **todas** las rutas por un `whileTap` de botón: ~40 KB gzip siempre | 🟠 | Recomendación |
+| 1 | `@sentry/nextjs` se importa entero (namespace) en todas las rutas: ~138 KB gzip en el 100% de las páginas | 🔴 | ✅ Aplicado — import dinámico, gateado por DSN |
+| 2 | `motion` (Button/Card/Chip/Sheet/Modal/Toast/...) va en el bundle de **todas** las rutas por un `whileTap` de botón: ~40 KB gzip siempre | 🟠 | Recomendación (sin tocar por decisión: no se cambia el `whileTap`) |
 | 3 | `maplibre-gl` (266 KB gzip) está correctamente code-splitteado — no aparece en ninguna ruta que no sea mapa | 🟢 | Ya está bien (verificado) |
-| 4 | Casi ningún componente que usa `motion` respeta `prefers-reduced-motion` (sólo 1 de 13 archivos) | 🟠 | Recomendación |
-| 5 | Marcadores de mapa (`WorkerMarker`/`ShiftMarker`/`ClusterMarker`) se re-renderizan todos al seleccionar uno solo | 🟡 | Recomendación (memo solo no alcanza) |
+| 4 | Casi ningún componente que usa `motion` respeta `prefers-reduced-motion` (sólo 1 de 13 archivos) | 🟠 | ✅ Aplicado (8 de los 12 restantes — ver §4.1) |
+| 5 | Marcadores de mapa (`WorkerMarker`/`ShiftMarker`/`ClusterMarker`) se re-renderizan todos al seleccionar uno solo | 🟡 | ✅ Aplicado — `React.memo` + `onClick(id)` estable |
 | 6 | `WorkerSearchMap`: filtro de `workers` recalculado en cada render, incluso al tocar un marcador | 🟡 | ✅ Aplicado |
 | 7 | `ImageUpload.tsx`: preview sin `loading="lazy"`/`decoding="async"` (inconsistente con el resto de la app) | 🟡 | ✅ Aplicado |
 | 8 | Imágenes (`<img>` crudo) sin `next/image`, sin `images.remotePatterns` | 🟡 | Recomendación (ya documentado en TECH_DEBT.md F4) |
@@ -46,18 +53,24 @@ inicial de esa ruta, no un estimado.
 
 ### 1.1 Tabla real (First Load JS, gzip, medido)
 
+> Tabla original de la auditoría (**antes** del fix de Sentry, ver §1.3 para
+> el número actualizado post-fix). Se deja como referencia de la composición
+> del piso compartido; el número vigente de `/login` hoy es ~224 KB, no
+> ~291 KB — la diferencia es exactamente el chunk de Sentry.
+
 | Ruta | Peso inicial (gzip) | Chunks |
 |---|---|---|
-| `/`, `/admin`, `/chats`, `/login`, `/register`, `/_not-found` | ~291 KB | 9 |
-| `/feed`, `/map`, `/search` | ~294 KB | 10 |
-| `/profile`, `/shifts/new` | ~297 KB | 10 |
-| `/my-shifts`, `/shifts` | ~298 KB | 11 |
+| `/`, `/admin`, `/chats`, `/login`, `/register`, `/_not-found` | ~291 KB (antes del fix de §1.3; hoy ~224 KB, medido en `/login`) | 9 |
+| `/feed`, `/map`, `/search` | ~294 KB (antes del fix de §1.3) | 10 |
+| `/profile`, `/shifts/new` | ~297 KB (antes del fix de §1.3) | 10 |
+| `/my-shifts`, `/shifts` | ~298 KB (antes del fix de §1.3) | 11 |
 
-Composición del piso compartido (~291 KB, presente en el 100% de las rutas):
+Composición del piso compartido (~291 KB, presente en el 100% de las rutas,
+**antes** del fix de Sentry — ver §1.3):
 
 | Chunk (contenido) | Tamaño (gzip) |
 |---|---|
-| Sentry (`@sentry/nextjs`) | ~138 KB |
+| Sentry (`@sentry/nextjs`) | ~138 KB — ✅ ya no está en el piso compartido (§1.3) |
 | React + React-DOM (framework + runtime) | ~119 KB |
 | `motion` (framer-motion) | ~40 KB |
 | Next.js runtime/polyfills | resto |
@@ -86,49 +99,62 @@ que no sea `/map`, `/search`, ni en las que usan `ShiftCard`/`MiniMap`
 (`/shifts`, `/my-shifts`) — y en esas, se carga como chunk aparte vía
 `import()`, no en el bundle inicial. **No requiere cambios.**
 
-### 1.3 🔴 Sentry se importa entero en cada ruta (recomendación, no aplicado)
+### 1.3 🔴✅ Sentry se importaba entero en cada ruta — aplicado: import dinámico gateado por DSN
 
-`frontend/instrumentation-client.ts:5` hace `import * as Sentry from
-"@sentry/nextjs"` a nivel de módulo, y `instrumentation.ts:2` hace lo mismo
-para el lado servidor. `instrumentation-client.ts` es un archivo especial de
+**Aplicado en este PR.** `frontend/instrumentation-client.ts` e
+`instrumentation.ts` hacían `import * as Sentry from "@sentry/nextjs"` a
+nivel de módulo. `instrumentation-client.ts` es un archivo especial de
 Next.js: se carga en **todas** las rutas automáticamente, sin importar si el
-componente de esa página usa algo de Sentry. El comentario del archivo dice
-*"sin DSN este archivo es un no-op y no agrega peso funcional"* — eso es
-cierto en runtime (con `Sentry.init` gateado por `if (dsn)`,
-`instrumentation-client.ts:9`), pero **no en bundle size**: el `import`
-estático de todo el SDK se resuelve en build time, antes de saber si hay DSN,
-así que el paquete completo (~138 KB gzip / ~453 KB sin comprimir, el chunk
-más grande después de maplibre) viaja en el bundle inicial de cada página
-tenga o no tenga sentido ahí.
+componente de esa página usa algo de Sentry. El `Sentry.init` ya estaba
+gateado por `if (dsn)` en runtime, pero **no en bundle size**: el `import`
+estático de todo el SDK se resolvía en build time, antes de saber si había
+DSN, así que el paquete completo viajaba en el bundle inicial de cada página
+tuviera o no sentido ahí.
 
-- **Impacto:** alto — es, junto con `motion`, la mayor parte del piso
-  compartido de 291 KB que paga cada ruta, incluidas `/login` y `/register`
-  (páginas de conversión, donde el JS que se ejecuta antes del primer input
-  importa más).
-- **Por qué no es quick win:** `instrumentation-client.ts` exporta
-  `onRouterTransitionStart = Sentry.captureRouterTransitionStart`
-  (`instrumentation-client.ts:19`), que Next.js espera **sincrónicamente** al
-  cargar el módulo para instrumentar las transiciones de router. Convertir el
-  `import` en dinámico (`await import("@sentry/nextjs")`) rompería ese
-  contrato o cambiaría cuándo Sentry empieza a capturar errores (ventana de
-  arranque sin instrumentación) — es un cambio de comportamiento del
-  monitoreo de errores en producción, no verificable con los tests
-  disponibles acá (no hay DSN configurado en este entorno), así que queda
-  fuera del alcance de "quick win seguro".
-- **Recomendación concreta para Julieta:**
-  1. Envolver `next.config.ts` con `withSentryConfig` de `@sentry/nextjs`
-     (hoy no está — confirmado, `next.config.ts` exporta `nextConfig` sin
-     wrap). El plugin oficial habilita tree-shaking de integraciones no
-     usadas (replay, profiling) y opciones como `disableLogger: true` que
-     suelen recortar el SDK de forma medible.
-  2. Cambiar `import * as Sentry` por imports nombrados
-     (`import { init, captureRouterTransitionStart } from "@sentry/nextjs"`)
-     y medir con `--experimental-analyze` si mejora el tree-shaking.
-  3. Cualquiera de las dos requiere medir antes/después con DSN real
-     configurado y correr el flujo completo de login/feed/chat para
-     confirmar que Sentry sigue capturando errores — por eso se deja como
-     tarea aparte, no como parte de esta auditoría.
-- **Esfuerzo:** medio. **Riesgo:** medio (observabilidad en producción).
+**Cambio:** en ambos archivos, el `import * as Sentry` estático se reemplazó
+por `await import("@sentry/nextjs")` **dentro** del `if (dsn)` — el SDK sólo
+se pide a la red si `NEXT_PUBLIC_SENTRY_DSN` está configurada. Los dos
+exports que Next.js requiere de forma síncrona
+(`onRouterTransitionStart` en el cliente, `onRequestError` en el servidor)
+siguen existiendo siempre (Next los necesita al cargar el módulo), pero ahora
+son wrappers livianos: sin DSN son no-ops; con DSN, hacen el `import()` lazy
+(cacheado por el motor de módulos, así que sólo se pide una vez) y delegan a
+la función real de Sentry. No se tocó `next.config.ts` (se evaluó
+`withSentryConfig`, pero el import dinámico manual ya resuelve el problema de
+bundle sin agregar el plugin).
+
+- **Verificado — no rompe con DSN real:**
+  `NEXT_PUBLIC_SENTRY_DSN="https://abc123@o12345.ingest.sentry.io/1" npm run
+  build` compila limpio (`✓ Compiled successfully`, mismo set de rutas), o
+  sea que la lógica `if (dsn) { ... }` sigue intacta y el `import()` no tiene
+  errores de tipos ni de resolución.
+- **Verificado — sin DSN (caso actual en producción hoy) el chunk de Sentry
+  ya NO viaja en el bundle inicial de ninguna ruta.** Medido reconstruyendo
+  con `--webpack` (misma metodología del resto de esta auditoría) y sumando
+  el gzip real de los `<script src>` que referencia
+  `.next/server/app/login.html`:
+
+  | | Antes (import estático) | Después (import dinámico) | Diferencia |
+  |---|---|---|---|
+  | JS inicial de `/login` (gzip, suma de `<script>`) | 309 020 B (~302 KB) | 229 531 B (~224 KB) | **−79 489 B (~−78 KB, −25.7%)** |
+
+  El chunk que desaparece de la lista de `<script>` es exactamente el de
+  Sentry: en el build "antes", `462-62d9035362950ae4.js` (141 924 B gzip,
+  contiene el string `sentry` 7 veces) está en el HTML de `/login`; en el
+  build "después", no hay ningún chunk con `sentry` en el contenido
+  referenciado por ninguna ruta (`grep -rl sentry .next/static/chunks/`
+  encuentra el SDK completo compilado en 4 archivos de chunk — existen en
+  disco porque webpack siempre emite el chunk de un `import()` aunque el
+  código sea inalcanzable en runtime con DSN vacío — pero
+  `grep -rl <esos-chunks> .next/server/app/*.html` no devuelve **ningún**
+  archivo: ninguna ruta los referencia en su `<script src>`, así que el
+  navegador nunca los pide).
+- **Esfuerzo real:** bajo (dos archivos, ~10 líneas cada uno). **Riesgo:**
+  bajo — la lógica `if (dsn)` es la misma, sólo se retrasó el `import` del
+  paquete a después de esa condición; no se verificó con un DSN real
+  reportando a un proyecto Sentry real (no hay credenciales en este entorno),
+  pero el build con DSN falso compila y el flujo de tipos/exports es
+  idéntico al de antes.
 
 ### 1.4 🟠 `motion` va en el bundle de cada ruta por el botón del Design System (recomendación, no aplicado)
 
@@ -229,37 +255,47 @@ cambiado. **Aplicado:** se envolvió el filtro en `useMemo(() => ...,
 [workers])` (`components/WorkerSearchMap.tsx:35-42`). Impacto real bajo con
 los volúmenes actuales (decenas de resultados), pero es gratis y correcto.
 
-### 3.2 🟡 Marcadores de mapa: re-render de todos al seleccionar uno (recomendación, no aplicado)
+### 3.2 🟡✅ Marcadores de mapa: re-render de todos al seleccionar uno — aplicado
 
-`components/WorkerSearchMap.tsx:69` y `components/worker/ShiftMap.tsx:126,140`
-pasan `onClick={() => toggle(worker.profile_id)}` /
-`onClick={() => onSelect(shiftId)}` — una función **nueva en cada render**
+**Aplicado en este PR.** Antes, `WorkerSearchMap.tsx:69` y
+`worker/ShiftMap.tsx:126,140` pasaban `onClick={() => toggle(worker.profile_id)}`
+/ `onClick={() => onSelect(shiftId)}` — una función **nueva en cada render**
 del padre — a `WorkerMarker`/`ShiftMarker`/`ClusterMarker`, ninguno de los
-cuales usa `React.memo`. Resultado: al tocar un marcador para seleccionarlo
-(cambia `selectedId`/`activeId`), el padre re-renderiza y **todos** los
-marcadores de la lista se re-renderizan, no sólo el que cambió de estado
-`active`.
+cuales usaba `React.memo`. Resultado: al tocar un marcador para
+seleccionarlo, el padre re-renderizaba y **todos** los marcadores de la lista
+se re-renderizaban, no sólo el que cambió de estado `active`.
 
-- **Por qué no se aplicó memo como "quick win":** envolver
-  `WorkerMarker`/`ShiftMarker`/`ClusterMarker` en `React.memo` **sin también
-  estabilizar el `onClick`** no cambia nada — React.memo compara props por
-  referencia, y el `onClick` sigue siendo una función distinta en cada
-  render, así que el memo nunca "pega". Para que sea efectivo hay que
-  cambiar la firma de `onClick` (hoy `() => void`) a algo como `onClick:
-  (id: string) => void` y mover el `useCallback` estable al padre — un
-  cambio que toca la API pública de 3 componentes de mapa y sus 2
-  consumidores (`WorkerSearchMap.tsx`, `worker/ShiftMap.tsx`), es decir, un
-  refactor acotado pero real, no una línea suelta. El enunciado pide no
-  refactorizar arquitectura sin necesidad clara, así que se deja documentado.
-- **Impacto:** bajo hoy (mapas con decenas de pines demo), pero es
-  exactamente el escenario (mapa de ciudad con cientos de comercios/turnos)
-  donde este patrón sí se siente — cada marcador hace su propio `useState`
-  (`broken`, para el fallback de foto) y tiene una animación CSS de entrada
-  (`markerPop`), así que el costo de re-render no es cero.
-- **Recomendación:** si se prioriza, cambiar la firma de `onClick` a recibir
-  el id/props relevantes y envolver los 3 componentes en `React.memo`, con
-  `useCallback` en `WorkerSearchMap`/`ShiftMap` para los handlers. Esfuerzo
-  bajo-medio, riesgo bajo (son componentes de presentación puros).
+**Cambio:** se cambió la firma de `onClick` de los 3 componentes de
+`() => void` a `(id: string) => void` (`ClusterMarker` recibe
+`(clusterId, longitude, latitude)`, ya que el handler de expansión de zoom
+los necesita), cada marcador ahora llama a `onClick(id)`/`onClick(clusterId,
+longitude, latitude)` usando sus propias props en vez de una closure externa,
+y los 3 (`components/map/WorkerMarker.tsx`, `ShiftMarker.tsx`,
+`ClusterMarker.tsx`) se envolvieron en `React.memo`. En los padres:
+
+- `components/WorkerSearchMap.tsx`: `toggle` pasó de función declarada en el
+  cuerpo del componente a `useCallback(..., [])`, y se pasa directo como
+  `onClick={toggle}` (antes: `onClick={() => toggle(worker.profile_id)}`).
+- `components/worker/ShiftMap.tsx`: se agregó `handleShiftSelect =
+  useCallback((id) => onSelect(id), [onSelect])` para `ShiftMarker`, y
+  `handleClusterClick` (ya era `useCallback`) se pasa directo a
+  `ClusterMarker` sin wrapping adicional.
+- `app/map/page.tsx`: **cambio adicional no listado originalmente en esta
+  sección**, pero necesario para que la memoización sea efectiva en el caso
+  real de uso — `selectById` (el `onSelect` que `ShiftMap` recibe del padre)
+  era una función declarada en el cuerpo del componente, redefinida en cada
+  render de `MapPage`. Como `MapPage` re-renderiza exactamente cuando cambia
+  la selección (setActiveIndex), pasar un `onSelect` nuevo en ese mismo
+  render habría invalidado el memo justo en el caso que se quería optimizar.
+  Se convirtió a `useCallback((id) => ..., [shifts])`, estable mientras la
+  lista de turnos no cambie.
+
+**Resultado:** al cambiar `selectedId`/`activeId`, sólo re-renderizan el
+marcador que sale y el que entra de `active` (sus props cambiaron); el resto
+recibe las mismas props por referencia (`onClick` estable + `id`/posición/
+`active=false` sin cambios) y `React.memo` evita el re-render. Sin cambio de
+comportamiento visible — verificado con la suite de Playwright (drag, tap y
+selección de marcadores siguen funcionando) y revisión manual del diff.
 
 ### 3.3 Resto de listas: revisadas, sin acción necesaria
 
@@ -293,34 +329,53 @@ marcadores de la lista se re-renderizan, no sólo el que cambió de estado
 
 ## 4. Otros
 
-### 4.1 🟠 `prefers-reduced-motion`: cubierto para CSS, no para `motion` (recomendación, no aplicado)
+### 4.1 🟠✅ `prefers-reduced-motion`: cubierto para CSS y ahora también para `motion` en los componentes de mayor movimiento
 
 `app/globals.css:110-119` tiene una regla global `@media
 (prefers-reduced-motion: reduce)` que fuerza `animation-duration`/
 `transition-duration` a `0.01ms` — cubre las animaciones **CSS** del mapa
-(`markerPop`, `markerHalo`, `urgentPulse`, `puckHalo`). Pero **no cubre
+(`markerPop`, `markerHalo`, `urgentPulse`, `puckHalo`). Pero eso **no cubre
 `motion`** (Framer Motion anima con estilos inline vía WAAPI/rAF, no con las
 propiedades CSS `animation`/`transition` que la regla `!important`
-sobreescribe). La prueba de que esto ya se sabía: `components/worker/MapSheet.tsx:26,60`
-es el **único** de los 13 archivos que usan `motion` que llama a
-`useReducedMotion()` de `motion/react` y condiciona su `transition` a
-`{ duration: 0 }` cuando corresponde. Los otros 12
-(`Button.tsx`, `Card.tsx`, `Chip.tsx`, `EmptyState.tsx`, `FAB.tsx`,
-`Modal.tsx`, `SegmentedControl.tsx`, `Sheet.tsx`, `Toast.tsx`,
-`SplashScreen.tsx`, `SwipeDeck.tsx`, `app/page.tsx`) no lo hacen — un usuario
-con "reducir movimiento" activado igual ve el spring del swipe, el pop del
-splash con anillos `repeat: Infinity`, etc.
+sobreescribe). Antes de este PR, `components/worker/MapSheet.tsx` era el
+**único** de los 13 archivos con `motion` que llamaba a `useReducedMotion()`.
 
-- **Por qué no es quick win:** son 12 archivos con distintos patrones de
-  animación (`whileTap`, `initial/animate/exit`, `drag`); aplicar
-  `useReducedMotion()` correctamente en cada uno (y no romper el
-  `AnimatePresence`/`drag` de `SwipeDeck`, que es la interacción central de
-  `/feed`) requiere revisar cada caso, no es un cambio mecánico de una
-  línea repetida 12 veces.
-- **Recomendación:** priorizar `SwipeDeck.tsx` (interacción principal,
-  usuarios con motion sensitivity necesitan una alternativa sin drag/spring)
-  y `Button.tsx`/`Card.tsx`/`Chip.tsx` (están en cada pantalla). Esfuerzo
-  medio, riesgo bajo (es acotarse a lo que el usuario ya pidió vía SO/browser).
+**Aplicado en este PR** (8 archivos, priorizando los de mayor movimiento o
+que están en el patrón "lista/transición/entrada" mencionado en el pedido):
+
+| Archivo | Qué se gateó |
+|---|---|
+| `components/SplashScreen.tsx` | Anillos `repeat: Infinity` (se **omiten** por completo, no sólo se acortan — es la animación con más movimiento continuo de toda la app), spring del logo, slides del logo/título/subtítulo, exit del overlay |
+| `app/page.tsx` | Glow de fondo `repeat: Infinity` del hero (se omite), `Reveal` (fade+slide al entrar en viewport, usado 9 veces en la landing), entrada del hero y del logo |
+| `components/ui/Toast.tsx` | Entrada/salida del toast (spring `y`+`scale`) |
+| `components/ui/Sheet.tsx` | Entrada/salida del panel (spring `y: 100% → 0`) y fade del backdrop — el `drag="y"` para cerrar arrastrando queda intacto (es gesto del usuario, no animación automática) |
+| `components/ui/Modal.tsx` | Entrada/salida del diálogo (spring `scale`+`y`) y fade del backdrop |
+| `components/ui/EmptyState.tsx` | Fade+slide al montar |
+| `components/worker/SwipeDeck.tsx` | Transición de la tarjeta al decidir like/pass (`controls.start`, duración 0.28s → 0 con motion reducido); el `drag="x"` del swipe en sí **no** se tocó — es la interacción central de `/feed` y deshabilitarla sería un cambio de UX mayor, fuera de alcance |
+| `app/shifts/new/page.tsx` | Transición entre pasos del wizard de publicar turno (no estaba en la lista original de 13 archivos de la auditoría — se encontró al revisar, mismo patrón de "transición de lista de pasos", se gateó igual) |
+
+Patrón usado en todos: `const reducedMotion = useReducedMotion()`, luego
+`initial={reducedMotion ? false : {...}}` (arranca directo en el estado
+final, sin animar la entrada) y `transition={reducedMotion ? { duration: 0 }
+: {...}}` para animaciones `repeat: Infinity` se optó por **no renderizar**
+el elemento en vez de sólo poner `duration: 0` (un `repeat: Infinity` con
+duración 0 técnicamente sigue "corriendo").
+
+**Deliberadamente sin tocar** (por instrucción explícita — no se cambia el
+`whileTap`/comportamiento táctil de los botones):
+`components/ui/Button.tsx`, `Card.tsx`, `Chip.tsx`, `FAB.tsx`,
+`SegmentedControl.tsx` — los 5 restantes de los 13 originales. Todos usan
+`motion` sólo para micro-interacciones (`whileTap`, `layoutId`) de
+disparo único y corta duración (<0.3s), no para animaciones continuas o de
+entrada; el riesgo de accesibilidad es bajo comparado con los 8 aplicados.
+Sigue siendo la recomendación pendiente si se decide revisar en otro PR.
+
+- **Sin cambio visible para quien NO tiene "reducir movimiento" activado**:
+  se preservaron los mismos `initial`/`animate`/`exit`/`transition` para el
+  caso `reducedMotion === false`; sólo cambia la rama `true`. Verificado con
+  `tsc --noEmit`, `next build` y la suite de Playwright (3/3) sin
+  regresiones — Playwright corre sin `prefers-reduced-motion` emulado, así
+  que ejercita exactamente la rama sin cambios.
 
 ### 4.2 🟢 `useWebSocket`: backoff y cleanup correctos, sin cambios
 
@@ -350,7 +405,7 @@ vive en el `layout.tsx` raíz) — no amerita cambio.
 
 ---
 
-## Quick wins aplicados en este PR
+## Quick wins aplicados en este PR (auditoría inicial)
 
 1. ✅ `components/ImageUpload.tsx:49-55` — agregado `loading="lazy"
    decoding="async"` al preview de imagen (consistencia con el resto de la
@@ -363,12 +418,28 @@ Ambos son cambios de una función pura/atributos HTML sin efecto visible;
 verificados con `tsc --noEmit`, `next build` y la suite de Playwright (3/3)
 sin regresiones.
 
+## Optimizaciones aplicadas en el PR de seguimiento (2026-07-03)
+
+3. ✅ **§1.3** — Sentry con import dinámico gateado por
+   `NEXT_PUBLIC_SENTRY_DSN`. `/login` pasó de 309 020 B a 229 531 B gzip de
+   JS inicial (−78 KB, −25.7%), medido reconstruyendo con `--webpack`.
+4. ✅ **§3.2** — `React.memo` + `onClick(id)` estable en
+   `WorkerMarker`/`ShiftMarker`/`ClusterMarker`; al seleccionar un marcador
+   ya no re-renderizan los N, sólo el que sale y el que entra de `active`.
+5. ✅ **§4.1** — `useReducedMotion()` en 8 archivos (`SplashScreen.tsx`,
+   `app/page.tsx`, `Toast.tsx`, `Sheet.tsx`, `Modal.tsx`, `EmptyState.tsx`,
+   `SwipeDeck.tsx`, `app/shifts/new/page.tsx`) para respetar "reducir
+   movimiento" del sistema operativo/navegador.
+
+Los tres verificados con `tsc --noEmit`, `next build` (sin y con
+`NEXT_PUBLIC_SENTRY_DSN`) y la suite de Playwright (3/3), sin regresiones.
+No se tocó el `whileTap`/spring de `Button`/`Card`/`Chip` — decisión
+explícita, se mantiene la sensación táctil actual.
+
 ## Recomendaciones para decidir (no aplicadas)
 
 | # | Qué | Esfuerzo | Riesgo |
 |---|---|---|---|
-| 1.3 | Tree-shaking/lazy-load de Sentry (`withSentryConfig`, imports nombrados) | Medio | Medio (observabilidad) |
-| 1.4 | `whileTap` de Button/Card/Chip a CSS puro (`active:scale-95`) | Bajo-medio | Bajo (cambia sensación táctil) |
+| 1.4 | `whileTap` de Button/Card/Chip a CSS puro (`active:scale-95`) | Bajo-medio | Bajo (cambia sensación táctil) — decisión tomada de no aplicar |
 | 2.3 | Migrar `<img>` a `next/image` + `images.remotePatterns` | Medio | Bajo-medio |
-| 3.2 | Estabilizar `onClick` de marcadores de mapa + `React.memo` | Bajo-medio | Bajo |
-| 4.1 | `useReducedMotion()` en los 12 archivos de `motion` que no lo tienen | Medio | Bajo |
+| 4.1 (resto) | `useReducedMotion()` en `Button.tsx`/`Card.tsx`/`Chip.tsx`/`FAB.tsx`/`SegmentedControl.tsx` (micro-interacciones, menor prioridad) | Bajo | Bajo |

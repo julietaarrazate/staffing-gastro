@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
@@ -34,6 +34,7 @@ export default function NewShiftWizard() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   function go(next: number) {
     setDir(next > step ? 1 : -1);
@@ -115,10 +116,10 @@ export default function NewShiftWizard() {
           <motion.div
             key={step}
             custom={dir}
-            initial={{ opacity: 0, x: dir * 40 }}
+            initial={reducedMotion ? false : { opacity: 0, x: dir * 40 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir * -40 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, x: reducedMotion ? 0 : dir * -40 }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.25 }}
             className="h-full"
           >
             {step === 0 && (

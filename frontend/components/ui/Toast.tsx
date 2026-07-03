@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { CheckCircleIcon } from "@/components/icons";
 
@@ -22,6 +22,7 @@ const ToastContext = createContext<((message: string, tone?: ToastTone) => void)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const nextId = useRef(0);
+  const reducedMotion = useReducedMotion();
 
   const show = useCallback((message: string, tone: ToastTone = "success") => {
     const id = nextId.current++;
@@ -39,10 +40,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toasts.map((t) => (
             <motion.div
               key={t.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.95 }}
+              transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
               className={`pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
             >
               {t.tone === "success" && <CheckCircleIcon size={18} />}

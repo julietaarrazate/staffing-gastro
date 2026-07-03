@@ -5,6 +5,7 @@ import {
   motion,
   useAnimationControls,
   useMotionValue,
+  useReducedMotion,
   useTransform,
 } from "motion/react";
 import { Shift } from "@/lib/types";
@@ -35,6 +36,7 @@ export default function SwipeDeck({
   const likeOpacity = useTransform(x, [40, 150], [0, 1]);
   const nopeOpacity = useTransform(x, [-150, -40], [1, 0]);
   const controls = useAnimationControls();
+  const reducedMotion = useReducedMotion();
 
   const current = shifts[index];
   const upcoming = shifts[index + 1];
@@ -47,7 +49,7 @@ export default function SwipeDeck({
       x: dir * 520,
       rotate: dir * 18,
       opacity: 0,
-      transition: { duration: 0.28, ease: "easeIn" },
+      transition: reducedMotion ? { duration: 0 } : { duration: 0.28, ease: "easeIn" },
     });
     onDecide(current, decision);
     x.set(0);

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import Button from "./Button";
 
@@ -21,11 +21,12 @@ export default function EmptyState({
   primaryAction?: { label: string; onClick: () => void };
   secondaryAction?: { label: string; onClick: () => void };
 }) {
+  const reducedMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.3 }}
       className="mx-auto mt-10 flex max-w-xs flex-col items-center px-6 text-center"
     >
       <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-orange-100 to-amber-100 text-primary">
