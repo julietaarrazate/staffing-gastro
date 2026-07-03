@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
+import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
 import { ErrorBanner } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import { BriefcaseIcon, MapPinIcon } from "@/components/icons";
@@ -83,8 +84,8 @@ export default function PublicWorkerProfilePage() {
 
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <Metric label="Experiencia" value={`${profile.years_experience} años`} />
-            <Metric label="Puntualidad" value={`${Math.round(profile.punctuality_rate * 100)}%`} />
-            <Metric label="Nivel" value={profile.level} />
+            <Metric label="Puntualidad" value={formatPunctuality(profile.punctuality_rate)} />
+            <Metric label="Nivel" value={levelLabel(profile.level)} />
             <Metric
               label="Disponibilidad"
               value={profile.is_available ? "Disponible" : "No disponible"}
@@ -113,14 +114,17 @@ export default function PublicWorkerProfilePage() {
                 Insignias
               </p>
               <div className="mt-1.5 flex flex-wrap gap-2">
-                {profile.badges.map((badge) => (
-                  <span
-                    key={badge}
-                    className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700 shadow-sm"
-                  >
-                    <BriefcaseIcon size={12} /> {badge}
-                  </span>
-                ))}
+                {profile.badges.map((badge) => {
+                  const Icon = BADGE_ICONS[badge] ?? BriefcaseIcon;
+                  return (
+                    <span
+                      key={badge}
+                      className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700 shadow-sm"
+                    >
+                      <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

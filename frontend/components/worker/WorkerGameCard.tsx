@@ -1,27 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
-import { Avatar, Skeleton } from "@/components/ui";
 import {
-  BoltIcon,
+  BADGE_ICONS,
+  BADGE_LABELS,
+  formatPunctuality,
+  formatRating,
+  levelLabel,
+  levelMeta,
+} from "@/lib/reputation";
+import { Avatar, ErrorBanner, Skeleton } from "@/components/ui";
+import {
+  AwardIcon,
   BriefcaseIcon,
   CheckCircleIcon,
   ClockIcon,
+  MedalIcon,
   StarIcon,
+  XCircleIcon,
 } from "@/components/icons";
-
-// Hero oscuro tipo Apple Wallet; el nivel se distingue por un punto de color
-// (tonos cálidos/metálicos, sin violetas).
-const LEVEL_DOT: Record<string, string> = {
-  bronce: "bg-amber-500",
-  plata: "bg-zinc-300",
-  oro: "bg-yellow-400",
-  platino: "bg-sky-300",
-  diamante: "bg-teal-300",
-};
 
 function StatTile({
   icon,
@@ -44,6 +44,7 @@ function StatTile({
 export default function WorkerGameCard() {
   const { token, user } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,15 +52,18 @@ export default function WorkerGameCard() {
     api
       .get<WorkerProfile>("/workers/me/profile", token)
       .then(setProfile)
-      .catch(() => setProfile(null))
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "No se pudo cargar tu reputación")
+      )
       .finally(() => setLoading(false));
   }, [token]);
 
   if (loading) return <Skeleton className="h-72 w-full rounded-[var(--radius-card)]" />;
+  if (error) return <ErrorBanner message={error} />;
   if (!profile) return null;
 
   const level = (profile.level ?? "bronce").toLowerCase();
-  const dot = LEVEL_DOT[level] ?? LEVEL_DOT.bronce;
+  const meta = levelMeta(level);
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -68,25 +72,30 @@ export default function WorkerGameCard() {
         <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/20" />
         <h2 className="mt-3 text-xl font-extrabold">{user?.full_name}</h2>
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold uppercase tracking-wide">
-          <span className={`h-2 w-2 rounded-full ${dot}`} /> Nivel {level}
+          <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-sm font-extrabold text-ink">
           <StarIcon size={16} filled className="text-amber-400" />
-          {profile.rating.toFixed(1)}
+          {formatRating(profile.rating)}
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2.5 p-4">
+      <div className="grid grid-cols-2 gap-2.5 p-4 sm:grid-cols-4">
         <StatTile
           icon={<BriefcaseIcon size={20} />}
           value={String(profile.events_completed)}
-          label="Trabajos"
+          label="Turnos"
         />
         <StatTile
           icon={<ClockIcon size={20} />}
-          value={`${Math.round(profile.punctuality_rate * 100)}%`}
+          value={formatPunctuality(profile.punctuality_rate)}
           label="Puntualidad"
+        />
+        <StatTile
+          icon={<XCircleIcon size={20} />}
+          value={String(profile.cancellations)}
+          label="Cancelaciones"
         />
         <StatTile
           icon={<CheckCircleIcon size={20} />}
@@ -95,22 +104,40 @@ export default function WorkerGameCard() {
         />
       </div>
 
-      {/* Insignias */}
-      {profile.badges.length > 0 && (
-        <div className="px-4 pb-3">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">Insignias</p>
-          <div className="flex flex-wrap gap-1.5">
-            {profile.badges.map((badge) => (
-              <span
-                key={badge}
-                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700"
-              >
-                <BoltIcon size={12} /> {badge}
-              </span>
-            ))}
+      {/* Nivel */}
+      <div className="px-4 pb-3">
+        <div className={`flex items-center gap-2.5 rounded-2xl ${meta.bg} px-3.5 py-2.5 ring-1 ${meta.ring}`}>
+          <MedalIcon size={20} className={meta.text} />
+          <div className="min-w-0">
+            <p className={`text-sm font-extrabold ${meta.text}`}>Nivel {levelLabel(level)}</p>
+            <p className="text-xs text-ink/50">Según tu desempeño en turnos completados</p>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Insignias */}
+      <div className="px-4 pb-3">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">Insignias</p>
+        {profile.badges.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.badges.map((badge) => {
+              const Icon = BADGE_ICONS[badge] ?? AwardIcon;
+              return (
+                <span
+                  key={badge}
+                  className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700"
+                >
+                  <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-ink/50">
+            Todavía no tenés insignias — completá turnos para ganarlas.
+          </p>
+        )}
+      </div>
 
       {/* Rubros */}
       {profile.skills.length > 0 && (

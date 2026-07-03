@@ -6,6 +6,7 @@
  */
 import type { ComponentType } from "react";
 import {
+  Award,
   Bell,
   Bike,
   Briefcase,
@@ -27,6 +28,7 @@ import {
   type LucideProps,
   LogOut,
   MapPin,
+  Medal,
   MessageCircle,
   Play,
   Route,
@@ -38,6 +40,7 @@ import {
   Wallet,
   Wine,
   X,
+  XCircle,
   Zap,
 } from "lucide-react";
 
@@ -89,3 +92,6 @@ export const CloseIcon = make(X);
 export const FootprintsIcon = make(Footprints);
 export const BikeIcon = make(Bike);
 export const CarIcon = make(Car);
+export const AwardIcon = make(Award);
+export const MedalIcon = make(Medal);
+export const XCircleIcon = make(XCircle);
