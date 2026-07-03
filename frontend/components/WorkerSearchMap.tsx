@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import MapView from "@/components/map/MapView";
 import UserPuck from "@/components/map/UserPuck";
@@ -29,9 +29,16 @@ export default function WorkerSearchMap({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const located = workers.filter(
-    (w): w is WorkerMapResult & { latitude: number; longitude: number } =>
-      w.latitude != null && w.longitude != null
+  // Memoizado: antes se recalculaba en cada render (incluido al tocar un
+  // marcador, que sólo cambia `selectedId`), filtrando de nuevo toda la
+  // lista de trabajadores sin necesidad.
+  const located = useMemo(
+    () =>
+      workers.filter(
+        (w): w is WorkerMapResult & { latitude: number; longitude: number } =>
+          w.latitude != null && w.longitude != null
+      ),
+    [workers]
   );
   const selected = located.find((w) => w.profile_id === selectedId) ?? null;
 

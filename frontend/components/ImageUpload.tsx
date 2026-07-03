@@ -46,7 +46,13 @@ export default function ImageUpload({
         className={`group relative flex h-24 w-24 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-orange-400 to-red-500 text-2xl font-bold text-white shadow-md transition active:scale-95 disabled:opacity-70`}
       >
         {value ? (
-          <img src={value} alt={fallbackLabel} className="h-full w-full object-cover" />
+          <img
+            src={value}
+            alt={fallbackLabel}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
         ) : (
           fallbackLabel.charAt(0).toUpperCase()
         )}
