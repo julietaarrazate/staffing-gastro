@@ -65,6 +65,30 @@ button {
   touch-action: manipulation;
 }
 
+/* Sensación de app nativa: al tocar controles no se selecciona el texto de
+ * adentro (en móvil, un tap/hold sobre un botón con texto lo seleccionaba).
+ * El contenido editable/leíble sí queda seleccionable (ver regla siguiente). */
+a,
+button,
+label,
+summary,
+[role="button"],
+[role="tab"],
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* El texto que el usuario sí querría copiar/seleccionar permanece habilitado. */
+input,
+textarea,
+[contenteditable="true"],
+.select-text {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Oculta scrollbars en carruseles/filas horizontales sin perder el scroll. */
 .no-scrollbar {
   scrollbar-width: none;

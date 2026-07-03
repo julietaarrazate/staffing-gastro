@@ -4,7 +4,8 @@ import { blockExternalHosts, mockEmptyNotifications } from "./mocks";
 /**
  * Login manual (R1.5b): completa el form de /login, mockea
  * POST /auth/login + GET /auth/me y verifica que la app navega fuera de
- * /login (auth-context hace router.push("/") tras un login exitoso).
+ * /login. Tras el login el auth-context hace router.push("/"), y la landing
+ * redirige a la home del rol (un worker termina en /feed).
  */
 test("un worker puede loguearse y sale de /login", async ({ page }) => {
   await blockExternalHosts(page);
@@ -45,5 +46,6 @@ test("un worker puede loguearse y sale de /login", async ({ page }) => {
   await page.getByRole("button", { name: "Ingresar" }).click();
 
   await expect(page).not.toHaveURL(/\/login$/);
-  await expect(page).toHaveURL("/");
+  // Un worker logueado no ve la landing: se lo redirige a su home (/feed).
+  await expect(page).toHaveURL(/\/feed$/);
 });
