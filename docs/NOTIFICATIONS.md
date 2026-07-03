@@ -22,6 +22,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_rejected` | el trabajador rechaza la asignación | comercio |
 | `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
+| `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](./adr/ADR-0004-cancelacion-trabajador-e-insignias.md)); el turno vuelve a buscar personal | comercio |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
 

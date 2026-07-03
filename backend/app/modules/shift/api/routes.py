@@ -258,6 +258,22 @@ async def reject_assignment(
 
 
 @router.post(
+    "/{shift_id}/worker-cancel",
+    response_model=ShiftResponse,
+    summary="Cancelar mi asignación ya confirmada a un turno (trabajador)",
+)
+async def worker_cancel(
+    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.worker_cancel(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
     "/{shift_id}/depart",
     response_model=ShiftResponse,
     summary="Marcar que salí hacia el turno (trabajador)",

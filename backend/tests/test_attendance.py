@@ -191,6 +191,57 @@ async def test_finish_with_punctual_checkin_updates_worker_metrics(client: Async
     assert body["punctuality_rate"] == pytest.approx(1.0)
 
 
+async def test_badges_and_level_recompute_after_finish_and_worker_cancel(
+    client: AsyncClient,
+):
+    """ADR-0004: `badges`/`level` se recalculan en los mismos puntos donde ya
+    se actualizan `events_completed`/`punctuality_rate` (al finalizar un
+    turno, R2.4) y también al registrar una cancelación del trabajador."""
+    employer_headers = await _employer_with_company(client, "att_badges_emp@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "att_badges_w@staffya.com"
+    )
+
+    async def _create_confirmed_shift(city: str) -> str:
+        created = await client.post(
+            "/api/v1/shifts", headers=employer_headers, json=_shift_payload(city=city)
+        )
+        shift_id = created.json()["id"]
+        await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+        await client.post(
+            f"/api/v1/shifts/{shift_id}/assign",
+            headers=employer_headers,
+            json={"worker_profile_id": worker_profile_id},
+        )
+        await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers)
+        return shift_id
+
+    # Tres turnos finalizados sin cancelaciones alcanzan `nunca_falto`
+    # (0 cancelaciones, >= 3 eventos completados).
+    for i in range(3):
+        shift_id = await _create_confirmed_shift(f"BadgesCity{i}")
+        await _run_full_flow_to_finish(client, shift_id, employer_headers, worker_headers)
+
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    body = profile.json()
+    assert body["events_completed"] == 3
+    assert "nunca_falto" in body["badges"]
+
+    # Un cuarto turno confirmado que el trabajador cancela suma una
+    # cancelación y le hace perder `nunca_falto` (recalculado desde cero,
+    # sin histéresis).
+    shift_id = await _create_confirmed_shift("BadgesCity3")
+    cancelled = await client.post(
+        f"/api/v1/shifts/{shift_id}/worker-cancel", headers=worker_headers
+    )
+    assert cancelled.status_code == 200
+
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    body = profile.json()
+    assert body["cancellations"] == 1
+    assert "nunca_falto" not in body["badges"]
+
+
 async def test_finish_with_late_checkin_does_not_count_as_punctual(client: AsyncClient):
     """R2.4: check-in muy posterior al horario pactado (fuera de tolerancia)
     suma el evento completado pero no cuenta como puntual (rate en 0.0)."""

@@ -57,6 +57,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | POST | `/{shift_id}/publish` | Publicar |
 | POST | `/{shift_id}/assign` | Asignar a un trabajador |
 | POST | `/{shift_id}/confirm` · `/reject` | Trabajador confirma/rechaza |
+| POST | `/{shift_id}/worker-cancel` | Trabajador cancela su asignación ya confirmada (sólo desde `confirmado`; reabre el turno — [ADR-0004](./adr/ADR-0004-cancelacion-trabajador-e-insignias.md)) |
 | POST | `/{shift_id}/check-in` · `/start-working` · `/depart` · `/check-out` | Asistencia geolocalizada |
 | POST | `/{shift_id}/finish` | Finalizar |
 | POST | `/{shift_id}/mark-paid` | Marcar pagado (ver [PAYMENTS.md](./PAYMENTS.md)) |

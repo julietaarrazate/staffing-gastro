@@ -33,11 +33,19 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `events_completed` — trabajos completados. **(R2.4)** se incrementa en el
   mismo punto (`ShiftService.finish`), un evento por turno finalizado con
   éxito.
-- `cancellations` — cancelaciones. **Sigue sin cálculo automático** — ver
-  limitación abajo.
+- `cancellations` — cancelaciones. **([ADR-0004](./adr/ADR-0004-cancelacion-trabajador-e-insignias.md))**
+  se incrementa cuando el trabajador cancela una asignación ya **confirmada**
+  (`POST /shifts/{id}/worker-cancel`,
+  `WorkerProfileRepository.record_cancellation`). Distinto de `Shift.cancel()`
+  (comercio, terminal) y de `reject_assignment()` (trabajador rechaza antes
+  de confirmar, no se cuenta como cancelación).
 - `badges` — insignias (catálogo `WorkerBadge`): `nunca_falto`, `top_mozo`,
-  `top_bartender`, `eventos_premium`, `perfil_verificado`.
+  `top_bartender`, `eventos_premium`, `perfil_verificado`. **(ADR-0004)**
+  otorgamiento automático por reglas — ver abajo. `perfil_verificado` es la
+  única que **no** se otorga automáticamente (ver ADR-0004).
 - `level` — nivel de gamificación (`bronce`, `plata`, `oro`, `platino`).
+  **(ADR-0004)** recalculado por umbrales de `events_completed` + piso de
+  `rating` — ver abajo.
 
 ### Comercio
 - `rating` — promedio de reseñas recibidas.
@@ -51,36 +59,46 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - La reputación del trabajador **influye directamente en el score de matching**
   (peso 0.25 por reputación + 0.15 por puntualidad + 0.15 por desempeño).
 
+## Insignias y niveles: reglas de otorgamiento (ADR-0004)
+
+Funciones puras en `worker/domain/rules.py` (`compute_badges`,
+`compute_level`), sin DB, recalculadas **desde cero** (sin histéresis) al
+finalizar un turno (`ShiftService.finish`) y al registrar una cancelación del
+trabajador (`ShiftService.worker_cancel`, ver [SHIFT.md](./SHIFT.md)).
+
+**Insignias:**
+
+| Insignia | Regla |
+|---|---|
+| `nunca_falto` | `cancellations == 0 AND events_completed >= 3` |
+| `top_mozo` | `"mozo" in skills AND rating >= 4.5 AND events_completed >= 10` |
+| `top_bartender` | `"bartender" in skills AND rating >= 4.5 AND events_completed >= 10` |
+| `eventos_premium` | `events_completed >= 20` (proxy por volumen; el dominio no modela "evento premium" como concepto propio) |
+| `perfil_verificado` | **no implementada** — `is_verified` vive en `User` (`identity`), no en `WorkerProfile`; cruzar módulos desde una función pura de dominio violaría las capas (ver ADR-0004) |
+
+**Niveles** (`GamificationLevel`), por `events_completed` con piso de
+`rating`:
+
+| Nivel | Regla |
+|---|---|
+| `bronce` | default |
+| `plata` | `events_completed >= 5 AND rating >= 3.5` |
+| `oro` | `events_completed >= 20 AND rating >= 4.0` |
+| `platino` | `events_completed >= 50 AND rating >= 4.5` |
+
+**Limitación conocida:** el recálculo no se dispara al recibir una reseña
+(`update_rating`); si el rating cambia por una reseña nueva, las
+insignias/nivel quedan con el rating anterior hasta el próximo turno
+finalizado o cancelado. Aceptado por simplicidad — ver ADR-0004.
+
 ## Inconsistencias a resolver
 
-> Estas brechas deben cerrarse (definir reglas o marcar explícito lo pendiente):
+> Sigue pendiente, fuera de alcance de ADR-0004 (no había decisión de
+> producto para esto y no la resuelve este cambio):
 >
-> 1. **Insignias y niveles sin lógica de otorgamiento.** El catálogo de
->    `WorkerBadge` y los `GamificationLevel` existen, pero no hay reglas que las
->    asignen ni suban de nivel automáticamente. Hoy son presentacionales.
->    Fuera de alcance de R2.4 (es un ítem más grande, ver `TECH_DEBT.md` P2).
-> 2. **`cancellations` (trabajador) y `on_time_payment_rate`/`events_published`
->    (comercio) siguen sin cálculo automático.** R2.4 resolvió
->    `punctuality_rate` y `events_completed` del trabajador (ver arriba), pero
->    el resto queda pendiente:
->    - `cancellations`: el dominio actual **no distingue quién cancela** un
->      turno. `Shift.cancel()` (`shift/domain/entities.py`) es una transición
->      genérica alcanzable desde cualquier estado no terminal, y en la API
->      sólo el comercio la dispara (`POST /shifts/{id}/cancel`, protegido por
->      `company_id` — no existe una ruta de cancelación por parte del
->      trabajador). Tampoco existe un estado `no_show`. Contar
->      `Shift.cancel()` como "cancelación del trabajador" sería incorrecto:
->      hoy siempre es el comercio quien cancela. `reject_assignment()` (el
->      trabajador rechaza una asignación antes de confirmarla) es una acción
->      distinta y ya notificada aparte; no se asimila a "cancelación" sin una
->      definición de producto explícita. **No se inventa un estado nuevo** —
->      requiere decisión de producto + ADR si se quiere distinguir el actor o
->      agregar `no_show` (ver `TECH_DEBT.md` P3).
->    - `on_time_payment_rate`/`events_published` (comercio): sin tocar en
->      R2.4, mismo motivo (fuera del alcance acotado: se centró en las
->      métricas del trabajador derivables honestamente del ciclo del turno).
->
-> Propuesta: otorgar insignias/niveles por umbrales sobre `events_completed`/
-> `punctuality_rate` (ya derivados); para `cancellations`, definir primero en
-> `BUSINESS_RULES.md` quién puede cancelar y si se agrega `no_show`, con ADR
-> si cambia el modelo de estados.
+> - **`on_time_payment_rate`/`events_published` (comercio) siguen sin
+>   cálculo automático.** Mismo motivo que en R2.4: el trabajo se centró en
+>   las métricas del trabajador derivables honestamente del ciclo del turno.
+>   Requiere enganchar `mark_paid`/`publish` en `ShiftService` a un puerto
+>   análogo de `CompanyProfileRepository` — no requiere ADR (no cambia el
+>   modelo de estados), sólo esfuerzo de implementación pendiente.

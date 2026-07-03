@@ -20,6 +20,7 @@ import {
   BriefcaseIcon,
   CheckIcon,
   ClockIcon,
+  CloseIcon,
   MapPinIcon,
   MessageIcon,
   PlayIcon,
@@ -148,9 +149,19 @@ export default function MatchesPage() {
                   </div>
                 )}
                 {shift.status === "confirmado" && (
-                  <Button size="sm" onClick={() => act(shift.id, "depart")} leftIcon={<RouteIcon size={16} />}>
-                    Salir hacia el turno
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => act(shift.id, "depart")} leftIcon={<RouteIcon size={16} />}>
+                      Salir hacia el turno
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="surface"
+                      onClick={() => act(shift.id, "worker-cancel")}
+                      leftIcon={<CloseIcon size={16} />}
+                    >
+                      Cancelar mi asignación
+                    </Button>
+                  </div>
                 )}
                 {shift.status === "en_camino" && (
                   <Button size="sm" onClick={() => act(shift.id, "check-in", true)} leftIcon={<MapPinIcon size={16} />}>
