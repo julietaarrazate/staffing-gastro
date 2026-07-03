@@ -47,6 +47,8 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 | R1.3 + R1.5a (CSP + unit tests del scoring) | #55 | CSP en `next.config.ts` (sólo producción; permite backend propio, WS, tiles CARTO y Cloudinary); 25 unit tests puros de `matching/domain/scoring.py` (pesos, casos límite, orden con trade-offs — un test traía una expectativa incorrecta, corregida: el orden real `equilibrada > lejos_pero_excelente > cerca_pero_nueva` es el comportamiento correcto de los pesos documentados, no un bug). `pytest -q` verde (116 tests) |
 | R3.2 (DS v2 en Employer/Admin) | #60, #61 | `/admin` migrado a `Card`/`Badge`/`Button`/`Avatar`/`EmptyState`/`ErrorBanner`/`Spinner` (verificado por mí, no solo por el reporte del agente); color fuera de paleta (`bg-blue-600`) corregido en el botón "Publicar" de `/shifts`. Sin deuda visual restante en pantallas employer/admin |
 | Coherencia doc↔código del roadmap | *(commit directo)* | R0.2, R0.3, R1.1, R1.6 y R3.2 estaban implementados (mergeados en #50/#56/#59/#60/#61) pero sin tildar en `ROADMAP_IMPLEMENTATION.md`; corregido. R0.1 actualizado a 🔶 (código listo, falta confirmación de Julieta en Render) |
+| Decisiones de producto con ADR | #63 | Las 3 decisiones que Fable tomó como orquestador: **ADR-0003** (`quantity`=1 permanente, no se construye multi-asignación); **ADR-0004** (cancelación del trabajador `CONFIRMADO`→`BUSCANDO_PERSONAL` que reabre el turno y deriva `cancellations`, `POST /shifts/{id}/worker-cancel`, notificación `shift_reopened`; e insignias/niveles con otorgamiento automático por umbral en `worker/domain/rules.py`, recalculados al finalizar y al cancelar). `pytest -q` verde (150 tests, +28). Cierra P1/P2/P3 de TECH_DEBT |
+| Re-baseline de lanzamiento (Fable) | *(PR aparte)* | `docs/LAUNCH_PLAN.md`: re-evaluación de production-readiness (~65→**~78/100** tras mergear R0–R3) + plan secuenciado de beta cerrada en Palermo (B0 pre-lanzamiento → B1 reclutamiento → B2 operación asistida → B3 decisión). Veredicto: **lista para beta con usuarios reales**, sólo faltan 2 pasos operativos de Julieta |
 
 ## En vuelo ahora
 
@@ -62,12 +64,14 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
    desde acá para verificarlo.
 2. **Encender Sentry**: cargar `SENTRY_DSN` (Render) y `NEXT_PUBLIC_SENTRY_DSN`
    (Vercel) cuando quiera — el código ya está y es no-op sin esos valores.
-3. **Decisiones de producto con ADR** (bajo demanda, no urgentes):
-   multi-asignación (`quantity`>1), modelo de cancelación por actor (deriva
-   `cancellations`), reglas de insignias/niveles (BUSINESS_RULES.md).
-4. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
+3. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
    Cloudinary del proyecto (TECH_DEBT I2), manual, sin credenciales no se
    puede automatizar.
+
+> Las decisiones de producto que estaban pendientes (multi-asignación,
+> cancelación por actor, insignias/niveles) ya se **resolvieron** en #63
+> (ADR-0003/0004) — ver bloque "Hecho y mergeado". No queda decisión de
+> producto abierta salvo que el negocio pida algo nuevo (con su propio ADR).
 5. **R4** — deliberadamente en espera hasta que haya señal real de tráfico
    (Redis, bbox multi-ciudad, rutas OSRM, pagos MercadoPago).
 6. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
