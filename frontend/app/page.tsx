@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Logo from "@/components/Logo";
@@ -27,12 +27,13 @@ function Reveal({
   delay?: number;
   className?: string;
 }) {
+  const reducedMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.5, delay, ease: "easeOut" }}
       className={className}
     >
       {children}
@@ -99,6 +100,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
 
   // Si ya hay sesión, no mostramos la landing de marketing: redirigimos a la
   // home del rol. La landing queda sólo para visitantes sin cuenta.
@@ -114,26 +116,30 @@ export default function Home() {
 
   return (
     <div className="relative overflow-hidden">
-      {/* Glow decorativo de fondo, con un pulso suave que da vida al hero */}
-      <motion.div
-        aria-hidden
-        animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.8, 0.6] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-orange-200 via-amber-100 to-transparent blur-3xl"
-      />
+      {/* Glow decorativo de fondo, con un pulso suave que da vida al hero.
+          `repeat: Infinity` es la animación que más se nota con "reducir
+          movimiento" activado — se omite directamente en vez de acortarla. */}
+      {!reducedMotion && (
+        <motion.div
+          aria-hidden
+          animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0.8, 0.6] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-orange-200 via-amber-100 to-transparent blur-3xl"
+        />
+      )}
 
       <div className="mx-auto max-w-5xl px-4 py-14">
         {/* Hero */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
           className="text-center"
         >
           <motion.div
-            initial={{ scale: 0, rotate: -20 }}
+            initial={reducedMotion ? false : { scale: 0, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 13, delay: 0.1 }}
+            transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 200, damping: 13, delay: 0.1 }}
             className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 shadow-lg shadow-orange-500/30"
           >
             <Logo size={40} withWordmark={false} />

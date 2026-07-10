@@ -1,10 +1,12 @@
 "use client";
 
+import { memo } from "react";
 import { Marker } from "@vis.gl/react-maplibre";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import type { WorkerSkill } from "@/lib/types";
 
 interface ShiftMarkerProps {
+  id: string;
   longitude: number;
   latitude: number;
   position: WorkerSkill;
@@ -12,15 +14,23 @@ interface ShiftMarkerProps {
   active: boolean;
   /** Delay del scale-in de aparición, para el efecto stagger. */
   delayMs?: number;
-  onClick: () => void;
+  /** Recibe el `id` del turno: permite pasar un handler estable (useCallback
+   *  en el padre) sin crear una closure nueva por marcador en cada render. */
+  onClick: (id: string) => void;
 }
 
 /**
  * Marcador de turno: pastilla blanca redonda con el ícono del rubro en su
  * acento (`SKILL_ACCENT`). Seleccionado: escala 1.25x + halo naranja + "pico"
  * inferior. Urgente: punto rojo pulsante. Ver docs/MAPS_REDESIGN.md §5.
+ *
+ * Envuelto en `memo`: junto con el `onClick(id)` estable del padre, evita
+ * que los N marcadores se re-rendericen todos al seleccionar uno solo — sólo
+ * cambian props (y por lo tanto re-renderizan) el que sale y el que entra de
+ * `active`.
  */
-export default function ShiftMarker({
+function ShiftMarker({
+  id,
   longitude,
   latitude,
   position,
@@ -38,7 +48,7 @@ export default function ShiftMarker({
       anchor="bottom"
       onClick={(e) => {
         e.originalEvent?.stopPropagation();
-        onClick();
+        onClick(id);
       }}
     >
       {/* Envoltorio: sólo maneja la animación de aparición (scale-in con
@@ -57,7 +67,7 @@ export default function ShiftMarker({
           aria-pressed={active}
           onClick={(e) => {
             e.stopPropagation();
-            onClick();
+            onClick(id);
           }}
           className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-white shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
             active ? "scale-[1.25]" : "scale-100"
@@ -78,3 +88,5 @@ export default function ShiftMarker({
     </Marker>
   );
 }
+
+export default memo(ShiftMarker);

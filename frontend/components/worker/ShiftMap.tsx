@@ -103,6 +103,11 @@ export default function ShiftMap({
     [clusterIndex]
   );
 
+  // Handler estable para ShiftMarker: recibe el `id` en vez de cerrar sobre
+  // la variable de cada iteración del `.map`, así React.memo puede evitar
+  // re-renderizar los marcadores que no cambiaron al seleccionar uno.
+  const handleShiftSelect = useCallback((id: string) => onSelect(id), [onSelect]);
+
   return (
     <MapView
       center={center}
@@ -119,11 +124,12 @@ export default function ShiftMap({
           return (
             <ClusterMarker
               key={`cluster-${feature.properties.cluster_id}`}
+              clusterId={feature.properties.cluster_id}
               longitude={lng}
               latitude={lat}
               count={feature.properties.point_count}
               delayMs={index * 80}
-              onClick={() => handleClusterClick(feature.properties.cluster_id, lng, lat)}
+              onClick={handleClusterClick}
             />
           );
         }
@@ -131,13 +137,14 @@ export default function ShiftMap({
         return (
           <ShiftMarker
             key={shiftId}
+            id={shiftId}
             longitude={lng}
             latitude={lat}
             position={position}
             urgent={urgent}
             active={shiftId === activeId}
             delayMs={index * 80}
-            onClick={() => onSelect(shiftId)}
+            onClick={handleShiftSelect}
           />
         );
       })}

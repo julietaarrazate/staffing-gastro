@@ -1,17 +1,27 @@
 "use client";
 
+import { memo } from "react";
 import { Marker } from "@vis.gl/react-maplibre";
 
 interface ClusterMarkerProps {
+  clusterId: number;
   longitude: number;
   latitude: number;
   count: number;
   delayMs?: number;
-  onClick: () => void;
+  /** Recibe `(clusterId, longitude, latitude)` del propio marcador: permite
+   *  pasar un handler estable (useCallback en el padre) sin crear una
+   *  closure nueva por cluster en cada render. */
+  onClick: (clusterId: number, longitude: number, latitude: number) => void;
 }
 
-/** Burbuja blanca con conteo y aro naranja; tap -> zoom de expansión. */
-export default function ClusterMarker({ longitude, latitude, count, delayMs = 0, onClick }: ClusterMarkerProps) {
+/**
+ * Burbuja blanca con conteo y aro naranja; tap -> zoom de expansión.
+ *
+ * Envuelto en `memo`: junto con el `onClick` estable del padre, evita
+ * re-renderizar todos los clusters al seleccionar un marcador individual.
+ */
+function ClusterMarker({ clusterId, longitude, latitude, count, delayMs = 0, onClick }: ClusterMarkerProps) {
   return (
     <Marker
       longitude={longitude}
@@ -19,7 +29,7 @@ export default function ClusterMarker({ longitude, latitude, count, delayMs = 0,
       anchor="center"
       onClick={(e) => {
         e.originalEvent?.stopPropagation();
-        onClick();
+        onClick(clusterId, longitude, latitude);
       }}
     >
       {/* Fill `both`: mantiene scale(0) durante el delay. NO usar `scale-0`
@@ -34,7 +44,7 @@ export default function ClusterMarker({ longitude, latitude, count, delayMs = 0,
           aria-label={`${count} turnos agrupados, tocá para acercar`}
           onClick={(e) => {
             e.stopPropagation();
-            onClick();
+            onClick(clusterId, longitude, latitude);
           }}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-sm font-extrabold text-ink shadow-[0_4px_12px_rgba(17,17,20,0.2),0_0_0_4px_rgba(255,107,0,0.25)] transition-transform active:scale-90"
         >
@@ -44,3 +54,5 @@ export default function ClusterMarker({ longitude, latitude, count, delayMs = 0,
     </Marker>
   );
 }
+
+export default memo(ClusterMarker);

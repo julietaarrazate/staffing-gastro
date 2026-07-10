@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
@@ -19,6 +19,8 @@ export default function Sheet({
   title?: string;
   children: ReactNode;
 }) {
+  const reducedMotion = useReducedMotion();
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -36,6 +38,7 @@ export default function Sheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={reducedMotion ? { duration: 0 } : undefined}
             onClick={onClose}
             className="absolute inset-0 bg-black/40"
           />
@@ -43,7 +46,7 @@ export default function Sheet({
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 32 }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
