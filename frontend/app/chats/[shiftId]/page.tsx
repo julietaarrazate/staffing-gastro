@@ -21,6 +21,10 @@ export default function ConversationPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // La primera apertura del socket coincide con la carga inicial (load() ya
+  // trajo todo); a partir de la segunda, cada apertura es una reconexión y
+  // puede haber un gap de mensajes perdidos mientras estuvo caído.
+  const hasOpenedOnce = useRef(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -39,9 +43,21 @@ export default function ConversationPage() {
     load();
   }, [load]);
 
-  useWebSocket<ChatMessage>(token ? `/chats/${shiftId}/ws` : null, token, (message) => {
-    setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
-  });
+  const { status: wsStatus } = useWebSocket<ChatMessage>(
+    token ? `/chats/${shiftId}/ws` : null,
+    token,
+    (message) => {
+      setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+    },
+    useCallback(() => {
+      if (!hasOpenedOnce.current) {
+        hasOpenedOnce.current = true;
+        return;
+      }
+      // Reconexión: volvemos a cargar por HTTP para no perder mensajes del gap.
+      load();
+    }, [load])
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,6 +117,15 @@ export default function ConversationPage() {
         })}
         <div ref={bottomRef} />
       </div>
+
+      {token && wsStatus !== "open" && (
+        <div className="mt-2 flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-ink/50">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ink/40" />
+            Reconectando...
+          </span>
+        </div>
+      )}
 
       <form onSubmit={send} className="mt-3 flex gap-2">
         <input

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { uploadImage } from "@/lib/cloudinary";
+import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon } from "@/components/icons";
 
 export default function ImageUpload({
@@ -28,7 +29,7 @@ export default function ImageUpload({
       const url = await uploadImage(file);
       onChange(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo subir la imagen");
+      setError(getErrorMessage(err, "No se pudo subir la imagen"));
     } finally {
       setUploading(false);
       e.target.value = "";

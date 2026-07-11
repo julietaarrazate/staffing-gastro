@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
@@ -13,22 +14,44 @@ import { BriefcaseIcon, MapPinIcon } from "@/components/icons";
 
 export default function PublicWorkerProfilePage() {
   const { token } = useAuth();
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!token) return;
+    setLoading(true);
     api
       .get<WorkerProfile>(`/workers/${params.id}`, token)
-      .then(setProfile)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "No se pudo cargar el perfil"))
+      .then((data) => {
+        setProfile(data);
+        setError(null);
+      })
+      .catch((err) => setError(getErrorMessage(err, "No se pudo cargar el perfil")))
       .finally(() => setLoading(false));
   }, [token, params.id]);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <p className="px-4 py-16 text-center text-zinc-500">Cargando...</p>;
-  if (error) return <ErrorBanner message={error} />;
+  if (error) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-8">
+        <ErrorBanner message={error} onRetry={load} />
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mt-3 text-sm font-semibold text-ink/50 underline underline-offset-2 hover:text-ink"
+        >
+          Volver
+        </button>
+      </div>
+    );
+  }
   if (!profile) return null;
 
   const name = profile.full_name ?? "Trabajador/a";
