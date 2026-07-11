@@ -18,7 +18,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
-from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.shift.domain.repositories import NearbyCandidatesPort, ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
 from app.modules.subscription.domain.plans import get_plan
@@ -31,6 +31,10 @@ logger = logging.getLogger(__name__)
 # R2.4: tolerancia para considerar "puntual" un check-in respecto del
 # horario pactado (start_at). Ver docs/REPUTATION.md.
 PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
+
+# ADR-0005: cantidad de candidatos más cercanos que reciben el ping de un
+# turno urgente al publicarse.
+URGENT_PING_LIMIT = 10
 
 
 class ShiftService:
@@ -46,6 +50,7 @@ class ShiftService:
         subscriptions: SubscriptionRepository,
         users: UserRepository,
         email_sender: EmailSender,
+        nearby_candidates: NearbyCandidatesPort | None = None,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -55,6 +60,7 @@ class ShiftService:
         self._subscriptions = subscriptions
         self._users = users
         self._email_sender = email_sender
+        self._nearby_candidates = nearby_candidates
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -108,7 +114,65 @@ class ShiftService:
         shift = await self._get_owned(company_id, shift_id)
         await self._consume_publication_slot(company_id)
         shift.publish()
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        await self._ping_nearby_urgent_candidates(updated)
+        return updated
+
+    async def _ping_nearby_urgent_candidates(self, shift: Shift) -> None:
+        """ADR-0005: si el turno recién publicado es urgente y tiene
+        coordenadas, "sale a buscar" trabajadores: notifica de inmediato a
+        los `URGENT_PING_LIMIT` candidatos disponibles con la skill pedida
+        más cercanos.
+
+        Fan-out **sincrónico** (sin cola ni broker, ver `docs/EVENTS.md`):
+        vive dentro del mismo caso de uso que publica el turno, igual que el
+        resto de las notificaciones del módulo. La publicación es lo
+        primario — si el fan-out falla (el puerto de matching no está
+        disponible, una notificación individual no se pudo persistir, etc.)
+        se loggea y se sigue, nunca se revierte ni se propaga la excepción.
+        """
+        if self._nearby_candidates is None:
+            return
+        if not shift.urgent or shift.latitude is None or shift.longitude is None:
+            return
+        try:
+            nearby = await self._nearby_candidates.list_nearby(
+                shift.position, shift.latitude, shift.longitude, limit=URGENT_PING_LIMIT
+            )
+            if not nearby:
+                return
+            company = await self._companies.get_by_id(shift.company_id)
+            company_name = company.name if company else None
+            message = self._urgent_ping_message
+            for candidate in nearby:
+                await self._notifications.add(
+                    Notification(
+                        user_id=candidate.user_id,
+                        type=NotificationType.NEARBY_URGENT_SHIFT,
+                        title="⚡ Turno urgente cerca tuyo",
+                        message=message(shift, company_name, candidate.distance_km),
+                    )
+                )
+        except Exception:
+            logger.exception(
+                "Fan-out de ping urgente falló para el turno %s; la publicación sigue.",
+                shift.id,
+            )
+
+    @staticmethod
+    def _urgent_ping_message(
+        shift: Shift, company_name: str | None, distance_km: float
+    ) -> str:
+        """Mensaje en español; no revela del comercio nada que el trabajador
+        no vea ya en el feed (el nombre del comercio es público ahí)."""
+        where = f" en {company_name}" if company_name else ""
+        distance = (
+            "a menos de 1 km" if distance_km < 1 else f"a ~{round(distance_km)} km"
+        )
+        return (
+            f'Hay un turno urgente de {shift.position.value}{where}, '
+            f"{distance} de tu ubicación. ¡Postulate antes que se cubra!"
+        )
 
     async def _consume_publication_slot(self, company_id: UUID) -> None:
         """Gating de capacidad por plan (ADR-0005 Fase 1): antes de publicar

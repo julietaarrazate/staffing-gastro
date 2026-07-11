@@ -19,3 +19,6 @@ class NotificationType(str, Enum):
     # tardía del comercio.
     SHIFT_NO_SHOW = "shift_no_show"
     SHIFT_CANCELLED_LATE = "shift_cancelled_late"
+    # ADR-0005 (ping de turnos urgentes): candidato cercano notificado al
+    # publicarse un turno urgent con coordenadas.
+    NEARBY_URGENT_SHIFT = "nearby_urgent_shift"

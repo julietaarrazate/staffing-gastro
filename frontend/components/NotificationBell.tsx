@@ -1,12 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { Notification } from "@/lib/types";
 import { Skeleton } from "@/components/ui";
+import { BoltIcon } from "@/components/icons";
+
+// Tipos de notificación que llevan a un lugar específico al tocarlas (además
+// de marcarse como leídas). El ping de turno urgente lleva al feed normal:
+// no hay una pantalla propia, la notificación no revela nada que el turno ya
+// no muestre ahí (no-disclosure, ver docs/adr/ADR-0005).
+const NOTIFICATION_LINKS: Partial<Record<Notification["type"], string>> = {
+  nearby_urgent_shift: "/feed",
+};
 
 function NotificationRowSkeleton() {
   return (
@@ -21,6 +31,7 @@ function NotificationRowSkeleton() {
 
 export default function NotificationBell() {
   const { token } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +88,15 @@ export default function NotificationBell() {
     }
   }
 
+  function handleClick(notification: Notification) {
+    markAsRead(notification);
+    const href = NOTIFICATION_LINKS[notification.type];
+    if (href) {
+      setOpen(false);
+      router.push(href);
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -124,13 +144,18 @@ export default function NotificationBell() {
             {!loading && !error && notifications.map((n) => (
               <button
                 key={n.id}
-                onClick={() => markAsRead(n)}
-                className={`block w-full border-b border-zinc-50 px-4 py-3 text-left text-sm hover:bg-zinc-50 ${
+                onClick={() => handleClick(n)}
+                className={`flex w-full items-start gap-2 border-b border-zinc-50 px-4 py-3 text-left text-sm hover:bg-zinc-50 ${
                   n.read ? "bg-white" : "bg-orange-50"
                 }`}
               >
-                <p className="font-medium text-zinc-800">{n.title}</p>
-                <p className="mt-0.5 text-zinc-600">{n.message}</p>
+                {n.type === "nearby_urgent_shift" && (
+                  <BoltIcon size={16} className="mt-0.5 shrink-0 text-orange-600" />
+                )}
+                <div>
+                  <p className="font-medium text-zinc-800">{n.title}</p>
+                  <p className="mt-0.5 text-zinc-600">{n.message}</p>
+                </div>
               </button>
             ))}
           </div>

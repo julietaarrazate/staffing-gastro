@@ -20,12 +20,18 @@ from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.matching.infrastructure.repositories import (
+    SqlAlchemyCandidateRepository,
+)
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
 from app.modules.shift.application.services import ShiftService
+from app.modules.shift.infrastructure.nearby_candidates import (
+    MatchingNearbyCandidatesAdapter,
+)
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
@@ -51,6 +57,9 @@ def get_shift_service(
         subscriptions=SqlAlchemySubscriptionRepository(session),
         users=SqlAlchemyUserRepository(session),
         email_sender=email_sender,
+        nearby_candidates=MatchingNearbyCandidatesAdapter(
+            SqlAlchemyCandidateRepository(session)
+        ),
     )
 
 

@@ -88,6 +88,8 @@ roadmap).
 | Deuda chica post launch-gate: postulación aceptada + STATUS al día | `claude/estado-postulacion` *(PR draft pendiente)* | **Fix 1:** `ShiftService.assign_worker` dejaba la `ShiftApplication` PENDIENTE del trabajador elegido sin transicionar — quedaba "pendiente" para siempre aunque el comercio ya lo hubiera asignado (`docs/TECH_DEBT.md` P5). Ahora, de mínima invasión: `ShiftApplication.accept()` nuevo (dominio, mismo patrón que `withdraw()`) + `ShiftService._accept_application` busca la postulación por turno+trabajador (`ShiftApplicationRepository.get_by_shift_and_worker`, puerto ya inyectado desde la regla de doble turno) y la acepta si está PENDIENTE; si la asignación fue directa (búsqueda/mapa, sin postulación previa) no hace nada y no falla. **No** se tocan las postulaciones de los demás candidatos (RECHAZADA de los no elegidos sigue abierto, ver TECH_DEBT P5 actualizado). **Fix 2:** esta misma bitácora, puesta al día (faltaban #74–#87). `pytest -q`: 207 passed (antes 205, +2); `tsc`/`build`/lint sin errores nuevos (lint: mismo baseline 20/10); e2e 17/17 |
 | Stepper del ciclo de vida + pantalla "esto es lo que sigue" al publicar (inspiración Clickie) | `claude/stepper-ciclo` *(PR draft pendiente)* | **Fix 1:** `ShiftLifecycleStepper` nuevo (numeritos en círculo + línea, paso actual sólido, completados con check tenue, futuros en gris — un solo acento naranja) integrado en `ShiftCard` con dos mapeos de los 12 `ShiftStatus` reales a 4 hitos: comercio (`/shifts`, default) Publicado→Asignado→En curso→Finalizado; trabajador (`/my-shifts`, prop `perspective="worker"`) Postulado→Aceptado→En curso→Finalizado. **Corrección documentada:** el spec original agrupaba `confirmado` con `finalizado/pagado`; se corrigió a agruparlo con `asignado` porque el orden real del dominio (`asignado→confirmado→en_camino→…→finalizado`) haría que el stepper retrocediera de "Finalizado" a "En curso". Cancelado: no agrega un 5º paso — corta la línea (punteada) y reemplaza el hito donde murió por un marcador rojo "Cancelado", inferido de las marcas que sobreviven (`worker_profile_id`/`check_in_at`/`check_out_at`, el dominio no guarda el estado previo a cancelar). **Fix 2:** `ShiftPublishedNextSteps` (pantalla "¡Turno publicado!" con timeline vertical de 4 pasos del comercio) reemplaza el cartel de una sola vez del launch-gate (#88); decisión documentada: se muestra **cada vez** que se publica un turno (no sólo la primera vez), tanto desde el wizard (`/shifts/new`) como desde "Publicar" de un borrador en el panel (`/shifts`) — es informativa, no una interrupción. `Modal` del DS ganó `max-h-[85vh] overflow-y-auto` (cambio genérico y no disruptivo) para que el timeline no se corte en pantallas bajas. `tsc`/`build` verdes; lint sin errores nuevos (mismo baseline 20/10); Playwright 19/19 (2 specs nuevos del stepper + `employer-wizard.spec.ts` actualizado para el nuevo flujo de publicación, resto sin tocar) |
 
+| Hotfix: pool_pre_ping restaurado | #97 | El PR #95 había sacado `pool_pre_ping` a favor de `pool_recycle=280` solo, asumiendo que reciclar por edad alcanzaba. En la práctica, en una beta de bajo tráfico el pooler de Neon corta conexiones **ociosas** bastante antes de esos ~4.5 min — el próximo checkout agarraba una conexión ya muerta y el request colgaba/fallaba. Julieta lo reportó como "la app está lenta" horas después del deploy. Se restauró `pool_pre_ping=True` **junto con** `pool_recycle` (combinación estándar de SQLAlchemy para bases remotas, no un reemplazo del uno por el otro). `pytest -q`: 222 passed |
+
 ## En vuelo ahora
 
 - **`docs/PULIDO_ROADMAP.md` — batches C3 y C4 sin arrancar**: el orden fijado
@@ -98,14 +100,31 @@ roadmap).
   tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) quedan
   pendientes.
 - **Feature de enganche #1: ping en tiempo real de turnos urgentes**
-  (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
-  N trabajadores disponibles más cercanos con la skill. Materializa la promesa
-  "<10 minutos". Sin código todavía.
-- En cola (aprobadas por delegación): #3 progreso de gamificación, #4 panel de
-  ganancias, #5 onboarding (probablemente se resuelve como parte de C4). #2
-  **WhatsApp Business API** sigue bloqueado en cuenta/API de Julieta — distinto
-  del botón "Compartir por WhatsApp" (deep-link `wa.me`, sin API, ya resuelto
-  en #77).
+  (ADR-0005) — al publicar un turno `urgent` con coordenadas, los 10
+  candidatos disponibles más cercanos con la skill reciben `nearby_urgent_shift`
+  (persistida + push WS al instante). Cruce shift→matching por puerto
+  (`NearbyCandidatesPort`) con adapter en infraestructura; fan-out sincrónico
+  sin broker que jamás rompe la publicación (try/except + log). **Código
+  listo, PR #72 en reconciliación** tras el avance grande de `main` (rebase
+  sobre idempotencia/stepper/etc., ver más abajo).
+- **Feature de enganche #3: progreso de gamificación** — mostrar en el perfil
+  del worker cuánto le falta para la próxima insignia/nivel ("te faltan 2
+  turnos para Oro"), sobre `compute_badges`/`compute_level` ya existentes. Se
+  había implementado y verificado (166 tests) pero el cambio se perdió sin
+  commitear al resetearse el entorno de esa sesión — **a rehacer desde cero**.
+- En cola (aprobadas por delegación): #4 panel de ganancias, #5 onboarding
+  (probablemente se resuelve como parte de C4). #2 **WhatsApp Business API**
+  sigue bloqueado en cuenta/API de Julieta — distinto del botón "Compartir por
+  WhatsApp" (deep-link `wa.me`, sin API, ya resuelto en #77).
+
+> **Nota de coordinación:** hubo más de una sesión de Claude Code trabajando
+> en este repo en paralelo (ramas `claude/stepper-ciclo`, `claude/idempotencia`,
+> `claude/robustez-tz-v2`, `claude/staffya-platform-spec-40hf7l`, etc., cada
+> una en worktree aislado). Si en algún momento el `main` local de una sesión
+> queda muy atrás, hacer `git fetch origin main` y comparar antes de asumir
+> que el `git log` local es la verdad — esta bitácora puede quedar desfasada
+> entre sesiones concurrentes; confiar en el `git log` real de `origin/main`
+> por sobre el texto de esta sección si difieren.
 
 > El **ciclo de robustez percibida** (auditoría de 39 hallazgos + 3 lotes de
 > fixes #69/#70/#71) quedó cerrado: no quedan cargas sin skeleton, errores de

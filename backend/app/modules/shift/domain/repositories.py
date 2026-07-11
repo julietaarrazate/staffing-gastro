@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.modules.shift.domain.entities import Shift
@@ -66,3 +67,43 @@ class ShiftRepository(ABC):
 
         Uso interno (no expuesto por API): detectar solapamiento de horarios
         al confirmar un turno (regla de doble turno, `COMMITTED_STATUSES`)."""
+
+
+@dataclass(frozen=True)
+class NearbyCandidate:
+    """Dato mínimo de un candidato cercano: quién y a qué distancia.
+
+    Deliberadamente no lleva más datos del candidato (nombre, rating, etc.):
+    el ping urgente sólo necesita a quién notificar y la distancia para el
+    mensaje ("a ~2 km"), no un perfil enriquecido (eso es del motor de
+    matching, `matching/domain/entities.py::CandidateProfile`).
+    """
+
+    user_id: UUID
+    distance_km: float
+
+
+class NearbyCandidatesPort(ABC):
+    """Puerto para el ping de turnos urgentes (R? — ver ADR-0005): busca
+    trabajadores disponibles con una habilidad, cerca de una coordenada.
+
+    Vive en `shift/domain` porque es lo que el caso de uso de publicación de
+    turnos necesita (puerto), pero la implementación real reutiliza el motor
+    de matching por composición desde `shift/infrastructure` — nunca desde acá
+    ni desde `application`, ver CLAUDE.md ("cruces entre módulos: por
+    puerto/repositorio inyectado, nunca acoplando dominios").
+    """
+
+    @abstractmethod
+    async def list_nearby(
+        self,
+        skill: WorkerSkill,
+        latitude: float,
+        longitude: float,
+        limit: int = 10,
+    ) -> list[NearbyCandidate]:
+        """Hasta `limit` candidatos disponibles con `skill`, más cercanos primero.
+
+        Excluye candidatos sin coordenadas propias (no se puede calcular
+        distancia).
+        """

@@ -16,6 +16,12 @@ y una ubicación. Representa la unidad de intercambio del marketplace.
 
 - **Qué:** puesto (`position`), cantidad, `urgent`, título, descripción,
   `dress_code`.
+- **`urgent` no es sólo un flag de orden en el feed:** al **publicar** un
+  turno urgente con coordenadas, "sale a buscar" trabajadores — se notifica
+  de inmediato a los 10 candidatos disponibles con la skill pedida más
+  cercanos (fan-out sincrónico, sin cola ni broker, ver
+  [ADR-0005](./adr/ADR-0005-ping-turnos-urgentes.md) y
+  [NOTIFICATIONS.md](./NOTIFICATIONS.md#eventos-que-generan-notificación)).
 - **Cuándo:** `start_at`, `end_at`.
 - **Cuánto:** `pay_amount`, `currency`, `tips` (acepta propinas).
 - **Dónde:** dirección, ciudad, coordenadas (ver [LOCATION.md](./LOCATION.md)).

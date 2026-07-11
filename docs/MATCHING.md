@@ -73,6 +73,15 @@ scoring ponderado). Respeta disponibilidad.
   gente cerca (coherente con la meta de < 10 minutos).
 - El comercio tiene la **última palabra**: el motor recomienda, no asigna.
 
+## Reutilización: ping de turnos urgentes
+
+El módulo `shift` reutiliza el `CandidateRepository` de acá (mismo filtro SQL
+disponible+skill, mismo `haversine_km`) por **composición**, desde
+`shift/infrastructure/nearby_candidates.py`, para el ping en tiempo real de
+turnos urgentes al publicarse — sin acoplar el dominio de `shift` a
+`matching`. Ver [ADR-0005](./adr/ADR-0005-ping-turnos-urgentes.md) y
+[SHIFT.md](./SHIFT.md).
+
 ## Fuera de alcance (hoy)
 
 - **Afinidad histórica** local↔trabajador (haber trabajado juntos antes): queda
