@@ -3,12 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { ChatMessage } from "@/lib/types";
 import { ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
+import { ErrorBanner, Skeleton } from "@/components/ui";
+
+function ChatBubblesSkeleton() {
+  const widths = ["w-1/2", "w-2/3", "w-1/3", "w-3/5"];
+  return (
+    <div className="space-y-2" aria-hidden>
+      {widths.map((w, i) => (
+        <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+          <Skeleton className={`h-9 ${w} max-w-[75%] rounded-2xl`} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ConversationPage() {
   const { token, user } = useAuth();
@@ -18,6 +33,7 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -33,7 +49,7 @@ export default function ConversationPage() {
       setMessages(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al cargar la conversación");
+      setError(getErrorMessage(err, "Error al cargar la conversación"));
     } finally {
       setLoading(false);
     }
@@ -63,20 +79,27 @@ export default function ConversationPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
+  async function sendMessage() {
     const body = draft.trim();
     if (!body || !token || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       await api.post(`/chats/${shiftId}/messages`, { body }, token);
       setDraft("");
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo enviar el mensaje");
+      // No borramos el draft: el usuario no debería tener que reescribir el
+      // mensaje si el envío falló.
+      setSendError(getErrorMessage(err, "No se pudo enviar el mensaje"));
     } finally {
       setSending(false);
     }
+  }
+
+  function send(e: React.FormEvent) {
+    e.preventDefault();
+    sendMessage();
   }
 
   return (
@@ -89,8 +112,8 @@ export default function ConversationPage() {
       </Link>
 
       <div className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-2xl bg-zinc-50 p-4 ring-1 ring-zinc-100">
-        {loading && <p className="text-zinc-500">Cargando...</p>}
-        {error && <p className="text-red-600">{error}</p>}
+        {loading && <ChatBubblesSkeleton />}
+        {!loading && error && <ErrorBanner message={error} onRetry={load} />}
         {!loading && messages.length === 0 && !error && (
           <p className="text-center text-sm text-zinc-400">
             Todavía no hay mensajes. ¡Escribí el primero!
@@ -125,6 +148,19 @@ export default function ConversationPage() {
             Reconectando...
           </span>
         </div>
+      )}
+
+      {sendError && (
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-red-600">
+          {sendError}
+          <button
+            type="button"
+            onClick={sendMessage}
+            className="font-semibold underline decoration-red-300 underline-offset-2 hover:text-red-800"
+          >
+            Reintentar
+          </button>
+        </p>
       )}
 
       <form onSubmit={send} className="mt-3 flex gap-2">

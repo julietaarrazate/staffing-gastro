@@ -6,12 +6,25 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { Notification } from "@/lib/types";
+import { Skeleton } from "@/components/ui";
+
+function NotificationRowSkeleton() {
+  return (
+    <div className="flex items-center gap-2 border-b border-zinc-50 px-4 py-3" aria-hidden>
+      <div className="flex-1 space-y-1.5">
+        <Skeleton className="h-3.5 w-2/3" />
+        <Skeleton className="h-3 w-full" />
+      </div>
+    </div>
+  );
+}
 
 export default function NotificationBell() {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
@@ -20,7 +33,8 @@ export default function NotificationBell() {
     api
       .get<Notification[]>("/notifications", token)
       .then(setNotifications)
-      .catch((err) => setError(getErrorMessage(err, "No pudimos cargar tus notificaciones")));
+      .catch((err) => setError(getErrorMessage(err, "No pudimos cargar tus notificaciones")))
+      .finally(() => setLoading(false));
   }, [token]);
 
   useEffect(() => {
@@ -84,7 +98,13 @@ export default function NotificationBell() {
             Notificaciones
           </div>
           <div className="max-h-96 overflow-y-auto">
-            {error && (
+            {loading && (
+              <>
+                <NotificationRowSkeleton />
+                <NotificationRowSkeleton />
+              </>
+            )}
+            {!loading && error && (
               <div className="px-4 py-6 text-center text-sm text-red-600">
                 <p>{error}</p>
                 <button
@@ -96,12 +116,12 @@ export default function NotificationBell() {
                 </button>
               </div>
             )}
-            {!error && notifications.length === 0 && (
+            {!loading && !error && notifications.length === 0 && (
               <p className="px-4 py-6 text-center text-sm text-zinc-500">
                 No tenés notificaciones.
               </p>
             )}
-            {!error && notifications.map((n) => (
+            {!loading && !error && notifications.map((n) => (
               <button
                 key={n.id}
                 onClick={() => markAsRead(n)}

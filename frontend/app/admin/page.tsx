@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminUser, PlatformStats } from "@/lib/types";
-import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Spinner } from "@/components/ui";
+import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Skeleton, Spinner } from "@/components/ui";
 import {
   CheckCircleIcon,
   ShieldIcon,
@@ -38,15 +38,45 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function StatCardSkeleton() {
+  return (
+    <Card className="p-4" aria-hidden>
+      <Skeleton className="h-7 w-10" />
+      <Skeleton className="mt-2 h-3 w-16" />
+    </Card>
+  );
+}
+
+function AdminUserRowSkeleton() {
+  return (
+    <Card className="p-4" aria-hidden>
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-11 w-11 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function AdminPage() {
   const { user, token, loading } = useAuth();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  // Sólo mostramos el skeleton en la carga inicial: las recargas disparadas
+  // por una acción (suspender/verificar/etc.) ya tienen su propio feedback
+  // (el `busy` por fila) y no deberían tapar la lista entera de nuevo.
+  const loadedOnce = useRef(false);
 
   const load = useCallback(() => {
     if (!token) return;
+    if (!loadedOnce.current) setStatsLoading(true);
+    setError(null);
     Promise.all([
       api.get<PlatformStats>("/admin/stats", token),
       api.get<AdminUser[]>("/admin/users", token),
@@ -55,7 +85,11 @@ export default function AdminPage() {
         setStats(s);
         setUsers(u);
       })
-      .catch((err) => setError(getErrorMessage(err, "Error al cargar el panel")));
+      .catch((err) => setError(getErrorMessage(err, "Error al cargar el panel")))
+      .finally(() => {
+        loadedOnce.current = true;
+        setStatsLoading(false);
+      });
   }, [token]);
 
   useEffect(() => {
@@ -104,13 +138,22 @@ export default function AdminPage() {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      {stats && (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Usuarios" value={stats.total_users} />
-          <StatCard label="Trabajadores" value={stats.workers} />
-          <StatCard label="Comercios" value={stats.employers} />
-          <StatCard label="Suspendidos" value={stats.suspended} />
+      {statsLoading ? (
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-hidden>
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
         </div>
+      ) : (
+        stats && (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard label="Usuarios" value={stats.total_users} />
+            <StatCard label="Trabajadores" value={stats.workers} />
+            <StatCard label="Comercios" value={stats.employers} />
+            <StatCard label="Suspendidos" value={stats.suspended} />
+          </div>
+        )
       )}
 
       <div className="mt-8">
@@ -118,7 +161,14 @@ export default function AdminPage() {
           Usuarios
         </p>
         <div className="mt-2 grid gap-3">
-          {users.map((u) => (
+          {statsLoading ? (
+            <>
+              <AdminUserRowSkeleton />
+              <AdminUserRowSkeleton />
+              <AdminUserRowSkeleton />
+            </>
+          ) : (
+          users.map((u) => (
             <Card key={u.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -189,7 +239,8 @@ export default function AdminPage() {
                 )}
               </div>
             </Card>
-          ))}
+          ))
+          )}
         </div>
       </div>
     </div>

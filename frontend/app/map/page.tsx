@@ -10,7 +10,7 @@ import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { Button, EmptyState, useToast } from "@/components/ui";
+import { Button, EmptyState, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon } from "@/components/icons";
 import MapSheet from "@/components/worker/MapSheet";
 
@@ -20,6 +20,28 @@ const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
 });
 
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
+
+function MapCardSkeleton() {
+  return (
+    <div
+      className="w-[86%] shrink-0 snap-center overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-float)] ring-1 ring-line"
+      aria-hidden
+    >
+      <div className="flex items-center gap-2.5">
+        <Skeleton className="h-11 w-11 rounded-2xl" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      </div>
+      <div className="mt-3 flex items-end justify-between">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-3 w-14" />
+      </div>
+      <Skeleton className="mt-3 h-9 w-full rounded-full" />
+    </div>
+  );
+}
 
 export default function MapPage() {
   const { token } = useAuth();
@@ -135,7 +157,14 @@ export default function MapPage() {
             onScroll={onCarouselScroll}
             className="no-scrollbar flex h-full items-start snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
           >
-          {shifts.map((shift) => {
+          {loading ? (
+            <>
+              <MapCardSkeleton />
+              <MapCardSkeleton />
+              <MapCardSkeleton />
+            </>
+          ) : (
+          shifts.map((shift) => {
             const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
@@ -204,7 +233,8 @@ export default function MapPage() {
                 </Button>
               </div>
             );
-          })}
+          })
+          )}
           </div>
         </MapSheet>
       )}
