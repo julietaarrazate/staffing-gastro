@@ -48,6 +48,7 @@ export default function MatchesPage() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [lastGeoAction, setLastGeoAction] = useState<{ id: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -84,6 +85,8 @@ export default function MatchesPage() {
 
   async function act(id: string, path: string, geo = false) {
     if (!token) return;
+    const key = `${id}:${path}`;
+    setBusy(key);
     if (geo) {
       setGeoError(null);
       setLastGeoAction({ id, path });
@@ -93,7 +96,9 @@ export default function MatchesPage() {
       if (geo) {
         // La geolocalización tiene sus propios mensajes en español (ver
         // lib/geolocation.ts): los conservamos tal cual, sin pasarlos por
-        // getErrorMessage (que los pisaría con el genérico de red).
+        // getErrorMessage (que los pisaría con el genérico de red). El busy
+        // sigue activo mientras esperamos getCurrentPosition() para evitar
+        // un doble-tap durante esos segundos.
         try {
           body = await getCurrentPosition();
         } catch (err) {
@@ -103,11 +108,13 @@ export default function MatchesPage() {
       }
       await api.post(`/shifts/${id}/${path}`, body, token);
       if (geo) setLastGeoAction(null);
-      load();
+      await load();
     } catch (err) {
       const msg = getErrorMessage(err, "No se pudo completar la acción");
       if (geo) setGeoError(msg);
       else toast(msg, "error");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -164,17 +171,35 @@ export default function MatchesPage() {
                 )}
                 {shift.status === "asignado" && (
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => act(shift.id, "confirm")}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => act(shift.id, "confirm")}
+                      loading={busy === `${shift.id}:confirm`}
+                      disabled={busy !== null}
+                    >
                       Confirmar
                     </Button>
-                    <Button size="sm" variant="surface" onClick={() => act(shift.id, "reject")}>
+                    <Button
+                      size="sm"
+                      variant="surface"
+                      onClick={() => act(shift.id, "reject")}
+                      loading={busy === `${shift.id}:reject`}
+                      disabled={busy !== null}
+                    >
                       Rechazar
                     </Button>
                   </div>
                 )}
                 {shift.status === "confirmado" && (
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => act(shift.id, "depart")} leftIcon={<RouteIcon size={16} />}>
+                    <Button
+                      size="sm"
+                      onClick={() => act(shift.id, "depart")}
+                      leftIcon={<RouteIcon size={16} />}
+                      loading={busy === `${shift.id}:depart`}
+                      disabled={busy !== null}
+                    >
                       Salir hacia el turno
                     </Button>
                     <Button
@@ -182,23 +207,44 @@ export default function MatchesPage() {
                       variant="surface"
                       onClick={() => act(shift.id, "worker-cancel")}
                       leftIcon={<CloseIcon size={16} />}
+                      loading={busy === `${shift.id}:worker-cancel`}
+                      disabled={busy !== null}
                     >
                       Cancelar mi asignación
                     </Button>
                   </div>
                 )}
                 {shift.status === "en_camino" && (
-                  <Button size="sm" onClick={() => act(shift.id, "check-in", true)} leftIcon={<MapPinIcon size={16} />}>
+                  <Button
+                    size="sm"
+                    onClick={() => act(shift.id, "check-in", true)}
+                    leftIcon={<MapPinIcon size={16} />}
+                    loading={busy === `${shift.id}:check-in`}
+                    disabled={busy !== null}
+                  >
                     Marcar llegada
                   </Button>
                 )}
                 {shift.status === "check_in" && (
-                  <Button size="sm" variant="secondary" onClick={() => act(shift.id, "start-working")} leftIcon={<PlayIcon size={15} />}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => act(shift.id, "start-working")}
+                    leftIcon={<PlayIcon size={15} />}
+                    loading={busy === `${shift.id}:start-working`}
+                    disabled={busy !== null}
+                  >
                     Empezar a trabajar
                   </Button>
                 )}
                 {shift.status === "trabajando" && (
-                  <Button size="sm" onClick={() => act(shift.id, "check-out", true)} leftIcon={<MapPinIcon size={16} />}>
+                  <Button
+                    size="sm"
+                    onClick={() => act(shift.id, "check-out", true)}
+                    leftIcon={<MapPinIcon size={16} />}
+                    loading={busy === `${shift.id}:check-out`}
+                    disabled={busy !== null}
+                  >
                     Marcar salida
                   </Button>
                 )}

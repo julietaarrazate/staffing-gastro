@@ -94,8 +94,8 @@ export default function RegisterPage() {
               className={inputClass}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" fullWidth disabled={submitting}>
-              {submitting ? "Creando..." : "Crear cuenta"}
+            <Button type="submit" fullWidth loading={submitting}>
+              Crear cuenta
             </Button>
           </form>
         </div>

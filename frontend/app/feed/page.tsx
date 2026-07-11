@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
@@ -75,17 +76,23 @@ export default function WorkerHomePage() {
     }
   }
 
-  async function onDecide(shift: Shift, decision: "like" | "pass") {
-    if (decision === "pass" || !token) return;
+  async function onDecide(shift: Shift, decision: "like" | "pass"): Promise<boolean> {
+    // "pass" es un descarte local: no hay red de por medio, así que siempre
+    // se considera procesado.
+    if (decision === "pass" || !token) return true;
     try {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token);
       toast("¡Te postulaste! El comercio ya te puede ver");
+      return true;
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
+        // Ya estaba postulado: no es un error real, se trata como descarte
+        // (la carta no vuelve).
         toast("Ya te habías postulado a este turno");
-      } else {
-        toast("No se pudo enviar tu postulación", "error");
+        return true;
       }
+      toast(getErrorMessage(err, "No se pudo enviar tu postulación"), "error");
+      return false;
     }
   }
 
