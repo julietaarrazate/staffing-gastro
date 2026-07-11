@@ -6,9 +6,27 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
-import { ErrorBanner } from "@/components/ui";
+import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import { MapPinIcon } from "@/components/icons";
+
+function ProfilePageSkeleton() {
+  return (
+    <div className="mx-auto max-w-xl px-4 py-8" aria-hidden>
+      <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
+        <Skeleton className="h-56 w-full rounded-none" />
+        <div className="space-y-4 px-5 py-5">
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-16 rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   restaurante: "Restaurante",
@@ -44,7 +62,7 @@ export default function PublicCompanyProfilePage() {
     load();
   }, [load]);
 
-  if (loading) return <p className="px-4 py-16 text-center text-zinc-500">Cargando...</p>;
+  if (loading) return <ProfilePageSkeleton />;
   if (error) {
     return (
       <div className="mx-auto max-w-xl px-4 py-8">

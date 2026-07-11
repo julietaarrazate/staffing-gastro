@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Conversation } from "@/lib/types";
+import { ErrorBanner, Skeleton } from "@/components/ui";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -17,22 +19,38 @@ function timeAgo(iso: string): string {
   return `hace ${d} d`;
 }
 
+function ConversationRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+      <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3.5 w-3/4" />
+      </div>
+    </div>
+  );
+}
+
 export default function ChatsPage() {
   const { token } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!token) return;
+    setLoading(true);
+    setError(null);
     api
       .get<Conversation[]>("/chats", token)
       .then(setConversations)
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "Error al cargar tus mensajes")
-      )
+      .catch((err) => setError(getErrorMessage(err, "Error al cargar tus mensajes")))
       .finally(() => setLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -41,8 +59,14 @@ export default function ChatsPage() {
         Coordiná los detalles de cada turno con la otra parte.
       </p>
 
-      {loading && <p className="mt-8 text-zinc-500">Cargando...</p>}
-      {error && <p className="mt-8 text-red-600">{error}</p>}
+      {loading && (
+        <div className="mt-6 grid gap-3" aria-hidden>
+          <ConversationRowSkeleton />
+          <ConversationRowSkeleton />
+          <ConversationRowSkeleton />
+        </div>
+      )}
+      {!loading && error && <ErrorBanner message={error} onRetry={load} />}
       {!loading && conversations.length === 0 && !error && (
         <p className="mt-8 text-zinc-500">
           Todavía no tenés conversaciones. Cuando un turno se asigne, vas a poder chatear acá.

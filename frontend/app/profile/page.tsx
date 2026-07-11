@@ -5,6 +5,7 @@ import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
+import { Spinner } from "@/components/ui";
 import { LogOutIcon, ShieldIcon } from "@/components/icons";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,13 @@ function Row({
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth();
 
-  if (loading) return <p className="px-4 py-16 text-center text-zinc-500">Cargando...</p>;
+  if (loading) {
+    return (
+      <div className="flex justify-center px-4 py-16">
+        <Spinner size={28} className="text-zinc-400" />
+      </div>
+    );
+  }
   if (!user)
     return <p className="px-4 py-16 text-center text-zinc-500">Iniciá sesión para ver tu perfil.</p>;
 

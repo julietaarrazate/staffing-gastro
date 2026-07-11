@@ -53,16 +53,22 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 | UX: landing + selección de texto | #66 | La landing es sólo para visitantes sin sesión (logueados van a la home de su rol: `/feed`, `/shifts`, `/admin`); copy ofensivo ("delivery de personas") reemplazado; `user-select:none` en botones/tabs/labels (inputs siguen seleccionables). Fix del E2E `auth.spec.ts` por el redirect nuevo |
 | Auditoría de performance frontend | #67 | `docs/PERFORMANCE_AUDIT_FRONTEND.md` con hallazgos archivo:línea (Sentry estático 138 KB gzip 🔴, motion 🟠, marcadores de mapa 🟡, reduced-motion 🟠) + quick wins seguros |
 | Performance frontend (fixes) | #68 | Sentry con `import()` dinámico gateado por DSN (sin DSN el SDK no viaja en ninguna ruta — verificado por grep de chunks en `.next/server/app/` y manifests); `memo` + handlers estables en marcadores de mapa (Cluster/Shift/Worker); `useReducedMotion` en landing, splash, swipe, modales, sheets, toasts y mapa |
+| Robustez percibida — lote 1 (errores de red) | #69 | Auditoría previa: 39 hallazgos en 16 rutas. `lib/errors.ts` (`getErrorMessage` — nunca más "Failed to fetch" en inglés; `isNotFound`); `ErrorBanner` con `onRetry` cableado en shifts/my-shifts/admin/candidatos/search/perfiles públicos (estos últimos con "Volver": ya no hay pantalla muerta); `useWebSocket` expone `status`+`onOpen` → chat con "Reconectando..." y re-sync de mensajes por HTTP al reconectar |
+| Robustez percibida — lote 2 (acciones silenciosas) | #70 | Panel del comercio: Publicar/Cancelar/Cerrar/Pagar tenían POSTs sin try/catch ni loading — ahora busy por acción + toast; Matches: busy en los 7 botones (incluye espera de GPS); swipe del feed: la carta vuelve al mazo si la postulación falla (`onDecide` → `Promise<boolean>`); forms de perfil: sólo 404 = "no existe" (antes un fallo de red mostraba el form vacío con riesgo de pisar el perfil), `submitting` + skeleton; reseñas y campana ya no disfrazan errores de vacío |
+| Robustez percibida — lote 3 (skeletons) | #71 | Skeletons con forma real en: lista de chats, conversación (burbujas), perfiles públicos, ReceivedReviews, carrusel del mapa, sheet de búsqueda ("Buscando..." en vez de "0 trabajadores" durante la carga, con fix del flash inicial), admin (KPIs + usuarios, sólo carga inicial) y dropdown de notificaciones; en el chat, si falla el envío el texto no se pierde y hay "Reintentar" pegado al form |
 
 ## En vuelo ahora
 
-- **Ciclo de robustez percibida** (pedido de Julieta): auditoría de las 16
-  rutas del frontend buscando cargas sin skeleton, errores de red sin mensaje
-  ni reintento y formularios que fallan en silencio; fixes por lotes con
-  agentes Sonnet, un PR por lote.
-- En cola (features de enganche aprobadas por delegación): #1 ping en tiempo
-  real de turnos urgentes (ADR-0005), #3 progreso de gamificación, #4 panel de
+- **Feature de enganche #1: ping en tiempo real de turnos urgentes**
+  (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
+  N trabajadores disponibles más cercanos con la skill. Materializa la promesa
+  "<10 minutos".
+- En cola (aprobadas por delegación): #3 progreso de gamificación, #4 panel de
   ganancias, #5 onboarding. #2 WhatsApp bloqueado en cuenta API.
+
+> El **ciclo de robustez percibida** (auditoría de 39 hallazgos + 3 lotes de
+> fixes #69/#70/#71) quedó cerrado: no quedan cargas sin skeleton, errores de
+> red sin mensaje/reintento ni acciones que fallen en silencio en las 16 rutas.
 
 ## Bloqueado en Julieta (único trabajo pendiente)
 

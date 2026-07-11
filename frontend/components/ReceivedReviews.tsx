@@ -6,6 +6,17 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
+import { Skeleton } from "@/components/ui";
+
+function ReviewSkeleton() {
+  return (
+    <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="mt-2 h-3.5 w-full" />
+      <Skeleton className="mt-1.5 h-3.5 w-2/3" />
+    </div>
+  );
+}
 
 export default function ReceivedReviews() {
   const { token } = useAuth();
@@ -28,7 +39,14 @@ export default function ReceivedReviews() {
     load();
   }, [load]);
 
-  if (loading) return <p className="text-sm text-zinc-500">Cargando...</p>;
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-3" aria-hidden>
+        <ReviewSkeleton />
+        <ReviewSkeleton />
+      </div>
+    );
+  }
 
   // Distinguimos el error de red del estado vacío legítimo: antes cualquier
   // falla se interpretaba como "no hay reseñas".

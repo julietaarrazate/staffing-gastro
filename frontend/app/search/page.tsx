@@ -7,11 +7,24 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
-import { ErrorBanner } from "@/components/ui";
+import { ErrorBanner, Skeleton } from "@/components/ui";
 import { SearchIcon } from "@/components/icons";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import StarRating from "@/components/StarRating";
 import BottomSheet from "@/components/BottomSheet";
+
+function WorkerRowSkeleton() {
+  return (
+    <div className="flex gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-zinc-100" aria-hidden>
+      <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-3.5 w-1/3" />
+        <Skeleton className="h-5 w-3/4 rounded-full" />
+      </div>
+    </div>
+  );
+}
 
 const WorkerSearchMap = dynamic(() => import("@/components/WorkerSearchMap"), {
   ssr: false,
@@ -28,7 +41,10 @@ export default function SearchPage() {
   const [radiusKm, setRadiusKm] = useState(15);
   const [workers, setWorkers] = useState<WorkerMapResult[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Arranca en `true`: la búsqueda inicial se dispara en un efecto apenas hay
+  // token/ubicación, así el sheet nunca llega a mostrar "0 trabajadores" antes
+  // de que la primera búsqueda resuelva.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -114,13 +130,23 @@ export default function SearchPage() {
       <BottomSheet
         header={
           <p className="px-4 pb-2 text-sm font-semibold text-zinc-700">
-            {workers.length} trabajador{workers.length === 1 ? "" : "es"} disponible
-            {workers.length === 1 ? "" : "s"} en el radio seleccionado
+            {loading
+              ? "Buscando..."
+              : `${workers.length} trabajador${workers.length === 1 ? "" : "es"} disponible${
+                  workers.length === 1 ? "" : "s"
+                } en el radio seleccionado`}
           </p>
         }
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          {workers.map((worker) => (
+          {loading ? (
+            <>
+              <WorkerRowSkeleton />
+              <WorkerRowSkeleton />
+              <WorkerRowSkeleton />
+            </>
+          ) : (
+          workers.map((worker) => (
             <Link
               key={worker.profile_id}
               href={`/workers/${worker.profile_id}`}
@@ -165,7 +191,8 @@ export default function SearchPage() {
                 </div>
               </div>
             </Link>
-          ))}
+          ))
+          )}
         </div>
       </BottomSheet>
     </div>
