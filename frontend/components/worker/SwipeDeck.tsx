@@ -25,7 +25,12 @@ export default function SwipeDeck({
   empty,
 }: {
   shifts: Shift[];
-  onDecide: (shift: Shift, decision: Decision) => void;
+  /**
+   * Devuelve `true` cuando la decisión quedó procesada (o es un descarte que
+   * no requiere red) y `false` cuando falló: en ese caso la carta vuelve a
+   * su lugar para que el usuario pueda reintentar en vez de perderla.
+   */
+  onDecide: (shift: Shift, decision: Decision) => Promise<boolean>;
   renderCard: (shift: Shift) => ReactNode;
   empty: ReactNode;
 }) {
@@ -51,7 +56,20 @@ export default function SwipeDeck({
       opacity: 0,
       transition: reducedMotion ? { duration: 0 } : { duration: 0.28, ease: "easeIn" },
     });
-    onDecide(current, decision);
+    const ok = await onDecide(current, decision);
+    if (!ok) {
+      // Falló (red/5xx): la carta ya voló afuera, la traemos de vuelta a su
+      // lugar para que el usuario pueda reintentar en vez de perderla.
+      await controls.start({
+        x: 0,
+        rotate: 0,
+        opacity: 1,
+        transition: reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 24 },
+      });
+      x.set(0);
+      setBusy(false);
+      return;
+    }
     x.set(0);
     controls.set({ x: 0, rotate: 0, opacity: 1 });
     setIndex((i) => i + 1);

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import ImageUpload from "@/components/ImageUpload";
-import { Button } from "@/components/ui";
+import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 
 export default function WorkerProfileForm() {
   const { token, user } = useAuth();
@@ -20,11 +21,15 @@ export default function WorkerProfileForm() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!token) return;
+    setLoading(true);
+    setLoadError(null);
     api
       .get<WorkerProfile>("/workers/me/profile", token)
       .then((p) => {
@@ -38,9 +43,22 @@ export default function WorkerProfileForm() {
         setLongitude(p.longitude ?? null);
         setIsAvailable(p.is_available);
       })
-      .catch(() => setExists(false))
+      .catch((err) => {
+        // Sólo un 404 real significa "todavía no hay perfil". Cualquier otro
+        // error (red, 5xx) NO puede interpretarse como eso: si lo hiciéramos,
+        // el próximo submit haría POST y pisaría un perfil existente.
+        if (isNotFound(err)) {
+          setExists(false);
+        } else {
+          setLoadError(getErrorMessage(err, "No pudimos cargar tu perfil"));
+        }
+      })
       .finally(() => setLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   function toggleSkill(skill: WorkerSkill) {
     setSkills((prev) =>
@@ -61,6 +79,7 @@ export default function WorkerProfileForm() {
       longitude,
       is_available: isAvailable,
     };
+    setSubmitting(true);
     try {
       const result = exists
         ? await api.put<WorkerProfile>("/workers/me/profile", payload, token)
@@ -69,11 +88,25 @@ export default function WorkerProfileForm() {
       setExists(true);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el perfil");
+      setError(getErrorMessage(err, "No se pudo guardar el perfil"));
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  if (loading) return <p>Cargando...</p>;
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <Skeleton className="h-20 w-20 rounded-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return <ErrorBanner message={loadError} onRetry={load} />;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -149,7 +182,9 @@ export default function WorkerProfileForm() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
 
-      <Button type="submit">{exists ? "Guardar cambios" : "Crear perfil"}</Button>
+      <Button type="submit" loading={submitting} disabled={submitting}>
+        {exists ? "Guardar cambios" : "Crear perfil"}
+      </Button>
     </form>
   );
 }

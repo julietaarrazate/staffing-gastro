@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
@@ -10,17 +11,41 @@ export default function ReceivedReviews() {
   const { token } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!token) return;
+    setLoading(true);
+    setError(null);
     api
       .get<Review[]>("/reviews/received", token)
       .then(setReviews)
-      .catch(() => setReviews([]))
+      .catch((err) => setError(getErrorMessage(err, "No pudimos cargar tus reseñas")))
       .finally(() => setLoading(false));
   }, [token]);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <p className="text-sm text-zinc-500">Cargando...</p>;
+
+  // Distinguimos el error de red del estado vacío legítimo: antes cualquier
+  // falla se interpretaba como "no hay reseñas".
+  if (error) {
+    return (
+      <p className="text-sm text-red-600">
+        {error}{" "}
+        <button
+          type="button"
+          onClick={load}
+          className="font-semibold underline decoration-red-300 underline-offset-2 hover:text-red-800"
+        >
+          Reintentar
+        </button>
+      </p>
+    );
+  }
 
   if (reviews.length === 0) {
     return <p className="text-sm text-zinc-500">Todavía no tenés reseñas.</p>;

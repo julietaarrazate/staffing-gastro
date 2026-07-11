@@ -89,8 +89,8 @@ export default function LoginPage() {
               className={inputClass}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" fullWidth disabled={submitting}>
-              {submitting ? "Ingresando..." : "Ingresar"}
+            <Button type="submit" fullWidth loading={submitting}>
+              Ingresar
             </Button>
           </form>
         </div>
@@ -100,22 +100,26 @@ export default function LoginPage() {
             Probar la app sin cuenta
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <button
-              type="button"
+            <Button
+              variant="surface"
+              size="sm"
+              fullWidth
               onClick={() => handleDemo("employer")}
+              loading={demoLoading === "employer"}
               disabled={demoLoading !== null}
-              className="rounded-xl bg-zinc-100 px-3 py-2.5 text-sm font-semibold text-zinc-700 transition active:scale-95 hover:bg-zinc-200 disabled:opacity-50"
             >
-              {demoLoading === "employer" ? "Entrando..." : "Soy comercio"}
-            </button>
-            <button
-              type="button"
+              Soy comercio
+            </Button>
+            <Button
+              variant="surface"
+              size="sm"
+              fullWidth
               onClick={() => handleDemo("worker")}
+              loading={demoLoading === "worker"}
               disabled={demoLoading !== null}
-              className="rounded-xl bg-zinc-100 px-3 py-2.5 text-sm font-semibold text-zinc-700 transition active:scale-95 hover:bg-zinc-200 disabled:opacity-50"
             >
-              {demoLoading === "worker" ? "Entrando..." : "Soy trabajador"}
-            </button>
+              Soy trabajador
+            </Button>
           </div>
           <p className="mt-2.5 text-center text-xs text-zinc-400">
             Entrás con un perfil de demostración para ver la app.

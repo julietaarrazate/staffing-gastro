@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
-import { Button, CardSkeletons, EmptyState, ErrorBanner } from "@/components/ui";
+import { Button, CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import {
   BoltIcon,
   CheckCircleIcon,
@@ -42,11 +42,22 @@ function Kpi({
   );
 }
 
+type Action = "publish" | "cancel" | "finish" | "markPaid";
+
+const ACTION_PATH: Record<Action, string> = {
+  publish: "publish",
+  cancel: "cancel",
+  finish: "finish",
+  markPaid: "mark-paid",
+};
+
 export default function MyShiftsPage() {
   const { token } = useAuth();
+  const toast = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
 
   async function load() {
     if (!token) return;
@@ -66,28 +77,21 @@ export default function MyShiftsPage() {
     load();
   }, [token]);
 
-  async function publish(id: string) {
+  // Helper único para las acciones de estado del turno: registra qué tarjeta
+  // está ocupada (para loading/disabled), atrapa errores del POST (antes se
+  // dejaban sin manejar) y refresca la lista al terminar.
+  async function run(id: string, action: Action) {
     if (!token) return;
-    await api.post(`/shifts/${id}/publish`, undefined, token);
-    load();
-  }
-
-  async function cancel(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/cancel`, undefined, token);
-    load();
-  }
-
-  async function finish(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/finish`, undefined, token);
-    load();
-  }
-
-  async function markPaid(id: string) {
-    if (!token) return;
-    await api.post(`/shifts/${id}/mark-paid`, undefined, token);
-    load();
+    const key = `${id}:${action}`;
+    setBusy(key);
+    try {
+      await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token);
+      await load();
+    } catch (err) {
+      toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+    } finally {
+      setBusy(null);
+    }
   }
 
   const kpis = {
@@ -149,7 +153,12 @@ export default function MyShiftsPage() {
                 </>
               )}
               {shift.status === "borrador" && (
-                <Button size="sm" onClick={() => publish(shift.id)}>
+                <Button
+                  size="sm"
+                  onClick={() => run(shift.id, "publish")}
+                  loading={busy === `${shift.id}:publish`}
+                  disabled={busy !== null}
+                >
                   Publicar
                 </Button>
               )}
@@ -162,7 +171,13 @@ export default function MyShiftsPage() {
                 </Link>
               )}
               {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
-                <Button size="sm" variant="surface" onClick={() => cancel(shift.id)}>
+                <Button
+                  size="sm"
+                  variant="surface"
+                  onClick={() => run(shift.id, "cancel")}
+                  loading={busy === `${shift.id}:cancel`}
+                  disabled={busy !== null}
+                >
                   Cancelar
                 </Button>
               )}
@@ -171,13 +186,21 @@ export default function MyShiftsPage() {
                   size="sm"
                   variant="secondary"
                   leftIcon={<CheckCircleIcon size={16} />}
-                  onClick={() => finish(shift.id)}
+                  onClick={() => run(shift.id, "finish")}
+                  loading={busy === `${shift.id}:finish`}
+                  disabled={busy !== null}
                 >
                   Cerrar turno
                 </Button>
               )}
               {shift.status === "finalizado" && (
-                <Button size="sm" leftIcon={<WalletIcon size={16} />} onClick={() => markPaid(shift.id)}>
+                <Button
+                  size="sm"
+                  leftIcon={<WalletIcon size={16} />}
+                  onClick={() => run(shift.id, "markPaid")}
+                  loading={busy === `${shift.id}:markPaid`}
+                  disabled={busy !== null}
+                >
                   Marcar como pagado
                 </Button>
               )}

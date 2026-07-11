@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
@@ -11,21 +12,45 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
   const { token, user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!token) return;
+    setLoading(true);
+    setLoadError(null);
     api
       .get<Review[]>(`/reviews/shifts/${shiftId}`, token)
       .then(setReviews)
-      .catch(() => setReviews([]))
+      .catch((err) => setLoadError(getErrorMessage(err, "No pudimos cargar las reseñas")))
       .finally(() => setLoading(false));
   }, [token, shiftId]);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading || !user) return null;
+
+  // Distinguimos el error de red del estado vacío legítimo (antes cualquier
+  // falla se enmascaraba como "todavía no hay reseñas").
+  if (loadError) {
+    return (
+      <p className="text-sm text-red-600">
+        {loadError}{" "}
+        <button
+          type="button"
+          onClick={load}
+          className="font-semibold underline decoration-red-300 underline-offset-2 hover:text-red-800"
+        >
+          Reintentar
+        </button>
+      </p>
+    );
+  }
 
   const myReview = reviews.find((r) => r.reviewer_user_id === user.id);
 
@@ -56,7 +81,7 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
       );
       setReviews((prev) => [...prev, created]);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo enviar la calificación");
+      setError(getErrorMessage(err, "No se pudo enviar la calificación"));
     } finally {
       setSubmitting(false);
     }
@@ -78,8 +103,8 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       <div className="mt-2">
-        <Button type="submit" size="sm" disabled={rating === 0 || submitting}>
-          {submitting ? "Enviando..." : "Enviar calificación"}
+        <Button type="submit" size="sm" loading={submitting} disabled={rating === 0 || submitting}>
+          Enviar calificación
         </Button>
       </div>
     </form>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { Notification } from "@/lib/types";
@@ -10,17 +11,21 @@ export default function NotificationBell() {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!token) return;
+    setError(null);
     api
       .get<Notification[]>("/notifications", token)
       .then(setNotifications)
-      .catch(() => {
-        // Si falla la carga inicial, el websocket igual irá entregando lo nuevo.
-      });
+      .catch((err) => setError(getErrorMessage(err, "No pudimos cargar tus notificaciones")));
   }, [token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useWebSocket<Notification>(token ? "/notifications/ws" : null, token, (notification) => {
     setNotifications((prev) =>
@@ -52,7 +57,9 @@ export default function NotificationBell() {
       );
       setNotifications((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
     } catch {
-      // Si falla, dejamos la notificación como estaba.
+      // Silencioso a propósito (baja prioridad): marcar como leída no es
+      // crítico, y si falla la notificación simplemente sigue apareciendo
+      // como no leída; el usuario puede volver a tocarla.
     }
   }
 
@@ -77,12 +84,24 @@ export default function NotificationBell() {
             Notificaciones
           </div>
           <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 && (
+            {error && (
+              <div className="px-4 py-6 text-center text-sm text-red-600">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  onClick={load}
+                  className="mt-1 font-semibold underline decoration-red-300 underline-offset-2 hover:text-red-800"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
+            {!error && notifications.length === 0 && (
               <p className="px-4 py-6 text-center text-sm text-zinc-500">
                 No tenés notificaciones.
               </p>
             )}
-            {notifications.map((n) => (
+            {!error && notifications.map((n) => (
               <button
                 key={n.id}
                 onClick={() => markAsRead(n)}
