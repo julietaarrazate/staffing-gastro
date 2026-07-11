@@ -5,7 +5,7 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-02 · rama de trabajo:
+*Última actualización: 2026-07-10 · rama de trabajo:
 `claude/staffya-platform-spec-40hf7l` · todos los PRs se mergean con squash
 apenas quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
 auto-merge, confirmado explícitamente por Julieta) para retomar el backlog no
@@ -48,13 +48,21 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 | R3.2 (DS v2 en Employer/Admin) | #60, #61 | `/admin` migrado a `Card`/`Badge`/`Button`/`Avatar`/`EmptyState`/`ErrorBanner`/`Spinner` (verificado por mí, no solo por el reporte del agente); color fuera de paleta (`bg-blue-600`) corregido en el botón "Publicar" de `/shifts`. Sin deuda visual restante en pantallas employer/admin |
 | Coherencia doc↔código del roadmap | *(commit directo)* | R0.2, R0.3, R1.1, R1.6 y R3.2 estaban implementados (mergeados en #50/#56/#59/#60/#61) pero sin tildar en `ROADMAP_IMPLEMENTATION.md`; corregido. R0.1 actualizado a 🔶 (código listo, falta confirmación de Julieta en Render) |
 | Decisiones de producto con ADR | #63 | Las 3 decisiones que Fable tomó como orquestador: **ADR-0003** (`quantity`=1 permanente, no se construye multi-asignación); **ADR-0004** (cancelación del trabajador `CONFIRMADO`→`BUSCANDO_PERSONAL` que reabre el turno y deriva `cancellations`, `POST /shifts/{id}/worker-cancel`, notificación `shift_reopened`; e insignias/niveles con otorgamiento automático por umbral en `worker/domain/rules.py`, recalculados al finalizar y al cancelar). `pytest -q` verde (150 tests, +28). Cierra P1/P2/P3 de TECH_DEBT |
-| Re-baseline de lanzamiento (Fable) | *(PR aparte)* | `docs/LAUNCH_PLAN.md`: re-evaluación de production-readiness (~65→**~78/100** tras mergear R0–R3) + plan secuenciado de beta cerrada en Palermo (B0 pre-lanzamiento → B1 reclutamiento → B2 operación asistida → B3 decisión). Veredicto: **lista para beta con usuarios reales**, sólo faltan 2 pasos operativos de Julieta |
+| Re-baseline de lanzamiento (Fable) | #64 | `docs/LAUNCH_PLAN.md`: re-evaluación de production-readiness (~65→**~78/100** tras mergear R0–R3) + plan secuenciado de beta cerrada en Palermo (B0 pre-lanzamiento → B1 reclutamiento → B2 operación asistida → B3 decisión). Veredicto: **lista para beta con usuarios reales**, sólo faltan 2 pasos operativos de Julieta |
+| Reputación visible en el frontend | #65 | `lib/reputation.tsx` como única fuente de labels (insignias, niveles, puntualidad, rating); insignias/nivel en perfil worker, búsqueda del employer y postulantes. Cierra el lado visible de ADR-0004 |
+| UX: landing + selección de texto | #66 | La landing es sólo para visitantes sin sesión (logueados van a la home de su rol: `/feed`, `/shifts`, `/admin`); copy ofensivo ("delivery de personas") reemplazado; `user-select:none` en botones/tabs/labels (inputs siguen seleccionables). Fix del E2E `auth.spec.ts` por el redirect nuevo |
+| Auditoría de performance frontend | #67 | `docs/PERFORMANCE_AUDIT_FRONTEND.md` con hallazgos archivo:línea (Sentry estático 138 KB gzip 🔴, motion 🟠, marcadores de mapa 🟡, reduced-motion 🟠) + quick wins seguros |
+| Performance frontend (fixes) | #68 | Sentry con `import()` dinámico gateado por DSN (sin DSN el SDK no viaja en ninguna ruta — verificado por grep de chunks en `.next/server/app/` y manifests); `memo` + handlers estables en marcadores de mapa (Cluster/Shift/Worker); `useReducedMotion` en landing, splash, swipe, modales, sheets, toasts y mapa |
 
 ## En vuelo ahora
 
-- **Nada.** El backlog implementable sin intervención de Julieta está agotado
-  — el loop se detiene acá en vez de inventar trabajo (regla explícita del
-  roadmap: nada de R4 sin señal real de carga).
+- **Ciclo de robustez percibida** (pedido de Julieta): auditoría de las 16
+  rutas del frontend buscando cargas sin skeleton, errores de red sin mensaje
+  ni reintento y formularios que fallan en silencio; fixes por lotes con
+  agentes Sonnet, un PR por lote.
+- En cola (features de enganche aprobadas por delegación): #1 ping en tiempo
+  real de turnos urgentes (ADR-0005), #3 progreso de gamificación, #4 panel de
+  ganancias, #5 onboarding. #2 WhatsApp bloqueado en cuenta API.
 
 ## Bloqueado en Julieta (único trabajo pendiente)
 
@@ -67,14 +75,21 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 3. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
    Cloudinary del proyecto (TECH_DEBT I2), manual, sin credenciales no se
    puede automatizar.
+4. **Elegir logo**: hay 4 concepts presentados (recomendado: #2 Pin+Rayo); al
+   elegir se cablea en `Logo.tsx` + favicon + íconos PWA.
+5. **Tarjetas "grises" de empleados**: falta que Julieta indique la pantalla
+   exacta (o screenshot) — las cards son `bg-white`, la hipótesis es acentos
+   pastel + falta de fotos reales (se destraba junto con R2.5).
+6. **WhatsApp Business API** (feature de enganche #2): requiere cuenta/API
+   del lado de Julieta.
 
 > Las decisiones de producto que estaban pendientes (multi-asignación,
 > cancelación por actor, insignias/niveles) ya se **resolvieron** en #63
 > (ADR-0003/0004) — ver bloque "Hecho y mergeado". No queda decisión de
 > producto abierta salvo que el negocio pida algo nuevo (con su propio ADR).
-5. **R4** — deliberadamente en espera hasta que haya señal real de tráfico
+7. **R4** — deliberadamente en espera hasta que haya señal real de tráfico
    (Redis, bbox multi-ciudad, rutas OSRM, pagos MercadoPago).
-6. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
+8. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
    [RECOMMENDATIONS.md](./RECOMMENDATIONS.md)) — decisión de negocio, no de
    código.
 

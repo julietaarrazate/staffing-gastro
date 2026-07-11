@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
@@ -46,7 +47,7 @@ export default function ShiftCandidatesPage() {
       setCandidates(cands);
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al cargar candidatos");
+      setError(getErrorMessage(err, "Error al cargar candidatos"));
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ export default function ShiftCandidatesPage() {
       toast("Turno asignado. El trabajador tiene que confirmar");
       router.push("/shifts");
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "No se pudo asignar", "error");
+      toast(getErrorMessage(err, "No se pudo asignar"), "error");
       setAssigning(null);
     }
   }
@@ -88,7 +89,7 @@ export default function ShiftCandidatesPage() {
       </div>
 
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       {!loading && !error && tab === "postulantes" && (
         <div className="mt-5 grid gap-3">

@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
@@ -56,7 +57,7 @@ export default function SearchPage() {
       );
       setWorkers(results);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo buscar trabajadores");
+      setError(getErrorMessage(err, "No se pudo buscar trabajadores"));
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export default function SearchPage() {
         </div>
         {error && (
           <div className="mt-2">
-            <ErrorBanner message={error} />
+            <ErrorBanner message={error} onRetry={search} />
           </div>
         )}
       </div>

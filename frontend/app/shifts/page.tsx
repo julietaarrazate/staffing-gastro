@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
@@ -55,7 +56,7 @@ export default function MyShiftsPage() {
       setShifts(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al cargar tus turnos");
+      setError(getErrorMessage(err, "Error al cargar tus turnos"));
     } finally {
       setLoading(false);
     }
@@ -118,7 +119,7 @@ export default function MyShiftsPage() {
       </div>
 
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
       {!loading && !error && shifts.length === 0 && (
         <EmptyState
           icon={<ClipboardIcon size={26} />}

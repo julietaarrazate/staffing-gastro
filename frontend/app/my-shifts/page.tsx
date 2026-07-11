@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -45,6 +46,7 @@ export default function MatchesPage() {
   const [appShifts, setAppShifts] = useState<Record<string, Shift>>({});
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [lastGeoAction, setLastGeoAction] = useState<{ id: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -70,7 +72,7 @@ export default function MatchesPage() {
       setAppShifts(Object.fromEntries(entries.filter((e): e is [string, Shift] => e !== null)));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al cargar tus matches");
+      setError(getErrorMessage(err, "Error al cargar tus matches"));
     } finally {
       setLoading(false);
     }
@@ -82,13 +84,28 @@ export default function MatchesPage() {
 
   async function act(id: string, path: string, geo = false) {
     if (!token) return;
-    setGeoError(null);
+    if (geo) {
+      setGeoError(null);
+      setLastGeoAction({ id, path });
+    }
     try {
-      const body = geo ? await getCurrentPosition() : undefined;
+      let body: { latitude: number; longitude: number } | undefined;
+      if (geo) {
+        // La geolocalización tiene sus propios mensajes en español (ver
+        // lib/geolocation.ts): los conservamos tal cual, sin pasarlos por
+        // getErrorMessage (que los pisaría con el genérico de red).
+        try {
+          body = await getCurrentPosition();
+        } catch (err) {
+          setGeoError(err instanceof Error ? err.message : "No pudimos acceder a tu ubicación.");
+          return;
+        }
+      }
       await api.post(`/shifts/${id}/${path}`, body, token);
+      if (geo) setLastGeoAction(null);
       load();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "No se pudo completar la acción";
+      const msg = getErrorMessage(err, "No se pudo completar la acción");
       if (geo) setGeoError(msg);
       else toast(msg, "error");
     }
@@ -114,8 +131,15 @@ export default function MatchesPage() {
       </div>
 
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} />}
-      {geoError && <ErrorBanner message={geoError} />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
+      {geoError && (
+        <ErrorBanner
+          message={geoError}
+          onRetry={
+            lastGeoAction ? () => act(lastGeoAction.id, lastGeoAction.path, true) : undefined
+          }
+        />
+      )}
 
       {!loading && !error && tab === "asignados" && (
         <div className="mt-5 grid gap-4">

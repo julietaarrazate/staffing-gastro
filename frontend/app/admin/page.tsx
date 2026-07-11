@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminUser, PlatformStats } from "@/lib/types";
 import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Spinner } from "@/components/ui";
@@ -54,9 +55,7 @@ export default function AdminPage() {
         setStats(s);
         setUsers(u);
       })
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "Error al cargar el panel")
-      );
+      .catch((err) => setError(getErrorMessage(err, "Error al cargar el panel")));
   }, [token]);
 
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function AdminPage() {
       await api.post(`/admin/users/${userId}/${action}`, undefined, token);
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo completar la acción");
+      setError(getErrorMessage(err, "No se pudo completar la acción"));
     } finally {
       setBusy(null);
     }
@@ -103,7 +102,7 @@ export default function AdminPage() {
         <h1 className="text-2xl font-bold text-ink">Panel de administración</h1>
       </div>
 
-      {error && <ErrorBanner message={error} />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       {stats && (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
