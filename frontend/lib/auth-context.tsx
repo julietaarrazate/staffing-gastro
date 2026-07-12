@@ -57,30 +57,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const stored = localStorage.getItem("staffya_token");
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
-    setToken(stored);
-    api
-      .get<User>("/auth/me", stored)
-      .then(setUser)
-      .catch(async () => {
-        const refreshed = await tryRefresh();
-        if (!refreshed) {
-          clearTokens();
-          setToken(null);
-          return;
-        }
+    async function restoreSession() {
+      const storedAccess = localStorage.getItem("staffya_token");
+      const storedRefresh = localStorage.getItem("staffya_refresh");
+
+      // Sin refresh token no hay sesión que restaurar (30 días vencidos, o
+      // nunca hubo login): a login, sin intentar nada más. Si quedó un
+      // access token huérfano (sin su refresh), lo limpiamos.
+      if (!storedRefresh) {
+        if (storedAccess) clearTokens();
+        setLoading(false);
+        return;
+      }
+
+      // Con refresh token disponible, intentamos restaurar en silencio:
+      // primero probamos el access token si lo tenemos (evita un round-trip
+      // extra cuando todavía es válido); si falta o venció, refrescamos.
+      if (storedAccess) {
+        setToken(storedAccess);
         try {
-          setUser(await api.get<User>("/auth/me", refreshed));
+          setUser(await api.get<User>("/auth/me", storedAccess));
+          setLoading(false);
+          return;
         } catch {
-          clearTokens();
-          setToken(null);
+          // Access token vencido/ inválido: seguimos al refresh de abajo.
         }
-      })
-      .finally(() => setLoading(false));
+      }
+
+      const refreshed = await tryRefresh();
+      if (!refreshed) {
+        // Sólo acá (refresh ausente/realmente vencido) mandamos a login.
+        clearTokens();
+        setToken(null);
+        setLoading(false);
+        return;
+      }
+      try {
+        setUser(await api.get<User>("/auth/me", refreshed));
+      } catch {
+        clearTokens();
+        setToken(null);
+      }
+      setLoading(false);
+    }
+
+    restoreSession();
   }, []);
 
   useEffect(() => {
