@@ -182,6 +182,7 @@ export interface Applicant {
   full_name: string;
   photo_url: string | null;
   rating: number;
+  is_available: boolean;
   status: ApplicationStatus;
   created_at: string | null;
 }

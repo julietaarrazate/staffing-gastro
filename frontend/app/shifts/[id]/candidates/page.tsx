@@ -10,6 +10,7 @@ import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
 import {
   Avatar,
+  Badge,
   Button,
   CardSkeletons,
   EmptyState,
@@ -103,16 +104,21 @@ export default function ShiftCandidatesPage() {
             applicants.map((a) => (
               <div
                 key={a.application_id}
-                className="flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-zinc-100"
+                className="flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
               >
                 <Link href={`/workers/${a.worker_profile_id}`}>
                   <Avatar src={a.photo_url} name={a.full_name} size="lg" />
                 </Link>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/workers/${a.worker_profile_id}`} className="block truncate font-semibold text-zinc-900">
+                  <Link href={`/workers/${a.worker_profile_id}`} className="block truncate font-semibold text-ink">
                     {a.full_name}
                   </Link>
-                  <Rating value={a.rating} />
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <Rating value={a.rating} />
+                    {a.is_available && (
+                      <Badge tone="secondary">Disponible</Badge>
+                    )}
+                  </div>
                 </div>
                 <Button
                   size="sm"
