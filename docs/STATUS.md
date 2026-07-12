@@ -5,11 +5,12 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-10 · rama de trabajo:
-`claude/staffya-platform-spec-40hf7l` · todos los PRs se mergean con squash
-apenas quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
-auto-merge, confirmado explícitamente por Julieta) para retomar el backlog no
-bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-07-12 · rama de trabajo:
+`claude/staffya-platform-spec-40hf7l` (más `mejoras-ux-comercios` para el
+lote de mejoras UX/UI de este changeset) · todos los PRs se mergean con
+squash apenas quedan verdes (pedido de Julieta) · **loop autónomo activo**
+(con auto-merge, confirmado explícitamente por Julieta) para retomar el
+backlog no bloqueado sin esperar "seguí" en cada paso.*
 
 ## Estado en una línea
 
@@ -56,6 +57,7 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 | Robustez percibida — lote 1 (errores de red) | #69 | Auditoría previa: 39 hallazgos en 16 rutas. `lib/errors.ts` (`getErrorMessage` — nunca más "Failed to fetch" en inglés; `isNotFound`); `ErrorBanner` con `onRetry` cableado en shifts/my-shifts/admin/candidatos/search/perfiles públicos (estos últimos con "Volver": ya no hay pantalla muerta); `useWebSocket` expone `status`+`onOpen` → chat con "Reconectando..." y re-sync de mensajes por HTTP al reconectar |
 | Robustez percibida — lote 2 (acciones silenciosas) | #70 | Panel del comercio: Publicar/Cancelar/Cerrar/Pagar tenían POSTs sin try/catch ni loading — ahora busy por acción + toast; Matches: busy en los 7 botones (incluye espera de GPS); swipe del feed: la carta vuelve al mazo si la postulación falla (`onDecide` → `Promise<boolean>`); forms de perfil: sólo 404 = "no existe" (antes un fallo de red mostraba el form vacío con riesgo de pisar el perfil), `submitting` + skeleton; reseñas y campana ya no disfrazan errores de vacío |
 | Robustez percibida — lote 3 (skeletons) | #71 | Skeletons con forma real en: lista de chats, conversación (burbujas), perfiles públicos, ReceivedReviews, carrusel del mapa, sheet de búsqueda ("Buscando..." en vez de "0 trabajadores" durante la carga, con fix del flash inicial), admin (KPIs + usuarios, sólo carga inicial) y dropdown de notificaciones; en el chat, si falla el envío el texto no se pierde y hay "Reintentar" pegado al form |
+| Mejoras UX comercios (5 fixes) | *(PR pendiente)* | **Cancelar postulación**: `ShiftApplication.withdraw()` (dominio) + `POST /applications/{id}/withdraw` (sólo dueño, sólo desde PENDIENTE) + botón "Cancelar postulación" con confirmación (`Modal`) en `/my-shifts`. **Regla de doble turno**: `Shift.confirm()` rechaza (400) si el trabajador ya tiene otro turno propio en `COMMITTED_STATUSES` (CONFIRMADO/EN_CAMINO/CHECK_IN/TRABAJANDO/CHECK_OUT) que se solapa en horario; al confirmar con éxito se retiran solas (RETIRADA) las postulaciones PENDIENTE propias que se solapan (`ShiftService` recibe `ShiftApplicationRepository` por constructor, mismo patrón cross-módulo que Company/Worker/Notification). **Login persistente**: `auth-context.tsx` ahora intenta restaurar la sesión con el refresh token aunque el access token esté vencido o ausente — antes sólo lo intentaba si había un access token guardado; sólo sin refresh token (o si el refresh falla de verdad) manda a `/login`. **Postulantes "disponibles"**: `EnrichedApplicant`/`Applicant` suman `is_available`; `/shifts/[id]/candidates` muestra un badge "Disponible" y cambia `ring-zinc-100`/`text-zinc-900` (grises crudos) por los tokens del DS (`ring-line`/`text-ink`). **Splash sin trabarse**: `SplashScreen` ahora se queda visible mientras dura la coreografía de entrada Y la sesión se verifica (`useAuth().loading`), con un tope duro de 6s para que un backend frío nunca la deje pegada, y pasa a un estado "Verificando tu sesión…" con spinner en vez de dejar el logo grande congelado. `pytest -q`: 156 passed (antes 150, +6). `tsc`/`build`/e2e (4 specs) verdes. Ver `docs/TECH_DEBT.md` P5/T5 (hallazgos, no bugs de esta sesión) |
 
 ## En vuelo ahora
 
@@ -83,9 +85,11 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
    puede automatizar.
 4. **Elegir logo**: hay 4 concepts presentados (recomendado: #2 Pin+Rayo); al
    elegir se cablea en `Logo.tsx` + favicon + íconos PWA.
-5. **Tarjetas "grises" de empleados**: falta que Julieta indique la pantalla
-   exacta (o screenshot) — las cards son `bg-white`, la hipótesis es acentos
-   pastel + falta de fotos reales (se destraba junto con R2.5).
+5. ~~**Tarjetas "grises" de empleados**~~ — Julieta indicó la pantalla
+   exacta (postulantes en `/shifts/[id]/candidates`, panel del comercio):
+   resuelto en este changeset (badge "Disponible" + tokens del DS en vez de
+   grises crudos). Sigue pendiente subir fotos reales al seed (R2.5, punto 3
+   de esta misma lista) para que dejen de verse todos con iniciales.
 6. **WhatsApp Business API** (feature de enganche #2): requiere cuenta/API
    del lado de Julieta.
 
