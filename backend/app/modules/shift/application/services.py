@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
@@ -14,6 +15,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -31,11 +33,13 @@ class ShiftService:
         workers: WorkerProfileRepository,
         companies: CompanyProfileRepository,
         notifications: NotificationRepository,
+        applications: ShiftApplicationRepository,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
         self._companies = companies
         self._notifications = notifications
+        self._applications = applications
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -113,9 +117,22 @@ class ShiftService:
     async def confirm_assignment(
         self, worker_profile_id: UUID, shift_id: UUID
     ) -> Shift:
-        """El trabajador asignado confirma su asistencia al turno."""
+        """El trabajador asignado confirma su asistencia al turno.
+
+        Regla de doble turno: antes de confirmar se chequea que no haya otro
+        turno propio ya comprometido (`COMMITTED_STATUSES`) que se solape en
+        horario (`Shift.confirm` hace el chequeo puro; acá sólo se junta la
+        lista de turnos a comparar, consultando el repo). Si confirma con
+        éxito, se retiran (RETIRADA) automáticamente las postulaciones
+        PENDIENTE del trabajador cuyo turno se solapa con el recién
+        confirmado: ya no puede trabajarlas, y libera al comercio de perseguir
+        un candidato que en los hechos ya está comprometido en otro lado."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        shift.confirm()
+        others = await self._shifts.list_by_worker_and_statuses(
+            worker_profile_id, COMMITTED_STATUSES
+        )
+        others = [s for s in others if s.id != shift.id]
+        shift.confirm(others)
         updated = await self._shifts.update(shift)
         await self._notify_company(
             updated.company_id,
@@ -123,7 +140,23 @@ class ShiftService:
             "Confirmaron un turno",
             f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.value}\".",
         )
+        await self._withdraw_overlapping_applications(worker_profile_id, updated)
         return updated
+
+    async def _withdraw_overlapping_applications(
+        self, worker_profile_id: UUID, confirmed_shift: Shift
+    ) -> None:
+        """Retira (RETIRADA) las postulaciones PENDIENTE del trabajador cuyo
+        turno se solapa con el que acaba de confirmar (no puede trabajarlas)."""
+        pending = await self._applications.list_pending_by_worker(worker_profile_id)
+        for application in pending:
+            if application.shift_id == confirmed_shift.id:
+                continue
+            other_shift = await self._shifts.get_by_id(application.shift_id)
+            if other_shift is None or not confirmed_shift.overlaps(other_shift):
+                continue
+            application.withdraw()
+            await self._applications.update(application)
 
     async def reject_assignment(
         self, worker_profile_id: UUID, shift_id: UUID

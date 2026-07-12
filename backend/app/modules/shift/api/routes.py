@@ -26,6 +26,7 @@ from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
+    OverlappingShiftError,
     ShiftNotAssignedToWorkerError,
     ShiftNotEditableError,
     ShiftNotFoundError,
@@ -237,7 +238,7 @@ async def confirm_assignment(
         return await service.confirm_assignment(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
-    except InvalidShiftTransitionError as exc:
+    except (InvalidShiftTransitionError, OverlappingShiftError) as exc:
         raise _bad_request(str(exc)) from exc
 
 

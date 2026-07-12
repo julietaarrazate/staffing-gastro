@@ -132,6 +132,16 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_by_worker_and_statuses(
+        self, worker_profile_id: UUID, statuses: frozenset[ShiftStatus]
+    ) -> list[Shift]:
+        stmt = select(ShiftModel).where(
+            ShiftModel.worker_profile_id == worker_profile_id,
+            ShiftModel.status.in_([s.value for s in statuses]),
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_open(
         self,
         *,

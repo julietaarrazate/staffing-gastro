@@ -18,4 +18,11 @@ class AlreadyAppliedError(ApplicationError):
 
 
 class ApplicationNotFoundError(ApplicationError):
-    """La postulación no existe."""
+    """La postulación no existe (o no pertenece al trabajador que la busca).
+
+    No-disclosure: mismo error para "no existe" y "es de otro trabajador".
+    """
+
+
+class InvalidApplicationTransitionError(ApplicationError):
+    """La transición de estado solicitada no es válida desde el estado actual."""

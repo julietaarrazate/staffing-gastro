@@ -41,3 +41,18 @@ EDITABLE_STATUSES: frozenset[ShiftStatus] = frozenset(
 OPEN_STATUSES: frozenset[ShiftStatus] = frozenset(
     {ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL}
 )
+
+# Estados en los que un trabajador ya está "comprometido" con el turno (ya
+# confirmó su asistencia o está en pleno ciclo de trabajo). Se usan para la
+# regla de doble turno: un trabajador no puede CONFIRMAR un turno cuyo
+# horario se solape con otro turno propio que ya esté en alguno de estos
+# estados (ver `Shift.confirm` y `ShiftService.confirm_assignment`).
+COMMITTED_STATUSES: frozenset[ShiftStatus] = frozenset(
+    {
+        ShiftStatus.CONFIRMADO,
+        ShiftStatus.EN_CAMINO,
+        ShiftStatus.CHECK_IN,
+        ShiftStatus.TRABAJANDO,
+        ShiftStatus.CHECK_OUT,
+    }
+)

@@ -54,6 +54,10 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
+    async def get_by_id(self, application_id: UUID) -> ShiftApplication | None:
+        model = await self._session.get(ShiftApplicationModel, application_id)
+        return _to_entity(model) if model else None
+
     async def get_by_shift_and_worker(
         self, shift_id: UUID, worker_profile_id: UUID
     ) -> ShiftApplication | None:
@@ -87,6 +91,14 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_pending_by_worker(self, worker_profile_id: UUID) -> list[ShiftApplication]:
+        stmt = select(ShiftApplicationModel).where(
+            ShiftApplicationModel.worker_profile_id == worker_profile_id,
+            ShiftApplicationModel.status == ApplicationStatus.PENDIENTE.value,
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_by_shift_enriched(self, shift_id: UUID) -> list[EnrichedApplicant]:
         # INNER JOIN a worker_profiles: si el perfil no existe más, el
         # postulante se descarta (igual que el `if worker is None: continue`
@@ -111,6 +123,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 full_name=full_name or "Trabajador",
                 photo_url=worker.photo_url,
                 rating=worker.rating,
+                is_available=worker.is_available,
                 status=ApplicationStatus(application.status),
                 created_at=application.created_at,
             )

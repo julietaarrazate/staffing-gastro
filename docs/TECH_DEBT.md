@@ -203,6 +203,41 @@ fecha de esta auditoría (2026-07-02).
 
 ---
 
+### P5 — `ApplicationStatus.ACEPTADA`/`RECHAZADA` nunca se setean (doc↔código) 🟡 Media
+
+- **Descripción:** el docstring de `ShiftApplication`
+  (`application/domain/entities.py`) dice que al asignar el turno el
+  comercio "marca la postulación como ACEPTADA", pero `ShiftService.
+  assign_worker` (`shift/application/services.py`) sólo toca `Shift`
+  (`worker_profile_id` + `status`) — nunca actualiza la fila de
+  `ShiftApplication` del candidato elegido, ni las de los no elegidos.
+  En los hechos, hoy **ninguna postulación real llega a ACEPTADA o
+  RECHAZADA**: sólo PENDIENTE y RETIRADA (la nueva, mejoras-ux-comercios)
+  ocurren en producción. Encontrado al implementar "cancelar postulación":
+  el test de "no se puede retirar una ya aceptada" tuvo que forzar el
+  estado directo en la DB (`tests/test_application.py::
+  test_cannot_withdraw_already_accepted_application`) porque no hay forma
+  de llegar ahí por la API.
+- **Impacto:** el trabajador sigue viendo "Postulado · esperando
+  respuesta" en `/my-shifts` (tab Postulaciones) incluso después de haber
+  sido asignado o descartado, en vez de "¡Te eligieron!"/"No quedaste esta
+  vez" (los labels ya existen en `APPLICATION_LABELS`, listos para cuando
+  el estado real llegue). Los demás postulantes de un turno ya asignado
+  tampoco se marcan RECHAZADA.
+- **Riesgo:** medio — es una desprolijidad de UX/consistencia de datos, no
+  un bug de seguridad ni de integridad (el turno en sí transiciona bien).
+- **Prioridad:** 🟡 Media.
+- **Esfuerzo:** medio — `assign_worker` necesita el puerto
+  `ShiftApplicationRepository` (mismo patrón cross-módulo ya usado ahora
+  para la regla de doble turno) para marcar ACEPTADA la del ganador y
+  RECHAZADA las demás postulaciones PENDIENTE del mismo turno.
+- **Solución sugerida:** resolver en el mismo PR que se toque
+  `assign_worker` de nuevo, reutilizando el cableado de
+  `ShiftApplicationRepository` en `ShiftService` que ya existe desde la
+  regla de doble turno.
+
+---
+
 ## Frontend — presentación (deuda nueva, no capturada en la v1)
 
 ### F1 — Formularios con `<input>` crudo en vez de `TextField` del DS 🟡 Media
@@ -519,6 +554,43 @@ fecha de esta auditoría (2026-07-02).
 - **Esfuerzo:** trivial — quitar el marcador o hacer la función `async`.
 - **Solución sugerida:** limpiar en el próximo PR que toque ese archivo.
 
+### T5 — `npm run lint` falla en ~15 archivos, pero `ci.yml` no lo corre 🟡 Media
+
+- **Descripción:** el frontend usa `eslint-config-next` con una regla
+  (`react-hooks/set-state-in-effect`, del plugin del React Compiler) que
+  marca como error el patrón extendido en toda la app "`useEffect(() => {
+  load(); }, [load])`" con un `load` (`useCallback`) que hace `setX(...)`
+  antes del primer `await`. Está en ~15 archivos (`app/feed`, `app/
+  my-shifts`, `app/shifts`, `app/admin`, `app/chats*`, `app/companies/
+  [id]`, `app/search`, `app/workers/[id]`, `components/
+  CompanyProfileForm.tsx`, `WorkerProfileForm.tsx`, `ReviewBox.tsx`,
+  `ReceivedReviews.tsx`, `NotificationBell.tsx`, más 3 errores no
+  relacionados en `lib/useWebSocket.ts`, `react-hooks/refs`). Verificado
+  real: `npm run lint` en esta rama, **antes de cualquier cambio de esta
+  sesión**, ya daba 31 problemas (21 errores). `.github/workflows/ci.yml`
+  (job `frontend`) sólo corre `tsc --noEmit` + `next build` — nunca `npm
+  run lint` — así que esto nunca bloqueó un merge, pese a que `CLAUDE.md`/
+  los checklists de sesión mencionan "eslint" como gate.
+- **Impacto:** ninguno en producción (el patrón es el idiomático de fetch-
+  on-mount de toda la app, no bugs reales); pero es señal falsa/ruido si
+  algún día se agrega lint a CI sin antes decidir qué hacer con la regla.
+- **Riesgo:** bajo hoy; medio si se agrega el gate sin auditar antes (CI se
+  pondría rojo de golpe en ~15 archivos preexistentes).
+- **Prioridad:** 🟡 Media.
+- **Esfuerzo:** medio — o se relaja/desactiva esa regla específica en
+  `eslint.config.*` (es la lectura más barata, dado que el patrón es
+  intencional y establecido), o se reescribe el patrón fetch-on-mount en
+  los ~15 archivos.
+- **Nota de esta sesión:** el fix de login persistente (`lib/
+  auth-context.tsx`) e `SplashScreen.tsx` usan a propósito una función
+  `async` anidada e invocada dentro del propio `useEffect` (en vez de un
+  `useCallback` externo) — ese patrón puntual no dispara la regla, y de
+  paso esta sesión dejó `npm run lint` en 29 problemas (19 errores) en vez
+  de los 31 (21 errores) de base, sin tocar los ~15 archivos preexistentes.
+- **Solución sugerida:** decisión de producto/plataforma (no de esta
+  sesión): revisar la regla en un PR dedicado antes de considerar agregar
+  `npm run lint` a `ci.yml`.
+
 ---
 
 ## Deuda "no repo" (entorno)
@@ -535,5 +607,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), P3 (métricas reputación, `cancellations` resuelto ADR-0004 — pendiente `on_time_payment_rate`/`events_published`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
-| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado) |
+| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), P5 (ACEPTADA/RECHAZADA nunca se setean), T5 (lint fuera de CI) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

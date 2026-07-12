@@ -395,6 +395,165 @@ async def test_other_worker_cannot_confirm_someone_elses_assignment(
     assert response.status_code == 404
 
 
+async def _assigned_shift(
+    client: AsyncClient, employer_headers: dict, worker_profile_id: str, **overrides
+) -> str:
+    """Crea, publica y asigna un turno al trabajador dado; devuelve su id."""
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload(**overrides)
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    return shift_id
+
+
+async def test_confirm_refused_when_overlaps_with_confirmed_shift(client: AsyncClient):
+    """Regla de doble turno: no se puede confirmar un turno que se superpone
+    en horario con otro turno propio ya CONFIRMADO."""
+    employer_headers = await _employer_with_company(client, "emp_overlap1@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_overlap1@staffya.com"
+    )
+
+    shift_a = await _assigned_shift(
+        client,
+        employer_headers,
+        worker_profile_id,
+        start_at="2026-07-01T20:00:00",
+        end_at="2026-07-02T02:00:00",
+    )
+    shift_b = await _assigned_shift(
+        client,
+        employer_headers,
+        worker_profile_id,
+        start_at="2026-07-01T22:00:00",  # se solapa con shift_a
+        end_at="2026-07-02T04:00:00",
+    )
+
+    confirmed_a = await client.post(
+        f"/api/v1/shifts/{shift_a}/confirm", headers=worker_headers
+    )
+    assert confirmed_a.status_code == 200
+    assert confirmed_a.json()["status"] == "confirmado"
+
+    refused = await client.post(
+        f"/api/v1/shifts/{shift_b}/confirm", headers=worker_headers
+    )
+    assert refused.status_code == 400
+    assert "superpone" in refused.json()["detail"]
+
+    # shift_b sigue asignado (no confirmado): la refusión no lo tocó.
+    still_assigned = await client.get(f"/api/v1/shifts/{shift_b}", headers=employer_headers)
+    assert still_assigned.json()["status"] == "asignado"
+
+
+async def test_confirm_succeeds_and_withdraws_overlapping_pending_applications(
+    client: AsyncClient,
+):
+    """Al confirmar sin conflicto, las postulaciones PENDIENTE propias que se
+    solapan en horario se retiran solas (RETIRADA); las que no se solapan
+    quedan intactas (PENDIENTE)."""
+    employer_headers = await _employer_with_company(client, "emp_overlap2@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_overlap2@staffya.com"
+    )
+
+    shift_a = await _assigned_shift(
+        client,
+        employer_headers,
+        worker_profile_id,
+        start_at="2026-07-01T20:00:00",
+        end_at="2026-07-02T02:00:00",
+        city="OverlapA",
+    )
+
+    # Turno C: se solapa con A, sólo postulación (PENDIENTE, sin asignar).
+    created_c = await client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json=_shift_payload(
+            start_at="2026-07-01T23:00:00",
+            end_at="2026-07-02T03:00:00",
+            city="OverlapC",
+        ),
+    )
+    shift_c = created_c.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_c}/publish", headers=employer_headers)
+    applied_c = await client.post(
+        f"/api/v1/applications/shifts/{shift_c}", headers=worker_headers
+    )
+    application_c_id = applied_c.json()["id"]
+
+    # Turno D: no se solapa con A, sólo postulación (PENDIENTE).
+    created_d = await client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json=_shift_payload(
+            start_at="2026-07-03T10:00:00",
+            end_at="2026-07-03T14:00:00",
+            city="OverlapD",
+        ),
+    )
+    shift_d = created_d.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_d}/publish", headers=employer_headers)
+    applied_d = await client.post(
+        f"/api/v1/applications/shifts/{shift_d}", headers=worker_headers
+    )
+    application_d_id = applied_d.json()["id"]
+
+    confirmed_a = await client.post(
+        f"/api/v1/shifts/{shift_a}/confirm", headers=worker_headers
+    )
+    assert confirmed_a.status_code == 200
+
+    mine = await client.get("/api/v1/applications/mine", headers=worker_headers)
+    by_id = {a["id"]: a["status"] for a in mine.json()}
+    assert by_id[application_c_id] == "retirada"
+    assert by_id[application_d_id] == "pendiente"
+
+
+async def test_confirm_two_non_overlapping_shifts_both_succeed(client: AsyncClient):
+    """Dos turnos propios sin solapamiento de horario: ambos se pueden
+    confirmar sin problema (no es "un solo turno confirmado a la vez", es
+    "sin superposición de horario")."""
+    employer_headers = await _employer_with_company(client, "emp_overlap3@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_overlap3@staffya.com"
+    )
+
+    shift_e = await _assigned_shift(
+        client,
+        employer_headers,
+        worker_profile_id,
+        start_at="2026-07-05T10:00:00",
+        end_at="2026-07-05T14:00:00",
+    )
+    shift_f = await _assigned_shift(
+        client,
+        employer_headers,
+        worker_profile_id,
+        start_at="2026-07-05T16:00:00",
+        end_at="2026-07-05T20:00:00",
+    )
+
+    confirmed_e = await client.post(
+        f"/api/v1/shifts/{shift_e}/confirm", headers=worker_headers
+    )
+    assert confirmed_e.status_code == 200
+    assert confirmed_e.json()["status"] == "confirmado"
+
+    confirmed_f = await client.post(
+        f"/api/v1/shifts/{shift_f}/confirm", headers=worker_headers
+    )
+    assert confirmed_f.status_code == 200
+    assert confirmed_f.json()["status"] == "confirmado"
+
+
 async def test_feed_pagination(client: AsyncClient):
     """R2.1: `/shifts/feed` pagina con `limit`/`offset` sin cambiar el shape
     de la respuesta (sigue siendo una lista simple)."""

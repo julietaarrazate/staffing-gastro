@@ -7,6 +7,9 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.modules.application.infrastructure.repositories import (
+    SqlAlchemyShiftApplicationRepository,
+)
 from app.modules.company.api.dependencies import get_company_service
 from app.modules.company.application.services import CompanyProfileService
 from app.modules.company.domain.exceptions import CompanyProfileNotFoundError
@@ -37,6 +40,7 @@ def get_shift_service(
         workers=SqlAlchemyWorkerProfileRepository(session),
         companies=SqlAlchemyCompanyProfileRepository(session),
         notifications=SqlAlchemyNotificationRepository(session),
+        applications=SqlAlchemyShiftApplicationRepository(session),
     )
 
 

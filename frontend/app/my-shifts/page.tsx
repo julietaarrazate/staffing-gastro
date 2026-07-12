@@ -14,6 +14,7 @@ import {
   CardSkeletons,
   EmptyState,
   ErrorBanner,
+  Modal,
   SegmentedControl,
   useToast,
 } from "@/components/ui";
@@ -49,6 +50,8 @@ export default function MatchesPage() {
   const [lastGeoAction, setLastGeoAction] = useState<{ id: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [confirmWithdrawId, setConfirmWithdrawId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -115,6 +118,25 @@ export default function MatchesPage() {
       else toast(msg, "error");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function withdrawApplication(applicationId: string) {
+    if (!token) return;
+    setConfirmWithdrawId(null);
+    setWithdrawing(applicationId);
+    const previous = applications;
+    // Optimista: la sacamos de la lista ya (el usuario no espera al servidor
+    // para dejar de ver la postulación que acaba de cancelar).
+    setApplications((prev) => prev.filter((a) => a.id !== applicationId));
+    try {
+      await api.post(`/applications/${applicationId}/withdraw`, undefined, token);
+      toast("Cancelaste tu postulación");
+    } catch (err) {
+      setApplications(previous); // revertir: no se pudo cancelar de verdad
+      toast(getErrorMessage(err, "No se pudo cancelar la postulación"), "error");
+    } finally {
+      setWithdrawing(null);
     }
   }
 
@@ -279,15 +301,50 @@ export default function MatchesPage() {
               if (!shift) return null;
               return (
                 <ShiftCard key={application.id} shift={shift}>
-                  <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
-                    <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
+                      <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="surface"
+                      leftIcon={<CloseIcon size={16} />}
+                      onClick={() => setConfirmWithdrawId(application.id)}
+                      loading={withdrawing === application.id}
+                      disabled={withdrawing !== null}
+                    >
+                      Cancelar postulación
+                    </Button>
+                  </div>
                 </ShiftCard>
               );
             })
           )}
         </div>
       )}
+
+      <Modal
+        open={confirmWithdrawId !== null}
+        onClose={() => setConfirmWithdrawId(null)}
+        title="¿Cancelar tu postulación?"
+      >
+        <p className="text-sm text-zinc-600">
+          El comercio ya no te va a ver como candidato para este turno. Si
+          sigue abierto, podés volver a postularte más adelante.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmWithdrawId(null)}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => confirmWithdrawId && withdrawApplication(confirmWithdrawId)}
+          >
+            Sí, cancelar
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

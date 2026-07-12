@@ -10,6 +10,8 @@ from app.modules.application.api.schemas import ApplicantResponse, ApplicationRe
 from app.modules.application.application.services import ApplicationService
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
+    ApplicationNotFoundError,
+    InvalidApplicationTransitionError,
     ShiftNotApplicableError,
 )
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
@@ -45,6 +47,28 @@ async def apply_to_shift(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Ya te postulaste a este turno",
+        ) from exc
+
+
+@router.post(
+    "/{application_id}/withdraw",
+    response_model=ApplicationResponse,
+    summary="Cancelar mi postulación pendiente (trabajador)",
+)
+async def withdraw_application(
+    application_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+):
+    try:
+        return await service.withdraw(worker_profile_id, application_id)
+    except ApplicationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Postulación no encontrada",
+        ) from exc
+    except InvalidApplicationTransitionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
         ) from exc
 
 
@@ -86,6 +110,7 @@ async def shift_applicants(
             full_name=applicant.full_name,
             photo_url=applicant.photo_url,
             rating=applicant.rating,
+            is_available=applicant.is_available,
             status=applicant.status.value,
             created_at=applicant.created_at,
         )
