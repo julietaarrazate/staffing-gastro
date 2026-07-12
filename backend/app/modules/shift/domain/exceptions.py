@@ -23,3 +23,8 @@ class InvalidShiftScheduleError(ShiftError):
 
 class ShiftNotAssignedToWorkerError(ShiftError):
     """El turno no está asignado al trabajador que intenta confirmarlo/rechazarlo."""
+
+
+class OverlappingShiftError(ShiftError):
+    """El trabajador ya tiene otro turno comprometido cuyo horario se solapa
+    con el que intenta confirmar (regla de doble turno)."""

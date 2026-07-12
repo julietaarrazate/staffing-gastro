@@ -16,6 +16,9 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from app.core.database import AsyncSessionLocal
+from app.modules.application.infrastructure.repositories import (
+    SqlAlchemyShiftApplicationRepository,
+)
 from app.modules.company.application.dtos import CompanyProfileData
 from app.modules.company.application.services import CompanyProfileService
 from app.modules.company.domain.exceptions import CompanyProfileAlreadyExistsError
@@ -477,6 +480,7 @@ async def _seed_shifts(session, created_company_emails: set[str]) -> None:
         workers=SqlAlchemyWorkerProfileRepository(session),
         companies=companies,
         notifications=SqlAlchemyNotificationRepository(session),
+        applications=SqlAlchemyShiftApplicationRepository(session),
     )
     by_email = {c["email"]: c for c in COMPANIES}
     start = datetime.now(timezone.utc) + timedelta(hours=5)

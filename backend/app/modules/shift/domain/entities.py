@@ -12,6 +12,7 @@ from uuid import UUID, uuid4
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
+    OverlappingShiftError,
     ShiftNotEditableError,
 )
 from app.modules.shift.domain.value_objects import (
@@ -80,6 +81,14 @@ class Shift:
         if not self.is_editable:
             raise ShiftNotEditableError(self.status.value)
 
+    def overlaps(self, other: "Shift") -> bool:
+        """True si el horario de este turno se solapa con el de `other`.
+
+        Intervalos semiabiertos: si uno termina justo cuando el otro empieza
+        no se consideran solapados (un turno puede terminar a las 23 y el
+        siguiente empezar a las 23 sin conflicto)."""
+        return self.start_at < other.end_at and other.start_at < self.end_at
+
     # --- Transiciones de estado ---
     def publish(self) -> None:
         """BORRADOR → PUBLICADO."""
@@ -98,8 +107,20 @@ class Shift:
         self.worker_profile_id = worker_profile_id
         self.status = ShiftStatus.ASIGNADO
 
-    def confirm(self) -> None:
-        """ASIGNADO → CONFIRMADO: el trabajador asignado confirma su asistencia."""
+    def confirm(self, other_committed_shifts: list["Shift"] | None = None) -> None:
+        """ASIGNADO → CONFIRMADO: el trabajador asignado confirma su asistencia.
+
+        Regla de doble turno: antes de confirmar, si el trabajador ya tiene
+        otro turno propio en un estado "comprometido" (`COMMITTED_STATUSES`
+        — CONFIRMADO, EN_CAMINO o trabajando) cuyo horario se solapa con
+        éste, se rechaza la confirmación. `other_committed_shifts` lo arma
+        `ShiftService.confirm_assignment` consultando el repo (cruce de
+        módulo vía puerto, no vive acá la consulta)."""
+        for other in other_committed_shifts or []:
+            if self.overlaps(other):
+                raise OverlappingShiftError(
+                    "Ya tenés un turno confirmado que se superpone con este horario."
+                )
         self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO)
 
     def reject(self) -> None:
