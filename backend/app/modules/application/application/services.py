@@ -5,6 +5,7 @@ from uuid import UUID
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
+    ApplicationNotFoundError,
     ShiftNotApplicableError,
 )
 from app.modules.application.domain.repositories import ShiftApplicationRepository
@@ -84,3 +85,14 @@ class ApplicationService:
         return await self._applications.list_by_worker(
             worker_profile_id, limit=limit, offset=offset
         )
+
+    async def withdraw(
+        self, worker_profile_id: UUID, application_id: UUID
+    ) -> ShiftApplication:
+        """El trabajador retira su propia postulación PENDIENTE."""
+        application = await self._applications.get_by_id(application_id)
+        # No-disclosure: postulación ajena o inexistente se trata igual (404).
+        if application is None or application.worker_profile_id != worker_profile_id:
+            raise ApplicationNotFoundError(str(application_id))
+        application.withdraw()
+        return await self._applications.update(application)

@@ -2,7 +2,12 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.modules.application.domain.value_objects import ApplicationStatus
+from app.modules.application.infrastructure.repositories import (
+    SqlAlchemyShiftApplicationRepository,
+)
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -168,6 +173,67 @@ async def test_my_applications_pagination(client: AsyncClient):
     assert {a["id"] for a in page1.json()} | {a["id"] for a in page2.json()} == {
         a["id"] for a in all_mine.json()
     }
+
+
+async def test_worker_withdraws_own_pending_application(client: AsyncClient):
+    employer = await _employer_with_company(client, "emp_wd1@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_wd1@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    application_id = applied.json()["id"]
+
+    withdrawn = await client.post(
+        f"/api/v1/applications/{application_id}/withdraw", headers=worker
+    )
+    assert withdrawn.status_code == 200
+    assert withdrawn.json()["status"] == "retirada"
+
+    mine = await client.get("/api/v1/applications/mine", headers=worker)
+    assert any(
+        a["id"] == application_id and a["status"] == "retirada" for a in mine.json()
+    )
+
+
+async def test_other_worker_cannot_withdraw_someone_elses_application(
+    client: AsyncClient,
+):
+    employer = await _employer_with_company(client, "emp_wd2@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_wd2@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    application_id = applied.json()["id"]
+
+    other, _ = await _worker_with_profile(client, "w_wd2_other@staffya.com")
+    response = await client.post(
+        f"/api/v1/applications/{application_id}/withdraw", headers=other
+    )
+    assert response.status_code == 404
+
+
+async def test_cannot_withdraw_already_accepted_application(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """Sólo PENDIENTE → RETIRADA es legal: una postulación ya decidida por el
+    comercio (ACEPTADA/RECHAZADA) no se puede "cancelar". Hoy no hay endpoint
+    que lleve a ACEPTADA (ver TECH_DEBT/INTAKE), así que se fuerza directo en
+    la DB para poder probar la regla igual."""
+    employer = await _employer_with_company(client, "emp_wd3@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_wd3@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    application_id = applied.json()["id"]
+
+    async with session_factory() as session:
+        repo = SqlAlchemyShiftApplicationRepository(session)
+        application = await repo.get_by_id(application_id)
+        assert application is not None
+        application.status = ApplicationStatus.ACEPTADA
+        await repo.update(application)
+
+    response = await client.post(
+        f"/api/v1/applications/{application_id}/withdraw", headers=worker
+    )
+    assert response.status_code == 400
 
 
 async def test_applying_notifies_company(client: AsyncClient):

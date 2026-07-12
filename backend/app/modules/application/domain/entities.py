@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from app.modules.application.domain.exceptions import InvalidApplicationTransitionError
 from app.modules.application.domain.value_objects import ApplicationStatus
 
 
@@ -24,6 +25,21 @@ class ShiftApplication:
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
 
+    def withdraw(self) -> None:
+        """PENDIENTE → RETIRADA: el trabajador cancela su propia postulación.
+
+        Sólo alcanzable desde PENDIENTE: una vez que el comercio decidió
+        (ACEPTADA/RECHAZADA) la postulación deja de ser del trabajador para
+        cancelar. También la usa el auto-retiro cruzado de doble turno (ver
+        `ShiftService.confirm_assignment`, que retira postulaciones PENDIENTE
+        que se solapan con un turno recién confirmado).
+        """
+        if self.status != ApplicationStatus.PENDIENTE:
+            raise InvalidApplicationTransitionError(
+                f"No se puede retirar una postulación en estado {self.status.value}"
+            )
+        self.status = ApplicationStatus.RETIRADA
+
 
 @dataclass(frozen=True)
 class EnrichedApplicant:
@@ -40,5 +56,6 @@ class EnrichedApplicant:
     full_name: str
     photo_url: str | None
     rating: float
+    is_available: bool
     status: ApplicationStatus
     created_at: datetime | None

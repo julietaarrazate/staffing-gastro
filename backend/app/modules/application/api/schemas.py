@@ -24,5 +24,6 @@ class ApplicantResponse(BaseModel):
     full_name: str
     photo_url: str | None = None
     rating: float = 0.0
+    is_available: bool = True
     status: str
     created_at: datetime | None = None

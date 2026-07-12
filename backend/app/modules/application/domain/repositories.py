@@ -18,6 +18,10 @@ class ShiftApplicationRepository(ABC):
         """Actualiza una postulación existente y la devuelve."""
 
     @abstractmethod
+    async def get_by_id(self, application_id: UUID) -> ShiftApplication | None:
+        """Busca una postulación por su id."""
+
+    @abstractmethod
     async def get_by_shift_and_worker(
         self, shift_id: UUID, worker_profile_id: UUID
     ) -> ShiftApplication | None:
@@ -37,3 +41,11 @@ class ShiftApplicationRepository(ABC):
     async def list_by_shift_enriched(self, shift_id: UUID) -> list[EnrichedApplicant]:
         """Postulantes de un turno con datos del trabajador (perfil + usuario),
         en pocas consultas (JOIN) en vez de 2 por postulante."""
+
+    @abstractmethod
+    async def list_pending_by_worker(self, worker_profile_id: UUID) -> list[ShiftApplication]:
+        """Todas las postulaciones PENDIENTE de un trabajador, sin paginar.
+
+        Uso interno (no expuesto por API): detectar solapamiento de horarios
+        al confirmar un turno (ver `ShiftService.confirm_assignment`, regla
+        de doble turno)."""
