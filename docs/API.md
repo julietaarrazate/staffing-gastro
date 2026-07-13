@@ -108,6 +108,19 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | GET | `/users` | Listar usuarios — **paginado** |
 | POST | `/users/{id}/promote` · `/suspend` · `/activate` · `/verify` | Moderación |
 
+### `subscription` — `/subscription` (Fase 1 ADR-0005: mensualidad, sólo rol employer)
+| Método | Ruta | Qué hace |
+|--------|------|----------|
+| GET | `` | Suscripción del comercio logueado (`plan_code`, `status`, `period_end`, `price_ars`, `max_turnos_mes`, `turnos_usados_mes`) — 404 sin perfil de comercio |
+| GET | `/plans` | Planes disponibles (config, no hardcode): `gratis`/`basico`/`pro` |
+| POST | `/subscribe` | `{plan_code}` → flag de cobro OFF: setea el plan ya (`status activa`, `checkout_url: null`); flag ON: crea el preapproval de MP (`status "pendiente"` + `checkout_url`) |
+
+Gating de capacidad: `shift` consulta el plan del comercio al **publicar** un
+turno (`POST /shifts/{id}/publish`) vía el puerto de dominio de
+`subscription` — si el plan tiene tope y ya se agotó en el período, responde
+**402** con mensaje claro. `mark-paid` (pago del turno al trabajador) no
+cambia: sigue siendo un módulo distinto (`payment`, placeholder).
+
 ## Paginación
 
 **R2.1** (`docs/ROADMAP_IMPLEMENTATION.md`). Los listados largos marcados

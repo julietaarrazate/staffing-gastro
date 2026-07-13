@@ -80,7 +80,8 @@ cada módulo.
 | `chat` | ✅ | Mensajería por turno en tiempo real (WebSocket). |
 | `review` | ✅ | Reseñas bidireccionales; recalculan reputación. |
 | `admin` | ✅ | Métricas y moderación (sólo rol admin). |
-| `payment` | ⬜ | **Placeholder** (no procesa cobros). |
+| `subscription` | ✅ (backend) | Mensualidad al comercio (ADR-0005 Fase 1): plan + gating de capacidad al publicar turnos. `BillingGateway`/MP detrás de feature-flag. Falta UI (en construcción en paralelo). |
+| `payment` | ⬜ | **Placeholder** (no procesa cobros del turno comercio→trabajador; ver ADR-0005 Fase 2). |
 | `ai` | ⬜ | Pendiente (asistente por voz, pricing, antifraude). |
 
 ## Flujo de datos (request típico)

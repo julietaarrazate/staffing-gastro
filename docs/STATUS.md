@@ -61,6 +61,23 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 
 ## En vuelo ahora
 
+- **ADR-0005 Fase 1 (mensualidad al comercio) — backend** *(PR pendiente)*:
+  módulo `subscription` nuevo (dominio/aplicación/infraestructura/api);
+  entidad `Subscription` 1–1 con `Company` (`plan_code`, `status`, período,
+  `turnos_usados_mes`); planes como config (`domain/plans.py`: `gratis`
+  3/mes, `basico` 15/mes $20.000, `pro` ilimitado $45.000 — semilla, a
+  calibrar); puerto `BillingGateway` + `MercadoPagoSuscripcionAdapter`
+  (preapproval, NO split) detrás de `MERCADOPAGO_ACCESS_TOKEN` (flag por
+  ausencia, como `sentry_dsn`) + `FakeBillingGateway` para tests; migración
+  `0011`. **Gating de capacidad**: `ShiftService.publish_shift` consulta el
+  plan vía el puerto de dominio de `subscription` (cero import de su capa de
+  aplicación) y devuelve 402 si se agotó el tope del período — dos tests
+  existentes (`test_shift.py::test_feed_pagination`,
+  `test_attendance.py::test_badges_and_level_recompute_...`) publicaban más
+  de 3 turnos para un mismo comercio y se ajustaron a subir a `pro` primero.
+  `pytest -q`: 167 passed (antes 156, +11), corrido 3× verde; migración
+  up/down verificada contra Postgres real. Falta la UI de planes/suscripción
+  del comercio (frontend en construcción en paralelo contra este contrato).
 - **Feature de enganche #1: ping en tiempo real de turnos urgentes**
   (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
   N trabajadores disponibles más cercanos con la skill. Materializa la promesa
