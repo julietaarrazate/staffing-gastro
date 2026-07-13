@@ -22,6 +22,7 @@ from app.modules.matching.api.routes import search_router as matching_search_rou
 from app.modules.notification.api.routes import router as notification_router
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
+from app.modules.subscription.api.routes import router as subscription_router
 from app.modules.worker.api.routes import router as worker_router
 
 
@@ -76,3 +77,4 @@ app.include_router(chat_router, prefix="/api/v1")
 app.include_router(review_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(application_router, prefix="/api/v1")
+app.include_router(subscription_router, prefix="/api/v1")

@@ -79,6 +79,14 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    # --- Suscripciones / cobro (ADR-0005 Fase 1: mensualidad) ---
+    # Credenciales de Mercado Pago para el cobro recurrente (preapproval, NO
+    # split). Vacío = feature de cobro real desactivada: el plan se puede
+    # setear igual (`POST /subscription/subscribe` con el flag apagado), pero
+    # no se intenta cobrar (mismo patrón "flag por ausencia" que `sentry_dsn`).
+    mercadopago_access_token: str = ""
+    mercadopago_base_url: str = "https://api.mercadopago.com"
+
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.
