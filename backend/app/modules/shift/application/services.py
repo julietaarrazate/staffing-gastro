@@ -16,6 +16,7 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
+from app.core.config import settings
 from app.modules.subscription.domain.plans import get_plan
 from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
@@ -109,12 +110,20 @@ class ShiftService:
         Si el plan tiene tope de turnos y ya se agotó en el período actual,
         levanta `PlanLimitExceededError` (la API la mapea a 402) sin tocar el
         turno ni el contador. No bloquea turnos ya en curso: sólo se llama
-        acá, en la transición a `publicado`."""
+        acá, en la transición a `publicado`.
+
+        El TOPE sólo se hace cumplir si `subscriptions_enforced` está activo
+        (default OFF): durante la beta temprana se quiere que los comercios
+        publiquen libremente para generar liquidez; la mensualidad se enciende
+        cuando la operadora decide monetizar (ADR-0005: "beta cerrada = primeros
+        comercios en un escalón pago"). El uso se registra igual estando OFF,
+        para tener el dato cuando se encienda."""
         now = datetime.now(timezone.utc)
         subscription = await self._subscriptions.get_or_create(company_id)
         subscription.roll_period_if_expired(now)
         plan = get_plan(subscription.plan_code)
-        subscription.ensure_can_publish(plan)
+        if settings.subscriptions_enforced:
+            subscription.ensure_can_publish(plan)
         subscription.register_publication()
         await self._subscriptions.update(subscription)
 

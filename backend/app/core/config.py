@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     mercadopago_access_token: str = ""
     mercadopago_base_url: str = "https://api.mercadopago.com"
 
+    # Hacer cumplir el tope de turnos por plan (ADR-0005 Fase 1). Default OFF:
+    # durante la beta temprana los comercios publican libre para generar
+    # liquidez; se enciende cuando la operadora decide monetizar. El uso se
+    # cuenta igual estando apagado.
+    subscriptions_enforced: bool = False
+
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.

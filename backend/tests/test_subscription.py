@@ -10,6 +10,7 @@ from decimal import Decimal
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
 from app.main import app
 from app.modules.subscription.api.dependencies import get_billing_gateway
 from app.modules.subscription.infrastructure.fake_billing_gateway import (
@@ -18,6 +19,16 @@ from app.modules.subscription.infrastructure.fake_billing_gateway import (
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture(autouse=True)
+def _enforce_subscriptions():
+    """El tope por plan está OFF por defecto (beta temprana publica libre);
+    estos tests verifican el gating, así que lo encienden explícitamente."""
+    previous = settings.subscriptions_enforced
+    settings.subscriptions_enforced = True
+    yield
+    settings.subscriptions_enforced = previous
 
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
