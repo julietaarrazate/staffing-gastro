@@ -19,11 +19,12 @@ export function isNotFound(err: unknown): boolean {
 }
 
 /**
- * El endpoint de publicar turno devuelve 402/403 cuando el comercio alcanzó
- * el límite de turnos de su plan (ADR-0005, Fase 1). Se distingue de otros
- * errores para mostrar el mensaje + CTA "Mejorá tu plan" en vez de un toast
- * genérico.
+ * El backend mapea el límite de plan a **402 Payment Required**
+ * (PlanLimitExceededError, ADR-0005 Fase 1) — un código específico que el
+ * endpoint de publicar turno no usa para ninguna otra cosa. Se distingue por
+ * ese 402 exacto (NO por 403, que sí puede venir de un problema de permisos)
+ * para mostrar el mensaje + CTA "Mejorá tu plan" en vez de un toast genérico.
  */
 export function isPlanLimitError(err: unknown): boolean {
-  return err instanceof ApiError && (err.status === 402 || err.status === 403);
+  return err instanceof ApiError && err.status === 402;
 }
