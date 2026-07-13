@@ -201,6 +201,14 @@ async def test_badges_and_level_recompute_after_finish_and_worker_cancel(
     worker_headers, worker_profile_id = await _worker_with_profile(
         client, "att_badges_w@staffya.com"
     )
+    # Este test publica 4 turnos para el mismo comercio, por encima del tope
+    # del plan gratis (3/mes, ADR-0005 Fase 1); se sube a `pro` (ilimitado)
+    # para no acoplar este test de reputación al gating de capacidad.
+    await client.post(
+        "/api/v1/subscription/subscribe",
+        headers=employer_headers,
+        json={"plan_code": "pro"},
+    )
 
     async def _create_confirmed_shift(city: str) -> str:
         created = await client.post(

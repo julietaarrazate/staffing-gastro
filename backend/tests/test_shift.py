@@ -558,6 +558,12 @@ async def test_feed_pagination(client: AsyncClient):
     """R2.1: `/shifts/feed` pagina con `limit`/`offset` sin cambiar el shape
     de la respuesta (sigue siendo una lista simple)."""
     headers = await _employer_with_company(client, "emp_pag@staffya.com")
+    # 5 turnos > el tope del plan gratis (3/mes, ADR-0005 Fase 1): se
+    # sube a `pro` (ilimitado) para no acoplar este test de paginación al
+    # gating de capacidad, que se cubre en tests/test_subscription.py.
+    await client.post(
+        "/api/v1/subscription/subscribe", headers=headers, json={"plan_code": "pro"}
+    )
     created_ids = []
     for i in range(5):
         created = await client.post(
