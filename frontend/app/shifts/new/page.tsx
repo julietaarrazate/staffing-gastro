@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import { Button, TextField, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon } from "@/components/icons";
 
@@ -34,6 +36,7 @@ export default function NewShiftWizard() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
 
   function go(next: number) {
@@ -70,11 +73,22 @@ export default function NewShiftWizard() {
         },
         token
       );
-      await api.post(`/shifts/${created.id}/publish`, undefined, token);
-      toast("¡Turno publicado! Ya pueden postularse");
-      router.push("/shifts");
+      try {
+        await api.post(`/shifts/${created.id}/publish`, undefined, token);
+        toast("¡Turno publicado! Ya pueden postularse");
+        router.push("/shifts");
+      } catch (err) {
+        // El turno ya quedó creado como borrador: se puede publicar más tarde
+        // desde el panel una vez que se mejore el plan (ver /shifts).
+        if (isPlanLimitError(err)) {
+          setPlanLimitMessage(getErrorMessage(err));
+        } else {
+          toast(getErrorMessage(err, "No se pudo publicar"), "error");
+        }
+      }
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "No se pudo publicar", "error");
+    } finally {
       setSubmitting(false);
     }
   }
@@ -283,6 +297,17 @@ export default function NewShiftWizard() {
           </Button>
         )}
       </div>
+
+      <PlanLimitModal
+        open={planLimitMessage !== null}
+        message={planLimitMessage}
+        onClose={() => {
+          setPlanLimitMessage(null);
+          // El borrador ya existe: lo puede publicar desde el panel cuando
+          // mejore el plan (o si el límite se liberó al empezar un mes nuevo).
+          router.push("/shifts");
+        }}
+      />
     </div>
   );
 }

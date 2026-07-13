@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
+import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import { Button, CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import {
   BoltIcon,
@@ -58,6 +59,7 @@ export default function MyShiftsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
 
   async function load() {
     if (!token) return;
@@ -88,7 +90,11 @@ export default function MyShiftsPage() {
       await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token);
       await load();
     } catch (err) {
-      toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+      if (action === "publish" && isPlanLimitError(err)) {
+        setPlanLimitMessage(getErrorMessage(err));
+      } else {
+        toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+      }
     } finally {
       setBusy(null);
     }
@@ -218,6 +224,12 @@ export default function MyShiftsPage() {
           </ShiftCard>
         ))}
       </div>
+
+      <PlanLimitModal
+        open={planLimitMessage !== null}
+        message={planLimitMessage}
+        onClose={() => setPlanLimitMessage(null)}
+      />
     </div>
   );
 }
