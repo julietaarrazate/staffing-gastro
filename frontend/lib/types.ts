@@ -245,6 +245,29 @@ export interface PlatformStats {
   verified: number;
 }
 
+// Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,
+// construido en paralelo por el backend — no inventar campos ni endpoints.
+export type SubscriptionStatus = "activa" | "vencida" | "cancelada" | string;
+
+export interface Subscription {
+  plan_code: string;
+  status: SubscriptionStatus;
+  period_end: string | null;
+  price_ars: number | string;
+  /** `null` = ilimitado. */
+  max_turnos_mes: number | null;
+  turnos_usados_mes: number;
+}
+
+export interface SubscriptionPlan {
+  code: string;
+  name: string;
+  price_ars: number | string;
+  /** `null` = ilimitado. */
+  max_turnos_mes: number | null;
+  features: string[];
+}
+
 export interface CompanyProfile {
   id: string;
   user_id: string;

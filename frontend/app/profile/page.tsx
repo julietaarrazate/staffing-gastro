@@ -1,12 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import { Spinner } from "@/components/ui";
-import { LogOutIcon, ShieldIcon } from "@/components/icons";
+import { CreditCardIcon, LogOutIcon, ShieldIcon } from "@/components/icons";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -42,6 +43,7 @@ function Row({
 
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth();
+  const router = useRouter();
 
   if (loading) {
     return (
@@ -78,6 +80,17 @@ export default function ProfilePage() {
           {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
         </div>
       </div>
+
+      {user.role === "employer" && (
+        <div className="mt-7">
+          <SectionLabel>Suscripción</SectionLabel>
+          <div className="mt-2 rounded-2xl bg-white shadow-sm">
+            <Row icon={<CreditCardIcon size={18} />} onClick={() => router.push("/subscription")}>
+              Mi plan
+            </Row>
+          </div>
+        </div>
+      )}
 
       <div className="mt-7">
         <SectionLabel>Reseñas recibidas</SectionLabel>

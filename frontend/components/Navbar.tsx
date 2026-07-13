@@ -42,6 +42,9 @@ export default function Navbar() {
               <Link href="/chats" className="hidden hover:text-orange-600 md:inline">
                 Mensajes
               </Link>
+              <Link href="/subscription" className="hidden hover:text-orange-600 md:inline">
+                Mi plan
+              </Link>
               <Link href="/profile" className="hidden hover:text-orange-600 md:inline">
                 Mi comercio
               </Link>

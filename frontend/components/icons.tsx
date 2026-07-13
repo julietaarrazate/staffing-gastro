@@ -6,6 +6,7 @@
  */
 import type { ComponentType } from "react";
 import {
+  AlertTriangle,
   Award,
   Bell,
   Bike,
@@ -22,6 +23,7 @@ import {
   ClipboardList,
   Clock,
   Coffee,
+  CreditCard,
   Flame,
   Footprints,
   Home,
@@ -35,6 +37,7 @@ import {
   Search,
   Send,
   Shield,
+  Sparkles,
   Star,
   Users,
   Wallet,
@@ -95,3 +98,6 @@ export const CarIcon = make(Car);
 export const AwardIcon = make(Award);
 export const MedalIcon = make(Medal);
 export const XCircleIcon = make(XCircle);
+export const CreditCardIcon = make(CreditCard);
+export const AlertTriangleIcon = make(AlertTriangle);
+export const SparklesIcon = make(Sparkles);

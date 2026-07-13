@@ -45,6 +45,17 @@ export async function blockExternalHosts(page: Page) {
   );
 }
 
+/**
+ * Salta la splash de marca (components/SplashScreen.tsx): se muestra una vez
+ * por `sessionStorage` con una coreografía de ~1.1s que en un screenshot
+ * tapa todo el contenido de abajo. No hace falta para verificar los flujos.
+ */
+export async function skipSplash(page: Page) {
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem("staffya_splash_seen", "1");
+  });
+}
+
 /** GET /notifications -> [] (lo pide el Navbar en cuanto hay sesión). */
 export async function mockEmptyNotifications(page: Page) {
   await page.route("**/api/v1/notifications", (route) => {

@@ -17,3 +17,14 @@ export function getErrorMessage(err: unknown, fallback?: string): string {
 export function isNotFound(err: unknown): boolean {
   return err instanceof ApiError && err.status === 404;
 }
+
+/**
+ * El backend mapea el límite de plan a **402 Payment Required**
+ * (PlanLimitExceededError, ADR-0005 Fase 1) — un código específico que el
+ * endpoint de publicar turno no usa para ninguna otra cosa. Se distingue por
+ * ese 402 exacto (NO por 403, que sí puede venir de un problema de permisos)
+ * para mostrar el mensaje + CTA "Mejorá tu plan" en vez de un toast genérico.
+ */
+export function isPlanLimitError(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 402;
+}
