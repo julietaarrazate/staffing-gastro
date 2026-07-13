@@ -1,6 +1,6 @@
 """Casos de uso del módulo shift (publicación y ciclo de vida del turno)."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from app.modules.application.domain.repositories import ShiftApplicationRepository
@@ -16,6 +16,8 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
+from app.modules.subscription.domain.plans import get_plan
+from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -34,12 +36,14 @@ class ShiftService:
         companies: CompanyProfileRepository,
         notifications: NotificationRepository,
         applications: ShiftApplicationRepository,
+        subscriptions: SubscriptionRepository,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
         self._companies = companies
         self._notifications = notifications
         self._applications = applications
+        self._subscriptions = subscriptions
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -91,8 +95,28 @@ class ShiftService:
 
     async def publish_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._get_owned(company_id, shift_id)
+        await self._consume_publication_slot(company_id)
         shift.publish()
         return await self._shifts.update(shift)
+
+    async def _consume_publication_slot(self, company_id: UUID) -> None:
+        """Gating de capacidad por plan (ADR-0005 Fase 1): antes de publicar
+        se consulta el plan del comercio vía el puerto de dominio de
+        `subscription` (`SubscriptionRepository` + config de planes —
+        cero import de la capa de aplicación ajena, mismo patrón cross-módulo
+        que `CompanyProfileRepository`/`WorkerProfileRepository`).
+
+        Si el plan tiene tope de turnos y ya se agotó en el período actual,
+        levanta `PlanLimitExceededError` (la API la mapea a 402) sin tocar el
+        turno ni el contador. No bloquea turnos ya en curso: sólo se llama
+        acá, en la transición a `publicado`."""
+        now = datetime.now(timezone.utc)
+        subscription = await self._subscriptions.get_or_create(company_id)
+        subscription.roll_period_if_expired(now)
+        plan = get_plan(subscription.plan_code)
+        subscription.ensure_can_publish(plan)
+        subscription.register_publication()
+        await self._subscriptions.update(subscription)
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._get_owned(company_id, shift_id)

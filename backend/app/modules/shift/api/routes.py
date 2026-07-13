@@ -31,6 +31,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotEditableError,
     ShiftNotFoundError,
 )
+from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 router = APIRouter(prefix="/shifts", tags=["shifts"])
@@ -189,6 +190,10 @@ async def publish_shift(shift_id: UUID, company_id: CompanyIdDep, service: Servi
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    except PlanLimitExceededError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
+        ) from exc
 
 
 @router.post(

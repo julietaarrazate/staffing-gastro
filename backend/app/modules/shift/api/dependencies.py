@@ -24,6 +24,9 @@ from app.modules.notification.infrastructure.repositories import (
 )
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.infrastructure.repositories import (
+    SqlAlchemySubscriptionRepository,
+)
 from app.modules.worker.api.dependencies import get_worker_service
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.exceptions import WorkerProfileNotFoundError
@@ -41,6 +44,7 @@ def get_shift_service(
         companies=SqlAlchemyCompanyProfileRepository(session),
         notifications=SqlAlchemyNotificationRepository(session),
         applications=SqlAlchemyShiftApplicationRepository(session),
+        subscriptions=SqlAlchemySubscriptionRepository(session),
     )
 
 
