@@ -6,6 +6,7 @@ import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import MapAddressPicker, { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 
@@ -14,9 +15,14 @@ export default function CompanyProfileForm() {
   const [exists, setExists] = useState(false);
   const [name, setName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  // El mapa (ADR-0006) es el método principal de ubicación; el selector
+  // manual por provincia/localidad queda como fallback (geocoder caído, o el
+  // comercio prefiere cargar a mano).
+  const [useManualPicker, setUseManualPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -33,6 +39,7 @@ export default function CompanyProfileForm() {
         setExists(true);
         setName(p.name);
         setLogoUrl(p.logo_url);
+        setAddress(p.address ?? "");
         setCity(p.city ?? "");
         setLatitude(p.latitude ?? null);
         setLongitude(p.longitude ?? null);
@@ -61,6 +68,7 @@ export default function CompanyProfileForm() {
     const payload = {
       name,
       logo_url: logoUrl,
+      address: address || null,
       city: city || null,
       latitude,
       longitude,
@@ -109,13 +117,35 @@ export default function CompanyProfileForm() {
       <div>
         <label className="block text-sm font-medium text-zinc-700">Ubicación del comercio</label>
         <div className="mt-2">
-          <LocationPicker
-            onSelect={(loc: LocationSelection) => {
-              setCity(loc.city);
-              setLatitude(loc.latitude);
-              setLongitude(loc.longitude);
-            }}
-          />
+          {useManualPicker ? (
+            <div className="flex flex-col gap-2">
+              <LocationPicker
+                onSelect={(loc: LocationSelection) => {
+                  setCity(loc.city);
+                  setLatitude(loc.latitude);
+                  setLongitude(loc.longitude);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setUseManualPicker(false)}
+                className="w-fit text-xs font-medium text-zinc-400 underline decoration-zinc-200 underline-offset-2 hover:text-zinc-600"
+              >
+                Volver a buscar en el mapa
+              </button>
+            </div>
+          ) : (
+            <MapAddressPicker
+              initial={{ address, city, latitude: latitude ?? undefined, longitude: longitude ?? undefined }}
+              onChange={(loc: MapAddressSelection) => {
+                setAddress(loc.address);
+                setCity(loc.city);
+                setLatitude(loc.latitude);
+                setLongitude(loc.longitude);
+              }}
+              onFallback={() => setUseManualPicker(true)}
+            />
+          )}
         </div>
         {city && (
           <p className="mt-2 text-sm font-medium text-zinc-700">
