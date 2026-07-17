@@ -11,19 +11,45 @@ export class ApiError extends Error {
   }
 }
 
+/** Error de red/timeout: el backend no respondió (dormido, caído, sin
+ * conexión) — distinto de un ApiError con status HTTP. Se usa para NO
+ * cerrar la sesión cuando el problema es que el server no está, no que el
+ * token sea inválido. */
+export class NetworkError extends Error {}
+
 async function request<T>(
   path: string,
-  options: RequestInit & { token?: string | null } = {}
+  options: RequestInit & { token?: string | null; timeoutMs?: number } = {}
 ): Promise<T> {
-  const { token, headers, ...rest } = options;
-  const res = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  const { token, headers, timeoutMs, ...rest } = options;
+
+  // Timeout opcional vía AbortController: sin esto, un backend dormido
+  // (cold start de Render) cuelga el fetch indefinidamente. Sólo se aplica
+  // cuando el caller pide `timeoutMs` (p. ej. el chequeo de sesión al abrir).
+  const controller = timeoutMs != null ? new AbortController() : undefined;
+  const timer =
+    controller != null ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...rest,
+      signal: controller?.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    });
+  } catch (err) {
+    throw new NetworkError(
+      err instanceof Error && err.name === "AbortError"
+        ? "El servidor tardó demasiado en responder."
+        : "No se pudo conectar con el servidor."
+    );
+  } finally {
+    if (timer != null) clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -36,9 +62,15 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string, token?: string | null) => request<T>(path, { method: "GET", token }),
-  post: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined, token }),
+  get: <T>(path: string, token?: string | null, timeoutMs?: number) =>
+    request<T>(path, { method: "GET", token, timeoutMs }),
+  post: <T>(path: string, body?: unknown, token?: string | null, timeoutMs?: number) =>
+    request<T>(path, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+      token,
+      timeoutMs,
+    }),
   put: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined, token }),
 };
