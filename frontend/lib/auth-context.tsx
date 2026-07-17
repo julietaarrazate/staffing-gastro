@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { api } from "@/lib/api";
+import { api, NetworkError } from "@/lib/api";
 import { User } from "@/lib/types";
 
 interface AuthState {
@@ -25,6 +25,11 @@ const AuthContext = createContext<AuthState | null>(null);
 // la sesión se mantenga abierta mientras la app esté en uso.
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
+// Tope para el chequeo de sesión al abrir la app: si el backend no responde
+// en este tiempo (cold start de Render, backend caído), no colgamos la app en
+// blanco — se degrada a mostrar el landing/login sin cerrar la sesión.
+const AUTH_TIMEOUT_MS = 12 * 1000;
+
 function persistTokens(access: string, refresh: string) {
   localStorage.setItem("staffya_token", access);
   localStorage.setItem("staffya_refresh", refresh);
@@ -40,18 +45,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function tryRefresh(): Promise<string | null> {
+  async function tryRefresh(timeoutMs?: number): Promise<string | null> {
     const refreshToken = localStorage.getItem("staffya_refresh");
     if (!refreshToken) return null;
     try {
       const tokens = await api.post<{ access_token: string; refresh_token: string }>(
         "/auth/refresh",
-        { refresh_token: refreshToken }
+        { refresh_token: refreshToken },
+        null,
+        timeoutMs
       );
       persistTokens(tokens.access_token, tokens.refresh_token);
       setToken(tokens.access_token);
       return tokens.access_token;
-    } catch {
+    } catch (err) {
+      // Un fallo de red (backend caído/dormido) NO es un refresh inválido:
+      // se propaga para degradar sin cerrar la sesión. Sólo un ApiError real
+      // (refresh vencido/revocado) devuelve null → login.
+      if (err instanceof NetworkError) throw err;
       return null;
     }
   }
@@ -73,32 +84,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Con refresh token disponible, intentamos restaurar en silencio:
       // primero probamos el access token si lo tenemos (evita un round-trip
       // extra cuando todavía es válido); si falta o venció, refrescamos.
-      if (storedAccess) {
-        setToken(storedAccess);
-        try {
-          setUser(await api.get<User>("/auth/me", storedAccess));
+      // Todo el bloque va bajo un guard de NetworkError: si el backend no
+      // responde, se degrada a app deslogueada SIN cerrar la sesión (los
+      // tokens siguen guardados y un reload reintenta cuando el server
+      // despierte) — en vez de quedar en blanco esperando para siempre.
+      try {
+        if (storedAccess) {
+          setToken(storedAccess);
+          try {
+            setUser(await api.get<User>("/auth/me", storedAccess, AUTH_TIMEOUT_MS));
+            setLoading(false);
+            return;
+          } catch (err) {
+            if (err instanceof NetworkError) throw err;
+            // Access token vencido/inválido (ApiError): seguimos al refresh.
+          }
+        }
+
+        const refreshed = await tryRefresh(AUTH_TIMEOUT_MS);
+        if (!refreshed) {
+          // Refresh ausente/realmente vencido (no red): a login.
+          clearTokens();
+          setToken(null);
           setLoading(false);
           return;
-        } catch {
-          // Access token vencido/ inválido: seguimos al refresh de abajo.
         }
-      }
-
-      const refreshed = await tryRefresh();
-      if (!refreshed) {
-        // Sólo acá (refresh ausente/realmente vencido) mandamos a login.
-        clearTokens();
-        setToken(null);
+        try {
+          setUser(await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS));
+        } catch (err) {
+          if (err instanceof NetworkError) throw err;
+          clearTokens();
+          setToken(null);
+        }
         setLoading(false);
-        return;
+      } catch (err) {
+        // Backend dormido/caído: no cerramos sesión, sólo dejamos de cargar.
+        if (!(err instanceof NetworkError)) {
+          // Cualquier otro error inesperado tampoco debe colgar la app.
+          clearTokens();
+          setToken(null);
+        }
+        setLoading(false);
       }
-      try {
-        setUser(await api.get<User>("/auth/me", refreshed));
-      } catch {
-        clearTokens();
-        setToken(null);
-      }
-      setLoading(false);
     }
 
     restoreSession();
@@ -106,7 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(tryRefresh, REFRESH_INTERVAL_MS);
+    const interval = setInterval(() => {
+      // El refresh periódico puede tirar NetworkError (backend momentáneamente
+      // caído); lo tragamos — el próximo tick reintenta.
+      tryRefresh().catch(() => {});
+    }, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
