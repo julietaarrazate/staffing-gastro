@@ -19,6 +19,9 @@ from app.modules.company.infrastructure.repositories import (
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
@@ -37,6 +40,7 @@ from app.modules.worker.infrastructure.repositories import (
 
 def get_shift_service(
     session: Annotated[AsyncSession, Depends(get_session)],
+    email_sender: Annotated[EmailSender, Depends(get_email_sender)],
 ) -> ShiftService:
     return ShiftService(
         shifts=SqlAlchemyShiftRepository(session),
@@ -45,6 +49,8 @@ def get_shift_service(
         notifications=SqlAlchemyNotificationRepository(session),
         applications=SqlAlchemyShiftApplicationRepository(session),
         subscriptions=SqlAlchemySubscriptionRepository(session),
+        users=SqlAlchemyUserRepository(session),
+        email_sender=email_sender,
     )
 
 
