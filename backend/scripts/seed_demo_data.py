@@ -31,15 +31,20 @@ from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.exceptions import EmailAlreadyExistsError
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.repositories import (
+    SqlAlchemyPasswordResetTokenRepository,
     SqlAlchemyRefreshSessionRepository,
     SqlAlchemyUserRepository,
 )
+from app.modules.notification.infrastructure.null_email_sender import NullEmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
 from app.modules.shift.application.dtos import ShiftData
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.infrastructure.repositories import (
+    SqlAlchemySubscriptionRepository,
+)
 from app.modules.worker.application.dtos import WorkerProfileData
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.exceptions import WorkerProfileAlreadyExistsError
@@ -367,7 +372,12 @@ async def _seed_companies(session) -> set[str]:
     seed de turnos sólo siembre para comercios nuevos y sea idempotente)."""
     users = SqlAlchemyUserRepository(session)
     companies = SqlAlchemyCompanyProfileRepository(session)
-    identity_service = IdentityService(users, SqlAlchemyRefreshSessionRepository(session))
+    identity_service = IdentityService(
+        users,
+        SqlAlchemyRefreshSessionRepository(session),
+        SqlAlchemyPasswordResetTokenRepository(session),
+        NullEmailSender(),
+    )
     company_service = CompanyProfileService(companies)
     created: set[str] = set()
 
@@ -411,7 +421,12 @@ async def _seed_companies(session) -> set[str]:
 async def _seed_workers(session) -> None:
     users = SqlAlchemyUserRepository(session)
     workers = SqlAlchemyWorkerProfileRepository(session)
-    identity_service = IdentityService(users, SqlAlchemyRefreshSessionRepository(session))
+    identity_service = IdentityService(
+        users,
+        SqlAlchemyRefreshSessionRepository(session),
+        SqlAlchemyPasswordResetTokenRepository(session),
+        NullEmailSender(),
+    )
     worker_service = WorkerProfileService(workers)
 
     for entry in WORKERS:
@@ -481,6 +496,9 @@ async def _seed_shifts(session, created_company_emails: set[str]) -> None:
         companies=companies,
         notifications=SqlAlchemyNotificationRepository(session),
         applications=SqlAlchemyShiftApplicationRepository(session),
+        subscriptions=SqlAlchemySubscriptionRepository(session),
+        users=users,
+        email_sender=NullEmailSender(),
     )
     by_email = {c["email"]: c for c in COMPANIES}
     start = datetime.now(timezone.utc) + timedelta(hours=5)

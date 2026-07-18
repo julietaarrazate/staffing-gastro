@@ -6,13 +6,18 @@ from uuid import UUID
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.identity.domain.entities import RefreshSession, User
+from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
 from app.modules.identity.domain.repositories import (
+    PasswordResetTokenRepository,
     RefreshSessionRepository,
     UserRepository,
 )
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
-from app.modules.identity.infrastructure.models import RefreshSessionModel, UserModel
+from app.modules.identity.infrastructure.models import (
+    PasswordResetTokenModel,
+    RefreshSessionModel,
+    UserModel,
+)
 
 
 def _to_entity(model: UserModel) -> User:
@@ -72,6 +77,11 @@ class SqlAlchemyUserRepository(UserRepository):
         model.status = user.status.value
         model.is_verified = user.is_verified
         model.full_name = user.full_name
+        # hashed_password: sólo lo cambia el flujo de reset de contraseña
+        # (`IdentityService.reset_password`); el resto de los llamadores
+        # reasignan el mismo hash que ya tenía la entidad, así que incluirlo
+        # acá es un no-op para ellos.
+        model.hashed_password = user.hashed_password
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
@@ -138,4 +148,75 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         now = datetime.now(timezone.utc)
         for model in result.scalars().all():
             model.revoked_at = now
+        await self._session.commit()
+
+
+def _reset_token_to_entity(model: PasswordResetTokenModel) -> PasswordResetToken:
+    """Mapea un modelo ORM de token de reset a la entidad de dominio."""
+    return PasswordResetToken(
+        id=model.id,
+        user_id=model.user_id,
+        token_hash=model.token_hash,
+        expires_at=model.expires_at,
+        used_at=model.used_at,
+        created_at=model.created_at,
+    )
+
+
+class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
+    """Implementación del puerto PasswordResetTokenRepository sobre SQLAlchemy async."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, token: PasswordResetToken) -> PasswordResetToken:
+        model = PasswordResetTokenModel(
+            id=token.id,
+            user_id=token.user_id,
+            token_hash=token.token_hash,
+            expires_at=token.expires_at,
+            used_at=token.used_at,
+        )
+        self._session.add(model)
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _reset_token_to_entity(model)
+
+    async def get_by_token_hash(self, token_hash: str) -> PasswordResetToken | None:
+        stmt = select(PasswordResetTokenModel).where(
+            PasswordResetTokenModel.token_hash == token_hash
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _reset_token_to_entity(model) if model else None
+
+    async def get_latest_unused_for_user(self, user_id: UUID) -> PasswordResetToken | None:
+        stmt = (
+            select(PasswordResetTokenModel)
+            .where(
+                PasswordResetTokenModel.user_id == user_id,
+                PasswordResetTokenModel.used_at.is_(None),
+            )
+            .order_by(desc(PasswordResetTokenModel.created_at))
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _reset_token_to_entity(model) if model else None
+
+    async def mark_used(self, token_id: UUID) -> None:
+        model = await self._session.get(PasswordResetTokenModel, token_id)
+        if model is not None and model.used_at is None:
+            model.used_at = datetime.now(timezone.utc)
+            await self._session.commit()
+
+    async def invalidate_all_unused_for_user(self, user_id: UUID) -> None:
+        stmt = select(PasswordResetTokenModel).where(
+            PasswordResetTokenModel.user_id == user_id,
+            PasswordResetTokenModel.used_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        now = datetime.now(timezone.utc)
+        for model in result.scalars().all():
+            model.used_at = now
         await self._session.commit()

@@ -5,9 +5,22 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
+from app.main import app
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture
+def fake_email_sender():
+    """Reemplaza el EmailSender real por un doble que captura los envíos
+    (mismo patrón que `FakeBillingGateway` en tests/test_subscription.py)."""
+    fake = FakeEmailSender()
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_email_sender, None)
 
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
@@ -692,3 +705,58 @@ async def test_public_shift_cancelled_returns_404(client: AsyncClient):
 async def test_public_shift_nonexistent_id_returns_404(client: AsyncClient):
     response = await client.get(f"/api/v1/shifts/{uuid4()}/public")
     assert response.status_code == 404
+
+
+async def test_assign_worker_sends_acceptance_email(
+    client: AsyncClient, fake_email_sender: FakeEmailSender
+):
+    """Al aceptar (asignar) un trabajador, se le manda un email best-effort
+    avisándole (además de la notificación in-app existente)."""
+    employer_headers = await _employer_with_company(client, "emp_email@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    _worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_email@staffya.com"
+    )
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    assert assigned.status_code == 200
+
+    assert len(fake_email_sender.sent) == 1
+    sent = fake_email_sender.sent[0]
+    assert sent.to == "w_email@staffya.com"
+    assert "aceptaron" in sent.subject.lower()
+    assert "Bar Palermo" in sent.html
+
+
+async def test_assign_worker_does_not_fail_if_email_sender_explodes(
+    client: AsyncClient, fake_email_sender: FakeEmailSender
+):
+    """Best-effort real: si el proveedor de email explota, la asignación del
+    turno igual se confirma (nunca debe romper el flujo de negocio)."""
+    fake_email_sender.raise_on_send = True
+
+    employer_headers = await _employer_with_company(client, "emp_explode@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    _worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_explode@staffya.com"
+    )
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    assert assigned.status_code == 200
+    assert assigned.json()["status"] == "asignado"

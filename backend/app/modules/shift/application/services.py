@@ -1,10 +1,13 @@
 """Casos de uso del módulo shift (publicación y ciclo de vida del turno)."""
 
+import logging
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.identity.domain.repositories import UserRepository
+from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
@@ -22,6 +25,8 @@ from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
+logger = logging.getLogger(__name__)
+
 # R2.4: tolerancia para considerar "puntual" un check-in respecto del
 # horario pactado (start_at). Ver docs/REPUTATION.md.
 PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
@@ -38,6 +43,8 @@ class ShiftService:
         notifications: NotificationRepository,
         applications: ShiftApplicationRepository,
         subscriptions: SubscriptionRepository,
+        users: UserRepository,
+        email_sender: EmailSender,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -45,6 +52,8 @@ class ShiftService:
         self._notifications = notifications
         self._applications = applications
         self._subscriptions = subscriptions
+        self._users = users
+        self._email_sender = email_sender
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -135,7 +144,12 @@ class ShiftService:
     async def assign_worker(
         self, company_id: UUID, shift_id: UUID, worker_profile_id: UUID
     ) -> Shift:
-        """El comercio asigna el turno a uno de los candidatos recomendados."""
+        """El comercio asigna el turno a uno de los candidatos recomendados.
+
+        Este es el momento real de "aceptación" que ve el trabajador (el
+        comercio elige a un postulante o asigna directo, ver
+        `ApplicationService`): además de la notificación in-app, se le manda
+        un email best-effort avisándole (`_send_acceptance_email`)."""
         shift = await self._get_owned(company_id, shift_id)
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
@@ -145,7 +159,41 @@ class ShiftService:
             "Te asignaron un turno",
             f"Te asignaron el turno \"{updated.title or updated.position.value}\". Confirmá tu asistencia.",
         )
+        await self._send_acceptance_email(worker_profile_id, updated)
         return updated
+
+    async def _send_acceptance_email(
+        self, worker_profile_id: UUID, shift: Shift
+    ) -> None:
+        """Avisa por email al trabajador aceptado para el turno.
+
+        Best-effort: un error acá (proveedor caído, perfil/usuario
+        inconsistente) nunca debe romper la asignación, que ya quedó
+        persistida. Ver contrato de `EmailSender`."""
+        try:
+            profile = await self._workers.get_by_id(worker_profile_id)
+            if profile is None:
+                return
+            user = await self._users.get_by_id(profile.user_id)
+            if user is None:
+                return
+            company = await self._companies.get_by_id(shift.company_id)
+            company_name = company.name if company is not None else "un comercio"
+            position_label = shift.position.value
+            when = shift.start_at.strftime("%d/%m/%Y a las %H:%M")
+            subject = f"¡Te aceptaron para el turno de {position_label}!"
+            html = (
+                f"<p>Hola {user.full_name},</p>"
+                f"<p>¡Te aceptaron para el turno de {position_label}!</p>"
+                f"<p><strong>{company_name}</strong> te asignó el turno del "
+                f"{when} hs. Entrá a Staffya para confirmar tu asistencia.</p>"
+            )
+            await self._email_sender.send(to=user.email, subject=subject, html=html)
+        except Exception:
+            logger.exception(
+                "No se pudo enviar el email de aceptación de turno al trabajador %s",
+                worker_profile_id,
+            )
 
     async def confirm_assignment(
         self, worker_profile_id: UUID, shift_id: UUID

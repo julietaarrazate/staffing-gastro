@@ -40,6 +40,23 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Body genérico, siempre igual exista o no el usuario (anti-enumeración)."""
+
+    message: str = "Si el email existe, te enviamos un enlace para restablecer tu contraseña."
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    # Misma regla que el registro (`RegisterRequest.password`): no se
+    # inventan reglas nuevas para el reset.
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str

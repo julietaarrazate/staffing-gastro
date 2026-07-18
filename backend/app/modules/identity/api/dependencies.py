@@ -21,19 +21,24 @@ from app.modules.identity.domain.exceptions import (
 )
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.repositories import (
+    SqlAlchemyPasswordResetTokenRepository,
     SqlAlchemyRefreshSessionRepository,
     SqlAlchemyUserRepository,
 )
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.domain.email_sender import EmailSender
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 
 
 def get_identity_service(
     session: Annotated[AsyncSession, Depends(get_session)],
+    email_sender: Annotated[EmailSender, Depends(get_email_sender)],
 ) -> IdentityService:
     users = SqlAlchemyUserRepository(session)
     sessions = SqlAlchemyRefreshSessionRepository(session)
-    return IdentityService(users, sessions)
+    password_reset_tokens = SqlAlchemyPasswordResetTokenRepository(session)
+    return IdentityService(users, sessions, password_reset_tokens, email_sender)
 
 
 async def get_current_user(

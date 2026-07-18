@@ -93,6 +93,19 @@ class Settings(BaseSettings):
     # cuenta igual estando apagado.
     subscriptions_enforced: bool = False
 
+    # --- Email transaccional (Resend) ---
+    # Sin `resend_api_key` configurada se inyecta un `NullEmailSender` que sólo
+    # loguea y nunca falla (mismo patrón "flag por ausencia" que
+    # `mercadopago_access_token`/`sentry_dsn`): el envío de email es best-effort
+    # y jamás debe romper un flujo de negocio (registro, recuperación de
+    # contraseña, asignación de turno).
+    resend_api_key: str = ""
+    email_from: str = "Staffya <onboarding@resend.dev>"
+
+    # URL pública del frontend (Vercel), usada para armar links de emails
+    # transaccionales (p. ej. `{frontend_url}/restablecer?token=...`).
+    frontend_url: str = "https://staffing-gastro.vercel.app"
+
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.

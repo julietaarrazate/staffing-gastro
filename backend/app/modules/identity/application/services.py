@@ -4,6 +4,9 @@ Orquesta dominio + puertos (repositorio) + utilidades de seguridad.
 No conoce detalles de HTTP ni de SQLAlchemy.
 """
 
+import hashlib
+import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -24,27 +27,46 @@ from app.modules.identity.application.dtos import (
     RegisterCommand,
     TokenPair,
 )
-from app.modules.identity.domain.entities import RefreshSession, User
+from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
 from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
     InactiveUserError,
     InvalidCredentialsError,
     InvalidTokenError,
+    PasswordResetTokenInvalidError,
     RefreshTokenRevokedError,
     UserNotFoundError,
 )
 from app.modules.identity.domain.repositories import (
+    PasswordResetTokenRepository,
     RefreshSessionRepository,
     UserRepository,
 )
+from app.modules.notification.domain.email_sender import EmailSender
+
+logger = logging.getLogger(__name__)
+
+# Vigencia del token de recuperación de contraseña.
+PASSWORD_RESET_TOKEN_TTL = timedelta(hours=1)
+# Rate-limit silencioso de reenvío: si ya hay un token vigente creado hace
+# menos de esta ventana, no se genera/manda otro (ver `request_password_reset`).
+PASSWORD_RESET_RESEND_WINDOW = timedelta(minutes=5)
 
 
 class IdentityService:
     """Servicio de aplicación que agrupa los casos de uso de autenticación."""
 
-    def __init__(self, users: UserRepository, sessions: RefreshSessionRepository) -> None:
+    def __init__(
+        self,
+        users: UserRepository,
+        sessions: RefreshSessionRepository,
+        password_reset_tokens: PasswordResetTokenRepository,
+        email_sender: EmailSender,
+    ) -> None:
         self._users = users
         self._sessions = sessions
+        self._reset_tokens = password_reset_tokens
+        self._email_sender = email_sender
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe."""
@@ -119,6 +141,80 @@ class IdentityService:
             raise InactiveUserError()
         return user
 
+    async def request_password_reset(self, email: str) -> None:
+        """Inicia la recuperación de contraseña (anti-enumeración).
+
+        Nunca revela si el email existe: si no hay usuario, no hace nada. La
+        capa de API siempre responde 202 con el mismo body genérico, exista o
+        no la cuenta (ver `identity/api/routes.py::forgot_password`). Si el
+        usuario ya tiene un token vigente sin usar creado hace menos de
+        `PASSWORD_RESET_RESEND_WINDOW`, tampoco genera ni manda uno nuevo
+        (rate-limit silencioso de reenvío)."""
+        user = await self._users.get_by_email(email)
+        if user is None:
+            return
+
+        now = datetime.now(timezone.utc)
+        latest = await self._reset_tokens.get_latest_unused_for_user(user.id)
+        if latest is not None and latest.created_within(PASSWORD_RESET_RESEND_WINDOW, now):
+            return
+
+        raw_token = secrets.token_urlsafe(32)
+        await self._reset_tokens.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token_hash=_hash_reset_token(raw_token),
+                expires_at=now + PASSWORD_RESET_TOKEN_TTL,
+            )
+        )
+
+        link = f"{settings.frontend_url}/restablecer?token={raw_token}"
+        html = (
+            f"<p>Hola {user.full_name},</p>"
+            "<p>Recibimos un pedido para restablecer tu contraseña de Staffya. "
+            f'Hacé clic en el siguiente enlace para elegir una nueva (vence en 1 hora): '
+            f'<a href="{link}">{link}</a></p>'
+            "<p>Si vos no lo pediste, podés ignorar este email.</p>"
+        )
+        try:
+            await self._email_sender.send(
+                to=user.email,
+                subject="Restablecé tu contraseña de Staffya",
+                html=html,
+            )
+        except Exception:
+            # El envío es best-effort: nunca debe romper el flujo (el token ya
+            # quedó guardado, así que el usuario puede reintentar el pedido).
+            logger.exception(
+                "No se pudo enviar el email de recuperación de contraseña a %s",
+                user.id,
+            )
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        """Valida el token de recuperación y establece la nueva contraseña.
+
+        Error genérico (`PasswordResetTokenInvalidError`) tanto si el token no
+        existe, expiró o ya se usó — no-disclosure (la API la mapea siempre al
+        mismo 400 "Enlace inválido o vencido")."""
+        reset_token = await self._reset_tokens.get_by_token_hash(_hash_reset_token(token))
+        now = datetime.now(timezone.utc)
+        if reset_token is None or not reset_token.is_valid(now):
+            raise PasswordResetTokenInvalidError()
+
+        user = await self._users.get_by_id(reset_token.user_id)
+        if user is None:
+            raise PasswordResetTokenInvalidError()
+
+        user.hashed_password = hash_password(new_password)
+        await self._users.update(user)
+
+        await self._reset_tokens.mark_used(reset_token.id)
+        await self._reset_tokens.invalidate_all_unused_for_user(user.id)
+        # Al cambiar la contraseña se revocan todas las sesiones de refresh
+        # activas (OWASP): si alguien tenía una sesión robada, no sobrevive
+        # al reset. El usuario vuelve a loguearse con la contraseña nueva.
+        await self._sessions.revoke_all_for_user(user.id)
+
     async def _issue_tokens(self, user: User) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
         jti = str(uuid4())
@@ -149,3 +245,9 @@ class IdentityService:
         if not jti:
             raise InvalidTokenError()
         return jti
+
+
+def _hash_reset_token(raw_token: str) -> str:
+    """sha256 del token de recuperación: nunca se persiste ni se busca por el
+    valor en claro (sólo viaja en el link del email, de un solo uso)."""
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()

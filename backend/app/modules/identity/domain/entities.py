@@ -5,10 +5,19 @@ La persistencia se hace mediante un mapeo en la capa de infraestructura.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
+
+
+def _naive(dt: datetime) -> datetime:
+    """Normaliza a "naive" antes de comparar: en SQLite (tests) los datetimes
+    vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ` sí lo
+    preservan. Mismo fix que `ShiftService._was_punctual` /
+    `subscription.domain.entities._naive`. Se asume que ambos valores están
+    en UTC."""
+    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
 
 @dataclass
@@ -67,3 +76,45 @@ class RefreshSession:
         """Marca la sesión como revocada (idempotente)."""
         if self.revoked_at is None:
             self.revoked_at = datetime.now(timezone.utc)
+
+
+@dataclass
+class PasswordResetToken:
+    """Token de un solo uso para recuperación de contraseña.
+
+    Nunca se persiste el token en claro: `token_hash` guarda el sha256 del
+    valor que viaja en el link del email (ver `IdentityService`). Vence a la
+    hora de emitido y queda inutilizado (`used_at`) al usarse una vez, o al
+    invalidarse en bloque cuando otro reset se completa antes (mismo criterio
+    de "un solo uso" que `RefreshSession`, pero sin necesitar revocación
+    explícita por logout).
+    """
+
+    user_id: UUID
+    token_hash: str
+    expires_at: datetime
+    id: UUID = field(default_factory=uuid4)
+    used_at: datetime | None = None
+    created_at: datetime | None = None
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None
+
+    def is_expired(self, now: datetime) -> bool:
+        return _naive(now) >= _naive(self.expires_at)
+
+    def is_valid(self, now: datetime) -> bool:
+        """True si todavía se puede usar para restablecer la contraseña."""
+        return not self.is_used and not self.is_expired(now)
+
+    def mark_used(self, now: datetime) -> None:
+        """Marca el token como usado (idempotente)."""
+        if self.used_at is None:
+            self.used_at = now
+
+    def created_within(self, window: timedelta, now: datetime) -> bool:
+        """True si se creó hace menos de `window` (rate-limit de reenvío)."""
+        if self.created_at is None:
+            return False
+        return (_naive(now) - _naive(self.created_at)) < window
