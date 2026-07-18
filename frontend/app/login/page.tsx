@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
@@ -17,9 +17,12 @@ const DEMO_PASSWORD = "staffyaDemo123";
 const DEMO_EMPLOYER = "demo.palermo@staffya.com";
 const DEMO_WORKER = "demo.mozo.palermo@staffya.com";
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Mensaje opcional tras un redirect (p. ej. `/restablecer` al terminar OK).
+  const infoMessage = searchParams.get("message");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +73,12 @@ export default function LoginPage() {
           Entrá para ver tus turnos y mensajes.
         </p>
 
+        {infoMessage && (
+          <p className="mt-4 rounded-xl bg-green-50 px-3.5 py-2.5 text-center text-sm font-medium text-green-700">
+            {infoMessage}
+          </p>
+        )}
+
         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
@@ -92,6 +101,12 @@ export default function LoginPage() {
             <Button type="submit" fullWidth loading={submitting}>
               Ingresar
             </Button>
+            <Link
+              href="/recuperar"
+              className="text-center text-sm font-semibold text-orange-600"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
           </form>
         </div>
 
@@ -134,5 +149,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
