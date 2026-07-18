@@ -108,6 +108,20 @@ export interface Shift {
   company_logo_url: string | null;
 }
 
+// Vista pública de un turno (sin autenticación, GET /shifts/{id}/public):
+// sólo los campos seguros para compartir — nada de contacto del comercio,
+// postulantes, ni ids internos más allá del propio turno.
+export interface ShiftPublic {
+  id: string;
+  position: WorkerSkill;
+  start_at: string;
+  end_at: string;
+  city: string | null;
+  pay_amount: string;
+  currency: string;
+  company_name: string | null;
+}
+
 export interface CandidateMatch {
   profile_id: string;
   user_id: string;

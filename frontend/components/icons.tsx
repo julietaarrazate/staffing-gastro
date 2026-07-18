@@ -23,6 +23,7 @@ import {
   ClipboardList,
   Clock,
   Coffee,
+  Copy,
   CreditCard,
   Flame,
   Footprints,
@@ -36,6 +37,7 @@ import {
   Route,
   Search,
   Send,
+  Share2,
   Shield,
   Sparkles,
   Star,
@@ -101,3 +103,5 @@ export const XCircleIcon = make(XCircle);
 export const CreditCardIcon = make(CreditCard);
 export const AlertTriangleIcon = make(AlertTriangle);
 export const SparklesIcon = make(Sparkles);
+export const ShareIcon = make(Share2);
+export const CopyIcon = make(Copy);

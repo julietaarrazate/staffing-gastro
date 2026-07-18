@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
-import { SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
+import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { localInputToArgentinaISO } from "@/lib/datetime";
+import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import { Button, TextField, useToast } from "@/components/ui";
@@ -16,10 +16,31 @@ import { ChevronLeftIcon, FlameIcon, MapPinIcon } from "@/components/icons";
 
 const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
 
-export default function NewShiftWizard() {
+// Duplicar un turno (frontend puro, ver spec de crecimiento): movemos el
+// horario +7 días manteniendo la misma hora de pared en Argentina.
+const DUPLICATE_SHIFT_OFFSET_DAYS = 7;
+
+function shiftDateBy(iso: string, days: number): string {
+  const date = new Date(iso);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
+export default function NewShiftPage() {
+  // useSearchParams exige un boundary de Suspense en build estático.
+  return (
+    <Suspense fallback={null}>
+      <NewShiftWizard />
+    </Suspense>
+  );
+}
+
+function NewShiftWizard() {
   const { token } = useAuth();
   const router = useRouter();
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const duplicateId = searchParams.get("duplicate");
 
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
@@ -38,6 +59,42 @@ export default function NewShiftWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+
+  // Duplicar: precarga el wizard con los datos del turno original (fechas
+  // +7 días, misma hora) y lo deja listo en el último paso para revisar y
+  // publicar. Sólo frontend: reusa este mismo formulario y el POST de alta.
+  useEffect(() => {
+    if (!duplicateId || !token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const original = await api.get<Shift>(`/shifts/${duplicateId}`, token);
+        if (cancelled) return;
+        setPosition(original.position);
+        setStartAt(
+          argentinaISOToLocalInput(shiftDateBy(original.start_at, DUPLICATE_SHIFT_OFFSET_DAYS))
+        );
+        setEndAt(
+          argentinaISOToLocalInput(shiftDateBy(original.end_at, DUPLICATE_SHIFT_OFFSET_DAYS))
+        );
+        setPayAmount(String(original.pay_amount));
+        setTips(original.tips);
+        setUrgent(original.urgent);
+        setDressCode(original.dress_code ?? "");
+        setCity(original.city ?? "");
+        setLatitude(original.latitude);
+        setLongitude(original.longitude);
+        setStep(STEPS.length - 1);
+        toast("Turno duplicado: revisá los datos antes de publicar");
+      } catch (err) {
+        toast(getErrorMessage(err, "No se pudo duplicar el turno"), "error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duplicateId, token]);
 
   function go(next: number) {
     setDir(next > step ? 1 : -1);
