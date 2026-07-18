@@ -35,3 +35,12 @@ class RefreshTokenRevokedError(IdentityError):
     Si se recibe en `/auth/refresh`, se interpreta como reuso de un token
     rotado: posible robo. Se revocan todas las sesiones del usuario.
     """
+
+
+class PasswordResetTokenInvalidError(IdentityError):
+    """El token de recuperación de contraseña es inválido, expiró o ya se usó.
+
+    Deliberadamente genérico (no distingue "no existe" de "vencido" de "ya
+    usado"): la API la traduce siempre al mismo 400 "Enlace inválido o
+    vencido" (no-disclosure, mismo criterio que `RefreshTokenRevokedError`).
+    """

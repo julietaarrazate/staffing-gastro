@@ -7,7 +7,7 @@ concretas (adaptadores) viven en la capa de infraestructura.
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.modules.identity.domain.entities import RefreshSession, User
+from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
 
 
 class UserRepository(ABC):
@@ -19,7 +19,8 @@ class UserRepository(ABC):
 
     @abstractmethod
     async def update(self, user: User) -> User:
-        """Actualiza un usuario existente (rol, estado, verificación) y lo devuelve."""
+        """Actualiza un usuario existente (rol, estado, verificación,
+        contraseña) y lo devuelve."""
 
     @abstractmethod
     async def get_by_id(self, user_id: UUID) -> User | None:
@@ -62,3 +63,35 @@ class RefreshSessionRepository(ABC):
     @abstractmethod
     async def revoke_all_for_user(self, user_id: UUID) -> None:
         """Revoca todas las sesiones activas de un usuario (reuso detectado = posible robo)."""
+
+
+class PasswordResetTokenRepository(ABC):
+    """Puerto de persistencia para los tokens de recuperación de contraseña."""
+
+    @abstractmethod
+    async def add(self, token: PasswordResetToken) -> PasswordResetToken:
+        """Persiste un nuevo token y lo devuelve."""
+
+    @abstractmethod
+    async def get_by_token_hash(self, token_hash: str) -> PasswordResetToken | None:
+        """Busca un token por su hash (nunca se busca por el valor en claro)."""
+
+    @abstractmethod
+    async def get_latest_unused_for_user(self, user_id: UUID) -> PasswordResetToken | None:
+        """Devuelve el token sin usar más reciente del usuario, o None.
+
+        Lo usa `IdentityService` para el rate-limit silencioso de reenvío
+        (`PasswordResetToken.created_within`): la comparación de tiempos se
+        hace en el dominio, no en la consulta SQL, por el mismo motivo que
+        `subscription`/`shift` (SQLite en tests devuelve datetimes "naive")."""
+
+    @abstractmethod
+    async def mark_used(self, token_id: UUID) -> None:
+        """Marca el token como usado (no-op si no existe o ya lo estaba)."""
+
+    @abstractmethod
+    async def invalidate_all_unused_for_user(self, user_id: UUID) -> None:
+        """Invalida (marca como usados) todos los tokens vigentes del usuario.
+
+        Se llama tras un reset exitoso: un link de recuperación anterior que
+        todavía no se usó no debe seguir sirviendo."""

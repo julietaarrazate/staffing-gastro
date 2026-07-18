@@ -10,9 +10,12 @@ from app.modules.identity.api.dependencies import (
     get_identity_service,
 )
 from app.modules.identity.api.schemas import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserResponse,
 )
@@ -24,6 +27,7 @@ from app.modules.identity.domain.exceptions import (
     InactiveUserError,
     InvalidCredentialsError,
     InvalidTokenError,
+    PasswordResetTokenInvalidError,
     RefreshTokenRevokedError,
     UserNotFoundError,
 )
@@ -37,6 +41,12 @@ ServiceDep = Annotated[IdentityService, Depends(get_identity_service)]
 _login_rate_limit = RateLimiter(max_attempts=10, window_seconds=60, name="login")
 _register_rate_limit = RateLimiter(
     max_attempts=5, window_seconds=60, name="register"
+)
+# Mismo criterio que login/register: frena abuso (spam de emails) por IP.
+# El rate-limit "de negocio" (no reenviar si ya hay un token vigente hace
+# <5 min) vive en `IdentityService.request_password_reset`.
+_forgot_password_rate_limit = RateLimiter(
+    max_attempts=5, window_seconds=60, name="forgot_password"
 )
 
 
@@ -128,3 +138,35 @@ async def logout(payload: RefreshRequest, service: ServiceDep) -> None:
 )
 async def me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Pedir recuperación de contraseña",
+    dependencies=[Depends(_forgot_password_rate_limit)],
+)
+async def forgot_password(
+    payload: ForgotPasswordRequest, service: ServiceDep
+) -> ForgotPasswordResponse:
+    """Siempre responde 202 con el mismo body, exista o no el usuario
+    (anti-enumeración): el caso de uso decide en silencio si corresponde
+    generar y mandar un token nuevo."""
+    await service.request_password_reset(payload.email)
+    return ForgotPasswordResponse()
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Restablecer contraseña con el token del email",
+)
+async def reset_password(payload: ResetPasswordRequest, service: ServiceDep) -> None:
+    try:
+        await service.reset_password(payload.token, payload.new_password)
+    except PasswordResetTokenInvalidError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Enlace inválido o vencido",
+        ) from exc
