@@ -29,4 +29,6 @@ services:
       # Permite probar la app sin registrarse, con datos realistas.
       - key: SEED_DEMO_DATA
         value: "true"
+      - key: SENTRY_DSN
+        sync: false
     autoDeploy: true
