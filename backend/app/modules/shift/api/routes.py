@@ -18,6 +18,7 @@ from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
     GeoCheckRequest,
     ShiftInput,
+    ShiftPublicResponse,
     ShiftResponse,
 )
 from app.modules.shift.application.dtos import ShiftData
@@ -31,6 +32,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotEditableError,
     ShiftNotFoundError,
 )
+from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -155,6 +157,38 @@ async def get_shift(shift_id: UUID, service: ServiceDep, _current_user: AuthUser
         return await service.get_shift(shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
+
+
+@router.get(
+    "/{shift_id}/public",
+    response_model=ShiftPublicResponse,
+    summary="Ver un turno publicado sin autenticación (para compartir por WhatsApp/redes)",
+)
+async def get_shift_public(
+    shift_id: UUID, service: ServiceDep, companies: CompaniesDep
+):
+    """Sin auth. Sólo turnos en estado PUBLICADO; cualquier otro estado (o id
+    inexistente) devuelve 404 para no filtrar la existencia/estado interno del
+    turno. Expone únicamente campos seguros (ver `ShiftPublicResponse`): nada
+    de contacto del comercio, postulantes, ni ids internos más allá del
+    propio turno."""
+    try:
+        shift = await service.get_shift(shift_id)
+    except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    if shift.status != ShiftStatus.PUBLICADO:
+        raise _not_found()
+    company = await companies.get_by_id(shift.company_id)
+    return ShiftPublicResponse(
+        id=shift.id,
+        position=shift.position,
+        start_at=shift.start_at,
+        end_at=shift.end_at,
+        city=shift.city,
+        pay_amount=shift.pay_amount,
+        currency=shift.currency,
+        company_name=company.name if company else None,
+    )
 
 
 @router.put(

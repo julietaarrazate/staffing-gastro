@@ -1,5 +1,7 @@
 """Tests de integración del módulo shift (publicación y ciclo de vida del turno)."""
 
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
 
@@ -601,3 +603,92 @@ async def test_feed_pagination(client: AsyncClient):
         "/api/v1/shifts/feed", headers=headers, params={"limit": 101}
     )
     assert invalid.status_code == 422
+
+
+# --- Vista pública del turno (sin autenticación, para compartir) ----------
+
+
+async def test_public_shift_published_returns_only_safe_fields(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp_pub1@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=headers,
+        json=_shift_payload(
+            city="Palermo",
+            address="Av. Secreta 1234",
+            dress_code="Camisa negra",
+            description="Instrucciones internas para el candidato",
+        ),
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+
+    # Sin ningún header de auth: la vista pública no requiere sesión.
+    response = await client.get(f"/api/v1/shifts/{shift_id}/public")
+    assert response.status_code == 200
+    body = response.json()
+
+    # Campos seguros presentes.
+    assert body["id"] == shift_id
+    assert body["position"] == "mozo"
+    assert body["city"] == "Palermo"
+    assert float(body["pay_amount"]) == 70000.0
+    assert body["currency"] == "ARS"
+    assert body["company_name"] == "Bar Palermo"
+    assert "start_at" in body
+    assert "end_at" in body
+
+    # Campos sensibles/internos explícitamente ausentes.
+    sensitive_fields = {
+        "company_id",
+        "worker_profile_id",
+        "address",
+        "latitude",
+        "longitude",
+        "dress_code",
+        "description",
+        "title",
+        "quantity",
+        "tips",
+        "urgent",
+        "check_in_latitude",
+        "check_in_longitude",
+        "check_in_at",
+        "check_out_latitude",
+        "check_out_longitude",
+        "check_out_at",
+        "paid_at",
+        "status",
+        "company_logo_url",
+        "created_at",
+    }
+    assert sensitive_fields.isdisjoint(body.keys())
+
+
+async def test_public_shift_in_draft_returns_404(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp_pub2@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+
+    response = await client.get(f"/api/v1/shifts/{shift_id}/public")
+    assert response.status_code == 404
+
+
+async def test_public_shift_cancelled_returns_404(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp_pub3@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
+
+    response = await client.get(f"/api/v1/shifts/{shift_id}/public")
+    assert response.status_code == 404
+
+
+async def test_public_shift_nonexistent_id_returns_404(client: AsyncClient):
+    response = await client.get(f"/api/v1/shifts/{uuid4()}/public")
+    assert response.status_code == 404

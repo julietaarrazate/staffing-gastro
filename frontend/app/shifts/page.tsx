@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Shift } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
+import ShareShiftButton from "@/components/ShareShiftButton";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import { Button, CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import {
@@ -15,6 +16,7 @@ import {
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
+  CopyIcon,
   MessageIcon,
   WalletIcon,
 } from "@/components/icons";
@@ -176,6 +178,15 @@ export default function MyShiftsPage() {
                   Ver postulantes
                 </Link>
               )}
+              {shift.status === "publicado" && (
+                <ShareShiftButton shift={shift} shiftId={shift.id} />
+              )}
+              <Link
+                href={`/shifts/new?duplicate=${shift.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+              >
+                <CopyIcon size={16} /> Duplicar
+              </Link>
               {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
                 <Button
                   size="sm"

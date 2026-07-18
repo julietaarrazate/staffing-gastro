@@ -87,6 +87,23 @@ class ShiftResponse(BaseModel):
     company_logo_url: str | None = None
 
 
+class ShiftPublicResponse(BaseModel):
+    """Vista pública de un turno (sin autenticación), para compartir por
+    WhatsApp/redes. Sólo campos seguros: nada de contacto del comercio,
+    postulantes, ni ids internos más allá del propio turno."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    position: WorkerSkill
+    start_at: datetime
+    end_at: datetime
+    city: str | None
+    pay_amount: Decimal
+    currency: str
+    company_name: str | None = None
+
+
 class AssignWorkerRequest(BaseModel):
     """Payload para asignar el turno a un candidato."""
 
