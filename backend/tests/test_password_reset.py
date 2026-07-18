@@ -204,3 +204,29 @@ async def test_reset_password_invalidates_previous_unused_token(
         json={"token": old_token, "new_password": "otraClave000"},
     )
     assert reset_with_old.status_code == 400
+
+
+async def test_reset_password_revokes_active_refresh_sessions(
+    client: AsyncClient, fake_email_sender: FakeEmailSender
+):
+    """Al restablecer la contraseña se revocan las sesiones activas (OWASP):
+    un refresh token emitido antes del reset deja de servir."""
+    await register_user(client, email="revoca@staffya.com")
+    tokens = await login(client, "revoca@staffya.com")
+
+    await client.post(
+        "/api/v1/auth/forgot-password", json={"email": "revoca@staffya.com"}
+    )
+    token = _extract_token(fake_email_sender.sent[0].html)
+
+    reset = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": token, "new_password": "claveNueva123"},
+    )
+    assert reset.status_code == 204
+
+    # La sesión previa al reset quedó revocada: el refresh viejo no renueva.
+    refreshed = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert refreshed.status_code == 401

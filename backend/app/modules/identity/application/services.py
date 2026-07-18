@@ -210,6 +210,10 @@ class IdentityService:
 
         await self._reset_tokens.mark_used(reset_token.id)
         await self._reset_tokens.invalidate_all_unused_for_user(user.id)
+        # Al cambiar la contraseña se revocan todas las sesiones de refresh
+        # activas (OWASP): si alguien tenía una sesión robada, no sobrevive
+        # al reset. El usuario vuelve a loguearse con la contraseña nueva.
+        await self._sessions.revoke_all_for_user(user.id)
 
     async def _issue_tokens(self, user: User) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
