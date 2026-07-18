@@ -1,10 +1,11 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Staffya">
-  <defs>
-    <linearGradient id="staffyaGrad" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f97316"/>
-      <stop offset="1" stop-color="#ea580c"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="113" fill="url(#staffyaGrad)"/>
-  <path d="M294 44 L136 287 H233 L202 468 L376 202 H266 Z" fill="#ffffff"/>
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">
+<stop stop-color="#ff6b00"/>
+<stop offset="1" stop-color="#e85f00"/>
+</linearGradient></defs>
+<rect width="24" height="24" rx="5.3" fill="url(#tile)"/>
+<circle cx="12" cy="5.5" r="1.5" fill="#fff"/>
+<path d="M4.4 16.1 A 7.6 7.6 0 0 1 19.6 16.1" stroke="#fff" stroke-width="2.1" stroke-linecap="round" fill="none"/>
+<rect x="3" y="17.3" width="18" height="2.1" rx="1.05" fill="#fff"/>
 </svg>

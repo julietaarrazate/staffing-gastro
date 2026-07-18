@@ -66,12 +66,12 @@ export default function Navbar() {
           )}
           {!loading && !user && (
             <>
-              <Link href="/login" className="hover:text-orange-600">
+              <Link href="/login" className="hover:text-primary">
                 Ingresar
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-gradient-to-br from-orange-500 to-red-500 px-3.5 py-1.5 text-white shadow-sm shadow-orange-500/30 transition active:scale-95 hover:shadow-md"
+                className="rounded-full bg-primary px-3.5 py-1.5 text-white shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
               >
                 Crear cuenta
               </Link>

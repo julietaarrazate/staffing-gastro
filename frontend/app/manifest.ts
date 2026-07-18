@@ -7,11 +7,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Staffya",
     short_name: "Staffya",
     description:
-      "Conectamos comercios gastronómicos con personal eventual, en minutos.",
+      "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.",
     start_url: "/",
     display: "standalone",
     background_color: "#fafafa",
-    theme_color: "#ea580c",
+    theme_color: "#ff6b00",
     lang: "es",
     icons: [
       {

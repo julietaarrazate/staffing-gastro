@@ -17,9 +17,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const TAGLINE = "Personal gastronómico, ya.";
+const DESCRIPTION =
+  "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.";
+
 export const metadata: Metadata = {
-  title: "Staffya",
-  description: "Conectamos comercios gastronómicos con personal eventual, en minutos.",
+  metadataBase: new URL("https://staffya.com.ar"),
+  title: { default: `staffya — ${TAGLINE}`, template: "%s — Staffya" },
+  description: DESCRIPTION,
   applicationName: "Staffya",
   appleWebApp: {
     capable: true,
@@ -34,10 +39,24 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
+  openGraph: {
+    title: `staffya — ${TAGLINE}`,
+    description: DESCRIPTION,
+    siteName: "Staffya",
+    locale: "es_AR",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: TAGLINE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `staffya — ${TAGLINE}`,
+    description: DESCRIPTION,
+    images: ["/og-image.png"],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ea580c",
+  themeColor: "#ff6b00",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
