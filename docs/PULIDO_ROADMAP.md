@@ -25,6 +25,36 @@ Escrito 2026-07-19, tras el rebrand de #79 (cloche + landing premium).
 - **Tagline oficial**: "Personal gastronómico, ya." (el "ya" en naranja
   cuando el medio lo permite). No inventar taglines alternativas.
 
+## Batch C0 — Bugs reportados por la operadora (2026-07-19, prioridad sobre C1)
+
+1. **Modo oscuro forzado**: la operadora vio la app "en modo oscuro" en su
+   celular; la app solo diseña modo claro. Causa probable: auto-dark de
+   Chrome Android invirtiendo colores. Fix: declarar `color-scheme: light`
+   (`:root { color-scheme: light; }` en globals.css + `colorScheme: "light"`
+   en el viewport/metadata del layout raíz) para que el navegador NO fuerce
+   inversión. No implementar dark mode real (fuera de alcance).
+2. **Selección de texto tipo página web**: dentro de la app se selecciona
+   texto de UI al tocar/arrastrar. Fix: `user-select: none` en el chrome de
+   la app (nav, botones, tabs, tarjetas interactivas, mapa) manteniendo
+   seleccionable el contenido genuino (mensajes del chat, descripciones de
+   turnos, páginas legales). Regla práctica: interactivo = no seleccionable;
+   contenido de lectura = seleccionable.
+3. **Mapa no responde hasta refrescar**: recién tras un refresh se puede
+   hacer zoom/arrastrar. Investigar los componentes de mapa (MapView /
+   LocationPicker / WorkerSearchMap): causa típica de Leaflet es inicializar
+   en un contenedor sin tamaño final → `map.invalidateSize()` tras el mount
+   y al cambiar el layout (ResizeObserver o `whenReady` + setTimeout).
+   Reproducir con Playwright antes y después del fix.
+4. **"Verificación" muerta junto a "Salir"**: hay un ítem de menú de
+   verificación que no hace nada. Investigar qué era (¿verificación de
+   identidad prevista?). Si no tiene backend: OCULTARLO (no dejar UI
+   muerta) y registrar en el PR qué se ocultó y por qué; si tiene backend
+   parcial, reportar el estado real antes de decidir.
+
+Aceptación C0: capturas antes/después de cada fix; el mapa operable sin
+refresh verificado con Playwright; grep de `user-select` documentando dónde
+sí y dónde no.
+
 ## Batch C1 — Coherencia interna: que adentro sea igual de premium que afuera
 
 Scope: componentes internos. Modelo: Sonnet. Un PR.
@@ -102,6 +132,6 @@ completar perfil (foto + zona = más candidatos/turnos), primer turno guiado.
 
 ## Orden y reglas de ejecución
 
-C2 → C1 → C3 → C4 (C2 primero: legales es lo único bloqueante para usuarios
+C2 (hecho, #81) → C0+C1 → C3 → C4 (C0 va con C1 en un mismo PR: legales es lo único bloqueante para usuarios
 reales). Un ejecutor por batch, worktree aislado, PR draft, reporte honesto
 con números; G3 del orquestador antes de merge. Los batches NO se mezclan.
