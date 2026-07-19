@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
 import { Skeleton } from "@/components/ui";
+import { formatShiftDate } from "@/lib/datetime";
 
 function ReviewSkeleton() {
   return (
@@ -76,7 +77,7 @@ export default function ReceivedReviews() {
           <div className="flex items-center justify-between gap-2">
             <StarRating value={review.rating} size={16} />
             <span className="text-xs text-zinc-400">
-              {new Date(review.created_at).toLocaleDateString("es-AR")}
+              {formatShiftDate(review.created_at)}
             </span>
           </div>
           {review.comment && <p className="mt-1 text-sm text-zinc-600">{review.comment}</p>}
