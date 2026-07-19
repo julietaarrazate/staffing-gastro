@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Spinner from "@/components/ui/Spinner";
+import { LogoGlyph } from "@/components/Logo";
 
 // Tiempo mínimo en pantalla: deja que termine la coreografía de entrada (pop
 // del logo + título + subtítulo) sin que se sienta un corte brusco.
@@ -94,15 +95,7 @@ export default function SplashScreen() {
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 14, delay: 0.1 }}
             className="relative flex h-24 w-24 items-center justify-center rounded-[28px] bg-white shadow-2xl"
           >
-            <svg width={48} height={48} viewBox="0 0 512 512" fill="none" aria-hidden>
-              <defs>
-                <linearGradient id="splashGrad" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#f97316" />
-                  <stop offset="1" stopColor="#ea580c" />
-                </linearGradient>
-              </defs>
-              <path d="M294 44 L136 287 H233 L202 468 L376 202 H266 Z" fill="url(#splashGrad)" />
-            </svg>
+            <LogoGlyph size={48} color="#ff6b00" />
           </motion.div>
 
           {/* Nombre */}
@@ -112,7 +105,7 @@ export default function SplashScreen() {
             transition={reducedMotion ? { duration: 0 } : { delay: 0.35, duration: 0.5 }}
             className="relative mt-6 text-4xl font-extrabold tracking-tight text-white"
           >
-            Staff<span className="text-orange-200">ya</span>
+            staff<span className="text-orange-200">ya</span>
           </motion.h1>
           <motion.p
             initial={reducedMotion ? false : { y: 12, opacity: 0 }}
@@ -120,7 +113,7 @@ export default function SplashScreen() {
             transition={reducedMotion ? { duration: 0 } : { delay: 0.55, duration: 0.5 }}
             className="relative mt-1 text-sm font-medium text-orange-50"
           >
-            Tu próximo turno, en minutos
+            Personal gastronómico, ya
           </motion.p>
 
           {/* Estado "verificando": reemplaza los anillos infinitos por un

@@ -35,6 +35,7 @@
   --color-danger: #ef4444;
   --color-surface: #f1f3f5; /* relleno neutro tenue (chips, tracks, inputs idle) */
   --color-line: #ececee;
+  --color-paper: #fbf8f4; /* fondo cálido de la landing (hero, franjas claras) */
 }
 
 @theme inline {
