@@ -418,8 +418,16 @@ export default function Home() {
             <Link href="/subscription" className="hover:text-white">
               Suscripción
             </Link>
+            <Link href="/terminos" className="hover:text-white">
+              Términos
+            </Link>
+            <Link href="/privacidad" className="hover:text-white">
+              Privacidad
+            </Link>
           </nav>
-          <p className="text-xs text-white/40">Hecho en Argentina.</p>
+          <p className="text-xs text-white/40">
+            © 2026 Julieta Arrazate — Staffya. Hecho en Argentina.
+          </p>
         </div>
       </footer>
     </div>
