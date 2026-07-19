@@ -62,7 +62,10 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
           <StarRating value={myReview.rating} size={16} />
         </div>
         {myReview.comment && (
-          <p className="mt-1 text-sm text-zinc-600">{myReview.comment}</p>
+          // Comentario de reseña ya escrito: contenido de lectura genuino
+          // (como los mensajes de chat), seleccionable aunque la tarjeta que
+          // lo envuelve (ShiftCard) sea `.no-select` (bug C0 #2 / fix 2).
+          <p className="mt-1 select-text text-sm text-zinc-600">{myReview.comment}</p>
         )}
       </div>
     );

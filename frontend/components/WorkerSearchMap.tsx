@@ -76,7 +76,9 @@ export default function WorkerSearchMap({
 
         {selected && (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
-            <Card className="pointer-events-auto w-full max-w-sm p-4">
+            {/* `no-select`: popup de chrome sobre el mapa (nombre, rating,
+                distancia) — mismo criterio C0 #2 que ShiftCard/CandidateCard. */}
+            <Card className="no-select pointer-events-auto w-full max-w-sm p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-bold text-ink">{selected.full_name}</p>
