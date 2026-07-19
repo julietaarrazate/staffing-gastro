@@ -279,13 +279,13 @@ export default function Home() {
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
-                href="/register"
+                href="/register?rol=comercio"
                 className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-95 hover:brightness-[1.04]"
               >
                 Necesito personal
               </Link>
               <Link
-                href="/register"
+                href="/register?rol=trabajador"
                 className="rounded-[var(--radius-btn)] bg-white px-7 py-3.5 font-semibold text-ink ring-1 ring-line transition active:scale-95 hover:bg-surface"
               >
                 Quiero trabajar
@@ -392,7 +392,7 @@ export default function Home() {
             </p>
             <div className="mt-7">
               <Link
-                href="/register"
+                href="/register?rol=trabajador"
                 className="inline-flex rounded-[var(--radius-btn)] border border-white/30 px-7 py-3.5 font-semibold text-white transition active:scale-95 hover:bg-white/10"
               >
                 Quiero trabajar

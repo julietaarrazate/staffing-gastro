@@ -15,6 +15,7 @@ export default function TextField({
   inputMode,
   min,
   max,
+  minLength,
   className,
 }: {
   label?: string;
@@ -27,6 +28,7 @@ export default function TextField({
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel";
   min?: number;
   max?: number;
+  minLength?: number;
   className?: string;
 }) {
   return (
@@ -45,6 +47,7 @@ export default function TextField({
           inputMode={inputMode}
           min={min}
           max={max}
+          minLength={minLength}
           className={cn(
             "min-h-[48px] w-full rounded-[var(--radius-input)] bg-white px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40",
             Boolean(leftIcon) && "pl-11"

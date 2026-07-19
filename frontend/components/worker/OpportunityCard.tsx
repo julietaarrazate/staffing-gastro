@@ -26,8 +26,13 @@ export default function OpportunityCard({ shift }: { shift: Shift }) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-float)] ring-1 ring-line">
-      {/* Hero */}
-      <div className="relative flex-[1.15]">
+      {/* Hero: `flex-[1.15]` reparte el alto disponible con el cuerpo, pero
+          sin piso propio colapsa a 0 en contenedores bajos (el padre flex no
+          tiene de dónde repartir) — la foto/ícono y el texto superpuesto
+          desaparecen. `min-h-[200px]` (deuda de #79) asegura un hero visible
+          incluso cuando el contenedor del swipe deck es más bajo de lo
+          esperado. */}
+      <div className="relative min-h-[200px] flex-[1.15]">
         {hasPhoto ? (
           <img
             src={shift.company_logo_url as string}

@@ -6,7 +6,8 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { Conversation } from "@/lib/types";
-import { ErrorBanner, Skeleton } from "@/components/ui";
+import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
+import { MessageIcon } from "@/components/icons";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -68,9 +69,11 @@ export default function ChatsPage() {
       )}
       {!loading && error && <ErrorBanner message={error} onRetry={load} />}
       {!loading && conversations.length === 0 && !error && (
-        <p className="mt-8 text-zinc-500">
-          Todavía no tenés conversaciones. Cuando un turno se asigne, vas a poder chatear acá.
-        </p>
+        <EmptyState
+          icon={<MessageIcon size={28} />}
+          title="Todavía no tenés conversaciones"
+          subtitle="Apenas se asigne un turno, vas a poder chatear acá con la otra parte."
+        />
       )}
 
       <div className="mt-6 grid gap-3">

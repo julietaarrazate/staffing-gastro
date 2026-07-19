@@ -77,7 +77,7 @@ export default function PublicWorkerProfilePage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
-        <div className="relative h-56 w-full bg-gradient-to-br from-orange-200 to-orange-400">
+        <div className="relative h-56 w-full bg-gradient-to-br from-[#ff6b00] to-[#e85f00]">
           {profile.photo_url ? (
             <img src={profile.photo_url} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
@@ -160,7 +160,7 @@ export default function PublicWorkerProfilePage() {
                   return (
                     <span
                       key={badge}
-                      className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700 shadow-sm"
+                      className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700 shadow-sm"
                     >
                       <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
                     </span>

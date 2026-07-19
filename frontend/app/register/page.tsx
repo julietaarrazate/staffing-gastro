@@ -1,23 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
-import { Button } from "@/components/ui";
+import { Button, SegmentedControl, TextField } from "@/components/ui";
 
-const inputClass =
-  "rounded-xl border border-zinc-300 px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+type Role = "worker" | "employer";
 
-export default function RegisterPage() {
+/** `?rol=comercio|trabajador` en la URL preselecciona la pestaña — lo usan
+ * los CTA de la landing ("Necesito personal" / "Quiero trabajar", ver
+ * `app/page.tsx`) para no hacer elegir dos veces al visitante. */
+function roleFromQuery(value: string | null): Role | null {
+  if (value === "comercio") return "employer";
+  if (value === "trabajador") return "worker";
+  return null;
+}
+
+function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"worker" | "employer">("worker");
+  const [role, setRole] = useState<Role>(() => roleFromQuery(searchParams.get("rol")) ?? "worker");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -42,64 +51,52 @@ export default function RegisterPage() {
         <div className="flex justify-center">
           <Logo size={48} withWordmark={false} />
         </div>
-        <h1 className="mt-4 text-center text-2xl font-bold text-zinc-900">Crear cuenta</h1>
-        <p className="mt-1 text-center text-sm text-zinc-500">
+        <h1 className="mt-4 text-center text-2xl font-extrabold tracking-tight text-ink">Crear cuenta</h1>
+        <p className="mt-1 text-center text-sm text-ink/50">
           Empezá a cubrir o conseguir turnos en minutos.
         </p>
 
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100">
-          <div className="flex rounded-full bg-zinc-100 p-1">
-            <button
-              type="button"
-              onClick={() => setRole("worker")}
-              className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
-                role === "worker" ? "bg-orange-600 text-white" : "text-zinc-600"
-              }`}
-            >
-              Soy trabajador/a
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("employer")}
-              className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
-                role === "employer" ? "bg-orange-600 text-white" : "text-zinc-600"
-              }`}
-            >
-              Soy comercio
-            </button>
-          </div>
+        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <SegmentedControl
+            options={[
+              { value: "worker", label: "Soy trabajador/a" },
+              { value: "employer", label: "Soy comercio" },
+            ]}
+            value={role}
+            onChange={setRole}
+          />
 
           <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
-            <input
-              required
-              placeholder="Nombre completo"
+            <TextField
+              label="Nombre completo"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              type="email"
+              onChange={setFullName}
+              placeholder="Nombre completo"
               required
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
             />
-            <input
+            <TextField
+              type="email"
+              label="Email"
+              value={email}
+              onChange={setEmail}
+              placeholder="Email"
+              required
+            />
+            <TextField
               type="password"
+              label="Contraseña"
+              value={password}
+              onChange={setPassword}
+              placeholder="Contraseña (mín. 8 caracteres)"
               required
               minLength={8}
-              placeholder="Contraseña (mín. 8 caracteres)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
             />
-            <label className="flex items-start gap-2.5 text-sm text-zinc-600">
+            <label className="flex items-start gap-2.5 text-sm text-ink/70">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 accent-orange-600 focus:ring-orange-500"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary focus:ring-primary"
               />
               <span>
                 Acepto los{" "}
@@ -107,7 +104,7 @@ export default function RegisterPage() {
                   href="/terminos"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-orange-600 hover:underline"
+                  className="font-semibold text-primary hover:underline"
                 >
                   Términos y Condiciones
                 </Link>{" "}
@@ -116,26 +113,34 @@ export default function RegisterPage() {
                   href="/privacidad"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-orange-600 hover:underline"
+                  className="font-semibold text-primary hover:underline"
                 >
                   Política de Privacidad
                 </Link>
               </span>
             </label>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" fullWidth loading={submitting} disabled={!acceptedTerms}>
               Crear cuenta
             </Button>
           </form>
         </div>
 
-        <p className="mt-5 text-center text-sm text-zinc-600">
+        <p className="mt-5 text-center text-sm text-ink/70">
           ¿Ya tenés cuenta?{" "}
-          <Link href="/login" className="font-semibold text-orange-600">
+          <Link href="/login" className="font-semibold text-primary">
             Ingresá
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

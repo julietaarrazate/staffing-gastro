@@ -61,6 +61,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // La app sólo diseña modo claro (fuera de alcance implementar dark mode
+  // real, ver docs/PULIDO_ROADMAP.md batch C0 #1). Sin esto, el auto-dark de
+  // Chrome Android puede invertir los colores de la página creyendo que no
+  // declaramos ningún esquema soportado. `color-scheme: light` ya estaba en
+  // `globals.css`; esto lo refuerza a nivel de metadata del layout raíz.
+  colorScheme: "light",
 };
 
 export default function RootLayout({

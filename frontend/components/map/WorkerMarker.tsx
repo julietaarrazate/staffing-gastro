@@ -68,7 +68,7 @@ function WorkerMarker({
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-orange-300 to-primary shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
+          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#ff6b00] to-[#e85f00] shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
             active ? "scale-[1.25]" : "scale-100"
           }`}
         >
