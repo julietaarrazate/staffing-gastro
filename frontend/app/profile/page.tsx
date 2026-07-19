@@ -7,7 +7,7 @@ import CompanyProfileForm from "@/components/CompanyProfileForm";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import { Spinner } from "@/components/ui";
-import { CreditCardIcon, LogOutIcon, ShieldIcon } from "@/components/icons";
+import { CreditCardIcon, LogOutIcon } from "@/components/icons";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -101,8 +101,17 @@ export default function ProfilePage() {
 
       <div className="mt-7">
         <SectionLabel>Otros</SectionLabel>
+        {/* El ítem "Verificación" que estaba acá (batch C0 #4) sólo mostraba
+            `user.is_verified` sin ninguna acción: no existe un flujo de
+            verificación de identidad iniciado por el usuario, `is_verified`
+            se marca desde el panel de admin (`POST /admin/users/{id}/verify`,
+            ver backend/app/modules/admin) y no hay endpoint para que el
+            propio usuario la solicite. Era UI muerta (un ítem de menú junto
+            a "Cerrar sesión" que no hacía nada al tocarlo) así que se oculta
+            acá; el estado de verificación del trabajador ya es visible como
+            insignia "Perfil Verificado" en `WorkerGameCard` (ver
+            `lib/reputation.tsx`) cuando corresponde. */}
         <div className="mt-2 divide-y divide-zinc-100 rounded-2xl bg-white shadow-sm">
-          <Row icon={<ShieldIcon size={18} />}>Verificación: {user.is_verified ? "Verificado" : "Pendiente"}</Row>
           <Row icon={<LogOutIcon size={18} />} onClick={logout}>
             Cerrar sesión
           </Row>
