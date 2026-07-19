@@ -58,6 +58,20 @@ html {
    * scroll (a diferencia de `hidden`, que fuerza overflow-y a auto y, junto
    * al de body, generaba dos scrolls anidados que trababan el scroll vertical). */
   overflow-x: clip;
+  /* Bug de la operadora en /search (mapa + bottom sheet, docs/PULIDO_ROADMAP.md
+   * fix 3): al arrastrar el sheet hasta el tope de su lista interna
+   * (`overflow-y-auto` en BottomSheet.tsx) y seguir tirando, el gesto no
+   * consumido escalaba al scroller raíz del documento y Chrome Android lo
+   * interpretaba como "pull-to-refresh": aparecía su spinner nativo y
+   * recargaba la página entera (por eso mapa + lista "se refrescaban" — no
+   * era un re-fetch de la app, era un F5 real). `overscroll-behavior-y:
+   * contain` ya estaba en `body`, pero el "root scroller" real del documento
+   * en modo estándar es `document.scrollingElement` = `<html>`, no `<body>`;
+   * el navegador liga el gesto de pull-to-refresh a ESE elemento, así que el
+   * valor puesto sólo en `body` no alcanza (gotcha documentado de Chrome/
+   * web.dev sobre overscroll-behavior). Se repite acá para cubrir el root
+   * real. */
+  overscroll-behavior-y: contain;
 }
 
 a,
