@@ -20,6 +20,7 @@ export default function RegisterPage() {
   const [role, setRole] = useState<"worker" | "employer">("worker");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -93,8 +94,36 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={inputClass}
             />
+            <label className="flex items-start gap-2.5 text-sm text-zinc-600">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 accent-orange-600 focus:ring-orange-500"
+              />
+              <span>
+                Acepto los{" "}
+                <Link
+                  href="/terminos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-orange-600 hover:underline"
+                >
+                  Términos y Condiciones
+                </Link>{" "}
+                y la{" "}
+                <Link
+                  href="/privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-orange-600 hover:underline"
+                >
+                  Política de Privacidad
+                </Link>
+              </span>
+            </label>
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" fullWidth loading={submitting}>
+            <Button type="submit" fullWidth loading={submitting} disabled={!acceptedTerms}>
               Crear cuenta
             </Button>
           </form>
