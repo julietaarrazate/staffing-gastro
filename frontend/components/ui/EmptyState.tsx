@@ -3,10 +3,13 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import Button from "./Button";
+import { LogoGlyph } from "@/components/Logo";
 
 /**
  * Estado vacío con ilustración (ícono grande), título, subtítulo y hasta dos
- * acciones. Nunca dejar una pantalla en blanco.
+ * acciones. Nunca dejar una pantalla en blanco. Sin `icon`, cae al glifo de
+ * marca (`LogoGlyph`) sobre superficie neutra — nunca gradiente decorativo
+ * (Ley de marca, docs/PULIDO_ROADMAP.md batch C1 #1).
  */
 export default function EmptyState({
   icon,
@@ -15,7 +18,7 @@ export default function EmptyState({
   primaryAction,
   secondaryAction,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   subtitle?: string;
   primaryAction?: { label: string; onClick: () => void };
@@ -29,8 +32,8 @@ export default function EmptyState({
       transition={reducedMotion ? { duration: 0 } : { duration: 0.3 }}
       className="mx-auto mt-10 flex max-w-xs flex-col items-center px-6 text-center"
     >
-      <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-orange-100 to-amber-100 text-primary">
-        {icon}
+      <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-surface text-primary">
+        {icon ?? <LogoGlyph size={36} color="#ff6b00" />}
       </div>
       <h2 className="mt-5 text-lg font-bold text-zinc-900">{title}</h2>
       {subtitle && <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">{subtitle}</p>}

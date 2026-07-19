@@ -44,7 +44,7 @@ export default function ImageUpload({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className={`group relative flex h-24 w-24 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-orange-400 to-red-500 text-2xl font-bold text-white shadow-md transition active:scale-95 disabled:opacity-70`}
+        className={`group relative flex h-24 w-24 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-[#ff6b00] to-[#e85f00] text-2xl font-bold text-white shadow-md transition active:scale-95 disabled:opacity-70`}
       >
         {value ? (
           <img

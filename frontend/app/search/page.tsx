@@ -7,8 +7,8 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
-import { ErrorBanner, Skeleton } from "@/components/ui";
-import { SearchIcon } from "@/components/icons";
+import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
+import { SearchIcon, UsersIcon } from "@/components/icons";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import StarRating from "@/components/StarRating";
 import BottomSheet from "@/components/BottomSheet";
@@ -115,7 +115,7 @@ export default function SearchPage() {
             onClick={search}
             disabled={loading}
             aria-label="Buscar"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-md shadow-orange-500/30 transition active:scale-95 disabled:opacity-60"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff6b00] to-[#e85f00] text-white shadow-md shadow-orange-500/30 transition active:scale-95 disabled:opacity-60"
           >
             <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
           </button>
@@ -138,6 +138,13 @@ export default function SearchPage() {
           </p>
         }
       >
+        {!loading && workers.length === 0 ? (
+          <EmptyState
+            icon={<UsersIcon size={28} />}
+            title="Nadie por acá todavía"
+            subtitle="Ampliá el radio de búsqueda o probá otro rubro para encontrar candidatos cerca."
+          />
+        ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {loading ? (
             <>
@@ -161,7 +168,7 @@ export default function SearchPage() {
                   className="h-16 w-16 rounded-2xl object-cover ring-1 ring-zinc-100"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-200 to-orange-400 text-xl font-bold text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ff6b00] to-[#e85f00] text-xl font-bold text-white">
                   {worker.full_name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -194,6 +201,7 @@ export default function SearchPage() {
           ))
           )}
         </div>
+        )}
       </BottomSheet>
     </div>
   );
