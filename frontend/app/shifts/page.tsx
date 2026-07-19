@@ -25,6 +25,15 @@ const ACTIVE = ["asignado", "confirmado", "en_camino", "check_in", "trabajando",
 const SEARCHING = ["publicado", "buscando_personal"];
 const DONE = ["finalizado", "pagado"];
 
+// Bug de la operadora: en /shifts los turnos cancelados/finalizados se veían
+// igual que los vivos y quedaban mezclados en la lista. Los terminales van al
+// final (orden estable dentro de cada grupo) para que arriba quede sólo lo
+// que todavía requiere atención.
+const TERMINAL = new Set(["cancelado", "finalizado", "pagado"]);
+function sortShiftsForPanel(list: Shift[]): Shift[] {
+  return [...list].sort((a, b) => Number(TERMINAL.has(a.status)) - Number(TERMINAL.has(b.status)));
+}
+
 function Kpi({
   icon,
   value,
@@ -141,7 +150,7 @@ export default function MyShiftsPage() {
       )}
 
       <div className="mt-6 grid gap-4">
-        {shifts.map((shift) => (
+        {sortShiftsForPanel(shifts).map((shift) => (
           <ShiftCard key={shift.id} shift={shift}>
             <div className="flex flex-wrap gap-2">
               {shift.worker_profile_id && shift.status !== "cancelado" && (
