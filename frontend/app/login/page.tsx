@@ -6,10 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
-import { Button } from "@/components/ui";
-
-const inputClass =
-  "rounded-xl border border-zinc-300 px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+import { Button, TextField } from "@/components/ui";
 
 // Cuentas demo seedeadas por backend/scripts/seed_demo_data.py. Sirven para
 // probar la app sin crear cuenta ni recordar credenciales (datos ficticios).
@@ -68,8 +65,8 @@ function LoginForm() {
         <div className="flex justify-center">
           <Logo size={48} withWordmark={false} />
         </div>
-        <h1 className="mt-4 text-center text-2xl font-bold text-zinc-900">Ingresar</h1>
-        <p className="mt-1 text-center text-sm text-zinc-500">
+        <h1 className="mt-4 text-center text-2xl font-extrabold tracking-tight text-ink">Ingresar</h1>
+        <p className="mt-1 text-center text-sm text-ink/50">
           Entrá para ver tus turnos y mensajes.
         </p>
 
@@ -79,38 +76,38 @@ function LoginForm() {
           </p>
         )}
 
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <input
+            <TextField
               type="email"
-              required
-              placeholder="Email"
+              label="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              type="password"
+              onChange={setEmail}
+              placeholder="Email"
               required
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
             />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            <TextField
+              type="password"
+              label="Contraseña"
+              value={password}
+              onChange={setPassword}
+              placeholder="Contraseña"
+              required
+            />
+            {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" fullWidth loading={submitting}>
               Ingresar
             </Button>
             <Link
               href="/recuperar"
-              className="text-center text-sm font-semibold text-orange-600"
+              className="text-center text-sm font-semibold text-primary"
             >
               ¿Olvidaste tu contraseña?
             </Link>
           </form>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100">
+        <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Probar la app sin cuenta
           </p>
@@ -141,9 +138,9 @@ function LoginForm() {
           </p>
         </div>
 
-        <p className="mt-5 text-center text-sm text-zinc-600">
+        <p className="mt-5 text-center text-sm text-ink/70">
           ¿No tenés cuenta?{" "}
-          <Link href="/register" className="font-semibold text-orange-600">
+          <Link href="/register" className="font-semibold text-primary">
             Creá una
           </Link>
         </p>
