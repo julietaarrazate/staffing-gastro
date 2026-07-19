@@ -66,7 +66,11 @@ export default function BottomSheet({
         <span className="h-1.5 w-10 rounded-full bg-zinc-300" />
       </div>
       {header}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+      {/* `overscroll-behavior-y: contain` (además del fix en `html` de
+          globals.css, docs/PULIDO_ROADMAP.md fix 3): al llegar al tope/fondo
+          de esta lista, el scroll no debe "escalar" al documento y disparar
+          el pull-to-refresh nativo del navegador. */}
+      <div className="flex-1 overflow-y-auto overscroll-y-contain px-4 pb-4">{children}</div>
     </div>
   );
 }

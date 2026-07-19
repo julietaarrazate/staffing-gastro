@@ -11,22 +11,31 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   loading: () => <div className="h-28 w-full animate-pulse rounded-2xl bg-surface" />,
 });
 
-// Estados con color semántico, sin violetas. Info en azul, en curso en naranja
-// de marca, ok en verde, alerta en rojo.
+// Ley de marca (docs/PULIDO_ROADMAP.md): un solo acento por pantalla. Naranja
+// para todo lo activo/publicado/en curso, verde sólo para éxito (confirmado
+// además de los terminales finalizado/pagado), rojo sólo para cancelado, gris
+// sólo para borrador. Nada de azul/amber sueltos (bug de la operadora: los
+// turnos cancelados/aceptados se veían iguales).
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-surface text-ink/60",
-  publicado: "bg-blue-50 text-blue-700",
-  buscando_personal: "bg-blue-50 text-blue-700",
-  asignado: "bg-amber-50 text-amber-700",
-  confirmado: "bg-green-50 text-green-700",
-  en_camino: "bg-blue-50 text-blue-700",
+  publicado: "bg-orange-50 text-primary",
+  buscando_personal: "bg-orange-50 text-primary",
+  asignado: "bg-orange-50 text-primary",
+  confirmado: "bg-green-50 text-secondary",
+  en_camino: "bg-orange-50 text-primary",
   check_in: "bg-orange-50 text-primary",
   trabajando: "bg-orange-50 text-primary",
-  check_out: "bg-amber-50 text-amber-700",
-  finalizado: "bg-green-50 text-green-700",
-  pagado: "bg-green-100 text-green-800",
-  cancelado: "bg-red-50 text-red-600",
+  check_out: "bg-orange-50 text-primary",
+  finalizado: "bg-green-50 text-secondary",
+  pagado: "bg-green-50 text-secondary",
+  cancelado: "bg-red-50 text-danger",
 };
+
+// Estados terminales: la tarjeta entera se atenúa (opacity) para que, en una
+// lista mixta, se note de un vistazo qué turno sigue vivo y cuál ya no. El
+// color del chip (verde/rojo) sigue siendo la señal principal; la opacidad
+// es un refuerzo, no reemplaza el color.
+const TERMINAL_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
 
 export default function ShiftCard({
   shift,
@@ -36,9 +45,20 @@ export default function ShiftCard({
   children?: React.ReactNode;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+  const isTerminal = TERMINAL_STATUSES.has(shift.status);
 
   return (
-    <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]">
+    // `.no-select` (bug C0 #2, docs/PULIDO_ROADMAP.md fix 2): esta tarjeta es
+    // chrome de UI para tocar/accionar (rubro, chip de estado, fecha,
+    // cantidad, dress code), no contenido de lectura genuino — se podía
+    // seleccionar como una página web (captura de la operadora). El único
+    // texto de lectura real que cuelga de acá (comentario de reseña ya
+    // escrito, ver ReviewBox) se reactiva puntualmente con `.select-text`.
+    <div
+      className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
+        isTerminal ? "opacity-65 saturate-[0.85]" : ""
+      }`}
+    >
       {shift.company_name && (
         <Link
           href={`/companies/${shift.company_id}`}

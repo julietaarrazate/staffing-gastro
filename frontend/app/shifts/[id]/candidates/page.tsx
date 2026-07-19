@@ -104,7 +104,9 @@ export default function ShiftCandidatesPage() {
             applicants.map((a) => (
               <div
                 key={a.application_id}
-                className="flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+                // `.no-select`: fila de chrome (rating, badge), mismo criterio
+                // C0 #2 que ShiftCard/CandidateCard.
+                className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
               >
                 <Link href={`/workers/${a.worker_profile_id}`}>
                   <Avatar src={a.photo_url} name={a.full_name} size="lg" />

@@ -12,7 +12,9 @@ export default function CandidateCard({
   disabled?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]">
+    // `.no-select`: tarjeta de chrome (score, rating, distancia) — mismo
+    // criterio C0 #2 que ShiftCard (docs/PULIDO_ROADMAP.md fix 2).
+    <div className="no-select relative overflow-hidden rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]">
       <span className="absolute right-4 top-4 rounded-full bg-surface px-2.5 py-1 text-xs font-bold text-ink/60">
         Score {candidate.score.toFixed(2)}
       </span>
