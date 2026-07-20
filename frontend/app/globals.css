@@ -133,6 +133,22 @@ textarea,
   }
 }
 
+/* ---- Landing: marquee de posiciones/barrios (app/page.tsx) ----
+ * Puro CSS (sin JS/motion): más liviano y ya queda pausado por la regla
+ * @media (prefers-reduced-motion: reduce) de arriba, que fuerza
+ * animation-duration a 0.01ms en toda la página. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 34s linear infinite;
+}
+
 /* ---- Mapa vectorial (MapLibre) — components/map/, ver ADR-0001 ---- */
 
 /* Puck de ubicación: halo azul pulsante. */
