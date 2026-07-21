@@ -32,6 +32,10 @@ const STEPS: Step[] = [
  * progreso del scroll (scaleY atado a scrollYProgress, transform-origin
  * arriba). Con reduced-motion no se dibuja el relleno: queda el riel neutro
  * fijo y los 3 pasos visibles sin animación (fallback estático completo).
+ *
+ * `.no-select` (regla C0, docs/PULIDO_ROADMAP.md fix 2): título y pasos son
+ * chrome de vitrina, no contenido de lectura — se podían seleccionar como
+ * texto de página al arrastrar el dedo por la sección.
  */
 export default function HowItWorksTimeline() {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -42,7 +46,7 @@ export default function HowItWorksTimeline() {
   });
 
   return (
-    <section className="mt-20 sm:mt-24">
+    <section className="no-select mt-20 sm:mt-24">
       <Reveal>
         <h2 className="text-center text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
           Cómo funciona
