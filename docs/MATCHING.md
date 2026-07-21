@@ -43,9 +43,13 @@ No persiste entidades; calcula un score puro y ordenable.
   | Reputación (rating) | **0.25** | rating/5 |
   | Experiencia | 0.15 | años, con tope de 10 |
   | Puntualidad | 0.15 | tasa de puntualidad |
-  | Desempeño | 0.15 | trabajos completados vs cancelaciones |
+  | Desempeño | 0.15 | trabajos completados vs. cancelaciones + no-shows |
 
   Sin geolocalización en alguna punta, la distancia puntúa **neutral (0.5)**.
+  El desempeño (`_performance_score`) es `events_completed / (events_completed
+  + cancellations + 2×no_shows)`: un no-show (**[ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md)**,
+  el comercio marcó "no se presentó") pesa el doble que una cancelación
+  avisada — valor semilla (`NO_SHOW_PERFORMANCE_WEIGHT`) declarado ajustable.
 - El resultado se ordena de mayor a menor score y se devuelve con nombre, foto y
   rating del candidato.
 
@@ -58,7 +62,13 @@ scoring ponderado). Respeta disponibilidad.
 ## Reglas de negocio
 
 - La **reputación alimenta el match**: mejores reseñas → mejor score → más
-  recomendado. Es el incentivo central del marketplace.
+  recomendado. Es el incentivo central del marketplace. **Verificado con un
+  test de integración de punta a punta**
+  (`backend/tests/test_full_shift_lifecycle.py`, batch
+  `PRIMER_TURNO_REAL_SPEC.md`): el `rating` que devuelve
+  `/shifts/{id}/candidates` es el real post-reseña (se lee directamente de
+  `WorkerProfileModel.rating` en cada consulta, no un valor cacheado), y el
+  candidato mejor calificado efectivamente ordena primero.
 - La **cercanía** es el factor de mayor peso: el producto prioriza cubrir con
   gente cerca (coherente con la meta de < 10 minutos).
 - El comercio tiene la **última palabra**: el motor recomienda, no asigna.

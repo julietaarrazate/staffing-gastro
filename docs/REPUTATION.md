@@ -39,6 +39,16 @@ bidireccional: comercio y trabajador se califican mutuamente.
   `WorkerProfileRepository.record_cancellation`). Distinto de `Shift.cancel()`
   (comercio, terminal) y de `reject_assignment()` (trabajador rechaza antes
   de confirmar, no se cuenta como cancelación).
+- `no_shows` — no presentado. **([ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md))**
+  se incrementa cuando el **comercio** marca manualmente que el trabajador
+  asignado no se presentó a un turno ya confirmado
+  (`POST /shifts/{id}/no-show`, sólo alcanzable desde `CONFIRMADO`/
+  `EN_CAMINO`, antes del check-in; `WorkerProfileRepository.record_no_show`).
+  **Separado de `cancellations`** a propósito: no aparecer sin aviso es una
+  señal peor que cancelar con anticipación, y se pondera distinto (ver
+  matching abajo). No es detección automática por horario vencido (eso sigue
+  fuera de alcance, requeriría un scheduler — ver `TECH_DEBT.md`): es un
+  juicio manual del comercio, igual que "Cancelar".
 - `badges` — insignias (catálogo `WorkerBadge`): `nunca_falto`, `top_mozo`,
   `top_bartender`, `eventos_premium`, `perfil_verificado`. **(ADR-0004)**
   otorgamiento automático por reglas — ver abajo. `perfil_verificado` es la
@@ -51,26 +61,49 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `rating` — promedio de reseñas recibidas.
 - `on_time_payment_rate` — tasa de pago a tiempo.
 - `events_published` — turnos publicados.
+- `late_cancellations` — cancelaciones tardías. **([ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md))**
+  se incrementa cuando el comercio cancela un turno con el trabajador ya
+  **comprometido** (`COMMITTED_STATUSES`: confirmó su asistencia o está en
+  pleno ciclo de trabajo) — `ShiftService.cancel_shift` lo detecta
+  comparando el estado del turno *antes* de cancelar,
+  `CompanyProfileRepository.record_late_cancellation`. Cancelar antes de que
+  el trabajador confirme no cuenta: nunca llegó a comprometerse. Efecto
+  **simétrico** al `cancellations`/`no_shows` del trabajador — no se mezcla
+  con `rating` (que sigue siendo sólo el promedio de reseñas).
 
 ## Reglas de negocio
 
 - La reputación es **consecuencia del comportamiento**, no editable a mano.
 - El **rating** se actualiza automáticamente con cada reseña.
 - La reputación del trabajador **influye directamente en el score de matching**
-  (peso 0.25 por reputación + 0.15 por puntualidad + 0.15 por desempeño).
+  (peso 0.25 por reputación + 0.15 por puntualidad + 0.15 por desempeño). El
+  desempeño (`_performance_score`) pondera `no_shows` **el doble** que
+  `cancellations` en su denominador (`NO_SHOW_PERFORMANCE_WEIGHT = 2`,
+  `matching/domain/scoring.py`) — valor semilla conservador y ajustable
+  (ADR-0007, mismo criterio que las suscripciones Fase 1: no hay datos
+  reales todavía para calibrarlo con precisión).
+- **Verificado con un test de integración de punta a punta**
+  (`backend/tests/test_full_shift_lifecycle.py`): la reputación calculada
+  por una reseña real (`rating`) efectivamente entra al ranking de un turno
+  nuevo — dos trabajadores con historial idéntico salvo la reseña recibida
+  (5★ vs. 1★) quedan ordenados por esa diferencia en `/shifts/{id}/candidates`.
+  Antes de este batch (`PRIMER_TURNO_REAL_SPEC.md`) esto nunca se había
+  recorrido de punta a punta con un turno real; el resultado: **ya andaba
+  bien**, no hizo falta arreglar el lazo reseña→reputación→ranking.
 
 ## Insignias y niveles: reglas de otorgamiento (ADR-0004)
 
 Funciones puras en `worker/domain/rules.py` (`compute_badges`,
 `compute_level`), sin DB, recalculadas **desde cero** (sin histéresis) al
-finalizar un turno (`ShiftService.finish`) y al registrar una cancelación del
-trabajador (`ShiftService.worker_cancel`, ver [SHIFT.md](./SHIFT.md)).
+finalizar un turno (`ShiftService.finish`), al registrar una cancelación del
+trabajador (`ShiftService.worker_cancel`) y al marcar un no-show
+(`ShiftService.mark_no_show`, ADR-0007 — ver [SHIFT.md](./SHIFT.md)).
 
 **Insignias:**
 
 | Insignia | Regla |
 |---|---|
-| `nunca_falto` | `cancellations == 0 AND events_completed >= 3` |
+| `nunca_falto` | `cancellations == 0 AND no_shows == 0 AND events_completed >= 3` (extendida por ADR-0007: un no-show la rompe igual que una cancelación) |
 | `top_mozo` | `"mozo" in skills AND rating >= 4.5 AND events_completed >= 10` |
 | `top_bartender` | `"bartender" in skills AND rating >= 4.5 AND events_completed >= 10` |
 | `eventos_premium` | `events_completed >= 20` (proxy por volumen; el dominio no modela "evento premium" como concepto propio) |

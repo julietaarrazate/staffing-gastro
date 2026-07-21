@@ -25,6 +25,9 @@ class CandidateProfile:
     punctuality_rate: float
     events_completed: int
     cancellations: int
+    # No-show (ADR-0007): pesa más que una cancelación avisada en el score de
+    # desempeño (ver `scoring._performance_score`).
+    no_shows: int
     is_available: bool
     latitude: float | None
     longitude: float | None

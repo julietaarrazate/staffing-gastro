@@ -137,9 +137,69 @@ class ShiftService:
         await self._subscriptions.update(subscription)
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
+        """El comercio cancela el turno (terminal, cualquier estado no
+        terminal).
+
+        ADR-0007 (Parte C): si el trabajador ya estaba **comprometido**
+        (`COMMITTED_STATUSES` — confirmó su asistencia o está en pleno ciclo
+        de trabajo) al momento de cancelar, es una **cancelación tardía**: le
+        avisamos al trabajador (in-app + push best-effort, mismo mecanismo
+        que cualquier otra `Notification`) y le cuesta reputación al
+        comercio (`CompanyProfileRepository.record_late_cancellation`,
+        simétrico a `record_cancellation`/`record_no_show` del trabajador).
+        Cancelar un turno que todavía no tiene a nadie comprometido (p. ej.
+        BORRADOR, PUBLICADO, BUSCANDO_PERSONAL o incluso ASIGNADO sin
+        confirmar todavía) no tiene este efecto: el trabajador no llegó a
+        comprometerse."""
         shift = await self._get_owned(company_id, shift_id)
+        was_committed = shift.status in COMMITTED_STATUSES
+        affected_worker_profile_id = shift.worker_profile_id
         shift.cancel()
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        if was_committed and affected_worker_profile_id is not None:
+            await self._companies.record_late_cancellation(company_id)
+            await self._notify_worker(
+                affected_worker_profile_id,
+                NotificationType.SHIFT_CANCELLED_LATE,
+                "El comercio canceló tu turno",
+                (
+                    f"\"{updated.title or updated.position.value}\" fue cancelado por "
+                    "el comercio después de que confirmaste tu asistencia."
+                ),
+            )
+        return updated
+
+    async def mark_no_show(self, company_id: UUID, shift_id: UUID) -> Shift:
+        """El comercio marca que el trabajador asignado no se presentó
+        (ADR-0007, Parte C): sólo alcanzable desde `CONFIRMADO`/`EN_CAMINO`
+        (antes del check-in — si ya hizo check-in, se presentó).
+
+        Efectos: (a) libera el turno (vuelve a `BUSCANDO_PERSONAL`, mismo
+        patrón que `worker_cancel`) para re-buscar o, si el comercio lo
+        prefiere, cancelarlo con `cancel_shift` a continuación; (b) impacta
+        la reputación del trabajador de forma trazable
+        (`WorkerProfileRepository.record_no_show`, mismo patrón que
+        `record_cancellation` — nunca un UPDATE a mano); (c) queda
+        registrado en el propio turno (`Shift.no_show_at`/
+        `last_no_show_worker_profile_id`) y notifica al trabajador para que
+        pueda ver/disputar el evento."""
+        shift = await self._get_owned(company_id, shift_id)
+        absent_worker_profile_id = shift.worker_profile_id
+        shift.no_show()
+        updated = await self._shifts.update(shift)
+        if absent_worker_profile_id is not None:
+            await self._workers.record_no_show(absent_worker_profile_id)
+            await self._notify_worker(
+                absent_worker_profile_id,
+                NotificationType.SHIFT_NO_SHOW,
+                "Te marcaron como no presentado",
+                (
+                    f"El comercio marcó que no te presentaste al turno "
+                    f"\"{updated.title or updated.position.value}\". "
+                    "Esto impacta tu reputación."
+                ),
+            )
+        return updated
 
     async def assign_worker(
         self, company_id: UUID, shift_id: UUID, worker_profile_id: UUID

@@ -48,3 +48,12 @@ class WorkerProfileRepository(ABC):
         (ADR-0004). Incrementa `cancellations` en 1 y recalcula `badges`/
         `level`, igual que `record_completed_shift`.
         """
+
+    @abstractmethod
+    async def record_no_show(self, profile_id: UUID) -> None:
+        """Registra que el comercio marcó al trabajador como no presentado
+        en un turno ya confirmado (ADR-0007). Incrementa `no_shows` en 1 y
+        recalcula `badges`/`level`, igual que `record_cancellation`. Nunca es
+        un UPDATE manual: siempre pasa por acá, disparado por
+        `ShiftService.mark_no_show`.
+        """

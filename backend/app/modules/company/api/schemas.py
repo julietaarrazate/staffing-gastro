@@ -43,4 +43,5 @@ class CompanyProfileResponse(BaseModel):
     rating: float
     events_published: int
     on_time_payment_rate: float
+    late_cancellations: int
     created_at: datetime | None = None

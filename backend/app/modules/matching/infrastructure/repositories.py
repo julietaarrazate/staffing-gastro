@@ -26,6 +26,7 @@ def _to_candidate(model: WorkerProfileModel, full_name: str) -> CandidateProfile
         punctuality_rate=model.punctuality_rate,
         events_completed=model.events_completed,
         cancellations=model.cancellations,
+        no_shows=model.no_shows,
         is_available=model.is_available,
         latitude=model.latitude,
         longitude=model.longitude,

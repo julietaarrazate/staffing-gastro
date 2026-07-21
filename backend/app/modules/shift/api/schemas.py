@@ -82,6 +82,8 @@ class ShiftResponse(BaseModel):
     check_out_longitude: float | None
     check_out_at: datetime | None
     paid_at: datetime | None
+    no_show_at: datetime | None = None
+    last_no_show_worker_profile_id: UUID | None = None
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None

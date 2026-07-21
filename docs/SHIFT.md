@@ -27,11 +27,15 @@ y una ubicación. Representa la unidad de intercambio del marketplace.
 ```
 BORRADOR → PUBLICADO → BUSCANDO_PERSONAL → ASIGNADO → CONFIRMADO →
 EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
-                         ▲              │
-                         │              └── (cancelación del trabajador,
-                         │                   ADR-0004) ──────┐
-                         └──── (rechazo del trabajador) ─────┘
-CANCELADO: alcanzable desde cualquier estado no terminal (comercio).
+                         ▲              │    ▲
+                         │              │    └── (no-show, ADR-0007,
+                         │              │         desde CONFIRMADO/EN_CAMINO) ─┐
+                         │              └── (cancelación del trabajador,      │
+                         │                   ADR-0004) ──────┐                │
+                         └──── (rechazo del trabajador) ─────┴────────────────┘
+CANCELADO: alcanzable desde cualquier estado no terminal (comercio). Si el
+trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
+(ADR-0007): notifica al trabajador y le cuesta reputación al comercio.
 ```
 
 - **BORRADOR:** creado por el comercio; editable; no visible.
@@ -47,14 +51,32 @@ CANCELADO: alcanzable desde cualquier estado no terminal (comercio).
   `WorkerProfile.cancellations` del trabajador (afecta insignias/nivel, ver
   [REPUTATION.md](./REPUTATION.md)) y notifica al comercio
   (`shift_reopened`).
+  Desde `CONFIRMADO` o `EN_CAMINO` el comercio puede en cambio marcar
+  **no-show** (`POST /shifts/{id}/no-show`, **[ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md)**):
+  el trabajador asignado no apareció. Reabre el turno igual que
+  `worker-cancel` (vuelve a `buscando_personal`, se limpia
+  `worker_profile_id`), pero además: incrementa `WorkerProfile.no_shows`
+  (**distinto** de `cancellations` — señal más grave, ver
+  [REPUTATION.md](./REPUTATION.md)), guarda `no_show_at`/
+  `last_no_show_worker_profile_id` en el propio turno como registro
+  auditable, y notifica al trabajador (`shift_no_show`).
 - **EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT:** asistencia; check-in y
   check-out **capturan geolocalización**. Una vez hecho el check-in, el
-  trabajador ya no puede "cancelar" — un abandono en este punto es un
-  problema distinto (detección de **no-show**), explícitamente fuera de
-  alcance de ADR-0004 (requeriría un job en background, ver `TECH_DEBT.md`).
+  trabajador ya se presentó — ya no aplica no-show ni cancelación; un
+  abandono en este punto es un problema distinto, sigue explícitamente fuera
+  de alcance (mismo criterio que ADR-0004/ADR-0007; detección **automática**
+  de turnos colgados sin check-in seguiría requiriendo un job en background,
+  ver `TECH_DEBT.md`).
 - **FINALIZADO:** el comercio cierra el turno trabajado.
 - **PAGADO:** el comercio registró el pago (ver [PAYMENTS.md](./PAYMENTS.md)).
-- **CANCELADO:** cancelado antes de terminar (por el comercio; terminal).
+- **CANCELADO:** cancelado antes de terminar (por el comercio; terminal). Si
+  al cancelar el trabajador ya estaba **comprometido** (`COMMITTED_STATUSES`:
+  confirmó o está en pleno ciclo de trabajo), es **cancelación tardía**
+  (ADR-0007): notifica al trabajador (`shift_cancelled_late`) e incrementa
+  `CompanyProfile.late_cancellations` — efecto simétrico al `no_shows`/
+  `cancellations` del trabajador. Cancelar sin que nadie llegó a
+  comprometerse (borrador, publicado, buscando personal, o asignado sin
+  confirmar) no tiene este efecto.
 
 **Estados terminales:** `finalizado`, `pagado`, `cancelado` (no admiten más
 transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
