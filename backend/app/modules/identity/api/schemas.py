@@ -63,6 +63,23 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class GoogleAuthRequest(BaseModel):
+    """`role` sólo hace falta si el email todavía no tiene cuenta (ver
+    `GoogleRoleRequiredResponse`) — se ignora si ya existe."""
+
+    id_token: str
+    role: RegisterableRole | None = None
+
+
+class GoogleRoleRequiredResponse(BaseModel):
+    """El frontend debe mostrar la pantalla de selección de rol y reintentar
+    `POST /auth/google` con el mismo `id_token` + el rol elegido."""
+
+    requires_role: bool = True
+    email: EmailStr
+    full_name: str
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

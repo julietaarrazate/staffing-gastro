@@ -23,15 +23,21 @@ const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, "ws");
 //   direcciones queda bloqueado por CSP aunque la respuesta sea correcta).
 // - img-src https:: las fotos demo (loremflickr/pravatar) redirigen a CDNs
 //   variables; al pasar a Cloudinary propio (R2.5) se puede endurecer.
+// - accounts.google.com: botón "Continuar con Google" (Google Identity
+//   Services, ver docs/ACCESO_MODERNO.md) — el script se carga desde ahí
+//   (script-src), el botón se renderiza en un iframe propio (frame-src) y el
+//   flujo hace sus propias llamadas (connect-src). Sin esto el botón carga
+//   pero el iframe queda bloqueado por `default-src 'self'`.
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "script-src 'self' 'unsafe-inline' blob: https://vercel.live",
+  "frame-src https://accounts.google.com",
+  "script-src 'self' 'unsafe-inline' blob: https://vercel.live https://accounts.google.com",
   "style-src 'self' 'unsafe-inline'",
-  `connect-src 'self' ${API_ORIGIN} ${API_WS_ORIGIN} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://api.cloudinary.com https://vercel.live https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io`,
+  `connect-src 'self' ${API_ORIGIN} ${API_WS_ORIGIN} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://api.cloudinary.com https://vercel.live https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://accounts.google.com`,
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "worker-src 'self' blob:",

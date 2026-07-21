@@ -12,6 +12,8 @@ from app.modules.identity.api.dependencies import (
 from app.modules.identity.api.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    GoogleAuthRequest,
+    GoogleRoleRequiredResponse,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -19,11 +21,19 @@ from app.modules.identity.api.schemas import (
     TokenResponse,
     UserResponse,
 )
-from app.modules.identity.application.dtos import LoginCommand, RegisterCommand
+from app.modules.identity.application.dtos import (
+    GoogleLoginCommand,
+    GoogleRoleRequired,
+    LoginCommand,
+    RegisterCommand,
+)
 from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
+    GoogleAuthNotConfiguredError,
+    GoogleEmailNotVerifiedError,
+    GoogleTokenInvalidError,
     InactiveUserError,
     InvalidCredentialsError,
     InvalidTokenError,
@@ -47,6 +57,9 @@ _register_rate_limit = RateLimiter(
 # <5 min) vive en `IdentityService.request_password_reset`.
 _forgot_password_rate_limit = RateLimiter(
     max_attempts=5, window_seconds=60, name="forgot_password"
+)
+_google_auth_rate_limit = RateLimiter(
+    max_attempts=10, window_seconds=60, name="google_auth"
 )
 
 
@@ -96,6 +109,51 @@ async def login(payload: LoginRequest, service: ServiceDep) -> TokenResponse:
             detail="La cuenta no está activa",
         ) from exc
     return TokenResponse(**tokens.__dict__)
+
+
+@router.post(
+    "/google",
+    summary="Ingresar o registrarse con Google",
+    dependencies=[Depends(_google_auth_rate_limit)],
+)
+async def google_auth(
+    payload: GoogleAuthRequest, service: ServiceDep
+) -> TokenResponse | GoogleRoleRequiredResponse:
+    """Ver docs/ACCESO_MODERNO.md. Devuelve `TokenResponse` (mismo contrato
+    que `/auth/login`) si el email ya tiene cuenta o si se indicó `role` para
+    crear una; devuelve `GoogleRoleRequiredResponse` si el email es nuevo y
+    todavía no se eligió rol — el frontend debe preguntar y reintentar."""
+    try:
+        result = await service.authenticate_google(
+            GoogleLoginCommand(
+                id_token=payload.id_token,
+                role=UserRole(payload.role.value) if payload.role else None,
+            )
+        )
+    except GoogleAuthNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth no está configurado en este servidor",
+        ) from exc
+    except GoogleTokenInvalidError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google inválido o expirado",
+        ) from exc
+    except GoogleEmailNotVerifiedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google no verificó este email",
+        ) from exc
+    except InactiveUserError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta no está activa",
+        ) from exc
+
+    if isinstance(result, GoogleRoleRequired):
+        return GoogleRoleRequiredResponse(email=result.email, full_name=result.full_name)
+    return TokenResponse(**result.__dict__)
 
 
 @router.post("/refresh", response_model=TokenResponse, summary="Renovar tokens")
