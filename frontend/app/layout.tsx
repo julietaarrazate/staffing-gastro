@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { PushPromptProvider } from "@/lib/push-prompt-context";
 import { ToastProvider } from "@/components/ui";
 import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
@@ -82,10 +83,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
         <AuthProvider>
           <ToastProvider>
-            <SplashScreen />
-            <Navbar />
-            <main className="flex-1 pb-20 md:pb-0">{children}</main>
-            <BottomNav />
+            <PushPromptProvider>
+              <SplashScreen />
+              <Navbar />
+              <main className="flex-1 pb-20 md:pb-0">{children}</main>
+              <BottomNav />
+            </PushPromptProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

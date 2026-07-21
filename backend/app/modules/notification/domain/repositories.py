@@ -1,9 +1,9 @@
-"""Puerto del repositorio de notificaciones."""
+"""Puertos de los repositorios del módulo notification."""
 
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.modules.notification.domain.entities import Notification
+from app.modules.notification.domain.entities import Notification, PushSubscription
 
 
 class NotificationRepository(ABC):
@@ -25,3 +25,28 @@ class NotificationRepository(ABC):
 
         Devuelve None si no existe o no pertenece al usuario (no-disclosure).
         """
+
+
+class PushSubscriptionRepository(ABC):
+    """Puerto de persistencia para suscripciones Web Push."""
+
+    @abstractmethod
+    async def add(self, subscription: PushSubscription) -> PushSubscription:
+        """Persiste una suscripción nueva y la devuelve.
+
+        Idempotente por `endpoint` (ver `PushService.subscribe`): si ya existe
+        una suscripción con ese endpoint, la implementación la devuelve tal
+        cual en vez de duplicarla."""
+
+    @abstractmethod
+    async def remove_by_endpoint(self, endpoint: str) -> None:
+        """Elimina la suscripción de ese endpoint (no-op si no existe)."""
+
+    @abstractmethod
+    async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:
+        """Lista las suscripciones activas de un usuario (todos sus dispositivos)."""
+
+    @abstractmethod
+    async def remove_many_by_id(self, subscription_ids: list[UUID]) -> None:
+        """Elimina en lote suscripciones "muertas" (endpoint dado de baja por
+        el navegador/proveedor push, HTTP 404/410) detectadas al enviar."""

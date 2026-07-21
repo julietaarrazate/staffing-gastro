@@ -6,6 +6,7 @@ import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
+import PushToggle from "@/components/PushToggle";
 import { Spinner } from "@/components/ui";
 import { CreditCardIcon, LogOutIcon } from "@/components/icons";
 
@@ -112,6 +113,7 @@ export default function ProfilePage() {
             insignia "Perfil Verificado" en `WorkerGameCard` (ver
             `lib/reputation.tsx`) cuando corresponde. */}
         <div className="mt-2 divide-y divide-zinc-100 rounded-2xl bg-white shadow-sm">
+          <PushToggle />
           <Row icon={<LogOutIcon size={18} />} onClick={logout}>
             Cerrar sesión
           </Row>

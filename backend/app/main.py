@@ -19,6 +19,7 @@ from app.modules.company.api.routes import router as company_router
 from app.modules.identity.api.routes import router as identity_router
 from app.modules.matching.api.routes import router as matching_router
 from app.modules.matching.api.routes import search_router as matching_search_router
+from app.modules.notification.api.routes import push_router
 from app.modules.notification.api.routes import router as notification_router
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
@@ -73,6 +74,7 @@ app.include_router(shift_router, prefix="/api/v1")
 app.include_router(matching_router, prefix="/api/v1")
 app.include_router(matching_search_router, prefix="/api/v1")
 app.include_router(notification_router, prefix="/api/v1")
+app.include_router(push_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(review_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")

@@ -7,11 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings as app_settings
 from app.core.database import get_session
-from app.modules.notification.application.services import NotificationService
+from app.modules.notification.application.services import NotificationService, PushService
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.infrastructure.null_email_sender import NullEmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
+    SqlAlchemyPushSubscriptionRepository,
 )
 from app.modules.notification.infrastructure.resend_email_sender import (
     ResendEmailSender,
@@ -23,6 +24,13 @@ def get_notification_service(
 ) -> NotificationService:
     repository = SqlAlchemyNotificationRepository(session)
     return NotificationService(repository)
+
+
+def get_push_service(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> PushService:
+    repository = SqlAlchemyPushSubscriptionRepository(session)
+    return PushService(repository)
 
 
 def get_email_sender() -> EmailSender:

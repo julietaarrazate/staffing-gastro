@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
+import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
@@ -12,6 +13,7 @@ import { CalendarIcon, MapPinIcon } from "@/components/icons";
 
 export default function WorkerHomePage() {
   const { token, user } = useAuth();
+  const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
@@ -83,6 +85,10 @@ export default function WorkerHomePage() {
     try {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token);
       toast("¡Te postulaste! El comercio ya te puede ver");
+      // Primera acción significativa del flujo del trabajador: acá, y no al
+      // aterrizar en la app, es cuando tiene sentido preguntar si quiere
+      // enterarse por push cuando el comercio responda (ver docs/ACCESO_MODERNO.md).
+      requestOptIn();
       return true;
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

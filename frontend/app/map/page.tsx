@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
@@ -45,6 +46,7 @@ function MapCardSkeleton() {
 
 export default function MapPage() {
   const { token } = useAuth();
+  const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -115,6 +117,8 @@ export default function MapPage() {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token);
       toast("¡Te postulaste! El comercio ya te puede ver");
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
+      // Primera acción significativa, no al aterrizar (ver docs/ACCESO_MODERNO.md).
+      requestOptIn();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) toast("Ya te habías postulado");
       else toast("No se pudo enviar la postulación", "error");
