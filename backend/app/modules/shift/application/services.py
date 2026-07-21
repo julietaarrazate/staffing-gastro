@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from app.modules.application.domain.repositories import ShiftApplicationRepository
+from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.notification.domain.email_sender import EmailSender
@@ -209,10 +210,17 @@ class ShiftService:
         Este es el momento real de "aceptación" que ve el trabajador (el
         comercio elige a un postulante o asigna directo, ver
         `ApplicationService`): además de la notificación in-app, se le manda
-        un email best-effort avisándole (`_send_acceptance_email`)."""
+        un email best-effort avisándole (`_send_acceptance_email`).
+
+        Si el trabajador tenía una `ShiftApplication` PENDIENTE a este mismo
+        turno, pasa a ACEPTADA (ver `_accept_application`, TECH_DEBT P5): sin
+        esto quedaba "pendiente" para siempre aunque el comercio ya lo haya
+        elegido. Si fue asignado directo (búsqueda/mapa, sin postulación
+        previa) no hay nada que actualizar y no falla."""
         shift = await self._get_owned(company_id, shift_id)
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
+        await self._accept_application(shift_id, worker_profile_id)
         await self._notify_worker(
             worker_profile_id,
             NotificationType.SHIFT_ASSIGNED,
@@ -221,6 +229,18 @@ class ShiftService:
         )
         await self._send_acceptance_email(worker_profile_id, updated)
         return updated
+
+    async def _accept_application(self, shift_id: UUID, worker_profile_id: UUID) -> None:
+        """Marca ACEPTADA la postulación PENDIENTE de este trabajador a este
+        turno, si existe (asignación directa sin postulación previa no tiene
+        nada que actualizar acá)."""
+        application = await self._applications.get_by_shift_and_worker(
+            shift_id, worker_profile_id
+        )
+        if application is None or application.status != ApplicationStatus.PENDIENTE:
+            return
+        application.accept()
+        await self._applications.update(application)
 
     async def _send_acceptance_email(
         self, worker_profile_id: UUID, shift: Shift

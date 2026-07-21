@@ -2,12 +2,7 @@
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.modules.application.domain.value_objects import ApplicationStatus
-from app.modules.application.infrastructure.repositories import (
-    SqlAlchemyShiftApplicationRepository,
-)
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -210,30 +205,78 @@ async def test_other_worker_cannot_withdraw_someone_elses_application(
     assert response.status_code == 404
 
 
-async def test_cannot_withdraw_already_accepted_application(
-    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
-):
+async def test_cannot_withdraw_already_accepted_application(client: AsyncClient):
     """Sólo PENDIENTE → RETIRADA es legal: una postulación ya decidida por el
-    comercio (ACEPTADA/RECHAZADA) no se puede "cancelar". Hoy no hay endpoint
-    que lleve a ACEPTADA (ver TECH_DEBT/INTAKE), así que se fuerza directo en
-    la DB para poder probar la regla igual."""
+    comercio (ACEPTADA) no se puede "cancelar". Se llega a ACEPTADA por el
+    flujo real (`assign_worker` la acepta, ver fix de deuda #88 en
+    `ShiftService._accept_application`), ya no hace falta forzar el estado
+    directo en la DB."""
     employer = await _employer_with_company(client, "emp_wd3@staffya.com")
     shift_id = await _published_shift(client, employer)
-    worker, _ = await _worker_with_profile(client, "w_wd3@staffya.com")
+    worker, worker_id = await _worker_with_profile(client, "w_wd3@staffya.com")
     applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
     application_id = applied.json()["id"]
 
-    async with session_factory() as session:
-        repo = SqlAlchemyShiftApplicationRepository(session)
-        application = await repo.get_by_id(application_id)
-        assert application is not None
-        application.status = ApplicationStatus.ACEPTADA
-        await repo.update(application)
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker_id},
+    )
+    assert assigned.status_code == 200
 
     response = await client.post(
         f"/api/v1/applications/{application_id}/withdraw", headers=worker
     )
     assert response.status_code == 400
+
+
+async def test_assigning_applicant_accepts_their_application(client: AsyncClient):
+    """Fix deuda #88: al asignar un turno al trabajador que se había
+    postulado, su `ShiftApplication` pasa a ACEPTADA (antes quedaba
+    PENDIENTE para siempre, ver TECH_DEBT.md P5)."""
+    employer = await _employer_with_company(client, "emp_accept1@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, worker_id = await _worker_with_profile(client, "w_accept1@staffya.com")
+
+    applied = await client.post(
+        f"/api/v1/applications/shifts/{shift_id}", headers=worker
+    )
+    assert applied.status_code == 201
+
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker_id},
+    )
+    assert assigned.status_code == 200
+
+    mine = await client.get("/api/v1/applications/mine", headers=worker)
+    assert mine.status_code == 200
+    application = next(a for a in mine.json() if a["shift_id"] == shift_id)
+    assert application["status"] == "aceptada"
+
+
+async def test_assigning_worker_without_prior_application_does_not_fail(
+    client: AsyncClient,
+):
+    """Asignación directa (búsqueda/mapa): el trabajador nunca se postuló a
+    este turno, no hay `ShiftApplication` que actualizar y el flujo no debe
+    romperse."""
+    employer = await _employer_with_company(client, "emp_accept2@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, worker_id = await _worker_with_profile(client, "w_accept2@staffya.com")
+
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker_id},
+    )
+    assert assigned.status_code == 200
+    assert assigned.json()["worker_profile_id"] == worker_id
+
+    mine = await client.get("/api/v1/applications/mine", headers=worker)
+    assert mine.status_code == 200
+    assert mine.json() == []
 
 
 async def test_applying_notifies_company(client: AsyncClient):

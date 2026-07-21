@@ -220,38 +220,35 @@ fecha de esta auditoría (2026-07-02).
 
 ---
 
-### P5 — `ApplicationStatus.ACEPTADA`/`RECHAZADA` nunca se setean (doc↔código) 🟡 Media
+### P5 — `ApplicationStatus.RECHAZADA` nunca se setea en los no elegidos (doc↔código) 🟡 Media — ACEPTADA ya resuelta
 
-- **Descripción:** el docstring de `ShiftApplication`
-  (`application/domain/entities.py`) dice que al asignar el turno el
-  comercio "marca la postulación como ACEPTADA", pero `ShiftService.
-  assign_worker` (`shift/application/services.py`) sólo toca `Shift`
-  (`worker_profile_id` + `status`) — nunca actualiza la fila de
-  `ShiftApplication` del candidato elegido, ni las de los no elegidos.
-  En los hechos, hoy **ninguna postulación real llega a ACEPTADA o
-  RECHAZADA**: sólo PENDIENTE y RETIRADA (la nueva, mejoras-ux-comercios)
-  ocurren en producción. Encontrado al implementar "cancelar postulación":
-  el test de "no se puede retirar una ya aceptada" tuvo que forzar el
-  estado directo en la DB (`tests/test_application.py::
-  test_cannot_withdraw_already_accepted_application`) porque no hay forma
-  de llegar ahí por la API.
-- **Impacto:** el trabajador sigue viendo "Postulado · esperando
-  respuesta" en `/my-shifts` (tab Postulaciones) incluso después de haber
-  sido asignado o descartado, en vez de "¡Te eligieron!"/"No quedaste esta
-  vez" (los labels ya existen en `APPLICATION_LABELS`, listos para cuando
-  el estado real llegue). Los demás postulantes de un turno ya asignado
-  tampoco se marcan RECHAZADA.
-- **Riesgo:** medio — es una desprolijidad de UX/consistencia de datos, no
-  un bug de seguridad ni de integridad (el turno en sí transiciona bien).
+- **Descripción (estado actualizado, fix de deuda #88):** `ShiftService.
+  assign_worker` (`shift/application/services.py`) ahora sí marca ACEPTADA
+  la `ShiftApplication` PENDIENTE del trabajador elegido (`_accept_application`,
+  vía `ShiftApplicationRepository.get_by_shift_and_worker` + `ShiftApplication.
+  accept()` en el dominio) — antes quedaba PENDIENTE para siempre aunque el
+  comercio ya lo hubiera asignado. Cubierto por
+  `tests/test_application.py::test_assigning_applicant_accepts_their_application`
+  (y el caso de asignación directa sin postulación previa, que no falla, en
+  `test_assigning_worker_without_prior_application_does_not_fail`).
+  **Sigue sin resolver** (alcance explícitamente fuera de este fix, de
+  mínima invasión): los demás postulantes PENDIENTE del mismo turno no se
+  marcan RECHAZADA cuando el comercio elige a otro — no hay rechazo masivo
+  automático.
+- **Impacto:** el trabajador elegido ya ve "¡Te eligieron!" en `/my-shifts`
+  (tab Postulaciones, `APPLICATION_LABELS`). Los postulantes NO elegidos de
+  un turno ya asignado siguen viendo "Postulado · esperando respuesta"
+  indefinidamente (nunca pasan a "No quedaste esta vez").
+- **Riesgo:** bajo — desprolijidad de UX/consistencia de datos para los no
+  elegidos, no un bug de seguridad ni de integridad (el turno en sí
+  transiciona bien y el ganador ya queda consistente).
 - **Prioridad:** 🟡 Media.
-- **Esfuerzo:** medio — `assign_worker` necesita el puerto
-  `ShiftApplicationRepository` (mismo patrón cross-módulo ya usado ahora
-  para la regla de doble turno) para marcar ACEPTADA la del ganador y
-  RECHAZADA las demás postulaciones PENDIENTE del mismo turno.
-- **Solución sugerida:** resolver en el mismo PR que se toque
-  `assign_worker` de nuevo, reutilizando el cableado de
-  `ShiftApplicationRepository` en `ShiftService` que ya existe desde la
-  regla de doble turno.
+- **Esfuerzo:** bajo — mismo patrón ya cableado (`ShiftApplicationRepository`
+  en `ShiftService`): en `assign_worker`, listar `list_by_shift(shift_id)` y
+  rechazar (nuevo método `reject()` en el dominio, mismo estilo que
+  `accept()`/`withdraw()`) las PENDIENTE de otros `worker_profile_id`.
+- **Solución sugerida:** resolver en un próximo PR acotado (decisión de
+  producto simple: ¿se avisa/notifica al rechazado o es silencioso?).
 
 ---
 
@@ -624,5 +621,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), P3 (métricas reputación, `cancellations` resuelto ADR-0004 — pendiente `on_time_payment_rate`/`events_published`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
-| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), P5 (ACEPTADA/RECHAZADA nunca se setean), T5 (lint fuera de CI) |
+| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), P5 (RECHAZADA de los no elegidos nunca se setea — ACEPTADA ya resuelta), T5 (lint fuera de CI) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

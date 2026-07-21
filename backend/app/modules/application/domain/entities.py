@@ -25,6 +25,19 @@ class ShiftApplication:
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
 
+    def accept(self) -> None:
+        """PENDIENTE → ACEPTADA: el comercio asigna el turno a este postulante.
+
+        Sólo alcanzable desde PENDIENTE (ver `ShiftService.assign_worker`,
+        que la busca por turno+trabajador y la acepta si existe; si el
+        trabajador fue asignado sin postulación previa, no hay nada que
+        transicionar acá)."""
+        if self.status != ApplicationStatus.PENDIENTE:
+            raise InvalidApplicationTransitionError(
+                f"No se puede aceptar una postulación en estado {self.status.value}"
+            )
+        self.status = ApplicationStatus.ACEPTADA
+
     def withdraw(self) -> None:
         """PENDIENTE → RETIRADA: el trabajador cancela su propia postulación.
 
