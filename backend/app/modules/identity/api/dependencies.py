@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException, Query, WebSocket, WebSocketException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings as app_settings
 from app.core.database import get_session
 from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.entities import User
@@ -19,7 +20,9 @@ from app.modules.identity.domain.exceptions import (
     InvalidTokenError,
     UserNotFoundError,
 )
+from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.infrastructure.google_token_verifier import GoogleTokenInfoVerifier
 from app.modules.identity.infrastructure.repositories import (
     SqlAlchemyPasswordResetTokenRepository,
     SqlAlchemyRefreshSessionRepository,
@@ -31,14 +34,21 @@ from app.modules.notification.domain.email_sender import EmailSender
 _bearer_scheme = HTTPBearer(auto_error=True)
 
 
+def get_google_verifier() -> GoogleTokenVerifier:
+    return GoogleTokenInfoVerifier(app_settings)
+
+
 def get_identity_service(
     session: Annotated[AsyncSession, Depends(get_session)],
     email_sender: Annotated[EmailSender, Depends(get_email_sender)],
+    google_verifier: Annotated[GoogleTokenVerifier, Depends(get_google_verifier)],
 ) -> IdentityService:
     users = SqlAlchemyUserRepository(session)
     sessions = SqlAlchemyRefreshSessionRepository(session)
     password_reset_tokens = SqlAlchemyPasswordResetTokenRepository(session)
-    return IdentityService(users, sessions, password_reset_tokens, email_sender)
+    return IdentityService(
+        users, sessions, password_reset_tokens, email_sender, google_verifier
+    )
 
 
 async def get_current_user(

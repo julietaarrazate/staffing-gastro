@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
 
 type Role = "worker" | "employer";
@@ -124,6 +125,8 @@ function RegisterForm() {
               Crear cuenta
             </Button>
           </form>
+
+          <GoogleAuthButton onDone={(isNewAccount) => router.push(isNewAccount ? "/profile" : "/")} />
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">

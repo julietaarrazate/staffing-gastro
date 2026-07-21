@@ -4,6 +4,13 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { api, NetworkError } from "@/lib/api";
 import { User } from "@/lib/types";
 
+/** Resultado de `loginWithGoogle`: o bien ya se completó la sesión, o el
+ * email es nuevo y hace falta elegir rol para terminar de crear la cuenta
+ * (ver `POST /auth/google` en el backend, docs/ACCESO_MODERNO.md). */
+export type GoogleLoginResult =
+  | { requiresRole: true; email: string; fullName: string }
+  | { requiresRole: false };
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -15,6 +22,12 @@ interface AuthState {
     full_name: string,
     role: "worker" | "employer"
   ) => Promise<void>;
+  /** `role` sólo hace falta si el email es nuevo (ver `GoogleLoginResult`);
+   * se ignora si el email ya tiene cuenta. */
+  loginWithGoogle: (
+    idToken: string,
+    role?: "worker" | "employer"
+  ) => Promise<GoogleLoginResult>;
   logout: () => void;
 }
 
@@ -163,6 +176,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await login(email, password);
   }
 
+  async function loginWithGoogle(
+    idToken: string,
+    role?: "worker" | "employer"
+  ): Promise<GoogleLoginResult> {
+    const data = await api.post<
+      | { requires_role: true; email: string; full_name: string }
+      | { requires_role?: false; access_token: string; refresh_token: string }
+    >("/auth/google", { id_token: idToken, role });
+
+    if ("requires_role" in data && data.requires_role) {
+      return { requiresRole: true, email: data.email, fullName: data.full_name };
+    }
+
+    const tokens = data as { access_token: string; refresh_token: string };
+    persistTokens(tokens.access_token, tokens.refresh_token);
+    setToken(tokens.access_token);
+    setUser(await api.get<User>("/auth/me", tokens.access_token));
+    return { requiresRole: false };
+  }
+
   function logout() {
     clearTokens();
     setToken(null);
@@ -170,7 +203,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, loading, login, register, loginWithGoogle, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

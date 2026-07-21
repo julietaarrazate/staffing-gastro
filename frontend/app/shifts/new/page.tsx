@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
@@ -37,6 +38,7 @@ export default function NewShiftPage() {
 
 function NewShiftWizard() {
   const { token } = useAuth();
+  const { requestOptIn } = usePushPrompt();
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -133,6 +135,10 @@ function NewShiftWizard() {
       try {
         await api.post(`/shifts/${created.id}/publish`, undefined, token);
         toast("¡Turno publicado! Ya pueden postularse");
+        // Primera acción significativa del comercio, no al aterrizar (ver
+        // docs/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
+        // enterarse por push apenas alguien se postule.
+        requestOptIn();
         router.push("/shifts");
       } catch (err) {
         // El turno ya quedó creado como borrador: se puede publicar más tarde

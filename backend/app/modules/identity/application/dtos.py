@@ -27,3 +27,26 @@ class TokenPair:
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+@dataclass(frozen=True)
+class GoogleLoginCommand:
+    """`role` sólo se usa si hay que dar de alta una cuenta nueva (ver
+    `GoogleRoleRequired`); se ignora si el email ya tiene cuenta."""
+
+    id_token: str
+    role: UserRole | None = None
+
+
+@dataclass(frozen=True)
+class GoogleRoleRequired:
+    """El token de Google es válido pero el email no tiene cuenta todavía y
+    no se indicó `role`: el frontend debe mostrar la pantalla "¿Buscás
+    trabajo o buscás personal?" y reintentar `POST /auth/google` con el rol
+    elegido (mismo `id_token`, todavía vigente)."""
+
+    email: str
+    full_name: str
+
+
+GoogleLoginResult = TokenPair | GoogleRoleRequired

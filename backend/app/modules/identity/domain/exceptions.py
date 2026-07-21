@@ -44,3 +44,18 @@ class PasswordResetTokenInvalidError(IdentityError):
     usado"): la API la traduce siempre al mismo 400 "Enlace inválido o
     vencido" (no-disclosure, mismo criterio que `RefreshTokenRevokedError`).
     """
+
+
+class GoogleAuthNotConfiguredError(IdentityError):
+    """`GOOGLE_CLIENT_ID` no está configurado en este servidor (flag por
+    ausencia, ver `core/config.py`)."""
+
+
+class GoogleTokenInvalidError(IdentityError):
+    """El ID token de Google es inválido, expiró, tiene firma incorrecta o no
+    pertenece a este client_id (audience)."""
+
+
+class GoogleEmailNotVerifiedError(IdentityError):
+    """Google no verificó el email asociado a la cuenta (`email_verified`
+    en falso): no alcanza como prueba de identidad."""

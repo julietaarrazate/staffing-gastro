@@ -23,6 +23,9 @@ from app.core.security import (
     verify_password,
 )
 from app.modules.identity.application.dtos import (
+    GoogleLoginCommand,
+    GoogleLoginResult,
+    GoogleRoleRequired,
     LoginCommand,
     RegisterCommand,
     TokenPair,
@@ -30,6 +33,7 @@ from app.modules.identity.application.dtos import (
 from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
 from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
+    GoogleEmailNotVerifiedError,
     InactiveUserError,
     InvalidCredentialsError,
     InvalidTokenError,
@@ -37,6 +41,7 @@ from app.modules.identity.domain.exceptions import (
     RefreshTokenRevokedError,
     UserNotFoundError,
 )
+from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
 from app.modules.identity.domain.repositories import (
     PasswordResetTokenRepository,
     RefreshSessionRepository,
@@ -62,11 +67,13 @@ class IdentityService:
         sessions: RefreshSessionRepository,
         password_reset_tokens: PasswordResetTokenRepository,
         email_sender: EmailSender,
+        google_verifier: GoogleTokenVerifier,
     ) -> None:
         self._users = users
         self._sessions = sessions
         self._reset_tokens = password_reset_tokens
         self._email_sender = email_sender
+        self._google_verifier = google_verifier
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe."""
@@ -88,6 +95,44 @@ class IdentityService:
             raise InvalidCredentialsError()
         if not user.is_active:
             raise InactiveUserError()
+        return await self._issue_tokens(user)
+
+    async def authenticate_google(self, command: GoogleLoginCommand) -> GoogleLoginResult:
+        """Ingresa o registra un usuario a partir de un ID token de Google
+        (Google Identity Services, ver docs/ACCESO_MODERNO.md).
+
+        - Email ya registrado -> sesión normal (mismos tokens JWT propios).
+        - Email nuevo y `command.role` ausente -> `GoogleRoleRequired`: el
+          frontend debe preguntar "¿Buscás trabajo o buscás personal?" y
+          reintentar con el rol elegido.
+        - Email nuevo y `command.role` presente -> se registra la cuenta
+          (contraseña local imposible, ver `_google_local_password`) y se
+          emiten tokens.
+        """
+        identity = await self._google_verifier.verify(command.id_token)
+        if not identity.email_verified:
+            raise GoogleEmailNotVerifiedError()
+
+        email = identity.email.lower()
+        user = await self._users.get_by_email(email)
+        if user is not None:
+            if not user.is_active:
+                raise InactiveUserError()
+            return await self._issue_tokens(user)
+
+        if command.role is None:
+            return GoogleRoleRequired(email=email, full_name=identity.full_name)
+
+        user = User(
+            email=email,
+            hashed_password=_google_local_password(),
+            full_name=identity.full_name,
+            role=command.role,
+            # Google ya verificó la propiedad del email: no hace falta el
+            # flujo de verificación propio para estas cuentas.
+            is_verified=True,
+        )
+        user = await self._users.add(user)
         return await self._issue_tokens(user)
 
     async def refresh(self, refresh_token: str) -> TokenPair:
@@ -251,3 +296,20 @@ def _hash_reset_token(raw_token: str) -> str:
     """sha256 del token de recuperación: nunca se persiste ni se busca por el
     valor en claro (sólo viaja en el link del email, de un solo uso)."""
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _google_local_password() -> str:
+    """Contraseña local "imposible" para una cuenta creada vía Google.
+
+    `UserModel.hashed_password` es `NOT NULL` (columna compartida con el
+    login por contraseña, ver `infrastructure/models.py`): en vez de agregar
+    una migración para volverla nullable y ramificar `authenticate`/
+    `reset_password` en "con o sin contraseña", se guarda el hash bcrypt de
+    un secreto aleatorio de 32 bytes que nunca se persiste ni se revela.
+    Nadie puede loguearse con contraseña porque nadie conoce el secreto —
+    el efecto es el mismo que "sin contraseña", sin tocar el esquema.
+    El usuario puede pedir "Olvidé mi contraseña" más adelante y setear una
+    propia sin cambios adicionales (el flujo de reset ya no le importa el
+    hash anterior). Ver docs/ACCESO_MODERNO.md.
+    """
+    return hash_password(secrets.token_urlsafe(32))

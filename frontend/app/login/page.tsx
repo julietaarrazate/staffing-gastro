@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 
 // Cuentas demo seedeadas por backend/scripts/seed_demo_data.py. Sirven para
@@ -105,6 +106,8 @@ function LoginForm() {
               ¿Olvidaste tu contraseña?
             </Link>
           </form>
+
+          <GoogleAuthButton onDone={(isNewAccount) => router.push(isNewAccount ? "/profile" : "/")} />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
