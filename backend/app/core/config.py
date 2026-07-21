@@ -120,8 +120,8 @@ class Settings(BaseSettings):
     # Par de claves VAPID (formato base64url sin padding). Vacío = envío de
     # push desactivado (flag por ausencia): las suscripciones se pueden crear
     # igual, pero `WebPushSender` no intenta enviar nada. Se generan una sola
-    # vez (ver `scripts/generate_vapid_keys.py`) y se cargan como env vars en
-    # Render.
+    # vez (comando en docs/ACCESO_MODERNO.md § Feature 2, "Cómo generar el
+    # par de claves") y se cargan como env vars en Render.
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     # Contacto requerido por el estándar VAPID (claim "sub"): se manda como
