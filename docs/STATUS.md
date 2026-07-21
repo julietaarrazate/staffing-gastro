@@ -5,21 +5,32 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-12 · rama de trabajo:
-`claude/staffya-platform-spec-40hf7l` (más `mejoras-ux-comercios` para el
-lote de mejoras UX/UI de este changeset) · todos los PRs se mergean con
-squash apenas quedan verdes (pedido de Julieta) · **loop autónomo activo**
-(con auto-merge, confirmado explícitamente por Julieta) para retomar el
-backlog no bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-07-21 · rama de trabajo:
+`claude/estado-postulacion` (deuda chica dejada por el launch-gate #88) ·
+todos los PRs se mergean con squash apenas quedan verdes (pedido de Julieta)
+· **loop autónomo activo** (con auto-merge, confirmado explícitamente por
+Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
+paso.*
 
 ## Estado en una línea
 
-**Todo el backlog implementable sin credenciales/decisiones de Julieta está
-cerrado** (R0.3, R1.1–R1.6, R2.1–R2.4, R3.1, R3.2 ✅). Lo único que falta:
-🔶 confirmar en Render que el deploy quedó verde contra Neon (código ya en
-`main`), cargar los DSN de Sentry cuando quiera, y decisiones de producto con
-ADR (multi-asignación, cancelaciones, imágenes propias). **R4 se deja afuera a
-propósito** hasta que haya señal real de carga (regla del propio roadmap).
+**Todo el backlog R0–R3 implementable sin credenciales/decisiones de Julieta
+está cerrado** (R0.3, R1.1–R1.6, R2.1–R2.4, R3.1, R3.2 ✅), más **ADR-0005
+Fase 1** (mensualidad al comercio, backend+frontend), **ADR-0006** (alta de
+local desde el mapa), **ADR-0007** (no-show/cancelación tardía) y el
+**launch-gate** (#88: reseñas→ranking verificado end-to-end, primera
+experiencia del comercio nuevo). Sobre esa base ya se sumó **acceso moderno**
+(Google + push, #87) y un batch grande de **pulido post-rebrand**
+(`docs/PULIDO_ROADMAP.md`: rebrand #79, legales #81, bugs de la operadora
+C0+C1 #83–84, landing inmersiva #85, panel por familias #86); **quedan C3
+(confianza/conversión: SEO, skeletons, a11y) y C4 (onboarding) del mismo
+roadmap sin arrancar**. Lo único que falta del backlog original: 🔶 confirmar
+en Render que el deploy quedó verde contra Neon (código ya en `main`), cargar
+los DSN de Sentry cuando quiera, subir fotos reales al seed (R2.5), y la
+API de WhatsApp Business (distinto del botón "Compartir por WhatsApp" ya
+enviado en #77, que sólo abre `wa.me` con el link del turno). **R4 se deja
+afuera a propósito** hasta que haya señal real de carga (regla del propio
+roadmap).
 
 ## Hecho y mergeado (cronológico, con PR)
 
@@ -58,33 +69,42 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 | Robustez percibida — lote 2 (acciones silenciosas) | #70 | Panel del comercio: Publicar/Cancelar/Cerrar/Pagar tenían POSTs sin try/catch ni loading — ahora busy por acción + toast; Matches: busy en los 7 botones (incluye espera de GPS); swipe del feed: la carta vuelve al mazo si la postulación falla (`onDecide` → `Promise<boolean>`); forms de perfil: sólo 404 = "no existe" (antes un fallo de red mostraba el form vacío con riesgo de pisar el perfil), `submitting` + skeleton; reseñas y campana ya no disfrazan errores de vacío |
 | Robustez percibida — lote 3 (skeletons) | #71 | Skeletons con forma real en: lista de chats, conversación (burbujas), perfiles públicos, ReceivedReviews, carrusel del mapa, sheet de búsqueda ("Buscando..." en vez de "0 trabajadores" durante la carga, con fix del flash inicial), admin (KPIs + usuarios, sólo carga inicial) y dropdown de notificaciones; en el chat, si falla el envío el texto no se pierde y hay "Reintentar" pegado al form |
 | Mejoras UX comercios (5 fixes) | *(PR pendiente)* | **Cancelar postulación**: `ShiftApplication.withdraw()` (dominio) + `POST /applications/{id}/withdraw` (sólo dueño, sólo desde PENDIENTE) + botón "Cancelar postulación" con confirmación (`Modal`) en `/my-shifts`. **Regla de doble turno**: `Shift.confirm()` rechaza (400) si el trabajador ya tiene otro turno propio en `COMMITTED_STATUSES` (CONFIRMADO/EN_CAMINO/CHECK_IN/TRABAJANDO/CHECK_OUT) que se solapa en horario; al confirmar con éxito se retiran solas (RETIRADA) las postulaciones PENDIENTE propias que se solapan (`ShiftService` recibe `ShiftApplicationRepository` por constructor, mismo patrón cross-módulo que Company/Worker/Notification). **Login persistente**: `auth-context.tsx` ahora intenta restaurar la sesión con el refresh token aunque el access token esté vencido o ausente — antes sólo lo intentaba si había un access token guardado; sólo sin refresh token (o si el refresh falla de verdad) manda a `/login`. **Postulantes "disponibles"**: `EnrichedApplicant`/`Applicant` suman `is_available`; `/shifts/[id]/candidates` muestra un badge "Disponible" y cambia `ring-zinc-100`/`text-zinc-900` (grises crudos) por los tokens del DS (`ring-line`/`text-ink`). **Splash sin trabarse**: `SplashScreen` ahora se queda visible mientras dura la coreografía de entrada Y la sesión se verifica (`useAuth().loading`), con un tope duro de 6s para que un backend frío nunca la deje pegada, y pasa a un estado "Verificando tu sesión…" con spinner en vez de dejar el logo grande congelado. `pytest -q`: 156 passed (antes 150, +6). `tsc`/`build`/e2e (4 specs) verdes. Ver `docs/TECH_DEBT.md` P5/T5 (hallazgos, no bugs de esta sesión) |
-| **PRIMER_TURNO_REAL** — launch-gate: cierre de 3 lazos construidos-pero-nunca-validados | `claude/primer-turno-real` *(PR draft pendiente)* | **Parte A (verificado, no roto):** test de integración de punta a punta (`tests/test_full_shift_lifecycle.py`) recorre publicar→postular→asignar→check-in→check-out→finalizar→ambos califican→reputación actualizada→**la reputación real SÍ entra al ranking de matching** de un turno nuevo (dos trabajadores con historial idéntico salvo la reseña — 5★ vs. 1★ — quedan ordenados por esa diferencia). Nada estaba roto en ese lazo: ya andaba. **Parte B (frontend):** panel del comercio nuevo (0 turnos) con CTA "Publicá tu primer turno" + 3 pasos (`app/shifts/page.tsx`), y cartel una-sola-vez tras el primer turno publicado ("Ya estás buscando personal..."), persistido en `localStorage` (mismo criterio que el opt-in de push). **Parte C (backend + frontend, `ADR-0007`):** no-show manual del comercio (`POST /shifts/{id}/no-show`, sólo desde CONFIRMADO/EN_CAMINO — reabre el turno, `WorkerProfile.no_shows` nuevo y separado de `cancellations`, pesa el doble en el score de desempeño del matching, rompe `nunca_falto`) + cancelación tardía del comercio (`ShiftService.cancel_shift` detecta `COMMITTED_STATUSES`; **hallazgo:** antes no avisaba nada al trabajador — ahora `shift_cancelled_late` in-app+push y `CompanyProfile.late_cancellations` nuevo, simétrico). Migración `0014`. `pytest -q`: 205 passed (antes 194, +11: 2 unit + 9 integración). `tsc`/`build`/lint sin errores nuevos (lint baseline pre-existente sin cambios: 20 errores/10 warnings, verificado contra `origin/main`); e2e (17 specs) verdes. |
+| ADR-0005 Fase 1 (mensualidad al comercio) — completa | *(commits directos, sin PR — previo a #74/#75)* | Módulo `subscription` (dominio/aplicación/infraestructura/api): `Subscription` 1–1 con `Company` (`plan_code`, `status`, período, `turnos_usados_mes`); planes `gratis`/`básico`/`pro` (`domain/plans.py`); puerto `BillingGateway` + `MercadoPagoSuscripcionAdapter` (preapproval, sin split) detrás de `MERCADOPAGO_ACCESS_TOKEN`; migración `0011`. Gating en `ShiftService.publish_shift` (402 si se agotó el tope), pero real sólo si `subscriptions_enforced=true` (**default OFF**: en la beta los comercios publican libre, el uso se cuenta igual para tener el dato cuando se encienda la mensualidad). Frontend: pantalla "Mi plan" (3 tarjetas, plan actual, uso del mes con barra de progreso, manejo de 402/403 con CTA "Mejorá tu plan"). Cierra lo que la entrada anterior de esta bitácora describía como "en vuelo" |
+| ADR-0005 (doc) | #74 | `docs/adr/ADR-0005-pagos-y-antidesintermediacion.md`: mensualidad escalonada como modelo primario de monetización (mata el incentivo a desintermediar), comisión/split de MP diferido a Fase 2. Aprobado por la operadora |
+| ADR-0006 — alta de local desde el mapa | #75 | Onboarding de ubicación del comercio: buscar dirección con Nominatim/OSM (gratis, sin Google Places, rate-limit propio) + pin arrastrable como fuente de verdad de lat/lng, fallback al `LocationPicker`; fix de `address` que se perdía al guardar el perfil; CSP habilita Nominatim. E2E 9/9 |
+| Fix: pantalla en blanco si el backend no responde | #76 | Timeout de 12s (`AbortController`) en el chequeo de sesión + `NetworkError` distinguible de `ApiError`: backend dormido/caído degrada a deslogueado en vez de colgar la app en blanco |
+| Growth: página pública de turno + compartir WhatsApp + duplicar | #77 | `GET /shifts/{id}/public` sin auth (sólo turnos PUBLICADO, campos seguros, sin contacto del comercio ni postulantes); `/turno/[id]` con meta OG para compartir; botón "Compartir por WhatsApp" (Web Share API + fallback `wa.me`) y "Duplicar" (prellena el wizard con los datos del turno original, fechas +7 días) en el panel del comercio |
+| Recuperación de contraseña + email transaccional | #78 | Puerto `EmailSender` (`ResendEmailSender`/`NullEmailSender`/`FakeEmailSender`, flag por ausencia de `RESEND_API_KEY`, mismo patrón que Mercado Pago/Sentry); tabla `password_reset_tokens` (migración `0012`); `POST /auth/forgot-password` (202 genérico siempre, anti-enumeración, rate-limit silencioso de reenvío) y `POST /auth/reset-password` (error genérico, invalida tokens previos, **revoca todas las sesiones de refresh activas** — hallazgo de auditoría G3: sin esto una sesión robada sobrevivía a un reset); páginas `/recuperar` y `/restablecer`; de paso, email al trabajador cuando el comercio lo asigna (`assign_worker`, best-effort). Suite completa: 177 passed |
+| Rebrand — la cloche | #79 | Marca nueva (campana de servicio en trazo blanco sobre tile naranja, wordmark "staffya" con "ya" en naranja), assets regenerados (favicon/PWA/OG) con el naranja de marca real (`#ff6b00`/`#e85f00`); landing reescrita con disciplina premium (un solo acento, product shot con `OpportunityCard` real, bento asimétrico); tagline oficial "Personal gastronómico, ya." |
+| Esquema T1 de pulido post-rebrand (doc) | #80 | Crea `docs/PULIDO_ROADMAP.md`: spec T1 cerrado (Julieta define, Sonnet ejecuta sin re-decidir dirección) con la Ley de marca (un acento naranja, sin gradientes multicolor, radios/tipografía) y los batches C0 (bugs operadora) → C1 (coherencia interna) → C2 (legales) → C3 (confianza/conversión) → C4 (onboarding) |
+| Legales + consentimiento de registro | #81 | `/terminos` y `/privacidad` (estáticas, estética de la landing), footer con autoría, checkbox obligatorio de aceptación en `/register` (botón deshabilitado sin marcar). Cierra el **batch C2** de `PULIDO_ROADMAP.md`. Solo UI, backend sin cambios |
+| Batch C0 al roadmap (doc) | #82 | Suma a `docs/PULIDO_ROADMAP.md` el detalle de los bugs reportados por la operadora (modo oscuro forzado, selección de texto, mapa que no responde) a resolver en el siguiente PR |
+| C0+C1 — bugs de la operadora + coherencia interna | #83 | **C0** (bugs reales reportados, batch documentado en #82): fix de `reuseMaps` en `MapView` (el mapa quedaba con gestos deshabilitados al navegar sin refresh, causa raíz de "el mapa no responde"), `color-scheme: light` forzado (Chrome Android invertía a oscuro), `.no-select` en `Card.tsx`, ítem "Verificación" muerto ocultado. **C1** (coherencia con la Ley de marca de `PULIDO_ROADMAP.md`): gradientes off-brand (naranja→rojo/ámbar) reemplazados por el tile de marca en 8 componentes; `?rol=` desde la landing + `/register`/`/login` migrados a tokens del DS; `min-h` en `OpportunityCard`, fechas vía `formatShiftDate`, `EmptyState` en chats vacíos |
+| Panel: estados diferenciados + fin de selección + fix pull-to-refresh | #84 | `ShiftCard` consolida su paleta a los 4 colores de la Ley de marca (antes azul/ámbar fuera de marca) y atenúa+reordena los estados terminales al final; `.no-select` en `ShiftCard`/`CandidateCard`/postulantes/popup del mapa (el fix de C0 no los cubría, no usan `Card` compartido); fix de pull-to-refresh nativo de Chrome Android en `/search` (`overscroll-behavior-y: contain` en `html`, no sólo `body` — el root scroller real) |
+| Landing inmersiva | #85 | 5 capas de scroll sobre la landing existente: hero con stack de turnos que rota según el progreso, stats que cuentan al entrar al viewport (valores honestos, sin tracción inventada), marquee de puestos/barrios, riel vertical de "Cómo funciona", micro-parallax por tarjeta del bento; reduced-motion con fallback estático completo. `tsc`/`build`/lint verdes (30 problemas preexistentes, 0 nuevos); Playwright 15/15 |
+| Panel por familias de estado | #86 | `/shifts` reorganizado por familias (Todos/Buscando/En marcha/Terminados/Cancelados) con conteo por pestaña siempre igual a las tarjetas mostradas (bug reportado: contador desconectado de la lista); elimina el único azul fuera de marca (KPI "Buscando"); cierra el `.no-select` que había quedado a medio aplicar en la landing de #85. Playwright 17/17, lint sin regresiones |
+| Acceso moderno: Google + push | #87 | `POST /auth/google` (ID token verificado server-side vía `tokeninfo`, sin client secret; alta nueva pasa por "¿buscás trabajo o personal?"); botón "Continuar con Google" en `/login`/`/register`, no-op sin `GOOGLE_CLIENT_ID`. Notificaciones push (Web Push/VAPID): tabla `push_subscriptions` (migración `0013`), hook best-effort en el mismo punto donde se crean todas las notificaciones in-app, service worker mínimo (`public/sw.js`), opt-in tras la primera acción significativa. Fricción documentada: `pywebpush`/`http-ece` no instalable en el sandbox de esta sesión (sólo sdist) — Render debe verificar el build antes del primer deploy |
+| **Launch-gate** — cierre de 3 lazos construidos-pero-nunca-validados (`PRIMER_TURNO_REAL_SPEC`) | #88 | **Parte A (verificado, no roto):** test de integración de punta a punta (`tests/test_full_shift_lifecycle.py`) recorre publicar→postular→asignar→check-in→check-out→finalizar→ambos califican→reputación actualizada→**la reputación real SÍ entra al ranking de matching** de un turno nuevo (dos trabajadores con historial idéntico salvo la reseña — 5★ vs. 1★ — quedan ordenados por esa diferencia). Nada estaba roto en ese lazo: ya andaba. **Parte B (frontend):** panel del comercio nuevo (0 turnos) con CTA "Publicá tu primer turno" + 3 pasos (`app/shifts/page.tsx`), y cartel una-sola-vez tras el primer turno publicado ("Ya estás buscando personal..."), persistido en `localStorage` (mismo criterio que el opt-in de push). **Parte C (backend + frontend, `ADR-0007`):** no-show manual del comercio (`POST /shifts/{id}/no-show`, sólo desde CONFIRMADO/EN_CAMINO — reabre el turno, `WorkerProfile.no_shows` nuevo y separado de `cancellations`, pesa el doble en el score de desempeño del matching, rompe `nunca_falto`) + cancelación tardía del comercio (`ShiftService.cancel_shift` detecta `COMMITTED_STATUSES`; **hallazgo:** antes no avisaba nada al trabajador — ahora `shift_cancelled_late` in-app+push y `CompanyProfile.late_cancellations` nuevo, simétrico). Migración `0014`. `pytest -q`: 205 passed (antes 194, +11: 2 unit + 9 integración). `tsc`/`build`/lint sin errores nuevos (lint baseline pre-existente sin cambios: 20 errores/10 warnings, verificado contra `origin/main`); e2e (17 specs) verdes. |
+| Deuda chica post launch-gate: postulación aceptada + STATUS al día | `claude/estado-postulacion` *(PR draft pendiente)* | **Fix 1:** `ShiftService.assign_worker` dejaba la `ShiftApplication` PENDIENTE del trabajador elegido sin transicionar — quedaba "pendiente" para siempre aunque el comercio ya lo hubiera asignado (`docs/TECH_DEBT.md` P5). Ahora, de mínima invasión: `ShiftApplication.accept()` nuevo (dominio, mismo patrón que `withdraw()`) + `ShiftService._accept_application` busca la postulación por turno+trabajador (`ShiftApplicationRepository.get_by_shift_and_worker`, puerto ya inyectado desde la regla de doble turno) y la acepta si está PENDIENTE; si la asignación fue directa (búsqueda/mapa, sin postulación previa) no hace nada y no falla. **No** se tocan las postulaciones de los demás candidatos (RECHAZADA de los no elegidos sigue abierto, ver TECH_DEBT P5 actualizado). **Fix 2:** esta misma bitácora, puesta al día (faltaban #74–#87). `pytest -q`: 207 passed (antes 205, +2); `tsc`/`build`/lint sin errores nuevos (lint: mismo baseline 20/10); e2e 17/17 |
 
 ## En vuelo ahora
 
-- **ADR-0005 Fase 1 (mensualidad al comercio) — backend** *(PR pendiente)*:
-  módulo `subscription` nuevo (dominio/aplicación/infraestructura/api);
-  entidad `Subscription` 1–1 con `Company` (`plan_code`, `status`, período,
-  `turnos_usados_mes`); planes como config (`domain/plans.py`: `gratis`
-  3/mes, `basico` 15/mes $20.000, `pro` ilimitado $45.000 — semilla, a
-  calibrar); puerto `BillingGateway` + `MercadoPagoSuscripcionAdapter`
-  (preapproval, NO split) detrás de `MERCADOPAGO_ACCESS_TOKEN` (flag por
-  ausencia, como `sentry_dsn`) + `FakeBillingGateway` para tests; migración
-  `0011`. **Gating de capacidad**: `ShiftService.publish_shift` consulta el
-  plan vía el puerto de dominio de `subscription` (cero import de su capa de
-  aplicación) y devuelve 402 si se agotó el tope del período — dos tests
-  existentes (`test_shift.py::test_feed_pagination`,
-  `test_attendance.py::test_badges_and_level_recompute_...`) publicaban más
-  de 3 turnos para un mismo comercio y se ajustaron a subir a `pro` primero.
-  `pytest -q`: 167 passed (antes 156, +11), corrido 3× verde; migración
-  up/down verificada contra Postgres real. Falta la UI de planes/suscripción
-  del comercio (frontend en construcción en paralelo contra este contrato).
+- **`docs/PULIDO_ROADMAP.md` — batches C3 y C4 sin arrancar**: el orden fijado
+  por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
+  **C3** (confianza y conversión: `sitemap.ts`/`robots.ts` + OG por página,
+  skeletons coherentes, estados de error unificados, a11y AA) y **C4**
+  (primera experiencia post-registro: onboarding por rol — el flujo exacto lo
+  tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) quedan
+  pendientes.
 - **Feature de enganche #1: ping en tiempo real de turnos urgentes**
   (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
   N trabajadores disponibles más cercanos con la skill. Materializa la promesa
-  "<10 minutos".
+  "<10 minutos". Sin código todavía.
 - En cola (aprobadas por delegación): #3 progreso de gamificación, #4 panel de
-  ganancias, #5 onboarding. #2 WhatsApp bloqueado en cuenta API.
+  ganancias, #5 onboarding (probablemente se resuelve como parte de C4). #2
+  **WhatsApp Business API** sigue bloqueado en cuenta/API de Julieta — distinto
+  del botón "Compartir por WhatsApp" (deep-link `wa.me`, sin API, ya resuelto
+  en #77).
 
 > El **ciclo de robustez percibida** (auditoría de 39 hallazgos + 3 lotes de
 > fixes #69/#70/#71) quedó cerrado: no quedan cargas sin skeleton, errores de
@@ -101,8 +121,9 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 3. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
    Cloudinary del proyecto (TECH_DEBT I2), manual, sin credenciales no se
    puede automatizar.
-4. **Elegir logo**: hay 4 concepts presentados (recomendado: #2 Pin+Rayo); al
-   elegir se cablea en `Logo.tsx` + favicon + íconos PWA.
+4. ~~**Elegir logo**~~ — resuelto en el rebrand (#79): "la cloche" (campana de
+   servicio) reemplazó al rayo genérico, con todos los assets (favicon,
+   íconos PWA, OG) regenerados desde esa geometría.
 5. ~~**Tarjetas "grises" de empleados**~~ — Julieta indicó la pantalla
    exacta (postulantes en `/shifts/[id]/candidates`, panel del comercio):
    resuelto en este changeset (badge "Disponible" + tokens del DS en vez de
@@ -128,7 +149,14 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
   Sonnet implementan y auditan; Haiku para lo trivial (pedido explícito para
   no gastar de más).
 - **ADR obligatorio** para infra nueva (Redis, sesiones, multi-asignación,
-  pagos). ADR-0001 (MapLibre), ADR-0002 (sesiones revocables).
+  pagos). ADR-0001 (MapLibre), ADR-0002 (sesiones revocables), ADR-0003
+  (`quantity`=1), ADR-0004 (cancelación del trabajador + insignias), ADR-0005
+  (mensualidad-primero), ADR-0006 (alta de local desde el mapa), ADR-0007
+  (no-show/cancelación tardía manual, no cron).
+- **Ley de marca post-rebrand** (`docs/PULIDO_ROADMAP.md`, desde #79): un solo
+  acento naranja por pantalla, cero gradientes multicolor decorativos, la
+  cloche como único logo. Los batches de pulido (C0–C4) son un spec T1
+  cerrado: los ejecutores T2 no re-deciden la dirección, sólo implementan.
 - `quantity>1` era un bug de producto conocido: **ya se capó a 1** (API +
   wizard, R1.4). Multi-asignación real queda pendiente, sólo si el negocio la
   pide (nuevo ADR).
@@ -140,5 +168,10 @@ propósito** hasta que haya señal real de carga (regla del propio roadmap).
 - Veredicto y puntajes: [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md)
 - Plan por fases: [ROADMAP_IMPLEMENTATION.md](./ROADMAP_IMPLEMENTATION.md)
 - Diseño de mapas: [MAPS_REDESIGN.md](./MAPS_REDESIGN.md) + `docs/mockups/`
+- Pulido post-rebrand (Ley de marca, batches C0–C4): [PULIDO_ROADMAP.md](./PULIDO_ROADMAP.md)
+- ADRs: `docs/adr/` (0001 MapLibre, 0002 sesiones revocables, 0003 `quantity`,
+  0004 cancelación/insignias, 0005 mensualidad, 0006 alta desde el mapa, 0007
+  no-show/cancelación tardía)
+- Acceso moderno (Google + push): [ACCESO_MODERNO.md](./ACCESO_MODERNO.md)
 - Deuda vigente: [TECH_DEBT.md](./TECH_DEBT.md)
 - Cómo trabajar en el repo: [../CLAUDE.md](../CLAUDE.md)
