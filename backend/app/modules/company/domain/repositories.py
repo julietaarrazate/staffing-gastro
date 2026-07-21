@@ -32,3 +32,10 @@ class CompanyProfileRepository(ABC):
     @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
+
+    @abstractmethod
+    async def record_late_cancellation(self, profile_id: UUID) -> None:
+        """Registra que el comercio canceló un turno con el trabajador ya
+        confirmado (ADR-0007). Incrementa `late_cancellations` en 1. Nunca es
+        un UPDATE manual: siempre pasa por acá, disparado por
+        `ShiftService.cancel_shift`."""

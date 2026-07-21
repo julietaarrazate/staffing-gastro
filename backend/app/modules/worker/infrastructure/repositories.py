@@ -36,6 +36,7 @@ def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
         events_completed=model.events_completed,
         punctuality_rate=model.punctuality_rate,
         cancellations=model.cancellations,
+        no_shows=model.no_shows,
         badges=[WorkerBadge(b) for b in (model.badges or [])],
         level=GamificationLevel(model.level),
         created_at=model.created_at,
@@ -124,6 +125,14 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         if model is None:
             return
         model.cancellations += 1
+        self._recompute_badges_and_level(model)
+        await self._session.commit()
+
+    async def record_no_show(self, profile_id: UUID) -> None:
+        model = await self._session.get(WorkerProfileModel, profile_id)
+        if model is None:
+            return
+        model.no_shows += 1
         self._recompute_badges_and_level(model)
         await self._session.commit()
 

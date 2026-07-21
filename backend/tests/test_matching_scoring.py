@@ -47,6 +47,7 @@ def _candidate(**overrides) -> CandidateProfile:
         punctuality_rate=0.9,
         events_completed=10,
         cancellations=0,
+        no_shows=0,
         is_available=True,
         latitude=PALERMO[0],
         longitude=PALERMO[1],
@@ -230,6 +231,18 @@ def test_performance_score_is_completion_ratio():
     assert _performance_score(events_completed=8, cancellations=2) == pytest.approx(0.8)
     assert _performance_score(events_completed=0, cancellations=5) == 0.0
     assert _performance_score(events_completed=5, cancellations=0) == 1.0
+
+
+def test_performance_score_weighs_no_show_double_a_cancellation():
+    """ADR-0007: un no-show pesa el doble que una cancelación avisada en el
+    denominador del desempeño (valor semilla ajustable, ver REPUTATION.md)."""
+    # 1 no-show ~ 2 cancelaciones en el denominador.
+    with_no_show = _performance_score(events_completed=8, cancellations=0, no_shows=1)
+    with_two_cancellations = _performance_score(
+        events_completed=8, cancellations=2, no_shows=0
+    )
+    assert with_no_show == pytest.approx(with_two_cancellations)
+    assert with_no_show < _performance_score(events_completed=8, cancellations=1, no_shows=0)
 
 
 # --- Orden del ranking con trade-offs --------------------------------------

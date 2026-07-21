@@ -29,6 +29,11 @@ class CompanyProfile:
     rating: float = 0.0
     events_published: int = 0
     on_time_payment_rate: float = 0.0
+    # Cancelación tardía (Parte C, PRIMER_TURNO_REAL_SPEC / ADR-0007):
+    # cuenta las veces que el comercio canceló un turno con el trabajador ya
+    # CONFIRMADO (o más adelante en el ciclo) — efecto simétrico al
+    # `no_shows`/`cancellations` del trabajador.
+    late_cancellations: int = 0
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None

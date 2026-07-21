@@ -53,6 +53,7 @@ class WorkerProfileResponse(BaseModel):
     events_completed: int
     punctuality_rate: float
     cancellations: int
+    no_shows: int
     badges: list[WorkerBadge]
     level: GamificationLevel
     created_at: datetime | None = None

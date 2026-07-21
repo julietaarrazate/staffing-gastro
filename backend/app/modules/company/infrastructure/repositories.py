@@ -28,6 +28,7 @@ def _to_entity(model: CompanyProfileModel) -> CompanyProfile:
         rating=model.rating,
         events_published=model.events_published,
         on_time_payment_rate=model.on_time_payment_rate,
+        late_cancellations=model.late_cancellations,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -88,4 +89,11 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         if model is None:
             return
         model.rating = rating
+        await self._session.commit()
+
+    async def record_late_cancellation(self, profile_id: UUID) -> None:
+        model = await self._session.get(CompanyProfileModel, profile_id)
+        if model is None:
+            return
+        model.late_cancellations += 1
         await self._session.commit()

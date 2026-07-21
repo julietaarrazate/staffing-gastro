@@ -48,6 +48,7 @@ class WorkerProfileModel(Base):
     events_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     punctuality_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     cancellations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    no_shows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     badges: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     level: Mapped[str] = mapped_column(
         String(20), nullable=False, default=GamificationLevel.BRONCE.value

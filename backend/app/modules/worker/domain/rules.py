@@ -33,8 +33,10 @@ _NIVEL_PLATA = (5, 3.5)
 def compute_badges(profile: WorkerProfile) -> set[WorkerBadge]:
     """Calcula el conjunto de insignias que le corresponden al perfil ahora.
 
-    Reglas (ADR-0004):
-    - `nunca_falto`: 0 cancelaciones y al menos 3 eventos completados.
+    Reglas (ADR-0004, `nunca_falto` extendida por ADR-0007):
+    - `nunca_falto`: 0 cancelaciones, 0 no-shows y al menos 3 eventos
+      completados. Un no-show rompe la insignia igual que una cancelación
+      (de hecho es una señal peor: ni siquiera avisó).
     - `top_mozo` / `top_bartender`: tiene el skill, `rating >= 4.5` y
       `events_completed >= 10`.
     - `eventos_premium`: `events_completed >= 20` — proxy honesto por volumen;
@@ -46,7 +48,11 @@ def compute_badges(profile: WorkerProfile) -> set[WorkerBadge]:
     """
     badges: set[WorkerBadge] = set()
 
-    if profile.cancellations == 0 and profile.events_completed >= _NUNCA_FALTO_MIN_EVENTOS:
+    if (
+        profile.cancellations == 0
+        and profile.no_shows == 0
+        and profile.events_completed >= _NUNCA_FALTO_MIN_EVENTOS
+    ):
         badges.add(WorkerBadge.NUNCA_FALTO)
 
     if (

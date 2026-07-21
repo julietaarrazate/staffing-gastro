@@ -103,6 +103,10 @@ export interface Shift {
   check_out_longitude: number | null;
   check_out_at: string | null;
   paid_at: string | null;
+  // No-show (ADR-0007): registro auditable de cuándo/quién fue marcado
+  // ausente antes de que el turno se reabra a `buscando_personal`.
+  no_show_at: string | null;
+  last_no_show_worker_profile_id: string | null;
   created_at: string | null;
   company_name: string | null;
   company_logo_url: string | null;
@@ -165,6 +169,7 @@ export interface WorkerProfile {
   events_completed: number;
   punctuality_rate: number;
   cancellations: number;
+  no_shows: number;
   badges: string[];
   level: string;
 }
@@ -178,7 +183,9 @@ export type NotificationType =
   | "shift_reopened"
   | "chat_message"
   | "review_received"
-  | "new_applicant";
+  | "new_applicant"
+  | "shift_no_show"
+  | "shift_cancelled_late";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 
@@ -299,4 +306,5 @@ export interface CompanyProfile {
   rating: number;
   events_published: number;
   on_time_payment_rate: number;
+  late_cancellations: number;
 }

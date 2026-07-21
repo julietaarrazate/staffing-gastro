@@ -40,6 +40,12 @@ class WorkerProfile:
     events_completed: int = 0
     punctuality_rate: float = 0.0
     cancellations: int = 0
+    # No-show (Parte C, PRIMER_TURNO_REAL_SPEC / ADR-0007): distinto de
+    # `cancellations` (el trabajador avisa antes de que el comercio lo
+    # necesite) — acá el trabajador quedó CONFIRMADO/EN_CAMINO y el comercio
+    # lo marcó manualmente como no presentado. Señal más grave, se pondera
+    # aparte (ver `matching/domain/scoring.py` y `worker/domain/rules.py`).
+    no_shows: int = 0
     badges: list[WorkerBadge] = field(default_factory=list)
     level: GamificationLevel = GamificationLevel.BRONCE
 

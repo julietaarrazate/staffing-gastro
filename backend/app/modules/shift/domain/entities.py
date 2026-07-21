@@ -56,6 +56,13 @@ class Shift:
     check_out_at: datetime | None = None
     paid_at: datetime | None = None
 
+    # No-show (ADR-0007): registro de auditoría directo en el turno, mismo
+    # criterio que `check_in_at`/`check_out_at`. `worker_profile_id` se
+    # limpia al reabrir la búsqueda (igual que `worker_cancel`/`reject`), así
+    # que sin este campo se perdería quién fue marcado ausente.
+    no_show_at: datetime | None = None
+    last_no_show_worker_profile_id: UUID | None = None
+
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -155,6 +162,28 @@ class Shift:
             raise InvalidShiftTransitionError(
                 f"No se puede cancelar la asignación desde el estado {self.status.value}"
             )
+        self.worker_profile_id = None
+        self.status = ShiftStatus.BUSCANDO_PERSONAL
+
+    def no_show(self) -> None:
+        """CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: el comercio marca que el
+        trabajador asignado no se presentó (ADR-0007).
+
+        Sólo alcanzable **antes** del check-in: una vez que el trabajador
+        marcó su llegada, ya se presentó — un abandono después de eso es un
+        problema distinto (fuera de alcance, igual que documentaba
+        ADR-0004). A diferencia de `cancel()` (comercio, terminal), reabre el
+        turno igual que `worker_cancel()`: el comercio sigue necesitando
+        cubrir el puesto. Conserva quién fue el ausente en
+        `last_no_show_worker_profile_id` antes de limpiar `worker_profile_id`
+        (que se libera para poder reasignar), para dejar rastro auditable en
+        el propio turno."""
+        if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
+            raise InvalidShiftTransitionError(
+                f"No se puede marcar no-show desde el estado {self.status.value}"
+            )
+        self.no_show_at = datetime.now(timezone.utc)
+        self.last_no_show_worker_profile_id = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
 

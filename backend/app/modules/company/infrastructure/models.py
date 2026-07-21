@@ -41,6 +41,7 @@ class CompanyProfileModel(Base):
     rating: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     events_published: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     on_time_payment_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    late_cancellations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

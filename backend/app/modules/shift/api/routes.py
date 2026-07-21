@@ -388,6 +388,20 @@ async def check_out(
 
 
 @router.post(
+    "/{shift_id}/no-show",
+    response_model=ShiftResponse,
+    summary="Marcar que el trabajador asignado no se presentó (comercio)",
+)
+async def mark_no_show(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+    try:
+        return await service.mark_no_show(company_id, shift_id)
+    except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+
+
+@router.post(
     "/{shift_id}/finish",
     response_model=ShiftResponse,
     summary="Cerrar un turno ya trabajado (comercio)",

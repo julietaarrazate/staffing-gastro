@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
@@ -15,19 +16,29 @@ import {
   CardSkeletons,
   EmptyState,
   ErrorBanner,
+  Modal,
   SegmentedControl,
   useToast,
 } from "@/components/ui";
 import {
+  AlertTriangleIcon,
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
+  CloseIcon,
   CopyIcon,
   MessageIcon,
   SearchIcon,
+  SparklesIcon,
   WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
+
+// Primera experiencia del comercio nuevo (PRIMER_TURNO_REAL_SPEC Parte B):
+// tras publicar el primer turno alguna vez, mostramos un cartel breve una
+// sola vez ("ya estás buscando personal..."). Mismo criterio de "una sola
+// vez" que `push-prompt-context.tsx` (localStorage, no intrusivo).
+const FIRST_SHIFT_BANNER_SHOWN_KEY = "staffya_first_shift_banner_shown";
 
 // Familias de estado del panel (bug de la operadora, docs/PULIDO_ROADMAP.md
 // batch "panel-por-estados": "activos 2 pero abajo la lista completa con
@@ -96,17 +107,24 @@ const FAMILY_META: Record<
   },
 };
 
-type Action = "publish" | "cancel" | "finish" | "markPaid";
+type Action = "publish" | "cancel" | "finish" | "markPaid" | "noShow";
 
 const ACTION_PATH: Record<Action, string> = {
   publish: "publish",
   cancel: "cancel",
   finish: "finish",
   markPaid: "mark-paid",
+  noShow: "no-show",
 };
+
+// No-show (PRIMER_TURNO_REAL_SPEC Parte C, ADR-0007): sólo tiene sentido
+// marcarlo mientras el trabajador confirmado todavía no se presentó
+// (antes del check-in).
+const NO_SHOW_ELIGIBLE_STATUSES: ShiftStatus[] = ["confirmado", "en_camino"];
 
 export default function MyShiftsPage() {
   const { token } = useAuth();
+  const router = useRouter();
   const toast = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [tab, setTab] = useState<Tab>("todos");
@@ -114,6 +132,15 @@ export default function MyShiftsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
+  // Primera experiencia (Parte B): "ya se mostró antes" se lee UNA vez al
+  // montar (inicializador perezoso de useState, no un efecto) — mismo
+  // criterio de persistencia que `push-prompt-context.tsx`: se marca en
+  // localStorage recién cuando el usuario lo cierra, no apenas se calcula
+  // que correspondería mostrarlo (evita `setState` dentro de un efecto).
+  const [firstShiftBannerDismissed, setFirstShiftBannerDismissed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(FIRST_SHIFT_BANNER_SHOWN_KEY) === "1"
+  );
+  const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
 
   async function load() {
     if (!token) return;
@@ -132,6 +159,21 @@ export default function MyShiftsPage() {
   useEffect(() => {
     load();
   }, [token]);
+
+  function dismissFirstShiftBanner() {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(FIRST_SHIFT_BANNER_SHOWN_KEY, "1");
+    }
+    setFirstShiftBannerDismissed(true);
+  }
+
+  // Si este comercio tiene EXACTAMENTE un turno y ya está publicado (no un
+  // borrador), es su primer turno publicado — se deriva directo del render,
+  // sin estado propio ni efecto.
+  const isFirstPublishedShift =
+    shifts.length === 1 &&
+    (shifts[0].status === "publicado" || shifts[0].status === "buscando_personal");
+  const showFirstShiftBanner = isFirstPublishedShift && !firstShiftBannerDismissed;
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para loading/disabled), atrapa errores del POST (antes se
@@ -152,6 +194,11 @@ export default function MyShiftsPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function confirmNoShow(id: string) {
+    setConfirmNoShowId(null);
+    await run(id, "noShow");
   }
 
   // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
@@ -192,12 +239,44 @@ export default function MyShiftsPage() {
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} onRetry={load} />}
+
+      {/* Primera experiencia (Parte B): CTA imposible de errar + qué va a
+          pasar en 3 pasos concretos. Reusa el `EmptyState` de marca (mismo
+          componente que usan los estados vacíos por familia, abajo). */}
       {!loading && !error && shifts.length === 0 && (
         <EmptyState
           icon={<ClipboardIcon size={26} />}
-          title="Todavía no publicaste turnos"
-          subtitle="Creá tu primer turno y empezá a recibir candidatos en minutos."
+          title="Publicá tu primer turno"
+          subtitle="Publicás el turno, te recomendamos a los mejores candidatos disponibles cerca tuyo, y vos elegís a quién asignar. En minutos vas a tener gente lista para cubrirlo."
+          primaryAction={{
+            label: "Publicá tu primer turno",
+            onClick: () => router.push("/shifts/new"),
+          }}
         />
+      )}
+
+      {/* Cartel breve, una sola vez, tras publicar el primer turno de la
+          cuenta (ver el `useEffect` que arma `showFirstShiftBanner`). No
+          intrusivo: banner inline dentro del panel, no un modal. */}
+      {!loading && !error && showFirstShiftBanner && (
+        <div className="mt-4 flex items-start gap-3 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/15">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <SparklesIcon size={18} />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-ink">Ya estás buscando personal</p>
+            <p className="mt-0.5 text-sm text-ink/60">
+              Te avisamos apenas haya candidatos disponibles para asignar.
+            </p>
+          </div>
+          <button
+            onClick={dismissFirstShiftBanner}
+            aria-label="Cerrar"
+            className="shrink-0 rounded-full p-1 text-ink/40 hover:bg-primary/10 hover:text-ink/70"
+          >
+            <CloseIcon size={16} />
+          </button>
+        </div>
       )}
 
       {!loading && !error && shifts.length > 0 && (
@@ -283,6 +362,18 @@ export default function MyShiftsPage() {
                             >
                               <CopyIcon size={16} /> Duplicar
                             </Link>
+                            {NO_SHOW_ELIGIBLE_STATUSES.includes(shift.status) && (
+                              <Button
+                                size="sm"
+                                variant="surface"
+                                leftIcon={<AlertTriangleIcon size={16} />}
+                                onClick={() => setConfirmNoShowId(shift.id)}
+                                loading={busy === `${shift.id}:noShow`}
+                                disabled={busy !== null}
+                              >
+                                No se presentó
+                              </Button>
+                            )}
                             {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
                               <Button
                                 size="sm"
@@ -344,6 +435,29 @@ export default function MyShiftsPage() {
         message={planLimitMessage}
         onClose={() => setPlanLimitMessage(null)}
       />
+
+      <Modal
+        open={confirmNoShowId !== null}
+        onClose={() => setConfirmNoShowId(null)}
+        title="¿Marcar que no se presentó?"
+      >
+        <p className="text-sm text-zinc-600">
+          El turno se libera para volver a buscar personal y le va a impactar
+          la reputación al trabajador. Esta acción queda registrada.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmNoShowId(null)}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => confirmNoShowId && confirmNoShow(confirmNoShowId)}
+          >
+            Sí, no se presentó
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

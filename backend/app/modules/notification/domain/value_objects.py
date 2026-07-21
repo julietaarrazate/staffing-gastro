@@ -15,3 +15,7 @@ class NotificationType(str, Enum):
     CHAT_MESSAGE = "chat_message"
     REVIEW_RECEIVED = "review_received"
     NEW_APPLICANT = "new_applicant"
+    # ADR-0007 (Parte C, PRIMER_TURNO_REAL_SPEC): no-show y cancelación
+    # tardía del comercio.
+    SHIFT_NO_SHOW = "shift_no_show"
+    SHIFT_CANCELLED_LATE = "shift_cancelled_late"

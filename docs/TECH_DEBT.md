@@ -138,14 +138,25 @@ fecha de esta auditoría (2026-07-02).
 > **Sigue pendiente:** `on_time_payment_rate`/`events_published` (company) —
 > ver detalle y motivo en `REPUTATION.md` ("Inconsistencias a resolver").
 >
-> **Nuevo pendiente derivado (no implementado, fuera de alcance de
-> ADR-0004):** detección de **no-show** (el trabajador no cancela ni hace
-> check-in y el turno queda colgado en `confirmado`/`en_camino` pasado el
-> horario). Requeriría un job en background/cron para barrer turnos vencidos
-> sin check-in — infraestructura nueva (el repo hoy no tiene ningún
+> **Actualización 2026-07-21 ([ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md),
+> batch `PRIMER_TURNO_REAL_SPEC.md`):** resuelta la versión **manual** del
+> no-show — el comercio marca "no se presentó" desde el turno en marcha
+> (`POST /shifts/{id}/no-show`, sólo desde `CONFIRMADO`/`EN_CAMINO`), lo que
+> reabre el turno, incrementa `WorkerProfile.no_shows` (nuevo, separado de
+> `cancellations`) y notifica al trabajador. Tests en
+> `backend/tests/test_no_show_and_late_cancellation.py`. De paso se cerró
+> también la cancelación tardía del comercio (con el trabajador ya
+> confirmado): antes no avisaba nada al trabajador y no tenía efecto de
+> reputación sobre el comercio — ahora sí (`late_cancellations`,
+> notificación `shift_cancelled_late`).
+>
+> **Sigue pendiente (no resuelto por ADR-0007):** detección **automática**
+> de no-show (el trabajador no cancela ni hace check-in y el turno queda
+> colgado en `confirmado`/`en_camino` pasado el horario, sin que el comercio
+> lo marque a mano). Requeriría un job en background/cron para barrer turnos
+> vencidos sin check-in — infraestructura nueva (el repo hoy no tiene ningún
 > scheduler) sin necesidad demostrada todavía. Si se prioriza, entra como
-> ítem propio de este catálogo con su propio ADR (agrega un estado o una
-> forma de marcar abandono).
+> ítem propio de este catálogo con su propio ADR.
 
 - **Descripción:** `punctuality_rate`, `events_completed`, `cancellations`
   (worker) y `on_time_payment_rate`, `events_published` (company) se leen en
@@ -176,6 +187,12 @@ fecha de esta auditoría (2026-07-02).
 - **Dependencias:** ninguna externa para lo ya resuelto; lo pendiente de
   `cancellations` depende de una decisión de producto/ADR sobre el modelo de
   cancelación (actor + posible `no_show`).
+
+> **Actualización 2026-07-21 (ADR-0007):** el no-show manual ya está resuelto
+> (ver arriba) con un contador **separado** (`no_shows`), no mezclado en
+> `cancellations` como este párrafo original sugería como única vía. Sigue
+> pendiente, sin cambios: `mark_paid` → `events_published` (company) y
+> `on_time_payment_rate` (company) sin cálculo automático.
 - **Solución sugerida:** agregar estos efectos dentro de
   `ShiftService`/`ReviewService` (mismo patrón que ya usan para crear
   `Notification`), documentado en `REPUTATION.md`.

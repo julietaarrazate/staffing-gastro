@@ -40,12 +40,22 @@ def _punctuality_score(punctuality_rate: float) -> float:
     return min(max(punctuality_rate, 0.0), 1.0)
 
 
-def _performance_score(events_completed: int, cancellations: int) -> float:
+# Un no-show (el comercio lo marcó como no presentado, ADR-0007) es una señal
+# peor que una cancelación avisada con anticipación: no hay aviso, el
+# comercio se entera recién en el turno. Pesa el doble en el denominador del
+# desempeño. Valor semilla conservador, ajustable (mismo criterio que las
+# suscripciones Fase 1, ver docs/REPUTATION.md).
+NO_SHOW_PERFORMANCE_WEIGHT = 2
+
+
+def _performance_score(events_completed: int, cancellations: int, no_shows: int = 0) -> float:
     """Ratio de eventos completados sobre el total de compromisos asumidos.
 
-    +1 de suavizado para no penalizar (ni premiar) a quien todavía no tiene historial.
+    Sin historial (total == 0) devuelve neutral (0.5), para no penalizar ni
+    premiar a quien recién empieza.
     """
-    total = events_completed + cancellations
+    negative = cancellations + NO_SHOW_PERFORMANCE_WEIGHT * no_shows
+    total = events_completed + negative
     if total == 0:
         return 0.5
     return events_completed / total
@@ -70,7 +80,7 @@ def score_candidate(
         reputation_score=_reputation_score(candidate.rating),
         punctuality_score=_punctuality_score(candidate.punctuality_rate),
         performance_score=_performance_score(
-            candidate.events_completed, candidate.cancellations
+            candidate.events_completed, candidate.cancellations, candidate.no_shows
         ),
         distance_km=distance_km,
     )
