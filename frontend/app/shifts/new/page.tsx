@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { usePushPrompt } from "@/lib/push-prompt-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
@@ -61,6 +62,7 @@ function NewShiftWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   // Duplicar: precarga el wizard con los datos del turno original (fechas
   // +7 días, misma hora) y lo deja listo en el último paso para revisar y
@@ -133,7 +135,17 @@ function NewShiftWizard() {
         token
       );
       try {
-        await api.post(`/shifts/${created.id}/publish`, undefined, token);
+        // Idempotencia (product/IDEMPOTENCIA_SPEC.md): protege el POST de
+        // publicación en sí (el turno recién creado ya tiene un id propio,
+        // así que la key es por-turno).
+        await api.post(
+          `/shifts/${created.id}/publish`,
+          undefined,
+          token,
+          undefined,
+          keyFor(created.id)
+        );
+        clearIdempotencyKey(created.id);
         toast("¡Turno publicado! Ya pueden postularse");
         // Primera acción significativa del comercio, no al aterrizar (ver
         // docs/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere

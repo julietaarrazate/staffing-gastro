@@ -20,6 +20,7 @@ from app.main import app
 settings.rate_limit_enabled = False
 
 # Importar modelos para registrarlos en la metadata antes de create_all
+from app.core import idempotency as idempotency_models  # noqa: F401
 from app.modules.application.infrastructure import models as application_models  # noqa: F401
 from app.modules.chat.infrastructure import models as chat_models  # noqa: F401
 from app.modules.company.infrastructure import models as company_models  # noqa: F401

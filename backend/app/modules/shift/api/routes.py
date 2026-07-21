@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.api.dependencies import get_current_user
@@ -48,6 +49,11 @@ CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repositor
 # completas cuando la plataforma crezca.
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
+# Idempotencia (product/IDEMPOTENCIA_SPEC.md): sólo en las mutaciones de
+# cambio de estado listadas en el spec. Se declara SIEMPRE como el último
+# parámetro de dependencia de cada endpoint, después de `company_id`/
+# `worker_profile_id`, para que un 403 de rol falle antes de reservar la key.
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
 
 def _to_data(payload: ShiftInput) -> ShiftData:
@@ -217,9 +223,11 @@ async def update_shift(
     response_model=ShiftResponse,
     summary="Publicar un turno en borrador",
 )
-async def publish_shift(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def publish_shift(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.publish_shift(company_id, shift_id)
+        shift = await service.publish_shift(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
@@ -228,6 +236,9 @@ async def publish_shift(shift_id: UUID, company_id: CompanyIdDep, service: Servi
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
         ) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -235,13 +246,18 @@ async def publish_shift(shift_id: UUID, company_id: CompanyIdDep, service: Servi
     response_model=ShiftResponse,
     summary="Cancelar un turno",
 )
-async def cancel_shift(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def cancel_shift(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.cancel_shift(company_id, shift_id)
+        shift = await service.cancel_shift(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -254,15 +270,19 @@ async def assign_worker(
     payload: AssignWorkerRequest,
     company_id: CompanyIdDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.assign_worker(
+        shift = await service.assign_worker(
             company_id, shift_id, payload.worker_profile_id
         )
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -271,14 +291,20 @@ async def assign_worker(
     summary="Confirmar la asistencia a un turno asignado (trabajador)",
 )
 async def confirm_assignment(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.confirm_assignment(worker_profile_id, shift_id)
+        shift = await service.confirm_assignment(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except (InvalidShiftTransitionError, OverlappingShiftError) as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -339,15 +365,19 @@ async def check_in(
     payload: GeoCheckRequest,
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.check_in(
+        shift = await service.check_in(
             worker_profile_id, shift_id, payload.latitude, payload.longitude
         )
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -376,15 +406,19 @@ async def check_out(
     payload: GeoCheckRequest,
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.check_out(
+        shift = await service.check_out(
             worker_profile_id, shift_id, payload.latitude, payload.longitude
         )
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -392,13 +426,18 @@ async def check_out(
     response_model=ShiftResponse,
     summary="Marcar que el trabajador asignado no se presentó (comercio)",
 )
-async def mark_no_show(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def mark_no_show(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.mark_no_show(company_id, shift_id)
+        shift = await service.mark_no_show(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
@@ -26,6 +27,7 @@ export default function SubscriptionPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<SubscriptionPlan | null>(null);
   const [subscribing, setSubscribing] = useState(false);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -53,11 +55,16 @@ export default function SubscriptionPage() {
     if (!token || !pendingPlan) return;
     setSubscribing(true);
     try {
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
+      // plan elegido) reusa la key hasta que la suscripción termine bien.
       const res = await api.post<{ plan_code: string; status: string; checkout_url: string | null }>(
         "/subscription/subscribe",
         { plan_code: pendingPlan.code },
-        token
+        token,
+        undefined,
+        keyFor(pendingPlan.code)
       );
+      clearIdempotencyKey(pendingPlan.code);
       if (res.checkout_url) {
         window.location.href = res.checkout_url;
         return;

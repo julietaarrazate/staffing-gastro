@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +17,22 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Idempotencia (product/IDEMPOTENCIA_SPEC.md): una key por intento de
+  // calificar. Se reusa mientras el pedido (rating+comment) sea el mismo
+  // que el último intento (reintento manual tras un error de red); si el
+  // trabajador cambia la calificación antes de reintentar, es un pedido
+  // distinto y se genera una key nueva (si no, el backend respondería 422
+  // "misma clave, pedido distinto").
+  const lastAttemptRef = useRef<{ rating: number; comment: string; key: string } | null>(null);
+  function idempotencyKeyForCurrentInput(): string {
+    const last = lastAttemptRef.current;
+    if (last && last.rating === rating && last.comment === comment) {
+      return last.key;
+    }
+    const key = crypto.randomUUID();
+    lastAttemptRef.current = { rating, comment, key };
+    return key;
+  }
 
   const load = useCallback(() => {
     if (!token) return;
@@ -80,7 +96,9 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
       const created = await api.post<Review>(
         `/reviews/shifts/${shiftId}`,
         { rating, comment: comment || null },
-        token
+        token,
+        undefined,
+        idempotencyKeyForCurrentInput()
       );
       setReviews((prev) => [...prev, created]);
     } catch (err) {

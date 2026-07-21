@@ -5,10 +5,12 @@ Cada módulo de dominio (identity, worker, shift, ...) registra su propio router
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.core.idempotency import IdempotencyReplay
 from app.core.middleware import SecurityHeadersMiddleware
 from app.core.observability import RequestIdMiddleware, setup_logging, setup_sentry
 from app.modules.admin.api.routes import router as admin_router
@@ -64,6 +66,14 @@ app.add_middleware(RequestIdMiddleware)
 @app.get("/health", tags=["system"], summary="Healthcheck")
 async def health() -> dict[str, str]:
     return {"status": "ok", "service": settings.app_name}
+
+
+@app.exception_handler(IdempotencyReplay)
+async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONResponse:
+    """Reintento con una `Idempotency-Key` ya resuelta: se devuelve la misma
+    respuesta guardada la primera vez, sin re-ejecutar el handler (ver
+    `app/core/idempotency.py` y `product/IDEMPOTENCIA_SPEC.md`)."""
+    return JSONResponse(status_code=exc.status_code, content=exc.body)
 
 
 # --- Routers de los módulos ---

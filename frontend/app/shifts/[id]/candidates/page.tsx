@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
 import {
@@ -35,6 +36,7 @@ export default function ShiftCandidatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState<string | null>(null);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -62,7 +64,17 @@ export default function ShiftCandidatesPage() {
     if (!token) return;
     setAssigning(profileId);
     try {
-      await api.post(`/shifts/${shiftId}/assign`, { worker_profile_id: profileId }, token);
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
+      // turno+candidato) reusa la key hasta que la asignación termine bien.
+      const attemptKey = `${shiftId}:${profileId}`;
+      await api.post(
+        `/shifts/${shiftId}/assign`,
+        { worker_profile_id: profileId },
+        token,
+        undefined,
+        keyFor(attemptKey)
+      );
+      clearIdempotencyKey(attemptKey);
       toast("Turno asignado. El trabajador tiene que confirmar");
       router.push("/shifts");
     } catch (err) {

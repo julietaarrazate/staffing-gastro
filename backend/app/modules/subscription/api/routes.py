@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
@@ -29,6 +30,10 @@ ServiceDep = Annotated[SubscriptionService, Depends(get_subscription_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+# Idempotencia (product/IDEMPOTENCIA_SPEC.md): sólo la ruta, nunca la lógica
+# de conteo mensual (esa vive en ShiftService/SubscriptionService — frontera
+# del ejecutor paralelo en `claude/robustez-tz-bugs`).
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
 
 @router.get("", response_model=SubscriptionResponse, summary="Ver mi suscripción")
@@ -71,6 +76,7 @@ async def subscribe(
     company_id: CompanyIdDep,
     current_user: CurrentUserDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
         result = await service.subscribe(
@@ -80,6 +86,8 @@ async def subscribe(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
-    return SubscribeResponse(
+    response = SubscribeResponse(
         plan_code=result.plan_code, status=result.status, checkout_url=result.checkout_url
     )
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
