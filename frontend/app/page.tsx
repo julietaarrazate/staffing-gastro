@@ -101,7 +101,10 @@ export default function Home() {
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={reducedMotion ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
-            className="text-center"
+            // `.no-select` (regla C0, docs/PULIDO_ROADMAP.md fix 2): título,
+            // tagline y badge de marketing son chrome de vitrina — antes se
+            // seleccionaban como texto de página al arrastrar el dedo.
+            className="no-select text-center"
           >
             <span className="inline-flex items-center rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ink/60 ring-1 ring-line">
               Staffing gastronómico en Argentina
@@ -157,8 +160,10 @@ export default function Home() {
         <HowItWorksTimeline />
 
         {/* Features bento: monocromo, una sola tarjeta en naranja sólido,
-            con micro-parallax sutil por tarjeta */}
-        <section className="mt-20">
+            con micro-parallax sutil por tarjeta. `.no-select` (regla C0,
+            docs/PULIDO_ROADMAP.md fix 2): títulos y textos de marketing,
+            chrome de vitrina, no contenido de lectura. */}
+        <section className="no-select mt-20">
           <Reveal>
             <h2 className="text-center text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
               Todo lo que necesitás para resolver el staffing
@@ -201,9 +206,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Franja para trabajadores */}
+        {/* Franja para trabajadores. `.no-select` (regla C0,
+            docs/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
+            vitrina. */}
         <Reveal className="mt-20">
-          <section className="rounded-[var(--radius-card)] bg-ink px-6 py-14 text-center text-white">
+          <section className="no-select rounded-[var(--radius-card)] bg-ink px-6 py-14 text-center text-white">
             <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
               ¿Trabajás en gastronomía? Elegí tus turnos.
             </h2>
@@ -226,7 +233,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="mt-20 bg-ink py-10 text-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 text-center">
-          <span className="text-xl font-extrabold tracking-tight">
+          {/* `.no-select`: wordmark de marca, chrome, no texto de lectura. */}
+          <span className="no-select text-xl font-extrabold tracking-tight">
             staff<span className="text-primary">ya</span>
           </span>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70">

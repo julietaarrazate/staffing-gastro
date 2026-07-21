@@ -51,10 +51,17 @@ function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
   );
 }
 
-/** Franja de stats con vida: los números cuentan al entrar al viewport. */
+/**
+ * Franja de stats con vida: los números cuentan al entrar al viewport.
+ *
+ * `.no-select` (regla C0, docs/PULIDO_ROADMAP.md fix 2): es chrome de
+ * vitrina — un visitante no necesita seleccionar "25 km" como si fuera texto
+ * de un artículo, y antes se marcaba como cualquier página web al arrastrar
+ * el dedo sobre la franja.
+ */
 export default function StatsStrip() {
   return (
-    <section className="mt-20 sm:mt-24">
+    <section className="no-select mt-20 sm:mt-24">
       <div className="grid grid-cols-1 gap-8 rounded-[var(--radius-card)] bg-white p-8 shadow-[var(--shadow-soft)] ring-1 ring-line sm:grid-cols-3 sm:gap-6 sm:p-10">
         {STATS.map((s) => (
           <div key={s.label} className="text-center">

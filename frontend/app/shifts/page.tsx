@@ -1,58 +1,100 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import { Shift } from "@/lib/types";
+import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
-import { Button, CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import {
-  BoltIcon,
+  Button,
+  CardSkeletons,
+  EmptyState,
+  ErrorBanner,
+  SegmentedControl,
+  useToast,
+} from "@/components/ui";
+import {
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
   CopyIcon,
   MessageIcon,
+  SearchIcon,
   WalletIcon,
+  XCircleIcon,
 } from "@/components/icons";
 
-const ACTIVE = ["asignado", "confirmado", "en_camino", "check_in", "trabajando", "check_out"];
-const SEARCHING = ["publicado", "buscando_personal"];
-const DONE = ["finalizado", "pagado"];
+// Familias de estado del panel (bug de la operadora, docs/PULIDO_ROADMAP.md
+// batch "panel-por-estados": "activos 2 pero abajo la lista completa con
+// inactivos; buscando 1 y no muestra cuál; deberían estar agrupados por
+// estado, cancelados con cancelados, finalizados con finalizados"). Antes
+// había 3 KPIs estáticos (uno en azul — "Buscando", fuera de la Ley de marca)
+// que no filtraban nada, más una lista plana. Ahora el estado real de cada
+// turno decide en qué familia cae, y la familia decide qué pestaña lo
+// muestra — el conteo de cada pestaña es siempre el largo real de esa
+// familia, nunca un número desconectado de la lista.
+type Family = "borrador" | "buscando" | "en_marcha" | "terminado" | "cancelado";
 
-// Bug de la operadora: en /shifts los turnos cancelados/finalizados se veían
-// igual que los vivos y quedaban mezclados en la lista. Los terminales van al
-// final (orden estable dentro de cada grupo) para que arriba quede sólo lo
-// que todavía requiere atención.
-const TERMINAL = new Set(["cancelado", "finalizado", "pagado"]);
-function sortShiftsForPanel(list: Shift[]): Shift[] {
-  return [...list].sort((a, b) => Number(TERMINAL.has(a.status)) - Number(TERMINAL.has(b.status)));
+const FAMILY_STATUSES: Record<Family, ShiftStatus[]> = {
+  borrador: ["borrador"],
+  buscando: ["publicado", "buscando_personal"],
+  en_marcha: ["asignado", "en_camino", "check_in", "trabajando", "check_out"],
+  terminado: ["confirmado", "finalizado", "pagado"],
+  cancelado: ["cancelado"],
+};
+
+// Orden de despliegue en la pestaña "Todos": borradores primero (ni siquiera
+// se publicaron todavía), buscando, en marcha, terminados y cancelados al
+// final — los dos últimos ya atenuados por `ShiftCard` (opacity-65 en sus
+// estados terminales: finalizado/pagado/cancelado).
+const FAMILY_ORDER: Family[] = ["borrador", "buscando", "en_marcha", "terminado", "cancelado"];
+
+function familyOf(status: ShiftStatus): Family {
+  return FAMILY_ORDER.find((family) => FAMILY_STATUSES[family].includes(status)) ?? "buscando";
 }
 
-function Kpi({
-  icon,
-  value,
-  label,
-  tone,
-}: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-  tone: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-white p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-zinc-100">
-      <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}>{icon}</span>
-      <span className="mt-0.5 text-2xl font-extrabold leading-none text-zinc-900">{value}</span>
-      <span className="text-[11px] font-medium text-zinc-500">{label}</span>
-    </div>
-  );
-}
+type Tab = "todos" | Family;
+
+const FAMILY_META: Record<
+  Family,
+  { title: string; icon: React.ReactNode; emptyTitle: string; emptySubtitle: string }
+> = {
+  borrador: {
+    title: "Borradores",
+    icon: <ClipboardIcon size={14} />,
+    emptyTitle: "No tenés borradores",
+    emptySubtitle: "Los turnos que empezás a cargar y todavía no publicás quedan acá.",
+  },
+  buscando: {
+    title: "Buscando personal",
+    icon: <SearchIcon size={14} />,
+    emptyTitle: "Todavía no tenés turnos buscando personal",
+    emptySubtitle: "Publicá un turno y en minutos vas a tener candidatos rankeados, listos para asignar.",
+  },
+  en_marcha: {
+    title: "En marcha",
+    icon: <ClockIcon size={14} />,
+    emptyTitle: "No tenés turnos en marcha",
+    emptySubtitle: "Cuando asignes un turno a un trabajador, va a aparecer acá hasta que se cierre.",
+  },
+  terminado: {
+    title: "Terminados",
+    icon: <CheckCircleIcon size={14} />,
+    emptyTitle: "Todavía no tenés turnos terminados",
+    emptySubtitle: "Los turnos confirmados, finalizados o pagados van a quedar acá.",
+  },
+  cancelado: {
+    title: "Cancelados",
+    icon: <XCircleIcon size={14} />,
+    emptyTitle: "No tenés turnos cancelados",
+    emptySubtitle: "Buena señal: todavía no cancelaste ningún turno.",
+  },
+};
 
 type Action = "publish" | "cancel" | "finish" | "markPaid";
 
@@ -67,6 +109,7 @@ export default function MyShiftsPage() {
   const { token } = useAuth();
   const toast = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [tab, setTab] = useState<Tab>("todos");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -111,11 +154,26 @@ export default function MyShiftsPage() {
     }
   }
 
-  const kpis = {
-    active: shifts.filter((s) => ACTIVE.includes(s.status)).length,
-    searching: shifts.filter((s) => SEARCHING.includes(s.status)).length,
-    done: shifts.filter((s) => DONE.includes(s.status)).length,
-  };
+  // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
+  // acá, así que el número en el segmento y lo que se ve abajo nunca pueden
+  // desincronizarse (ese era el bug: "buscando 1" sin mostrar cuál).
+  const families = useMemo(() => {
+    const grouped: Record<Family, Shift[]> = {
+      borrador: [],
+      buscando: [],
+      en_marcha: [],
+      terminado: [],
+      cancelado: [],
+    };
+    for (const shift of shifts) grouped[familyOf(shift.status)].push(shift);
+    return grouped;
+  }, [shifts]);
+
+  // En "Todos" se listan sólo las familias con contenido (no tiene sentido
+  // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
+  // igual, vacía, con su propio mensaje de marca.
+  const visibleFamilies: Family[] =
+    tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
@@ -132,13 +190,6 @@ export default function MyShiftsPage() {
         </Link>
       </div>
 
-      {/* KPIs */}
-      <div className="mt-4 grid grid-cols-3 gap-2.5">
-        <Kpi icon={<BoltIcon size={18} />} value={kpis.active} label="Activos" tone="bg-orange-50 text-primary" />
-        <Kpi icon={<ClockIcon size={18} />} value={kpis.searching} label="Buscando" tone="bg-blue-50 text-blue-600" />
-        <Kpi icon={<CheckCircleIcon size={18} />} value={kpis.done} label="Finalizados" tone="bg-green-50 text-secondary" />
-      </div>
-
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!loading && !error && shifts.length === 0 && (
@@ -149,101 +200,144 @@ export default function MyShiftsPage() {
         />
       )}
 
-      <div className="mt-6 grid gap-4">
-        {sortShiftsForPanel(shifts).map((shift) => (
-          <ShiftCard key={shift.id} shift={shift}>
-            <div className="flex flex-wrap gap-2">
-              {shift.worker_profile_id && shift.status !== "cancelado" && (
-                <>
-                  <Link
-                    href={`/chats/${shift.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                  >
-                    <MessageIcon size={16} /> Chat
-                  </Link>
-                  <Link
-                    href={`/workers/${shift.worker_profile_id}`}
-                    className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                  >
-                    Ver trabajador
-                  </Link>
-                </>
-              )}
-              {shift.status === "borrador" && (
-                <Button
-                  size="sm"
-                  onClick={() => run(shift.id, "publish")}
-                  loading={busy === `${shift.id}:publish`}
-                  disabled={busy !== null}
-                >
-                  Publicar
-                </Button>
-              )}
-              {(shift.status === "publicado" || shift.status === "buscando_personal") && (
-                <Link
-                  href={`/shifts/${shift.id}/candidates`}
-                  className="rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white transition active:scale-95"
-                >
-                  Ver postulantes
-                </Link>
-              )}
-              {shift.status === "publicado" && (
-                <ShareShiftButton shift={shift} shiftId={shift.id} />
-              )}
-              <Link
-                href={`/shifts/new?duplicate=${shift.id}`}
-                className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-              >
-                <CopyIcon size={16} /> Duplicar
-              </Link>
-              {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
-                <Button
-                  size="sm"
-                  variant="surface"
-                  onClick={() => run(shift.id, "cancel")}
-                  loading={busy === `${shift.id}:cancel`}
-                  disabled={busy !== null}
-                >
-                  Cancelar
-                </Button>
-              )}
-              {shift.status === "check_out" && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  leftIcon={<CheckCircleIcon size={16} />}
-                  onClick={() => run(shift.id, "finish")}
-                  loading={busy === `${shift.id}:finish`}
-                  disabled={busy !== null}
-                >
-                  Cerrar turno
-                </Button>
-              )}
-              {shift.status === "finalizado" && (
-                <Button
-                  size="sm"
-                  leftIcon={<WalletIcon size={16} />}
-                  onClick={() => run(shift.id, "markPaid")}
-                  loading={busy === `${shift.id}:markPaid`}
-                  disabled={busy !== null}
-                >
-                  Marcar como pagado
-                </Button>
-              )}
-              {shift.status === "pagado" && (
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
-                  <CheckCircleIcon size={16} /> Pagado
-                </span>
-              )}
-            </div>
-            {(shift.status === "finalizado" || shift.status === "pagado") && (
-              <div className="mt-3">
-                <ReviewBox shiftId={shift.id} />
-              </div>
-            )}
-          </ShiftCard>
-        ))}
-      </div>
+      {!loading && !error && shifts.length > 0 && (
+        <>
+          {/* Control segmentado por familia de estado. En 390px de ancho 5
+              segmentos con conteo no entran sin achicar el texto a ilegible
+              — el `min-w` fuerza el ancho real del control y el contenedor
+              scrollea horizontal (mismo patrón que un tab bar nativo). */}
+          <div className="-mx-4 mt-4 overflow-x-auto px-4 no-scrollbar">
+            <SegmentedControl<Tab>
+              value={tab}
+              onChange={setTab}
+              className="min-w-[540px]"
+              options={[
+                { value: "todos", label: "Todos" },
+                { value: "buscando", label: `Buscando (${families.buscando.length})` },
+                { value: "en_marcha", label: `En marcha (${families.en_marcha.length})` },
+                { value: "terminado", label: `Terminados (${families.terminado.length})` },
+                { value: "cancelado", label: `Cancelados (${families.cancelado.length})` },
+              ]}
+            />
+          </div>
+
+          <div className="mt-2" data-testid="shifts-panel-list">
+            {visibleFamilies.map((family) => {
+              const list = families[family];
+              const meta = FAMILY_META[family];
+              return (
+                <section key={family} className="mt-6 first:mt-4" data-family={family}>
+                  <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ink/40">
+                    {meta.icon}
+                    {meta.title}
+                    <span className="font-semibold text-ink/25">· {list.length}</span>
+                  </h2>
+
+                  {list.length === 0 ? (
+                    <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
+                  ) : (
+                    <div className="grid gap-4">
+                      {list.map((shift) => (
+                        <ShiftCard key={shift.id} shift={shift}>
+                          <div className="flex flex-wrap gap-2">
+                            {shift.worker_profile_id && shift.status !== "cancelado" && (
+                              <>
+                                <Link
+                                  href={`/chats/${shift.id}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                                >
+                                  <MessageIcon size={16} /> Chat
+                                </Link>
+                                <Link
+                                  href={`/workers/${shift.worker_profile_id}`}
+                                  className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                                >
+                                  Ver trabajador
+                                </Link>
+                              </>
+                            )}
+                            {shift.status === "borrador" && (
+                              <Button
+                                size="sm"
+                                onClick={() => run(shift.id, "publish")}
+                                loading={busy === `${shift.id}:publish`}
+                                disabled={busy !== null}
+                              >
+                                Publicar
+                              </Button>
+                            )}
+                            {(shift.status === "publicado" || shift.status === "buscando_personal") && (
+                              <Link
+                                href={`/shifts/${shift.id}/candidates`}
+                                className="rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white transition active:scale-95"
+                              >
+                                Ver candidatos
+                              </Link>
+                            )}
+                            {shift.status === "publicado" && (
+                              <ShareShiftButton shift={shift} shiftId={shift.id} />
+                            )}
+                            <Link
+                              href={`/shifts/new?duplicate=${shift.id}`}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
+                            >
+                              <CopyIcon size={16} /> Duplicar
+                            </Link>
+                            {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
+                              <Button
+                                size="sm"
+                                variant="surface"
+                                onClick={() => run(shift.id, "cancel")}
+                                loading={busy === `${shift.id}:cancel`}
+                                disabled={busy !== null}
+                              >
+                                Cancelar
+                              </Button>
+                            )}
+                            {shift.status === "check_out" && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                leftIcon={<CheckCircleIcon size={16} />}
+                                onClick={() => run(shift.id, "finish")}
+                                loading={busy === `${shift.id}:finish`}
+                                disabled={busy !== null}
+                              >
+                                Cerrar turno
+                              </Button>
+                            )}
+                            {shift.status === "finalizado" && (
+                              <Button
+                                size="sm"
+                                leftIcon={<WalletIcon size={16} />}
+                                onClick={() => run(shift.id, "markPaid")}
+                                loading={busy === `${shift.id}:markPaid`}
+                                disabled={busy !== null}
+                              >
+                                Marcar como pagado
+                              </Button>
+                            )}
+                            {shift.status === "pagado" && (
+                              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                                <CheckCircleIcon size={16} /> Pagado
+                              </span>
+                            )}
+                          </div>
+                          {(shift.status === "finalizado" || shift.status === "pagado") && (
+                            <div className="mt-3">
+                              <ReviewBox shiftId={shift.id} />
+                            </div>
+                          )}
+                        </ShiftCard>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <PlanLimitModal
         open={planLimitMessage !== null}
