@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { haversineKm } from "@/lib/map/geo";
@@ -53,6 +54,8 @@ export default function MapPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   const carouselRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -112,16 +115,33 @@ export default function MapPage() {
   );
 
   async function apply(shift: Shift) {
-    if (!token) return;
+    if (!token || applyingId !== null) return;
+    setApplyingId(shift.id);
     try {
-      await api.post(`/applications/shifts/${shift.id}`, undefined, token);
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
+      // turno) reusa la key hasta que postularse termine bien; el `busy`
+      // (`applyingId`) además deshabilita el botón mientras está en vuelo.
+      await api.post(
+        `/applications/shifts/${shift.id}`,
+        undefined,
+        token,
+        undefined,
+        keyFor(shift.id)
+      );
+      clearIdempotencyKey(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       // Primera acción significativa, no al aterrizar (ver docs/ACCESO_MODERNO.md).
       requestOptIn();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) toast("Ya te habías postulado");
-      else toast("No se pudo enviar la postulación", "error");
+      if (err instanceof ApiError && err.status === 409) {
+        clearIdempotencyKey(shift.id);
+        toast("Ya te habías postulado");
+      } else {
+        toast("No se pudo enviar la postulación", "error");
+      }
+    } finally {
+      setApplyingId(null);
     }
   }
 
@@ -232,7 +252,14 @@ export default function MapPage() {
                     })()}
                   </p>
                 )}
-                <Button fullWidth size="sm" className="mt-3" onClick={() => apply(shift)}>
+                <Button
+                  fullWidth
+                  size="sm"
+                  className="mt-3"
+                  loading={applyingId === shift.id}
+                  disabled={applyingId !== null}
+                  onClick={() => apply(shift)}
+                >
                   Me interesa
                 </Button>
               </div>

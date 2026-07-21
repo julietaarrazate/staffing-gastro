@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.modules.identity.api.dependencies import get_current_user
 from app.modules.identity.domain.entities import User
 from app.modules.review.api.dependencies import get_review_service
@@ -20,6 +21,8 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 ServiceDep = Annotated[ReviewService, Depends(get_review_service)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+# Idempotencia (product/IDEMPOTENCIA_SPEC.md).
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
 _NOT_REVIEWABLE = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
@@ -59,9 +62,10 @@ async def submit_review(
     payload: SubmitReviewRequest,
     current_user: CurrentUserDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.submit_review(
+        review = await service.submit_review(
             current_user.id, shift_id, payload.rating, payload.comment
         )
     except ShiftNotReviewableError as exc:
@@ -76,3 +80,6 @@ async def submit_review(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="La calificación debe ser entre 1 y 5",
         ) from exc
+    response = ReviewResponse.model_validate(review)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response

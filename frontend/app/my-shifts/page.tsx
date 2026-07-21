@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
@@ -52,6 +53,7 @@ export default function MatchesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [confirmWithdrawId, setConfirmWithdrawId] = useState<string | null>(null);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -109,7 +111,10 @@ export default function MatchesPage() {
           return;
         }
       }
-      await api.post(`/shifts/${id}/${path}`, body, token);
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
+      // turno+acción) = misma key mientras no haya terminado bien.
+      await api.post(`/shifts/${id}/${path}`, body, token, undefined, keyFor(key));
+      clearIdempotencyKey(key);
       if (geo) setLastGeoAction(null);
       await load();
     } catch (err) {

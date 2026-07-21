@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
@@ -20,6 +21,7 @@ export default function WorkerHomePage() {
   const [available, setAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -83,7 +85,18 @@ export default function WorkerHomePage() {
     // se considera procesado.
     if (decision === "pass" || !token) return true;
     try {
-      await api.post(`/applications/shifts/${shift.id}`, undefined, token);
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): si la carta vuelve al
+      // mazo por un error de red y el trabajador vuelve a swipear a la
+      // derecha, es el MISMO intento — se reusa la key hasta que postularse
+      // termine bien.
+      await api.post(
+        `/applications/shifts/${shift.id}`,
+        undefined,
+        token,
+        undefined,
+        keyFor(shift.id)
+      );
+      clearIdempotencyKey(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
       // Primera acción significativa del flujo del trabajador: acá, y no al
       // aterrizar en la app, es cuando tiene sentido preguntar si quiere
@@ -94,6 +107,7 @@ export default function WorkerHomePage() {
       if (err instanceof ApiError && err.status === 409) {
         // Ya estaba postulado: no es un error real, se trata como descarte
         // (la carta no vuelve).
+        clearIdempotencyKey(shift.id);
         toast("Ya te habías postulado a este turno");
         return true;
       }

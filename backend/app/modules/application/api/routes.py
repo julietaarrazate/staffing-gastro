@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.modules.application.api.dependencies import get_application_service
 from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
 from app.modules.application.application.services import ApplicationService
@@ -23,6 +24,9 @@ WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
+# Idempotencia (product/IDEMPOTENCIA_SPEC.md): último parámetro de
+# dependencia, después de `worker_profile_id`/`company_id`.
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
 _SHIFT_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
@@ -37,10 +41,13 @@ _SHIFT_NOT_FOUND = HTTPException(
     summary="Postularme a un turno abierto (trabajador)",
 )
 async def apply_to_shift(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.apply(worker_profile_id, shift_id)
+        application = await service.apply(worker_profile_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
     except AlreadyAppliedError as exc:
@@ -48,6 +55,9 @@ async def apply_to_shift(
             status_code=status.HTTP_409_CONFLICT,
             detail="Ya te postulaste a este turno",
         ) from exc
+    response = ApplicationResponse.model_validate(application)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(

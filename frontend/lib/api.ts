@@ -19,9 +19,13 @@ export class NetworkError extends Error {}
 
 async function request<T>(
   path: string,
-  options: RequestInit & { token?: string | null; timeoutMs?: number } = {}
+  options: RequestInit & {
+    token?: string | null;
+    timeoutMs?: number;
+    idempotencyKey?: string;
+  } = {}
 ): Promise<T> {
-  const { token, headers, timeoutMs, ...rest } = options;
+  const { token, headers, timeoutMs, idempotencyKey, ...rest } = options;
 
   // Timeout opcional vía AbortController: sin esto, un backend dormido
   // (cold start de Render) cuelga el fetch indefinidamente. Sólo se aplica
@@ -38,6 +42,11 @@ async function request<T>(
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // Idempotencia (product/IDEMPOTENCIA_SPEC.md): el llamador genera un
+        // UUID por intento de mutación y lo reusa al reintentar (mismo
+        // intento = misma key), para que un doble-tap o un reintento de red
+        // no dupliquen la acción del lado del backend.
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         ...headers,
       },
     });
@@ -64,12 +73,19 @@ async function request<T>(
 export const api = {
   get: <T>(path: string, token?: string | null, timeoutMs?: number) =>
     request<T>(path, { method: "GET", token, timeoutMs }),
-  post: <T>(path: string, body?: unknown, token?: string | null, timeoutMs?: number) =>
+  post: <T>(
+    path: string,
+    body?: unknown,
+    token?: string | null,
+    timeoutMs?: number,
+    idempotencyKey?: string
+  ) =>
     request<T>(path, {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
       token,
       timeoutMs,
+      idempotencyKey,
     }),
   put: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined, token }),

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
@@ -132,6 +133,7 @@ export default function MyShiftsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   // Primera experiencia (Parte B): "ya se mostró antes" se lee UNA vez al
   // montar (inicializador perezoso de useState, no un efecto) — mismo
   // criterio de persistencia que `push-prompt-context.tsx`: se marca en
@@ -183,7 +185,12 @@ export default function MyShiftsPage() {
     const key = `${id}:${action}`;
     setBusy(key);
     try {
-      await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token);
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento = misma
+      // key mientras no haya terminado bien; un doble-tap sobre "Publicar"/
+      // "Cancelar" con `busy` ya deshabilitando el botón, más este header,
+      // cubre tanto el 90% cliente-side como el reintento de red server-side.
+      await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token, undefined, keyFor(key));
+      clearIdempotencyKey(key);
       await load();
     } catch (err) {
       if (action === "publish" && isPlanLimitError(err)) {
