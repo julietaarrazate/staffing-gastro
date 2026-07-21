@@ -25,6 +25,7 @@ Rutas relativas al prefijo del módulo (todas bajo `/api/v1`).
 |--------|------|----------|
 | POST | `/register` | Alta de usuario (worker/employer) |
 | POST | `/login` | Login → access + refresh token |
+| POST | `/google` | Login/alta con Google (ID token de Google Identity Services) — ver [ACCESO_MODERNO.md](./ACCESO_MODERNO.md) |
 | POST | `/refresh` | Renueva tokens con el refresh token (rota la sesión, ADR-0002) |
 | POST | `/logout` | Revoca la sesión del refresh token dado (204) |
 | GET | `/me` | Usuario autenticado |
@@ -86,6 +87,13 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | GET | `/notifications` | Listar avisos del usuario — **paginado** |
 | POST | `/{notification_id}/read` | Marcar leído |
 | WS | `/notifications/ws` | Avisos en vivo |
+
+### `notification` — `/push` (Web Push, ver [ACCESO_MODERNO.md](./ACCESO_MODERNO.md))
+| Método | Ruta | Qué hace |
+|--------|------|----------|
+| GET | `/push/public-key` | Clave pública VAPID (sin autenticar; `null` = push desactivado en el servidor) |
+| POST | `/push/subscribe` | Suscribir este dispositivo (idempotente por `endpoint`) |
+| DELETE | `/push/subscribe` | Desuscribir este dispositivo |
 
 ### `chat` — `/chats`
 | Método | Ruta | Qué hace |
