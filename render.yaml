@@ -1,9 +1,8 @@
-databases:
-  - name: staffya-db
-    plan: free
-    databaseName: staffya
-    user: staffya
-
+# DATABASE_URL se setea a mano con la connection string de Neon (sync=false),
+# igual que Andamio (ekp-app) y Cuadra. NO se usa una base gestionada por
+# Render: la de Render (plan free) vence y el blueprint la pisaba en cada
+# deploy. La base real es la de Neon (postgresql+asyncpg://...?ssl=require),
+# cargada en el dashboard de Render y NUNCA sobrescrita por este archivo.
 services:
   - type: web
     name: staffya-backend
@@ -14,9 +13,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: staffya-db
-          property: connectionString
+        sync: false # Neon connection string — se setea manual en el dashboard
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: ENVIRONMENT
@@ -26,7 +23,8 @@ services:
       - key: CORS_ORIGINS
         value: https://staffing-gastro.vercel.app
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente).
-      # Permite probar la app sin registrarse, con datos realistas.
+      # OJO: con la base real de Neon, esto siembra datos demo en producción.
+      # Apagar (poner "false" o quitar) ANTES de onboardear comercios reales.
       - key: SEED_DEMO_DATA
         value: "true"
       - key: SENTRY_DSN
