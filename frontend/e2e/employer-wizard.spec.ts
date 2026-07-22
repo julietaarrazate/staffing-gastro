@@ -48,6 +48,16 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
 
+  // Tras publicar, "Ver mi turno" navega a los candidatos del turno recién
+  // creado (Fix 2, docs/PULIDO_ROADMAP.md): se mockea para que esa pantalla
+  // tampoco dependa de la red.
+  await page.route("**/api/v1/applications/shifts/shift-new-1", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/shifts/shift-new-1/candidates", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
   await page.goto("/shifts/new");
 
   // Paso 1: puesto.
@@ -81,5 +91,15 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   const req = await publishRequest;
 
   expect(req.postDataJSON().quantity).toBe(1);
-  await expect(page).toHaveURL("/shifts");
+
+  // Fix 2 (docs/PULIDO_ROADMAP.md): en vez de redirigir de una, se muestra
+  // la pantalla "esto es lo que sigue" con los 4 próximos pasos del comercio.
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+  await expect(page.getByText("Ya estamos buscando personal para vos.")).toBeVisible();
+  await expect(page.getByText("Recibís candidatos")).toBeVisible();
+  await expect(page.getByText("Se califican", { exact: true })).toBeVisible();
+
+  // "Ver mi turno" navega a los candidatos del turno recién publicado.
+  await page.getByRole("button", { name: "Ver mi turno" }).click();
+  await expect(page).toHaveURL("/shifts/shift-new-1/candidates");
 });

@@ -13,6 +13,7 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
+import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import { Button, TextField, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon } from "@/components/icons";
 
@@ -61,6 +62,11 @@ function NewShiftWizard() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
+  // Pantalla "esto es lo que sigue" (Fix 2, docs/PULIDO_ROADMAP.md): se
+  // guarda el id recién publicado y se navega recién cuando el comercio
+  // interactúa con la pantalla (no de inmediato), a diferencia del
+  // `router.push` automático que había antes.
+  const [publishedShiftId, setPublishedShiftId] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
@@ -146,12 +152,13 @@ function NewShiftWizard() {
           keyFor(created.id)
         );
         clearIdempotencyKey(created.id);
-        toast("¡Turno publicado! Ya pueden postularse");
         // Primera acción significativa del comercio, no al aterrizar (ver
         // docs/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
         // enterarse por push apenas alguien se postule.
         requestOptIn();
-        router.push("/shifts");
+        // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
+        // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
+        setPublishedShiftId(created.id);
       } catch (err) {
         // El turno ya quedó creado como borrador: se puede publicar más tarde
         // desde el panel una vez que se mejore el plan (ver /shifts).
@@ -381,6 +388,19 @@ function NewShiftWizard() {
           // El borrador ya existe: lo puede publicar desde el panel cuando
           // mejore el plan (o si el límite se liberó al empezar un mes nuevo).
           router.push("/shifts");
+        }}
+      />
+
+      <ShiftPublishedNextSteps
+        open={publishedShiftId !== null}
+        onClose={() => {
+          setPublishedShiftId(null);
+          router.push("/shifts");
+        }}
+        onViewShift={() => {
+          const id = publishedShiftId;
+          setPublishedShiftId(null);
+          if (id) router.push(`/shifts/${id}/candidates`);
         }}
       />
     </div>
