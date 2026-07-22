@@ -4,32 +4,97 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
+> Última actualización: **2026-07-22**. Si pasó mucho tiempo desde esta fecha,
+> desconfiá de los números/estados de abajo y releé
+> [docs/STATUS.md](docs/STATUS.md) (la bitácora viva) antes de asumir nada.
+
 ## Contexto en 30 segundos
 
 **Staffya** es un marketplace de **staffing gastronómico en tiempo real**
 (estilo Uber + Tinder): conecta comercios con trabajadores eventuales para
 cubrir turnos. **Misión: cubrir una posición eventual en menos de 10 minutos.**
-Roles: `worker`, `employer`, `admin`. Producto en **español (AR/LATAM)**.
+Roles: `worker`, `employer`, `admin`. Producto en **español (AR/LATAM)**, marca
+"la cloche" (campana de servicio en trazo blanco sobre tile naranja `#FF6B00`,
+wordmark "staffya" con el "ya" en naranja; tagline "Personal gastronómico, ya.").
 
 - **Backend:** FastAPI · SQLAlchemy async · monolito modular DDD/hexagonal ·
-  deploy en Render (auto desde `main`).
-- **Frontend:** Next.js · TypeScript · Tailwind · PWA · deploy en Vercel (auto
-  desde `main`).
+  deploy en **Render** (auto desde `main`).
+- **Frontend:** Next.js · TypeScript · Tailwind · PWA · deploy en **Vercel**
+  (auto desde `main`).
+- **Base de datos: Neon** (Postgres serverless), **ya NO** el Postgres gestionado
+  de Render (ese plan free vencía a los 90 días — ver `render.yaml`, donde
+  `DATABASE_URL` está comentado explícitamente como "connection string de
+  Neon, se setea manual en el dashboard, nunca sobrescrita por este archivo").
+  Detalle de la migración: `backend/README.md` ("Base de datos en producción:
+  Neon en vez del Postgres de Render").
+
+Según `docs/LAUNCH_PLAN.md`, el veredicto vigente es **lista para beta cerrada
+con usuarios reales** (Palermo) — sólo faltan los pasos operativos de Julieta
+listados más abajo.
 
 ## Mapa de la documentación (`docs/`)
 
 **Al arrancar una sesión, leé primero [docs/STATUS.md](docs/STATUS.md)**: es la
 bitácora viva (qué se hizo, qué está en vuelo, qué sigue). Actualizala en cada
-merge relevante.
+merge relevante. También conviene mirar [docs/BUGS.md](docs/BUGS.md) (bugs
+recurrentes ya resueltos, para no reintroducirlos) y
+[docs/TECH_DEBT.md](docs/TECH_DEBT.md) (deuda vigente por prioridad).
 
 Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 
 - **Fundación** — [PRODUCT.md](docs/PRODUCT.md) · [DOMAIN.md](docs/DOMAIN.md) ·
   [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [PRINCIPLES.md](docs/PRINCIPLES.md)
+- **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
+  0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
+  0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
+  mapa · 0007 no-show/cancelación tardía manual.
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
 Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
+
+## Qué existe HOY (funcionalidades vigentes, no históricas)
+
+- Alta/login con email+contraseña, **recuperación de contraseña** por email
+  transaccional (Resend, flag por ausencia de `RESEND_API_KEY`).
+- **Acceso con Google** (ID token de Google Identity Services, sin client
+  secret) y **notificaciones push** (Web Push/VAPID) — ambos no-op sin sus env
+  vars (`GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
+  `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_CONTACT_EMAIL`). Detalle y
+  derivación completa en [docs/ACCESO_MODERNO.md](docs/ACCESO_MODERNO.md).
+  Passkeys (WebAuthn, "huella/PIN") queda **diseñado en detalle pero sin
+  construir** (Feature 3 del mismo doc).
+- **Alta de local desde el mapa** (ADR-0006): geocoder Nominatim/OSM gratis +
+  pin arrastrable como fuente de verdad de lat/lng.
+- **Suscripciones Fase 1** al comercio (ADR-0005): planes gratis/básico/pro,
+  pantalla "Mi plan", gating de publicación por tope mensual — **enforcement
+  OFF por default** (`subscriptions_enforced=false`: se cuenta el uso pero no
+  se bloquea a nadie en la beta).
+- **Compartir turno por WhatsApp** (deep-link `wa.me`, Web Share API con
+  fallback) + **duplicar turno** desde el panel del comercio. Página pública
+  de turno sin auth para compartir. (Distinto de la API de WhatsApp Business,
+  que sigue bloqueada por cuenta/credenciales de Julieta.)
+- **Panel del comercio por familias de estado** (Todos/Buscando/En
+  marcha/Terminados/Cancelados) con **stepper del ciclo de vida** del turno
+  (`ShiftLifecycleStepper`, mapeos distintos para comercio y trabajador) y
+  pantalla **"esto es lo que sigue"** al publicar un turno (timeline de los
+  próximos pasos, se muestra cada vez que se publica).
+- **No-show + cancelación tardía** (ADR-0007): el comercio puede marcar "no se
+  presentó" (reabre el turno, penaliza al trabajador) y la cancelación con el
+  trabajador ya comprometido avisa y penaliza al comercio
+  (`late_cancellations`) — antes no hacía ninguna de las dos cosas.
+- **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
+  (`backend/app/core/idempotency.py`).
+- **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
+  `hoy_art()`/`now_art()`): usar para toda fecha de NEGOCIO (edad, "turnos de
+  hoy", cortes de período); los timestamps de auditoría siguen en UTC a
+  propósito. Ver el patrón completo en [docs/BUGS.md](docs/BUGS.md).
+- **Legales**: `/terminos` y `/privacidad`, checkbox de consentimiento
+  obligatorio en `/register`.
+- Reputación real derivada del ciclo del turno (puntualidad, `events_completed`,
+  insignias/niveles con otorgamiento automático), visible en perfil/búsqueda/
+  postulantes — entra de verdad al ranking de matching (verificado
+  end-to-end en el launch-gate, #88).
 
 ## Antes de modificar código — checklist
 
@@ -62,9 +127,64 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Calidad — antes de commitear
 
-- Backend: `pytest -q` (verde).
+- Backend: `pytest -q` (verde). Suite de referencia: **~218 tests**
+  (verificar el número real con `pytest -q --collect-only`, cambia con cada
+  feature — no memorizarlo como constante).
 - Frontend: `npx tsc --noEmit` **y** `npm run build`.
+- E2E: `npx playwright test` (Playwright, API mockeada, sin backend real).
+  Suite de referencia: **~19 tests** en 10 specs (`frontend/e2e/`), corre en
+  CI en cada PR/push a `main` junto con `pytest`/`tsc`/`build`
+  (`.github/workflows/ci.yml`).
+- `npm run lint` **no** corre en CI (deuda conocida, ver `docs/TECH_DEBT.md`
+  T5) — no lo asumas como gate aunque el checklist de sesión lo mencione.
 - Reportá el resultado **real**, no el esperado. Si algo falla, se dice.
+
+## Deuda conocida viva (no reabrir sin necesidad)
+
+Catálogo completo y priorizado en [docs/TECH_DEBT.md](docs/TECH_DEBT.md);
+patrones de bugs ya resueltos (para no reintroducirlos) en
+[docs/BUGS.md](docs/BUGS.md). Lo más relevante para no sorprenderse:
+
+- **Postulaciones de los no-elegidos quedan "pendiente" para siempre**
+  (TECH_DEBT P5): cuando el comercio asigna a un candidato, la postulación del
+  elegido sí pasa a ACEPTADA, pero las de los demás postulantes del mismo
+  turno no se marcan RECHAZADA automáticamente. Aceptado como deuda menor
+  (UX, no bug de integridad); resolver en un PR acotado si se prioriza.
+- **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
+  `docs/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
+  arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).
+- **`docs/PULIDO_ROADMAP.md` batches C3 (confianza/conversión: SEO,
+  skeletons, a11y) y C4 (onboarding post-registro) sin arrancar** — el orden
+  del propio roadmap es C2→C0+C1→C3→C4; C4 necesita que T1 (Julieta) cierre
+  el spec del flujo exacto antes de ejecutar.
+- Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: no-show automático por cron
+  (hoy sólo manual, ADR-0007), `on_time_payment_rate`/`events_published` del
+  comercio nunca se actualizan, `npm run lint` fuera de CI (~20 errores/10
+  warnings baseline), formularios con `<input>` crudo en 4 pantallas (F1).
+
+## Pendiente de la operadora (Julieta — no es trabajo de código)
+
+1. **Env vars en Render/Vercel** para lo ya construido y no probado
+   end-to-end por falta de credenciales en el entorno de desarrollo:
+   `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `VAPID_PUBLIC_KEY`/
+   `VAPID_PRIVATE_KEY`/`VAPID_CONTACT_EMAIL`, `SENTRY_DSN`/
+   `NEXT_PUBLIC_SENTRY_DSN`, `RESEND_API_KEY`, `MERCADOPAGO_ACCESS_TOKEN`.
+   Todo el código ya es no-op sin sus variables (mismo patrón "flag por
+   ausencia" en todo el repo).
+2. **Apagar `SEED_DEMO_DATA`** en `render.yaml`/Render **antes** de
+   onboardear comercios reales (hoy sigue en `"true"`, re-siembra datos demo
+   idempotentes sobre la base de Neon en cada arranque en frío).
+3. **Ensayo de restore de Neon**: confirmar que el backup/restore de Neon
+   funciona de verdad (no sólo que existe) antes de depender de él para
+   producción con usuarios reales.
+4. Confirmar en el dashboard de Render que el deploy quedó verde contra Neon
+   (código y `DATABASE_URL` ya están, falta la verificación visual — sin
+   acceso a Render desde una sesión de agente).
+5. **WhatsApp Business API** (feature de enganche): requiere cuenta/API del
+   lado de Julieta — distinto del botón "Compartir por WhatsApp" (`wa.me`),
+   ya resuelto en #77.
+6. Subir fotos reales al seed (R2.5): requiere credenciales de la cuenta
+   Cloudinary del proyecto, no automatizable sin ellas.
 
 ## Convenciones de git
 
@@ -88,5 +208,27 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 - Todo en **español**, incluido el texto de cara al usuario.
 - Identidad **monocromática** (blanco + ink `#111` + acento `#FF6B00`),
-  iconografía **Lucide**, sensación de app nativa. Detalle en la doc de diseño
-  (Fase 6).
+  iconografía **Lucide**, sensación de app nativa. Un solo acento naranja por
+  pantalla, cero gradientes multicolor decorativos, "la cloche" como único
+  logo (Ley de marca post-rebrand, `docs/PULIDO_ROADMAP.md`, desde #79).
+  Detalle en la doc de diseño (Fase 6).
+
+## Para continuar en un chat nuevo
+
+Si arrancás una sesión sin más contexto que este archivo, copiá/adaptá este
+prompt de arranque:
+
+> Estás en el repo de **Staffya** (marketplace de staffing gastronómico en
+> tiempo real). Leé `CLAUDE.md` y después `docs/STATUS.md` (bitácora viva,
+> qué está en vuelo y qué sigue) antes de tocar nada. Si tu tarea toca deuda
+> conocida, revisá también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Aislate en
+> worktree (`git worktree add ...` desde `origin/main`), trabajá en rama de
+> feature, PR en draft, y reportá el resultado real de `pytest -q` / `tsc
+> --noEmit` / `npm run build` (y Playwright si tocaste frontend) — no el
+> esperado. Actualizá `docs/STATUS.md` en el mismo PR de cualquier cambio
+> relevante.
+
+No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
+operadora" arriba — todo lo demás del backlog implementable sin credenciales
+ni decisiones de Julieta está cerrado (ver `docs/STATUS.md`, "Estado en una
+línea").
