@@ -12,6 +12,7 @@ import ShiftCard from "@/components/ShiftCard";
 import ReviewBox from "@/components/ReviewBox";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
+import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import {
   Button,
   CardSkeletons,
@@ -26,20 +27,12 @@ import {
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
-  CloseIcon,
   CopyIcon,
   MessageIcon,
   SearchIcon,
-  SparklesIcon,
   WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
-
-// Primera experiencia del comercio nuevo (PRIMER_TURNO_REAL_SPEC Parte B):
-// tras publicar el primer turno alguna vez, mostramos un cartel breve una
-// sola vez ("ya estás buscando personal..."). Mismo criterio de "una sola
-// vez" que `push-prompt-context.tsx` (localStorage, no intrusivo).
-const FIRST_SHIFT_BANNER_SHOWN_KEY = "staffya_first_shift_banner_shown";
 
 // Familias de estado del panel (bug de la operadora, docs/PULIDO_ROADMAP.md
 // batch "panel-por-estados": "activos 2 pero abajo la lista completa con
@@ -134,15 +127,14 @@ export default function MyShiftsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
-  // Primera experiencia (Parte B): "ya se mostró antes" se lee UNA vez al
-  // montar (inicializador perezoso de useState, no un efecto) — mismo
-  // criterio de persistencia que `push-prompt-context.tsx`: se marca en
-  // localStorage recién cuando el usuario lo cierra, no apenas se calcula
-  // que correspondería mostrarlo (evita `setState` dentro de un efecto).
-  const [firstShiftBannerDismissed, setFirstShiftBannerDismissed] = useState(
-    () => typeof window !== "undefined" && localStorage.getItem(FIRST_SHIFT_BANNER_SHOWN_KEY) === "1"
-  );
   const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
+  // Pantalla "esto es lo que sigue" (Fix 2, docs/PULIDO_ROADMAP.md): guarda
+  // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
+  // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
+  // personal...", launch-gate #88): esta versión es más rica y se muestra
+  // cada vez que se publica, no sólo la primera vez (ver
+  // `ShiftPublishedNextSteps` para la justificación completa).
+  const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
   async function load() {
     if (!token) return;
@@ -162,21 +154,6 @@ export default function MyShiftsPage() {
     load();
   }, [token]);
 
-  function dismissFirstShiftBanner() {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(FIRST_SHIFT_BANNER_SHOWN_KEY, "1");
-    }
-    setFirstShiftBannerDismissed(true);
-  }
-
-  // Si este comercio tiene EXACTAMENTE un turno y ya está publicado (no un
-  // borrador), es su primer turno publicado — se deriva directo del render,
-  // sin estado propio ni efecto.
-  const isFirstPublishedShift =
-    shifts.length === 1 &&
-    (shifts[0].status === "publicado" || shifts[0].status === "buscando_personal");
-  const showFirstShiftBanner = isFirstPublishedShift && !firstShiftBannerDismissed;
-
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para loading/disabled), atrapa errores del POST (antes se
   // dejaban sin manejar) y refresca la lista al terminar.
@@ -192,6 +169,7 @@ export default function MyShiftsPage() {
       await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token, undefined, keyFor(key));
       clearIdempotencyKey(key);
       await load();
+      if (action === "publish") setJustPublishedId(id);
     } catch (err) {
       if (action === "publish" && isPlanLimitError(err)) {
         setPlanLimitMessage(getErrorMessage(err));
@@ -260,30 +238,6 @@ export default function MyShiftsPage() {
             onClick: () => router.push("/shifts/new"),
           }}
         />
-      )}
-
-      {/* Cartel breve, una sola vez, tras publicar el primer turno de la
-          cuenta (ver el `useEffect` que arma `showFirstShiftBanner`). No
-          intrusivo: banner inline dentro del panel, no un modal. */}
-      {!loading && !error && showFirstShiftBanner && (
-        <div className="mt-4 flex items-start gap-3 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/15">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <SparklesIcon size={18} />
-          </span>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-ink">Ya estás buscando personal</p>
-            <p className="mt-0.5 text-sm text-ink/60">
-              Te avisamos apenas haya candidatos disponibles para asignar.
-            </p>
-          </div>
-          <button
-            onClick={dismissFirstShiftBanner}
-            aria-label="Cerrar"
-            className="shrink-0 rounded-full p-1 text-ink/40 hover:bg-primary/10 hover:text-ink/70"
-          >
-            <CloseIcon size={16} />
-          </button>
-        </div>
       )}
 
       {!loading && !error && shifts.length > 0 && (
@@ -441,6 +395,16 @@ export default function MyShiftsPage() {
         open={planLimitMessage !== null}
         message={planLimitMessage}
         onClose={() => setPlanLimitMessage(null)}
+      />
+
+      <ShiftPublishedNextSteps
+        open={justPublishedId !== null}
+        onClose={() => setJustPublishedId(null)}
+        onViewShift={() => {
+          const id = justPublishedId;
+          setJustPublishedId(null);
+          if (id) router.push(`/shifts/${id}/candidates`);
+        }}
       />
 
       <Modal

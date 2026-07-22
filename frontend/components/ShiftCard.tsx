@@ -5,6 +5,7 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { Avatar, Button } from "@/components/ui";
 import { CalendarIcon, FlameIcon, MapPinIcon, RouteIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
+import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
@@ -39,9 +40,13 @@ const TERMINAL_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
 
 export default function ShiftCard({
   shift,
+  perspective = "employer",
   children,
 }: {
   shift: Shift;
+  /** "employer" (default, `/shifts`): Publicado→Asignado→En curso→Finalizado.
+   *  "worker" (`/my-shifts`): Postulado→Aceptado→En curso→Finalizado. */
+  perspective?: ShiftStepperPerspective;
   children?: React.ReactNode;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
@@ -55,6 +60,8 @@ export default function ShiftCard({
     // texto de lectura real que cuelga de acá (comentario de reseña ya
     // escrito, ver ReviewBox) se reactiva puntualmente con `.select-text`.
     <div
+      data-testid="shift-card"
+      data-shift-id={shift.id}
       className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
         isTerminal ? "opacity-65 saturate-[0.85]" : ""
       }`}
@@ -108,6 +115,10 @@ export default function ShiftCard({
             {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}
           </div>
         </div>
+
+        {/* Stepper del ciclo de vida (docs/PULIDO_ROADMAP.md, inspiración
+            Clickie): de un vistazo, en qué punto del viaje está el turno. */}
+        <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink/70">
           <span className="inline-flex items-center gap-1.5">

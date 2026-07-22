@@ -185,7 +185,7 @@ export default function MatchesPage() {
             />
           ) : (
             shifts.map((shift) => (
-              <ShiftCard key={shift.id} shift={shift}>
+              <ShiftCard key={shift.id} shift={shift} perspective="worker">
                 {shift.status !== "cancelado" && (
                   <div className="mb-2 flex flex-wrap gap-2">
                     <Link
@@ -305,7 +305,7 @@ export default function MatchesPage() {
               const shift = appShifts[application.shift_id];
               if (!shift) return null;
               return (
-                <ShiftCard key={application.id} shift={shift}>
+                <ShiftCard key={application.id} shift={shift} perspective="worker">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
                       <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
