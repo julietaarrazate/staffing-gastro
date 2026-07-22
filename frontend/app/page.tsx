@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
@@ -8,10 +9,15 @@ import type { ComponentType } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Reveal from "@/components/landing/Reveal";
 import ScrollHeroShowcase from "@/components/landing/ScrollHeroShowcase";
-import PositionsMarquee from "@/components/landing/PositionsMarquee";
-import StatsStrip from "@/components/landing/StatsStrip";
-import HowItWorksTimeline from "@/components/landing/HowItWorksTimeline";
-import ParallaxCard from "@/components/landing/ParallaxCard";
+
+// Secciones por debajo del fold: se cargan en chunks aparte (`next/dynamic`)
+// para no engordar el bundle inicial y que el hero pinte antes (menos pantalla
+// en blanco al abrir). Se siguen renderizando en el servidor (`ssr` default),
+// así que el contenido/SEO no cambia; sólo se difiere su JS de cliente.
+const PositionsMarquee = dynamic(() => import("@/components/landing/PositionsMarquee"));
+const StatsStrip = dynamic(() => import("@/components/landing/StatsStrip"));
+const HowItWorksTimeline = dynamic(() => import("@/components/landing/HowItWorksTimeline"));
+const ParallaxCard = dynamic(() => import("@/components/landing/ParallaxCard"));
 import {
   BellIcon,
   type IconProps,
@@ -88,9 +94,15 @@ export default function Home() {
     }
   }, [loading, user, router]);
 
-  // Mientras carga la sesión o se está redirigiendo a un usuario logueado,
-  // no parpadeamos la landing.
-  if (loading || user) return null;
+  // Sólo ocultamos la landing cuando YA sabemos que hay sesión (redirigiendo a
+  // la home del rol). Antes se ocultaba también mientras `loading` — pero como
+  // esta ruta se prerenderiza estática y en el prerender `loading` arranca en
+  // `true`, el HTML estático salía VACÍO: el visitante veía blanco hasta que el
+  // cliente hidrataba y verificaba sesión. Al no bloquear por `loading`, el
+  // contenido de marketing queda en el HTML estático y pinta al instante; el
+  // usuario logueado igual se va por el `useEffect` de arriba (un parpadeo
+  // breve del landing es preferible a un blanco para todos los visitantes).
+  if (user) return null;
 
   return (
     <div className="overflow-x-clip">
