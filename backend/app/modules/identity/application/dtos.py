@@ -5,6 +5,7 @@ Separan los comandos/resultados de los casos de uso de los esquemas HTTP (API).
 
 from dataclasses import dataclass
 
+from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 
 
@@ -26,6 +27,11 @@ class LoginCommand:
 class TokenPair:
     access_token: str
     refresh_token: str
+    # Usuario ya resuelto al emitir los tokens (login/google/refresh ya lo
+    # tienen en mano): se devuelve embebido para que el cliente no tenga que
+    # encadenar un `GET /auth/me` tras entrar — un round-trip menos al backend
+    # remoto en cada login y en cada arranque de la app (ver auth-context).
+    user: User
     token_type: str = "bearer"
 
 

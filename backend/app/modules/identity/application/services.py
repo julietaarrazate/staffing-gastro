@@ -273,6 +273,7 @@ class IdentityService:
         return TokenPair(
             access_token=create_access_token(str(user.id), extra_claims=claims),
             refresh_token=create_refresh_token(str(user.id), jti=jti),
+            user=user,
         )
 
     @staticmethod
