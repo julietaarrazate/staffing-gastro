@@ -12,9 +12,13 @@ el resto. Usa la misma `DATABASE_URL` configurada en `.env`/entorno.
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.modules.application.infrastructure.repositories import (
     SqlAlchemyShiftApplicationRepository,
@@ -30,6 +34,10 @@ from app.modules.identity.application.dtos import RegisterCommand
 from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.exceptions import EmailAlreadyExistsError
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.infrastructure.google_token_verifier import (
+    GoogleTokenInfoVerifier,
+)
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.identity.infrastructure.repositories import (
     SqlAlchemyPasswordResetTokenRepository,
     SqlAlchemyRefreshSessionRepository,
@@ -367,6 +375,26 @@ WORKERS = [
 ]
 
 
+async def _existing_emails(session: AsyncSession, emails: list[str]) -> set[str]:
+    """Emails ya registrados de la lista dada, en UNA sola consulta
+    (`WHERE email IN (...)`).
+
+    R-perf (docs/PERFORMANCE_REPORT.md, "Seed en cada arranque"): antes cada
+    entrada demo (comercio o trabajador) pagaba su propio `exists_by_email`
+    dentro de `identity_service.register` — con `SEED_DEMO_DATA=true` en cada
+    boot, eso son 26 round-trips SECUENCIALES a una base remota (Neon) sólo
+    para descubrir que ya existen y no hay nada que hacer. Con esto se sabe
+    de antemano, en una consulta, cuáles saltarse SIN llamar a `register` en
+    absoluto (que ya no dispara ninguna query para esas filas)."""
+    if not emails:
+        return set()
+    stmt = select(UserModel.email).where(
+        UserModel.email.in_([email.lower() for email in emails])
+    )
+    result = await session.execute(stmt)
+    return {row[0] for row in result.all()}
+
+
 async def _seed_companies(session) -> set[str]:
     """Crea comercios demo. Devuelve los emails recién creados (para que el
     seed de turnos sólo siembre para comercios nuevos y sea idempotente)."""
@@ -377,11 +405,19 @@ async def _seed_companies(session) -> set[str]:
         SqlAlchemyRefreshSessionRepository(session),
         SqlAlchemyPasswordResetTokenRepository(session),
         NullEmailSender(),
+        GoogleTokenInfoVerifier(settings),
     )
     company_service = CompanyProfileService(companies)
     created: set[str] = set()
 
+    already_registered = await _existing_emails(
+        session, [entry["email"] for entry in COMPANIES]
+    )
+
     for i, entry in enumerate(COMPANIES):
+        if entry["email"].lower() in already_registered:
+            print(f"  [omitido] {entry['email']} ya existe")
+            continue
         try:
             user = await identity_service.register(
                 RegisterCommand(
@@ -426,10 +462,18 @@ async def _seed_workers(session) -> None:
         SqlAlchemyRefreshSessionRepository(session),
         SqlAlchemyPasswordResetTokenRepository(session),
         NullEmailSender(),
+        GoogleTokenInfoVerifier(settings),
     )
     worker_service = WorkerProfileService(workers)
 
+    already_registered = await _existing_emails(
+        session, [entry["email"] for entry in WORKERS]
+    )
+
     for entry in WORKERS:
+        if entry["email"].lower() in already_registered:
+            print(f"  [omitido] {entry['email']} ya existe")
+            continue
         try:
             user = await identity_service.register(
                 RegisterCommand(
@@ -501,7 +545,7 @@ async def _seed_shifts(session, created_company_emails: set[str]) -> None:
         email_sender=NullEmailSender(),
     )
     by_email = {c["email"]: c for c in COMPANIES}
-    start = datetime.now(timezone.utc) + timedelta(hours=5)
+    start = datetime.now(UTC) + timedelta(hours=5)
 
     for email, position, qty, pay, urgent, dress in SHIFTS:
         if email not in created_company_emails:
