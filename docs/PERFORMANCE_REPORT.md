@@ -27,6 +27,16 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 > resueltos — ver los recuadros ✅ en cada hallazgo. Quedan abiertos P3
 > (comercio N+1 en feed/mine, Media) y P5 (`/admin/stats` full scan, Media);
 > no se re-corrió el puntaje global todavía.
+>
+> **Actualización (batch de performance, branch `claude/performance`):** P3
+> (comercio N+1 en feed/mine) resuelto — ver recuadro ✅ debajo. Además, dos
+> hallazgos que esta auditoría había marcado "Baja prioridad" u ni siquiera
+> tenía relevados resultaron ser el origen real de la lentitud reportada por
+> la operadora ("todo tarda, incluso sin login"): el pool de conexiones
+> (§1.6) y el seed en cada arranque (nuevo, ver "Seed en cada arranque"
+> abajo). Detalle de mediciones antes/después de los tres en el PR. P5
+> sigue abierto (fuera de alcance de este batch, que se acotó a
+> shift/matching/worker + infraestructura de arranque).
 
 ---
 
@@ -110,12 +120,18 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 
 #### P3 — Feed/mis-turnos: N queries de comercio (mitigado por caché local, no por batch)
 
-> ⏳ **No resuelto en R2.**  Fuera del alcance de esta tanda (R2.1–R2.3, que
-> cubrió P1/P2/P4 y paginación); sigue como pendiente de prioridad Media. La
-> paginación de `/shifts/feed`/`/mine`/`/me` (R2.1, ver sección 1.3) acota el
-> tamaño del problema (máximo 50-100 turnos por página en vez de la tabla
-> completa) pero no lo resuelve: sigue siendo 1 query de comercio por comercio
-> distinto en la página.
+> ✅ **Resuelto (batch de performance, `claude/performance`).**
+> `_with_company_info` (`shift/api/routes.py`) arma la lista de
+> `company_id` únicos de la página y hace UN `CompanyProfileRepository.list_by_ids`
+> (`WHERE id IN (...)`) antes del loop, en vez de 1 `get_by_id` por comercio
+> DISTINTO. Medido con un test que cuenta queries reales
+> (`tests/test_shift.py::test_feed_resolves_company_info_in_constant_queries`,
+> evento `before_cursor_execute` de SQLAlchemy): con 6 comercios distintos
+> publicando 1 turno cada uno, `GET /shifts/feed` pasó de **8 queries** (6 de
+> comercio + 1 de feed + 1 de auth) a **3 queries** (1 de comercio batch + 1
+> de feed + 1 de auth) — constante sin importar cuántos comercios distintos
+> aparezcan en la página. Mismo shape de respuesta (`ShiftResponse`), usado
+> también en `/shifts/mine` (turnos asignados del trabajador).
 
 - **Archivo:** `backend/app/modules/shift/api/routes.py:48-64`
   (`_with_company_info`).
@@ -310,26 +326,118 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 
 ### 1.6 Pool de conexiones (`app/core/database.py`)
 
-- **Archivo:** `backend/app/core/database.py:25-29`.
-- **Descripción:** `create_async_engine(settings.database_url, echo=settings.debug,
-  pool_pre_ping=True)` — sin `pool_size` ni `max_overflow` explícitos, por lo
-  que SQLAlchemy usa los defaults de `AsyncAdaptedQueuePool` (`pool_size=5`,
-  `max_overflow=10` ⇒ máx. 15 conexiones concurrentes por proceso). Con **un
-  solo worker uvicorn** (ver `backend/Dockerfile:17`, sin `--workers`), hoy
-  eso alcanza de sobra.
-- **Impacto:** ninguno mientras el deploy sea de un worker. Es el primer
-  parámetro a revisar si se agregan workers (ver
-  [SCALABILITY_REPORT.md](./SCALABILITY_REPORT.md)): `N workers × 15
-  conexiones` puede chocar contra el límite de conexiones del plan de DB
-  (free tier, tanto Render como Neon lo limitan).
-- **Riesgo:** bajo hoy, medio si se escala horizontalmente sin revisar esto.
-- **Prioridad:** Baja (documentar el valor por defecto; no tocar hasta que
-  haya más de un worker).
-- **Esfuerzo:** bajo.
-- **Dependencias:** ligado a la decisión de escalar workers (ver
-  `SCALABILITY_REPORT.md`).
-- **Solución:** cuando se agreguen workers, fijar `pool_size`/`max_overflow`
-  explícitos y sumarlos contra el límite de conexiones del plan de DB.
+> ✅ **Resuelto (batch de performance, `claude/performance`).** El diagnóstico
+> original ("prioridad Baja, no tocar hasta que haya más de un worker")
+> subestimó el costo real de `pool_pre_ping=True`: no es sólo "un ping barato
+> tras reciclar" — SQLAlchemy lo ejecuta en **cada checkout** de conexión del
+> pool, es decir, en el camino caliente de casi cada request (cualquiera que
+> abra una sesión de DB). Con Neon en otra región que Render (la hipótesis de
+> el orquestador para "todo tarda, incluso sin login"), ese ping agrega un
+> round-trip completo de red extra por request, no una sola vez.
+>
+> **Medido** (no se pudo llegar a un Neon real desde este entorno; se montó
+> un Postgres 16 local y se midió el checkout puro del pool, sin el `SELECT`
+> de negocio — el número real contra Neon sería el mismo mecanismo pero con
+> la latencia de esa red, no la de loopback):
+>
+> | | `pool_pre_ping=True` | `pool_pre_ping=False` |
+> |---|---|---|
+> | ms/checkout (media de 3 corridas × 500 checkouts, Postgres local) | 1.17 ms | 0.80 ms |
+>
+> +46% por checkout — un round-trip fijo de más, que en loopback es
+> submilisegundo pero escala directo con el RTT real a Neon (si son 20-50 ms,
+> son 20-50 ms de más por checkout, no 0.37 ms).
+>
+> **Cambio:** se sacó `pool_pre_ping`; se agregó `pool_recycle=280` (recicla
+> conexiones de más de ~4.5 min ANTES de que el pooler de Neon las corte por
+> inactividad — mismo problema que `pre_ping` quería prevenir, resuelto
+> proactivamente cada 280s en vez de en cada checkout) y se dejaron
+> `pool_size=5`/`max_overflow=10` explícitos (antes eran el default implícito
+> de `AsyncAdaptedQueuePool` — mismos valores, ahora documentados). Detalle
+> completo del razonamiento en el comentario de `backend/app/core/database.py`.
+> No afecta tests (usan SQLite con su propio engine en `tests/conftest.py`,
+> no tocan este módulo).
+>
+> **Riesgo del cambio:** `pool_recycle=280` asume que el pooler de Neon no
+> cierra conexiones inactivas antes de los ~4.5 min. Si el plan free de Neon
+> tiene un timeout más corto, podrían verse errores de "conexión cortada" que
+> antes `pre_ping` absorbía silenciosamente (reabriendo la conexión antes de
+> usarla). No hay forma de confirmar el timeout exacto del pooler de Neon sin
+> acceso a ese panel — queda para Julieta verificarlo (Neon dashboard →
+> configuración del pooler) y, si hiciera falta, bajar el valor de
+> `pool_recycle`.
+
+- **Archivo:** `backend/app/core/database.py`.
+
+### 1.7 Seed de datos demo en cada arranque (`scripts/startup_seed.py`)
+
+> ✅ **Resuelto (batch de performance, `claude/performance`).** No relevado
+> en la auditoría original (no era un endpoint de lectura); apareció al
+> investigar "todo tarda, incluso sin login" del reporte de la operadora.
+
+- **Archivo:** `backend/Dockerfile` (`CMD alembic upgrade head && python -m
+  scripts.startup_seed && uvicorn ...`), `backend/scripts/startup_seed.py`,
+  `backend/scripts/seed_demo_data.py`.
+- **Descripción:** con `SEED_DEMO_DATA=true` (activo hoy en Render), el `CMD`
+  del contenedor corre el seed **antes** de levantar `uvicorn` — bloquea
+  cada cold start hasta que termine. `seed_demo_data.main()` es idempotente
+  (omite lo que ya existe), pero antes de este fix el chequeo de "¿ya
+  existe?" era 1 `exists_by_email` (dentro de `IdentityService.register`)
+  **por cada una de las 26 entradas demo** (12 comercios + 14 trabajadores),
+  todas secuenciales (`await` dentro de un `for`). Con Neon lejos de Render,
+  cada round-trip pesa; 26 de ellos, secuenciales, en el camino de arranque
+  bloqueante, es tiempo agregado a CADA cold start del free tier (que se
+  duerme y despierta seguido).
+- **Bug de paso, encontrado al instrumentar el fix:** el propio script estaba
+  roto — `IdentityService(...)` se construía sin el argumento
+  `google_verifier` (agregado al constructor en algún cambio posterior de
+  `IdentityService`, sin actualizar este script). Es decir, `main()` moría
+  con `TypeError` en la primera línea de `_seed_companies`, capturado por el
+  `except Exception` de `startup_seed.run()` — el seed **no estaba
+  sembrando nada** en este momento, silenciosamente. Corregido en el mismo
+  commit (se pasa `GoogleTokenInfoVerifier(settings)`, el mismo adaptador que
+  usa `get_identity_service` en producción — no hace ninguna llamada de red
+  en su constructor).
+- **Medido** (test `tests/test_seed_demo_data.py::test_second_seed_run_is_cheap_regardless_of_demo_size`,
+  contando queries reales con el evento `before_cursor_execute` de
+  SQLAlchemy, sobre una segunda corrida — el caso real de cada arranque con
+  los datos ya sembrados):
+
+  | | Antes | Después |
+  |---|---|---|
+  | Queries en la 2da corrida del seed | 26 (1 `exists_by_email` secuencial por entrada demo) | 2 (1 `WHERE email IN (...)` para comercios + 1 para trabajadores) |
+
+  El seed de turnos (`_seed_shifts`) ya cortaba en 0 queries cuando no hay
+  comercios nuevos (`if not created_company_emails: return`, ya estaba
+  bien); el cuello de botella real eran las 26 verificaciones de
+  comercio/trabajador.
+- **Cambio:** se agregó `_existing_emails(session, emails)` — un único
+  `SELECT email FROM users WHERE email IN (...)` por lote (comercios,
+  trabajadores) — y se filtra ANTES del loop, así `identity_service.register`
+  sólo se llama para entradas genuinamente nuevas (mismo resultado final,
+  menos round-trips). Test de idempotencia
+  (`test_seed_is_idempotent`) confirma que dos corridas seguidas no duplican
+  usuarios.
+- **Lo que NO se cambió (documentado, no implementado):** el mandato sugería
+  además "mover el seed fuera del arranque bloqueante" como alternativa. Se
+  evaluó correr el proceso en segundo plano en el `CMD` del Dockerfile (`(python -m
+  scripts.startup_seed &)`) pero se descartó por dos motivos: (1) sin un init
+  process en la imagen (`python:3.11-slim`, sin `tini`), un proceso
+  backgroundeado desde `/bin/sh -c` corre el riesgo de quedar huérfano/zombie
+  si el contenedor no lo reaped correctamente — un riesgo de infraestructura
+  que no se puede validar sin un deploy real; (2) con el fix de arriba, el
+  costo de la segunda corrida (el caso común en producción) ya es
+  mínimo (2 queries) — el beneficio marginal de además backgroundear el
+  proceso no justificaba el riesgo de tocar el `CMD` de deploy sin poder
+  probarlo contra Render real desde este worktree aislado. Queda como
+  recomendación para Julieta si el cold start sigue sintiéndose lento
+  después de este fix.
+- **Riesgo:** bajo — mismo comportamiento observable (mismos datos
+  sembrados, mismo resultado idempotente), menos queries. `NO` se tocó la
+  capacidad de sembrar en dev (`python -m scripts.seed_demo_data` sigue
+  funcionando igual).
+- **Prioridad:** Alta (afecta CADA cold start en producción con la flag
+  activa). **Esfuerzo:** bajo.
 
 ---
 
@@ -501,6 +609,53 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 - **Prioridad:** Baja-Media. **Esfuerzo:** medio si se adopta SWR/React
   Query (cambio transversal a todas las pantallas).
 
+### 3.6 Barrido de cascadas (batch de performance, `claude/performance`)
+
+Se revisaron sistemáticamente todas las pantallas con ≥2 llamadas a `api.*`
+en el mismo componente (`grep -c "await api\." app/**/*.tsx components/**/*.tsx`,
+14 archivos con 2+ ocurrencias). Resultado: **no se encontró ninguna cascada
+real** (`await` seguido de otro `await` que dependa sólo de datos ya
+disponibles) en las pantallas de mayor tráfico — `/feed` (2 llamadas: feed +
+perfil + postulaciones, ya en `Promise.all`), `/map` (ídem), `/search` (1
+llamada), `/chats` (1 llamada, ya usa el inbox batch de P1), `/shifts`
+(panel del comercio, 1 llamada a `/shifts/me`), `/companies/[id]`,
+`/workers/[id]` (1 llamada cada una). Todos con skeleton mientras cargan
+(`CardSkeleton`/`Skeleton`/`CardSkeletons`). Los demás casos con 2-3
+`await api.` en el mismo archivo (`shifts/new`, `WorkerProfileForm`,
+`CompanyProfileForm`, `chats/[shiftId]`) son ramas mutuamente excluyentes
+(`put` vs `post`) o pasos que dependen genuinamente uno del otro (crear turno
+→ publicarlo), no paralelizables sin cambiar el comportamiento. Es decir: el
+trabajo de "evitar cascadas" que pedía el mandato ya estaba hecho en una
+ronda anterior (ver `docs/PERFORMANCE_AUDIT_FRONTEND.md`); no hay hallazgo
+nuevo de este tipo en este batch.
+
+**Hallazgo real, distinto al patrón "cascada"**: `frontend/app/my-shifts/page.tsx:69-77`
+(pestaña "Postulaciones") hace 1 `GET /shifts/{id}` por CADA postulación del
+trabajador, todas en paralelo (`Promise.all`, no secuencial — no es una
+cascada), porque `GET /applications/mine` (`ApplicationResponse`,
+`backend/app/modules/application/api/schemas.py`) no trae el turno
+embebido. Con 15 postulaciones activas son 15 requests HTTP simultáneas
+justo en la pantalla de "mis matches" del trabajador — el navegador las
+serializa en tandas (límite de conexiones concurrentes por host), así que en
+la práctica no son gratis aunque el código las dispare todas a la vez. Mismo
+patrón de fondo que P2 (postulantes de un turno, ya resuelto) pero en la
+dirección contraria (trabajador → sus turnos, no comercio → sus
+postulantes).
+
+- **Por qué no se resolvió en este batch:** requiere o bien (a) embeber el
+  turno en `ApplicationResponse` — cruza el límite de módulo `application` ↔
+  `shift` a nivel de esquema HTTP, algo que el propio código evita hoy (cada
+  módulo sólo importa sus propios schemas de `api/`, nunca los de otro
+  módulo; `application` ya depende del *dominio* de `shift`, no de su capa
+  HTTP) — o (b) un endpoint nuevo dedicado. Ambas son un cambio de forma
+  correcto pero con más superficie (backend + consumo del frontend) de la
+  que se pudo verificar con confianza end-to-end dentro del alcance de este
+  batch (shift/matching/worker + arranque). Se deja documentado con número
+  concreto en vez de "arreglado a medias".
+- **Prioridad:** Media. **Esfuerzo:** medio (batch `list_by_ids` en
+  `ShiftRepository`, igual patrón que P3, + esquema/endpoint que embeba el
+  turno, + frontend consumiendo el campo embebido en vez de refetch por id).
+
 ### 3.5 PWA / Service Worker
 
 - `frontend/app/manifest.ts` define un manifest instalable (íconos, `display:
@@ -551,24 +706,31 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 
 ## Tabla resumen
 
-| # | Hallazgo | Área | Prioridad | Esfuerzo |
-|---|----------|------|-----------|----------|
-| P1 | N+1 en inbox de chat (`chat/application/services.py:89-121`) | Backend | Alta | Medio |
-| P2 | N+1 en postulantes de turno (`application/api/routes.py:84-99`) | Backend | Alta | Bajo |
-| P3 | N queries de comercio en feed/mis-turnos (`shift/api/routes.py:48-64`) | Backend | Media | Bajo |
-| P4 | Matching: full scan + scoring en Python (`matching/infrastructure/repositories.py:39-55`) | Backend | Alta | Medio |
-| — | Listados sin paginación (todo `app/modules/*`) | Backend | Alta | Medio |
-| P5 | `/admin/stats` full scan + Python (`admin/application/services.py:29-40`) | Backend | Media | Bajo |
-| — | Commit por repo, no por caso de uso (`shift/application/services.py`, `chat/application/services.py`) | Backend | Media | Medio-Alto |
-| — | Pool de conexiones sin tunear (`core/database.py:25-29`) | Backend | Baja | Bajo |
-| — | Doc `DATABASE.md` desactualizada sobre índices | DB / Doc | Media | Bajo |
-| — | Índices faltantes: `skills`, `is_available`, `(user_id, read)`, `(shift_id, status)` | DB | Baja | Bajo |
-| — | `CHECK` faltantes (`quantity`, `pay_amount`, `end_at > start_at`) | DB | Baja | Bajo |
-| — | `<img>` sin `next/image` (7 usos) + imágenes externas sin optimizar | Frontend | Media | Medio |
-| — | Listas sin virtualización (acoplado a paginación backend) | Frontend | Media | Medio |
-| — | Sin SWR/React Query (fetch sin caché/dedupe) | Frontend | Baja-Media | Medio |
-| — | PWA sin service worker (sólo instalable) | Frontend | Baja | Medio |
-| — | Sin ninguna capa de caché (servidor ni cliente) | Caché | Baja | Bajo-Medio |
+| # | Hallazgo | Área | Prioridad | Esfuerzo | Estado |
+|---|----------|------|-----------|----------|--------|
+| P1 | N+1 en inbox de chat (`chat/application/services.py:89-121`) | Backend | Alta | Medio | ✅ Resuelto (R2.2) |
+| P2 | N+1 en postulantes de turno (`application/api/routes.py:84-99`) | Backend | Alta | Bajo | ✅ Resuelto (R2.2) |
+| P3 | N queries de comercio en feed/mis-turnos (`shift/api/routes.py:48-64`) | Backend | Media | Bajo | ✅ Resuelto (`claude/performance`) |
+| P4 | Matching: full scan + scoring en Python (`matching/infrastructure/repositories.py:39-55`) | Backend | Alta | Medio | ✅ Resuelto parcial (R2.3) |
+| — | Listados sin paginación (todo `app/modules/*`) | Backend | Alta | Medio | ✅ Resuelto (R2.1) |
+| P5 | `/admin/stats` full scan + Python (`admin/application/services.py:29-40`) | Backend | Media | Bajo | Abierto |
+| — | Commit por repo, no por caso de uso (`shift/application/services.py`, `chat/application/services.py`) | Backend | Media | Medio-Alto | Abierto |
+| — | Pool de conexiones sin tunear (`core/database.py`) | Backend | Baja→Alta* | Bajo | ✅ Resuelto (`claude/performance`) |
+| — | Seed demo en cada arranque bloqueante (`scripts/startup_seed.py`) | Backend/Infra | Alta | Bajo | ✅ Resuelto (`claude/performance`) |
+| — | N+1 frontend en `/my-shifts` (postulaciones): 1 `GET /shifts/{id}` por postulación | Backend+Frontend | Media | Medio | Medido, no resuelto (ver PR `claude/performance`) |
+| — | Doc `DATABASE.md` desactualizada sobre índices | DB / Doc | Media | Bajo | Abierto |
+| — | Índices faltantes: `skills`, `is_available`, `(user_id, read)`, `(shift_id, status)` | DB | Baja | Bajo | Abierto |
+| — | `CHECK` faltantes (`quantity`, `pay_amount`, `end_at > start_at`) | DB | Baja | Bajo | Abierto |
+| — | `<img>` sin `next/image` (7 usos) + imágenes externas sin optimizar | Frontend | Media | Medio | Abierto |
+| — | Listas sin virtualización (acoplado a paginación backend) | Frontend | Media | Medio | Abierto |
+| — | Sin SWR/React Query (fetch sin caché/dedupe) | Frontend | Baja-Media | Medio | Abierto |
+| — | PWA sin service worker (sólo instalable) | Frontend | Baja | Medio | Abierto |
+| — | Sin ninguna capa de caché (servidor ni cliente) | Caché | Baja | Bajo-Medio | Abierto |
+
+\* La prioridad original de "Pool de conexiones" era Baja porque se leyó
+sólo como "número de conexiones sin tunear" — la auditoría original no
+midió el costo por-request de `pool_pre_ping`, que resultó ser el hallazgo
+de mayor impacto real de todo este batch (ver §1.6).
 
 ## Puntuación: 58/100
 
