@@ -13,6 +13,7 @@ from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
+from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import OPEN_STATUSES
 
@@ -80,11 +81,20 @@ class ApplicationService:
 
     async def list_my_applications(
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
-    ) -> list[ShiftApplication]:
-        """Lista las postulaciones del trabajador (para su pantalla de Matches)."""
-        return await self._applications.list_by_worker(
+    ) -> list[tuple[ShiftApplication, Shift | None]]:
+        """Lista las postulaciones del trabajador, cada una con su turno embebido.
+
+        El turno se resuelve con UN solo `list_by_ids` (`WHERE id IN (...)`),
+        no con un GET por postulación: antes la pantalla de Matches disparaba N
+        requests HTTP (una por postulación), cada una pagando el round-trip a la
+        base remota. Ahora es 1 request + 1 query batch (ver
+        `docs/PERFORMANCE_REPORT.md`)."""
+        applications = await self._applications.list_by_worker(
             worker_profile_id, limit=limit, offset=offset
         )
+        shift_ids = list({a.shift_id for a in applications})
+        shifts_by_id = {s.id: s for s in await self._shifts.list_by_ids(shift_ids)}
+        return [(a, shifts_by_id.get(a.shift_id)) for a in applications]
 
     async def withdraw(
         self, worker_profile_id: UUID, application_id: UUID

@@ -48,6 +48,11 @@ async def test_login_success_and_me(client: AsyncClient):
     assert tokens["token_type"] == "bearer"
     assert tokens["access_token"]
     assert tokens["refresh_token"]
+    # El usuario viene embebido en la respuesta del login: el cliente entra sin
+    # encadenar un GET /auth/me (un round-trip menos al backend remoto).
+    assert tokens["user"] is not None
+    assert tokens["user"]["email"] == "mozo@staffya.com"
+    assert tokens["user"]["role"] == "worker"
 
     me = await client.get(
         "/api/v1/auth/me",

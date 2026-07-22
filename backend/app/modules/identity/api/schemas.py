@@ -61,6 +61,11 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    # Usuario embebido: presente en login/google/refresh para ahorrarle al
+    # cliente un `GET /auth/me` tras entrar (un round-trip menos al backend
+    # remoto). Forward-ref porque `UserResponse` se define más abajo; se
+    # resuelve con `TokenResponse.model_rebuild()` al final del módulo.
+    user: "UserResponse | None" = None
 
 
 class GoogleAuthRequest(BaseModel):
@@ -90,3 +95,8 @@ class UserResponse(BaseModel):
     status: UserStatus
     is_verified: bool
     created_at: datetime | None = None
+
+
+# Resuelve el forward-ref `user: "UserResponse"` de TokenResponse ahora que
+# UserResponse ya está definido.
+TokenResponse.model_rebuild()

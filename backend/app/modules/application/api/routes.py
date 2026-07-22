@@ -16,6 +16,7 @@ from app.modules.application.domain.exceptions import (
     ShiftNotApplicableError,
 )
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
+from app.modules.shift.api.schemas import ShiftResponse
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -93,7 +94,23 @@ async def my_applications(
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
-    return await service.list_my_applications(worker_profile_id, limit=limit, offset=offset)
+    # El service ya resolvió el turno de cada postulación con UN batch
+    # (`list_by_ids`), no con un GET por postulación: se embebe acá para que la
+    # pantalla de Matches haga 1 request en vez de N (ver PERFORMANCE_REPORT.md).
+    enriched = await service.list_my_applications(
+        worker_profile_id, limit=limit, offset=offset
+    )
+    return [
+        ApplicationResponse(
+            id=application.id,
+            shift_id=application.shift_id,
+            worker_profile_id=application.worker_profile_id,
+            status=application.status.value,
+            created_at=application.created_at,
+            shift=ShiftResponse.model_validate(shift) if shift is not None else None,
+        )
+        for application, shift in enriched
+    ]
 
 
 @router.get(

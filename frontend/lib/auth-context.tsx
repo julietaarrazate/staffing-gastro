@@ -156,14 +156,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   async function login(email: string, password: string) {
-    const tokens = await api.post<{ access_token: string; refresh_token: string }>(
-      "/auth/login",
-      { email, password }
-    );
+    const tokens = await api.post<{
+      access_token: string;
+      refresh_token: string;
+      user?: User;
+    }>("/auth/login", { email, password });
     persistTokens(tokens.access_token, tokens.refresh_token);
     setToken(tokens.access_token);
-    const me = await api.get<User>("/auth/me", tokens.access_token);
-    setUser(me);
+    // Fast path: el usuario viene embebido en la respuesta del login → sin un
+    // `GET /auth/me` extra (un round-trip menos al backend al entrar). Fallback
+    // al /auth/me sólo si no vino `user` — cubre el skew de deploy (frontend
+    // nuevo contra backend viejo que todavía no lo embebe) y no rompe el login.
+    setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
   }
 
   async function register(
@@ -182,17 +186,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<GoogleLoginResult> {
     const data = await api.post<
       | { requires_role: true; email: string; full_name: string }
-      | { requires_role?: false; access_token: string; refresh_token: string }
+      | { requires_role?: false; access_token: string; refresh_token: string; user?: User }
     >("/auth/google", { id_token: idToken, role });
 
     if ("requires_role" in data && data.requires_role) {
       return { requiresRole: true, email: data.email, fullName: data.full_name };
     }
 
-    const tokens = data as { access_token: string; refresh_token: string };
+    const tokens = data as { access_token: string; refresh_token: string; user?: User };
     persistTokens(tokens.access_token, tokens.refresh_token);
     setToken(tokens.access_token);
-    setUser(await api.get<User>("/auth/me", tokens.access_token));
+    // Usuario embebido (mismo contrato que /auth/login); fallback a /auth/me si
+    // no vino, por el mismo motivo de skew de deploy.
+    setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
     return { requiresRole: false };
   }
 
