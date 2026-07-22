@@ -64,13 +64,19 @@ async def _with_company_info(
     shifts: list[Shift], companies: CompanyProfileRepository
 ) -> list[ShiftResponse]:
     """Suma el nombre/logo del comercio a cada turno (resuelto vía company,
-    sin acoplar el dominio de shift a company)."""
-    cache: dict[UUID, object] = {}
+    sin acoplar el dominio de shift a company).
+
+    P3 (docs/PERFORMANCE_REPORT.md): antes hacía 1 `get_by_id` por comercio
+    DISTINTO en la página (con caché local sólo para no repetir el mismo
+    comercio dos veces) — un feed de 40 turnos de 40 comercios distintos
+    disparaba 40 queries secuenciales. Ahora arma la lista de ids únicos y
+    hace UN `list_by_ids` (`WHERE id IN (...)`) antes del loop: 1 query
+    total, sin importar cuántos comercios distintos aparezcan en la página."""
+    unique_ids = list({shift.company_id for shift in shifts})
+    companies_by_id = await companies.list_by_ids(unique_ids)
     responses = []
     for shift in shifts:
-        if shift.company_id not in cache:
-            cache[shift.company_id] = await companies.get_by_id(shift.company_id)
-        company = cache[shift.company_id]
+        company = companies_by_id.get(shift.company_id)
         response = ShiftResponse.model_validate(shift)
         if company:
             response.company_name = company.name

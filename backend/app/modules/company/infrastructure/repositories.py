@@ -73,6 +73,16 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         model = await self._session.get(CompanyProfileModel, profile_id)
         return _to_entity(model) if model else None
 
+    async def list_by_ids(self, profile_ids: list[UUID]) -> dict[UUID, CompanyProfile]:
+        if not profile_ids:
+            return {}
+        # Único `SELECT ... WHERE id IN (...)` (P3, docs/PERFORMANCE_REPORT.md):
+        # reemplaza el `get_by_id` repetido por comercio distinto en un
+        # listado (feed/mis-turnos asignados).
+        stmt = select(CompanyProfileModel).where(CompanyProfileModel.id.in_(profile_ids))
+        result = await self._session.execute(stmt)
+        return {model.id: _to_entity(model) for model in result.scalars().all()}
+
     async def get_by_user_id(self, user_id: UUID) -> CompanyProfile | None:
         stmt = select(CompanyProfileModel).where(CompanyProfileModel.user_id == user_id)
         result = await self._session.execute(stmt)
