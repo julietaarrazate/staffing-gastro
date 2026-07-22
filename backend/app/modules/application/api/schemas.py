@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.modules.shift.api.schemas import ShiftResponse
+
 
 class ApplicationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -14,6 +16,11 @@ class ApplicationResponse(BaseModel):
     worker_profile_id: UUID
     status: str
     created_at: datetime | None = None
+    # Turno embebido: presente en `/applications/mine` (lista de Matches) para
+    # que el cliente pinte la tarjeta sin un GET /shifts/{id} por postulación
+    # (ver ApplicationService.list_my_applications). Opcional para no romper la
+    # respuesta de `apply`/`withdraw`, que sólo devuelven la postulación.
+    shift: ShiftResponse | None = None
 
 
 class ApplicantResponse(BaseModel):

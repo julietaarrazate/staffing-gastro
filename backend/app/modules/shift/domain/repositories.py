@@ -1,6 +1,7 @@
 """Puerto del repositorio de turnos."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from uuid import UUID
 
 from app.modules.shift.domain.entities import Shift
@@ -22,6 +23,16 @@ class ShiftRepository(ABC):
     @abstractmethod
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         """Busca un turno por su id."""
+
+    @abstractmethod
+    async def list_by_ids(self, shift_ids: Sequence[UUID]) -> list[Shift]:
+        """Trae varios turnos por id en UNA query (`WHERE id IN (...)`).
+
+        Evita el N+1 de red al resolver el detalle de una lista de
+        postulaciones: en vez de un GET /shifts/{id} por postulación (cada uno
+        pagando el round-trip a la base remota), el cliente pide las
+        postulaciones ya con su turno embebido (ver `/applications/mine` y
+        `docs/PERFORMANCE_REPORT.md`)."""
 
     @abstractmethod
     async def list_by_company(

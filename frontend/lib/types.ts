@@ -195,6 +195,9 @@ export interface ShiftApplication {
   worker_profile_id: string;
   status: ApplicationStatus;
   created_at: string | null;
+  // Turno embebido en GET /applications/mine para pintar la tarjeta sin un
+  // GET /shifts/{id} por postulación (ver backend ApplicationResponse.shift).
+  shift?: Shift | null;
 }
 
 export interface Applicant {

@@ -138,7 +138,33 @@ async def test_worker_lists_own_applications(client: AsyncClient):
 
     mine = await client.get("/api/v1/applications/mine", headers=worker)
     assert mine.status_code == 200
-    assert any(a["shift_id"] == shift_id for a in mine.json())
+    entry = next(a for a in mine.json() if a["shift_id"] == shift_id)
+    # El turno viene embebido (sin N+1 de un GET /shifts/{id} por postulación):
+    # el cliente pinta la tarjeta con estos datos, no con requests extra.
+    assert entry["shift"] is not None
+    assert entry["shift"]["id"] == shift_id
+
+
+async def test_my_applications_embed_shift_without_n_plus_1(client: AsyncClient):
+    """Cada postulación trae su turno embebido resuelto en un solo batch.
+
+    Blinda el fix del N+1 de la pantalla de Matches: N postulaciones antes eran
+    N requests HTTP (una por turno); ahora es 1 request con el turno adentro."""
+    employer = await _employer_with_company(client, "emp_app7b@staffya.com")
+    worker, _ = await _worker_with_profile(client, "w_app7b@staffya.com")
+
+    shift_ids = []
+    for _ in range(3):
+        shift_id = await _published_shift(client, employer)
+        await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+        shift_ids.append(shift_id)
+
+    mine = await client.get("/api/v1/applications/mine", headers=worker)
+    assert mine.status_code == 200
+    body = mine.json()
+    # Todas traen turno embebido y coincide con su shift_id (1:1, sin faltantes).
+    assert {a["shift"]["id"] for a in body} == set(shift_ids)
+    assert all(a["shift"]["id"] == a["shift_id"] for a in body)
 
 
 async def test_my_applications_pagination(client: AsyncClient):

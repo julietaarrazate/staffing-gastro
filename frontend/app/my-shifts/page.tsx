@@ -65,17 +65,14 @@ export default function MatchesPage() {
       ]);
       setShifts(assigned);
       setApplications(apps);
-      // Resuelve el detalle de cada turno postulado (para mostrar la tarjeta).
-      const entries = await Promise.all(
-        apps.map(async (a) => {
-          try {
-            return [a.shift_id, await api.get<Shift>(`/shifts/${a.shift_id}`, token)] as const;
-          } catch {
-            return null;
-          }
-        })
-      );
-      setAppShifts(Object.fromEntries(entries.filter((e): e is [string, Shift] => e !== null)));
+      // El turno ya viene embebido en cada postulación (campo `shift`): un solo
+      // GET /applications/mine, sin el N+1 de un GET /shifts/{id} por
+      // postulación (cada uno pagando el round-trip a la base remota).
+      const resolved: Record<string, Shift> = {};
+      for (const a of apps) {
+        if (a.shift) resolved[a.shift_id] = a.shift;
+      }
+      setAppShifts(resolved);
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err, "Error al cargar tus matches"));

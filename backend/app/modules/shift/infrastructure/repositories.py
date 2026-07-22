@@ -1,5 +1,6 @@
 """Adaptador SQLAlchemy del ShiftRepository."""
 
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -109,6 +110,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         model = await self._session.get(ShiftModel, shift_id)
         return _to_entity(model) if model else None
+
+    async def list_by_ids(self, shift_ids: Sequence[UUID]) -> list[Shift]:
+        # Sin ids no hay query: `IN ()` es SQL inválido y además evita un
+        # round-trip inútil a la base remota.
+        if not shift_ids:
+            return []
+        stmt = select(ShiftModel).where(ShiftModel.id.in_(shift_ids))
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
 
     async def list_by_company(
         self, company_id: UUID, *, limit: int = 50, offset: int = 0
