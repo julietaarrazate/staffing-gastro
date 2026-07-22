@@ -1,9 +1,12 @@
 """Tests de integración del módulo shift (publicación y ciclo de vida del turno)."""
 
+from contextlib import contextmanager
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
@@ -11,6 +14,25 @@ from app.modules.notification.infrastructure.fake_email_sender import FakeEmailS
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
+
+
+@contextmanager
+def _count_queries(session_factory: async_sessionmaker):
+    """Cuenta los `SELECT`/`INSERT`/... efectivamente enviados al motor
+    (`before_cursor_execute`) mientras el bloque `with` está activo. Usado
+    para medir round-trips por endpoint (P3, docs/PERFORMANCE_REPORT.md) sin
+    depender de logs manuales."""
+    counter = {"n": 0}
+    engine = session_factory.kw["bind"]
+
+    def _on_execute(conn, cursor, statement, parameters, context, executemany):
+        counter["n"] += 1
+
+    event.listen(engine.sync_engine, "before_cursor_execute", _on_execute)
+    try:
+        yield counter
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", _on_execute)
 
 
 @pytest.fixture
@@ -616,6 +638,55 @@ async def test_feed_pagination(client: AsyncClient):
         "/api/v1/shifts/feed", headers=headers, params={"limit": 101}
     )
     assert invalid.status_code == 422
+
+
+async def test_feed_resolves_company_info_in_constant_queries(
+    client: AsyncClient, session_factory: async_sessionmaker
+):
+    """P3 (docs/PERFORMANCE_REPORT.md): `_with_company_info` batchea la
+    resolución de nombre/logo de comercio con `list_by_ids` (1 query),
+    en vez de 1 `get_by_id` por comercio DISTINTO en la página. Con 6
+    comercios distintos publicando 1 turno cada uno, el número de queries
+    que dispara `GET /shifts/feed` no debe crecer con la cantidad de
+    comercios: antes de este fix eran 6 queries de comercio (una por
+    empresa distinta) + el resto; ahora es 1 sola, sin importar cuántas
+    empresas distintas aparezcan en el feed."""
+    worker_headers, _ = await _worker_with_profile(client, "w_feed_batch@staffya.com")
+
+    n_companies = 6
+    for i in range(n_companies):
+        employer_headers = await _employer_with_company(
+            client, f"emp_feed_batch{i}@staffya.com"
+        )
+        created = await client.post(
+            "/api/v1/shifts",
+            headers=employer_headers,
+            json=_shift_payload(city=f"BatchCity{i}"),
+        )
+        shift_id = created.json()["id"]
+        await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    with _count_queries(session_factory) as counter:
+        feed = await client.get(
+            "/api/v1/shifts/feed",
+            headers=worker_headers,
+            params={"limit": 100},
+        )
+    assert feed.status_code == 200
+    assert len([s for s in feed.json() if s["city"] and s["city"].startswith("BatchCity")]) == (
+        n_companies
+    )
+
+    # Antes del fix: >= n_companies queries de `company_profiles` (una por
+    # comercio distinto) además de la del propio feed y la de auth. Ahora:
+    # 1 query de auth (`/auth/me` vía token) + 1 de feed + 1 de
+    # `list_by_ids` = 3, constante sin importar cuántos comercios distintos
+    # haya en la página. Se deja margen (<=4) para no acoplar el test a un
+    # detalle interno de la dependencia de auth.
+    assert counter["n"] <= 4, (
+        f"se esperaban <=4 queries (constante, no una por comercio distinto), "
+        f"se hicieron {counter['n']}"
+    )
 
 
 # --- Vista pública del turno (sin autenticación, para compartir) ----------

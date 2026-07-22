@@ -22,6 +22,14 @@ class CompanyProfileRepository(ABC):
         """Busca un perfil por su id."""
 
     @abstractmethod
+    async def list_by_ids(self, profile_ids: list[UUID]) -> dict[UUID, CompanyProfile]:
+        """Busca varios perfiles por id en una sola consulta (`WHERE id IN
+        (...)`). Devuelve un dict `{id: perfil}` (los ids inexistentes
+        simplemente no aparecen). Usado para anotar listados (feed/mis-turnos)
+        con nombre/logo de comercio sin 1 query por fila — ver P3,
+        docs/PERFORMANCE_REPORT.md."""
+
+    @abstractmethod
     async def get_by_user_id(self, user_id: UUID) -> CompanyProfile | None:
         """Busca el perfil asociado a un usuario."""
 
