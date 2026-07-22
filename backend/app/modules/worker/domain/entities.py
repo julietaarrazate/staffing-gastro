@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from uuid import UUID, uuid4
 
+from app.core.tz import hoy_art
 from app.modules.worker.domain.value_objects import (
     GamificationLevel,
     WorkerBadge,
@@ -55,10 +56,15 @@ class WorkerProfile:
 
     @property
     def age(self) -> int | None:
-        """Edad calculada a partir de la fecha de nacimiento."""
+        """Edad calculada a partir de la fecha de nacimiento.
+
+        Usa `hoy_art()` (fecha de negocio en Argentina), no `date.today()`:
+        el servidor corre en UTC (Render) y `date.today()` puede adelantar
+        el cumpleaños un día entre las 21:00 y las 00:00 ART (fix TZ, ver
+        `docs/BUGS.md`)."""
         if self.birth_date is None:
             return None
-        today = date.today()
+        today = hoy_art()
         return (
             today.year
             - self.birth_date.year
