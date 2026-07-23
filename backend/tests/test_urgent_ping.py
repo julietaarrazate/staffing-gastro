@@ -15,9 +15,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.main import app
+from app.modules.application.infrastructure.repositories import (
+    SqlAlchemyShiftApplicationRepository,
+)
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
@@ -25,6 +31,9 @@ from app.modules.shift.api.dependencies import get_shift_service
 from app.modules.shift.application.services import URGENT_PING_LIMIT, ShiftService
 from app.modules.shift.domain.repositories import NearbyCandidate, NearbyCandidatesPort
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.infrastructure.repositories import (
+    SqlAlchemySubscriptionRepository,
+)
 from app.modules.worker.infrastructure.repositories import (
     SqlAlchemyWorkerProfileRepository,
 )
@@ -162,12 +171,20 @@ async def test_fan_out_failure_does_not_break_publish(client: AsyncClient):
 
     async def _broken_shift_service(
         session: Annotated[AsyncSession, Depends(get_session)],
+        email_sender: Annotated[EmailSender, Depends(get_email_sender)],
     ) -> ShiftService:
+        # Mismos puertos que la dependencia de producción
+        # (`shift/api/dependencies.py::get_shift_service`), salvo el de
+        # candidatos cercanos, que acá falla a propósito.
         return ShiftService(
             shifts=SqlAlchemyShiftRepository(session),
             workers=SqlAlchemyWorkerProfileRepository(session),
             companies=SqlAlchemyCompanyProfileRepository(session),
             notifications=SqlAlchemyNotificationRepository(session),
+            applications=SqlAlchemyShiftApplicationRepository(session),
+            subscriptions=SqlAlchemySubscriptionRepository(session),
+            users=SqlAlchemyUserRepository(session),
+            email_sender=email_sender,
             nearby_candidates=_BrokenNearbyCandidatesPort(),
         )
 
