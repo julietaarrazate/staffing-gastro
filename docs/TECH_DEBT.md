@@ -220,35 +220,34 @@ fecha de esta auditoría (2026-07-02).
 
 ---
 
-### P5 — `ApplicationStatus.RECHAZADA` nunca se setea en los no elegidos (doc↔código) 🟡 Media — ACEPTADA ya resuelta
+### P5 — `ApplicationStatus.RECHAZADA` de los no elegidos ✅ RESUELTA (2026-07-23)
 
-- **Descripción (estado actualizado, fix de deuda #88):** `ShiftService.
-  assign_worker` (`shift/application/services.py`) ahora sí marca ACEPTADA
-  la `ShiftApplication` PENDIENTE del trabajador elegido (`_accept_application`,
-  vía `ShiftApplicationRepository.get_by_shift_and_worker` + `ShiftApplication.
-  accept()` en el dominio) — antes quedaba PENDIENTE para siempre aunque el
-  comercio ya lo hubiera asignado. Cubierto por
-  `tests/test_application.py::test_assigning_applicant_accepts_their_application`
-  (y el caso de asignación directa sin postulación previa, que no falla, en
-  `test_assigning_worker_without_prior_application_does_not_fail`).
-  **Sigue sin resolver** (alcance explícitamente fuera de este fix, de
-  mínima invasión): los demás postulantes PENDIENTE del mismo turno no se
-  marcan RECHAZADA cuando el comercio elige a otro — no hay rechazo masivo
-  automático.
-- **Impacto:** el trabajador elegido ya ve "¡Te eligieron!" en `/my-shifts`
-  (tab Postulaciones, `APPLICATION_LABELS`). Los postulantes NO elegidos de
-  un turno ya asignado siguen viendo "Postulado · esperando respuesta"
-  indefinidamente (nunca pasan a "No quedaste esta vez").
-- **Riesgo:** bajo — desprolijidad de UX/consistencia de datos para los no
-  elegidos, no un bug de seguridad ni de integridad (el turno en sí
-  transiciona bien y el ganador ya queda consistente).
-- **Prioridad:** 🟡 Media.
-- **Esfuerzo:** bajo — mismo patrón ya cableado (`ShiftApplicationRepository`
-  en `ShiftService`): en `assign_worker`, listar `list_by_shift(shift_id)` y
-  rechazar (nuevo método `reject()` en el dominio, mismo estilo que
-  `accept()`/`withdraw()`) las PENDIENTE de otros `worker_profile_id`.
-- **Solución sugerida:** resolver en un próximo PR acotado (decisión de
-  producto simple: ¿se avisa/notifica al rechazado o es silencioso?).
+- **Descripción:** `ShiftService.assign_worker` ya marcaba ACEPTADA la
+  postulación del elegido (fix de deuda #88); faltaba que los **demás**
+  postulantes PENDIENTE dejaran de quedar "esperando respuesta" para siempre.
+- **Resolución (2026-07-23):** nuevos `ShiftApplication.reject()`
+  (PENDIENTE→RECHAZADA) y `restore()` (RECHAZADA→PENDIENTE) en el dominio, con
+  dos helpers en `ShiftService`:
+  - `_reject_pending_applicants(shift_id)` — se llama al **asignar** (rechaza a
+    los no elegidos; el elegido ya es ACEPTADA, el filtro PENDIENTE no lo toca)
+    y al **cancelar** el turno el comercio (terminal: no hay chance para nadie).
+  - `_restore_rejected_applicants(shift_id)` — se llama en los tres caminos de
+    **reapertura** (`reject_assignment`, `worker_cancel`, `mark_no_show`): los
+    rechazados vuelven a PENDIENTE para que el comercio los pueda re-elegir.
+  - **Reversibilidad inambigua:** RECHAZADA sólo la escribe este auto-rechazo
+    (no hay rechazo "manual"), así que restaurar *todas* las RECHAZADA del turno
+    al reabrir no pisa ningún otro estado.
+  - **Decisión de producto:** el rechazo es **silencioso** (sin notificación al
+    perdedor) — un push "no quedaste" sería desalentador y además erróneo si el
+    turno se reabre; con el cambio de estado alcanza para que no quede
+    "esperando respuesta" eterno en `/my-shifts`.
+- **Fuera de alcance (dejado como estaba):** la postulación del trabajador que
+  rechaza/cancela su propia asignación sigue en ACEPTADA (comportamiento
+  pre-existente, no es parte de P5).
+- **Tests:** `tests/test_application.py` —
+  `test_assigning_rejects_the_other_applicants`,
+  `test_reopening_shift_restores_rejected_applicants`,
+  `test_cancelling_shift_rejects_pending_applicants`.
 
 ---
 
@@ -621,5 +620,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), P3 (métricas reputación, `cancellations` resuelto ADR-0004 — pendiente `on_time_payment_rate`/`events_published`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
-| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), P5 (RECHAZADA de los no elegidos nunca se setea — ACEPTADA ya resuelta), T5 (lint fuera de CI) |
+| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, T5 (lint fuera de CI) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

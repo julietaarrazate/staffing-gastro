@@ -157,6 +157,7 @@ class ShiftService:
         affected_worker_profile_id = shift.worker_profile_id
         shift.cancel()
         updated = await self._shifts.update(shift)
+        await self._reject_pending_applicants(shift_id)
         if was_committed and affected_worker_profile_id is not None:
             await self._companies.record_late_cancellation(company_id)
             await self._notify_worker(
@@ -188,6 +189,7 @@ class ShiftService:
         absent_worker_profile_id = shift.worker_profile_id
         shift.no_show()
         updated = await self._shifts.update(shift)
+        await self._restore_rejected_applicants(shift_id)
         if absent_worker_profile_id is not None:
             await self._workers.record_no_show(absent_worker_profile_id)
             await self._notify_worker(
@@ -213,14 +215,18 @@ class ShiftService:
         un email best-effort avisándole (`_send_acceptance_email`).
 
         Si el trabajador tenía una `ShiftApplication` PENDIENTE a este mismo
-        turno, pasa a ACEPTADA (ver `_accept_application`, TECH_DEBT P5): sin
-        esto quedaba "pendiente" para siempre aunque el comercio ya lo haya
-        elegido. Si fue asignado directo (búsqueda/mapa, sin postulación
-        previa) no hay nada que actualizar y no falla."""
+        turno, pasa a ACEPTADA (ver `_accept_application`). Si fue asignado
+        directo (búsqueda/mapa, sin postulación previa) no hay nada que
+        actualizar y no falla. Los demás postulantes del turno pasan a RECHAZADA
+        (`_reject_pending_applicants`, TECH_DEBT P5): antes su postulación
+        quedaba "pendiente" para siempre aunque ya no tuvieran chance. Si el
+        turno se reabre (el asignado rechaza/cancela/no-show), esos rechazos se
+        revierten (`_restore_rejected_applicants`)."""
         shift = await self._get_owned(company_id, shift_id)
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         await self._accept_application(shift_id, worker_profile_id)
+        await self._reject_pending_applicants(shift_id)
         await self._notify_worker(
             worker_profile_id,
             NotificationType.SHIFT_ASSIGNED,
@@ -241,6 +247,34 @@ class ShiftService:
             return
         application.accept()
         await self._applications.update(application)
+
+    async def _reject_pending_applicants(self, shift_id: UUID) -> None:
+        """Marca RECHAZADA las postulaciones PENDIENTE que quedan en un turno
+        que dejó de estar abierto (se asignó a alguien, o el comercio lo
+        canceló): antes quedaban 'pendiente' para siempre (TECH_DEBT P5).
+
+        La del elegido ya pasó a ACEPTADA en `_accept_application` (o nunca
+        existió, si fue asignación directa), así que el filtro por PENDIENTE
+        nunca la toca: sólo caen los NO elegidos. No se notifica al perdedor a
+        propósito (evita un mensaje desalentador que además sería erróneo si el
+        turno se reabre; la corrección es sólo de estado para que no quede
+        'esperando respuesta' eterno)."""
+        for application in await self._applications.list_by_shift(shift_id):
+            if application.status == ApplicationStatus.PENDIENTE:
+                application.reject()
+                await self._applications.update(application)
+
+    async def _restore_rejected_applicants(self, shift_id: UUID) -> None:
+        """Vuelve a PENDIENTE las postulaciones que habían quedado RECHAZADA al
+        asignar, cuando el turno se REABRE (el asignado lo rechazó, canceló o no
+        se presentó): los candidatos que quedaron afuera vuelven a estar en
+        carrera. RECHAZADA sólo la escribe el auto-rechazo de arriba, así que
+        restaurar todas las del turno es inambiguo (no hay rechazo 'manual' que
+        pisar)."""
+        for application in await self._applications.list_by_shift(shift_id):
+            if application.status == ApplicationStatus.RECHAZADA:
+                application.restore()
+                await self._applications.update(application)
 
     async def _send_acceptance_email(
         self, worker_profile_id: UUID, shift: Shift
@@ -326,6 +360,7 @@ class ShiftService:
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         shift.reject()
         updated = await self._shifts.update(shift)
+        await self._restore_rejected_applicants(shift_id)
         await self._notify_company(
             updated.company_id,
             NotificationType.SHIFT_REJECTED,
@@ -349,6 +384,7 @@ class ShiftService:
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         shift.worker_cancel()
         updated = await self._shifts.update(shift)
+        await self._restore_rejected_applicants(shift_id)
         await self._workers.record_cancellation(worker_profile_id)
         await self._notify_company(
             updated.company_id,

@@ -153,11 +153,11 @@ Catálogo completo y priorizado en [docs/TECH_DEBT.md](docs/TECH_DEBT.md);
 patrones de bugs ya resueltos (para no reintroducirlos) en
 [docs/BUGS.md](docs/BUGS.md). Lo más relevante para no sorprenderse:
 
-- **Postulaciones de los no-elegidos quedan "pendiente" para siempre**
-  (TECH_DEBT P5): cuando el comercio asigna a un candidato, la postulación del
-  elegido sí pasa a ACEPTADA, pero las de los demás postulantes del mismo
-  turno no se marcan RECHAZADA automáticamente. Aceptado como deuda menor
-  (UX, no bug de integridad); resolver en un PR acotado si se prioriza.
+- ~~**Postulaciones de los no-elegidos quedan "pendiente" para siempre**~~
+  (TECH_DEBT P5): **resuelto 2026-07-23** — al asignar (o cancelar el turno)
+  los no elegidos pasan a RECHAZADA de forma silenciosa, y si el turno se
+  reabre (rechazo/cancelación/no-show del asignado) vuelven a PENDIENTE. Ver
+  `ShiftService._reject_pending_applicants`/`_restore_rejected_applicants`.
 - **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
   `docs/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
   arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).

@@ -35,11 +35,13 @@ llega a todo. Los dos primeros salen en el PR #98 junto con esta nota:
    `lib/shift-share.ts` y la página pública `/turno/[id]`. Motivación de
    Julieta: un trabajador que ve un turno que no es para él se lo pasa a un
    amigo → más registros orgánicos.
-3. ⬜ Compartir también desde **Matches** (`/my-shifts`) y desde el detalle
-   del turno del trabajador (mismo botón, mismas piezas — quedó sólo en la
-   tarjeta del feed para mantener el PR acotado).
-4. ⬜ **Postulaciones de los no elegidos → RECHAZADA** automática al asignar
-   (TECH_DEBT P5, UX del trabajador que espera respuesta).
+3. ✅ **Compartir también desde Matches y la página pública** (`/my-shifts`
+   pestaña Postulaciones + `/turno/[id]`, este último crea el loop de difusión:
+   quien recibe el link lo re-comparte). Reusa `ShareShiftButton`.
+4. ✅ **Postulaciones de los no elegidos → RECHAZADA** automática al asignar
+   (TECH_DEBT P5): rechazo silencioso de los no elegidos al asignar/cancelar y
+   restauración a PENDIENTE al reabrir (rechazo/cancelación/no-show del
+   asignado). 3 tests nuevos. Detalle en TECH_DEBT P5 (marcada resuelta).
 5. ⬜ **C3 del pulido** (SEO, skeletons, a11y) y luego **C4 onboarding**
    (C4 necesita el spec de Julieta primero — `docs/PULIDO_ROADMAP.md`).
 6. ⬜ Operadora (sin código, cuando pueda): apagar `SEED_DEMO_DATA` antes de
