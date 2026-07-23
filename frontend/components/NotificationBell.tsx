@@ -105,7 +105,7 @@ export default function NotificationBell() {
               </>
             )}
             {!loading && error && (
-              <div className="px-4 py-6 text-center text-sm text-red-600">
+              <div className="px-4 py-6 text-center text-sm text-danger">
                 <p>{error}</p>
                 <button
                   type="button"

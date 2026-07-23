@@ -12,6 +12,22 @@ los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
 
+## C3 — estados de error unificados (2026-07-23, post-#99)
+
+Primer paso de C3 (confianza/conversión), el de más valor para la beta: que un
+error nunca "parezca que la app se rompió".
+- **Color de error inline unificado al token del DS** (`text-danger`): 12 usos
+  sueltos de `text-red-600` en 10 archivos (forms de perfil/reseña, subida de
+  imagen, chat, notificaciones, reset de contraseña, pickers de ubicación)
+  pasan al mismo token que ya usaban login/register. Un solo rojo de error en
+  toda la app.
+- **Mapa**: cuando fallaba la carga mostraba el error como título pero con el
+  subtítulo de "no hay turnos" ("aparecen en tiempo real, volvé en un rato") y
+  botón "Actualizar". Ahora distingue error (subtítulo de reconexión + botón
+  "Reintentar") de vacío real. El resto de las pantallas de carga ya usaban
+  `ErrorBanner`/`EmptyState` + reintento de forma consistente (relevado).
+- Falta de C3: skeletons coherentes (#1) y a11y AA (#3), en ese orden.
+
 ## Post-merge #98 (2026-07-23, rama reiniciada desde main)
 
 - **Compartir en el feed del trabajador, ahora visible**: el botón que había

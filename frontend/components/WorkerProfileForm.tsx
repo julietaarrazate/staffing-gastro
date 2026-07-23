@@ -179,7 +179,7 @@ export default function WorkerProfileForm() {
         Disponible para tomar turnos
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>

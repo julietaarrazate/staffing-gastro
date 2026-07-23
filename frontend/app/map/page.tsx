@@ -169,8 +169,12 @@ export default function MapPage() {
             <EmptyState
               icon={<CalendarIcon size={28} />}
               title={error ?? "No hay turnos cerca"}
-              subtitle="Aparecen en tiempo real. Volvé en un rato o ampliá tu zona."
-              primaryAction={{ label: "Actualizar", onClick: load }}
+              subtitle={
+                error
+                  ? "No pudimos cargar los turnos. Revisá tu conexión e intentá de nuevo."
+                  : "Aparecen en tiempo real. Volvé en un rato o ampliá tu zona."
+              }
+              primaryAction={{ label: error ? "Reintentar" : "Actualizar", onClick: load }}
             />
           </div>
         </div>
