@@ -9,6 +9,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
+import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
 import {
   Button,
@@ -307,6 +308,10 @@ export default function MatchesPage() {
                     <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
                       <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
                     </p>
+                    {/* Compartir a un colega: este turno sigue abierto, pasarlo
+                        por WhatsApp suma gente a la plataforma (mismas piezas
+                        que el feed y la página pública). */}
+                    <ShareShiftButton shift={shift} shiftId={shift.id} />
                     <Button
                       size="sm"
                       variant="surface"

@@ -7,6 +7,7 @@ import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { formatShiftRange } from "@/lib/datetime";
 import { buildShiftSummary } from "@/lib/shift-share";
+import ShareShiftButton from "@/components/ShareShiftButton";
 import { CalendarIcon, MapPinIcon } from "@/components/icons";
 
 /**
@@ -128,6 +129,13 @@ export default async function PublicShiftPage({
           <p className="mt-3 text-center text-xs text-ink/40">
             Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.
           </p>
+
+          {/* Re-compartir: quien recibe el link puede pasarlo a otro colega
+              (loop de difusión). Reusa el mismo botón y la misma pieza de
+              share que el feed y el panel del comercio. */}
+          <div className="mt-4 flex justify-center border-t border-line pt-4">
+            <ShareShiftButton shift={shift} shiftId={shift.id} />
+          </div>
         </div>
       </div>
     </div>
