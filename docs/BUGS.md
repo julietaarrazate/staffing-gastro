@@ -183,3 +183,27 @@ inerte, y el usuario percibe la app rota aunque no haya ningún error.
   el request en segundo plano y **revertir + avisar** si falla (igual que `toggleAvailable` en
   `app/feed/page.tsx`, que ya era optimista). El `await` bloqueante sólo se justifica cuando el
   resultado cambia qué pantalla sigue (ej. un pago).
+
+## Imágenes de Cloudinary servidas a resolución completa (feed lento en mobile)
+
+**Patrón:** `lib/cloudinary.ts::uploadImage` guarda el `secure_url` **original** de
+Cloudinary (la foto tal cual se subió, 1–4 MB), y los componentes lo renderizan
+directo en `<img src>` a tamaños chicos (avatares de 32–96 px, heros de tarjeta).
+El navegador baja la foto entera y la encoge por CSS: en el feed foto-first del
+trabajador, sobre datos móviles, eso son varios MB por pantalla y segundos de
+espera para algo que se ve del tamaño de una tarjeta.
+
+- **Encontrado (2026-07-23):** feed (`OpportunityCard` hero), `Avatar` (usado en
+  todas las listas: feed, Matches, panel, candidatos), y perfiles públicos de
+  comercio/trabajador servían el original. Fix: helper `cldThumb(url, width)` en
+  `lib/cloudinary.ts` que inserta transformaciones de Cloudinary en la URL
+  (`f_auto,q_auto` → WebP/AVIF, `c_limit,dpr_auto,w_<n>` → ancho tope al render
+  real, con densidad de pantalla). Aplicado en `Avatar` (por su `px`), el hero
+  del feed (w_800) y los heros de perfil (w_800).
+- **Cómo evitarlo:** cualquier `<img>` que muestre una foto subida por el
+  usuario debe pasar la URL por `cldThumb(url, anchoDeRender)`. El helper es
+  idempotente y sólo toca URLs de `res.cloudinary.com` — las de otros hosts
+  (avatar de Google, seed externo) pasan sin cambios, así que es seguro
+  aplicarlo siempre. `next/image` no se usa (las fotos son de un host externo y
+  el proyecto sirve `<img>` crudo, TECH_DEBT F5); `cldThumb` da el 80% del
+  beneficio (formato/tamaño) sin ese cambio.

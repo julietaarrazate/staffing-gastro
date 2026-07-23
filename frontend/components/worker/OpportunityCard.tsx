@@ -15,6 +15,7 @@ import {
 } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
 import { shareShift } from "@/lib/shift-share";
+import { cldThumb } from "@/lib/cloudinary";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first estilo Airbnb): foto real
@@ -37,7 +38,7 @@ export default function OpportunityCard({ shift }: { shift: Shift }) {
       <div className="relative min-h-[200px] flex-[1.15]">
         {hasPhoto ? (
           <img
-            src={shift.company_logo_url as string}
+            src={cldThumb(shift.company_logo_url, 800)}
             alt={shift.company_name ?? "Local"}
             onError={() => setBroken(true)}
             loading="lazy"
@@ -64,28 +65,11 @@ export default function OpportunityCard({ shift }: { shift: Shift }) {
             <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
             <span className="text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
           </Link>
-          <div className="flex items-center gap-2">
-            {shift.urgent && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger shadow-sm backdrop-blur">
-                <FlameIcon size={13} /> Urgente
-              </span>
-            )}
-            {/* Compartir a un colega (WhatsApp/share sheet → página pública del
-                turno). stopPropagation en pointer/click para que el gesto no
-                arranque el drag del SwipeDeck ni cuente como swipe. */}
-            <button
-              type="button"
-              aria-label="Compartir turno"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm backdrop-blur"
-            >
-              <ShareIcon size={15} />
-            </button>
-          </div>
+          {shift.urgent && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger shadow-sm backdrop-blur">
+              <FlameIcon size={13} /> Urgente
+            </span>
+          )}
         </div>
 
         {/* Bottom: puesto + ubicación */}
@@ -115,16 +99,36 @@ export default function OpportunityCard({ shift }: { shift: Shift }) {
           </span>
         </div>
 
-        <div className="space-y-2.5 text-[15px] text-ink/80">
-          <p className="inline-flex items-center gap-2">
-            <CalendarIcon size={18} className="text-ink/35" />
-            {formatShiftRange(shift.start_at, shift.end_at)}
-          </p>
-          <p className="inline-flex items-center gap-2">
-            <UsersIcon size={18} className="text-ink/35" />
-            {shift.quantity} {shift.quantity === 1 ? "persona" : "personas"}
-          </p>
-          {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
+        <div className="space-y-3">
+          <div className="space-y-2.5 text-[15px] text-ink/80">
+            <p className="inline-flex items-center gap-2">
+              <CalendarIcon size={18} className="text-ink/35" />
+              {formatShiftRange(shift.start_at, shift.end_at)}
+            </p>
+            <p className="inline-flex items-center gap-2">
+              <UsersIcon size={18} className="text-ink/35" />
+              {shift.quantity} {shift.quantity === 1 ? "persona" : "personas"}
+            </p>
+            {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
+          </div>
+
+          {/* Compartir a un colega que esté buscando trabajo (WhatsApp/share
+              sheet → página pública del turno). Botón claro y etiquetado, no un
+              ícono suelto. stopPropagation en pointer/click para que el gesto no
+              arranque el drag del SwipeDeck ni cuente como swipe. Estilo neutro
+              (blanco/ink): el único acento naranja de la tarjeta es el pago. */}
+          <button
+            type="button"
+            aria-label="Compartir turno por WhatsApp"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-surface py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+          >
+            <ShareIcon size={16} /> Compartir por WhatsApp
+          </button>
         </div>
       </div>
     </div>

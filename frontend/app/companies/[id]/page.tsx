@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
+import { cldThumb } from "@/lib/cloudinary";
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import { MapPinIcon } from "@/components/icons";
@@ -85,7 +86,7 @@ export default function PublicCompanyProfilePage() {
         <div className="relative h-56 w-full bg-gradient-to-br from-zinc-600 to-zinc-800">
           {profile.logo_url ? (
             <img
-              src={profile.logo_url}
+              src={cldThumb(profile.logo_url, 800)}
               alt={profile.name}
               loading="lazy"
               decoding="async"
