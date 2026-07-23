@@ -151,7 +151,7 @@ export default function ConversationPage() {
       )}
 
       {sendError && (
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-red-600">
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-danger">
           {sendError}
           <button
             type="button"

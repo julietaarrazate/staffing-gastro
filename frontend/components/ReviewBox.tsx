@@ -55,7 +55,7 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
   // falla se enmascaraba como "todavía no hay reseñas").
   if (loadError) {
     return (
-      <p className="text-sm text-red-600">
+      <p className="text-sm text-danger">
         {loadError}{" "}
         <button
           type="button"
@@ -122,7 +122,7 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
         rows={2}
         className="mt-2 w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm"
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm text-danger">{error}</p>}
       <div className="mt-2">
         <Button type="submit" size="sm" loading={submitting} disabled={rating === 0 || submitting}>
           Enviar calificación
