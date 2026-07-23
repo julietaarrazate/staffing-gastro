@@ -1,4 +1,12 @@
-# Incidente 2026-07-23 — "La app no carga / no puedo entrar"
+# Incidente 2026-07-23 — "La app no carga / no puedo entrar" ✅ RESUELTO
+
+> **Resolución (2026-07-23):** Julieta cargó la connection string de Neon
+> (directa, sin `-pooler` — el repo no configura `statement_cache_size=0`,
+> requisito del pooling en modo transacción de Neon con asyncpg) en
+> `DATABASE_URL` del dashboard de Render y redeployó. Verificado en vivo
+> contra la base: `alembic_version` pasó de `0011` a **`0015`** y el backend
+> quedó conectado y sirviendo. Se deja el documento como registro del
+> diagnóstico y del runbook.
 
 Diagnóstico basado en evidencia obtenida en vivo (Vercel, Neon, repo) el
 2026-07-23. **El frontend está sano; el backend de Render está caído porque

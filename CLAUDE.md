@@ -4,7 +4,7 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-07-22**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-07-23**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 
@@ -26,7 +26,13 @@ wordmark "staffya" con el "ya" en naranja; tagline "Personal gastronómico, ya."
   `DATABASE_URL` está comentado explícitamente como "connection string de
   Neon, se setea manual en el dashboard, nunca sobrescrita por este archivo").
   Detalle de la migración: `backend/README.md` ("Base de datos en producción:
-  Neon en vez del Postgres de Render").
+  Neon en vez del Postgres de Render"). El switch quedó **verificado en vivo
+  el 2026-07-23** (migraciones en `0015`, backend sirviendo) tras un día
+  entero de backend caído por `DATABASE_URL` sin cargar — diagnóstico y
+  runbook en `docs/INCIDENTE_2026-07-23_BACKEND_CAIDO.md`. Ojo: usar la
+  connection string **directa** de Neon (sin `-pooler`): el repo no configura
+  `statement_cache_size=0`, que el pooling en modo transacción exige con
+  asyncpg.
 
 Según `docs/LAUNCH_PLAN.md`, el veredicto vigente es **lista para beta cerrada
 con usuarios reales** (Palermo) — sólo faltan los pasos operativos de Julieta
@@ -72,8 +78,10 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   se bloquea a nadie en la beta).
 - **Compartir turno por WhatsApp** (deep-link `wa.me`, Web Share API con
   fallback) + **duplicar turno** desde el panel del comercio. Página pública
-  de turno sin auth para compartir. (Distinto de la API de WhatsApp Business,
-  que sigue bloqueada por cuenta/credenciales de Julieta.)
+  de turno sin auth para compartir. Desde 2026-07-23 el **trabajador también
+  comparte** desde la tarjeta del feed (`OpportunityCard`), para pasarle un
+  turno a un colega. (Distinto de la API de WhatsApp Business, que sigue
+  bloqueada por cuenta/credenciales de Julieta.)
 - **Panel del comercio por familias de estado** (Todos/Buscando/En
   marcha/Terminados/Cancelados) con **stepper del ciclo de vida** del turno
   (`ShiftLifecycleStepper`, mapeos distintos para comercio y trabajador) y

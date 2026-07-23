@@ -162,3 +162,24 @@ que no existe en el camino feliz sin compromiso previo.
 ---
 
 Última actualización: 2026-07-22 (siembra inicial, `claude/robustez-tz-v2`).
+
+## UI bloqueada esperando la red en interacciones en cadena (mazo de swipe congelado)
+
+**Patrón:** una interacción que el usuario encadena rápido (swipe/like, toggles, pasos de un
+wizard) hace `await` del request al backend **antes** de habilitar la siguiente interacción. En
+local no se nota (latencia ~0), pero contra el backend real (Render free + Neon, con cold starts)
+cada decisión congela la UI segundos: la siguiente carta/control queda visible pero "gris" e
+inerte, y el usuario percibe la app rota aunque no haya ningún error.
+
+- **Encontrado (2026-07-23, reportado por Julieta):** `SwipeDeck.tsx` esperaba el `POST
+  /applications/shifts/{id}` con `busy=true` entre la animación de salida y el avance del mazo:
+  tras cada like, la carta siguiente quedaba atrás (escala 0.94, opacidad 0.8 — "gris") con los
+  botones deshabilitados hasta que el backend respondiera. Fix: avance **optimista** — el mazo
+  pasa a estado local (`deck`), avanza apenas termina la animación (~0.3s) y la red viaja en
+  segundo plano; si la postulación falla, la carta vuelve al tope del mazo y el reintento reusa
+  la misma `Idempotency-Key` (misma garantía de no perder cartas que antes, sin la espera).
+- **Cómo evitarlo:** en cualquier interacción encadenable, la respuesta de red no debe estar en
+  el camino crítico del siguiente gesto. Patrón a seguir: actualizar la UI de inmediato, mandar
+  el request en segundo plano y **revertir + avisar** si falla (igual que `toggleAvailable` en
+  `app/feed/page.tsx`, que ya era optimista). El `await` bloqueante sólo se justifica cuando el
+  resultado cambia qué pantalla sigue (ej. un pago).

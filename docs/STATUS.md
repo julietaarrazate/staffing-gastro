@@ -12,16 +12,40 @@ los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
 
-## 🚨 Incidente activo (2026-07-23): backend caído — acción de Julieta
+## ✅ Incidente 2026-07-23 (backend caído): RESUELTO
 
-**La app no carga porque el backend de Render nunca se conectó a Neon**: el
-cómputo de Neon está suspendido sin intentos de conexión desde el 18/7, el
-esquema quedó en la migración `0011` (el código va por `0015`) y el
-contenedor muere en `alembic upgrade head` antes de levantar la API. El
-frontend (Vercel) está sano. **Fix: cargar bien `DATABASE_URL` (connection
-string de Neon) en el dashboard de Render y redeployar.** Evidencia completa
-y runbook paso a paso:
+El backend de Render nunca se había conectado a Neon (esquema en `0011`,
+cómputo suspendido desde el 18/7); Julieta cargó la connection string
+**directa** de Neon (sin `-pooler`) en `DATABASE_URL` y redeployó. Verificado
+en vivo: migraciones aplicadas hasta `0015`, backend sirviendo. Diagnóstico
+completo y runbook (por si se repite):
 [INCIDENTE_2026-07-23_BACKEND_CAIDO.md](./INCIDENTE_2026-07-23_BACKEND_CAIDO.md).
+
+## Backlog corto acordado con Julieta (2026-07-23)
+
+Pedidos de Julieta probando la app en vivo, para retomar si la sesión no
+llega a todo. Los dos primeros salen en el PR #98 junto con esta nota:
+
+1. ✅ **Fix swipe "gris"** (`SwipeDeck`): al dar like, la carta siguiente
+   quedaba gris/inactiva hasta que respondía el backend. Ahora el mazo avanza
+   de forma optimista (la red viaja en segundo plano; si falla, la carta
+   vuelve al tope y se reintenta con la misma Idempotency-Key).
+2. ✅ **Compartir turno por WhatsApp desde el lado del trabajador**
+   (`OpportunityCard`): botón de compartir en la tarjeta del feed, reusa
+   `lib/shift-share.ts` y la página pública `/turno/[id]`. Motivación de
+   Julieta: un trabajador que ve un turno que no es para él se lo pasa a un
+   amigo → más registros orgánicos.
+3. ⬜ Compartir también desde **Matches** (`/my-shifts`) y desde el detalle
+   del turno del trabajador (mismo botón, mismas piezas — quedó sólo en la
+   tarjeta del feed para mantener el PR acotado).
+4. ⬜ **Postulaciones de los no elegidos → RECHAZADA** automática al asignar
+   (TECH_DEBT P5, UX del trabajador que espera respuesta).
+5. ⬜ **C3 del pulido** (SEO, skeletons, a11y) y luego **C4 onboarding**
+   (C4 necesita el spec de Julieta primero — `docs/PULIDO_ROADMAP.md`).
+6. ⬜ Operadora (sin código, cuando pueda): apagar `SEED_DEMO_DATA` antes de
+   comercios reales, cargar `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` (para que
+   la próxima caída avise sola), ensayo de restore de Neon, borrar el
+   Postgres viejo de Render si sigue existiendo.
 
 ## Estado en una línea
 

@@ -9,10 +9,12 @@ import {
   CalendarIcon,
   FlameIcon,
   MapPinIcon,
+  ShareIcon,
   UsersIcon,
   WalletIcon,
 } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
+import { shareShift } from "@/lib/shift-share";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first estilo Airbnb): foto real
@@ -62,11 +64,28 @@ export default function OpportunityCard({ shift }: { shift: Shift }) {
             <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
             <span className="text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
           </Link>
-          {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger shadow-sm backdrop-blur">
-              <FlameIcon size={13} /> Urgente
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {shift.urgent && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger shadow-sm backdrop-blur">
+                <FlameIcon size={13} /> Urgente
+              </span>
+            )}
+            {/* Compartir a un colega (WhatsApp/share sheet → página pública del
+                turno). stopPropagation en pointer/click para que el gesto no
+                arranque el drag del SwipeDeck ni cuente como swipe. */}
+            <button
+              type="button"
+              aria-label="Compartir turno"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-ink shadow-sm backdrop-blur"
+            >
+              <ShareIcon size={15} />
+            </button>
+          </div>
         </div>
 
         {/* Bottom: puesto + ubicación */}
