@@ -26,22 +26,23 @@ class Base(DeclarativeBase):
 # `DATABASE_URL`) — medido en docs/PERFORMANCE_REPORT.md y en el PR de
 # performance (branch `claude/performance`):
 #
-# - `pool_pre_ping` quedó afuera. Hace un `SELECT 1` (round-trip completo) en
-#   CADA checkout de conexión del pool, no sólo tras reciclar. Medido contra
-#   un Postgres real (loopback, sin la distancia de red a Neon):
-#   pool_pre_ping=True → 1.17 ms/checkout vs. False → 0.80 ms/checkout
-#   (+46%, 500 checkouts x 3 corridas, script en
-#   `docs/PERFORMANCE_REPORT.md` §Pool). Es UN round-trip fijo agregado por
-#   checkout; con Neon en otra región (decenas de ms de RTT, no microsegundos
-#   de loopback) ese mismo round-trip pesa mucho más que acá. Con un solo
-#   worker uvicorn y pool chico, la mayoría de los requests reusan conexiones
-#   ya abiertas → pagan ese ping de más en el camino caliente.
-# - En su lugar, `pool_recycle=280` fuerza a soltar y reabrir cualquier
-#   conexión con más de ~4.5 min de vida ANTES de que el pooler de Neon (o un
-#   firewall/balanceador intermedio) la cierre él solo por inactividad — eso
-#   sí evitaría el error real que `pre_ping` buscaba prevenir (usar una
-#   conexión ya cortada del otro lado), pero de forma proactiva y sin costo
-#   por request: el reciclado ocurre una vez cada 280s, no en cada checkout.
+# - HOTFIX (post-#95): `pool_pre_ping` vuelve a estar prendido. El PR #95 lo
+#   había sacado a favor de `pool_recycle=280` solo, razonando que reciclar
+#   proactivamente por EDAD evitaba el error que `pre_ping` prevenía. Pero
+#   `pool_recycle` sólo mira la edad de la conexión desde que se abrió, no
+#   hace cuánto está *ociosa* — y el pooler de Neon (o cualquier firewall/LB
+#   intermedio) puede cortar una conexión inactiva mucho antes de los 280s.
+#   En una beta de bajo tráfico, con huecos largos entre requests, eso pasa
+#   seguido: el primer request después de un hueco agarra una conexión ya
+#   cortada del otro lado y el driver cuelga o tira error de conexión — se
+#   siente como "la app está lenta/trabada", justo el síntoma reportado tras
+#   el deploy de #95. `pre_ping` hace un `SELECT 1` en cada checkout (~1ms
+#   medido en loopback, unas pocas decenas de ms reales contra Neon) y
+#   reconecta transparentemente si la conexión está muerta — el costo fijo
+#   por request es preferible a colgarse post error intermitente. Se
+#   mantiene `pool_recycle=280` como medida complementaria (fuerza el
+#   reciclado proactivo por edad); ambas resuelven problemas distintos y la
+#   combinación es la recomendada por SQLAlchemy para bases remotas.
 # - `pool_size`/`max_overflow` explícitos (antes eran el default implícito de
 #   `AsyncAdaptedQueuePool`, 5/10 — ver P/pool en PERFORMANCE_REPORT.md):
 #   documentados acá en vez de dejarlos implícitos. Con un solo worker
@@ -53,6 +54,7 @@ class Base(DeclarativeBase):
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
+    pool_pre_ping=True,
     pool_recycle=280,
     pool_size=5,
     max_overflow=10,

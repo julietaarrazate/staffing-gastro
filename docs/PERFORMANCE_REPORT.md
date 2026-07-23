@@ -326,6 +326,21 @@ capa de caché, y con un N+1 severo en el inbox de chat.
 
 ### 1.6 Pool de conexiones (`app/core/database.py`)
 
+> 🔴 **Hotfix (post-deploy, 2026-07-22): el riesgo de abajo se concretó.**
+> Julieta reportó la app "lenta" horas después de este deploy. Diagnóstico:
+> `pool_recycle` recicla por EDAD de la conexión, no por tiempo OCIOSO — en
+> una beta de bajo tráfico, con huecos largos entre requests, una conexión
+> puede quedar inactiva y ser cortada por el pooler de Neon mucho antes de
+> los ~4.5 min de `pool_recycle=280`, sin que nada la reabra hasta el
+> próximo checkout (que entonces cuelga o tira error de conexión — se siente
+> como "todo lento/trabado", justo el síntoma reportado). Se restauró
+> `pool_pre_ping=True` **junto con** `pool_recycle=280` (no en reemplazo): es
+> la combinación estándar recomendada por SQLAlchemy para bases remotas —
+> cada uno cubre un modo de falla distinto (ocioso vs. viejo). El costo fijo
+> de ~20-50 ms por checkout es preferible a colgarse de forma intermitente.
+> 222 tests backend en verde tras el cambio. Detalle en el comentario de
+> `backend/app/core/database.py`.
+>
 > ✅ **Resuelto (batch de performance, `claude/performance`).** El diagnóstico
 > original ("prioridad Baja, no tocar hasta que haya más de un worker")
 > subestimó el costo real de `pool_pre_ping=True`: no es sólo "un ping barato
