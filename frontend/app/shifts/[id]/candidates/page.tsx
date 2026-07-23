@@ -9,6 +9,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
+import GuaranteeCard from "@/components/candidate/GuaranteeCard";
+import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
 import {
   Avatar,
   Badge,
@@ -16,7 +18,6 @@ import {
   CardSkeletons,
   EmptyState,
   ErrorBanner,
-  Rating,
   SegmentedControl,
   useToast,
 } from "@/components/ui";
@@ -113,10 +114,12 @@ export default function ShiftCandidatesPage() {
               subtitle="Cuando un trabajador deslice tu turno a la derecha, aparece acá. Mientras tanto, mirá los recomendados."
             />
           ) : (
-            applicants.map((a) => (
+            [
+              <GuaranteeCard key="garantia" />,
+              ...applicants.map((a) => (
               <div
                 key={a.application_id}
-                // `.no-select`: fila de chrome (rating, badge), mismo criterio
+                // `.no-select`: fila de chrome (rating, chips), mismo criterio
                 // C0 #2 que ShiftCard/CandidateCard.
                 className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
               >
@@ -124,15 +127,13 @@ export default function ShiftCandidatesPage() {
                   <Avatar src={a.photo_url} name={a.full_name} size="lg" />
                 </Link>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/workers/${a.worker_profile_id}`} className="block truncate font-semibold text-ink">
-                    {a.full_name}
-                  </Link>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <Rating value={a.rating} />
-                    {a.is_available && (
-                      <Badge tone="secondary">Disponible</Badge>
-                    )}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <Link href={`/workers/${a.worker_profile_id}`} className="truncate font-semibold text-ink">
+                      {a.full_name}
+                    </Link>
+                    {a.is_available && <Badge tone="secondary">Disponible</Badge>}
                   </div>
+                  <CandidateStatChips signals={a} className="mt-1" />
                 </div>
                 <Button
                   size="sm"
@@ -143,7 +144,8 @@ export default function ShiftCandidatesPage() {
                   Asignar
                 </Button>
               </div>
-            ))
+              )),
+            ]
           )}
         </div>
       )}
@@ -157,14 +159,18 @@ export default function ShiftCandidatesPage() {
               subtitle="El sistema sigue buscando trabajadores disponibles para este turno en tiempo real."
             />
           ) : (
-            candidates.map((candidate) => (
-              <CandidateCard
-                key={candidate.profile_id}
-                candidate={candidate}
-                disabled={assigning !== null}
-                onAssign={() => assign(candidate.profile_id)}
-              />
-            ))
+            <>
+              <GuaranteeCard />
+              {candidates.map((candidate, i) => (
+                <CandidateCard
+                  key={candidate.profile_id}
+                  candidate={candidate}
+                  recommended={i === 0}
+                  disabled={assigning !== null}
+                  onAssign={() => assign(candidate.profile_id)}
+                />
+              ))}
+            </>
           )}
         </div>
       )}

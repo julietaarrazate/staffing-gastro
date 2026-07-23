@@ -34,3 +34,6 @@ class ApplicantResponse(BaseModel):
     is_available: bool = True
     status: str
     created_at: datetime | None = None
+    events_completed: int = 0
+    punctuality_rate: float = 0.0
+    years_experience: int = 0

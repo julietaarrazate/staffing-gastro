@@ -17,6 +17,9 @@ class CandidateMatchResponse(BaseModel):
     rating: float
     score: float
     distance_km: float | None
+    events_completed: int
+    punctuality_rate: float
+    years_experience: int
 
 
 class WorkerMapResponse(BaseModel):

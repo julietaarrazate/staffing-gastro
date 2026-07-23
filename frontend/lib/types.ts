@@ -134,6 +134,9 @@ export interface CandidateMatch {
   rating: number;
   score: number;
   distance_km: number | null;
+  events_completed: number;
+  punctuality_rate: number;
+  years_experience: number;
 }
 
 export interface WorkerMapResult {
@@ -209,6 +212,9 @@ export interface Applicant {
   is_available: boolean;
   status: ApplicationStatus;
   created_at: string | null;
+  events_completed: number;
+  punctuality_rate: number;
+  years_experience: number;
 }
 
 export interface Review {

@@ -1,47 +1,67 @@
 import Link from "next/link";
 import { CandidateMatch } from "@/lib/types";
-import { Avatar, Button, Rating } from "@/components/ui";
+import { Avatar, Button } from "@/components/ui";
+import { BoltIcon } from "@/components/icons";
+import {
+  CandidateStatChips,
+  RecommendationReasons,
+} from "@/components/candidate/CandidateSignals";
 
+/**
+ * Tarjeta de candidato recomendado por el matching. El primero del ranking se
+ * muestra `recommended`: destacado con el acento de marca y un "por qué te lo
+ * recomendamos" (inspiración Clickie), en vez de un score numérico opaco. El
+ * resto va en tarjeta sobria con los mismos chips de confianza.
+ */
 export default function CandidateCard({
   candidate,
   onAssign,
   disabled,
+  recommended = false,
 }: {
   candidate: CandidateMatch;
   onAssign: () => void;
   disabled?: boolean;
+  recommended?: boolean;
 }) {
   return (
-    // `.no-select`: tarjeta de chrome (score, rating, distancia) — mismo
-    // criterio C0 #2 que ShiftCard (docs/PULIDO_ROADMAP.md fix 2).
-    <div className="no-select relative overflow-hidden rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]">
-      <span className="absolute right-4 top-4 rounded-full bg-surface px-2.5 py-1 text-xs font-bold text-ink/60">
-        Score {candidate.score.toFixed(2)}
-      </span>
+    // `.no-select`: tarjeta de chrome (rating, chips) — mismo criterio C0 #2
+    // que ShiftCard (docs/PULIDO_ROADMAP.md fix 2).
+    <div
+      className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] transition active:scale-[0.99] ${
+        recommended ? "ring-2 ring-primary" : "ring-1 ring-line"
+      }`}
+    >
+      {recommended && (
+        <div className="flex items-center gap-1.5 bg-primary px-5 py-2 text-xs font-extrabold uppercase tracking-wide text-white">
+          <BoltIcon size={14} /> Recomendado por Staffya
+        </div>
+      )}
 
-      <div className="flex items-center gap-3 pr-20">
-        <Link href={`/workers/${candidate.profile_id}`}>
-          <Avatar src={candidate.photo_url} name={candidate.full_name} size="lg" />
-        </Link>
-        <div className="min-w-0">
-          <Link
-            href={`/workers/${candidate.profile_id}`}
-            className="block truncate text-lg font-bold text-ink"
-          >
-            {candidate.full_name}
+      <div className="p-5">
+        <div className="flex items-center gap-3">
+          <Link href={`/workers/${candidate.profile_id}`}>
+            <Avatar src={candidate.photo_url} name={candidate.full_name} size="lg" />
           </Link>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <Rating value={candidate.rating} />
-            {candidate.distance_km != null && (
-              <span className="text-xs text-ink/40">· {candidate.distance_km.toFixed(1)} km</span>
-            )}
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/workers/${candidate.profile_id}`}
+              className="block truncate text-lg font-bold text-ink"
+            >
+              {candidate.full_name}
+            </Link>
+            <CandidateStatChips signals={candidate} className="mt-1" />
           </div>
         </div>
-      </div>
 
-      <Button fullWidth className="mt-4" onClick={onAssign} loading={disabled} disabled={disabled}>
-        Asignar
-      </Button>
+        {recommended ? (
+          <RecommendationReasons signals={candidate} />
+        ) : null}
+
+        <Button fullWidth className="mt-4" onClick={onAssign} loading={disabled} disabled={disabled}>
+          Asignar
+        </Button>
+      </div>
     </div>
   );
 }

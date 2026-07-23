@@ -99,3 +99,9 @@ class EnrichedApplicant:
     is_available: bool
     status: ApplicationStatus
     created_at: datetime | None
+    # Señales de confianza para la lista de postulantes del comercio (mismas
+    # que las de los recomendados): ya vienen del JOIN a worker_profiles, sin
+    # consulta extra.
+    events_completed: int = 0
+    punctuality_rate: float = 0.0
+    years_experience: int = 0
