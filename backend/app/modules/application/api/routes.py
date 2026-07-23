@@ -140,6 +140,9 @@ async def shift_applicants(
             is_available=applicant.is_available,
             status=applicant.status.value,
             created_at=applicant.created_at,
+            events_completed=applicant.events_completed,
+            punctuality_rate=applicant.punctuality_rate,
+            years_experience=applicant.years_experience,
         )
         for applicant in applicants
     ]

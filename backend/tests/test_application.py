@@ -115,6 +115,12 @@ async def test_employer_sees_applicants_enriched(client: AsyncClient):
     assert body[0]["worker_profile_id"] == worker_id
     assert body[0]["full_name"] == "Test User"
     assert body[0]["status"] == "pendiente"
+    # Señales de confianza para la lista del comercio (vienen del JOIN a
+    # worker_profiles, sin consulta extra): el comercio ve por qué conviene
+    # alguien, no sólo el nombre.
+    assert body[0]["events_completed"] == 0
+    assert body[0]["punctuality_rate"] == 0.0
+    assert body[0]["years_experience"] == 0
 
 
 async def test_other_company_cannot_see_applicants(client: AsyncClient):

@@ -44,7 +44,13 @@ class ShiftRequirement:
 
 @dataclass(frozen=True)
 class MatchResult:
-    """Resultado del matching para un candidato: score total y su desglose."""
+    """Resultado del matching para un candidato: score total y su desglose.
+
+    Incluye las señales legibles que sostienen la recomendación (turnos
+    completados, puntualidad, experiencia): el comercio ve *por qué* le
+    recomendamos a alguien, no un score opaco. Salen de `CandidateProfile`, ya
+    cargado para scorear, sin ninguna consulta extra.
+    """
 
     profile_id: UUID
     user_id: UUID
@@ -53,6 +59,9 @@ class MatchResult:
     rating: float
     score: float
     distance_km: float | None
+    events_completed: int
+    punctuality_rate: float
+    years_experience: int
 
 
 @dataclass(frozen=True)

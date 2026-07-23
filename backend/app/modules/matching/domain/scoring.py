@@ -112,6 +112,9 @@ def rank_candidates(
                 rating=candidate.rating,
                 score=breakdown.total(weights),
                 distance_km=breakdown.distance_km,
+                events_completed=candidate.events_completed,
+                punctuality_rate=candidate.punctuality_rate,
+                years_experience=candidate.years_experience,
             )
         )
     return sorted(results, key=lambda r: r.score, reverse=True)

@@ -126,6 +126,9 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 is_available=worker.is_available,
                 status=ApplicationStatus(application.status),
                 created_at=application.created_at,
+                events_completed=worker.events_completed,
+                punctuality_rate=worker.punctuality_rate,
+                years_experience=worker.years_experience,
             )
             for application, worker, full_name in result.all()
         ]

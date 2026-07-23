@@ -12,6 +12,25 @@ los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
 
+## Candidatos con "por qué te lo recomendamos" (2026-07-23, inspiración Clickie)
+
+A pedido de Julieta tras comparar con Clickie (app de oficios, se siente más
+"cara"/robusta). El motor de matching ya calculaba todo pero al comercio le
+mostraba un **"Score 0.87" opaco**. Ahora la pantalla de candidatos
+(`/shifts/[id]/candidates`) **ayuda a decidir**:
+- **Recomendado destacado**: el #1 del ranking va con acento de marca y un
+  "por qué te lo recomendamos" (cercanía, puntualidad, turnos, calificación,
+  oficio) en vez del score.
+- **Chips de confianza** en cada candidato y postulante (rating, turnos,
+  % puntual, años, distancia) — datos que ya venían del matching y del JOIN de
+  postulantes, expuestos sin ninguna consulta extra (`MatchResult`/
+  `CandidateMatchResponse` + `EnrichedApplicant`/`ApplicantResponse`
+  enriquecidos; lógica de chips en `components/candidate/CandidateSignals.tsx`).
+- **"Garantía Staffya"** (`GuaranteeCard`): copy de confianza que le pone
+  palabras a mecanismos que ya existen (no-show reabre el turno, reputación
+  real, chat previo). Sin lógica nueva.
+- Diseño más "caro" en esa pantalla como parte del pulido.
+
 ## C3 — estados de error unificados (2026-07-23, post-#99)
 
 Primer paso de C3 (confianza/conversión), el de más valor para la beta: que un
