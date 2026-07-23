@@ -5,12 +5,54 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-22 · rama de trabajo:
-`claude/stepper-ciclo` (stepper del ciclo de vida + pantalla "esto es lo que
-sigue" al publicar, worktree aislado) · todos los PRs se mergean con squash
-apenas quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
-auto-merge, confirmado explícitamente por Julieta) para retomar el backlog no
-bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-07-23 · rama de trabajo:
+`claude/staffya-evidence-audit-9d9pvh` (diagnóstico del backend caído) · todos
+los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
+**loop autónomo activo** (con auto-merge, confirmado explícitamente por
+Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
+paso.*
+
+## ✅ Incidente 2026-07-23 (backend caído): RESUELTO
+
+El backend de Render nunca se había conectado a Neon (esquema en `0011`,
+cómputo suspendido desde el 18/7); Julieta cargó la connection string
+**directa** de Neon (sin `-pooler`) en `DATABASE_URL` y redeployó. Verificado
+en vivo: migraciones aplicadas hasta `0015`, backend sirviendo. Diagnóstico
+completo y runbook (por si se repite):
+[INCIDENTE_2026-07-23_BACKEND_CAIDO.md](./INCIDENTE_2026-07-23_BACKEND_CAIDO.md).
+
+## Backlog corto acordado con Julieta (2026-07-23)
+
+Pedidos de Julieta probando la app en vivo, para retomar si la sesión no
+llega a todo. Los dos primeros salen en el PR #98 junto con esta nota:
+
+1. ✅ **Fix swipe "gris"** (`SwipeDeck`): al dar like, la carta siguiente
+   quedaba gris/inactiva hasta que respondía el backend. Ahora el mazo avanza
+   de forma optimista (la red viaja en segundo plano; si falla, la carta
+   vuelve al tope y se reintenta con la misma Idempotency-Key).
+2. ✅ **Compartir turno por WhatsApp desde el lado del trabajador**
+   (`OpportunityCard`): botón de compartir en la tarjeta del feed, reusa
+   `lib/shift-share.ts` y la página pública `/turno/[id]`. Motivación de
+   Julieta: un trabajador que ve un turno que no es para él se lo pasa a un
+   amigo → más registros orgánicos.
+3. ✅ **Compartir también desde Matches y la página pública** (`/my-shifts`
+   pestaña Postulaciones + `/turno/[id]`, este último crea el loop de difusión:
+   quien recibe el link lo re-comparte). Reusa `ShareShiftButton`.
+4. ✅ **Postulaciones de los no elegidos → RECHAZADA** automática al asignar
+   (TECH_DEBT P5): rechazo silencioso de los no elegidos al asignar/cancelar y
+   restauración a PENDIENTE al reabrir (rechazo/cancelación/no-show del
+   asignado). 3 tests nuevos. Detalle en TECH_DEBT P5 (marcada resuelta).
+5. 🔶 **C3 del pulido** (confianza/conversión): **SEO base hecho** —
+   `app/robots.ts` (allow público, disallow rutas con sesión + reset de
+   contraseña) + `app/sitemap.ts` (páginas públicas) + CTA del turno público
+   preselecciona `?rol=trabajador` (fuga del loop de difusión). **Falta** de
+   C3: skeletons coherentes, estados de error unificados, a11y AA. Luego
+   **C4 onboarding** (necesita el spec de Julieta primero —
+   `docs/PULIDO_ROADMAP.md`).
+6. ⬜ Operadora (sin código, cuando pueda): apagar `SEED_DEMO_DATA` antes de
+   comercios reales, cargar `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` (para que
+   la próxima caída avise sola), ensayo de restore de Neon, borrar el
+   Postgres viejo de Render si sigue existiendo.
 
 ## Estado en una línea
 
@@ -90,13 +132,15 @@ roadmap).
 
 ## En vuelo ahora
 
-- **`docs/PULIDO_ROADMAP.md` — batches C3 y C4 sin arrancar**: el orden fijado
+- **`docs/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
   por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
-  **C3** (confianza y conversión: `sitemap.ts`/`robots.ts` + OG por página,
-  skeletons coherentes, estados de error unificados, a11y AA) y **C4**
+  **C3** (confianza y conversión): **SEO base hecho** (`app/robots.ts` +
+  `app/sitemap.ts` + CTA del turno público con `?rol=trabajador`, PR #98);
+  **falta** OG por página (la landing y `/turno/[id]` ya tienen, revisar el
+  resto), skeletons coherentes, estados de error unificados, a11y AA. **C4**
   (primera experiencia post-registro: onboarding por rol — el flujo exacto lo
-  tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) quedan
-  pendientes.
+  tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) sin
+  arrancar.
 - **Feature de enganche #1: ping en tiempo real de turnos urgentes**
   (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
   N trabajadores disponibles más cercanos con la skill. Materializa la promesa

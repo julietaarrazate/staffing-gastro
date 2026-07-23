@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   motion,
   useAnimationControls,
@@ -27,15 +27,24 @@ export default function SwipeDeck({
   shifts: Shift[];
   /**
    * Devuelve `true` cuando la decisión quedó procesada (o es un descarte que
-   * no requiere red) y `false` cuando falló: en ese caso la carta vuelve a
-   * su lugar para que el usuario pueda reintentar en vez de perderla.
+   * no requiere red) y `false` cuando falló: en ese caso la carta vuelve al
+   * tope del mazo para que el usuario pueda reintentar en vez de perderla.
    */
   onDecide: (shift: Shift, decision: Decision) => Promise<boolean>;
   renderCard: (shift: Shift) => ReactNode;
   empty: ReactNode;
 }) {
-  const [index, setIndex] = useState(0);
+  // Mazo local para poder avanzar de forma OPTIMISTA: la siguiente carta se
+  // habilita apenas termina la animación de salida, sin esperar la respuesta
+  // de red de la postulación (contra un backend lento eso congelaba el mazo
+  // varios segundos con la carta siguiente "gris" y los botones muertos).
+  const [deck, setDeck] = useState(shifts);
+  // `busy` sólo cubre la animación de salida (~0.3s), no la red.
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setDeck(shifts);
+  }, [shifts]);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 0, 220], [-14, 0, 14]);
   const likeOpacity = useTransform(x, [40, 150], [0, 1]);
@@ -43,11 +52,12 @@ export default function SwipeDeck({
   const controls = useAnimationControls();
   const reducedMotion = useReducedMotion();
 
-  const current = shifts[index];
-  const upcoming = shifts[index + 1];
+  const current = deck[0];
+  const upcoming = deck[1];
 
   async function decide(decision: Decision) {
     if (busy || !current) return;
+    const shift = current;
     setBusy(true);
     const dir = decision === "like" ? 1 : -1;
     await controls.start({
@@ -56,24 +66,17 @@ export default function SwipeDeck({
       opacity: 0,
       transition: reducedMotion ? { duration: 0 } : { duration: 0.28, ease: "easeIn" },
     });
-    const ok = await onDecide(current, decision);
-    if (!ok) {
-      // Falló (red/5xx): la carta ya voló afuera, la traemos de vuelta a su
-      // lugar para que el usuario pueda reintentar en vez de perderla.
-      await controls.start({
-        x: 0,
-        rotate: 0,
-        opacity: 1,
-        transition: reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 24 },
-      });
-      x.set(0);
-      setBusy(false);
-      return;
-    }
     x.set(0);
     controls.set({ x: 0, rotate: 0, opacity: 1 });
-    setIndex((i) => i + 1);
+    setDeck((d) => d.slice(1));
     setBusy(false);
+    // La red corre en segundo plano. Si la postulación falla (red/5xx), la
+    // carta vuelve al tope del mazo para reintentar — `onDecide` ya mostró el
+    // error y conserva la Idempotency-Key, así que el reintento es el mismo
+    // intento para el backend.
+    void onDecide(shift, decision).then((ok) => {
+      if (!ok) setDeck((d) => [shift, ...d]);
+    });
   }
 
   if (!current) return <>{empty}</>;

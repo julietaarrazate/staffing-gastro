@@ -38,6 +38,33 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.ACEPTADA
 
+    def reject(self) -> None:
+        """PENDIENTE → RECHAZADA: el comercio eligió a otro candidato (o canceló
+        el turno), así que este postulante quedó afuera.
+
+        Sólo alcanzable desde PENDIENTE. La postulación del elegido va por
+        `accept()`, nunca por acá (ver `ShiftService._reject_pending_applicants`,
+        TECH_DEBT P5). RECHAZADA no la escribe ningún otro camino, por lo que es
+        reversible sin ambigüedad con `restore()` cuando el turno se reabre."""
+        if self.status != ApplicationStatus.PENDIENTE:
+            raise InvalidApplicationTransitionError(
+                f"No se puede rechazar una postulación en estado {self.status.value}"
+            )
+        self.status = ApplicationStatus.RECHAZADA
+
+    def restore(self) -> None:
+        """RECHAZADA → PENDIENTE: el turno se reabrió (el asignado lo rechazó,
+        canceló o no se presentó) y los candidatos que habían quedado afuera al
+        asignar vuelven a estar en carrera.
+
+        Sólo alcanzable desde RECHAZADA (ver
+        `ShiftService._restore_rejected_applicants`)."""
+        if self.status != ApplicationStatus.RECHAZADA:
+            raise InvalidApplicationTransitionError(
+                f"No se puede reabrir una postulación en estado {self.status.value}"
+            )
+        self.status = ApplicationStatus.PENDIENTE
+
     def withdraw(self) -> None:
         """PENDIENTE → RETIRADA: el trabajador cancela su propia postulación.
 

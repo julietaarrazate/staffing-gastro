@@ -305,6 +305,73 @@ async def test_assigning_worker_without_prior_application_does_not_fail(
     assert mine.json() == []
 
 
+async def _status_of(client: AsyncClient, worker: dict, shift_id: str) -> str:
+    mine = await client.get("/api/v1/applications/mine", headers=worker)
+    assert mine.status_code == 200
+    return next(a for a in mine.json() if a["shift_id"] == shift_id)["status"]
+
+
+async def test_assigning_rejects_the_other_applicants(client: AsyncClient):
+    """TECH_DEBT P5: al asignar el turno a un postulante, los demás postulantes
+    del mismo turno pasan a RECHAZADA (antes quedaban PENDIENTE para siempre,
+    'esperando respuesta' aunque ya no tuvieran chance)."""
+    employer = await _employer_with_company(client, "emp_p5a@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    chosen, chosen_id = await _worker_with_profile(client, "w_p5a_chosen@staffya.com")
+    loser, _ = await _worker_with_profile(client, "w_p5a_loser@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=chosen)
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=loser)
+
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": chosen_id},
+    )
+    assert assigned.status_code == 200
+
+    assert await _status_of(client, chosen, shift_id) == "aceptada"
+    assert await _status_of(client, loser, shift_id) == "rechazada"
+
+
+async def test_reopening_shift_restores_rejected_applicants(client: AsyncClient):
+    """TECH_DEBT P5: si el turno se REABRE porque el asignado lo rechaza, los
+    postulantes que habían quedado RECHAZADA vuelven a PENDIENTE (siguen en
+    carrera para que el comercio los pueda re-elegir)."""
+    employer = await _employer_with_company(client, "emp_p5b@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    chosen, chosen_id = await _worker_with_profile(client, "w_p5b_chosen@staffya.com")
+    loser, _ = await _worker_with_profile(client, "w_p5b_loser@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=chosen)
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=loser)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": chosen_id},
+    )
+    assert await _status_of(client, loser, shift_id) == "rechazada"
+
+    rejected = await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=chosen)
+    assert rejected.status_code == 200
+
+    assert await _status_of(client, loser, shift_id) == "pendiente"
+
+
+async def test_cancelling_shift_rejects_pending_applicants(client: AsyncClient):
+    """TECH_DEBT P5 (variante terminal): si el comercio cancela el turno, las
+    postulaciones PENDIENTE dejan de quedar 'esperando respuesta' para siempre
+    y pasan a RECHAZADA (el turno está muerto, no hay chance para nadie)."""
+    employer = await _employer_with_company(client, "emp_p5c@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_p5c@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    assert await _status_of(client, worker, shift_id) == "pendiente"
+
+    cancelled = await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=employer)
+    assert cancelled.status_code == 200
+
+    assert await _status_of(client, worker, shift_id) == "rechazada"
+
+
 async def test_applying_notifies_company(client: AsyncClient):
     employer = await _employer_with_company(client, "emp_app8@staffya.com")
     shift_id = await _published_shift(client, employer)
