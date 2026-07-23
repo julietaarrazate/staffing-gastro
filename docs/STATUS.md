@@ -5,12 +5,23 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-22 · rama de trabajo:
-`claude/stepper-ciclo` (stepper del ciclo de vida + pantalla "esto es lo que
-sigue" al publicar, worktree aislado) · todos los PRs se mergean con squash
-apenas quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
-auto-merge, confirmado explícitamente por Julieta) para retomar el backlog no
-bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-07-23 · rama de trabajo:
+`claude/staffya-evidence-audit-9d9pvh` (diagnóstico del backend caído) · todos
+los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
+**loop autónomo activo** (con auto-merge, confirmado explícitamente por
+Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
+paso.*
+
+## 🚨 Incidente activo (2026-07-23): backend caído — acción de Julieta
+
+**La app no carga porque el backend de Render nunca se conectó a Neon**: el
+cómputo de Neon está suspendido sin intentos de conexión desde el 18/7, el
+esquema quedó en la migración `0011` (el código va por `0015`) y el
+contenedor muere en `alembic upgrade head` antes de levantar la API. El
+frontend (Vercel) está sano. **Fix: cargar bien `DATABASE_URL` (connection
+string de Neon) en el dashboard de Render y redeployar.** Evidencia completa
+y runbook paso a paso:
+[INCIDENTE_2026-07-23_BACKEND_CAIDO.md](./INCIDENTE_2026-07-23_BACKEND_CAIDO.md).
 
 ## Estado en una línea
 
