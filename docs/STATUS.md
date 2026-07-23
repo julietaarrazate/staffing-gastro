@@ -12,6 +12,16 @@ los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
 
+## Reseñas del trabajador en su perfil público (2026-07-23, inspiración Clickie)
+
+Segundo paso de la línea de confianza: el perfil público del trabajador
+(`/workers/[id]`) mostraba rating/insignias/métricas pero **no las reseñas**
+—lo que más ayuda al comercio a vetear antes de asignar (el "Reseñas
+recientes" de Clickie)—. Nuevo `GET /reviews/workers/{worker_profile_id}`
+(`ReviewService.list_for_worker`: resuelve perfil→usuario y devuelve las
+recibidas, más nuevas primero, tope 20; perfil inexistente → lista vacía) +
+componente `WorkerReviews` en el perfil. 2 tests nuevos.
+
 ## Candidatos con "por qué te lo recomendamos" (2026-07-23, inspiración Clickie)
 
 A pedido de Julieta tras comparar con Clickie (app de oficios, se siente más

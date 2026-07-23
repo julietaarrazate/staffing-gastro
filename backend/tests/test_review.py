@@ -240,3 +240,38 @@ async def test_received_reviews_listed_on_profile(client: AsyncClient):
     assert received.status_code == 200
     assert len(received.json()) == 1
     assert received.json()[0]["comment"] == "Recomendado"
+
+
+async def test_worker_public_reviews_visible_to_employer(client: AsyncClient):
+    """El comercio puede ver las reseñas de un trabajador por su perfil público
+    (`/reviews/workers/{id}`), para vetearlo antes de asignar."""
+    shift_id, employer_headers, worker_headers, worker_profile_id = await _shift_at_status(
+        client, "rev_emp10@staffya.com", "rev_w10@staffya.com", "pagado"
+    )
+    await client.post(
+        f"/api/v1/reviews/shifts/{shift_id}",
+        headers=employer_headers,
+        json={"rating": 4, "comment": "Puntual y prolijo"},
+    )
+
+    # Otro comercio cualquiera (autenticado) puede vetear al trabajador.
+    other_employer = await _employer_with_company(client, "rev_emp10b@staffya.com")
+    public = await client.get(
+        f"/api/v1/reviews/workers/{worker_profile_id}", headers=other_employer
+    )
+    assert public.status_code == 200
+    body = public.json()
+    assert len(body) == 1
+    assert body[0]["rating"] == 4
+    assert body[0]["comment"] == "Puntual y prolijo"
+
+
+async def test_worker_public_reviews_empty_for_unknown_profile(client: AsyncClient):
+    """Perfil inexistente → lista vacía (no-disclosure), no un 500."""
+    employer = await _employer_with_company(client, "rev_emp11@staffya.com")
+    resp = await client.get(
+        "/api/v1/reviews/workers/00000000-0000-0000-0000-000000000000",
+        headers=employer,
+    )
+    assert resp.status_code == 200
+    assert resp.json() == []

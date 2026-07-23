@@ -94,6 +94,20 @@ class ReviewService:
         """Reseñas recibidas por el usuario, para mostrar en su reputación."""
         return await self._reviews.list_received_by_user(user_id)
 
+    async def list_for_worker(
+        self, worker_profile_id: UUID, *, limit: int = 20
+    ) -> list[Review]:
+        """Reseñas públicas de un trabajador (el comercio lo vetea antes de
+        asignar, ver perfil `/workers/{id}`). Resuelve el perfil a su usuario y
+        devuelve sus reseñas recibidas, ya ordenadas de más nueva a más vieja
+        por el repo. Perfil inexistente → lista vacía (no-disclosure, mismo
+        criterio que el resto del dominio)."""
+        worker = await self._workers.get_by_id(worker_profile_id)
+        if worker is None:
+            return []
+        reviews = await self._reviews.list_received_by_user(worker.user_id)
+        return reviews[:limit]
+
     # --- helpers ---
 
     async def _authorize(self, user_id: UUID, shift_id: UUID) -> tuple[UUID, UUID]:
