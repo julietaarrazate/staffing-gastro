@@ -42,8 +42,13 @@ llega a todo. Los dos primeros salen en el PR #98 junto con esta nota:
    (TECH_DEBT P5): rechazo silencioso de los no elegidos al asignar/cancelar y
    restauración a PENDIENTE al reabrir (rechazo/cancelación/no-show del
    asignado). 3 tests nuevos. Detalle en TECH_DEBT P5 (marcada resuelta).
-5. ⬜ **C3 del pulido** (SEO, skeletons, a11y) y luego **C4 onboarding**
-   (C4 necesita el spec de Julieta primero — `docs/PULIDO_ROADMAP.md`).
+5. 🔶 **C3 del pulido** (confianza/conversión): **SEO base hecho** —
+   `app/robots.ts` (allow público, disallow rutas con sesión + reset de
+   contraseña) + `app/sitemap.ts` (páginas públicas) + CTA del turno público
+   preselecciona `?rol=trabajador` (fuga del loop de difusión). **Falta** de
+   C3: skeletons coherentes, estados de error unificados, a11y AA. Luego
+   **C4 onboarding** (necesita el spec de Julieta primero —
+   `docs/PULIDO_ROADMAP.md`).
 6. ⬜ Operadora (sin código, cuando pueda): apagar `SEED_DEMO_DATA` antes de
    comercios reales, cargar `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` (para que
    la próxima caída avise sola), ensayo de restore de Neon, borrar el
@@ -127,13 +132,15 @@ roadmap).
 
 ## En vuelo ahora
 
-- **`docs/PULIDO_ROADMAP.md` — batches C3 y C4 sin arrancar**: el orden fijado
+- **`docs/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
   por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
-  **C3** (confianza y conversión: `sitemap.ts`/`robots.ts` + OG por página,
-  skeletons coherentes, estados de error unificados, a11y AA) y **C4**
+  **C3** (confianza y conversión): **SEO base hecho** (`app/robots.ts` +
+  `app/sitemap.ts` + CTA del turno público con `?rol=trabajador`, PR #98);
+  **falta** OG por página (la landing y `/turno/[id]` ya tienen, revisar el
+  resto), skeletons coherentes, estados de error unificados, a11y AA. **C4**
   (primera experiencia post-registro: onboarding por rol — el flujo exacto lo
-  tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) quedan
-  pendientes.
+  tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) sin
+  arrancar.
 - **Feature de enganche #1: ping en tiempo real de turnos urgentes**
   (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
   N trabajadores disponibles más cercanos con la skill. Materializa la promesa

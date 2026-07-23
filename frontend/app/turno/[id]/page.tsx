@@ -120,8 +120,12 @@ export default async function PublicShiftPage({
             <p className="text-xs font-medium text-ink/50">Pago ofrecido</p>
           </div>
 
+          {/* Quien llega por un link compartido casi siempre es un trabajador
+              buscando el turno: preseleccionamos su rol en el registro
+              (`?rol=trabajador`, mismo patrón que los CTA de la landing) para
+              no hacerlo elegir de más y no perderlo en la pestaña equivocada. */}
           <Link
-            href="/register"
+            href="/register?rol=trabajador"
             className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-[0.98]"
           >
             Postulate en Staffya
