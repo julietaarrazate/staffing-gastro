@@ -7,6 +7,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
+import { cldThumb } from "@/lib/cloudinary";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
@@ -79,7 +80,7 @@ export default function PublicWorkerProfilePage() {
       <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
         <div className="relative h-56 w-full bg-gradient-to-br from-[#ff6b00] to-[#e85f00]">
           {profile.photo_url ? (
-            <img src={profile.photo_url} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+            <img src={cldThumb(profile.photo_url, 800)} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-white/90">
               {name.charAt(0).toUpperCase()}

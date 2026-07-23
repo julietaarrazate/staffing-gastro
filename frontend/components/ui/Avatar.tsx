@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { cldThumb } from "@/lib/cloudinary";
 
 const SIZES = { sm: 32, md: 44, lg: 64, xl: 96 } as const;
 
@@ -39,7 +40,7 @@ export default function Avatar({
       {src && !broken ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={src}
+          src={cldThumb(src, px)}
           alt={name}
           onError={() => setBroken(true)}
           loading="lazy"

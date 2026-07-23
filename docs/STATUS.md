@@ -12,6 +12,18 @@ los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
 
+## Post-merge #98 (2026-07-23, rama reiniciada desde main)
+
+- **Compartir en el feed del trabajador, ahora visible**: el botón que había
+  quedado como ícono chico en el hero de `OpportunityCard` pasa a ser un botón
+  etiquetado "Compartir por WhatsApp" en el cuerpo de la tarjeta (pedido de
+  Julieta: que un trabajador le pase un turno a un amigo que busca laburo).
+- **Velocidad — imágenes de Cloudinary optimizadas** (`lib/cloudinary.ts::
+  cldThumb`): el feed/avatares/perfiles servían la foto original (1–4 MB)
+  encogida por CSS. Ahora se piden con `f_auto,q_auto,c_limit,dpr_auto,w_<n>`
+  (formato moderno + ancho tope al render). Aplicado en `Avatar` (todas las
+  listas), hero del feed y heros de perfil. Detalle en `docs/BUGS.md`.
+
 ## ✅ Incidente 2026-07-23 (backend caído): RESUELTO
 
 El backend de Render nunca se había conectado a Neon (esquema en `0011`,
