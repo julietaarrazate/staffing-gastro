@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { api, NetworkError } from "@/lib/api";
 import { User } from "@/lib/types";
 
@@ -54,6 +55,7 @@ function clearTokens() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -206,6 +208,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearTokens();
     setToken(null);
     setUser(null);
+    // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
+    // una pantalla protegida ya renderizada en el historial.
+    router.replace("/login");
   }
 
   return (

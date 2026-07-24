@@ -30,7 +30,8 @@ function LoginForm() {
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
     await login(emailToUse, passwordToUse);
-    router.push("/");
+    // `replace`: "atrás" tras entrar no debe volver a /login.
+    router.replace("/");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -107,7 +108,7 @@ function LoginForm() {
             </Link>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.push(isNewAccount ? "/profile" : "/")} />
+          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/profile" : "/")} />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">

@@ -38,7 +38,7 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       await register(email, password, fullName, role);
-      router.push("/profile");
+      router.replace("/profile"); // no volver a /register al ir "atrás"
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
     } finally {
@@ -126,7 +126,7 @@ function RegisterForm() {
             </Button>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.push(isNewAccount ? "/profile" : "/")} />
+          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/profile" : "/")} />
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">
