@@ -40,6 +40,17 @@ async def my_received_reviews(current_user: CurrentUserDep, service: ServiceDep)
 
 
 @router.get(
+    "/workers/{worker_profile_id}",
+    response_model=list[ReviewResponse],
+    summary="Reseñas públicas de un trabajador (para vetearlo antes de asignar)",
+)
+async def worker_reviews(
+    worker_profile_id: UUID, _current_user: CurrentUserDep, service: ServiceDep
+):
+    return await service.list_for_worker(worker_profile_id)
+
+
+@router.get(
     "/shifts/{shift_id}",
     response_model=list[ReviewResponse],
     summary="Reseñas ya dejadas en un turno cerrado",

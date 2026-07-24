@@ -11,6 +11,7 @@ import { cldThumb } from "@/lib/cloudinary";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
+import WorkerReviews from "@/components/WorkerReviews";
 import { BriefcaseIcon, MapPinIcon } from "@/components/icons";
 
 function ProfilePageSkeleton() {
@@ -170,6 +171,17 @@ export default function PublicWorkerProfilePage() {
               </div>
             </div>
           )}
+
+          {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar
+              (inspiración "Reseñas recientes" de Clickie). */}
+          <div className="mt-6 border-t border-line pt-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Reseñas
+            </p>
+            <div className="mt-2.5">
+              <WorkerReviews workerProfileId={params.id} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
