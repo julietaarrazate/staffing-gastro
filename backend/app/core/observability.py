@@ -78,15 +78,27 @@ def setup_logging() -> None:
 
 
 def setup_sentry() -> None:
-    """Activa Sentry si hay DSN configurado; si no, no hace nada."""
+    """Activa Sentry si hay DSN configurado; si no, no hace nada.
+
+    Corre a nivel de módulo, antes de levantar el servidor: un `SENTRY_DSN`
+    mal cargado (espacio de más, formato inválido) no debe poder tirar abajo
+    el arranque de TODA la API — Sentry es observabilidad, no un requisito
+    para servir tráfico. Cualquier falla acá se degrada a "Sentry off" con un
+    log, nunca un crash del proceso."""
     if not settings.sentry_dsn:
         return
-    import sentry_sdk
+    try:
+        import sentry_sdk
 
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.environment,
-        # Sin tracing de performance por ahora: sólo captura de errores.
-        traces_sample_rate=0.0,
-        send_default_pii=False,
-    )
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+            # Sin tracing de performance por ahora: sólo captura de errores.
+            traces_sample_rate=0.0,
+            send_default_pii=False,
+        )
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "No se pudo inicializar Sentry (SENTRY_DSN mal configurado); "
+            "arrancando sin Sentry."
+        )
