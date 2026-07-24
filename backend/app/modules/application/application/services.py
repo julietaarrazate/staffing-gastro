@@ -10,12 +10,14 @@ from app.modules.application.domain.exceptions import (
 )
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.identity.domain.repositories import UserRepository
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import OPEN_STATUSES
+from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 
 class ApplicationService:
@@ -32,11 +34,15 @@ class ApplicationService:
         shifts: ShiftRepository,
         companies: CompanyProfileRepository,
         notifications: NotificationRepository,
+        workers: WorkerProfileRepository,
+        users: UserRepository,
     ) -> None:
         self._applications = applications
         self._shifts = shifts
         self._companies = companies
         self._notifications = notifications
+        self._workers = workers
+        self._users = users
 
     async def apply(
         self, worker_profile_id: UUID, shift_id: UUID
@@ -58,15 +64,39 @@ class ApplicationService:
 
         company = await self._companies.get_by_id(shift.company_id)
         if company is not None:
-            await self._notifications.add(
-                Notification(
-                    user_id=company.user_id,
-                    type=NotificationType.NEW_APPLICANT,
-                    title="Nuevo postulante",
-                    message="Un trabajador se postuló a uno de tus turnos.",
-                )
-            )
+            await self._notify_new_applicant(company.user_id, shift, worker_profile_id)
         return application
+
+    async def _notify_new_applicant(
+        self, company_user_id: UUID, shift: Shift, worker_profile_id: UUID
+    ) -> None:
+        """Avisa al comercio con el mismo tipo de copy que hace efectivo un
+        aviso de 'llegaron presupuestos' en apps de oficios: nombre de quien
+        se postuló + cuántos postulantes hay en total + a qué turno, no un
+        genérico 'un trabajador se postuló'."""
+        position_label = shift.title or shift.position.value
+        total = len(await self._applications.list_by_shift(shift.id))
+        worker_name = await self._worker_full_name(worker_profile_id)
+        title = f"{total} postulante{'s' if total != 1 else ''} para {position_label}"
+        message = (
+            f"{worker_name} se postuló a tu turno de {position_label}. "
+            "Entrá para ver a todos los postulantes y elegir."
+        )
+        await self._notifications.add(
+            Notification(
+                user_id=company_user_id,
+                type=NotificationType.NEW_APPLICANT,
+                title=title,
+                message=message,
+            )
+        )
+
+    async def _worker_full_name(self, worker_profile_id: UUID) -> str:
+        worker = await self._workers.get_by_id(worker_profile_id)
+        if worker is None:
+            return "Un trabajador"
+        user = await self._users.get_by_id(worker.user_id)
+        return user.full_name if user is not None else "Un trabajador"
 
     async def list_applicants(
         self, company_id: UUID, shift_id: UUID
