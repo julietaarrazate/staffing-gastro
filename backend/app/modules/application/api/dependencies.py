@@ -13,10 +13,14 @@ from app.modules.application.infrastructure.repositories import (
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.worker.infrastructure.repositories import (
+    SqlAlchemyWorkerProfileRepository,
+)
 
 
 def get_application_service(
@@ -27,4 +31,6 @@ def get_application_service(
         shifts=SqlAlchemyShiftRepository(session),
         companies=SqlAlchemyCompanyProfileRepository(session),
         notifications=SqlAlchemyNotificationRepository(session),
+        workers=SqlAlchemyWorkerProfileRepository(session),
+        users=SqlAlchemyUserRepository(session),
     )
