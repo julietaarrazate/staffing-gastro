@@ -67,14 +67,19 @@ de `pool_pre_ping` (#97) antes de cada request. Con varias consultas por
 pantalla eso son 1-2 s de espera pura de red — con UNA sola usuaria y el
 servidor despierto. No es cold start ni código.
 
-**Fix (pendiente de Julieta, requiere recrear servicios):**
-1. Proyecto Neon nuevo en **AWS US East (N. Virginia)**.
-2. Borrar el servicio de Render y recrearlo con el **mismo nombre**
-   (`staffya-backend`, así conserva la URL que el frontend usa por default) en
-   región **Virginia**. Render no permite cambiar la región de un servicio ya
-   creado; por eso `render.yaml` ahora fija `region: virginia`.
-3. `DATABASE_URL` = connection string **directa** del Neon nuevo (sin
-   `-pooler`). Migraciones y seed corren solos al arrancar.
+**Fix:**
+1. ✅ **Base nueva ya creada**: proyecto Neon `staffya-us-east`
+   (`spring-voice-94360534`) en **`aws-us-east-2` (Ohio)**. No necesita
+   PostGIS: ninguna migración lo usa (el matching calcula distancias con
+   Haversine en Python, ver `matching/domain/scoring.py`). Las migraciones y
+   el seed corren solos en el primer arranque.
+2. ⬜ **Pendiente de Julieta** (Render no expone API en esta sesión): borrar el
+   servicio de Render y recrearlo con el **mismo nombre** (`staffya-backend`,
+   así conserva la URL que el frontend usa por default) en región **Ohio**.
+   Render no permite cambiar la región de un servicio ya creado; por eso
+   `render.yaml` ahora fija `region: ohio`.
+3. ⬜ `DATABASE_URL` = connection string **directa** del proyecto nuevo (sin
+   `-pooler`), copiada del dashboard de Neon.
 
 Resultado esperado: latencia backend↔base de ~180 ms → **~2 ms**.
 
