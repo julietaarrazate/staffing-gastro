@@ -10,6 +10,22 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
+    # Región FIJADA a propósito (2026-07-27). Sin esta línea Render usa Oregon
+    # (US West) por default, y con la base en Neon São Paulo cada consulta
+    # cruzaba el continente: ~180 ms de ida y vuelta POR CONSULTA, más el
+    # `SELECT 1` de `pool_pre_ping` (ver #97) antes de cada request. Eso era
+    # 1-2 s de espera pura de red por pantalla, con una sola usuaria y el
+    # servidor despierto — el síntoma de "la app está lenta".
+    #
+    # `ohio` (US East) empareja con la base: el proyecto Neon `staffya-us-east`
+    # vive en `aws-us-east-2` (Ohio), así que backend y base quedan en la misma
+    # región (~2 ms en vez de ~180 ms).
+    #
+    # OJO: Render NO permite cambiar la región de un servicio ya creado. Para
+    # mover uno existente hay que borrarlo y recrearlo con el MISMO nombre
+    # (así conserva la URL staffya-backend.onrender.com, que el frontend usa
+    # como default en `frontend/lib/api.ts` y para la CSP en `next.config.ts`).
+    region: ohio
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL

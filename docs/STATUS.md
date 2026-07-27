@@ -57,6 +57,32 @@ error nunca "parezca que la app se rompió".
   `ErrorBanner`/`EmptyState` + reintento de forma consistente (relevado).
 - Falta de C3: skeletons coherentes (#1) y a11y AA (#3), en ese orden.
 
+## 🐌 Causa raíz de "la app está lenta" (2026-07-27): regiones cruzadas
+
+**Diagnóstico confirmado con evidencia, no inferido:** el servicio de Render
+está en **Oregon (US West)** (verificado por Julieta en el dashboard) y la base
+de Neon en **São Paulo** (`aws-sa-east-1`, verificado vía API). Cada consulta
+cruza el continente: **~180 ms de ida y vuelta por consulta**, más el `SELECT 1`
+de `pool_pre_ping` (#97) antes de cada request. Con varias consultas por
+pantalla eso son 1-2 s de espera pura de red — con UNA sola usuaria y el
+servidor despierto. No es cold start ni código.
+
+**Fix:**
+1. ✅ **Base nueva ya creada**: proyecto Neon `staffya-us-east`
+   (`spring-voice-94360534`) en **`aws-us-east-2` (Ohio)**. No necesita
+   PostGIS: ninguna migración lo usa (el matching calcula distancias con
+   Haversine en Python, ver `matching/domain/scoring.py`). Las migraciones y
+   el seed corren solos en el primer arranque.
+2. ⬜ **Pendiente de Julieta** (Render no expone API en esta sesión): borrar el
+   servicio de Render y recrearlo con el **mismo nombre** (`staffya-backend`,
+   así conserva la URL que el frontend usa por default) en región **Ohio**.
+   Render no permite cambiar la región de un servicio ya creado; por eso
+   `render.yaml` ahora fija `region: ohio`.
+3. ⬜ `DATABASE_URL` = connection string **directa** del proyecto nuevo (sin
+   `-pooler`), copiada del dashboard de Neon.
+
+Resultado esperado: latencia backend↔base de ~180 ms → **~2 ms**.
+
 ## Post-merge #98 (2026-07-23, rama reiniciada desde main)
 
 - **Compartir en el feed del trabajador, ahora visible**: el botón que había
