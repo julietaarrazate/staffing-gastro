@@ -8,7 +8,7 @@ import Logo from "@/components/Logo";
 import { Button } from "@/components/ui";
 
 const inputClass =
-  "rounded-xl border border-zinc-300 px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+  "rounded-xl border border-line px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
 
 function RestablecerForm() {
   const router = useRouter();
@@ -49,14 +49,14 @@ function RestablecerForm() {
         <div className="flex justify-center">
           <Logo size={48} withWordmark={false} />
         </div>
-        <h1 className="mt-4 text-center text-2xl font-bold text-zinc-900">
+        <h1 className="mt-4 text-center text-2xl font-bold text-ink">
           Elegí una nueva contraseña
         </h1>
-        <p className="mt-1 text-center text-sm text-zinc-500">
+        <p className="mt-1 text-center text-sm text-ink/50">
           Escribila dos veces para confirmar.
         </p>
 
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           {!token ? (
             <p className="text-sm text-danger">
               El enlace es inválido o le falta el token. Pedí uno nuevo desde{" "}
@@ -93,7 +93,7 @@ function RestablecerForm() {
           )}
         </div>
 
-        <p className="mt-5 text-center text-sm text-zinc-600">
+        <p className="mt-5 text-center text-sm text-ink/60">
           <Link href="/login" className="font-semibold text-orange-600">
             Volver a ingresar
           </Link>

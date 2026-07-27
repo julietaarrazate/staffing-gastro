@@ -14,7 +14,7 @@ import { MapPinIcon } from "@/components/icons";
 function ProfilePageSkeleton() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8" aria-hidden>
-      <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
         <Skeleton className="h-56 w-full rounded-none" />
         <div className="space-y-4 px-5 py-5">
           <Skeleton className="h-5 w-1/3" />
@@ -82,8 +82,8 @@ export default function PublicCompanyProfilePage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
-        <div className="relative h-56 w-full bg-gradient-to-br from-zinc-600 to-zinc-800">
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="relative h-56 w-full bg-gradient-to-br from-[#ff6b00] to-[#e85f00]">
           {profile.logo_url ? (
             <img
               src={cldThumb(profile.logo_url, 800)}
@@ -110,19 +110,19 @@ export default function PublicCompanyProfilePage() {
         <div className="px-5 py-5">
           <div className="flex items-center gap-2">
             <StarRating value={Math.round(profile.rating)} size={18} />
-            <span className="text-sm font-semibold text-zinc-700">{profile.rating.toFixed(1)}</span>
-            <span className="text-sm text-zinc-400">· {profile.events_published} turnos publicados</span>
+            <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
+            <span className="text-sm text-ink/40">· {profile.events_published} turnos publicados</span>
           </div>
 
           {profile.owner_full_name && (
-            <p className="mt-2 text-sm text-zinc-500">A cargo de {profile.owner_full_name}</p>
+            <p className="mt-2 text-sm text-ink/50">A cargo de {profile.owner_full_name}</p>
           )}
 
-          {profile.description && <p className="mt-4 text-sm text-zinc-700">{profile.description}</p>}
+          {profile.description && <p className="mt-4 text-sm text-ink/75">{profile.description}</p>}
 
           {profile.category && (
             <div className="mt-4">
-              <span className="rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 px-3 py-1.5 text-sm font-semibold text-white shadow-sm">
+              <span className="rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70">
                 {CATEGORY_LABELS[profile.category] ?? profile.category}
               </span>
             </div>
@@ -147,9 +147,9 @@ export default function PublicCompanyProfilePage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-zinc-50 px-3 py-2.5 ring-1 ring-zinc-100">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="font-semibold text-zinc-800">{value}</p>
+    <div className="rounded-2xl bg-surface px-3 py-2.5 ring-1 ring-line">
+      <p className="text-xs text-ink/50">{label}</p>
+      <p className="font-semibold text-ink">{value}</p>
     </div>
   );
 }
