@@ -47,15 +47,23 @@ export default function BottomNav() {
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}
             href={href}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium ${
-              active ? "text-orange-600" : "text-zinc-400"
+            // `replace` (no push): cambiar de pestaña NO apila historial, igual
+            // que una app nativa. Antes cada tap sumaba una entrada y el botón
+            // "atrás" retrocedía pestaña por pestaña (Perfil→Chats→Matches→...)
+            // en vez de salir de la sección — el síntoma de "atrás va una
+            // página atrás y nunca sale". La navegación a detalle (turno,
+            // candidatos, chat) sigue con push, así que ahí "atrás" funciona
+            // como se espera.
+            replace
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
+              active ? "text-primary" : "text-ink/40"
             }`}
           >
             <Icon size={22} />

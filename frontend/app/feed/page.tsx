@@ -7,25 +7,40 @@ import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
+import { getCached, setCached } from "@/lib/screen-cache";
 import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import { CalendarIcon, MapPinIcon } from "@/components/icons";
 
+/** Lo que se conserva del feed entre visitas a la pestaña (ver screen-cache). */
+interface CachedFeed {
+  shifts: Shift[];
+  profile: WorkerProfile | null;
+}
+const FEED_CACHE_KEY = "worker-feed";
+
 export default function WorkerHomePage() {
   const { token, user } = useAuth();
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [profile, setProfile] = useState<WorkerProfile | null>(null);
-  const [available, setAvailable] = useState(true);
-  const [loading, setLoading] = useState(true);
+  // Stale-while-revalidate (lib/screen-cache.ts): si el trabajador ya estuvo
+  // en el feed en esta sesión, la pantalla pinta al instante lo último que vio
+  // y refresca por detrás, en vez de mostrar el esqueleto entero cada vez que
+  // vuelve a la pestaña.
+  const cached = getCached<CachedFeed>(FEED_CACHE_KEY);
+  const [shifts, setShifts] = useState<Shift[]>(cached?.shifts ?? []);
+  const [profile, setProfile] = useState<WorkerProfile | null>(cached?.profile ?? null);
+  const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
+  const [loading, setLoading] = useState(cached === undefined);
   const [error, setError] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
     if (!token) return;
-    setLoading(true);
+    // Sólo bloqueamos con esqueleto en la primera carga real; si ya hay algo
+    // cacheado, el refresco es silencioso.
+    if (getCached<CachedFeed>(FEED_CACHE_KEY) === undefined) setLoading(true);
     setError(null);
     try {
       const [feed, prof, applied] = await Promise.all([
@@ -34,11 +49,13 @@ export default function WorkerHomePage() {
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
       const appliedIds = new Set(applied.map((a) => a.shift_id));
-      setShifts(feed.filter((s) => !appliedIds.has(s.id)));
+      const visible = feed.filter((s) => !appliedIds.has(s.id));
+      setShifts(visible);
       if (prof) {
         setProfile(prof);
         setAvailable(prof.is_available);
       }
+      setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
     } finally {
@@ -80,10 +97,25 @@ export default function WorkerHomePage() {
     }
   }
 
+  /** Saca un turno ya decidido del caché del feed, para que al volver a la
+   *  pestaña no reaparezca una carta que el trabajador ya despachó (el mazo
+   *  visible no se toca: lo maneja SwipeDeck con su propio estado). */
+  function dropFromCache(shiftId: string) {
+    const current = getCached<CachedFeed>(FEED_CACHE_KEY);
+    if (!current) return;
+    setCached<CachedFeed>(FEED_CACHE_KEY, {
+      ...current,
+      shifts: current.shifts.filter((s) => s.id !== shiftId),
+    });
+  }
+
   async function onDecide(shift: Shift, decision: "like" | "pass"): Promise<boolean> {
     // "pass" es un descarte local: no hay red de por medio, así que siempre
     // se considera procesado.
-    if (decision === "pass" || !token) return true;
+    if (decision === "pass" || !token) {
+      if (decision === "pass") dropFromCache(shift.id);
+      return true;
+    }
     try {
       // Idempotencia (product/IDEMPOTENCIA_SPEC.md): si la carta vuelve al
       // mazo por un error de red y el trabajador vuelve a swipear a la
@@ -97,6 +129,7 @@ export default function WorkerHomePage() {
         keyFor(shift.id)
       );
       clearIdempotencyKey(shift.id);
+      dropFromCache(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
       // Primera acción significativa del flujo del trabajador: acá, y no al
       // aterrizar en la app, es cuando tiene sentido preguntar si quiere
@@ -108,6 +141,7 @@ export default function WorkerHomePage() {
         // Ya estaba postulado: no es un error real, se trata como descarte
         // (la carta no vuelve).
         clearIdempotencyKey(shift.id);
+        dropFromCache(shift.id);
         toast("Ya te habías postulado a este turno");
         return true;
       }

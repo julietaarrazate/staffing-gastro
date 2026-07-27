@@ -17,35 +17,35 @@ export default function Navbar() {
         <nav className="flex items-center gap-4 text-sm font-medium">
           {!loading && user?.role === "worker" && (
             <>
-              <Link href="/feed" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/feed" replace className="hidden hover:text-primary md:inline">
                 Turnos
               </Link>
-              <Link href="/my-shifts" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/my-shifts" replace className="hidden hover:text-primary md:inline">
                 Mis turnos
               </Link>
-              <Link href="/chats" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/chats" replace className="hidden hover:text-primary md:inline">
                 Mensajes
               </Link>
-              <Link href="/profile" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/profile" replace className="hidden hover:text-primary md:inline">
                 Mi perfil
               </Link>
             </>
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <Link href="/shifts" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/shifts" replace className="hidden hover:text-primary md:inline">
                 Mis turnos
               </Link>
-              <Link href="/search" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/search" replace className="hidden hover:text-primary md:inline">
                 Buscar
               </Link>
-              <Link href="/chats" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/chats" replace className="hidden hover:text-primary md:inline">
                 Mensajes
               </Link>
-              <Link href="/subscription" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/subscription" replace className="hidden hover:text-primary md:inline">
                 Mi plan
               </Link>
-              <Link href="/profile" className="hidden hover:text-orange-600 md:inline">
+              <Link href="/profile" replace className="hidden hover:text-primary md:inline">
                 Mi comercio
               </Link>
             </>
