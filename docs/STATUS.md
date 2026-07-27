@@ -57,6 +57,27 @@ error nunca "parezca que la app se rompió".
   `ErrorBanner`/`EmptyState` + reintento de forma consistente (relevado).
 - Falta de C3: skeletons coherentes (#1) y a11y AA (#3), en ese orden.
 
+## 🐌 Causa raíz de "la app está lenta" (2026-07-27): regiones cruzadas
+
+**Diagnóstico confirmado con evidencia, no inferido:** el servicio de Render
+está en **Oregon (US West)** (verificado por Julieta en el dashboard) y la base
+de Neon en **São Paulo** (`aws-sa-east-1`, verificado vía API). Cada consulta
+cruza el continente: **~180 ms de ida y vuelta por consulta**, más el `SELECT 1`
+de `pool_pre_ping` (#97) antes de cada request. Con varias consultas por
+pantalla eso son 1-2 s de espera pura de red — con UNA sola usuaria y el
+servidor despierto. No es cold start ni código.
+
+**Fix (pendiente de Julieta, requiere recrear servicios):**
+1. Proyecto Neon nuevo en **AWS US East (N. Virginia)**.
+2. Borrar el servicio de Render y recrearlo con el **mismo nombre**
+   (`staffya-backend`, así conserva la URL que el frontend usa por default) en
+   región **Virginia**. Render no permite cambiar la región de un servicio ya
+   creado; por eso `render.yaml` ahora fija `region: virginia`.
+3. `DATABASE_URL` = connection string **directa** del Neon nuevo (sin
+   `-pooler`). Migraciones y seed corren solos al arrancar.
+
+Resultado esperado: latencia backend↔base de ~180 ms → **~2 ms**.
+
 ## Post-merge #98 (2026-07-23, rama reiniciada desde main)
 
 - **Compartir en el feed del trabajador, ahora visible**: el botón que había
