@@ -63,7 +63,12 @@ app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
 app.add_middleware(RequestIdMiddleware)
 
 
-@app.get("/health", tags=["system"], summary="Healthcheck")
+# `api_route` con GET **y HEAD**: los monitores de uptime (UptimeRobot y la
+# mayoría) chequean con HEAD por ser más barato, y FastAPI no lo agrega solo a
+# una ruta declarada con `@app.get`. Sin HEAD, el healthcheck respondía 405 y
+# el monitor reportaba el servicio como CAÍDO estando perfectamente sano
+# (verificado en los logs de Render: `"HEAD /health" 405 Method Not Allowed`).
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["system"], summary="Healthcheck")
 async def health() -> dict[str, str]:
     return {"status": "ok", "service": settings.app_name}
 

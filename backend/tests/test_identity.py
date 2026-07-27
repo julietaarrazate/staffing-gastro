@@ -16,6 +16,14 @@ async def test_health(client: AsyncClient):
     assert response.json()["status"] == "ok"
 
 
+async def test_health_responde_a_head(client: AsyncClient):
+    """Los monitores de uptime (UptimeRobot y la mayoría) chequean con HEAD.
+    Sin esto el endpoint devolvía 405 y el monitor reportaba el servicio como
+    caído estando sano — visto en los logs de producción de Render."""
+    response = await client.head("/health")
+    assert response.status_code == 200
+
+
 async def test_register_success(client: AsyncClient):
     response = await register_user(client)
     assert response.status_code == 201
