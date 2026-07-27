@@ -22,7 +22,7 @@ function timeAgo(iso: string): string {
 
 function ConversationRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+    <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
       <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-1/2" />
@@ -56,7 +56,7 @@ export default function ChatsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-bold">Mensajes</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <p className="mt-1 text-sm text-ink/50">
         Coordiná los detalles de cada turno con la otra parte.
       </p>
 
@@ -81,7 +81,7 @@ export default function ChatsPage() {
           <Link
             key={c.shift_id}
             href={`/chats/${c.shift_id}`}
-            className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-100 transition hover:shadow-md"
+            className="flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:shadow-md"
           >
             {c.other_party_photo ? (
               <img
@@ -89,7 +89,7 @@ export default function ChatsPage() {
                 alt={c.other_party_name}
                 loading="lazy"
                 decoding="async"
-                className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-zinc-100"
+                className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-line"
               />
             ) : (
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg font-bold text-orange-700">
@@ -98,13 +98,13 @@ export default function ChatsPage() {
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="truncate font-bold text-zinc-900">{c.other_party_name}</h3>
-                <span className="shrink-0 text-xs text-zinc-400">
+                <h3 className="truncate font-bold text-ink">{c.other_party_name}</h3>
+                <span className="shrink-0 text-xs text-ink/40">
                   {timeAgo(c.last_message_at)}
                 </span>
               </div>
-              <p className="truncate text-xs text-zinc-400">{c.shift_title}</p>
-              <p className="truncate text-sm text-zinc-600">{c.last_message}</p>
+              <p className="truncate text-xs text-ink/40">{c.shift_title}</p>
+              <p className="truncate text-sm text-ink/60">{c.last_message}</p>
             </div>
             {c.unread_count > 0 && (
               <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-orange-600 px-1.5 text-xs font-bold text-white">
