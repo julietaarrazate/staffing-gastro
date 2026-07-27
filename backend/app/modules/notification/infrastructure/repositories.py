@@ -14,7 +14,7 @@ from app.modules.notification.domain.repositories import (
     NotificationRepository,
     PushSubscriptionRepository,
 )
-from app.modules.notification.domain.value_objects import NotificationType
+from app.modules.notification.domain.value_objects import NotificationType, deep_link_for
 from app.modules.notification.infrastructure.models import (
     NotificationModel,
     PushSubscriptionModel,
@@ -192,7 +192,12 @@ async def _send_push_best_effort(session: AsyncSession, notification: Notificati
     gone_ids: list[UUID] = []
     for subscription in subscriptions:
         result = await sender.send(
-            subscription, title=notification.title, body=notification.message
+            subscription,
+            title=notification.title,
+            body=notification.message,
+            # Deep link por tipo: tocar el push abre la pantalla de la que
+            # habla el aviso, no la landing.
+            url=deep_link_for(notification.type),
         )
         if result == PushSendResult.GONE:
             gone_ids.append(subscription.id)

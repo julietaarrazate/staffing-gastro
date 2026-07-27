@@ -166,3 +166,23 @@ async def test_push_subscription_without_any_device_does_not_break_notification(
             )
         )
     assert created.title == "Sin dispositivos suscriptos"
+
+
+async def test_deep_link_por_tipo_de_notificacion():
+    """El push tiene que abrir la pantalla de la que habla el aviso, no la
+    landing: antes todas caían en "/" y el usuario tenía que buscar a mano de
+    qué le hablaban. La pantalla se elige por el destinatario real de cada tipo
+    (trabajador -> sus turnos, comercio -> su panel)."""
+    from app.modules.notification.domain.value_objects import deep_link_for
+
+    # Trabajador
+    assert deep_link_for(NotificationType.SHIFT_ASSIGNED) == "/my-shifts"
+    assert deep_link_for(NotificationType.SHIFT_CANCELLED_LATE) == "/my-shifts"
+    # Comercio
+    assert deep_link_for(NotificationType.NEW_APPLICANT) == "/shifts"
+    assert deep_link_for(NotificationType.SHIFT_CONFIRMED) == "/shifts"
+    # Ambos roles
+    assert deep_link_for(NotificationType.CHAT_MESSAGE) == "/chats"
+    assert deep_link_for(NotificationType.REVIEW_RECEIVED) == "/profile"
+    # Todo tipo conocido tiene destino: ninguno cae al fallback de la landing.
+    assert all(deep_link_for(t) != "/" for t in NotificationType)

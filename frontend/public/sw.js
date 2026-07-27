@@ -20,14 +20,24 @@ self.addEventListener("push", (event) => {
     data = {};
   }
   const title = data.title || "Staffya";
+  const url = data.url || "/";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      data: { url: data.url || "/" },
-      tag: "staffya-push",
-      renotify: true,
+      data: { url },
+      // Tag ÚNICO por notificación. Antes todas compartían "staffya-push", así
+      // que cada aviso nuevo REEMPLAZABA al anterior: si llegaban tres (un
+      // postulante, un mensaje, una reseña) el trabajador sólo veía el último.
+      // Con un tag distinto se apilan como en cualquier app.
+      tag: data.tag || `staffya-${Date.now()}`,
+      // Vibración corta: la señal física que hace que un aviso de turno
+      // urgente se note con el teléfono en el bolsillo.
+      vibrate: [80, 40, 80],
+      // Botón de acción directo, para resolver desde la notificación sin
+      // tener que buscar la pantalla.
+      actions: [{ action: "open", title: "Ver" }],
     })
   );
 });
