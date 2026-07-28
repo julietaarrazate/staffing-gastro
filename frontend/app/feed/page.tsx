@@ -8,10 +8,18 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
+import {
+  distanceOf,
+  getStoredLocation,
+  originFor,
+  sortByDistance,
+  type CurrentLocation,
+} from "@/lib/current-location";
+import LocationBar from "@/components/worker/LocationBar";
 import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
-import { CalendarIcon, MapPinIcon } from "@/components/icons";
+import { CalendarIcon } from "@/components/icons";
 
 /** Lo que se conserva del feed entre visitas a la pestaña (ver screen-cache). */
 interface CachedFeed {
@@ -34,6 +42,11 @@ export default function WorkerHomePage() {
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
   const [loading, setLoading] = useState(cached === undefined);
   const [error, setError] = useState<string | null>(null);
+  // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
+  // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
+  // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
+  const [here, setHere] = useState<CurrentLocation | null>(null);
+  useEffect(() => setHere(getStoredLocation()), []);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -152,6 +165,9 @@ export default function WorkerHomePage() {
 
   const firstName = user?.full_name?.split(" ")[0];
 
+  const origin = originFor(here, profile);
+  const visibleShifts = sortByDistance(shifts, origin);
+
   return (
     <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)]">
       {/* Header: saludo + disponibilidad */}
@@ -162,10 +178,6 @@ export default function WorkerHomePage() {
             <h1 className="text-xl font-extrabold leading-tight text-ink">
               {firstName ? `Hola, ${firstName}` : "Hola"}
             </h1>
-            <p className="inline-flex items-center gap-1 text-sm text-ink/50">
-              <MapPinIcon size={13} className="text-ink/40" />
-              {profile?.city ?? "Sin ubicación"}
-            </p>
           </div>
         </div>
         <button
@@ -191,6 +203,12 @@ export default function WorkerHomePage() {
         </button>
       </header>
 
+      <LocationBar
+        current={here}
+        profileCity={profile?.city ?? null}
+        onChange={setHere}
+      />
+
       {/* Deck */}
       <div className="min-h-0 flex-1">
         {loading ? (
@@ -204,9 +222,11 @@ export default function WorkerHomePage() {
           />
         ) : (
           <SwipeDeck
-            shifts={shifts}
+            shifts={visibleShifts}
             onDecide={onDecide}
-            renderCard={(shift) => <OpportunityCard shift={shift} />}
+            renderCard={(shift) => (
+              <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />
+            )}
             empty={
               <EmptyState
                 icon={<CalendarIcon size={30} />}

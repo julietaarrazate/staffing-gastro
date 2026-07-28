@@ -95,6 +95,7 @@ export default function SwipeDeck({
 
         <motion.div
           key={current.id}
+          data-testid="swipe-deck-card"
           className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
           style={{ x, rotate }}
           drag="x"

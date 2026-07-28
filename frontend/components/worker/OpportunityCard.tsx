@@ -22,7 +22,19 @@ import { cldThumb } from "@/lib/cloudinary";
  * del local como hero, cuerpo blanco con los datos y un chip de ícono con
  * acento sobrio por rubro. Si no hay foto, hero limpio con el tinte del rubro.
  */
-export default function OpportunityCard({ shift }: { shift: Shift }) {
+/** Distancia legible: bajo 1 km en metros redondeados, arriba con un decimal. */
+function formatDistance(km: number): string {
+  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${km.toFixed(1)} km`;
+}
+
+export default function OpportunityCard({
+  shift,
+  distanceKm,
+}: {
+  shift: Shift;
+  /** Distancia desde donde está parado el trabajador (ver current-location). */
+  distanceKm?: number | null;
+}) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
   const [broken, setBroken] = useState(false);
   const hasPhoto = Boolean(shift.company_logo_url) && !broken;
@@ -80,6 +92,11 @@ export default function OpportunityCard({ shift }: { shift: Shift }) {
           <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${hasPhoto ? "text-white/90" : "text-ink/60"}`}>
             <MapPinIcon size={15} />
             {shift.city ?? "Ubicación a confirmar"}
+            {distanceKm != null && (
+              <span className={hasPhoto ? "text-white/70" : "text-ink/45"}>
+                · {formatDistance(distanceKm)}
+              </span>
+            )}
           </p>
         </div>
       </div>
