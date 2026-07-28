@@ -131,7 +131,7 @@ export default function SwipeDeck({
           onClick={() => decide("pass")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger shadow-[var(--shadow-float)] ring-1 ring-zinc-100 disabled:opacity-50"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
         >
           <CrossIcon />
         </motion.button>

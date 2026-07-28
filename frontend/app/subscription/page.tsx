@@ -88,8 +88,8 @@ export default function SubscriptionPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
-      <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Mi plan</h1>
-      <p className="mt-0.5 text-sm text-zinc-500">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">Mi plan</h1>
+      <p className="mt-0.5 text-sm text-ink/50">
         Gestioná la suscripción de tu comercio a Staffya.
       </p>
 
@@ -110,8 +110,8 @@ export default function SubscriptionPage() {
           </div>
 
           <div id="planes" className="mt-8 scroll-mt-4">
-            <h2 className="text-lg font-extrabold text-zinc-900">Planes disponibles</h2>
-            <p className="mt-0.5 text-sm text-zinc-500">
+            <h2 className="text-lg font-extrabold text-ink">Planes disponibles</h2>
+            <p className="mt-0.5 text-sm text-ink/50">
               El plan gatea cuántos turnos podés publicar por mes.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,7 +137,7 @@ export default function SubscriptionPage() {
       >
         {pendingPlan && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-ink/60">
               ¿Confirmás el cambio al plan <strong>{pendingPlan.name}</strong> por{" "}
               <strong>{formatArs(pendingPlan.price_ars)}/mes</strong>?
             </p>

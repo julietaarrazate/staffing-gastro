@@ -38,7 +38,11 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       await register(email, password, fullName, role);
-      router.replace("/profile"); // no volver a /register al ir "atrás"
+      // `replace` para no volver a /register al ir "atrás". El trabajador pasa
+      // por el onboarding de dos pasos (zona + oficio): sin esos dos datos el
+      // feed le muestra turnos irrelevantes. El comercio va directo a su panel,
+      // donde el estado vacío ya lo guía a publicar su primer turno.
+      router.replace(role === "worker" ? "/bienvenida" : "/shifts");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
     } finally {
@@ -126,7 +130,10 @@ function RegisterForm() {
             </Button>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/profile" : "/")} />
+          {/* Cuenta nueva por Google → onboarding. `/bienvenida` reenvía solo
+              al comercio a su panel, así que no hace falta saber el rol acá
+              (lo elige el usuario dentro del propio botón de Google). */}
+          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">

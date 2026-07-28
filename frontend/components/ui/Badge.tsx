@@ -7,7 +7,7 @@ const TONES: Record<Tone, string> = {
   primary: "bg-orange-50 text-primary",
   secondary: "bg-green-50 text-green-700",
   danger: "bg-red-50 text-danger",
-  neutral: "bg-zinc-100 text-zinc-700",
+  neutral: "bg-surface text-ink/70",
   info: "bg-blue-50 text-blue-700",
 };
 

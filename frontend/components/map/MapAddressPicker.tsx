@@ -166,13 +166,13 @@ export default function MapAddressPicker({
     <div className="flex flex-col gap-3">
       <div className="relative">
         <div className="flex items-center gap-2 rounded-[var(--radius-input)] bg-white px-3.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-primary/40">
-          <SearchIcon size={17} className="shrink-0 text-zinc-400" />
+          <SearchIcon size={17} className="shrink-0 text-ink/40" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscá la dirección de tu local"
             aria-label="Buscar dirección"
-            className="min-h-[48px] w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-zinc-400"
+            className="min-h-[48px] w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink/40"
           />
           {status === "loading" && (
             <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -186,7 +186,7 @@ export default function MapAddressPicker({
                 setResults([]);
                 setStatus("idle");
               }}
-              className="shrink-0 text-zinc-300 hover:text-zinc-500"
+              className="shrink-0 text-ink/25 hover:text-ink/50"
             >
               <XCircleIcon size={17} />
             </button>
@@ -202,11 +202,11 @@ export default function MapAddressPicker({
                   onClick={() => selectResult(result)}
                   className="flex w-full items-start gap-2 px-3.5 py-2.5 text-left text-sm hover:bg-surface"
                 >
-                  <MapPinIcon size={16} className="mt-0.5 shrink-0 text-zinc-400" />
+                  <MapPinIcon size={16} className="mt-0.5 shrink-0 text-ink/40" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-ink">{result.address}</span>
                     {result.city && (
-                      <span className="block truncate text-xs text-zinc-500">{result.city}</span>
+                      <span className="block truncate text-xs text-ink/50">{result.city}</span>
                     )}
                   </span>
                 </button>
@@ -216,7 +216,7 @@ export default function MapAddressPicker({
         )}
 
         {query.trim().length >= 3 && status === "empty" && (
-          <p className="mt-1.5 px-1 text-xs text-zinc-500">
+          <p className="mt-1.5 px-1 text-xs text-ink/50">
             No encontramos esa dirección. Probá con otro texto (calle y altura) o ajustá el pin a mano.
           </p>
         )}
@@ -278,14 +278,14 @@ export default function MapAddressPicker({
         </MapView>
 
         {!pin && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/60 px-6 text-center text-sm font-medium text-zinc-500">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/60 px-6 text-center text-sm font-medium text-ink/50">
             Buscá tu dirección arriba para ubicar el local en el mapa
           </div>
         )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink/50">
           {pin
             ? "Arrastrá el pin para ajustar la ubicación exacta."
             : "También podés usar tu ubicación actual como punto de partida."}
@@ -294,7 +294,7 @@ export default function MapAddressPicker({
           type="button"
           onClick={useMyLocation}
           disabled={geoBusy}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-200 disabled:opacity-60"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink/70 hover:bg-line disabled:opacity-60"
         >
           <MapPinIcon size={14} />
           {geoBusy ? "Obteniendo ubicación…" : "Usar mi ubicación actual"}
@@ -310,7 +310,7 @@ export default function MapAddressPicker({
       <button
         type="button"
         onClick={onFallback}
-        className="w-fit text-xs font-medium text-zinc-400 underline decoration-zinc-200 underline-offset-2 hover:text-zinc-600"
+        className="w-fit text-xs font-medium text-ink/40 underline decoration-zinc-200 underline-offset-2 hover:text-ink/60"
       >
         ¿No encontrás tu dirección? Cargala a mano
       </button>

@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui";
 
 function NotificationRowSkeleton() {
   return (
-    <div className="flex items-center gap-2 border-b border-zinc-50 px-4 py-3" aria-hidden>
+    <div className="flex items-center gap-2 border-b border-line px-4 py-3" aria-hidden>
       <div className="flex-1 space-y-1.5">
         <Skeleton className="h-3.5 w-2/3" />
         <Skeleton className="h-3 w-full" />
@@ -94,19 +94,19 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Notificaciones"
-        className="relative rounded-full p-2 text-zinc-600 hover:bg-zinc-100"
+        className="relative rounded-full p-2 text-ink/60 hover:bg-surface"
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-zinc-200 bg-white shadow-lg">
-          <div className="border-b border-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700">
+        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-line bg-white shadow-lg">
+          <div className="border-b border-line px-4 py-2 text-sm font-semibold text-ink/70">
             Notificaciones
           </div>
           <div className="max-h-96 overflow-y-auto">
@@ -129,7 +129,7 @@ export default function NotificationBell() {
               </div>
             )}
             {!loading && !error && notifications.length === 0 && (
-              <p className="px-4 py-6 text-center text-sm text-zinc-500">
+              <p className="px-4 py-6 text-center text-sm text-ink/50">
                 No tenés notificaciones.
               </p>
             )}
@@ -137,12 +137,12 @@ export default function NotificationBell() {
               <button
                 key={n.id}
                 onClick={() => openNotification(n)}
-                className={`block w-full border-b border-zinc-50 px-4 py-3 text-left text-sm hover:bg-zinc-50 ${
+                className={`block w-full border-b border-line px-4 py-3 text-left text-sm hover:bg-surface ${
                   n.read ? "bg-white" : "bg-orange-50"
                 }`}
               >
-                <p className="font-medium text-zinc-800">{n.title}</p>
-                <p className="mt-0.5 text-zinc-600">{n.message}</p>
+                <p className="font-medium text-ink/80">{n.title}</p>
+                <p className="mt-0.5 text-ink/60">{n.message}</p>
               </button>
             ))}
           </div>

@@ -19,10 +19,10 @@ export default function Rating({
   className?: string;
 }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 text-sm font-semibold text-zinc-700", className)}>
+    <span className={cn("inline-flex items-center gap-1 text-sm font-semibold text-ink/70", className)}>
       <StarIcon size={size} filled className="text-amber-400" />
       {value.toFixed(1)}
-      {count != null && <span className="font-normal text-zinc-400">({count})</span>}
+      {count != null && <span className="font-normal text-ink/40">({count})</span>}
     </span>
   );
 }

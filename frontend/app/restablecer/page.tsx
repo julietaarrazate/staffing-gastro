@@ -8,7 +8,7 @@ import Logo from "@/components/Logo";
 import { Button } from "@/components/ui";
 
 const inputClass =
-  "rounded-xl border border-line px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+  "rounded-xl border border-line px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-orange-100";
 
 function RestablecerForm() {
   const router = useRouter();
@@ -60,7 +60,7 @@ function RestablecerForm() {
           {!token ? (
             <p className="text-sm text-danger">
               El enlace es inválido o le falta el token. Pedí uno nuevo desde{" "}
-              <Link href="/recuperar" className="font-semibold text-orange-600">
+              <Link href="/recuperar" className="font-semibold text-primary">
                 recuperar contraseña
               </Link>
               .
@@ -94,7 +94,7 @@ function RestablecerForm() {
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-orange-600">
+          <Link href="/login" className="font-semibold text-primary">
             Volver a ingresar
           </Link>
         </p>

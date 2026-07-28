@@ -9,7 +9,11 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white">
+    // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
+    // real de la pantalla, así que en PWA instalada el header arrancaría
+    // DEBAJO de la barra de estado / notch. El padding del inset lo baja a la
+    // zona visible, como cualquier app nativa.
+    <header className="safe-top sticky top-0 z-40 border-b border-line bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />
@@ -51,7 +55,7 @@ export default function Navbar() {
             </>
           )}
           {!loading && user?.role === "admin" && (
-            <Link href="/admin" className="hidden hover:text-orange-600 md:inline">
+            <Link href="/admin" className="hidden hover:text-primary md:inline">
               Administración
             </Link>
           )}
@@ -59,7 +63,7 @@ export default function Navbar() {
           {!loading && user && (
             <button
               onClick={logout}
-              className="hidden rounded-full bg-zinc-100 px-3 py-1.5 hover:bg-zinc-200 md:inline"
+              className="hidden rounded-full bg-surface px-3 py-1.5 hover:bg-line md:inline"
             >
               Salir ({user.full_name})
             </button>

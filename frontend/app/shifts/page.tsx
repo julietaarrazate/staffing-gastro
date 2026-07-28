@@ -207,8 +207,8 @@ export default function MyShiftsPage() {
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Panel</h1>
-          <p className="mt-0.5 text-sm text-zinc-500">Gestioná los turnos de tu comercio.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Panel</h1>
+          <p className="mt-0.5 text-sm text-ink/50">Gestioná los turnos de tu comercio.</p>
         </div>
         <Link
           href="/shifts/new"
@@ -318,7 +318,7 @@ export default function MyShiftsPage() {
         onClose={() => setConfirmNoShowId(null)}
         title="¿Marcar que no se presentó?"
       >
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-ink/60">
           El turno se libera para volver a buscar personal y le va a impactar
           la reputación al trabajador. Esta acción queda registrada.
         </p>

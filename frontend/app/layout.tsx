@@ -62,6 +62,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // SIN esto, `env(safe-area-inset-*)` vale SIEMPRE 0 en iOS y todo el código
+  // de safe-area del repo queda muerto: la barra inferior se dibuja debajo
+  // del indicador de home del iPhone y el último tab queda medio tapado.
+  // `cover` es lo que hace que la página use el alto real de la pantalla y
+  // que iOS reporte los insets del notch/indicador (lo que ya consumen
+  // `BottomNav`, `Sheet` y las utilidades `.safe-*` de globals.css).
+  viewportFit: "cover",
   // La app sólo diseña modo claro (fuera de alcance implementar dark mode
   // real, ver docs/PULIDO_ROADMAP.md batch C0 #1). Sin esto, el auto-dark de
   // Chrome Android puede invertir los colores de la página creyendo que no
@@ -80,7 +87,7 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+      <body className="min-h-full flex flex-col bg-background text-ink">
         <AuthProvider>
           <ToastProvider>
             <PushPromptProvider>

@@ -56,8 +56,8 @@ export default function Sheet({
             className="relative z-10 max-h-[88dvh] overflow-y-auto rounded-t-[var(--radius-sheet)] bg-white pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-[var(--shadow-float)]"
           >
             <div className="sticky top-0 z-10 flex flex-col items-center gap-2 rounded-t-[var(--radius-sheet)] bg-white pb-2 pt-3">
-              <span className="h-1.5 w-10 rounded-full bg-zinc-300" />
-              {title && <h3 className="text-base font-bold text-zinc-900">{title}</h3>}
+              <span className="h-1.5 w-10 rounded-full bg-line" />
+              {title && <h3 className="text-base font-bold text-ink">{title}</h3>}
             </div>
             <div className="px-5">{children}</div>
           </motion.div>

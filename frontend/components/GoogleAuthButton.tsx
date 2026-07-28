@@ -114,7 +114,7 @@ export default function GoogleAuthButton({
           <div className="w-full border-t border-line" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-2 text-zinc-400">o continuá con</span>
+          <span className="bg-white px-2 text-ink/40">o continuá con</span>
         </div>
       </div>
 

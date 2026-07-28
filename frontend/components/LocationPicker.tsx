@@ -23,8 +23,11 @@ function shortProvince(name: string): string {
   return name;
 }
 
+// Mismo tratamiento que `TextField` del design system (alto de toque 48px,
+// radio y anillo por token): antes usaba grises/naranjas crudos y quedaba
+// visiblemente distinto a los demás campos de la app.
 const selectClass =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+  "mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-white px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40";
 
 export default function LocationPicker({
   onSelect,
@@ -83,7 +86,7 @@ export default function LocationPicker({
     <div className="grid gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-zinc-700">Provincia</label>
+          <label className="block text-sm font-semibold text-ink/70">Provincia</label>
           <select
             value={provinceIdx}
             onChange={(e) => changeProvince(Number(e.target.value))}
@@ -97,7 +100,7 @@ export default function LocationPicker({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className="block text-sm font-semibold text-ink/70">
             {province.localityLabel}
           </label>
           <select
@@ -121,7 +124,7 @@ export default function LocationPicker({
         type="button"
         onClick={useMyLocation}
         disabled={geoStatus === "loading"}
-        className="inline-flex w-fit items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200 disabled:opacity-60"
+        className="inline-flex w-fit items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95 disabled:opacity-60"
       >
         <MapPinIcon size={16} />
         {geoStatus === "loading" ? "Obteniendo ubicación…" : "Usar mi ubicación actual"}

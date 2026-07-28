@@ -183,7 +183,7 @@ function NewShiftWizard() {
           <button
             onClick={() => go(step - 1)}
             aria-label="Atrás"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-zinc-600 ring-1 ring-zinc-200"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -191,7 +191,7 @@ function NewShiftWizard() {
           <button
             onClick={() => router.push("/shifts")}
             aria-label="Cerrar"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-zinc-600 ring-1 ring-zinc-200"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -200,7 +200,7 @@ function NewShiftWizard() {
           {STEPS.map((_, i) => (
             <span
               key={i}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-zinc-200"}`}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-line"}`}
             />
           ))}
         </div>
@@ -220,8 +220,8 @@ function NewShiftWizard() {
           >
             {step === 0 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-zinc-900">¿Qué necesitás?</h1>
-                <p className="mt-1 text-sm text-zinc-500">Elegí el puesto a cubrir.</p>
+                <h1 className="text-2xl font-extrabold text-ink">¿Qué necesitás?</h1>
+                <p className="mt-1 text-sm text-ink/50">Elegí el puesto a cubrir.</p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   {WORKER_SKILLS.map((skill) => {
                     const { Icon, bg, fg } = SKILL_ACCENT[skill];
@@ -232,13 +232,13 @@ function NewShiftWizard() {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setPosition(skill)}
                         className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
-                          active ? "bg-orange-50 ring-primary" : "bg-white ring-zinc-100"
+                          active ? "bg-orange-50 ring-primary" : "bg-white ring-line"
                         }`}
                       >
                         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} ${fg}`}>
                           <Icon size={22} />
                         </span>
-                        <span className="text-sm font-semibold text-zinc-800">{SKILL_LABELS[skill]}</span>
+                        <span className="text-sm font-semibold text-ink/80">{SKILL_LABELS[skill]}</span>
                       </motion.button>
                     );
                   })}
@@ -248,26 +248,26 @@ function NewShiftWizard() {
 
             {step === 1 && (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <h1 className="text-2xl font-extrabold text-zinc-900">¿Cuántas personas?</h1>
-                <p className="mt-1 text-sm text-zinc-500">Para este puesto.</p>
+                <h1 className="text-2xl font-extrabold text-ink">¿Cuántas personas?</h1>
+                <p className="mt-1 text-sm text-ink/50">Para este puesto.</p>
                 <div className="mt-10 flex items-center gap-6">
                   <button
                     disabled
                     aria-disabled
-                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-surface text-3xl font-bold text-zinc-300 ring-1 ring-zinc-200"
+                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-surface text-3xl font-bold text-ink/25 ring-1 ring-line"
                   >
                     −
                   </button>
-                  <span className="w-20 text-6xl font-extrabold text-zinc-900">{quantity}</span>
+                  <span className="w-20 text-6xl font-extrabold text-ink">{quantity}</span>
                   <button
                     disabled
                     aria-disabled
-                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-zinc-200 text-3xl font-bold text-zinc-400"
+                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-line text-3xl font-bold text-ink/40"
                   >
                     +
                   </button>
                 </div>
-                <p className="mt-6 max-w-xs text-sm text-zinc-500">
+                <p className="mt-6 max-w-xs text-sm text-ink/50">
                   Por ahora, un turno = una persona. Para varios puestos creá varios
                   turnos.
                 </p>
@@ -276,25 +276,25 @@ function NewShiftWizard() {
 
             {step === 2 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-zinc-900">¿Cuándo?</h1>
-                <p className="mt-1 text-sm text-zinc-500">Inicio y fin del turno.</p>
+                <h1 className="text-2xl font-extrabold text-ink">¿Cuándo?</h1>
+                <p className="mt-1 text-sm text-ink/50">Inicio y fin del turno.</p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-semibold text-zinc-700">Inicio</span>
+                    <span className="text-sm font-semibold text-ink/70">Inicio</span>
                     <input
                       type="datetime-local"
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-zinc-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-semibold text-zinc-700">Fin</span>
+                    <span className="text-sm font-semibold text-ink/70">Fin</span>
                     <input
                       type="datetime-local"
                       value={endAt}
                       onChange={(e) => setEndAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-zinc-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                 </div>
@@ -303,10 +303,10 @@ function NewShiftWizard() {
 
             {step === 3 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-zinc-900">¿Cuánto pagás?</h1>
-                <p className="mt-1 text-sm text-zinc-500">Por persona, en pesos.</p>
-                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-zinc-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
-                  <span className="text-2xl font-bold text-zinc-400">$</span>
+                <h1 className="text-2xl font-extrabold text-ink">¿Cuánto pagás?</h1>
+                <p className="mt-1 text-sm text-ink/50">Por persona, en pesos.</p>
+                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
+                  <span className="text-2xl font-bold text-ink/40">$</span>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -314,7 +314,7 @@ function NewShiftWizard() {
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
                     placeholder="15000"
-                    className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-zinc-900 outline-none"
+                    className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>
                 <div className="mt-5 flex flex-col gap-3">
@@ -334,8 +334,8 @@ function NewShiftWizard() {
 
             {step === 4 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-zinc-900">¿Dónde es?</h1>
-                <p className="mt-1 text-sm text-zinc-500">
+                <h1 className="text-2xl font-extrabold text-ink">¿Dónde es?</h1>
+                <p className="mt-1 text-sm text-ink/50">
                   Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
                 </p>
                 <div className="mt-5">
@@ -353,9 +353,9 @@ function NewShiftWizard() {
                   </p>
                 )}
                 {/* Resumen */}
-                <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-zinc-700">
-                  <p className="font-bold text-zinc-900">{position && SKILL_LABELS[position]}</p>
-                  <p className="mt-1 text-zinc-500">
+                <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-ink/70">
+                  <p className="font-bold text-ink">{position && SKILL_LABELS[position]}</p>
+                  <p className="mt-1 text-ink/50">
                     {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
                     {Number(payAmount || 0).toLocaleString("es-AR")}
                     {urgent && " · Urgente"}
@@ -422,12 +422,12 @@ function Toggle({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-zinc-100"
+      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-line"
     >
-      <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
+      <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink/80">
         {icon} {label}
       </span>
-      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-secondary" : "bg-zinc-300"}`}>
+      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-secondary" : "bg-line"}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
       </span>
     </button>

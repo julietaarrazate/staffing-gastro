@@ -21,7 +21,7 @@ import { SKILL_LABELS, WorkerMapResult } from "@/lib/types";
 export default function WorkerSearchMap({
   center,
   workers,
-  className = "h-[60vh] w-full rounded-2xl ring-1 ring-zinc-200",
+  className = "h-[60vh] w-full rounded-2xl ring-1 ring-line",
 }: {
   center: [number, number];
   workers: WorkerMapResult[];

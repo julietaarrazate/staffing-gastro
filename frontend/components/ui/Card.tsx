@@ -27,7 +27,7 @@ export default function Card({
       tabIndex={clickable ? 0 : undefined}
       whileTap={clickable ? { scale: 0.985 } : undefined}
       className={cn(
-        "rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-zinc-100",
+        "rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line",
         // `role="button"` ya cubre la selección de texto vía el selector
         // `[role="button"]` de globals.css, pero se refuerza acá con
         // `.no-select` para tarjetas clickeables que envuelven texto que NO
