@@ -88,6 +88,9 @@ class ApplicationService:
                 type=NotificationType.NEW_APPLICANT,
                 title=title,
                 message=message,
+                # Abre los postulantes de ESE turno (donde están las tarjetas
+                # de cada candidato y el link a su perfil), no el panel general.
+                link=f"/shifts/{shift.id}/candidates",
             )
         )
 

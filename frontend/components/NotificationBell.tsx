@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { notificationHref } from "@/lib/notification-link";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
@@ -21,6 +23,7 @@ function NotificationRowSkeleton() {
 
 export default function NotificationBell() {
   const { token } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +63,15 @@ export default function NotificationBell() {
   if (!token) return null;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  /** Tocar un aviso lo abre: navega a la pantalla de la que habla y lo marca
+   *  leído. Antes sólo lo marcaba leído y no llevaba a ningún lado, así que
+   *  había que ir a buscar a mano de qué hablaba. */
+  function openNotification(notification: Notification) {
+    setOpen(false);
+    void markAsRead(notification);
+    router.push(notificationHref(notification));
+  }
 
   async function markAsRead(notification: Notification) {
     if (notification.read) return;
@@ -124,7 +136,7 @@ export default function NotificationBell() {
             {!loading && !error && notifications.map((n) => (
               <button
                 key={n.id}
-                onClick={() => markAsRead(n)}
+                onClick={() => openNotification(n)}
                 className={`block w-full border-b border-zinc-50 px-4 py-3 text-left text-sm hover:bg-zinc-50 ${
                   n.read ? "bg-white" : "bg-orange-50"
                 }`}

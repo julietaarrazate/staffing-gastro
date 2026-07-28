@@ -68,12 +68,26 @@ async def get_current_user(
 async def get_current_user_ws(
     websocket: WebSocket,
     service: Annotated[IdentityService, Depends(get_identity_service)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     token: Annotated[str | None, Query()] = None,
 ) -> User:
     """Resuelve el usuario autenticado en un handshake WebSocket.
 
     No hay header Authorization disponible en un WebSocket del navegador,
     así que el access token viaja como query param (`?token=...`).
+
+    Cierra la sesión de DB explícitamente apenas termina de autenticar. Una
+    dependencia `Depends(get_session)` en una ruta WebSocket queda "abierta"
+    (según FastAPI) durante toda la conexión (acá, potencialmente horas —
+    ver el loop de `notifications_stream`), no sólo el handshake. Sin este
+    cierre temprano, la conexión de Neon quedaba reservada del pool sin
+    usarse hasta que el WS se desconectaba; para entonces el pooler ya la
+    había cortado por inactividad, y el cierre normal de la sesión intentaba
+    hacer rollback sobre esa conexión muerta (`InterfaceError: cannot call
+    Transaction.rollback(): the underlying connection is closed`, visto en
+    Sentry). Cerrando acá mismo, la conexión vuelve al pool mientras todavía
+    está viva, y el cierre que hace FastAPI al desconectarse el WS encuentra
+    una sesión ya cerrada (no-op).
     """
     if token is None:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
@@ -82,6 +96,8 @@ async def get_current_user_ws(
         return await service.get_current_user(token)
     except (InvalidTokenError, UserNotFoundError, InactiveUserError) as exc:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
+    finally:
+        await session.close()
 
 
 def require_roles(*roles: UserRole) -> Callable[[User], User]:

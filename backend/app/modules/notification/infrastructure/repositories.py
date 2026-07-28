@@ -14,7 +14,7 @@ from app.modules.notification.domain.repositories import (
     NotificationRepository,
     PushSubscriptionRepository,
 )
-from app.modules.notification.domain.value_objects import NotificationType
+from app.modules.notification.domain.value_objects import NotificationType, deep_link_for
 from app.modules.notification.infrastructure.models import (
     NotificationModel,
     PushSubscriptionModel,
@@ -31,6 +31,7 @@ def _to_entity(model: NotificationModel) -> Notification:
         title=model.title,
         message=model.message,
         read=model.read,
+        link=model.link,
         created_at=model.created_at,
     )
 
@@ -42,6 +43,7 @@ def _serialize(notification: Notification) -> dict:
         "title": notification.title,
         "message": notification.message,
         "read": notification.read,
+        "link": notification.link,
         "created_at": notification.created_at.isoformat()
         if notification.created_at
         else None,
@@ -60,6 +62,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
             title=notification.title,
             message=notification.message,
             read=notification.read,
+            link=notification.link,
         )
         self._session.add(model)
         await self._session.commit()
@@ -192,7 +195,13 @@ async def _send_push_best_effort(session: AsyncSession, notification: Notificati
     gone_ids: list[UUID] = []
     for subscription in subscriptions:
         result = await sender.send(
-            subscription, title=notification.title, body=notification.message
+            subscription,
+            title=notification.title,
+            body=notification.message,
+            # Destino del push: el enlace concreto del aviso (el turno, los
+            # candidatos de ese turno) y, si no lo tiene, la pantalla genérica
+            # del tipo.
+            url=notification.link or deep_link_for(notification.type),
         )
         if result == PushSendResult.GONE:
             gone_ids.append(subscription.id)

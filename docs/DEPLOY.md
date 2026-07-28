@@ -8,9 +8,9 @@
 
 | Componente | Plataforma | Trigger |
 |------------|-----------|---------|
-| **Backend** (FastAPI) | **Render** (contenedor Docker) | auto-deploy desde `main` |
+| **Backend** (FastAPI) | **Render** (contenedor Docker, región `ohio`) | auto-deploy desde `main` |
 | **Frontend** (Next.js) | **Vercel** | auto-deploy desde `main` + preview por PR |
-| **DB** (PostgreSQL) | **Render** (plan free) | provisionada en `render.yaml` |
+| **DB** (PostgreSQL) | **Neon** (serverless, `aws-us-east-2`) | connection string manual en Render, **no** gestionada por `render.yaml` (ver comentario en el propio archivo) |
 
 Config declarativa en `render.yaml` (raíz del repo).
 
@@ -89,6 +89,53 @@ reales. Antes de abrir la beta:
    que no exista otra cuenta con esa misma contraseña.
 4. **Smoke test:** login con una cuenta real, publicar un turno, postularse,
    chat. `GET /health` OK y sin errores en Sentry.
+
+## Dominio propio: `staffya.com.ar` (futuro, no arrancado)
+
+Cloudflare **no se usa hoy** (no hay nada que configurar en el código para
+él); es para el día que se conecte el dominio propio en vez de
+`staffing-gastro.vercel.app`. El código **ya asume ese dominio** en varios
+lugares (`app/layout.tsx` `metadataBase`, `app/sitemap.ts`, `app/robots.ts`,
+todos con `https://staffya.com.ar` hardcodeado) — no hace falta tocar nada
+ahí, sólo conectar el dominio de verdad.
+
+Rol de cada pieza: **Vercel** sirve el sitio y emite el certificado HTTPS;
+**Cloudflare** sólo resuelve el DNS (decide a qué IP/host apunta el dominio).
+No son alternativas entre sí — Cloudflare no aloja el frontend, Vercel sí.
+
+Pasos, en orden:
+
+1. **Vercel primero**: Project → Settings → Domains → agregar
+   `staffya.com.ar` (y `www.staffya.com.ar` si se va a usar). Vercel muestra
+   los registros DNS exactos a crear (típicamente un `A` a su IP para el
+   apex y un `CNAME` a `cname.vercel-dns.com` para `www`).
+2. **Cloudflare**: agregar el dominio (si el registrador no es Cloudflare,
+   cambiar los nameservers del dominio a los que da Cloudflare) y cargar ahí
+   los registros que pidió Vercel.
+   - **Importante**: dejar esos registros en **"DNS only"** (nube gris, no
+     naranja) al conectar. El proxy de Cloudflare (nube naranja) es lo que
+     da CDN/WAF gratis, pero puede chocar con el certificado SSL que emite
+     Vercel al validar el dominio la primera vez. Una vez que Vercel
+     confirma el dominio como válido (tilde verde en su panel), se puede
+     probar a activar el proxy; si algo se rompe, volver a "DNS only".
+3. **Backend (Render) — `CORS_ORIGINS`**: hoy sólo tiene
+   `https://staffing-gastro.vercel.app` (`render.yaml`). Es una lista
+   separada por comas (`cors_origins_list` en `app/core/config.py`): agregar
+   `https://staffya.com.ar` (y `https://www.staffya.com.ar` si aplica) **sin
+   sacar** la URL de Vercel — conviene dejarla como fallback.
+4. **Google OAuth**: si el login con Google ya está activo, sumar
+   `https://staffya.com.ar` a los "Authorized JavaScript origins" del
+   Client ID en Google Cloud Console (Credentials) — si no, el botón tira
+   error de origen no autorizado desde el dominio nuevo.
+5. **CSP del frontend**: **no hay que tocar nada**. La política en
+   `next.config.ts` usa `'self'` para script/style/imagen propia (resuelve
+   solo al origen que sirve la página) y sólo lista orígenes *externos*
+   (backend, mapas, Google, Sentry) — ninguno depende del dominio del
+   frontend.
+6. **Verificación**: `https://staffya.com.ar/health`-equivalente no existe en
+   el frontend, pero sirve entrar a `/login` y confirmar que el candado
+   HTTPS es válido (lo emite Vercel, no Cloudflare) y que el login con
+   Google (si está activo) sigue funcionando desde el dominio nuevo.
 
 ## Riesgos / pendientes
 

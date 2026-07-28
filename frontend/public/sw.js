@@ -20,14 +20,29 @@ self.addEventListener("push", (event) => {
     data = {};
   }
   const title = data.title || "Staffya";
+  const url = data.url || "/";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",
       icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      data: { url: data.url || "/" },
-      tag: "staffya-push",
-      renotify: true,
+      // El badge (ícono chico de la barra de estado en Android) se dibuja
+      // usando SÓLO el canal alfa: el sistema descarta los colores y pinta de
+      // blanco lo que sea opaco. `icon-192.png` es un tile naranja opaco de
+      // punta a punta, así que salía como un CUADRADO BLANCO sólido. Este
+      // badge tiene fondo transparente y sólo la cloche opaca.
+      badge: "/badge-96.png",
+      data: { url },
+      // Tag ÚNICO por notificación. Antes todas compartían "staffya-push", así
+      // que cada aviso nuevo REEMPLAZABA al anterior: si llegaban tres (un
+      // postulante, un mensaje, una reseña) el trabajador sólo veía el último.
+      // Con un tag distinto se apilan como en cualquier app.
+      tag: data.tag || `staffya-${Date.now()}`,
+      // Vibración corta: la señal física que hace que un aviso de turno
+      // urgente se note con el teléfono en el bolsillo.
+      vibrate: [80, 40, 80],
+      // Botón de acción directo, para resolver desde la notificación sin
+      // tener que buscar la pantalla.
+      actions: [{ action: "open", title: "Ver" }],
     })
   );
 });

@@ -30,6 +30,11 @@ class NotificationModel(Base):
     message: Mapped[str] = mapped_column(String(500), nullable=False)
     read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
 
+    # Pantalla exacta que abre este aviso (p. ej. `/shifts/<id>/candidates`).
+    # Nullable: las notificaciones creadas antes de esta columna caen al
+    # destino genérico por tipo (`deep_link_for`).
+    link: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

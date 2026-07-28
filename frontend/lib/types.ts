@@ -252,6 +252,8 @@ export interface Notification {
   title: string;
   message: string;
   read: boolean;
+  /** Pantalla que abre el aviso al tocarlo. `null` en avisos viejos. */
+  link: string | null;
   created_at: string | null;
 }
 

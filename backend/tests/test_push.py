@@ -166,3 +166,72 @@ async def test_push_subscription_without_any_device_does_not_break_notification(
             )
         )
     assert created.title == "Sin dispositivos suscriptos"
+
+
+async def test_deep_link_por_tipo_de_notificacion():
+    """El push tiene que abrir la pantalla de la que habla el aviso, no la
+    landing: antes todas caían en "/" y el usuario tenía que buscar a mano de
+    qué le hablaban. La pantalla se elige por el destinatario real de cada tipo
+    (trabajador -> sus turnos, comercio -> su panel)."""
+    from app.modules.notification.domain.value_objects import deep_link_for
+
+    # Trabajador
+    assert deep_link_for(NotificationType.SHIFT_ASSIGNED) == "/my-shifts"
+    assert deep_link_for(NotificationType.SHIFT_CANCELLED_LATE) == "/my-shifts"
+    # Comercio
+    assert deep_link_for(NotificationType.NEW_APPLICANT) == "/shifts"
+    assert deep_link_for(NotificationType.SHIFT_CONFIRMED) == "/shifts"
+    # Ambos roles
+    assert deep_link_for(NotificationType.CHAT_MESSAGE) == "/chats"
+    assert deep_link_for(NotificationType.REVIEW_RECEIVED) == "/profile"
+    # Todo tipo conocido tiene destino: ninguno cae al fallback de la landing.
+    assert all(deep_link_for(t) != "/" for t in NotificationType)
+
+
+async def test_link_concreto_gana_al_destino_generico_por_tipo(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """El `link` de la notificación apunta a la entidad exacta (los candidatos
+    de ESE turno, ESA conversación) y es lo que abre el push. El destino por
+    tipo sólo llega a la pantalla de lista, que es donde el usuario tenía que
+    seguir buscando a mano."""
+    headers = await auth_headers(client, "employer", "link1@staffya.com")
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    user_id = me.json()["id"]
+
+    async with session_factory() as session:
+        created = await SqlAlchemyNotificationRepository(session).add(
+            Notification(
+                user_id=UUID(user_id),
+                type=NotificationType.NEW_APPLICANT,
+                title="Un postulante",
+                message="Se postuló alguien.",
+                link="/shifts/abc-123/candidates",
+            )
+        )
+    assert created.link == "/shifts/abc-123/candidates"
+
+    # Y viaja al frontend por HTTP (la campanita lo usa para navegar).
+    listed = await client.get("/api/v1/notifications", headers=headers)
+    row = next(n for n in listed.json() if n["title"] == "Un postulante")
+    assert row["link"] == "/shifts/abc-123/candidates"
+
+
+async def test_notificacion_sin_link_cae_al_destino_por_tipo(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """Los avisos creados antes de la columna `link` (migración 0016) siguen
+    funcionando: quedan en `None` y el destino se resuelve por tipo."""
+    headers = await auth_headers(client, "worker", "link2@staffya.com")
+    me = await client.get("/api/v1/auth/me", headers=headers)
+
+    async with session_factory() as session:
+        created = await SqlAlchemyNotificationRepository(session).add(
+            Notification(
+                user_id=UUID(me.json()["id"]),
+                type=NotificationType.SHIFT_ASSIGNED,
+                title="Sin link",
+                message="Aviso viejo.",
+            )
+        )
+    assert created.link is None
