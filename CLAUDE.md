@@ -193,6 +193,15 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
    ya resuelto en #77.
 6. Subir fotos reales al seed (R2.5): requiere credenciales de la cuenta
    Cloudinary del proyecto, no automatizable sin ellas.
+7. **Cloudinary en Vercel — bloquea la foto de perfil** (verificado en
+   producción 2026-07-28: "no me deja poner foto"). Sin
+   `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`,
+   `uploadImage` corta con "La subida de imágenes no está configurada
+   todavía". El preset tiene que ser **unsigned** (Cloudinary → Settings →
+   Upload → Upload presets → Signing mode: Unsigned). Ojo: son
+   `NEXT_PUBLIC_*`, o sea que se **hornean en el build** — hay que marcarlas
+   en el environment *Production* y **redeployar sin caché**, si no el bundle
+   sigue sin el valor (mismo error que pasó con el Client ID de Google).
 
 ## Convenciones de git
 

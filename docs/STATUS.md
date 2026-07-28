@@ -12,6 +12,47 @@ los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
 
+## Panel del comercio: una acción por turno (2026-07-28)
+
+Queja de Julieta usando la app: *"los paneles siento que está un poco
+engorroso para el comercio"*. Causa real encontrada en el código: cada
+tarjeta de `/shifts` apilaba **hasta 7 botones al mismo nivel** (chat, ver
+trabajador, ver candidatos, compartir, duplicar, no se presentó, cancelar,
+cerrar turno, marcar pagado) y el comercio tenía que deducir cuál
+correspondía a su altura del ciclo de 8 estados.
+
+Ahora cada tarjeta muestra **qué está pasando** en una línea y **la única
+acción que depende del comercio** en ese momento (`lib/shift-next-step.ts`,
+mapa estado → `{hint, action}`). Cuando la pelota la tiene el trabajador
+(confirmar, viajar, check-in) no se ofrece ninguna acción: sólo se explica en
+qué anda. El resto pasa a un menú "Más" (`components/ShiftActions.tsx`); el
+chat queda a mano por ser lo más usado con un turno asignado.
+
+Decisión de producto de Julieta: el comercio ve **3 momentos**
+(buscando → en marcha → terminado/pagado), no los 8 estados internos.
+
+## Notificaciones: badge monocromo + destino exacto (2026-07-28)
+
+Dos bugs reportados en producción:
+- **Se veía un cuadrado blanco**: el service worker usaba `icon-192.png`
+  también como `badge`, y Android dibuja el badge **usando sólo el canal
+  alfa** — ese tile es opaco de punta a punta, así que salía un bloque
+  blanco. Nuevo `public/badge-96.png` (fondo transparente, sólo la cloche).
+- **Tocar un aviso no llevaba a ningún lado**: `NotificationBell` sólo lo
+  marcaba leído, nunca navegaba. Ahora navega, y cada aviso lleva un `link`
+  propio a la entidad exacta (migración `0016`): postulante nuevo / turno
+  rechazado / cancelación del trabajador → `/shifts/<id>/candidates`;
+  mensaje → `/chats/<id>`. Los avisos previos (sin `link`) caen al destino
+  genérico por tipo, espejado en `lib/notification-link.ts`.
+
+También: el WebSocket de notificaciones mantenía abierta una sesión de DB
+durante toda la conexión; con Neon cortando conexiones ociosas, al
+desconectarse el WS el cierre intentaba hacer rollback sobre una conexión ya
+muerta (`InterfaceError` en Sentry). Ahora la libera apenas autentica.
+
+Auditoría E2E de encuadre en 390px sobre 12 pantallas con textos largos:
+**cero desbordes** (queda como test de regresión, `e2e/overflow-audit.spec.ts`).
+
 ## Reseñas del trabajador en su perfil público (2026-07-23, inspiración Clickie)
 
 Segundo paso de la línea de confianza: el perfil público del trabajador
