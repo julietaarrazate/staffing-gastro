@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, WORKER_SKILLS, type WorkerSkill, type WorkerProfile } from "@/lib/types";
 import LocationPicker, { type LocationSelection } from "@/components/LocationPicker";
+import Logo from "@/components/Logo";
 import { Button } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 
@@ -81,15 +82,19 @@ export default function BienvenidaPage() {
   if (authLoading || !token) return null;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-57px)] w-full max-w-sm flex-col px-5 py-8">
-      <StepDots step={step} />
+    <div className="-mb-20 flex min-h-[100dvh] flex-col bg-ink px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-white md:mb-0">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
+        <Logo size={34} withWordmark={false} />
+        <div className="mt-6">
+          <StepDots step={step} />
+        </div>
 
       {step === "zona" ? (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+          <h1 className="text-[2rem] font-extrabold leading-tight tracking-tight text-white">
             ¿Dónde querés trabajar?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/55">
+          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
             Te mostramos primero los turnos más cerca tuyo. Podés cambiarlo cuando
             quieras desde tu perfil.
           </p>
@@ -99,7 +104,7 @@ export default function BienvenidaPage() {
           </div>
 
           {location && (
-            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-ink/70">
+            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-white/80">
               <MapPinIcon size={16} className="text-primary" />
               {location.city}
             </p>
@@ -113,10 +118,10 @@ export default function BienvenidaPage() {
         </section>
       ) : (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+          <h1 className="text-[2rem] font-extrabold leading-tight tracking-tight text-white">
             ¿Qué sabés hacer?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/55">
+          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
             Elegí todo lo que puedas cubrir. Cuantos más elijas, más turnos vas a ver.
           </p>
 
@@ -131,8 +136,8 @@ export default function BienvenidaPage() {
                   onClick={() => toggleSkill(skill)}
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
                     active
-                      ? "bg-ink text-white"
-                      : "bg-white text-ink/70 ring-1 ring-line"
+                      ? "bg-primary text-white"
+                      : "bg-white/10 text-white/80 ring-1 ring-white/15"
                   }`}
                 >
                   {active && <CheckIcon size={15} />}
@@ -153,12 +158,17 @@ export default function BienvenidaPage() {
             >
               Ver turnos cerca mío
             </Button>
-            <Button variant="ghost" fullWidth onClick={() => setStep("zona")}>
+            <button
+              type="button"
+              onClick={() => setStep("zona")}
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98]"
+            >
               Volver
-            </Button>
+            </button>
           </div>
         </section>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -169,7 +179,7 @@ function StepDots({ step }: { step: Step }) {
       <span className="h-1.5 flex-1 rounded-full bg-primary" />
       <span
         className={`h-1.5 flex-1 rounded-full transition-colors ${
-          step === "oficio" ? "bg-primary" : "bg-line"
+          step === "oficio" ? "bg-primary" : "bg-white/20"
         }`}
       />
     </div>

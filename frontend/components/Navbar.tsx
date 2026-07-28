@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
+  const pathname = usePathname();
+
+  // El onboarding es una pantalla de fondo ink con su propio logo: el header
+  // blanco encima la cortaba al medio y duplicaba la marca.
+  if (pathname === "/bienvenida") return null;
 
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
