@@ -115,7 +115,7 @@ export default function SearchPage() {
             onClick={search}
             disabled={loading}
             aria-label="Buscar"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff6b00] to-[#e85f00] text-white shadow-md shadow-orange-500/30 transition active:scale-95 disabled:opacity-60"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-white shadow-md shadow-orange-500/30 transition active:scale-95 disabled:opacity-60"
           >
             <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
           </button>
@@ -168,7 +168,7 @@ export default function SearchPage() {
                   className="h-16 w-16 rounded-2xl object-cover ring-1 ring-line"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ff6b00] to-[#e85f00] text-xl font-bold text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-strong text-xl font-bold text-white">
                   {worker.full_name.charAt(0).toUpperCase()}
                 </div>
               )}

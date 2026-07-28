@@ -44,7 +44,7 @@ export default function ImageUpload({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className={`group relative flex h-24 w-24 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-[#ff6b00] to-[#e85f00] text-2xl font-bold text-white shadow-md transition active:scale-95 disabled:opacity-70`}
+        className={`group relative flex h-24 w-24 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-primary to-primary-strong text-2xl font-bold text-white shadow-md transition active:scale-95 disabled:opacity-70`}
       >
         {value ? (
           <img
@@ -57,9 +57,14 @@ export default function ImageUpload({
         ) : (
           fallbackLabel.charAt(0).toUpperCase()
         )}
+        {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100` el
+            ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
+            Con foto cargada se muestra una insignia de cámara permanente en la
+            esquina (patrón de perfil nativo); sin foto, el overlay va visible
+            de entrada porque ahí la acción es el punto de la pantalla. */}
         <span
-          className={`absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 transition group-hover:opacity-100 ${
-            uploading ? "opacity-100" : ""
+          className={`absolute inset-0 flex items-center justify-center bg-black/40 text-white transition ${
+            uploading || !value ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           }`}
         >
           {uploading ? (
@@ -68,6 +73,11 @@ export default function ImageUpload({
             <CameraIcon size={22} />
           )}
         </span>
+        {value && !uploading && (
+          <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-ink text-white ring-2 ring-white">
+            <CameraIcon size={14} />
+          </span>
+        )}
       </button>
       <input
         ref={inputRef}
@@ -80,7 +90,7 @@ export default function ImageUpload({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="text-xs font-semibold text-orange-600 hover:text-orange-700 disabled:opacity-60"
+        className="text-xs font-semibold text-primary disabled:opacity-60"
       >
         {uploading ? "Subiendo..." : value ? "Cambiar foto" : "Subir foto"}
       </button>

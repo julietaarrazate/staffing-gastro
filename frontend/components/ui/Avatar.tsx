@@ -32,7 +32,7 @@ export default function Avatar({
     <div
       style={{ width: px, height: px, fontSize: px * 0.4 }}
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-[#ff6b00] to-[#e85f00] font-bold text-white ring-1 ring-black/5",
+        "flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong font-bold text-white ring-1 ring-black/5",
         radius,
         className
       )}

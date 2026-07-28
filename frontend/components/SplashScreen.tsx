@@ -69,7 +69,7 @@ export default function SplashScreen() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reducedMotion ? 1 : 1.08 }}
           transition={reducedMotion ? { duration: 0 } : { duration: 0.5, ease: "easeInOut" }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#ff6b00] to-[#e85f00]"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong"
         >
           {/* Anillos pulsantes detrás del logo: sólo durante la coreografía de
               entrada. Si la verificación de sesión se extiende más (backend

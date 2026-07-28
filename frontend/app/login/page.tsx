@@ -108,7 +108,7 @@ function LoginForm() {
             </Link>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/profile" : "/")} />
+          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
