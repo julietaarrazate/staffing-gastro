@@ -106,8 +106,11 @@ export default function OpportunityCard({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
-            <p className="text-3xl font-extrabold text-primary">
-              {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+            <p className="flex items-baseline gap-1 font-extrabold text-primary">
+              <span className="text-lg">{shift.currency}</span>
+              <span className="text-[2.75rem] leading-none tracking-tight">
+                {Number(shift.pay_amount).toLocaleString("es-AR")}
+              </span>
             </p>
             {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}
           </div>
