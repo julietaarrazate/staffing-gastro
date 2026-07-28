@@ -35,8 +35,8 @@ export default function EmptyState({
       <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-surface text-primary">
         {icon ?? <LogoGlyph size={36} color="#ff6b00" />}
       </div>
-      <h2 className="mt-5 text-lg font-bold text-zinc-900">{title}</h2>
-      {subtitle && <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">{subtitle}</p>}
+      <h2 className="mt-5 text-lg font-bold text-ink">{title}</h2>
+      {subtitle && <p className="mt-1.5 text-sm leading-relaxed text-ink/50">{subtitle}</p>}
       {(primaryAction || secondaryAction) && (
         <div className="mt-6 flex w-full flex-col gap-2.5">
           {primaryAction && (

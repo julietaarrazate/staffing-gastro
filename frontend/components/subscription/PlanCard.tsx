@@ -29,16 +29,16 @@ export default function PlanCard({
   return (
     <Card className={`flex flex-col p-5 ${isCurrent ? "ring-2 ring-primary" : ""}`}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-lg font-extrabold text-zinc-900">{plan.name}</h3>
+        <h3 className="text-lg font-extrabold text-ink">{plan.name}</h3>
         {isCurrent && <Badge tone="primary">Tu plan actual</Badge>}
       </div>
 
       <p className="mt-2 flex items-baseline gap-1">
-        <span className="text-3xl font-extrabold text-zinc-900">{formatArs(priceArs)}</span>
-        <span className="text-sm font-medium text-zinc-500">/mes</span>
+        <span className="text-3xl font-extrabold text-ink">{formatArs(priceArs)}</span>
+        <span className="text-sm font-medium text-ink/50">/mes</span>
       </p>
 
-      <p className="mt-1 text-sm font-semibold text-zinc-600">
+      <p className="mt-1 text-sm font-semibold text-ink/60">
         {plan.max_turnos_mes === null
           ? "Turnos ilimitados por mes"
           : `Hasta ${plan.max_turnos_mes} ${plan.max_turnos_mes === 1 ? "turno" : "turnos"} por mes`}
@@ -46,7 +46,7 @@ export default function PlanCard({
 
       <ul className="mt-4 flex flex-1 flex-col gap-2">
         {plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2 text-sm text-zinc-600">
+          <li key={feature} className="flex items-start gap-2 text-sm text-ink/60">
             <CheckIcon size={16} className="mt-0.5 shrink-0 text-secondary" />
             {feature}
           </li>

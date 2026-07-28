@@ -51,7 +51,7 @@ export default function Navbar() {
             </>
           )}
           {!loading && user?.role === "admin" && (
-            <Link href="/admin" className="hidden hover:text-orange-600 md:inline">
+            <Link href="/admin" className="hidden hover:text-primary md:inline">
               Administración
             </Link>
           )}
@@ -59,7 +59,7 @@ export default function Navbar() {
           {!loading && user && (
             <button
               onClick={logout}
-              className="hidden rounded-full bg-zinc-100 px-3 py-1.5 hover:bg-zinc-200 md:inline"
+              className="hidden rounded-full bg-surface px-3 py-1.5 hover:bg-line md:inline"
             >
               Salir ({user.full_name})
             </button>

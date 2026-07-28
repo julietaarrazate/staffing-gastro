@@ -86,8 +86,8 @@ export default function ShiftCandidatesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
-      <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Candidatos</h1>
-      <p className="mt-0.5 text-sm text-zinc-500">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">Candidatos</h1>
+      <p className="mt-0.5 text-sm text-ink/50">
         Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano.
       </p>
 

@@ -106,16 +106,16 @@ export default function CompanyProfileForm() {
       <ImageUpload value={logoUrl} onChange={setLogoUrl} fallbackLabel={name || "C"} shape="square" />
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Nombre del comercio</label>
+        <label className="block text-sm font-medium text-ink/70">Nombre del comercio</label>
         <input
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Ubicación del comercio</label>
+        <label className="block text-sm font-medium text-ink/70">Ubicación del comercio</label>
         <div className="mt-2">
           {useManualPicker ? (
             <div className="flex flex-col gap-2">
@@ -129,7 +129,7 @@ export default function CompanyProfileForm() {
               <button
                 type="button"
                 onClick={() => setUseManualPicker(false)}
-                className="w-fit text-xs font-medium text-zinc-400 underline decoration-zinc-200 underline-offset-2 hover:text-zinc-600"
+                className="w-fit text-xs font-medium text-ink/40 underline decoration-zinc-200 underline-offset-2 hover:text-ink/60"
               >
                 Volver a buscar en el mapa
               </button>
@@ -148,8 +148,8 @@ export default function CompanyProfileForm() {
           )}
         </div>
         {city && (
-          <p className="mt-2 text-sm font-medium text-zinc-700">
-            Ubicación: <span className="text-orange-600">{city}</span>
+          <p className="mt-2 text-sm font-medium text-ink/70">
+            Ubicación: <span className="text-primary">{city}</span>
           </p>
         )}
       </div>

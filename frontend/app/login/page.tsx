@@ -112,7 +112,7 @@ function LoginForm() {
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <p className="text-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <p className="text-center text-xs font-semibold uppercase tracking-wide text-ink/40">
             Probar la app sin cuenta
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
@@ -137,7 +137,7 @@ function LoginForm() {
               Soy trabajador
             </Button>
           </div>
-          <p className="mt-2.5 text-center text-xs text-zinc-400">
+          <p className="mt-2.5 text-center text-xs text-ink/40">
             Entrás con un perfil de demostración para ver la app.
           </p>
         </div>

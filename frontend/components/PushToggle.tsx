@@ -54,19 +54,19 @@ export default function PushToggle() {
       type="button"
       onClick={toggle}
       disabled={checking || loading}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left first:rounded-t-2xl last:rounded-b-2xl hover:bg-zinc-50 disabled:opacity-70"
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left first:rounded-t-2xl last:rounded-b-2xl hover:bg-surface disabled:opacity-70"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface text-ink/50">
         <BellIcon size={18} />
       </span>
-      <span className="flex-1 text-sm font-medium text-zinc-800">Notificaciones push</span>
+      <span className="flex-1 text-sm font-medium text-ink/80">Notificaciones push</span>
       {checking || loading ? (
-        <Spinner size={16} className="text-zinc-400" />
+        <Spinner size={16} className="text-ink/40" />
       ) : (
         <span
           className={
             "rounded-full px-2.5 py-0.5 text-xs font-semibold " +
-            (enabled ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500")
+            (enabled ? "bg-green-100 text-green-700" : "bg-surface text-ink/50")
           }
         >
           {enabled ? "Activadas" : "Desactivadas"}

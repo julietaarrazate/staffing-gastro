@@ -20,17 +20,17 @@ export default function SearchInput({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-full bg-white px-4 shadow-[var(--shadow-soft)] ring-1 ring-zinc-100",
+        "flex items-center gap-2 rounded-full bg-white px-4 shadow-[var(--shadow-soft)] ring-1 ring-line",
         className
       )}
     >
-      <SearchIcon size={18} className="shrink-0 text-zinc-400" />
+      <SearchIcon size={18} className="shrink-0 text-ink/40" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onSubmit?.()}
         placeholder={placeholder}
-        className="min-h-[48px] w-full bg-transparent text-[15px] text-zinc-900 outline-none placeholder:text-zinc-400"
+        className="min-h-[48px] w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink/40"
       />
     </div>
   );

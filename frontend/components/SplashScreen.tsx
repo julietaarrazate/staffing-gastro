@@ -111,7 +111,7 @@ export default function SplashScreen() {
             initial={reducedMotion ? false : { y: 12, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={reducedMotion ? { duration: 0 } : { delay: 0.55, duration: 0.5 }}
-            className="relative mt-1 text-sm font-medium text-orange-50"
+            className="relative mt-1 text-sm font-medium text-white"
           >
             Personal gastronómico, ya
           </motion.p>
@@ -124,7 +124,7 @@ export default function SplashScreen() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.3 }}
-              className="relative mt-8 flex items-center gap-2 text-sm font-medium text-orange-50"
+              className="relative mt-8 flex items-center gap-2 text-sm font-medium text-white"
             >
               <Spinner size={16} />
               Verificando tu sesión…

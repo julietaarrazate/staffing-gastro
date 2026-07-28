@@ -33,10 +33,10 @@ export default function TextField({
 }) {
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
-      {label && <span className="text-sm font-semibold text-zinc-700">{label}</span>}
+      {label && <span className="text-sm font-semibold text-ink/70">{label}</span>}
       <span className="relative flex items-center">
         {leftIcon && (
-          <span className="pointer-events-none absolute left-3.5 text-zinc-400">{leftIcon}</span>
+          <span className="pointer-events-none absolute left-3.5 text-ink/40">{leftIcon}</span>
         )}
         <input
           type={type}

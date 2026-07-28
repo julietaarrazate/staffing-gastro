@@ -68,7 +68,7 @@ export default function MapSheet({
         onClick={() => setSnap((s) => ((s + 1) % 3) as SnapIndex)}
         className="flex shrink-0 cursor-grab touch-none flex-col items-center gap-1.5 py-2.5 active:cursor-grabbing"
       >
-        <span className="h-1.5 w-10 rounded-full bg-zinc-300" />
+        <span className="h-1.5 w-10 rounded-full bg-line" />
       </button>
       <div className="min-h-0 flex-1">{children}</div>
     </motion.div>

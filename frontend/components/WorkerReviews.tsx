@@ -16,7 +16,7 @@ import { formatShiftDate } from "@/lib/datetime";
  */
 function ReviewSkeleton() {
   return (
-    <div className="rounded-xl bg-zinc-50 px-3 py-2.5" aria-hidden>
+    <div className="rounded-xl bg-surface px-3 py-2.5" aria-hidden>
       <Skeleton className="h-4 w-24" />
       <Skeleton className="mt-2 h-3.5 w-full" />
       <Skeleton className="mt-1.5 h-3.5 w-2/3" />
@@ -70,18 +70,18 @@ export default function WorkerReviews({ workerProfileId }: { workerProfileId: st
   }
 
   if (reviews.length === 0) {
-    return <p className="text-sm text-zinc-500">Todavía no tiene reseñas.</p>;
+    return <p className="text-sm text-ink/50">Todavía no tiene reseñas.</p>;
   }
 
   return (
     <div className="flex flex-col gap-3">
       {reviews.map((review) => (
-        <div key={review.id} className="rounded-xl bg-zinc-50 px-3 py-2.5">
+        <div key={review.id} className="rounded-xl bg-surface px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
             <StarRating value={review.rating} size={16} />
-            <span className="text-xs text-zinc-400">{formatShiftDate(review.created_at)}</span>
+            <span className="text-xs text-ink/40">{formatShiftDate(review.created_at)}</span>
           </div>
-          {review.comment && <p className="mt-1 text-sm text-zinc-600">{review.comment}</p>}
+          {review.comment && <p className="mt-1 text-sm text-ink/60">{review.comment}</p>}
         </div>
       ))}
     </div>

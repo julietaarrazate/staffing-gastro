@@ -42,23 +42,23 @@ export default function SubscriptionStatusCard({
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Mi plan</p>
-          <h2 className="mt-0.5 text-xl font-extrabold text-zinc-900">{planName}</h2>
-          <p className="mt-0.5 text-sm text-zinc-500">{formatArs(price_ars)}/mes</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Mi plan</p>
+          <h2 className="mt-0.5 text-xl font-extrabold text-ink">{planName}</h2>
+          <p className="mt-0.5 text-sm text-ink/50">{formatArs(price_ars)}/mes</p>
         </div>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>
 
       <div className="mt-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold text-zinc-700">
+          <span className="font-semibold text-ink/70">
             {unlimited
               ? "Turnos ilimitados este mes"
               : `${turnos_usados_mes} de ${max_turnos_mes} turnos usados`}
           </span>
         </div>
         {!unlimited && (
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface">
             <div
               className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-primary"}`}
               style={{ width: `${pct}%` }}

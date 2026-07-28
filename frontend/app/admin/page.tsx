@@ -33,7 +33,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <Card className="p-4">
       <p className="text-2xl font-extrabold text-ink">{value}</p>
-      <p className="text-xs font-medium text-zinc-500">{label}</p>
+      <p className="text-xs font-medium text-ink/50">{label}</p>
     </Card>
   );
 }
@@ -112,7 +112,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="flex justify-center px-4 py-16">
-        <Spinner size={28} className="text-zinc-400" />
+        <Spinner size={28} className="text-ink/40" />
       </div>
     );
   }
@@ -157,7 +157,7 @@ export default function AdminPage() {
       )}
 
       <div className="mt-8">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
           Usuarios
         </p>
         <div className="mt-2 grid gap-3">
@@ -180,7 +180,7 @@ export default function AdminPage() {
                         <CheckCircleIcon size={15} className="text-secondary" />
                       )}
                     </p>
-                    <p className="truncate text-xs text-zinc-500">{u.email}</p>
+                    <p className="truncate text-xs text-ink/50">{u.email}</p>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">

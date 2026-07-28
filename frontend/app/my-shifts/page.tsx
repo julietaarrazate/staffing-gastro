@@ -148,7 +148,7 @@ export default function MatchesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
-      <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">Matches</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">Matches</h1>
       <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados y tus postulaciones.</p>
 
       <div className="mt-4">
@@ -188,7 +188,7 @@ export default function MatchesPage() {
                   <div className="mb-2 flex flex-wrap gap-2">
                     <Link
                       href={`/chats/${shift.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70 ring-1 ring-line"
                     >
                       <MessageIcon size={16} /> Chatear
                     </Link>
@@ -274,7 +274,7 @@ export default function MatchesPage() {
                   </Button>
                 )}
                 {shift.status === "check_out" && (
-                  <p className="text-sm text-zinc-500">Esperando que el comercio cierre el turno.</p>
+                  <p className="text-sm text-ink/50">Esperando que el comercio cierre el turno.</p>
                 )}
                 {(shift.status === "finalizado" || shift.status === "pagado") && (
                   <div className="flex flex-col gap-2">
@@ -335,7 +335,7 @@ export default function MatchesPage() {
         onClose={() => setConfirmWithdrawId(null)}
         title="¿Cancelar tu postulación?"
       >
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-ink/60">
           El comercio ya no te va a ver como candidato para este turno. Si
           sigue abierto, podés volver a postularte más adelante.
         </p>

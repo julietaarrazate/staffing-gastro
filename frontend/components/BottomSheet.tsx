@@ -63,7 +63,7 @@ export default function BottomSheet({
         onPointerCancel={onPointerUp}
         className="flex shrink-0 cursor-grab touch-none flex-col items-center gap-2 pb-1 pt-2.5 active:cursor-grabbing"
       >
-        <span className="h-1.5 w-10 rounded-full bg-zinc-300" />
+        <span className="h-1.5 w-10 rounded-full bg-line" />
       </div>
       {header}
       {/* `overscroll-behavior-y: contain` (además del fix en `html` de

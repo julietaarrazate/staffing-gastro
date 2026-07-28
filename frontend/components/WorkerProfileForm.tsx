@@ -118,8 +118,8 @@ export default function WorkerProfileForm() {
 
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Ubicación</label>
-        <p className="mt-0.5 text-xs text-zinc-500">
+        <label className="block text-sm font-medium text-ink/70">Ubicación</label>
+        <p className="mt-0.5 text-xs text-ink/50">
           Tu zona define a qué turnos te recomendamos primero (los más cercanos).
         </p>
         <div className="mt-2">
@@ -132,26 +132,26 @@ export default function WorkerProfileForm() {
           />
         </div>
         {city && (
-          <p className="mt-2 text-sm font-medium text-zinc-700">
-            Tu zona: <span className="text-orange-600">{city}</span>
+          <p className="mt-2 text-sm font-medium text-ink/70">
+            Tu zona: <span className="text-primary">{city}</span>
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Años de experiencia</label>
+        <label className="block text-sm font-medium text-ink/70">Años de experiencia</label>
         <input
           type="number"
           min={0}
           max={80}
           value={yearsExperience}
           onChange={(e) => setYearsExperience(Number(e.target.value))}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2"
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Habilidades</label>
+        <label className="block text-sm font-medium text-ink/70">Habilidades</label>
         <div className="mt-2 flex flex-wrap gap-2">
           {WORKER_SKILLS.map((skill) => (
             <button
@@ -160,8 +160,8 @@ export default function WorkerProfileForm() {
               onClick={() => toggleSkill(skill)}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 skills.includes(skill)
-                  ? "bg-orange-600 text-white"
-                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  ? "bg-primary text-white"
+                  : "bg-surface text-ink/70 hover:bg-line"
               }`}
             >
               {SKILL_LABELS[skill]}
@@ -170,7 +170,7 @@ export default function WorkerProfileForm() {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+      <label className="flex items-center gap-2 text-sm font-medium text-ink/70">
         <input
           type="checkbox"
           checked={isAvailable}

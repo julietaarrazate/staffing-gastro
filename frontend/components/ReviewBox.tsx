@@ -72,8 +72,8 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
 
   if (myReview) {
     return (
-      <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
-        <p className="text-xs font-semibold text-zinc-500">Tu calificación</p>
+      <div className="rounded-xl bg-surface px-3 py-2.5">
+        <p className="text-xs font-semibold text-ink/50">Tu calificación</p>
         <div className="mt-1 flex items-center gap-2">
           <StarRating value={myReview.rating} size={16} />
         </div>
@@ -81,7 +81,7 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
           // Comentario de reseña ya escrito: contenido de lectura genuino
           // (como los mensajes de chat), seleccionable aunque la tarjeta que
           // lo envuelve (ShiftCard) sea `.no-select` (bug C0 #2 / fix 2).
-          <p className="mt-1 select-text text-sm text-zinc-600">{myReview.comment}</p>
+          <p className="mt-1 select-text text-sm text-ink/60">{myReview.comment}</p>
         )}
       </div>
     );
@@ -109,8 +109,8 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl bg-zinc-50 px-3 py-3">
-      <p className="text-xs font-semibold text-zinc-500">Calificar este turno</p>
+    <form onSubmit={submit} className="rounded-xl bg-surface px-3 py-3">
+      <p className="text-xs font-semibold text-ink/50">Calificar este turno</p>
       <div className="mt-1.5">
         <StarRating value={rating} onChange={setRating} />
       </div>
@@ -120,7 +120,7 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
         placeholder="Comentario (opcional)"
         maxLength={1000}
         rows={2}
-        className="mt-2 w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm"
+        className="mt-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-sm"
       />
       {error && <p className="mt-1 text-sm text-danger">{error}</p>}
       <div className="mt-2">

@@ -159,11 +159,11 @@ export default function WorkerHomePage() {
         <div className="flex items-center gap-3">
           <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="lg" />
           <div>
-            <h1 className="text-xl font-extrabold leading-tight text-zinc-900">
+            <h1 className="text-xl font-extrabold leading-tight text-ink">
               {firstName ? `Hola, ${firstName}` : "Hola"}
             </h1>
-            <p className="inline-flex items-center gap-1 text-sm text-zinc-500">
-              <MapPinIcon size={13} className="text-zinc-400" />
+            <p className="inline-flex items-center gap-1 text-sm text-ink/50">
+              <MapPinIcon size={13} className="text-ink/40" />
               {profile?.city ?? "Sin ubicación"}
             </p>
           </div>
@@ -176,7 +176,7 @@ export default function WorkerHomePage() {
         >
           <span
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              available ? "bg-secondary" : "bg-zinc-300"
+              available ? "bg-secondary" : "bg-line"
             }`}
           >
             <span
@@ -185,7 +185,7 @@ export default function WorkerHomePage() {
               }`}
             />
           </span>
-          <span className={`text-[11px] font-semibold ${available ? "text-secondary" : "text-zinc-400"}`}>
+          <span className={`text-[11px] font-semibold ${available ? "text-secondary" : "text-ink/40"}`}>
             {available ? "Disponible" : "No disp."}
           </span>
         </button>

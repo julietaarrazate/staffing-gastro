@@ -18,7 +18,7 @@ import MapSheet from "@/components/worker/MapSheet";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   ssr: false,
-  loading: () => <div className="absolute inset-0 animate-pulse bg-zinc-100" />,
+  loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
 });
 
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
@@ -156,7 +156,7 @@ export default function MapPage() {
 
       {/* Encabezado flotante */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3">
-        <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-[var(--shadow-soft)] ring-1 ring-zinc-100 backdrop-blur">
+        <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-ink/70 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
           <MapPinIcon size={16} className="text-primary" />
           {loading ? "Buscando turnos cerca..." : `${shifts.length} turnos cerca tuyo`}
         </div>

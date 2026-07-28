@@ -23,7 +23,7 @@ export default function PlanLimitModal({
   return (
     <Modal open={open} onClose={onClose} title="Llegaste al límite de tu plan">
       <div className="flex flex-col gap-4">
-        <p className="flex items-start gap-2 text-sm text-zinc-600">
+        <p className="flex items-start gap-2 text-sm text-ink/60">
           <AlertTriangleIcon size={18} className="mt-0.5 shrink-0 text-danger" />
           {message ?? "Alcanzaste el límite de turnos de tu plan actual."}
         </p>
