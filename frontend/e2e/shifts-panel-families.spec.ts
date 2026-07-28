@@ -105,13 +105,13 @@ test("el conteo de cada pestaña del panel coincide siempre con las tarjetas que
   expect(blueCount).toBe(0);
 
   // Al tocar "Buscando", el panel muestra EXACTAMENTE 2 tarjetas (las
-  // publicado/buscando_personal) y cada una expone el CTA "Ver candidatos"
-  // (ruta /shifts/[id]/candidates).
+  // publicado/buscando_personal) y cada una expone su acción principal
+  // "Elegir a alguien" (ruta /shifts/[id]/candidates).
   await page.getByRole("button", { name: "Buscando (2)" }).click();
   const list = page.getByTestId("shifts-panel-list");
   await expect(list.locator('[data-family="buscando"]')).toBeVisible();
   await expect(list.locator('[data-family]')).toHaveCount(1); // sólo la sección "buscando" visible
-  const candidateCtas = list.getByRole("link", { name: "Ver candidatos" });
+  const candidateCtas = list.getByRole("link", { name: "Elegir a alguien" });
   await expect(candidateCtas).toHaveCount(2);
 
   // Al tocar "En marcha", sólo esa familia queda visible con 1 tarjeta.

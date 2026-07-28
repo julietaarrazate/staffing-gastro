@@ -9,8 +9,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
+import ShiftActions from "@/components/ShiftActions";
 import ReviewBox from "@/components/ReviewBox";
-import ShareShiftButton from "@/components/ShareShiftButton";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import {
@@ -23,14 +23,10 @@ import {
   useToast,
 } from "@/components/ui";
 import {
-  AlertTriangleIcon,
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
-  CopyIcon,
-  MessageIcon,
   SearchIcon,
-  WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
 
@@ -279,102 +275,12 @@ export default function MyShiftsPage() {
                     <div className="grid gap-4">
                       {list.map((shift) => (
                         <ShiftCard key={shift.id} shift={shift}>
-                          <div className="flex flex-wrap gap-2">
-                            {shift.worker_profile_id && shift.status !== "cancelado" && (
-                              <>
-                                <Link
-                                  href={`/chats/${shift.id}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                                >
-                                  <MessageIcon size={16} /> Chat
-                                </Link>
-                                <Link
-                                  href={`/workers/${shift.worker_profile_id}`}
-                                  className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                                >
-                                  Ver trabajador
-                                </Link>
-                              </>
-                            )}
-                            {shift.status === "borrador" && (
-                              <Button
-                                size="sm"
-                                onClick={() => run(shift.id, "publish")}
-                                loading={busy === `${shift.id}:publish`}
-                                disabled={busy !== null}
-                              >
-                                Publicar
-                              </Button>
-                            )}
-                            {(shift.status === "publicado" || shift.status === "buscando_personal") && (
-                              <Link
-                                href={`/shifts/${shift.id}/candidates`}
-                                className="rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white transition active:scale-95"
-                              >
-                                Ver candidatos
-                              </Link>
-                            )}
-                            {shift.status === "publicado" && (
-                              <ShareShiftButton shift={shift} shiftId={shift.id} />
-                            )}
-                            <Link
-                              href={`/shifts/new?duplicate=${shift.id}`}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
-                            >
-                              <CopyIcon size={16} /> Duplicar
-                            </Link>
-                            {NO_SHOW_ELIGIBLE_STATUSES.includes(shift.status) && (
-                              <Button
-                                size="sm"
-                                variant="surface"
-                                leftIcon={<AlertTriangleIcon size={16} />}
-                                onClick={() => setConfirmNoShowId(shift.id)}
-                                loading={busy === `${shift.id}:noShow`}
-                                disabled={busy !== null}
-                              >
-                                No se presentó
-                              </Button>
-                            )}
-                            {!["finalizado", "pagado", "cancelado"].includes(shift.status) && (
-                              <Button
-                                size="sm"
-                                variant="surface"
-                                onClick={() => run(shift.id, "cancel")}
-                                loading={busy === `${shift.id}:cancel`}
-                                disabled={busy !== null}
-                              >
-                                Cancelar
-                              </Button>
-                            )}
-                            {shift.status === "check_out" && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                leftIcon={<CheckCircleIcon size={16} />}
-                                onClick={() => run(shift.id, "finish")}
-                                loading={busy === `${shift.id}:finish`}
-                                disabled={busy !== null}
-                              >
-                                Cerrar turno
-                              </Button>
-                            )}
-                            {shift.status === "finalizado" && (
-                              <Button
-                                size="sm"
-                                leftIcon={<WalletIcon size={16} />}
-                                onClick={() => run(shift.id, "markPaid")}
-                                loading={busy === `${shift.id}:markPaid`}
-                                disabled={busy !== null}
-                              >
-                                Marcar como pagado
-                              </Button>
-                            )}
-                            {shift.status === "pagado" && (
-                              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
-                                <CheckCircleIcon size={16} /> Pagado
-                              </span>
-                            )}
-                          </div>
+                          <ShiftActions
+                            shift={shift}
+                            busy={busy}
+                            onRun={run}
+                            onNoShow={() => setConfirmNoShowId(shift.id)}
+                          />
                           {(shift.status === "finalizado" || shift.status === "pagado") && (
                             <div className="mt-3">
                               <ReviewBox shiftId={shift.id} />
