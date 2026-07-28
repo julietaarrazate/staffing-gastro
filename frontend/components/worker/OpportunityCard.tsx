@@ -47,7 +47,7 @@ export default function OpportunityCard({
           desaparecen. `min-h-[200px]` (deuda de #79) asegura un hero visible
           incluso cuando el contenedor del swipe deck es más bajo de lo
           esperado. */}
-      <div className="relative min-h-[200px] flex-[1.15]">
+      <div className="relative min-h-[170px] flex-1">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -102,13 +102,13 @@ export default function OpportunityCard({
       </div>
 
       {/* Cuerpo */}
-      <div className="flex flex-1 flex-col justify-between gap-4 p-5">
+      <div className="flex flex-1 flex-col justify-between gap-3 p-5 pt-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
             <p className="flex items-baseline gap-1 font-extrabold text-primary">
               <span className="text-lg">{shift.currency}</span>
-              <span className="text-[2.75rem] leading-none tracking-tight">
+              <span className="text-[2.25rem] leading-none tracking-tight">
                 {Number(shift.pay_amount).toLocaleString("es-AR")}
               </span>
             </p>
@@ -120,7 +120,7 @@ export default function OpportunityCard({
         </div>
 
         <div className="space-y-3">
-          <div className="space-y-2.5 text-[15px] text-ink/80">
+          <div className="space-y-2 text-[15px] text-ink/80">
             <p className="inline-flex items-center gap-2">
               <CalendarIcon size={18} className="text-ink/35" />
               {formatShiftRange(shift.start_at, shift.end_at)}
