@@ -142,6 +142,15 @@ function RegisterForm() {
             Ingresá
           </Link>
         </p>
+        {/* La recuperación existía (`/recuperar`) pero sólo se llegaba desde
+            /login: quien intentaba registrarse con un email ya usado quedaba
+            sin salida visible. */}
+        <p className="mt-2 text-center text-sm text-ink/50">
+          ¿Olvidaste tu contraseña?{" "}
+          <Link href="/recuperar" className="font-semibold text-primary">
+            Recuperala
+          </Link>
+        </p>
       </div>
     </div>
   );

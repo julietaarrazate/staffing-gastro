@@ -15,7 +15,12 @@ type Stat = { value: number; suffix?: string; label: string };
 //   promedio medido — por eso el label dice "objetivo", no "promedio").
 const STATS: Stat[] = [
   { value: WORKER_SKILLS.length, label: "Puestos gastronómicos que cubrimos" },
-  { value: 25, suffix: " km", label: "Radio de búsqueda para rankear candidatos" },
+  // El ranking ordena por cercanía: el #1 siempre es de los más cercanos.
+  // Antes este número se mostraba como "radio de búsqueda: 25 km", que vende
+  // justo lo contrario de la promesa — nadie quiere cubrir un turno urgente
+  // con alguien a 25 km. El dato honesto no es el techo del algoritmo, sino
+  // que el orden es por proximidad.
+  { value: 1, suffix: "º", label: "Primero, siempre el candidato más cercano" },
   { value: 10, suffix: " min", label: "Objetivo: tiempo hasta el primer candidato" },
 ];
 

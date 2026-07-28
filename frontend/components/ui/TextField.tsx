@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { EyeIcon, EyeOffIcon } from "@/components/icons";
 
 /** Input de texto del Design System, con label y touch target alto. */
 export default function TextField({
@@ -31,6 +32,13 @@ export default function TextField({
   minLength?: number;
   className?: string;
 }) {
+  // Ver la contraseña que se está escribiendo. Sin esto, en un teclado de
+  // celular es facilísimo equivocarse y no hay forma de darse cuenta: se
+  // escribe a ciegas y el error recién aparece al enviar el formulario.
+  const [reveal, setReveal] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword && reveal ? "text" : type;
+
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
       {label && <span className="text-sm font-semibold text-ink/70">{label}</span>}
@@ -39,7 +47,7 @@ export default function TextField({
           <span className="pointer-events-none absolute left-3.5 text-ink/40">{leftIcon}</span>
         )}
         <input
-          type={type}
+          type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -50,9 +58,21 @@ export default function TextField({
           minLength={minLength}
           className={cn(
             "min-h-[48px] w-full rounded-[var(--radius-input)] bg-white px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40",
-            Boolean(leftIcon) && "pl-11"
+            Boolean(leftIcon) && "pl-11",
+            isPassword && "pr-12"
           )}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setReveal((v) => !v)}
+            aria-label={reveal ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-pressed={reveal}
+            className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full text-ink/40 transition active:scale-90"
+          >
+            {reveal ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+          </button>
+        )}
       </span>
     </label>
   );
