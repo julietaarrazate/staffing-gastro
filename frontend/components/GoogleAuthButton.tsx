@@ -65,6 +65,16 @@ export default function GoogleAuthButton({
     }
   }
 
+  // El script de Google se carga UNA sola vez por sesión de navegador. Al
+  // volver a /login (p. ej. después de cerrar sesión), `next/script` no vuelve
+  // a disparar `onLoad` porque ya está cargado, así que `scriptReady` se
+  // quedaba en `false` para siempre y el botón de Google NO se renderizaba
+  // más: aparecía la primera vez y nunca más en esa pestaña. Si `window.google`
+  // ya existe al montar, damos el script por listo sin esperar el `onLoad`.
+  useEffect(() => {
+    if (window.google) setScriptReady(true);
+  }, []);
+
   useEffect(() => {
     if (!scriptReady || !GOOGLE_CLIENT_ID || !buttonHostRef.current || !window.google) return;
     window.google.accounts.id.initialize({

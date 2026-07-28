@@ -14,6 +14,8 @@ import {
   Building2,
   Calendar,
   Camera,
+  Eye,
+  EyeOff,
   Car,
   Check,
   CheckCircle2,
@@ -93,6 +95,8 @@ export const CoffeeIcon = make(Coffee);
 export const GlassIcon = make(Wine);
 export const ChefHatIcon = make(ChefHat);
 export const CameraIcon = make(Camera);
+export const EyeIcon = make(Eye);
+export const EyeOffIcon = make(EyeOff);
 export const CloseIcon = make(X);
 export const FootprintsIcon = make(Footprints);
 export const BikeIcon = make(Bike);
