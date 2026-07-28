@@ -366,6 +366,9 @@ class ShiftService:
             NotificationType.SHIFT_REJECTED,
             "Rechazaron un turno",
             f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.value}\". Volvió a buscar personal.",
+            # El turno quedó sin cubrir: lo que el comercio necesita es elegir
+            # a otro, así que el aviso abre los candidatos de ESE turno.
+            link=f"/shifts/{updated.id}/candidates",
         )
         return updated
 
@@ -395,6 +398,7 @@ class ShiftService:
                 f"\"{updated.title or updated.position.value}\" luego de "
                 "confirmarla. Volvió a buscar personal."
             ),
+            link=f"/shifts/{updated.id}/candidates",
         )
         return updated
 
@@ -484,23 +488,45 @@ class ShiftService:
         return updated
 
     async def _notify_worker(
-        self, worker_profile_id: UUID, type_: NotificationType, title: str, message: str
+        self,
+        worker_profile_id: UUID,
+        type_: NotificationType,
+        title: str,
+        message: str,
+        link: str | None = None,
     ) -> None:
         profile = await self._workers.get_by_id(worker_profile_id)
         if profile is None:
             return
         await self._notifications.add(
-            Notification(user_id=profile.user_id, type=type_, title=title, message=message)
+            Notification(
+                user_id=profile.user_id,
+                type=type_,
+                title=title,
+                message=message,
+                link=link,
+            )
         )
 
     async def _notify_company(
-        self, company_id: UUID, type_: NotificationType, title: str, message: str
+        self,
+        company_id: UUID,
+        type_: NotificationType,
+        title: str,
+        message: str,
+        link: str | None = None,
     ) -> None:
         profile = await self._companies.get_by_id(company_id)
         if profile is None:
             return
         await self._notifications.add(
-            Notification(user_id=profile.user_id, type=type_, title=title, message=message)
+            Notification(
+                user_id=profile.user_id,
+                type=type_,
+                title=title,
+                message=message,
+                link=link,
+            )
         )
 
     async def _get_assigned_to(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:

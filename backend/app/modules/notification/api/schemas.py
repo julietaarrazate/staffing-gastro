@@ -16,6 +16,7 @@ class NotificationResponse(BaseModel):
     title: str
     message: str
     read: bool
+    link: str | None = None
     created_at: datetime
 
 

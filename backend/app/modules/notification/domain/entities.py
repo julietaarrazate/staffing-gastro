@@ -17,6 +17,10 @@ class Notification:
     message: str
 
     read: bool = False
+    # Destino concreto del aviso (`/shifts/<id>/candidates`, `/turno/<id>`).
+    # Sin él se cae al destino genérico por tipo (ver `deep_link_for`), que
+    # sólo puede llevar a la pantalla de lista.
+    link: str | None = None
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None

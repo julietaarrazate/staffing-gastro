@@ -78,7 +78,7 @@ class ChatService:
         recipient_id = (
             worker_user_id if user_id == company_user_id else company_user_id
         )
-        await self._notify_recipient(recipient_id, user_id, body)
+        await self._notify_recipient(recipient_id, user_id, body, shift_id)
         await ws_manager.broadcast_chat(shift_id, _serialize_message(message))
         return message
 
@@ -156,7 +156,7 @@ class ChatService:
         return company.user_id, worker.user_id
 
     async def _notify_recipient(
-        self, recipient_id: UUID, sender_id: UUID, body: str
+        self, recipient_id: UUID, sender_id: UUID, body: str, shift_id: UUID
     ) -> None:
         sender = await self._users.get_by_id(sender_id)
         sender_name = sender.full_name if sender is not None else "Alguien"
@@ -167,5 +167,7 @@ class ChatService:
                 type=NotificationType.CHAT_MESSAGE,
                 title=f"Nuevo mensaje de {sender_name}",
                 message=snippet,
+                # Abre ESA conversación, no la lista de chats.
+                link=f"/chats/{shift_id}",
             )
         )
