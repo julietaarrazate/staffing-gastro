@@ -10,9 +10,8 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
   const pathname = usePathname();
 
-  // La landing y el onboarding son pantallas de fondo ink con su propio logo:
-  // el header blanco encima las cortaba al medio y duplicaba la marca.
-  if (pathname === "/" && !user) return null;
+  // El onboarding es una pantalla de fondo ink con su propio logo: el header
+  // blanco encima la cortaba al medio y duplicaba la marca.
   if (pathname === "/bienvenida") return null;
 
   return (
