@@ -8,6 +8,9 @@ from app.modules.application.domain.repositories import ShiftApplicationReposito
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.domain.repositories import UserRepository
+from app.modules.matching.domain.entities import ShiftRequirement
+from app.modules.matching.domain.repositories import CandidateRepository
+from app.modules.matching.domain.scoring import DEFAULT_MAX_RADIUS_KM, rank_candidates
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
@@ -46,6 +49,11 @@ class ShiftService:
         subscriptions: SubscriptionRepository,
         users: UserRepository,
         email_sender: EmailSender,
+        # Puerto del motor de matching (no se importa su servicio: se depende
+        # del puerto de lectura + la función pura de ranking, ver PRINCIPLES).
+        # Opcional para no romper a quien construya el servicio sin él: sin
+        # este puerto, publicar sigue funcionando y simplemente no se avisa.
+        candidates: CandidateRepository | None = None,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -55,6 +63,7 @@ class ShiftService:
         self._subscriptions = subscriptions
         self._users = users
         self._email_sender = email_sender
+        self._candidates = candidates
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -108,7 +117,67 @@ class ShiftService:
         shift = await self._get_owned(company_id, shift_id)
         await self._consume_publication_slot(company_id)
         shift.publish()
-        return await self._shifts.update(shift)
+        published = await self._shifts.update(shift)
+        await self._notify_nearby_workers(published)
+        return published
+
+    # Cuántos trabajadores reciben el aviso de turno nuevo. El tope existe
+    # para que el aviso siga siendo señal y no ruido: si le llegara a todos,
+    # el trabajador termina apagando las notificaciones y perdemos el canal
+    # que sostiene la promesa de los 10 minutos.
+    NEARBY_NOTIFICATION_LIMIT = 10
+
+    async def _notify_nearby_workers(self, shift: Shift) -> None:
+        """Avisa del turno recién publicado a los trabajadores mejor rankeados
+        cerca (mismo ranking que ve el comercio en "candidatos": cercanía,
+        reputación, puntualidad y desempeño).
+
+        Es el aviso que cierra el circuito del marketplace. Sin él, publicar
+        no le avisaba a NADIE: el turno sólo se cubría si algún trabajador
+        casualmente abría la app y scrolleaba el feed, con lo cual la misión
+        del producto ("cubrir en menos de 10 minutos") dependía del azar.
+
+        Best-effort a propósito: un fallo acá nunca debe impedir que un turno
+        quede publicado (mismo contrato que el push en `NotificationRepository`).
+        """
+        if self._candidates is None:
+            return
+        try:
+            available = await self._candidates.list_available(shift.position)
+            ranked = rank_candidates(
+                available,
+                ShiftRequirement(
+                    position=shift.position,
+                    latitude=shift.latitude,
+                    longitude=shift.longitude,
+                ),
+                max_radius_km=DEFAULT_MAX_RADIUS_KM,
+            )[: self.NEARBY_NOTIFICATION_LIMIT]
+
+            if not ranked:
+                return
+
+            company = await self._companies.get_by_id(shift.company_id)
+            lugar = company.name if company is not None else "Un comercio cerca tuyo"
+            puesto = shift.title or shift.position.value
+            for match in ranked:
+                await self._notifications.add(
+                    Notification(
+                        user_id=match.user_id,
+                        type=NotificationType.NEW_SHIFT_NEARBY,
+                        title=f"Turno de {puesto} cerca tuyo",
+                        message=(
+                            f"{lugar} está buscando {puesto}. "
+                            "Entrá y postulate antes de que lo tomen."
+                        ),
+                        link="/feed",
+                    )
+                )
+        except Exception:
+            logger.exception(
+                "Aviso de turno nuevo: fallo inesperado, no se propaga (shift_id=%s)",
+                shift.id,
+            )
 
     async def _consume_publication_slot(self, company_id: UUID) -> None:
         """Gating de capacidad por plan (ADR-0005 Fase 1): antes de publicar

@@ -19,6 +19,12 @@ class NotificationType(str, Enum):
     # tardía del comercio.
     SHIFT_NO_SHOW = "shift_no_show"
     SHIFT_CANCELLED_LATE = "shift_cancelled_late"
+    # El aviso que cierra el circuito del marketplace: al publicarse un turno
+    # se le avisa a los trabajadores mejor rankeados cerca. Sin esto el turno
+    # sólo se cubría si alguien casualmente abría la app y scrolleaba el feed
+    # — es decir, la promesa de "cubrir en menos de 10 minutos" dependía del
+    # azar (ver PRODUCT.md, misión).
+    NEW_SHIFT_NEARBY = "new_shift_nearby"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -33,6 +39,8 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_PAID: "/my-shifts",
     NotificationType.SHIFT_NO_SHOW: "/my-shifts",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
+    # Turno todavía no suyo: va al feed, donde puede verlo y postularse.
+    NotificationType.NEW_SHIFT_NEARBY: "/feed",
     # Comercio
     NotificationType.NEW_APPLICANT: "/shifts",
     NotificationType.SHIFT_CONFIRMED: "/shifts",

@@ -25,6 +25,9 @@ from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
+from app.modules.matching.infrastructure.repositories import (
+    SqlAlchemyCandidateRepository,
+)
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.infrastructure.repositories import (
@@ -51,6 +54,9 @@ def get_shift_service(
         subscriptions=SqlAlchemySubscriptionRepository(session),
         users=SqlAlchemyUserRepository(session),
         email_sender=email_sender,
+        # Habilita el aviso a los trabajadores mejor rankeados cerca al
+        # publicar un turno (ver `_notify_nearby_workers`).
+        candidates=SqlAlchemyCandidateRepository(session),
     )
 
 
