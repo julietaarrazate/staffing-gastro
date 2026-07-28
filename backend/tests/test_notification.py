@@ -163,7 +163,12 @@ async def test_notifications_pagination(client: AsyncClient):
         shift_ids.append(shift_id)
 
     all_notifications = await client.get("/api/v1/notifications", headers=worker_headers)
-    assert len(all_notifications.json()) == 3
+    todas = all_notifications.json()
+    # Cada turno le genera DOS avisos al trabajador: el de "turno nuevo cerca
+    # tuyo" al publicarse y el de "te asignaron" al asignárselo.
+    assert len(todas) == 6
+    assert len([n for n in todas if n["type"] == "new_shift_nearby"]) == 3
+    assert len([n for n in todas if n["type"] == "shift_assigned"]) == 3
 
     limited = await client.get(
         "/api/v1/notifications", headers=worker_headers, params={"limit": 1, "offset": 0}
@@ -172,11 +177,12 @@ async def test_notifications_pagination(client: AsyncClient):
     assert len(limited.json()) == 1
 
     rest = await client.get(
-        "/api/v1/notifications", headers=worker_headers, params={"limit": 2, "offset": 1}
+        "/api/v1/notifications", headers=worker_headers, params={"limit": 5, "offset": 1}
     )
-    assert len(rest.json()) == 2
+    assert len(rest.json()) == 5
+    # Paginar no pierde ni duplica: las dos páginas reconstruyen el total.
     assert {n["id"] for n in limited.json()} | {n["id"] for n in rest.json()} == {
-        n["id"] for n in all_notifications.json()
+        n["id"] for n in todas
     }
 
 

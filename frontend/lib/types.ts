@@ -188,7 +188,8 @@ export type NotificationType =
   | "review_received"
   | "new_applicant"
   | "shift_no_show"
-  | "shift_cancelled_late";
+  | "shift_cancelled_late"
+  | "new_shift_nearby";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 

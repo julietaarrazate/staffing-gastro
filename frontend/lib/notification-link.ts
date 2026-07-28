@@ -14,6 +14,7 @@ const BY_TYPE: Record<NotificationType, string> = {
   shift_rejected: "/shifts",
   shift_checked_out: "/shifts",
   shift_reopened: "/shifts",
+  new_shift_nearby: "/feed",
   chat_message: "/chats",
   review_received: "/profile",
 };

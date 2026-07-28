@@ -831,3 +831,71 @@ async def test_assign_worker_does_not_fail_if_email_sender_explodes(
     )
     assert assigned.status_code == 200
     assert assigned.json()["status"] == "asignado"
+
+
+async def test_publicar_avisa_a_los_trabajadores_cercanos(client: AsyncClient):
+    """El aviso que cierra el circuito del marketplace.
+
+    Antes, publicar un turno no le avisaba a NADIE: sólo se cubría si algún
+    trabajador casualmente abría la app y scrolleaba el feed, con lo cual la
+    misión del producto ("cubrir en menos de 10 minutos") dependía del azar.
+    """
+    # Un trabajador disponible del mismo oficio que el turno.
+    worker_headers = await auth_headers(client, "worker", "cercano@staffya.com")
+    await client.post(
+        "/api/v1/workers/me/profile",
+        headers=worker_headers,
+        json={
+            "city": "Palermo",
+            "skills": ["mozo"],
+            "years_experience": 3,
+            "is_available": True,
+        },
+    )
+    # Sin notificaciones antes de que se publique nada.
+    antes = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert antes.json() == []
+
+    employer_headers = await _employer_with_company(client, "avisa@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+
+    published = await client.post(
+        f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers
+    )
+    assert published.status_code == 200
+
+    # Al trabajador le llegó el aviso, y abre el feed (donde puede postularse).
+    despues = await client.get("/api/v1/notifications", headers=worker_headers)
+    avisos = [n for n in despues.json() if n["type"] == "new_shift_nearby"]
+    assert len(avisos) == 1
+    assert avisos[0]["link"] == "/feed"
+    assert "Bar Palermo" in avisos[0]["message"]
+
+
+async def test_publicar_no_avisa_a_trabajadores_de_otro_oficio(client: AsyncClient):
+    """El aviso es señal, no ruido: a un cocinero no le llega un turno de mozo."""
+    otro = await auth_headers(client, "worker", "cocinero@staffya.com")
+    await client.post(
+        "/api/v1/workers/me/profile",
+        headers=otro,
+        json={
+            "city": "Palermo",
+            "skills": ["cocinero"],
+            "years_experience": 5,
+            "is_available": True,
+        },
+    )
+
+    employer_headers = await _employer_with_company(client, "avisa2@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    await client.post(
+        f"/api/v1/shifts/{created.json()['id']}/publish", headers=employer_headers
+    )
+
+    recibidas = await client.get("/api/v1/notifications", headers=otro)
+    assert [n for n in recibidas.json() if n["type"] == "new_shift_nearby"] == []
