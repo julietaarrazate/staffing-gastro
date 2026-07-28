@@ -9,11 +9,13 @@
 > define el *qué* y las restricciones técnicas. Este documento define el *por
 > qué* y el territorio.
 >
-> **Estado:** propuesta para aprobación. Fase 1 (investigación) y Fase 2
-> (dirección) completas. Ninguna pieza gráfica se produce hasta que esto se
-> apruebe.
+> **Estado: APROBADO** por Julieta el 2026-07-28. Fase 1 (investigación) y
+> Fase 2 (dirección) cerradas. Habilita la Fase 3.
 >
-> Preparado: 2026-07-28 · Versión 1.0
+> Preparado: 2026-07-28 · **Versión 1.1** — el territorio se reformuló de
+> *"la pieza que llega"* a **"la llegada"** tras una objeción de Julieta que
+> el documento no había previsto: la versión anterior convertía al trabajador
+> en un componente intercambiable. Ver §5, Territorio C.
 
 ---
 
@@ -290,42 +292,61 @@ vive en el **motion** (§13), no en la forma estática.
 
 ---
 
-### TERRITORIO C — "La pieza que llega" ✅ **ELEGIDO**
+### TERRITORIO C — "La llegada" ✅ **ELEGIDO**
 
-**Idea:** la marca no representa comida ni velocidad. Representa **el hueco que
-se completa**.
+> **Nota de proceso.** La primera versión de este territorio se llamaba *"la
+> pieza que llega"* y se construía sobre el encaje: un hueco (la vacante) y una
+> pieza (el trabajador) que lo completa. **Julieta lo rechazó por un motivo
+> correcto y grave: si la persona es "la pieza", la persona es un componente
+> intercambiable.** Eso contradice frontalmente el valor de dignidad del oficio
+> (§3.3) y coquetea con la asociación de precariedad que cargan Rappi y Glovo
+> (§8.1). El riesgo estaba en el documento como "puede leerse infantil" — la
+> lectura grave se me pasó. El territorio se reformuló por completo.
 
-Un turno sin cubrir es un vacío con forma. Staffya es lo que entra ahí y lo
-cierra. El sistema visual se construye sobre **encaje, complemento y
-completitud**: formas que llegan, calzan y cierran.
+**Idea:** la marca no representa comida ni velocidad. Representa **el momento
+en que alguien llega y el turno arranca**.
+
+Lo que está incompleto **no es el equipo: es el turno**. Y el turno se completa
+porque **dos partes se encuentran** — el comercio que necesita cubrirlo y el
+trabajador que quiere trabajarlo. Ninguno es el hueco del otro.
+
+El sistema visual se construye sobre **llegada, presencia y umbral**: algo que
+aparece en su lugar, a tiempo.
 
 **Por qué es el correcto:**
 
-1. **Resuelve la tensión del §2.3.** El encaje es *preciso* (confianza) y
-   *ocurre* (velocidad). Una pieza que calza comunica exactitud y acción en el
-   mismo gesto — sin gritar.
-2. **Es apropiable.** Nadie en el rubro lo ocupa. No es vocabulario de
+1. **Resuelve la tensión del §2.3.** Llegar a horario es *puntualidad*
+   (confianza) y es *un evento* (velocidad). Las dos mitades en un solo gesto,
+   sin gritar.
+2. **El trabajador es sujeto, no objeto.** Llega, entra, arranca el turno. No
+   lo entregan. Esta es la diferencia esencial con la versión descartada, y es
+   lo que alinea el territorio con §3.3.
+3. **Es apropiable.** Nadie en el rubro lo ocupa. No es vocabulario de
    categoría.
-3. **Es verdadero.** Describe literalmente lo que hace el producto: hay un
-   hueco (posición vacante), llega la pieza (trabajador), el sistema queda
-   completo.
-4. **Escala más allá de la gastronomía.** Si mañana Staffya cubre retail o
+4. **Es verdadero.** Describe literalmente el momento que el producto produce:
+   alguien entra por la puerta y el servicio sigue.
+5. **Escala más allá de la gastronomía.** Si mañana Staffya cubre retail o
    logística, la identidad sobrevive. La cloche no.
-5. **Funciona en las dos direcciones.** Para el comercio: "te falta una pieza,
-   te la traemos". Para el trabajador: "hay un lugar donde encajás". Una sola
-   idea, dos lecturas, sin contradicción.
-6. **Da motion nativo.** La animación de marca es el gesto de encajar. No hay
-   que inventarle un movimiento decorativo: **la idea ya se mueve**.
-7. **Contiene el "ya" del nombre.** La pieza que falta es, literalmente, el
-   "ya" que completa "staff". Ver §11.
+6. **Funciona en las dos direcciones, sin jerarquía.** Para el comercio:
+   *"llega alguien"*. Para el trabajador: *"llegás vos"*. Una sola idea, dos
+   lecturas, ninguna subordinada a la otra.
+7. **Da motion nativo.** El gesto de marca es la llegada: algo que aparece en
+   su lugar y se queda. No hay que inventarle un movimiento decorativo — **la
+   idea ya se mueve**.
+8. **Contiene el "ya" del nombre.** Llegar *ya*. Ver §11.
+
+**Sobre el encaje:** sobrevive como idea **secundaria y no humana** — la
+correspondencia entre lo que un turno necesita y lo que un trabajador sabe
+hacer (oficio, zona, disponibilidad). Nunca como metáfora de la persona.
 
 **Riesgos, y cómo se mitigan:**
 
 | Riesgo | Mitigación |
 |---|---|
-| Puede leerse como rompecabezas → infantil | Ejecución geométrica precisa, nunca formas de puzzle de juguete. Sin pestañas ni lengüetas. |
+| **Cosificar al trabajador** (el riesgo que hundió la versión anterior) | La persona nunca es "la pieza". Se ilustra la llegada como acción de alguien, no como entrega de algo. Regla verificable en §10.3 y criterio 10 del §17. |
+| "Llegada" puede quedar genérico (delivery, logística) | El anclaje es el **turno**, no el paquete. Lo que llega es una persona que empieza a trabajar, y eso se ve en la ilustración (manos, oficio, umbral del salón). |
 | Puede volverse abstracto y frío | Lo compensa la ilustración (§10): la geometría es el sistema, la mano es la calidez. |
-| "Encaje" es un concepto usado en tech | La diferencia está en la ejecución específica y en el anclaje al oficio, no en la categoría conceptual. |
+| Puede leerse como puntualidad-vigilancia (control del trabajador) | La llegada se celebra, no se audita. Nunca cronómetros ni semáforos sobre la persona. |
 
 ---
 
@@ -411,14 +432,16 @@ dos tintas.
 **Extraer:** claridad bajo presión, orden visible, economía de recursos.
 **Rechazar:** frialdad institucional, gris burocrático.
 
-### Moodboard 3 — "El encaje" (la idea central)
+### Moodboard 3 — "La llegada" (la idea central)
 
-Piezas de máquina que entran con tolerancia mínima. Una llave en su cerradura.
-El momento exacto en que dos piezas de acero se unen. Un ensamble de madera
-japonés donde no hay clavos: sólo formas que calzan.
+El umbral de la puerta de servicio justo cuando alguien la cruza. Un reloj de
+estación marcando la hora exacta de un arribo. La luz del salón encendiéndose
+antes de abrir. Un abrigo colgado en el perchero: alguien llegó y se quedó.
+Huellas que terminan en un punto, no que pasan de largo.
 
-**Extraer:** precisión, satisfacción del ajuste, inevitabilidad.
-**Rechazar:** rompecabezas de juguete, piezas de colorinche.
+**Extraer:** presencia, puntualidad, el alivio de que alguien está.
+**Rechazar:** la estética del delivery (paquete que se entrega), el
+cronómetro que vigila, cualquier imagen donde la persona sea la carga.
 
 ### Moodboard 4 — "El barrio" (anclaje local, no folclore)
 
@@ -430,7 +453,7 @@ persiana de bar bajada a las cuatro de la mañana.
 **Rechazar:** el cliché tanguero. Staffya es 2026 en Palermo, no una postal
 para turistas.
 
-> **Cómo se combinan:** el sistema (2) es el esqueleto, el encaje (3) es la
+> **Cómo se combinan:** el sistema (2) es el esqueleto, la llegada (3) es la
 > idea, el turno (1) es el contenido humano, el barrio (4) es el acento. En
 > proporción aproximada **40 / 30 / 20 / 10**.
 
@@ -784,7 +807,7 @@ La ilustración es **el contrapeso cálido de un sistema geométrico riguroso**
 | Manos trabajando, herramientas del oficio | Caras sonrientes |
 | Gestos del rubro (levantar, servir, atar) | Personajes de cuerpo entero genéricos |
 | Objetos con historia de uso | Objetos nuevos de catálogo |
-| El momento del encaje | Metáforas abstractas de tecnología |
+| El momento de llegar (umbral, entrada) | Metáforas abstractas de tecnología |
 
 **Regla de dignidad:** ninguna ilustración puede mostrar al trabajador en
 posición de subordinación o como recurso intercambiable. Se ilustra **el
@@ -813,7 +836,7 @@ oficio**, no "la mano de obra".
    sin relación con la palabra es lo que hay hoy y es el problema.
 3. **Legible a 16 px.** Se prueba antes de aprobar.
 4. **Funciona en silueta monocroma** (badge de Android, §4 del brief).
-5. **Contiene la idea del encaje**, sin ilustrarla literalmente.
+5. **Contiene la idea de la llegada**, sin ilustrarla literalmente.
 6. **Se puede animar en un solo gesto** (§13).
 
 ### 11.2 30 conceptos de isotipo
@@ -827,24 +850,29 @@ Cada uno lleva su lectura y su riesgo.
 |---|---|---|
 | 1 | La `y` como pieza que encaja en un hueco de la `a` | Puede quedar ilegible |
 | 2 | Ligadura `ya` donde la `y` completa a la `a` | Complejo a 16 px |
-| 3 | El punto de la `i` ausente, reemplazado por la pieza que llega | Muy sutil |
+| 3 | El punto de la `i` ausente, que llega a su lugar | Muy sutil |
 | 4 | `ya` en un contenedor que se completa con la última letra | Puede leerse como sello |
 | 5 | La `a` con un vacío que la `y` calza exactamente | Requiere ejecución muy fina |
 | 6 | Monograma `Y` construido con dos piezas que se unen | Puede parecer flecha |
 | 7 | La `y` como llave que entra en la `a` | Metáfora quizá literal de más |
 | 8 | `ya` con la contraforma de la `a` como hueco activo | Elegante pero difícil |
 
-#### Familia B — El encaje abstracto
+#### Familia B — Complementariedad abstracta
+
+> Familia **degradada de prioridad** tras el cambio de territorio (§5): el
+> encastre mecánico es justamente el vocabulario que cosificaba al trabajador.
+> Se conserva porque la complementariedad *entre necesidad y oficio* sigue
+> siendo válida, pero **nunca como metáfora de la persona**.
 
 | # | Concepto | Riesgo |
 |---|---|---|
 | 9 | Dos formas complementarias que se unen sin tocarse | Puede quedar frío |
 | 10 | Un cuadrado al que le falta un sector, y el sector entrando | Genérico si no se afina |
 | 11 | Un arco interrumpido que se completa | Puede leerse como carga/loading |
-| 12 | Una pieza en el aire justo antes de calzar (tensión previa) | El mejor motion de la lista |
+| 12 | Una forma en el aire justo antes de asentarse (tensión previa) | Excelente motion; cuidar que no lea "entrega" |
 | 13 | Encastre tipo ensamble japonés simplificado | Difícil a 16 px |
 | 14 | Dos módulos con la misma curva, uno cóncavo, uno convexo | Puede parecer yin-yang |
-| 15 | Un hueco con forma de persona, muy sintetizado | Riesgo de ícono de usuario |
+| 15 | Un hueco con forma de persona, muy sintetizado | **Descartado**: es literalmente la persona-como-hueco |
 | 16 | Marco abierto que se cierra con un módulo | Puede parecer "play" |
 
 #### Familia C — Del oficio, abstraído
@@ -860,21 +888,28 @@ Cada uno lleva su lectura y su riesgo.
 | 23 | Dos manos en el pase de bandeja, muy sintetizadas | Riesgo de cliché de apretón |
 | 24 | El turno como bloque de horas | Puede parecer gráfico de barras |
 
-#### Familia D — Tiempo y presencia
+#### Familia D — Llegada y presencia ⭐ *prioritaria*
+
+> Familia **promovida** tras el cambio de territorio: es la que trata a la
+> persona como sujeto que llega, no como objeto que encaja.
 
 | # | Concepto | Riesgo |
 |---|---|---|
 | 25 | Un punto que llega a su lugar (presencia confirmada) | Demasiado simple solo |
 | 26 | Arco de reloj **incompleto** que se cierra | Cerca del cronómetro genérico |
-| 27 | Un pin de ubicación cuyo vacío es la pieza faltante | Combina lugar + encaje |
+| 27 | Un pin de ubicación que se completa al llegar a destino | Combina lugar y llegada |
 | 28 | La silueta de una puerta con alguien entrando | Muy narrativo para un ícono |
 | 29 | Un contador de dos dígitos donde el segundo llega | Sólo funciona animado |
 | 30 | La marca como **hueco recortado** en el naranja, no como forma positiva | **Conceptualmente el más fuerte y el más riesgoso** |
 
 ### 11.3 Recomendación de exploración
 
-Priorizar **Familia A** (conceptos 1, 2, 5) y **Familia B** (9, 12), más el
-**30** como exploración conceptual paralela.
+Priorizar **Familia A** (conceptos 1, 2, 5) y **Familia D** (25, 27, 28), más
+el **30** como exploración conceptual paralela.
+
+> **Cambio respecto de la versión 1.0:** antes se priorizaba la Familia B (el
+> encastre). Con el territorio reformulado (§5), la Familia D pasa al frente:
+> es la que representa a alguien que **llega**, no algo que **encaja**.
 
 **Fundamento:** la Familia A cumple el principio 2 —el isotipo deriva del
 logotipo— y garantiza que la marca corta y la larga sean el mismo objeto, no
@@ -951,11 +986,11 @@ cinéticas) sin adoptar su parte de moda.
 
 ### 13.2 El gesto de marca
 
-**Una pieza que llega y calza.** Aceleración inicial, desaceleración firme al
-encajar, sin rebote.
+**Algo que llega y se queda en su lugar.** Aceleración inicial, desaceleración
+firme al asentarse, sin rebote.
 
-**Sin rebote es deliberado:** el rebote comunica juego. El encaje seco
-comunica precisión. Es la diferencia entre Pasito y Staffya en un solo
+**Sin rebote es deliberado:** el rebote comunica juego. La llegada seca
+comunica precisión y puntualidad. Es la diferencia entre Pasito y Staffya en un solo
 parámetro de animación.
 
 ### 13.3 Especificación
@@ -1045,8 +1080,8 @@ Además de §6.3, prohibiciones que salen del negocio:
 |---|---|---|
 | **0** | `BRIEF_IDENTIDAD_VISUAL.md` | ✅ |
 | **1** | Investigación (52 referentes) | ✅ |
-| **2** | `ART_DIRECTION.md` | 🟡 **Esperando aprobación** |
-| **3.1** | `LOGO_EXPLORATION.md` — 3 direcciones dibujadas | Bloqueado por Fase 2 |
+| **2** | `ART_DIRECTION.md` | ✅ **Aprobado (v1.1)** |
+| **3.1** | `LOGO_EXPLORATION.md` — 3 direcciones dibujadas | 🟢 Habilitado |
 | **3.2** | `TYPOGRAPHY_SYSTEM.md` — display elegida y probada | Bloqueado |
 | **3.3** | `COLOR_SYSTEM.md` + `DESIGN_TOKENS.md` | Bloqueado |
 | **3.4** | `ICONOGRAPHY_SYSTEM.md` | Bloqueado |
@@ -1087,7 +1122,7 @@ rechaza.**
 **De esta dirección artística:**
 7. ¿Resuelve la tensión **rápido + confiable**, o sacrifica una?
 8. ¿Es apropiable, o podría ser de cualquier app del rubro?
-9. ¿Contiene o deriva de la idea del **encaje**?
+9. ¿Contiene o deriva de la idea de **la llegada**?
 10. ¿Respeta la **dignidad del oficio**?
 11. ¿Se puede animar en un gesto?
 12. ¿Sobrevive si Staffya deja de ser sólo gastronomía?
@@ -1096,14 +1131,17 @@ rechaza.**
 
 ## 18. Decisiones que requieren aprobación
 
-| # | Decisión | Implicancia |
-|---|---|---|
-| 1 | **Reemplazar la cloche** | Cambia el ícono de app; hay que rehacer los 7 archivos |
-| 2 | **Territorio "la pieza que llega"** | Gobierna todo lo que sigue |
-| 3 | **Conservar el naranja** | Con la advertencia sobre Rappi/Glovo |
-| 4 | **Priorizar fundición argentina** | Costo cero, anclaje local, historia propia |
-| 5 | **Ilustración de manos y oficio**, no de personajes | Distinto de Pasito, a propósito |
-| 6 | **Formato del benchmark** (§0) | Si preferís 50 fichas parejas, se rehace |
+| # | Decisión | Estado | Implicancia |
+|---|---|---|---|
+| 1 | **Reemplazar la cloche** | ✅ Aprobado | Cambia el ícono de app; hay que rehacer los 7 archivos |
+| 2 | **Territorio "la llegada"** | ✅ Aprobado (v1.1) | Gobierna todo lo que sigue. Reformulado tras la objeción de dignidad |
+| 3 | **Conservar el naranja** | ✅ Aprobado | Con la advertencia sobre Rappi/Glovo: diferenciar por tono, no por color |
+| 4 | **Priorizar fundición argentina** | ✅ Aprobado | Costo cero, castellano nativo, anclaje local |
+| 5 | **Ilustración de manos y oficio**, no de personajes | ✅ Aprobado | Distinto de Pasito, a propósito |
+| 6 | **Formato del benchmark** (§0) | ✅ Aprobado | Se mantiene en dos niveles (14 profundos + 38 en tablas) |
+
+**Todas las decisiones quedaron aprobadas.** La Fase 3 está habilitada; el
+orden de ejecución y su recorte están en §16.
 
 ---
 
