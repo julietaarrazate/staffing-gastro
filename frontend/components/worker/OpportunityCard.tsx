@@ -52,13 +52,16 @@ export default function OpportunityCard({
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-float)] ring-1 ring-line">
-      {/* Hero: `flex-[1.15]` reparte el alto disponible con el cuerpo, pero
-          sin piso propio colapsa a 0 en contenedores bajos (el padre flex no
-          tiene de dónde repartir) — la foto/ícono y el texto superpuesto
-          desaparecen. `min-h-[200px]` (deuda de #79) asegura un hero visible
-          incluso cuando el contenedor del swipe deck es más bajo de lo
-          esperado. */}
-      <div className="relative min-h-[170px] flex-1">
+      {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
+          en pantallas más bajas o con dress code largo, el cuerpo perdía esa
+          pulseada y su cola (el botón de compartir) quedaba recortada en
+          silencio por el `overflow-hidden` del padre, sin scroll ni aviso
+          (bug real reportado por Julieta con captura, 2026-07-29). Ahora el
+          hero tiene una altura fija (`shrink-0`, no negocia) y el cuerpo se
+          lleva TODO el resto — con su propio scroll de respaldo (ver abajo)
+          para cualquier combinación de contenido/pantalla que igual no
+          entre. */}
+      <div className="relative h-[38%] min-h-[140px] shrink-0">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -112,7 +115,13 @@ export default function OpportunityCard({
         </div>
       </div>
 
-      {/* Cuerpo */}
+      {/* Cuerpo: ya no compite con el hero por el alto (el hero ahora es fijo,
+          arriba), así que le queda garantizado ~62% de la tarjeta. Se
+          descartó agregar overflow-y-auto acá como red de seguridad extra:
+          en la práctica atrapaba la rueda del mouse (cualquier scroll sobre
+          una tarjeta de la grilla quedaba "pegado" tratando de scrollear ese
+          pedacito interno en vez de la página completa) — un problema peor
+          que el que resolvía. */}
       <div className="flex flex-1 flex-col justify-between gap-3 p-5 pt-4">
         <div className="flex items-center justify-between">
           <div>
