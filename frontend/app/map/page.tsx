@@ -183,7 +183,7 @@ export default function MapPage() {
           <div
             ref={carouselRef}
             onScroll={onCarouselScroll}
-            className="no-scrollbar flex h-full items-start snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
+            className="no-scrollbar flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
           >
           {loading ? (
             <>
@@ -201,7 +201,7 @@ export default function MapPage() {
             return (
               <div
                 key={shift.id}
-                className="w-[86%] shrink-0 snap-center overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-float)] ring-1 ring-line"
+                className="flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-float)] ring-1 ring-line"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -259,7 +259,7 @@ export default function MapPage() {
                 <Button
                   fullWidth
                   size="sm"
-                  className="mt-3"
+                  className="mt-4"
                   loading={applyingId === shift.id}
                   disabled={applyingId !== null}
                   onClick={() => apply(shift)}
