@@ -105,7 +105,7 @@ export default function SplashScreen() {
             transition={reducedMotion ? { duration: 0 } : { delay: 0.35, duration: 0.5 }}
             className="relative mt-6 text-4xl font-extrabold tracking-tight text-white"
           >
-            staff<span className="text-orange-200">ya</span>
+            oído
           </motion.h1>
           <motion.p
             initial={reducedMotion ? false : { y: 12, opacity: 0 }}
