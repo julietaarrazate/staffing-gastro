@@ -5,13 +5,69 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-29 (estética editorial: paleta cálida +
-tipografía) · rama de trabajo previa:
-`claude/staffya-evidence-audit-9d9pvh` (diagnóstico del backend caído) · todos
-los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
-**loop autónomo activo** (con auto-merge, confirmado explícitamente por
-Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
-paso.*
+*Última actualización: 2026-07-29 (auditoría de responsive/desktop, en curso
+— ver sección de abajo) · todos los PRs se mergean con squash apenas quedan
+verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
+confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
+sin esperar "seguí" en cada paso.*
+
+## Auditoría de responsive/desktop, pantalla por pantalla (2026-07-29, EN CURSO)
+
+Julieta usó la app en escritorio (no sólo mobile) y encontró que, más allá de
+lo visual, **la web se sentía "precaria"** comparada con la competencia
+(Pasito): pantallas enteras diseñadas mobile-first sin adaptar a pantallas
+anchas, quedando una tarjeta angosta centrada con toda la pantalla vacía
+alrededor. Pedido explícito: repasar **todas** las pantallas, de más a menos
+valor/tráfico, una PR por pantalla.
+
+**Patrón del problema** (se repite en varias pantallas): un contenedor con
+`max-w-md` fijo o un componente pensado para gesto táctil (swipe, bottom
+sheet) que en `md+` no gana ningún layout alternativo — sólo se estira o
+queda flotando en el medio de la pantalla.
+
+**Pantallas ya resueltas:**
+
+1. **`/map`** (#124, sobre el fix de #122/#123 — ver abajo): panel lateral fijo
+   en `md+` con la lista completa de turnos (patrón Uber/Airbnb: lista + mapa),
+   reusando el mismo sheet de detalle/postulación. Mobile sin cambios.
+2. **`/feed`** (#125): el mazo de swipe (`SwipeDeck`) no tiene sentido con
+   mouse. En `md+` pasa a una **grilla** de `OpportunityCard` (2-3 columnas)
+   con "Postularme"/"No gracias" como botones directos por tarjeta — mismo
+   `onDecide` de siempre. `OpportunityCard` ganó props opcionales
+   `onApply`/`onPass`/`applying` (sin ellos, sin cambios: SwipeDeck mobile y
+   la landing siguen igual). Header/buscador de ubicación pasan a
+   `max-w-5xl` en desktop.
+
+**Pendientes, en orden de valor** (siguiente sesión puede arrancar por acá):
+
+3. **`/shifts`** (panel del comercio, home del rol employer) — mismo chequeo:
+   ¿el `grid gap-4` de tarjetas usa el ancho disponible en desktop o queda
+   angosto? No auditado todavía.
+4. **`/search`** (buscador de trabajadores del comercio) — tiene un patrón de
+   mapa+sheet parecido al viejo `/map`, probablemente el mismo problema.
+5. **`/my-shifts`** (matches del trabajador).
+6. **`/chats`**.
+7. Resto: `/profile`, `/shifts/new` (wizard), `/shifts/[id]/candidates`,
+   `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
+
+**Bug de UX real encontrado y corregido en el camino (#124):** el primer fix
+de `/map` (#122) hizo que **toda la tarjeta** dispare la postulación al
+tocarla — mal-interpretación de un pedido de Julieta sobre falta de
+sensibilidad al toque. Se revirtió: tocar la tarjeta ahora abre un sheet de
+detalle para revisar sin comprometerse; postularse sigue siendo un botón
+explícito. Ver el commit de #124 para el detalle completo del malentendido —
+**relevante para no repetir el mismo error de interpretación** en las
+pantallas que faltan: "poder entrar a revisar" ≠ "que cualquier toque
+decida".
+
+**Otro bug reportado y YA resuelto (sin PR nueva, sólo verificado):**
+Julieta reportó ver un botón verde "Compartir por WhatsApp" superpuesto/
+cortado en el panel del comercio (`/shifts`). Reproducido en el código
+actual: **no existe** — es el diseño VIEJO, de antes del refactor "una
+acción por turno" (2026-07-28), donde ese botón vivía suelto en vez de
+adentro de "Más". Pantalla vista con contenido cacheado (mismo patrón que el
+favicon de Vercel de antes). Si reaparece después de un refresh/reinstalo
+real, es un bug nuevo — pedirle una captura fresca.
 
 ## Estética editorial: paleta cálida + tipografía del diseñador (2026-07-29)
 

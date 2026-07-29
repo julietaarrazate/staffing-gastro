@@ -113,9 +113,13 @@ test("un worker ve un turno en el feed y se postula", async ({ page }) => {
 
   await page.goto("/feed");
 
-  // Se ve el turno mockeado (puesto + comercio).
-  await expect(page.getByText("Mozo/a")).toBeVisible();
-  await expect(page.getByText("Bar Demo Palermo")).toBeVisible();
+  // Se ve el turno mockeado (puesto + comercio). El viewport de test es
+  // mobile (390px, ver playwright.config.ts), pero el feed renderiza EN EL
+  // DOM tanto el mazo mobile como la grilla de escritorio (alternados por
+  // CSS md:hidden/hidden md:block, mismo patrón que /map) — por eso el texto
+  // aparece dos veces y hace falta `.first()` para no ambigüar.
+  await expect(page.getByText("Mozo/a").first()).toBeVisible();
+  await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
 
   // waitForResponse (no waitForRequest): la respuesta sólo existe una vez
   // que el handler de route.fulfill() ya corrió, así que para cuando

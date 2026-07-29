@@ -16,6 +16,8 @@ import {
 import { formatShiftRange } from "@/lib/datetime";
 import { shareShift } from "@/lib/shift-share";
 import { cldThumb } from "@/lib/cloudinary";
+import { Button } from "@/components/ui";
+import { CloseIcon } from "@/components/icons";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first estilo Airbnb): foto real
@@ -30,10 +32,19 @@ function formatDistance(km: number): string {
 export default function OpportunityCard({
   shift,
   distanceKm,
+  onApply,
+  onPass,
+  applying = false,
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
   distanceKm?: number | null;
+  /** Grilla de escritorio (feed/page.tsx, md+): decidir sin el gesto de
+   *  swipe, que no tiene sentido con mouse. En el mazo mobile (SwipeDeck) y
+   *  en la landing (ScrollHeroShowcase) se omiten y la fila no se renderiza. */
+  onApply?: () => void;
+  onPass?: () => void;
+  applying?: boolean;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
   const [broken, setBroken] = useState(false);
@@ -131,6 +142,29 @@ export default function OpportunityCard({
             </p>
             {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
           </div>
+
+          {/* Decidir sin swipe (grilla de escritorio): mismo par de acciones
+              que el mazo mobile, como botones directos. */}
+          {(onApply || onPass) && (
+            <div className="flex gap-2">
+              {onPass && (
+                <button
+                  type="button"
+                  aria-label="No, gracias"
+                  onClick={onPass}
+                  disabled={applying}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-white text-danger-text disabled:opacity-50"
+                >
+                  <CloseIcon size={18} />
+                </button>
+              )}
+              {onApply && (
+                <Button fullWidth size="sm" loading={applying} disabled={applying} onClick={onApply}>
+                  Postularme
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Compartir a un colega que esté buscando trabajo (WhatsApp/share
               sheet → página pública del turno). Botón claro y etiquetado, no un
