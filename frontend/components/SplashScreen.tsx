@@ -103,7 +103,7 @@ export default function SplashScreen() {
             initial={reducedMotion ? false : { y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={reducedMotion ? { duration: 0 } : { delay: 0.35, duration: 0.5 }}
-            className="relative mt-6 text-4xl font-extrabold tracking-tight text-white"
+            className="relative mt-6 font-display text-5xl font-semibold tracking-tight text-white"
           >
             oído
           </motion.h1>

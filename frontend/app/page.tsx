@@ -122,7 +122,7 @@ export default function Home() {
               Staffing gastronómico en Argentina
             </span>
 
-            <h1 className="mx-auto mt-6 max-w-3xl text-5xl font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+            <h1 className="mx-auto mt-6 max-w-3xl font-display text-5xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-7xl">
               Personal gastronómico, <span className="text-primary-text">ya</span>.
             </h1>
 
@@ -177,7 +177,7 @@ export default function Home() {
             chrome de vitrina, no contenido de lectura. */}
         <section className="no-select mt-20">
           <Reveal>
-            <h2 className="text-center text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+            <h2 className="text-center font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               Todo lo que necesitás para resolver el staffing
             </h2>
           </Reveal>
@@ -223,7 +223,7 @@ export default function Home() {
             vitrina. */}
         <Reveal className="mt-20">
           <section className="no-select rounded-[var(--radius-card)] bg-ink px-6 py-14 text-center text-white">
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
               ¿Trabajás en gastronomía? Elegí tus turnos.
             </h2>
             <p className="mx-auto mt-2 max-w-md text-white/70">

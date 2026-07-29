@@ -1,10 +1,65 @@
-# COLOR_SYSTEM.md — Sistema cromático de Staffya
+# COLOR_SYSTEM.md — Sistema cromático de Oído
 
 > Fase 3.3 del roadmap de [ART_DIRECTION.md](./ART_DIRECTION.md).
 > Define la paleta, sus reglas de uso y —lo más importante— **los contrastes
 > reales medidos**, no estimados.
 >
-> Preparado: 2026-07-28 · Versión 1.0
+> Preparado: 2026-07-28 · Versión 1.0 · **Actualizado 2026-07-29 → v2.0**
+
+---
+
+## 🎨 0. v2.0 — Alineación con el style-guide del diseñador (2026-07-29)
+
+La v1.0 de abajo se escribió **antes** de que llegara el style-guide del
+diseñador (la estética "editorial / cafetería de especialidad", Opción elegida
+por Julieta). Ese mockup define una paleta **cálida** que la app no tenía: el
+fondo era un **gris frío** (`#F8F9FA`) y el verde de éxito era el **semáforo
+brillante** de Tailwind (`#22C55E`). Esta versión alinea los tokens a la paleta
+del diseñador **manteniendo la disciplina de contraste AA** de la v1.0.
+
+### 0.1 Tokens nuevos (en `frontend/app/globals.css`)
+
+| Token | v1.0 (frío) | v2.0 (cálido) | Nombre en el style-guide |
+|---|---|---|---|
+| `--background` | `#F8F9FA` gris | **`#FFF8F0`** | Crema |
+| `--color-surface` | `#F1F3F5` gris | **`#F5ECDD`** | Arena |
+| `--color-ink` / `--foreground` | `#111111` negro | **`#1F1F1C`** | Carbón (cálido) |
+| `--color-success` | `#22C55E` semáforo | **`#2E8B57`** | Verde Éxito (bosque) |
+| `--color-primary-strong` | `#E85F00` | **`#E65A00`** | Naranja Oscuro |
+| `--color-primary-text` | `#C65300` | **`#B23C08`** | (naranja-texto, re-derivado) |
+| `--line` / `--color-line` | `#ECECEE` | **`#EBE2D4`** | (hairline cálido) |
+| `--color-paper` | `#FBF8F4` | **`#FBF2E6`** | (franja cálida landing) |
+
+El **naranja principal** `--color-primary` se mantiene en `#FF6B00` (el
+style-guide usa `#F97316`, a distancia perceptual mínima): así queda coherente
+con el isotipo ya horneado y no se desestabilizan los contrastes ni las sombras
+`rgba(255,107,0,…)` del sistema. Se puede migrar a `#F97316` si se quiere
+fidelidad exacta (implica regenerar los íconos y el theme-color).
+
+### 0.2 Contrastes medidos de la paleta v2.0 (WCAG, fórmula oficial)
+
+| Texto | Sobre | Ratio | AA normal (4.5) |
+|---|---|---|---|
+| Carbón `#1F1F1C` | Crema `#FFF8F0` (body) | **15.69** | ✅ AAA |
+| Carbón `#1F1F1C` | Blanco (cards) | **16.52** | ✅ AAA |
+| Carbón `#1F1F1C` | Arena `#F5ECDD` (chips) | **14.10** | ✅ AAA |
+| Carbón `#1F1F1C` | Naranja `#FF6B00` (botón primario) | **5.79** | ✅ PASA |
+| `--color-primary-text` `#B23C08` | Blanco / Crema / Arena / orange-50 / orange-100 | 5.93 / 5.63 / 5.06 / 5.58 / 5.17 | ✅ PASA en todos |
+| `--color-success-text` `#16823E` | Blanco / Crema / green-50 | 4.89 / 4.64 / 4.67 | ✅ PASA en todos |
+| Blanco | Verde Éxito `#2E8B57` (botón/badge sólido) | **4.25** | ✅ (era 2.28 con el semáforo) |
+
+**Nota de alcance:** `--color-danger`/`--color-danger-text` quedaron sin tocar
+(el style-guide no especifica un rojo). El `danger-text` sobre `red-50` da 4.15
+(marginal), pendiente pre-existente, no una regresión de esta versión.
+
+### 0.3 Tipografía
+
+El style-guide pide **Inter** (texto/UI) + **Recoleta** (títulos). Recoleta es
+de pago (Latinotype), así que se cargó **Inter** (default de toda la app,
+reemplaza a Geist) + **Fraunces** (serif de display libre OFL, cercana a
+Recoleta) expuesta como la utilidad `font-display` y aplicada a los títulos de
+marca (landing, splash, wordmark, títulos de auth/onboarding). Migrar a Recoleta
+real cuando se consiga la licencia = cambiar una sola variable de fuente.
 
 ---
 

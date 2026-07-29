@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
       "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fafafa",
+    background_color: "#fff8f0",
     theme_color: "#ff6b00",
     lang: "es",
     icons: [
