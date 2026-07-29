@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = {};
   }
-  const title = data.title || "Staffya";
+  const title = data.title || "Oído";
   const url = data.url || "/";
   event.waitUntil(
     self.registration.showNotification(title, {

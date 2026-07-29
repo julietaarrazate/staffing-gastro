@@ -1,6 +1,6 @@
 """Entidad de dominio Subscription.
 
-Suscripción del comercio al plan de Staffya — Fase 1 del ADR-0005
+Suscripción del comercio al plan de Oído — Fase 1 del ADR-0005
 (mensualidad escalonada, NO split de pago de turno). El plan gatea la
 capacidad de publicación de turnos; ver `ensure_can_publish`/
 `register_publication`, consumidas desde `shift` vía el puerto de dominio

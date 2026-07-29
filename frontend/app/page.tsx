@@ -267,7 +267,7 @@ export default function Home() {
             </Link>
           </nav>
           <p className="text-xs text-white/40">
-            © 2026 Julieta Arrazate — Staffya. Hecho en Argentina.
+            © 2026 Julieta Arrazate — Oído. Hecho en Argentina.
           </p>
         </div>
       </footer>

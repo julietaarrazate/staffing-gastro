@@ -90,7 +90,7 @@ export default function SubscriptionPage() {
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
       <h1 className="text-2xl font-extrabold tracking-tight text-ink">Mi plan</h1>
       <p className="mt-0.5 text-sm text-ink/50">
-        Gestioná la suscripción de tu comercio a Staffya.
+        Gestioná la suscripción de tu comercio a Oído.
       </p>
 
       {loading && <CardSkeletons count={2} />}

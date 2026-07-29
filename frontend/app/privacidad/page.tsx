@@ -7,7 +7,7 @@ import { ChevronLeftIcon } from "@/components/icons";
 export const metadata: Metadata = {
   title: "Política de Privacidad",
   description:
-    "Política de Privacidad de Staffya: qué datos recopilamos, para qué los usamos y con quién los compartimos. No vendemos tus datos, nunca.",
+    "Política de Privacidad de Oído: qué datos recopilamos, para qué los usamos y con quién los compartimos. No vendemos tus datos, nunca.",
 };
 
 const LAST_UPDATED = "Última actualización: julio 2026";
@@ -58,7 +58,7 @@ export default function PrivacidadPage() {
 
           <Section title="Quién es responsable de tus datos">
             <p>
-              Staffya es responsable de los datos que cargás en la app. Para
+              Oído es responsable de los datos que cargás en la app. Para
               cualquier consulta, ejercicio de derechos o reclamo sobre tus
               datos, escribinos por el chat de soporte dentro de la app.
             </p>

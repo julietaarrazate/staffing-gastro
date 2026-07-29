@@ -216,7 +216,7 @@ class IdentityService:
         link = f"{settings.frontend_url}/restablecer?token={raw_token}"
         html = (
             f"<p>Hola {user.full_name},</p>"
-            "<p>Recibimos un pedido para restablecer tu contraseña de Staffya. "
+            "<p>Recibimos un pedido para restablecer tu contraseña de Oído. "
             f'Hacé clic en el siguiente enlace para elegir una nueva (vence en 1 hora): '
             f'<a href="{link}">{link}</a></p>'
             "<p>Si vos no lo pediste, podés ignorar este email.</p>"
@@ -224,7 +224,7 @@ class IdentityService:
         try:
             await self._email_sender.send(
                 to=user.email,
-                subject="Restablecé tu contraseña de Staffya",
+                subject="Restablecé tu contraseña de Oído",
                 html=html,
             )
         except Exception:

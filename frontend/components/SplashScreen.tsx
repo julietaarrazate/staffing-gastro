@@ -15,7 +15,7 @@ const MAX_VISIBLE_MS = 6000;
 
 /**
  * Pantalla de bienvenida de marca: fondo naranja, logo que entra con un
- * "pop" + anillos pulsantes y el nombre Staffya. Se muestra una vez por
+ * "pop" + anillos pulsantes y el nombre Oído. Se muestra una vez por
  * sesión (al abrir la app).
  *
  * Se queda visible mientras dura la coreografía de entrada Y la sesión

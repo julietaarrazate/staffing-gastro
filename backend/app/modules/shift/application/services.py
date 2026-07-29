@@ -369,7 +369,7 @@ class ShiftService:
                 f"<p>Hola {user.full_name},</p>"
                 f"<p>¡Te aceptaron para el turno de {position_label}!</p>"
                 f"<p><strong>{company_name}</strong> te asignó el turno del "
-                f"{when} hs. Entrá a Staffya para confirmar tu asistencia.</p>"
+                f"{when} hs. Entrá a Oído para confirmar tu asistencia.</p>"
             )
             await self._email_sender.send(to=user.email, subject=subject, html=html)
         except Exception:

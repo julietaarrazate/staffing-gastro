@@ -1,7 +1,7 @@
 """Cálculo puro del score de matching.
 
 Combina distancia, experiencia, reputación, puntualidad e historial de
-desempeño, según el spec del motor de matching de Staffya. La afinidad con
+desempeño, según el spec del motor de matching de Oído. La afinidad con
 el local queda fuera hasta que exista historial de asignaciones (Fase 3+).
 """
 

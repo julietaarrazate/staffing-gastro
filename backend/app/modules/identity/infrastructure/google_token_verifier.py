@@ -7,7 +7,7 @@ endpoint como válido para verificar ID tokens sin librería; la alternativa
 (`google-auth`, que valida la firma localmente contra las claves públicas
 JWK cacheadas) suma ~5 paquetes transitivos para ganar, en la práctica, un
 único round-trip HTTP menos por login — no se justifica para el volumen de
-Staffya. Ver derivación completa en docs/ACCESO_MODERNO.md.
+Oído. Ver derivación completa en docs/ACCESO_MODERNO.md.
 """
 
 import logging

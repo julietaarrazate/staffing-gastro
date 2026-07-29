@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 // y agrega automáticamente el <link rel="manifest"> en el <head>.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Staffya",
-    short_name: "Staffya",
+    name: "Oído",
+    short_name: "Oído",
     description:
       "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.",
     start_url: "/",

@@ -3,7 +3,7 @@
 import { useId } from "react";
 
 /**
- * Marca Staffya: "la cloche" (campana de servicio), símbolo universal del
+ * Marca Oído: "la cloche" (campana de servicio), símbolo universal del
  * salón gastronómico premium. Geometría fija (spec de marca): pomo, domo y
  * plato en blanco. El mismo degradé naranja que --color-primary /
  * --color-primary-strong en globals.css (antes el SVG usaba el naranja
@@ -41,7 +41,7 @@ export function LogoMark({ size = 28 }: { size?: number }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Staffya"
+      aria-label="Oído"
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">

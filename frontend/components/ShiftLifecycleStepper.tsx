@@ -52,7 +52,7 @@ function inferDeathStep(shift: ShiftForStepper): number {
 
 /**
  * Stepper horizontal compacto del ciclo de vida del turno (inspirado en el
- * tracker de pedido de Clickie, trasladado a la marca naranja de Staffya):
+ * tracker de pedido de Clickie, trasladado a la marca naranja de Oído):
  * numeritos en círculo unidos por una línea, paso actual resaltado, pasos
  * completados con check. Cancelado: se corta (línea punteada) y el hito
  * donde murió se reemplaza por un marcador rojo "Cancelado" — no se agrega

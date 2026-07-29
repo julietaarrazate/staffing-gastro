@@ -23,12 +23,12 @@ class Settings(BaseSettings):
     )
 
     # --- Aplicación ---
-    app_name: str = "Staffya"
+    app_name: str = "Oído"
     environment: str = "development"
     debug: bool = True
 
     # --- Base de datos ---
-    database_url: str = "postgresql+asyncpg://staffya:staffya@localhost:5432/staffya"
+    database_url: str = "postgresql+asyncpg://oido:oido@localhost:5432/oido"
 
     @field_validator("database_url")
     @classmethod
@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     # y jamás debe romper un flujo de negocio (registro, recuperación de
     # contraseña, asignación de turno).
     resend_api_key: str = ""
-    email_from: str = "Staffya <onboarding@resend.dev>"
+    email_from: str = "Oído <onboarding@resend.dev>"
 
     # URL pública del frontend (Vercel), usada para armar links de emails
     # transaccionales (p. ej. `{frontend_url}/restablecer?token=...`).
