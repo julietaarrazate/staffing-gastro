@@ -4,9 +4,17 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-07-23**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-07-29**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](docs/STATUS.md) (la bitácora viva) antes de asumir nada.
+>
+> **En curso ahora mismo:** auditoría de responsive/desktop pantalla por
+> pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
+> quedan "precarias" — mobile-first sin adaptar a pantallas anchas). Ya
+> resueltas: `/map` (panel lateral + mapa) y `/feed` (grilla en vez del mazo
+> de swipe). Siguen, en orden de valor: `/shifts`, `/search`, `/my-shifts`,
+> `/chats`, resto. Detalle completo y el patrón del problema en
+> [docs/STATUS.md](docs/STATUS.md).
 
 ## Contexto en 30 segundos
 
@@ -50,6 +58,14 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 
 - **Fundación** — [PRODUCT.md](docs/PRODUCT.md) · [DOMAIN.md](docs/DOMAIN.md) ·
   [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [PRINCIPLES.md](docs/PRINCIPLES.md)
+- **Identidad visual / diseño** — [ART_DIRECTION.md](docs/ART_DIRECTION.md)
+  (dirección de marca, territorio, benchmark — punto de partida) ·
+  [COLOR_SYSTEM.md](docs/COLOR_SYSTEM.md) (paleta + contraste WCAG medido) ·
+  [TYPOGRAPHY_SYSTEM.md](docs/TYPOGRAPHY_SYSTEM.md) (Inter/Fraunces) ·
+  [ICONOGRAPHY_SYSTEM.md](docs/ICONOGRAPHY_SYSTEM.md) ·
+  [DESIGN_TOKENS.md](docs/DESIGN_TOKENS.md) (radios, sombras, espaciados) ·
+  [BRIEF_IDENTIDAD_VISUAL.md](docs/BRIEF_IDENTIDAD_VISUAL.md) (spec técnica
+  para el diseñador externo). No hay doc de performance todavía.
 - **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
   0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
@@ -253,6 +269,6 @@ prompt de arranque:
 > relevante.
 
 No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
-operadora" arriba — todo lo demás del backlog implementable sin credenciales
-ni decisiones de Julieta está cerrado (ver `docs/STATUS.md`, "Estado en una
-línea").
+operadora" arriba. Sí hay un frente **abierto y priorizado** ahora mismo: la
+auditoría de responsive/desktop pantalla por pantalla (ver arriba y
+`docs/STATUS.md`) — arrancar por ahí si no hay otra instrucción puntual.
