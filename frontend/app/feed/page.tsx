@@ -16,7 +16,7 @@ import {
   type CurrentLocation,
 } from "@/lib/current-location";
 import LocationBar from "@/components/worker/LocationBar";
-import { Avatar, CardSkeleton, EmptyState, useToast } from "@/components/ui";
+import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import { CalendarIcon } from "@/components/icons";
@@ -42,6 +42,8 @@ export default function WorkerHomePage() {
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
   const [loading, setLoading] = useState(cached === undefined);
   const [error, setError] = useState<string | null>(null);
+  // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
+  const [decidingId, setDecidingId] = useState<string | null>(null);
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
   // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
@@ -163,13 +165,25 @@ export default function WorkerHomePage() {
     }
   }
 
+  /** Decidir desde la grilla de escritorio: mismo `onDecide` de arriba, pero
+   *  sin el mazo local de SwipeDeck que en mobile saca la carta de encima —
+   *  acá hay que sacar el turno de `shifts` a mano para que desaparezca de
+   *  la grilla apenas se resuelve. */
+  async function handleGridDecide(shift: Shift, decision: "like" | "pass") {
+    if (decidingId !== null) return;
+    setDecidingId(shift.id);
+    const ok = await onDecide(shift, decision);
+    if (ok) setShifts((prev) => prev.filter((s) => s.id !== shift.id));
+    setDecidingId(null);
+  }
+
   const firstName = user?.full_name?.split(" ")[0];
 
   const origin = originFor(here, profile);
   const visibleShifts = sortByDistance(shifts, origin);
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)]">
+    <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)] md:max-w-5xl">
       {/* Header: saludo + disponibilidad */}
       <header className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -210,9 +224,16 @@ export default function WorkerHomePage() {
       />
 
       {/* Deck */}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 md:overflow-y-auto">
         {loading ? (
-          <CardSkeleton />
+          <>
+            <div className="h-full md:hidden">
+              <CardSkeleton />
+            </div>
+            <div className="hidden md:block">
+              <CardSkeletons count={6} />
+            </div>
+          </>
         ) : error ? (
           <EmptyState
             icon={<CalendarIcon size={30} />}
@@ -221,21 +242,56 @@ export default function WorkerHomePage() {
             primaryAction={{ label: "Reintentar", onClick: load }}
           />
         ) : (
-          <SwipeDeck
-            shifts={visibleShifts}
-            onDecide={onDecide}
-            renderCard={(shift) => (
-              <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />
-            )}
-            empty={
-              <EmptyState
-                icon={<CalendarIcon size={30} />}
-                title="No hay más turnos cerca"
-                subtitle="Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato."
-                primaryAction={{ label: "Actualizar", onClick: load }}
+          <>
+            {/* Mobile: mazo tipo Tinder, se decide con swipe. */}
+            <div className="h-full md:hidden">
+              <SwipeDeck
+                shifts={visibleShifts}
+                onDecide={onDecide}
+                renderCard={(shift) => (
+                  <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />
+                )}
+                empty={
+                  <EmptyState
+                    icon={<CalendarIcon size={30} />}
+                    title="No hay más turnos cerca"
+                    subtitle="Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato."
+                    primaryAction={{ label: "Actualizar", onClick: load }}
+                  />
+                }
               />
-            }
-          />
+            </div>
+
+            {/* Desktop (md+): el gesto de swipe no existe con mouse, así que
+                se ven todas las oportunidades a la vez en una grilla, con
+                Postularme/No gracias como botones directos en cada tarjeta
+                (antes el mazo se estiraba solo, centrado en una pantalla
+                vacía — ver docs/STATUS.md, pedido de Julieta 2026-07-29). */}
+            <div className="hidden md:block">
+              {visibleShifts.length === 0 ? (
+                <EmptyState
+                  icon={<CalendarIcon size={30} />}
+                  title="No hay más turnos cerca"
+                  subtitle="Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato."
+                  primaryAction={{ label: "Actualizar", onClick: load }}
+                />
+              ) : (
+                <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
+                  {visibleShifts.map((shift) => (
+                    <div key={shift.id} className="h-[480px]">
+                      <OpportunityCard
+                        shift={shift}
+                        distanceKm={distanceOf(shift, origin)}
+                        applying={decidingId === shift.id}
+                        onApply={() => handleGridDecide(shift, "like")}
+                        onPass={() => handleGridDecide(shift, "pass")}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
