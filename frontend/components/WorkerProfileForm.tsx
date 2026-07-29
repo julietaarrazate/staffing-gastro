@@ -160,7 +160,7 @@ export default function WorkerProfileForm() {
               onClick={() => toggleSkill(skill)}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 skills.includes(skill)
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-ink"
                   : "bg-surface text-ink/70 hover:bg-line"
               }`}
             >

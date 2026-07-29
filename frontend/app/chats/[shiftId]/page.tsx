@@ -126,7 +126,7 @@ export default function ConversationPage() {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
                   mine
-                    ? "rounded-br-sm bg-primary text-white"
+                    ? "rounded-br-sm bg-primary text-ink"
                     : "rounded-bl-sm bg-white text-ink/80 ring-1 ring-line"
                 }`}
               >
@@ -173,7 +173,7 @@ export default function ConversationPage() {
         <button
           type="submit"
           disabled={sending || !draft.trim()}
-          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary-strong disabled:opacity-50"
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-ink hover:bg-primary-strong disabled:opacity-50"
         >
           Enviar
         </button>
