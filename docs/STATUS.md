@@ -38,11 +38,16 @@ queda flotando en el medio de la pantalla.
    la landing siguen igual). Header/buscador de ubicación pasan a
    `max-w-5xl` en desktop.
 
+3. **`/shifts`** (#126, panel del comercio, home del rol employer): mismo
+   problema — `max-w-2xl` con una sola columna de tarjetas grandes, ~380px
+   vacíos a cada lado en desktop. Contenedor a `md:max-w-6xl` y la lista a
+   `grid gap-4 md:grid-cols-2 xl:grid-cols-3` (sin alto fijo por tarjeta:
+   a diferencia de `OpportunityCard` en el feed, `ShiftCard` tiene contenido
+   más variable — mini-mapa, stepper, ReviewBox condicional — forzar una
+   altura hubiera recortado contenido real). Mobile sin cambios.
+
 **Pendientes, en orden de valor** (siguiente sesión puede arrancar por acá):
 
-3. **`/shifts`** (panel del comercio, home del rol employer) — mismo chequeo:
-   ¿el `grid gap-4` de tarjetas usa el ancho disponible en desktop o queda
-   angosto? No auditado todavía.
 4. **`/search`** (buscador de trabajadores del comercio) — tiene un patrón de
    mapa+sheet parecido al viejo `/map`, probablemente el mismo problema.
 5. **`/my-shifts`** (matches del trabajador).

@@ -11,10 +11,10 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > **En curso ahora mismo:** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
 > quedan "precarias" — mobile-first sin adaptar a pantallas anchas). Ya
-> resueltas: `/map` (panel lateral + mapa) y `/feed` (grilla en vez del mazo
-> de swipe). Siguen, en orden de valor: `/shifts`, `/search`, `/my-shifts`,
-> `/chats`, resto. Detalle completo y el patrón del problema en
-> [docs/STATUS.md](docs/STATUS.md).
+> resueltas: `/map` (panel lateral + mapa), `/feed` (grilla en vez del mazo
+> de swipe) y `/shifts` (grilla 2-3 columnas). Siguen, en orden de valor:
+> `/search`, `/my-shifts`, `/chats`, resto. Detalle completo y el patrón del
+> problema en [docs/STATUS.md](docs/STATUS.md).
 
 ## Contexto en 30 segundos
 
