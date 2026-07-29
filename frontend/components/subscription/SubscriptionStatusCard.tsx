@@ -75,7 +75,7 @@ export default function SubscriptionStatusCard({
         >
           <p
             className={`flex items-start gap-2 text-sm font-semibold ${
-              atLimit ? "text-danger" : "text-amber-700"
+              atLimit ? "text-danger-text" : "text-amber-700"
             }`}
           >
             <AlertTriangleIcon size={16} className="mt-0.5 shrink-0" />

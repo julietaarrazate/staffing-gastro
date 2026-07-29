@@ -78,7 +78,7 @@ export default function OpportunityCard({
             <span className="text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
           </Link>
           {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger shadow-sm backdrop-blur">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm backdrop-blur">
               <FlameIcon size={13} /> Urgente
             </span>
           )}
@@ -106,7 +106,7 @@ export default function OpportunityCard({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
-            <p className="flex items-baseline gap-1 font-extrabold text-primary">
+            <p className="flex items-baseline gap-1 font-extrabold text-primary-text">
               <span className="text-lg">{shift.currency}</span>
               <span className="text-[2.25rem] leading-none tracking-tight">
                 {Number(shift.pay_amount).toLocaleString("es-AR")}

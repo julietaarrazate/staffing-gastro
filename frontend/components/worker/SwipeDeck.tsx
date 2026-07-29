@@ -117,7 +117,7 @@ export default function SwipeDeck({
           </motion.div>
           <motion.div
             style={{ opacity: nopeOpacity }}
-            className="pointer-events-none absolute right-5 top-6 rotate-12 rounded-xl border-4 border-danger px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-danger"
+            className="pointer-events-none absolute right-5 top-6 rotate-12 rounded-xl border-4 border-danger px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-danger-text"
           >
             No
           </motion.div>
@@ -132,7 +132,7 @@ export default function SwipeDeck({
           onClick={() => decide("pass")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
         >
           <CrossIcon />
         </motion.button>

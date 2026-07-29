@@ -54,7 +54,7 @@ export default function ShiftActions({
     <div className="flex flex-col gap-2.5">
       <p className="text-sm text-ink/60">
         {shift.status === "pagado" && (
-          <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-green-700" />
+          <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
         )}
         {step.hint}
       </p>
@@ -174,7 +174,7 @@ function MenuButton({
       onClick={onClick}
       disabled={disabled}
       className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-sm font-medium hover:bg-surface disabled:opacity-50 ${
-        danger ? "text-danger" : "text-ink/80"
+        danger ? "text-danger-text" : "text-ink/80"
       }`}
     >
       {children}

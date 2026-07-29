@@ -28,11 +28,19 @@
 @theme {
   --color-primary: #ff6b00;
   --color-primary-strong: #e85f00;
+  /* Naranja cuando es TEXTO sobre claro. El de superficie (#ff6b00) da 2.86
+     sobre blanco y no llega al minimo AA de 4.5; este da 4.53. Mismo matiz,
+     oscurecido hasta el primer punto que cumple. Ver docs/COLOR_SYSTEM.md. */
+  --color-primary-text: #c65300;
   --color-ink: #111111;
   --color-secondary: #22c55e;
   --color-success: #22c55e;
+  /* Verde como TEXTO sobre claro: el de superficie da 2.28 (falla feo). */
+  --color-success-text: #17853f;
   --color-warning: #fbbf24;
   --color-danger: #ef4444;
+  /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
+  --color-danger-text: #d73d3d;
   --color-surface: #f1f3f5; /* relleno neutro tenue (chips, tracks, inputs idle) */
   --color-line: #ececee;
   --color-paper: #fbf8f4; /* fondo cálido de la landing (hero, franjas claras) */

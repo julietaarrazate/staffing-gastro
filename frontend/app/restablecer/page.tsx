@@ -58,9 +58,9 @@ function RestablecerForm() {
 
         <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           {!token ? (
-            <p className="text-sm text-danger">
+            <p className="text-sm text-danger-text">
               El enlace es inválido o le falta el token. Pedí uno nuevo desde{" "}
-              <Link href="/recuperar" className="font-semibold text-primary">
+              <Link href="/recuperar" className="font-semibold text-primary-text">
                 recuperar contraseña
               </Link>
               .
@@ -85,7 +85,7 @@ function RestablecerForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className={inputClass}
               />
-              {error && <p className="text-sm text-danger">{error}</p>}
+              {error && <p className="text-sm text-danger-text">{error}</p>}
               <Button type="submit" fullWidth loading={submitting}>
                 Restablecer contraseña
               </Button>
@@ -94,7 +94,7 @@ function RestablecerForm() {
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-primary">
+          <Link href="/login" className="font-semibold text-primary-text">
             Volver a ingresar
           </Link>
         </p>

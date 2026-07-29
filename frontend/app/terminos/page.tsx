@@ -167,7 +167,7 @@ export default function TerminosPage() {
 
         <p className="mt-6 text-center text-sm text-ink/50">
           ¿Buscabas la{" "}
-          <Link href="/privacidad" className="font-semibold text-primary hover:underline">
+          <Link href="/privacidad" className="font-semibold text-primary-text hover:underline">
             Política de Privacidad
           </Link>
           ?

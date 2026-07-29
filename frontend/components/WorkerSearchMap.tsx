@@ -118,7 +118,7 @@ export default function WorkerSearchMap({
 
               <Link
                 href={`/workers/${selected.profile_id}`}
-                className="mt-3 inline-flex items-center text-sm font-bold text-primary hover:underline"
+                className="mt-3 inline-flex items-center text-sm font-bold text-primary-text hover:underline"
               >
                 Ver perfil →
               </Link>

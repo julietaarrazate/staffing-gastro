@@ -4,9 +4,9 @@ import { cn } from "@/lib/cn";
 type Tone = "primary" | "secondary" | "danger" | "neutral" | "info";
 
 const TONES: Record<Tone, string> = {
-  primary: "bg-orange-50 text-primary",
-  secondary: "bg-green-50 text-green-700",
-  danger: "bg-red-50 text-danger",
+  primary: "bg-orange-50 text-primary-text",
+  secondary: "bg-green-50 text-success-text",
+  danger: "bg-red-50 text-danger-text",
   neutral: "bg-surface text-ink/70",
   info: "bg-blue-50 text-blue-700",
 };

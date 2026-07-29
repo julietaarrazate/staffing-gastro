@@ -133,7 +133,7 @@ export default function LocationPicker({
       {geoMsg && (
         <p
           className={`text-xs ${
-            geoStatus === "error" ? "text-danger" : "text-green-700"
+            geoStatus === "error" ? "text-danger-text" : "text-success-text"
           }`}
         >
           {geoMsg}

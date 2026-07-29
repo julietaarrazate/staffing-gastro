@@ -166,7 +166,7 @@ export default function PrivacidadPage() {
 
         <p className="mt-6 text-center text-sm text-ink/50">
           ¿Buscabas los{" "}
-          <Link href="/terminos" className="font-semibold text-primary hover:underline">
+          <Link href="/terminos" className="font-semibold text-primary-text hover:underline">
             Términos y Condiciones
           </Link>
           ?

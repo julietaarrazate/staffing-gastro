@@ -114,7 +114,7 @@ export default async function PublicShiftPage({
           </div>
 
           <div className="mt-5 rounded-2xl bg-surface px-4 py-3.5 text-center">
-            <p className="text-2xl font-extrabold text-primary">
+            <p className="text-2xl font-extrabold text-primary-text">
               {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
             <p className="text-xs font-medium text-ink/50">Pago ofrecido</p>

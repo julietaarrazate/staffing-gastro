@@ -163,7 +163,7 @@ export default function GoogleAuthButton({
         <div className="flex justify-center" ref={buttonHostRef} />
       )}
 
-      {error && <p className="mt-2 text-center text-sm text-danger">{error}</p>}
+      {error && <p className="mt-2 text-center text-sm text-danger-text">{error}</p>}
     </div>
   );
 }

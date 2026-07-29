@@ -157,7 +157,7 @@ export default function MapPage() {
       {/* Encabezado flotante */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3">
         <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-ink/70 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
-          <MapPinIcon size={16} className="text-primary" />
+          <MapPinIcon size={16} className="text-primary-text" />
           {loading ? "Buscando turnos cerca..." : `${shifts.length} turnos cerca tuyo`}
         </div>
       </div>
@@ -221,13 +221,13 @@ export default function MapPage() {
                     </div>
                   </div>
                   {shift.urgent && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-danger">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-danger-text">
                       <FlameIcon size={11} /> Urgente
                     </span>
                   )}
                 </div>
                 <div className="mt-3 flex items-end justify-between">
-                  <p className="text-xl font-extrabold text-primary">
+                  <p className="text-xl font-extrabold text-primary-text">
                     {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
                   </p>
                   <p className="inline-flex items-center gap-1 text-xs font-medium text-ink/50">

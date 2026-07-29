@@ -53,7 +53,7 @@ export default function ReceivedReviews() {
   // falla se interpretaba como "no hay reseñas".
   if (error) {
     return (
-      <p className="text-sm text-danger">
+      <p className="text-sm text-danger-text">
         {error}{" "}
         <button
           type="button"

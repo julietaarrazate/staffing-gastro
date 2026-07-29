@@ -98,7 +98,7 @@ export function RecommendationReasons({ signals }: { signals: CandidateSignals }
     <div className="mt-3 space-y-1.5">
       {reasons.map(({ Icon, label }) => (
         <p key={label} className="inline-flex items-center gap-1.5 text-sm font-medium text-ink/75">
-          <Icon size={15} className="shrink-0 text-primary" />
+          <Icon size={15} className="shrink-0 text-primary-text" />
           {label}
         </p>
       ))}

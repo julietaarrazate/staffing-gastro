@@ -65,7 +65,7 @@ export default function ProfilePage() {
         <WorkerGameCard />
       ) : (
         <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xl font-bold text-primary">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xl font-bold text-primary-text">
             {user.full_name.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">

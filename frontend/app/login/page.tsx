@@ -73,7 +73,7 @@ function LoginForm() {
         </p>
 
         {infoMessage && (
-          <p className="mt-4 rounded-xl bg-green-50 px-3.5 py-2.5 text-center text-sm font-medium text-green-700">
+          <p className="mt-4 rounded-xl bg-green-50 px-3.5 py-2.5 text-center text-sm font-medium text-success-text">
             {infoMessage}
           </p>
         )}
@@ -96,13 +96,13 @@ function LoginForm() {
               placeholder="Contraseña"
               required
             />
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-sm text-danger-text">{error}</p>}
             <Button type="submit" fullWidth loading={submitting}>
               Ingresar
             </Button>
             <Link
               href="/recuperar"
-              className="text-center text-sm font-semibold text-primary"
+              className="text-center text-sm font-semibold text-primary-text"
             >
               ¿Olvidaste tu contraseña?
             </Link>
@@ -144,7 +144,7 @@ function LoginForm() {
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿No tenés cuenta?{" "}
-          <Link href="/register" className="font-semibold text-primary">
+          <Link href="/register" className="font-semibold text-primary-text">
             Creá una
           </Link>
         </p>

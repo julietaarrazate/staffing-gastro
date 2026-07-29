@@ -106,7 +106,7 @@ export default function ConversationPage() {
     <div className="mx-auto flex h-[calc(100vh-57px)] max-w-2xl flex-col px-4 py-4">
       <Link
         href="/chats"
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        className="inline-flex items-center gap-1 text-sm text-primary-text hover:underline"
       >
         <ChevronLeftIcon size={16} /> Volver a mensajes
       </Link>
@@ -151,7 +151,7 @@ export default function ConversationPage() {
       )}
 
       {sendError && (
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-danger">
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-danger-text">
           {sendError}
           <button
             type="button"
