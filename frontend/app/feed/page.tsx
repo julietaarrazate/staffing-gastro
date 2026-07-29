@@ -278,7 +278,7 @@ export default function WorkerHomePage() {
               ) : (
                 <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
                   {visibleShifts.map((shift) => (
-                    <div key={shift.id} className="h-[480px]">
+                    <div key={shift.id} className="h-[620px]">
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
