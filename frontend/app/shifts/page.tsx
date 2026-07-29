@@ -204,7 +204,7 @@ export default function MyShiftsPage() {
     tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Panel</h1>
@@ -272,7 +272,7 @@ export default function MyShiftsPage() {
                   {list.length === 0 ? (
                     <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
                   ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {list.map((shift) => (
                         <ShiftCard key={shift.id} shift={shift}>
                           <ShiftActions
