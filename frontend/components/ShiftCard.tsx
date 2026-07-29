@@ -135,7 +135,12 @@ export default function ShiftCard({
           <p className="mt-2 text-xs text-ink/50">Dress code: {shift.dress_code}</p>
         )}
 
-        {shift.latitude != null && shift.longitude != null && (
+        {/* Mini-mapa + "Cómo llegar": sólo tiene sentido del lado del
+            trabajador (es quien tiene que viajar hasta el local). Del lado
+            del comercio estaba al revés — la tarjeta de SU PROPIO turno le
+            ofrecía indicaciones para llegar a su propio local, ruido puro
+            (Julieta, 2026-07-29). */}
+        {perspective === "worker" && shift.latitude != null && shift.longitude != null && (
           <>
             <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
               <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
