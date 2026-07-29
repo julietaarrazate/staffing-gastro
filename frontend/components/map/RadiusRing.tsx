@@ -58,11 +58,11 @@ export default function RadiusRing({
 
   return (
     <Source id={SOURCE_ID} type="geojson" data={geojson}>
-      <Layer id={`${SOURCE_ID}-fill`} type="fill" paint={{ "fill-color": "#ff6b00", "fill-opacity": 0.06 }} />
+      <Layer id={`${SOURCE_ID}-fill`} type="fill" paint={{ "fill-color": "#f97316", "fill-opacity": 0.06 }} />
       <Layer
         id={`${SOURCE_ID}-line`}
         type="line"
-        paint={{ "line-color": "#ff6b00", "line-opacity": 0.45, "line-width": 1.5, "line-dasharray": [2, 2] }}
+        paint={{ "line-color": "#f97316", "line-opacity": 0.45, "line-width": 1.5, "line-dasharray": [2, 2] }}
       />
     </Source>
   );

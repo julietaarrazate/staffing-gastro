@@ -14,8 +14,8 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 (estilo Uber + Tinder): conecta comercios con trabajadores eventuales para
 cubrir turnos. **Misión: cubrir una posición eventual en menos de 10 minutos.**
 Roles: `worker`, `employer`, `admin`. Producto en **español (AR/LATAM)**, marca
-"la cloche" (campana de servicio en trazo blanco sobre tile naranja `#FF6B00`,
-wordmark "staffya" con el "ya" en naranja; tagline "Personal gastronómico, ya.").
+"Oído" (mano ahuecada sobre la oreja, en trazo crema sobre tile naranja `#F97316`,
+wordmark "oído" en serif Fraunces; tagline "Personal gastronómico, ya.").
 
 - **Backend:** FastAPI · SQLAlchemy async · monolito modular DDD/hexagonal ·
   deploy en **Render** (auto desde `main`).
@@ -227,7 +227,7 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 - Identidad **editorial cálida** ("cafetería de especialidad", style-guide del
   diseñador, desde 2026-07-29): fondo **crema** `#FFF8F0` / superficies **arena**
   `#F5ECDD`, tinta **carbón** cálida `#1F1F1C` (no negro puro), acento naranja
-  `#FF6B00` y verde éxito **bosque** `#2E8B57` (no el semáforo brillante). Tipografía
+  `#F97316` y verde éxito **bosque** `#2E8B57` (no el semáforo brillante). Tipografía
   **Inter** (UI) + **Fraunces** (`font-display`, serif de títulos, alternativa
   libre a Recoleta). Iconografía **Lucide**, sensación de app nativa. Un solo
   acento naranja por pantalla, cero gradientes multicolor decorativos. Todos los

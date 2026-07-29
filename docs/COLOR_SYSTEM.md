@@ -30,11 +30,14 @@ del diseñador **manteniendo la disciplina de contraste AA** de la v1.0.
 | `--line` / `--color-line` | `#ECECEE` | **`#EBE2D4`** | (hairline cálido) |
 | `--color-paper` | `#FBF8F4` | **`#FBF2E6`** | (franja cálida landing) |
 
-El **naranja principal** `--color-primary` se mantiene en `#FF6B00` (el
-style-guide usa `#F97316`, a distancia perceptual mínima): así queda coherente
-con el isotipo ya horneado y no se desestabilizan los contrastes ni las sombras
-`rgba(255,107,0,…)` del sistema. Se puede migrar a `#F97316` si se quiere
-fidelidad exacta (implica regenerar los íconos y el theme-color).
+El **naranja principal** `--color-primary` se migró a **`#F97316`** (Tailwind
+orange-500), el hex exacto del style-guide (confirmado leyendo la etiqueta del
+mockup, no muestreando el JPG). Con esa migración se actualizaron en cadena: el
+`theme-color` (metadata del layout + manifest), todas las sombras-glow
+`rgba(249,115,22,…)` y los usos hardcodeados en el mapa (`RadiusRing`,
+`ClusterMarker`, `MiniMap`) y en `LogoGlyph`; y se **regeneraron los 7 íconos
+PWA + `og-image` + `logo-mark`** con el naranja nuevo para que todo quede
+coherente. Contraste tinta-sobre-naranja del botón: **5.89** (AA ✅).
 
 ### 0.2 Contrastes medidos de la paleta v2.0 (WCAG, fórmula oficial)
 
@@ -43,7 +46,7 @@ fidelidad exacta (implica regenerar los íconos y el theme-color).
 | Carbón `#1F1F1C` | Crema `#FFF8F0` (body) | **15.69** | ✅ AAA |
 | Carbón `#1F1F1C` | Blanco (cards) | **16.52** | ✅ AAA |
 | Carbón `#1F1F1C` | Arena `#F5ECDD` (chips) | **14.10** | ✅ AAA |
-| Carbón `#1F1F1C` | Naranja `#FF6B00` (botón primario) | **5.79** | ✅ PASA |
+| Carbón `#1F1F1C` | Naranja `#F97316` (botón primario) | **5.89** | ✅ PASA |
 | `--color-primary-text` `#B23C08` | Blanco / Crema / Arena / orange-50 / orange-100 | 5.93 / 5.63 / 5.06 / 5.58 / 5.17 | ✅ PASA en todos |
 | `--color-success-text` `#16823E` | Blanco / Crema / green-50 | 4.89 / 4.64 / 4.67 | ✅ PASA en todos |
 | Blanco | Verde Éxito `#2E8B57` (botón/badge sólido) | **4.25** | ✅ (era 2.28 con el semáforo) |

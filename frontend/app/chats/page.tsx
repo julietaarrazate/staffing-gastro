@@ -55,7 +55,7 @@ export default function ChatsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Mensajes</h1>
+      <h1 className="font-display text-2xl font-semibold">Mensajes</h1>
       <p className="mt-1 text-sm text-ink/50">
         Coordiná los detalles de cada turno con la otra parte.
       </p>

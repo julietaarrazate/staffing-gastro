@@ -148,7 +148,7 @@ export default function MatchesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
-      <h1 className="text-2xl font-extrabold tracking-tight text-ink">Matches</h1>
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Matches</h1>
       <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados y tus postulaciones.</p>
 
       <div className="mt-4">

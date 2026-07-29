@@ -207,12 +207,12 @@ export default function MyShiftsPage() {
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Panel</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Panel</h1>
           <p className="mt-0.5 text-sm text-ink/50">Gestioná los turnos de tu comercio.</p>
         </div>
         <Link
           href="/shifts/new"
-          className="shrink-0 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(255,107,0,0.3)] transition active:scale-95"
+          className="shrink-0 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
         >
           + Publicar
         </Link>

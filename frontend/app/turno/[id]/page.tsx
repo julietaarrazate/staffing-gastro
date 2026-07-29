@@ -93,7 +93,7 @@ export default async function PublicShiftPage({
               <Icon size={28} />
             </span>
             <div>
-              <h1 className="text-xl font-extrabold leading-tight text-ink">
+              <h1 className="font-display text-xl font-semibold leading-tight text-ink">
                 {SKILL_LABELS[shift.position]}
               </h1>
               {shift.company_name && (
@@ -126,7 +126,7 @@ export default async function PublicShiftPage({
               no hacerlo elegir de más y no perderlo en la pestaña equivocada. */}
           <Link
             href="/register?rol=trabajador"
-            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-ink shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-[0.98]"
+            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.28)] transition active:scale-[0.98]"
           >
             Postulate en Oído
           </Link>

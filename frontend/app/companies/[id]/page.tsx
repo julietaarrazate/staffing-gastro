@@ -98,7 +98,7 @@ export default function PublicCompanyProfilePage() {
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-            <h1 className="text-2xl font-bold text-white drop-shadow-sm">{profile.name}</h1>
+            <h1 className="font-display text-2xl font-semibold text-white drop-shadow-sm">{profile.name}</h1>
             {profile.city && (
               <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
                 <MapPinIcon size={14} /> {profile.city}

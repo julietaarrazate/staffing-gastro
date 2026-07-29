@@ -220,7 +220,7 @@ function NewShiftWizard() {
           >
             {step === 0 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-ink">¿Qué necesitás?</h1>
+                <h1 className="font-display text-2xl font-semibold text-ink">¿Qué necesitás?</h1>
                 <p className="mt-1 text-sm text-ink/50">Elegí el puesto a cubrir.</p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   {WORKER_SKILLS.map((skill) => {
@@ -248,7 +248,7 @@ function NewShiftWizard() {
 
             {step === 1 && (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <h1 className="text-2xl font-extrabold text-ink">¿Cuántas personas?</h1>
+                <h1 className="font-display text-2xl font-semibold text-ink">¿Cuántas personas?</h1>
                 <p className="mt-1 text-sm text-ink/50">Para este puesto.</p>
                 <div className="mt-10 flex items-center gap-6">
                   <button
@@ -276,7 +276,7 @@ function NewShiftWizard() {
 
             {step === 2 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-ink">¿Cuándo?</h1>
+                <h1 className="font-display text-2xl font-semibold text-ink">¿Cuándo?</h1>
                 <p className="mt-1 text-sm text-ink/50">Inicio y fin del turno.</p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
@@ -303,7 +303,7 @@ function NewShiftWizard() {
 
             {step === 3 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-ink">¿Cuánto pagás?</h1>
+                <h1 className="font-display text-2xl font-semibold text-ink">¿Cuánto pagás?</h1>
                 <p className="mt-1 text-sm text-ink/50">Por persona, en pesos.</p>
                 <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
                   <span className="text-2xl font-bold text-ink/40">$</span>
@@ -334,7 +334,7 @@ function NewShiftWizard() {
 
             {step === 4 && (
               <div>
-                <h1 className="text-2xl font-extrabold text-ink">¿Dónde es?</h1>
+                <h1 className="font-display text-2xl font-semibold text-ink">¿Dónde es?</h1>
                 <p className="mt-1 text-sm text-ink/50">
                   Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
                 </p>
