@@ -30,9 +30,13 @@ que es de pago) aplicada a landing/splash/wordmark/títulos de auth. Detalle y
 contrastes medidos: `docs/COLOR_SYSTEM.md` v2.0. Verificado con capturas reales
 (landing, login, feed) + `pytest`/`tsc`/`build`/Playwright (24 e2e) en verde.
 
-Pendiente futuro: migrar `--color-primary` a `#F97316` exacto (hoy `#FF6B00`,
-coherente con el isotipo) y a **Recoleta** real cuando se consiga la licencia;
-rodar la serif a los títulos de las pantallas internas restantes.
+Segundo pase (2026-07-29, mismo día): fidelidad total al style-guide — se migró
+`--color-primary` al `#F97316` exacto del mockup (con theme-color, sombras-glow,
+usos de mapa y los 7 íconos PWA + og-image regenerados al naranja nuevo) y se
+rodó la serif `font-display` a **todos** los títulos de pantalla (feed, panel,
+matches, mi plan, mensajes, admin, wizard de publicación, perfiles de
+trabajador/comercio, página pública de turno). Único pendiente de tipografía:
+**Recoleta** real cuando se consiga la licencia (cambiar una variable de fuente).
 
 ## Panel del comercio: una acción por turno (2026-07-28)
 

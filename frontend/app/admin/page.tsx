@@ -133,7 +133,7 @@ export default function AdminPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex items-center gap-2">
         <ShieldIcon size={22} className="text-primary-text" />
-        <h1 className="text-2xl font-bold text-ink">Panel de administración</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Panel de administración</h1>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}

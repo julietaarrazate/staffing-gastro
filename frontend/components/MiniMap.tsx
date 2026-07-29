@@ -26,7 +26,7 @@ export default function MiniMap({
       className={`${className} rounded-2xl`}
     >
       <Marker longitude={longitude} latitude={latitude} anchor="center">
-        <div className="h-4 w-4 rounded-full border-[3px] border-white bg-primary shadow-[0_0_0_2px_rgba(255,107,0,0.35)]" />
+        <div className="h-4 w-4 rounded-full border-[3px] border-white bg-primary shadow-[0_0_0_2px_rgba(249,115,22,0.35)]" />
       </Marker>
     </MapView>
   );

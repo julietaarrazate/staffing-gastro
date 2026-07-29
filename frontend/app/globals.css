@@ -30,10 +30,11 @@
 /* Colores de marca: registrados como tokens de Tailwind v4 (generan
  * utilidades bg-primary, text-secondary, ring-danger, etc.). */
 @theme {
-  --color-primary: #ff6b00;
+  /* Naranja exacto del style-guide del diseñador (Tailwind orange-500). */
+  --color-primary: #f97316;
   /* Naranja oscuro del style-guide (hover/pressed y fin del degradé del splash). */
   --color-primary-strong: #e65a00;
-  /* Naranja cuando es TEXTO sobre claro. El de superficie (#ff6b00) da 2.86
+  /* Naranja cuando es TEXTO sobre claro. El de superficie (#f97316) da 2.8
      sobre blanco y no llega al AA de 4.5. Este (#b23c08) cumple sobre TODOS los
      fondos donde se usa: blanco (5.93), crema (5.63), Arena/surface (5.06),
      orange-50 (5.58) y orange-100 (5.17). Ver docs/COLOR_SYSTEM.md. */
