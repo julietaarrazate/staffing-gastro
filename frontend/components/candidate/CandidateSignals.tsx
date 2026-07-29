@@ -44,7 +44,7 @@ export function topReasons(s: CandidateSignals, max = 3): Reason[] {
     reasons.push({ Icon: ClockIcon, label: `Muy puntual (${formatPunctuality(s.punctuality_rate)})` });
   }
   if (s.events_completed >= 10) {
-    reasons.push({ Icon: CheckCircleIcon, label: `${s.events_completed} turnos en Staffya` });
+    reasons.push({ Icon: CheckCircleIcon, label: `${s.events_completed} turnos en Oído` });
   }
   if (s.rating >= 4.5 && s.events_completed >= 1) {
     reasons.push({ Icon: StarIcon, label: "Muy bien calificado" });

@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class UserRole(str, Enum):
-    """Roles del sistema, según el spec de Staffya.
+    """Roles del sistema, según el spec de Oído.
 
     - WORKER (Trabajador): mozo, bartender, runner, cocinero, etc.
     - EMPLOYER (Empleador): dueño, encargado, gerente, organizador, catering.

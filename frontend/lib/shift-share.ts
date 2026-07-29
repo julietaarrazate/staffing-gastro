@@ -45,7 +45,7 @@ export function shareShift(shift: ShareableShift, publicUrl: string): void {
   const text = buildShiftShareText(shift, publicUrl);
 
   if (typeof navigator !== "undefined" && "share" in navigator) {
-    navigator.share({ title: "Staffya", text, url: publicUrl }).catch(() => {
+    navigator.share({ title: "Oído", text, url: publicUrl }).catch(() => {
       // El usuario canceló el share sheet o el navegador lo rechazó: no hay
       // nada más que hacer, no es un error real.
     });

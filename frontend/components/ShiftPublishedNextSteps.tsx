@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 // "Esto es lo que sigue" tras publicar un turno (inspiración de UX: Clickie
 // muestra, apenas se genera un pedido, una pantalla clara de qué sigue en el
-// ciclo — trasladamos esa claridad acá con la marca naranja de Staffya).
+// ciclo — trasladamos esa claridad acá con la marca naranja de Oído).
 // Reemplaza el cartel de una línea del launch-gate (#88, "Ya estás buscando
 // personal..."): esa versión sólo se mostraba UNA vez en la vida de la
 // cuenta (localStorage). Esta es más rica (los 4 pasos concretos que

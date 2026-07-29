@@ -1,5 +1,5 @@
 /**
- * Iconografía de Staffya: set oficial de **Lucide** (rounded, minimalista).
+ * Iconografía de Oído: set oficial de **Lucide** (rounded, minimalista).
  * Se re-exporta bajo los nombres históricos para no tocar los imports de las
  * pantallas. Todos heredan el color con `currentColor`, tamaño con `size` y
  * trazo 1.75. `StarIcon` admite `filled` para el rating.

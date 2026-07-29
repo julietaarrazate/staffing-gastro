@@ -1,7 +1,7 @@
 """Idempotencia de mutaciones críticas vía header `Idempotency-Key`.
 
 Spec T1 cerrado: `product/IDEMPOTENCIA_SPEC.md` (transferencia de robustez de
-Cuadra — sync offline idempotente — a Staffya). Público phone-first con datos
+Cuadra — sync offline idempotente — a Oído). Público phone-first con datos
 móviles inestables: un doble-tap o un reintento automático tras un timeout no
 debe duplicar una acción (publicar turno, postularse, asignar, etc.).
 

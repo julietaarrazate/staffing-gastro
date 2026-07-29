@@ -42,12 +42,12 @@ export async function generateMetadata({
   const shift = await getPublicShift(id);
 
   if (!shift) {
-    return { title: "Turno no encontrado — Staffya" };
+    return { title: "Turno no encontrado — Oído" };
   }
 
   const title = `Buscamos ${SKILL_LABELS[shift.position]}${
     shift.company_name ? ` en ${shift.company_name}` : ""
-  } — Staffya`;
+  } — Oído`;
   const description = buildShiftSummary(shift);
   const url = await getPublicUrl(id);
 
@@ -58,7 +58,7 @@ export async function generateMetadata({
       title,
       description,
       url,
-      siteName: "Staffya",
+      siteName: "Oído",
       locale: "es_AR",
       type: "website",
     },
@@ -128,7 +128,7 @@ export default async function PublicShiftPage({
             href="/register?rol=trabajador"
             className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-ink shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-[0.98]"
           >
-            Postulate en Staffya
+            Postulate en Oído
           </Link>
           <p className="mt-3 text-center text-xs text-ink/40">
             Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.

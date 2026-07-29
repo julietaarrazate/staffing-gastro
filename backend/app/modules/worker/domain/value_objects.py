@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class WorkerSkill(str, Enum):
-    """Cargos / habilidades de un trabajador, según el spec de Staffya."""
+    """Cargos / habilidades de un trabajador, según el spec de Oído."""
 
     MOZO = "mozo"
     BARTENDER = "bartender"

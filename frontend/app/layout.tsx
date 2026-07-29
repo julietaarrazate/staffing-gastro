@@ -24,12 +24,12 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://staffya.com.ar"),
-  title: { default: `staffya — ${TAGLINE}`, template: "%s — Staffya" },
+  title: { default: `oído — ${TAGLINE}`, template: "%s — Oído" },
   description: DESCRIPTION,
-  applicationName: "Staffya",
+  applicationName: "Oído",
   appleWebApp: {
     capable: true,
-    title: "Staffya",
+    title: "Oído",
     statusBarStyle: "default",
   },
   icons: {
@@ -41,16 +41,16 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
-    title: `staffya — ${TAGLINE}`,
+    title: `oído — ${TAGLINE}`,
     description: DESCRIPTION,
-    siteName: "Staffya",
+    siteName: "Oído",
     locale: "es_AR",
     type: "website",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: TAGLINE }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `staffya — ${TAGLINE}`,
+    title: `oído — ${TAGLINE}`,
     description: DESCRIPTION,
     images: ["/og-image.png"],
   },

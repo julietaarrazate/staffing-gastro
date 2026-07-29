@@ -37,7 +37,7 @@ class MercadoPagoSuscripcionAdapter(BillingGateway):
                 "cobro real está apagada (falta MERCADOPAGO_ACCESS_TOKEN)."
             )
         payload = {
-            "reason": f"Staffya — plan {plan.name}",
+            "reason": f"Oído — plan {plan.name}",
             "external_reference": str(company_id),
             "payer_email": payer_email,
             "auto_recurring": {

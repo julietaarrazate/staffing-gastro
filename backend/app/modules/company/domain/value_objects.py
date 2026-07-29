@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class CompanyCategory(str, Enum):
-    """Rubro del comercio / organizador, según el spec de Staffya."""
+    """Rubro del comercio / organizador, según el spec de Oído."""
 
     RESTAURANTE = "restaurante"
     BAR = "bar"

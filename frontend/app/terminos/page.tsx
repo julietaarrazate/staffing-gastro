@@ -7,7 +7,7 @@ import { ChevronLeftIcon } from "@/components/icons";
 export const metadata: Metadata = {
   title: "Términos y Condiciones",
   description:
-    "Términos y Condiciones de uso de Staffya: qué es la plataforma, cuentas, publicación y postulación a turnos, reputación, suscripciones y más.",
+    "Términos y Condiciones de uso de Oído: qué es la plataforma, cuentas, publicación y postulación a turnos, reputación, suscripciones y más.",
 };
 
 const LAST_UPDATED = "Última actualización: julio 2026";
@@ -46,14 +46,14 @@ export default function TerminosPage() {
           </h1>
           <p className="mt-1 text-sm text-ink/40">{LAST_UPDATED}</p>
 
-          <Section title="Qué es Staffya">
+          <Section title="Qué es Oído">
             <p>
-              Staffya es una plataforma de intermediación: conecta comercios
+              Oído es una plataforma de intermediación: conecta comercios
               gastronómicos que necesitan cubrir turnos con trabajadores que
               quieren tomarlos. Ahí termina nuestro rol.
             </p>
             <p>
-              Staffya <strong>no es tu empleador</strong> ni el de nadie, y{" "}
+              Oído <strong>no es tu empleador</strong> ni el de nadie, y{" "}
               <strong>no es parte</strong> de la relación laboral o comercial
               que se arma entre el comercio y el trabajador. Tampoco
               garantizamos que un turno publicado se cubra, ni que un turno
@@ -64,7 +64,7 @@ export default function TerminosPage() {
 
           <Section title="Tu cuenta">
             <p>
-              Para usar Staffya tenés que ser mayor de 18 años y cargar datos
+              Para usar Oído tenés que ser mayor de 18 años y cargar datos
               reales tuyos o de tu comercio: nombre, contacto y lo que te
               pidamos en el perfil. Nada de datos inventados.
             </p>
@@ -75,7 +75,7 @@ export default function TerminosPage() {
             <p>
               El comercio define las condiciones del turno (posición,
               horario, paga, vestimenta) y le paga directamente al
-              trabajador — Staffya no procesa ni retiene esos pagos.
+              trabajador — Oído no procesa ni retiene esos pagos.
             </p>
             <p>
               El trabajador decide libremente si se postula o no a cada
@@ -126,7 +126,7 @@ export default function TerminosPage() {
               </li>
               <li>Acosar, amenazar o maltratar a otro usuario.</li>
               <li>
-                Usar Staffya para contactar a la otra parte y después mover
+                Usar Oído para contactar a la otra parte y después mover
                 todo por fuera de la plataforma con el único fin de evadir
                 sus reglas (reputación, seguridad, comisiones, etc.).
               </li>
@@ -139,7 +139,7 @@ export default function TerminosPage() {
 
           <Section title="Límite de responsabilidad">
             <p>
-              Staffya pone la infraestructura para conectar comercios y
+              Oído pone la infraestructura para conectar comercios y
               trabajadores, pero no responde por lo que pase durante el
               turno en sí: cumplimiento de horarios, condiciones de trabajo,
               pagos acordados o conflictos entre las partes. Esas
@@ -151,7 +151,7 @@ export default function TerminosPage() {
             <p>
               Podemos actualizar estos Términos con el tiempo. Si hacemos un
               cambio importante, te avisamos dentro de la app. Seguir usando
-              Staffya después de un aviso implica que aceptás la versión
+              Oído después de un aviso implica que aceptás la versión
               nueva.
             </p>
           </Section>

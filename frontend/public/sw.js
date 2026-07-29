@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = {};
   }
-  const title = data.title || "Staffya";
+  const title = data.title || "Oído";
   const url = data.url || "/";
   event.waitUntil(
     self.registration.showNotification(title, {
@@ -27,9 +27,10 @@ self.addEventListener("push", (event) => {
       icon: "/icon-192.png",
       // El badge (ícono chico de la barra de estado en Android) se dibuja
       // usando SÓLO el canal alfa: el sistema descarta los colores y pinta de
-      // blanco lo que sea opaco. `icon-192.png` es un tile naranja opaco de
-      // punta a punta, así que salía como un CUADRADO BLANCO sólido. Este
-      // badge tiene fondo transparente y sólo la cloche opaca.
+      // blanco lo que sea opaco. `icon-192.png` es el tile completo (naranja +
+      // trazo), así que como badge salía como una MANCHA blanca sin forma
+      // reconocible. Este badge tiene fondo transparente y sólo el trazo
+      // (mano + oreja) opaco, sin el tile de fondo.
       badge: "/badge-96.png",
       data: { url },
       // Tag ÚNICO por notificación. Antes todas compartían "staffya-push", así

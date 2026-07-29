@@ -1,4 +1,4 @@
-"""Punto de entrada de la API de Staffya (monolito modular).
+"""Punto de entrada de la API de Oído (monolito modular).
 
 Cada módulo de dominio (identity, worker, shift, ...) registra su propio router.
 """
