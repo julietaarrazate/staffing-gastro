@@ -52,7 +52,9 @@ export default function Logo({
     <span className="inline-flex items-center gap-2">
       <LogoMark size={size} />
       {withWordmark && (
-        <span className="text-xl font-extrabold tracking-tight text-ink">oído</span>
+        <span className="font-display text-xl font-semibold tracking-tight text-ink">
+          oído
+        </span>
       )}
     </span>
   );

@@ -224,11 +224,18 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 ## Convenciones de producto/diseño
 
 - Todo en **español**, incluido el texto de cara al usuario.
-- Identidad **monocromática** (blanco + ink `#111` + acento `#FF6B00`),
-  iconografía **Lucide**, sensación de app nativa. Un solo acento naranja por
-  pantalla, cero gradientes multicolor decorativos, "la cloche" como único
-  logo (Ley de marca post-rebrand, `docs/PULIDO_ROADMAP.md`, desde #79).
-  Detalle en la doc de diseño (Fase 6).
+- Identidad **editorial cálida** ("cafetería de especialidad", style-guide del
+  diseñador, desde 2026-07-29): fondo **crema** `#FFF8F0` / superficies **arena**
+  `#F5ECDD`, tinta **carbón** cálida `#1F1F1C` (no negro puro), acento naranja
+  `#FF6B00` y verde éxito **bosque** `#2E8B57` (no el semáforo brillante). Tipografía
+  **Inter** (UI) + **Fraunces** (`font-display`, serif de títulos, alternativa
+  libre a Recoleta). Iconografía **Lucide**, sensación de app nativa. Un solo
+  acento naranja por pantalla, cero gradientes multicolor decorativos. Todos los
+  fondos pasan por tokens de `globals.css` (no hay grises hardcodeados). Contrastes
+  verificados WCAG AA — **fuente de verdad: `docs/COLOR_SYSTEM.md` (v2.0)**. El
+  isotipo es la **mano ahuecada sobre la oreja** (placeholder rasterizado del
+  mockup, ver `frontend/components/Logo.tsx`, pendiente el SVG vectorial del
+  diseñador).
 
 ## Para continuar en un chat nuevo
 

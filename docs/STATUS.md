@@ -5,12 +5,34 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-23 · rama de trabajo:
+*Última actualización: 2026-07-29 (estética editorial: paleta cálida +
+tipografía) · rama de trabajo previa:
 `claude/staffya-evidence-audit-9d9pvh` (diagnóstico del backend caído) · todos
 los PRs se mergean con squash apenas quedan verdes (pedido de Julieta) ·
 **loop autónomo activo** (con auto-merge, confirmado explícitamente por
 Julieta) para retomar el backlog no bloqueado sin esperar "seguí" en cada
 paso.*
+
+## Estética editorial: paleta cálida + tipografía del diseñador (2026-07-29)
+
+Julieta preguntó si, más allá del isotipo nuevo, la app tenía "la nueva
+estética" del diseñador. Auditoría de código vs style-guide: **no la tenía**.
+El naranja estaba cerca, pero el resto no: fondo **gris frío** `#F8F9FA` (el
+diseñador quiere **crema** `#FFF8F0`), verde **semáforo** `#22C55E` (quiere
+**bosque** `#2E8B57`), tinta **negro puro** `#111` (quiere **carbón** cálido
+`#1F1F1C`) y tipografía **Geist** (quiere **Inter** + serif).
+
+Alineado todo a la paleta editorial **manteniendo contraste AA** (tokens en
+`globals.css`; como no hay grises hardcodeados, el cambio de tokens propaga la
+calidez a toda la app). Tipografía: **Inter** (UI, reemplaza a Geist) +
+**Fraunces** (`font-display`, serif de títulos, alternativa libre a Recoleta —
+que es de pago) aplicada a landing/splash/wordmark/títulos de auth. Detalle y
+contrastes medidos: `docs/COLOR_SYSTEM.md` v2.0. Verificado con capturas reales
+(landing, login, feed) + `pytest`/`tsc`/`build`/Playwright (24 e2e) en verde.
+
+Pendiente futuro: migrar `--color-primary` a `#F97316` exacto (hoy `#FF6B00`,
+coherente con el isotipo) y a **Recoleta** real cuando se consiga la licencia;
+rodar la serif a los títulos de las pantallas internas restantes.
 
 ## Panel del comercio: una acción por turno (2026-07-28)
 

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Fraunces, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { PushPromptProvider } from "@/lib/push-prompt-context";
@@ -8,9 +8,20 @@ import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
+// por defecto de toda la app.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+});
+
+// Fraunces: serif de display para títulos — el carácter "editorial" del
+// style-guide (alternativa libre OFL, cercana a Recoleta). Se expone como la
+// utilidad `font-display` de Tailwind y se aplica a los títulos de marca.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -85,7 +96,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         <AuthProvider>

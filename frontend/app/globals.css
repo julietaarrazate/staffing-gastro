@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 /*
- * Staffya — Design System.
- * Identidad monocromática de marca: muchísimo blanco, negro de marca (#111)
- * y un único acento naranja (#FF6B00). Nada de gradientes arcoíris ni violetas.
+ * Oído — Design System.
+ * Estética editorial / "cafetería de especialidad" (style-guide del diseñador):
+ * fondo CÁLIDO crema-arena en vez del gris frío anterior, tinta carbón cálida
+ * (no negro puro), un único acento naranja (#FF6B00) y un verde éxito bosque y
+ * sobrio (no el verde semáforo brillante). Nada de gradientes arcoíris.
  * Bordes amplios (cards 24 / botones 20 / inputs 18), sombras muy suaves que
- * hacen flotar las tarjetas.
+ * hacen flotar las tarjetas blancas sobre el crema. Todos los fondos pasan por
+ * estos tokens (no hay grises hardcodeados), así que la calidez es del sistema.
+ * Contrastes verificados WCAG AA — ver docs/COLOR_SYSTEM.md.
  */
 :root {
-  --background: #f8f9fa; /* fondo de la app */
-  --foreground: #111111; /* ink / negro de marca */
-  --line: #ececee; /* bordes 1px */
+  --background: #fff8f0; /* Crema — fondo cálido de la app (antes gris #f8f9fa) */
+  --foreground: #1f1f1c; /* Carbón — tinta cálida de marca (antes negro puro #111) */
+  --line: #ebe2d4; /* bordes 1px, hairline cálido (antes gris #ececee) */
 
   /* Radios */
   --radius-card: 1.5rem; /* 24px */
@@ -27,28 +31,33 @@
  * utilidades bg-primary, text-secondary, ring-danger, etc.). */
 @theme {
   --color-primary: #ff6b00;
-  --color-primary-strong: #e85f00;
+  /* Naranja oscuro del style-guide (hover/pressed y fin del degradé del splash). */
+  --color-primary-strong: #e65a00;
   /* Naranja cuando es TEXTO sobre claro. El de superficie (#ff6b00) da 2.86
-     sobre blanco y no llega al minimo AA de 4.5; este da 4.53. Mismo matiz,
-     oscurecido hasta el primer punto que cumple. Ver docs/COLOR_SYSTEM.md. */
-  --color-primary-text: #c65300;
-  --color-ink: #111111;
-  --color-success: #22c55e;
-  /* Verde como TEXTO sobre claro. Cumple AA tanto sobre blanco (4.89) como
-     sobre los tintes de los chips de estado, p. ej. green-50 (4.67). */
+     sobre blanco y no llega al AA de 4.5. Este (#b23c08) cumple sobre TODOS los
+     fondos donde se usa: blanco (5.93), crema (5.63), Arena/surface (5.06),
+     orange-50 (5.58) y orange-100 (5.17). Ver docs/COLOR_SYSTEM.md. */
+  --color-primary-text: #b23c08;
+  --color-ink: #1f1f1c; /* Carbón cálido (antes negro puro #111) */
+  /* Verde Éxito del style-guide: bosque sobrio, no el semáforo brillante
+     anterior (#22c55e). Como relleno con texto blanco da 4.25 (antes 2.28). */
+  --color-success: #2e8b57;
+  /* Verde como TEXTO sobre claro. Cumple AA sobre blanco (4.89), crema (4.64)
+     y el tinte de los chips de estado green-50 (4.67). */
   --color-success-text: #16823e;
   --color-danger: #ef4444;
   /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
   --color-danger-text: #d73d3d;
-  --color-surface: #f1f3f5; /* relleno neutro tenue (chips, tracks, inputs idle) */
-  --color-line: #ececee;
-  --color-paper: #fbf8f4; /* fondo cálido de la landing (hero, franjas claras) */
+  --color-surface: #f5ecdd; /* Arena — relleno cálido (chips, tracks, inputs idle) */
+  --color-line: #ebe2d4; /* hairline cálido */
+  --color-paper: #fbf2e6; /* franja cálida algo más profunda que el fondo (landing) */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
 }
 

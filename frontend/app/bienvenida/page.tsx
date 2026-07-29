@@ -91,7 +91,7 @@ export default function BienvenidaPage() {
 
       {step === "zona" ? (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="text-[2rem] font-extrabold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
             ¿Dónde querés trabajar?
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed text-white/60">
@@ -118,7 +118,7 @@ export default function BienvenidaPage() {
         </section>
       ) : (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="text-[2rem] font-extrabold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
             ¿Qué sabés hacer?
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed text-white/60">
