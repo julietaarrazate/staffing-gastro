@@ -3,8 +3,17 @@
 import { useEffect, useState, type ReactNode, type RefObject } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-/** Alturas del sheet como fracción del contenedor: pico / mitad / lista completa. */
-const SNAPS = [0.25, 0.58, 0.88] as const;
+/**
+ * Alturas del sheet como fracción del contenedor: a la altura de la tarjeta /
+ * intermedio / cubre casi todo el mapa. El primer snap ERA 0.25 y quedaba por
+ * debajo de lo que una tarjeta necesita (medido: tarjeta 238px + manija 26px +
+ * padding inferior 16px ≈ 280px sobre un contenedor típico de ~700px ≈ 0.40),
+ * así que a ese tamaño la tarjeta quedaba recortada. 0.44 la deja completa con
+ * un poco de aire. El del medio (antes 0.58, tapaba de más sin mostrar nada
+ * adicional útil — el carrusel es horizontal, no gana contenido con más alto)
+ * baja a 0.5 sólo para que quede un paso intermedio real hacia el máximo.
+ */
+const SNAPS = [0.44, 0.5, 0.88] as const;
 type SnapIndex = 0 | 1 | 2;
 const MAX_SNAP: SnapIndex = 2;
 
@@ -22,7 +31,11 @@ export default function MapSheet({
   containerRef: RefObject<HTMLElement | null>;
 }) {
   const [containerHeight, setContainerHeight] = useState(0);
-  const [snap, setSnap] = useState<SnapIndex>(1);
+  // Arranca en el snap más chico (a la altura de la tarjeta): el mapa queda
+  // lo más visible posible por defecto; antes arrancaba en el intermedio
+  // (0.58) y tapaba más mapa del necesario sin mostrar nada extra (Julieta,
+  // 2026-07-29).
+  const [snap, setSnap] = useState<SnapIndex>(0);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {

@@ -201,7 +201,18 @@ export default function MapPage() {
             return (
               <div
                 key={shift.id}
-                className="flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-float)] ring-1 ring-line"
+                // Toda la tarjeta postula (no sólo el botón): antes sólo el
+                // botón de abajo reaccionaba al toque y el resto de la
+                // tarjeta se sentía "muerta" (sin respuesta al tocar). El
+                // botón real de abajo sigue siendo el control accesible por
+                // teclado/lector de pantalla (por eso este div no lleva
+                // role="button"/tabIndex: anidar semántica interactiva sobre
+                // otro botón real sería inválido) — esto sólo suma el toque
+                // en el resto de la tarjeta para mouse/touch. El link al
+                // comercio y el botón cortan la propagación para no disparar
+                // la postulación al navegar/repetir la acción.
+                onClick={() => applyingId === null && apply(shift)}
+                className="flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] bg-white p-4 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98]"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -214,6 +225,7 @@ export default function MapPage() {
                       </h3>
                       <Link
                         href={`/companies/${shift.company_id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-xs font-medium text-ink/50"
                       >
                         {shift.company_name ?? "Comercio"}
@@ -256,16 +268,19 @@ export default function MapPage() {
                     })()}
                   </p>
                 )}
-                <Button
-                  fullWidth
-                  size="sm"
-                  className="mt-4"
-                  loading={applyingId === shift.id}
-                  disabled={applyingId !== null}
-                  onClick={() => apply(shift)}
-                >
-                  Me interesa
-                </Button>
+                {/* stopPropagation: sin esto, el toque también burbujea al
+                    onClick de la tarjeta y dispara `apply` dos veces. */}
+                <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    fullWidth
+                    size="sm"
+                    loading={applyingId === shift.id}
+                    disabled={applyingId !== null}
+                    onClick={() => apply(shift)}
+                  >
+                    Postularme
+                  </Button>
+                </div>
               </div>
             );
           })
