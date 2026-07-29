@@ -133,7 +133,7 @@ export default function WorkerProfileForm() {
         </div>
         {city && (
           <p className="mt-2 text-sm font-medium text-ink/70">
-            Tu zona: <span className="text-primary">{city}</span>
+            Tu zona: <span className="text-primary-text">{city}</span>
           </p>
         )}
       </div>
@@ -160,7 +160,7 @@ export default function WorkerProfileForm() {
               onClick={() => toggleSkill(skill)}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 skills.includes(skill)
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-ink"
                   : "bg-surface text-ink/70 hover:bg-line"
               }`}
             >
@@ -179,7 +179,7 @@ export default function WorkerProfileForm() {
         Disponible para tomar turnos
       </label>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-danger-text">{error}</p>}
       {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>

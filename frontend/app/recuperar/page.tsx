@@ -69,7 +69,7 @@ export default function RecuperarPage() {
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-primary">
+          <Link href="/login" className="font-semibold text-primary-text">
             Volver a ingresar
           </Link>
         </p>

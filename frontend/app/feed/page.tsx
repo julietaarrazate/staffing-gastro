@@ -188,7 +188,7 @@ export default function WorkerHomePage() {
         >
           <span
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              available ? "bg-secondary" : "bg-line"
+              available ? "bg-success" : "bg-line"
             }`}
           >
             <span
@@ -197,7 +197,7 @@ export default function WorkerHomePage() {
               }`}
             />
           </span>
-          <span className={`text-[11px] font-semibold ${available ? "text-secondary" : "text-ink/40"}`}>
+          <span className={`text-[11px] font-semibold ${available ? "text-success-text" : "text-ink/40"}`}>
             {available ? "Disponible" : "No disp."}
           </span>
         </button>

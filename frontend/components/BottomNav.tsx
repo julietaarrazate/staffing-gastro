@@ -67,7 +67,7 @@ export default function BottomNav() {
             // como se espera.
             replace
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
-              active ? "text-primary" : "text-ink/40"
+              active ? "text-primary-text" : "text-ink/40"
             }`}
           >
             <Icon size={22} />

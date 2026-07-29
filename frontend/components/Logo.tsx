@@ -79,7 +79,7 @@ export default function Logo({
       <LogoMark size={size} />
       {withWordmark && (
         <span className="text-xl font-extrabold tracking-tight text-ink">
-          staff<span className="text-primary">ya</span>
+          staff<span className="text-primary-text">ya</span>
         </span>
       )}
     </span>

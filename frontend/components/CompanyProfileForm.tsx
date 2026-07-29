@@ -149,12 +149,12 @@ export default function CompanyProfileForm() {
         </div>
         {city && (
           <p className="mt-2 text-sm font-medium text-ink/70">
-            Ubicación: <span className="text-primary">{city}</span>
+            Ubicación: <span className="text-primary-text">{city}</span>
           </p>
         )}
       </div>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-danger-text">{error}</p>}
       {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>

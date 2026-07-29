@@ -323,7 +323,7 @@ function NewShiftWizard() {
                     label="Urgente"
                     checked={urgent}
                     onChange={setUrgent}
-                    icon={<FlameIcon size={16} className="text-danger" />}
+                    icon={<FlameIcon size={16} className="text-danger-text" />}
                   />
                 </div>
                 <div className="mt-5">
@@ -348,7 +348,7 @@ function NewShiftWizard() {
                   />
                 </div>
                 {city && (
-                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary-text">
                     <MapPinIcon size={15} /> {city}
                   </p>
                 )}
@@ -427,7 +427,7 @@ function Toggle({
       <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink/80">
         {icon} {label}
       </span>
-      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-secondary" : "bg-line"}`}>
+      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-success" : "bg-line"}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
       </span>
     </button>

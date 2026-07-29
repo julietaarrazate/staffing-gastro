@@ -92,7 +92,7 @@ export default function ChatsPage() {
                 className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-line"
               />
             ) : (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg font-bold text-primary">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg font-bold text-primary-text">
                 {c.other_party_name.charAt(0).toUpperCase()}
               </div>
             )}
@@ -107,7 +107,7 @@ export default function ChatsPage() {
               <p className="truncate text-sm text-ink/60">{c.last_message}</p>
             </div>
             {c.unread_count > 0 && (
-              <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-white">
+              <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-ink">
                 {c.unread_count}
               </span>
             )}

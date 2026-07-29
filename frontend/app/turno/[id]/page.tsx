@@ -114,7 +114,7 @@ export default async function PublicShiftPage({
           </div>
 
           <div className="mt-5 rounded-2xl bg-surface px-4 py-3.5 text-center">
-            <p className="text-2xl font-extrabold text-primary">
+            <p className="text-2xl font-extrabold text-primary-text">
               {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
             <p className="text-xs font-medium text-ink/50">Pago ofrecido</p>
@@ -126,7 +126,7 @@ export default async function PublicShiftPage({
               no hacerlo elegir de más y no perderlo en la pestaña equivocada. */}
           <Link
             href="/register?rol=trabajador"
-            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-[0.98]"
+            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-full bg-primary px-6 text-base font-bold text-ink shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-[0.98]"
           >
             Postulate en Staffya
           </Link>

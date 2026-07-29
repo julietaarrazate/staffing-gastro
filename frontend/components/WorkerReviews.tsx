@@ -56,7 +56,7 @@ export default function WorkerReviews({ workerProfileId }: { workerProfileId: st
 
   if (error) {
     return (
-      <p className="text-sm text-danger">
+      <p className="text-sm text-danger-text">
         {error}{" "}
         <button
           type="button"

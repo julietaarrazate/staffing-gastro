@@ -48,7 +48,7 @@ export default function ShiftPublishedNextSteps({
   return (
     <Modal open={open} onClose={onClose}>
       <div className="flex flex-col items-center text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-primary">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-primary-text">
           <SparklesIcon size={26} />
         </span>
         <h3 className="mt-3 text-xl font-extrabold tracking-tight text-ink">¡Turno publicado!</h3>
@@ -62,7 +62,7 @@ export default function ShiftPublishedNextSteps({
               <span
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  i === 0 ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                  i === 0 ? "bg-primary text-ink" : "bg-orange-50 text-primary-text"
                 )}
               >
                 {i + 1}
@@ -73,7 +73,7 @@ export default function ShiftPublishedNextSteps({
               <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink">
                 {item.title}
                 {item.tag && (
-                  <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                  <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-text">
                     {item.tag}
                   </span>
                 )}

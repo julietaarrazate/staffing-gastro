@@ -28,11 +28,18 @@
 @theme {
   --color-primary: #ff6b00;
   --color-primary-strong: #e85f00;
+  /* Naranja cuando es TEXTO sobre claro. El de superficie (#ff6b00) da 2.86
+     sobre blanco y no llega al minimo AA de 4.5; este da 4.53. Mismo matiz,
+     oscurecido hasta el primer punto que cumple. Ver docs/COLOR_SYSTEM.md. */
+  --color-primary-text: #c65300;
   --color-ink: #111111;
-  --color-secondary: #22c55e;
   --color-success: #22c55e;
-  --color-warning: #fbbf24;
+  /* Verde como TEXTO sobre claro. Cumple AA tanto sobre blanco (4.89) como
+     sobre los tintes de los chips de estado, p. ej. green-50 (4.67). */
+  --color-success-text: #16823e;
   --color-danger: #ef4444;
+  /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
+  --color-danger-text: #d73d3d;
   --color-surface: #f1f3f5; /* relleno neutro tenue (chips, tracks, inputs idle) */
   --color-line: #ececee;
   --color-paper: #fbf8f4; /* fondo cálido de la landing (hero, franjas claras) */

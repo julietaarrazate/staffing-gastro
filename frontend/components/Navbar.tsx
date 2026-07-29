@@ -27,41 +27,41 @@ export default function Navbar() {
         <nav className="flex items-center gap-4 text-sm font-medium">
           {!loading && user?.role === "worker" && (
             <>
-              <Link href="/feed" replace className="hidden hover:text-primary md:inline">
+              <Link href="/feed" replace className="hidden hover:text-primary-text md:inline">
                 Turnos
               </Link>
-              <Link href="/my-shifts" replace className="hidden hover:text-primary md:inline">
+              <Link href="/my-shifts" replace className="hidden hover:text-primary-text md:inline">
                 Mis turnos
               </Link>
-              <Link href="/chats" replace className="hidden hover:text-primary md:inline">
+              <Link href="/chats" replace className="hidden hover:text-primary-text md:inline">
                 Mensajes
               </Link>
-              <Link href="/profile" replace className="hidden hover:text-primary md:inline">
+              <Link href="/profile" replace className="hidden hover:text-primary-text md:inline">
                 Mi perfil
               </Link>
             </>
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <Link href="/shifts" replace className="hidden hover:text-primary md:inline">
+              <Link href="/shifts" replace className="hidden hover:text-primary-text md:inline">
                 Mis turnos
               </Link>
-              <Link href="/search" replace className="hidden hover:text-primary md:inline">
+              <Link href="/search" replace className="hidden hover:text-primary-text md:inline">
                 Buscar
               </Link>
-              <Link href="/chats" replace className="hidden hover:text-primary md:inline">
+              <Link href="/chats" replace className="hidden hover:text-primary-text md:inline">
                 Mensajes
               </Link>
-              <Link href="/subscription" replace className="hidden hover:text-primary md:inline">
+              <Link href="/subscription" replace className="hidden hover:text-primary-text md:inline">
                 Mi plan
               </Link>
-              <Link href="/profile" replace className="hidden hover:text-primary md:inline">
+              <Link href="/profile" replace className="hidden hover:text-primary-text md:inline">
                 Mi comercio
               </Link>
             </>
           )}
           {!loading && user?.role === "admin" && (
-            <Link href="/admin" className="hidden hover:text-primary md:inline">
+            <Link href="/admin" className="hidden hover:text-primary-text md:inline">
               Administración
             </Link>
           )}
@@ -76,12 +76,12 @@ export default function Navbar() {
           )}
           {!loading && !user && (
             <>
-              <Link href="/login" className="hover:text-primary">
+              <Link href="/login" className="hover:text-primary-text">
                 Ingresar
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-primary px-3.5 py-1.5 text-white shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
+                className="rounded-full bg-primary px-3.5 py-1.5 text-ink shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
               >
                 Crear cuenta
               </Link>

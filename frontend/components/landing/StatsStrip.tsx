@@ -63,7 +63,7 @@ export default function StatsStrip() {
       <div className="grid grid-cols-1 gap-8 rounded-[var(--radius-card)] bg-white p-8 shadow-[var(--shadow-soft)] ring-1 ring-line sm:grid-cols-2 sm:gap-6 sm:p-10">
         {STATS.map((s) => (
           <div key={s.label} className="text-center">
-            <p className="text-4xl font-extrabold tracking-tight text-primary tabular-nums sm:text-5xl">
+            <p className="text-4xl font-extrabold tracking-tight text-primary-text tabular-nums sm:text-5xl">
               <Counter value={s.value} suffix={s.suffix} />
             </p>
             <p className="mx-auto mt-2 max-w-[22ch] text-sm font-medium text-ink/60">{s.label}</p>

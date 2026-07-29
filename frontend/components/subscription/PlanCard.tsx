@@ -47,7 +47,7 @@ export default function PlanCard({
       <ul className="mt-4 flex flex-1 flex-col gap-2">
         {plan.features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-sm text-ink/60">
-            <CheckIcon size={16} className="mt-0.5 shrink-0 text-secondary" />
+            <CheckIcon size={16} className="mt-0.5 shrink-0 text-success-text" />
             {feature}
           </li>
         ))}

@@ -15,13 +15,13 @@ const POINTS = [
 export default function GuaranteeCard() {
   return (
     <div className="rounded-[var(--radius-card)] bg-orange-50 p-4 ring-1 ring-orange-100">
-      <p className="flex items-center gap-2 font-bold text-primary">
+      <p className="flex items-center gap-2 font-bold text-primary-text">
         <ShieldIcon size={18} /> Garantía Staffya
       </p>
       <ul className="mt-2.5 space-y-1.5">
         {POINTS.map((point) => (
           <li key={point} className="flex items-start gap-2 text-sm text-ink/75">
-            <CheckIcon size={16} className="mt-0.5 shrink-0 text-primary" />
+            <CheckIcon size={16} className="mt-0.5 shrink-0 text-primary-text" />
             {point}
           </li>
         ))}

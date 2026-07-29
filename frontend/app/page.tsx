@@ -123,7 +123,7 @@ export default function Home() {
             </span>
 
             <h1 className="mx-auto mt-6 max-w-3xl text-5xl font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-7xl">
-              Personal gastronómico, <span className="text-primary">ya</span>.
+              Personal gastronómico, <span className="text-primary-text">ya</span>.
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-lg text-ink/60">
@@ -138,7 +138,7 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/register?rol=comercio"
-                className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-95 hover:brightness-[1.04]"
+                className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition active:scale-95 hover:brightness-[1.04]"
               >
                 Necesito personal
               </Link>
@@ -186,7 +186,7 @@ export default function Home() {
               <ParallaxCard range={PARALLAX_RANGES[0]}>
                 <motion.div
                   whileHover={{ y: -4 }}
-                  className="flex h-full flex-col justify-between rounded-[var(--radius-card)] bg-primary p-6 text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition"
+                  className="flex h-full flex-col justify-between rounded-[var(--radius-card)] bg-primary p-6 text-ink shadow-[0_8px_20px_rgba(255,107,0,0.28)] transition"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
                     <HERO_FEATURE.Icon size={22} />
@@ -247,7 +247,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 text-center">
           {/* `.no-select`: wordmark de marca, chrome, no texto de lectura. */}
           <span className="no-select text-xl font-extrabold tracking-tight">
-            staff<span className="text-primary">ya</span>
+            staff<span className="text-primary-text">ya</span>
           </span>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70">
             <Link href="/login" className="hover:text-white">

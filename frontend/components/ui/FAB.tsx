@@ -29,7 +29,7 @@ export default function FAB({
     <motion.span
       whileTap={{ scale: 0.92 }}
       className={cn(
-        "fixed bottom-24 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-5 font-bold text-white shadow-[0_12px_28px_rgba(255,107,0,0.4)]",
+        "fixed bottom-24 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-5 font-bold text-ink shadow-[0_12px_28px_rgba(255,107,0,0.4)]",
         label ? "h-14" : "h-14 w-14 justify-center px-0",
         className
       )}

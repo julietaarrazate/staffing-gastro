@@ -212,7 +212,7 @@ export default function MyShiftsPage() {
         </div>
         <Link
           href="/shifts/new"
-          className="shrink-0 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(255,107,0,0.3)] transition active:scale-95"
+          className="shrink-0 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(255,107,0,0.3)] transition active:scale-95"
         >
           + Publicar
         </Link>

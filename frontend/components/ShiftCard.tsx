@@ -19,17 +19,17 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
 // turnos cancelados/aceptados se veían iguales).
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-surface text-ink/60",
-  publicado: "bg-orange-50 text-primary",
-  buscando_personal: "bg-orange-50 text-primary",
-  asignado: "bg-orange-50 text-primary",
-  confirmado: "bg-green-50 text-secondary",
-  en_camino: "bg-orange-50 text-primary",
-  check_in: "bg-orange-50 text-primary",
-  trabajando: "bg-orange-50 text-primary",
-  check_out: "bg-orange-50 text-primary",
-  finalizado: "bg-green-50 text-secondary",
-  pagado: "bg-green-50 text-secondary",
-  cancelado: "bg-red-50 text-danger",
+  publicado: "bg-orange-50 text-primary-text",
+  buscando_personal: "bg-orange-50 text-primary-text",
+  asignado: "bg-orange-50 text-primary-text",
+  confirmado: "bg-green-50 text-success-text",
+  en_camino: "bg-orange-50 text-primary-text",
+  check_in: "bg-orange-50 text-primary-text",
+  trabajando: "bg-orange-50 text-primary-text",
+  check_out: "bg-orange-50 text-primary-text",
+  finalizado: "bg-green-50 text-success-text",
+  pagado: "bg-green-50 text-success-text",
+  cancelado: "bg-red-50 text-danger-text",
 };
 
 // Estados terminales: la tarjeta entera se atenúa (opacity) para que, en una
@@ -94,7 +94,7 @@ export default function ShiftCard({
             </div>
           </div>
           {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-danger">
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-danger-text">
               <FlameIcon size={13} /> Urgente
             </span>
           )}
@@ -109,7 +109,7 @@ export default function ShiftCard({
             {STATUS_LABELS[shift.status]}
           </span>
           <div className="text-right">
-            <p className="text-xl font-extrabold text-primary">
+            <p className="text-xl font-extrabold text-primary-text">
               {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
             {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}

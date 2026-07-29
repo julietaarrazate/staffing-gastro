@@ -109,7 +109,7 @@ function RegisterForm() {
                   href="/terminos"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-primary hover:underline"
+                  className="font-semibold text-primary-text hover:underline"
                 >
                   Términos y Condiciones
                 </Link>{" "}
@@ -118,13 +118,13 @@ function RegisterForm() {
                   href="/privacidad"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-primary hover:underline"
+                  className="font-semibold text-primary-text hover:underline"
                 >
                   Política de Privacidad
                 </Link>
               </span>
             </label>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-sm text-danger-text">{error}</p>}
             <Button type="submit" fullWidth loading={submitting} disabled={!acceptedTerms}>
               Crear cuenta
             </Button>
@@ -138,7 +138,7 @@ function RegisterForm() {
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿Ya tenés cuenta?{" "}
-          <Link href="/login" className="font-semibold text-primary">
+          <Link href="/login" className="font-semibold text-primary-text">
             Ingresá
           </Link>
         </p>
@@ -147,7 +147,7 @@ function RegisterForm() {
             sin salida visible. */}
         <p className="mt-2 text-center text-sm text-ink/50">
           ¿Olvidaste tu contraseña?{" "}
-          <Link href="/recuperar" className="font-semibold text-primary">
+          <Link href="/recuperar" className="font-semibold text-primary-text">
             Recuperala
           </Link>
         </p>

@@ -278,7 +278,7 @@ export default function MatchesPage() {
                 )}
                 {(shift.status === "finalizado" || shift.status === "pagado") && (
                   <div className="flex flex-col gap-2">
-                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary">
+                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
                       <CheckIcon size={16} /> {shift.status === "pagado" ? "Turno pagado" : "Turno finalizado"}
                     </p>
                     <ReviewBox shiftId={shift.id} />
@@ -305,7 +305,7 @@ export default function MatchesPage() {
               return (
                 <ShiftCard key={application.id} shift={shift} perspective="worker">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary">
+                    <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary-text">
                       <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
                     </p>
                     {/* Compartir a un colega: este turno sigue abierto, pasarlo

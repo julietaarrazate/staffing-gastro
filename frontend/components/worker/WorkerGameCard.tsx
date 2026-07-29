@@ -34,7 +34,7 @@ function StatTile({
 }) {
   return (
     <div className="flex flex-col items-center gap-1 rounded-2xl bg-surface px-2 py-3 text-center">
-      <span className="text-primary">{icon}</span>
+      <span className="text-primary-text">{icon}</span>
       <span className="text-lg font-extrabold leading-none text-ink">{value}</span>
       <span className="text-[11px] font-medium text-ink/50">{label}</span>
     </div>
@@ -125,7 +125,7 @@ export default function WorkerGameCard() {
               return (
                 <span
                   key={badge}
-                  className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-primary"
+                  className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-primary-text"
                 >
                   <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
                 </span>

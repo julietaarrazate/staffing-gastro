@@ -8,12 +8,16 @@ type Variant = "primary" | "dark" | "secondary" | "danger" | "surface" | "ghost"
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
+  // Texto ink sobre el naranja de marca: 6.61 de contraste (AA), contra 2.86
+  // del blanco, que no llegaba ni al minimo de texto grande. La decision de
+  // que el boton siga siendo NARANJA (y no ink) sale de ART_DIRECTION §6.2:
+  // "el naranja marca la accion principal". Ver docs/COLOR_SYSTEM.md §2.3.
   primary:
-    "bg-primary text-white shadow-[0_8px_20px_rgba(255,107,0,0.28)] hover:brightness-[1.04]",
+    "bg-primary text-ink shadow-[0_8px_20px_rgba(255,107,0,0.28)] hover:brightness-[1.04]",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-ink text-white hover:brightness-150",
   secondary:
-    "bg-secondary text-white shadow-[0_8px_20px_rgba(34,197,94,0.25)] hover:brightness-[1.04]",
+    "bg-success text-white shadow-[0_8px_20px_rgba(34,197,94,0.25)] hover:brightness-[1.04]",
   danger: "bg-danger text-white shadow-[0_8px_20px_rgba(239,68,68,0.22)] hover:brightness-[1.04]",
   surface: "bg-white text-ink ring-1 ring-line hover:bg-surface",
   ghost: "bg-transparent text-ink/80 hover:bg-surface",

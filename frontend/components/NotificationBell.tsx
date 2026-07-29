@@ -98,7 +98,7 @@ export default function NotificationBell() {
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-ink">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -117,7 +117,7 @@ export default function NotificationBell() {
               </>
             )}
             {!loading && error && (
-              <div className="px-4 py-6 text-center text-sm text-danger">
+              <div className="px-4 py-6 text-center text-sm text-danger-text">
                 <p>{error}</p>
                 <button
                   type="button"

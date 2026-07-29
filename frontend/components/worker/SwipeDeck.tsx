@@ -111,13 +111,13 @@ export default function SwipeDeck({
 
           <motion.div
             style={{ opacity: likeOpacity }}
-            className="pointer-events-none absolute left-5 top-6 -rotate-12 rounded-xl border-4 border-secondary px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-secondary"
+            className="pointer-events-none absolute left-5 top-6 -rotate-12 rounded-xl border-4 border-success px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-success"
           >
             Me interesa
           </motion.div>
           <motion.div
             style={{ opacity: nopeOpacity }}
-            className="pointer-events-none absolute right-5 top-6 rotate-12 rounded-xl border-4 border-danger px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-danger"
+            className="pointer-events-none absolute right-5 top-6 rotate-12 rounded-xl border-4 border-danger px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-danger-text"
           >
             No
           </motion.div>
@@ -132,7 +132,7 @@ export default function SwipeDeck({
           onClick={() => decide("pass")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
         >
           <CrossIcon />
         </motion.button>
@@ -142,7 +142,7 @@ export default function SwipeDeck({
           onClick={() => decide("like")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
+          className="flex h-20 w-20 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
         >
           <CheckIcon size={34} />
         </motion.button>

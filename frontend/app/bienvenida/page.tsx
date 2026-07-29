@@ -136,7 +136,7 @@ export default function BienvenidaPage() {
                   onClick={() => toggleSkill(skill)}
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
                     active
-                      ? "bg-primary text-white"
+                      ? "bg-primary text-ink"
                       : "bg-white/10 text-white/80 ring-1 ring-white/15"
                   }`}
                 >
