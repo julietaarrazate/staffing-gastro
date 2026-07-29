@@ -7,9 +7,9 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
-import { ErrorBanner, Skeleton } from "@/components/ui";
+import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
-import { MapPinIcon } from "@/components/icons";
+import { MapPinIcon, RouteIcon } from "@/components/icons";
 
 function ProfilePageSkeleton() {
   return (
@@ -139,6 +139,26 @@ export default function PublicCompanyProfilePage() {
             {profile.opening_hours && <Metric label="Horario" value={profile.opening_hours} />}
             {profile.address && <Metric label="Dirección" value={profile.address} />}
           </div>
+
+          {/* Acá también hace falta saber si conviene ir, antes de postularse
+              a un turno de este comercio (Julieta, 2026-07-29). */}
+          {profile.latitude != null && profile.longitude != null && (
+            <Button
+              variant="surface"
+              fullWidth
+              className="mt-4"
+              leftIcon={<RouteIcon size={16} />}
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&destination=${profile.latitude},${profile.longitude}`,
+                  "_blank",
+                  "noopener,noreferrer"
+                )
+              }
+            >
+              Cómo llegar
+            </Button>
+          )}
         </div>
       </div>
     </div>

@@ -125,13 +125,15 @@ export default function OpportunityCard({
       </div>
 
       {/* Cuerpo: ya no compite con el hero por el alto (el hero ahora es fijo,
-          arriba), así que le queda garantizado ~62% de la tarjeta. Se
-          descartó agregar overflow-y-auto acá como red de seguridad extra:
-          en la práctica atrapaba la rueda del mouse (cualquier scroll sobre
-          una tarjeta de la grilla quedaba "pegado" tratando de scrollear ese
-          pedacito interno en vez de la página completa) — un problema peor
-          que el que resolvía. */}
-      <div className="flex flex-1 flex-col justify-between gap-3 p-5 pt-4">
+          arriba). `overflow-y-auto` sólo por debajo de `md` — en mobile el
+          mazo mide su alto contra el viewport real y con "Cómo llegar" +
+          share sumados, algunos dispositivos igual se quedan cortos (bug real
+          confirmado con captura, Julieta 2026-07-29): esto scrollea en vez de
+          recortar en silencio. En `md+` se saca (`md:overflow-visible`) — ahí
+          la tarjeta ya tiene un alto fijo generoso (grilla de escritorio) y un
+          overflow-y-auto anidado atrapaba la rueda del mouse (confirmado
+          antes: rompía el scroll de toda la grilla). */}
+      <div className="flex flex-1 flex-col justify-between gap-3 overflow-y-auto p-5 pt-4 md:overflow-visible">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
