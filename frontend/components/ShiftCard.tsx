@@ -22,13 +22,13 @@ const STATUS_COLORS: Record<string, string> = {
   publicado: "bg-orange-50 text-primary-text",
   buscando_personal: "bg-orange-50 text-primary-text",
   asignado: "bg-orange-50 text-primary-text",
-  confirmado: "bg-green-50 text-secondary",
+  confirmado: "bg-green-50 text-success-text",
   en_camino: "bg-orange-50 text-primary-text",
   check_in: "bg-orange-50 text-primary-text",
   trabajando: "bg-orange-50 text-primary-text",
   check_out: "bg-orange-50 text-primary-text",
-  finalizado: "bg-green-50 text-secondary",
-  pagado: "bg-green-50 text-secondary",
+  finalizado: "bg-green-50 text-success-text",
+  pagado: "bg-green-50 text-success-text",
   cancelado: "bg-red-50 text-danger-text",
 };
 

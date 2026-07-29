@@ -102,7 +102,7 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
 
   // "Confirmado" usa el verde de marca (text-secondary), sin atenuar (no es terminal el estilo, sigue activo/vivo).
   const confirmadoChip = page.getByText("Confirmado", { exact: true }).first();
-  await expect(confirmadoChip).toHaveClass(/text-secondary/);
+  await expect(confirmadoChip).toHaveClass(/text-success-text/);
   const confirmadoCard = page.locator(".no-select", { has: confirmadoChip }).first();
   await expect(confirmadoCard).not.toHaveClass(/opacity-65/);
 

@@ -177,7 +177,7 @@ export default function AdminPage() {
                     <p className="flex items-center gap-1.5 truncate font-semibold text-ink">
                       {u.full_name}
                       {u.is_verified && (
-                        <CheckCircleIcon size={15} className="text-secondary" />
+                        <CheckCircleIcon size={15} className="text-success-text" />
                       )}
                     </p>
                     <p className="truncate text-xs text-ink/50">{u.email}</p>
