@@ -30,6 +30,9 @@ export default function Navbar() {
               <Link href="/feed" replace className="hidden hover:text-primary-text md:inline">
                 Turnos
               </Link>
+              <Link href="/map" replace className="hidden hover:text-primary-text md:inline">
+                Mapa
+              </Link>
               <Link href="/my-shifts" replace className="hidden hover:text-primary-text md:inline">
                 Mis turnos
               </Link>
