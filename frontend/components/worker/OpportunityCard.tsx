@@ -7,8 +7,10 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { Avatar } from "@/components/ui";
 import {
   CalendarIcon,
+  CloseIcon,
   FlameIcon,
   MapPinIcon,
+  RouteIcon,
   ShareIcon,
   UsersIcon,
   WalletIcon,
@@ -17,7 +19,6 @@ import { formatShiftRange } from "@/lib/datetime";
 import { shareShift } from "@/lib/shift-share";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
-import { CloseIcon } from "@/components/icons";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first estilo Airbnb): foto real
@@ -61,7 +62,7 @@ export default function OpportunityCard({
           lleva TODO el resto — con su propio scroll de respaldo (ver abajo)
           para cualquier combinación de contenido/pantalla que igual no
           entre. */}
-      <div className="relative h-[38%] min-h-[140px] shrink-0">
+      <div className="relative h-[42%] min-h-[168px] shrink-0">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -81,26 +82,34 @@ export default function OpportunityCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/25" />
         )}
 
-        {/* Top: comercio + urgente */}
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3.5">
+        {/* Top: comercio + urgente. `truncate` en el nombre del comercio (antes
+            sin tope: un nombre largo envolvía a 2 líneas y se superponía con
+            el título de abajo — bug real reportado por Julieta con captura,
+            "Catering Puerto Madero" pisando "Personal de eventos", 2026-07-29). */}
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3.5">
           <Link
             href={`/companies/${shift.company_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-sm backdrop-blur"
+            className="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-sm backdrop-blur"
           >
             <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
-            <span className="text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+            <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
           </Link>
           {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm backdrop-blur">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm backdrop-blur">
               <FlameIcon size={13} /> Urgente
             </span>
           )}
         </div>
 
-        {/* Bottom: puesto + ubicación */}
+        {/* Bottom: puesto + ubicación. `line-clamp-2` tope al título (algunos
+            rubros, "Personal de eventos"/"Ayudante de cocina", ya ocupan 2
+            líneas en columnas angostas) para que nunca crezca más de lo que
+            el hero tiene reservado. */}
         <div className="absolute inset-x-0 bottom-0 p-5">
-          <h2 className={`text-3xl font-extrabold leading-tight ${hasPhoto ? "text-white drop-shadow" : "text-ink"}`}>
+          <h2
+            className={`line-clamp-2 text-3xl font-extrabold leading-tight ${hasPhoto ? "text-white drop-shadow" : "text-ink"}`}
+          >
             {SKILL_LABELS[shift.position]}
           </h2>
           <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${hasPhoto ? "text-white/90" : "text-ink/60"}`}>
@@ -152,6 +161,30 @@ export default function OpportunityCard({
             {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
           </div>
 
+          {/* "Cómo llegar" ACÁ, antes de decidir: quien ve la oferta necesita
+              saber si le conviene ir ANTES de postularse, no recién cuando ya
+              lo asignaron (antes sólo estaba en /my-shifts, con el turno ya
+              aceptado — al revés de lo que hace falta; Julieta, 2026-07-29).
+              stopPropagation para no interferir con el swipe/drag del mazo. */}
+          {shift.latitude != null && shift.longitude != null && (
+            <button
+              type="button"
+              aria-label="Cómo llegar"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
+                  "_blank",
+                  "noopener,noreferrer"
+                );
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-white py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+            >
+              <RouteIcon size={16} /> Cómo llegar
+            </button>
+          )}
+
           {/* Decidir sin swipe (grilla de escritorio): mismo par de acciones
               que el mazo mobile, como botones directos. */}
           {(onApply || onPass) && (
@@ -176,10 +209,12 @@ export default function OpportunityCard({
           )}
 
           {/* Compartir a un colega que esté buscando trabajo (WhatsApp/share
-              sheet → página pública del turno). Botón claro y etiquetado, no un
-              ícono suelto. stopPropagation en pointer/click para que el gesto no
-              arranque el drag del SwipeDeck ni cuente como swipe. Estilo neutro
-              (blanco/ink): el único acento naranja de la tarjeta es el pago. */}
+              sheet → página pública del turno). Verde (mismo que ya usa
+              `ShareShiftButton` en /turno/[id], variant="secondary" = éxito):
+              antes este botón puntual quedaba crema/beige, inconsistente con
+              el resto de los botones de WhatsApp de la app (Julieta,
+              2026-07-29). stopPropagation en pointer/click para que el gesto
+              no arranque el drag del SwipeDeck ni cuente como swipe. */}
           <button
             type="button"
             aria-label="Compartir turno por WhatsApp"
@@ -188,7 +223,7 @@ export default function OpportunityCard({
               e.stopPropagation();
               shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-surface py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-success py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(34,197,94,0.25)] active:scale-[0.98] hover:brightness-[1.04]"
           >
             <ShareIcon size={16} /> Compartir por WhatsApp
           </button>
