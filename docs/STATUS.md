@@ -46,14 +46,32 @@ queda flotando en el medio de la pantalla.
    más variable — mini-mapa, stepper, ReviewBox condicional — forzar una
    altura hubiera recortado contenido real). Mobile sin cambios.
 
+4. **`/search`** (#128, buscador de trabajadores del comercio): tenía el mismo
+   patrón mapa+BottomSheet que el viejo `/map` — el sheet mobile se estiraba
+   en desktop dejando media pantalla vacía. Mismo fix que `/map`: panel
+   lateral fijo (`md:flex`, filtros + lista de trabajadores) + mapa al lado;
+   en mobile no cambia (filtros flotantes + BottomSheet). El conteo aparece
+   ahora dos veces en el DOM (panel + sheet, cada uno visible en su
+   breakpoint) — `search-sheet-overscroll.spec.ts` ajustado con
+   `.filter({ visible: true })`.
+
 **Pendientes, en orden de valor** (siguiente sesión puede arrancar por acá):
 
-4. **`/search`** (buscador de trabajadores del comercio) — tiene un patrón de
-   mapa+sheet parecido al viejo `/map`, probablemente el mismo problema.
 5. **`/my-shifts`** (matches del trabajador).
 6. **`/chats`**.
 7. Resto: `/profile`, `/shifts/new` (wizard), `/shifts/[id]/candidates`,
    `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
+
+**Invariante de negocio a proteger (anti-avivada, decisión de Julieta
+2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno
+publicado — el chat siempre es `/chats/{shift_id}`, nunca hay un botón de
+"escribile"/"contactar" suelto en el perfil del trabajador (`/workers/[id]`).
+Ese es el candado que hace defendible el cobro por publicación (el comercio no
+puede contactar sin haber publicado = gastado plan). Postularse es gratis para
+el trabajador (buena liquidez de oferta) y publicar es exclusivo del comercio.
+No introducir nunca un atajo de chat desde el perfil sin turno. Agotar el plan
+sólo bloquea publicar turnos NUEVOS; los ya publicados siguen recibiendo
+postulantes y permitiendo chat (por ese turno ya se pagó).
 
 **Bug de UX real encontrado y corregido en el camino (#124):** el primer fix
 de `/map` (#122) hizo que **toda la tarjeta** dispare la postulación al

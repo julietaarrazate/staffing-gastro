@@ -76,7 +76,13 @@ test("el root del documento y la lista del bottom sheet de /search contienen el 
   await mockEmployerSearch(page);
 
   await page.goto("/search");
-  await expect(page.getByText(/trabajador(es)? disponible/)).toBeVisible();
+  // El conteo aparece dos veces en el DOM (panel lateral desktop + header del
+  // BottomSheet mobile, cada uno visible sólo en su breakpoint) desde el
+  // layout responsive de /search. En el viewport mobile del test el panel
+  // desktop está `hidden`, así que filtramos por el que efectivamente se ve.
+  await expect(
+    page.getByText(/trabajador(es)? disponible/).filter({ visible: true })
+  ).toBeVisible();
 
   const htmlOverscroll = await page.evaluate(
     () => getComputedStyle(document.documentElement).overscrollBehaviorY
