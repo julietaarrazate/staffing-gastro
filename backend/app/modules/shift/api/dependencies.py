@@ -16,7 +16,7 @@ from app.modules.company.domain.exceptions import CompanyProfileNotFoundError
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
-from app.modules.identity.api.dependencies import require_roles
+from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
@@ -36,6 +36,7 @@ from app.modules.subscription.infrastructure.repositories import (
 from app.modules.worker.api.dependencies import get_worker_service
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.exceptions import WorkerProfileNotFoundError
+from app.modules.worker.domain.value_objects import WorkerSkill
 from app.modules.worker.infrastructure.repositories import (
     SqlAlchemyWorkerProfileRepository,
 )
@@ -91,3 +92,23 @@ async def get_my_worker_profile_id(
             detail="Primero creá tu perfil de trabajador",
         ) from exc
     return profile.id
+
+
+async def get_my_worker_skills(
+    current_user: Annotated[User, Depends(get_current_user)],
+    worker_service: Annotated[WorkerProfileService, Depends(get_worker_service)],
+) -> list[WorkerSkill] | None:
+    """Rubros del perfil del trabajador autenticado, o `None` si no aplica.
+
+    A diferencia de `get_my_worker_profile_id`, nunca tira error: la usa el
+    feed (`GET /shifts/feed`) para filtrar por relevancia sin romperle la
+    pantalla a nadie que no sea trabajador con perfil completo (comercio,
+    trabajador recién registrado sin perfil todavía, etc. simplemente no
+    filtran)."""
+    if current_user.role != UserRole.WORKER:
+        return None
+    try:
+        profile = await worker_service.get_my_profile(current_user.id)
+    except WorkerProfileNotFoundError:
+        return None
+    return profile.skills or None

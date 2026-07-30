@@ -46,11 +46,18 @@ class ShiftRepository(ABC):
         *,
         city: str | None = None,
         position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
         urgent: bool | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Shift]:
-        """Lista los turnos abiertos del feed público, con filtros opcionales (paginado)."""
+        """Lista los turnos abiertos del feed público, con filtros opcionales (paginado).
+
+        `position` filtra por un rubro puntual (override explícito, por
+        ejemplo un filtro manual en la UI); `positions` filtra por varios a
+        la vez (los rubros que eligió el trabajador en su perfil, para que
+        el feed sólo le muestre lo que le sirve — ver `ShiftService.list_feed`).
+        """
 
     @abstractmethod
     async def list_by_worker(

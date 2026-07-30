@@ -627,12 +627,18 @@ class ShiftService:
         *,
         city: str | None = None,
         position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
         urgent: bool | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Shift]:
         return await self._shifts.list_open(
-            city=city, position=position, urgent=urgent, limit=limit, offset=offset
+            city=city,
+            position=position,
+            positions=positions,
+            urgent=urgent,
+            limit=limit,
+            offset=offset,
         )
 
     async def _get_owned(self, company_id: UUID, shift_id: UUID) -> Shift:

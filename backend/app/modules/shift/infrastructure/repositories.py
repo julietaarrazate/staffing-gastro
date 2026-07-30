@@ -161,6 +161,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         *,
         city: str | None = None,
         position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
         urgent: bool | None = None,
         limit: int = 50,
         offset: int = 0,
@@ -172,6 +173,8 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             stmt = stmt.where(func.lower(ShiftModel.city) == city.lower())
         if position is not None:
             stmt = stmt.where(ShiftModel.position == position.value)
+        elif positions is not None:
+            stmt = stmt.where(ShiftModel.position.in_([p.value for p in positions]))
         if urgent is not None:
             stmt = stmt.where(ShiftModel.urgent.is_(urgent))
         # Urgentes primero, luego los más recientes.
