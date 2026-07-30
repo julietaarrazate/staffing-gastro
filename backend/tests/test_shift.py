@@ -218,6 +218,46 @@ async def test_feed_filters_by_position(client: AsyncClient):
     assert positions == {"bartender"}
 
 
+async def test_feed_filters_by_worker_skills(client: AsyncClient):
+    """El feed sólo muestra los rubros que el trabajador eligió en su perfil
+    (Julieta, 2026-07-30): antes le llegaba de cualquier rubro, aunque no le
+    sirviera (a un mozo le aparecía una oferta de cocinero)."""
+    employer_headers = await _employer_with_company(client, "emp_skills@staffya.com")
+    for position in ("mozo", "cocinero"):
+        created = await client.post(
+            "/api/v1/shifts",
+            headers=employer_headers,
+            json=_shift_payload(position=position, city="SkillsCity"),
+        )
+        await client.post(
+            f"/api/v1/shifts/{created.json()['id']}/publish", headers=employer_headers
+        )
+
+    # `_worker_with_profile` (abajo) crea el perfil con skills=["mozo"].
+    worker_headers, _ = await _worker_with_profile(client, "w_skills@staffya.com")
+    feed = await client.get(
+        "/api/v1/shifts/feed", headers=worker_headers, params={"city": "SkillsCity"}
+    )
+    assert feed.status_code == 200
+    assert {s["position"] for s in feed.json()} == {"mozo"}
+
+    # Un filtro explícito de `position` sigue funcionando como override manual,
+    # aunque no matchee los rubros del perfil.
+    override = await client.get(
+        "/api/v1/shifts/feed",
+        headers=worker_headers,
+        params={"city": "SkillsCity", "position": "cocinero"},
+    )
+    assert override.status_code == 200
+    assert {s["position"] for s in override.json()} == {"cocinero"}
+
+    # Un comercio (no es un trabajador con perfil) sigue viendo todo, sin filtrar.
+    employer_feed = await client.get(
+        "/api/v1/shifts/feed", headers=employer_headers, params={"city": "SkillsCity"}
+    )
+    assert {s["position"] for s in employer_feed.json()} == {"mozo", "cocinero"}
+
+
 async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, str]:
     headers = await auth_headers(client, "worker", email)
     profile = await client.post(

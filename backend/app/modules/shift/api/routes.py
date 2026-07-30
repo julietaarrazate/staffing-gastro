@@ -13,6 +13,7 @@ from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import (
     get_my_company_id,
     get_my_worker_profile_id,
+    get_my_worker_skills,
     get_shift_service,
 )
 from app.modules.shift.api.schemas import (
@@ -117,14 +118,25 @@ async def feed(
     service: ServiceDep,
     companies: CompaniesDep,
     _current_user: AuthUserDep,
+    my_skills: Annotated[list[WorkerSkill] | None, Depends(get_my_worker_skills)],
     city: Annotated[str | None, Query()] = None,
     position: Annotated[WorkerSkill | None, Query()] = None,
     urgent: Annotated[bool | None, Query()] = None,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
+    # Sin filtro explícito de `position`, el feed sólo muestra los rubros que
+    # el trabajador eligió en su perfil — antes le llegaban ofertas de
+    # cualquier rubro (a un cajero/bartender le aparecía una de cocinero),
+    # ruido puro (Julieta, 2026-07-30). Si no tiene perfil o no eligió
+    # ninguno todavía, no se filtra (mismo comportamiento de siempre).
     shifts = await service.list_feed(
-        city=city, position=position, urgent=urgent, limit=limit, offset=offset
+        city=city,
+        position=position,
+        positions=None if position is not None else my_skills,
+        urgent=urgent,
+        limit=limit,
+        offset=offset,
     )
     return await _with_company_info(shifts, companies)
 
