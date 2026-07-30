@@ -62,14 +62,20 @@ export default function ShiftCard({
     <div
       data-testid="shift-card"
       data-shift-id={shift.id}
-      className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
+      // Antes tenía `overflow-hidden` (sólo para redondear la esquina de arriba
+      // del link al comercio). Eso también cortaba cualquier hijo que necesite
+      // salirse de la tarjeta — el menú "Más" de ShiftActions, que es un
+      // dropdown `position: absolute`, quedaba tapado/recortado en una tira
+      // finita en vez de mostrarse completo (bug real con captura, Julieta
+      // 2026-07-29). El link de arriba ahora redondea sus propias esquinas.
+      className={`no-select rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
         isTerminal ? "opacity-65 saturate-[0.85]" : ""
       }`}
     >
       {shift.company_name && (
         <Link
           href={`/companies/${shift.company_id}`}
-          className="flex items-center gap-2 border-b border-line px-5 py-2.5 hover:bg-surface"
+          className="flex items-center gap-2 rounded-t-[var(--radius-card)] border-b border-line px-5 py-2.5 hover:bg-surface"
         >
           <Avatar src={shift.company_logo_url} name={shift.company_name} size="sm" />
           <span className="text-sm font-semibold text-ink/80">{shift.company_name}</span>
