@@ -30,6 +30,10 @@ interface AuthState {
     role?: "worker" | "employer"
   ) => Promise<GoogleLoginResult>;
   logout: () => void;
+  /** Cambia el nombre del usuario autenticado (único dato de identidad
+   *  editable desde el perfil — ni el registro por email ni el acceso con
+   *  Google dejaban forma de corregirlo, Julieta 2026-07-30). */
+  updateFullName: (fullName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -204,6 +208,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { requiresRole: false };
   }
 
+  async function updateFullName(fullName: string) {
+    if (!token) return;
+    const updated = await api.patch<User>("/auth/me", { full_name: fullName }, token);
+    setUser(updated);
+  }
+
   function logout() {
     clearTokens();
     setToken(null);
@@ -215,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, loginWithGoogle, logout }}
+      value={{ user, token, loading, login, register, loginWithGoogle, logout, updateFullName }}
     >
       {children}
     </AuthContext.Provider>

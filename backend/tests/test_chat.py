@@ -243,6 +243,7 @@ def test_chat_websocket_pushes_new_messages():
                 },
             )
             assert worker_register.status_code == 201
+            worker_user_id = worker_register.json()["id"]
             worker_login = client.post(
                 "/api/v1/auth/login",
                 json={"email": "ws_worker@staffya.com", "password": "supersecreta123"},
@@ -286,6 +287,18 @@ def test_chat_websocket_pushes_new_messages():
                 )
                 received = ws.receive_json()
                 assert received["body"] == "¡Llegó tu turno!"
+                assert received["type"] == "message"
+
+                # El trabajador lee la conversación (GET marca como leído lo
+                # que no mandó él): el comercio se entera en vivo, por el
+                # mismo socket, de que ya se lo vieron (confirmación de
+                # lectura, Julieta 2026-07-30).
+                read = client.get(
+                    f"/api/v1/chats/{shift_id}/messages", headers=worker_headers
+                )
+                assert read.status_code == 200
+                read_event = ws.receive_json()
+                assert read_event == {"type": "read", "reader_user_id": worker_user_id}
 
             # Sin token, el handshake se rechaza.
             with pytest.raises(WebSocketDisconnect):

@@ -186,6 +186,19 @@ class IdentityService:
             raise InactiveUserError()
         return user
 
+    async def update_full_name(self, user_id: UUID, full_name: str) -> User:
+        """Cambia el nombre del usuario autenticado.
+
+        Único dato de identidad editable desde el propio perfil: hoy tanto
+        el registro por email como el acceso con Google lo dejan fijo (el que
+        cargó al registrarse, o el que vino de la cuenta de Google), sin
+        forma de corregirlo (Julieta, 2026-07-30)."""
+        user = await self._users.get_by_id(user_id)
+        if user is None:
+            raise UserNotFoundError()
+        user.full_name = full_name.strip()
+        return await self._users.update(user)
+
     async def request_password_reset(self, email: str) -> None:
         """Inicia la recuperación de contraseña (anti-enumeración).
 

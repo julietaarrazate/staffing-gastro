@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
+import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
@@ -69,7 +70,7 @@ export default function ProfilePage() {
             {user.full_name.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <h1 className="truncate font-display text-lg font-semibold text-ink">{user.full_name}</h1>
+            <EditableName className="font-display text-lg font-semibold text-ink" />
             <p className="truncate text-sm text-ink/50">{user.email}</p>
             <span className="mt-1 inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
               Comercio

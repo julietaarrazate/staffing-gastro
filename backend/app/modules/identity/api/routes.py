@@ -19,6 +19,7 @@ from app.modules.identity.api.schemas import (
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    UpdateMeRequest,
     UserResponse,
 )
 from app.modules.identity.application.dtos import (
@@ -196,6 +197,19 @@ async def logout(payload: RefreshRequest, service: ServiceDep) -> None:
 )
 async def me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
+
+
+@router.patch(
+    "/me",
+    response_model=UserResponse,
+    summary="Editar el nombre del usuario autenticado",
+)
+async def update_me(
+    payload: UpdateMeRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: ServiceDep,
+) -> User:
+    return await service.update_full_name(current_user.id, payload.full_name)
 
 
 @router.post(

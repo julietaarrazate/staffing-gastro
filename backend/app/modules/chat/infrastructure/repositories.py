@@ -85,7 +85,7 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
         result = await self._session.execute(stmt)
         return int(result.scalar_one())
 
-    async def mark_read(self, shift_id: UUID, recipient_user_id: UUID) -> None:
+    async def mark_read(self, shift_id: UUID, recipient_user_id: UUID) -> bool:
         stmt = (
             update(ChatMessageModel)
             .where(
@@ -95,8 +95,9 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
             )
             .values(read=True)
         )
-        await self._session.execute(stmt)
+        result = await self._session.execute(stmt)
         await self._session.commit()
+        return result.rowcount > 0
 
     # --- Inbox agregado (evita el N+1 de `list_conversations`, P1) ---
 

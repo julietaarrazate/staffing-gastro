@@ -70,6 +70,40 @@ async def test_login_success_and_me(client: AsyncClient):
     assert me.json()["email"] == "mozo@staffya.com"
 
 
+async def test_update_my_full_name(client: AsyncClient):
+    """El nombre queda fijo desde el registro (email o Google) sin forma de
+    corregirlo (Julieta, 2026-07-30): ahora se puede editar desde el propio
+    perfil."""
+    await register_user(client)
+    tokens = await login(client, "mozo@staffya.com")
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    updated = await client.patch(
+        "/api/v1/auth/me", headers=headers, json={"full_name": "Juan Carlos Mozo"}
+    )
+    assert updated.status_code == 200
+    assert updated.json()["full_name"] == "Juan Carlos Mozo"
+
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    assert me.json()["full_name"] == "Juan Carlos Mozo"
+
+
+async def test_update_my_full_name_requires_auth(client: AsyncClient):
+    response = await client.patch("/api/v1/auth/me", json={"full_name": "Nadie"})
+    assert response.status_code in (401, 403)
+
+
+async def test_update_my_full_name_rejects_empty(client: AsyncClient):
+    await register_user(client)
+    tokens = await login(client, "mozo@staffya.com")
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    response = await client.patch(
+        "/api/v1/auth/me", headers=headers, json={"full_name": "  "}
+    )
+    assert response.status_code == 422
+
+
 async def test_login_wrong_password(client: AsyncClient):
     await register_user(client)
     login_response = await client.post(
