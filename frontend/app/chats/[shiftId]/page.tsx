@@ -8,9 +8,16 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { ChatMessage } from "@/lib/types";
-import { ChevronLeftIcon } from "@/components/icons";
+import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
 import { ErrorBanner, Skeleton } from "@/components/ui";
+
+/** Eventos que llegan por el socket de la conversación: un mensaje nuevo, o
+ *  el aviso de que la otra parte ya leyó lo que le mandamos (confirmación de
+ *  lectura estilo WhatsApp, Julieta 2026-07-30). */
+type ChatWsEvent =
+  | ({ type: "message" } & ChatMessage)
+  | { type: "read"; reader_user_id: string };
 
 function ChatBubblesSkeleton() {
   const widths = ["w-1/2", "w-2/3", "w-1/3", "w-3/5"];
@@ -59,10 +66,20 @@ export default function ConversationPage() {
     load();
   }, [load]);
 
-  const { status: wsStatus } = useWebSocket<ChatMessage>(
+  const { status: wsStatus } = useWebSocket<ChatWsEvent>(
     token ? `/chats/${shiftId}/ws` : null,
     token,
-    (message) => {
+    (event) => {
+      if (event.type === "read") {
+        // La otra parte acaba de leer: lo que ELLA no mandó (o sea, lo que
+        // mandamos nosotros) ahora está leído. No hace falta pedirle nada
+        // al backend, ya sabemos qué mensajes cambian.
+        setMessages((prev) =>
+          prev.map((m) => (m.sender_user_id !== event.reader_user_id ? { ...m, read: true } : m))
+        );
+        return;
+      }
+      const message: ChatMessage = event;
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
     },
     useCallback(() => {
@@ -131,8 +148,16 @@ export default function ConversationPage() {
                 }`}
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                <p className={`mt-1 text-right text-[10px] ${mine ? "text-orange-100" : "text-ink/40"}`}>
+                <p
+                  className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-orange-100" : "text-ink/40"}`}
+                >
                   {formatShiftTime(m.created_at)}
+                  {mine &&
+                    (m.read ? (
+                      <CheckCheckIcon size={13} className="text-white" aria-label="Visto" />
+                    ) : (
+                      <CheckIcon size={13} aria-label="Enviado" />
+                    ))}
                 </p>
               </div>
             </div>

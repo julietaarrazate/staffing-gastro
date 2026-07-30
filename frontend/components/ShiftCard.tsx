@@ -3,8 +3,16 @@ import Link from "next/link";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { Avatar, Button } from "@/components/ui";
-import { CalendarIcon, FlameIcon, MapPinIcon, RouteIcon, UsersIcon } from "@/components/icons";
+import {
+  CalendarIcon,
+  CalendarPlusIcon,
+  FlameIcon,
+  MapPinIcon,
+  RouteIcon,
+  UsersIcon,
+} from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
+import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
@@ -141,32 +149,48 @@ export default function ShiftCard({
           <p className="mt-2 text-xs text-ink/50">Dress code: {shift.dress_code}</p>
         )}
 
-        {/* Mini-mapa + "Cómo llegar": sólo tiene sentido del lado del
-            trabajador (es quien tiene que viajar hasta el local). Del lado
-            del comercio estaba al revés — la tarjeta de SU PROPIO turno le
-            ofrecía indicaciones para llegar a su propio local, ruido puro
-            (Julieta, 2026-07-29). */}
-        {perspective === "worker" && shift.latitude != null && shift.longitude != null && (
+        {/* Mini-mapa + "Cómo llegar"/"Agendar": sólo tiene sentido del lado
+            del trabajador (es quien tiene que viajar hasta el local y
+            organizarse el día). Del lado del comercio estaba al revés — la
+            tarjeta de SU PROPIO turno le ofrecía indicaciones para llegar a
+            su propio local, ruido puro (Julieta, 2026-07-29). Se oculta en
+            turnos ya terminados/cancelados: no hay nada que agendar de un
+            turno que ya pasó. */}
+        {perspective === "worker" && !isTerminal && (
           <>
-            <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
-              <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
+            {shift.latitude != null && shift.longitude != null && (
+              <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
+                <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
+              </div>
+            )}
+            <div className="mt-2 flex gap-2">
+              {shift.latitude != null && shift.longitude != null && (
+                <Button
+                  variant="surface"
+                  size="sm"
+                  fullWidth
+                  leftIcon={<RouteIcon size={15} />}
+                  onClick={() =>
+                    window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    )
+                  }
+                >
+                  Cómo llegar
+                </Button>
+              )}
+              <Button
+                variant="surface"
+                size="sm"
+                fullWidth
+                leftIcon={<CalendarPlusIcon size={15} />}
+                onClick={() => downloadShiftIcs(shift)}
+              >
+                Agendar
+              </Button>
             </div>
-            <Button
-              variant="surface"
-              size="sm"
-              fullWidth
-              className="mt-2"
-              leftIcon={<RouteIcon size={15} />}
-              onClick={() =>
-                window.open(
-                  `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                )
-              }
-            >
-              Cómo llegar
-            </Button>
           </>
         )}
 

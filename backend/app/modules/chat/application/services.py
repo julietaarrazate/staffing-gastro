@@ -24,6 +24,7 @@ _SNIPPET_MAX = 80
 
 def _serialize_message(message: ChatMessage) -> dict:
     return {
+        "type": "message",
         "id": str(message.id),
         "shift_id": str(message.shift_id),
         "sender_user_id": str(message.sender_user_id),
@@ -59,7 +60,16 @@ class ChatService:
     async def list_messages(self, user_id: UUID, shift_id: UUID) -> list[ChatMessage]:
         """Lista los mensajes de un turno y marca como leídos los recibidos."""
         await self._authorize(user_id, shift_id)
-        await self._messages.mark_read(shift_id, user_id)
+        marked_something = await self._messages.mark_read(shift_id, user_id)
+        if marked_something:
+            # Avisa en vivo, por el mismo socket del chat, a quien tiene la
+            # conversación abierta: sin esto el "visto" sólo se actualizaba
+            # la próxima vez que volvía a pedir los mensajes por HTTP (al
+            # reconectar el socket, o al mandar otro mensaje) — no en el
+            # momento real en que el otro lo leyó.
+            await ws_manager.broadcast_chat(
+                shift_id, {"type": "read", "reader_user_id": str(user_id)}
+            )
         return await self._messages.list_by_shift(shift_id)
 
     async def send_message(

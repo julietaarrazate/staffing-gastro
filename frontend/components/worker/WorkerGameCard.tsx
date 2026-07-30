@@ -13,6 +13,7 @@ import {
   levelMeta,
 } from "@/lib/reputation";
 import { Avatar, ErrorBanner, Skeleton } from "@/components/ui";
+import EditableName from "@/components/EditableName";
 import {
   AwardIcon,
   BriefcaseIcon,
@@ -70,7 +71,7 @@ export default function WorkerGameCard() {
       {/* Hero oscuro estilo Apple Wallet */}
       <div className="relative flex flex-col items-center bg-gradient-to-br from-ink to-[#2f2f33] px-5 pb-5 pt-6 text-white">
         <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/20" />
-        <h2 className="mt-3 text-xl font-extrabold">{user?.full_name}</h2>
+        <EditableName className="mt-3 justify-center text-xl font-extrabold" />
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>

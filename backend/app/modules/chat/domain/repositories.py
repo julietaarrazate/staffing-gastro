@@ -26,8 +26,12 @@ class ChatMessageRepository(ABC):
         """Cuenta los mensajes no leídos que recibió el usuario en ese turno."""
 
     @abstractmethod
-    async def mark_read(self, shift_id: UUID, recipient_user_id: UUID) -> None:
-        """Marca como leídos los mensajes que el usuario recibió en ese turno."""
+    async def mark_read(self, shift_id: UUID, recipient_user_id: UUID) -> bool:
+        """Marca como leídos los mensajes que el usuario recibió en ese turno.
+
+        Devuelve si marcó algo (había mensajes sin leer): con eso el servicio
+        decide si vale la pena avisarle a quien los mandó, en vivo, que ya se
+        vieron (ver `ChatService.list_messages`)."""
 
     # --- Inbox agregado (evita el N+1 de `list_conversations`, P1) ---
 

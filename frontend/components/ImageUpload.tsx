@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { uploadImage } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon } from "@/components/icons";
+import ImageCropModal from "@/components/ImageCropModal";
 
 export default function ImageUpload({
   value,
@@ -19,20 +20,27 @@ export default function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Foto elegida, pendiente de encuadrar antes de subirse (ver ImageCropModal).
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     setError(null);
+    setPendingFile(file);
+  }
+
+  async function handleCropConfirm(cropped: File) {
+    setPendingFile(null);
     setUploading(true);
     try {
-      const url = await uploadImage(file);
+      const url = await uploadImage(cropped);
       onChange(url);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir la imagen"));
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   }
 
@@ -95,6 +103,12 @@ export default function ImageUpload({
         {uploading ? "Subiendo..." : value ? "Cambiar foto" : "Subir foto"}
       </button>
       {error && <p className="text-xs text-danger">{error}</p>}
+      <ImageCropModal
+        file={pendingFile}
+        shape={shape}
+        onCancel={() => setPendingFile(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   );
 }

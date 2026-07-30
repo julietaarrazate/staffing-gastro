@@ -13,11 +13,13 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  CalendarPlus,
   Camera,
   Eye,
   EyeOff,
   Car,
   Check,
+  CheckCheck,
   CheckCircle2,
   ChefHat,
   ChevronLeft,
@@ -35,6 +37,7 @@ import {
   MapPin,
   Medal,
   MessageCircle,
+  Pencil,
   Play,
   Route,
   Search,
@@ -74,9 +77,11 @@ export const MessageIcon = make(MessageCircle);
 export const BellIcon = make(Bell);
 export const StarIcon = make(Star);
 export const CheckIcon = make(Check);
+export const CheckCheckIcon = make(CheckCheck);
 export const CheckCircleIcon = make(CheckCircle2);
 export const ClockIcon = make(Clock);
 export const CalendarIcon = make(Calendar);
+export const CalendarPlusIcon = make(CalendarPlus);
 export const UsersIcon = make(Users);
 export const WalletIcon = make(Wallet);
 export const FlameIcon = make(Flame);
@@ -109,3 +114,4 @@ export const AlertTriangleIcon = make(AlertTriangle);
 export const SparklesIcon = make(Sparkles);
 export const ShareIcon = make(Share2);
 export const CopyIcon = make(Copy);
+export const PencilIcon = make(Pencil);
