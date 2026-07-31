@@ -7,6 +7,7 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { Avatar } from "@/components/ui";
 import {
   CalendarIcon,
+  ChevronDownIcon,
   CloseIcon,
   FlameIcon,
   MapPinIcon,
@@ -52,7 +53,7 @@ export default function OpportunityCard({
   const hasPhoto = Boolean(shift.company_logo_url) && !broken;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-float)] ring-1 ring-line">
       {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
           en pantallas más bajas o con dress code largo, el cuerpo perdía esa
           pulseada y su cola (el botón de compartir) quedaba recortada en
@@ -132,8 +133,15 @@ export default function OpportunityCard({
           recortar en silencio. En `md+` se saca (`md:overflow-visible`) — ahí
           la tarjeta ya tiene un alto fijo generoso (grilla de escritorio) y un
           overflow-y-auto anidado atrapaba la rueda del mouse (confirmado
-          antes: rompía el scroll de toda la grilla). */}
-      <div className="flex flex-1 flex-col justify-between gap-3 overflow-y-auto p-5 pt-4 md:overflow-visible">
+          antes: rompía el scroll de toda la grilla).
+          `touch-pan-y`: sin esto, arrancar el arrastre DENTRO de este
+          scroll (en vez de sobre la foto del hero) hacía que el navegador se
+          quedara con el gesto para sí (scroll vertical) y nunca lo dejara
+          llegar al `drag="x"` de SwipeDeck — el swipe para aceptar/rechazar
+          sólo funcionaba arrancando justo sobre la parte ilustrada (bug real,
+          Julieta 2026-07-31). Con `touch-pan-y` el navegador sólo reclama el
+          gesto si es vertical y deja pasar el horizontal. */}
+      <div className="flex flex-1 flex-col justify-between gap-3 overflow-y-auto p-5 pt-4 touch-pan-y md:overflow-visible">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
@@ -230,6 +238,14 @@ export default function OpportunityCard({
             <ShareIcon size={16} /> Compartir por WhatsApp
           </button>
         </div>
+      </div>
+
+      {/* Pista de que hay más para ver deslizando el dedo adentro de la
+          tarjeta (no era obvio, Julieta 2026-07-31) — sólo mobile, donde el
+          cuerpo puede scrollear; en `md+` la tarjeta ya tiene alto fijo de
+          sobra y nunca hace falta. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/80 to-transparent pb-1 pt-4 md:hidden">
+        <ChevronDownIcon size={16} className="text-ink/30" />
       </div>
     </div>
   );
