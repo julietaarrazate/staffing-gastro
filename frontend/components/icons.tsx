@@ -22,6 +22,7 @@ import {
   CheckCheck,
   CheckCircle2,
   ChefHat,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -89,6 +90,7 @@ export const PlayIcon = make(Play);
 export const RouteIcon = make(Route);
 export const ShieldIcon = make(Shield);
 export const SendIcon = make(Send);
+export const ChevronDownIcon = make(ChevronDown);
 export const ChevronLeftIcon = make(ChevronLeft);
 export const ChevronRightIcon = make(ChevronRight);
 export const ClipboardIcon = make(ClipboardList);

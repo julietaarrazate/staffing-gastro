@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui";
+import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
 import { nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
@@ -35,16 +35,7 @@ export default function ShiftActions({
   onNoShow: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const step = nextStepFor(shift);
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
 
   const canCancel = !CANCELLABLE_EXCLUDED.includes(shift.status);
   const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status);
@@ -91,57 +82,64 @@ export default function ShiftActions({
           </Link>
         )}
 
-        <div className="relative shrink-0" ref={menuRef}>
-          <button
-            type="button"
-            aria-label="Más acciones"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-full bg-surface px-3 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
-          >
-            Más
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-[var(--radius-card)] bg-white py-1 shadow-[var(--shadow-soft)] ring-1 ring-line">
-              {hasWorker && (
-                <MenuLink href={`/workers/${shift.worker_profile_id}`}>
-                  Ver perfil del trabajador
-                </MenuLink>
-              )}
-              {shift.status === "publicado" && (
-                <div className="px-2 py-1">
-                  <ShareShiftButton shift={shift} shiftId={shift.id} />
-                </div>
-              )}
-              <MenuLink href={`/shifts/new?duplicate=${shift.id}`}>
-                <CopyIcon size={15} /> Duplicar turno
-              </MenuLink>
-              {canNoShow && (
-                <MenuButton
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onNoShow();
-                  }}
-                >
-                  <AlertTriangleIcon size={15} /> No se presentó
-                </MenuButton>
-              )}
-              {canCancel && (
-                <MenuButton
-                  danger
-                  disabled={busy !== null}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onRun(shift.id, "cancel");
-                  }}
-                >
-                  Cancelar turno
-                </MenuButton>
-              )}
+        <button
+          type="button"
+          aria-label="Más acciones"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+          className="shrink-0 rounded-full bg-surface px-3 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
+        >
+          Más
+        </button>
+      </div>
+
+      {/* Antes era un dropdown `position: absolute` anclado al botón "Más":
+          en mobile terminaba con la esquina fuera de la pantalla (recortado,
+          casi ilegible) y en desktop se abría como una ventanita rara —
+          dependía de cuánto lugar quedaba a la derecha del botón, que varía
+          con el layout de cada tarjeta (bug real con captura, Julieta
+          2026-07-31). `Sheet` es `position: fixed` a toda la pantalla — nunca
+          se puede recortar ni desalinear, y es el mismo patrón que ya usan
+          `/map` y `/shifts/new` para acciones desde una tarjeta. */}
+      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Más acciones">
+        <div className="flex flex-col divide-y divide-line pb-2">
+          {hasWorker && (
+            <MenuLink href={`/workers/${shift.worker_profile_id}`}>
+              Ver perfil del trabajador
+            </MenuLink>
+          )}
+          {shift.status === "publicado" && (
+            <div className="py-2.5">
+              <ShareShiftButton shift={shift} shiftId={shift.id} />
             </div>
           )}
+          <MenuLink href={`/shifts/new?duplicate=${shift.id}`}>
+            <CopyIcon size={15} /> Duplicar turno
+          </MenuLink>
+          {canNoShow && (
+            <MenuButton
+              onClick={() => {
+                setMenuOpen(false);
+                onNoShow();
+              }}
+            >
+              <AlertTriangleIcon size={15} /> No se presentó
+            </MenuButton>
+          )}
+          {canCancel && (
+            <MenuButton
+              danger
+              disabled={busy !== null}
+              onClick={() => {
+                setMenuOpen(false);
+                onRun(shift.id, "cancel");
+              }}
+            >
+              Cancelar turno
+            </MenuButton>
+          )}
         </div>
-      </div>
+      </Sheet>
     </div>
   );
 }
