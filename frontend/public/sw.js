@@ -24,13 +24,13 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",
-      icon: "/icon-192.png",
-      // El badge (ícono chico de la barra de estado en Android) se dibuja
-      // usando SÓLO el canal alfa: el sistema descarta los colores y pinta de
-      // blanco lo que sea opaco. `icon-192.png` es el tile completo (naranja +
-      // trazo), así que como badge salía como una MANCHA blanca sin forma
-      // reconocible. Este badge tiene fondo transparente y sólo el trazo
-      // (mano + oreja) opaco, sin el tile de fondo.
+      // Antes también se mandaba `icon: "/icon-192.png"` (el tile completo,
+      // naranja + trazo) como ícono grande. Android/Chrome tiñe el `badge`
+      // con el `theme_color` del manifest (#f97316, el mismo naranja de
+      // marca) para el ícono chico de la barra de estado — el resultado eran
+      // DOS íconos naranjas casi idénticos en la misma notificación, uno al
+      // lado del otro (bug real con captura, Julieta 2026-07-31). Con un
+      // solo ícono (el badge, que además ya es el trazo sin tile) alcanza.
       badge: "/badge-96.png",
       data: { url },
       // Tag ÚNICO por notificación. Antes todas compartían "staffya-push", así
