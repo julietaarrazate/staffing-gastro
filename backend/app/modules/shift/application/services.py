@@ -62,6 +62,14 @@ PAYMENT_TOLERANCE = timedelta(hours=48)
 CHECKIN_REMINDER_DELAY = timedelta(minutes=20)
 NO_SHOW_GRACE_PERIOD = timedelta(hours=2)
 
+# Escalada automática de urgencia: cuánto tiempo desde `published_at` sin
+# cubrirse antes de subirle la prioridad al turno y avisar a un círculo más
+# amplio de candidatos. Valor semilla (mismo criterio que las tolerancias de
+# arriba): un poco antes de los 10 minutos de la promesa central
+# (PRODUCT.md), para actuar mientras todavía hay margen y no después de
+# incumplirla.
+ESCALATION_DELAY = timedelta(minutes=8)
+
 
 class ShiftService:
     """Servicio de aplicación para gestionar turnos."""
@@ -207,15 +215,35 @@ class ShiftService:
     # que sostiene la promesa de los 10 minutos.
     NEARBY_NOTIFICATION_LIMIT = 10
 
-    async def _notify_nearby_workers(self, shift: Shift) -> None:
-        """Avisa del turno recién publicado a los trabajadores mejor rankeados
-        cerca (mismo ranking que ve el comercio en "candidatos": cercanía,
-        reputación, puntualidad y desempeño).
+    # Escalada (`escalate_urgency`): círculo más amplio que la primera tanda
+    # —más candidatos y más radio— a propósito. No hay forma de excluir a
+    # quienes ya recibieron el primer aviso (`Notification` no tiene
+    # `shift_id`, ver `notification/domain/entities.py`), así que puede haber
+    # solapamiento; se acepta como costo menor: un recordatorio duplicado
+    # para quien lo vio y no se postuló es, si acaso, la señal de urgencia
+    # haciendo su trabajo, no un bug.
+    ESCALATION_NOTIFICATION_LIMIT = 20
+    ESCALATION_RADIUS_KM = DEFAULT_MAX_RADIUS_KM * 1.6
+
+    async def _notify_nearby_workers(
+        self,
+        shift: Shift,
+        *,
+        max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
+        limit: int = NEARBY_NOTIFICATION_LIMIT,
+        notification_type: NotificationType = NotificationType.NEW_SHIFT_NEARBY,
+        urgent_copy: bool = False,
+    ) -> None:
+        """Avisa del turno a los trabajadores mejor rankeados cerca (mismo
+        ranking que ve el comercio en "candidatos": cercanía, reputación,
+        puntualidad y desempeño).
 
         Es el aviso que cierra el circuito del marketplace. Sin él, publicar
         no le avisaba a NADIE: el turno sólo se cubría si algún trabajador
         casualmente abría la app y scrolleaba el feed, con lo cual la misión
         del producto ("cubrir en menos de 10 minutos") dependía del azar.
+        Reutilizado por `escalate_urgency` con un radio/tope más amplios
+        cuando el turno tarda en cubrirse.
 
         Best-effort a propósito: un fallo acá nunca debe impedir que un turno
         quede publicado (mismo contrato que el push en `NotificationRepository`).
@@ -231,8 +259,8 @@ class ShiftService:
                     latitude=shift.latitude,
                     longitude=shift.longitude,
                 ),
-                max_radius_km=DEFAULT_MAX_RADIUS_KM,
-            )[: self.NEARBY_NOTIFICATION_LIMIT]
+                max_radius_km=max_radius_km,
+            )[:limit]
 
             if not ranked:
                 return
@@ -240,24 +268,60 @@ class ShiftService:
             company = await self._companies.get_by_id(shift.company_id)
             lugar = company.name if company is not None else "Un comercio cerca tuyo"
             puesto = shift.title or shift.position.value
+            if urgent_copy:
+                title = f"¡Urgente! Turno de {puesto} cerca tuyo"
+                message = (
+                    f"{lugar} todavía necesita cubrir {puesto} y no encuentra a nadie. "
+                    "Postulate ahora."
+                )
+            else:
+                title = f"Turno de {puesto} cerca tuyo"
+                message = (
+                    f"{lugar} está buscando {puesto}. "
+                    "Entrá y postulate antes de que lo tomen."
+                )
             for match in ranked:
                 await self._notifications.add(
                     Notification(
                         user_id=match.user_id,
-                        type=NotificationType.NEW_SHIFT_NEARBY,
-                        title=f"Turno de {puesto} cerca tuyo",
-                        message=(
-                            f"{lugar} está buscando {puesto}. "
-                            "Entrá y postulate antes de que lo tomen."
-                        ),
+                        type=notification_type,
+                        title=title,
+                        message=message,
                         link="/feed",
                     )
                 )
         except Exception:
             logger.exception(
-                "Aviso de turno nuevo: fallo inesperado, no se propaga (shift_id=%s)",
+                "Aviso de turno: fallo inesperado, no se propaga (shift_id=%s)",
                 shift.id,
             )
+
+    async def list_shifts_awaiting_escalation(self) -> list[Shift]:
+        """Turnos abiertos sin escalar, para el scheduler de urgencia."""
+        return await self._shifts.list_open_awaiting_escalation()
+
+    async def escalate_urgency(self, shift_id: UUID) -> Shift:
+        """Escalada automática (mismo scheduler que ADR-0008): un turno que
+        no se cubre rápido sube de prioridad y llega a más candidatos.
+
+        Efectos: (a) `urgent=True` — el turno sube al principio del feed
+        (`ShiftRepository.list_open` ya ordena por `urgent` primero); (b) un
+        segundo aviso a un círculo más amplio de candidatos
+        (`ESCALATION_RADIUS_KM`/`ESCALATION_NOTIFICATION_LIMIT`, mayores que
+        la primera tanda de `publish_shift`). `escalated_at` marca que ya
+        pasó, para que el scheduler no lo repita en cada tick."""
+        shift = await self.get_shift(shift_id)
+        shift.urgent = True
+        shift.escalated_at = datetime.now(timezone.utc)
+        updated = await self._shifts.update(shift)
+        await self._notify_nearby_workers(
+            updated,
+            max_radius_km=self.ESCALATION_RADIUS_KM,
+            limit=self.ESCALATION_NOTIFICATION_LIMIT,
+            notification_type=NotificationType.URGENT_SHIFT_NEARBY,
+            urgent_copy=True,
+        )
+        return updated
 
     async def _consume_publication_slot(self, company_id: UUID) -> None:
         """Gating de capacidad por plan (ADR-0005 Fase 1): antes de publicar

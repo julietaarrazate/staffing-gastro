@@ -92,3 +92,13 @@ class ShiftRepository(ABC):
 
         Uso interno (no expuesto por API): `AdminService.get_stats` calcula
         el promedio y el % cubierto en <10 min sobre esta muestra."""
+
+    @abstractmethod
+    async def list_open_awaiting_escalation(self) -> list[Shift]:
+        """Turnos abiertos (`OPEN_STATUSES`) con `published_at` seteado y
+        todavía sin escalar (`escalated_at` es `None`), sin paginar.
+
+        Uso interno (no expuesto por API): el scheduler los recorre para
+        decidir —comparando `published_at` en Python, mismo criterio que el
+        resto de los chequeos del scheduler— si ya toca escalar la urgencia
+        (`ShiftService.escalate_urgency`)."""
