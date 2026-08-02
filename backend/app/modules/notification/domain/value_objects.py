@@ -25,6 +25,9 @@ class NotificationType(str, Enum):
     # — es decir, la promesa de "cubrir en menos de 10 minutos" dependía del
     # azar (ver PRODUCT.md, misión).
     NEW_SHIFT_NEARBY = "new_shift_nearby"
+    # ADR-0008: recordatorio push para que el trabajador marque su llegada
+    # cuando ya arrancó el turno y todavía no hizo check-in.
+    CHECKIN_REMINDER = "checkin_reminder"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -39,6 +42,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_PAID: "/my-shifts",
     NotificationType.SHIFT_NO_SHOW: "/my-shifts",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
+    NotificationType.CHECKIN_REMINDER: "/my-shifts",
     # Turno todavía no suyo: va al feed, donde puede verlo y postularse.
     NotificationType.NEW_SHIFT_NEARBY: "/feed",
     # Comercio

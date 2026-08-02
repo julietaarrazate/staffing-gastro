@@ -63,6 +63,13 @@ class Shift:
     no_show_at: datetime | None = None
     last_no_show_worker_profile_id: UUID | None = None
 
+    # Scheduler de asistencia (ADR-0008): cuándo se le mandó al trabajador el
+    # recordatorio push de "marcá tu llegada". Sin este campo el scheduler
+    # reenviaría el mismo push en cada tick mientras el turno siga sin
+    # check-in (no hay forma de consultar el historial de `Notification`: esa
+    # entidad no tiene shift_id, ver notification/domain/entities.py).
+    checkin_reminder_sent_at: datetime | None = None
+
     # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
     # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
     # (ADR-0003 no se toca), pero comparten `event_id` para poder agruparlos
@@ -195,23 +202,50 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
 
     def depart(self) -> None:
-        """CONFIRMADO → EN_CAMINO: el trabajador sale hacia el turno."""
+        """CONFIRMADO → EN_CAMINO: el trabajador sale hacia el turno.
+
+        Paso opcional (ADR-0008): el flujo nuevo va directo de CONFIRMADO a
+        CHECK_IN sin pasar por acá. Se conserva sólo por compatibilidad con
+        turnos que ya estaban en EN_CAMINO al desplegar el cambio — la UI
+        actual no ofrece este botón."""
         self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO)
 
     def check_in(self, latitude: float, longitude: float) -> None:
-        """EN_CAMINO → CHECK_IN: el trabajador llega y marca su ubicación."""
-        self._transition(ShiftStatus.EN_CAMINO, ShiftStatus.CHECK_IN)
+        """CONFIRMADO/EN_CAMINO → CHECK_IN: el trabajador llega y marca su
+        ubicación.
+
+        ADR-0008: antes exigía pasar por `depart()` (EN_CAMINO) primero — se
+        saca del flujo normal (4 pasos manuales bajaban la adhesión y subían
+        los falsos "no show" de gente que sí llegó pero se olvidó de tocar
+        "Salir hacia el turno"). Ahora se puede marcar llegada directo desde
+        CONFIRMADO; se sigue aceptando EN_CAMINO para no romper turnos que
+        ya estaban a mitad de camino."""
+        if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
+            raise InvalidShiftTransitionError(
+                f"No se puede marcar llegada desde el estado {self.status.value}"
+            )
+        self.status = ShiftStatus.CHECK_IN
         self.check_in_latitude = latitude
         self.check_in_longitude = longitude
         self.check_in_at = datetime.now(timezone.utc)
 
     def start_working(self) -> None:
-        """CHECK_IN → TRABAJANDO: el trabajador empieza su turno."""
+        """CHECK_IN → TRABAJANDO: el trabajador empieza su turno.
+
+        Paso opcional (ADR-0008): mismo criterio que `depart()`, se conserva
+        sólo por compatibilidad — la UI actual no ofrece este botón."""
         self._transition(ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO)
 
     def check_out(self, latitude: float, longitude: float) -> None:
-        """TRABAJANDO → CHECK_OUT: el trabajador termina y marca su ubicación."""
-        self._transition(ShiftStatus.TRABAJANDO, ShiftStatus.CHECK_OUT)
+        """CHECK_IN/TRABAJANDO → CHECK_OUT: el trabajador termina y marca su
+        ubicación. ADR-0008: mismo criterio que `check_in()`, directo desde
+        CHECK_IN sin exigir `start_working()`; se sigue aceptando TRABAJANDO
+        por compatibilidad."""
+        if self.status not in (ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO):
+            raise InvalidShiftTransitionError(
+                f"No se puede marcar salida desde el estado {self.status.value}"
+            )
+        self.status = ShiftStatus.CHECK_OUT
         self.check_out_latitude = latitude
         self.check_out_longitude = longitude
         self.check_out_at = datetime.now(timezone.utc)

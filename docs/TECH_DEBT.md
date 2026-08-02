@@ -157,6 +157,18 @@ fecha de esta auditoría (2026-07-02).
 > vencidos sin check-in — infraestructura nueva (el repo hoy no tiene ningún
 > scheduler) sin necesidad demostrada todavía. Si se prioriza, entra como
 > ítem propio de este catálogo con su propio ADR.
+>
+> **Actualización 2026-08-02 ([ADR-0008](./adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)):**
+> resuelto. Loop `asyncio` en proceso (arrancado en el `lifespan` de FastAPI,
+> gateado a `settings.is_production`, sin Cron Job nuevo de Render — el plan
+> free sólo tiene un web service) que recorre los turnos
+> `CONFIRMADO`/`EN_CAMINO` sin check-in: manda un push de recordatorio a los
+> 20 min de `start_at` (`checkin_reminder_sent_at`, una sola vez) y marca
+> no-show automático (reutilizando `ShiftService.mark_no_show`) a las 2hs.
+> De paso, el flujo de asistencia del trabajador bajó de 4 pasos a 2
+> ("Llegué"/"Me fui"), para reducir los falsos no-show de gente que sí
+> llegó pero se olvidaba de un tap intermedio. Detalle completo en
+> ADR-0008; tests en `backend/tests/test_attendance_scheduler.py`.
 
 - **Descripción:** `punctuality_rate`, `events_completed`, `cancellations`
   (worker) y `on_time_payment_rate`, `events_published` (company) se leen en

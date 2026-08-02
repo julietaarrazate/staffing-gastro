@@ -75,6 +75,10 @@ class ShiftModel(Base):
         nullable=True,
     )
 
+    checkin_reminder_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Publicación masiva para un evento (sin tabla propia ni FK: sólo un UUID
     # compartido entre los turnos de una misma tanda, ver domain/entities.py).
     event_id: Mapped[uuid.UUID | None] = mapped_column(GUID(), nullable=True, index=True)

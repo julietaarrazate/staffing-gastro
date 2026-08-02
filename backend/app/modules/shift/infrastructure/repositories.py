@@ -66,6 +66,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         paid_at=model.paid_at,
         no_show_at=model.no_show_at,
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
+        checkin_reminder_sent_at=model.checkin_reminder_sent_at,
         event_id=model.event_id,
         event_name=model.event_name,
         created_at=model.created_at,
@@ -90,6 +91,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.paid_at = shift.paid_at
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
+    model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):
@@ -158,6 +160,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         stmt = select(ShiftModel).where(
             ShiftModel.worker_profile_id == worker_profile_id,
             ShiftModel.status.in_([s.value for s in statuses]),
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_awaiting_checkin(self) -> list[Shift]:
+        stmt = select(ShiftModel).where(
+            ShiftModel.status.in_(
+                [ShiftStatus.CONFIRMADO.value, ShiftStatus.EN_CAMINO.value]
+            )
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]

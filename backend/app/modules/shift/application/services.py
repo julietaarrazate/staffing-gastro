@@ -53,6 +53,15 @@ PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 # ajustable cuando haya datos reales. Ver docs/REPUTATION.md.
 PAYMENT_TOLERANCE = timedelta(hours=48)
 
+# Scheduler de asistencia (ADR-0008): tiempo desde `start_at` sin check-in
+# antes de mandar el push "¿ya llegaste?" y antes de marcar no-show
+# automático. Valores semilla (mismo criterio que las tolerancias de arriba):
+# 20 minutos da margen a demoras normales de tráfico/transporte antes de
+# molestar con un push; 2 horas es tiempo de sobra para que, si llegó, el
+# recordatorio ya haya surtido efecto — pasado eso, asumir no-show.
+CHECKIN_REMINDER_DELAY = timedelta(minutes=20)
+NO_SHOW_GRACE_PERIOD = timedelta(hours=2)
+
 
 class ShiftService:
     """Servicio de aplicación para gestionar turnos."""
@@ -343,6 +352,41 @@ class ShiftService:
                 ),
             )
         return updated
+
+    async def list_shifts_awaiting_checkin(self) -> list[Shift]:
+        """Turnos CONFIRMADO/EN_CAMINO sin check-in, para el scheduler de
+        asistencia (ADR-0008). Sin scoping por comercio: lo recorre un
+        proceso de sistema, no un request autenticado."""
+        return await self._shifts.list_awaiting_checkin()
+
+    async def send_checkin_reminder(self, shift_id: UUID) -> Shift:
+        """Push al trabajador para que marque su llegada (ADR-0008): lo
+        dispara el scheduler cuando pasó `CHECKIN_REMINDER_DELAY` desde
+        `start_at` sin check-in. Marca `checkin_reminder_sent_at` para que el
+        scheduler no lo reenvíe en cada tick (idempotente)."""
+        shift = await self.get_shift(shift_id)
+        shift.checkin_reminder_sent_at = datetime.now(timezone.utc)
+        updated = await self._shifts.update(shift)
+        if updated.worker_profile_id is not None:
+            await self._notify_worker(
+                updated.worker_profile_id,
+                NotificationType.CHECKIN_REMINDER,
+                "¿Ya llegaste a tu turno?",
+                (
+                    f"Marcá tu llegada en \"{updated.title or updated.position.value}\" "
+                    "para confirmar que estás en el lugar."
+                ),
+            )
+        return updated
+
+    async def auto_mark_no_show(self, shift_id: UUID) -> Shift:
+        """Marca no-show automático (ADR-0008): lo dispara el scheduler
+        cuando pasó `NO_SHOW_GRACE_PERIOD` desde `start_at` sin check-in.
+        Reutiliza `mark_no_show` scopeado al `company_id` real del turno (no
+        viene de un request de ese comercio, lo dispara un proceso de
+        sistema)."""
+        shift = await self.get_shift(shift_id)
+        return await self.mark_no_show(shift.company_id, shift.id)
 
     async def assign_worker(
         self, company_id: UUID, shift_id: UUID, worker_profile_id: UUID

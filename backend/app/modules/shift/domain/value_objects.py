@@ -6,9 +6,15 @@ from enum import Enum
 class ShiftStatus(str, Enum):
     """Estados del turno — la línea de tiempo del "Modo Uber" del spec.
 
-    El flujo nominal es:
+    El flujo nominal (ADR-0008, 2 pasos de asistencia en vez de 4) es:
         BORRADOR → PUBLICADO → BUSCANDO_PERSONAL → ASIGNADO → CONFIRMADO →
-        EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
+        CHECK_IN → CHECK_OUT → FINALIZADO → PAGADO
+
+    EN_CAMINO/TRABAJANDO siguen existiendo como estados válidos (turnos
+    creados antes de ADR-0008 pueden seguir de largo por ahí,
+    `Shift.check_in()`/`check_out()` los aceptan también), pero el flujo
+    nuevo los saltea: `check_in()` va directo desde CONFIRMADO,
+    `check_out()` directo desde CHECK_IN.
 
     CANCELADO es alcanzable desde cualquier estado no terminal.
     """
