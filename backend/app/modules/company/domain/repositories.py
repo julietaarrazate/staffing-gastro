@@ -47,3 +47,16 @@ class CompanyProfileRepository(ABC):
         confirmado (ADR-0007). Incrementa `late_cancellations` en 1. Nunca es
         un UPDATE manual: siempre pasa por acá, disparado por
         `ShiftService.cancel_shift`."""
+
+    @abstractmethod
+    async def record_published_shift(self, profile_id: UUID) -> None:
+        """Incrementa `events_published` en 1. Disparado por
+        `ShiftService.publish_shift` en cada transición BORRADOR→PUBLICADO."""
+
+    @abstractmethod
+    async def record_payment(self, profile_id: UUID, *, on_time: bool) -> None:
+        """Recalcula `on_time_payment_rate` como promedio móvil simple sobre
+        `payments_recorded` (contador interno, no expuesto en la API).
+        Disparado por `ShiftService.mark_paid` — `on_time` lo decide el
+        servicio comparando `paid_at` contra `end_at` con la tolerancia de
+        `PAYMENT_TOLERANCE`."""

@@ -135,8 +135,8 @@ fecha de esta auditoría (2026-07-02).
 > (`test_worker_cancel_confirmed_shift_reopens_search`,
 > `test_worker_cannot_cancel_before_confirming`,
 > `test_other_worker_cannot_cancel_someone_elses_confirmed_shift`).
-> **Sigue pendiente:** `on_time_payment_rate`/`events_published` (company) —
-> ver detalle y motivo en `REPUTATION.md` ("Inconsistencias a resolver").
+> **Sigue pendiente en ese momento:** `on_time_payment_rate`/`events_published`
+> (company) — resuelto después, ver actualización 2026-08-02 más abajo.
 >
 > **Actualización 2026-07-21 ([ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md),
 > batch `PRIMER_TURNO_REAL_SPEC.md`):** resuelta la versión **manual** del
@@ -193,6 +193,16 @@ fecha de esta auditoría (2026-07-02).
 > `cancellations` como este párrafo original sugería como única vía. Sigue
 > pendiente, sin cambios: `mark_paid` → `events_published` (company) y
 > `on_time_payment_rate` (company) sin cálculo automático.
+>
+> **Actualización 2026-08-02:** resuelto. `ShiftService.publish_shift`
+> incrementa `events_published` (comercio); `ShiftService.mark_paid`
+> recalcula `on_time_payment_rate` como promedio móvil sobre
+> `payments_recorded` (contador interno nuevo, migración `0018`) — a tiempo
+> = `paid_at` dentro de `PAYMENT_TOLERANCE` (48hs, valor semilla) desde
+> `end_at`. Detalle y tests en `REPUTATION.md`/`backend/tests/test_attendance.py`.
+> Con esto, las dos métricas de comercio de este ítem quedan cerradas (el
+> `cancellations` del trabajador, mencionado en la descripción original de
+> abajo, ya estaba resuelto por ADR-0004 desde 2026-07-02, ver arriba).
 - **Solución sugerida:** agregar estos efectos dentro de
   `ShiftService`/`ReviewService` (mismo patrón que ya usan para crear
   `Notification`), documentado en `REPUTATION.md`.
@@ -619,6 +629,6 @@ fecha de esta auditoría (2026-07-02).
 | Prioridad | Ítems |
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
-| 🟠 Alta | P2 (badges, resuelto ADR-0004), P3 (métricas reputación, `cancellations` resuelto ADR-0004 — pendiente `on_time_payment_rate`/`events_published`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
+| 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
 | 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, T5 (lint fuera de CI) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

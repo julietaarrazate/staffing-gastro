@@ -59,8 +59,19 @@ bidireccional: comercio y trabajador se califican mutuamente.
 
 ### Comercio
 - `rating` — promedio de reseñas recibidas.
-- `on_time_payment_rate` — tasa de pago a tiempo.
-- `events_published` — turnos publicados.
+- `on_time_payment_rate` — tasa de pago a tiempo. **(2026-08-02)** se
+  recalcula al confirmar el pago de un turno finalizado
+  (`ShiftService.mark_paid`) como promedio móvil simple sobre
+  `payments_recorded` (contador interno, no expuesto en la API — distinto de
+  `events_published`, que cuenta turnos publicados, no pagados): a tiempo =
+  `paid_at` dentro de **48 horas** de `end_at` (`PAYMENT_TOLERANCE`,
+  `backend/app/modules/shift/application/services.py`). No hay un plazo de
+  pago pactado en el dominio (el pago del turno ocurre fuera de la
+  plataforma, sólo se autodeclara con "Marcar como pagado") — 48hs es un
+  valor semilla conservador, mismo criterio que `PUNCTUALITY_TOLERANCE`:
+  ajustable cuando haya datos reales.
+- `events_published` — turnos publicados. **(2026-08-02)** se incrementa en
+  cada transición BORRADOR→PUBLICADO (`ShiftService.publish_shift`).
 - `late_cancellations` — cancelaciones tardías. **([ADR-0007](./adr/ADR-0007-no-show-y-cancelacion-tardia.md))**
   se incrementa cuando el comercio cancela un turno con el trabajador ya
   **comprometido** (`COMMITTED_STATUSES`: confirmó su asistencia o está en
@@ -123,15 +134,3 @@ trabajador (`ShiftService.worker_cancel`) y al marcar un no-show
 (`update_rating`); si el rating cambia por una reseña nueva, las
 insignias/nivel quedan con el rating anterior hasta el próximo turno
 finalizado o cancelado. Aceptado por simplicidad — ver ADR-0004.
-
-## Inconsistencias a resolver
-
-> Sigue pendiente, fuera de alcance de ADR-0004 (no había decisión de
-> producto para esto y no la resuelve este cambio):
->
-> - **`on_time_payment_rate`/`events_published` (comercio) siguen sin
->   cálculo automático.** Mismo motivo que en R2.4: el trabajo se centró en
->   las métricas del trabajador derivables honestamente del ciclo del turno.
->   Requiere enganchar `mark_paid`/`publish` en `ShiftService` a un puerto
->   análogo de `CompanyProfileRepository` — no requiere ADR (no cambia el
->   modelo de estados), sólo esfuerzo de implementación pendiente.
