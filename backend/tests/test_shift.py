@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.core.config import settings
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
@@ -939,3 +940,64 @@ async def test_publicar_no_avisa_a_trabajadores_de_otro_oficio(client: AsyncClie
 
     recibidas = await client.get("/api/v1/notifications", headers=otro)
     assert [n for n in recibidas.json() if n["type"] == "new_shift_nearby"] == []
+
+
+async def test_create_event_publishes_all_roles_with_shared_event_id(client: AsyncClient):
+    """Publicar para un evento: un formulario, varios roles, cada uno un
+    turno individual (quantity=1, ADR-0003 intacto) pero agrupados por
+    `event_id`."""
+    headers = await _employer_with_company(client, "evento1@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts/events",
+        headers=headers,
+        json={
+            "name": "Boda Martínez",
+            "start_at": "2026-09-10T20:00:00",
+            "end_at": "2026-09-11T02:00:00",
+            "city": "Palermo",
+            "roles": [
+                {"position": "mozo", "count": 2, "pay_amount": "50000.00"},
+                {"position": "bartender", "count": 1, "pay_amount": "60000.00"},
+            ],
+        },
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["requested"] == 3
+    assert len(body["shifts"]) == 3
+
+    positions = sorted(s["position"] for s in body["shifts"])
+    assert positions == ["bartender", "mozo", "mozo"]
+    for shift in body["shifts"]:
+        assert shift["quantity"] == 1
+        assert shift["status"] == "publicado"
+        assert shift["event_id"] == body["event_id"]
+        assert shift["event_name"] == "Boda Martínez"
+
+
+async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
+    """Si el plan se queda sin cupo a mitad de la publicación masiva, se
+    devuelve lo que sí se pudo publicar (no todo o nada)."""
+    previous = settings.subscriptions_enforced
+    settings.subscriptions_enforced = True
+    try:
+        headers = await _employer_with_company(client, "evento2@staffya.com")
+        # Plan gratis por defecto: tope de 3 turnos/mes.
+        response = await client.post(
+            "/api/v1/shifts/events",
+            headers=headers,
+            json={
+                "name": "Evento grande",
+                "start_at": "2026-09-10T20:00:00",
+                "end_at": "2026-09-11T02:00:00",
+                "city": "Palermo",
+                "roles": [{"position": "mozo", "count": 5, "pay_amount": "50000.00"}],
+            },
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["requested"] == 5
+        assert len(body["shifts"]) == 3
+        assert all(s["status"] == "publicado" for s in body["shifts"])
+    finally:
+        settings.subscriptions_enforced = previous

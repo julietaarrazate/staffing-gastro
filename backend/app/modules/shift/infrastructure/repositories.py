@@ -29,6 +29,10 @@ _EDITABLE_FIELDS = (
     "longitude",
     "title",
     "description",
+    # Sólo los completa la publicación masiva de un evento (`create_event`):
+    # en un alta/edición individual quedan en `None`, sin efecto.
+    "event_id",
+    "event_name",
 )
 
 
@@ -62,6 +66,8 @@ def _to_entity(model: ShiftModel) -> Shift:
         paid_at=model.paid_at,
         no_show_at=model.no_show_at,
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
+        event_id=model.event_id,
+        event_name=model.event_name,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )

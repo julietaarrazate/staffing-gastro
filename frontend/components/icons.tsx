@@ -40,6 +40,7 @@ import {
   MessageCircle,
   Pencil,
   Play,
+  Plus,
   Route,
   Search,
   Send,
@@ -47,6 +48,7 @@ import {
   Shield,
   Sparkles,
   Star,
+  Trash2,
   Users,
   Wallet,
   Wine,
@@ -80,6 +82,8 @@ export const StarIcon = make(Star);
 export const CheckIcon = make(Check);
 export const CheckCheckIcon = make(CheckCheck);
 export const CheckCircleIcon = make(CheckCircle2);
+export const PlusIcon = make(Plus);
+export const TrashIcon = make(Trash2);
 export const ClockIcon = make(Clock);
 export const CalendarIcon = make(Calendar);
 export const CalendarPlusIcon = make(CalendarPlus);

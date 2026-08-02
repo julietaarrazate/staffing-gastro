@@ -63,6 +63,13 @@ class Shift:
     no_show_at: datetime | None = None
     last_no_show_worker_profile_id: UUID | None = None
 
+    # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
+    # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
+    # (ADR-0003 no se toca), pero comparten `event_id` para poder agruparlos
+    # y ver el progreso de cobertura juntos (`ShiftService.create_event`).
+    event_id: UUID | None = None
+    event_name: str | None = None
+
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None

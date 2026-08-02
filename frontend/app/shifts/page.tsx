@@ -197,6 +197,27 @@ export default function MyShiftsPage() {
     return grouped;
   }, [shifts]);
 
+  // Progreso de cobertura por evento (publicación masiva, /shifts/new-event):
+  // cruza TODAS las familias — un evento de 6 roles puede tener 4 ya
+  // asignados/en marcha y 2 todavía buscando, repartidos en pestañas
+  // distintas. `covered` = ya tiene trabajador asignado (worker_profile_id),
+  // sin importar en qué paso del ciclo vaya después de eso.
+  const eventGroups = useMemo(() => {
+    const byId = new Map<string, { name: string; total: number; covered: number }>();
+    for (const shift of shifts) {
+      if (!shift.event_id) continue;
+      const entry = byId.get(shift.event_id) ?? {
+        name: shift.event_name ?? "Evento",
+        total: 0,
+        covered: 0,
+      };
+      entry.total += 1;
+      if (shift.worker_profile_id) entry.covered += 1;
+      byId.set(shift.event_id, entry);
+    }
+    return Array.from(byId.entries()).map(([eventId, data]) => ({ eventId, ...data }));
+  }, [shifts]);
+
   // En "Todos" se listan sólo las familias con contenido (no tiene sentido
   // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
   // igual, vacía, con su propio mensaje de marca.
@@ -210,12 +231,20 @@ export default function MyShiftsPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Panel</h1>
           <p className="mt-0.5 text-sm text-ink/50">Gestioná los turnos de tu comercio.</p>
         </div>
-        <Link
-          href="/shifts/new"
-          className="shrink-0 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
-        >
-          + Publicar
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/shifts/new-event"
+            className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
+          >
+            + Evento
+          </Link>
+          <Link
+            href="/shifts/new"
+            className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
+          >
+            + Publicar
+          </Link>
+        </div>
       </div>
 
       {loading && <CardSkeletons />}
@@ -234,6 +263,28 @@ export default function MyShiftsPage() {
             onClick: () => router.push("/shifts/new"),
           }}
         />
+      )}
+
+      {!loading && !error && eventGroups.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {eventGroups.map((event) => (
+            <div
+              key={event.eventId}
+              className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-line"
+            >
+              <p className="truncate text-sm font-semibold text-ink">{event.name}</p>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                  event.covered === event.total
+                    ? "bg-green-50 text-success-text"
+                    : "bg-orange-50 text-primary-text"
+                }`}
+              >
+                {event.covered}/{event.total} cubiertos
+              </span>
+            </div>
+          ))}
+        </div>
       )}
 
       {!loading && !error && shifts.length > 0 && (

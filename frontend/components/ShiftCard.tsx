@@ -91,6 +91,15 @@ export default function ShiftCard({
       )}
 
       <div className="px-5 pb-5 pt-4">
+        {/* Turno publicado como parte de un evento masivo (varios roles a la
+            vez, ver /shifts/new-event): se marca para poder identificarlo
+            aunque la familia de estado lo separe de sus hermanos. */}
+        {shift.event_name && (
+          <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-xs font-bold text-ink/50">
+            <CalendarPlusIcon size={12} /> {shift.event_name}
+          </p>
+        )}
+
         {/* Encabezado: rubro con chip de acento + urgente */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">

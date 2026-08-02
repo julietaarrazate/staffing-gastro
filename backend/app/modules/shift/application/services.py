@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
@@ -15,7 +15,7 @@ from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
-from app.modules.shift.application.dtos import ShiftData
+from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
     ShiftNotAssignedToWorkerError,
@@ -24,6 +24,7 @@ from app.modules.shift.domain.exceptions import (
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
+from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.subscription.domain.plans import get_plan
 from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
@@ -84,8 +85,58 @@ class ShiftService:
             longitude=data.longitude,
             title=data.title,
             description=data.description,
+            event_id=data.event_id,
+            event_name=data.event_name,
         )
         return await self._shifts.add(shift)
+
+    async def create_event(self, company_id: UUID, data: EventData) -> EventResult:
+        """Publica de una sola vez todos los turnos de un evento (catering,
+        boda, etc. que necesita varios roles a la vez: "3 mozos + 2
+        bartenders + 1 cocinero").
+
+        Cada rol se crea y publica como un turno individual normal
+        (quantity=1, ADR-0003 intacto), todos comparten un `event_id` nuevo
+        para poder verse agrupados/con su progreso de cobertura después. Cada
+        turno consume su propio cupo del plan igual que si se hubiera
+        publicado uno por uno (misma lógica de `_consume_publication_slot`,
+        sin descuento por venir en tanda) — si el plan se queda sin cupo a
+        mitad de camino, la publicación queda PARCIAL: se devuelven los que sí
+        se pudieron publicar y `requested` para que el caller sepa cuántos
+        faltaron."""
+        event_id = uuid4()
+        requested = sum(role.count for role in data.roles)
+        created: list[Shift] = []
+        try:
+            for role in data.roles:
+                for _ in range(role.count):
+                    shift = await self.create_shift(
+                        company_id,
+                        ShiftData(
+                            position=role.position,
+                            quantity=1,
+                            start_at=data.start_at,
+                            end_at=data.end_at,
+                            pay_amount=role.pay_amount,
+                            currency=data.currency,
+                            tips=data.tips,
+                            dress_code=data.dress_code,
+                            urgent=data.urgent,
+                            address=data.address,
+                            city=data.city,
+                            latitude=data.latitude,
+                            longitude=data.longitude,
+                            title=data.name,
+                            description=data.description,
+                            event_id=event_id,
+                            event_name=data.name,
+                        ),
+                    )
+                    published = await self.publish_shift(company_id, shift.id)
+                    created.append(published)
+        except PlanLimitExceededError:
+            pass  # publicación parcial: se devuelve lo que sí entró en el plan.
+        return EventResult(event_id=event_id, requested=requested, shifts=created)
 
     async def update_shift(
         self, company_id: UUID, shift_id: UUID, data: ShiftData
