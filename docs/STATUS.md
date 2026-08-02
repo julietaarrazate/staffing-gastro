@@ -5,13 +5,37 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (`/profile` responsive, dos columnas en
-`lg+` — ver la auditoría de responsive/desktop más abajo; antes, en el mismo
-día, `/chats` con layout de inbox, `/my-shifts` responsive y asistencia del
-trabajador en 2 pasos + no-show automático) · todos los PRs se mergean con
-squash apenas quedan verdes (pedido de Julieta) · **loop autónomo activo**
-(con auto-merge, confirmado explícitamente por Julieta) para retomar el
-backlog no bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-02 (métrica de tiempo real de cobertura en el
+panel admin — ver sección de abajo; antes, en el mismo día, `/profile`,
+`/chats` y `/my-shifts` responsive + asistencia del trabajador en 2 pasos +
+no-show automático) · todos los PRs se mergean con squash apenas quedan
+verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
+confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
+sin esperar "seguí" en cada paso.*
+
+## Métrica de la promesa central: tiempo real de cobertura (2026-08-02)
+
+Sesión de reflexión de negocio con Julieta (sobre quién es el cliente, cómo
+escala un marketplace hiperlocal, y por qué la densidad de oferta en un
+barrio importa más que la cobertura geográfica amplia): la conclusión fue
+que antes de invertir en crecimiento hace falta poder **medir** si la
+promesa central ("cubrir un puesto en menos de 10 minutos", `PRODUCT.md`) se
+cumple de verdad — hoy nadie tenía ese número.
+
+`Shift.published_at` (se marca en `publish()`) y `Shift.first_assigned_at`
+(se marca la PRIMERA vez que `assign()` encuentra un candidato — no se pisa
+en reasignaciones posteriores a un rechazo/no-show, para no mezclar
+"cuánto tardó el matching" con "cuántos reintentos hicieron falta") son
+columnas nuevas (migración `0020`, sin backfill: sólo mide desde acá en
+adelante). `AdminService.get_stats` calcula, sobre los turnos ya cubiertos
+(`ShiftRepository.list_recently_filled`, hasta 500 más recientes): el
+tiempo promedio de cobertura y el % cubierto en menos de 10 minutos —
+ambos `null` si todavía no hay muestra, para no mostrar un promedio
+engañoso con pocos datos. El panel `/admin` suma dos tarjetas nuevas
+("Tiempo prom. de cobertura", "Cubiertos en <10 min") con el tamaño de la
+muestra debajo. `pytest -q`: 251 passed (+2: el dominio no pisa
+`first_assigned_at` en una reasignación, y el cálculo del panel admin).
+`tsc`/`build`/Playwright verdes.
 
 ## Asistencia del trabajador en 2 pasos + no-show automático (2026-08-02)
 

@@ -77,6 +77,15 @@ class Shift:
     event_id: UUID | None = None
     event_name: str | None = None
 
+    # Métrica de la promesa central del negocio ("cubrir un puesto en menos
+    # de 10 minutos", PRODUCT.md): `published_at` marca cuándo se publicó, y
+    # `first_assigned_at` cuándo se encontró el primer candidato — sólo la
+    # PRIMERA vez (`assign()` no lo pisa en reasignaciones tras rechazo/
+    # no-show, para no mezclar "cuánto tardó el matching" con "cuántas veces
+    # se tuvo que reintentar"). Panel admin: `AdminService.get_stats`.
+    published_at: datetime | None = None
+    first_assigned_at: datetime | None = None
+
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -112,21 +121,30 @@ class Shift:
 
     # --- Transiciones de estado ---
     def publish(self) -> None:
-        """BORRADOR → PUBLICADO."""
+        """BORRADOR → PUBLICADO. Arranca el reloj de la métrica de cobertura
+        (`published_at`, ver arriba)."""
         self._transition(ShiftStatus.BORRADOR, ShiftStatus.PUBLICADO)
+        self.published_at = datetime.now(timezone.utc)
 
     def start_searching(self) -> None:
         """PUBLICADO → BUSCANDO_PERSONAL."""
         self._transition(ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
 
     def assign(self, worker_profile_id: UUID) -> None:
-        """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato."""
+        """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato.
+
+        Métrica de cobertura: `first_assigned_at` sólo se completa la
+        PRIMERA vez (no se pisa en una reasignación posterior a un
+        rechazo/no-show) — mide cuánto tardó el matching en encontrar UN
+        candidato, no cuántas veces hizo falta reintentar."""
         if self.status not in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL):
             raise InvalidShiftTransitionError(
                 f"No se puede asignar un turno en estado {self.status.value}"
             )
         self.worker_profile_id = worker_profile_id
         self.status = ShiftStatus.ASIGNADO
+        if self.first_assigned_at is None:
+            self.first_assigned_at = datetime.now(timezone.utc)
 
     def confirm(self, other_committed_shifts: list["Shift"] | None = None) -> None:
         """ASIGNADO → CONFIRMADO: el trabajador asignado confirma su asistencia.

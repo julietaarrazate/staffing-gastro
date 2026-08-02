@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
   suspended: "Suspendido",
 };
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card className="p-4">
       <p className="text-2xl font-extrabold text-ink">{value}</p>
@@ -154,6 +154,39 @@ export default function AdminPage() {
             <StatCard label="Suspendidos" value={stats.suspended} />
           </div>
         )
+      )}
+
+      {/* Promesa central del negocio ("cubrir un puesto en <10 min",
+          PRODUCT.md): sin esto nadie sabía, con un número real, si se
+          está cumpliendo. `coverage_sample_size` se muestra siempre para
+          que el promedio/porcentaje no se lean como certeza con pocos
+          datos (sin backfill: sólo cuenta desde que se empezó a medir). */}
+      {!statsLoading && stats && (
+        <div className="mt-3">
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              label="Tiempo prom. de cobertura"
+              value={
+                stats.avg_time_to_fill_minutes === null
+                  ? "—"
+                  : `${stats.avg_time_to_fill_minutes.toFixed(0)} min`
+              }
+            />
+            <StatCard
+              label="Cubiertos en <10 min"
+              value={
+                stats.pct_filled_under_10_min === null
+                  ? "—"
+                  : `${stats.pct_filled_under_10_min.toFixed(0)}%`
+              }
+            />
+          </div>
+          <p className="mt-1.5 px-1 text-xs text-ink/40">
+            Sobre {stats.coverage_sample_size} turno
+            {stats.coverage_sample_size === 1 ? "" : "s"} cubierto
+            {stats.coverage_sample_size === 1 ? "" : "s"} hasta ahora.
+          </p>
+        </div>
       )}
 
       <div className="mt-8">

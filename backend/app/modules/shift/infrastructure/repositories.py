@@ -69,6 +69,8 @@ def _to_entity(model: ShiftModel) -> Shift:
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
         event_id=model.event_id,
         event_name=model.event_name,
+        published_at=model.published_at,
+        first_assigned_at=model.first_assigned_at,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -92,6 +94,8 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
+    model.published_at = shift.published_at
+    model.first_assigned_at = shift.first_assigned_at
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):
@@ -169,6 +173,19 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             ShiftModel.status.in_(
                 [ShiftStatus.CONFIRMADO.value, ShiftStatus.EN_CAMINO.value]
             )
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_recently_filled(self, *, limit: int = 500) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(
+                ShiftModel.published_at.is_not(None),
+                ShiftModel.first_assigned_at.is_not(None),
+            )
+            .order_by(ShiftModel.published_at.desc())
+            .limit(limit)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
