@@ -28,6 +28,7 @@ def _to_entity(model: CompanyProfileModel) -> CompanyProfile:
         rating=model.rating,
         events_published=model.events_published,
         on_time_payment_rate=model.on_time_payment_rate,
+        payments_recorded=model.payments_recorded,
         late_cancellations=model.late_cancellations,
         created_at=model.created_at,
         updated_at=model.updated_at,
@@ -106,4 +107,27 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         if model is None:
             return
         model.late_cancellations += 1
+        await self._session.commit()
+
+    async def record_published_shift(self, profile_id: UUID) -> None:
+        model = await self._session.get(CompanyProfileModel, profile_id)
+        if model is None:
+            return
+        model.events_published += 1
+        await self._session.commit()
+
+    async def record_payment(self, profile_id: UUID, *, on_time: bool) -> None:
+        model = await self._session.get(CompanyProfileModel, profile_id)
+        if model is None:
+            return
+        # Promedio móvil simple, mismo patrón que
+        # `WorkerProfileRepository.record_completed_shift`: `payments_recorded`
+        # todavía no se incrementó en este punto, así que representa los
+        # pagos previos.
+        previous_payments = model.payments_recorded
+        new_payments = previous_payments + 1
+        model.on_time_payment_rate = (
+            model.on_time_payment_rate * previous_payments + (1.0 if on_time else 0.0)
+        ) / new_payments
+        model.payments_recorded = new_payments
         await self._session.commit()

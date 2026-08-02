@@ -191,6 +191,65 @@ async def test_finish_with_punctual_checkin_updates_worker_metrics(client: Async
     assert body["punctuality_rate"] == pytest.approx(1.0)
 
 
+async def test_publish_increments_company_events_published(client: AsyncClient):
+    """Reputación del comercio (docs/REPUTATION.md): antes `events_published`
+    quedaba en 0 para siempre, sin cálculo automático."""
+    employer_headers = await _employer_with_company(client, "att_emp7@staffya.com")
+    for _ in range(2):
+        created = await client.post(
+            "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+        )
+        await client.post(
+            f"/api/v1/shifts/{created.json()['id']}/publish", headers=employer_headers
+        )
+
+    profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
+    assert profile.status_code == 200
+    assert profile.json()["events_published"] == 2
+
+
+async def test_mark_paid_on_time_and_late_updates_company_rate(client: AsyncClient):
+    """Reputación del comercio: `on_time_payment_rate` es un promedio móvil
+    sobre si `mark_paid` ocurrió dentro de `PAYMENT_TOLERANCE` (48hs) desde
+    `end_at`. Antes quedaba en 0 para siempre, sin cálculo automático."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Turno 1: se paga "ahora", su fin fue hace 2hs → a tiempo.
+    on_time_shift, employer_headers, worker_headers_1 = await _confirmed_shift(
+        client,
+        "att_emp8@staffya.com",
+        "att_w8@staffya.com",
+        start_at=(now - timedelta(hours=7)).isoformat(),
+        end_at=(now - timedelta(hours=2)).isoformat(),
+    )
+    await _run_full_flow_to_finish(client, on_time_shift, employer_headers, worker_headers_1)
+    paid_on_time = await client.post(
+        f"/api/v1/shifts/{on_time_shift}/mark-paid", headers=employer_headers
+    )
+    assert paid_on_time.status_code == 200
+
+    profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
+    assert profile.json()["on_time_payment_rate"] == pytest.approx(1.0)
+
+    # Turno 2 (mismo comercio): se paga "ahora", su fin fue hace 50hs (fuera
+    # de la tolerancia de 48hs) → tarde. Promedio: (1.0 + 0.0) / 2 = 0.5.
+    late_shift, _, worker_headers_2 = await _confirmed_shift(
+        client,
+        "att_emp8@staffya.com",
+        "att_w9@staffya.com",
+        start_at=(now - timedelta(hours=55)).isoformat(),
+        end_at=(now - timedelta(hours=50)).isoformat(),
+    )
+    await _run_full_flow_to_finish(client, late_shift, employer_headers, worker_headers_2)
+    paid_late = await client.post(
+        f"/api/v1/shifts/{late_shift}/mark-paid", headers=employer_headers
+    )
+    assert paid_late.status_code == 200
+
+    profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
+    assert profile.json()["on_time_payment_rate"] == pytest.approx(0.5)
+
+
 async def test_badges_and_level_recompute_after_finish_and_worker_cancel(
     client: AsyncClient,
 ):

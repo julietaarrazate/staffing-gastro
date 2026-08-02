@@ -32,9 +32,26 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
 
+
+def _naive(dt: datetime) -> datetime:
+    """Normaliza a "naive" antes de comparar datetimes: en SQLite (tests) los
+    datetimes vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ` sí lo
+    preservan. Se asume que ambos valores están en UTC (mismo criterio que
+    `subscription.domain.entities._naive`)."""
+    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
+
+
 # R2.4: tolerancia para considerar "puntual" un check-in respecto del
 # horario pactado (start_at). Ver docs/REPUTATION.md.
 PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
+
+# Reputación del comercio: tolerancia para considerar "a tiempo" un pago
+# respecto del fin del turno (end_at). No hay un plazo de pago pactado en el
+# dominio (el pago del turno ocurre fuera de la plataforma, sólo se
+# autodeclara con `mark_paid`) — 48hs es un valor semilla conservador,
+# mismo criterio que `PUNCTUALITY_TOLERANCE`/`NO_SHOW_PERFORMANCE_WEIGHT`:
+# ajustable cuando haya datos reales. Ver docs/REPUTATION.md.
+PAYMENT_TOLERANCE = timedelta(hours=48)
 
 
 class ShiftService:
@@ -169,6 +186,9 @@ class ShiftService:
         await self._consume_publication_slot(company_id)
         shift.publish()
         published = await self._shifts.update(shift)
+        # Reputación del comercio (`events_published`, docs/REPUTATION.md):
+        # antes quedaba en 0 para siempre, sin cálculo automático.
+        await self._companies.record_published_shift(company_id)
         await self._notify_nearby_workers(published)
         return published
 
@@ -587,17 +607,34 @@ class ShiftService:
         """
         if shift.check_in_at is None:
             return False
-
-        def _naive(dt: datetime) -> datetime:
-            return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
-
         return abs(_naive(shift.check_in_at) - _naive(shift.start_at)) <= PUNCTUALITY_TOLERANCE
 
+    @staticmethod
+    def _was_paid_on_time(shift: Shift) -> bool:
+        """A tiempo = `paid_at` dentro de `PAYMENT_TOLERANCE` desde `end_at`.
+
+        Mismo criterio de normalización "naive" que `_was_punctual`. `paid_at`
+        nunca es `None` acá: `mark_paid()` lo acaba de setear antes de llamar
+        a esto (`Shift.mark_paid`, `shift/domain/entities.py`)."""
+        assert shift.paid_at is not None
+        return _naive(shift.paid_at) - _naive(shift.end_at) <= PAYMENT_TOLERANCE
+
     async def mark_paid(self, company_id: UUID, shift_id: UUID) -> Shift:
-        """El comercio confirma que pagó el turno finalizado."""
+        """El comercio confirma que pagó el turno finalizado.
+
+        Reputación del comercio (`on_time_payment_rate`, docs/REPUTATION.md):
+        antes quedaba en 0 para siempre, sin cálculo automático. "A tiempo" =
+        `paid_at` (recién seteado por `shift.mark_paid()`) dentro de
+        `PAYMENT_TOLERANCE` desde `end_at` — no hay un plazo de pago pactado
+        en el dominio (el pago ocurre fuera de la plataforma), así que es un
+        valor semilla, no una fecha límite real acordada con el trabajador.
+        """
         shift = await self._get_owned(company_id, shift_id)
         shift.mark_paid()
         updated = await self._shifts.update(shift)
+        await self._companies.record_payment(
+            company_id, on_time=self._was_paid_on_time(updated)
+        )
         if updated.worker_profile_id is not None:
             await self._notify_worker(
                 updated.worker_profile_id,
