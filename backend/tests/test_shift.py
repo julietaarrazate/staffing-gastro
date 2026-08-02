@@ -321,6 +321,50 @@ async def test_reject_assignment_reopens_search(client: AsyncClient):
     assert rejected.json()["worker_profile_id"] is None
 
 
+async def test_publish_and_assign_set_coverage_timestamps(client: AsyncClient):
+    """Métrica de la promesa central (PRODUCT.md, "<10 min"): `publish()`
+    marca `published_at` y `assign()` marca `first_assigned_at` la PRIMERA
+    vez."""
+    employer_headers = await _employer_with_company(client, "emp_coverage@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    assert created.json()["published_at"] is None
+    assert created.json()["first_assigned_at"] is None
+
+    published = await client.post(
+        f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers
+    )
+    assert published.json()["published_at"] is not None
+    assert published.json()["first_assigned_at"] is None
+
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_coverage1@staffya.com"
+    )
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    first_assigned_at = assigned.json()["first_assigned_at"]
+    assert first_assigned_at is not None
+
+    # Rechaza y se reasigna a otro trabajador: `first_assigned_at` NO se
+    # pisa — mide cuánto tardó en encontrar UN candidato, no cuántos
+    # reintentos hicieron falta.
+    await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=worker_headers)
+    other_headers, other_profile_id = await _worker_with_profile(
+        client, "w_coverage2@staffya.com"
+    )
+    reassigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": other_profile_id},
+    )
+    assert reassigned.json()["first_assigned_at"] == first_assigned_at
+
+
 async def test_worker_cancel_confirmed_shift_reopens_search(client: AsyncClient):
     """ADR-0004: el trabajador puede cancelar su asignación sólo desde
     CONFIRMADO; el turno vuelve a buscar personal, pierde el trabajador

@@ -289,6 +289,12 @@ export interface PlatformStats {
   active: number;
   suspended: number;
   verified: number;
+  // Promesa central del negocio ("cubrir un puesto en menos de 10
+  // minutos", PRODUCT.md): null hasta que haya al menos un turno cubierto
+  // después de que se empezó a medir (sin backfill de turnos viejos).
+  coverage_sample_size: number;
+  avg_time_to_fill_minutes: number | null;
+  pct_filled_under_10_min: number | null;
 }
 
 // Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,

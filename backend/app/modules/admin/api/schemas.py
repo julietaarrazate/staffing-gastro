@@ -30,3 +30,6 @@ class PlatformStatsResponse(BaseModel):
     active: int
     suspended: int
     verified: int
+    coverage_sample_size: int
+    avg_time_to_fill_minutes: float | None
+    pct_filled_under_10_min: float | None

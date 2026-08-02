@@ -83,3 +83,12 @@ class ShiftRepository(ABC):
         Python, mismo criterio que `_naive` en `ShiftService` para no
         pelearse con el tz-naive de SQLite en tests— si mandar el
         recordatorio de check-in o marcar no-show automático."""
+
+    @abstractmethod
+    async def list_recently_filled(self, *, limit: int = 500) -> list[Shift]:
+        """Turnos con `published_at` Y `first_assigned_at` seteados (los que
+        aportan dato a la métrica de tiempo de cobertura), más recientes
+        primero, acotado a `limit`.
+
+        Uso interno (no expuesto por API): `AdminService.get_stats` calcula
+        el promedio y el % cubierto en <10 min sobre esta muestra."""

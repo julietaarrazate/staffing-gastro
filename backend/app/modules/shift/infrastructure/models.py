@@ -79,6 +79,11 @@ class ShiftModel(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    first_assigned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Publicación masiva para un evento (sin tabla propia ni FK: sólo un UUID
     # compartido entre los turnos de una misma tanda, ver domain/entities.py).
     event_id: Mapped[uuid.UUID | None] = mapped_column(GUID(), nullable=True, index=True)

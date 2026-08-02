@@ -86,6 +86,8 @@ class ShiftResponse(BaseModel):
     last_no_show_worker_profile_id: UUID | None = None
     event_id: UUID | None = None
     event_name: str | None = None
+    published_at: datetime | None = None
+    first_assigned_at: datetime | None = None
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
