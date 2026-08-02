@@ -5,14 +5,37 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (escalada automática de urgencia,
-ADR-0009 — ver sección de abajo; antes, en el mismo día, métrica de tiempo
-real de cobertura en el panel admin, `/profile`/`/chats`/`/my-shifts`
+*Última actualización: 2026-08-02 (cerrar sesión ahora revoca el refresh
+token en el backend, TECH_DEBT.md S1 — ver sección de abajo; antes, en el
+mismo día, escalada automática de urgencia ADR-0009, métrica de tiempo real
+de cobertura en el panel admin, `/profile`/`/chats`/`/my-shifts`
 responsive, y asistencia del trabajador en 2 pasos + no-show automático) ·
 todos los PRs se mergean con squash apenas quedan verdes (pedido de
 Julieta) · **loop autónomo activo** (con auto-merge, confirmado
 explícitamente por Julieta) para retomar el backlog no bloqueado sin
 esperar "seguí" en cada paso.*
+
+## Cerrar sesión revoca el refresh token en el backend (2026-08-02)
+
+`TECH_DEBT.md` S1 (🔴 Crítica) tenía un hueco documentado desde R1.2/ADR-0002:
+el endpoint `POST /auth/logout` que revoca el refresh token ya existía en el
+backend, pero el frontend nunca lo llamaba — "cerrar sesión" sólo borraba el
+`localStorage` local, así que un refresh token filtrado (XSS, dispositivo
+compartido) seguía siendo válido por sus 30 días completos aunque el
+usuario "cerrara sesión".
+
+`auth-context.tsx::logout()` ahora manda el refresh token guardado a
+`POST /auth/logout` antes de limpiar el `localStorage` — best-effort: si el
+request falla (sin red, backend caído), el logout local sigue funcionando
+igual, el token sólo queda sin revocar hasta que expire solo. Sin cambios de
+producto visibles (mismo botón, mismo flujo). Test e2e nuevo en
+`frontend/e2e/auth.spec.ts` (verifica que el `refresh_token` correcto llega
+al backend al tocar "Salir"/"Cerrar sesión"). `tsc`/`build`/Playwright
+(25/25) verdes; sin cambios de backend (el endpoint ya existía).
+
+**Sigue pendiente, sin cambios** (documentado en TECH_DEBT.md S1): migrar el
+almacenamiento del refresh token de `localStorage` a cookie `httpOnly` —
+cambio de contrato más grande, no resuelto en este PR.
 
 ## Escalada automática de urgencia (2026-08-02, ADR-0009)
 

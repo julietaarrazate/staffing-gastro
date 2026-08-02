@@ -112,3 +112,52 @@ test("con el access token vencido pero refresh token válido, la sesión se rest
   await expect(page).not.toHaveURL(/\/login$/);
   expect(meCalls).toBeGreaterThanOrEqual(2);
 });
+
+/**
+ * Cerrar sesión revoca el refresh token server-side (TECH_DEBT.md S1): antes
+ * "Cerrar sesión" sólo borraba el localStorage local, el refresh token
+ * seguía siendo válido en el backend por sus 30 días completos. El endpoint
+ * `POST /auth/logout` ya existía (ADR-0002) pero nunca se llamaba desde acá.
+ *
+ * `/chats` en vez de `/profile`: superficie mínima (un solo fetch de
+ * datos, `GET /chats`) para no depender de mockear todo lo que trae el
+ * perfil. El botón "Salir" del Navbar es sólo desktop (`md:inline`), de ahí
+ * el viewport ancho.
+ */
+test("cerrar sesión revoca el refresh token en el backend", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-1",
+        email: "demo.mozo.palermo@staffya.com",
+        full_name: "Mozo Demo",
+        role: "worker",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  await page.route("**/api/v1/chats", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  let logoutBody: unknown = null;
+  await page.route("**/api/v1/auth/logout", (route) => {
+    logoutBody = route.request().postDataJSON();
+    return route.fulfill({ status: 204 });
+  });
+
+  await page.goto("/chats");
+  await page.getByRole("button", { name: /^Salir/ }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect.poll(() => logoutBody).toEqual({ refresh_token: "e2e-fake-refresh-token" });
+});
