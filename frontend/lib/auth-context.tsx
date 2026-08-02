@@ -29,7 +29,7 @@ interface AuthState {
     idToken: string,
     role?: "worker" | "employer"
   ) => Promise<GoogleLoginResult>;
-  logout: () => void;
+  logout: () => Promise<void>;
   /** Cambia el nombre del usuario autenticado (único dato de identidad
    *  editable desde el perfil — ni el registro por email ni el acceso con
    *  Google dejaban forma de corregirlo, Julieta 2026-07-30). */
@@ -214,13 +214,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
   }
 
-  function logout() {
+  async function logout() {
+    // TECH_DEBT.md S1: hasta ahora "cerrar sesión" sólo borraba el
+    // localStorage local — el refresh token seguía siendo válido en el
+    // servidor por sus 30 días completos (un token filtrado por XSS o
+    // dispositivo compartido sobrevivía al logout). El endpoint de
+    // revocación ya existía (ADR-0002) pero nunca se llamaba desde acá.
+    const refreshToken = localStorage.getItem("staffya_refresh");
     clearTokens();
     setToken(null);
     setUser(null);
     // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
     // una pantalla protegida ya renderizada en el historial.
     router.replace("/login");
+    if (refreshToken) {
+      try {
+        await api.post("/auth/logout", { refresh_token: refreshToken });
+      } catch {
+        // Best-effort: el usuario ya quedó deslogueado localmente. Si el
+        // backend no respondió (red caída, sin conexión), el refresh token
+        // sigue siendo válido server-side hasta que expire solo — no vale
+        // la pena bloquear ni mostrarle un error por esto.
+      }
+    }
   }
 
   return (

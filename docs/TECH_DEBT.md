@@ -406,6 +406,16 @@ fecha de esta auditoría (2026-07-02).
 - **Solución sugerida:** ADR de sesión (rotación de refresh + revocación);
   ejecutar antes de escalar el número de usuarios reales.
 
+> **Actualización 2026-08-02:** cerrado el hueco que quedaba pendiente desde
+> R1.2 — `auth-context.tsx::logout()` ahora llama a `POST /auth/logout` con
+> el refresh token guardado antes de limpiar el `localStorage` (best-effort:
+> si el request falla por red, el logout local sigue andando igual, el
+> refresh token sólo queda sin revocar hasta que expire solo). Test e2e en
+> `frontend/e2e/auth.spec.ts`. **Sigue pendiente, sin cambios:** migrar el
+> almacenamiento del refresh token de `localStorage` a cookie `httpOnly` —
+> es el cambio de contrato más grande (c) que este ítem ya documentaba, no
+> se resolvió acá.
+
 ### S2 — Límites de conexión/mensajes por WebSocket ausentes 🟡 Media
 
 - **Descripción:** sin cambios desde la v1 — no se encontró rate limiting ni
