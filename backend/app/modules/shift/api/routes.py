@@ -18,12 +18,14 @@ from app.modules.shift.api.dependencies import (
 )
 from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
+    EventInput,
+    EventResponse,
     GeoCheckRequest,
     ShiftInput,
     ShiftPublicResponse,
     ShiftResponse,
 )
-from app.modules.shift.application.dtos import ShiftData
+from app.modules.shift.application.dtos import EventData, EventRoleData, ShiftData
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
@@ -169,6 +171,40 @@ async def my_assigned_shifts(
 ):
     shifts = await service.list_worker_shifts(worker_profile_id, limit=limit, offset=offset)
     return await _with_company_info(shifts, companies)
+
+
+@router.post(
+    "/events",
+    response_model=EventResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Publicar varios turnos de una vez para un evento (catering, boda, etc.)",
+)
+async def create_event(
+    payload: EventInput, company_id: CompanyIdDep, service: ServiceDep, companies: CompaniesDep
+):
+    result = await service.create_event(
+        company_id,
+        EventData(
+            name=payload.name,
+            start_at=payload.start_at,
+            end_at=payload.end_at,
+            roles=[
+                EventRoleData(position=r.position, count=r.count, pay_amount=r.pay_amount)
+                for r in payload.roles
+            ],
+            currency=payload.currency,
+            tips=payload.tips,
+            dress_code=payload.dress_code,
+            urgent=payload.urgent,
+            address=payload.address,
+            city=payload.city,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+            description=payload.description,
+        ),
+    )
+    shifts = await _with_company_info(result.shifts, companies)
+    return EventResponse(event_id=result.event_id, requested=result.requested, shifts=shifts)
 
 
 @router.get(

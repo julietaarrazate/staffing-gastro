@@ -55,6 +55,8 @@ function exampleShift(input: {
     paid_at: null,
     no_show_at: null,
     last_no_show_worker_profile_id: null,
+    event_id: null,
+    event_name: null,
     created_at: null,
     company_name: input.companyName,
     company_logo_url: null,

@@ -5,11 +5,39 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-07-29 (auditoría de responsive/desktop, en curso
-— ver sección de abajo) · todos los PRs se mergean con squash apenas quedan
-verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
-confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
-sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-01 (publicación masiva para un evento — ver
+sección de abajo; la auditoría de responsive/desktop sigue en curso más
+abajo) · todos los PRs se mergean con squash apenas quedan verdes (pedido de
+Julieta) · **loop autónomo activo** (con auto-merge, confirmado
+explícitamente por Julieta) para retomar el backlog no bloqueado sin esperar
+"seguí" en cada paso.*
+
+## Publicación masiva para un evento (2026-08-01)
+
+Pedido de Julieta: un comercio que necesita cubrir un evento completo (boda,
+catering — varios roles a la vez) no tenía forma de publicarlo sin repetir el
+wizard N veces. `POST /shifts/events` (nuevo) recibe un formulario único
+(datos compartidos: nombre, horario, ubicación, dress code) + una lista de
+roles ("3 mozos a $50000", "2 bartenders a $60000") y publica cada rol como
+un **turno individual** (`quantity=1` intacto, **ADR-0003 no se toca**),
+todos compartiendo un `event_id` nuevo (columnas nullable en `shifts`,
+migración `0017`, sin tabla ni FK propia) para poder verse agrupados/con
+progreso de cobertura después.
+
+Cada turno consume su propio cupo del plan del comercio, igual que si se
+publicara uno por uno (decisión de producto: el costo de conseguir 6
+trabajadores es el mismo venga en una tanda o de a uno — si el bulk fuera
+gratis del cupo, cualquiera lo usaría para esquivar el gating). Si el plan se
+queda sin cupo a mitad de la publicación, queda **parcial**: se devuelven los
+turnos que sí se pudieron publicar más `requested` para que el frontend
+muestre "se publicaron X de Y" con CTA a mejorar el plan.
+
+Frontend: `/shifts/new-event` (formulario con filas dinámicas de rol,
+agregar/sacar) + pantalla de resultado; `/shifts` (panel) suma una tira de
+progreso por evento ("Boda Martínez — 4/6 cubiertos", cruza todas las
+familias de estado) y cada `ShiftCard` de un turno de evento muestra un chip
+con el nombre del evento. `pytest -q`: 239 passed (+2: happy path con roles
+mixtos, parcial por tope de plan). `tsc`/`build`/Playwright (24/24) verdes.
 
 ## Auditoría de responsive/desktop, pantalla por pantalla (2026-07-29, EN CURSO)
 

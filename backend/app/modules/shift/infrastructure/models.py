@@ -75,6 +75,11 @@ class ShiftModel(Base):
         nullable=True,
     )
 
+    # Publicación masiva para un evento (sin tabla propia ni FK: sólo un UUID
+    # compartido entre los turnos de una misma tanda, ver domain/entities.py).
+    event_id: Mapped[uuid.UUID | None] = mapped_column(GUID(), nullable=True, index=True)
+    event_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

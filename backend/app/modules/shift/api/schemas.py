@@ -84,9 +84,49 @@ class ShiftResponse(BaseModel):
     paid_at: datetime | None
     no_show_at: datetime | None = None
     last_no_show_worker_profile_id: UUID | None = None
+    event_id: UUID | None = None
+    event_name: str | None = None
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
+
+
+class EventRoleInput(BaseModel):
+    """Un rol dentro de una publicación masiva: "necesito 3 mozos a $50000"."""
+
+    position: WorkerSkill
+    count: int = Field(ge=1, le=50)
+    pay_amount: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+
+
+class EventInput(BaseModel):
+    """Payload de "Publicar para un evento": un formulario, varios roles —
+    cada uno se publica como turno individual (ver `ShiftService.create_event`,
+    ADR-0003 sigue vigente: quantity=1 por turno)."""
+
+    name: str = Field(min_length=1, max_length=200)
+    start_at: datetime
+    end_at: datetime
+    roles: list[EventRoleInput] = Field(min_length=1, max_length=20)
+    currency: str = Field(default="ARS", min_length=3, max_length=3)
+    tips: bool = False
+    dress_code: str | None = Field(default=None, max_length=255)
+    urgent: bool = False
+    address: str | None = Field(default=None, max_length=255)
+    city: str | None = Field(default=None, max_length=120)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    description: str | None = Field(default=None, max_length=1000)
+
+
+class EventResponse(BaseModel):
+    """Resultado de publicar un evento: `requested` vs. la cantidad real de
+    `shifts` — si son distintos, el plan del comercio se quedó sin cupo a
+    mitad de camino (publicación parcial)."""
+
+    event_id: UUID
+    requested: int
+    shifts: list[ShiftResponse]
 
 
 class ShiftPublicResponse(BaseModel):

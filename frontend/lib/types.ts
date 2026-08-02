@@ -107,9 +107,22 @@ export interface Shift {
   // ausente antes de que el turno se reabra a `buscando_personal`.
   no_show_at: string | null;
   last_no_show_worker_profile_id: string | null;
+  // Publicación masiva para un evento (catering, boda, etc.): turnos que
+  // comparten `event_id` se publicaron juntos desde /shifts/new-event.
+  event_id: string | null;
+  event_name: string | null;
   created_at: string | null;
   company_name: string | null;
   company_logo_url: string | null;
+}
+
+/** Resultado de `POST /shifts/events`: `requested` vs. `shifts.length` —
+ *  si son distintos, el plan del comercio se quedó sin cupo a mitad de
+ *  camino (publicación parcial). */
+export interface EventResult {
+  event_id: string;
+  requested: number;
+  shifts: Shift[];
 }
 
 // Vista pública de un turno (sin autenticación, GET /shifts/{id}/public):
