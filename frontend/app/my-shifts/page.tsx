@@ -145,7 +145,7 @@ export default function MatchesPage() {
   const pending = applications.filter((a) => a.status === "pendiente");
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
       <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Matches</h1>
       <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados y tus postulaciones.</p>
 
@@ -172,7 +172,7 @@ export default function MatchesPage() {
       )}
 
       {!loading && !error && tab === "asignados" && (
-        <div className="mt-5 grid gap-4">
+        <div className="mt-5">
           {shifts.length === 0 ? (
             <EmptyState
               icon={<BriefcaseIcon size={28} />}
@@ -180,7 +180,8 @@ export default function MatchesPage() {
               subtitle="Cuando un comercio te elija de entre los postulantes, el turno aparece acá."
             />
           ) : (
-            shifts.map((shift) => (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {shifts.map((shift) => (
               <ShiftCard key={shift.id} shift={shift} perspective="worker">
                 {shift.status !== "cancelado" && (
                   <div className="mb-2 flex flex-wrap gap-2">
@@ -291,13 +292,14 @@ export default function MatchesPage() {
                   </div>
                 )}
               </ShiftCard>
-            ))
+            ))}
+            </div>
           )}
         </div>
       )}
 
       {!loading && !error && tab === "postulaciones" && (
-        <div className="mt-5 grid gap-4">
+        <div className="mt-5">
           {pending.length === 0 ? (
             <EmptyState
               icon={<ClockIcon size={28} />}
@@ -305,7 +307,8 @@ export default function MatchesPage() {
               subtitle="Deslizá turnos a la derecha en Inicio para postularte. Acá vas a seguir su estado."
             />
           ) : (
-            pending.map((application) => {
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {pending.map((application) => {
               const shift = appShifts[application.shift_id];
               if (!shift) return null;
               return (
@@ -331,7 +334,8 @@ export default function MatchesPage() {
                   </div>
                 </ShiftCard>
               );
-            })
+            })}
+            </div>
           )}
         </div>
       )}

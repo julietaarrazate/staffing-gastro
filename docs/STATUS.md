@@ -5,12 +5,12 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (asistencia del trabajador en 2 pasos +
-no-show automático — ver sección de abajo; la auditoría de responsive/desktop
-sigue en curso más abajo) · todos los PRs se mergean con squash apenas quedan
-verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
-confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
-sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-02 (`/my-shifts` responsive — ver la auditoría
+de responsive/desktop más abajo; antes, en el mismo día, asistencia del
+trabajador en 2 pasos + no-show automático) · todos los PRs se mergean con
+squash apenas quedan verdes (pedido de Julieta) · **loop autónomo activo**
+(con auto-merge, confirmado explícitamente por Julieta) para retomar el
+backlog no bloqueado sin esperar "seguí" en cada paso.*
 
 ## Asistencia del trabajador en 2 pasos + no-show automático (2026-08-02)
 
@@ -112,9 +112,17 @@ queda flotando en el medio de la pantalla.
    breakpoint) — `search-sheet-overscroll.spec.ts` ajustado con
    `.filter({ visible: true })`.
 
+5. **`/my-shifts`** (2026-08-02, matches del trabajador): mismo fix que
+   `/shifts` (#126) — es el mismo `ShiftCard`, mismo problema (`max-w-2xl`
+   con una sola columna). Contenedor a `md:max-w-6xl`, ambas pestañas
+   (Asignados/Postulaciones) a `grid gap-4 md:grid-cols-2 xl:grid-cols-3`
+   (el `EmptyState` queda afuera de la grilla, no como un ítem más — mismo
+   criterio que `/shifts`, si no un solo estado vacío ocupa una sola columna
+   y se ve raro). Mobile sin cambios. Verificado visualmente (screenshot en
+   1440px: 3 columnas, botones "Llegué"/"Me fui" completos, sin desborde).
+
 **Pendientes, en orden de valor** (siguiente sesión puede arrancar por acá):
 
-5. **`/my-shifts`** (matches del trabajador).
 6. **`/chats`**.
 7. Resto: `/profile`, `/shifts/new` (wizard), `/shifts/[id]/candidates`,
    `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
