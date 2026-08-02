@@ -5,13 +5,13 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (`/chats` responsive, layout de inbox de
-dos paneles — ver la auditoría de responsive/desktop más abajo; antes, en el
-mismo día, `/my-shifts` responsive y asistencia del trabajador en 2 pasos +
-no-show automático) · todos los PRs se mergean con squash apenas quedan
-verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
-confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
-sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-02 (`/profile` responsive, dos columnas en
+`lg+` — ver la auditoría de responsive/desktop más abajo; antes, en el mismo
+día, `/chats` con layout de inbox, `/my-shifts` responsive y asistencia del
+trabajador en 2 pasos + no-show automático) · todos los PRs se mergean con
+squash apenas quedan verdes (pedido de Julieta) · **loop autónomo activo**
+(con auto-merge, confirmado explícitamente por Julieta) para retomar el
+backlog no bloqueado sin esperar "seguí" en cada paso.*
 
 ## Asistencia del trabajador en 2 pasos + no-show automático (2026-08-02)
 
@@ -141,7 +141,20 @@ queda flotando en el medio de la pantalla.
    falta, la lista está siempre visible al lado). Verificado visualmente
    con screenshots en 1440px (lista+conversación lado a lado, y el
    placeholder de índice) y 390px (ambas pantallas sin cambios).
-7. Resto: `/profile`, `/shifts/new` (wizard), `/shifts/[id]/candidates`,
+7. **`/profile`** (2026-08-02): a diferencia de las pantallas de listas de
+   turnos, esto es un formulario de cuenta (no tiene sentido una grilla de
+   tarjetas — ensanchar inputs de texto a todo el ancho se ve mal, mismo
+   criterio de no forzar layouts artificiales que ya guió el fix de
+   `/my-shifts`). En `lg+` pasa a **dos columnas** (`lg:grid-cols-3`,
+   patrón dashboard tipo GitHub/Stripe settings): la tarjeta de
+   perfil/negocio + el formulario principal quedan en una columna angosta
+   y legible a la izquierda (2/3), mientras Suscripción (sólo comercio) +
+   Reseñas recibidas + Otros pasan a una columna secundaria a la derecha
+   (1/3), en vez de apilarse debajo dejando media pantalla vacía a los
+   costados. Mobile/tablet sin cambios (sigue siendo un único stack en el
+   mismo orden). Verificado visualmente con screenshots en 1440px (worker y
+   employer) y 390px.
+8. Resto: `/shifts/new` (wizard), `/shifts/[id]/candidates`,
    `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
