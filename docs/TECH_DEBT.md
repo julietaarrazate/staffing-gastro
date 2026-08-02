@@ -471,6 +471,60 @@ fecha de esta auditoría (2026-07-02).
   HTTP) adaptado a mensajes WS.
 - **Solución sugerida:** cuota simple (N mensajes/minuto por conexión).
 
+### S3 — Dependencias con CVEs conocidas 🟠 Alta (parcial — lo bajo riesgo ✅ resuelto)
+
+- **Descripción:** auditoría real con `pip-audit`/`npm audit` (2026-08-02,
+  a raíz de una pregunta directa de Julieta sobre el estado de seguridad
+  del código) — no se había corrido antes en este repo. Encontró
+  vulnerabilidades conocidas en dependencias de terceros, no en código
+  propio.
+- **Impacto:** depende de cada CVE puntual; el más sensible es **PyJWT**
+  (firma/valida los tokens de autenticación) y **Starlette** (el framework
+  debajo de FastAPI) por tocar la superficie de auth/HTTP directamente.
+- **Riesgo:** medio-alto mientras no se actualice, bajo para lo ya resuelto.
+- **Prioridad:** 🟠 Alta (crítico para lo que sigue pendiente: Starlette).
+- **Esfuerzo:** bajo para lo ya hecho; alto para Starlette/FastAPI (versión
+  mayor, necesita su propio ciclo de pruebas).
+
+> **Actualización 2026-08-02 — resuelto (bajo riesgo, sin cambios de
+> comportamiento):**
+> - **Frontend:** `next` 16.2.9→16.2.12 (parche, mismo minor) resolvió la
+>   mitad de los CVEs de Next.js directamente. Los dos que quedaban —
+>   **PostCSS** (XSS en `</style>` sin escapar, path traversal vía
+>   `sourceMappingURL`) y **sharp/libvips** (CVE-2026-33327/33328/35590/35591)
+>   — son dependencias *internas* de `next` (no declaradas en nuestro
+>   `package.json`), así que se fuerzan con `overrides` en `package.json`
+>   (`sharp: ^0.35.0`, `next.postcss: ^8.5.18`) — mismo mecanismo estándar
+>   de npm para pisar versiones de dependencias transitivas vulnerables sin
+>   esperar a que el paquete padre las actualice. `npm audit` → 0
+>   vulnerabilidades. Verificado: `tsc --noEmit`, `npm run build` y
+>   Playwright (25/25) sin cambios de comportamiento.
+> - **Backend:** `pyjwt` 2.10.1→2.13.0 y `python-multipart` 0.0.20→0.0.32
+>   (ninguno de los dos con cambios de API que afecten nuestro uso — `jwt.encode`/
+>   `jwt.decode` sin cambios de firma; `python-multipart` ni siquiera se
+>   importa directo en el código, sólo lo usa FastAPI internamente). `pytest -q`
+>   sigue en verde con las mismas ~255 pruebas.
+>
+> **Sigue pendiente, deliberadamente no resuelto acá — necesita su propio
+> ciclo de pruebas, no es un bump seguro:**
+> - **Starlette 0.41.3 → 1.x** (múltiples CVEs, `PYSEC-2026-161/248/249/
+>   1942/1941/2281/2280`): es un salto de versión **mayor**, y FastAPI
+>   0.115.6 no es compatible con Starlette 1.x — requiere subir **FastAPI**
+>   también (0.115.6 → ~0.141, ~26 versiones menores de diferencia). Cambios
+>   de esa magnitud pueden alterar comportamiento de middleware, inyección
+>   de dependencias o manejo de excepciones — necesita su propia sesión con
+>   la suite completa corriendo contra cada paso, no un bump a ciegas en el
+>   mismo PR que el resto.
+> - **pytest 8.3.4 → 9.x** (`PYSEC-2026-1845`, fix sólo en 9.0.3+, ningún
+>   parche dentro de la serie 8.x): dependencia de **test únicamente** (nunca
+>   corre en producción), pero es un salto de versión mayor que podría
+>   romper compatibilidad con `pytest-asyncio` u otros plugins — mismo
+>   criterio que Starlette, se difiere a un PR dedicado.
+- **Solución sugerida:** un PR dedicado para Starlette/FastAPI (subir de a
+  pasos, correr la suite completa en cada uno, prestar atención especial a
+  middleware/excepciones/DI) y otro, más chico, para pytest 9.x (correr toda
+  la suite y confirmar que `pytest-asyncio` sigue andando).
+
 ---
 
 ## Infraestructura / datos
