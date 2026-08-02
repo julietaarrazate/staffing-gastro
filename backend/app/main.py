@@ -25,6 +25,9 @@ from app.modules.notification.api.routes import push_router
 from app.modules.notification.api.routes import router as notification_router
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
+from app.modules.shift.application.attendance_scheduler import (
+    start_attendance_scheduler,
+)
 from app.modules.subscription.api.routes import router as subscription_router
 from app.modules.worker.api.routes import router as worker_router
 
@@ -38,7 +41,11 @@ setup_sentry()
 async def lifespan(_: FastAPI):
     # Promueve a admin los emails configurados en ADMIN_EMAILS (idempotente).
     await promote_configured_admins()
+    # Scheduler de asistencia (ADR-0008): no-op fuera de producción.
+    scheduler_task = start_attendance_scheduler()
     yield
+    if scheduler_task is not None:
+        scheduler_task.cancel()
 
 
 app = FastAPI(

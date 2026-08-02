@@ -5,12 +5,41 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-01 (publicación masiva para un evento — ver
-sección de abajo; la auditoría de responsive/desktop sigue en curso más
-abajo) · todos los PRs se mergean con squash apenas quedan verdes (pedido de
-Julieta) · **loop autónomo activo** (con auto-merge, confirmado
-explícitamente por Julieta) para retomar el backlog no bloqueado sin esperar
-"seguí" en cada paso.*
+*Última actualización: 2026-08-02 (asistencia del trabajador en 2 pasos +
+no-show automático — ver sección de abajo; la auditoría de responsive/desktop
+sigue en curso más abajo) · todos los PRs se mergean con squash apenas quedan
+verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
+confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
+sin esperar "seguí" en cada paso.*
+
+## Asistencia del trabajador en 2 pasos + no-show automático (2026-08-02)
+
+Pedido de Julieta a partir de una pregunta sobre por qué no detectar el
+no-show por geolocalización: se explicó la limitación real (PWA, sin
+tracking en segundo plano en navegadores — requeriría app nativa) y se
+acordó en cambio bajar la fricción del flujo manual + avisar proactivamente.
+Detalle completo en
+[ADR-0008](adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md).
+
+**Asistencia en 2 pasos:** el flujo del trabajador en `/my-shifts` baja de 4
+botones ("Salir hacia el turno" → "Llegué" → "Empezar a trabajar" → "Me
+fui") a 2 ("Llegué"/"Me fui"): `Shift.check_in()` ahora acepta directo desde
+`CONFIRMADO` (antes exigía pasar por `EN_CAMINO`) y `Shift.check_out()`
+directo desde `CHECK_IN` (antes exigía `TRABAJANDO`). Los pasos intermedios
+(`depart`/`start_working`) se conservan por compatibilidad con turnos ya en
+vuelo, la UI nueva no los ofrece.
+
+**Scheduler de asistencia in-process:** sin Cron Job nuevo de Render (el plan
+free sólo tiene un web service) — un loop `asyncio` arrancado en el
+`lifespan` de FastAPI (`app/modules/shift/application/attendance_scheduler.py`),
+gateado a `settings.is_production`. Recorre cada 5 min los turnos
+`CONFIRMADO`/`EN_CAMINO` sin check-in: a los 20 min de `start_at` manda un
+push "¿ya llegaste?" (una sola vez, `shifts.checkin_reminder_sent_at`,
+migración `0019`); a las 2hs marca no-show automático reutilizando
+`ShiftService.mark_no_show` (ADR-0007). Cierra el ítem que `TECH_DEBT.md`
+tenía documentado como abierto desde ADR-0007 (detección automática de
+no-show). `pytest -q`: 249 passed (+6 del scheduler). `tsc`/`build`/Playwright
+verdes.
 
 ## Publicación masiva para un evento (2026-08-01)
 

@@ -120,7 +120,10 @@ async def test_full_attendance_flow(client: AsyncClient):
     assert any(n["type"] == "shift_paid" for n in worker_notifications.json())
 
 
-async def test_cannot_check_in_before_departing(client: AsyncClient):
+async def test_check_in_directly_from_confirmado(client: AsyncClient):
+    """ADR-0008: el flujo de asistencia bajó de 4 pasos a 2 — se puede
+    marcar llegada directo desde CONFIRMADO, sin pasar por `depart()`
+    (EN_CAMINO) primero."""
     shift_id, _employer_headers, worker_headers = await _confirmed_shift(
         client, "att_emp2@staffya.com", "att_w2@staffya.com"
     )
@@ -129,7 +132,45 @@ async def test_cannot_check_in_before_departing(client: AsyncClient):
         headers=worker_headers,
         json={"latitude": -34.58, "longitude": -58.43},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.json()["status"] == "check_in"
+
+
+async def test_check_in_still_works_after_legacy_depart(client: AsyncClient):
+    """`depart()` (EN_CAMINO) queda como paso opcional/legacy — el check-in
+    lo sigue aceptando como estado previo, para no romper turnos que ya
+    estaban a mitad de camino cuando se desplegó ADR-0008."""
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client, "att_emp2b@staffya.com", "att_w2b@staffya.com"
+    )
+    departed = await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
+    assert departed.status_code == 200
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    assert response.status_code == 200
+
+
+async def test_check_out_directly_from_check_in(client: AsyncClient):
+    """Mismo criterio que el check-in: `check_out()` va directo desde
+    CHECK_IN, sin exigir `start_working()` (TRABAJANDO) primero."""
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client, "att_emp2c@staffya.com", "att_w2c@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-out",
+        headers=worker_headers,
+        json={"latitude": -34.59, "longitude": -58.44},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "check_out"
 
 
 async def test_other_worker_cannot_depart_someone_elses_shift(client: AsyncClient):

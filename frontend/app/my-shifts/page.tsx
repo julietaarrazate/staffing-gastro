@@ -27,8 +27,6 @@ import {
   CloseIcon,
   MapPinIcon,
   MessageIcon,
-  PlayIcon,
-  RouteIcon,
 } from "@/components/icons";
 
 type Tab = "asignados" | "postulaciones";
@@ -218,14 +216,19 @@ export default function MatchesPage() {
                 )}
                 {shift.status === "confirmado" && (
                   <div className="flex flex-wrap gap-2">
+                    {/* ADR-0008: antes eran 4 toques (salir → llegada →
+                        empezar a trabajar → salida) — el paso "Salir hacia
+                        el turno" no sumaba nada real y bajaba la adhesión
+                        (gente que sí llegaba pero se olvidaba de tocarlo).
+                        "Llegué" marca la ubicación real directo. */}
                     <Button
                       size="sm"
-                      onClick={() => act(shift.id, "depart")}
-                      leftIcon={<RouteIcon size={16} />}
-                      loading={busy === `${shift.id}:depart`}
+                      onClick={() => act(shift.id, "check-in", true)}
+                      leftIcon={<MapPinIcon size={16} />}
+                      loading={busy === `${shift.id}:check-in`}
                       disabled={busy !== null}
                     >
-                      Salir hacia el turno
+                      Llegué
                     </Button>
                     <Button
                       size="sm"
@@ -239,6 +242,9 @@ export default function MatchesPage() {
                     </Button>
                   </div>
                 )}
+                {/* Legacy (ADR-0008): turnos que ya estaban "en camino" al
+                    desplegar el cambio siguen pudiendo marcar llegada acá —
+                    ya no es un paso que se ofrezca de entrada. */}
                 {shift.status === "en_camino" && (
                   <Button
                     size="sm"
@@ -253,15 +259,15 @@ export default function MatchesPage() {
                 {shift.status === "check_in" && (
                   <Button
                     size="sm"
-                    variant="secondary"
-                    onClick={() => act(shift.id, "start-working")}
-                    leftIcon={<PlayIcon size={15} />}
-                    loading={busy === `${shift.id}:start-working`}
+                    onClick={() => act(shift.id, "check-out", true)}
+                    leftIcon={<MapPinIcon size={16} />}
+                    loading={busy === `${shift.id}:check-out`}
                     disabled={busy !== null}
                   >
-                    Empezar a trabajar
+                    Me fui
                   </Button>
                 )}
+                {/* Legacy (ADR-0008): idem, para turnos ya en "trabajando". */}
                 {shift.status === "trabajando" && (
                   <Button
                     size="sm"

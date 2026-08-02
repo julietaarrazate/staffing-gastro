@@ -73,3 +73,13 @@ class ShiftRepository(ABC):
 
         Uso interno (no expuesto por API): detectar solapamiento de horarios
         al confirmar un turno (regla de doble turno, `COMMITTED_STATUSES`)."""
+
+    @abstractmethod
+    async def list_awaiting_checkin(self) -> list[Shift]:
+        """Turnos CONFIRMADO/EN_CAMINO (todavía sin check-in), sin paginar.
+
+        Uso interno (no expuesto por API): el scheduler de asistencia
+        (ADR-0008) los recorre para decidir —comparando `start_at` en
+        Python, mismo criterio que `_naive` en `ShiftService` para no
+        pelearse con el tz-naive de SQLite en tests— si mandar el
+        recordatorio de check-in o marcar no-show automático."""
