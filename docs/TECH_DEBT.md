@@ -4,6 +4,20 @@
 > auditoría (no contra la doc anterior). Deriva de
 > [AUDIT_REPORT.md](./AUDIT_REPORT.md). Prioridad: 🔴 Crítica · 🟠 Alta ·
 > 🟡 Media · 🟢 Baja.
+>
+> **Repaso 2026-08-02:** varios ítems marcados 🔴/🟠 en la auditoría original
+> (2026-07-02) ya estaban resueltos hace tiempo pero el catálogo no se había
+> actualizado — quedaban leyendo como deuda crítica abierta cuando ya no lo
+> eran. Se verificó cada uno contra el código real y se les agregó nota de
+> **Actualización** (mismo criterio que ya se venía usando en S1/P3/etc.):
+> **I1** (Postgres de Render — migrado a Neon), **T1** (sin CI — existe y
+> corre en cada PR), **T2** (sin tests frontend — e2e sí, unitarios no),
+> **T3** (sin observabilidad — Sentry/logging estructurado en código,
+> pendiente sólo cargar `SENTRY_DSN`), **F2** (landing con gradientes — ya
+> migrada), **F3** (admin sin DS — ya migrado), **F1** (inputs crudos —
+> alcance más chico que el original, sigue parcialmente abierto). No se
+> re-auditó el catálogo completo línea por línea; sólo los ítems 🔴/🟠 con
+> señales claras de estar resueltos.
 
 ## Qué se cerró desde la v1 (verificado en código, no sólo en doc)
 
@@ -112,7 +126,7 @@ fecha de esta auditoría (2026-07-02).
   insignias/nivel en la UI si no aporta información real (ver
   `QUICK_WINS.md` #9 de la v1, todavía no ejecutado).
 
-### P3 — Métricas de reputación derivadas nunca se actualizan 🟠 Alta (parcial — `cancellations` ✅ resuelto en ADR-0004)
+### P3 — Métricas de reputación derivadas nunca se actualizan ✅ Resuelto
 
 > **Actualización 2026-07-02 (R2.4):** resuelto para el trabajador
 > `punctuality_rate` y `events_completed` — `ShiftService.finish()`
@@ -168,7 +182,15 @@ fecha de esta auditoría (2026-07-02).
 > De paso, el flujo de asistencia del trabajador bajó de 4 pasos a 2
 > ("Llegué"/"Me fui"), para reducir los falsos no-show de gente que sí
 > llegó pero se olvidaba de un tap intermedio. Detalle completo en
-> ADR-0008; tests en `backend/tests/test_attendance_scheduler.py`.
+> ADR-0008; tests en `backend/tests/test_scheduler.py` (renombrado desde
+> `test_attendance_scheduler.py` en [ADR-0009](./adr/ADR-0009-escalada-automatica-de-urgencia.md),
+> mismo scheduler ahora con un segundo chequeo de escalada de urgencia).
+>
+> **Actualización 2026-08-02 (cierre de este ítem):** con `events_published`/
+> `on_time_payment_rate` (más abajo) y el no-show automático de arriba, las
+> cinco métricas listadas en la descripción original (`punctuality_rate`,
+> `events_completed`, `cancellations`, `on_time_payment_rate`,
+> `events_published`) quedan resueltas. Ítem cerrado.
 
 - **Descripción:** `punctuality_rate`, `events_completed`, `cancellations`
   (worker) y `on_time_payment_rate`, `events_published` (company) se leen en
@@ -293,7 +315,16 @@ fecha de esta auditoría (2026-07-02).
 - **Solución sugerida:** PR chico de reemplazo directo, mismo patrón que ya
   se usó para EmptyState/Button en la v1.
 
-### F2 — Landing sin migrar al DS v2 monocromático 🟡 Media
+> **Actualización 2026-08-02 (verificado, parcial):** `login/page.tsx` y
+> `register/page.tsx` ya usan `TextField` (el ejemplo original de "1 sola
+> pantalla" quedó desactualizado). Siguen con `<input>` crudo, sin
+> `TextField`: `chats/[shiftId]/page.tsx` (el campo de mensaje del chat),
+> `search/page.tsx`, `recuperar/page.tsx` y `restablecer/page.tsx`.
+> `shifts/new/page.tsx`/`shifts/new-event/page.tsx` mezclan ambos (algunos
+> campos sí son `TextField`, otros no). Sigue abierto, alcance más chico que
+> el original.
+
+### F2 — Landing sin migrar al DS v2 monocromático ✅ Resuelto
 
 - **Descripción:** `frontend/app/page.tsx` usa gradientes naranja→rojo en
   el hero, los CTAs y las tarjetas de features (líneas 99-100, 114, 120,
@@ -312,12 +343,19 @@ fecha de esta auditoría (2026-07-02).
 - **Solución sugerida:** encaja en una futura fase de DS (ver
   `RECOMMENDATIONS.md`, "terminar la propagación").
 
-### F3 — Admin sin migrar al Design System 🟡 Media
+> **Actualización 2026-08-02:** resuelto — el rebrand (#79) y la landing
+> inmersiva (#85, ver `docs/STATUS.md`) reescribieron la landing sin
+> gradientes multicolor (`grep -n "from-orange\|to-red\|gradient"
+> frontend/app/page.tsx` → sin resultados), con un solo acento naranja como
+> exige la Ley de marca de `PULIDO_ROADMAP.md`.
 
-- **Descripción:** `frontend/app/admin/page.tsx:19-23` usa colores Tailwind
-  crudos (`bg-green-100 text-green-700`, `bg-red-100 text-red-700`,
-  `bg-zinc-200 text-zinc-600`) en vez de los tokens `secondary`/`danger` del
-  DS, y una `StatCard` local (línea 25-32) en vez de `components/ui/Card`.
+### F3 — Admin sin migrar al Design System ✅ Resuelto
+
+- **Descripción (histórica):** `frontend/app/admin/page.tsx:19-23` usaba
+  colores Tailwind crudos (`bg-green-100 text-green-700`,
+  `bg-red-100 text-red-700`, `bg-zinc-200 text-zinc-600`) en vez de los
+  tokens `secondary`/`danger` del DS, y una `StatCard` local (línea 25-32)
+  en vez de `components/ui/Card`.
 - **Impacto:** inconsistencia visual en la única pantalla de uso interno;
   bajo impacto en usuarios finales (worker/employer) pero afecta a quien
   opera la plataforma.
@@ -327,6 +365,11 @@ fecha de esta auditoría (2026-07-02).
 - **Dependencias:** ninguna.
 - **Solución sugerida:** mismo patrón de migración que Worker/Employer ya
   recibieron.
+
+> **Actualización 2026-08-02:** resuelto — `admin/page.tsx` ya usa `Badge`
+> con tonos `secondary`/`danger`/`neutral` del DS (`STATUS_TONE`) y
+> `StatCard` envuelve `components/ui/Card` (`docs/STATUS.md`, entrada
+> "R3.2 (DS v2 en Employer/Admin)"). Sin colores Tailwind crudos.
 
 ### F4 — Accesibilidad no sistematizada 🟡 Media
 
@@ -432,19 +475,23 @@ fecha de esta auditoría (2026-07-02).
 
 ## Infraestructura / datos
 
-### I1 — Postgres de Render expira a los 90 días (persiste desde v1) 🔴 Crítica
+### I1 — Postgres de Render expira a los 90 días ✅ Resuelto
 
-- **Descripción:** sigue sin migrar — `render.yaml` sigue declarando la DB
-  como `plan: free` de Render; el plan de migración a Neon está documentado
+- **Descripción (histórica):** `render.yaml` declaraba la DB como
+  `plan: free` de Render; el plan de migración a Neon estaba documentado
   y listo (`backend/README.md:169-189`) pero no ejecutado.
-- **Impacto:** pérdida total de datos de producción si se cumple el plazo
-  sin migrar.
-- **Riesgo:** crítico y con fecha — es el único ítem de este catálogo con
-  un reloj corriendo de causa externa.
-- **Prioridad:** 🔴 Crítica.
-- **Esfuerzo:** bajo (la guía ya existe, son ~4 pasos documentados).
-- **Solución sugerida:** ejecutar la migración ya, según los pasos de
-  `backend/README.md`.
+- **Impacto (histórico):** pérdida total de datos de producción si se
+  cumplía el plazo sin migrar.
+- **Riesgo (histórico):** crítico y con fecha — era el único ítem de este
+  catálogo con un reloj corriendo de causa externa.
+
+> **Actualización 2026-08-02:** resuelto — la migración a Neon se ejecutó
+> y se verificó en vivo el 2026-07-23 (migraciones corriendo hasta la
+> `0021`, backend sirviendo contra Neon). `render.yaml` documenta
+> explícitamente que `DATABASE_URL` es la connection string de Neon, "se
+> setea manual en el dashboard, nunca sobrescrita por este archivo" — ver
+> `CLAUDE.md` y `docs/INCIDENTE_2026-07-23_BACKEND_CAIDO.md` para el
+> incidente y el runbook completo de esa migración.
 
 ### I2 — `SEED_DEMO_DATA=true` activo en producción con imágenes externas 🟠 Alta
 
@@ -533,58 +580,48 @@ fecha de esta auditoría (2026-07-02).
 
 ## Calidad / observabilidad
 
-### T1 — Sin CI 🔴 Crítica
+### T1 — Sin CI ✅ Resuelto
 
-- **Descripción:** `find . -path "*/.github/workflows/*"` → sin resultados.
-  No hay pipeline que corra `pytest -q` / `tsc --noEmit` / `npm run build`
-  antes de mergear a `main`, que **auto-despliega** a Render y Vercel. Hoy la
-  única red de seguridad es que la persona que commitea corra los gates a
-  mano (como se hizo en esta auditoría: 82 tests, tsc limpio, build exitoso —
-  pero eso fue manual, no automático).
-- **Impacto:** un PR con tests rotos o un `tsc` fallido puede llegar a
-  producción si nadie corre los gates localmente antes del merge.
-- **Riesgo:** alto — es la ausencia de control más barata de resolver con
-  más impacto de este catálogo.
-- **Prioridad:** 🔴 Crítica.
-- **Esfuerzo:** bajo — GitHub Actions con dos jobs (`backend: pytest -q`,
-  `frontend: tsc --noEmit && npm run build`), sin infraestructura nueva.
-- **Dependencias:** ninguna.
-- **Solución sugerida:** workflow mínimo en `.github/workflows/ci.yml`
-  activado en PR contra `main`; bloquear merge si falla.
+- **Descripción (histórica):** no había pipeline que corriera `pytest -q` /
+  `tsc --noEmit` / `npm run build` antes de mergear a `main`, que
+  **auto-despliega** a Render y Vercel. La única red de seguridad era que
+  la persona que commiteaba corriera los gates a mano.
 
-### T2 — Sin tests de frontend ni E2E (persiste desde v1) 🟠 Alta
+> **Actualización 2026-08-02:** resuelto — `.github/workflows/ci.yml`
+> corre `pytest -q` (backend), `tsc --noEmit` + `npm run build` (frontend)
+> y `npx playwright test` (e2e) en cada PR y push a `main` (R0.3, PR #50).
+> Bloquea el merge si falla — verificado en cada uno de los PRs de esta
+> misma sesión.
 
-- **Descripción:** confirmado — `frontend/package.json` no tiene script de
-  test; `find frontend -iname "*.test.ts*" -o -iname "*.spec.ts*"` → sin
-  resultados. Sólo hay `tsc --noEmit` + `npm run build` como red de
-  seguridad (tipos + que compile, no comportamiento).
-- **Impacto:** cambios en lógica de UI (wizard, swipe, WS) pueden romperse
-  sin que ningún test lo detecte; sólo `tsc`/`build` como red.
-- **Riesgo:** medio-alto, creciente con el tamaño de la app.
-- **Prioridad:** 🟠 Alta.
-- **Esfuerzo:** medio — Vitest/RTL para lógica de componentes críticos
-  (`SwipeDeck`, `useWebSocket`, `auth-context`); Playwright para 1-2 flujos
-  E2E (postulación completa, creación de turno).
-- **Solución sugerida:** Fase 8 del master plan (ya identificada en
-  `RECOMMENDATIONS.md`); no requiere replanificación, sólo ejecución.
+### T2 — Sin tests de frontend ni E2E ✅ Resuelto (parcial — e2e sí, unitarios no)
 
-### T3 — Sin observabilidad (logging estructurado, tracing, alertas) 🟠 Alta
+- **Descripción (histórica):** `frontend/package.json` no tenía script de
+  test; sin `.test.ts*`/`.spec.ts*` en todo el repo. Sólo `tsc --noEmit` +
+  `npm run build` como red de seguridad (tipos + que compile, no
+  comportamiento).
 
-- **Descripción:** confirmado por ausencia — no hay `structlog`, `sentry`,
-  ni configuración de logging estructurado en
-  `backend/app/core/*.py`/`requirements.txt`. `docs/OBSERVABILITY.md` existe
-  como documento de intención (40 líneas) pero no hay implementación.
-- **Impacto:** si algo falla en producción (p. ej. el seed de I2, un error
-  de WS, un 500 en un endpoint), no hay forma de enterarse salvo que un
-  usuario lo reporte — sin logs estructurados ni alertas.
-- **Riesgo:** alto operativamente (tiempo de detección de incidentes = 0 →
-  depende de reportes manuales).
-- **Prioridad:** 🟠 Alta.
-- **Esfuerzo:** medio — `structlog` o logging estándar con contexto
-  (request id, user id) + un servicio de error tracking (Sentry free tier es
-  suficiente a este volumen).
-- **Solución sugerida:** ejecutar junto con T1 (CI) como base de "producción
-  real" antes de escalar usuarios.
+> **Actualización 2026-08-02:** resuelto el E2E — Playwright corre en CI
+> con 25 specs en `frontend/e2e/` (auth, wizard de publicación, postulación,
+> mapa, responsive/overflow, WebSocket de chat, etc.), API 100% mockeada.
+> **Sigue sin resolver:** tests unitarios de componentes/lógica aislada
+> (Vitest/RTL) — `grep -n "vitest\|@testing-library" frontend/package.json`
+> → sin resultados. El E2E cubre los flujos completos pero no lógica
+> puntual de un componente en aislamiento.
+
+### T3 — Sin observabilidad (logging estructurado, tracing, alertas) ✅ Resuelto
+
+- **Descripción (histórica):** no había `structlog`, `sentry`, ni
+  configuración de logging estructurado en el backend. `docs/OBSERVABILITY.md`
+  existía como documento de intención sin implementación.
+
+> **Actualización 2026-08-02:** resuelto en código — `app/core/observability.py`
+> tiene `setup_logging()` (JSON estructurado con `LOG_JSON=true`,
+> `request_id` por request vía `RequestIdMiddleware`) y `setup_sentry()`
+> (no-op sin `SENTRY_DSN`, mismo patrón "flag por ausencia" del resto del
+> repo). **Sigue pendiente, y no es tarea de código:** cargar el
+> `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` real en Render/Vercel — hoy corre en
+> modo no-op por falta de esa env var (ver "Pendiente de la operadora" en
+> `CLAUDE.md`).
 
 ### T4 — Warning de test cosmético 🟢 Baja
 
