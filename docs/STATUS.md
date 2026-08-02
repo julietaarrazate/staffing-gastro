@@ -5,12 +5,13 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (`/my-shifts` responsive — ver la auditoría
-de responsive/desktop más abajo; antes, en el mismo día, asistencia del
-trabajador en 2 pasos + no-show automático) · todos los PRs se mergean con
-squash apenas quedan verdes (pedido de Julieta) · **loop autónomo activo**
-(con auto-merge, confirmado explícitamente por Julieta) para retomar el
-backlog no bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-02 (`/chats` responsive, layout de inbox de
+dos paneles — ver la auditoría de responsive/desktop más abajo; antes, en el
+mismo día, `/my-shifts` responsive y asistencia del trabajador en 2 pasos +
+no-show automático) · todos los PRs se mergean con squash apenas quedan
+verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
+confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
+sin esperar "seguí" en cada paso.*
 
 ## Asistencia del trabajador en 2 pasos + no-show automático (2026-08-02)
 
@@ -121,9 +122,25 @@ queda flotando en el medio de la pantalla.
    y se ve raro). Mobile sin cambios. Verificado visualmente (screenshot en
    1440px: 3 columnas, botones "Llegué"/"Me fui" completos, sin desborde).
 
-**Pendientes, en orden de valor** (siguiente sesión puede arrancar por acá):
-
-6. **`/chats`**.
+6. **`/chats`** (2026-08-02): a diferencia de las anteriores, no era un
+   simple ajuste de grilla — son dos rutas separadas (`/chats` lista,
+   `/chats/[shiftId]` conversación) que en mobile navegan como páginas
+   completas. Se resuelve con un **layout compartido**
+   (`app/chats/layout.tsx`, nuevo) al estilo inbox (Gmail/WhatsApp
+   Web/Slack, justo la comparación de Julieta con Pasito): en `md+` la
+   lista de conversaciones queda **fija a la izquierda** (con la
+   conversación activa resaltada) y `children` (la conversación abierta, o
+   un placeholder "Elegí una conversación" si estás en `/chats`) ocupa el
+   resto a la derecha — sin duplicar el fetch de la lista al navegar entre
+   conversaciones, porque el layout no se remonta (persiste entre rutas
+   hijas de Next.js App Router). En mobile el comportamiento no cambia:
+   `/chats` sigue mostrando sólo la lista y `/chats/[shiftId]` sólo la
+   conversación a pantalla completa (controlado con clases `hidden`/`flex`
+   según el pathname, mismo criterio que el resto de los fixes). El link
+   "Volver a mensajes" de la conversación se oculta en `md+` (ya no hace
+   falta, la lista está siempre visible al lado). Verificado visualmente
+   con screenshots en 1440px (lista+conversación lado a lado, y el
+   placeholder de índice) y 390px (ambas pantallas sin cambios).
 7. Resto: `/profile`, `/shifts/new` (wizard), `/shifts/[id]/candidates`,
    `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
 

@@ -120,10 +120,13 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-57px)] max-w-2xl flex-col px-4 py-4">
+    <div className="flex h-full flex-1 flex-col px-4 py-4">
+      {/* En md+ la lista de conversaciones ya queda fija al costado (ver
+          layout.tsx) — este link "volver" sólo hace falta en mobile, donde
+          la conversación ocupa toda la pantalla. */}
       <Link
         href="/chats"
-        className="inline-flex items-center gap-1 text-sm text-primary-text hover:underline"
+        className="inline-flex items-center gap-1 text-sm text-primary-text hover:underline md:hidden"
       >
         <ChevronLeftIcon size={16} /> Volver a mensajes
       </Link>
