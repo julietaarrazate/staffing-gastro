@@ -28,6 +28,10 @@ class NotificationType(str, Enum):
     # ADR-0008: recordatorio push para que el trabajador marque su llegada
     # cuando ya arrancó el turno y todavía no hizo check-in.
     CHECKIN_REMINDER = "checkin_reminder"
+    # Escalada automática de urgencia: el turno no se cubrió rápido, se
+    # amplía el círculo de candidatos avisados (ver
+    # `ShiftService.escalate_urgency`).
+    URGENT_SHIFT_NEARBY = "urgent_shift_nearby"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -45,6 +49,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.CHECKIN_REMINDER: "/my-shifts",
     # Turno todavía no suyo: va al feed, donde puede verlo y postularse.
     NotificationType.NEW_SHIFT_NEARBY: "/feed",
+    NotificationType.URGENT_SHIFT_NEARBY: "/feed",
     # Comercio
     NotificationType.NEW_APPLICANT: "/shifts",
     NotificationType.SHIFT_CONFIRMED: "/shifts",

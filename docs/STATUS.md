@@ -5,13 +5,37 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (métrica de tiempo real de cobertura en el
-panel admin — ver sección de abajo; antes, en el mismo día, `/profile`,
-`/chats` y `/my-shifts` responsive + asistencia del trabajador en 2 pasos +
-no-show automático) · todos los PRs se mergean con squash apenas quedan
-verdes (pedido de Julieta) · **loop autónomo activo** (con auto-merge,
-confirmado explícitamente por Julieta) para retomar el backlog no bloqueado
-sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-02 (escalada automática de urgencia,
+ADR-0009 — ver sección de abajo; antes, en el mismo día, métrica de tiempo
+real de cobertura en el panel admin, `/profile`/`/chats`/`/my-shifts`
+responsive, y asistencia del trabajador en 2 pasos + no-show automático) ·
+todos los PRs se mergean con squash apenas quedan verdes (pedido de
+Julieta) · **loop autónomo activo** (con auto-merge, confirmado
+explícitamente por Julieta) para retomar el backlog no bloqueado sin
+esperar "seguí" en cada paso.*
+
+## Escalada automática de urgencia (2026-08-02, ADR-0009)
+
+Segundo paso de la misma reflexión de negocio que llevó a la métrica de
+cobertura (ver sección de abajo): medir no alcanza, hacía falta que el
+sistema **reaccione solo** cuando un turno tarda en cubrirse, en vez de
+depender de que los primeros candidatos avisados se postulen.
+
+`ShiftService.escalate_urgency` (nuevo): si un turno publicado no se cubre
+en 8 minutos (`ESCALATION_DELAY`, valor semilla — un poco antes de los 10
+minutos de la promesa), lo marca `urgent` (sube al principio del feed) y
+manda un segundo aviso a un círculo más amplio de candidatos (radio 1.6× y
+tope de 20 en vez de 10 — `_notify_nearby_workers` pasó de privado/de un
+solo uso a parametrizado, reutilizado por `publish_shift` y por esta
+escalada). Nueva notificación `urgent_shift_nearby`. Campo nuevo
+`Shift.escalated_at` (migración `0021`) para que ocurra una sola vez por
+turno.
+
+Mismo scheduler in-process de ADR-0008 (renombrado de
+`attendance_scheduler.py` a `scheduler.py`: ahora corre dos chequeos por
+tick — asistencia y escalada — en vez de uno). `pytest -q`: 255 passed
+(+4: escalada de urgencia, contra la baseline de 251 tras la métrica de
+cobertura). `tsc`/`build`/Playwright verdes.
 
 ## Métrica de la promesa central: tiempo real de cobertura (2026-08-02)
 

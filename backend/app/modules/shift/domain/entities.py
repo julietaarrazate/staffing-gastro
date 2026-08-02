@@ -86,6 +86,13 @@ class Shift:
     published_at: datetime | None = None
     first_assigned_at: datetime | None = None
 
+    # Escalada automática de urgencia: si un turno abierto (PUBLICADO/
+    # BUSCANDO_PERSONAL) no se cubre rápido, el scheduler lo marca `urgent`
+    # (sube al principio del feed, ver `ShiftRepository.list_open`) y avisa a
+    # un círculo más amplio de candidatos. `escalated_at` marca cuándo pasó,
+    # para que sólo ocurra una vez por turno (`ShiftService.escalate_urgency`).
+    escalated_at: datetime | None = None
+
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None

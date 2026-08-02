@@ -71,6 +71,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         event_name=model.event_name,
         published_at=model.published_at,
         first_assigned_at=model.first_assigned_at,
+        escalated_at=model.escalated_at,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -96,6 +97,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
+    model.escalated_at = shift.escalated_at
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):
@@ -186,6 +188,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             )
             .order_by(ShiftModel.published_at.desc())
             .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_open_awaiting_escalation(self) -> list[Shift]:
+        stmt = select(ShiftModel).where(
+            ShiftModel.status.in_([s.value for s in OPEN_STATUSES]),
+            ShiftModel.published_at.is_not(None),
+            ShiftModel.escalated_at.is_(None),
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
