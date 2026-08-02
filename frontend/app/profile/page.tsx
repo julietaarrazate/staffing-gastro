@@ -61,66 +61,82 @@ export default function ProfilePage() {
     return <p className="px-4 py-16 text-center text-ink/50">Iniciá sesión para ver tu perfil.</p>;
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      {user.role === "worker" ? (
-        <WorkerGameCard />
-      ) : (
-        <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xl font-bold text-primary-text">
-            {user.full_name.charAt(0).toUpperCase()}
+    <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl">
+      {/* En lg+ el formulario principal queda en una columna angosta y
+          legible (ensanchar los inputs a todo el ancho se ve mal, mismo
+          criterio que /my-shifts al no forzar una altura pareja en
+          ShiftCard) mientras las secciones secundarias pasan a una columna
+          al lado, en vez de apilarse debajo con media pantalla vacía a los
+          costados. Sin `lg:grid`, en mobile/tablet sigue siendo un único
+          stack en el mismo orden de siempre. */}
+      <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
+        <div className="lg:col-span-2">
+          {user.role === "worker" ? (
+            <WorkerGameCard />
+          ) : (
+            <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xl font-bold text-primary-text">
+                {user.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <EditableName className="font-display text-lg font-semibold text-ink" />
+                <p className="truncate text-sm text-ink/50">{user.email}</p>
+                <span className="mt-1 inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
+                  Comercio
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-7">
+            <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
+            <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+              {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
+            </div>
           </div>
-          <div className="min-w-0">
-            <EditableName className="font-display text-lg font-semibold text-ink" />
-            <p className="truncate text-sm text-ink/50">{user.email}</p>
-            <span className="mt-1 inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
-              Comercio
-            </span>
+        </div>
+
+        <div>
+          {user.role === "employer" && (
+            <div className="mt-7 lg:mt-0">
+              <SectionLabel>Suscripción</SectionLabel>
+              <div className="mt-2 rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+                <Row
+                  icon={<CreditCardIcon size={18} />}
+                  onClick={() => router.push("/subscription")}
+                >
+                  Mi plan
+                </Row>
+              </div>
+            </div>
+          )}
+
+          <div className={user.role === "employer" ? "mt-7" : "mt-7 lg:mt-0"}>
+            <SectionLabel>Reseñas recibidas</SectionLabel>
+            <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <ReceivedReviews />
+            </div>
           </div>
-        </div>
-      )}
 
-      <div className="mt-7">
-        <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
-        <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
-        </div>
-      </div>
-
-      {user.role === "employer" && (
-        <div className="mt-7">
-          <SectionLabel>Suscripción</SectionLabel>
-          <div className="mt-2 rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
-            <Row icon={<CreditCardIcon size={18} />} onClick={() => router.push("/subscription")}>
-              Mi plan
-            </Row>
+          <div className="mt-7">
+            <SectionLabel>Otros</SectionLabel>
+            {/* El ítem "Verificación" que estaba acá (batch C0 #4) sólo mostraba
+                `user.is_verified` sin ninguna acción: no existe un flujo de
+                verificación de identidad iniciado por el usuario, `is_verified`
+                se marca desde el panel de admin (`POST /admin/users/{id}/verify`,
+                ver backend/app/modules/admin) y no hay endpoint para que el
+                propio usuario la solicite. Era UI muerta (un ítem de menú junto
+                a "Cerrar sesión" que no hacía nada al tocarlo) así que se oculta
+                acá; el estado de verificación del trabajador ya es visible como
+                insignia "Perfil Verificado" en `WorkerGameCard` (ver
+                `lib/reputation.tsx`) cuando corresponde. */}
+            <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <PushToggle />
+              <Row icon={<LogOutIcon size={18} />} onClick={logout}>
+                Cerrar sesión
+              </Row>
+            </div>
           </div>
-        </div>
-      )}
-
-      <div className="mt-7">
-        <SectionLabel>Reseñas recibidas</SectionLabel>
-        <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <ReceivedReviews />
-        </div>
-      </div>
-
-      <div className="mt-7">
-        <SectionLabel>Otros</SectionLabel>
-        {/* El ítem "Verificación" que estaba acá (batch C0 #4) sólo mostraba
-            `user.is_verified` sin ninguna acción: no existe un flujo de
-            verificación de identidad iniciado por el usuario, `is_verified`
-            se marca desde el panel de admin (`POST /admin/users/{id}/verify`,
-            ver backend/app/modules/admin) y no hay endpoint para que el
-            propio usuario la solicite. Era UI muerta (un ítem de menú junto
-            a "Cerrar sesión" que no hacía nada al tocarlo) así que se oculta
-            acá; el estado de verificación del trabajador ya es visible como
-            insignia "Perfil Verificado" en `WorkerGameCard` (ver
-            `lib/reputation.tsx`) cuando corresponde. */}
-        <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <PushToggle />
-          <Row icon={<LogOutIcon size={18} />} onClick={logout}>
-            Cerrar sesión
-          </Row>
         </div>
       </div>
     </div>
