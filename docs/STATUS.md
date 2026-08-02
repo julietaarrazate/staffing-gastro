@@ -5,15 +5,41 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (cerrar sesión ahora revoca el refresh
-token en el backend, TECH_DEBT.md S1 — ver sección de abajo; antes, en el
-mismo día, escalada automática de urgencia ADR-0009, métrica de tiempo real
+*Última actualización: 2026-08-02 (auditoría real de dependencias con CVEs
+conocidas — `pip-audit`/`npm audit`, TECH_DEBT.md S3 — ver sección de abajo;
+antes, en el mismo día, cerrar sesión revoca el refresh token en el
+backend, escalada automática de urgencia ADR-0009, métrica de tiempo real
 de cobertura en el panel admin, `/profile`/`/chats`/`/my-shifts`
 responsive, y asistencia del trabajador en 2 pasos + no-show automático) ·
 todos los PRs se mergean con squash apenas quedan verdes (pedido de
 Julieta) · **loop autónomo activo** (con auto-merge, confirmado
 explícitamente por Julieta) para retomar el backlog no bloqueado sin
 esperar "seguí" en cada paso.*
+
+## Auditoría de dependencias con CVEs conocidas (2026-08-02)
+
+Julieta preguntó directamente por el estado de seguridad del código. Más
+allá de lo ya documentado en `TECH_DEBT.md` (headers, rate limiting, JWT
+secret, revocación de refresh token — cerrada el mismo día), se corrió por
+primera vez en este repo una auditoría real de dependencias de terceros:
+`pip-audit` (backend) y `npm audit` (frontend). Detalle completo en
+`TECH_DEBT.md` S3.
+
+**Resuelto ahora (bajo riesgo, sin cambios de comportamiento):**
+- Frontend: `next` 16.2.9→16.2.12 (parche) + `overrides` en `package.json`
+  para forzar `sharp`/`postcss` (dependencias internas de `next`, no
+  declaradas por nosotros) a versiones sin CVE. `npm audit` → 0
+  vulnerabilidades (antes: 5 altas).
+- Backend: `pyjwt` 2.10.1→2.13.0, `python-multipart` 0.0.20→0.0.32 (sin
+  cambios de API que nos afecten).
+
+**Deliberadamente diferido** (documentado con detalle en TECH_DEBT.md S3,
+no resuelto en este PR): Starlette 0.41→1.x (exige subir FastAPI también,
+~26 versiones menores de diferencia) y pytest 8→9 — ambos son saltos de
+versión mayor que necesitan su propio ciclo de pruebas, no un bump a ciegas
+junto con el resto.
+
+`pytest -q`/`tsc`/`build`/Playwright verdes con los cambios ya aplicados.
 
 ## Cerrar sesión revoca el refresh token en el backend (2026-08-02)
 
