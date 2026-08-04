@@ -56,9 +56,26 @@ operado una copia legal del producto — la nueva licencia ("All Rights
 Reserved", sin permiso de copia/modificación/distribución/uso sin
 autorización escrita) cierra esa brecha.
 
-## 3. Autoría en el historial de git — dato objetivo, sin interpretación legal
+## 3. Autoría y titularidad — criterio fijado por Julieta (2026-08-04)
 
-`git log --format='%an' | sort | uniq -c`:
+> ✅ **Resuelto.** Julieta estableció el criterio explícitamente: la autoría
+> y titularidad del software corresponden **exclusivamente** a Julieta
+> Arrazate — fundadora y desarrolladora responsable. Las herramientas de
+> desarrollo con IA se usaron únicamente como **herramientas de
+> asistencia** durante el proceso (igual que un editor de código, un
+> framework o cualquier otra herramienta de productividad), bajo
+> dirección, criterio, decisiones técnicas, validación, integración y
+> control humano en todo momento. **No hay coautoría, cofundador, cesión
+> de derechos ni participación de terceros** en la propiedad intelectual
+> del producto. Este criterio queda formalizado en el archivo
+> [`NOTICE`](../NOTICE) de la raíz del repo — es el documento que hay que
+> citar de ahora en más, no este análisis. **No se modificó el historial
+> de git por este motivo** (instrucción explícita de Julieta) — los datos
+> del historial de abajo quedan como registro de lo que se relevó, no como
+> algo a "corregir".
+
+`git log --format='%an' | sort | uniq -c` (dato objetivo relevado en esta
+auditoría, ver interpretación arriba):
 
 | Autor (campo `git author`) | Commits |
 |---|---:|
@@ -119,8 +136,8 @@ de limpieza de comentarios antes de un registro.
 |---|---|---|---|
 | 1 | Completar `Copyright [yyyy] [name]` en `LICENSE` con datos reales | ✅ Resuelto (Julieta Arrazate, 2026) | — |
 | 2 | Decidir si Apache 2.0 es la licencia querida (o reemplazar por una propietaria) | ✅ Resuelto — licencia propietaria "All Rights Reserved" | — |
-| 3 | Definir cómo se declara la autoría/titularidad de los tramos con asistencia de IA | 🔴 Pendiente | Asesoría legal (dato ya reunido en §3) |
-| 4 | Agregar `NOTICE`/archivo de titularidad | ⬜ Opcional ahora que `LICENSE` ya declara titularidad — evaluar si aporta algo más allá de lo que ya dice `LICENSE` | Julieta |
+| 3 | Definir cómo se declara la autoría/titularidad de los tramos con asistencia de IA | ✅ Resuelto — criterio de Julieta, formalizado en `NOTICE` | — |
+| 4 | Agregar `NOTICE`/archivo de titularidad | ✅ Resuelto — `NOTICE` en la raíz del repo | — |
 | 5 | Índice del proyecto para acompañar el depósito | ✅ Ya existe (`01_INVENTORY.md`) | — |
 | 6 | Estructura/nombres presentables | ✅ Ya verificado (`10_REPOSITORY.md`) | — |
 | 7 | Comentarios de código sin contenido problemático | ✅ Verificado, sin hallazgos | — |
@@ -128,11 +145,15 @@ de limpieza de comentarios antes de un registro.
 ## 8. Veredicto de esta fase
 
 El código en sí (estructura, nombres, comentarios) **está listo para
-presentarse** sin cambios. De los tres pendientes de naturaleza
-legal/administrativa que identificó esta fase, **dos ya se resolvieron**
-por decisión explícita de Julieta: el aviso de copyright (`LICENSE`) y la
+presentarse** sin cambios. Los tres pendientes de naturaleza
+legal/administrativa que identificó esta fase **ya se resolvieron**, todos
+por decisión explícita de Julieta: el aviso de copyright (`LICENSE`), la
 elección de licencia (propietaria, "All Rights Reserved", en vez de
-Apache 2.0). Queda un tercero, genuinamente fuera del alcance de este
-documento: cómo se declara ante DNDA la autoría de los tramos
-desarrollados con asistencia de IA — eso sigue requiriendo asesoría legal
-específica, no una decisión que se pueda resolver en un PR de código.
+Apache 2.0), y el criterio de autoría/titularidad para el trabajo asistido
+por IA (formalizado en `NOTICE`: Julieta Arrazate como única titular y
+autora responsable; la IA como herramienta de asistencia, sin derechos
+sobre la obra). El repositorio queda, con esto, sin pendientes abiertos
+para una futura presentación ante DNDA que dependan de este documento —
+cualquier verificación final de forma (redacción exacta de `NOTICE`/
+`LICENSE`, requisitos puntuales del trámite DNDA) sigue siendo trabajo de
+asesoría legal, no de este análisis.

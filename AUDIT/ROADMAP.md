@@ -31,10 +31,9 @@
 
 *De los 3 ítems críticos, sólo C1 sigue abierto — es operativo (Render), no
 de código. C2 y C3 se resolvieron el mismo día de esta auditoría, a pedido
-explícito de Julieta. Sigue pendiente, y fuera del alcance de un PR de
-código, la pregunta de `12_DNDA.md §3`: cómo declarar ante DNDA la autoría
-de los tramos desarrollados con asistencia de IA — requiere asesoría legal
-específica.*
+explícito de Julieta — igual que la pregunta de `12_DNDA.md §3` (autoría de
+los tramos con asistencia de IA), cerrada con el criterio que fijó Julieta
+y formalizada en el archivo `NOTICE` de la raíz del repo.*
 
 ---
 
