@@ -15,7 +15,6 @@ from app.modules.admin.application.exceptions import (
 )
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
-from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.shift.domain.repositories import ShiftRepository
 
 
@@ -40,8 +39,12 @@ class AdminService:
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma, incluida la promesa
         central del negocio ("cubrir un puesto en <10 minutos", ver
-        `Shift.published_at`/`first_assigned_at`)."""
-        users = await self._users.list_all()
+        `Shift.published_at`/`first_assigned_at`).
+
+        Los conteos de usuarios se calculan en SQL (`UserRepository.count_stats`,
+        PRODUCTION_HARDENING.md P5) — antes traía toda la tabla `users` y
+        contaba en Python en cada carga del panel de admin."""
+        counts = await self._users.count_stats()
         filled_shifts = await self._shifts.list_recently_filled()
         minutes = [
             (_naive(s.first_assigned_at) - _naive(s.published_at)).total_seconds() / 60
@@ -49,13 +52,13 @@ class AdminService:
             if s.published_at is not None and s.first_assigned_at is not None
         ]
         return PlatformStats(
-            total_users=len(users),
-            workers=sum(1 for u in users if u.role == UserRole.WORKER),
-            employers=sum(1 for u in users if u.role == UserRole.EMPLOYER),
-            admins=sum(1 for u in users if u.role == UserRole.ADMIN),
-            active=sum(1 for u in users if u.status == UserStatus.ACTIVE),
-            suspended=sum(1 for u in users if u.status == UserStatus.SUSPENDED),
-            verified=sum(1 for u in users if u.is_verified),
+            total_users=counts.total,
+            workers=counts.workers,
+            employers=counts.employers,
+            admins=counts.admins,
+            active=counts.active,
+            suspended=counts.suspended,
+            verified=counts.verified,
             coverage_sample_size=len(minutes),
             avg_time_to_fill_minutes=(sum(minutes) / len(minutes)) if minutes else None,
             pct_filled_under_10_min=(
