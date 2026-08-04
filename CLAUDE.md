@@ -4,7 +4,7 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-07-29**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-08-04**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 >
@@ -12,9 +12,12 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
 > quedan "precarias" — mobile-first sin adaptar a pantallas anchas). Ya
 > resueltas: `/map` (panel lateral + mapa), `/feed` (grilla en vez del mazo
-> de swipe), `/shifts` (grilla 2-3 columnas) y `/search` (panel lateral +
-> mapa, igual que `/map`). Siguen, en orden de valor: `/my-shifts`, `/chats`,
-> resto. Detalle completo y el patrón del problema en
+> de swipe), `/shifts` (grilla 2-3 columnas), `/search` (panel lateral +
+> mapa, igual que `/map`), `/my-shifts` (misma grilla que `/shifts`),
+> `/chats` (layout de inbox, lista fija + conversación al lado) y `/profile`
+> (dos columnas tipo dashboard). Siguen, en orden de valor: `/shifts/new`
+> (wizard), `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
+> `/subscription`, `/admin`. Detalle completo y el patrón del problema en
 > [docs/STATUS.md](docs/STATUS.md).
 
 ## Contexto en 30 segundos
@@ -152,13 +155,14 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Calidad — antes de commitear
 
-- Backend: `pytest -q` (verde). Suite de referencia: **~218 tests**
-  (verificar el número real con `pytest -q --collect-only`, cambia con cada
-  feature — no memorizarlo como constante).
+- Backend: `pytest -q` (verde). Suite de referencia: **255 tests**
+  (verificado con `pytest -q --collect-only` el 2026-08-04; cambia con cada
+  feature — no memorizarlo como constante, reverificar antes de citarlo).
 - Frontend: `npx tsc --noEmit` **y** `npm run build`.
 - E2E: `npx playwright test` (Playwright, API mockeada, sin backend real).
-  Suite de referencia: **~19 tests** en 10 specs (`frontend/e2e/`), corre en
-  CI en cada PR/push a `main` junto con `pytest`/`tsc`/`build`
+  Suite de referencia: **25 tests** en 14 specs (`frontend/e2e/`, verificado
+  con `npx playwright test --list` el 2026-08-04), corre en CI en cada
+  PR/push a `main` junto con `pytest`/`tsc`/`build`
   (`.github/workflows/ci.yml`).
 - `npm run lint` **no** corre en CI (deuda conocida, ver `docs/TECH_DEBT.md`
   T5) — no lo asumas como gate aunque el checklist de sesión lo mencione.

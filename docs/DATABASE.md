@@ -39,6 +39,17 @@ Historial en `backend/alembic/versions/` (lineal, una cabeza):
 | `0008` | `reviews` |
 | `0009` | `shift_applications` (postulaciones) |
 | `0010` | `refresh_sessions` (sesiones de refresh token revocables, ADR-0002) |
+| `0011` | `subscriptions` (mensualidad al comercio, ADR-0005) |
+| `0012` | `password_reset_tokens` (recuperación de contraseña) |
+| `0013` | `push_subscriptions` (Web Push / VAPID) |
+| `0014` | no-show + cancelación tardía, columnas (ADR-0007) |
+| `0015` | `idempotency_keys` (idempotencia en mutaciones críticas) |
+| `0016` | `notification_link` (deep-link de notificación a pantalla) |
+| `0017` | agrupación de turnos por evento (`event_id`/`event_name`) |
+| `0018` | `company_profiles.payments_recorded` (reputación real del comercio) |
+| `0019` | `shifts.checkin_reminder_sent_at` (scheduler de recordatorio) |
+| `0020` | métrica de cobertura del turno (panel admin) |
+| `0021` | `shifts.escalated_at` (escalada automática de urgencia, ADR-0009) |
 
 **Regla:** toda tabla o columna nueva entra por una migración Alembic; nunca se
 crea el esquema a mano en producción. En Render, el arranque corre
@@ -54,18 +65,21 @@ crea el esquema a mano en producción. En Render, el arranque corre
 
 ## Inconsistencias / pendientes
 
-> - **`quantity` vs asignación única.** El turno tiene `quantity`, pero el modelo
->   guarda **un solo** `worker_profile_id` asignado. **Mitigado en R1.4:** la API
->   capa `quantity` a `1` en la creación/edición (`le=1` en el schema), así que
->   ya no se puede publicar un turno que prometa más cupos de los que el modelo
->   puede cubrir. Cubrir varios cupos por turno de verdad requeriría una tabla
->   de asignaciones N—N (multi-asignación, decisión de producto pendiente — ver
->   [SHIFT.md](./SHIFT.md)).
+> - **`quantity` vs asignación única — decisión permanente, no pendiente.** El
+>   turno tiene `quantity`, pero el modelo guarda **un solo** `worker_profile_id`
+>   asignado. La API capa `quantity` a `1` en la creación/edición (`le=1` en el
+>   schema, R1.4). [ADR-0003](./adr/ADR-0003-quantity-single-assignment.md)
+>   decide que **un turno = una persona, para siempre** — no se va a construir
+>   multi-asignación (tabla N—N de asignaciones). El campo `quantity` queda en
+>   el modelo hasta la próxima migración que toque `shifts` por otro motivo
+>   (no amerita una migración dedicada sólo para eso, según el propio ADR).
 > - **PostGIS no está en uso.** Las coordenadas se guardan como columnas simples
 >   y la distancia se calcula en Python (Haversine, `app/core/geo.py`), no en la
 >   DB. PostGIS está **previsto**, no adoptado (sería un ADR).
-> - **DB de Render (free) expira a los 90 días.** Migración a **Neon** prevista;
->   pasos en `backend/README.md`. Ver [TECH_DEBT.md](./TECH_DEBT.md).
+> - **DB en Neon** (serverless, `aws-us-east-2`) — reemplazó al Postgres
+>   gestionado de Render (expiraba a los 90 días). Migración verificada en vivo
+>   el 2026-07-23, ver
+>   [INCIDENTE_2026-07-23_BACKEND_CAIDO.md](./INCIDENTE_2026-07-23_BACKEND_CAIDO.md).
 > - **Índices:** las migraciones ya crean índices en las FKs y columnas de
 >   filtro frecuente (`shifts.company_id/position/status/worker`, perfiles,
 >   `notifications`, `reviews`, `shift_applications`). Revisar cobertura para

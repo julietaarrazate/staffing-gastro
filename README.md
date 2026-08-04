@@ -1,7 +1,11 @@
-# Staffya
+# Staffya (marca de cara al usuario: "Oído")
 
-**Staffya** es una plataforma estilo **Uber + Tinder** que conecta comercios
-gastronómicos y organizadores de eventos con trabajadores eventuales en tiempo real.
+**Staffya** — de cara al usuario, marca **"Oído"** — es una plataforma estilo
+**Uber + Tinder** que conecta comercios gastronómicos y organizadores de
+eventos con trabajadores eventuales en tiempo real. El repositorio, la base
+de datos y la infraestructura siguen con el nombre técnico `staffya`
+(intencional — ver [`CLAUDE.md`](./CLAUDE.md)); el producto que ve el
+usuario se llama **Oído** desde el rebrand.
 
 > Misión: **cubrir una posición eventual en menos de 10 minutos.**
 
@@ -40,8 +44,15 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 - ✅ Asistencia geolocalizada: en_camino → check-in (con ubicación) → trabajando →
   check-out (con ubicación) → finalizado → pagado.
 - ✅ Chat trabajador↔comercio por turno (inbox + conversación con burbujas).
-- ⬜ Pagos reales (hoy `mark-paid` sólo registra que el comercio pagó, no procesa el cobro).
-- ✅ Despliegue (Render + Vercel).
+- ✅ Suscripción mensual del comercio (planes, gating de publicación).
+- ✅ PWA instalable + notificaciones push (Web Push/VAPID).
+- ✅ Acceso con Google (Google Identity Services) además de email+contraseña.
+- ✅ Fotos de perfil/logo vía Cloudinary.
+- ✅ Observabilidad: logging estructurado + Sentry (ambos opcionales por env var).
+- ⬜ Pagos reales del turno comercio→trabajador (hoy `mark-paid` sólo registra
+  que el comercio pagó, no procesa el cobro; existe integración con Mercado
+  Pago para la suscripción mensual, Fase 1 de ADR-0005).
+- ✅ Despliegue (Render + Vercel + Neon), con CI en GitHub Actions.
 
 Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).
 
@@ -60,7 +71,15 @@ Para desarrollo local del frontend ver [`frontend/README.md`](./frontend/README.
 ## Stack tecnológico
 
 - **Backend:** FastAPI · Python · SQLAlchemy (async) · Alembic
-- **Base de datos:** PostgreSQL · PostGIS · Redis
-- **Frontend:** Next.js · React · TypeScript · TailwindCSS
+- **Base de datos:** PostgreSQL — **Neon** (serverless) en producción
+- **Frontend:** Next.js · React · TypeScript · TailwindCSS · PWA · MapLibre GL (mapas)
+- **Integraciones opcionales** (no-op sin su credencial): Sentry (observabilidad),
+  Cloudinary (imágenes), Mercado Pago (suscripción), Google Identity Services
+  (login), Web Push/VAPID (notificaciones), Resend (email transaccional)
 - **Mobile (futuro):** React Native
-- **Infra:** Docker · Render · Neon · Cloudflare
+- **Infra:** Docker · Render · Vercel · Neon · GitHub Actions (CI) · Cloudflare (dominio propio, futuro)
+
+> `docker-compose.yml` incluye imágenes de Redis y PostGIS para desarrollo
+> local, pero **el código no las usa hoy** (rate limiting en memoria, sin
+> geoconsultas espaciales) — quedan como infraestructura prevista, no
+> adoptada; ver `AUDIT/01_INVENTORY.md` para el detalle.

@@ -10,9 +10,16 @@
 
 ## Resumen ejecutivo
 
+> **Actualización (2026-08-04, auditoría OÍDO):** la DB ya migró a **Neon**
+> (verificado en vivo el 2026-07-23) — el hallazgo S1 de abajo ("expira a los
+> 90 días") está **resuelto**, se deja el análisis original para contexto
+> histórico con la corrección marcada en su sección. No se recalculó el
+> puntaje global (45/100): requeriría revisar también S2-S10, fuera del
+> alcance de esta corrección puntual.
+
 Staffya corre hoy en el **plan free de Render** (backend: 1 contenedor, 1
-worker uvicorn; DB: Postgres free que **expira a los 90 días**) más **Vercel
-free** para el frontend. Toda la coordinación en tiempo real (WebSocket) y de
+worker uvicorn) más **Vercel free** para el frontend y **Neon** para la DB
+(ver actualización arriba). Toda la coordinación en tiempo real (WebSocket) y de
 seguridad (rate limiting) vive **en memoria de un solo proceso**, lo cual es
 una decisión correcta y documentada para la escala actual, pero es también el
 techo: agregar un segundo worker o una segunda instancia **rompe silenciosamente**
@@ -20,12 +27,11 @@ el chat, las notificaciones live y el rate limiting, sin que ningún test lo
 detecte (son procesos separados en memoria, no hay error, simplemente cada
 instancia ve una porción de la realidad).
 
-**Puntuación global de escalabilidad: 45/100** — el diseño interno (DDD/
+**Puntuación global de escalabilidad: 45/100** (sin recalcular tras la
+migración a Neon, ver actualización arriba) — el diseño interno (DDD/
 hexagonal, puertos de repositorio) hace que escalar la lógica sea barato el
-día que haga falta, pero el **deploy actual tiene tres puntos de fallo casi
-inmediatos** apenas se toca el dial más obvio de escala (agregar workers), y
-un reloj corriendo real (expiración de la DB a los 90 días) que no depende
-del tráfico sino del calendario.
+día que haga falta, pero el **deploy actual tiene puntos de fallo casi
+inmediatos** apenas se toca el dial más obvio de escala (agregar workers).
 
 ---
 
@@ -138,6 +144,13 @@ del tráfico sino del calendario.
 
 ### 1.5 DB free de Render — expira a los 90 días (reloj, no tráfico)
 
+> ✅ **Resuelto (2026-07-23).** La DB ya migró a **Neon** (serverless,
+> `aws-us-east-2`), verificado en vivo — ver
+> [INCIDENTE_2026-07-23_BACKEND_CAIDO.md](./INCIDENTE_2026-07-23_BACKEND_CAIDO.md).
+> `render.yaml` ya no gestiona una DB propia; `DATABASE_URL` apunta a Neon,
+> configurado manualmente en el dashboard de Render. Se deja el análisis
+> original abajo como contexto histórico de por qué era crítico.
+
 - Documentado ya en `docs/DATABASE.md:61-62`, `docs/TECH_DEBT.md I1` y
   `docs/ARCHITECTURE.md:148-149`; migración a Neon con pasos concretos en
   `backend/README.md:169-192`. Se reafirma acá porque es, en rigor, el
@@ -145,9 +158,9 @@ del tráfico sino del calendario.
   importa cuánto tráfico soporte el backend si la base de datos **se borra
   sola** a los 90 días de creada. No es un problema de capacidad, es un
   problema de continuidad.
-- **Prioridad:** **Crítica** (no depende de uso, depende del calendario;
-  cualquier producción real necesita esto resuelto antes que cualquier otro
-  ítem de este documento).
+- **Prioridad (histórica):** **Crítica** (no depende de uso, depende del
+  calendario; cualquier producción real necesita esto resuelto antes que
+  cualquier otro ítem de este documento).
 - **Esfuerzo:** bajo — los pasos ya están escritos en `backend/README.md`.
   No requiere ADR (la migración a Neon ya está prevista y documentada en
   `ARCHITECTURE.md:148-149`).
@@ -171,8 +184,8 @@ como orden de magnitud, no como SLA.
 
 ### Primer cuello de botella real (en orden de aparición)
 
-1. **El más inmediato y menos relacionado con tráfico: expiración de la DB
-   a los 90 días** (sección 1.5) — pasa aunque no crezca nada.
+1. ~~El más inmediato y menos relacionado con tráfico: expiración de la DB
+   a los 90 días~~ (sección 1.5) — **resuelto**, migrado a Neon.
 2. **El primer cuello ligado a *crecimiento de uso normal* (no de escala
    masiva): el N+1 del inbox de chat** (`PERFORMANCE_REPORT.md` P1) — con
    usuarios que acumulan 15-20 conversaciones activas (nada exótico para un
@@ -199,7 +212,7 @@ microservicios) y marca explícitamente dónde hace falta un ADR, según
 
 | Paso | Qué | Requiere ADR | Orden sugerido |
 |---|---|---|---|
-| 1 | **Migrar DB a Neon** (pasos ya en `backend/README.md:169-192`) | No (ya previsto/documentado) | Ya mismo, antes de cualquier otra cosa — es la única urgencia real por calendario. |
+| 1 | ~~Migrar DB a Neon~~ | No | ✅ Hecho (2026-07-23). |
 | 2 | **Paginación** en todos los listados (`PERFORMANCE_REPORT.md §1.3`) | No (cambio interno de repos/API) | Antes de escalar tráfico — barato y de alto impacto. |
 | 3 | **Filtrar matching por ciudad/bounding box en SQL** antes del scoring en Python (`PERFORMANCE_REPORT.md` P4) | No, si se resuelve con `WHERE city=...`/rango de lat-lng. Sí, si se adopta PostGIS (ya "previsto" en `DATABASE.md`, requiere ADR formal). | Antes de tener cientos de trabajadores por ciudad. |
 | 4 | **Índices adicionales** (`skills`, `is_available`, compuestos — `PERFORMANCE_REPORT.md §2.1`) | No | Junto con el paso 3. |
@@ -271,7 +284,7 @@ problema en su propio docstring.
 
 | # | Hallazgo | Prioridad | Esfuerzo | Requiere ADR |
 |---|----------|-----------|----------|--------------|
-| S1 | DB free de Render expira a los 90 días | **Crítica** | Bajo | No (ya previsto) |
+| S1 | ~~DB free de Render expira a los 90 días~~ | ✅ Resuelto (Neon, 2026-07-23) | Bajo | No |
 | S2 | WS en memoria rompe con 2+ workers/instancias | **Crítica** | Medio | Sí (Redis) |
 | S3 | Rate limiting en memoria se relaja con 2+ workers | Alta | Medio | Sí (si se resuelve con Redis) |
 | S4 | Un solo worker uvicorn — techo de capacidad | Alta | Bajo (cambio)/Medio (seguro) | No en sí mismo |

@@ -30,7 +30,7 @@ Config declarativa en `render.yaml` (raíz del repo).
 
 | Var | Origen | Nota |
 |-----|--------|------|
-| `DATABASE_URL` | `fromDatabase` (staffya-db) | se normaliza a `+asyncpg` en `config.py` |
+| `DATABASE_URL` | Manual (`sync: false` en `render.yaml`) | Connection string de **Neon**, cargada a mano en el dashboard — `render.yaml` nunca la sobrescribe; se normaliza a `+asyncpg` en `config.py` |
 | `JWT_SECRET_KEY` | `generateValue: true` | generado por Render, **no** en el repo |
 | `ENVIRONMENT` | `production` | |
 | `DEBUG` | `"false"` | |

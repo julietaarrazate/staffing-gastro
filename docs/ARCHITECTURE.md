@@ -12,8 +12,8 @@
 | Capa | Tecnología |
 |------|-----------|
 | **Backend** | FastAPI · SQLAlchemy 2.0 **async** · Alembic · Pydantic. Python 3.11+. |
-| **Frontend** | Next.js (App Router) · React · TypeScript · TailwindCSS v4 · **PWA** instalable · `motion` (framer-motion) · Leaflet (mapas). |
-| **DB** | PostgreSQL (PostGIS/Redis previstos). Tests con **SQLite en memoria**. |
+| **Frontend** | Next.js (App Router) · React · TypeScript · TailwindCSS v4 · **PWA** instalable · `motion` (framer-motion) · MapLibre GL (mapas, ADR-0001). |
+| **DB** | PostgreSQL — **Neon** en producción (serverless). Tests con **SQLite en memoria**. |
 | **Auth** | JWT (access 15 min) + refresh token (30 días). |
 | **Tiempo real** | WebSocket (chat y notificaciones). |
 | **Imágenes** | Cloudinary (foto de perfil/logo). |
@@ -146,8 +146,17 @@ el futuro se introduce un bus/outbox, debe registrarse como ADR y documentarse e
   `alembic upgrade head` (migraciones) → `scripts.startup_seed` (seed demo
   idempotente si `SEED_DEMO_DATA=true`) → `uvicorn`. Auto-deploy desde `main`.
 - **Frontend:** Vercel, auto-deploy desde `main`, previews por PR.
-- **DB:** PostgreSQL de Render (free) — **expira a los 90 días**; migración a
-  **Neon** prevista (pasos en `backend/README.md`).
+- **DB:** **Neon** (serverless, `aws-us-east-2`) — reemplazó al Postgres
+  gestionado de Render (ese plan free expiraba a los 90 días). Migración
+  verificada en vivo el 2026-07-23, ver
+  [INCIDENTE_2026-07-23_BACKEND_CAIDO.md](./INCIDENTE_2026-07-23_BACKEND_CAIDO.md).
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`), 3 jobs obligatorios en cada PR
+y push a `main`: `pytest -q` (backend), `tsc --noEmit` + `npm run build`
+(frontend), y Playwright (E2E). Nada entra a `main` — que despliega
+automáticamente a Render/Vercel — sin pasar por estos gates.
 
 ## Tests
 
