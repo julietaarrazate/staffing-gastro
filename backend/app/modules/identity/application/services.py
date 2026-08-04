@@ -30,9 +30,15 @@ from app.modules.identity.application.dtos import (
     RegisterCommand,
     TokenPair,
 )
-from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
+from app.modules.identity.domain.entities import (
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshSession,
+    User,
+)
 from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
+    EmailVerificationTokenInvalidError,
     GoogleEmailNotVerifiedError,
     InactiveUserError,
     InvalidCredentialsError,
@@ -43,6 +49,7 @@ from app.modules.identity.domain.exceptions import (
 )
 from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
 from app.modules.identity.domain.repositories import (
+    EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
     UserRepository,
@@ -57,6 +64,13 @@ PASSWORD_RESET_TOKEN_TTL = timedelta(hours=1)
 # menos de esta ventana, no se genera/manda otro (ver `request_password_reset`).
 PASSWORD_RESET_RESEND_WINDOW = timedelta(minutes=5)
 
+# Vigencia del token de verificación de email — más larga que la de reset de
+# contraseña (48hs, no 1h): a diferencia de un reset, nadie lo pide con
+# urgencia, y no queremos que alguien que se registró y no revisó el mail
+# enseguida tenga que reenviarse el link.
+EMAIL_VERIFICATION_TOKEN_TTL = timedelta(hours=48)
+EMAIL_VERIFICATION_RESEND_WINDOW = timedelta(minutes=5)
+
 
 class IdentityService:
     """Servicio de aplicación que agrupa los casos de uso de autenticación."""
@@ -68,15 +82,21 @@ class IdentityService:
         password_reset_tokens: PasswordResetTokenRepository,
         email_sender: EmailSender,
         google_verifier: GoogleTokenVerifier,
+        email_verification_tokens: EmailVerificationTokenRepository | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
         self._reset_tokens = password_reset_tokens
         self._email_sender = email_sender
         self._google_verifier = google_verifier
+        self._verification_tokens = email_verification_tokens
 
     async def register(self, command: RegisterCommand) -> User:
-        """Registra un nuevo usuario. Falla si el email ya existe."""
+        """Registra un nuevo usuario. Falla si el email ya existe.
+
+        Best-effort: si se cablearon `email_verification_tokens`, dispara el
+        email de verificación (nunca bloquea el registro si el envío falla,
+        mismo contrato que el resto de los emails transaccionales)."""
         if await self._users.exists_by_email(command.email):
             raise EmailAlreadyExistsError(command.email)
 
@@ -86,7 +106,10 @@ class IdentityService:
             full_name=command.full_name,
             role=command.role,
         )
-        return await self._users.add(user)
+        created = await self._users.add(user)
+        if self._verification_tokens is not None:
+            await self._send_verification_email(created)
+        return created
 
     async def authenticate(self, command: LoginCommand) -> TokenPair:
         """Valida credenciales y devuelve un par de tokens."""
@@ -273,6 +296,78 @@ class IdentityService:
         # al reset. El usuario vuelve a loguearse con la contraseña nueva.
         await self._sessions.revoke_all_for_user(user.id)
 
+    async def _send_verification_email(self, user: User) -> None:
+        """Genera un token nuevo y manda el email de verificación —
+        best-effort, nunca rompe el flujo que la llama (registro o reenvío),
+        mismo contrato que `request_password_reset`."""
+        raw_token = secrets.token_urlsafe(32)
+        now = datetime.now(timezone.utc)
+        await self._verification_tokens.add(
+            EmailVerificationToken(
+                user_id=user.id,
+                token_hash=_hash_verification_token(raw_token),
+                expires_at=now + EMAIL_VERIFICATION_TOKEN_TTL,
+            )
+        )
+        link = f"{settings.frontend_url}/verificar-email?token={raw_token}"
+        html = (
+            f"<p>Hola {user.full_name},</p>"
+            "<p>Gracias por registrarte en Oído. Confirmá tu email haciendo "
+            f'clic en el siguiente enlace (vence en 48 horas): '
+            f'<a href="{link}">{link}</a></p>'
+            "<p>Si vos no creaste esta cuenta, podés ignorar este email.</p>"
+        )
+        try:
+            await self._email_sender.send(
+                to=user.email,
+                subject="Confirmá tu email en Oído",
+                html=html,
+            )
+        except Exception:
+            logger.exception(
+                "No se pudo enviar el email de verificación a %s", user.id
+            )
+
+    async def resend_verification_email(self, email: str) -> None:
+        """Reenvía el email de verificación (anti-enumeración, igual que
+        `request_password_reset`): nunca revela si el email existe o si ya
+        estaba verificado, y respeta el mismo rate-limit silencioso."""
+        if self._verification_tokens is None:
+            return
+        user = await self._users.get_by_email(email)
+        if user is None or user.is_verified:
+            return
+
+        now = datetime.now(timezone.utc)
+        latest = await self._verification_tokens.get_latest_unused_for_user(user.id)
+        if latest is not None and latest.created_within(
+            EMAIL_VERIFICATION_RESEND_WINDOW, now
+        ):
+            return
+        await self._send_verification_email(user)
+
+    async def verify_email(self, token: str) -> None:
+        """Valida el token de verificación y marca al usuario como
+        verificado. Mismo no-disclosure que `reset_password`: un error
+        genérico tanto si el token no existe, expiró o ya se usó."""
+        if self._verification_tokens is None:
+            raise EmailVerificationTokenInvalidError()
+        verification_token = await self._verification_tokens.get_by_token_hash(
+            _hash_verification_token(token)
+        )
+        now = datetime.now(timezone.utc)
+        if verification_token is None or not verification_token.is_valid(now):
+            raise EmailVerificationTokenInvalidError()
+
+        user = await self._users.get_by_id(verification_token.user_id)
+        if user is None:
+            raise EmailVerificationTokenInvalidError()
+
+        if not user.is_verified:
+            user.verify()
+            await self._users.update(user)
+        await self._verification_tokens.mark_used(verification_token.id)
+
     async def _issue_tokens(self, user: User) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
         jti = str(uuid4())
@@ -309,6 +404,12 @@ class IdentityService:
 def _hash_reset_token(raw_token: str) -> str:
     """sha256 del token de recuperación: nunca se persiste ni se busca por el
     valor en claro (sólo viaja en el link del email, de un solo uso)."""
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _hash_verification_token(raw_token: str) -> str:
+    """Mismo criterio que `_hash_reset_token`, para el token de verificación
+    de email."""
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 

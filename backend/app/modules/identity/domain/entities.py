@@ -118,3 +118,37 @@ class PasswordResetToken:
         if self.created_at is None:
             return False
         return (_naive(now) - _naive(self.created_at)) < window
+
+
+@dataclass
+class EmailVerificationToken:
+    """Token de un solo uso para confirmar la propiedad de un email
+    (PRODUCTION_HARDENING.md). Mismo diseño que `PasswordResetToken`: sólo
+    se persiste el hash, vence, se usa una vez, y admite rate-limit de
+    reenvío silencioso."""
+
+    user_id: UUID
+    token_hash: str
+    expires_at: datetime
+    id: UUID = field(default_factory=uuid4)
+    used_at: datetime | None = None
+    created_at: datetime | None = None
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None
+
+    def is_expired(self, now: datetime) -> bool:
+        return _naive(now) >= _naive(self.expires_at)
+
+    def is_valid(self, now: datetime) -> bool:
+        return not self.is_used and not self.is_expired(now)
+
+    def mark_used(self, now: datetime) -> None:
+        if self.used_at is None:
+            self.used_at = now
+
+    def created_within(self, window: timedelta, now: datetime) -> bool:
+        if self.created_at is None:
+            return False
+        return (_naive(now) - _naive(self.created_at)) < window

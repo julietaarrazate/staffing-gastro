@@ -69,6 +69,21 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    """Body genérico, siempre igual exista o no el usuario / ya esté
+    verificado (anti-enumeración, mismo criterio que `ForgotPasswordResponse`)."""
+
+    message: str = "Si el email existe y todavía no está verificado, te enviamos un enlace."
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str

@@ -46,6 +46,12 @@ class PasswordResetTokenInvalidError(IdentityError):
     """
 
 
+class EmailVerificationTokenInvalidError(IdentityError):
+    """El token de verificación de email es inválido, expiró o ya se usó.
+
+    Mismo criterio de no-disclosure que `PasswordResetTokenInvalidError`."""
+
+
 class GoogleAuthNotConfiguredError(IdentityError):
     """`GOOGLE_CLIENT_ID` no está configurado en este servidor (flag por
     ausencia, ver `core/config.py`)."""

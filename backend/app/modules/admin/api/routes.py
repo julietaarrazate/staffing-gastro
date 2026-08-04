@@ -4,6 +4,7 @@ Todas las rutas exigen rol ADMIN. La moderación de usuarios (suspender,
 reactivar, verificar, promover) reutiliza el repositorio de identidad.
 """
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+logger = logging.getLogger(__name__)
 
 ServiceDep = Annotated[AdminService, Depends(get_admin_service)]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
@@ -47,7 +49,7 @@ async def list_users(
 )
 async def suspend_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     try:
-        return await service.suspend_user(current, user_id)
+        result = await service.suspend_user(current, user_id)
     except CannotModifySelfError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -57,6 +59,8 @@ async def suspend_user(user_id: UUID, current: AdminDep, service: ServiceDep):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         ) from exc
+    logger.warning("admin suspend_user: admin=%s target=%s", current.id, user_id)
+    return result
 
 
 @router.post(
@@ -64,13 +68,15 @@ async def suspend_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     response_model=AdminUserResponse,
     summary="Reactivar un usuario",
 )
-async def activate_user(user_id: UUID, _: AdminDep, service: ServiceDep):
+async def activate_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     try:
-        return await service.activate_user(user_id)
+        result = await service.activate_user(user_id)
     except TargetUserNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         ) from exc
+    logger.warning("admin activate_user: admin=%s target=%s", current.id, user_id)
+    return result
 
 
 @router.post(
@@ -78,13 +84,15 @@ async def activate_user(user_id: UUID, _: AdminDep, service: ServiceDep):
     response_model=AdminUserResponse,
     summary="Verificar un usuario",
 )
-async def verify_user(user_id: UUID, _: AdminDep, service: ServiceDep):
+async def verify_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     try:
-        return await service.verify_user(user_id)
+        result = await service.verify_user(user_id)
     except TargetUserNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         ) from exc
+    logger.info("admin verify_user: admin=%s target=%s", current.id, user_id)
+    return result
 
 
 @router.post(
@@ -92,10 +100,13 @@ async def verify_user(user_id: UUID, _: AdminDep, service: ServiceDep):
     response_model=AdminUserResponse,
     summary="Promover un usuario a administrador",
 )
-async def promote_user(user_id: UUID, _: AdminDep, service: ServiceDep):
+async def promote_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     try:
-        return await service.promote_to_admin(user_id)
+        result = await service.promote_to_admin(user_id)
     except TargetUserNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         ) from exc
+    # Otorga rol ADMIN — el evento de mayor sensibilidad de todo este router.
+    logger.warning("admin promote_user: admin=%s target=%s → ADMIN", current.id, user_id)
+    return result

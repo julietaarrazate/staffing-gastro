@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import settings
 from app.core.idempotency import IdempotencyReplay
@@ -52,6 +53,12 @@ app = FastAPI(
     description="Plataforma de staffing en tiempo real para gastronomía y eventos.",
     version="0.1.0",
     lifespan=lifespan,
+    # Swagger/ReDoc cerrados en producción (PRODUCTION_HARDENING.md): no
+    # exponen datos, pero sí el mapa completo de rutas/schemas de la API a
+    # cualquiera sin autenticar. Siguen disponibles en dev/staging.
+    docs_url="/docs" if not settings.is_production else None,
+    redoc_url="/redoc" if not settings.is_production else None,
+    openapi_url="/openapi.json" if not settings.is_production else None,
 )
 
 app.add_middleware(
@@ -67,6 +74,10 @@ app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
 
 # request_id por request (header X-Request-ID), correlacionado en los logs.
 app.add_middleware(RequestIdMiddleware)
+
+# Compresión gzip de respuestas > 1 KB (PRODUCTION_HARDENING.md): payloads
+# JSON de listados se benefician directo, sin tocar ningún endpoint.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 # `api_route` con GET **y HEAD**: los monitores de uptime (UptimeRobot y la

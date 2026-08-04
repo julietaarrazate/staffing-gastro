@@ -78,7 +78,10 @@ async def notifications_stream(
 ):
     """Push en tiempo real de notificaciones nuevas para el usuario autenticado."""
     await websocket.accept()
-    ws_manager.connect_notification(current_user.id, websocket)
+    if not ws_manager.connect_notification(current_user.id, websocket):
+        # Tope de conexiones concurrentes por usuario (PRODUCTION_HARDENING.md).
+        await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
+        return
     try:
         while True:
             await websocket.receive_text()

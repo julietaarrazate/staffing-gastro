@@ -13,6 +13,7 @@ from fastapi import (
     status,
 )
 
+from app.core.rate_limit import RateLimiter
 from app.core.ws_manager import ws_manager
 from app.modules.chat.api.dependencies import get_chat_service
 from app.modules.chat.api.schemas import (
@@ -32,6 +33,13 @@ router = APIRouter(prefix="/chats", tags=["chat"])
 
 ServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+
+# PRODUCTION_HARDENING.md: antes sin ningún límite — es un endpoint
+# autenticado (no anónimo como login/register), así que se limita por
+# usuario, no por IP (ver RateLimiter.check en app/core/rate_limit.py).
+_send_message_rate_limit = RateLimiter(
+    max_attempts=30, window_seconds=60, name="chat_send_message"
+)
 
 
 @router.get(
@@ -72,6 +80,7 @@ async def send_message(
     current_user: CurrentUserDep,
     service: ServiceDep,
 ):
+    _send_message_rate_limit.check(str(current_user.id))
     try:
         return await service.send_message(current_user.id, shift_id, payload.body)
     except ConversationNotFoundError as exc:
@@ -100,7 +109,10 @@ async def chat_stream(
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
 
     await websocket.accept()
-    ws_manager.connect_chat(shift_id, websocket)
+    if not ws_manager.connect_chat(shift_id, websocket):
+        # Tope de conexiones concurrentes por turno (PRODUCTION_HARDENING.md).
+        await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
+        return
     try:
         while True:
             await websocket.receive_text()

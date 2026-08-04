@@ -329,3 +329,34 @@ async def test_no_chat_before_worker_assigned(client: AsyncClient):
         json={"body": "hola?"},
     )
     assert response.status_code == 404
+
+
+async def test_send_message_rate_limited(client: AsyncClient):
+    """Antes sin ningún límite: un usuario no podía ser frenado de floodear
+    una conversación (PRODUCTION_HARDENING.md). Se limita por usuario, no
+    por IP, porque es un endpoint autenticado."""
+    from app.core.config import settings
+    from app.core.rate_limit import reset_all_rate_limiters
+
+    shift_id, employer_headers, _ = await _assigned_shift(
+        client, "chat_emp6@staffya.com", "chat_w6@staffya.com"
+    )
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        statuses = [
+            (
+                await client.post(
+                    f"/api/v1/chats/{shift_id}/messages",
+                    headers=employer_headers,
+                    json={"body": f"mensaje {i}"},
+                )
+            ).status_code
+            for i in range(32)
+        ]
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+    # El límite es 30/min: los primeros 30 se crean (201) y luego 429.
+    assert 429 in statuses
+    assert statuses.index(429) >= 30

@@ -4,6 +4,7 @@ Cablea las capas: sesión DB -> repositorio (adaptador) -> servicio (caso de uso
 y resuelve el usuario autenticado a partir del token Bearer.
 """
 
+import logging
 from collections.abc import Callable
 from typing import Annotated
 
@@ -24,6 +25,7 @@ from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.google_token_verifier import GoogleTokenInfoVerifier
 from app.modules.identity.infrastructure.repositories import (
+    SqlAlchemyEmailVerificationTokenRepository,
     SqlAlchemyPasswordResetTokenRepository,
     SqlAlchemyRefreshSessionRepository,
     SqlAlchemyUserRepository,
@@ -32,6 +34,7 @@ from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.domain.email_sender import EmailSender
 
 _bearer_scheme = HTTPBearer(auto_error=True)
+logger = logging.getLogger(__name__)
 
 
 def get_google_verifier() -> GoogleTokenVerifier:
@@ -46,8 +49,14 @@ def get_identity_service(
     users = SqlAlchemyUserRepository(session)
     sessions = SqlAlchemyRefreshSessionRepository(session)
     password_reset_tokens = SqlAlchemyPasswordResetTokenRepository(session)
+    email_verification_tokens = SqlAlchemyEmailVerificationTokenRepository(session)
     return IdentityService(
-        users, sessions, password_reset_tokens, email_sender, google_verifier
+        users,
+        sessions,
+        password_reset_tokens,
+        email_sender,
+        google_verifier,
+        email_verification_tokens,
     )
 
 
@@ -107,6 +116,15 @@ def require_roles(*roles: UserRole) -> Callable[[User], User]:
         current_user: Annotated[User, Depends(get_current_user)],
     ) -> User:
         if current_user.role not in roles:
+            # PRODUCTION_HARDENING.md: se loguea el id (no el email, para no
+            # dejar PII en logs) — alcanza para correlacionar abuso repetido
+            # de una misma cuenta sin exponer datos personales.
+            logger.warning(
+                "403 permisos insuficientes: user_id=%s rol=%s roles_requeridos=%s",
+                current_user.id,
+                current_user.role.value,
+                [r.value for r in roles],
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Permisos insuficientes",

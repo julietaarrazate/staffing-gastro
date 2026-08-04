@@ -3,17 +3,25 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
+from app.modules.identity.domain.entities import (
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshSession,
+    User,
+)
 from app.modules.identity.domain.repositories import (
+    EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
+    UserCounts,
     UserRepository,
 )
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.identity.infrastructure.models import (
+    EmailVerificationTokenModel,
     PasswordResetTokenModel,
     RefreshSessionModel,
     UserModel,
@@ -92,6 +100,39 @@ class SqlAlchemyUserRepository(UserRepository):
             stmt = stmt.limit(limit)
         result = await self._session.execute(stmt)
         return [_to_entity(model) for model in result.scalars().all()]
+
+    async def count_stats(self) -> UserCounts:
+        # Una sola query con SUM/CASE en vez de traer toda la tabla y contar
+        # en Python (P5, PRODUCTION_HARDENING.md) — portable SQLite/Postgres.
+        stmt = select(
+            func.count().label("total"),
+            func.sum(case((UserModel.role == UserRole.WORKER.value, 1), else_=0)).label(
+                "workers"
+            ),
+            func.sum(case((UserModel.role == UserRole.EMPLOYER.value, 1), else_=0)).label(
+                "employers"
+            ),
+            func.sum(case((UserModel.role == UserRole.ADMIN.value, 1), else_=0)).label(
+                "admins"
+            ),
+            func.sum(case((UserModel.status == UserStatus.ACTIVE.value, 1), else_=0)).label(
+                "active"
+            ),
+            func.sum(
+                case((UserModel.status == UserStatus.SUSPENDED.value, 1), else_=0)
+            ).label("suspended"),
+            func.sum(case((UserModel.is_verified.is_(True), 1), else_=0)).label("verified"),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return UserCounts(
+            total=row.total or 0,
+            workers=row.workers or 0,
+            employers=row.employers or 0,
+            admins=row.admins or 0,
+            active=row.active or 0,
+            suspended=row.suspended or 0,
+            verified=row.verified or 0,
+        )
 
 
 def _session_to_entity(model: RefreshSessionModel) -> RefreshSession:
@@ -220,3 +261,66 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
         for model in result.scalars().all():
             model.used_at = now
         await self._session.commit()
+
+
+def _verification_token_to_entity(
+    model: EmailVerificationTokenModel,
+) -> EmailVerificationToken:
+    return EmailVerificationToken(
+        id=model.id,
+        user_id=model.user_id,
+        token_hash=model.token_hash,
+        expires_at=model.expires_at,
+        used_at=model.used_at,
+        created_at=model.created_at,
+    )
+
+
+class SqlAlchemyEmailVerificationTokenRepository(EmailVerificationTokenRepository):
+    """Implementación del puerto EmailVerificationTokenRepository sobre SQLAlchemy async."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, token: EmailVerificationToken) -> EmailVerificationToken:
+        model = EmailVerificationTokenModel(
+            id=token.id,
+            user_id=token.user_id,
+            token_hash=token.token_hash,
+            expires_at=token.expires_at,
+            used_at=token.used_at,
+        )
+        self._session.add(model)
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _verification_token_to_entity(model)
+
+    async def get_by_token_hash(self, token_hash: str) -> EmailVerificationToken | None:
+        stmt = select(EmailVerificationTokenModel).where(
+            EmailVerificationTokenModel.token_hash == token_hash
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _verification_token_to_entity(model) if model else None
+
+    async def get_latest_unused_for_user(
+        self, user_id: UUID
+    ) -> EmailVerificationToken | None:
+        stmt = (
+            select(EmailVerificationTokenModel)
+            .where(
+                EmailVerificationTokenModel.user_id == user_id,
+                EmailVerificationTokenModel.used_at.is_(None),
+            )
+            .order_by(desc(EmailVerificationTokenModel.created_at))
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _verification_token_to_entity(model) if model else None
+
+    async def mark_used(self, token_id: UUID) -> None:
+        model = await self._session.get(EmailVerificationTokenModel, token_id)
+        if model is not None and model.used_at is None:
+            model.used_at = datetime.now(timezone.utc)
+            await self._session.commit()

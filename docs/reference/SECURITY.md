@@ -68,6 +68,16 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   + tiles vectoriales de CARTO (ADR-0001) + Cloudinary; sin `frame-ancestors`
   (mitiga XSS/clickjacking). Mitiga el impacto de un eventual XSS dado que los
   tokens viven en `localStorage` (ver brecha abajo).
+- **Verificación de email** (PRODUCTION_HARDENING.md): al registrarse con
+  email+contraseña se manda un link de confirmación de un solo uso (vence en
+  48h, hash sha256 en `email_verification_tokens`), mismo patrón que la
+  recuperación de contraseña — `POST /auth/verify-email` y
+  `POST /auth/resend-verification` (este último con el mismo rate-limit
+  silencioso de 5 min y anti-enumeración que `/auth/forgot-password`). No
+  bloquea el login (no hay gating funcional todavía, sólo el flag
+  `is_verified` en `User`); las cuentas de Google entran ya verificadas
+  (`is_verified=true` desde el alta, ver
+  [ACCESO_MODERNO.md](./ACCESO_MODERNO.md)).
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 

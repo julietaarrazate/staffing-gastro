@@ -5,9 +5,32 @@ concretas (adaptadores) viven en la capa de infraestructura.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from uuid import UUID
 
-from app.modules.identity.domain.entities import PasswordResetToken, RefreshSession, User
+from app.modules.identity.domain.entities import (
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshSession,
+    User,
+)
+
+
+@dataclass
+class UserCounts:
+    """Conteos agregados de `users`, para el panel de admin.
+
+    Existe para que el repositorio los calcule con `GROUP BY`/`SUM` en SQL
+    (PRODUCTION_HARDENING.md, P5 de la auditoría) en vez de traer toda la
+    tabla y contar en Python."""
+
+    total: int
+    workers: int
+    employers: int
+    admins: int
+    active: int
+    suspended: int
+    verified: int
 
 
 class UserRepository(ABC):
@@ -43,6 +66,10 @@ class UserRepository(ABC):
     @abstractmethod
     async def exists_by_email(self, email: str) -> bool:
         """Indica si ya existe un usuario con ese email."""
+
+    @abstractmethod
+    async def count_stats(self) -> UserCounts:
+        """Conteos agregados por rol/estado/verificación, calculados en SQL."""
 
 
 class RefreshSessionRepository(ABC):
@@ -95,3 +122,26 @@ class PasswordResetTokenRepository(ABC):
 
         Se llama tras un reset exitoso: un link de recuperación anterior que
         todavía no se usó no debe seguir sirviendo."""
+
+
+class EmailVerificationTokenRepository(ABC):
+    """Puerto de persistencia para los tokens de verificación de email
+    (PRODUCTION_HARDENING.md). Mismo contrato que
+    `PasswordResetTokenRepository`, para el flujo de confirmar la cuenta."""
+
+    @abstractmethod
+    async def add(self, token: EmailVerificationToken) -> EmailVerificationToken:
+        """Persiste un nuevo token y lo devuelve."""
+
+    @abstractmethod
+    async def get_by_token_hash(self, token_hash: str) -> EmailVerificationToken | None:
+        """Busca un token por su hash (nunca se busca por el valor en claro)."""
+
+    @abstractmethod
+    async def get_latest_unused_for_user(self, user_id: UUID) -> EmailVerificationToken | None:
+        """Devuelve el token sin usar más reciente del usuario, o None
+        (rate-limit silencioso de reenvío, mismo criterio que password reset)."""
+
+    @abstractmethod
+    async def mark_used(self, token_id: UUID) -> None:
+        """Marca el token como usado (no-op si no existe o ya lo estaba)."""

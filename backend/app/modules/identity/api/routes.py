@@ -1,8 +1,9 @@
 """Rutas HTTP del módulo de identidad (autenticación y perfil básico)."""
 
+import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.rate_limit import RateLimiter
 from app.modules.identity.api.dependencies import (
@@ -17,10 +18,13 @@ from app.modules.identity.api.schemas import (
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     ResetPasswordRequest,
     TokenResponse,
     UpdateMeRequest,
     UserResponse,
+    VerifyEmailRequest,
 )
 from app.modules.identity.application.dtos import (
     GoogleLoginCommand,
@@ -32,6 +36,7 @@ from app.modules.identity.application.services import IdentityService
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
+    EmailVerificationTokenInvalidError,
     GoogleAuthNotConfiguredError,
     GoogleEmailNotVerifiedError,
     GoogleTokenInvalidError,
@@ -45,6 +50,7 @@ from app.modules.identity.domain.exceptions import (
 from app.modules.identity.domain.value_objects import UserRole
 
 router = APIRouter(prefix="/auth", tags=["identity"])
+logger = logging.getLogger(__name__)
 
 ServiceDep = Annotated[IdentityService, Depends(get_identity_service)]
 
@@ -62,6 +68,19 @@ _forgot_password_rate_limit = RateLimiter(
 _google_auth_rate_limit = RateLimiter(
     max_attempts=10, window_seconds=60, name="google_auth"
 )
+# PRODUCTION_HARDENING.md: antes sin límite — a diferencia de login/register,
+# un refresh token robado se podía usar para renovar sin ningún throttle.
+_refresh_rate_limit = RateLimiter(max_attempts=20, window_seconds=60, name="refresh")
+# Mismo criterio que _forgot_password_rate_limit: frena spam de emails por
+# IP; el rate-limit "de negocio" vive en `IdentityService.resend_verification_email`.
+_resend_verification_rate_limit = RateLimiter(
+    max_attempts=5, window_seconds=60, name="resend_verification"
+)
+
+
+def _client_ip(request: Request) -> str:
+    client = request.client
+    return client.host if client else "unknown"
 
 
 @router.post(
@@ -94,17 +113,19 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
     summary="Iniciar sesión",
     dependencies=[Depends(_login_rate_limit)],
 )
-async def login(payload: LoginRequest, service: ServiceDep) -> TokenResponse:
+async def login(payload: LoginRequest, service: ServiceDep, request: Request) -> TokenResponse:
     try:
         tokens = await service.authenticate(
             LoginCommand(email=payload.email, password=payload.password)
         )
     except InvalidCredentialsError as exc:
+        logger.warning("login fallido (credenciales inválidas) ip=%s", _client_ip(request))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales inválidas",
         ) from exc
     except InactiveUserError as exc:
+        logger.warning("login rechazado (cuenta inactiva) ip=%s", _client_ip(request))
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta no está activa",
@@ -157,12 +178,26 @@ async def google_auth(
     return TokenResponse(**result.__dict__)
 
 
-@router.post("/refresh", response_model=TokenResponse, summary="Renovar tokens")
-async def refresh(payload: RefreshRequest, service: ServiceDep) -> TokenResponse:
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    summary="Renovar tokens",
+    dependencies=[Depends(_refresh_rate_limit)],
+)
+async def refresh(payload: RefreshRequest, service: ServiceDep, request: Request) -> TokenResponse:
     try:
         tokens = await service.refresh(payload.refresh_token)
-    except (InvalidTokenError, UserNotFoundError, RefreshTokenRevokedError) as exc:
-        # No-disclosure: un jti revocado/reusado responde igual que uno inválido.
+    except RefreshTokenRevokedError as exc:
+        # jti reusado tras revocación = señal de robo (ver IdentityService.refresh,
+        # que ya revoca todas las sesiones del usuario). Vale la pena distinguirlo
+        # en el log de los simples "vencido"/"formato inválido" de abajo.
+        logger.warning("refresh con jti revocado/reusado (posible robo) ip=%s", _client_ip(request))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido",
+        ) from exc
+    except (InvalidTokenError, UserNotFoundError) as exc:
+        # No-disclosure: misma respuesta que el caso de arriba.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token inválido",
@@ -242,3 +277,35 @@ async def reset_password(payload: ResetPasswordRequest, service: ServiceDep) -> 
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Enlace inválido o vencido",
         ) from exc
+
+
+@router.post(
+    "/verify-email",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Confirmar el email con el token enviado por correo",
+)
+async def verify_email(payload: VerifyEmailRequest, service: ServiceDep) -> None:
+    try:
+        await service.verify_email(payload.token)
+    except EmailVerificationTokenInvalidError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Enlace inválido o vencido",
+        ) from exc
+
+
+@router.post(
+    "/resend-verification",
+    response_model=ResendVerificationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Reenviar el email de verificación",
+    dependencies=[Depends(_resend_verification_rate_limit)],
+)
+async def resend_verification(
+    payload: ResendVerificationRequest, service: ServiceDep
+) -> ResendVerificationResponse:
+    """Siempre responde 202 con el mismo body, exista o no el usuario y esté
+    o no ya verificado (anti-enumeración, mismo criterio que
+    `forgot_password`)."""
+    await service.resend_verification_email(payload.email)
+    return ResendVerificationResponse()

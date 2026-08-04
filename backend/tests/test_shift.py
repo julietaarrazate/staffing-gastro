@@ -885,8 +885,10 @@ async def test_assign_worker_sends_acceptance_email(
     )
     assert assigned.status_code == 200
 
-    assert len(fake_email_sender.sent) == 1
-    sent = fake_email_sender.sent[0]
+    # 2 verificaciones de email (registro del comercio + del trabajador) + 1
+    # de aceptación.
+    assert len(fake_email_sender.sent) == 3
+    sent = fake_email_sender.sent[-1]
     assert sent.to == "w_email@staffya.com"
     assert "aceptaron" in sent.subject.lower()
     assert "Bar Palermo" in sent.html
