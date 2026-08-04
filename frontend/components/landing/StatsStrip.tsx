@@ -7,7 +7,7 @@ import { WORKER_SKILLS } from "@/lib/types";
 type Stat = { value: number; suffix?: string; label: string };
 
 // Valores honestos: nada de tracción inventada (todavía no hay beta abierta,
-// ver docs/LAUNCH_PLAN.md — beta cerrada arrancando en Palermo). Los 2
+// ver docs/planning/LAUNCH_PLAN.md — beta cerrada arrancando en Palermo). Los 2
 // números son hechos verificables del producto hoy, no métricas de uso:
 // - cantidad real de puestos que cubre el matching (WORKER_SKILLS)
 // - la meta de producto (misión "cubrir un turno en <10 min", no un
@@ -52,7 +52,7 @@ function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
 /**
  * Franja de stats con vida: los números cuentan al entrar al viewport.
  *
- * `.no-select` (regla C0, docs/PULIDO_ROADMAP.md fix 2): es chrome de
+ * `.no-select` (regla C0, docs/planning/PULIDO_ROADMAP.md fix 2): es chrome de
  * vitrina — un visitante no necesita seleccionar un número como si fuera texto
  * de un artículo, y antes se marcaba como cualquier página web al arrastrar
  * el dedo sobre la franja.

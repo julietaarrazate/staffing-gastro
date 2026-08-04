@@ -8,7 +8,7 @@
 días) como JWT puramente **stateless**: cualquier refresh token firmado con
 `JWT_SECRET_KEY` era válido hasta su `exp`, sin forma de invalidarlo antes.
 Consecuencia documentada como deuda crítica
-([TECH_DEBT.md#S1](../TECH_DEBT.md), [SECURITY.md](../SECURITY.md#brechas-abiertas-a-cerrar--fase-de-seguridad)):
+([TECH_DEBT.md#S1](../TECH_DEBT.md), [SECURITY.md](../reference/SECURITY.md#brechas-abiertas-a-cerrar--fase-de-seguridad)):
 
 - **Sin logout server-side:** cerrar sesión en el cliente sólo borraba el
   token de `localStorage`; el token seguía siendo válido 30 días si alguien

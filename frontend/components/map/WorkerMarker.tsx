@@ -24,7 +24,7 @@ interface WorkerMarkerProps {
  * Marcador de trabajador (mapa del comercio, `/search`): avatar circular con
  * foto (o inicial de fallback) y mini-badge de rating. Seleccionado: escala
  * 1.25x + halo naranja, mismo patrón que `ShiftMarker`. Ver
- * docs/MAPS_REDESIGN.md §5.
+ * docs/reference/MAPS_REDESIGN.md §5.
  *
  * Envuelto en `memo`: junto con el `onClick(id)` estable del padre, evita
  * que los N marcadores se re-rendericen todos al seleccionar uno solo.

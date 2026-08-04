@@ -31,7 +31,7 @@ class CompanyProfile:
     # (`ShiftService.publish_shift`); `on_time_payment_rate` es un promedio
     # móvil sobre si `mark_paid` ocurrió a tiempo respecto de `end_at`
     # (`ShiftService.mark_paid`) — antes ninguna de las dos se calculaba
-    # sola, quedaban en 0 para siempre (ver docs/REPUTATION.md).
+    # sola, quedaban en 0 para siempre (ver docs/reference/REPUTATION.md).
     events_published: int = 0
     on_time_payment_rate: float = 0.0
     # Contador interno para ponderar el promedio de `on_time_payment_rate`

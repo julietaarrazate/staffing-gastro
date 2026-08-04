@@ -233,7 +233,7 @@ async def test_finish_with_punctual_checkin_updates_worker_metrics(client: Async
 
 
 async def test_publish_increments_company_events_published(client: AsyncClient):
-    """Reputación del comercio (docs/REPUTATION.md): antes `events_published`
+    """Reputación del comercio (docs/reference/REPUTATION.md): antes `events_published`
     quedaba en 0 para siempre, sin cálculo automático."""
     employer_headers = await _employer_with_company(client, "att_emp7@staffya.com")
     for _ in range(2):

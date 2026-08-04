@@ -3,7 +3,7 @@
 Cubren: 1) que el seed sigue siendo idempotente (no duplica nada en una
 segunda corrida) y 2) que esa segunda corrida —el caso real de cada arranque
 con `SEED_DEMO_DATA=true` en producción, ver `scripts/startup_seed.py` y
-`docs/PERFORMANCE_REPORT.md` § "Seed en cada arranque"— es BARATA: una
+`docs/audits/PERFORMANCE_REPORT.md` § "Seed en cada arranque"— es BARATA: una
 consulta por lote (`WHERE email IN (...)`) en vez de un `exists_by_email`
 secuencial por cada una de las 26 entradas demo (12 comercios + 14
 trabajadores).
@@ -60,7 +60,7 @@ async def test_seed_is_idempotent(session_factory, monkeypatch):
 
 
 async def test_second_seed_run_is_cheap_regardless_of_demo_size(session_factory, monkeypatch):
-    """R-perf (docs/PERFORMANCE_REPORT.md): la segunda corrida (el caso real
+    """R-perf (docs/audits/PERFORMANCE_REPORT.md): la segunda corrida (el caso real
     de cada arranque con datos ya sembrados) hace un número de queries
     CONSTANTE — no una por cada una de las 26 entradas demo. Antes de este
     fix eran >= 26 (una `exists_by_email` secuencial por comercio/trabajador,

@@ -1,6 +1,6 @@
 "use client";
 
-// Toggle de notificaciones push en /profile (ver docs/ACCESO_MODERNO.md).
+// Toggle de notificaciones push en /profile (ver docs/reference/ACCESO_MODERNO.md).
 // Mismo look & feel que las filas de acción de esa pantalla (icono + texto +
 // estado), como componente aparte porque ese `Row` es privado del archivo.
 

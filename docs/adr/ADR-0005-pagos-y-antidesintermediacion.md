@@ -7,9 +7,9 @@ Morfy cobra registro gratis + comisión sobre ventas + suscripción mensual
 variable por tráfico/ticket/impresiones), se invierte la decisión de
 monetización: **mensualidad escalonada al comercio como modelo primario**, y
 comisión/split de MP como opción posterior. Razón abajo (D1).
-**Contexto previo:** [PAYMENTS.md](../PAYMENTS.md) (hoy `mark-paid` es un
-placeholder, Staffya NO maneja dinero), [REPUTATION.md](../REPUTATION.md)
-(`on_time_payment_rate` no se calcula), [SHIFT.md](../SHIFT.md).
+**Contexto previo:** [PAYMENTS.md](../reference/PAYMENTS.md) (hoy `mark-paid` es un
+placeholder, Staffya NO maneja dinero), [REPUTATION.md](../reference/REPUTATION.md)
+(`on_time_payment_rate` no se calcula), [SHIFT.md](../reference/SHIFT.md).
 
 ## Contexto
 

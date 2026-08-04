@@ -99,7 +99,7 @@ class IdentityService:
 
     async def authenticate_google(self, command: GoogleLoginCommand) -> GoogleLoginResult:
         """Ingresa o registra un usuario a partir de un ID token de Google
-        (Google Identity Services, ver docs/ACCESO_MODERNO.md).
+        (Google Identity Services, ver docs/reference/ACCESO_MODERNO.md).
 
         - Email ya registrado -> sesión normal (mismos tokens JWT propios).
         - Email nuevo y `command.role` ausente -> `GoogleRoleRequired`: el
@@ -324,6 +324,6 @@ def _google_local_password() -> str:
     el efecto es el mismo que "sin contraseña", sin tocar el esquema.
     El usuario puede pedir "Olvidé mi contraseña" más adelante y setear una
     propia sin cambios adicionales (el flujo de reset ya no le importa el
-    hash anterior). Ver docs/ACCESO_MODERNO.md.
+    hash anterior). Ver docs/reference/ACCESO_MODERNO.md.
     """
     return hash_password(secrets.token_urlsafe(32))

@@ -6,7 +6,7 @@
 // es el mismo desde ambas pantallas, sólo cambia adónde navega al terminar.
 //
 // Flag por ausencia (mismo patrón que el resto del proyecto, ver
-// docs/ACCESO_MODERNO.md): sin `NEXT_PUBLIC_GOOGLE_CLIENT_ID` seteada, este
+// docs/reference/ACCESO_MODERNO.md): sin `NEXT_PUBLIC_GOOGLE_CLIENT_ID` seteada, este
 // componente no renderiza nada — ni carga el script de Google.
 
 import Script from "next/script";

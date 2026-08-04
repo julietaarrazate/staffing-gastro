@@ -4,7 +4,7 @@ import { Marker } from "@vis.gl/react-maplibre";
 
 /**
  * Punto azul del usuario con halo pulsante (CSS), estilo Uber/Google Maps.
- * Ver docs/MAPS_REDESIGN.md §5 ("Apertura").
+ * Ver docs/reference/MAPS_REDESIGN.md §5 ("Apertura").
  */
 export default function UserPuck({ center }: { center: [number, number] }) {
   return (

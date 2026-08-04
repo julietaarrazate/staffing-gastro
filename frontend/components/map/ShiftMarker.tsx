@@ -22,7 +22,7 @@ interface ShiftMarkerProps {
 /**
  * Marcador de turno: pastilla blanca redonda con el ícono del rubro en su
  * acento (`SKILL_ACCENT`). Seleccionado: escala 1.25x + halo naranja + "pico"
- * inferior. Urgente: punto rojo pulsante. Ver docs/MAPS_REDESIGN.md §5.
+ * inferior. Urgente: punto rojo pulsante. Ver docs/reference/MAPS_REDESIGN.md §5.
  *
  * Envuelto en `memo`: junto con el `onClick(id)` estable del padre, evita
  * que los N marcadores se re-rendericen todos al seleccionar uno solo — sólo

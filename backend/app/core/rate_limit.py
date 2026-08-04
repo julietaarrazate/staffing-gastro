@@ -3,7 +3,7 @@
 Pensado para proteger endpoints sensibles (login/registro) de fuerza bruta sin
 introducir infraestructura externa. Es **por proceso**: con un solo worker (el
 deploy actual) alcanza; escalar horizontalmente requeriría un store compartido
-(Redis) y un ADR. Ver docs/SECURITY.md.
+(Redis) y un ADR. Ver docs/reference/SECURITY.md.
 """
 
 import time

@@ -11,7 +11,7 @@ const VARIANTS: Record<Variant, string> = {
   // Texto ink sobre el naranja de marca: 6.61 de contraste (AA), contra 2.86
   // del blanco, que no llegaba ni al minimo de texto grande. La decision de
   // que el boton siga siendo NARANJA (y no ink) sale de ART_DIRECTION §6.2:
-  // "el naranja marca la accion principal". Ver docs/COLOR_SYSTEM.md §2.3.
+  // "el naranja marca la accion principal". Ver docs/design/COLOR_SYSTEM.md §2.3.
   primary:
     "bg-primary text-ink shadow-[0_8px_20px_rgba(249,115,22,0.28)] hover:brightness-[1.04]",
   // "dark" / énfasis neutro de marca (#111).

@@ -26,7 +26,7 @@ nueva genera una key nueva. Backend:
    para que la reserva sea visible de inmediato a un pedido concurrente con
    la misma key (ver `_find_existing` + `IntegrityError` abajo).
 
-TTL: no hay scheduler en este repo (ver docs/DEPLOY.md), así que la limpieza
+TTL: no hay scheduler en este repo (ver docs/reference/DEPLOY.md), así que la limpieza
 de keys > 24h es perezosa: se borran oportunistamente cada vez que se reserva
 una key nueva (`_lazy_cleanup`), no crítico para v1 (documentado en el spec).
 """

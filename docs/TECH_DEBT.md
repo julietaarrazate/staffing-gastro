@@ -2,7 +2,7 @@
 
 > Catálogo de deuda **vigente**, verificado contra el código real en esta
 > auditoría (no contra la doc anterior). Deriva de
-> [AUDIT_REPORT.md](./AUDIT_REPORT.md). Prioridad: 🔴 Crítica · 🟠 Alta ·
+> [AUDIT_REPORT.md](./audits/AUDIT_REPORT.md). Prioridad: 🔴 Crítica · 🟠 Alta ·
 > 🟡 Media · 🟢 Baja.
 >
 > **Repaso 2026-08-02:** varios ítems marcados 🔴/🟠 en la auditoría original
@@ -597,7 +597,7 @@ fecha de esta auditoría (2026-07-02).
 - **Descripción:** `backend/app/core/geo.py` (usado por matching) y
   `frontend/app/map/page.tsx` (`haversineKm`) implementan el mismo cálculo
   de forma independiente, en dos lenguajes. Ya diagnosticado en
-  [MAPS_REDESIGN.md](./MAPS_REDESIGN.md) §1 ("`haversineKm` duplicado en el
+  [MAPS_REDESIGN.md](./reference/MAPS_REDESIGN.md) §1 ("`haversineKm` duplicado en el
   cliente, deuda menor, se resuelve de paso") y con solución prevista ahí
   mismo (`lib/map/geo.ts` como único helper cliente, §4.3).
   **No se resuelve independientemente**: es parte del alcance de la
@@ -665,7 +665,7 @@ fecha de esta auditoría (2026-07-02).
 ### T3 — Sin observabilidad (logging estructurado, tracing, alertas) ✅ Resuelto
 
 - **Descripción (histórica):** no había `structlog`, `sentry`, ni
-  configuración de logging estructurado en el backend. `docs/OBSERVABILITY.md`
+  configuración de logging estructurado en el backend. `docs/reference/OBSERVABILITY.md`
   existía como documento de intención sin implementación.
 
 > **Actualización 2026-08-02:** resuelto en código — `app/core/observability.py`

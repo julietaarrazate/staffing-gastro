@@ -1,6 +1,6 @@
 # ADR-0001 — Migración del sistema de mapas: Leaflet → MapLibre GL JS
 
-**Estado:** aceptado (diseño aprobado en [MAPS_REDESIGN.md](../MAPS_REDESIGN.md), PR #48) ·
+**Estado:** aceptado (diseño aprobado en [MAPS_REDESIGN.md](../reference/MAPS_REDESIGN.md), PR #48) ·
 **Fecha:** 2026-07-02
 
 ## Contexto

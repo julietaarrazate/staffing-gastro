@@ -82,4 +82,4 @@ Para desarrollo local del frontend ver [`frontend/README.md`](./frontend/README.
 > `docker-compose.yml` incluye imágenes de Redis y PostGIS para desarrollo
 > local, pero **el código no las usa hoy** (rate limiting en memoria, sin
 > geoconsultas espaciales) — quedan como infraestructura prevista, no
-> adoptada; ver `AUDIT/01_INVENTORY.md` para el detalle.
+> adoptada; ver `docs/audits/2026-08-oido/01_INVENTORY.md` para el detalle.

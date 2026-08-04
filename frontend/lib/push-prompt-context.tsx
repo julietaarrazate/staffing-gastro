@@ -3,7 +3,7 @@
 // Prompt de opt-in de notificaciones push. Se dispara explícitamente desde
 // el código de negocio tras una acción significativa del usuario (primera
 // postulación, primer turno publicado — NUNCA al aterrizar en la app, ver
-// docs/ACCESO_MODERNO.md), vía `usePushPrompt().requestOptIn()`.
+// docs/reference/ACCESO_MODERNO.md), vía `usePushPrompt().requestOptIn()`.
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";

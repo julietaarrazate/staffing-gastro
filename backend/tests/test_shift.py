@@ -21,7 +21,7 @@ pytestmark = pytest.mark.asyncio
 def _count_queries(session_factory: async_sessionmaker):
     """Cuenta los `SELECT`/`INSERT`/... efectivamente enviados al motor
     (`before_cursor_execute`) mientras el bloque `with` está activo. Usado
-    para medir round-trips por endpoint (P3, docs/PERFORMANCE_REPORT.md) sin
+    para medir round-trips por endpoint (P3, docs/audits/PERFORMANCE_REPORT.md) sin
     depender de logs manuales."""
     counter = {"n": 0}
     engine = session_factory.kw["bind"]
@@ -728,7 +728,7 @@ async def test_feed_pagination(client: AsyncClient):
 async def test_feed_resolves_company_info_in_constant_queries(
     client: AsyncClient, session_factory: async_sessionmaker
 ):
-    """P3 (docs/PERFORMANCE_REPORT.md): `_with_company_info` batchea la
+    """P3 (docs/audits/PERFORMANCE_REPORT.md): `_with_company_info` batchea la
     resolución de nombre/logo de comercio con `list_by_ids` (1 query),
     en vez de 1 `get_by_id` por comercio DISTINTO en la página. Con 6
     comercios distintos publicando 1 turno cada uno, el número de queries

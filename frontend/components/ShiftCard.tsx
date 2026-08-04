@@ -20,7 +20,7 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   loading: () => <div className="h-28 w-full animate-pulse rounded-2xl bg-surface" />,
 });
 
-// Ley de marca (docs/PULIDO_ROADMAP.md): un solo acento por pantalla. Naranja
+// Ley de marca (docs/planning/PULIDO_ROADMAP.md): un solo acento por pantalla. Naranja
 // para todo lo activo/publicado/en curso, verde sólo para éxito (confirmado
 // además de los terminales finalizado/pagado), rojo sólo para cancelado, gris
 // sólo para borrador. Nada de azul/amber sueltos (bug de la operadora: los
@@ -61,7 +61,7 @@ export default function ShiftCard({
   const isTerminal = TERMINAL_STATUSES.has(shift.status);
 
   return (
-    // `.no-select` (bug C0 #2, docs/PULIDO_ROADMAP.md fix 2): esta tarjeta es
+    // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
     // chrome de UI para tocar/accionar (rubro, chip de estado, fecha,
     // cantidad, dress code), no contenido de lectura genuino — se podía
     // seleccionar como una página web (captura de la operadora). El único
@@ -139,7 +139,7 @@ export default function ShiftCard({
           </div>
         </div>
 
-        {/* Stepper del ciclo de vida (docs/PULIDO_ROADMAP.md, inspiración
+        {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md, inspiración
             Clickie): de un vistazo, en qué punto del viaje está el turno. */}
         <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
 

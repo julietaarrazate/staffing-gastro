@@ -9,7 +9,7 @@
  * Bordes amplios (cards 24 / botones 20 / inputs 18), sombras muy suaves que
  * hacen flotar las tarjetas blancas sobre el crema. Todos los fondos pasan por
  * estos tokens (no hay grises hardcodeados), así que la calidez es del sistema.
- * Contrastes verificados WCAG AA — ver docs/COLOR_SYSTEM.md.
+ * Contrastes verificados WCAG AA — ver docs/design/COLOR_SYSTEM.md.
  */
 :root {
   --background: #fff8f0; /* Crema — fondo cálido de la app (antes gris #f8f9fa) */
@@ -37,7 +37,7 @@
   /* Naranja cuando es TEXTO sobre claro. El de superficie (#f97316) da 2.8
      sobre blanco y no llega al AA de 4.5. Este (#b23c08) cumple sobre TODOS los
      fondos donde se usa: blanco (5.93), crema (5.63), Arena/surface (5.06),
-     orange-50 (5.58) y orange-100 (5.17). Ver docs/COLOR_SYSTEM.md. */
+     orange-50 (5.58) y orange-100 (5.17). Ver docs/design/COLOR_SYSTEM.md. */
   --color-primary-text: #b23c08;
   --color-ink: #1f1f1c; /* Carbón cálido (antes negro puro #111) */
   /* Verde Éxito del style-guide: bosque sobrio, no el semáforo brillante
@@ -75,7 +75,7 @@ html {
    * scroll (a diferencia de `hidden`, que fuerza overflow-y a auto y, junto
    * al de body, generaba dos scrolls anidados que trababan el scroll vertical). */
   overflow-x: clip;
-  /* Bug de la operadora en /search (mapa + bottom sheet, docs/PULIDO_ROADMAP.md
+  /* Bug de la operadora en /search (mapa + bottom sheet, docs/planning/PULIDO_ROADMAP.md
    * fix 3): al arrastrar el sheet hasta el tope de su lista interna
    * (`overflow-y-auto` en BottomSheet.tsx) y seguir tirando, el gesto no
    * consumido escalaba al scroller raíz del documento y Chrome Android lo

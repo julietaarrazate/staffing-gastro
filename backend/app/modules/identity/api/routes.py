@@ -120,7 +120,7 @@ async def login(payload: LoginRequest, service: ServiceDep) -> TokenResponse:
 async def google_auth(
     payload: GoogleAuthRequest, service: ServiceDep
 ) -> TokenResponse | GoogleRoleRequiredResponse:
-    """Ver docs/ACCESO_MODERNO.md. Devuelve `TokenResponse` (mismo contrato
+    """Ver docs/reference/ACCESO_MODERNO.md. Devuelve `TokenResponse` (mismo contrato
     que `/auth/login`) si el email ya tiene cuenta o si se indicó `role` para
     crear una; devuelve `GoogleRoleRequiredResponse` si el email es nuevo y
     todavía no se eligió rol — el frontend debe preguntar y reintentar."""

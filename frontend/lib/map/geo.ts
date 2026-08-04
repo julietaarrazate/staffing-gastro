@@ -1,6 +1,6 @@
 /**
  * Geometría del mapa: único lugar del front con Haversine y generación de
- * círculos geográficos (ver docs/MAPS_REDESIGN.md §4.3 y §4.6 — antes había
+ * círculos geográficos (ver docs/reference/MAPS_REDESIGN.md §4.3 y §4.6 — antes había
  * un `haversineKm` duplicado en `app/map/page.tsx`).
  *
  * Convención de coordenadas: tuplas `[lat, lng]` (igual que el resto del

@@ -113,7 +113,7 @@ export default function Home() {
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={reducedMotion ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
-            // `.no-select` (regla C0, docs/PULIDO_ROADMAP.md fix 2): título,
+            // `.no-select` (regla C0, docs/planning/PULIDO_ROADMAP.md fix 2): título,
             // tagline y badge de marketing son chrome de vitrina — antes se
             // seleccionaban como texto de página al arrastrar el dedo.
             className="no-select text-center"
@@ -173,7 +173,7 @@ export default function Home() {
 
         {/* Features bento: monocromo, una sola tarjeta en naranja sólido,
             con micro-parallax sutil por tarjeta. `.no-select` (regla C0,
-            docs/PULIDO_ROADMAP.md fix 2): títulos y textos de marketing,
+            docs/planning/PULIDO_ROADMAP.md fix 2): títulos y textos de marketing,
             chrome de vitrina, no contenido de lectura. */}
         <section className="no-select mt-20">
           <Reveal>
@@ -219,7 +219,7 @@ export default function Home() {
         </section>
 
         {/* Franja para trabajadores. `.no-select` (regla C0,
-            docs/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
+            docs/planning/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
             vitrina. */}
         <Reveal className="mt-20">
           <section className="no-select rounded-[var(--radius-card)] bg-ink px-6 py-14 text-center text-white">

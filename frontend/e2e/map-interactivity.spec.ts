@@ -3,7 +3,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 
 /**
  * Regresión del bug de la operadora "el mapa no responde hasta refrescar"
- * (docs/PULIDO_ROADMAP.md batch C0 #3).
+ * (docs/planning/PULIDO_ROADMAP.md batch C0 #3).
  *
  * Causa raíz real: `components/map/MapView.tsx` usa `reuseMaps` de
  * `@vis.gl/react-maplibre`, que recicla el `mapboxgl.Map` (WebGL/canvas)

@@ -88,7 +88,7 @@ class EnrichedApplicant:
     Se arma con un único JOIN postulación-trabajador-usuario para evitar el
     2N+1 de pedir `worker`/`user` por cada postulante (ver
     `ShiftApplicationRepository.list_by_shift_enriched` y
-    `docs/PERFORMANCE_REPORT.md` P2).
+    `docs/audits/PERFORMANCE_REPORT.md` P2).
     """
 
     application_id: UUID

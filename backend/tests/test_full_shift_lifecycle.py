@@ -58,7 +58,7 @@ async def _worker_with_profile(client: AsyncClient, email: str, name: str) -> tu
 
 def _shift_payload(**overrides) -> dict:
     # Horario dinámico (ahora): la puntualidad se mide contra `start_at` con
-    # una tolerancia de ±15 min (R2.4, docs/REPUTATION.md), así que un
+    # una tolerancia de ±15 min (R2.4, docs/reference/REPUTATION.md), así que un
     # `start_at` fijo en el pasado haría que el check-in "ahora" mismo del
     # test nunca sea puntual. Mismo criterio que
     # `test_attendance.py::test_finish_with_punctual_checkin_updates_worker_metrics`.

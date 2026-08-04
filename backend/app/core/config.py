@@ -106,21 +106,21 @@ class Settings(BaseSettings):
     # transaccionales (p. ej. `{frontend_url}/restablecer?token=...`).
     frontend_url: str = "https://staffing-gastro.vercel.app"
 
-    # --- Google Sign-In (opt-in) — ver docs/ACCESO_MODERNO.md ---
+    # --- Google Sign-In (opt-in) — ver docs/reference/ACCESO_MODERNO.md ---
     # Client ID de un "OAuth 2.0 Client ID" tipo Web application, creado en
     # console.cloud.google.com → APIs & Services → Credentials. Vacío = botón
     # "Continuar con Google" oculto en el frontend y `POST /auth/google`
     # responde 503 (mismo patrón "flag por ausencia" que `resend_api_key` /
     # `mercadopago_access_token`). No hace falta client secret: el flujo usa
     # Google Identity Services (ID token verificado server-side), no
-    # authorization-code — ver derivación en docs/ACCESO_MODERNO.md.
+    # authorization-code — ver derivación en docs/reference/ACCESO_MODERNO.md.
     google_client_id: str = ""
 
-    # --- Notificaciones push (Web Push / VAPID) — ver docs/ACCESO_MODERNO.md ---
+    # --- Notificaciones push (Web Push / VAPID) — ver docs/reference/ACCESO_MODERNO.md ---
     # Par de claves VAPID (formato base64url sin padding). Vacío = envío de
     # push desactivado (flag por ausencia): las suscripciones se pueden crear
     # igual, pero `WebPushSender` no intenta enviar nada. Se generan una sola
-    # vez (comando en docs/ACCESO_MODERNO.md § Feature 2, "Cómo generar el
+    # vez (comando en docs/reference/ACCESO_MODERNO.md § Feature 2, "Cómo generar el
     # par de claves") y se cargan como env vars en Render.
     vapid_public_key: str = ""
     vapid_private_key: str = ""

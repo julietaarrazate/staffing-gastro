@@ -23,7 +23,7 @@ class Base(DeclarativeBase):
 
 
 # Tuning de pool para una base remota (Neon, vía el endpoint `-pooler` en
-# `DATABASE_URL`) — medido en docs/PERFORMANCE_REPORT.md y en el PR de
+# `DATABASE_URL`) — medido en docs/audits/PERFORMANCE_REPORT.md y en el PR de
 # performance (branch `claude/performance`):
 #
 # - HOTFIX (post-#95): `pool_pre_ping` vuelve a estar prendido. El PR #95 lo

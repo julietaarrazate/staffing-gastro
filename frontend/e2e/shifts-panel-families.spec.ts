@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
- * Regresión del batch "panel-por-estados" (docs/PULIDO_ROADMAP.md, bug de la
+ * Regresión del batch "panel-por-estados" (docs/planning/PULIDO_ROADMAP.md, bug de la
  * operadora: "activos 2 pero abajo la lista completa con inactivos; buscando
  * 1 y no muestra cuál"). Antes había 3 KPIs estáticos (uno en azul,
  * "Buscando" — fuera de la Ley de marca: un solo acento naranja) que no

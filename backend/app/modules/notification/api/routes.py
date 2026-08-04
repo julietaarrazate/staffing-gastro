@@ -88,7 +88,7 @@ async def notifications_stream(
         ws_manager.disconnect_notification(current_user.id, websocket)
 
 
-# --- Web Push (ver docs/ACCESO_MODERNO.md) -------------------------------
+# --- Web Push (ver docs/reference/ACCESO_MODERNO.md) -------------------------------
 
 
 @push_router.get(

@@ -32,7 +32,7 @@ class UserRepository(ABC):
 
         `limit=None` (default) trae todos: lo usa `AdminService.get_stats`,
         que necesita el total real para las métricas agregadas (P5 de
-        `docs/PERFORMANCE_REPORT.md`, fuera de alcance de R2.1). El endpoint
+        `docs/audits/PERFORMANCE_REPORT.md`, fuera de alcance de R2.1). El endpoint
         `GET /admin/users` sí pagina, pasando `limit`/`offset` explícitos.
         """
 

@@ -30,7 +30,7 @@ export interface MapViewProps {
 
 /**
  * Mapa base vectorial del módulo `components/map/`: ninguna otra pantalla
- * importa `maplibre-gl` directamente (ver docs/MAPS_REDESIGN.md §4.1 y
+ * importa `maplibre-gl` directamente (ver docs/reference/MAPS_REDESIGN.md §4.1 y
  * ADR-0001). Estilo CARTO Voyager GL, atribución compacta, sin logo.
  */
 // Handlers de gesto de maplibre-gl que la opción `interactive` del

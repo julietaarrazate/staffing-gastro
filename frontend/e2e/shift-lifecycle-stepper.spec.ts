@@ -3,7 +3,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 
 /**
  * Stepper del ciclo de vida del turno (`components/ShiftLifecycleStepper.tsx`,
- * docs/PULIDO_ROADMAP.md, inspiración Clickie). Dos cosas a verificar:
+ * docs/planning/PULIDO_ROADMAP.md, inspiración Clickie). Dos cosas a verificar:
  * 1. El paso resaltado en `ShiftCard` corresponde al estado real del turno
  *    (vista comercio en `/shifts`: Publicado → Asignado → En curso →
  *    Finalizado).

@@ -42,7 +42,7 @@ def _naive(dt: datetime) -> datetime:
 
 
 # R2.4: tolerancia para considerar "puntual" un check-in respecto del
-# horario pactado (start_at). Ver docs/REPUTATION.md.
+# horario pactado (start_at). Ver docs/reference/REPUTATION.md.
 PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
@@ -50,7 +50,7 @@ PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 # dominio (el pago del turno ocurre fuera de la plataforma, sólo se
 # autodeclara con `mark_paid`) — 48hs es un valor semilla conservador,
 # mismo criterio que `PUNCTUALITY_TOLERANCE`/`NO_SHOW_PERFORMANCE_WEIGHT`:
-# ajustable cuando haya datos reales. Ver docs/REPUTATION.md.
+# ajustable cuando haya datos reales. Ver docs/reference/REPUTATION.md.
 PAYMENT_TOLERANCE = timedelta(hours=48)
 
 # Scheduler de asistencia (ADR-0008): tiempo desde `start_at` sin check-in
@@ -203,7 +203,7 @@ class ShiftService:
         await self._consume_publication_slot(company_id)
         shift.publish()
         published = await self._shifts.update(shift)
-        # Reputación del comercio (`events_published`, docs/REPUTATION.md):
+        # Reputación del comercio (`events_published`, docs/reference/REPUTATION.md):
         # antes quedaba en 0 para siempre, sin cálculo automático.
         await self._companies.record_published_shift(company_id)
         await self._notify_nearby_workers(published)
@@ -730,7 +730,7 @@ class ShiftService:
     async def mark_paid(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio confirma que pagó el turno finalizado.
 
-        Reputación del comercio (`on_time_payment_rate`, docs/REPUTATION.md):
+        Reputación del comercio (`on_time_payment_rate`, docs/reference/REPUTATION.md):
         antes quedaba en 0 para siempre, sin cálculo automático. "A tiempo" =
         `paid_at` (recién seteado por `shift.mark_paid()`) dentro de
         `PAYMENT_TOLERANCE` desde `end_at` — no hay un plazo de pago pactado

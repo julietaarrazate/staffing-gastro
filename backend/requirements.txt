@@ -16,7 +16,7 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
 python-multipart==0.0.32
 
-# --- Notificaciones push (Web Push / VAPID, ver docs/ACCESO_MODERNO.md) ---
+# --- Notificaciones push (Web Push / VAPID, ver docs/reference/ACCESO_MODERNO.md) ---
 pywebpush==2.3.0
 
 # --- Tests ---

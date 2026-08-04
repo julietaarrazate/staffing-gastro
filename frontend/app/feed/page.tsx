@@ -148,7 +148,7 @@ export default function WorkerHomePage() {
       toast("¡Te postulaste! El comercio ya te puede ver");
       // Primera acción significativa del flujo del trabajador: acá, y no al
       // aterrizar en la app, es cuando tiene sentido preguntar si quiere
-      // enterarse por push cuando el comercio responda (ver docs/ACCESO_MODERNO.md).
+      // enterarse por push cuando el comercio responda (ver docs/reference/ACCESO_MODERNO.md).
       requestOptIn();
       return true;
     } catch (err) {

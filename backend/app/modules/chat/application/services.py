@@ -100,7 +100,7 @@ class ChatService:
         """Inbox: una tarjeta por turno con mensajes en el que participa el usuario.
 
         Arma el inbox en 3 consultas totales en vez de una por conversación
-        (fix de P1, `docs/PERFORMANCE_REPORT.md`): 1) turnos + ambas
+        (fix de P1, `docs/audits/PERFORMANCE_REPORT.md`): 1) turnos + ambas
         contrapartes posibles vía JOIN, 2) último mensaje por turno, 3) no
         leídos por turno. Todo agregado por lote (`IN`), sin loop de `await`.
         """

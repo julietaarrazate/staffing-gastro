@@ -44,7 +44,7 @@ def _punctuality_score(punctuality_rate: float) -> float:
 # peor que una cancelación avisada con anticipación: no hay aviso, el
 # comercio se entera recién en el turno. Pesa el doble en el denominador del
 # desempeño. Valor semilla conservador, ajustable (mismo criterio que las
-# suscripciones Fase 1, ver docs/REPUTATION.md).
+# suscripciones Fase 1, ver docs/reference/REPUTATION.md).
 NO_SHOW_PERFORMANCE_WEIGHT = 2
 
 

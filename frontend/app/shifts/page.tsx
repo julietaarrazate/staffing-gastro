@@ -30,7 +30,7 @@ import {
   XCircleIcon,
 } from "@/components/icons";
 
-// Familias de estado del panel (bug de la operadora, docs/PULIDO_ROADMAP.md
+// Familias de estado del panel (bug de la operadora, docs/planning/PULIDO_ROADMAP.md
 // batch "panel-por-estados": "activos 2 pero abajo la lista completa con
 // inactivos; buscando 1 y no muestra cuál; deberían estar agrupados por
 // estado, cancelados con cancelados, finalizados con finalizados"). Antes
@@ -124,7 +124,7 @@ export default function MyShiftsPage() {
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
-  // Pantalla "esto es lo que sigue" (Fix 2, docs/PULIDO_ROADMAP.md): guarda
+  // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
   // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
   // personal...", launch-gate #88): esta versión es más rica y se muestra

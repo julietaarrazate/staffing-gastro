@@ -1,6 +1,6 @@
 # CI de Staffya: los mismos gates que exige CLAUDE.md, ahora obligatorios en
 # cada PR y push a main (el deploy a Render/Vercel es automático desde main,
-# así que nada entra sin pasar por acá). Ver docs/TESTING.md y ROADMAP R0.3.
+# así que nada entra sin pasar por acá). Ver docs/reference/TESTING.md y ROADMAP R0.3.
 name: CI
 
 on:

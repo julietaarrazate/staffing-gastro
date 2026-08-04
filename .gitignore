@@ -4,7 +4,12 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
+# Patrón amplio a propósito (no sólo ".venv/" exacto): un venv con cualquier
+# otro nombre (ej. ".venv-audit/", usado para pip-audit sin tocar el venv
+# principal) se coló en un commit el 2026-07-13 porque el patrón anterior
+# sólo cubría el nombre exacto. Ver REPOSITORY_CLEANUP.md.
 .venv/
+.venv*/
 venv/
 env/
 

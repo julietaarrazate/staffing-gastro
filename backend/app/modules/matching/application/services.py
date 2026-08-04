@@ -69,7 +69,7 @@ class MatchingService:
         # Python (no hay PostGIS todavía), así que el límite/offset (R2.1) se
         # aplica DESPUÉS de ordenar, no como LIMIT/OFFSET de SQL: paginar antes
         # de ordenar por distancia devolvería una página con los trabajadores
-        # equivocados. Ver decisión documentada en docs/API.md#paginación.
+        # equivocados. Ver decisión documentada en docs/reference/API.md#paginación.
         candidates = await self._candidates.list_available(skill)
         results = []
         for candidate in candidates:

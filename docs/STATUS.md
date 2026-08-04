@@ -117,7 +117,7 @@ no-show por geolocalización: se explicó la limitación real (PWA, sin
 tracking en segundo plano en navegadores — requeriría app nativa) y se
 acordó en cambio bajar la fricción del flujo manual + avisar proactivamente.
 Detalle completo en
-[ADR-0008](adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md).
+[ADR-0008](./adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md).
 
 **Asistencia en 2 pasos:** el flujo del trabajador en `/my-shifts` baja de 4
 botones ("Salir hacia el turno" → "Llegué" → "Empezar a trabajar" → "Me
@@ -298,7 +298,7 @@ Alineado todo a la paleta editorial **manteniendo contraste AA** (tokens en
 calidez a toda la app). Tipografía: **Inter** (UI, reemplaza a Geist) +
 **Fraunces** (`font-display`, serif de títulos, alternativa libre a Recoleta —
 que es de pago) aplicada a landing/splash/wordmark/títulos de auth. Detalle y
-contrastes medidos: `docs/COLOR_SYSTEM.md` v2.0. Verificado con capturas reales
+contrastes medidos: `docs/design/COLOR_SYSTEM.md` v2.0. Verificado con capturas reales
 (landing, login, feed) + `pytest`/`tsc`/`build`/Playwright (24 e2e) en verde.
 
 Segundo pase (2026-07-29, mismo día): fidelidad total al style-guide — se migró
@@ -469,7 +469,7 @@ llega a todo. Los dos primeros salen en el PR #98 junto con esta nota:
    preselecciona `?rol=trabajador` (fuga del loop de difusión). **Falta** de
    C3: skeletons coherentes, estados de error unificados, a11y AA. Luego
    **C4 onboarding** (necesita el spec de Julieta primero —
-   `docs/PULIDO_ROADMAP.md`).
+   `docs/planning/PULIDO_ROADMAP.md`).
 6. ⬜ Operadora (sin código, cuando pueda): apagar `SEED_DEMO_DATA` antes de
    comercios reales, cargar `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` (para que
    la próxima caída avise sola), ensayo de restore de Neon, borrar el
@@ -484,7 +484,7 @@ local desde el mapa), **ADR-0007** (no-show/cancelación tardía) y el
 **launch-gate** (#88: reseñas→ranking verificado end-to-end, primera
 experiencia del comercio nuevo). Sobre esa base ya se sumó **acceso moderno**
 (Google + push, #87) y un batch grande de **pulido post-rebrand**
-(`docs/PULIDO_ROADMAP.md`: rebrand #79, legales #81, bugs de la operadora
+(`docs/planning/PULIDO_ROADMAP.md`: rebrand #79, legales #81, bugs de la operadora
 C0+C1 #83–84, landing inmersiva #85, panel por familias #86); **quedan C3
 (confianza/conversión: SEO, skeletons, a11y) y C4 (onboarding) del mismo
 roadmap sin arrancar**. Lo único que falta del backlog original: 🔶 confirmar
@@ -507,7 +507,7 @@ roadmap).
 | Documentación Fase 3 (técnica) | #45 | 8 docs (`MODULES/API/DATABASE/EVENTS/SECURITY/TESTING/DEPLOY/OBSERVABILITY`) |
 | Seguridad quick wins | #46 | JWT default bloqueado en prod, security headers, rate limit login/register (429) |
 | Refactor quick wins | #47 | `PageState` y `SKILL_STYLES` eliminados (DS único), botones inline→`Button`, helpers de test compartidos, seed limpio |
-| Diseño de mapas | #48 | `docs/MAPS_REDESIGN.md` (10 entregables) + mockup HTML. **Diseño aprobado por Julieta** |
+| Diseño de mapas | #48 | `docs/reference/MAPS_REDESIGN.md` (10 entregables) + mockup HTML. **Diseño aprobado por Julieta** |
 | Auditoría integral v2 | #49 | 9 reportes con puntajes (`PRODUCTION_READINESS` ~65/100) + `ROADMAP_IMPLEMENTATION.md` (R0–R4) + `RECOMMENDATIONS` v2 |
 | CI | #50 | GitHub Actions: `pytest` + `tsc` + `build` en cada PR/push a main (R0.3 ✅) |
 
@@ -523,10 +523,10 @@ roadmap).
 | R3.2 (DS v2 en Employer/Admin) | #60, #61 | `/admin` migrado a `Card`/`Badge`/`Button`/`Avatar`/`EmptyState`/`ErrorBanner`/`Spinner` (verificado por mí, no solo por el reporte del agente); color fuera de paleta (`bg-blue-600`) corregido en el botón "Publicar" de `/shifts`. Sin deuda visual restante en pantallas employer/admin |
 | Coherencia doc↔código del roadmap | *(commit directo)* | R0.2, R0.3, R1.1, R1.6 y R3.2 estaban implementados (mergeados en #50/#56/#59/#60/#61) pero sin tildar en `ROADMAP_IMPLEMENTATION.md`; corregido. R0.1 actualizado a 🔶 (código listo, falta confirmación de Julieta en Render) |
 | Decisiones de producto con ADR | #63 | Las 3 decisiones que Fable tomó como orquestador: **ADR-0003** (`quantity`=1 permanente, no se construye multi-asignación); **ADR-0004** (cancelación del trabajador `CONFIRMADO`→`BUSCANDO_PERSONAL` que reabre el turno y deriva `cancellations`, `POST /shifts/{id}/worker-cancel`, notificación `shift_reopened`; e insignias/niveles con otorgamiento automático por umbral en `worker/domain/rules.py`, recalculados al finalizar y al cancelar). `pytest -q` verde (150 tests, +28). Cierra P1/P2/P3 de TECH_DEBT |
-| Re-baseline de lanzamiento (Fable) | #64 | `docs/LAUNCH_PLAN.md`: re-evaluación de production-readiness (~65→**~78/100** tras mergear R0–R3) + plan secuenciado de beta cerrada en Palermo (B0 pre-lanzamiento → B1 reclutamiento → B2 operación asistida → B3 decisión). Veredicto: **lista para beta con usuarios reales**, sólo faltan 2 pasos operativos de Julieta |
+| Re-baseline de lanzamiento (Fable) | #64 | `docs/planning/LAUNCH_PLAN.md`: re-evaluación de production-readiness (~65→**~78/100** tras mergear R0–R3) + plan secuenciado de beta cerrada en Palermo (B0 pre-lanzamiento → B1 reclutamiento → B2 operación asistida → B3 decisión). Veredicto: **lista para beta con usuarios reales**, sólo faltan 2 pasos operativos de Julieta |
 | Reputación visible en el frontend | #65 | `lib/reputation.tsx` como única fuente de labels (insignias, niveles, puntualidad, rating); insignias/nivel en perfil worker, búsqueda del employer y postulantes. Cierra el lado visible de ADR-0004 |
 | UX: landing + selección de texto | #66 | La landing es sólo para visitantes sin sesión (logueados van a la home de su rol: `/feed`, `/shifts`, `/admin`); copy ofensivo ("delivery de personas") reemplazado; `user-select:none` en botones/tabs/labels (inputs siguen seleccionables). Fix del E2E `auth.spec.ts` por el redirect nuevo |
-| Auditoría de performance frontend | #67 | `docs/PERFORMANCE_AUDIT_FRONTEND.md` con hallazgos archivo:línea (Sentry estático 138 KB gzip 🔴, motion 🟠, marcadores de mapa 🟡, reduced-motion 🟠) + quick wins seguros |
+| Auditoría de performance frontend | #67 | `docs/audits/PERFORMANCE_AUDIT_FRONTEND.md` con hallazgos archivo:línea (Sentry estático 138 KB gzip 🔴, motion 🟠, marcadores de mapa 🟡, reduced-motion 🟠) + quick wins seguros |
 | Performance frontend (fixes) | #68 | Sentry con `import()` dinámico gateado por DSN (sin DSN el SDK no viaja en ninguna ruta — verificado por grep de chunks en `.next/server/app/` y manifests); `memo` + handlers estables en marcadores de mapa (Cluster/Shift/Worker); `useReducedMotion` en landing, splash, swipe, modales, sheets, toasts y mapa |
 | Robustez percibida — lote 1 (errores de red) | #69 | Auditoría previa: 39 hallazgos en 16 rutas. `lib/errors.ts` (`getErrorMessage` — nunca más "Failed to fetch" en inglés; `isNotFound`); `ErrorBanner` con `onRetry` cableado en shifts/my-shifts/admin/candidatos/search/perfiles públicos (estos últimos con "Volver": ya no hay pantalla muerta); `useWebSocket` expone `status`+`onOpen` → chat con "Reconectando..." y re-sync de mensajes por HTTP al reconectar |
 | Robustez percibida — lote 2 (acciones silenciosas) | #70 | Panel del comercio: Publicar/Cancelar/Cerrar/Pagar tenían POSTs sin try/catch ni loading — ahora busy por acción + toast; Matches: busy en los 7 botones (incluye espera de GPS); swipe del feed: la carta vuelve al mazo si la postulación falla (`onDecide` → `Promise<boolean>`); forms de perfil: sólo 404 = "no existe" (antes un fallo de red mostraba el form vacío con riesgo de pisar el perfil), `submitting` + skeleton; reseñas y campana ya no disfrazan errores de vacío |
@@ -539,9 +539,9 @@ roadmap).
 | Growth: página pública de turno + compartir WhatsApp + duplicar | #77 | `GET /shifts/{id}/public` sin auth (sólo turnos PUBLICADO, campos seguros, sin contacto del comercio ni postulantes); `/turno/[id]` con meta OG para compartir; botón "Compartir por WhatsApp" (Web Share API + fallback `wa.me`) y "Duplicar" (prellena el wizard con los datos del turno original, fechas +7 días) en el panel del comercio |
 | Recuperación de contraseña + email transaccional | #78 | Puerto `EmailSender` (`ResendEmailSender`/`NullEmailSender`/`FakeEmailSender`, flag por ausencia de `RESEND_API_KEY`, mismo patrón que Mercado Pago/Sentry); tabla `password_reset_tokens` (migración `0012`); `POST /auth/forgot-password` (202 genérico siempre, anti-enumeración, rate-limit silencioso de reenvío) y `POST /auth/reset-password` (error genérico, invalida tokens previos, **revoca todas las sesiones de refresh activas** — hallazgo de auditoría G3: sin esto una sesión robada sobrevivía a un reset); páginas `/recuperar` y `/restablecer`; de paso, email al trabajador cuando el comercio lo asigna (`assign_worker`, best-effort). Suite completa: 177 passed |
 | Rebrand — la cloche | #79 | Marca nueva (campana de servicio en trazo blanco sobre tile naranja, wordmark "staffya" con "ya" en naranja), assets regenerados (favicon/PWA/OG) con el naranja de marca real (`#ff6b00`/`#e85f00`); landing reescrita con disciplina premium (un solo acento, product shot con `OpportunityCard` real, bento asimétrico); tagline oficial "Personal gastronómico, ya." |
-| Esquema T1 de pulido post-rebrand (doc) | #80 | Crea `docs/PULIDO_ROADMAP.md`: spec T1 cerrado (Julieta define, Sonnet ejecuta sin re-decidir dirección) con la Ley de marca (un acento naranja, sin gradientes multicolor, radios/tipografía) y los batches C0 (bugs operadora) → C1 (coherencia interna) → C2 (legales) → C3 (confianza/conversión) → C4 (onboarding) |
+| Esquema T1 de pulido post-rebrand (doc) | #80 | Crea `docs/planning/PULIDO_ROADMAP.md`: spec T1 cerrado (Julieta define, Sonnet ejecuta sin re-decidir dirección) con la Ley de marca (un acento naranja, sin gradientes multicolor, radios/tipografía) y los batches C0 (bugs operadora) → C1 (coherencia interna) → C2 (legales) → C3 (confianza/conversión) → C4 (onboarding) |
 | Legales + consentimiento de registro | #81 | `/terminos` y `/privacidad` (estáticas, estética de la landing), footer con autoría, checkbox obligatorio de aceptación en `/register` (botón deshabilitado sin marcar). Cierra el **batch C2** de `PULIDO_ROADMAP.md`. Solo UI, backend sin cambios |
-| Batch C0 al roadmap (doc) | #82 | Suma a `docs/PULIDO_ROADMAP.md` el detalle de los bugs reportados por la operadora (modo oscuro forzado, selección de texto, mapa que no responde) a resolver en el siguiente PR |
+| Batch C0 al roadmap (doc) | #82 | Suma a `docs/planning/PULIDO_ROADMAP.md` el detalle de los bugs reportados por la operadora (modo oscuro forzado, selección de texto, mapa que no responde) a resolver en el siguiente PR |
 | C0+C1 — bugs de la operadora + coherencia interna | #83 | **C0** (bugs reales reportados, batch documentado en #82): fix de `reuseMaps` en `MapView` (el mapa quedaba con gestos deshabilitados al navegar sin refresh, causa raíz de "el mapa no responde"), `color-scheme: light` forzado (Chrome Android invertía a oscuro), `.no-select` en `Card.tsx`, ítem "Verificación" muerto ocultado. **C1** (coherencia con la Ley de marca de `PULIDO_ROADMAP.md`): gradientes off-brand (naranja→rojo/ámbar) reemplazados por el tile de marca en 8 componentes; `?rol=` desde la landing + `/register`/`/login` migrados a tokens del DS; `min-h` en `OpportunityCard`, fechas vía `formatShiftDate`, `EmptyState` en chats vacíos |
 | Panel: estados diferenciados + fin de selección + fix pull-to-refresh | #84 | `ShiftCard` consolida su paleta a los 4 colores de la Ley de marca (antes azul/ámbar fuera de marca) y atenúa+reordena los estados terminales al final; `.no-select` en `ShiftCard`/`CandidateCard`/postulantes/popup del mapa (el fix de C0 no los cubría, no usan `Card` compartido); fix de pull-to-refresh nativo de Chrome Android en `/search` (`overscroll-behavior-y: contain` en `html`, no sólo `body` — el root scroller real) |
 | Landing inmersiva | #85 | 5 capas de scroll sobre la landing existente: hero con stack de turnos que rota según el progreso, stats que cuentan al entrar al viewport (valores honestos, sin tracción inventada), marquee de puestos/barrios, riel vertical de "Cómo funciona", micro-parallax por tarjeta del bento; reduced-motion con fallback estático completo. `tsc`/`build`/lint verdes (30 problemas preexistentes, 0 nuevos); Playwright 15/15 |
@@ -553,7 +553,7 @@ roadmap).
 
 ## En vuelo ahora
 
-- **`docs/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
+- **`docs/planning/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
   por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
   **C3** (confianza y conversión): **SEO base hecho** (`app/robots.ts` +
   `app/sitemap.ts` + CTA del turno público con `?rol=trabajador`, PR #98);
@@ -605,7 +605,7 @@ roadmap).
 7. **R4** — deliberadamente en espera hasta que haya señal real de tráfico
    (Redis, bbox multi-ciudad, rutas OSRM, pagos MercadoPago).
 8. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
-   [RECOMMENDATIONS.md](./RECOMMENDATIONS.md)) — decisión de negocio, no de
+   [RECOMMENDATIONS.md](./planning/RECOMMENDATIONS.md)) — decisión de negocio, no de
    código.
 
 ## Decisiones clave vigentes
@@ -619,7 +619,7 @@ roadmap).
   (`quantity`=1), ADR-0004 (cancelación del trabajador + insignias), ADR-0005
   (mensualidad-primero), ADR-0006 (alta de local desde el mapa), ADR-0007
   (no-show/cancelación tardía manual, no cron).
-- **Ley de marca post-rebrand** (`docs/PULIDO_ROADMAP.md`, desde #79): un solo
+- **Ley de marca post-rebrand** (`docs/planning/PULIDO_ROADMAP.md`, desde #79): un solo
   acento naranja por pantalla, cero gradientes multicolor decorativos, la
   cloche como único logo. Los batches de pulido (C0–C4) son un spec T1
   cerrado: los ejecutores T2 no re-deciden la dirección, sólo implementan.
@@ -631,13 +631,13 @@ roadmap).
 
 ## Dónde está cada cosa
 
-- Veredicto y puntajes: [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md)
-- Plan por fases: [ROADMAP_IMPLEMENTATION.md](./ROADMAP_IMPLEMENTATION.md)
-- Diseño de mapas: [MAPS_REDESIGN.md](./MAPS_REDESIGN.md) + `docs/mockups/`
-- Pulido post-rebrand (Ley de marca, batches C0–C4): [PULIDO_ROADMAP.md](./PULIDO_ROADMAP.md)
+- Veredicto y puntajes: [PRODUCTION_READINESS.md](./planning/PRODUCTION_READINESS.md)
+- Plan por fases: [ROADMAP_IMPLEMENTATION.md](./planning/ROADMAP_IMPLEMENTATION.md)
+- Diseño de mapas: [MAPS_REDESIGN.md](./reference/MAPS_REDESIGN.md) + `docs/mockups/`
+- Pulido post-rebrand (Ley de marca, batches C0–C4): [PULIDO_ROADMAP.md](./planning/PULIDO_ROADMAP.md)
 - ADRs: `docs/adr/` (0001 MapLibre, 0002 sesiones revocables, 0003 `quantity`,
   0004 cancelación/insignias, 0005 mensualidad, 0006 alta desde el mapa, 0007
   no-show/cancelación tardía)
-- Acceso moderno (Google + push): [ACCESO_MODERNO.md](./ACCESO_MODERNO.md)
+- Acceso moderno (Google + push): [ACCESO_MODERNO.md](./reference/ACCESO_MODERNO.md)
 - Deuda vigente: [TECH_DEBT.md](./TECH_DEBT.md)
 - Cómo trabajar en el repo: [../CLAUDE.md](../CLAUDE.md)
