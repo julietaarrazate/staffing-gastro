@@ -8,16 +8,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from app.core.dt import naive as _naive
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
-
-
-def _naive(dt: datetime) -> datetime:
-    """Normaliza a "naive" antes de comparar: en SQLite (tests) los datetimes
-    vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ` sí lo
-    preservan. Mismo fix que `ShiftService._was_punctual` /
-    `subscription.domain.entities._naive`. Se asume que ambos valores están
-    en UTC."""
-    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
 
 @dataclass

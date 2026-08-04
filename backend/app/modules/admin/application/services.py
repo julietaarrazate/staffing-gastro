@@ -5,9 +5,9 @@ Reutiliza los puertos `UserRepository` (identity) y `ShiftRepository`
 moderación de usuarios y el cálculo de métricas agregadas.
 """
 
-from datetime import datetime
 from uuid import UUID
 
+from app.core.dt import naive as _naive
 from app.modules.admin.application.dtos import PlatformStats
 from app.modules.admin.application.exceptions import (
     CannotModifySelfError,
@@ -16,13 +16,6 @@ from app.modules.admin.application.exceptions import (
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.shift.domain.repositories import ShiftRepository
-
-
-def _naive(dt: datetime) -> datetime:
-    """Mismo criterio que `shift/application/services.py::_naive`: en SQLite
-    (tests) los datetimes vuelven sin tzinfo; en Postgres las columnas
-    `TIMESTAMPTZ` sí lo preservan. Se asume que ambos están en UTC."""
-    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
 
 class AdminService:

@@ -39,11 +39,9 @@ import {
   Medal,
   MessageCircle,
   Pencil,
-  Play,
   Plus,
   Route,
   Search,
-  Send,
   Share2,
   Shield,
   Sparkles,
@@ -90,10 +88,8 @@ export const CalendarPlusIcon = make(CalendarPlus);
 export const UsersIcon = make(Users);
 export const WalletIcon = make(Wallet);
 export const FlameIcon = make(Flame);
-export const PlayIcon = make(Play);
 export const RouteIcon = make(Route);
 export const ShieldIcon = make(Shield);
-export const SendIcon = make(Send);
 export const ChevronDownIcon = make(ChevronDown);
 export const ChevronLeftIcon = make(ChevronLeft);
 export const ChevronRightIcon = make(ChevronRight);

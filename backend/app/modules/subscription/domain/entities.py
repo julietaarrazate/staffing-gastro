@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from app.core.dt import naive as _naive
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.subscription.domain.plans import Plan
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
@@ -20,14 +21,6 @@ from app.modules.subscription.domain.value_objects import SubscriptionStatus
 # los bordes de meses de distinta longitud). Ver TECH_DEBT si se necesita
 # alinear a mes calendario real.
 PERIOD_LENGTH = timedelta(days=30)
-
-
-def _naive(dt: datetime) -> datetime:
-    """Normaliza a "naive" antes de comparar: en SQLite (tests) los datetimes
-    vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ` sí lo
-    preservan. Mismo fix que `ShiftService._was_punctual`. Se asume que
-    ambos valores están en UTC."""
-    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
 
 @dataclass

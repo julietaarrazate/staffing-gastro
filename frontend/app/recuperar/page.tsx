@@ -3,11 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { AUTH_INPUT_CLASS as inputClass } from "@/lib/cn";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui";
-
-const inputClass =
-  "rounded-xl border border-line px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-orange-100";
 
 // Mensaje anti-enumeración: siempre el mismo, exista o no el email (no
 // revela si hay o no una cuenta con ese mail). El backend responde 202

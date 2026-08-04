@@ -4,11 +4,9 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { AUTH_INPUT_CLASS as inputClass } from "@/lib/cn";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui";
-
-const inputClass =
-  "rounded-xl border border-line px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-orange-100";
 
 type Status = "verifying" | "success" | "error" | "no-token";
 
