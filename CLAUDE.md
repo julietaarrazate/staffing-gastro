@@ -14,9 +14,10 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > resueltas: `/map` (panel lateral + mapa), `/feed` (grilla en vez del mazo
 > de swipe), `/shifts` (grilla 2-3 columnas), `/search` (panel lateral +
 > mapa, igual que `/map`), `/my-shifts` (misma grilla que `/shifts`),
-> `/chats` (layout de inbox, lista fija + conversación al lado) y `/profile`
-> (dos columnas tipo dashboard). Siguen, en orden de valor: `/shifts/new`
-> (wizard), `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
+> `/chats` (layout de inbox, lista fija + conversación al lado), `/profile`
+> (dos columnas tipo dashboard) y `/shifts/new` (panel de vista previa fijo
+> al lado del wizard, tipo resumen de checkout). Siguen, en orden de valor:
+> `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
 > `/subscription`, `/admin`. Detalle completo y el patrón del problema en
 > [docs/STATUS.md](./docs/STATUS.md).
 

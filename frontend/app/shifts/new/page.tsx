@@ -10,12 +10,23 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
+import {
+  argentinaISOToLocalInput,
+  formatShiftRange,
+  localInputToArgentinaISO,
+} from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import { Button, TextField, useToast } from "@/components/ui";
-import { ChevronLeftIcon, FlameIcon, MapPinIcon } from "@/components/icons";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  FlameIcon,
+  MapPinIcon,
+  UsersIcon,
+  WalletIcon,
+} from "@/components/icons";
 
 const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
 
@@ -176,7 +187,8 @@ function NewShiftWizard() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)]">
+    <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)] lg:max-w-5xl lg:flex-row lg:items-start lg:gap-10 lg:px-6 lg:pt-10">
+    <div className="flex flex-1 flex-col">
       {/* Header con progreso */}
       <div className="flex items-center gap-3">
         {step > 0 ? (
@@ -379,6 +391,27 @@ function NewShiftWizard() {
           </Button>
         )}
       </div>
+    </div>
+
+      {/* Vista previa (lg+): antes el wizard quedaba como una tarjeta angosta
+          flotando en el medio de la pantalla en desktop, sin ningún uso del
+          espacio de los costados. En vez de sólo ensanchar el formulario (no
+          tiene sentido estirar inputs/botones táctiles a todo el ancho), se
+          suma este panel fijo al lado con lo mismo que ya se mostraba recién
+          en el resumen del último paso — visible desde el principio, se va
+          completando a medida que el comercio avanza. */}
+      <WizardPreview
+        className="hidden lg:block lg:w-[360px] lg:shrink-0"
+        position={position}
+        quantity={quantity}
+        startAt={startAt}
+        endAt={endAt}
+        payAmount={payAmount}
+        tips={tips}
+        urgent={urgent}
+        dressCode={dressCode}
+        city={city}
+      />
 
       <PlanLimitModal
         open={planLimitMessage !== null}
@@ -431,5 +464,108 @@ function Toggle({
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
       </span>
     </button>
+  );
+}
+
+/** Fila de la vista previa: ícono + label + valor, o el placeholder si el
+ * paso correspondiente todavía no se completó. */
+function PreviewRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | null;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-ink/50 ring-1 ring-line">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">{label}</p>
+        <p className={`text-sm font-semibold ${value ? "text-ink" : "text-ink/35"}`}>
+          {value ?? "Todavía sin definir"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Panel de vista previa del turno en construcción (sólo lg+, ver el
+ * comentario donde se usa): mismo contenido que el resumen que ya se
+ * mostraba en el último paso, pero visible desde el principio del wizard y
+ * completándose en vivo a medida que el comercio avanza. */
+function WizardPreview({
+  className,
+  position,
+  quantity,
+  startAt,
+  endAt,
+  payAmount,
+  tips,
+  urgent,
+  dressCode,
+  city,
+}: {
+  className?: string;
+  position: WorkerSkill | null;
+  quantity: number;
+  startAt: string;
+  endAt: string;
+  payAmount: string;
+  tips: boolean;
+  urgent: boolean;
+  dressCode: string;
+  city: string;
+}) {
+  const positionAccent = position ? SKILL_ACCENT[position] : null;
+  const when =
+    startAt && endAt
+      ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
+      : null;
+  const pay = Number(payAmount) > 0 ? `ARS ${Number(payAmount).toLocaleString("es-AR")}` : null;
+
+  return (
+    <div className={className}>
+      <div className="sticky top-24 rounded-[var(--radius-card)] bg-surface p-5 ring-1 ring-line">
+        <p className="font-display text-lg font-semibold text-ink">Vista previa</p>
+        <p className="mt-1 text-sm text-ink/50">Así se va armando el turno.</p>
+
+        <div className="mt-5 flex flex-col gap-4">
+          <PreviewRow
+            icon={
+              positionAccent ? (
+                <positionAccent.Icon size={18} className={positionAccent.fg} />
+              ) : (
+                <UsersIcon size={18} />
+              )
+            }
+            label="Puesto"
+            value={position ? `${SKILL_LABELS[position]} · ${quantity} persona` : null}
+          />
+          <PreviewRow icon={<CalendarIcon size={18} />} label="Cuándo" value={when} />
+          <PreviewRow
+            icon={<WalletIcon size={18} />}
+            label="Pago"
+            value={pay ? `${pay}${tips ? " · con propinas" : ""}${urgent ? " · Urgente" : ""}` : null}
+          />
+          <PreviewRow icon={<MapPinIcon size={18} />} label="Dónde" value={city || null} />
+        </div>
+
+        {dressCode && (
+          <p className="mt-5 rounded-2xl bg-white px-3.5 py-2.5 text-sm text-ink/70 ring-1 ring-line">
+            Dress code: {dressCode}
+          </p>
+        )}
+
+        {urgent && (
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-semibold text-primary-text">
+            <FlameIcon size={13} className="text-danger-text" /> Se muestra como urgente en el feed
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
