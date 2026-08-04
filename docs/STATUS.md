@@ -5,16 +5,72 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-02 (auditoría real de dependencias con CVEs
-conocidas — `pip-audit`/`npm audit`, TECH_DEBT.md S3 — ver sección de abajo;
-antes, en el mismo día, cerrar sesión revoca el refresh token en el
-backend, escalada automática de urgencia ADR-0009, métrica de tiempo real
-de cobertura en el panel admin, `/profile`/`/chats`/`/my-shifts`
-responsive, y asistencia del trabajador en 2 pasos + no-show automático) ·
-todos los PRs se mergean con squash apenas quedan verdes (pedido de
-Julieta) · **loop autónomo activo** (con auto-merge, confirmado
-explícitamente por Julieta) para retomar el backlog no bloqueado sin
-esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-04 (endurecimiento de producción — seguridad,
+performance e infraestructura, más verificación de email — ver sección de
+abajo; antes, auditoría real de dependencias con CVEs conocidas —
+`pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
+revoca el refresh token en el backend, escalada automática de urgencia
+ADR-0009, métrica de tiempo real de cobertura en el panel admin,
+`/profile`/`/chats`/`/my-shifts` responsive, y asistencia del trabajador en
+2 pasos + no-show automático) · todos los PRs se mergean con squash apenas
+quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
+auto-merge, confirmado explícitamente por Julieta) para retomar el backlog
+no bloqueado sin esperar "seguí" en cada paso.*
+
+## Endurecimiento de producción: seguridad, performance e infraestructura (2026-08-04)
+
+Encargado por Julieta como cierre de la auditoría técnica de 13 fases:
+preparar el repo para producción sin tocar comportamiento funcional,
+arquitectura ni contratos de API salvo una feature de cuenta pedida
+explícitamente. Reporte completo con motivo/impacto/riesgo de cada cambio en
+`SECURITY_CHANGES.md`, `PERFORMANCE_REPORT.md`, `INFRASTRUCTURE_REPORT.md` y
+el resumen ejecutivo en `PRODUCTION_HARDENING.md` (los cuatro en la raíz del
+repo).
+
+**Seguridad:** `/docs`/`/redoc`/`/openapi.json` cerrados en producción; rate
+limiting nuevo en `/auth/refresh`, envío de mensajes de chat (por usuario, no
+por IP) y reenvío de verificación; tope de 8 conexiones WebSocket
+concurrentes por turno/usuario; logging de eventos de seguridad (login
+fallido, reuso de refresh token, 403 por permisos, acciones de admin, 429).
+**Verificación de email** (feature nueva, no sólo hardening): al registrarse
+con email+contraseña se manda un link de confirmación de un solo uso (48h),
+`POST /auth/verify-email` + `POST /auth/resend-verification`
+(anti-enumeración, mismo patrón que `forgot-password`), pantalla nueva
+`/verificar-email`. No bloquea el login — sin gating funcional en este PR.
+
+**Performance:** `/admin/stats` pasó de contar en Python sobre toda la tabla
+`users` a una query SQL agregada (`UserRepository.count_stats`); dos índices
+compuestos nuevos (notificaciones no leídas, postulaciones pendientes por
+turno); tres CHECK constraints de integridad en `shifts` (red de seguridad a
+nivel de base de datos, el dominio ya las garantizaba); compresión GZip de
+respuestas >1KB. El análisis de `<img>`→`next/image` (10 usos, clasificados
+en 3 buckets con plan de migración priorizado) quedó documentado en
+`NEXT_IMAGE_ANALYSIS.md`, **sin migrar ningún componente todavía** — encargo
+explícito de análisis primero.
+
+**Infraestructura:** `redis` y `postgis/postgis` sacados de
+`docker-compose.yml` (cero uso real confirmado en el código — matching es
+Haversine en Python, no hay cliente Redis en ningún lado); `backend/README.md`
+corregido donde documentaba esa arquitectura fantasma; advertencia de
+`SEED_DEMO_DATA=true` en logs cuando `ENVIRONMENT=production` (sin apagarlo:
+sigue siendo decisión operativa de Julieta).
+
+**Diferido con motivo explícito** (no es deuda olvidada): cookie `httpOnly`
+para el refresh token (cambio de arquitectura de auth, requiere ajustar CORS
+`allow_credentials` + sumar CSRF), nonces de CSP, `allow_credentials` de
+CORS vestigial, Unit of Work en `ShiftService.assign_worker`, adopción de
+SWR/React Query — todos ya documentados como deuda consciente en
+`TECH_DEBT.md`/los audits, no se reabrieron sin necesidad nueva.
+
+**Regresión detectada y corregida en el camino:** al quedar la verificación
+de email siempre activa, el registro de cualquier usuario en tests dispara
+también un envío de email — rompió 6 tests preexistentes que asumían un solo
+email capturado (`test_password_reset.py` ×5, `test_shift.py` ×1). Corregidos
+antes de dar la fase por cerrada.
+
+`pytest -q` → 270 passed. `npx tsc --noEmit` limpio. `npm run build` exitoso
+(26 rutas, incluida `/verificar-email`). Migraciones `0022`/`0023` con head
+único, `upgrade`/`downgrade` simétricos.
 
 ## Auditoría de dependencias con CVEs conocidas (2026-08-02)
 

@@ -155,9 +155,10 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Calidad — antes de commitear
 
-- Backend: `pytest -q` (verde). Suite de referencia: **255 tests**
-  (verificado con `pytest -q --collect-only` el 2026-08-04; cambia con cada
-  feature — no memorizarlo como constante, reverificar antes de citarlo).
+- Backend: `pytest -q` (verde). Suite de referencia: **270 tests**
+  (verificado con `pytest -q --collect-only` el 2026-08-04, tras el
+  endurecimiento de producción; cambia con cada feature — no memorizarlo
+  como constante, reverificar antes de citarlo).
 - Frontend: `npx tsc --noEmit` **y** `npm run build`.
 - E2E: `npx playwright test` (Playwright, API mockeada, sin backend real).
   Suite de referencia: **25 tests** en 14 specs (`frontend/e2e/`, verificado
