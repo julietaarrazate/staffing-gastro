@@ -2,7 +2,7 @@ import { SKILL_LABELS, WORKER_SKILLS } from "@/lib/types";
 
 // Mismos barrios que ya aparecen como ejemplo en el resto de la landing y en
 // los datos demo (backend/scripts/seed_demo_data.py) — no es una lista de
-// "cobertura" (la beta cerrada arranca en Palermo, ver docs/LAUNCH_PLAN.md),
+// "cobertura" (la beta cerrada arranca en Palermo, ver docs/planning/LAUNCH_PLAN.md),
 // es la misma ambientación de ejemplo que ya usa el hero.
 const NEIGHBORHOODS = ["Palermo", "San Telmo", "Recoleta", "Belgrano", "Villa Crespo", "Caballito"];
 

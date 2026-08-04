@@ -264,3 +264,26 @@ async def test_login_rate_limited(client: AsyncClient):
     # El límite es 10/min: las primeras responden 401 y luego aparece un 429.
     assert 429 in statuses
     assert statuses.index(429) >= 10
+
+
+async def test_refresh_rate_limited(client: AsyncClient):
+    """Tras superar el límite por IP, /auth/refresh responde 429 (antes no
+    tenía ningún límite, a diferencia de login/register)."""
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        statuses = [
+            (
+                await client.post(
+                    "/api/v1/auth/refresh", json={"refresh_token": "no-es-un-token-valido"}
+                )
+            ).status_code
+            for _ in range(22)
+        ]
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+    # El límite es 20/min: las primeras responden 401 (token inválido) y
+    # luego aparece un 429 — el rate limiter corre antes de validar el token.
+    assert 429 in statuses
+    assert statuses.index(429) >= 20

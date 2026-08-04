@@ -4,18 +4,21 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-07-29**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-08-04**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
-> [docs/STATUS.md](docs/STATUS.md) (la bitácora viva) antes de asumir nada.
+> [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 >
 > **En curso ahora mismo:** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
 > quedan "precarias" — mobile-first sin adaptar a pantallas anchas). Ya
 > resueltas: `/map` (panel lateral + mapa), `/feed` (grilla en vez del mazo
-> de swipe), `/shifts` (grilla 2-3 columnas) y `/search` (panel lateral +
-> mapa, igual que `/map`). Siguen, en orden de valor: `/my-shifts`, `/chats`,
-> resto. Detalle completo y el patrón del problema en
-> [docs/STATUS.md](docs/STATUS.md).
+> de swipe), `/shifts` (grilla 2-3 columnas), `/search` (panel lateral +
+> mapa, igual que `/map`), `/my-shifts` (misma grilla que `/shifts`),
+> `/chats` (layout de inbox, lista fija + conversación al lado) y `/profile`
+> (dos columnas tipo dashboard). Siguen, en orden de valor: `/shifts/new`
+> (wizard), `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
+> `/subscription`, `/admin`. Detalle completo y el patrón del problema en
+> [docs/STATUS.md](./docs/STATUS.md).
 
 ## Contexto en 30 segundos
 
@@ -43,29 +46,29 @@ wordmark "oído" en serif Fraunces; tagline "Personal gastronómico, ya.").
   `statement_cache_size=0`, que el pooling en modo transacción exige con
   asyncpg.
 
-Según `docs/LAUNCH_PLAN.md`, el veredicto vigente es **lista para beta cerrada
+Según `docs/planning/LAUNCH_PLAN.md`, el veredicto vigente es **lista para beta cerrada
 con usuarios reales** (Palermo) — sólo faltan los pasos operativos de Julieta
 listados más abajo.
 
 ## Mapa de la documentación (`docs/`)
 
-**Al arrancar una sesión, leé primero [docs/STATUS.md](docs/STATUS.md)**: es la
+**Al arrancar una sesión, leé primero [docs/STATUS.md](./docs/STATUS.md)**: es la
 bitácora viva (qué se hizo, qué está en vuelo, qué sigue). Actualizala en cada
-merge relevante. También conviene mirar [docs/BUGS.md](docs/BUGS.md) (bugs
+merge relevante. También conviene mirar [docs/BUGS.md](./docs/BUGS.md) (bugs
 recurrentes ya resueltos, para no reintroducirlos) y
-[docs/TECH_DEBT.md](docs/TECH_DEBT.md) (deuda vigente por prioridad).
+[docs/TECH_DEBT.md](./docs/TECH_DEBT.md) (deuda vigente por prioridad).
 
 Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 
-- **Fundación** — [PRODUCT.md](docs/PRODUCT.md) · [DOMAIN.md](docs/DOMAIN.md) ·
-  [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [PRINCIPLES.md](docs/PRINCIPLES.md)
-- **Identidad visual / diseño** — [ART_DIRECTION.md](docs/ART_DIRECTION.md)
+- **Fundación** — [PRODUCT.md](./docs/foundation/PRODUCT.md) · [DOMAIN.md](./docs/foundation/DOMAIN.md) ·
+  [ARCHITECTURE.md](./docs/foundation/ARCHITECTURE.md) · [PRINCIPLES.md](./docs/foundation/PRINCIPLES.md)
+- **Identidad visual / diseño** — [ART_DIRECTION.md](./docs/design/ART_DIRECTION.md)
   (dirección de marca, territorio, benchmark — punto de partida) ·
-  [COLOR_SYSTEM.md](docs/COLOR_SYSTEM.md) (paleta + contraste WCAG medido) ·
-  [TYPOGRAPHY_SYSTEM.md](docs/TYPOGRAPHY_SYSTEM.md) (Inter/Fraunces) ·
-  [ICONOGRAPHY_SYSTEM.md](docs/ICONOGRAPHY_SYSTEM.md) ·
-  [DESIGN_TOKENS.md](docs/DESIGN_TOKENS.md) (radios, sombras, espaciados) ·
-  [BRIEF_IDENTIDAD_VISUAL.md](docs/BRIEF_IDENTIDAD_VISUAL.md) (spec técnica
+  [COLOR_SYSTEM.md](./docs/design/COLOR_SYSTEM.md) (paleta + contraste WCAG medido) ·
+  [TYPOGRAPHY_SYSTEM.md](./docs/design/TYPOGRAPHY_SYSTEM.md) (Inter/Fraunces) ·
+  [ICONOGRAPHY_SYSTEM.md](./docs/design/ICONOGRAPHY_SYSTEM.md) ·
+  [DESIGN_TOKENS.md](./docs/design/DESIGN_TOKENS.md) (radios, sombras, espaciados) ·
+  [BRIEF_IDENTIDAD_VISUAL.md](./docs/design/BRIEF_IDENTIDAD_VISUAL.md) (spec técnica
   para el diseñador externo). No hay doc de performance todavía.
 - **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
@@ -84,7 +87,7 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   secret) y **notificaciones push** (Web Push/VAPID) — ambos no-op sin sus env
   vars (`GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
   `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_CONTACT_EMAIL`). Detalle y
-  derivación completa en [docs/ACCESO_MODERNO.md](docs/ACCESO_MODERNO.md).
+  derivación completa en [docs/reference/ACCESO_MODERNO.md](./docs/reference/ACCESO_MODERNO.md).
   Passkeys (WebAuthn, "huella/PIN") queda **diseñado en detalle pero sin
   construir** (Feature 3 del mismo doc).
 - **Alta de local desde el mapa** (ADR-0006): geocoder Nominatim/OSM gratis +
@@ -113,7 +116,7 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
   `hoy_art()`/`now_art()`): usar para toda fecha de NEGOCIO (edad, "turnos de
   hoy", cortes de período); los timestamps de auditoría siguen en UTC a
-  propósito. Ver el patrón completo en [docs/BUGS.md](docs/BUGS.md).
+  propósito. Ver el patrón completo en [docs/BUGS.md](./docs/BUGS.md).
 - **Legales**: `/terminos` y `/privacidad`, checkbox de consentimiento
   obligatorio en `/register`.
 - Reputación real derivada del ciclo del turno (puntualidad, `events_completed`,
@@ -124,14 +127,14 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 ## Antes de modificar código — checklist
 
 1. **Entender el dominio afectado.** Leé el/los `docs/` del área (empezando por
-   [DOMAIN.md](docs/DOMAIN.md)) y el módulo real (`backend/app/modules/<x>/`).
+   [DOMAIN.md](./docs/foundation/DOMAIN.md)) y el módulo real (`backend/app/modules/<x>/`).
 2. **Buscar antes de crear.** ¿Ya existe el componente/servicio/utilidad?
    Reutilizá (Design System en `frontend/components/ui/`, servicios de dominio,
    helpers). No dupliques lógica ni entidades.
 3. **Respetar las capas.** Ubicá el cambio en la capa correcta
    (`domain`/`application`/`infrastructure`/`api`). Las dependencias apuntan al
    dominio. Cruces entre módulos: por puerto/repositorio inyectado, nunca
-   acoplando dominios. Ver [PRINCIPLES.md](docs/PRINCIPLES.md).
+   acoplando dominios. Ver [PRINCIPLES.md](./docs/foundation/PRINCIPLES.md).
 4. **Chequear coherencia doc↔código.** Si el código contradice la doc, frená:
    identificá la inconsistencia y corregí (código o doc) antes de seguir.
 5. **Definir el alcance.** Un cambio, un propósito. PR acotado y revisable.
@@ -152,13 +155,15 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Calidad — antes de commitear
 
-- Backend: `pytest -q` (verde). Suite de referencia: **~218 tests**
-  (verificar el número real con `pytest -q --collect-only`, cambia con cada
-  feature — no memorizarlo como constante).
+- Backend: `pytest -q` (verde). Suite de referencia: **270 tests**
+  (verificado con `pytest -q --collect-only` el 2026-08-04, tras el
+  endurecimiento de producción; cambia con cada feature — no memorizarlo
+  como constante, reverificar antes de citarlo).
 - Frontend: `npx tsc --noEmit` **y** `npm run build`.
 - E2E: `npx playwright test` (Playwright, API mockeada, sin backend real).
-  Suite de referencia: **~19 tests** en 10 specs (`frontend/e2e/`), corre en
-  CI en cada PR/push a `main` junto con `pytest`/`tsc`/`build`
+  Suite de referencia: **25 tests** en 14 specs (`frontend/e2e/`, verificado
+  con `npx playwright test --list` el 2026-08-04), corre en CI en cada
+  PR/push a `main` junto con `pytest`/`tsc`/`build`
   (`.github/workflows/ci.yml`).
 - `npm run lint` **no** corre en CI (deuda conocida, ver `docs/TECH_DEBT.md`
   T5) — no lo asumas como gate aunque el checklist de sesión lo mencione.
@@ -166,9 +171,9 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Deuda conocida viva (no reabrir sin necesidad)
 
-Catálogo completo y priorizado en [docs/TECH_DEBT.md](docs/TECH_DEBT.md);
+Catálogo completo y priorizado en [docs/TECH_DEBT.md](./docs/TECH_DEBT.md);
 patrones de bugs ya resueltos (para no reintroducirlos) en
-[docs/BUGS.md](docs/BUGS.md). Lo más relevante para no sorprenderse:
+[docs/BUGS.md](./docs/BUGS.md). Lo más relevante para no sorprenderse:
 
 - ~~**Postulaciones de los no-elegidos quedan "pendiente" para siempre**~~
   (TECH_DEBT P5): **resuelto 2026-07-23** — al asignar (o cancelar el turno)
@@ -176,9 +181,9 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
   reabre (rechazo/cancelación/no-show del asignado) vuelven a PENDIENTE. Ver
   `ShiftService._reject_pending_applicants`/`_restore_rejected_applicants`.
 - **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
-  `docs/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
+  `docs/reference/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
   arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).
-- **`docs/PULIDO_ROADMAP.md` batches C3 (confianza/conversión: SEO,
+- **`docs/planning/PULIDO_ROADMAP.md` batches C3 (confianza/conversión: SEO,
   skeletons, a11y) y C4 (onboarding post-registro) sin arrancar** — el orden
   del propio roadmap es C2→C0+C1→C3→C4; C4 necesita que T1 (Julieta) cierre
   el spec del flujo exacto antes de ejecutar.
@@ -249,7 +254,7 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
   libre a Recoleta). Iconografía **Lucide**, sensación de app nativa. Un solo
   acento naranja por pantalla, cero gradientes multicolor decorativos. Todos los
   fondos pasan por tokens de `globals.css` (no hay grises hardcodeados). Contrastes
-  verificados WCAG AA — **fuente de verdad: `docs/COLOR_SYSTEM.md` (v2.0)**. El
+  verificados WCAG AA — **fuente de verdad: `docs/design/COLOR_SYSTEM.md` (v2.0)**. El
   isotipo es la **mano ahuecada sobre la oreja** (placeholder rasterizado del
   mockup, ver `frontend/components/Logo.tsx`, pendiente el SVG vectorial del
   diseñador).

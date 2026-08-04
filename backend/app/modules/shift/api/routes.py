@@ -47,7 +47,7 @@ CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 AuthUserDep = Annotated[User, Depends(get_current_user)]
 CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
-# Paginación (R2.1, docs/API.md#paginación): límite generoso por defecto para
+# Paginación (R2.1, docs/reference/API.md#paginación): límite generoso por defecto para
 # no romper pantallas existentes, tope duro de 100 para no exponer tablas
 # completas cuando la plataforma crezca.
 LimitDep = Annotated[int, Query(ge=1, le=100)]
@@ -69,7 +69,7 @@ async def _with_company_info(
     """Suma el nombre/logo del comercio a cada turno (resuelto vía company,
     sin acoplar el dominio de shift a company).
 
-    P3 (docs/PERFORMANCE_REPORT.md): antes hacía 1 `get_by_id` por comercio
+    P3 (docs/audits/PERFORMANCE_REPORT.md): antes hacía 1 `get_by_id` por comercio
     DISTINTO en la página (con caché local sólo para no repetir el mismo
     comercio dos veces) — un feed de 40 turnos de 40 comercios distintos
     disparaba 40 queries secuenciales. Ahora arma la lista de ids únicos y

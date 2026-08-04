@@ -6,7 +6,7 @@ import MapView from "@/components/map/MapView";
 /**
  * Thumbnail estático (no interactivo) del detalle de turno, reimplementado
  * sobre `MapView` con el mismo motor vectorial que el resto del mapa (antes
- * era un `<img>` de tiles raster de Leaflet). Ver docs/MAPS_REDESIGN.md §8.
+ * era un `<img>` de tiles raster de Leaflet). Ver docs/reference/MAPS_REDESIGN.md §8.
  */
 export default function MiniMap({
   latitude,

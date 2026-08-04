@@ -7,7 +7,7 @@ import type { Shift, WorkerSkill } from "@/lib/types";
  * marcadores son componentes DOM de React (con animaciones/identidad por
  * rubro), no una capa `circle` de MapLibre: necesitamos los clusters como
  * objetos JS para decidir qué renderizar (`ShiftMarker` vs `ClusterMarker`),
- * no como capas de estilo. Ver ADR-0001 y docs/MAPS_REDESIGN.md §4.1.
+ * no como capas de estilo. Ver ADR-0001 y docs/reference/MAPS_REDESIGN.md §4.1.
  */
 const CLUSTER_RADIUS_PX = 52;
 const CLUSTER_MAX_ZOOM = 17;

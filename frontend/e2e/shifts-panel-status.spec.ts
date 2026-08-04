@@ -3,7 +3,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 
 /**
  * Regresión de dos bugs de la operadora reportados sobre `/shifts` (panel del
- * comercio), docs/PULIDO_ROADMAP.md batch "panel-estados-seleccion-mapa":
+ * comercio), docs/planning/PULIDO_ROADMAP.md batch "panel-estados-seleccion-mapa":
  *
  * Fix 1 — "los turnos cancelados o aceptados deberían poder diferenciarse":
  * antes, `ShiftCard` usaba azul para publicado/buscando/en_camino y amber

@@ -6,7 +6,7 @@ devuelven el conjunto de insignias / el nivel que le corresponden **hoy**.
 No hay histéresis: se recalculan desde cero en cada evento relevante (al
 finalizar un turno o al cancelar una asignación confirmada), así que un
 trabajador puede perder una insignia o bajar de nivel si sus métricas ya no
-alcanzan el umbral. Ver `docs/REPUTATION.md` y
+alcanzan el umbral. Ver `docs/reference/REPUTATION.md` y
 `docs/adr/ADR-0004-cancelacion-trabajador-e-insignias.md` para el detalle de
 cada regla y sus motivos.
 """

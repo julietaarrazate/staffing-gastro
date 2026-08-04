@@ -31,7 +31,7 @@ class InboxCandidate:
     Se arma con un único JOIN (turno + comercio + trabajador + usuario del
     trabajador) para poder construir el inbox del chat sin N+1 (ver
     `ChatMessageRepository.list_inbox_candidates` y
-    `docs/PERFORMANCE_REPORT.md` P1). El servicio de aplicación decide, según
+    `docs/audits/PERFORMANCE_REPORT.md` P1). El servicio de aplicación decide, según
     el `user_id` que consulta, cuál de las dos contrapartes es "la otra".
     """
 

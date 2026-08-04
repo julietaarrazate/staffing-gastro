@@ -77,7 +77,7 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
     async def list_by_ids(self, profile_ids: list[UUID]) -> dict[UUID, CompanyProfile]:
         if not profile_ids:
             return {}
-        # Único `SELECT ... WHERE id IN (...)` (P3, docs/PERFORMANCE_REPORT.md):
+        # Único `SELECT ... WHERE id IN (...)` (P3, docs/audits/PERFORMANCE_REPORT.md):
         # reemplaza el `get_by_id` repetido por comercio distinto en un
         # listado (feed/mis-turnos asignados).
         stmt = select(CompanyProfileModel).where(CompanyProfileModel.id.in_(profile_ids))

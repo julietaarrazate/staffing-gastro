@@ -2,7 +2,7 @@
 
 `list_by_shift_enriched` importa modelos de `worker`/`identity` para resolver
 el perfil y el usuario de cada postulante con un único JOIN (fix de P2 en
-`docs/PERFORMANCE_REPORT.md`); es el mismo patrón ya usado en
+`docs/audits/PERFORMANCE_REPORT.md`); es el mismo patrón ya usado en
 `matching/infrastructure/repositories.py` para lecturas agregadas.
 """
 

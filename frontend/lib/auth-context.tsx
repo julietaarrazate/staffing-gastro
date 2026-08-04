@@ -7,7 +7,7 @@ import { User } from "@/lib/types";
 
 /** Resultado de `loginWithGoogle`: o bien ya se completó la sesión, o el
  * email es nuevo y hace falta elegir rol para terminar de crear la cuenta
- * (ver `POST /auth/google` en el backend, docs/ACCESO_MODERNO.md). */
+ * (ver `POST /auth/google` en el backend, docs/reference/ACCESO_MODERNO.md). */
 export type GoogleLoginResult =
   | { requiresRole: true; email: string; fullName: string }
   | { requiresRole: false };

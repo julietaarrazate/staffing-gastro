@@ -1,7 +1,7 @@
 """Middlewares transversales de la API.
 
 Hoy: headers de seguridad estándar en cada respuesta. Mantiene la política de
-seguridad en un solo lugar (ver docs/SECURITY.md).
+seguridad en un solo lugar (ver docs/reference/SECURITY.md).
 """
 
 from starlette.middleware.base import BaseHTTPMiddleware

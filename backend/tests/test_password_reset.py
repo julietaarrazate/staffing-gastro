@@ -73,8 +73,10 @@ async def test_forgot_password_existing_email_sends_link_and_reset_flow_works(
     # Mismo body genérico que el caso de email inexistente (no-disclosure).
     assert response.json()["message"]
 
-    assert len(fake_email_sender.sent) == 1
-    sent = fake_email_sender.sent[0]
+    # 2 envíos: el email de verificación del registro (best-effort, ver
+    # IdentityService.register) + el de recuperación de contraseña.
+    assert len(fake_email_sender.sent) == 2
+    sent = fake_email_sender.sent[-1]
     assert sent.to == "recupera@staffya.com"
     token = _extract_token(sent.html)
 
@@ -105,7 +107,9 @@ async def test_reset_password_expired_token_returns_400(
     await client.post(
         "/api/v1/auth/forgot-password", json={"email": "vencido@staffya.com"}
     )
-    token = _extract_token(fake_email_sender.sent[0].html)
+    # [-1]: el token de recuperación es el último enviado (antes va el de
+    # verificación de email del registro).
+    token = _extract_token(fake_email_sender.sent[-1].html)
 
     await _set_token_field(
         session_factory, expires_at=datetime.now(timezone.utc) - timedelta(minutes=1)
@@ -124,7 +128,7 @@ async def test_reset_password_used_token_cannot_be_reused(
 ):
     await register_user(client, email="usado@staffya.com")
     await client.post("/api/v1/auth/forgot-password", json={"email": "usado@staffya.com"})
-    token = _extract_token(fake_email_sender.sent[0].html)
+    token = _extract_token(fake_email_sender.sent[-1].html)
 
     first = await client.post(
         "/api/v1/auth/reset-password",
@@ -164,7 +168,9 @@ async def test_forgot_password_resend_is_silently_rate_limited(
     )
     assert second.status_code == 202
 
-    assert len(fake_email_sender.sent) == 1
+    # 1 del registro (verificación de email) + 1 del primer forgot-password;
+    # el segundo pedido, dentro de la ventana, no suma ninguno.
+    assert len(fake_email_sender.sent) == 2
 
 
 async def test_reset_password_invalidates_previous_unused_token(
@@ -178,7 +184,7 @@ async def test_reset_password_invalidates_previous_unused_token(
     await client.post(
         "/api/v1/auth/forgot-password", json={"email": "doslinks@staffya.com"}
     )
-    old_token = _extract_token(fake_email_sender.sent[0].html)
+    old_token = _extract_token(fake_email_sender.sent[-1].html)
 
     # Simula que pasaron >5 min para poder pedir un segundo link (si no, el
     # rate-limit de reenvío ni siquiera generaría uno nuevo).
@@ -189,8 +195,9 @@ async def test_reset_password_invalidates_previous_unused_token(
     await client.post(
         "/api/v1/auth/forgot-password", json={"email": "doslinks@staffya.com"}
     )
-    assert len(fake_email_sender.sent) == 2
-    new_token = _extract_token(fake_email_sender.sent[1].html)
+    # 1 verificación (registro) + 2 de recuperación (viejo + nuevo).
+    assert len(fake_email_sender.sent) == 3
+    new_token = _extract_token(fake_email_sender.sent[-1].html)
 
     reset_with_new = await client.post(
         "/api/v1/auth/reset-password",
@@ -217,7 +224,7 @@ async def test_reset_password_revokes_active_refresh_sessions(
     await client.post(
         "/api/v1/auth/forgot-password", json={"email": "revoca@staffya.com"}
     )
-    token = _extract_token(fake_email_sender.sent[0].html)
+    token = _extract_token(fake_email_sender.sent[-1].html)
 
     reset = await client.post(
         "/api/v1/auth/reset-password",

@@ -26,7 +26,7 @@ export default function CandidateCard({
 }) {
   return (
     // `.no-select`: tarjeta de chrome (rating, chips) — mismo criterio C0 #2
-    // que ShiftCard (docs/PULIDO_ROADMAP.md fix 2).
+    // que ShiftCard (docs/planning/PULIDO_ROADMAP.md fix 2).
     <div
       className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] transition active:scale-[0.99] ${
         recommended ? "ring-2 ring-primary" : "ring-1 ring-line"

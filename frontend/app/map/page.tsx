@@ -213,7 +213,7 @@ export default function MapPage() {
       toast("¡Te postulaste! El comercio ya te puede ver");
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
-      // Primera acción significativa, no al aterrizar (ver docs/ACCESO_MODERNO.md).
+      // Primera acción significativa, no al aterrizar (ver docs/reference/ACCESO_MODERNO.md).
       requestOptIn();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

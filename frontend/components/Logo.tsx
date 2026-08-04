@@ -1,7 +1,7 @@
 /**
  * Marca Oído: mano ahuecada sobre la oreja (gesto de "¡oído!, va la orden"),
  * SVG vectorial final del diseñador (reemplazó el placeholder rasterizado,
- * ver docs/BRIEF_IDENTIDAD_VISUAL.md). Un solo `path` vectorizado (contornos
+ * ver docs/design/BRIEF_IDENTIDAD_VISUAL.md). Un solo `path` vectorizado (contornos
  * trazados a 6×, `fill-rule="evenodd"`) reusado en cada asset con distinto
  * recorte/escala/color — detalle en `frontend/public/oido-isotipo.svg` y
  * hermanos.

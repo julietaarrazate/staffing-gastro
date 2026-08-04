@@ -32,7 +32,7 @@ class ShiftRepository(ABC):
         postulaciones: en vez de un GET /shifts/{id} por postulación (cada uno
         pagando el round-trip a la base remota), el cliente pide las
         postulaciones ya con su turno embebido (ver `/applications/mine` y
-        `docs/PERFORMANCE_REPORT.md`)."""
+        `docs/audits/PERFORMANCE_REPORT.md`)."""
 
     @abstractmethod
     async def list_by_company(

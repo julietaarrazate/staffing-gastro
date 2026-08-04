@@ -1,5 +1,5 @@
 /**
- * Tiempos estimados por modo de transporte (docs/MAPS_REDESIGN.md §4.3).
+ * Tiempos estimados por modo de transporte (docs/reference/MAPS_REDESIGN.md §4.3).
  * Heurística urbana honesta, etiquetada "aprox." en la UI hasta que exista
  * routing real (F4, provider OSRM en `lib/map/routing.ts`).
  *

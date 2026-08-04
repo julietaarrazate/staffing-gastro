@@ -1,4 +1,4 @@
-// Notificaciones push (Web Push / VAPID). Ver docs/ACCESO_MODERNO.md.
+// Notificaciones push (Web Push / VAPID). Ver docs/reference/ACCESO_MODERNO.md.
 //
 // El service worker (`public/sw.js`) se registra recién acá, la primera vez
 // que hace falta (opt-in del usuario o toggle en /profile) — no en el layout

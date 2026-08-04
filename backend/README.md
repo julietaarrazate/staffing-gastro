@@ -55,7 +55,7 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 
 ## Requisitos
 - Python 3.11+
-- PostgreSQL (con PostGIS para features de geolocalización futuras)
+- PostgreSQL
 - Docker (opcional, recomendado)
 
 ## Puesta en marcha
@@ -65,7 +65,11 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
 # Desde la raíz del repo
 docker compose up --build
 ```
-Esto levanta PostgreSQL (PostGIS), Redis y el backend en `http://localhost:8000`.
+Esto levanta PostgreSQL y el backend en `http://localhost:8000`. (`docker-compose.yml`
+usa `postgres:16-alpine` liso — el código no usa PostGIS hoy, ver
+"Base de datos en producción" más abajo — ni Redis, que tampoco se usa;
+sacados en PRODUCTION_HARDENING.md tras confirmar cero referencias en el
+código.)
 
 ### Local
 ```bash
@@ -170,23 +174,24 @@ alembic upgrade head
 
 El Postgres free tier de Render **expira a los 90 días y se borra**, lo cual no
 sirve para un proyecto en producción. [Neon](https://neon.tech) es Postgres
-serverless, sin expiración, con soporte nativo de PostGIS (lo necesitamos para
-matching por distancia) y branching de base de datos. El backend (FastAPI +
-SQLAlchemy async + asyncpg) no necesita ningún cambio de código: Neon entrega
+serverless, sin expiración, con branching de base de datos — esta migración
+**ya se hizo y está verificada en producción** desde 2026-07-23 (ver
+`docs/audits/2026-08-oido/06_INFRASTRUCTURE.md` y
+`docs/INCIDENTE_2026-07-23_BACKEND_CAIDO.md`). El backend (FastAPI +
+SQLAlchemy async + asyncpg) no necesitó ningún cambio de código: Neon entrega
 una connection string `postgresql://` estándar y `Settings._force_asyncpg_driver`
 (`app/core/config.py`) ya la convierte a `postgresql+asyncpg://` automáticamente.
+PostGIS **no hace falta** — el matching por distancia usa Haversine en Python
+(`app/core/geo.py`), no consultas espaciales.
 
-Pasos para migrar (todo se hace en los dashboards, nunca pegando credenciales en el chat):
+Pasos que se siguieron (quedan documentados para una migración futura, ej. a
+otro proveedor):
 1. Crear un proyecto en [neon.tech](https://neon.tech) (plan free) y copiar la
    connection string que ofrece (con `?sslmode=require`).
 2. En Render, abrir el servicio del backend → **Environment** → actualizar la
    variable `DATABASE_URL` con la connection string de Neon.
-3. Activar PostGIS en Neon (una vez, desde el SQL editor de Neon):
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS postgis;
-   ```
-4. Aplicar las migraciones contra la base de Neon: con `DATABASE_URL` apuntando
+3. Aplicar las migraciones contra la base de Neon: con `DATABASE_URL` apuntando
    a Neon en el entorno local, correr `alembic upgrade head`.
-5. Redeploy del servicio en Render para que tome la nueva variable.
-6. Una vez confirmado que todo funciona, eliminar la instancia de Postgres
+4. Redeploy del servicio en Render para que tome la nueva variable.
+5. Una vez confirmado que todo funciona, eliminar la instancia de Postgres
    vieja en Render para no dejar datos sensibles huérfanos.

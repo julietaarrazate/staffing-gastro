@@ -262,7 +262,7 @@ def test_ranking_orders_candidates_with_different_tradeoffs():
     (≈0.73) supera a `lejos_pero_excelente` (0.70): perder el 30% completo de
     distancia pesa más que ganar el resto de los factores al máximo. Es el
     comportamiento esperado del diseño (la cercanía es el factor de mayor
-    peso, ver docs/MATCHING.md), no un bug.
+    peso, ver docs/reference/MATCHING.md), no un bug.
     """
     cerca_pero_nueva = _candidate(
         full_name="cerca_pero_nueva",

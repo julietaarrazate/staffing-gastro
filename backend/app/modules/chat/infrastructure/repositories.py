@@ -3,7 +3,7 @@
 Además de la mensajería 1-1 (`chat_messages`), este repo resuelve el inbox
 agregado (`list_inbox_candidates` + `last_messages` + `unread_counts_by_shift`)
 con JOINs a `shifts`/`company_profiles`/`worker_profiles`/`users` en vez de
-una consulta por conversación (fix de P1 en `docs/PERFORMANCE_REPORT.md`).
+una consulta por conversación (fix de P1 en `docs/audits/PERFORMANCE_REPORT.md`).
 Importar modelos de otros módulos en infraestructura para armar estos JOINs
 de lectura ya es un patrón establecido en el repo (ver
 `matching/infrastructure/repositories.py`).

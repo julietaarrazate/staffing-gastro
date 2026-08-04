@@ -67,7 +67,7 @@ export default function BottomSheet({
       </div>
       {header}
       {/* `overscroll-behavior-y: contain` (además del fix en `html` de
-          globals.css, docs/PULIDO_ROADMAP.md fix 3): al llegar al tope/fondo
+          globals.css, docs/planning/PULIDO_ROADMAP.md fix 3): al llegar al tope/fondo
           de esta lista, el scroll no debe "escalar" al documento y disparar
           el pull-to-refresh nativo del navegador. */}
       <div className="flex-1 overflow-y-auto overscroll-y-contain px-4 pb-4">{children}</div>

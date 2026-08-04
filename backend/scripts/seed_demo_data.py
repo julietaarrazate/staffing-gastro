@@ -379,7 +379,7 @@ async def _existing_emails(session: AsyncSession, emails: list[str]) -> set[str]
     """Emails ya registrados de la lista dada, en UNA sola consulta
     (`WHERE email IN (...)`).
 
-    R-perf (docs/PERFORMANCE_REPORT.md, "Seed en cada arranque"): antes cada
+    R-perf (docs/audits/PERFORMANCE_REPORT.md, "Seed en cada arranque"): antes cada
     entrada demo (comercio o trabajador) pagaba su propio `exists_by_email`
     dentro de `identity_service.register` — con `SEED_DEMO_DATA=true` en cada
     boot, eso son 26 round-trips SECUENCIALES a una base remota (Neon) sólo

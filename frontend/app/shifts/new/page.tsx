@@ -62,7 +62,7 @@ function NewShiftWizard() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
-  // Pantalla "esto es lo que sigue" (Fix 2, docs/PULIDO_ROADMAP.md): se
+  // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): se
   // guarda el id recién publicado y se navega recién cuando el comercio
   // interactúa con la pantalla (no de inmediato), a diferencia del
   // `router.push` automático que había antes.
@@ -153,7 +153,7 @@ function NewShiftWizard() {
         );
         clearIdempotencyKey(created.id);
         // Primera acción significativa del comercio, no al aterrizar (ver
-        // docs/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
+        // docs/reference/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
         // enterarse por push apenas alguien se postule.
         requestOptIn();
         // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo

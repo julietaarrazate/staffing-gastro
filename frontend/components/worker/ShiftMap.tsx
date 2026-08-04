@@ -12,7 +12,7 @@ import { easeToPoint, flyToPoint } from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
 import { Shift } from "@/lib/types";
 
-/** Radio de búsqueda mostrado en el anillo (ver docs/MAPS_REDESIGN.md §4.1). */
+/** Radio de búsqueda mostrado en el anillo (ver docs/reference/MAPS_REDESIGN.md §4.1). */
 const SEARCH_RADIUS_KM = 2;
 
 interface Viewport {
@@ -28,7 +28,7 @@ function boundsToBbox(map: MapRef): [number, number, number, number] {
 /**
  * Mapa del worker en `/map`, reimplementado sobre el módulo `components/map/`
  * (MapLibre vectorial) manteniendo la misma interfaz de props que la versión
- * Leaflet anterior. Ver docs/MAPS_REDESIGN.md §4/§5 y ADR-0001.
+ * Leaflet anterior. Ver docs/reference/MAPS_REDESIGN.md §4/§5 y ADR-0001.
  */
 export default function ShiftMap({
   shifts,
@@ -83,7 +83,7 @@ export default function ShiftMap({
     return clusterIndex.getClusters(viewport.bbox, Math.round(viewport.zoom));
   }, [clusterIndex, viewport]);
 
-  // Stagger de aparición del más cercano al más lejano (docs/MAPS_REDESIGN.md §5).
+  // Stagger de aparición del más cercano al más lejano (docs/reference/MAPS_REDESIGN.md §5).
   const orderedClusters = useMemo(
     () =>
       [...clusters].sort((a, b) => {

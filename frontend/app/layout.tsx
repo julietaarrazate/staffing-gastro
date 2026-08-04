@@ -81,7 +81,7 @@ export const viewport: Viewport = {
   // `BottomNav`, `Sheet` y las utilidades `.safe-*` de globals.css).
   viewportFit: "cover",
   // La app sólo diseña modo claro (fuera de alcance implementar dark mode
-  // real, ver docs/PULIDO_ROADMAP.md batch C0 #1). Sin esto, el auto-dark de
+  // real, ver docs/planning/PULIDO_ROADMAP.md batch C0 #1). Sin esto, el auto-dark de
   // Chrome Android puede invertir los colores de la página creyendo que no
   // declaramos ningún esquema soportado. `color-scheme: light` ya estaba en
   // `globals.css`; esto lo refuerza a nivel de metadata del layout raíz.

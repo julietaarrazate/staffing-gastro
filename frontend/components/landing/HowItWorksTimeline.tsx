@@ -33,7 +33,7 @@ const STEPS: Step[] = [
  * arriba). Con reduced-motion no se dibuja el relleno: queda el riel neutro
  * fijo y los 3 pasos visibles sin animación (fallback estático completo).
  *
- * `.no-select` (regla C0, docs/PULIDO_ROADMAP.md fix 2): título y pasos son
+ * `.no-select` (regla C0, docs/planning/PULIDO_ROADMAP.md fix 2): título y pasos son
  * chrome de vitrina, no contenido de lectura — se podían seleccionar como
  * texto de página al arrastrar el dedo por la sección.
  */

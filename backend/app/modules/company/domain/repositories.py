@@ -27,7 +27,7 @@ class CompanyProfileRepository(ABC):
         (...)`). Devuelve un dict `{id: perfil}` (los ids inexistentes
         simplemente no aparecen). Usado para anotar listados (feed/mis-turnos)
         con nombre/logo de comercio sin 1 query por fila — ver P3,
-        docs/PERFORMANCE_REPORT.md."""
+        docs/audits/PERFORMANCE_REPORT.md."""
 
     @abstractmethod
     async def get_by_user_id(self, user_id: UUID) -> CompanyProfile | None:

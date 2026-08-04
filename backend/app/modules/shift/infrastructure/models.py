@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -23,6 +24,16 @@ from app.modules.shift.domain.value_objects import ShiftStatus
 
 class ShiftModel(Base):
     __tablename__ = "shifts"
+
+    # Red de seguridad a nivel DB (PRODUCTION_HARDENING.md, migración 0022):
+    # el dominio (Shift._validate_schedule, schemas Pydantic) ya valida esto
+    # antes de llegar acá; estos CHECK son para cuando algo escriba fuera
+    # del dominio (script, migración de datos, acceso directo a la DB).
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_shifts_quantity_positive"),
+        CheckConstraint("pay_amount >= 0", name="ck_shifts_pay_amount_non_negative"),
+        CheckConstraint("end_at > start_at", name="ck_shifts_end_after_start"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(

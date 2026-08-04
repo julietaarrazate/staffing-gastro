@@ -72,7 +72,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         # Best-effort: además del in-app (ws) de arriba, si el usuario tiene
         # algún dispositivo suscripto a Web Push le mandamos push también.
         # Nunca debe romper la creación de la notificación (ver contrato de
-        # `PushSender`/docs/ACCESO_MODERNO.md).
+        # `PushSender`/docs/reference/ACCESO_MODERNO.md).
         try:
             await _send_push_best_effort(self._session, entity)
         except Exception:

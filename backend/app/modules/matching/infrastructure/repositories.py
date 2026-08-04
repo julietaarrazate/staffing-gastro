@@ -40,7 +40,7 @@ class SqlAlchemyCandidateRepository(CandidateRepository):
     async def list_available(
         self, skill: WorkerSkill | None = None
     ) -> list[CandidateProfile]:
-        # P3 (docs/PERFORMANCE_REPORT.md): antes se traían TODOS los
+        # P3 (docs/audits/PERFORMANCE_REPORT.md): antes se traían TODOS los
         # `worker_profiles` disponibles y se filtraba por `skill` en Python
         # (full scan). Ahora is_available + skill se filtran en SQL; el
         # scoring ponderado (Haversine, experiencia, etc.) sigue en Python

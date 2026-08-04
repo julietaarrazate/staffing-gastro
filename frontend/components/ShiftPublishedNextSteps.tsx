@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 // cuenta (localStorage). Esta es más rica (los 4 pasos concretos que
 // siguen) y es puramente informativa, no una interrupción molesta — la
 // decisión de este PR es mostrarla SIEMPRE que se publica un turno, no sólo
-// la primera vez (ver docs/PULIDO_ROADMAP.md / reporte del PR: el criterio
+// la primera vez (ver docs/planning/PULIDO_ROADMAP.md / reporte del PR: el criterio
 // "una sola vez" tiene sentido para un nudge de producto que puede cansar,
 // pero acá cada turno publicado es información nueva y relevante — un
 // comercio que publica su turno #12 se beneficia igual de saber qué sigue).

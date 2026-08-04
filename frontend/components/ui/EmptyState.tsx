@@ -9,7 +9,7 @@ import { LogoGlyph } from "@/components/Logo";
  * Estado vacío con ilustración (ícono grande), título, subtítulo y hasta dos
  * acciones. Nunca dejar una pantalla en blanco. Sin `icon`, cae al glifo de
  * marca (`LogoGlyph`) sobre superficie neutra — nunca gradiente decorativo
- * (Ley de marca, docs/PULIDO_ROADMAP.md batch C1 #1).
+ * (Ley de marca, docs/planning/PULIDO_ROADMAP.md batch C1 #1).
  */
 export default function EmptyState({
   icon,

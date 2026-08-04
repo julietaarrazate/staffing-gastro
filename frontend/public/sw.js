@@ -1,4 +1,4 @@
-// Service worker mínimo, sólo para Web Push (ver docs/ACCESO_MODERNO.md).
+// Service worker mínimo, sólo para Web Push (ver docs/reference/ACCESO_MODERNO.md).
 // El repo NO tenía service worker antes de esto: no se agrega ningún tipo de
 // caching/offline (eso sería un cambio de alcance mucho mayor, con sus
 // propios riesgos de servir assets viejos post-deploy) — sólo lo

@@ -121,7 +121,7 @@ class ApplicationService:
         no con un GET por postulación: antes la pantalla de Matches disparaba N
         requests HTTP (una por postulación), cada una pagando el round-trip a la
         base remota. Ahora es 1 request + 1 query batch (ver
-        `docs/PERFORMANCE_REPORT.md`)."""
+        `docs/audits/PERFORMANCE_REPORT.md`)."""
         applications = await self._applications.list_by_worker(
             worker_profile_id, limit=limit, offset=offset
         )

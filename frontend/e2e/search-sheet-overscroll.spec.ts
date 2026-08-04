@@ -3,7 +3,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 
 /**
  * Regresión del bug de la operadora "el mapa de /search se refresca al mover
- * el sheet" (docs/PULIDO_ROADMAP.md fix 3).
+ * el sheet" (docs/planning/PULIDO_ROADMAP.md fix 3).
  *
  * Causa raíz real: `/search` no tiene scroll propio a nivel de documento (su
  * contenedor raíz es `h-[calc(100dvh-4rem-5rem)] overflow-hidden`, calculado
