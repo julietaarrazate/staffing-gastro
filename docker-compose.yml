@@ -1,6 +1,11 @@
 services:
+  # Postgres liso, no postgis/postgis: el código no usa PostGIS (las
+  # coordenadas son columnas float planas, distancia calculada en Python,
+  # ver AUDIT/01_INVENTORY.md §7 y docs/reference/DATABASE.md). PostGIS sigue
+  # "previsto, no adoptado" — si algún día se adopta, es un ADR y ahí se
+  # vuelve a cambiar esta imagen.
   db:
-    image: postgis/postgis:16-3.4
+    image: postgres:16-alpine
     container_name: staffya-db
     environment:
       POSTGRES_USER: staffya
@@ -15,12 +20,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: staffya-redis
-    ports:
-      - "6379:6379"
 
   backend:
     build: ./backend
