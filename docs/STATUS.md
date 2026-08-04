@@ -307,8 +307,22 @@ queda flotando en el medio de la pantalla.
    costados. Mobile/tablet sin cambios (sigue siendo un único stack en el
    mismo orden). Verificado visualmente con screenshots en 1440px (worker y
    employer) y 390px.
-8. Resto: `/shifts/new` (wizard), `/shifts/[id]/candidates`,
-   `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
+8. **`/shifts/new`** (2026-08-04, wizard de publicar turno): a diferencia de
+   las pantallas de listas, acá no hay contenido para gridear — es un wizard
+   paso a paso, y ensanchar sus inputs/botones táctiles a todo el ancho se ve
+   mal (mismo criterio que guió el fix de `/profile`, no forzar layouts
+   artificiales). En `lg+` se suma un panel de **vista previa** fijo al lado
+   (`WizardPreview`, patrón "resumen de compra" tipo Stripe checkout) con lo
+   mismo que ya se mostraba en el resumen del último paso (puesto, cuándo,
+   pago, dónde) — visible desde el primer paso y completándose en vivo a
+   medida que el comercio avanza, en vez de dejar la tarjeta angosta del
+   wizard flotando sola en el medio de la pantalla. El wizard en sí no
+   cambia de ancho ni de comportamiento; sólo se agrega contenido nuevo al
+   costado. Mobile sin cambios (el panel usa `hidden lg:block`). Verificado
+   visualmente con screenshots en 1440px (wizard + vista previa lado a lado,
+   actualizándose en los pasos "Puesto" y "Pago") y 390px (sin cambios).
+9. Resto: `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
+   `/subscription`, `/admin`.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno
