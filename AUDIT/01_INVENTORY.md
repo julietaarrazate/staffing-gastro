@@ -227,9 +227,10 @@ var) — sin excepciones encontradas. Detalle línea por línea en
    trackear en este entorno — ver `09_CLEANUP.md` para el veredicto y
    `.gitignore` actual (no los lista explícitamente, sólo genéricos como
    `node_modules/`, `.next/`, `dist/`, `build/`).
-5. **Licencia Apache 2.0 en un producto propietario en camino a registro
-   DNDA** — contradicción a resolver en `12_DNDA.md`, no aquí (requiere
-   decisión de negocio, no sólo técnica).
+5. ~~Licencia Apache 2.0 en un producto propietario en camino a registro
+   DNDA~~ — **resuelto** (2026-08-04): `LICENSE` reemplazado por una licencia
+   propietaria de código cerrado ("All Rights Reserved"), con Julieta
+   Arrazate como única titular. Ver `12_DNDA.md §1-2` para el detalle.
 6. **Los conteos citados en `CLAUDE.md`** ("~218 tests" backend, "~19 tests
    en 10 specs" E2E) **no coinciden con el conteo bruto de esta fase** (245
    funciones `test_*` backend vía `grep`, 14 specs E2E). Puede ser

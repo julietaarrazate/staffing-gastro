@@ -26,13 +26,15 @@
 | # | Ítem | Fase | Costo/Tiempo | Riesgo | Quién |
 |---|---|---|---|---|---|
 | C1 | Apagar `SEED_DEMO_DATA` en Render antes de onboardear comercios reales — credenciales demo (`staffyaDemo123`) activas en producción hoy | `03_SECURITY.md §2` | Operativo, minutos | Bajo (ya hay runbook en `DEPLOY.md`) | Julieta |
-| C2 | Completar `Copyright [yyyy] [name]` en `LICENSE` (hoy es la plantilla sin rellenar — no hay aviso de copyright válido) | `12_DNDA.md §1` | Operativo/legal, minutos una vez decidido el titular | Ninguno | Julieta + asesoría legal |
-| C3 | Decidir si Apache 2.0 es la licencia querida para un producto propietario a registrar en DNDA (hoy contradice esa intención) | `12_DNDA.md §2` | Decisión de negocio/legal | N/A | Julieta + asesoría legal |
+| C2 | ~~Completar `Copyright [yyyy] [name]` en `LICENSE`~~ | `12_DNDA.md §1` | — | — | ✅ Resuelto (2026-08-04): Julieta Arrazate, 2026 |
+| C3 | ~~Decidir si Apache 2.0 es la licencia querida~~ | `12_DNDA.md §2` | — | — | ✅ Resuelto (2026-08-04): reemplazada por licencia propietaria "All Rights Reserved" |
 
-*Los 3 ítems críticos son deliberadamente no-código: son las únicas cosas
-de severidad crítica que encontró toda la auditoría, y ninguna requiere
-escribir una línea de código — son decisiones/acciones operativas ya
-identificadas y con camino claro.*
+*De los 3 ítems críticos, sólo C1 sigue abierto — es operativo (Render), no
+de código. C2 y C3 se resolvieron el mismo día de esta auditoría, a pedido
+explícito de Julieta. Sigue pendiente, y fuera del alcance de un PR de
+código, la pregunta de `12_DNDA.md §3`: cómo declarar ante DNDA la autoría
+de los tramos desarrollados con asistencia de IA — requiere asesoría legal
+específica.*
 
 ---
 
