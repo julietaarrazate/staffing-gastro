@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from app.core.dt import naive as _naive
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
@@ -31,14 +32,6 @@ from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
-
-
-def _naive(dt: datetime) -> datetime:
-    """Normaliza a "naive" antes de comparar datetimes: en SQLite (tests) los
-    datetimes vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ` sí lo
-    preservan. Se asume que ambos valores están en UTC (mismo criterio que
-    `subscription.domain.entities._naive`)."""
-    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
 
 # R2.4: tolerancia para considerar "puntual" un check-in respecto del

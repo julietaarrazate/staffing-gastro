@@ -14,7 +14,6 @@ import {
   RouteIcon,
   ShareIcon,
   UsersIcon,
-  WalletIcon,
 } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
 import { shareShift } from "@/lib/shift-share";

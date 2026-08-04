@@ -244,7 +244,7 @@ class IdentityService:
         await self._reset_tokens.add(
             PasswordResetToken(
                 user_id=user.id,
-                token_hash=_hash_reset_token(raw_token),
+                token_hash=_hash_token(raw_token),
                 expires_at=now + PASSWORD_RESET_TOKEN_TTL,
             )
         )
@@ -277,7 +277,7 @@ class IdentityService:
         Error genérico (`PasswordResetTokenInvalidError`) tanto si el token no
         existe, expiró o ya se usó — no-disclosure (la API la mapea siempre al
         mismo 400 "Enlace inválido o vencido")."""
-        reset_token = await self._reset_tokens.get_by_token_hash(_hash_reset_token(token))
+        reset_token = await self._reset_tokens.get_by_token_hash(_hash_token(token))
         now = datetime.now(timezone.utc)
         if reset_token is None or not reset_token.is_valid(now):
             raise PasswordResetTokenInvalidError()
@@ -305,7 +305,7 @@ class IdentityService:
         await self._verification_tokens.add(
             EmailVerificationToken(
                 user_id=user.id,
-                token_hash=_hash_verification_token(raw_token),
+                token_hash=_hash_token(raw_token),
                 expires_at=now + EMAIL_VERIFICATION_TOKEN_TTL,
             )
         )
@@ -353,7 +353,7 @@ class IdentityService:
         if self._verification_tokens is None:
             raise EmailVerificationTokenInvalidError()
         verification_token = await self._verification_tokens.get_by_token_hash(
-            _hash_verification_token(token)
+            _hash_token(token)
         )
         now = datetime.now(timezone.utc)
         if verification_token is None or not verification_token.is_valid(now):
@@ -401,15 +401,10 @@ class IdentityService:
         return jti
 
 
-def _hash_reset_token(raw_token: str) -> str:
-    """sha256 del token de recuperación: nunca se persiste ni se busca por el
-    valor en claro (sólo viaja en el link del email, de un solo uso)."""
-    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-
-
-def _hash_verification_token(raw_token: str) -> str:
-    """Mismo criterio que `_hash_reset_token`, para el token de verificación
-    de email."""
+def _hash_token(raw_token: str) -> str:
+    """sha256 de un token de un solo uso (recuperación de contraseña o
+    verificación de email): nunca se persiste ni se busca por el valor en
+    claro (sólo viaja en el link del email)."""
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 

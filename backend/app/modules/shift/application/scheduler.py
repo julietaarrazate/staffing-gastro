@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
+from app.core.dt import naive as _naive
 from app.modules.application.infrastructure.repositories import (
     SqlAlchemyShiftApplicationRepository,
 )
@@ -58,10 +59,6 @@ logger = logging.getLogger(__name__)
 # se miden en minutos/horas, así que revisar cada 5 minutos alcanza sin
 # generar carga.
 CHECK_INTERVAL = timedelta(minutes=5)
-
-
-def _naive(dt: datetime) -> datetime:
-    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
 
 def _build_service(session) -> ShiftService:

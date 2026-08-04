@@ -158,7 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tryRefresh().catch(() => {});
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   async function login(email: string, password: string) {
