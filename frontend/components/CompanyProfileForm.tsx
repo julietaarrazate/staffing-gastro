@@ -75,9 +75,11 @@ export default function CompanyProfileForm() {
     };
     setSubmitting(true);
     try {
-      exists
-        ? await api.put<CompanyProfile>("/companies/me/profile", payload, token)
-        : await api.post<CompanyProfile>("/companies/me/profile", payload, token);
+      if (exists) {
+        await api.put<CompanyProfile>("/companies/me/profile", payload, token);
+      } else {
+        await api.post<CompanyProfile>("/companies/me/profile", payload, token);
+      }
       setExists(true);
       setSaved(true);
     } catch (err) {

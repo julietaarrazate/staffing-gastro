@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const HTTP_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onrender.com/api/v1";
@@ -27,10 +27,19 @@ export function useWebSocket<T>(
   onMessage: (data: T) => void,
   onOpen?: () => void
 ): { status: WebSocketStatus } {
+  // Mutar el ref en el cuerpo del render (en vez de en un efecto) hacía que
+  // React lo marque como acceso inseguro (`react-hooks/refs`, TECH_DEBT.md
+  // T5): con `useLayoutEffect` el ref queda actualizado antes del próximo
+  // paint, sin cambiar el comportamiento (sigue siempre "al día" para el
+  // efecto de conexión de abajo, que nunca se re-crea por esto).
   const onMessageRef = useRef(onMessage);
-  onMessageRef.current = onMessage;
+  useLayoutEffect(() => {
+    onMessageRef.current = onMessage;
+  });
   const onOpenRef = useRef(onOpen);
-  onOpenRef.current = onOpen;
+  useLayoutEffect(() => {
+    onOpenRef.current = onOpen;
+  });
 
   const [status, setStatus] = useState<WebSocketStatus>("connecting");
 

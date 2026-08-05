@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -107,11 +107,6 @@ const ACTION_PATH: Record<Action, string> = {
   noShow: "no-show",
 };
 
-// No-show (PRIMER_TURNO_REAL_SPEC Parte C, ADR-0007): sólo tiene sentido
-// marcarlo mientras el trabajador confirmado todavía no se presentó
-// (antes del check-in).
-const NO_SHOW_ELIGIBLE_STATUSES: ShiftStatus[] = ["confirmado", "en_camino"];
-
 export default function MyShiftsPage() {
   const { token } = useAuth();
   const router = useRouter();
@@ -132,7 +127,7 @@ export default function MyShiftsPage() {
   // `ShiftPublishedNextSteps` para la justificación completa).
   const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -144,11 +139,11 @@ export default function MyShiftsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [token]);
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, [load]);
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para loading/disabled), atrapa errores del POST (antes se

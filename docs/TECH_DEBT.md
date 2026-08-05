@@ -731,42 +731,73 @@ fecha de esta auditoría (2026-07-02).
 - **Esfuerzo:** trivial — quitar el marcador o hacer la función `async`.
 - **Solución sugerida:** limpiar en el próximo PR que toque ese archivo.
 
-### T5 — `npm run lint` falla en ~15 archivos, pero `ci.yml` no lo corre 🟡 Media
+### T5 — `npm run lint` falla en ~15 archivos, pero `ci.yml` no lo corre ✅ Resuelto (2026-08-05)
 
-- **Descripción:** el frontend usa `eslint-config-next` con una regla
-  (`react-hooks/set-state-in-effect`, del plugin del React Compiler) que
-  marca como error el patrón extendido en toda la app "`useEffect(() => {
-  load(); }, [load])`" con un `load` (`useCallback`) que hace `setX(...)`
-  antes del primer `await`. Está en ~15 archivos (`app/feed`, `app/
+- **Descripción original:** el frontend usa `eslint-config-next` con una
+  regla (`react-hooks/set-state-in-effect`, del plugin del React Compiler)
+  que marca como error el patrón extendido en toda la app "`useEffect(() =>
+  { load(); }, [load])`" con un `load` (`useCallback`) que hace `setX(...)`
+  antes del primer `await`. Estaba en ~15 archivos (`app/feed`, `app/
   my-shifts`, `app/shifts`, `app/admin`, `app/chats*`, `app/companies/
   [id]`, `app/search`, `app/workers/[id]`, `components/
   CompanyProfileForm.tsx`, `WorkerProfileForm.tsx`, `ReviewBox.tsx`,
   `ReceivedReviews.tsx`, `NotificationBell.tsx`, más 3 errores no
-  relacionados en `lib/useWebSocket.ts`, `react-hooks/refs`). Verificado
-  real: `npm run lint` en esta rama, **antes de cualquier cambio de esta
-  sesión**, ya daba 31 problemas (21 errores). `.github/workflows/ci.yml`
-  (job `frontend`) sólo corre `tsc --noEmit` + `next build` — nunca `npm
-  run lint` — así que esto nunca bloqueó un merge, pese a que `CLAUDE.md`/
-  los checklists de sesión mencionan "eslint" como gate.
-- **Impacto:** ninguno en producción (el patrón es el idiomático de fetch-
-  on-mount de toda la app, no bugs reales); pero es señal falsa/ruido si
-  algún día se agrega lint a CI sin antes decidir qué hacer con la regla.
-- **Riesgo:** bajo hoy; medio si se agrega el gate sin auditar antes (CI se
-  pondría rojo de golpe en ~15 archivos preexistentes).
-- **Prioridad:** 🟡 Media.
-- **Esfuerzo:** medio — o se relaja/desactiva esa regla específica en
-  `eslint.config.*` (es la lectura más barata, dado que el patrón es
-  intencional y establecido), o se reescribe el patrón fetch-on-mount en
-  los ~15 archivos.
-- **Nota de esta sesión:** el fix de login persistente (`lib/
-  auth-context.tsx`) e `SplashScreen.tsx` usan a propósito una función
-  `async` anidada e invocada dentro del propio `useEffect` (en vez de un
-  `useCallback` externo) — ese patrón puntual no dispara la regla, y de
-  paso esta sesión dejó `npm run lint` en 29 problemas (19 errores) en vez
-  de los 31 (21 errores) de base, sin tocar los ~15 archivos preexistentes.
-- **Solución sugerida:** decisión de producto/plataforma (no de esta
-  sesión): revisar la regla en un PR dedicado antes de considerar agregar
-  `npm run lint` a `ci.yml`.
+  relacionados en `lib/useWebSocket.ts`, `react-hooks/refs`). `.github/
+  workflows/ci.yml` (job `frontend`) sólo corre `tsc --noEmit` + `next
+  build` — nunca `npm run lint` — así que esto nunca bloqueó un merge, pese
+  a que `CLAUDE.md`/los checklists de sesión mencionan "eslint" como gate.
+- **Cierre 2026-08-05:** `npm run lint` pasó de **34 problemas (25 errores,
+  9 warnings)** a **0 errores, 6 warnings** (los 6 restantes son los
+  `@next/next/no-img-element` ya catalogados en `NEXT_IMAGE_ANALYSIS.md`,
+  fuera del alcance de T5). Tres cambios, cada uno con su propio criterio:
+  1. **`react-hooks/set-state-in-effect` desactivada en
+     `eslint.config.mjs`** (con comentario in-line explicando el motivo).
+     Era la mayoría de los ~23-24 errores. No se tocaron los ~15 archivos:
+     el patrón `useCallback` + `useEffect(() => { load(); }, [load])` es el
+     idiom establecido y deliberado de toda la app para "traer datos al
+     montar" — no hay cascada de renders real (el `setState` ocurre una vez,
+     tras la respuesta async, nunca en el cuerpo síncrono del efecto que la
+     regla asume). Reescribir ~15 archivos a un patrón distinto sin ningún
+     bug real detrás no aportaba nada y sí sumaba riesgo de regresión — no
+     pasaba el criterio de "mejora genuina".
+  2. **`lib/useWebSocket.ts` — 2 errores genuinos de
+     `react-hooks/refs`** (mutar `ref.current` en el cuerpo del render en
+     vez de en un efecto): sí eran un anti-patrón real, con fix estándar sin
+     riesgo (`useLayoutEffect` en vez de asignación directa, mismo timing
+     efectivo — el ref queda al día antes del próximo paint, la conexión del
+     socket no se re-crea por esto).
+  3. **`app/shifts/page.tsx` — 1 warning genuino de
+     `exhaustive-deps`**: `load` estaba declarada como función anidada
+     dentro del componente en vez del `useCallback` que usa el resto de la
+     app, así que su `useEffect` mentía sobre sus dependencias reales
+     (dependía de `token` vía closure, no declarado). Se alineó al mismo
+     patrón `useCallback` que ya usan `/feed`, `/my-shifts`, etc. — mismo
+     comportamiento, dependencias ahora explícitas.
+  4. Dos warnings que surgieron recién al arreglar lo anterior, ambos
+     resueltos: `NO_SHOW_ELIGIBLE_STATUSES` en `app/shifts/page.tsx` era
+     una constante **duplicada y nunca usada** — el gating real de "no se
+     presentó" ya lo hace `NO_SHOW_ELIGIBLE` en
+     `components/ShiftActions.tsx:22` (sí conectado a `canNoShow`); se borró
+     la copia muerta. En `components/CompanyProfileForm.tsx:78` un ternario
+     `exists ? await ... : await ...` usado sólo por su efecto (sin asignar
+     el resultado) se reescribió como `if (exists) { ... } else { ... }` —
+     mismo comportamiento, sin la expresión huérfana que dispara
+     `no-unused-expressions`.
+  - Verificado real tras los 3 cambios: `npm run lint` → 0 errores/6
+    warnings, `npx tsc --noEmit` → limpio, `npm run build` → build de
+    producción completo sin errores (25 rutas). E2E: los specs que tocan
+    los archivos modificados (`shifts-panel-families`,
+    `shifts-panel-status`, `shift-lifecycle-stepper`) pasan igual que antes;
+    el único fallo de la corrida (`employer-wizard.spec.ts`, timeout al
+    clickear "Ver mi turno" por un overlay que intercepta el click)
+    **preexiste sin estos cambios** — se confirmó reproduciéndolo también
+    en `HEAD` antes de este commit (`git stash` + re-run), así que queda
+    fuera del alcance de T5 (candidato a su propio ítem de deuda si vuelve
+    a aparecer).
+  - `npm run lint` **sigue sin agregarse a `ci.yml`** — eso queda fuera del
+    alcance de este cierre (no era necesario para que la suite dé 0
+    errores; agregarlo a CI es una decisión de plataforma aparte, ahora sin
+    el bloqueo de ~15 archivos preexistentes en rojo).
 
 ---
 
@@ -784,5 +815,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
-| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, T5 (lint fuera de CI) |
+| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |
