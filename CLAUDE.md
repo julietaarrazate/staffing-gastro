@@ -21,8 +21,9 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > `/shifts`), `/workers/[id]` (perfil público del trabajador: dos columnas,
 > reseñas fijas al lado, mismo criterio que `/profile`) y `/companies/[id]`
 > (perfil público del comercio: mapa + "cómo llegar" a un costado cuando hay
-> coordenadas, sin forzar una columna vacía cuando no las hay). Siguen, en
-> orden de valor: `/subscription`, `/admin`. Detalle completo y el patrón
+> coordenadas, sin forzar una columna vacía cuando no las hay) y
+> `/subscription` (la grilla de planes ya tenía `lg:grid-cols-3`; sólo
+> hacía falta ensanchar el contenedor). Sigue: `/admin`. Detalle completo y el patrón
 > del problema en
 > [docs/STATUS.md](./docs/STATUS.md).
 

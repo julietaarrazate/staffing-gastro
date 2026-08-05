@@ -6,10 +6,10 @@
 > que se mergea un cambio relevante (o inmediatamente después).
 
 *Última actualización: 2026-08-05 (auditoría responsive/desktop:
-`/companies/[id]` resuelto — mapa + "cómo llegar" a un costado cuando hay
-coordenadas; antes, en el mismo día, `/workers/[id]` — dos columnas, reseñas
-fijas al lado, mismo criterio que `/profile`; y antes `/shifts/[id]/candidates`
-— grilla 2-3 columnas, mismo criterio que `/shifts`; ver sección de la
+`/subscription` resuelto — la grilla de planes ya estaba lista, sólo faltaba
+ensanchar el contenedor; antes, en el mismo día, `/companies/[id]` — mapa +
+"cómo llegar" a un costado; `/workers/[id]` — dos columnas, reseñas fijas al
+lado; y `/shifts/[id]/candidates` — grilla 2-3 columnas; ver sección de la
 auditoría más abajo; antes, endurecimiento de
 producción — seguridad, performance e infraestructura, más verificación de
 email; antes, auditoría real de dependencias con CVEs conocidas —
@@ -361,7 +361,18 @@ queda flotando en el medio de la pantalla.
     `MiniMap` es el mismo componente ya usado en el detalle de turno, no un
     componente nuevo. Mobile sin cambios. Verificado visualmente con
     Playwright en 1440px (con y sin coordenadas) y 390px.
-12. Resto: `/subscription`, `/admin`.
+12. **`/subscription`** (2026-08-05, "Mi plan"): a diferencia del resto de
+    la auditoría, acá la grilla de planes (`PlanCard`) **ya tenía**
+    `sm:grid-cols-2 lg:grid-cols-3` desde antes — el bug era que el
+    contenedor se quedaba en `max-w-2xl` (672px), así que en `lg+` las 3
+    columnas se apretaban en ese ancho fijo en vez de aprovechar la
+    pantalla. Fix mínimo: `lg:max-w-5xl` en el contenedor, sin tocar la
+    grilla que ya estaba bien. `SubscriptionStatusCard` (estado del plan
+    actual) sigue de banner a todo el ancho arriba, sin gridear — mismo
+    criterio que `GuaranteeCard` en `/shifts/[id]/candidates`. Mobile sin
+    cambios. Verificado visualmente con Playwright en 1440px (3 columnas
+    con aire) y 390px.
+13. Resto: `/admin`.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno
