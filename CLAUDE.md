@@ -18,8 +18,10 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > (dos columnas tipo dashboard), `/shifts/new` (panel de vista previa fijo
 > al lado del wizard, tipo resumen de checkout) y
 > `/shifts/[id]/candidates` (grilla 2-3 columnas, mismo criterio que
-> `/shifts`). Siguen, en orden de valor: `/workers/[id]`, `/companies/[id]`,
-> `/subscription`, `/admin`. Detalle completo y el patrón del problema en
+> `/shifts`) y `/workers/[id]` (perfil público del trabajador: dos columnas,
+> reseñas fijas al lado, mismo criterio que `/profile`). Siguen, en orden de
+> valor: `/companies/[id]`, `/subscription`, `/admin`. Detalle completo y el
+> patrón del problema en
 > [docs/STATUS.md](./docs/STATUS.md).
 
 ## Contexto en 30 segundos

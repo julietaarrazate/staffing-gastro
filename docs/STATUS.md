@@ -5,9 +5,10 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-05 (auditoría responsive/desktop:
-`/shifts/[id]/candidates` resuelto — grilla 2-3 columnas, mismo criterio que
-`/shifts`, ver sección de la auditoría más abajo; antes, endurecimiento de
+*Última actualización: 2026-08-05 (auditoría responsive/desktop: `/workers/[id]`
+resuelto — dos columnas, reseñas fijas al lado, mismo criterio que `/profile`;
+antes, en el mismo día, `/shifts/[id]/candidates` — grilla 2-3 columnas, mismo
+criterio que `/shifts`; ver sección de la auditoría más abajo; antes, endurecimiento de
 producción — seguridad, performance e infraestructura, más verificación de
 email; antes, auditoría real de dependencias con CVEs conocidas —
 `pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
@@ -335,7 +336,17 @@ queda flotando en el medio de la pantalla.
    las tarjetas de candidato. Mobile sin cambios. Verificado visualmente
    con Playwright en 1440px (ambas pestañas, grilla de 3 columnas) y 390px
    (idéntico a antes).
-10. Resto: `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
+10. **`/workers/[id]`** (2026-08-05, perfil público del trabajador): a
+    diferencia de las pantallas de listas, esto es una sola tarjeta de
+    contenido — mismo caso que `/profile`, no una lista para gridear. En
+    `lg+` pasa a dos columnas (`lg:grid-cols-3`, mismo patrón dashboard que
+    `/profile`): la tarjeta principal (foto hero, bio, skills, métricas,
+    idiomas, certificaciones, insignias) en 2/3 a la izquierda, y
+    **Reseñas** (antes apilada debajo, largo variable) pasa a una columna
+    fija de 1/3 a la derecha. Mobile/tablet sin cambios (mismo stack de
+    siempre). Verificado visualmente con Playwright en 1440px (perfil +
+    reseñas lado a lado) y 390px (idéntico a antes).
+11. Resto: `/companies/[id]`, `/subscription`, `/admin`.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno
