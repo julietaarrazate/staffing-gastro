@@ -5,9 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-04 (endurecimiento de producción — seguridad,
-performance e infraestructura, más verificación de email — ver sección de
-abajo; antes, auditoría real de dependencias con CVEs conocidas —
+*Última actualización: 2026-08-05 (auditoría responsive/desktop:
+`/shifts/[id]/candidates` resuelto — grilla 2-3 columnas, mismo criterio que
+`/shifts`, ver sección de la auditoría más abajo; antes, endurecimiento de
+producción — seguridad, performance e infraestructura, más verificación de
+email; antes, auditoría real de dependencias con CVEs conocidas —
 `pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
 revoca el refresh token en el backend, escalada automática de urgencia
 ADR-0009, métrica de tiempo real de cobertura en el panel admin,
@@ -321,8 +323,19 @@ queda flotando en el medio de la pantalla.
    costado. Mobile sin cambios (el panel usa `hidden lg:block`). Verificado
    visualmente con screenshots en 1440px (wizard + vista previa lado a lado,
    actualizándose en los pasos "Puesto" y "Pago") y 390px (sin cambios).
-9. Resto: `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
-   `/subscription`, `/admin`.
+9. **`/shifts/[id]/candidates`** (2026-08-05, elegir a quién asignar el
+   turno): mismo problema que `/shifts`/`/my-shifts` — es una lista de
+   tarjetas de persona (postulantes/recomendados), así que el mismo
+   criterio aplica directo: contenedor a `md:max-w-6xl` y ambas pestañas a
+   `grid gap-3 md:grid-cols-2 xl:grid-cols-3` (postulantes) /
+   `grid gap-4 md:grid-cols-2 xl:grid-cols-3` (recomendados). La tarjeta
+   `GuaranteeCard` ("Garantía Oído") queda **afuera** de la grilla, arriba,
+   a todo lo ancho — no como un ítem más (mismo criterio que el
+   `EmptyState` en `/shifts`): si no, se aplasta en una sola celda junto a
+   las tarjetas de candidato. Mobile sin cambios. Verificado visualmente
+   con Playwright en 1440px (ambas pestañas, grilla de 3 columnas) y 390px
+   (idéntico a antes).
+10. Resto: `/workers/[id]`, `/companies/[id]`, `/subscription`, `/admin`.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno
