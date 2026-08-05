@@ -5,12 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-05 (auditoría responsive/desktop:
-`/subscription` resuelto — la grilla de planes ya estaba lista, sólo faltaba
-ensanchar el contenedor; antes, en el mismo día, `/companies/[id]` — mapa +
-"cómo llegar" a un costado; `/workers/[id]` — dos columnas, reseñas fijas al
-lado; y `/shifts/[id]/candidates` — grilla 2-3 columnas; ver sección de la
-auditoría más abajo; antes, endurecimiento de
+*Última actualización: 2026-08-05 (**auditoría responsive/desktop cerrada**:
+`/admin` resuelto — última de las 13 pantallas, grilla 2-3 columnas igual
+que `/shifts`; el mismo día también `/subscription`, `/companies/[id]`,
+`/workers/[id]` y `/shifts/[id]/candidates` — ver sección de la auditoría
+más abajo para el detalle completo; antes, endurecimiento de
 producción — seguridad, performance e infraestructura, más verificación de
 email; antes, auditoría real de dependencias con CVEs conocidas —
 `pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
@@ -372,7 +371,20 @@ queda flotando en el medio de la pantalla.
     criterio que `GuaranteeCard` en `/shifts/[id]/candidates`. Mobile sin
     cambios. Verificado visualmente con Playwright en 1440px (3 columnas
     con aire) y 390px.
-13. Resto: `/admin`.
+13. **`/admin`** (2026-08-05, panel de administración) — **última pantalla,
+    auditoría cerrada**: mismo caso que `/shifts`/`/my-shifts`/
+    `/shifts/[id]/candidates`, una lista de tarjetas de usuario en una sola
+    columna (`max-w-3xl`). Contenedor a `md:max-w-6xl` y la lista a
+    `grid gap-3 md:grid-cols-2 xl:grid-cols-3`. Las tarjetas de stats
+    arriba (`sm:grid-cols-4` y el segundo bloque de 2) ya escalaban solas
+    con más ancho de contenedor, sin necesitar ningún cambio de clase.
+    Mobile sin cambios. Verificado visualmente con Playwright en 1440px
+    (grilla de 3 columnas, 6 usuarios de prueba) y 390px.
+
+**Auditoría completa (2026-08-05):** las 13 pantallas quedaron resueltas.
+No hay ningún frente puntual abierto de esta iniciativa — para la próxima
+sesión sin instrucción explícita, el punto de partida es `docs/TECH_DEBT.md`
+por prioridad, no este listado.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno

@@ -4,27 +4,24 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-08-04**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-08-05**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 >
-> **En curso ahora mismo:** auditoría de responsive/desktop pantalla por
+> **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
-> quedan "precarias" — mobile-first sin adaptar a pantallas anchas). Ya
-> resueltas: `/map` (panel lateral + mapa), `/feed` (grilla en vez del mazo
-> de swipe), `/shifts` (grilla 2-3 columnas), `/search` (panel lateral +
-> mapa, igual que `/map`), `/my-shifts` (misma grilla que `/shifts`),
-> `/chats` (layout de inbox, lista fija + conversación al lado), `/profile`
-> (dos columnas tipo dashboard), `/shifts/new` (panel de vista previa fijo
-> al lado del wizard, tipo resumen de checkout) y
-> `/shifts/[id]/candidates` (grilla 2-3 columnas, mismo criterio que
-> `/shifts`), `/workers/[id]` (perfil público del trabajador: dos columnas,
-> reseñas fijas al lado, mismo criterio que `/profile`) y `/companies/[id]`
-> (perfil público del comercio: mapa + "cómo llegar" a un costado cuando hay
-> coordenadas, sin forzar una columna vacía cuando no las hay) y
-> `/subscription` (la grilla de planes ya tenía `lg:grid-cols-3`; sólo
-> hacía falta ensanchar el contenedor). Sigue: `/admin`. Detalle completo y el patrón
-> del problema en
+> quedaban "precarias" — mobile-first sin adaptar a pantallas anchas).
+> Las 12 pantallas quedaron resueltas: `/map` y `/search` (panel lateral +
+> mapa), `/feed`, `/shifts`, `/my-shifts`, `/shifts/[id]/candidates` y
+> `/admin` (listas de tarjetas → grilla 2-3 columnas), `/chats` (layout de
+> inbox), `/profile` y `/workers/[id]` (dos columnas tipo dashboard),
+> `/shifts/new` (panel de vista previa fijo al lado del wizard),
+> `/companies/[id]` (mapa + "cómo llegar" a un costado cuando hay
+> coordenadas) y `/subscription` (la grilla ya estaba lista, sólo faltaba
+> ensanchar el contenedor). No hay ningún frente puntual abierto ahora
+> mismo — antes de arrancar algo nuevo sin instrucción explícita, mirá
+> `docs/TECH_DEBT.md` para el siguiente ítem por prioridad. Detalle
+> completo y el patrón del problema en
 > [docs/STATUS.md](./docs/STATUS.md).
 
 ## Contexto en 30 segundos
@@ -282,6 +279,7 @@ prompt de arranque:
 > relevante.
 
 No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
-operadora" arriba. Sí hay un frente **abierto y priorizado** ahora mismo: la
-auditoría de responsive/desktop pantalla por pantalla (ver arriba y
-`docs/STATUS.md`) — arrancar por ahí si no hay otra instrucción puntual.
+operadora" arriba. La auditoría de responsive/desktop pantalla por pantalla
+(ver arriba) ya se cerró — no hay un frente puntual abierto ahora mismo; si
+no hay otra instrucción, mirá `docs/TECH_DEBT.md` por prioridad antes de
+arrancar algo nuevo.
