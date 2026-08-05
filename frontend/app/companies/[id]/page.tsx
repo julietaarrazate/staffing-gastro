@@ -9,6 +9,7 @@ import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
+import MiniMap from "@/components/MiniMap";
 import { MapPinIcon, RouteIcon } from "@/components/icons";
 
 function ProfilePageSkeleton() {
@@ -80,9 +81,21 @@ export default function PublicCompanyProfilePage() {
   }
   if (!profile) return null;
 
+  const hasCoords = profile.latitude != null && profile.longitude != null;
+
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+    <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-4xl">
+      {/* En lg+, si hay coordenadas, la ubicación (mapa + dirección + "cómo
+          llegar") pasa a una columna secundaria al lado (mismo criterio que
+          /profile y /workers/[id], docs/STATUS.md) — sin eso, la tarjeta
+          quedaba angosta y sola en medio de la pantalla. Sin coordenadas no
+          hay contenido real para una segunda columna, así que no se fuerza
+          la grilla (mismo criterio "no forzar layouts artificiales" que
+          /shifts/new). */}
+      <div className={hasCoords ? "lg:grid lg:grid-cols-3 lg:items-start lg:gap-6" : ""}>
+      <div
+        className={`overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line ${hasCoords ? "lg:col-span-2" : ""}`}
+      >
         <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
           {profile.logo_url ? (
             <img
@@ -140,13 +153,28 @@ export default function PublicCompanyProfilePage() {
             {profile.address && <Metric label="Dirección" value={profile.address} />}
           </div>
 
-          {/* Acá también hace falta saber si conviene ir, antes de postularse
-              a un turno de este comercio (Julieta, 2026-07-29). */}
-          {profile.latitude != null && profile.longitude != null && (
+        </div>
+      </div>
+
+      {/* Ubicación: mapa + "cómo llegar" — antes era sólo el botón, apilado
+          debajo de la tarjeta principal. Acá también hace falta saber si
+          conviene ir, antes de postularse a un turno de este comercio
+          (Julieta, 2026-07-29). */}
+      {hasCoords && (
+        <div className="mt-7 lg:mt-0">
+          <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+            Ubicación
+          </p>
+          <div className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <MiniMap
+              latitude={profile.latitude as number}
+              longitude={profile.longitude as number}
+              className="h-40 w-full"
+            />
             <Button
               variant="surface"
               fullWidth
-              className="mt-4"
+              className="mt-3"
               leftIcon={<RouteIcon size={16} />}
               onClick={() =>
                 window.open(
@@ -158,8 +186,9 @@ export default function PublicCompanyProfilePage() {
             >
               Cómo llegar
             </Button>
-          )}
+          </div>
         </div>
+      )}
       </div>
     </div>
   );

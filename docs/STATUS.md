@@ -5,10 +5,12 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-05 (auditoría responsive/desktop: `/workers/[id]`
-resuelto — dos columnas, reseñas fijas al lado, mismo criterio que `/profile`;
-antes, en el mismo día, `/shifts/[id]/candidates` — grilla 2-3 columnas, mismo
-criterio que `/shifts`; ver sección de la auditoría más abajo; antes, endurecimiento de
+*Última actualización: 2026-08-05 (auditoría responsive/desktop:
+`/companies/[id]` resuelto — mapa + "cómo llegar" a un costado cuando hay
+coordenadas; antes, en el mismo día, `/workers/[id]` — dos columnas, reseñas
+fijas al lado, mismo criterio que `/profile`; y antes `/shifts/[id]/candidates`
+— grilla 2-3 columnas, mismo criterio que `/shifts`; ver sección de la
+auditoría más abajo; antes, endurecimiento de
 producción — seguridad, performance e infraestructura, más verificación de
 email; antes, auditoría real de dependencias con CVEs conocidas —
 `pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
@@ -346,7 +348,20 @@ queda flotando en el medio de la pantalla.
     fija de 1/3 a la derecha. Mobile/tablet sin cambios (mismo stack de
     siempre). Verificado visualmente con Playwright en 1440px (perfil +
     reseñas lado a lado) y 390px (idéntico a antes).
-11. Resto: `/companies/[id]`, `/subscription`, `/admin`.
+11. **`/companies/[id]`** (2026-08-05, perfil público del comercio):
+    mismo tipo de pantalla que `/workers/[id]` (una sola tarjeta, no una
+    lista), pero **sin** una sección tipo Reseñas que mover — el único
+    contenido secundario real es la ubicación, y sólo si el comercio cargó
+    coordenadas. Con coordenadas, `lg+` pasa a dos columnas: tarjeta
+    principal en 2/3 y una columna "Ubicación" (mapa `MiniMap` + dirección +
+    botón "Cómo llegar", que antes quedaba apilado como un simple botón
+    debajo de la tarjeta) en 1/3. **Sin coordenadas**, no se fuerza la
+    grilla (no hay nada real para la segunda columna) — el contenedor sólo
+    se ensancha un poco (`lg:max-w-4xl`) para no quedar tan angosto.
+    `MiniMap` es el mismo componente ya usado en el detalle de turno, no un
+    componente nuevo. Mobile sin cambios. Verificado visualmente con
+    Playwright en 1440px (con y sin coordenadas) y 390px.
+12. Resto: `/subscription`, `/admin`.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno
