@@ -85,7 +85,7 @@ export default function ShiftCandidatesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
       <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Candidatos</h1>
       <p className="mt-0.5 text-sm text-ink/50">
         Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano.
@@ -106,7 +106,7 @@ export default function ShiftCandidatesPage() {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       {!loading && !error && tab === "postulantes" && (
-        <div className="mt-5 grid gap-3">
+        <div className="mt-5">
           {applicants.length === 0 ? (
             <EmptyState
               icon={<UsersIcon size={28} />}
@@ -114,44 +114,50 @@ export default function ShiftCandidatesPage() {
               subtitle="Cuando un trabajador deslice tu turno a la derecha, aparece acá. Mientras tanto, mirá los recomendados."
             />
           ) : (
-            [
-              <GuaranteeCard key="garantia" />,
-              ...applicants.map((a) => (
-              <div
-                key={a.application_id}
-                // `.no-select`: fila de chrome (rating, chips), mismo criterio
-                // C0 #2 que ShiftCard/CandidateCard.
-                className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
-              >
-                <Link href={`/workers/${a.worker_profile_id}`}>
-                  <Avatar src={a.photo_url} name={a.full_name} size="lg" />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <Link href={`/workers/${a.worker_profile_id}`} className="truncate font-semibold text-ink">
-                      {a.full_name}
+            <>
+              <GuaranteeCard />
+              {/* Grilla en md+ (mismo criterio que /shifts y /my-shifts,
+                  docs/STATUS.md): la Garantía queda afuera, no como un ítem
+                  más — si no, se aplasta en una sola celda junto a las
+                  tarjetas de postulante. */}
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {applicants.map((a) => (
+                  <div
+                    key={a.application_id}
+                    // `.no-select`: fila de chrome (rating, chips), mismo criterio
+                    // C0 #2 que ShiftCard/CandidateCard.
+                    className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+                  >
+                    <Link href={`/workers/${a.worker_profile_id}`}>
+                      <Avatar src={a.photo_url} name={a.full_name} size="lg" />
                     </Link>
-                    {a.is_available && <Badge tone="secondary">Disponible</Badge>}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Link href={`/workers/${a.worker_profile_id}`} className="truncate font-semibold text-ink">
+                          {a.full_name}
+                        </Link>
+                        {a.is_available && <Badge tone="secondary">Disponible</Badge>}
+                      </div>
+                      <CandidateStatChips signals={a} className="mt-1" />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => assign(a.worker_profile_id)}
+                      loading={assigning === a.worker_profile_id}
+                      disabled={assigning !== null}
+                    >
+                      Asignar
+                    </Button>
                   </div>
-                  <CandidateStatChips signals={a} className="mt-1" />
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => assign(a.worker_profile_id)}
-                  loading={assigning === a.worker_profile_id}
-                  disabled={assigning !== null}
-                >
-                  Asignar
-                </Button>
+                ))}
               </div>
-              )),
-            ]
+            </>
           )}
         </div>
       )}
 
       {!loading && !error && tab === "recomendados" && (
-        <div className="mt-5 grid gap-4">
+        <div className="mt-5">
           {candidates.length === 0 ? (
             <EmptyState
               icon={<UsersIcon size={28} />}
@@ -161,15 +167,17 @@ export default function ShiftCandidatesPage() {
           ) : (
             <>
               <GuaranteeCard />
-              {candidates.map((candidate, i) => (
-                <CandidateCard
-                  key={candidate.profile_id}
-                  candidate={candidate}
-                  recommended={i === 0}
-                  disabled={assigning !== null}
-                  onAssign={() => assign(candidate.profile_id)}
-                />
-              ))}
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {candidates.map((candidate, i) => (
+                  <CandidateCard
+                    key={candidate.profile_id}
+                    candidate={candidate}
+                    recommended={i === 0}
+                    disabled={assigning !== null}
+                    onAssign={() => assign(candidate.profile_id)}
+                  />
+                ))}
+              </div>
             </>
           )}
         </div>

@@ -87,7 +87,10 @@ export default function SubscriptionPage() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+    // La grilla de planes ya usaba sm:grid-cols-2 lg:grid-cols-3 (docs/STATUS.md)
+    // pero el contenedor se quedaba en max-w-2xl: en lg+ las 3 columnas se
+    // apretaban en 672px en vez de aprovechar el ancho real de la pantalla.
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 lg:max-w-5xl">
       <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Mi plan</h1>
       <p className="mt-0.5 text-sm text-ink/50">
         Gestioná la suscripción de tu comercio a Oído.

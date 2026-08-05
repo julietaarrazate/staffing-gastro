@@ -77,8 +77,14 @@ export default function PublicWorkerProfilePage() {
   const name = profile.full_name ?? "Trabajador/a";
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+    <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl">
+      {/* En lg+ las reseñas pasan a una columna secundaria al lado (mismo
+          criterio que /profile, docs/STATUS.md): es contenido de largo
+          variable que antes quedaba apilado debajo de la tarjeta principal,
+          dejando media pantalla vacía a los costados. Sin `lg:grid`, en
+          mobile/tablet sigue siendo un único stack en el mismo orden. */}
+      <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
+      <div className="lg:col-span-2 overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
         <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
           {profile.photo_url ? (
             <img src={cldThumb(profile.photo_url, 800)} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
@@ -172,17 +178,19 @@ export default function PublicWorkerProfilePage() {
             </div>
           )}
 
-          {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar
-              (inspiración "Reseñas recientes" de Clickie). */}
-          <div className="mt-6 border-t border-line pt-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
-              Reseñas
-            </p>
-            <div className="mt-2.5">
-              <WorkerReviews workerProfileId={params.id} />
-            </div>
-          </div>
         </div>
+      </div>
+
+      {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar
+          (inspiración "Reseñas recientes" de Clickie). */}
+      <div className="mt-7 lg:mt-0">
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          Reseñas
+        </p>
+        <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <WorkerReviews workerProfileId={params.id} />
+        </div>
+      </div>
       </div>
     </div>
   );

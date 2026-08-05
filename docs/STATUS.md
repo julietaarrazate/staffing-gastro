@@ -5,9 +5,13 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-04 (endurecimiento de producción — seguridad,
-performance e infraestructura, más verificación de email — ver sección de
-abajo; antes, auditoría real de dependencias con CVEs conocidas —
+*Última actualización: 2026-08-05 (**auditoría responsive/desktop cerrada**:
+`/admin` resuelto — última de las 13 pantallas, grilla 2-3 columnas igual
+que `/shifts`; el mismo día también `/subscription`, `/companies/[id]`,
+`/workers/[id]` y `/shifts/[id]/candidates` — ver sección de la auditoría
+más abajo para el detalle completo; antes, endurecimiento de
+producción — seguridad, performance e infraestructura, más verificación de
+email; antes, auditoría real de dependencias con CVEs conocidas —
 `pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
 revoca el refresh token en el backend, escalada automática de urgencia
 ADR-0009, métrica de tiempo real de cobertura en el panel admin,
@@ -321,8 +325,66 @@ queda flotando en el medio de la pantalla.
    costado. Mobile sin cambios (el panel usa `hidden lg:block`). Verificado
    visualmente con screenshots en 1440px (wizard + vista previa lado a lado,
    actualizándose en los pasos "Puesto" y "Pago") y 390px (sin cambios).
-9. Resto: `/shifts/[id]/candidates`, `/workers/[id]`, `/companies/[id]`,
-   `/subscription`, `/admin`.
+9. **`/shifts/[id]/candidates`** (2026-08-05, elegir a quién asignar el
+   turno): mismo problema que `/shifts`/`/my-shifts` — es una lista de
+   tarjetas de persona (postulantes/recomendados), así que el mismo
+   criterio aplica directo: contenedor a `md:max-w-6xl` y ambas pestañas a
+   `grid gap-3 md:grid-cols-2 xl:grid-cols-3` (postulantes) /
+   `grid gap-4 md:grid-cols-2 xl:grid-cols-3` (recomendados). La tarjeta
+   `GuaranteeCard` ("Garantía Oído") queda **afuera** de la grilla, arriba,
+   a todo lo ancho — no como un ítem más (mismo criterio que el
+   `EmptyState` en `/shifts`): si no, se aplasta en una sola celda junto a
+   las tarjetas de candidato. Mobile sin cambios. Verificado visualmente
+   con Playwright en 1440px (ambas pestañas, grilla de 3 columnas) y 390px
+   (idéntico a antes).
+10. **`/workers/[id]`** (2026-08-05, perfil público del trabajador): a
+    diferencia de las pantallas de listas, esto es una sola tarjeta de
+    contenido — mismo caso que `/profile`, no una lista para gridear. En
+    `lg+` pasa a dos columnas (`lg:grid-cols-3`, mismo patrón dashboard que
+    `/profile`): la tarjeta principal (foto hero, bio, skills, métricas,
+    idiomas, certificaciones, insignias) en 2/3 a la izquierda, y
+    **Reseñas** (antes apilada debajo, largo variable) pasa a una columna
+    fija de 1/3 a la derecha. Mobile/tablet sin cambios (mismo stack de
+    siempre). Verificado visualmente con Playwright en 1440px (perfil +
+    reseñas lado a lado) y 390px (idéntico a antes).
+11. **`/companies/[id]`** (2026-08-05, perfil público del comercio):
+    mismo tipo de pantalla que `/workers/[id]` (una sola tarjeta, no una
+    lista), pero **sin** una sección tipo Reseñas que mover — el único
+    contenido secundario real es la ubicación, y sólo si el comercio cargó
+    coordenadas. Con coordenadas, `lg+` pasa a dos columnas: tarjeta
+    principal en 2/3 y una columna "Ubicación" (mapa `MiniMap` + dirección +
+    botón "Cómo llegar", que antes quedaba apilado como un simple botón
+    debajo de la tarjeta) en 1/3. **Sin coordenadas**, no se fuerza la
+    grilla (no hay nada real para la segunda columna) — el contenedor sólo
+    se ensancha un poco (`lg:max-w-4xl`) para no quedar tan angosto.
+    `MiniMap` es el mismo componente ya usado en el detalle de turno, no un
+    componente nuevo. Mobile sin cambios. Verificado visualmente con
+    Playwright en 1440px (con y sin coordenadas) y 390px.
+12. **`/subscription`** (2026-08-05, "Mi plan"): a diferencia del resto de
+    la auditoría, acá la grilla de planes (`PlanCard`) **ya tenía**
+    `sm:grid-cols-2 lg:grid-cols-3` desde antes — el bug era que el
+    contenedor se quedaba en `max-w-2xl` (672px), así que en `lg+` las 3
+    columnas se apretaban en ese ancho fijo en vez de aprovechar la
+    pantalla. Fix mínimo: `lg:max-w-5xl` en el contenedor, sin tocar la
+    grilla que ya estaba bien. `SubscriptionStatusCard` (estado del plan
+    actual) sigue de banner a todo el ancho arriba, sin gridear — mismo
+    criterio que `GuaranteeCard` en `/shifts/[id]/candidates`. Mobile sin
+    cambios. Verificado visualmente con Playwright en 1440px (3 columnas
+    con aire) y 390px.
+13. **`/admin`** (2026-08-05, panel de administración) — **última pantalla,
+    auditoría cerrada**: mismo caso que `/shifts`/`/my-shifts`/
+    `/shifts/[id]/candidates`, una lista de tarjetas de usuario en una sola
+    columna (`max-w-3xl`). Contenedor a `md:max-w-6xl` y la lista a
+    `grid gap-3 md:grid-cols-2 xl:grid-cols-3`. Las tarjetas de stats
+    arriba (`sm:grid-cols-4` y el segundo bloque de 2) ya escalaban solas
+    con más ancho de contenedor, sin necesitar ningún cambio de clase.
+    Mobile sin cambios. Verificado visualmente con Playwright en 1440px
+    (grilla de 3 columnas, 6 usuarios de prueba) y 390px.
+
+**Auditoría completa (2026-08-05):** las 13 pantallas quedaron resueltas.
+No hay ningún frente puntual abierto de esta iniciativa — para la próxima
+sesión sin instrucción explícita, el punto de partida es `docs/TECH_DEBT.md`
+por prioridad, no este listado.
 
 **Invariante de negocio a proteger (anti-avivada, decisión de Julieta
 2026-07-29):** TODO contacto entre comercio y trabajador nace de un turno

@@ -130,7 +130,11 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    // Última pantalla de la auditoría responsive/desktop (docs/STATUS.md):
+    // mismo patrón que /shifts — la lista de usuarios pasa a grilla en
+    // md+ en vez de una sola columna angosta con la pantalla vacía al
+    // costado; las tarjetas de stat ya escalaban solas (sm:grid-cols-4).
+    <div className="mx-auto max-w-3xl px-4 py-8 md:max-w-6xl">
       <div className="flex items-center gap-2">
         <ShieldIcon size={22} className="text-primary-text" />
         <h1 className="font-display text-2xl font-semibold text-ink">Panel de administración</h1>
@@ -193,7 +197,7 @@ export default function AdminPage() {
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
           Usuarios
         </p>
-        <div className="mt-2 grid gap-3">
+        <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {statsLoading ? (
             <>
               <AdminUserRowSkeleton />
