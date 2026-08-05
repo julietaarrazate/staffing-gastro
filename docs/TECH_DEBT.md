@@ -297,7 +297,7 @@ fecha de esta auditoría (2026-07-02).
 
 ## Frontend — presentación (deuda nueva, no capturada en la v1)
 
-### F1 — Formularios con `<input>` crudo en vez de `TextField` del DS 🟡 Media
+### F1 — Formularios con `<input>` crudo en vez de `TextField` del DS ✅ Resuelto (parcial, con criterio)
 
 - **Descripción:** `components/ui/TextField.tsx` existe, pero sólo se usa en
   `frontend/app/shifts/new/page.tsx` (1 pantalla). `register/page.tsx`,
@@ -323,6 +323,47 @@ fecha de esta auditoría (2026-07-02).
 > `shifts/new/page.tsx`/`shifts/new-event/page.tsx` mezclan ambos (algunos
 > campos sí son `TextField`, otros no). Sigue abierto, alcance más chico que
 > el original.
+
+> **Cierre 2026-08-05 (revisión completa de los 8 archivos con `<input>`
+> crudo, no sólo los 4 del apunte anterior):** el "reemplazo directo, bajo
+> esfuerzo" original no se sostenía al mirar cada caso — se migraron sólo
+> los que eran una mejora real, y se documenta acá por qué el resto queda
+> como está (para no volver a abrirlo sin una razón nueva).
+>
+> **Migrados a `TextField`** (mismo patrón que `login`/`register`, con
+> label): `recuperar/page.tsx`, `restablecer/page.tsx` y
+> `verificar-email/page.tsx`. Estas 3 compartían un estilo propio
+> (`AUTH_INPUT_CLASS` en `lib/cn.ts`, ya eliminado por no tener más uso) —
+> **mejora real, no sólo estética**: `restablecer/page.tsx` tenía dos
+> `<input type="password">` crudos sin el botón de "mostrar contraseña" que
+> `TextField` ya trae de fábrica (y que login/register sí tienen) — ahora
+> las 5 pantallas de auth (login, register, recuperar, restablecer,
+> verificar-email) comparten un solo lenguaje visual y la misma UX de
+> contraseña.
+>
+> **Revisados y dejados como están, con motivo:**
+> - `register/page.tsx`: el único `<input>` que queda es el checkbox de
+>   aceptar términos — `TextField` no soporta checkboxes, no aplica.
+> - `chats/[shiftId]/page.tsx` (campo de mensaje) y `search/page.tsx`
+>   (radio en km): son controles compactos e inline (forma de píldora, sin
+>   label, al lado de un botón/select) — `TextField` está pensado para
+>   campos de formulario verticales con label; forzarlo ahí cambiaría el
+>   layout, no sería un reemplazo limpio.
+> - `shifts/new/page.tsx` y `shifts/new-event/page.tsx`: los datetime de
+>   "Inicio"/"Fin" comparten un estilo propio de wizard (`bg-surface` +
+>   `rounded-2xl`) idéntico entre los dos archivos — ya es consistente
+>   entre sí, no una improvisación. El monto de pago en `shifts/new` tiene
+>   un tratamiento "hero" a propósito (signo `$` grande, `text-2xl
+>   font-extrabold`) que `TextField` aplanaría a un ícono chico. Los pares
+>   Cantidad/Pago por rol en `shifts/new-event` son compactos y anidados
+>   dentro de una tarjeta angosta. Ninguno de estos casos gana algo
+>   migrando — es puro riesgo visual sin beneficio funcional, a diferencia
+>   de las pantallas de auth.
+>
+> Verificado visualmente con Playwright (recuperar/restablecer/
+> verificar-email en sus 3 estados) y con `npx tsc --noEmit` / `npm run
+> build`. Sin tests e2e que toquen estas 3 pantallas (verificado, cero
+> riesgo de regresión de test).
 
 ### F2 — Landing sin migrar al DS v2 monocromático ✅ Resuelto
 
@@ -743,5 +784,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
-| 🟡 Media | F1 (TextField subutilizado), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), S2 (cuotas WS), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, T5 (lint fuera de CI) |
+| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, T5 (lint fuera de CI) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

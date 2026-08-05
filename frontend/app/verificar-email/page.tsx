@@ -4,9 +4,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { AUTH_INPUT_CLASS as inputClass } from "@/lib/cn";
 import Logo from "@/components/Logo";
-import { Button } from "@/components/ui";
+import { Button, TextField } from "@/components/ui";
 
 type Status = "verifying" | "success" | "error" | "no-token";
 
@@ -84,13 +83,13 @@ function VerificarEmailContent() {
                 </p>
               ) : (
                 <form onSubmit={handleResend} className="mt-4 flex flex-col gap-3">
-                  <input
+                  <TextField
                     type="email"
+                    label="Email"
                     required
                     placeholder="Email"
                     value={resendEmail}
-                    onChange={(e) => setResendEmail(e.target.value)}
-                    className={inputClass}
+                    onChange={setResendEmail}
                   />
                   <Button type="submit" fullWidth loading={resendSubmitting}>
                     Reenviar enlace

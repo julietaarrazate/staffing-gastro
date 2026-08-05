@@ -4,9 +4,8 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { AUTH_INPUT_CLASS as inputClass } from "@/lib/cn";
 import Logo from "@/components/Logo";
-import { Button } from "@/components/ui";
+import { Button, TextField } from "@/components/ui";
 
 function RestablecerForm() {
   const router = useRouter();
@@ -65,23 +64,23 @@ function RestablecerForm() {
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <input
+              <TextField
                 type="password"
+                label="Nueva contraseña"
                 required
                 minLength={8}
-                placeholder="Nueva contraseña (mín. 8 caracteres)"
+                placeholder="Mín. 8 caracteres"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputClass}
+                onChange={setPassword}
               />
-              <input
+              <TextField
                 type="password"
+                label="Confirmá la nueva contraseña"
                 required
                 minLength={8}
-                placeholder="Confirmá la nueva contraseña"
+                placeholder="Repetí la contraseña"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={inputClass}
+                onChange={setConfirmPassword}
               />
               {error && <p className="text-sm text-danger-text">{error}</p>}
               <Button type="submit" fullWidth loading={submitting}>
