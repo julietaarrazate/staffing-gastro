@@ -22,7 +22,7 @@ from app.modules.subscription.api.schemas import (
 )
 from app.modules.subscription.application.services import SubscriptionService
 from app.modules.subscription.domain.exceptions import UnknownPlanError
-from app.modules.subscription.domain.plans import get_plan
+from app.modules.subscription.domain.plans import Plan, get_plan, list_plans
 
 router = APIRouter(prefix="/subscription", tags=["subscription"])
 
@@ -34,6 +34,23 @@ CurrentUserDep = Annotated[User, Depends(get_current_user)]
 # de conteo mensual (esa vive en ShiftService/SubscriptionService — frontera
 # del ejecutor paralelo en `claude/robustez-tz-bugs`).
 RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
+
+
+def _plans_response(plans: list[Plan]) -> PlansResponse:
+    """Arma el `PlansResponse` HTTP desde el catálogo de dominio. Compartido
+    por la ruta autenticada y la pública para no duplicar el mapeo."""
+    return PlansResponse(
+        plans=[
+            PlanResponse(
+                code=plan.code,
+                name=plan.name,
+                price_ars=plan.price_ars,
+                max_turnos_mes=plan.max_turnos_mes,
+                features=list(plan.features),
+            )
+            for plan in plans
+        ]
+    )
 
 
 @router.get("", response_model=SubscriptionResponse, summary="Ver mi suscripción")
@@ -54,18 +71,21 @@ async def get_my_subscription(company_id: CompanyIdDep, service: ServiceDep):
     "/plans", response_model=PlansResponse, summary="Ver los planes disponibles"
 )
 async def get_plans(_current_user: EmployerDep, service: ServiceDep):
-    return PlansResponse(
-        plans=[
-            PlanResponse(
-                code=plan.code,
-                name=plan.name,
-                price_ars=plan.price_ars,
-                max_turnos_mes=plan.max_turnos_mes,
-                features=list(plan.features),
-            )
-            for plan in service.list_plans()
-        ]
-    )
+    return _plans_response(service.list_plans())
+
+
+@router.get(
+    "/plans/public",
+    response_model=PlansResponse,
+    summary="Ver los planes disponibles (público, sin auth)",
+)
+async def get_plans_public():
+    """Catálogo de planes para la landing / página pública (feedback de
+    Julieta 2026-08-06: "no queda claro qué costo tiene la plataforma en la
+    versión sin cuenta"). Son datos de configuración (`plans.py`), sin nada
+    por-comercio, así que no requieren sesión — misma forma que `/plans` pero
+    sin el gate de employer."""
+    return _plans_response(list_plans())
 
 
 @router.post(

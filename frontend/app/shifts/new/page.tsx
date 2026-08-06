@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
@@ -12,8 +13,10 @@ import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import {
   argentinaISOToLocalInput,
+  formatDuration,
   formatShiftRange,
   localInputToArgentinaISO,
+  shiftDurationMinutes,
 } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
@@ -128,6 +131,24 @@ function NewShiftWizard() {
     (step === 2 && startAt !== "" && endAt !== "" && endAt > startAt) ||
     (step === 3 && Number(payAmount) > 0) ||
     step === 4;
+
+  // Duración del turno, derivada de inicio/fin (feedback de Julieta 2026-08-06:
+  // "no se entiende si es 1 día o más"). Se muestra en vivo en el paso "Cuándo"
+  // y habilita el equivalente por hora del paso "Pago" ("¿es por hora o por
+  // turno?"). Null mientras falte un extremo o el rango sea inválido.
+  const durationMinutes =
+    startAt !== "" && endAt !== ""
+      ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
+      : null;
+  // Un turno es un solo bloque de trabajo; si se estira a varios días casi
+  // seguro quería publicar un evento (varios turnos). Umbral 24 h: no molesta
+  // a un turno nocturno normal (que cruza la medianoche), sí avisa en un span
+  // de días como el del feedback.
+  const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
+  const payPerHour =
+    durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
+      ? Math.round(Number(payAmount) / (durationMinutes / 60))
+      : null;
 
   async function publish() {
     if (!token || position === null) return;
@@ -289,7 +310,9 @@ function NewShiftWizard() {
             {step === 2 && (
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuándo?</h1>
-                <p className="mt-1 text-sm text-ink/50">Inicio y fin del turno.</p>
+                <p className="mt-1 text-sm text-ink/50">
+                  Un turno es un solo bloque de trabajo (puede cruzar la medianoche).
+                </p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-semibold text-ink/70">Inicio</span>
@@ -310,13 +333,30 @@ function NewShiftWizard() {
                     />
                   </label>
                 </div>
+                {durationMinutes != null && (
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70">
+                    <CalendarIcon size={15} className="text-ink/40" /> Dura {formatDuration(durationMinutes)}
+                  </p>
+                )}
+                {spansMultipleDays && (
+                  <div className="mt-4 rounded-2xl bg-orange-50 p-3.5 text-sm text-ink/75 ring-1 ring-orange-100">
+                    Este turno dura más de un día. Si querés cubrir{" "}
+                    <strong>varios días o varios turnos</strong>, conviene{" "}
+                    <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
+                      publicar un evento
+                    </Link>{" "}
+                    (crea varios turnos de una).
+                  </div>
+                )}
               </div>
             )}
 
             {step === 3 && (
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuánto pagás?</h1>
-                <p className="mt-1 text-sm text-ink/50">Por persona, en pesos.</p>
+                <p className="mt-1 text-sm text-ink/50">
+                  Monto total del turno, por persona (no por hora).
+                </p>
                 <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
                   <span className="text-2xl font-bold text-ink/40">$</span>
                   <input
@@ -329,6 +369,12 @@ function NewShiftWizard() {
                     className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>
+                {payPerHour != null && durationMinutes != null && (
+                  <p className="mt-2 text-sm text-ink/55">
+                    ≈ ${payPerHour.toLocaleString("es-AR")} por hora
+                    <span className="text-ink/40"> · turno de {formatDuration(durationMinutes)}</span>
+                  </p>
+                )}
                 <div className="mt-5 flex flex-col gap-3">
                   <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
                   <Toggle

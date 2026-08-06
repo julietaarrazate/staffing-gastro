@@ -18,6 +18,7 @@ const PositionsMarquee = dynamic(() => import("@/components/landing/PositionsMar
 const StatsStrip = dynamic(() => import("@/components/landing/StatsStrip"));
 const HowItWorksTimeline = dynamic(() => import("@/components/landing/HowItWorksTimeline"));
 const ParallaxCard = dynamic(() => import("@/components/landing/ParallaxCard"));
+const PricingPlans = dynamic(() => import("@/components/landing/PricingPlans"));
 import {
   BellIcon,
   type IconProps,
@@ -218,6 +219,13 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Precios de la plataforma para el comercio (feedback de Julieta
+            2026-08-06): planes reales desde el endpoint público, para que un
+            comercio/inversor sepa qué paga antes de registrarse. */}
+        <div id="precios" className="scroll-mt-20">
+          <PricingPlans />
+        </div>
+
         {/* Franja para trabajadores. `.no-select` (regla C0,
             docs/planning/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
             vitrina. */}
@@ -256,8 +264,8 @@ export default function Home() {
             <Link href="/register" className="hover:text-white">
               Crear cuenta
             </Link>
-            <Link href="/subscription" className="hover:text-white">
-              Suscripción
+            <Link href="/#precios" className="hover:text-white">
+              Precios
             </Link>
             <Link href="/terminos" className="hover:text-white">
               Términos

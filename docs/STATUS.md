@@ -5,7 +5,14 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-05 (**TECH_DEBT F1 + T5 resueltas**: F1
+*Última actualización: 2026-08-06 (**feedback de un inversor**: claridad del
+wizard de publicar turno — se aclara que un turno es un solo bloque, con
+duración en vivo y puntero a "evento" para varios días; el pago se aclara como
+total del turno + equivalente por hora; y **precio de la plataforma visible
+sin cuenta** — endpoint público de planes + sección de precios en la landing.
+Falta el 4º punto del inversor, verificación de identidad DNI+selfie, que va en
+un PR aparte con ADR. Ver la sección del mismo día más abajo. Antes,
+2026-08-05 — **TECH_DEBT F1 + T5 resueltas**: F1
 migró `/recuperar`, `/restablecer` y `/verificar-email` de `<input>` crudo a
 `TextField` — el resto de los `<input>` del repo se revisaron y se dejaron
 igual con motivo documentado, no aportaban mejora real; T5 dejó `npm run
@@ -29,6 +36,42 @@ todos los PRs se mergean con squash apenas quedan verdes (pedido de
 Julieta) · **loop autónomo activo** (con auto-merge, confirmado
 explícitamente por Julieta) para retomar el backlog no bloqueado sin
 esperar "seguí" en cada paso.*
+
+## Feedback de un inversor: claridad del wizard + precio público (2026-08-06)
+
+Julieta probó la app y pasó feedback de un posible inversor sobre la pantalla
+de publicar turno y sobre el modelo. Cuatro puntos; este PR cierra tres (el
+cuarto, verificación de identidad, va en un PR aparte con ADR):
+
+1. **"¿Es 1 día o más de 1 día?"** — el paso "¿Cuándo?" del wizard
+   (`app/shifts/new`) eran dos `datetime-local` sueltos sin explicación, y
+   dejaba pasar en silencio un rango de varios días (un turno es **un solo
+   bloque**, ADR/DOMAIN). Ahora: subtítulo aclaratorio ("un solo bloque de
+   trabajo, puede cruzar la medianoche"), **duración en vivo** ("Dura 8 h" /
+   "Dura 3 días") y, si se estira a más de 24 h, un cartel que manda a
+   **"publicar un evento"** (`/shifts/new-event`, el flujo real para varios
+   turnos/días).
+2. **"El pago ¿es por hora, por turno o por día?"** — `pay_amount` es el
+   total del turno por persona. El copy decía sólo "Por persona, en pesos".
+   Ahora: **"Monto total del turno, por persona (no por hora)"** + el
+   **equivalente por hora** calculado de la duración ("≈ $2.000 por hora ·
+   turno de 8 h").
+3. **"¿Qué costo tiene la plataforma en la versión sin cuenta?"** — el
+   precio (mensualidad al comercio, ADR-0005) no se veía sin estar logueado.
+   Nuevo endpoint público `GET /subscription/plans/public` (sin auth, mismo
+   catálogo de `plans.py`, una sola fuente de verdad) + **sección de precios
+   en la landing** (`components/landing/PricingPlans.tsx`, ancla `#precios`,
+   link en el footer) con los 3 planes reales y "sin comisión por turno".
+4. **"¿Cómo se validan los perfiles? ¿Quién los recomendó?"** (el punto más
+   fuerte, riesgo del "chanta") — Julieta eligió **verificación de identidad**
+   (DNI + selfie, badge "Verificado"). Va en un PR aparte con ADR nuevo:
+   entidad de dominio, migración, subida de documento, badge en candidatos/
+   perfil. Pendiente al cierre de este PR.
+
+Helpers nuevos: `shiftDurationMinutes` + `formatDuration` en `lib/datetime.ts`.
+Verificado real: `pytest tests/test_subscription.py` (12, incluye el público),
+`tsc --noEmit` limpio, `npm run build` OK, `npm run lint` 0 errores, y
+verificación visual con Playwright de los 3 cambios.
 
 ## TECH_DEBT F1 + T5 — TextField en auth + `npm run lint` en 0 errores (2026-08-05)
 
