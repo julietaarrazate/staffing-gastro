@@ -5,14 +5,28 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-06 (**feedback de un inversor**: claridad del
+*Última actualización: 2026-08-06 (**EPIC-001 · Trust & Identity Platform —
+rediseño conceptual, sólo documentación**: el 4º punto del inversor
+(verificación de identidad DNI+selfie) se replanteó como la base de un sistema
+de confianza que evolucione por años, en vez de un badge aislado. Se detuvo la
+implementación (una v1 backend quedó **stasheada, sin mergear**, como
+referencia técnica) y se rediseñó el dominio: **cuatro contextos separados**
+(Account / Identity / Professional Profile / Reputation), **Identidad modelada
+como `Claim` + `Evidence`** (afirmación auditable respaldada por pruebas con
+método/verificador/fecha/expiración, no un booleano), niveles de garantía
+L0–L4, método de verificación como estrategia (admin manual → KYC futuro) y
+retención de PII fundamentada en la **Ley 25.326**. Entregables:
+[`docs/TRUST_SYSTEM.md`](./TRUST_SYSTEM.md),
+[`ADR-0010`](./adr/ADR-0010-modelo-de-confianza-cuatro-dominios.md),
+[`docs/reference/IDENTITY_DATA_RETENTION.md`](./reference/IDENTITY_DATA_RETENTION.md).
+Pendiente: aprobación de los docs antes de implementar la F1. Antes, mismo día,
+**feedback de un inversor**: claridad del
 wizard de publicar turno — un turno es una sola jornada (fecha en formato AR
 dd/mm/aaaa, duración en vivo, puntero a "evento" sólo si el rango supera 24 h);
 el pago se aclara como pago por la jornada completa + equivalente por hora;
 campo nuevo "comida/perso" (como las propinas); y **precio de la plataforma visible
-sin cuenta** — endpoint público de planes + sección de precios en la landing.
-Falta el 4º punto del inversor, verificación de identidad DNI+selfie, que va en
-un PR aparte con ADR. Ver la sección del mismo día más abajo. Antes,
+sin cuenta** — endpoint público de planes + sección de precios en la landing
+(#155, mergeado). Ver la sección del mismo día más abajo. Antes,
 2026-08-05 — **TECH_DEBT F1 + T5 resueltas**: F1
 migró `/recuperar`, `/restablecer` y `/verificar-email` de `<input>` crudo a
 `TextField` — el resto de los `<input>` del repo se revisaron y se dejaron
