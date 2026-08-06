@@ -140,10 +140,13 @@ function NewShiftWizard() {
     startAt !== "" && endAt !== ""
       ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
       : null;
-  // Un turno es un solo bloque de trabajo; si se estira a varios días casi
-  // seguro quería publicar un evento (varios turnos). Umbral 24 h: no molesta
-  // a un turno nocturno normal (que cruza la medianoche), sí avisa en un span
-  // de días como el del feedback.
+  // Un turno es UNA sola jornada de trabajo (no hay turnos de varios días):
+  // puede terminar al día siguiente (ej. 17:00 → 01:00), eso es lo normal en
+  // gastronomía. Distinguimos ese caso — para tranquilizar, no alarmar — del
+  // error real de elegir un rango de más de un día (umbral 24 h), donde casi
+  // seguro quería publicar un evento (varias jornadas).
+  const endsNextDay =
+    durationMinutes != null && startAt.slice(0, 10) !== endAt.slice(0, 10);
   const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
   const payPerHour =
     durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
@@ -311,7 +314,8 @@ function NewShiftWizard() {
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuándo?</h1>
                 <p className="mt-1 text-sm text-ink/50">
-                  Un turno es un solo bloque de trabajo (puede cruzar la medianoche).
+                  Una jornada: cuándo empieza y cuándo termina. Puede terminar al
+                  día siguiente (ej. 17:00 → 01:00).
                 </p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
@@ -334,18 +338,24 @@ function NewShiftWizard() {
                   </label>
                 </div>
                 {durationMinutes != null && (
-                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70">
-                    <CalendarIcon size={15} className="text-ink/40" /> Dura {formatDuration(durationMinutes)}
-                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70">
+                      <CalendarIcon size={15} className="text-ink/40" /> Jornada de {formatDuration(durationMinutes)}
+                    </span>
+                    {endsNextDay && !spansMultipleDays && (
+                      <span className="text-sm font-medium text-ink/50">Termina al día siguiente</span>
+                    )}
+                  </div>
                 )}
                 {spansMultipleDays && (
                   <div className="mt-4 rounded-2xl bg-orange-50 p-3.5 text-sm text-ink/75 ring-1 ring-orange-100">
-                    Este turno dura más de un día. Si querés cubrir{" "}
-                    <strong>varios días o varios turnos</strong>, conviene{" "}
+                    Un turno es una sola jornada (puede terminar al día siguiente,
+                    pero no dura varios días). Si querés cubrir{" "}
+                    <strong>varios días o varias jornadas</strong>, conviene{" "}
                     <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
                       publicar un evento
                     </Link>{" "}
-                    (crea varios turnos de una).
+                    (crea varias de una).
                   </div>
                 )}
               </div>
@@ -355,7 +365,7 @@ function NewShiftWizard() {
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuánto pagás?</h1>
                 <p className="mt-1 text-sm text-ink/50">
-                  Monto total del turno, por persona (no por hora).
+                  Pago por la jornada completa, por persona (no por hora).
                 </p>
                 <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
                   <span className="text-2xl font-bold text-ink/40">$</span>
@@ -372,7 +382,7 @@ function NewShiftWizard() {
                 {payPerHour != null && durationMinutes != null && (
                   <p className="mt-2 text-sm text-ink/55">
                     ≈ ${payPerHour.toLocaleString("es-AR")} por hora
-                    <span className="text-ink/40"> · turno de {formatDuration(durationMinutes)}</span>
+                    <span className="text-ink/40"> · jornada de {formatDuration(durationMinutes)}</span>
                   </p>
                 )}
                 <div className="mt-5 flex flex-col gap-3">

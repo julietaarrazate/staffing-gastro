@@ -6,9 +6,10 @@
 > que se mergea un cambio relevante (o inmediatamente después).
 
 *Última actualización: 2026-08-06 (**feedback de un inversor**: claridad del
-wizard de publicar turno — se aclara que un turno es un solo bloque, con
-duración en vivo y puntero a "evento" para varios días; el pago se aclara como
-total del turno + equivalente por hora; y **precio de la plataforma visible
+wizard de publicar turno — se aclara que un turno es una sola jornada (puede
+terminar al día siguiente, ej. 17→01), con duración en vivo y puntero a
+"evento" sólo si el rango supera 24 h; el pago se aclara como pago por la
+jornada completa + equivalente por hora; y **precio de la plataforma visible
 sin cuenta** — endpoint público de planes + sección de precios en la landing.
 Falta el 4º punto del inversor, verificación de identidad DNI+selfie, que va en
 un PR aparte con ADR. Ver la sección del mismo día más abajo. Antes,
@@ -44,18 +45,20 @@ de publicar turno y sobre el modelo. Cuatro puntos; este PR cierra tres (el
 cuarto, verificación de identidad, va en un PR aparte con ADR):
 
 1. **"¿Es 1 día o más de 1 día?"** — el paso "¿Cuándo?" del wizard
-   (`app/shifts/new`) eran dos `datetime-local` sueltos sin explicación, y
-   dejaba pasar en silencio un rango de varios días (un turno es **un solo
-   bloque**, ADR/DOMAIN). Ahora: subtítulo aclaratorio ("un solo bloque de
-   trabajo, puede cruzar la medianoche"), **duración en vivo** ("Dura 8 h" /
-   "Dura 3 días") y, si se estira a más de 24 h, un cartel que manda a
-   **"publicar un evento"** (`/shifts/new-event`, el flujo real para varios
-   turnos/días).
-2. **"El pago ¿es por hora, por turno o por día?"** — `pay_amount` es el
-   total del turno por persona. El copy decía sólo "Por persona, en pesos".
-   Ahora: **"Monto total del turno, por persona (no por hora)"** + el
-   **equivalente por hora** calculado de la duración ("≈ $2.000 por hora ·
-   turno de 8 h").
+   (`app/shifts/new`) eran dos `datetime-local` sueltos sin explicación. Un
+   turno es **una sola jornada de X horas** (no hay turnos de varios días);
+   puede **terminar al día siguiente** (ej. 17:00 → 01:00) y eso es lo normal
+   en gastronomía. Ahora: subtítulo con ese ejemplo, **duración en vivo**
+   ("Jornada de 8 h"), la aclaración **"Termina al día siguiente"** cuando el
+   fin cae en otra fecha (para tranquilizar, no alarmar), y — sólo si el rango
+   supera 24 h (error real) — un cartel que manda a **"publicar un evento"**
+   (`/shifts/new-event`, el flujo real para varias jornadas).
+2. **"El pago ¿es por hora, por turno o por día?"** — `pay_amount` es el pago
+   de la jornada completa, por persona. El copy decía sólo "Por persona, en
+   pesos". Ahora: **"Pago por la jornada completa, por persona (no por hora)"**
+   + el **equivalente por hora** calculado de la duración ("≈ $2.000 por hora ·
+   jornada de 8 h"), para que no se malinterprete ni el comercio ni el
+   trabajador.
 3. **"¿Qué costo tiene la plataforma en la versión sin cuenta?"** — el
    precio (mensualidad al comercio, ADR-0005) no se veía sin estar logueado.
    Nuevo endpoint público `GET /subscription/plans/public` (sin auth, mismo
