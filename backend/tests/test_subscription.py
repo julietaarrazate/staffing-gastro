@@ -219,6 +219,22 @@ async def test_get_plans_returns_config(client: AsyncClient):
     assert len(pro["features"]) > 0
 
 
+async def test_get_plans_public_needs_no_auth_and_matches_catalog(client: AsyncClient):
+    """El catálogo público (para la landing, feedback de Julieta 2026-08-06) no
+    pide sesión y devuelve la misma forma que `/plans` — son datos de config,
+    nada por-comercio."""
+    response = await client.get("/api/v1/subscription/plans/public")
+    assert response.status_code == 200
+    plans = response.json()["plans"]
+    codes = [p["code"] for p in plans]
+    assert codes == ["gratis", "basico", "pro"]  # orden ascendente de precio
+
+    basico = next(p for p in plans if p["code"] == "basico")
+    assert Decimal(str(basico["price_ars"])) == Decimal("20000")
+    assert basico["max_turnos_mes"] == 15
+    assert len(basico["features"]) > 0
+
+
 # --- Auth -----------------------------------------------------------------
 
 

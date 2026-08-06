@@ -36,6 +36,9 @@ class Shift:
 
     currency: str = "ARS"
     tips: bool = False
+    # "Perso"/comida de personal: común en jornadas full-time gastronómicas,
+    # igual que las propinas es un beneficio que atrae al trabajador.
+    meal: bool = False
     dress_code: str | None = None
     urgent: bool = False
     address: str | None = None

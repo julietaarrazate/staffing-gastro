@@ -87,6 +87,24 @@ async def test_employer_creates_shift_as_draft(client: AsyncClient):
     assert body["urgent"] is True
 
 
+async def test_shift_meal_flag_round_trips(client: AsyncClient):
+    """El beneficio "comida/perso" (como `tips`) viaja del alta a la respuesta
+    y por defecto es False si no se manda."""
+    headers = await _employer_with_company(client, "emp_meal@staffya.com")
+
+    with_meal = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload(meal=True)
+    )
+    assert with_meal.status_code == 201
+    assert with_meal.json()["meal"] is True
+
+    without_meal = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    assert without_meal.status_code == 201
+    assert without_meal.json()["meal"] is False
+
+
 async def test_employer_without_company_cannot_publish(client: AsyncClient):
     headers = await auth_headers(client, "employer", "emp_nc@staffya.com")
     response = await client.post(

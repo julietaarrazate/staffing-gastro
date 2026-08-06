@@ -73,7 +73,7 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 4: pago.
-  await page.getByPlaceholder("15000").fill("15000");
+  await page.getByPlaceholder("48000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 5: ubicación (opcional para publicar, pero la completamos). Los

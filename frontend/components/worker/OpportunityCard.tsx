@@ -151,6 +151,7 @@ export default function OpportunityCard({
               </span>
             </p>
             {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}
+            {shift.meal && <p className="text-xs font-medium text-ink/40">+ comida</p>}
           </div>
           <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} ${fg}`}>
             <Icon size={24} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
@@ -12,8 +13,10 @@ import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import {
   argentinaISOToLocalInput,
+  formatDuration,
   formatShiftRange,
   localInputToArgentinaISO,
+  shiftDurationMinutes,
 } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
@@ -25,6 +28,7 @@ import {
   FlameIcon,
   MapPinIcon,
   UsersIcon,
+  UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
 
@@ -66,6 +70,7 @@ function NewShiftWizard() {
   const [endAt, setEndAt] = useState("");
   const [payAmount, setPayAmount] = useState("");
   const [tips, setTips] = useState(true);
+  const [meal, setMeal] = useState(false);
   const [urgent, setUrgent] = useState(false);
   const [dressCode, setDressCode] = useState("");
   const [city, setCity] = useState("");
@@ -100,6 +105,7 @@ function NewShiftWizard() {
         );
         setPayAmount(String(original.pay_amount));
         setTips(original.tips);
+        setMeal(original.meal);
         setUrgent(original.urgent);
         setDressCode(original.dress_code ?? "");
         setCity(original.city ?? "");
@@ -129,6 +135,28 @@ function NewShiftWizard() {
     (step === 3 && Number(payAmount) > 0) ||
     step === 4;
 
+  // Duración del turno, derivada de inicio/fin (feedback de Julieta 2026-08-06:
+  // "no se entiende si es 1 día o más"). Se muestra en vivo en el paso "Cuándo"
+  // y habilita el equivalente por hora del paso "Pago" ("¿es por hora o por
+  // turno?"). Null mientras falte un extremo o el rango sea inválido.
+  const durationMinutes =
+    startAt !== "" && endAt !== ""
+      ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
+      : null;
+  // Un turno es UNA sola jornada de trabajo (no hay turnos de varios días).
+  // Mostramos el rango elegido en formato AR (dd/mm/yyyy, 24 h) para que la
+  // fecha no se malinterprete sin importar el locale del dispositivo. Un rango
+  // de más de un día es un error real (umbral 24 h): ahí sí conviene un evento.
+  const whenLabel =
+    durationMinutes != null
+      ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
+      : null;
+  const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
+  const payPerHour =
+    durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
+      ? Math.round(Number(payAmount) / (durationMinutes / 60))
+      : null;
+
   async function publish() {
     if (!token || position === null) return;
     setSubmitting(true);
@@ -143,6 +171,7 @@ function NewShiftWizard() {
           pay_amount: payAmount,
           currency: "ARS",
           tips,
+          meal,
           urgent,
           dress_code: dressCode || null,
           city: city || null,
@@ -289,7 +318,7 @@ function NewShiftWizard() {
             {step === 2 && (
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuándo?</h1>
-                <p className="mt-1 text-sm text-ink/50">Inicio y fin del turno.</p>
+                <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-semibold text-ink/70">Inicio</span>
@@ -310,13 +339,33 @@ function NewShiftWizard() {
                     />
                   </label>
                 </div>
+                {durationMinutes != null && whenLabel && (
+                  <div className="mt-3 rounded-2xl bg-surface px-4 py-3 text-sm">
+                    <p className="font-semibold text-ink/80">{whenLabel}</p>
+                    <p className="mt-0.5 inline-flex items-center gap-1.5 text-ink/50">
+                      <CalendarIcon size={14} className="text-ink/40" /> Jornada de {formatDuration(durationMinutes)}
+                    </p>
+                  </div>
+                )}
+                {spansMultipleDays && (
+                  <div className="mt-4 rounded-2xl bg-orange-50 p-3.5 text-sm text-ink/75 ring-1 ring-orange-100">
+                    Un turno es una sola jornada, no dura varios días. Si querés
+                    cubrir <strong>varios días o varias jornadas</strong>, conviene{" "}
+                    <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
+                      publicar un evento
+                    </Link>{" "}
+                    (crea varias de una).
+                  </div>
+                )}
               </div>
             )}
 
             {step === 3 && (
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuánto pagás?</h1>
-                <p className="mt-1 text-sm text-ink/50">Por persona, en pesos.</p>
+                <p className="mt-1 text-sm text-ink/50">
+                  Pago por la jornada completa, por persona (no por hora).
+                </p>
                 <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
                   <span className="text-2xl font-bold text-ink/40">$</span>
                   <input
@@ -325,12 +374,24 @@ function NewShiftWizard() {
                     min={0}
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
-                    placeholder="15000"
+                    placeholder="48000"
                     className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>
+                {payPerHour != null && durationMinutes != null && (
+                  <p className="mt-2 text-sm text-ink/55">
+                    ≈ ${payPerHour.toLocaleString("es-AR")} por hora
+                    <span className="text-ink/40"> · jornada de {formatDuration(durationMinutes)}</span>
+                  </p>
+                )}
                 <div className="mt-5 flex flex-col gap-3">
                   <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
+                  <Toggle
+                    label="Incluye comida (perso)"
+                    checked={meal}
+                    onChange={setMeal}
+                    icon={<UtensilsIcon size={16} className="text-ink/50" />}
+                  />
                   <Toggle
                     label="Urgente"
                     checked={urgent}
@@ -370,6 +431,7 @@ function NewShiftWizard() {
                   <p className="mt-1 text-ink/50">
                     {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
                     {Number(payAmount || 0).toLocaleString("es-AR")}
+                    {meal && " · con comida"}
                     {urgent && " · Urgente"}
                   </p>
                 </div>
@@ -408,6 +470,7 @@ function NewShiftWizard() {
         endAt={endAt}
         payAmount={payAmount}
         tips={tips}
+        meal={meal}
         urgent={urgent}
         dressCode={dressCode}
         city={city}
@@ -505,6 +568,7 @@ function WizardPreview({
   endAt,
   payAmount,
   tips,
+  meal,
   urgent,
   dressCode,
   city,
@@ -516,6 +580,7 @@ function WizardPreview({
   endAt: string;
   payAmount: string;
   tips: boolean;
+  meal: boolean;
   urgent: boolean;
   dressCode: string;
   city: string;
@@ -549,7 +614,11 @@ function WizardPreview({
           <PreviewRow
             icon={<WalletIcon size={18} />}
             label="Pago"
-            value={pay ? `${pay}${tips ? " · con propinas" : ""}${urgent ? " · Urgente" : ""}` : null}
+            value={
+              pay
+                ? `${pay}${tips ? " · con propinas" : ""}${meal ? " · con comida" : ""}${urgent ? " · Urgente" : ""}`
+                : null
+            }
           />
           <PreviewRow icon={<MapPinIcon size={18} />} label="Dónde" value={city || null} />
         </div>

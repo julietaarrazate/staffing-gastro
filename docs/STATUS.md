@@ -5,7 +5,15 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-05 (**TECH_DEBT F1 + T5 resueltas**: F1
+*Última actualización: 2026-08-06 (**feedback de un inversor**: claridad del
+wizard de publicar turno — un turno es una sola jornada (fecha en formato AR
+dd/mm/aaaa, duración en vivo, puntero a "evento" sólo si el rango supera 24 h);
+el pago se aclara como pago por la jornada completa + equivalente por hora;
+campo nuevo "comida/perso" (como las propinas); y **precio de la plataforma visible
+sin cuenta** — endpoint público de planes + sección de precios en la landing.
+Falta el 4º punto del inversor, verificación de identidad DNI+selfie, que va en
+un PR aparte con ADR. Ver la sección del mismo día más abajo. Antes,
+2026-08-05 — **TECH_DEBT F1 + T5 resueltas**: F1
 migró `/recuperar`, `/restablecer` y `/verificar-email` de `<input>` crudo a
 `TextField` — el resto de los `<input>` del repo se revisaron y se dejaron
 igual con motivo documentado, no aportaban mejora real; T5 dejó `npm run
@@ -29,6 +37,51 @@ todos los PRs se mergean con squash apenas quedan verdes (pedido de
 Julieta) · **loop autónomo activo** (con auto-merge, confirmado
 explícitamente por Julieta) para retomar el backlog no bloqueado sin
 esperar "seguí" en cada paso.*
+
+## Feedback de un inversor: claridad del wizard + precio público (2026-08-06)
+
+Julieta probó la app y pasó feedback de un posible inversor sobre la pantalla
+de publicar turno y sobre el modelo. Cuatro puntos; este PR cierra tres (el
+cuarto, verificación de identidad, va en un PR aparte con ADR):
+
+1. **"¿Es 1 día o más de 1 día?"** — el paso "¿Cuándo?" del wizard
+   (`app/shifts/new`) eran dos `datetime-local` sueltos sin explicación. Un
+   turno es **una sola jornada de X horas** (no hay turnos de varios días; que
+   una jornada nocturna termine al otro día es normal, pero eso es contexto de
+   dominio, no copy de la app). Ahora: subtítulo simple ("Inicio y fin de la
+   jornada"), un **read-back de la fecha en formato argentino** (dd/mm/aaaa,
+   `formatShiftRange`) para que no se malinterprete sin importar el locale del
+   dispositivo, **duración en vivo** ("Jornada de 8 h"), y — sólo si el rango
+   supera 24 h (error real) — un cartel que manda a **"publicar un evento"**
+   (`/shifts/new-event`, el flujo real para varias jornadas).
+2. **"El pago ¿es por hora, por turno o por día?"** — `pay_amount` es el pago
+   de la jornada completa, por persona. El copy decía sólo "Por persona, en
+   pesos". Ahora: **"Pago por la jornada completa, por persona (no por hora)"**
+   + el **equivalente por hora** calculado de la duración ("≈ $6.000 por hora ·
+   jornada de 8 h", con el placeholder de ejemplo en $48.000), para que no se
+   malinterprete ni el comercio ni el trabajador.
+2b. **Beneficio "comida/perso"** — común en jornadas full-time gastronómicas,
+   igual que las propinas. Campo nuevo `meal` en el turno (dominio → migración
+   `0024` → schemas → repo, patrón idéntico a `tips`; **no** se expone en la
+   vista pública, misma decisión que `tips`), toggle "Incluye comida (perso)"
+   en ambos wizards (turno y evento), y se muestra "+ comida" al trabajador
+   en el feed (`OpportunityCard`), el panel (`ShiftCard`) y el mapa.
+3. **"¿Qué costo tiene la plataforma en la versión sin cuenta?"** — el
+   precio (mensualidad al comercio, ADR-0005) no se veía sin estar logueado.
+   Nuevo endpoint público `GET /subscription/plans/public` (sin auth, mismo
+   catálogo de `plans.py`, una sola fuente de verdad) + **sección de precios
+   en la landing** (`components/landing/PricingPlans.tsx`, ancla `#precios`,
+   link en el footer) con los 3 planes reales y "sin comisión por turno".
+4. **"¿Cómo se validan los perfiles? ¿Quién los recomendó?"** (el punto más
+   fuerte, riesgo del "chanta") — Julieta eligió **verificación de identidad**
+   (DNI + selfie, badge "Verificado"). Va en un PR aparte con ADR nuevo:
+   entidad de dominio, migración, subida de documento, badge en candidatos/
+   perfil. Pendiente al cierre de este PR.
+
+Helpers nuevos: `shiftDurationMinutes` + `formatDuration` en `lib/datetime.ts`.
+Verificado real: `pytest tests/test_subscription.py` (12, incluye el público),
+`tsc --noEmit` limpio, `npm run build` OK, `npm run lint` 0 errores, y
+verificación visual con Playwright de los 3 cambios.
 
 ## TECH_DEBT F1 + T5 — TextField en auth + `npm run lint` en 0 errores (2026-08-05)
 

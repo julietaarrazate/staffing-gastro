@@ -50,6 +50,7 @@ class ShiftModel(Base):
     pay_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="ARS")
     tips: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    meal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     dress_code: Mapped[str | None] = mapped_column(String(255), nullable=True)
     urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
 

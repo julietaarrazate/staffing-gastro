@@ -51,6 +51,30 @@ export function formatShiftTime(iso: string): string {
   });
 }
 
+/**
+ * Duración del turno en minutos a partir de dos ISO (con zona). Devuelve null
+ * si falta un extremo, alguno es inválido, o el fin no es posterior al inicio
+ * — así el llamador no muestra "0 min" ni duraciones negativas.
+ */
+export function shiftDurationMinutes(startIso: string, endIso: string): number | null {
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+  return Math.round((end - start) / 60_000);
+}
+
+/** Duración legible en español: "6 h", "6 h 30 min", "1 día 4 h". */
+export function formatDuration(minutes: number): string {
+  const days = Math.floor(minutes / 1_440);
+  const hours = Math.floor((minutes % 1_440) / 60);
+  const mins = minutes % 60;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} ${days === 1 ? "día" : "días"}`);
+  if (hours > 0) parts.push(`${hours} h`);
+  if (mins > 0) parts.push(`${mins} min`);
+  return parts.join(" ") || "0 min";
+}
+
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */
 export function formatShiftRange(startIso: string, endIso: string): string {
   const date = formatShiftDate(startIso);
