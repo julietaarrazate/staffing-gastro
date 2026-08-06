@@ -154,7 +154,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
   await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("15000").fill("15000");
+  await page.getByPlaceholder("48000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
 
