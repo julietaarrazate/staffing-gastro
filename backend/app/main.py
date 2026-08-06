@@ -28,6 +28,7 @@ from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.shift.application.scheduler import start_scheduler
 from app.modules.subscription.api.routes import router as subscription_router
+from app.modules.verification.api.routes import router as verification_router
 from app.modules.worker.api.routes import router as worker_router
 
 
@@ -101,6 +102,7 @@ async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONR
 # --- Routers de los módulos ---
 app.include_router(identity_router, prefix="/api/v1")
 app.include_router(worker_router, prefix="/api/v1")
+app.include_router(verification_router, prefix="/api/v1")
 app.include_router(company_router, prefix="/api/v1")
 app.include_router(shift_router, prefix="/api/v1")
 app.include_router(matching_router, prefix="/api/v1")
