@@ -9,7 +9,7 @@
 > No hay código de dominio escrito bajo este modelo todavía (decisión
 > explícita: arquitectura correcta antes que implementación rápida).
 
-El documento tiene dos partes:
+El documento tiene tres partes:
 
 **Parte I — Modelo de dominio** (entregables originales EPIC-001):
 1. Revisión crítica del diseño actual · 2. Modelo conceptual (4 dominios) ·
@@ -602,6 +602,10 @@ conveniencia de implementación.
     importes exactos) no cruzan de un actor al otro.
 12. **El método de verificación es una estrategia intercambiable;** el sistema
     no asume revisión manual para siempre.
+13. **El historial atestiguado (Career History) es un activo de primera clase:**
+    append-only, íntegro, no fragmentado y portable por diseño. Es la fuente de
+    verdad del Career Graph y del Professional Identity Graph (Parte III) —
+    protegerlo es proteger el activo central de la empresa.
 
 Estos principios son la lectura corta de todo el documento: si un cambio futuro
 los respeta, casi seguro está bien encuadrado; si roza alguno, hay que frenar y
@@ -637,3 +641,102 @@ agregar selfie, liveness, KYC, certificaciones, referencias y Career Graph son
 
 **Punto de partida:** hoy estamos en **F0 / pre-M1** — el diseño (esta doc +
 ADR-0010 + retención) esperando aprobación para construir la **F1 (M1)**.
+
+---
+---
+
+# Parte III — Oído como red de identidad profesional (lente de negocio y activo)
+
+> Refinamiento estratégico del 2026-08-06. Las Partes I y II modelan el
+> **producto**. Esta parte mira a Oído **como empresa**: cuál es su activo
+> durable y por qué las decisiones de arquitectura de arriba lo protegen.
+> **No agrega dominios, tablas ni módulos nuevos** — es una lente para
+> priorizar, no construcción. Cada concepto candidato se evalúa y se incorpora
+> **sólo si se justifica**; el que no aporta se descarta explícitamente.
+
+## Veredicto por concepto (la evaluación pedida)
+
+| Concepto | Veredicto | Por qué |
+|---|---|---|
+| **Career Graph** | **Ya incorporado** (§13) | Vista derivada del historial atestiguado. Sin trabajo nuevo. |
+| **Career History** | **Incorporar** (§17) | Nombra el activo de datos real: el registro append-only de turnos atestiguados; la *fuente de verdad* bajo el Career Graph. Aporta claridad arquitectónica, no complejidad. |
+| **Professional Identity Graph** | **Incorporar como marco** (§17) | Es el norte estratégico exacto: identidad + perfil + historial + reputación de una persona verificada = identidad profesional portable. **Emergente, no un módulo nuevo.** |
+| **Network Effects** | **Incorporar, acotado** (§18) | Informa la defensibilidad. Se documenta con honestidad: cuáles son reales y cuáles aspiracionales. |
+| **Product Assets** (sección genérica) | **No incorporar como tal** | Un inventario "de deck" de activos agrega poco a una doc técnica. Se incorpora **la sustancia** (el activo único: PIG / Career History) y se descarta el envoltorio genérico. |
+
+## 17. El activo: Professional Identity Graph (PIG)
+
+Oído, visto como empresa, no vende turnos: **acumula un activo de datos que
+ninguna red de CVs puede replicar** — la identidad profesional verificada y el
+historial de trabajo atestiguado de la gastronomía.
+
+Ese activo tiene dos capas que conviene nombrar distinto:
+
+- **Career History (el ledger).** El registro **append-only** de hechos
+  atestiguados: cada turno cumplido, con comercio, fecha, rol, puntualidad,
+  resultado. Es la **fuente de verdad** — no auto-reportado: Oído lo atestigua
+  porque es el sistema donde el trabajo ocurrió. Ya existe implícito en el ciclo
+  de vida del turno (ADR-0004/0007); la Parte III sólo lo **eleva a activo de
+  primera clase** que el diseño debe proteger y no fragmentar.
+- **Career Graph (la vista).** La proyección analítica sobre ese ledger (§13):
+  especialización, evolución, permanencia, densidad de comercios. Es
+  **derivada**, se recomputa; el ledger es lo que se conserva.
+
+El **Professional Identity Graph** es la unión, **anclada a una persona
+verificada**, de los cuatro dominios:
+
+```
+Identidad verificada  (quién es)              ─┐
+Perfil profesional    (qué sabe hacer)         ├─►  Professional Identity Graph
+Career History        (qué hizo, atestiguado)  │    (identidad profesional portable
+Reputación            (cómo cumplió)           ─┘     y verificable, por persona)
+```
+
+Punto clave de arquitectura: **el PIG no es un dominio ni una tabla nueva.** Es
+lo que **emerge** de los cuatro dominios ya separados cuando cuelgan del mismo
+`user_id` y el eje de identidad está verificado. Nombrarlo no agrega código;
+**cambia qué se prioriza**: mantener el Career History íntegro y portable es
+proteger el activo central de la empresa.
+
+Por qué importa para el negocio: es el puente de la visión marketplace →
+plataforma de empleo (§7, §16). Un CV de LinkedIn es lo que alguien *dice*; el
+PIG de Oído es lo que alguien *hizo, verificado*. Ese es el activo que habilita
+búsqueda de talento, CV creíble y, eventualmente, ser la **autoridad de
+confianza** de la gastronomía.
+
+## 18. Efectos de red y defensibilidad (con honestidad)
+
+No todo efecto de red es real; conviene separar los que Oído tiene de los
+aspiracionales — inflar esto sería venderse humo a uno mismo:
+
+| Efecto | ¿Real? | Matiz honesto |
+|---|---|---|
+| **Liquidez de dos lados** (más trabajadores → más atractivo para comercios → más turnos → más trabajadores) | **Real, pero local** | La liquidez de un marketplace de turnos es **geográfica**: sirve en Palermo, se reconstruye barrio por barrio / ciudad por ciudad. No es un efecto global. |
+| **Datos / matching** (más historial atestiguado → mejor matching → mejores resultados → más uso) | **Real, con escala** | Necesita volumen para notarse; no es defensa el día 1. Crece con el Career History. |
+| **Activo de datos propietario** (el PIG no se copia sin *ser* el sistema donde ocurre el trabajo) | **Real y durable** | El moat más fuerte: estructural, no depende de features. |
+| **Portabilidad como red** (el trabajador lleva su "verificado por Oído" afuera) | **Aspiracional** | Refuerza a Oído como *autoridad de confianza* sólo si el sello tiene reputación externa. Hoy no existe; es visión, no defensa. |
+
+**Conclusión estratégica:** la defensibilidad de Oído no está en las features
+(copiables) sino en **ser el sistema de registro** de la identidad y el trabajo
+gastronómico. Cada decisión de las Partes I–II sirve a eso: identidad extensible
+(crece el activo), dominios separados y portables (el activo no se degrada ni se
+acopla), retención cuidada (el activo no se vuelve un pasivo legal), reputación
+bidireccional (el activo cubre ambos lados del mercado).
+
+## 19. Qué cambia hoy (y qué no) — para no sobre-diseñar
+
+**Cambia (prioridades, cero código nuevo ahora):**
+- El **Career History** se trata como activo de primera clase: append-only,
+  íntegro, no fragmentado entre módulos, exportable. (Se materializa recién en
+  F2/F7 del §7; hoy sólo se nombra y se protege como principio — ver §15.13.)
+
+**No cambia (lo que se descarta a propósito):**
+- **Ningún dominio/módulo/tabla nuevo.** El PIG es emergente, no construido.
+- **Nada de "base de datos de grafos"** ni infraestructura pesada: el "grafo" es
+  conceptual/relacional; Postgres alcanza (coherente con el "No hacer" de
+  `CLAUDE.md`: sin infra pesada sin ADR).
+- **No se adelanta** búsqueda de talento ni portabilidad externa: son F7/F8,
+  visión, no F1.
+- **No se agrega una sección genérica de "Product Assets"**: el único activo que
+  importa nombrar es el PIG/Career History; un inventario de activos de deck
+  sería complejidad sin retorno.

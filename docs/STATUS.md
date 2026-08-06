@@ -32,6 +32,18 @@ arquitectura permanentes** (violarlos = ADR nuevo) y **roadmap de madurez
 M1–M8**. Hallazgo accionable: la reputación del **comercio**
 (`on_time_payment_rate`/tasa de confirmación) debe poblarse y mostrarse al
 trabajador (cierra deuda de `TECH_DEBT.md`). Sigue sin escribirse código.
+**Segundo refinamiento — lente de empresa/activo (Parte III de
+`TRUST_SYSTEM.md`, §17–§19):** se evaluó a Oído como empresa cuyo activo durable
+sería una **red de identidad profesional verificable para gastronomía**. Se
+incorporaron, con veredicto explícito: **Career History** (ledger append-only de
+turnos atestiguados = fuente de verdad, activo de primera clase), **Professional
+Identity Graph** (unión emergente de los 4 dominios anclada a persona verificada
+— no un módulo nuevo) y **efectos de red** analizados con honestidad (liquidez
+local, datos con escala, activo propietario durable, portabilidad aspiracional).
+**Career Graph** ya estaba (§13); **"Product Assets" como sección genérica se
+descartó** (buzzword sin retorno en doc técnica). Regla nueva §15.13: el
+historial atestiguado es activo de primera clase, portable, no fragmentado.
+Cero código, cero infra nueva (el "grafo" es conceptual; Postgres alcanza).
 Pendiente: aprobación de los docs antes de implementar la F1. Antes, mismo día,
 **feedback de un inversor**: claridad del
 wizard de publicar turno — un turno es una sola jornada (fecha en formato AR

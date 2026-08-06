@@ -159,3 +159,9 @@ validaciones, flujo admin, tests), reubicado en el dominio `identity` nuevo.
 - ➡️ El **Asistente IA** de carga de perfil es una épica **separada**: el
   dominio debe permitir integrarlo pero nunca depender de él (la IA captura
   información, nunca es la fuente de verdad).
+- 🎯 Los cuatro dominios, anclados a una persona verificada, **emergen** como el
+  activo durable de la empresa — el **Professional Identity Graph** (identidad +
+  perfil + historial atestiguado + reputación). No es un dominio ni una tabla
+  nueva: es la razón de negocio por la que la separación y la portabilidad de
+  estos dominios importan. Lente de empresa/activo en
+  [`TRUST_SYSTEM.md`](../TRUST_SYSTEM.md) Parte III (§17–§19).
