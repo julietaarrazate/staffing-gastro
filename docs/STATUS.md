@@ -5,21 +5,68 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-05 (**auditoría responsive/desktop cerrada**:
-`/admin` resuelto — última de las 13 pantallas, grilla 2-3 columnas igual
-que `/shifts`; el mismo día también `/subscription`, `/companies/[id]`,
-`/workers/[id]` y `/shifts/[id]/candidates` — ver sección de la auditoría
-más abajo para el detalle completo; antes, endurecimiento de
-producción — seguridad, performance e infraestructura, más verificación de
-email; antes, auditoría real de dependencias con CVEs conocidas —
-`pip-audit`/`npm audit`, TECH_DEBT.md S3; y el mismo día, cerrar sesión
-revoca el refresh token en el backend, escalada automática de urgencia
-ADR-0009, métrica de tiempo real de cobertura en el panel admin,
-`/profile`/`/chats`/`/my-shifts` responsive, y asistencia del trabajador en
-2 pasos + no-show automático) · todos los PRs se mergean con squash apenas
-quedan verdes (pedido de Julieta) · **loop autónomo activo** (con
-auto-merge, confirmado explícitamente por Julieta) para retomar el backlog
-no bloqueado sin esperar "seguí" en cada paso.*
+*Última actualización: 2026-08-05 (**TECH_DEBT F1 + T5 resueltas**: F1
+migró `/recuperar`, `/restablecer` y `/verificar-email` de `<input>` crudo a
+`TextField` — el resto de los `<input>` del repo se revisaron y se dejaron
+igual con motivo documentado, no aportaban mejora real; T5 dejó `npm run
+lint` en 0 errores (era 25) desactivando una regla que marcaba como error
+el idiom de fetch-on-mount de toda la app, más 2 fixes genuinos
+(`react-hooks/refs` en `lib/useWebSocket.ts`, `exhaustive-deps` en
+`app/shifts/page.tsx`) y 2 warnings menores resueltos (constante duplicada
+sin usar, ternario-como-statement) — ver TECH_DEBT.md para el detalle
+completo; antes, auditoría responsive/desktop cerrada: `/admin` resuelto —
+última de las 13 pantallas, grilla 2-3 columnas igual que `/shifts`; el
+mismo día también `/subscription`, `/companies/[id]`, `/workers/[id]` y
+`/shifts/[id]/candidates` — ver sección de la auditoría más abajo para el
+detalle completo; antes, endurecimiento de producción — seguridad,
+performance e infraestructura, más verificación de email; antes, auditoría
+real de dependencias con CVEs conocidas — `pip-audit`/`npm audit`,
+TECH_DEBT.md S3; y el mismo día, cerrar sesión revoca el refresh token en
+el backend, escalada automática de urgencia ADR-0009, métrica de tiempo
+real de cobertura en el panel admin, `/profile`/`/chats`/`/my-shifts`
+responsive, y asistencia del trabajador en 2 pasos + no-show automático) ·
+todos los PRs se mergean con squash apenas quedan verdes (pedido de
+Julieta) · **loop autónomo activo** (con auto-merge, confirmado
+explícitamente por Julieta) para retomar el backlog no bloqueado sin
+esperar "seguí" en cada paso.*
+
+## TECH_DEBT F1 + T5 — TextField en auth + `npm run lint` en 0 errores (2026-08-05)
+
+- **F1** (`docs/TECH_DEBT.md`): la nota original decía que migrar los
+  `<input>` crudos restantes a `TextField` era "reemplazo directo, bajo
+  esfuerzo". Al revisar el estado real del código eso ya no era cierto para
+  la mayoría de los casos (checkbox estructuralmente incompatible, campos de
+  wizard y controles inline con estilo intencionalmente distinto). Se migró
+  sólo donde había una mejora genuina y no sólo cosmética: `/recuperar`,
+  `/restablecer` y `/verificar-email` ganaron el toggle mostrar/ocultar
+  contraseña de `TextField` gratis, que no tenían. El resto (checkbox de
+  `/register`, inputs inline de `/chats`/`/search`, campos de
+  `/shifts/new`/`/shifts/new-event`) se dejó como está — motivo detallado
+  por caso en `TECH_DEBT.md`. `lib/cn.ts` perdió el export
+  `AUTH_INPUT_CLASS`, que quedó sin uso. PR #154.
+- **T5**: `npm run lint` pasó de 34 problemas (25 errores, 9 warnings) a 0
+  errores/6 warnings (los 6 son `@next/next/no-img-element`, ya catalogados
+  y fuera de alcance). La regla `react-hooks/set-state-in-effect` marcaba
+  como error el patrón `useCallback` + `useEffect(() => { load(); },
+  [load])` que usan ~15 archivos de toda la app para "traer datos al
+  montar" — no es un bug (no hay cascada de renders, el `setState` ocurre
+  una sola vez tras la respuesta async), así que se desactivó la regla en
+  vez de reescribir esos archivos sin necesidad. Sí eran genuinos y se
+  arreglaron: 2 errores de `react-hooks/refs` en `lib/useWebSocket.ts`
+  (mutación de ref en el cuerpo del render → `useLayoutEffect`) y 1 warning
+  de `exhaustive-deps` en `app/shifts/page.tsx` (`load` no seguía el patrón
+  `useCallback` del resto de la app). De paso surgieron y se resolvieron 2
+  warnings menores: una constante duplicada y nunca usada
+  (`NO_SHOW_ELIGIBLE_STATUSES`, el gating real ya lo hace
+  `ShiftActions.tsx`) y un ternario usado sólo por su efecto en
+  `CompanyProfileForm.tsx` (reescrito como `if`/`else`).
+  Verificado real: `npm run lint` (0 errores), `npx tsc --noEmit` (limpio),
+  `npm run build` (25 rutas, sin errores). E2E: los specs que tocan los
+  archivos modificados pasan igual que antes de este cambio; el único fallo
+  de la corrida (`employer-wizard.spec.ts`) se confirmó preexistente
+  (reproducido también en el commit anterior a este, sin los cambios de
+  T5). `npm run lint` sigue sin estar en `ci.yml` — decisión de plataforma
+  aparte, ahora sin el bloqueo de archivos preexistentes en rojo.
 
 ## Endurecimiento de producción: seguridad, performance e infraestructura (2026-08-04)
 

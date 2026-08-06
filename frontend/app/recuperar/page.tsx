@@ -3,9 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { AUTH_INPUT_CLASS as inputClass } from "@/lib/cn";
 import Logo from "@/components/Logo";
-import { Button } from "@/components/ui";
+import { Button, TextField } from "@/components/ui";
 
 // Mensaje anti-enumeración: siempre el mismo, exista o no el email (no
 // revela si hay o no una cuenta con ese mail). El backend responde 202
@@ -51,13 +50,13 @@ export default function RecuperarPage() {
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <input
+              <TextField
                 type="email"
+                label="Email"
                 required
                 placeholder="Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputClass}
+                onChange={setEmail}
               />
               <Button type="submit" fullWidth loading={submitting}>
                 Enviar enlace
