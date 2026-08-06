@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminUser, PlatformStats } from "@/lib/types";
 import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Skeleton, Spinner } from "@/components/ui";
+import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
   CheckCircleIcon,
   ShieldIcon,
@@ -192,6 +193,13 @@ export default function AdminPage() {
           </p>
         </div>
       )}
+
+      <div className="mt-8">
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          Identidades por verificar
+        </p>
+        <IdentityReviewQueue />
+      </div>
 
       <div className="mt-8">
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">

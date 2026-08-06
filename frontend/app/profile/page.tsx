@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
+import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
 import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
@@ -111,7 +112,16 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className={user.role === "employer" ? "mt-7" : "mt-7 lg:mt-0"}>
+          {user.role === "worker" && (
+            <div className="mt-7 lg:mt-0">
+              <SectionLabel>Identidad</SectionLabel>
+              <div className="mt-2 rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+                <IdentityVerificationCard />
+              </div>
+            </div>
+          )}
+
+          <div className="mt-7">
             <SectionLabel>Reseñas recibidas</SectionLabel>
             <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
               <ReceivedReviews />
