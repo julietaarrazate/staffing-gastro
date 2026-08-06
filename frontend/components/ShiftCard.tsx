@@ -136,6 +136,7 @@ export default function ShiftCard({
               {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
             {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}
+            {shift.meal && <p className="text-xs font-medium text-ink/40">+ comida</p>}
           </div>
         </div>
 

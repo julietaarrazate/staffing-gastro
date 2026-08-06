@@ -194,6 +194,7 @@ async def create_event(
             ],
             currency=payload.currency,
             tips=payload.tips,
+            meal=payload.meal,
             dress_code=payload.dress_code,
             urgent=payload.urgent,
             address=payload.address,

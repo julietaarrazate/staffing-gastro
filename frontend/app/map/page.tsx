@@ -474,7 +474,7 @@ export default function MapPage() {
                     {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
                   </p>
                   <p className="text-xs font-medium text-ink/50">
-                    Pago ofrecido{shift.tips ? " + propinas" : ""}
+                    Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
 

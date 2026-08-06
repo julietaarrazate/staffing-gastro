@@ -48,6 +48,7 @@ import {
   Star,
   Trash2,
   Users,
+  Utensils,
   Wallet,
   Wine,
   X,
@@ -86,6 +87,7 @@ export const ClockIcon = make(Clock);
 export const CalendarIcon = make(Calendar);
 export const CalendarPlusIcon = make(CalendarPlus);
 export const UsersIcon = make(Users);
+export const UtensilsIcon = make(Utensils);
 export const WalletIcon = make(Wallet);
 export const FlameIcon = make(Flame);
 export const RouteIcon = make(Route);

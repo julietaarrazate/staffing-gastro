@@ -6,10 +6,10 @@
 > que se mergea un cambio relevante (o inmediatamente después).
 
 *Última actualización: 2026-08-06 (**feedback de un inversor**: claridad del
-wizard de publicar turno — se aclara que un turno es una sola jornada (puede
-terminar al día siguiente, ej. 17→01), con duración en vivo y puntero a
-"evento" sólo si el rango supera 24 h; el pago se aclara como pago por la
-jornada completa + equivalente por hora; y **precio de la plataforma visible
+wizard de publicar turno — un turno es una sola jornada (fecha en formato AR
+dd/mm/aaaa, duración en vivo, puntero a "evento" sólo si el rango supera 24 h);
+el pago se aclara como pago por la jornada completa + equivalente por hora;
+campo nuevo "comida/perso" (como las propinas); y **precio de la plataforma visible
 sin cuenta** — endpoint público de planes + sección de precios en la landing.
 Falta el 4º punto del inversor, verificación de identidad DNI+selfie, que va en
 un PR aparte con ADR. Ver la sección del mismo día más abajo. Antes,
@@ -46,19 +46,26 @@ cuarto, verificación de identidad, va en un PR aparte con ADR):
 
 1. **"¿Es 1 día o más de 1 día?"** — el paso "¿Cuándo?" del wizard
    (`app/shifts/new`) eran dos `datetime-local` sueltos sin explicación. Un
-   turno es **una sola jornada de X horas** (no hay turnos de varios días);
-   puede **terminar al día siguiente** (ej. 17:00 → 01:00) y eso es lo normal
-   en gastronomía. Ahora: subtítulo con ese ejemplo, **duración en vivo**
-   ("Jornada de 8 h"), la aclaración **"Termina al día siguiente"** cuando el
-   fin cae en otra fecha (para tranquilizar, no alarmar), y — sólo si el rango
+   turno es **una sola jornada de X horas** (no hay turnos de varios días; que
+   una jornada nocturna termine al otro día es normal, pero eso es contexto de
+   dominio, no copy de la app). Ahora: subtítulo simple ("Inicio y fin de la
+   jornada"), un **read-back de la fecha en formato argentino** (dd/mm/aaaa,
+   `formatShiftRange`) para que no se malinterprete sin importar el locale del
+   dispositivo, **duración en vivo** ("Jornada de 8 h"), y — sólo si el rango
    supera 24 h (error real) — un cartel que manda a **"publicar un evento"**
    (`/shifts/new-event`, el flujo real para varias jornadas).
 2. **"El pago ¿es por hora, por turno o por día?"** — `pay_amount` es el pago
    de la jornada completa, por persona. El copy decía sólo "Por persona, en
    pesos". Ahora: **"Pago por la jornada completa, por persona (no por hora)"**
-   + el **equivalente por hora** calculado de la duración ("≈ $2.000 por hora ·
-   jornada de 8 h"), para que no se malinterprete ni el comercio ni el
-   trabajador.
+   + el **equivalente por hora** calculado de la duración ("≈ $6.000 por hora ·
+   jornada de 8 h", con el placeholder de ejemplo en $48.000), para que no se
+   malinterprete ni el comercio ni el trabajador.
+2b. **Beneficio "comida/perso"** — común en jornadas full-time gastronómicas,
+   igual que las propinas. Campo nuevo `meal` en el turno (dominio → migración
+   `0024` → schemas → repo, patrón idéntico a `tips`; **no** se expone en la
+   vista pública, misma decisión que `tips`), toggle "Incluye comida (perso)"
+   en ambos wizards (turno y evento), y se muestra "+ comida" al trabajador
+   en el feed (`OpportunityCard`), el panel (`ShiftCard`) y el mapa.
 3. **"¿Qué costo tiene la plataforma en la versión sin cuenta?"** — el
    precio (mensualidad al comercio, ADR-0005) no se veía sin estar logueado.
    Nuevo endpoint público `GET /subscription/plans/public` (sin auth, mismo

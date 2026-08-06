@@ -28,6 +28,7 @@ class ShiftInput(BaseModel):
     pay_amount: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
     currency: str = Field(default="ARS", min_length=3, max_length=3)
     tips: bool = False
+    meal: bool = False
     dress_code: str | None = Field(default=None, max_length=255)
     urgent: bool = False
     address: str | None = Field(default=None, max_length=255)
@@ -65,6 +66,7 @@ class ShiftResponse(BaseModel):
     pay_amount: Decimal
     currency: str
     tips: bool
+    meal: bool = False
     dress_code: str | None
     urgent: bool
     address: str | None
@@ -112,6 +114,7 @@ class EventInput(BaseModel):
     roles: list[EventRoleInput] = Field(min_length=1, max_length=20)
     currency: str = Field(default="ARS", min_length=3, max_length=3)
     tips: bool = False
+    meal: bool = False
     dress_code: str | None = Field(default=None, max_length=255)
     urgent: bool = False
     address: str | None = Field(default=None, max_length=255)

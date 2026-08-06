@@ -28,6 +28,7 @@ import {
   FlameIcon,
   MapPinIcon,
   UsersIcon,
+  UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
 
@@ -69,6 +70,7 @@ function NewShiftWizard() {
   const [endAt, setEndAt] = useState("");
   const [payAmount, setPayAmount] = useState("");
   const [tips, setTips] = useState(true);
+  const [meal, setMeal] = useState(false);
   const [urgent, setUrgent] = useState(false);
   const [dressCode, setDressCode] = useState("");
   const [city, setCity] = useState("");
@@ -103,6 +105,7 @@ function NewShiftWizard() {
         );
         setPayAmount(String(original.pay_amount));
         setTips(original.tips);
+        setMeal(original.meal);
         setUrgent(original.urgent);
         setDressCode(original.dress_code ?? "");
         setCity(original.city ?? "");
@@ -140,13 +143,14 @@ function NewShiftWizard() {
     startAt !== "" && endAt !== ""
       ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
       : null;
-  // Un turno es UNA sola jornada de trabajo (no hay turnos de varios días):
-  // puede terminar al día siguiente (ej. 17:00 → 01:00), eso es lo normal en
-  // gastronomía. Distinguimos ese caso — para tranquilizar, no alarmar — del
-  // error real de elegir un rango de más de un día (umbral 24 h), donde casi
-  // seguro quería publicar un evento (varias jornadas).
-  const endsNextDay =
-    durationMinutes != null && startAt.slice(0, 10) !== endAt.slice(0, 10);
+  // Un turno es UNA sola jornada de trabajo (no hay turnos de varios días).
+  // Mostramos el rango elegido en formato AR (dd/mm/yyyy, 24 h) para que la
+  // fecha no se malinterprete sin importar el locale del dispositivo. Un rango
+  // de más de un día es un error real (umbral 24 h): ahí sí conviene un evento.
+  const whenLabel =
+    durationMinutes != null
+      ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
+      : null;
   const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
   const payPerHour =
     durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
@@ -167,6 +171,7 @@ function NewShiftWizard() {
           pay_amount: payAmount,
           currency: "ARS",
           tips,
+          meal,
           urgent,
           dress_code: dressCode || null,
           city: city || null,
@@ -313,10 +318,7 @@ function NewShiftWizard() {
             {step === 2 && (
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Cuándo?</h1>
-                <p className="mt-1 text-sm text-ink/50">
-                  Una jornada: cuándo empieza y cuándo termina. Puede terminar al
-                  día siguiente (ej. 17:00 → 01:00).
-                </p>
+                <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-semibold text-ink/70">Inicio</span>
@@ -337,21 +339,18 @@ function NewShiftWizard() {
                     />
                   </label>
                 </div>
-                {durationMinutes != null && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70">
-                      <CalendarIcon size={15} className="text-ink/40" /> Jornada de {formatDuration(durationMinutes)}
-                    </span>
-                    {endsNextDay && !spansMultipleDays && (
-                      <span className="text-sm font-medium text-ink/50">Termina al día siguiente</span>
-                    )}
+                {durationMinutes != null && whenLabel && (
+                  <div className="mt-3 rounded-2xl bg-surface px-4 py-3 text-sm">
+                    <p className="font-semibold text-ink/80">{whenLabel}</p>
+                    <p className="mt-0.5 inline-flex items-center gap-1.5 text-ink/50">
+                      <CalendarIcon size={14} className="text-ink/40" /> Jornada de {formatDuration(durationMinutes)}
+                    </p>
                   </div>
                 )}
                 {spansMultipleDays && (
                   <div className="mt-4 rounded-2xl bg-orange-50 p-3.5 text-sm text-ink/75 ring-1 ring-orange-100">
-                    Un turno es una sola jornada (puede terminar al día siguiente,
-                    pero no dura varios días). Si querés cubrir{" "}
-                    <strong>varios días o varias jornadas</strong>, conviene{" "}
+                    Un turno es una sola jornada, no dura varios días. Si querés
+                    cubrir <strong>varios días o varias jornadas</strong>, conviene{" "}
                     <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
                       publicar un evento
                     </Link>{" "}
@@ -375,7 +374,7 @@ function NewShiftWizard() {
                     min={0}
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
-                    placeholder="15000"
+                    placeholder="48000"
                     className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>
@@ -387,6 +386,12 @@ function NewShiftWizard() {
                 )}
                 <div className="mt-5 flex flex-col gap-3">
                   <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
+                  <Toggle
+                    label="Incluye comida (perso)"
+                    checked={meal}
+                    onChange={setMeal}
+                    icon={<UtensilsIcon size={16} className="text-ink/50" />}
+                  />
                   <Toggle
                     label="Urgente"
                     checked={urgent}
@@ -426,6 +431,7 @@ function NewShiftWizard() {
                   <p className="mt-1 text-ink/50">
                     {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
                     {Number(payAmount || 0).toLocaleString("es-AR")}
+                    {meal && " · con comida"}
                     {urgent && " · Urgente"}
                   </p>
                 </div>
@@ -464,6 +470,7 @@ function NewShiftWizard() {
         endAt={endAt}
         payAmount={payAmount}
         tips={tips}
+        meal={meal}
         urgent={urgent}
         dressCode={dressCode}
         city={city}
@@ -561,6 +568,7 @@ function WizardPreview({
   endAt,
   payAmount,
   tips,
+  meal,
   urgent,
   dressCode,
   city,
@@ -572,6 +580,7 @@ function WizardPreview({
   endAt: string;
   payAmount: string;
   tips: boolean;
+  meal: boolean;
   urgent: boolean;
   dressCode: string;
   city: string;
@@ -605,7 +614,11 @@ function WizardPreview({
           <PreviewRow
             icon={<WalletIcon size={18} />}
             label="Pago"
-            value={pay ? `${pay}${tips ? " · con propinas" : ""}${urgent ? " · Urgente" : ""}` : null}
+            value={
+              pay
+                ? `${pay}${tips ? " · con propinas" : ""}${meal ? " · con comida" : ""}${urgent ? " · Urgente" : ""}`
+                : null
+            }
           />
           <PreviewRow icon={<MapPinIcon size={18} />} label="Dónde" value={city || null} />
         </div>

@@ -104,6 +104,7 @@ class ShiftService:
             pay_amount=data.pay_amount,
             currency=data.currency,
             tips=data.tips,
+            meal=data.meal,
             dress_code=data.dress_code,
             urgent=data.urgent,
             address=data.address,
@@ -147,6 +148,7 @@ class ShiftService:
                             pay_amount=role.pay_amount,
                             currency=data.currency,
                             tips=data.tips,
+                            meal=data.meal,
                             dress_code=data.dress_code,
                             urgent=data.urgent,
                             address=data.address,
@@ -180,6 +182,7 @@ class ShiftService:
         shift.pay_amount = data.pay_amount
         shift.currency = data.currency
         shift.tips = data.tips
+        shift.meal = data.meal
         shift.dress_code = data.dress_code
         shift.urgent = data.urgent
         shift.address = data.address

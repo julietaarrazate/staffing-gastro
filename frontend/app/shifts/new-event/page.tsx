@@ -9,7 +9,7 @@ import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/typ
 import { localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { Button, TextField, useToast } from "@/components/ui";
-import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 
 interface RoleRow {
   key: string;
@@ -44,6 +44,7 @@ export default function NewEventPage() {
   const [dressCode, setDressCode] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [tips, setTips] = useState(true);
+  const [meal, setMeal] = useState(false);
   const [roles, setRoles] = useState<RoleRow[]>([newRole()]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<EventResult | null>(null);
@@ -80,6 +81,7 @@ export default function NewEventPage() {
           dress_code: dressCode || null,
           urgent,
           tips,
+          meal,
           roles: roles.map((r) => ({
             position: r.position,
             count: Number(r.count),
@@ -187,6 +189,7 @@ export default function NewEventPage() {
 
         <div className="flex flex-col gap-3">
           <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
+          <Toggle label="Incluye comida (perso)" checked={meal} onChange={setMeal} icon={<UtensilsIcon size={16} className="text-ink/50" />} />
           <Toggle
             label="Urgente"
             checked={urgent}

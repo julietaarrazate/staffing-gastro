@@ -36,6 +36,7 @@ function exampleShift(input: {
     pay_amount: String(input.pay),
     currency: "ARS",
     tips: true,
+    meal: false,
     dress_code: input.dressCode ?? null,
     urgent: input.urgent ?? false,
     address: null,

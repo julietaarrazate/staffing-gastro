@@ -20,6 +20,7 @@ class ShiftData:
     pay_amount: Decimal
     currency: str = "ARS"
     tips: bool = False
+    meal: bool = False
     dress_code: str | None = None
     urgent: bool = False
     address: str | None = None
@@ -55,6 +56,7 @@ class EventData:
     roles: list[EventRoleData]
     currency: str = "ARS"
     tips: bool = False
+    meal: bool = False
     dress_code: str | None = None
     urgent: bool = False
     address: str | None = None

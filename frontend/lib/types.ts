@@ -86,6 +86,8 @@ export interface Shift {
   pay_amount: string;
   currency: string;
   tips: boolean;
+  /** "Perso"/comida de personal incluida (beneficio del turno, como `tips`). */
+  meal: boolean;
   dress_code: string | null;
   urgent: boolean;
   address: string | null;
