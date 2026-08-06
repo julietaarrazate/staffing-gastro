@@ -9,12 +9,28 @@
 > No hay código de dominio escrito bajo este modelo todavía (decisión
 > explícita: arquitectura correcta antes que implementación rápida).
 
-Este documento cubre, en orden, los entregables pedidos:
+El documento tiene dos partes:
+
+**Parte I — Modelo de dominio** (entregables originales EPIC-001):
 1. Revisión crítica del diseño actual · 2. Modelo conceptual (4 dominios) ·
 3. Claim vs Evidence · 4. Niveles de garantía · 5. Arquitectura del dominio ·
 6. Diagrama de relaciones · 7. Roadmap evolutivo · 8. Riesgos ·
 9. Recomendaciones · + Onboarding progresivo · Plan de renombre `identity` ·
 Límite del Asistente IA.
+
+**Parte II — Visión Trust Platform** (refinamiento 2026-08-06, eleva el techo
+conceptual de "verificación de identidad" a "infraestructura de confianza"):
+10. Qué es la confianza en Oído · 11. Marketplace de dos lados (confianza
+bidireccional) · 12. Trust Score (conceptual) · 13. Career Graph ·
+14. Benchmark competitivo · 15. Principios de arquitectura (permanentes) ·
+16. Roadmap de madurez de la confianza.
+
+> **Cómo leer las dos partes.** La Parte I es el **modelo ejecutable** que se
+> aprueba para construir la F1. La Parte II es la **visión de largo plazo** que
+> ese modelo debe habilitar sin rediseños; no agrega trabajo a la F1, fija el
+> norte. Donde la Parte II encontró tensiones con el diseño actual, las
+> documenta en §12 y §11 con alternativa justificada (no valida ideas
+> preconcebidas: revisa con criterio de arquitectura).
 
 ---
 
@@ -339,3 +355,285 @@ datos que el usuario **confirma**, pero:
   adaptador de IA podría invocar, igual que los invoca un formulario.
 - Tiene su propio costo/latencia/privacidad (mandar audio a un LLM) → su
   propio ADR cuando arranque.
+
+---
+---
+
+# Parte II — Visión Trust Platform
+
+> Refinamiento del 2026-08-06. La Parte I modela **identidad, perfil y
+> reputación** como dominios separados. Esta parte agrega el concepto que los
+> gobierna a todos — **la confianza** — y la trata como el activo central del
+> producto, bidireccional y evolutivo. **No cambia el modelo de la Parte I**;
+> lo enmarca y expone dónde el diseño actual necesita crecer.
+
+## 10. Qué es la confianza en Oído (Trust Platform)
+
+**Definición.** La confianza es la probabilidad percibida de que la otra parte
+**cumpla su compromiso**: que el trabajador se presente, llegue a horario y
+haga bien el trabajo; que el comercio confirme el turno, trate bien y **pague**.
+La confianza es el activo central de Oído y su principal **reductor de
+fricción**: cuanto más alta y más *legible* es, más rápido se cubre una
+posición — es lo que hace posible la misión de **cubrir un turno en < 10
+minutos**. Una plataforma de staffing en tiempo real es, en el fondo, una
+**máquina de producir confianza a la velocidad suficiente para decidir en
+minutos**.
+
+**La confianza no es una cosa.** Es la lectura conjunta de **dimensiones
+independientes** que no se deben mezclar (de ahí los cuatro dominios):
+
+| Dimensión | Pregunta | Dominio | Se gana con |
+|---|---|---|---|
+| **Identidad** | ¿Es quien dice ser? | Identity | **evidencia** (claims verificados) |
+| **Competencia** | ¿Sabe hacer el trabajo? | Professional Profile | información estructurada + certificaciones |
+| **Fiabilidad** | ¿Cumple lo que promete? | Reputation | **comportamiento** (turnos reales) |
+| **Solvencia y trato** (comercio) | ¿Paga y trata bien? | Reputation (comercio) | **comportamiento** (pagos, ratings) |
+
+**Cómo se construye.** Por **acumulación de señales verificables en el tiempo**,
+nunca por auto-declaración. Regla de producto: *la confianza se gana con
+evidencia (identidad) y con comportamiento (reputación), no con el marketing
+que cada uno hace de su propio perfil.* Un perfil "bonito" no es confianza; un
+DNI validado y 30 turnos cumplidos, sí.
+
+### 10.1 Señales que suben y bajan la confianza
+
+| Sube | Baja |
+|---|---|
+| Identidad verificada (claims de mayor nivel) | Identidad no verificada / evidencia rechazada |
+| Puntualidad, turnos completados, antigüedad | No-shows, cancelaciones tardías |
+| Calificaciones altas, muchos comercios distintos | Reclamos, calificaciones bajas |
+| Perfil completo, certificaciones | Perfil vacío, datos inconsistentes |
+| (comercio) pagos a tiempo, alta tasa de confirmación | (comercio) pagos tardíos, cancelaciones, reclamos |
+
+Ninguna señal **compra** a otra: identidad verificada **no** sube la
+reputación, y buena reputación **no** verifica identidad (principio §15.4).
+
+### 10.2 Qué ve cada lado (transparencia asimétrica)
+
+Cada actor ve del otro **señales agregadas**, nunca los datos crudos:
+
+- **El comercio ve del trabajador:** "Identidad verificada" (claim agregado,
+  sin DNI ni evidencias), reputación (fiabilidad, puntualidad, no-shows,
+  eventos, antigüedad) y perfil (skills, experiencia, certificaciones). **Nunca**
+  la imagen del documento ni las evidencias (ver retención).
+- **El trabajador ve del comercio:** fiabilidad de pago (tiempo promedio, % a
+  tiempo), rating de trato/ambiente, antigüedad, tasa de confirmación,
+  cancelaciones. Antes de aceptar un turno, el trabajador **debe poder juzgar al
+  comercio** con las mismas garantías con que el comercio lo juzga a él.
+
+> **Principio de transparencia asimétrica:** se exponen indicadores agregados;
+> los datos sensibles que los respaldan (evidencias de identidad, importes
+> exactos, PII) no cruzan de un actor al otro.
+
+---
+
+## 11. Marketplace de dos lados — confianza bidireccional
+
+**Hallazgo crítico.** Todo el diseño de la Parte I está centrado en el
+**trabajador**. El marketplace tiene dos lados y la confianza tiene que ser
+**bidireccional**: el comercio también es un **sujeto de confianza** que el
+trabajador evalúa. Esto no es una feature nueva, es una **simetría que el
+dominio Reputation ya debe contemplar** — con dos sujetos (trabajador y
+comercio) y señales distintas para cada uno.
+
+### 11.1 Señales del trabajador (mayormente existentes)
+
+Identidad verificada · puntualidad · no-shows · cancelaciones · historial ·
+calificaciones · antigüedad · perfil completo · certificaciones · experiencia ·
+CV. Ya derivan de la actividad (ADR-0004/0007) o del perfil.
+
+### 11.2 Señales del comercio (a formalizar)
+
+Historial de pagos · **tiempo promedio de pago** · **% de pagos a tiempo** ·
+cancelaciones · reclamos · calificaciones recibidas · ambiente laboral · **tasa
+de confirmación de turnos** · tiempo de respuesta · antigüedad · cumplimiento.
+
+**Inconsistencia detectada (oportunidad).** El comercio ya tiene un
+`CompanyProfile` con métricas de reputación (rating, `on_time_payment_rate`,
+`events_published`), pero históricamente **varias no se poblaban de forma
+confiable** (deuda registrada en `TECH_DEBT.md`). Elevar la confianza a
+bidireccional obliga a **cerrar esa deuda**: estas señales tienen que
+calcularse de verdad desde el ciclo del turno/pago y **mostrarse al trabajador**
+antes de aceptar. Si no, el trabajador decide a ciegas sobre quién le va a
+pagar — el lado más caro de equivocarse.
+
+### 11.3 Identidad del comercio (el modelo Claim/Evidence también aplica del otro lado)
+
+El comercio tiene su propia pregunta de identidad: **¿es un negocio real y
+registrado?** El modelo **Claim/Evidence de la Parte I se extiende naturalmente
+al comercio** — mismos conceptos, distintos tipos de claim:
+
+`negocio_verificado` · `cuit_verificado` (contra AFIP a futuro, como estrategia
+de verificación, igual que Renaper para personas) · `domicilio_verificado`.
+
+Esto es una **validación fuerte del diseño**: el dominio Identity **no es
+worker-only**; modela la identidad de cualquier sujeto (persona o negocio) sin
+redominar. La verificación del negocio es, además, la contraparte de confianza
+que el trabajador más necesita.
+
+---
+
+## 12. Trust Score — modelo conceptual (con una tensión honesta)
+
+**La tensión, dicha de frente.** Toda esta épica se construyó sobre "no reducir
+la confianza a un badge" y "no mezclar conceptos". Un **"Trust Score" único y
+público** (un número 0–100 tipo buró de crédito) es, precisamente, *colapsar
+dimensiones independientes en un solo número* — el opuesto de lo que pedimos.
+Así que el score se diseña con cuidado, no por default.
+
+**Las tres opciones y su balance:**
+
+| Opción | Qué es | Ventajas | Desventajas |
+|---|---|---|---|
+| **A. Score público único** | Un número visible (ej. "Trust 87") | Simple de leer, un solo eje para ordenar | Opaco ("¿por qué 87?"), gameable, **re-mezcla los conceptos** que separamos, riesgo de *scoring social* y de sesgo contra recién llegados/baja actividad |
+| **B. Indicadores independientes** | Varios ejes visibles: identidad ✓, fiabilidad ●●●●○, competencia, (comercio) pago | Respeta la separación, explicable, difícil de "gamear" un solo número | No da un orden único para ranking automático |
+| **C. Compuesto interno + indicadores visibles** | Score **interno** (no público) para matching/ranking **+** indicadores independientes hacia el usuario | Ranking eficiente sin exponer una fórmula gameable; el usuario ve *por qué* confía; no hay número social público | Más complejo; hay que gobernar el peso de cada eje |
+
+**Recomendación: Opción C.**
+
+- **Hacia el usuario:** indicadores **independientes** (identidad, fiabilidad,
+  competencia; del comercio, fiabilidad de pago). Nunca un número único público
+  para personas.
+- **Internamente:** un **compuesto** alimenta el ranking del matching. No se
+  muestra la fórmula (evita gaming) y **no** deja que un eje canjee a otro:
+  identidad y reputación entran como **ejes ortogonales con pesos**, no se
+  suman como si midieran lo mismo (un L3 recién llegado no "compra" reputación
+  con su DNI).
+- **Evitar la Opción A** para personas. Un score social público es opaco,
+  penaliza injustamente a quien recién empieza y contradice el principio
+  fundacional del epic.
+
+> **Nota legal (cross-ref retención §12-riesgo).** Un score que condicione el
+> acceso al trabajo roza el terreno de **decisiones automatizadas** sobre
+> personas (art. relevante de la Ley 25.326; tendencia GDPR art. 22). Diseñar
+> con **explicabilidad** y sin decisiones puramente automáticas que afecten
+> derechos: el score **ordena**, no **excluye** por sí solo. Confirmar con
+> asesoría legal antes de que un score condicione oportunidades reales.
+
+---
+
+## 13. Career Graph — historial profesional verificable
+
+**La idea.** Ir más allá del CV/PDF: un **grafo de la carrera gastronómica**
+del trabajador, construido con hechos que Oído ya registra —
+
+- **Nodos:** comercios donde trabajó, jornadas realizadas, certificaciones
+  obtenidas, especializaciones.
+- **Dimensiones:** permanencia, evolución, experiencia acumulada, densidad
+  (cuántos comercios distintos), recencia.
+
+**Por qué es una ventaja competitiva real (el moat).** El historial de Oído no
+es auto-reportado: **cada turno cumplido es un hecho transaccional que la
+plataforma atestigua**. Un CV de LinkedIn es lo que la persona *dice*; un Career
+Graph de Oído es lo que la persona *hizo dentro del sistema*. Ninguna red de CVs
+puede replicar eso sin **ser** el lugar donde el trabajo ocurre. Habilita: CV
+auto-generado **creíble**, búsqueda de talento por experiencia real, y
+portabilidad de reputación — los tres escalones hacia "plataforma de empleo".
+
+**Diseño conceptual (no implementar).** El Career Graph **no es un dominio
+nuevo**: es una **vista derivada** (read-model / proyección) sobre Reputation +
+Professional Profile + el historial de turnos. Se materializa como lectura, no
+redomina nada → entra como **M7** en el roadmap sin tocar el modelo base.
+
+**Límite honesto (ver §8, riesgo de "verificable").** "Verificable" significa
+**atestiguado por Oído, dentro de Oído**. La experiencia **externa** (antes de
+Oído, o fuera) sigue siendo auto-declarada salvo que se agregue attestation o
+**referencias laborales** (M6). No prometer "historial verificable" a secas si
+una parte es auto-reportada: el lenguaje de producto tiene que distinguir
+**"trabajado en Oído"** (hecho) de **"experiencia declarada"** (dicho).
+
+---
+
+## 14. Benchmark competitivo — qué construye confianza en cada plataforma
+
+No para copiar features, sino para ubicar de dónde saca cada una su confianza y
+dónde Oído puede diferenciarse.
+
+| Plataforma | De dónde saca la confianza | Qué toma / evita Oído |
+|---|---|---|
+| **LinkedIn** | Identidad social + endorsements **auto-reportados** + red de contactos | Toma: identidad + perfil rico. Evita: confiar en auto-reporte de desempeño. |
+| **Uber** | Rating **bidireccional atado a cada viaje** + verificación de identidad + background checks | Toma: rating bidireccional atado a la transacción (el modelo más cercano). |
+| **Airbnb** | Reviews **bidireccionales post-estadía** + ID verificado + garantías/depósito | Toma: reviews atadas a la transacción real + "Identidad verificada" como claim. |
+| **Mercado Libre** | Reputación **transaccional** (medallas por ventas cumplidas) + MercadoPago (garantía/escrow) | Toma: reputación derivada de transacciones cumplidas; pago como señal de confianza del comercio. |
+| **Upwork** | Work history propio + escrow + **Job Success Score** + tests de skill | Toma: work history. Cuidado: el JSS es un score único (ver §12, Opción A). |
+| **Indeed** | Job board; capa de confianza **débil** (reviews de empresas auto-seleccionadas) | Evita: tratar la confianza como add-on. En Oído **es el producto**. |
+| **Instawork** | **Competidor directo** (staffing por turnos): Reliability Score + verificación + historial | Aprende del reliability score; **evita** el número público único; se diferencia por vertical + Career Graph. |
+
+**Síntesis — la oportunidad de Oído (cuatro diferenciadores):**
+1. **Confianza bidireccional atada a la transacción real** (como Uber/Airbnb,
+   raro en staffing).
+2. **Identidad como claims extensibles** (crece a KYC/Renaper sin redominar).
+3. **Career Graph vertical gastronómico** como activo portable (moat de datos).
+4. **Vertical enfocado**, no generalista: señales más ricas y relevantes que un
+   marketplace de trabajo genérico.
+
+El competidor a mirar de cerca es **Instawork** (mismo problema, otro país); la
+defensa de Oído es la combinación identidad + bidireccionalidad + Career Graph
+en el vertical, no una feature suelta.
+
+---
+
+## 15. Principios de arquitectura (sección permanente)
+
+Reglas que **rigen todo el desarrollo** del sistema de confianza. Violar
+cualquiera exige un **ADR nuevo** que lo justifique — no se rompen por
+conveniencia de implementación.
+
+1. **El dominio gobierna la implementación; la implementación nunca gobierna el
+   dominio.** (La v1 stasheada se adapta al modelo, no al revés.)
+2. **La confianza surge de múltiples señales independientes;** ninguna se
+   colapsa en otra ni en un único número público.
+3. **La reputación nunca depende de documentación;** la identidad nunca depende
+   de comportamiento.
+4. **Identidad y reputación son ortogonales:** una no reemplaza ni "compra" a la
+   otra.
+5. **Toda afirmación (Claim) es auditable** y está respaldada por Evidence con
+   método, verificador, fecha y (si aplica) expiración.
+6. **La confianza es bidireccional:** comercio y trabajador son ambos sujetos de
+   confianza y de identidad.
+7. **El onboarding minimiza fricción;** el perfil se completa progresivamente;
+   nada de identidad es obligatorio para explorar (L0).
+8. **Toda decisión permite crecer sin redominar:** un tipo nuevo de
+   claim/evidencia/señal es una **fila**, no un esquema nuevo.
+9. **Los datos sensibles se minimizan por diseño;** la retención se funda en
+   normativa (Ley 25.326), no en preferencia de ingeniería.
+10. **La IA captura información; nunca es la fuente de verdad** del perfil.
+11. **Las señales se muestran agregadas;** los datos crudos (evidencias, PII,
+    importes exactos) no cruzan de un actor al otro.
+12. **El método de verificación es una estrategia intercambiable;** el sistema
+    no asume revisión manual para siempre.
+
+Estos principios son la lectura corta de todo el documento: si un cambio futuro
+los respeta, casi seguro está bien encuadrado; si roza alguno, hay que frenar y
+escribir un ADR.
+
+---
+
+## 16. Roadmap de madurez de la confianza (capacidades)
+
+Esta es la **lente de capacidades visibles al usuario** (madurez de la
+verificación y la confianza). Es distinta del **roadmap de entrega de dominios**
+del §7 (que ordena el trabajo técnico/refactor). Para no confundir numeraciones,
+acá las etapas son **M1..M8** ("madurez"); el §7 usa **F0..F8** ("entrega").
+
+| Madurez | Capacidad | Se apoya en (§7) | Nivel de garantía |
+|---|---|---|---|
+| **M1** | Cuenta + email + Google + **identidad manual** (admin) | F1 | L1–L3 |
+| **M2** | **Selfie** (persona = documento) | F1 | refuerza L3 |
+| **M3** | **Prueba de vida / liveness** | F1 (nueva evidencia) | L3 fuerte |
+| **M4** | **Verificación automática** (KYC/Renaper, AFIP para comercios) | F5 | L4 |
+| **M5** | **Certificaciones** (manipulación de alimentos, etc.) | F2/F4 | — (competencia) |
+| **M6** | **Referencias laborales** (attestation externa) | F7 | — (reputación externa) |
+| **M7** | **Career Graph** (historial atestiguado, vista derivada) | F7 | — |
+| **M8** | **Trust Platform completa**: confianza bidireccional sintetizada + búsqueda de talento | F8 | — |
+
+**Cómo se lee junto al §7.** El §7 dice *qué dominio se entrega y en qué orden*
+(F1 = dominio identity; F2 = extraer profile/reputation; F5 = KYC; F7 =
+historial/talento; F8 = plataforma). El §16 dice *qué capacidad de confianza ve
+el usuario* en cada escalón. Cada M entra **sin redominar** la anterior — que es
+la prueba de que el modelo de la Parte I aguanta la visión de la Parte II:
+agregar selfie, liveness, KYC, certificaciones, referencias y Career Graph son
+**filas y estrategias nuevas**, no rediseños.
+
+**Punto de partida:** hoy estamos en **F0 / pre-M1** — el diseño (esta doc +
+ADR-0010 + retención) esperando aprobación para construir la **F1 (M1)**.

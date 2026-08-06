@@ -19,6 +19,19 @@ retención de PII fundamentada en la **Ley 25.326**. Entregables:
 [`docs/TRUST_SYSTEM.md`](./TRUST_SYSTEM.md),
 [`ADR-0010`](./adr/ADR-0010-modelo-de-confianza-cuatro-dominios.md),
 [`docs/reference/IDENTITY_DATA_RETENTION.md`](./reference/IDENTITY_DATA_RETENTION.md).
+**Refinamiento del mismo día — Visión Trust Platform (Parte II de
+`TRUST_SYSTEM.md`):** se elevó el techo de "verificación de identidad" a
+**infraestructura de confianza bidireccional** (comercio y trabajador ambos
+sujetos de confianza e identidad — el modelo Claim/Evidence también aplica al
+negocio: `negocio_verificado`/`cuit_verificado`), con **Trust Score** resuelto
+como **compuesto interno para ranking + indicadores independientes visibles**
+(se descarta el número social público), **Career Graph** como vista derivada
+(el moat: historial atestiguado, no auto-reportado), **benchmark** vs
+LinkedIn/Uber/Airbnb/MercadoLibre/Upwork/Indeed/Instawork, **principios de
+arquitectura permanentes** (violarlos = ADR nuevo) y **roadmap de madurez
+M1–M8**. Hallazgo accionable: la reputación del **comercio**
+(`on_time_payment_rate`/tasa de confirmación) debe poblarse y mostrarse al
+trabajador (cierra deuda de `TECH_DEBT.md`). Sigue sin escribirse código.
 Pendiente: aprobación de los docs antes de implementar la F1. Antes, mismo día,
 **feedback de un inversor**: claridad del
 wizard de publicar turno — un turno es una sola jornada (fecha en formato AR

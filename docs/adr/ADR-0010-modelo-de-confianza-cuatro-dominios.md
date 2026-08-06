@@ -100,6 +100,38 @@ calcula en `compute_badges`. "Identidad verificada" se renderiza como un
 atributo de Identidad, con tratamiento visual propio, separado de las insignias
 de desempeño.
 
+### 6. La confianza es el marco superior, y es bidireccional (refinamiento)
+
+Los cuatro dominios son las dimensiones de un concepto que los gobierna: la
+**confianza** (Trust Platform). Se fija además que la confianza es
+**bidireccional** — el **comercio** es tan sujeto de confianza como el
+trabajador, con sus propias señales de reputación (fiabilidad de pago, tasa de
+confirmación, trato) **y** su propia identidad (`negocio_verificado`,
+`cuit_verificado`): el modelo Claim/Evidence del punto 2 **no es worker-only**,
+modela cualquier sujeto (persona o negocio) sin redominar. El detalle vive en
+[`TRUST_SYSTEM.md`](../TRUST_SYSTEM.md) Parte II (§10–§16).
+
+### 7. Trust Score: compuesto interno, no número social público
+
+Se **descarta** un "Trust Score" único y público (tipo buró de crédito) para
+personas: colapsa dimensiones que este ADR separó, es opaco, gameable y roza el
+*scoring social* y las decisiones automatizadas (Ley 25.326). La síntesis de
+señales, cuando exista, es un **compuesto interno** que alimenta el ranking del
+matching (ejes ortogonales con pesos, identidad y reputación no se canjean),
+mientras que hacia el usuario se muestran **indicadores independientes**. Un
+score **ordena**, nunca **excluye** por sí solo. Análisis completo en
+`TRUST_SYSTEM.md` §12.
+
+### 8. Principios de arquitectura permanentes
+
+Este ADR consagra los **principios de arquitectura de la confianza**
+(`TRUST_SYSTEM.md` §15) como reglas del proyecto: violarlos exige un **ADR
+nuevo**. En síntesis: el dominio gobierna la implementación; la confianza son
+múltiples señales independientes; reputación e identidad son ortogonales y no se
+derivan una de la otra; todo Claim es auditable; crecer = agregar filas, no
+redominar; datos sensibles minimizados por normativa; la IA captura, no es
+fuente de verdad; el método de verificación es una estrategia intercambiable.
+
 ## Alcance de ESTE ADR
 
 Este ADR fija el **modelo y los límites**. **No** se escribe código de dominio
