@@ -119,6 +119,7 @@ export default function MyShiftsPage() {
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
   // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
@@ -175,6 +176,11 @@ export default function MyShiftsPage() {
   async function confirmNoShow(id: string) {
     setConfirmNoShowId(null);
     await run(id, "noShow");
+  }
+
+  async function confirmCancel(id: string) {
+    setConfirmCancelId(null);
+    await run(id, "cancel");
   }
 
   // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
@@ -326,6 +332,7 @@ export default function MyShiftsPage() {
                             busy={busy}
                             onRun={run}
                             onNoShow={() => setConfirmNoShowId(shift.id)}
+                            onCancel={() => setConfirmCancelId(shift.id)}
                           />
                           {(shift.status === "finalizado" || shift.status === "pagado") && (
                             <div className="mt-3">
@@ -378,6 +385,31 @@ export default function MyShiftsPage() {
             onClick={() => confirmNoShowId && confirmNoShow(confirmNoShowId)}
           >
             Sí, no se presentó
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmCancelId !== null}
+        onClose={() => setConfirmCancelId(null)}
+        title="¿Cancelar este turno?"
+      >
+        <p className="text-sm text-ink/60">
+          {confirmCancelId &&
+          shifts.find((s) => s.id === confirmCancelId)?.worker_profile_id
+            ? "Ya tenés un trabajador asignado: se le avisa que el turno se cancela y no vas a poder deshacerlo."
+            : "El turno deja de estar disponible para postularse. No vas a poder deshacerlo."}
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmCancelId(null)}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => confirmCancelId && confirmCancel(confirmCancelId)}
+          >
+            Sí, cancelar turno
           </Button>
         </div>
       </Modal>

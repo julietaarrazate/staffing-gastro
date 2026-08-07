@@ -25,6 +25,7 @@ function LoginForm() {
   // dependía del seed, ya apagado).
   const [pin, setPin] = useState("");
   const [guestLoading, setGuestLoading] = useState<"employer" | "worker" | null>(null);
+  const [guestRole, setGuestRole] = useState<"employer" | "worker" | null>(null);
 
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
@@ -45,15 +46,17 @@ function LoginForm() {
     }
   }
 
-  async function handleGuest(role: "employer" | "worker") {
+  async function handleGuestSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!guestRole) return;
     if (!pin.trim()) {
       setError("Ingresá el PIN para explorar sin cuenta.");
       return;
     }
     setError(null);
-    setGuestLoading(role);
+    setGuestLoading(guestRole);
     try {
-      await loginAsGuest(pin.trim(), role);
+      await loginAsGuest(pin.trim(), guestRole);
       router.replace("/");
     } catch (err) {
       setError(
@@ -118,40 +121,76 @@ function LoginForm() {
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-ink/40">
             Explorar sin cuenta
           </p>
-          <p className="mt-2 text-center text-xs text-ink/50">
-            Con el PIN de la beta entrás a probar la app sin registrarte.
-          </p>
-          <div className="mt-3">
-            <TextField
-              label="PIN de acceso"
-              value={pin}
-              onChange={setPin}
-              placeholder="Ingresá el PIN"
-              inputMode="numeric"
-            />
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <Button
-              variant="surface"
-              size="sm"
-              fullWidth
-              onClick={() => handleGuest("employer")}
-              loading={guestLoading === "employer"}
-              disabled={guestLoading !== null}
-            >
-              Soy comercio
-            </Button>
-            <Button
-              variant="surface"
-              size="sm"
-              fullWidth
-              onClick={() => handleGuest("worker")}
-              loading={guestLoading === "worker"}
-              disabled={guestLoading !== null}
-            >
-              Soy trabajador
-            </Button>
-          </div>
+          {guestRole === null ? (
+            <>
+              <p className="mt-2 text-center text-xs text-ink/50">
+                Elegí cómo querés explorar la app.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Button
+                  variant="surface"
+                  size="sm"
+                  fullWidth
+                  onClick={() => {
+                    setError(null);
+                    setGuestRole("employer");
+                  }}
+                >
+                  Soy comercio
+                </Button>
+                <Button
+                  variant="surface"
+                  size="sm"
+                  fullWidth
+                  onClick={() => {
+                    setError(null);
+                    setGuestRole("worker");
+                  }}
+                >
+                  Soy trabajador
+                </Button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleGuestSubmit}>
+              <p className="mt-2 text-center text-xs text-ink/50">
+                Con el PIN de la beta entrás a probar la app como{" "}
+                {guestRole === "employer" ? "comercio" : "trabajador"}.
+              </p>
+              <div className="mt-3">
+                <TextField
+                  label="PIN de acceso"
+                  value={pin}
+                  onChange={setPin}
+                  placeholder="Ingresá el PIN"
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="mt-3 flex gap-3">
+                <Button
+                  type="button"
+                  variant="surface"
+                  size="sm"
+                  onClick={() => {
+                    setError(null);
+                    setGuestRole(null);
+                  }}
+                  disabled={guestLoading !== null}
+                >
+                  Volver
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  fullWidth
+                  loading={guestLoading === guestRole}
+                  disabled={guestLoading !== null}
+                >
+                  Entrar
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">
