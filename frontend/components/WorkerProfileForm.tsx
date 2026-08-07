@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import ImageUpload from "@/components/ImageUpload";
-import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
+import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 
 /** "Español, Inglés" → ["Español", "Inglés"] (limpia vacíos y espacios). */
 function parseList(text: string): string[] {
@@ -138,7 +138,6 @@ export default function WorkerProfileForm() {
         fallbackLabel={profile?.full_name ?? user?.full_name ?? "T"}
       />
 
-
       <div>
         <label className="block text-sm font-medium text-ink/70">Ubicación</label>
         <p className="mt-0.5 text-xs text-ink/50">
@@ -160,35 +159,37 @@ export default function WorkerProfileForm() {
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-ink/70">Años de experiencia</label>
-        <input
-          type="number"
-          min={0}
-          max={80}
-          value={yearsExperience}
-          onChange={(e) => setYearsExperience(Number(e.target.value))}
-          className="mt-1 w-full rounded-lg border border-line px-3 py-2"
-        />
-      </div>
+      <TextField
+        label="Años de experiencia"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={80}
+        value={yearsExperience}
+        onChange={(v) => setYearsExperience(Number(v) || 0)}
+      />
 
       <div>
         <label className="block text-sm font-medium text-ink/70">Habilidades</label>
         <div className="mt-2 flex flex-wrap gap-2">
-          {WORKER_SKILLS.map((skill) => (
-            <button
-              type="button"
-              key={skill}
-              onClick={() => toggleSkill(skill)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                skills.includes(skill)
-                  ? "bg-primary text-ink"
-                  : "bg-surface text-ink/70 hover:bg-line"
-              }`}
-            >
-              {SKILL_LABELS[skill]}
-            </button>
-          ))}
+          {WORKER_SKILLS.map((skill) => {
+            const active = skills.includes(skill);
+            return (
+              <button
+                type="button"
+                key={skill}
+                aria-pressed={active}
+                onClick={() => toggleSkill(skill)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  active
+                    ? "bg-primary text-ink"
+                    : "bg-surface text-ink/70 hover:bg-line"
+                }`}
+              >
+                {SKILL_LABELS[skill]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -238,17 +239,14 @@ export default function WorkerProfileForm() {
         </p>
       </div>
 
-      <label className="flex items-center gap-2 text-sm font-medium text-ink/70">
-        <input
-          type="checkbox"
-          checked={isAvailable}
-          onChange={(e) => setIsAvailable(e.target.checked)}
-        />
-        Disponible para tomar turnos
-      </label>
+      <Toggle
+        label="Disponible para tomar turnos"
+        checked={isAvailable}
+        onChange={setIsAvailable}
+      />
 
       {error && <p className="text-sm text-danger-text">{error}</p>}
-      {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
+      {saved && <p className="text-sm font-medium text-success-text">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>
         {exists ? "Guardar cambios" : "Crear perfil"}

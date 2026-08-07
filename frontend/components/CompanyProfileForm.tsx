@@ -157,7 +157,7 @@ export default function CompanyProfileForm() {
       </div>
 
       {error && <p className="text-sm text-danger-text">{error}</p>}
-      {saved && <p className="text-sm font-medium text-green-600">Perfil guardado</p>}
+      {saved && <p className="text-sm font-medium text-success-text">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>
         {exists ? "Guardar cambios" : "Crear perfil"}

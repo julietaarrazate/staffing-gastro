@@ -45,7 +45,7 @@ export default function RecuperarPage() {
 
         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-line">
           {sent ? (
-            <p className="text-center text-sm font-medium text-green-600">
+            <p className="text-center text-sm font-medium text-success-text">
               {GENERIC_MESSAGE}
             </p>
           ) : (
