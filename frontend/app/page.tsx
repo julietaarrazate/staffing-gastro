@@ -9,6 +9,7 @@ import type { ComponentType } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Reveal from "@/components/landing/Reveal";
 import ScrollHeroShowcase from "@/components/landing/ScrollHeroShowcase";
+import { LogoMark } from "@/components/Logo";
 
 // Secciones por debajo del fold: se cargan en chunks aparte (`next/dynamic`)
 // para no engordar el bundle inicial y que el hero pinte antes (menos pantalla
@@ -253,9 +254,15 @@ export default function Home() {
       {/* Footer */}
       <footer className="mt-20 bg-ink py-10 text-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 text-center">
-          {/* `.no-select`: wordmark de marca, chrome, no texto de lectura. */}
-          <span className="no-select text-xl font-extrabold tracking-tight">
-            staff<span className="text-primary-text">ya</span>
+          {/* `.no-select`: wordmark de marca, chrome, no texto de lectura.
+              Antes decía literalmente "staffya" (nombre interno del
+              proyecto, previo al rebrand a "Oído") — quedó de cuando se
+              armó el footer, nadie lo actualizó. Reporte real de Julieta. */}
+          <span className="no-select inline-flex items-center gap-2">
+            <LogoMark size={26} />
+            <span className="font-display text-xl font-semibold tracking-tight text-white">
+              oído
+            </span>
           </span>
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70">
             <Link href="/login" className="hover:text-white">

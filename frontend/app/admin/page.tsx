@@ -237,7 +237,7 @@ export default function AdminPage() {
             <Card key={u.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <Avatar name={u.full_name} size="md" />
+                  <Avatar src={u.photo_url} name={u.full_name} size="md" />
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate font-semibold text-ink">
                       {u.full_name}

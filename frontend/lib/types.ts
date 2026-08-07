@@ -283,6 +283,7 @@ export interface AdminUser {
   status: string;
   is_verified: boolean;
   created_at: string | null;
+  photo_url: string | null;
 }
 
 export interface PlatformStats {

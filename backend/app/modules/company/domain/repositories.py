@@ -38,6 +38,13 @@ class CompanyProfileRepository(ABC):
         """Indica si el usuario ya tiene un perfil de comercio."""
 
     @abstractmethod
+    async def photo_urls_by_user_ids(self, user_ids: list[UUID]) -> dict[UUID, str | None]:
+        """Logo del comercio (`logo_url`) por id de usuario, en una sola
+        consulta (misma idea que `VerificationRepository.verified_user_ids`).
+        Usado para anotar listados que no pasan por `get_by_user_id` fila por
+        fila (panel de admin)."""
+
+    @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
 

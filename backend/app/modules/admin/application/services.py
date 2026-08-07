@@ -9,28 +9,57 @@ from uuid import UUID
 
 from app.core.dt import naive as _naive
 from app.core.security import create_access_token
-from app.modules.admin.application.dtos import PlatformStats
+from app.modules.admin.application.dtos import AdminUserRow, PlatformStats
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
     TargetUserNotFoundError,
 )
+from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 
 class AdminService:
     """Servicio de aplicación con los casos de uso del panel de administración."""
 
-    def __init__(self, users: UserRepository, shifts: ShiftRepository) -> None:
+    def __init__(
+        self,
+        users: UserRepository,
+        shifts: ShiftRepository,
+        workers: WorkerProfileRepository,
+        companies: CompanyProfileRepository,
+    ) -> None:
         self._users = users
         self._shifts = shifts
+        self._workers = workers
+        self._companies = companies
 
-    async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[User]:
-        """Lista usuarios paginados (más recientes primero)."""
-        return await self._users.list_all(limit=limit, offset=offset)
+    async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[AdminUserRow]:
+        """Lista usuarios paginados (más recientes primero), con la foto de
+        perfil (trabajador) o logo (comercio) resuelto en 2 consultas batch
+        en vez de una por fila."""
+        users = await self._users.list_all(limit=limit, offset=offset)
+        worker_ids = [u.id for u in users if u.role == UserRole.WORKER]
+        employer_ids = [u.id for u in users if u.role == UserRole.EMPLOYER]
+        worker_photos = await self._workers.photo_urls_by_user_ids(worker_ids)
+        company_photos = await self._companies.photo_urls_by_user_ids(employer_ids)
+        return [
+            AdminUserRow(
+                id=u.id,
+                email=u.email,
+                full_name=u.full_name,
+                role=u.role,
+                status=u.status,
+                is_verified=u.is_verified,
+                created_at=u.created_at,
+                photo_url=worker_photos.get(u.id) or company_photos.get(u.id),
+            )
+            for u in users
+        ]
 
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma, incluida la promesa

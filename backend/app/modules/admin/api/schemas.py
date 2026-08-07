@@ -18,6 +18,7 @@ class AdminUserResponse(BaseModel):
     status: UserStatus
     is_verified: bool
     created_at: datetime | None = None
+    photo_url: str | None = None
 
 
 class ImpersonateResponse(BaseModel):

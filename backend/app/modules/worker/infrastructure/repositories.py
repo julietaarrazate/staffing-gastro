@@ -96,6 +96,15 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         result = await self._session.execute(stmt)
         return result.first() is not None
 
+    async def photo_urls_by_user_ids(self, user_ids: list[UUID]) -> dict[UUID, str | None]:
+        if not user_ids:
+            return {}
+        stmt = select(WorkerProfileModel.user_id, WorkerProfileModel.photo_url).where(
+            WorkerProfileModel.user_id.in_(user_ids)
+        )
+        result = await self._session.execute(stmt)
+        return {row[0]: row[1] for row in result.all()}
+
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         model = await self._session.get(WorkerProfileModel, profile_id)
         if model is None:
