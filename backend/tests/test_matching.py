@@ -2,8 +2,10 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from tests.conftest import auth_headers
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from tests.conftest import auth_headers, login
 
 pytestmark = pytest.mark.asyncio
 
@@ -154,3 +156,25 @@ async def test_worker_cannot_search_map(client: AsyncClient):
     worker_headers = await auth_headers(client, "worker", "w6@staffya.com")
     response = await client.get("/api/v1/matching/search", headers=worker_headers)
     assert response.status_code == 403
+
+
+async def test_admin_can_search_map_read_only(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """El admin explora el mapa de trabajadores en modo sólo-lectura, sin
+    tener que impersonar a nadie puntual (pedido real de Julieta, "Ver como"
+    de PR #165 no alcanzaba para esto)."""
+    await _worker_profile(client, "any3@staffya.com", skills=["mozo"])
+
+    await auth_headers(client, "employer", "admin_search@staffya.com")
+    async with session_factory() as session:
+        repo = SqlAlchemyUserRepository(session)
+        user = await repo.get_by_email("admin_search@staffya.com")
+        user.promote_to_admin()
+        await repo.update(user)
+    tokens = await login(client, "admin_search@staffya.com")
+    admin_headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    response = await client.get("/api/v1/matching/search", headers=admin_headers)
+    assert response.status_code == 200
+    assert len(response.json()) == 1

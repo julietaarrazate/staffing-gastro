@@ -5,9 +5,29 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-07 (**"Ver como" (#165) + batch de bugs de QA
-en vivo (#166) + fix de perfil admin, los tres mergeados.** Julieta probó la
-app real (comercio, trabajador y admin, mobile) y reportó varios bugs de
+*Última actualización: 2026-08-07 (**Mapa/Búsqueda de sólo lectura para admin
++ fotos en el panel de admin + wordmark del footer (#168, en revisión).**
+Julieta pidió poder "ver la plataforma entera" desde su cuenta admin, sin
+tener que impersonar a alguien puntual primero (más allá de "Ver como", #165,
+para debug de un usuario específico). Se relajó `/matching/search` (backend)
+para aceptar también rol `admin` (antes sólo `employer`) — `/shifts/feed` ya
+no tenía restricción de rol. El admin ahora tiene `/map` y `/search` en su
+nav (`BottomNav`/`Navbar`), viendo TODOS los trabajadores/turnos activos
+reales, sin acotar a un perfil propio (no tiene uno). "Postularme" en `/map`
+se corta con un mensaje claro si el rol no es `worker` (el backend lo hubiera
+rechazado de todos modos, no tiene perfil de trabajador). De paso: el panel
+de admin (`/admin` → "Usuarios") no mostraba fotos de perfil —
+`AdminUserResponse` nunca incluía `photo_url` (vive en
+`WorkerProfile`/`CompanyProfile`, no en `User`); se resuelve ahora por
+puerto en batch (mismo patrón que `VerificationService.verified_user_ids`:
+`photo_urls_by_user_ids` nuevo en ambos repos). Y el footer de la landing
+(`/`) decía literalmente **"staffya"** (nombre interno pre-rebrand) en vez
+del wordmark real "oído" — corregido. Backend: **pytest 296/296 passed** +
+1 test nuevo (`test_admin_can_search_map_read_only`).
+
+Antes, mismo día: **"Ver como" (#165) + batch de bugs de QA en vivo (#166) +
+fix de perfil admin, los tres mergeados.** Julieta probó la app real
+(comercio, trabajador y admin, mobile) y reportó varios bugs de
 golpe; quedaron resueltos en `claude/staffya-guest-bugfixes` (PR #166):
 1. **Explorar sin cuenta pedía el PIN antes que el rol** — invertido: primero
    "Soy comercio"/"Soy trabajador", después el PIN (`frontend/app/login/page.tsx`).
