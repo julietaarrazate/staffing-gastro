@@ -9,20 +9,20 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 >
 > **Frente abierto (2026-08-07): QA en vivo de Julieta probando la app real**
-> (comercio y trabajador, mobile). Primer batch de bugs ya en PR #166
-> (`claude/staffya-guest-bugfixes`, en revisión): orden PIN/rol en "Explorar
-> sin cuenta", confirmación al cancelar un turno asignado, el `Sheet` (bottom
-> sheet del DS) que no cerraba con la X, el tab "Recomendados" que se perdía
-> al volver de un perfil, y precisión del pin de geolocalización al dar de
-> alta un local. Detalle de cada fix y **lo que todavía queda sin resolver**
-> (perfil admin mostrando badge "Comercio" con "Permisos insuficientes",
-> visibilidad de la lista de "Ver como" en `/admin`, cuentas invitado en
-> resultados de búsqueda reales, ícono desproporcionado en el estado vacío de
-> "Identidades por verificar") en [docs/STATUS.md](./docs/STATUS.md). Julieta
-> pidió explícitamente una auditoría de QA/performance/UX/UI/diseño más
-> sistemática ("la app está a un 40%, llevarla a 90%") — es una línea de
-> trabajo continua, no una tarea puntual; seguir por prioridad desde los
-> pendientes de arriba y `docs/TECH_DEBT.md`.
+> (comercio, trabajador y admin, mobile). Batch de bugs ya mergeado (PR #166 +
+> fix de perfil admin): orden PIN/rol en "Explorar sin cuenta", confirmación
+> al cancelar un turno asignado, el `Sheet` (bottom sheet del DS) que no
+> cerraba con la X, el tab "Recomendados" que se perdía al volver de un
+> perfil, precisión del pin de geolocalización al dar de alta un local, y el
+> perfil admin que mostraba badge "Comercio"/"Permisos insuficientes". La
+> visibilidad de "Ver como" y el ícono del estado vacío de `/admin` resultaron
+> no ser bugs (verificado en código). Detalle completo en
+> [docs/STATUS.md](./docs/STATUS.md). **Sigue pendiente:** evaluar filtrar
+> cuentas invitado de `/search` y `/map` (aparecen mezcladas con trabajadores
+> reales). Julieta también pidió explícitamente una auditoría de
+> QA/performance/UX/UI/diseño más sistemática ("la app está a un 40%,
+> llevarla a 90%") — es una línea de trabajo continua, no una tarea puntual;
+> seguir por prioridad desde `docs/TECH_DEBT.md`.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
