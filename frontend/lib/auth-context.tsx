@@ -29,6 +29,9 @@ interface AuthState {
     idToken: string,
     role?: "worker" | "employer"
   ) => Promise<GoogleLoginResult>;
+  /** Acceso de invitado para la beta ("Explorar sin cuenta"): entra sin
+   * registrarse validando un PIN (ver `POST /auth/guest`). */
+  loginAsGuest: (pin: string, role: "worker" | "employer") => Promise<void>;
   logout: () => Promise<void>;
   /** Cambia el nombre del usuario autenticado (único dato de identidad
    *  editable desde el perfil — ni el registro por email ni el acceso con
@@ -207,6 +210,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { requiresRole: false };
   }
 
+  async function loginAsGuest(pin: string, role: "worker" | "employer") {
+    const tokens = await api.post<{
+      access_token: string;
+      refresh_token: string;
+      user?: User;
+    }>("/auth/guest", { pin, role });
+    persistTokens(tokens.access_token, tokens.refresh_token);
+    setToken(tokens.access_token);
+    setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
+  }
+
   async function updateFullName(fullName: string) {
     if (!token) return;
     const updated = await api.patch<User>("/auth/me", { full_name: fullName }, token);
@@ -240,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, loginWithGoogle, logout, updateFullName }}
+      value={{ user, token, loading, login, register, loginWithGoogle, loginAsGuest, logout, updateFullName }}
     >
       {children}
     </AuthContext.Provider>

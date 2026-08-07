@@ -40,9 +40,12 @@ services:
         value: https://staffing-gastro.vercel.app
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
-      # Apagar (poner "false" o quitar) ANTES de onboardear comercios reales.
+      # APAGADO (2026-08-07): ya no se re-siembran datos demo en cada arranque.
+      # Los datos demo que ya están en Neon siguen ahí (esto sólo frena la
+      # re-siembra). Si además está seteada en el dashboard de Render, hay que
+      # ponerla en "false" también ahí (el dashboard pisa este valor).
       - key: SEED_DEMO_DATA
-        value: "true"
+        value: "false"
       - key: SENTRY_DSN
         sync: false
     autoDeploy: true

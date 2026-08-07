@@ -17,6 +17,10 @@ class InvalidCredentialsError(IdentityError):
     """Email o contraseña incorrectos."""
 
 
+class InvalidGuestPinError(IdentityError):
+    """El PIN de acceso de invitado (beta) es incorrecto."""
+
+
 class UserNotFoundError(IdentityError):
     """No se encontró el usuario solicitado."""
 

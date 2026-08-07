@@ -9,14 +9,8 @@ import Logo from "@/components/Logo";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 
-// Cuentas demo seedeadas por backend/scripts/seed_demo_data.py. Sirven para
-// probar la app sin crear cuenta ni recordar credenciales (datos ficticios).
-const DEMO_PASSWORD = "staffyaDemo123";
-const DEMO_EMPLOYER = "demo.palermo@staffya.com";
-const DEMO_WORKER = "demo.mozo.palermo@staffya.com";
-
 function LoginForm() {
-  const { login } = useAuth();
+  const { login, loginAsGuest } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   // Mensaje opcional tras un redirect (p. ej. `/restablecer` al terminar OK).
@@ -25,7 +19,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [demoLoading, setDemoLoading] = useState<"employer" | "worker" | null>(null);
+  // Acceso de invitado para la beta: un PIN (que configura la operadora en el
+  // código) habilita entrar sin registrarse — así prueban sólo los que Julieta
+  // quiere, no cualquiera. Reemplaza el login demo abierto anterior (que además
+  // dependía del seed, ya apagado).
+  const [pin, setPin] = useState("");
+  const [guestLoading, setGuestLoading] = useState<"employer" | "worker" | null>(null);
 
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
@@ -46,18 +45,22 @@ function LoginForm() {
     }
   }
 
-  async function handleDemo(role: "employer" | "worker") {
-    setDemoLoading(role);
+  async function handleGuest(role: "employer" | "worker") {
+    if (!pin.trim()) {
+      setError("Ingresá el PIN para explorar sin cuenta.");
+      return;
+    }
+    setError(null);
+    setGuestLoading(role);
     try {
-      await doLogin(role === "employer" ? DEMO_EMPLOYER : DEMO_WORKER, DEMO_PASSWORD);
+      await loginAsGuest(pin.trim(), role);
+      router.replace("/");
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "No se pudo entrar con la cuenta de prueba"
+        err instanceof ApiError ? err.message : "No se pudo entrar como invitado"
       );
     } finally {
-      setDemoLoading(null);
+      setGuestLoading(null);
     }
   }
 
@@ -113,16 +116,28 @@ function LoginForm() {
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-ink/40">
-            Probar la app sin cuenta
+            Explorar sin cuenta
           </p>
+          <p className="mt-2 text-center text-xs text-ink/50">
+            Con el PIN de la beta entrás a probar la app sin registrarte.
+          </p>
+          <div className="mt-3">
+            <TextField
+              label="PIN de acceso"
+              value={pin}
+              onChange={setPin}
+              placeholder="Ingresá el PIN"
+              inputMode="numeric"
+            />
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <Button
               variant="surface"
               size="sm"
               fullWidth
-              onClick={() => handleDemo("employer")}
-              loading={demoLoading === "employer"}
-              disabled={demoLoading !== null}
+              onClick={() => handleGuest("employer")}
+              loading={guestLoading === "employer"}
+              disabled={guestLoading !== null}
             >
               Soy comercio
             </Button>
@@ -130,16 +145,13 @@ function LoginForm() {
               variant="surface"
               size="sm"
               fullWidth
-              onClick={() => handleDemo("worker")}
-              loading={demoLoading === "worker"}
-              disabled={demoLoading !== null}
+              onClick={() => handleGuest("worker")}
+              loading={guestLoading === "worker"}
+              disabled={guestLoading !== null}
             >
               Soy trabajador
             </Button>
           </div>
-          <p className="mt-2.5 text-center text-xs text-ink/40">
-            Entrás con un perfil de demostración para ver la app.
-          </p>
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">
