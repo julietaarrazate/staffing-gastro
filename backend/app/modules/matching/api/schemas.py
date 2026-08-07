@@ -20,6 +20,9 @@ class CandidateMatchResponse(BaseModel):
     events_completed: int
     punctuality_rate: float
     years_experience: int
+    # Identidad (EPIC-001, ADR-0010): lo que el comercio ve del candidato. Se
+    # enriquece en el route vía el servicio de verificación; nunca son evidencias.
+    identidad_verificada: bool = False
 
 
 class WorkerMapResponse(BaseModel):

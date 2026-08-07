@@ -13,12 +13,15 @@ from app.modules.matching.api.schemas import CandidateMatchResponse, WorkerMapRe
 from app.modules.matching.application.services import MatchingService
 from app.modules.shift.api.dependencies import get_my_company_id
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
+from app.modules.verification.api.dependencies import get_verification_service
+from app.modules.verification.application.services import VerificationService
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 router = APIRouter(prefix="/shifts", tags=["matching"])
 search_router = APIRouter(prefix="/matching", tags=["matching"])
 
 ServiceDep = Annotated[MatchingService, Depends(get_matching_service)]
+VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
@@ -34,14 +37,24 @@ async def get_top_candidates(
     shift_id: UUID,
     company_id: CompanyIdDep,
     service: ServiceDep,
+    verification: VerificationDep,
     limit: Annotated[int, Query(ge=1, le=50)] = 10,
 ):
     try:
-        return await service.get_top_candidates(shift_id, company_id, limit=limit)
+        results = await service.get_top_candidates(shift_id, company_id, limit=limit)
     except ShiftNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Turno no encontrado"
         ) from exc
+    # Enriquecemos con "Identidad verificada" (dominio Identity, por puerto):
+    # el matching no sabe de identidad; se compone acá, en la capa API.
+    verified = await verification.verified_user_ids([r.user_id for r in results])
+    responses: list[CandidateMatchResponse] = []
+    for r in results:
+        response = CandidateMatchResponse.model_validate(r)
+        response.identidad_verificada = r.user_id in verified
+        responses.append(response)
+    return responses
 
 
 @search_router.get(

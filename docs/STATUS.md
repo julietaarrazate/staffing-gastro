@@ -5,8 +5,30 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-06 (**EPIC-001 · Trust & Identity Platform —
-rediseño conceptual, sólo documentación**: el 4º punto del inversor
+*Última actualización: 2026-08-07 (**EPIC-001 · Trust & Identity Platform —
+F1 IMPLEMENTADA** (PR #157): tras aprobar el rediseño conceptual (#156,
+mergeado), se construyó la Fase 1 del dominio de verificación de identidad.
+Módulo backend nuevo **`verification`** (bounded context "Identity"; se llama
+`verification` porque `identity` sigue ocupado por auth/cuenta — el renombre a
+`account` es F2): entidades **`Claim` + `Evidence`** con máquina de estados
+(NO_PRESENTADA→PENDIENTE→VERIFICADA/RECHAZADA, reenvío), **purga de la evidencia
+sensible al decidir** (retención Ley 25.326: queda el claim + auditoría, no el
+DNI), agregación pura claim→**nivel de garantía L0–L4**, método `admin_manual`
+como estrategia (KYC/Renaper a futuro sin redominar). Tablas `identity_claims`/
+`identity_evidences` (migración **0025**). API: `/identity/me` (mi estado, sin
+PII), `/identity/me/document` (subir DNI+selfie), `/identity/claims/pending` +
+`approve`/`reject` (admin). Frontend: tarjeta de verificación del trabajador en
+`/profile` (subir DNI+selfie, ver estado, reenviar), cola de revisión en
+`/admin`, y chip **"Identidad verificada"** (`IdentityVerifiedBadge`) en el
+perfil público del trabajador y en la tarjeta de candidato — el comercio lo ve
+enriquecido **por puerto** (`VerificationService.verified_user_ids`, batch,
+capa API, sin acoplar el matching al dominio Identity). Se **sacó
+`perfil_verificado` del catálogo de reputación** (`lib/reputation.tsx`,
+`WorkerBadge`): la identidad ya no es una insignia de desempeño. Verificado:
+**pytest 287 passed**, `tsc` limpio, `npm run build` OK. Falta (F2+): extraer
+`professional_profile`/`reputation` de `worker`, renombre `identity`→`account`,
+KYC automático, claims del comercio (`negocio_verificado`). Antes, mismo hilo:
+**rediseño conceptual, sólo documentación**: el 4º punto del inversor
 (verificación de identidad DNI+selfie) se replanteó como la base de un sistema
 de confianza que evolucione por años, en vez de un badge aislado. Se detuvo la
 implementación (una v1 backend quedó **stasheada, sin mergear**, como

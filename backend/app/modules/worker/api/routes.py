@@ -9,6 +9,8 @@ from app.modules.identity.api.dependencies import get_current_user, require_role
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.verification.api.dependencies import get_verification_service
+from app.modules.verification.application.services import VerificationService
 from app.modules.worker.api.dependencies import get_user_repository, get_worker_service
 from app.modules.worker.api.schemas import (
     WorkerProfileInput,
@@ -26,6 +28,7 @@ router = APIRouter(prefix="/workers", tags=["workers"])
 
 ServiceDep = Annotated[WorkerProfileService, Depends(get_worker_service)]
 UsersDep = Annotated[UserRepository, Depends(get_user_repository)]
+VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 WorkerDep = Annotated[User, Depends(require_roles(UserRole.WORKER))]
 
 
@@ -33,10 +36,14 @@ def _to_data(payload: WorkerProfileInput) -> WorkerProfileData:
     return WorkerProfileData(**payload.model_dump())
 
 
-async def _to_response(profile: WorkerProfile, users: UserRepository) -> WorkerProfileResponse:
+async def _to_response(
+    profile: WorkerProfile, users: UserRepository, verification: VerificationService
+) -> WorkerProfileResponse:
     user = await users.get_by_id(profile.user_id)
     response = WorkerProfileResponse.model_validate(profile)
     response.full_name = user.full_name if user else None
+    verified = await verification.verified_user_ids([profile.user_id])
+    response.identidad_verificada = profile.user_id in verified
     return response
 
 
@@ -47,7 +54,7 @@ async def _to_response(profile: WorkerProfile, users: UserRepository) -> WorkerP
     summary="Crear mi perfil de trabajador",
 )
 async def create_my_profile(
-    payload: WorkerProfileInput, current_user: WorkerDep, service: ServiceDep, users: UsersDep
+    payload: WorkerProfileInput, current_user: WorkerDep, service: ServiceDep, users: UsersDep, verification: VerificationDep
 ):
     try:
         profile = await service.create_profile(current_user.id, _to_data(payload))
@@ -56,7 +63,7 @@ async def create_my_profile(
             status_code=status.HTTP_409_CONFLICT,
             detail="El perfil de trabajador ya existe",
         ) from exc
-    return await _to_response(profile, users)
+    return await _to_response(profile, users, verification)
 
 
 @router.get(
@@ -64,7 +71,12 @@ async def create_my_profile(
     response_model=WorkerProfileResponse,
     summary="Ver mi perfil de trabajador",
 )
-async def get_my_profile(current_user: WorkerDep, service: ServiceDep, users: UsersDep):
+async def get_my_profile(
+    current_user: WorkerDep,
+    service: ServiceDep,
+    users: UsersDep,
+    verification: VerificationDep,
+):
     try:
         profile = await service.get_my_profile(current_user.id)
     except WorkerProfileNotFoundError as exc:
@@ -72,7 +84,7 @@ async def get_my_profile(current_user: WorkerDep, service: ServiceDep, users: Us
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todavía no creaste tu perfil de trabajador",
         ) from exc
-    return await _to_response(profile, users)
+    return await _to_response(profile, users, verification)
 
 
 @router.put(
@@ -81,7 +93,7 @@ async def get_my_profile(current_user: WorkerDep, service: ServiceDep, users: Us
     summary="Actualizar mi perfil de trabajador",
 )
 async def update_my_profile(
-    payload: WorkerProfileInput, current_user: WorkerDep, service: ServiceDep, users: UsersDep
+    payload: WorkerProfileInput, current_user: WorkerDep, service: ServiceDep, users: UsersDep, verification: VerificationDep
 ):
     try:
         profile = await service.update_profile(current_user.id, _to_data(payload))
@@ -90,7 +102,7 @@ async def update_my_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Todavía no creaste tu perfil de trabajador",
         ) from exc
-    return await _to_response(profile, users)
+    return await _to_response(profile, users, verification)
 
 
 @router.get(
@@ -102,6 +114,7 @@ async def get_profile(
     profile_id: UUID,
     service: ServiceDep,
     users: UsersDep,
+    verification: VerificationDep,
     _current_user: Annotated[User, Depends(get_current_user)],
 ):
     try:
@@ -111,4 +124,4 @@ async def get_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Perfil no encontrado",
         ) from exc
-    return await _to_response(profile, users)
+    return await _to_response(profile, users, verification)

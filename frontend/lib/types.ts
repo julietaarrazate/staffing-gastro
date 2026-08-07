@@ -152,6 +152,7 @@ export interface CandidateMatch {
   events_completed: number;
   punctuality_rate: number;
   years_experience: number;
+  identidad_verificada: boolean;
 }
 
 export interface WorkerMapResult {
@@ -190,6 +191,7 @@ export interface WorkerProfile {
   no_shows: number;
   badges: string[];
   level: string;
+  identidad_verificada: boolean;
 }
 
 export type NotificationType =

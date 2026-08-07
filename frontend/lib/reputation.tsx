@@ -3,7 +3,6 @@ import {
   AwardIcon,
   CheckCircleIcon,
   GlassIcon,
-  ShieldIcon,
   UsersIcon,
   type IconProps,
 } from "@/components/icons";
@@ -13,14 +12,17 @@ import {
  * devuelve el backend (`worker/domain/value_objects.py`) a etiquetas e
  * íconos legibles en español. Única fuente de verdad de estos labels — no
  * dupliques el mapeo en las pantallas, importá de acá.
+ *
+ * `perfil_verificado` **ya no vive acá** (EPIC-001, ADR-0010): la identidad es
+ * un dominio separado de la reputación. "Identidad verificada" se muestra con
+ * `IdentityVerifiedBadge` (`lib/identity.ts`), no como insignia de desempeño.
  */
 
 export type WorkerBadge =
   | "nunca_falto"
   | "top_mozo"
   | "top_bartender"
-  | "eventos_premium"
-  | "perfil_verificado";
+  | "eventos_premium";
 
 export type WorkerLevel = "bronce" | "plata" | "oro" | "platino";
 
@@ -29,7 +31,6 @@ export const BADGE_LABELS: Record<string, string> = {
   top_mozo: "Top Mozo",
   top_bartender: "Top Bartender",
   eventos_premium: "Eventos Premium",
-  perfil_verificado: "Perfil Verificado",
 };
 
 /** Una línea explicando qué significa cada insignia (tooltip/subtítulo). */
@@ -38,7 +39,6 @@ export const BADGE_DESCRIPTIONS: Record<string, string> = {
   top_mozo: "Entre los mejores puntuados como mozo/a",
   top_bartender: "Entre los mejores puntuados como bartender",
   eventos_premium: "Cubrió eventos premium con excelencia",
-  perfil_verificado: "Identidad y documentación verificadas",
 };
 
 export const BADGE_ICONS: Record<string, ComponentType<IconProps>> = {
@@ -46,7 +46,6 @@ export const BADGE_ICONS: Record<string, ComponentType<IconProps>> = {
   top_mozo: UsersIcon,
   top_bartender: GlassIcon,
   eventos_premium: AwardIcon,
-  perfil_verificado: ShieldIcon,
 };
 
 export const LEVEL_LABELS: Record<string, string> = {

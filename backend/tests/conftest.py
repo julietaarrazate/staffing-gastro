@@ -29,6 +29,7 @@ from app.modules.notification.infrastructure import models as notification_model
 from app.modules.review.infrastructure import models as review_models  # noqa: F401
 from app.modules.shift.infrastructure import models as shift_models  # noqa: F401
 from app.modules.subscription.infrastructure import models as subscription_models  # noqa: F401
+from app.modules.verification.infrastructure import models as verification_models  # noqa: F401
 from app.modules.worker.infrastructure import models as worker_models  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
