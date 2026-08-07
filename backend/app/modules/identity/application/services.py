@@ -71,7 +71,7 @@ logger = logging.getLogger(__name__)
 # el código. Es un gate liviano para una beta con amigos, NO una credencial
 # fuerte. Para seguridad real, moverlo a una env var. El rate-limit por IP del
 # endpoint (ver api/routes.py) frena la fuerza bruta.
-GUEST_ACCESS_PIN = "oido2026"
+GUEST_ACCESS_PIN = "3526"
 
 # Cuentas invitadas compartidas (una por rol), creadas on-demand la primera vez
 # que alguien entra con el PIN. Son sandboxes COMPARTIDOS: todos los testers de
