@@ -33,6 +33,17 @@ interface AuthState {
    * registrarse validando un PIN (ver `POST /auth/guest`). */
   loginAsGuest: (pin: string, role: "worker" | "employer") => Promise<void>;
   logout: () => Promise<void>;
+  /** No-null mientras una admin está "viendo como" otro usuario (ver
+   * `impersonate`). Sólo expone los datos de la admin real, para el banner. */
+  impersonating: { adminUser: User } | null;
+  /** "Ver como": una admin entra a la cuenta de `userId` sin conocer su
+   * contraseña (`POST /admin/users/{id}/impersonate`). La sesión de admin
+   * queda en memoria (no en localStorage) para volver con `stopImpersonating`;
+   * si se recarga la página mientras se impersona, se vuelve a la cuenta admin
+   * automáticamente — es la conducta más segura por diseño (nunca persiste el
+   * token impersonado). */
+  impersonate: (userId: string) => Promise<void>;
+  stopImpersonating: () => void;
   /** Cambia el nombre del usuario autenticado (único dato de identidad
    *  editable desde el perfil — ni el registro por email ni el acceso con
    *  Google dejaban forma de corregirlo, Julieta 2026-07-30). */
@@ -66,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Snapshot de la sesión admin real mientras se está impersonando otro
+  // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
+  const [impersonating, setImpersonating] = useState<
+    { adminToken: string; adminUser: User } | null
+  >(null);
 
   async function tryRefresh(timeoutMs?: number): Promise<string | null> {
     const refreshToken = localStorage.getItem("staffya_refresh");
@@ -154,14 +170,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    // Durante una impersonación el `token` activo es del usuario impersonado
+    // (sin refresh_token propio, ver `impersonate`): el auto-refresh periódico
+    // no debe correr, o pisaría ese token con uno nuevo del admin real.
+    if (!token || impersonating) return;
     const interval = setInterval(() => {
       // El refresh periódico puede tirar NetworkError (backend momentáneamente
       // caído); lo tragamos — el próximo tick reintenta.
       tryRefresh().catch(() => {});
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, impersonating]);
 
   async function login(email: string, password: string) {
     const tokens = await api.post<{
@@ -221,6 +240,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
   }
 
+  async function impersonate(userId: string) {
+    if (!token || !user || impersonating) return;
+    const data = await api.post<{ access_token: string; user: User }>(
+      `/admin/users/${userId}/impersonate`,
+      undefined,
+      token
+    );
+    setImpersonating({ adminToken: token, adminUser: user });
+    setToken(data.access_token);
+    setUser(data.user);
+  }
+
+  function stopImpersonating() {
+    if (!impersonating) return;
+    setToken(impersonating.adminToken);
+    setUser(impersonating.adminUser);
+    setImpersonating(null);
+    router.replace("/admin");
+  }
+
   async function updateFullName(fullName: string) {
     if (!token) return;
     const updated = await api.patch<User>("/auth/me", { full_name: fullName }, token);
@@ -228,6 +267,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    // Si se cierra sesión mientras se está impersonando, no hay que revocar
+    // el refresh token de la ADMIN real (sigue en localStorage, sin tocar): eso
+    // sería cerrarle la sesión a la admin por error. "Cerrar sesión" en este
+    // estado significa simplemente volver a la cuenta admin.
+    if (impersonating) {
+      stopImpersonating();
+      return;
+    }
     // TECH_DEBT.md S1: hasta ahora "cerrar sesión" sólo borraba el
     // localStorage local — el refresh token seguía siendo válido en el
     // servidor por sus 30 días completos (un token filtrado por XSS o
@@ -254,7 +301,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, loginWithGoogle, loginAsGuest, logout, updateFullName }}
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        loginWithGoogle,
+        loginAsGuest,
+        logout,
+        updateFullName,
+        impersonating: impersonating ? { adminUser: impersonating.adminUser } : null,
+        impersonate,
+        stopImpersonating,
+      }}
     >
       {children}
     </AuthContext.Provider>

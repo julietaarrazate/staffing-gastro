@@ -11,8 +11,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.modules.admin.api.dependencies import get_admin_service
-from app.modules.admin.api.schemas import AdminUserResponse, PlatformStatsResponse
+from app.modules.admin.api.schemas import (
+    AdminUserResponse,
+    ImpersonateResponse,
+    PlatformStatsResponse,
+)
 from app.modules.admin.application.exceptions import (
+    CannotImpersonateAdminError,
     CannotModifySelfError,
     TargetUserNotFoundError,
 )
@@ -110,3 +115,32 @@ async def promote_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     # Otorga rol ADMIN — el evento de mayor sensibilidad de todo este router.
     logger.warning("admin promote_user: admin=%s target=%s → ADMIN", current.id, user_id)
     return result
+
+
+@router.post(
+    "/users/{user_id}/impersonate",
+    response_model=ImpersonateResponse,
+    summary='"Ver como": entrar a la cuenta de un usuario para testing/soporte (admin)',
+)
+async def impersonate_user(user_id: UUID, current: AdminDep, service: ServiceDep):
+    try:
+        user, access_token = await service.impersonate(user_id)
+    except TargetUserNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
+        ) from exc
+    except CannotImpersonateAdminError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se puede ver la app como otra cuenta de administrador",
+        ) from exc
+    # Auditoría: quién vio la app como quién y cuándo (dato sensible — un
+    # admin accede a la cuenta de un usuario real). Ver ADR pendiente si esto
+    # necesita persistirse en tabla además del log.
+    logger.warning(
+        "admin impersonate: admin=%s (%s) → target=%s (%s, rol=%s)",
+        current.id, current.email, user.id, user.email, user.role.value,
+    )
+    return ImpersonateResponse(
+        access_token=access_token, user=AdminUserResponse.model_validate(user)
+    )

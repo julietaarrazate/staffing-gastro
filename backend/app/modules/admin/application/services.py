@@ -8,13 +8,16 @@ moderación de usuarios y el cálculo de métricas agregadas.
 from uuid import UUID
 
 from app.core.dt import naive as _naive
+from app.core.security import create_access_token
 from app.modules.admin.application.dtos import PlatformStats
 from app.modules.admin.application.exceptions import (
+    CannotImpersonateAdminError,
     CannotModifySelfError,
     TargetUserNotFoundError,
 )
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
+from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
 
 
@@ -84,6 +87,24 @@ class AdminService:
         user = await self._get(user_id)
         user.promote_to_admin()
         return await self._users.update(user)
+
+    async def impersonate(self, user_id: UUID) -> tuple[User, str]:
+        """"Ver como": emite un access token del usuario destino para que la
+        administradora pueda probar la app tal cual la ve un comercio o un
+        trabajador real, sin conocer su contraseña.
+
+        A propósito **no** emite refresh token ni crea `RefreshSession`: la
+        sesión de impersonación es de vida corta (el TTL normal del access
+        token, hoy 15 min) y no dejar rastro persistente de sesión "real" del
+        usuario impersonado. No se puede impersonar a otro admin (evita
+        escalada/confusión de sesiones). El llamador (capa API) registra el
+        evento en el log de auditoría — este método no lo hace porque no
+        conoce quién es la administradora que lo pidió."""
+        user = await self._get(user_id)
+        if user.role == UserRole.ADMIN:
+            raise CannotImpersonateAdminError()
+        token = create_access_token(str(user.id), extra_claims={"role": user.role.value})
+        return user, token
 
     async def _get(self, user_id: UUID) -> User:
         user = await self._users.get_by_id(user_id)
