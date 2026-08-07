@@ -198,36 +198,48 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 
 ## Pendiente de la operadora (Julieta — no es trabajo de código)
 
-1. **Env vars en Render/Vercel** para lo ya construido y no probado
-   end-to-end por falta de credenciales en el entorno de desarrollo:
-   `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `VAPID_PUBLIC_KEY`/
-   `VAPID_PRIVATE_KEY`/`VAPID_CONTACT_EMAIL`, `SENTRY_DSN`/
-   `NEXT_PUBLIC_SENTRY_DSN`, `RESEND_API_KEY`, `MERCADOPAGO_ACCESS_TOKEN`.
-   Todo el código ya es no-op sin sus variables (mismo patrón "flag por
-   ausencia" en todo el repo).
-2. **Apagar `SEED_DEMO_DATA`** en `render.yaml`/Render **antes** de
-   onboardear comercios reales (hoy sigue en `"true"`, re-siembra datos demo
-   idempotentes sobre la base de Neon en cada arranque en frío).
-3. **Ensayo de restore de Neon**: confirmar que el backup/restore de Neon
-   funciona de verdad (no sólo que existe) antes de depender de él para
-   producción con usuarios reales.
-4. Confirmar en el dashboard de Render que el deploy quedó verde contra Neon
-   (código y `DATABASE_URL` ya están, falta la verificación visual — sin
-   acceso a Render desde una sesión de agente).
-5. **WhatsApp Business API** (feature de enganche): requiere cuenta/API del
-   lado de Julieta — distinto del botón "Compartir por WhatsApp" (`wa.me`),
-   ya resuelto en #77.
-6. Subir fotos reales al seed (R2.5): requiere credenciales de la cuenta
-   Cloudinary del proyecto, no automatizable sin ellas.
-7. **Cloudinary en Vercel — bloquea la foto de perfil** (verificado en
-   producción 2026-07-28: "no me deja poner foto"). Sin
-   `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`,
-   `uploadImage` corta con "La subida de imágenes no está configurada
-   todavía". El preset tiene que ser **unsigned** (Cloudinary → Settings →
-   Upload → Upload presets → Signing mode: Unsigned). Ojo: son
-   `NEXT_PUBLIC_*`, o sea que se **hornean en el build** — hay que marcarlas
-   en el environment *Production* y **redeployar sin caché**, si no el bundle
-   sigue sin el valor (mismo error que pasó con el Client ID de Google).
+### Estado de env vars (verificado con Julieta el 2026-08-07)
+
+**Ya configuradas — NO volver a pedirlas:**
+- **Vercel (frontend):** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
+  `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
+  `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_SENTRY_DSN`.
+- **Render (backend):** `CORS_ORIGINS`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`,
+  `JWT_SECRET_KEY`, `RESEND_API_KEY`, `SEED_DEMO_DATA`, `SENTRY_DSN`,
+  `VAPID_CONTACT_EMAIL`, `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`.
+- Efecto: **Cloudinary** (foto de perfil + subida de DNI/selfie), **Google
+  login**, **push (VAPID)**, **Sentry**, **emails (Resend)** quedan operativos.
+
+**Faltan / a confirmar (esto sí destraba cosas):**
+1. 🔴 **`ADMIN_EMAILS`** (Render) — **el más importante y el que falta.** Sin
+   él **no existe ningún admin**: no se puede revisar la cola de "Identidad
+   verificada", ni moderar usuarios, ni entrar a `/admin`. Cargar el email de
+   Julieta ahí. Con esto + Cloudinary, la **verificación de identidad F1 queda
+   operativa de punta a punta**. (El bootstrap la promueve al arrancar — ver
+   `app/modules/admin/bootstrap.py`.)
+2. 🟠 **`SEED_DEMO_DATA` = `false`** (Render): la var existe; confirmar que el
+   **valor** sea `false` (el dashboard pisa `render.yaml`, donde ya está en
+   `false`). Si sigue en `true`, re-siembra datos demo en cada arranque.
+3. 🟢 **`MERCADOPAGO_ACCESS_TOKEN`** (Render): sólo para pagos reales; el
+   enforcement está apagado, así que **no urge** para la beta.
+4. 🟢 **Confirmar** `ENVIRONMENT=production` (Render) y `NEXT_PUBLIC_API_URL`
+   (Vercel, apuntando al backend de Render): si la app anda, casi seguro ya
+   están; sólo verificar que existan.
+
+> El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
+> configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
+
+**Otros pendientes operativos (no env vars):**
+- **Ensayo de restore de Neon**: confirmar que el backup/restore funciona de
+  verdad antes de depender de él con usuarios reales.
+- Confirmar en el dashboard de Render que el deploy quedó verde contra Neon
+  (incluida la migración `0025` de identidad).
+- **WhatsApp Business API** (feature de enganche): requiere cuenta/API de
+  Julieta — distinto del botón "Compartir por WhatsApp" (`wa.me`, #77).
+- Subir fotos reales al seed (R2.5): requiere la cuenta Cloudinary del proyecto.
+- El preset de Cloudinary debe ser **unsigned** (Settings → Upload → Upload
+  presets → Signing mode: Unsigned); las `NEXT_PUBLIC_*` se **hornean en el
+  build** → marcar en *Production* y **redeployar sin caché**.
 
 ## Convenciones de git
 
