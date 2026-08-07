@@ -20,6 +20,15 @@ class AdminUserResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class ImpersonateResponse(BaseModel):
+    """Token de "ver como" (sin refresh: sesión de vida corta, ver
+    `AdminService.impersonate`) + el usuario impersonado."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: AdminUserResponse
+
+
 class PlatformStatsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

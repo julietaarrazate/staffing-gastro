@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/ui";
 import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 // Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
 // por defecto de toda la app.
@@ -103,6 +104,7 @@ export default function RootLayout({
           <ToastProvider>
             <PushPromptProvider>
               <SplashScreen />
+              <ImpersonationBanner />
               <Navbar />
               <main className="flex-1 pb-20 md:pb-0">{children}</main>
               <BottomNav />

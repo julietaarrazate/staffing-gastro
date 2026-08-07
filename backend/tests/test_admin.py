@@ -208,3 +208,67 @@ async def test_action_on_missing_user_returns_404(client, session_factory):
     missing = "00000000-0000-0000-0000-000000000000"
     resp = await client.post(f"/api/v1/admin/users/{missing}/activate", headers=admin)
     assert resp.status_code == 404
+
+
+# --- "Ver como" (impersonación) ---------------------------------------------
+
+
+async def test_admin_can_impersonate_worker(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin@test.com")
+    await auth_headers(client, "worker", "worker@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == "worker@test.com")
+
+    resp = await client.post(f"/api/v1/admin/users/{target_id}/impersonate", headers=admin)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["user"]["email"] == "worker@test.com"
+    assert body["user"]["role"] == "worker"
+    # Sin refresh: sesión de impersonación de vida corta, no queda sesión
+    # persistente a nombre del usuario impersonado.
+    assert "refresh_token" not in body
+
+    # El token entrega efectivamente la identidad del trabajador.
+    as_worker = {"Authorization": f"Bearer {body['access_token']}"}
+    me = await client.get("/api/v1/auth/me", headers=as_worker)
+    assert me.status_code == 200
+    assert me.json()["email"] == "worker@test.com"
+
+
+async def test_admin_can_impersonate_employer(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin@test.com")
+    await auth_headers(client, "employer", "comercio@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == "comercio@test.com")
+
+    resp = await client.post(f"/api/v1/admin/users/{target_id}/impersonate", headers=admin)
+    assert resp.status_code == 200
+    assert resp.json()["user"]["role"] == "employer"
+
+
+async def test_cannot_impersonate_another_admin(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin@test.com")
+    other_admin = await _make_admin(client, session_factory, "otro-admin@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == "otro-admin@test.com")
+
+    resp = await client.post(f"/api/v1/admin/users/{target_id}/impersonate", headers=admin)
+    assert resp.status_code == 400
+
+
+async def test_impersonate_missing_user_returns_404(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin@test.com")
+    missing = "00000000-0000-0000-0000-000000000000"
+    resp = await client.post(f"/api/v1/admin/users/{missing}/impersonate", headers=admin)
+    assert resp.status_code == 404
+
+
+async def test_non_admin_cannot_impersonate(client: AsyncClient):
+    worker = await auth_headers(client, "worker", "worker2@test.com")
+
+    # Ni siquiera puede llamar directamente al endpoint sabiendo un id ajeno.
+    resp = await client.post(
+        "/api/v1/admin/users/00000000-0000-0000-0000-000000000000/impersonate",
+        headers=worker,
+    )
+    assert resp.status_code == 403

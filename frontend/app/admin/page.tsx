@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminUser, PlatformStats } from "@/lib/types";
@@ -9,6 +10,7 @@ import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Skeleton, Spinner
 import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
   CheckCircleIcon,
+  EyeIcon,
   ShieldIcon,
   UsersIcon,
 } from "@/components/icons";
@@ -63,7 +65,8 @@ function AdminUserRowSkeleton() {
 }
 
 export default function AdminPage() {
-  const { user, token, loading } = useAuth();
+  const { user, token, loading, impersonate } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +109,23 @@ export default function AdminPage() {
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo completar la acción"));
     } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleImpersonate(userId: string) {
+    setBusy(`${userId}:impersonate`);
+    try {
+      await impersonate(userId);
+      // Al home: resuelve la vista correcta según el rol impersonado
+      // (feed para trabajador, panel para comercio).
+      router.push("/");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : getErrorMessage(err, "No se pudo entrar como este usuario")
+      );
       setBusy(null);
     }
   }
@@ -269,6 +289,18 @@ export default function AdminPage() {
                     onClick={() => act(u.id, "verify")}
                   >
                     Verificar
+                  </Button>
+                )}
+                {u.role !== "admin" && (
+                  <Button
+                    size="sm"
+                    variant="surface"
+                    leftIcon={<EyeIcon size={14} />}
+                    disabled={busy !== null}
+                    loading={busy === `${u.id}:impersonate`}
+                    onClick={() => handleImpersonate(u.id)}
+                  >
+                    Ver como
                   </Button>
                 )}
                 {u.role !== "admin" && (
