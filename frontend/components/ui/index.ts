@@ -11,4 +11,5 @@ export { default as ErrorBanner } from "./ErrorBanner";
 export { default as Sheet } from "./Sheet";
 export { default as Modal } from "./Modal";
 export { default as SegmentedControl } from "./SegmentedControl";
+export { default as Toggle } from "./Toggle";
 export { ToastProvider, useToast } from "./Toast";

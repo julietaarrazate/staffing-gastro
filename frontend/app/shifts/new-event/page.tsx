@@ -8,7 +8,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
-import { Button, TextField, useToast } from "@/components/ui";
+import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 
 interface RoleRow {
@@ -281,29 +281,3 @@ export default function NewEventPage() {
   );
 }
 
-function Toggle({
-  label,
-  checked,
-  onChange,
-  icon,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-line"
-    >
-      <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink/80">
-        {icon} {label}
-      </span>
-      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-success" : "bg-line"}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
-      </span>
-    </button>
-  );
-}
