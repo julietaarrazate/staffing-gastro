@@ -48,6 +48,14 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GuestLoginRequest(BaseModel):
+    """Acceso de invitado para la beta ("Explorar sin cuenta"): sólo el PIN y
+    qué lado querés probar (trabajador o comercio)."""
+
+    pin: str = Field(min_length=1, max_length=64)
+    role: RegisterableRole = RegisterableRole.WORKER
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

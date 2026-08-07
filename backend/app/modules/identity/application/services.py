@@ -42,6 +42,7 @@ from app.modules.identity.domain.exceptions import (
     GoogleEmailNotVerifiedError,
     InactiveUserError,
     InvalidCredentialsError,
+    InvalidGuestPinError,
     InvalidTokenError,
     PasswordResetTokenInvalidError,
     RefreshTokenRevokedError,
@@ -54,9 +55,31 @@ from app.modules.identity.domain.repositories import (
     RefreshSessionRepository,
     UserRepository,
 )
+from app.modules.identity.domain.value_objects import UserRole
 from app.modules.notification.domain.email_sender import EmailSender
 
 logger = logging.getLogger(__name__)
+
+# --- Acceso de invitado para la beta ("Explorar sin cuenta") --------------
+# PIN pensado para que un grupo cerrado de testers entre a probar la app sin
+# registrarse. Se configura ACÁ, en el código (no es una env var, a pedido de
+# la operadora: "algo simple que puedas configurar, sin variables").
+#
+#   👉 Para cambiar el PIN, editá esta constante y nada más.
+#
+# OJO (honestidad): si el repositorio es público, este valor queda visible en
+# el código. Es un gate liviano para una beta con amigos, NO una credencial
+# fuerte. Para seguridad real, moverlo a una env var. El rate-limit por IP del
+# endpoint (ver api/routes.py) frena la fuerza bruta.
+GUEST_ACCESS_PIN = "oido2026"
+
+# Cuentas invitadas compartidas (una por rol), creadas on-demand la primera vez
+# que alguien entra con el PIN. Son sandboxes COMPARTIDOS: todos los testers de
+# un mismo rol usan la misma cuenta (suficiente para "que mis amigos prueben").
+_GUEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
+    UserRole.WORKER: ("invitado.trabajador@oido.beta", "Invitado · Trabajador"),
+    UserRole.EMPLOYER: ("invitado.comercio@oido.beta", "Invitado · Comercio"),
+}
 
 # Vigencia del token de recuperación de contraseña.
 PASSWORD_RESET_TOKEN_TTL = timedelta(hours=1)
@@ -116,6 +139,31 @@ class IdentityService:
         user = await self._users.get_by_email(command.email)
         if user is None or not verify_password(command.password, user.hashed_password):
             raise InvalidCredentialsError()
+        if not user.is_active:
+            raise InactiveUserError()
+        return await self._issue_tokens(user)
+
+    async def guest_login(self, pin: str, role: UserRole) -> TokenPair:
+        """Acceso de invitado (beta): valida el PIN configurado en código y
+        entra en la cuenta invitada compartida del rol pedido, creándola la
+        primera vez. El tester sólo pone el PIN — nunca se exponen
+        credenciales, y la cuenta invitada tiene contraseña imposible (no se
+        puede loguear por email/contraseña)."""
+        if not secrets.compare_digest(pin, GUEST_ACCESS_PIN):
+            raise InvalidGuestPinError()
+
+        email, name = _GUEST_ACCOUNTS[role]
+        user = await self._users.get_by_email(email)
+        if user is None:
+            user = await self._users.add(
+                User(
+                    email=email,
+                    hashed_password=_google_local_password(),
+                    full_name=name,
+                    role=role,
+                    is_verified=True,
+                )
+            )
         if not user.is_active:
             raise InactiveUserError()
         return await self._issue_tokens(user)

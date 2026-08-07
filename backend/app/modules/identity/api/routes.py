@@ -15,6 +15,7 @@ from app.modules.identity.api.schemas import (
     ForgotPasswordResponse,
     GoogleAuthRequest,
     GoogleRoleRequiredResponse,
+    GuestLoginRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -42,6 +43,7 @@ from app.modules.identity.domain.exceptions import (
     GoogleTokenInvalidError,
     InactiveUserError,
     InvalidCredentialsError,
+    InvalidGuestPinError,
     InvalidTokenError,
     PasswordResetTokenInvalidError,
     RefreshTokenRevokedError,
@@ -68,6 +70,8 @@ _forgot_password_rate_limit = RateLimiter(
 _google_auth_rate_limit = RateLimiter(
     max_attempts=10, window_seconds=60, name="google_auth"
 )
+# Acceso de invitado por PIN: límite por IP para frenar la fuerza bruta del PIN.
+_guest_rate_limit = RateLimiter(max_attempts=10, window_seconds=60, name="guest")
 # PRODUCTION_HARDENING.md: antes sin límite — a diferencia de login/register,
 # un refresh token robado se podía usar para renovar sin ningún throttle.
 _refresh_rate_limit = RateLimiter(max_attempts=20, window_seconds=60, name="refresh")
@@ -129,6 +133,35 @@ async def login(payload: LoginRequest, service: ServiceDep, request: Request) ->
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta no está activa",
+        ) from exc
+    return TokenResponse(**tokens.__dict__)
+
+
+@router.post(
+    "/guest",
+    response_model=TokenResponse,
+    summary="Entrar como invitado (beta) con un PIN, sin registrarse",
+    dependencies=[Depends(_guest_rate_limit)],
+)
+async def guest_login(
+    payload: GuestLoginRequest, service: ServiceDep, request: Request
+) -> TokenResponse:
+    """Acceso para testers de la beta: con el PIN correcto entra en una cuenta
+    invitada compartida del rol elegido (trabajador o comercio), sin registro.
+    El PIN se configura en el código (`IdentityService.GUEST_ACCESS_PIN`)."""
+    try:
+        tokens = await service.guest_login(
+            payload.pin, UserRole(payload.role.value)
+        )
+    except InvalidGuestPinError as exc:
+        logger.warning("guest login: PIN inválido ip=%s", _client_ip(request))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="PIN incorrecto"
+        ) from exc
+    except InactiveUserError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta de invitado no está activa",
         ) from exc
     return TokenResponse(**tokens.__dict__)
 
