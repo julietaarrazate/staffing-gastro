@@ -13,7 +13,7 @@ import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import WorkerReviews from "@/components/WorkerReviews";
-import { BriefcaseIcon, MapPinIcon } from "@/components/icons";
+import { BriefcaseIcon, ClipboardIcon, MapPinIcon } from "@/components/icons";
 
 function ProfilePageSkeleton() {
   return (
@@ -161,6 +161,19 @@ export default function PublicWorkerProfilePage() {
                 Certificaciones
               </p>
               <p className="mt-1 text-sm text-ink/75">{profile.certifications.join(", ")}</p>
+            </div>
+          )}
+
+          {profile.cv_url && (
+            <div className="mt-4">
+              <a
+                href={profile.cv_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+              >
+                <ClipboardIcon size={16} /> Ver CV
+              </a>
             </div>
           )}
 
