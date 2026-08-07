@@ -83,18 +83,25 @@ export default function ProfilePage() {
                 <EditableName className="font-display text-lg font-semibold text-ink" />
                 <p className="truncate text-sm text-ink/50">{user.email}</p>
                 <span className="mt-1 inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
-                  Comercio
+                  {user.role === "admin" ? "Administrador" : "Comercio"}
                 </span>
               </div>
             </div>
           )}
 
-          <div className="mt-7">
-            <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
-            <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-              {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
+          {/* Un admin no tiene perfil de trabajador ni comercio propio — antes
+              caía en la rama "no worker" y renderizaba `CompanyProfileForm`
+              (que pega a /companies/me, 403 para un admin sin comercio:
+              "Permisos insuficientes" en pantalla, reporte real de Julieta
+              probando su propia cuenta). */}
+          {user.role !== "admin" && (
+            <div className="mt-7">
+              <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
+              <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+                {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div>
@@ -121,12 +128,14 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className="mt-7">
-            <SectionLabel>Reseñas recibidas</SectionLabel>
-            <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-              <ReceivedReviews />
+          {user.role !== "admin" && (
+            <div className="mt-7">
+              <SectionLabel>Reseñas recibidas</SectionLabel>
+              <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+                <ReceivedReviews />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-7">
             <SectionLabel>Otros</SectionLabel>
