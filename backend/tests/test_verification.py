@@ -209,6 +209,38 @@ async def test_full_verification_flow(client, session_factory):
 
 
 @pytest.mark.asyncio
+async def test_public_worker_profile_shows_verified_identity(client, session_factory):
+    """El comercio ve "Identidad verificada" en el perfil público del
+    trabajador una vez aprobada (enriquecido por puerto, sin exponer evidencias)."""
+    worker = await auth_headers(client, "worker", "w-pub@test.com")
+    admin = await _make_admin(client, session_factory, "admin-pub@test.com")
+
+    profile = await client.post(
+        "/api/v1/workers/me/profile", headers=worker, json={"skills": ["mozo"]}
+    )
+    profile_id = profile.json()["id"]
+    assert profile.json()["identidad_verificada"] is False
+
+    await client.post(
+        "/api/v1/identity/me/document",
+        headers=worker,
+        json={"dni_frente_url": "https://x/a.jpg", "selfie_url": "https://x/b.jpg"},
+    )
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    claim_id = pending.json()[0]["claim_id"]
+    await client.post(f"/api/v1/identity/claims/{claim_id}/approve", headers=admin)
+
+    # Otro usuario (comercio) mira el perfil público: lo ve verificado.
+    viewer = await auth_headers(client, "employer", "viewer-pub@test.com")
+    public = await client.get(f"/api/v1/workers/{profile_id}", headers=viewer)
+    assert public.status_code == 200
+    body = public.json()
+    assert body["identidad_verificada"] is True
+    # No-disclosure: el perfil público nunca trae evidencias.
+    assert "evidences" not in body
+
+
+@pytest.mark.asyncio
 async def test_non_admin_cannot_list_or_approve(client: AsyncClient):
     worker = await auth_headers(client, "worker", "w-noadmin@test.com")
     resp = await client.get("/api/v1/identity/claims/pending", headers=worker)

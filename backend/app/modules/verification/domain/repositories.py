@@ -37,3 +37,11 @@ class ClaimRepository(ABC):
     @abstractmethod
     async def list_pending(self) -> list[Claim]:
         """Cola de revisión: claims en estado PENDIENTE (con sus evidencias)."""
+
+    @abstractmethod
+    async def verified_user_ids(
+        self, user_ids: list[UUID], claim_type: ClaimType
+    ) -> set[UUID]:
+        """De los `user_ids` dados, cuáles tienen un claim VERIFICADA de ese
+        tipo. Consulta batch para que los consumidores (perfil público, cola
+        de candidatos) no hagan N+1."""

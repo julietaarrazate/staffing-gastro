@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CandidateMatch } from "@/lib/types";
 import { Avatar, Button } from "@/components/ui";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { BoltIcon } from "@/components/icons";
 import {
   CandidateStatChips,
@@ -50,6 +51,9 @@ export default function CandidateCard({
             >
               {candidate.full_name}
             </Link>
+            {candidate.identidad_verificada && (
+              <IdentityVerifiedBadge verified className="mt-1" />
+            )}
             <CandidateStatChips signals={candidate} className="mt-1" />
           </div>
         </div>

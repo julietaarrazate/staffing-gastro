@@ -121,6 +121,14 @@ class VerificationService:
             for claim in claims
         ]
 
+    async def verified_user_ids(self, user_ids: list[UUID]) -> set[UUID]:
+        """De los `user_ids` dados, cuáles tienen la identidad verificada
+        (documento verificado = L2+). Para que perfil público y cola de
+        candidatos muestren "Identidad verificada" sin exponer evidencias."""
+        return await self._claims.verified_user_ids(
+            user_ids, ClaimType.DOCUMENTO_VERIFICADO
+        )
+
     async def get_identity_summary(self, user_id: UUID) -> IdentitySummary:
         """Estado de identidad del sujeto (sin datos sensibles): nivel de
         garantía + flag visible + estado de cada claim."""

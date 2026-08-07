@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
@@ -112,6 +113,12 @@ export default function PublicWorkerProfilePage() {
             <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
             <span className="text-sm text-ink/40">· {profile.events_completed} eventos</span>
           </div>
+
+          {profile.identidad_verificada && (
+            <div className="mt-3">
+              <IdentityVerifiedBadge verified />
+            </div>
+          )}
 
           {profile.bio && <p className="mt-4 text-sm text-ink/75">{profile.bio}</p>}
 

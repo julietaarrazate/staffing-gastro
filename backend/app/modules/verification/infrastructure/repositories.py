@@ -134,3 +134,16 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def verified_user_ids(
+        self, user_ids: list[UUID], claim_type: ClaimType
+    ) -> set[UUID]:
+        if not user_ids:
+            return set()
+        stmt = select(IdentityClaimModel.user_id).where(
+            IdentityClaimModel.user_id.in_(user_ids),
+            IdentityClaimModel.claim_type == claim_type.value,
+            IdentityClaimModel.status == ClaimStatus.VERIFICADA.value,
+        )
+        result = await self._session.execute(stmt)
+        return {row[0] for row in result.all()}

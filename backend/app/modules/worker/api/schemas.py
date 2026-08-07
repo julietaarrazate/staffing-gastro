@@ -56,4 +56,7 @@ class WorkerProfileResponse(BaseModel):
     no_shows: int
     badges: list[WorkerBadge]
     level: GamificationLevel
+    # Identidad (EPIC-001, ADR-0010): atributo del dominio Identity, NO una
+    # insignia de reputación. Lo ve el comercio; nunca se exponen evidencias.
+    identidad_verificada: bool = False
     created_at: datetime | None = None
