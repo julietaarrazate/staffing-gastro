@@ -5,10 +5,10 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-07 (**"Ver como" (#165, mergeado) + batch de
-bugs de QA en vivo (#166, en revisión).** Julieta probó la app real (comercio
-y trabajador, mobile) y reportó varios bugs de golpe; quedaron resueltos en
-`claude/staffya-guest-bugfixes` (PR #166):
+*Última actualización: 2026-08-07 (**"Ver como" (#165) + batch de bugs de QA
+en vivo (#166) + fix de perfil admin, los tres mergeados.** Julieta probó la
+app real (comercio, trabajador y admin, mobile) y reportó varios bugs de
+golpe; quedaron resueltos en `claude/staffya-guest-bugfixes` (PR #166):
 1. **Explorar sin cuenta pedía el PIN antes que el rol** — invertido: primero
    "Soy comercio"/"Soy trabajador", después el PIN (`frontend/app/login/page.tsx`).
 2. **"Cancelar turno" sin confirmación** — causa real de "publico un turno,
@@ -47,23 +47,28 @@ un test E2E nuevo para el cierre del Sheet: hubiera sido flaky en este entorno
 sin ser un bug real. La corrección en sí se verificó manualmente (DOM
 `.click()` + inspección del árbol de elementos).
 
-**Reportado por Julieta en la misma sesión, todavía SIN resolver** (matería
+**Resuelto en la misma sesión, después del batch #166:**
+- ✅ **Perfil admin mostraba badge "Comercio" y "Mi comercio" tiraba "Permisos
+  insuficientes"** (`frontend/app/profile/page.tsx`) — la pantalla sólo
+  ramificaba worker vs. "todo lo demás" (employer); un admin caía en la rama
+  de comercio por defecto y `CompanyProfileForm` pegaba a `/companies/me`
+  (403, sin comercio propio). Ahora el admin tiene su propia rama: badge
+  "Administrador", sin secciones de comercio/trabajador/reseñas.
+- ✅ **"Ver como" (#165) SÍ está donde debía** — verificado en el código
+  (`app/admin/page.tsx`): hay una sección "Usuarios" con el botón, debajo de
+  "Identidades por verificar". Julieta no había scrolleado lo suficiente en
+  la captura, no era un bug.
+- ✅ **El ícono del estado vacío "No hay identidades por revisar" no está mal
+  dimensionado** — es el patrón estándar de `EmptyState` (caja de 96px con
+  ícono chico centrado), igual que en el resto de la app. Confirmado con el
+  cálculo de escala de la captura; se retira de la lista de pendientes.
+
+**Reportado por Julieta en la misma sesión, todavía SIN resolver** (materia
 para la próxima sesión, por prioridad):
-- 🔴 **Su propio perfil (cuenta admin) muestra badge "Comercio" y la sección
-  "Mi comercio" tira "Permisos insuficientes"** — screenshot real. Hay que
-  revisar si el bootstrap de admin (`app/modules/admin/bootstrap.py`) cambia
-  el `role` del usuario o sólo un flag separado, y por qué `/profile` sigue
-  renderizando UI de comercio para una cuenta admin.
-- 🟠 **No quedó claro si la lista de usuarios con el botón "Ver como" (#165)
-  es visible/alcanzable** desde lo que Julieta vio en `/admin` (sólo mostró el
-  dashboard de KPIs, "Identidades por verificar") — confirmar que hay un
-  link/tab a la lista de usuarios y que el botón aparece ahí.
 - 🟠 **Cuentas invitado apareciendo en resultados reales de búsqueda/mapa**
   ("Invitado · Trabajador", 0.0 ★, con el logo de la app como foto) — mezclan
   con trabajadores reales que ve un comercio buscando personal; evaluar
   filtrarlas de `/search` y `/map`.
-- 🟡 Ícono del estado vacío "No hay identidades por revisar" en `/admin` se ve
-  desproporcionadamente grande (contenedor mal dimensionado).
 - 🟡 Pedido explícito de Julieta: **auditoría de QA/performance/UX/UI/diseño
   más sistemática** ("hoy la app está a un 40%, llevarla a 90%") — no es una
   tarea puntual, es una línea de trabajo continua. Sin arrancar todavía más
