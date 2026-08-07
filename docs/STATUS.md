@@ -5,7 +5,18 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-07 (**EPIC-001 · Trust & Identity Platform —
+*Última actualización: 2026-08-07 (**Decisión de producto — identidad opcional
+en la beta**: post-F1, Julieta planteó que pedir DNI + prueba de vida con
+revisión manual es demasiada fricción para un marketplace en beta (Oído no es un
+banco). Decisión: la verificación de identidad **queda opcional y sin
+protagonismo** (ya no bloquea nada); la confianza de la beta se apoya en
+**verificación de teléfono (L1, liviana/gratis — a construir)** + **reputación
+(ya construida)**; la **verificación automática de DNI se difiere a F5/M4**
+(proveedor KYC con free tier tipo Didit o RENAPER), a activar sólo si un comercio
+lo pide o aparece fraude — encaja en el puerto `IdentityVerifier` sin redominar.
+No cambia la arquitectura. Detalle y **lista de pendientes** en
+[`TRUST_SYSTEM.md`](./TRUST_SYSTEM.md) §"Decisión de producto — postura de
+identidad en la beta". Antes, mismo día: **EPIC-001 · Trust & Identity Platform —
 F1 IMPLEMENTADA** (PR #157): tras aprobar el rediseño conceptual (#156,
 mergeado), se construyó la Fase 1 del dominio de verificación de identidad.
 Módulo backend nuevo **`verification`** (bounded context "Identity"; se llama
