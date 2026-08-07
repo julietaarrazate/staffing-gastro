@@ -4,9 +4,25 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-08-05**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-08-07**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
+>
+> **Frente abierto (2026-08-07): QA en vivo de Julieta probando la app real**
+> (comercio y trabajador, mobile). Primer batch de bugs ya en PR #166
+> (`claude/staffya-guest-bugfixes`, en revisión): orden PIN/rol en "Explorar
+> sin cuenta", confirmación al cancelar un turno asignado, el `Sheet` (bottom
+> sheet del DS) que no cerraba con la X, el tab "Recomendados" que se perdía
+> al volver de un perfil, y precisión del pin de geolocalización al dar de
+> alta un local. Detalle de cada fix y **lo que todavía queda sin resolver**
+> (perfil admin mostrando badge "Comercio" con "Permisos insuficientes",
+> visibilidad de la lista de "Ver como" en `/admin`, cuentas invitado en
+> resultados de búsqueda reales, ícono desproporcionado en el estado vacío de
+> "Identidades por verificar") en [docs/STATUS.md](./docs/STATUS.md). Julieta
+> pidió explícitamente una auditoría de QA/performance/UX/UI/diseño más
+> sistemática ("la app está a un 40%, llevarla a 90%") — es una línea de
+> trabajo continua, no una tarea puntual; seguir por prioridad desde los
+> pendientes de arriba y `docs/TECH_DEBT.md`.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
@@ -18,10 +34,7 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > `/shifts/new` (panel de vista previa fijo al lado del wizard),
 > `/companies/[id]` (mapa + "cómo llegar" a un costado cuando hay
 > coordenadas) y `/subscription` (la grilla ya estaba lista, sólo faltaba
-> ensanchar el contenedor). No hay ningún frente puntual abierto ahora
-> mismo — antes de arrancar algo nuevo sin instrucción explícita, mirá
-> `docs/TECH_DEBT.md` para el siguiente ítem por prioridad. Detalle
-> completo y el patrón del problema en
+> ensanchar el contenedor). Detalle completo y el patrón del problema en
 > [docs/STATUS.md](./docs/STATUS.md).
 
 ## Contexto en 30 segundos

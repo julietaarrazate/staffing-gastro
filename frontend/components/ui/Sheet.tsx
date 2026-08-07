@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { CloseIcon } from "@/components/icons";
@@ -13,6 +13,14 @@ import { CloseIcon } from "@/components/icons";
  * X visible y responde a Escape — en desktop nadie arrastra un sheet y "tocá
  * el fondo para cerrar" no es descubrible, así que sin un cierre explícito
  * parecía trabado (bug reportado por Julieta, panel del comercio 2026-08-07).
+ *
+ * El `drag="y"` sólo arranca desde el handle/header (`dragListener={false}` +
+ * `dragControls`, iniciado a mano con `onPointerDown`). Antes estaba en TODO
+ * el panel: un click en la X (o en cualquier botón/link del contenido) podía
+ * interpretarse como el arranque de un arrastre y Framer Motion se comía el
+ * `onClick` — coincide con el reporte de que la X "no cerraba, sólo
+ * deslizando" (Julieta, 2026-08-07 — el fix anterior sólo agregó el botón,
+ * no sacó el drag del medio).
  */
 export default function Sheet({
   open,
@@ -26,6 +34,7 @@ export default function Sheet({
   children: ReactNode;
 }) {
   const reducedMotion = useReducedMotion();
+  const dragControls = useDragControls();
 
   useEffect(() => {
     if (!open) return;
@@ -62,6 +71,8 @@ export default function Sheet({
             exit={{ y: "100%" }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 32 }}
             drag="y"
+            dragListener={false}
+            dragControls={dragControls}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
             onDragEnd={(_, info) => {
@@ -69,12 +80,16 @@ export default function Sheet({
             }}
             className="relative z-10 max-h-[88dvh] overflow-y-auto rounded-t-[var(--radius-sheet)] bg-white pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-[var(--shadow-float)]"
           >
-            <div className="sticky top-0 z-10 flex flex-col items-center gap-2 rounded-t-[var(--radius-sheet)] bg-white pb-2 pt-3">
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="sticky top-0 z-10 flex touch-none flex-col items-center gap-2 rounded-t-[var(--radius-sheet)] bg-white pb-2 pt-3"
+            >
               <span className="h-1.5 w-10 rounded-full bg-line" />
               {title && <h3 className="text-base font-bold text-ink">{title}</h3>}
               <button
                 type="button"
                 onClick={onClose}
+                onPointerDown={(e) => e.stopPropagation()}
                 aria-label="Cerrar"
                 className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface text-ink/60 transition hover:bg-line hover:text-ink active:scale-95"
               >

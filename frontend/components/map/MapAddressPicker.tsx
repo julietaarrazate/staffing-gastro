@@ -63,6 +63,12 @@ export default function MapAddressPicker({
   const [dragging, setDragging] = useState(false);
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  // El geocoder por texto ubica aproximado (a veces erra la cuadra/edificio,
+  // reporte real de Julieta con su propia dirección). Antes la única pista de
+  // que el pin es ajustable era un texto chico debajo del mapa, fácil de no
+  // ver — este cartel es explícito y desaparece recién cuando el comercio
+  // arrastra el pin, usa su ubicación GPS, o confirma a mano.
+  const [justPickedFromSearch, setJustPickedFromSearch] = useState(false);
 
   const mapRef = useRef<MapRef | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -121,6 +127,7 @@ export default function MapAddressPicker({
     setPin({ lat: result.latitude, lng: result.longitude });
     setResults([]);
     setStatus("idle");
+    setJustPickedFromSearch(true);
     flyToPoint(mapRef.current, [result.latitude, result.longitude], { zoom: 17, duration: 900 });
     onChange({
       address: result.address,
@@ -132,6 +139,7 @@ export default function MapAddressPicker({
 
   function handleDragEnd(e: MarkerDragEvent) {
     setDragging(false);
+    setJustPickedFromSearch(false);
     const { lat, lng } = e.lngLat;
     setPin({ lat, lng });
     onChange({ address, city, latitude: lat, longitude: lng });
@@ -153,6 +161,7 @@ export default function MapAddressPicker({
     try {
       const { latitude, longitude } = await getCurrentPosition();
       setPin({ lat: latitude, lng: longitude });
+      setJustPickedFromSearch(false);
       flyToPoint(mapRef.current, [latitude, longitude], { zoom: 16, duration: 900 });
       onChange({ address, city, latitude, longitude });
     } catch (err) {
@@ -284,6 +293,23 @@ export default function MapAddressPicker({
         )}
       </div>
 
+      {justPickedFromSearch && (
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-100">
+          <span className="flex items-center gap-2">
+            <AlertTriangleIcon size={16} className="shrink-0" />
+            Este punto es aproximado. Arrastrá el pin hasta la entrada de tu
+            local, o usá tu ubicación GPS si estás ahí ahora.
+          </span>
+          <button
+            type="button"
+            onClick={() => setJustPickedFromSearch(false)}
+            className="shrink-0 font-semibold underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
+          >
+            Ya lo verifiqué
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-ink/50">
           {pin
@@ -294,7 +320,12 @@ export default function MapAddressPicker({
           type="button"
           onClick={useMyLocation}
           disabled={geoBusy}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink/70 hover:bg-line disabled:opacity-60"
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-60",
+            justPickedFromSearch
+              ? "bg-primary text-ink hover:bg-primary/90"
+              : "bg-surface text-ink/70 hover:bg-line"
+          )}
         >
           <MapPinIcon size={14} />
           {geoBusy ? "Obteniendo ubicación…" : "Usar mi ubicación actual"}

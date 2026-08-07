@@ -5,7 +5,76 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-07 (**Decisión de producto — identidad opcional
+*Última actualización: 2026-08-07 (**"Ver como" (#165, mergeado) + batch de
+bugs de QA en vivo (#166, en revisión).** Julieta probó la app real (comercio
+y trabajador, mobile) y reportó varios bugs de golpe; quedaron resueltos en
+`claude/staffya-guest-bugfixes` (PR #166):
+1. **Explorar sin cuenta pedía el PIN antes que el rol** — invertido: primero
+   "Soy comercio"/"Soy trabajador", después el PIN (`frontend/app/login/page.tsx`).
+2. **"Cancelar turno" sin confirmación** — causa real de "publico un turno,
+   toco más, y se cancela el turno asignado": el menú "Más acciones" cancelaba
+   sin preguntar (a diferencia de "No se presentó", que sí confirma). Ahora
+   confirma, con aviso distinto si hay trabajador asignado.
+3. **La X del `Sheet` (bottom sheet del DS) no cerraba, sólo deslizando** — la
+   causa real (un fix anterior, PR #159, sólo había agregado el botón sin
+   arreglar esto): `drag="y"` de Framer Motion estaba en todo el panel, así que
+   un click en la X (o cualquier botón/link de adentro) podía leerse como el
+   arranque de un arrastre y perderse. Ahora el arrastre sólo arranca desde el
+   handle/header (`dragListener` + `dragControls`), nunca compite con los
+   controles de adentro. Verificado con click directo en la X (ver nota de QA
+   más abajo sobre por qué el E2E automatizado de esto no se pudo agregar).
+4. **"Recomendados" se perdía al volver del perfil de un candidato** — el tab
+   ahora vive en la URL (`?tab=recomendados`), no sólo en estado local.
+5. **Geolocalización imprecisa al dar de alta un local** (reporte real:
+   Julieta cargó su propia dirección y la distancia no daba) — el geocoder
+   (Nominatim) puede errar la ubicación exacta y la única pista de que el pin
+   es ajustable era un texto chico. Ahora hay un cartel explícito tras elegir
+   un resultado de búsqueda, invitando a arrastrar el pin o usar el GPS.
+
+**Nota de QA importante (para la próxima sesión):** el `webServer` de
+Playwright (`npm run start`) sirve el build de `.next/` tal cual está — **no
+rebuildea solo**. Si corrés E2E localmente después de tocar código, corré
+`npm run build` primero o vas a estar testeando código viejo (esto costó horas
+en esta sesión: el fix del Sheet parecía no funcionar y en realidad el server
+de pruebas estaba sirviendo un build de 50 minutos antes). Aparte, este
+entorno de desarrollo tiene un Chromium con mismatch de versión respecto al
+`@playwright/test` del repo (no pasa en CI) que hace que la verificación de
+"qué elemento intercepta un click" (`elementFromPoint`/actionability) dé falsos
+positivos en componentes con animación (`Modal`/`Sheet`) — confirmado
+reproduciendo el mismo síntoma en un test pre-existente sin tocar
+(`employer-wizard.spec.ts`, que usa `Modal`, no `Sheet`). Por eso no se agregó
+un test E2E nuevo para el cierre del Sheet: hubiera sido flaky en este entorno
+sin ser un bug real. La corrección en sí se verificó manualmente (DOM
+`.click()` + inspección del árbol de elementos).
+
+**Reportado por Julieta en la misma sesión, todavía SIN resolver** (matería
+para la próxima sesión, por prioridad):
+- 🔴 **Su propio perfil (cuenta admin) muestra badge "Comercio" y la sección
+  "Mi comercio" tira "Permisos insuficientes"** — screenshot real. Hay que
+  revisar si el bootstrap de admin (`app/modules/admin/bootstrap.py`) cambia
+  el `role` del usuario o sólo un flag separado, y por qué `/profile` sigue
+  renderizando UI de comercio para una cuenta admin.
+- 🟠 **No quedó claro si la lista de usuarios con el botón "Ver como" (#165)
+  es visible/alcanzable** desde lo que Julieta vio en `/admin` (sólo mostró el
+  dashboard de KPIs, "Identidades por verificar") — confirmar que hay un
+  link/tab a la lista de usuarios y que el botón aparece ahí.
+- 🟠 **Cuentas invitado apareciendo en resultados reales de búsqueda/mapa**
+  ("Invitado · Trabajador", 0.0 ★, con el logo de la app como foto) — mezclan
+  con trabajadores reales que ve un comercio buscando personal; evaluar
+  filtrarlas de `/search` y `/map`.
+- 🟡 Ícono del estado vacío "No hay identidades por revisar" en `/admin` se ve
+  desproporcionadamente grande (contenedor mal dimensionado).
+- 🟡 Pedido explícito de Julieta: **auditoría de QA/performance/UX/UI/diseño
+  más sistemática** ("hoy la app está a un 40%, llevarla a 90%") — no es una
+  tarea puntual, es una línea de trabajo continua. Sin arrancar todavía más
+  allá de lo de arriba.
+
+Antes, mismo día: **"Ver como" (PR #165, mergeado)** — desde `/admin` un admin
+impersona una cuenta real de comercio o trabajador para testear/dar soporte,
+con auditoría, banner "Viendo como X" y vuelta con un click, sin dejar sesión
+persistente en la otra cuenta (`POST /admin/users/{id}/impersonate`, sólo
+access token de 15min, sin refresh token). Backend: 296 tests. Antes:
+**Decisión de producto — identidad opcional
 en la beta**: post-F1, Julieta planteó que pedir DNI + prueba de vida con
 revisión manual es demasiada fricción para un marketplace en beta (Oído no es un
 banco). Decisión: la verificación de identidad **queda opcional y sin

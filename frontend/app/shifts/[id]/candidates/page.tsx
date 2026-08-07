@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
@@ -25,13 +25,24 @@ import { UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
-export default function ShiftCandidatesPage() {
+function ShiftCandidatesContent() {
   const { token } = useAuth();
   const router = useRouter();
   const toast = useToast();
   const params = useParams<{ id: string }>();
   const shiftId = params.id;
-  const [tab, setTab] = useState<Tab>("postulantes");
+  const searchParams = useSearchParams();
+  // El tab va en la URL (no sólo en state) para que al entrar a un perfil
+  // desde "Recomendados" y volver atrás, el back nativo del navegador
+  // restaure el mismo tab en vez de reiniciar en "Postulantes" (bug
+  // reportado por Julieta: "vuelvo atrás y sale de los recomendados").
+  const [tab, setTabState] = useState<Tab>(
+    searchParams.get("tab") === "recomendados" ? "recomendados" : "postulantes"
+  );
+  function setTab(next: Tab) {
+    setTabState(next);
+    router.replace(`/shifts/${shiftId}/candidates?tab=${next}`, { scroll: false });
+  }
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -183,5 +194,13 @@ export default function ShiftCandidatesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ShiftCandidatesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ShiftCandidatesContent />
+    </Suspense>
   );
 }

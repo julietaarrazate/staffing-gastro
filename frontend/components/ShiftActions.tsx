@@ -27,12 +27,14 @@ export default function ShiftActions({
   busy,
   onRun,
   onNoShow,
+  onCancel,
 }: {
   shift: Shift;
   busy: string | null;
   /** `candidates` no pasa por acá: es un Link, no una mutación. */
   onRun: (id: string, action: Exclude<PrimaryAction, "candidates"> | "cancel") => void;
   onNoShow: () => void;
+  onCancel: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const step = nextStepFor(shift);
@@ -132,7 +134,7 @@ export default function ShiftActions({
               disabled={busy !== null}
               onClick={() => {
                 setMenuOpen(false);
-                onRun(shift.id, "cancel");
+                onCancel();
               }}
             >
               Cancelar turno
