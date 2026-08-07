@@ -24,10 +24,15 @@ export default function Modal({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, onClose]);
 
   return (
     <AnimatePresence>
@@ -42,6 +47,9 @@ export default function Modal({
             className="absolute inset-0 bg-black/40"
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={title ?? "Diálogo"}
             initial={reducedMotion ? false : { opacity: 0, scale: 0.92, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.96 }}
