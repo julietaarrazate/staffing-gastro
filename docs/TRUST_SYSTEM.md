@@ -740,3 +740,80 @@ bidireccional (el activo cubre ambos lados del mercado).
 - **No se agrega una sección genérica de "Product Assets"**: el único activo que
   importa nombrar es el PIG/Career History; un inventario de activos de deck
   sería complejidad sin retorno.
+
+---
+---
+
+# Decisión de producto — postura de identidad en la beta (2026-08-07)
+
+> Decisión de Julieta tras implementar la F1. **No cambia la arquitectura**
+> (Claim/Evidence, puerto `IdentityVerifier`, niveles L0–L4 quedan igual):
+> ajusta **la prioridad y el protagonismo** de la verificación de identidad en
+> la beta. Registrada acá para retomarla cuando haga falta.
+
+## El planteo
+
+Oído no es un banco. Pedir **DNI + prueba de vida** a todos, y encima con
+**revisión manual**, es fricción alta para un marketplace en beta — y contradice
+el principio fundacional (registro en < 1 minuto, identidad **nunca** obligatoria
+para explorar). Otras apps del rubro no exigen tanto de entrada; la confianza
+puede apoyarse primero en señales más livianas.
+
+## La decisión
+
+1. **La verificación de identidad (DNI + selfie) queda OPCIONAL y sin
+   protagonismo.** Ya lo es en la F1: no bloquea registro, publicación,
+   postulación ni chat. Es un **plus para destacar** ("Identidad verificada"),
+   no un peaje. Se puede, además, **esconder/atenuar** la sección del perfil si
+   se quiere bajar aún más su presencia (no implementado; decisión abierta).
+2. **La confianza de la beta se apoya en señales livianas y gratis:**
+   - **Verificación de teléfono** (nivel **L1**) — automática, cero fricción,
+     gratis. *Todavía no construida* (ver Pendiente).
+   - **Reputación real** (puntualidad, turnos cumplidos, reseñas) — ya
+     construida; es la señal más fuerte y no depende de documentación.
+3. **La verificación automática de DNI queda diferida a F5 / madurez M4**, para
+   activar **sólo cuando un comercio lo pida o aparezca fraude**. Encaja en el
+   puerto `IdentityVerifier` **sin redominar**: es cambiar la estrategia
+   `admin_manual` por una automática (proveedor KYC con free tier tipo Didit, o
+   RENAPER autoritativo pago). La revisión manual queda como **respaldo**, no
+   como el camino principal.
+
+## Por qué esto es coherente con el diseño
+
+El `TRUST_SYSTEM` §10 ya define la confianza como **multi-señal**: identidad es
+**una** dimensión, no la única. Bajar el protagonismo de la identidad y apoyarse
+en reputación + contacto verificado es *usar* el modelo, no contradecirlo. Y
+como el método de verificación es una estrategia (ADR-0010 §3), pasar de manual
+a automático más adelante no cuesta un rediseño.
+
+## Pendiente (para retomar)
+
+**Diferido por esta decisión (F5+, cuando haga falta):**
+- **Verificación automática de DNI + liveness**: comparativa de proveedores
+  (Didit, Verifik, Truora, Veriff/Sumsub) — costo real, cuota gratis, si pegan a
+  **RENAPER**, privacidad — + **ADR de integración** y su implementación sobre
+  el puerto `IdentityVerifier`. Cambia también la UX de captura (SDK del
+  proveedor con liveness) — el dominio no cambia.
+- **Consentimiento específico para biométricos + acuerdo de encargado de
+  tratamiento** (Ley 25.326) antes de mandar selfies a un tercero
+  (ver `reference/IDENTITY_DATA_RETENTION.md`).
+
+**Señal liviana de la beta (a construir si se prioriza):**
+- **Verificación de teléfono (L1)**: claim `telefono_verificado` (envío de
+  código por SMS/WhatsApp y validación). Encaja en el modelo Claim/Evidence ya
+  existente; falta el canal de envío (proveedor de SMS) y la UI. Es la señal
+  automática/gratis más obvia para arrancar.
+
+**Operativo — para que lo YA construido (F1) ande en producción:**
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
+  (unsigned) en Vercel *Production* — sin esto, subir DNI/selfie corta (mismo
+  bloqueo que la foto de perfil). Redeploy sin caché (son `NEXT_PUBLIC_*`).
+- `ADMIN_EMAILS` en Render — sin al menos un admin no hay quien revise la cola.
+- Confirmar que la **migración 0025** (`identity_claims`/`identity_evidences`)
+  corrió en Neon en el deploy.
+
+**Roadmap de confianza (F2+, ya documentado arriba):**
+- Extraer `professional_profile` / `reputation` de `worker` (F2).
+- Renombre `identity` → `account` (F2).
+- Claims del **comercio** (`negocio_verificado` / `cuit_verificado`).
+- Asistente IA de carga de perfil (épica aparte).
