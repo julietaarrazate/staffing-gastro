@@ -24,22 +24,37 @@ export function cldThumb(url: string | null | undefined, width: number): string 
 }
 
 export async function uploadImage(file: File): Promise<string> {
+  return uploadToCloudinary(file, "image");
+}
+
+/**
+ * Sube cualquier archivo (PDF, foto, doc) al endpoint `/auto/upload` de
+ * Cloudinary, que detecta el tipo de recurso solo — a diferencia de
+ * `uploadImage`, que pega directo a `/image/upload` y sólo acepta imágenes.
+ * Usado por el CV del trabajador (`CvUpload.tsx`): antes sólo se podía pegar
+ * un link, pedido real de Julieta de poder arrastrar un PDF o una foto.
+ */
+export async function uploadFile(file: File): Promise<string> {
+  return uploadToCloudinary(file, "auto");
+}
+
+async function uploadToCloudinary(file: File, resourceType: "image" | "auto"): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
   if (!cloudName || !uploadPreset) {
-    throw new Error("La subida de imágenes no está configurada todavía.");
+    throw new Error("La subida de archivos no está configurada todavía.");
   }
 
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
     method: "POST",
     body: formData,
   });
   if (!res.ok) {
-    throw new Error("No se pudo subir la imagen. Probá de nuevo.");
+    throw new Error("No se pudo subir el archivo. Probá de nuevo.");
   }
   const data = await res.json();
   return data.secure_url as string;

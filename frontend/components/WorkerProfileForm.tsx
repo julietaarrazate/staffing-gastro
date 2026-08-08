@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import ImageUpload from "@/components/ImageUpload";
+import CvUpload from "@/components/CvUpload";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 
 /** "Español, Inglés" → ["Español", "Inglés"] (limpia vacíos y espacios). */
@@ -226,18 +227,7 @@ export default function WorkerProfileForm() {
         placeholder="Ej: Manipulación de alimentos, Carnet de manipulador"
       />
 
-      <div>
-        <TextField
-          label="CV (link)"
-          value={cvUrl}
-          onChange={setCvUrl}
-          placeholder="Pegá el link a tu CV (Drive, PDF, LinkedIn)"
-          inputMode="text"
-        />
-        <p className="mt-1 text-xs text-ink/45">
-          Opcional. Un CV le da más seguridad al comercio a la hora de elegir.
-        </p>
-      </div>
+      <CvUpload value={cvUrl} onChange={setCvUrl} />
 
       <Toggle
         label="Disponible para tomar turnos"

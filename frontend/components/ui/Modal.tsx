@@ -2,10 +2,16 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Diálogo centrado con backdrop (para confirmaciones). Para acciones desde
  * abajo usar `Sheet`. Entra con un leve pop.
+ *
+ * Portado a `document.body` (mismo motivo que `Sheet.tsx`, ver su comentario
+ * para el detalle completo): sin portal, un `Card` ancestro con `whileTap`
+ * activo le rompe el *containing block* al `position: fixed` de acá, y los
+ * botones de adentro dejan de recibir el click aunque se vean bien.
  */
 export default function Modal({
   open,
@@ -34,10 +40,19 @@ export default function Modal({
     };
   }, [open, onClose]);
 
-  return (
+  const content = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+        // `z-[60]`, por encima del `z-50` de `Sheet`: ambos portan a
+        // `document.body` (ver nota de arriba) y pueden coexistir de verdad
+        // — p. ej. el modal "¡Turno publicado!" y el sheet de activar
+        // notificaciones push, disparados por la misma acción de publicar.
+        // Antes del portal el orden salía bien de pura casualidad (el modal
+        // vivía más profundo en el árbol que el sheet del prompt de push,
+        // que envuelve toda la app desde el layout); con los dos en el mismo
+        // contenedor hay que decidir la prioridad a mano: una confirmación
+        // que el usuario tiene que resolver pesa más que un nudge dismisible.
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -63,4 +78,7 @@ export default function Modal({
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(content, document.body);
 }

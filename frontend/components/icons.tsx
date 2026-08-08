@@ -18,6 +18,7 @@ import {
   Eye,
   EyeOff,
   Car,
+  FileText,
   Check,
   CheckCheck,
   CheckCircle2,
@@ -47,6 +48,7 @@ import {
   Sparkles,
   Star,
   Trash2,
+  Upload,
   Users,
   Utensils,
   Wallet,
@@ -118,4 +120,6 @@ export const AlertTriangleIcon = make(AlertTriangle);
 export const SparklesIcon = make(Sparkles);
 export const ShareIcon = make(Share2);
 export const CopyIcon = make(Copy);
+export const FileTextIcon = make(FileText);
+export const UploadIcon = make(Upload);
 export const PencilIcon = make(Pencil);
