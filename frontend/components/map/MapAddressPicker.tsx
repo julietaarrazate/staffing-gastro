@@ -137,9 +137,20 @@ export default function MapAddressPicker({
     });
   }
 
+  function handleDragStart() {
+    setDragging(true);
+    // Además del propio manejo de MapLibre GL (que ya debería frenar el
+    // paneo mientras se arrastra el marker), lo apagamos a mano: reporte
+    // real de Julieta de que el mapa entero se movía junto con el pin en
+    // vez de quedar fijo — defensa barata contra el bug más común y
+    // documentado de "arrastrar el marker también arrastra el mapa".
+    mapRef.current?.getMap().dragPan.disable();
+  }
+
   function handleDragEnd(e: MarkerDragEvent) {
     setDragging(false);
     setJustPickedFromSearch(false);
+    mapRef.current?.getMap().dragPan.enable();
     const { lat, lng } = e.lngLat;
     setPin({ lat, lng });
     onChange({ address, city, latitude: lat, longitude: lng });
@@ -260,7 +271,7 @@ export default function MapAddressPicker({
               latitude={pin.lat}
               anchor="bottom"
               draggable
-              onDragStart={() => setDragging(true)}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
               <div
