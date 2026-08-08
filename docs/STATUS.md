@@ -6,7 +6,7 @@
 > que se mergea un cambio relevante (o inmediatamente después).
 
 *Última actualización: 2026-08-08 (**Cuentas invitado filtradas de
-`/search`/`/map` (en revisión).** Julieta reportó ver las cuentas invitado
+`/search`/`/map` (#170, mergeado).** Julieta reportó ver las cuentas invitado
 compartidas (`invitado.trabajador@oido.beta`, "Explorar sin cuenta") mezcladas
 con trabajadores reales al buscar en `/search` o mirar `/map`. Como ambas
 pantallas terminan pegándole al mismo endpoint (`GET /matching/search`), el
