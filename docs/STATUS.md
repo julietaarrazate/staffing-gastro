@@ -5,8 +5,27 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-08 (**Causa raíz real de la X del Sheet que no
-cerraba + mapa que se movía con el pin + subida de CV (en revisión).**
+*Última actualización: 2026-08-08 (**Cuentas invitado filtradas de
+`/search`/`/map` (en revisión).** Julieta reportó ver las cuentas invitado
+compartidas (`invitado.trabajador@oido.beta`, "Explorar sin cuenta") mezcladas
+con trabajadores reales al buscar en `/search` o mirar `/map`. Como ambas
+pantallas terminan pegándole al mismo endpoint (`GET /matching/search`), el
+fix es de una sola línea con alcance acotado: `SqlAlchemyCandidateRepository
+.list_available` (backend/app/modules/matching/infrastructure/repositories.py)
+ahora excluye por email los `WorkerProfile` cuyo `User` sea una de las cuentas
+invitado (`GUEST_ACCOUNT_EMAILS`, exportado desde
+`IdentityService`/`app/modules/identity/application/services.py` junto al
+diccionario privado `_GUEST_ACCOUNTS` que ya existía) — cubre tanto
+`get_top_candidates` (postulantes recomendados de un turno) como
+`search_workers` (usado por `/search` del comercio y por el `/map`/`/search`
+de sólo lectura del admin, PR #168). La exploración del propio invitado no se
+toca: un trabajador invitado no llama a `/matching/search` (es un endpoint de
+comercio/admin), así que no hay caso en el que el filtro le esconda algo a sí
+mismo. Test nuevo: `test_guest_worker_excluded_from_search_results`
+(`backend/tests/test_matching.py`).
+
+Antes, mismo día: **Causa raíz real de la X del Sheet que no
+cerraba + mapa que se movía con el pin + subida de CV (#169, mergeado).**
 Julieta volvió a reportar la X del `Sheet` sin cerrar en su teléfono real,
 después de que el fix anterior (PR #166, drag de Framer Motion restringido a
 la manija) pareciera correcto en el código. La causa real nunca fue el drag:

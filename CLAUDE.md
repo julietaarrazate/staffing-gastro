@@ -10,9 +10,9 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 >
 > **Frente abierto: QA en vivo de Julieta probando la app real** (comercio,
 > trabajador y admin, mobile). Mergeado hasta ahora: batch de bugs (PR #166),
-> fix de perfil admin, y mapa/búsqueda de sólo lectura para admin + fotos en
-> `/admin` + wordmark del footer (PR #168). **En revisión:** la causa REAL de
-> "la X del Sheet no cierra" — dos fixes previos al `drag` de Framer Motion
+> fix de perfil admin, mapa/búsqueda de sólo lectura para admin + fotos en
+> `/admin` + wordmark del footer (PR #168), y la causa REAL de "la X del
+> Sheet no cierra" (PR #169) — dos fixes previos al `drag` de Framer Motion
 > no alcanzaban porque el problema nunca fue el drag: `Sheet`/`Modal` no
 > portaban a `document.body`, así que un `Card` ancestro con `whileTap` les
 > rompía el *containing block* al `position: fixed`. Fix real: `createPortal`
@@ -21,12 +21,15 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > [docs/STATUS.md](./docs/STATUS.md). Mismo PR: el mapa panéaba entero al
 > arrastrar el pin de ubicación (fix: deshabilitar `dragPan` durante el
 > arrastre del marker) y el CV del trabajador ahora acepta subir un archivo
-> (PDF/Word/foto) además de pegar un link. **Sigue pendiente:** evaluar
-> filtrar cuentas invitado de `/search` y `/map` (aparecen mezcladas con
-> trabajadores reales). Julieta también pidió explícitamente una auditoría de
-> QA/performance/UX/UI/diseño más sistemática ("la app está a un 40%,
-> llevarla a 90%") — es una línea de trabajo continua, no una tarea puntual;
-> seguir por prioridad desde `docs/TECH_DEBT.md`.
+> (PDF/Word/foto) además de pegar un link. **En revisión:** las cuentas
+> invitado compartidas (`invitado.trabajador@oido.beta`/
+> `invitado.comercio@oido.beta`) ya no aparecen en `/matching/search`
+> (usado por `/search` y `/map` de un comercio/admin real) — se filtran por
+> email en `SqlAlchemyCandidateRepository.list_available`; la exploración
+> propia de un invitado no se toca. Julieta también pidió explícitamente una
+> auditoría de QA/performance/UX/UI/diseño más sistemática ("la app está a un
+> 40%, llevarla a 90%") — es una línea de trabajo continua, no una tarea
+> puntual; seguir por prioridad desde `docs/TECH_DEBT.md`.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas

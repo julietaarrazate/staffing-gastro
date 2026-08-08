@@ -178,3 +178,36 @@ async def test_admin_can_search_map_read_only(
     response = await client.get("/api/v1/matching/search", headers=admin_headers)
     assert response.status_code == 200
     assert len(response.json()) == 1
+
+
+async def test_guest_worker_excluded_from_search_results(client: AsyncClient):
+    """La cuenta invitado compartida ("Explorar sin cuenta") es un sandbox de
+    demo, no un trabajador real: no debe aparecer en los resultados que ve un
+    comercio/admin real buscando a quién contratar (pedido de Julieta, salía
+    mezclada con trabajadores reales en QA)."""
+    guest_login = await client.post(
+        "/api/v1/auth/guest", json={"pin": "3526", "role": "worker"}
+    )
+    assert guest_login.status_code == 200
+    guest_headers = {
+        "Authorization": f"Bearer {guest_login.json()['access_token']}"
+    }
+    await client.post(
+        "/api/v1/workers/me/profile",
+        headers=guest_headers,
+        json={
+            "skills": ["mozo"],
+            "years_experience": 2,
+            "is_available": True,
+            "latitude": -34.58,
+            "longitude": -58.43,
+        },
+    )
+    await _worker_profile(client, "real_worker@staffya.com", skills=["mozo"])
+
+    employer_headers = await _employer_with_company(client, "emp6@staffya.com")
+    response = await client.get("/api/v1/matching/search", headers=employer_headers)
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 1
+    assert results[0]["full_name"] != "Invitado · Trabajador"

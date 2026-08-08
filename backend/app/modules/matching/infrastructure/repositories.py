@@ -7,6 +7,7 @@ livianos del dominio de matching, sin depender de sus entidades.
 from sqlalchemy import String, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.matching.domain.entities import CandidateProfile
 from app.modules.matching.domain.repositories import CandidateRepository
@@ -55,10 +56,14 @@ class SqlAlchemyCandidateRepository(CandidateRepository):
         # substring libre), no matchea skills que sólo comparten prefijo
         # (p. ej. filtrar por "mozo" no matchea un skill guardado como
         # "mozo_bar").
+        # La cuenta invitado del trabajador (`GUEST_ACCESS_PIN`, "Explorar sin
+        # cuenta") es un sandbox compartido, no un trabajador real: no debe
+        # aparecer para un comercio/admin buscando a quién contratar.
         stmt = (
             select(WorkerProfileModel, UserModel.full_name)
             .join(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(WorkerProfileModel.is_available.is_(True))
+            .where(UserModel.email.notin_(GUEST_ACCOUNT_EMAILS))
         )
         if skill is not None:
             needle = f'%"{skill.value}"%'

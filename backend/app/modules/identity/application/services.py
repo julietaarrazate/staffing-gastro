@@ -81,6 +81,16 @@ _GUEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
     UserRole.EMPLOYER: ("invitado.comercio@oido.beta", "Invitado · Comercio"),
 }
 
+# Emails de las cuentas invitado, expuestos para que otros módulos puedan
+# excluirlas de resultados pensados para usuarios reales (p. ej. el trabajador
+# invitado no debe aparecer en /matching/search ni en el mapa de un comercio
+# real — pedido de Julieta tras verlo mezclado con trabajadores reales en QA).
+# Su propia exploración de /search o /map no se ve afectada: ese filtro sólo
+# saca la cuenta invitado de los RESULTADOS, no le cambia lo que ella ve.
+GUEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
+    email for email, _ in _GUEST_ACCOUNTS.values()
+)
+
 # Vigencia del token de recuperación de contraseña.
 PASSWORD_RESET_TOKEN_TTL = timedelta(hours=1)
 # Rate-limit silencioso de reenvío: si ya hay un token vigente creado hace
