@@ -21,11 +21,11 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > [docs/STATUS.md](./docs/STATUS.md). Mismo PR: el mapa panéaba entero al
 > arrastrar el pin de ubicación (fix: deshabilitar `dragPan` durante el
 > arrastre del marker) y el CV del trabajador ahora acepta subir un archivo
-> (PDF/Word/foto) además de pegar un link. **En revisión:** las cuentas
-> invitado compartidas (`invitado.trabajador@oido.beta`/
-> `invitado.comercio@oido.beta`) ya no aparecen en `/matching/search`
-> (usado por `/search` y `/map` de un comercio/admin real) — se filtran por
-> email en `SqlAlchemyCandidateRepository.list_available`; la exploración
+> (PDF/Word/foto) además de pegar un link. Y las cuentas invitado
+> compartidas (`invitado.trabajador@oido.beta`/`invitado.comercio@oido.beta`)
+> ya no aparecen en `/matching/search` (usado por `/search` y `/map` de un
+> comercio/admin real) — se filtran por email en
+> `SqlAlchemyCandidateRepository.list_available` (PR #170); la exploración
 > propia de un invitado no se toca. Julieta también pidió explícitamente una
 > auditoría de QA/performance/UX/UI/diseño más sistemática ("la app está a un
 > 40%, llevarla a 90%") — es una línea de trabajo continua, no una tarea
