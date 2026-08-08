@@ -64,9 +64,17 @@ export default function Navbar() {
             </>
           )}
           {!loading && user?.role === "admin" && (
-            <Link href="/admin" className="hidden hover:text-primary-text md:inline">
-              Administración
-            </Link>
+            <>
+              <Link href="/admin" className="hidden hover:text-primary-text md:inline">
+                Administración
+              </Link>
+              <Link href="/map" replace className="hidden hover:text-primary-text md:inline">
+                Mapa
+              </Link>
+              <Link href="/search" replace className="hidden hover:text-primary-text md:inline">
+                Buscar
+              </Link>
+            </>
           )}
           {!loading && user && <NotificationBell />}
           {!loading && user && (

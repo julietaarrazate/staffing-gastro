@@ -24,6 +24,13 @@ ServiceDep = Annotated[MatchingService, Depends(get_matching_service)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
+# El admin puede explorar el mapa de trabajadores en modo sólo-lectura (mismo
+# pedido de Julieta que "Ver como", pero sin tener que impersonar a nadie
+# puntual) — sólo se relaja acá, no en `/candidates` (asignar sigue siendo
+# exclusivo del comercio dueño del turno, vía `get_my_company_id`).
+EmployerOrAdminDep = Annotated[
+    User, Depends(require_roles(UserRole.EMPLOYER, UserRole.ADMIN))
+]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
 
@@ -64,7 +71,7 @@ async def get_top_candidates(
 )
 async def search_workers(
     service: ServiceDep,
-    _current_user: EmployerDep,
+    _current_user: EmployerOrAdminDep,
     skill: WorkerSkill | None = None,
     latitude: float | None = Query(default=None, ge=-90, le=90),
     longitude: float | None = Query(default=None, ge=-180, le=180),

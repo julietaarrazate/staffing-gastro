@@ -124,7 +124,7 @@ function ShiftRow({
 }
 
 export default function MapPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
@@ -197,6 +197,14 @@ export default function MapPage() {
 
   async function apply(shift: Shift) {
     if (!token || applyingId !== null) return;
+    // Un admin puede entrar acá a mirar el mapa en modo sólo-lectura (sin
+    // impersonar a nadie); postularse no tiene sentido para esa cuenta y el
+    // backend lo rechazaría igual (no tiene perfil de trabajador) — se corta
+    // antes con un mensaje claro en vez de un error crudo.
+    if (user?.role !== "worker") {
+      toast("Estás viendo el mapa como admin — sólo lectura", "error");
+      return;
+    }
     setApplyingId(shift.id);
     try {
       // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo

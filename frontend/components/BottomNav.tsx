@@ -8,6 +8,7 @@ import {
   HomeIcon,
   MapPinIcon,
   MessageIcon,
+  SearchIcon,
   ShieldIcon,
   UsersIcon,
 } from "@/components/icons";
@@ -29,6 +30,8 @@ const EMPLOYER_TABS = [
 
 const ADMIN_TABS = [
   { href: "/admin", label: "Panel", Icon: ShieldIcon },
+  { href: "/map", label: "Mapa", Icon: MapPinIcon },
+  { href: "/search", label: "Buscar", Icon: SearchIcon },
   { href: "/profile", label: "Perfil", Icon: UsersIcon },
 ];
 

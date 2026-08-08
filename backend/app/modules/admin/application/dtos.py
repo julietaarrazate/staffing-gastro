@@ -1,6 +1,29 @@
 """DTOs del módulo de administración."""
 
 from dataclasses import dataclass
+from datetime import datetime
+from uuid import UUID
+
+from app.modules.identity.domain.value_objects import UserRole, UserStatus
+
+
+@dataclass
+class AdminUserRow:
+    """Fila de la lista de usuarios del panel de administración.
+
+    Espejo de `User` (identity) más `photo_url`, resuelta por puerto desde
+    el módulo de trabajador o comercio según el rol (misma idea que
+    `VerificationService.verified_user_ids`) — el dominio `User` no carga
+    ese dato porque no le pertenece."""
+
+    id: UUID
+    email: str
+    full_name: str
+    role: UserRole
+    status: UserStatus
+    is_verified: bool
+    created_at: datetime | None
+    photo_url: str | None
 
 
 @dataclass

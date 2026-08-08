@@ -16,13 +16,18 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > perfil, precisión del pin de geolocalización al dar de alta un local, y el
 > perfil admin que mostraba badge "Comercio"/"Permisos insuficientes". La
 > visibilidad de "Ver como" y el ícono del estado vacío de `/admin` resultaron
-> no ser bugs (verificado en código). Detalle completo en
-> [docs/STATUS.md](./docs/STATUS.md). **Sigue pendiente:** evaluar filtrar
-> cuentas invitado de `/search` y `/map` (aparecen mezcladas con trabajadores
-> reales). Julieta también pidió explícitamente una auditoría de
-> QA/performance/UX/UI/diseño más sistemática ("la app está a un 40%,
-> llevarla a 90%") — es una línea de trabajo continua, no una tarea puntual;
-> seguir por prioridad desde `docs/TECH_DEBT.md`.
+> no ser bugs (verificado en código). **En revisión (PR #168):** admin ahora
+> puede navegar `/map` y `/search` en modo sólo-lectura (viendo todos los
+> trabajadores/turnos reales, sin impersonar a nadie — `/matching/search`
+> acepta rol `admin` además de `employer`), fotos de perfil en la lista de
+> "Usuarios" de `/admin`, y el wordmark "staffya" del footer de la landing
+> corregido a "oído". Detalle completo en [docs/STATUS.md](./docs/STATUS.md).
+> **Sigue pendiente:** evaluar filtrar cuentas invitado de `/search` y `/map`
+> (aparecen mezcladas con trabajadores reales). Julieta también pidió
+> explícitamente una auditoría de QA/performance/UX/UI/diseño más sistemática
+> ("la app está a un 40%, llevarla a 90%") — es una línea de trabajo
+> continua, no una tarea puntual; seguir por prioridad desde
+> `docs/TECH_DEBT.md`.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
