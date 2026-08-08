@@ -22,7 +22,9 @@ async def test_guest_login_worker_creates_and_reuses_account(client: AsyncClient
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["access_token"] and body["refresh_token"]
+    assert body["access_token"]
+    assert "refresh_token" not in body
+    assert resp.cookies.get("staffya_refresh")
     assert body["user"]["role"] == "worker"
 
     # Idempotente: un segundo ingreso reusa la MISMA cuenta invitada compartida.

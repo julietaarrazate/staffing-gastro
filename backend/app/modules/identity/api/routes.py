@@ -3,8 +3,9 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
+from app.core.config import settings
 from app.core.rate_limit import RateLimiter
 from app.modules.identity.api.dependencies import (
     get_current_user,
@@ -17,7 +18,6 @@ from app.modules.identity.api.schemas import (
     GoogleRoleRequiredResponse,
     GuestLoginRequest,
     LoginRequest,
-    RefreshRequest,
     RegisterRequest,
     ResendVerificationRequest,
     ResendVerificationResponse,
@@ -87,6 +87,47 @@ def _client_ip(request: Request) -> str:
     return client.host if client else "unknown"
 
 
+# --- Refresh token como cookie httpOnly (TECH_DEBT.md S1) -----------------
+# Antes viajaba en el body de la respuesta y se guardaba en `localStorage`
+# (frontend/lib/auth-context.tsx): un XSS podía leerlo y usarlo hasta sus 30
+# días completos de vigencia, incluso después de un "logout" (que sólo
+# borraba el localStorage local). Ahora nunca toca JS: el backend lo emite
+# como cookie `HttpOnly` y el frontend nunca lo guarda ni lo reenvía a mano
+# (sólo `credentials: "include"` para que el navegador la adjunte solo). El
+# access token (15 min) sigue viajando en el body/`localStorage` sin cambios
+# — su ventana de exposición ya es chica.
+_REFRESH_COOKIE_NAME = "staffya_refresh"
+# Acotada al propio router de auth: el navegador no la manda en el resto de
+# la API, sólo en /auth/refresh y /auth/logout.
+_REFRESH_COOKIE_PATH = "/api/v1/auth"
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    response.set_cookie(
+        key=_REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=True,
+        # `Secure` sólo puede faltar fuera de producción: en prod, frontend
+        # (Vercel) y backend (Render) son *sitios* distintos y una cookie
+        # `SameSite=None` exige `Secure` para que el navegador la acepte. En
+        # dev ambos corren en `localhost` (mismo *site* pese al puerto
+        # distinto), así que `Lax` alcanza sin necesitar HTTPS local.
+        secure=settings.is_production,
+        samesite="none" if settings.is_production else "lax",
+        path=_REFRESH_COOKIE_PATH,
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=_REFRESH_COOKIE_NAME,
+        path=_REFRESH_COOKIE_PATH,
+        secure=settings.is_production,
+        samesite="none" if settings.is_production else "lax",
+    )
+
+
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -117,7 +158,9 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
     summary="Iniciar sesión",
     dependencies=[Depends(_login_rate_limit)],
 )
-async def login(payload: LoginRequest, service: ServiceDep, request: Request) -> TokenResponse:
+async def login(
+    payload: LoginRequest, service: ServiceDep, request: Request, response: Response
+) -> TokenResponse:
     try:
         tokens = await service.authenticate(
             LoginCommand(email=payload.email, password=payload.password)
@@ -134,6 +177,7 @@ async def login(payload: LoginRequest, service: ServiceDep, request: Request) ->
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta no está activa",
         ) from exc
+    _set_refresh_cookie(response, tokens.refresh_token)
     return TokenResponse(**tokens.__dict__)
 
 
@@ -144,7 +188,7 @@ async def login(payload: LoginRequest, service: ServiceDep, request: Request) ->
     dependencies=[Depends(_guest_rate_limit)],
 )
 async def guest_login(
-    payload: GuestLoginRequest, service: ServiceDep, request: Request
+    payload: GuestLoginRequest, service: ServiceDep, request: Request, response: Response
 ) -> TokenResponse:
     """Acceso para testers de la beta: con el PIN correcto entra en una cuenta
     invitada compartida del rol elegido (trabajador o comercio), sin registro.
@@ -163,6 +207,7 @@ async def guest_login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta de invitado no está activa",
         ) from exc
+    _set_refresh_cookie(response, tokens.refresh_token)
     return TokenResponse(**tokens.__dict__)
 
 
@@ -172,7 +217,7 @@ async def guest_login(
     dependencies=[Depends(_google_auth_rate_limit)],
 )
 async def google_auth(
-    payload: GoogleAuthRequest, service: ServiceDep
+    payload: GoogleAuthRequest, service: ServiceDep, response: Response
 ) -> TokenResponse | GoogleRoleRequiredResponse:
     """Ver docs/reference/ACCESO_MODERNO.md. Devuelve `TokenResponse` (mismo contrato
     que `/auth/login`) si el email ya tiene cuenta o si se indicó `role` para
@@ -208,6 +253,7 @@ async def google_auth(
 
     if isinstance(result, GoogleRoleRequired):
         return GoogleRoleRequiredResponse(email=result.email, full_name=result.full_name)
+    _set_refresh_cookie(response, result.refresh_token)
     return TokenResponse(**result.__dict__)
 
 
@@ -217,9 +263,15 @@ async def google_auth(
     summary="Renovar tokens",
     dependencies=[Depends(_refresh_rate_limit)],
 )
-async def refresh(payload: RefreshRequest, service: ServiceDep, request: Request) -> TokenResponse:
+async def refresh(service: ServiceDep, request: Request, response: Response) -> TokenResponse:
+    refresh_token = request.cookies.get(_REFRESH_COOKIE_NAME)
+    if refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido",
+        )
     try:
-        tokens = await service.refresh(payload.refresh_token)
+        tokens = await service.refresh(refresh_token)
     except RefreshTokenRevokedError as exc:
         # jti reusado tras revocación = señal de robo (ver IdentityService.refresh,
         # que ya revoca todas las sesiones del usuario). Vale la pena distinguirlo
@@ -240,6 +292,7 @@ async def refresh(payload: RefreshRequest, service: ServiceDep, request: Request
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta no está activa",
         ) from exc
+    _set_refresh_cookie(response, tokens.refresh_token)
     return TokenResponse(**tokens.__dict__)
 
 
@@ -248,9 +301,15 @@ async def refresh(payload: RefreshRequest, service: ServiceDep, request: Request
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Cerrar sesión (revoca el refresh token)",
 )
-async def logout(payload: RefreshRequest, service: ServiceDep) -> None:
+async def logout(service: ServiceDep, request: Request, response: Response) -> None:
+    refresh_token = request.cookies.get(_REFRESH_COOKIE_NAME)
+    _clear_refresh_cookie(response)
+    # Sin cookie no hay nada que revocar: logout no-op, no un error (a
+    # diferencia de una cookie presente pero inválida, que sí es 401 abajo).
+    if refresh_token is None:
+        return
     try:
-        await service.logout(payload.refresh_token)
+        await service.logout(refresh_token)
     except InvalidTokenError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

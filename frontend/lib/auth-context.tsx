@@ -62,14 +62,22 @@ const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 // blanco — se degrada a mostrar el landing/login sin cerrar la sesión.
 const AUTH_TIMEOUT_MS = 12 * 1000;
 
-function persistTokens(access: string, refresh: string) {
+// TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly (nunca en el
+// body de la respuesta ni en localStorage) — un XSS ya no puede leerlo ni
+// exfiltrarlo. El navegador la adjunta solo en cada request a `/auth/*`
+// (`credentials: "include"`, ver lib/api.ts); acá sólo queda el access token
+// (15 min, exposición chica) y una marca SIN secreto para saber si vale la
+// pena intentar `/auth/refresh` al abrir la app — sin ella, cada visita
+// anónima a la landing dispararía un refresh al pedo (la cookie httpOnly no
+// se puede leer desde JS para decidirlo de otra forma).
+function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
-  localStorage.setItem("staffya_refresh", refresh);
+  localStorage.setItem("staffya_has_session", "1");
 }
 
-function clearTokens() {
+function clearSession() {
   localStorage.removeItem("staffya_token");
-  localStorage.removeItem("staffya_refresh");
+  localStorage.removeItem("staffya_has_session");
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -84,16 +92,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   >(null);
 
   async function tryRefresh(timeoutMs?: number): Promise<string | null> {
-    const refreshToken = localStorage.getItem("staffya_refresh");
-    if (!refreshToken) return null;
+    // Sin esta marca no hay (o ya no hay) sesión que renovar — el refresh
+    // token real vive sólo en la cookie httpOnly, invisible para JS.
+    if (!localStorage.getItem("staffya_has_session")) return null;
     try {
-      const tokens = await api.post<{ access_token: string; refresh_token: string }>(
+      const tokens = await api.post<{ access_token: string }>(
         "/auth/refresh",
-        { refresh_token: refreshToken },
+        undefined,
         null,
         timeoutMs
       );
-      persistTokens(tokens.access_token, tokens.refresh_token);
+      persistAccessToken(tokens.access_token);
       setToken(tokens.access_token);
       return tokens.access_token;
     } catch (err) {
@@ -101,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // se propaga para degradar sin cerrar la sesión. Sólo un ApiError real
       // (refresh vencido/revocado) devuelve null → login.
       if (err instanceof NetworkError) throw err;
+      clearSession();
       return null;
     }
   }
@@ -108,13 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function restoreSession() {
       const storedAccess = localStorage.getItem("staffya_token");
-      const storedRefresh = localStorage.getItem("staffya_refresh");
+      const hasSession = localStorage.getItem("staffya_has_session");
 
-      // Sin refresh token no hay sesión que restaurar (30 días vencidos, o
-      // nunca hubo login): a login, sin intentar nada más. Si quedó un
-      // access token huérfano (sin su refresh), lo limpiamos.
-      if (!storedRefresh) {
-        if (storedAccess) clearTokens();
+      // Sin la marca de sesión no hay (30 días vencidos, cookie borrada, o
+      // nunca hubo login) nada que restaurar: a login, sin intentar nada
+      // más. Si quedó un access token huérfano, lo limpiamos.
+      if (!hasSession) {
+        if (storedAccess) clearSession();
         setLoading(false);
         return;
       }
@@ -142,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const refreshed = await tryRefresh(AUTH_TIMEOUT_MS);
         if (!refreshed) {
           // Refresh ausente/realmente vencido (no red): a login.
-          clearTokens();
+          clearSession();
           setToken(null);
           setLoading(false);
           return;
@@ -151,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS));
         } catch (err) {
           if (err instanceof NetworkError) throw err;
-          clearTokens();
+          clearSession();
           setToken(null);
         }
         setLoading(false);
@@ -159,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Backend dormido/caído: no cerramos sesión, sólo dejamos de cargar.
         if (!(err instanceof NetworkError)) {
           // Cualquier otro error inesperado tampoco debe colgar la app.
-          clearTokens();
+          clearSession();
           setToken(null);
         }
         setLoading(false);
@@ -185,10 +195,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const tokens = await api.post<{
       access_token: string;
-      refresh_token: string;
       user?: User;
     }>("/auth/login", { email, password });
-    persistTokens(tokens.access_token, tokens.refresh_token);
+    persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
     // Fast path: el usuario viene embebido en la respuesta del login → sin un
     // `GET /auth/me` extra (un round-trip menos al backend al entrar). Fallback
@@ -213,15 +222,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<GoogleLoginResult> {
     const data = await api.post<
       | { requires_role: true; email: string; full_name: string }
-      | { requires_role?: false; access_token: string; refresh_token: string; user?: User }
+      | { requires_role?: false; access_token: string; user?: User }
     >("/auth/google", { id_token: idToken, role });
 
     if ("requires_role" in data && data.requires_role) {
       return { requiresRole: true, email: data.email, fullName: data.full_name };
     }
 
-    const tokens = data as { access_token: string; refresh_token: string; user?: User };
-    persistTokens(tokens.access_token, tokens.refresh_token);
+    const tokens = data as { access_token: string; user?: User };
+    persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
     // Usuario embebido (mismo contrato que /auth/login); fallback a /auth/me si
     // no vino, por el mismo motivo de skew de deploy.
@@ -232,10 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function loginAsGuest(pin: string, role: "worker" | "employer") {
     const tokens = await api.post<{
       access_token: string;
-      refresh_token: string;
       user?: User;
     }>("/auth/guest", { pin, role });
-    persistTokens(tokens.access_token, tokens.refresh_token);
+    persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
     setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
   }
@@ -268,34 +276,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     // Si se cierra sesión mientras se está impersonando, no hay que revocar
-    // el refresh token de la ADMIN real (sigue en localStorage, sin tocar): eso
+    // la cookie de la ADMIN real (la impersonación nunca tuvo una propia, ver
+    // `impersonate` más abajo — sigue siendo la de la admin, sin tocar): eso
     // sería cerrarle la sesión a la admin por error. "Cerrar sesión" en este
     // estado significa simplemente volver a la cuenta admin.
     if (impersonating) {
       stopImpersonating();
       return;
     }
-    // TECH_DEBT.md S1: hasta ahora "cerrar sesión" sólo borraba el
-    // localStorage local — el refresh token seguía siendo válido en el
-    // servidor por sus 30 días completos (un token filtrado por XSS o
-    // dispositivo compartido sobrevivía al logout). El endpoint de
-    // revocación ya existía (ADR-0002) pero nunca se llamaba desde acá.
-    const refreshToken = localStorage.getItem("staffya_refresh");
-    clearTokens();
+    // TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly — el
+    // navegador la manda sola (`credentials: "include"`, lib/api.ts), no hay
+    // que leerla ni reenviarla a mano. El backend la revoca server-side y la
+    // limpia en la respuesta.
+    clearSession();
     setToken(null);
     setUser(null);
     // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
     // una pantalla protegida ya renderizada en el historial.
     router.replace("/login");
-    if (refreshToken) {
-      try {
-        await api.post("/auth/logout", { refresh_token: refreshToken });
-      } catch {
-        // Best-effort: el usuario ya quedó deslogueado localmente. Si el
-        // backend no respondió (red caída, sin conexión), el refresh token
-        // sigue siendo válido server-side hasta que expire solo — no vale
-        // la pena bloquear ni mostrarle un error por esto.
-      }
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Best-effort: el usuario ya quedó deslogueado localmente. Si el
+      // backend no respondió (red caída, sin conexión), el refresh token
+      // sigue siendo válido server-side hasta que expire solo — no vale
+      // la pena bloquear ni mostrarle un error por esto.
     }
   }
 

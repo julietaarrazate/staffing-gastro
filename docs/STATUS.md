@@ -5,7 +5,48 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-08 (**Cuentas invitado filtradas de
+*Última actualización: 2026-08-08 (**TECH_DEBT.md S1 resuelto: refresh token
+como cookie httpOnly (en revisión).** Con el frente de QA de Julieta al día,
+se retomó la deuda técnica por prioridad — arrancando por S1 (🔴 Crítica,
+seguridad), el único ítem crítico de `TECH_DEBT.md` que seguía realmente
+abierto (P1/I1/T1 ya estaban resueltos, sólo desactualizado el resumen).
+Hasta ahora el refresh token (30 días de vigencia) viajaba en el body de
+`/auth/login`/`/auth/refresh`/etc. y se guardaba en `localStorage` — un XSS
+podía leerlo y usarlo hasta agotar sus 30 días, incluso después de un
+"logout" (que sólo limpiaba el `localStorage` local; la revocación
+server-side ya existía desde ADR-0002/R1.2 pero nunca protegía contra un
+token ya filtrado). Ahora viaja **exclusivamente** como cookie `HttpOnly`
+(`identity/api/routes.py::_set_refresh_cookie`, `Secure`+`SameSite=None` en
+producción — Vercel/Render son sitios distintos —, `SameSite=Lax` sin
+`Secure` en dev porque `localhost:3000`/`:8000` son el mismo *site*): se
+sacó el campo `refresh_token` de `TokenResponse` (no sólo dejó de usarlo el
+frontend — si siguiera en el body, un XSS que hookeara `fetch`/`XHR` podría
+leerlo igual, sin importar dónde lo guardara el cliente) y `/auth/refresh`+
+`/auth/logout` lo leen de `request.cookies`, no de un body `RefreshRequest`
+(eliminado). El frontend (`lib/api.ts`) manda `credentials: "include"` en
+cada request; `auth-context.tsx` sólo guarda el access token (15 min, ya
+tenía poca exposición) más una marca sin secreto (`staffya_has_session`) para
+saber si vale la pena intentar `/auth/refresh` al abrir la app — la cookie
+httpOnly no se puede leer desde JS para decidirlo de otra forma. Tests
+backend reescritos para el nuevo contrato: la mayoría de los flujos
+(login→refresh→refresh de nuevo) no necesitaron tocarse porque el jar de
+cookies de httpx ya se comporta como un navegador real; los que necesitan
+replay de un token puntual (rotación, detección de reuso/robo, sesiones
+concurrentes) usan dos helpers nuevos en `conftest.py`
+(`new_client`/`refresh_with_cookie`, clientes independientes con jar propio
+— httpx no sobreescribe una cookie ya presente en el jar con un `cookies=`
+puntual por request, agrega un segundo header en vez de reemplazarla, así
+que un jar fresco es la única forma confiable de controlar el valor exacto
+enviado). E2E (`e2e/auth.spec.ts`, `mocks.ts`) actualizados al mismo
+contrato. **pytest 299/299**, `tsc --noEmit`/`npm run build` limpios,
+**Playwright 27/27**. **Importante para producción:** esto depende de que
+`ENVIRONMENT=production` esté seteado en Render — si no lo está, la cookie
+sale sin `Secure`+`SameSite=None` y el navegador la descarta en la request
+cross-site real, el login sigue andando pero el refresh/logout fallan en
+silencio (re-login cada 15 min); ver `CLAUDE.md` → "Pendiente de la
+operadora".
+
+Antes, mismo día: **Cuentas invitado filtradas de
 `/search`/`/map` (#170, mergeado).** Julieta reportó ver las cuentas invitado
 compartidas (`invitado.trabajador@oido.beta`, "Explorar sin cuenta") mezcladas
 con trabajadores reales al buscar en `/search` o mirar `/map`. Como ambas

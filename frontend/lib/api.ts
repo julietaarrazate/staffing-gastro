@@ -39,6 +39,10 @@ async function request<T>(
     res = await fetch(`${API_URL}${path}`, {
       ...rest,
       signal: controller?.signal,
+      // TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly, no en
+      // el body — sin esto el navegador no la manda ni la guarda (backend y
+      // frontend son sitios distintos en producción, Render/Vercel).
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

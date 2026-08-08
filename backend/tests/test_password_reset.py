@@ -219,7 +219,7 @@ async def test_reset_password_revokes_active_refresh_sessions(
     """Al restablecer la contraseña se revocan las sesiones activas (OWASP):
     un refresh token emitido antes del reset deja de servir."""
     await register_user(client, email="revoca@staffya.com")
-    tokens = await login(client, "revoca@staffya.com")
+    await login(client, "revoca@staffya.com")
 
     await client.post(
         "/api/v1/auth/forgot-password", json={"email": "revoca@staffya.com"}
@@ -232,8 +232,8 @@ async def test_reset_password_revokes_active_refresh_sessions(
     )
     assert reset.status_code == 204
 
-    # La sesión previa al reset quedó revocada: el refresh viejo no renueva.
-    refreshed = await client.post(
-        "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
-    )
+    # La sesión previa al reset quedó revocada: el refresh viejo no renueva
+    # (la cookie del cliente sigue siendo la de antes del reset — ese
+    # endpoint no la toca).
+    refreshed = await client.post("/api/v1/auth/refresh")
     assert refreshed.status_code == 401
