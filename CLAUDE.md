@@ -4,30 +4,29 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-08-07**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-08-08**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 >
-> **Frente abierto (2026-08-07): QA en vivo de Julieta probando la app real**
-> (comercio, trabajador y admin, mobile). Batch de bugs ya mergeado (PR #166 +
-> fix de perfil admin): orden PIN/rol en "Explorar sin cuenta", confirmación
-> al cancelar un turno asignado, el `Sheet` (bottom sheet del DS) que no
-> cerraba con la X, el tab "Recomendados" que se perdía al volver de un
-> perfil, precisión del pin de geolocalización al dar de alta un local, y el
-> perfil admin que mostraba badge "Comercio"/"Permisos insuficientes". La
-> visibilidad de "Ver como" y el ícono del estado vacío de `/admin` resultaron
-> no ser bugs (verificado en código). **En revisión (PR #168):** admin ahora
-> puede navegar `/map` y `/search` en modo sólo-lectura (viendo todos los
-> trabajadores/turnos reales, sin impersonar a nadie — `/matching/search`
-> acepta rol `admin` además de `employer`), fotos de perfil en la lista de
-> "Usuarios" de `/admin`, y el wordmark "staffya" del footer de la landing
-> corregido a "oído". Detalle completo en [docs/STATUS.md](./docs/STATUS.md).
-> **Sigue pendiente:** evaluar filtrar cuentas invitado de `/search` y `/map`
-> (aparecen mezcladas con trabajadores reales). Julieta también pidió
-> explícitamente una auditoría de QA/performance/UX/UI/diseño más sistemática
-> ("la app está a un 40%, llevarla a 90%") — es una línea de trabajo
-> continua, no una tarea puntual; seguir por prioridad desde
-> `docs/TECH_DEBT.md`.
+> **Frente abierto: QA en vivo de Julieta probando la app real** (comercio,
+> trabajador y admin, mobile). Mergeado hasta ahora: batch de bugs (PR #166),
+> fix de perfil admin, y mapa/búsqueda de sólo lectura para admin + fotos en
+> `/admin` + wordmark del footer (PR #168). **En revisión:** la causa REAL de
+> "la X del Sheet no cierra" — dos fixes previos al `drag` de Framer Motion
+> no alcanzaban porque el problema nunca fue el drag: `Sheet`/`Modal` no
+> portaban a `document.body`, así que un `Card` ancestro con `whileTap` les
+> rompía el *containing block* al `position: fixed`. Fix real: `createPortal`
+> en ambos — ver el detalle completo (incluida la nota de proceso sobre cómo
+> se perdieron horas antes de encontrar la causa de fondo) en
+> [docs/STATUS.md](./docs/STATUS.md). Mismo PR: el mapa panéaba entero al
+> arrastrar el pin de ubicación (fix: deshabilitar `dragPan` durante el
+> arrastre del marker) y el CV del trabajador ahora acepta subir un archivo
+> (PDF/Word/foto) además de pegar un link. **Sigue pendiente:** evaluar
+> filtrar cuentas invitado de `/search` y `/map` (aparecen mezcladas con
+> trabajadores reales). Julieta también pidió explícitamente una auditoría de
+> QA/performance/UX/UI/diseño más sistemática ("la app está a un 40%,
+> llevarla a 90%") — es una línea de trabajo continua, no una tarea puntual;
+> seguir por prioridad desde `docs/TECH_DEBT.md`.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas

@@ -5,8 +5,42 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-07 (**Mapa/Búsqueda de sólo lectura para admin
-+ fotos en el panel de admin + wordmark del footer (#168, en revisión).**
+*Última actualización: 2026-08-08 (**Causa raíz real de la X del Sheet que no
+cerraba + mapa que se movía con el pin + subida de CV (en revisión).**
+Julieta volvió a reportar la X del `Sheet` sin cerrar en su teléfono real,
+después de que el fix anterior (PR #166, drag de Framer Motion restringido a
+la manija) pareciera correcto en el código. La causa real nunca fue el drag:
+`Sheet`/`Modal` no portaban a `document.body`, así que al abrirse desde
+DENTRO de un `Card` (`whileTap` activo), ese ancestro le rompía el
+*containing block* al `position: fixed` — el overlay quedaba confinado a la
+caja del `Card` en vez de cubrir el viewport, y el click no coincidía con el
+botón aunque se viera bien. Reproducido de punta a punta con Playwright
+`.tap()` (touch real, no mouse, dispositivo emulado) — afectaba también a
+"Cancelar turno" (contenido del sheet, no sólo la X) y explicaba un fallo
+"misterioso" preexistente en `employer-wizard.spec.ts` que veníamos
+atribuyendo al entorno de esta sandbox. Fix real: `createPortal` a
+`document.body` en ambos componentes (la solución estándar para cualquier
+overlay `fixed`), drag-to-dismiss reescrito con Pointer Events nativos en
+vez del prop `drag` de Framer Motion, y `Modal` con `z-[60]` explícito por
+encima del `z-50` de `Sheet` (pueden coexistir de verdad: "¡Turno
+publicado!" + el sheet de activar push, disparados por la misma acción).
+Quedan 2 tests E2E nuevos con touch real (`e2e/sheet-touch.spec.ts`).
+También en el mismo PR: el mapa panéaba entero al arrastrar el pin de
+ubicación del comercio (se deshabilita `dragPan` durante el arrastre del
+marker — bug clásico de MapLibre/Mapbox GL) y el CV del trabajador ahora
+acepta arrastrar/subir un archivo (PDF/Word/foto, vía Cloudinary) además de
+pegar un link.
+
+**Nota de proceso para la próxima sesión:** si un bug de UI "ya arreglado"
+vuelve a aparecer en el teléfono real después de un fix que localmente
+parecía andar, sospechá primero de la causa raíz (¿el fix anterior resolvía
+el síntoma o el mecanismo?) antes de asumir un problema de caché/entorno —
+acá se perdieron horas re-verificando el mismo fix incorrecto (drag) con
+métodos cada vez más rigurosos, cuando el mecanismo real (containing block
+roto por falta de portal) era otro completamente distinto.
+
+Antes, mismo día: **Mapa/Búsqueda de sólo lectura para admin
++ fotos en el panel de admin + wordmark del footer (#168).**
 Julieta pidió poder "ver la plataforma entera" desde su cuenta admin, sin
 tener que impersonar a alguien puntual primero (más allá de "Ver como", #165,
 para debug de un usuario específico). Se relajó `/matching/search` (backend)
