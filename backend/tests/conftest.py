@@ -93,7 +93,10 @@ async def register_user(
 
 
 async def login(client: AsyncClient, email: str, password: str = DEFAULT_PASSWORD) -> dict:
-    """Inicia sesión y devuelve el body de tokens (access_token, refresh_token, token_type)."""
+    """Inicia sesión y devuelve el body de tokens (access_token, token_type,
+    user). El refresh token no viaja acá — queda sólo en la cookie httpOnly
+    del jar de `client` (TECH_DEBT.md S1); usar `client.cookies.get
+    ("staffya_refresh")` si un test necesita su valor."""
     response = await client.post(
         "/api/v1/auth/login", json={"email": email, "password": password}
     )
@@ -108,3 +111,32 @@ async def auth_headers(
     await register_user(client, email=email, full_name=full_name, role=role)
     tokens = await login(client, email)
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+# --- Helpers de cookie del refresh token (TECH_DEBT.md S1) -----------------
+# El refresh token ya no viaja en el body de la respuesta (sólo como cookie
+# `HttpOnly staffya_refresh`, ver `identity/api/routes.py`). El `client` de
+# la fixture de arriba tiene un jar de cookies real (httpx) que lo guarda y
+# reenvía solo entre requests — igual que un navegador — así que la mayoría
+# de los flujos (login → refresh → refresh de nuevo) no necesitan tocar nada
+# manualmente. Estos dos helpers son sólo para los casos que sí necesitan
+# control puntual sobre el valor exacto de la cookie:
+
+
+def new_client(**kwargs) -> AsyncClient:
+    """Cliente HTTP nuevo con jar de cookies propio, contra la misma app (y
+    el mismo `dependency_overrides` de sesión que ya seteó la fixture
+    `client`) — para simular un dispositivo/sesión independiente."""
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test", **kwargs)
+
+
+async def refresh_with_cookie(cookie_value: str) -> Response:
+    """Dispara `/auth/refresh` con un valor de cookie puntual, en un cliente
+    nuevo (jar vacío) — para reenviar un refresh token capturado en otro
+    momento sin que el jar del cliente principal (que puede haber rotado
+    desde entonces) interfiera. httpx no sobreescribe una cookie ya presente
+    en el jar de un cliente con un `cookies=` puntual por request (agrega un
+    segundo header `Cookie` en vez de reemplazarla), así que un jar fresco es
+    la única forma confiable de controlar el valor exacto enviado."""
+    async with new_client(cookies={"staffya_refresh": cookie_value}) as ac:
+        return await ac.post("/api/v1/auth/refresh")

@@ -9,16 +9,20 @@ import { Page } from "@playwright/test";
 // Claves EXACTAS que usa frontend/lib/auth-context.tsx para persistir la
 // sesión. Si cambian ahí, hay que actualizarlas acá.
 export const TOKEN_KEY = "staffya_token";
-export const REFRESH_KEY = "staffya_refresh";
+// TECH_DEBT.md S1: el refresh token real ya no vive en localStorage (viaja
+// como cookie httpOnly) — esta es sólo la marca liviana que le dice al
+// frontend que vale la pena intentar `/auth/refresh` si el access token
+// vence, sin exponer ningún secreto.
+export const HAS_SESSION_KEY = "staffya_has_session";
 
 /** Inyecta una sesión ya logueada en localStorage antes de la primera carga. */
 export async function injectSession(page: Page) {
   await page.addInitScript(
-    ({ tokenKey, refreshKey }) => {
+    ({ tokenKey, hasSessionKey }) => {
       window.localStorage.setItem(tokenKey, "e2e-fake-access-token");
-      window.localStorage.setItem(refreshKey, "e2e-fake-refresh-token");
+      window.localStorage.setItem(hasSessionKey, "1");
     },
-    { tokenKey: TOKEN_KEY, refreshKey: REFRESH_KEY }
+    { tokenKey: TOKEN_KEY, hasSessionKey: HAS_SESSION_KEY }
   );
 }
 

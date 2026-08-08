@@ -17,7 +17,6 @@ test("un worker puede loguearse y sale de /login", async ({ page }) => {
       contentType: "application/json",
       body: JSON.stringify({
         access_token: "e2e-access-token",
-        refresh_token: "e2e-refresh-token",
         token_type: "bearer",
       }),
     })
@@ -98,7 +97,6 @@ test("con el access token vencido pero refresh token válido, la sesión se rest
       contentType: "application/json",
       body: JSON.stringify({
         access_token: "e2e-refreshed-access-token",
-        refresh_token: "e2e-refreshed-refresh-token",
         token_type: "bearer",
       }),
     })
@@ -118,6 +116,9 @@ test("con el access token vencido pero refresh token válido, la sesión se rest
  * "Cerrar sesión" sólo borraba el localStorage local, el refresh token
  * seguía siendo válido en el backend por sus 30 días completos. El endpoint
  * `POST /auth/logout` ya existía (ADR-0002) pero nunca se llamaba desde acá.
+ * Desde S1 el token viaja como cookie httpOnly (no hay body que inspeccionar
+ * acá — el navegador la manda solo, `credentials: "include"`); lo que este
+ * test verifica es que el logout efectivamente le pega al backend.
  *
  * `/chats` en vez de `/profile`: superficie mínima (un solo fetch de
  * datos, `GET /chats`) para no depender de mockear todo lo que trae el
@@ -149,9 +150,9 @@ test("cerrar sesión revoca el refresh token en el backend", async ({ page }) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
 
-  let logoutBody: unknown = null;
+  let logoutCalled = false;
   await page.route("**/api/v1/auth/logout", (route) => {
-    logoutBody = route.request().postDataJSON();
+    logoutCalled = true;
     return route.fulfill({ status: 204 });
   });
 
@@ -159,5 +160,5 @@ test("cerrar sesión revoca el refresh token en el backend", async ({ page }) =>
   await page.getByRole("button", { name: /^Salir/ }).click();
 
   await expect(page).toHaveURL(/\/login$/);
-  await expect.poll(() => logoutBody).toEqual({ refresh_token: "e2e-fake-refresh-token" });
+  await expect.poll(() => logoutCalled).toBe(true);
 });

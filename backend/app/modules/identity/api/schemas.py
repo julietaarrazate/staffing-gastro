@@ -56,10 +56,6 @@ class GuestLoginRequest(BaseModel):
     role: RegisterableRole = RegisterableRole.WORKER
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
@@ -94,7 +90,11 @@ class ResendVerificationResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    refresh_token: str
+    # TECH_DEBT.md S1: el refresh token YA NO viaja en el body — se emite
+    # como cookie httpOnly (`Set-Cookie`, ver `api/routes.py::_set_refresh_
+    # cookie`). Si siguiera acá, un XSS que hookee `fetch`/`XHR` podría leerlo
+    # de la respuesta igual, sin importar dónde lo guarde el frontend — la
+    # cookie httpOnly sólo protege de verdad si el token nunca toca JS.
     token_type: str = "bearer"
     # Usuario embebido: presente en login/google/refresh para ahorrarle al
     # cliente un `GET /auth/me` tras entrar (un round-trip menos al backend

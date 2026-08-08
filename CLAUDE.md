@@ -31,6 +31,15 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > 40%, llevarla a 90%") — es una línea de trabajo continua, no una tarea
 > puntual; seguir por prioridad desde `docs/TECH_DEBT.md`.
 >
+> **Deuda técnica por prioridad (en curso, 2026-08-08):** con el frente de QA
+> de Julieta al día, se retomó `docs/TECH_DEBT.md` por prioridad. Primer
+> ítem, **S1 (tokens de sesión) resuelto**: el refresh token dejó de viajar
+> por `localStorage`/body de respuesta — ahora es una cookie `httpOnly`
+> (`identity/api/routes.py::_set_refresh_cookie`), así que un XSS ya no puede
+> robarlo. Detalle completo y un punto operativo que ahora importa más
+> (`ENVIRONMENT=production` en Render) en `docs/TECH_DEBT.md` S1 y
+> "Pendiente de la operadora" más abajo.
+>
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
 > quedaban "precarias" — mobile-first sin adaptar a pantallas anchas).
@@ -242,9 +251,15 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
    `false`). Si sigue en `true`, re-siembra datos demo en cada arranque.
 3. 🟢 **`MERCADOPAGO_ACCESS_TOKEN`** (Render): sólo para pagos reales; el
    enforcement está apagado, así que **no urge** para la beta.
-4. 🟢 **Confirmar** `ENVIRONMENT=production` (Render) y `NEXT_PUBLIC_API_URL`
+4. 🟠 **Confirmar** `ENVIRONMENT=production` (Render) y `NEXT_PUBLIC_API_URL`
    (Vercel, apuntando al backend de Render): si la app anda, casi seguro ya
-   están; sólo verificar que existan.
+   están; sólo verificar que existan. **Subió de prioridad (2026-08-08,
+   TECH_DEBT.md S1):** ahora también controla si la cookie del refresh token
+   sale con `Secure`+`SameSite=None` (`settings.is_production`) — sin esta
+   var en `"production"`, el navegador descarta la cookie en la request
+   cross-site real Vercel→Render, el login sigue andando pero el refresh/
+   logout fallan en silencio y todos tendrían que volver a loguearse cada 15
+   minutos.
 
 > El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).

@@ -79,7 +79,8 @@ async def test_google_login_new_user_with_role_creates_account(client: AsyncClie
     assert response.status_code == 200
     tokens = response.json()
     assert tokens["access_token"]
-    assert tokens["refresh_token"]
+    assert "refresh_token" not in tokens
+    assert response.cookies.get("staffya_refresh")
 
     me = await client.get(
         "/api/v1/auth/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}

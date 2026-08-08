@@ -447,7 +447,7 @@ fecha de esta auditoría (2026-07-02).
 
 ## Seguridad e identidad (nuevo, no capturado en v1)
 
-### S1 — Tokens en `localStorage` sin revocación de refresh 🔴 Crítica
+### S1 — Tokens en `localStorage` sin revocación de refresh ✅ Resuelto
 
 > **Actualización 2026-07-02 (R1.2, ADR-0002):** el backend ya implementa
 > tabla `refresh_sessions` con rotación (cada `/auth/refresh` invalida el
@@ -499,6 +499,44 @@ fecha de esta auditoría (2026-07-02).
 > almacenamiento del refresh token de `localStorage` a cookie `httpOnly` —
 > es el cambio de contrato más grande (c) que este ítem ya documentaba, no
 > se resolvió acá.
+>
+> **Actualización 2026-08-08 — resuelto el punto (c), último pendiente de
+> este ítem:** el refresh token ya no viaja **nunca** por JS — ni en
+> `localStorage` ni en el body de la respuesta de `/auth/login`, `/auth/
+> guest`, `/auth/google` ni `/auth/refresh` (si siguiera en el body, un XSS
+> que hookeara `fetch`/`XHR` podría leerlo igual, sin importar dónde lo
+> guardara el frontend — por eso `TokenResponse` le sacó el campo, no sólo el
+> frontend dejó de usarlo). Se emite como cookie `Set-Cookie: staffya_refresh`
+> (`HttpOnly`; `Secure`+`SameSite=None` en producción — Vercel/Render son
+> sitios distintos; `SameSite=Lax` sin `Secure` en dev, alcanza porque
+> `localhost:3000`/`:8000` son el mismo *site*; acotada a `path=/api/v1/auth`)
+> desde `identity/api/routes.py::_set_refresh_cookie`. `/auth/refresh` y
+> `/auth/logout` la leen de la cookie (`request.cookies`), ya no de un body
+> `RefreshRequest` (eliminado). El frontend (`lib/api.ts`) manda
+> `credentials: "include"` en cada request para que el navegador la
+> adjunte/reciba solo; `auth-context.tsx` sólo guarda el access token (15 min)
+> en `localStorage`, más una marca **sin secreto** (`staffya_has_session`)
+> para saber si vale la pena intentar `/auth/refresh` al abrir la app (la
+> cookie httpOnly no se puede leer desde JS para decidirlo de otra forma).
+> El access token sigue en `localStorage` sin cambios — su ventana de
+> exposición (15 min) ya era chica; el ítem original apuntaba puntualmente al
+> refresh de 30 días.
+>
+> **Importante para producción:** esto depende de que `ENVIRONMENT=production`
+> esté seteado en Render (`settings.is_production`) — si no lo está, la
+> cookie sale con `SameSite=Lax` sin `Secure`, que el navegador **descarta**
+> en una request cross-site real (Vercel→Render); el login seguiría
+> funcionando pero el refresh/logout fallarían en silencio y todos tendrían
+> que volver a loguearse cada 15 minutos. Ya estaba listado como pendiente de
+> confirmar en `CLAUDE.md` — con este cambio pasa a ser bloqueante, no sólo
+> recomendado.
+>
+> Tests backend reescritos para el nuevo contrato (cookie via jar de httpx,
+> más dos clientes independientes para simular sesiones concurrentes/robo de
+> token — `backend/tests/conftest.py::new_client`/`refresh_with_cookie`) +
+> nuevo `test_logout_without_cookie_is_a_noop`. E2E (`frontend/e2e/auth.spec.ts`,
+> `mocks.ts`) actualizados al mismo contrato. **pytest 299/299**, `tsc`/`build`
+> limpios, **Playwright 27/27**.
 
 ### S2 — Límites de conexión/mensajes por WebSocket ausentes 🟡 Media
 
@@ -813,7 +851,7 @@ fecha de esta auditoría (2026-07-02).
 
 | Prioridad | Ítems |
 |---|---|
-| 🔴 Crítica | P1 (quantity, mitigado R1.4), S1 (tokens/revocación, mitigado R1.2/ADR-0002 — falta cookie httpOnly), I1 (DB 90 días), T1 (sin CI) |
+| 🔴 Crítica | P1 (quantity, mitigado R1.4), ~~S1 (tokens/revocación)~~ ✅ resuelta 2026-08-08 (cookie httpOnly, último pendiente), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
 | 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |
