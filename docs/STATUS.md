@@ -5,7 +5,33 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**Auditoría de producto/UI: batch UX
+*Última actualización: 2026-08-09 (**Auditoría de producto/UI: batch a11y
+(PR7, ÚLTIMO del backlog) — focus trap en Modal/Sheet + CompanyProfileForm
+al design system.** Cierra el backlog de 7 PRs arrancado por la auditoría
+de producto/UI (ver el artifact de la auditoría para el detalle completo):
+- **F1 — `Modal`/`Sheet` sin focus trap:** ambos ya tenían
+  `role="dialog"`/`aria-modal="true"` y cierre con Escape, pero ninguno
+  atrapaba `Tab`/`Shift+Tab` dentro del diálogo, movía el foco al abrir, ni
+  lo restauraba al cerrar — un usuario de teclado podía tabular hacia
+  contenido de fondo tapado visualmente por el backdrop. Hook nuevo y
+  compartido `lib/use-focus-trap.ts` (guarda/restaura `document.activeElement`,
+  cicla Tab/Shift+Tab entre el primer y último elemento focuseable),
+  aplicado a ambos componentes. 4 tests unitarios
+  (`lib/use-focus-trap.test.tsx`) + 1 test E2E nuevo
+  (`e2e/focus-trap.spec.ts`, ejercita el Sheet real "Más acciones" de
+  `/shifts` con `Tab`/`Shift+Tab`/`Escape` de verdad vía Playwright — no
+  sólo simulado).
+- **C3 — `CompanyProfileForm` usaba un `<input>` crudo:** el único campo
+  obligatorio de esa pantalla ("Nombre del comercio") no tenía ni foco
+  visible, a diferencia de `WorkerProfileForm` (misma pantalla, rol
+  trabajador), que sí usa el `TextField` del design system. Migrado, mismo
+  patrón que ya usaba `WorkerProfileForm` (incluye el `maxLength={255}` de
+  PR6).
+
+Verificado: `tsc`/`build`/lint limpios, Playwright 29/29 (incluye el test
+nuevo de focus trap), Vitest 59/59.
+
+Antes, mismo día: **Auditoría de producto/UI: batch UX
 (PR6) — race condition en `/search`, límites de caracteres y errores de
 formulario anunciados.** Dos hallazgos agrupados:
 - **D4 — race condition en `/search`:** al montar se buscaba con el centro
