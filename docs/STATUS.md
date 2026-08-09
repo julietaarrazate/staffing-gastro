@@ -5,7 +5,27 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**CV en PDF sube pero no abre: causa
+*Última actualización: 2026-08-09 (**El mapa embebido del alta de local
+atrapaba el scroll de la página (en revisión).** Julieta reportó que al
+scrollear la pantalla del comercio donde está el mapa con el pin, el mapa se
+movía en vez de la página — "no te permite navegar con naturalidad". Causa:
+`MapAddressPicker` (el mapa embebido en `CompanyProfileForm` para elegir la
+ubicación del local, ADR-0006) capturaba todo gesto de un dedo como paneo
+del mapa, igual que un mapa de pantalla completa — pero acá vive adentro de
+un formulario largo con scroll, así que arrastrar un dedo para seguir
+bajando la página lo paneaba a él en cambio. Fix: `cooperativeGestures` de
+MapLibre (feature nativa pensada justo para este caso) en `MapView.tsx`
+(prop nuevo, default `false` para no tocar los mapas de pantalla completa
+`/map`/`/search`, donde el paneo de un dedo SÍ es el gesto esperado) —
+activado sólo en `MapAddressPicker`. Con esto, un dedo sobre el mapa
+scrollea la página; se necesitan dos dedos para panear el mapa (aparece un
+cartel nativo avisando). El pin sigue siendo arrastrable con un dedo sin
+problema — el drag del marker es un gesto propio de MapLibre, independiente
+del paneo del mapa que `cooperativeGestures` regula. Verificado: `tsc`/
+`build`/`lint` limpios, Playwright 27/27 (incluye
+`company-map-address.spec.ts`, que ejercita el drag del pin).
+
+Antes, mismo día: **CV en PDF sube pero no abre: causa
 identificada, pendiente de Julieta (no es bug de código).** Julieta subió un
 CV de prueba en PDF y no lo podía ver ni desde el propio perfil del
 trabajador ni desde `/workers/[id]` (`ERR_INVALID_RESPONSE` al abrir la

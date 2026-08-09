@@ -264,6 +264,10 @@ export default function MapAddressPicker({
           zoom={hasInitialPin ? 16 : 12}
           onLoad={handleLoad}
           className="absolute inset-0 h-full w-full"
+          // Mapa embebido en un formulario largo con scroll (reporte real de
+          // Julieta): sin esto, arrastrar un dedo sobre el mapa para seguir
+          // bajando la página lo paneaba a él en cambio, atrapando el scroll.
+          cooperativeGestures
         >
           {pin && (
             <Marker

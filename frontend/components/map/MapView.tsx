@@ -26,6 +26,18 @@ export interface MapViewProps {
   interactive?: boolean;
   /** `false` oculta el control de atribución compacto (miniaturas chicas). */
   attribution?: boolean;
+  /**
+   * `true` exige dos dedos para arrastrar/rotar el mapa (un dedo hace scroll
+   * de la página en vez de panear) y Ctrl/Cmd+scroll para hacer zoom en
+   * desktop — feature nativa de MapLibre pensada justo para mapas EMBEBIDOS
+   * dentro de una página con scroll (`MapAddressPicker`, adentro de un
+   * formulario largo): sin esto, arrastrar un dedo sobre el mapa para seguir
+   * bajando la página lo mueve a él en cambio, atrapando el scroll (reporte
+   * real de Julieta, 2026-08-09). NO usar en mapas de pantalla completa
+   * (`/map`, `/search`) — ahí el paneo de un dedo es el gesto esperado, no
+   * hay scroll de página con el que competir.
+   */
+  cooperativeGestures?: boolean;
 }
 
 /**
@@ -69,7 +81,17 @@ function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
 }
 
 const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
-  { center, zoom = 14, children, onLoad, onMoveEnd, className, interactive = true, attribution = true },
+  {
+    center,
+    zoom = 14,
+    children,
+    onLoad,
+    onMoveEnd,
+    className,
+    interactive = true,
+    attribution = true,
+    cooperativeGestures = false,
+  },
   forwardedRef
 ) {
   const mapRef = useRef<MapRef>(null);
@@ -81,6 +103,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
         ref={mapRef}
         reuseMaps
         interactive={interactive}
+        cooperativeGestures={cooperativeGestures}
         initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
         mapStyle={MAP_STYLE_URL}
         attributionControl={false}
