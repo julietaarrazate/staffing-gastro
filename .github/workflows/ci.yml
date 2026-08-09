@@ -9,8 +9,34 @@ on:
     branches: [main]
 
 jobs:
+  # Detecta qué área cambió para no correr los 3 jobs completos en cada push
+  # — sin esto, una PR que sólo toca docs/frontend igual pagaba el pytest
+  # completo (y viceversa), gasto real de minutos de CI sin ninguna señal
+  # nueva que aportar. `.github/workflows/ci.yml` cuenta como cambio de
+  # ambas áreas a propósito: un cambio al workflow se valida completo.
+  changes:
+    name: Detectar cambios
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+
   backend:
     name: Backend (pytest)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,6 +55,8 @@ jobs:
 
   frontend:
     name: Frontend (tsc + build)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -54,6 +82,8 @@ jobs:
 
   e2e:
     name: E2E (Playwright)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
