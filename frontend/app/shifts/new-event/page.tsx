@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { getErrorMessage } from "@/lib/errors";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { localInputToArgentinaISO } from "@/lib/datetime";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
@@ -48,6 +49,7 @@ export default function NewEventPage() {
   const [roles, setRoles] = useState<RoleRow[]>([newRole()]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<EventResult | null>(null);
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   function updateRole(key: string, patch: Partial<RoleRow>) {
     setRoles((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -69,6 +71,10 @@ export default function NewEventPage() {
     if (!token || !canSubmit) return;
     setSubmitting(true);
     try {
+      // Idempotencia (D3, auditoría de producto/UI 2026-08-09): un evento
+      // crea varios turnos de una sola vez (uno por rol) — sin esto, un
+      // reintento tras un timeout/corte de red que sí llegó a crearlos
+      // duplica el set entero, no sólo un turno.
       const created = await api.post<EventResult>(
         "/shifts/events",
         {
@@ -88,8 +94,11 @@ export default function NewEventPage() {
             pay_amount: r.payAmount,
           })),
         },
-        token
+        token,
+        undefined,
+        keyFor("create-event")
       );
+      clearIdempotencyKey("create-event");
       setResult(created);
     } catch (err) {
       toast(err instanceof ApiError ? err.message : getErrorMessage(err, "No se pudo publicar el evento"), "error");

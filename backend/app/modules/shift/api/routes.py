@@ -103,12 +103,19 @@ def _not_found() -> HTTPException:
     summary="Publicar un turno (crea en estado BORRADOR)",
 )
 async def create_shift(
-    payload: ShiftInput, company_id: CompanyIdDep, service: ServiceDep
+    payload: ShiftInput, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
 ):
     try:
-        return await service.create_shift(company_id, _to_data(payload))
+        shift = await service.create_shift(company_id, _to_data(payload))
     except InvalidShiftScheduleError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    # Idempotencia (D3, auditoría de producto/UI 2026-08-09): sin esto, un
+    # reintento tras un timeout/corte de red que sí llegó a crear el turno en
+    # el backend crea un segundo turno duplicado al reintentar desde el
+    # wizard.
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.get(
@@ -180,7 +187,11 @@ async def my_assigned_shifts(
     summary="Publicar varios turnos de una vez para un evento (catering, boda, etc.)",
 )
 async def create_event(
-    payload: EventInput, company_id: CompanyIdDep, service: ServiceDep, companies: CompaniesDep
+    payload: EventInput,
+    company_id: CompanyIdDep,
+    service: ServiceDep,
+    companies: CompaniesDep,
+    recorder: RecorderDep,
 ):
     result = await service.create_event(
         company_id,
@@ -205,7 +216,12 @@ async def create_event(
         ),
     )
     shifts = await _with_company_info(result.shifts, companies)
-    return EventResponse(event_id=result.event_id, requested=result.requested, shifts=shifts)
+    response = EventResponse(event_id=result.event_id, requested=result.requested, shifts=shifts)
+    # Idempotencia (D3, auditoría de producto/UI 2026-08-09): un evento crea
+    # varios turnos de una sola vez (uno por rol) — un reintento sin esto
+    # duplica el set entero, no sólo un turno.
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.get(

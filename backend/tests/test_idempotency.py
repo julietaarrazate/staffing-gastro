@@ -91,6 +91,54 @@ async def test_apply_twice_same_key_creates_one_application(client: AsyncClient)
     assert len(mine.json()) == 1  # UNA sola postulación, no dos
 
 
+async def test_create_shift_twice_same_key_creates_one_shift(client: AsyncClient):
+    """D3 (auditoría de producto/UI 2026-08-09): antes POST /shifts no
+    llevaba idempotencia — un reintento tras un timeout que sí había creado
+    el turno duplicaba el borrador al reintentar."""
+    employer = await _employer_with_company(client, "emp_idem_create_shift@staffya.com")
+    key = str(uuid.uuid4())
+    headers = {**employer, "Idempotency-Key": key}
+
+    first = await client.post("/api/v1/shifts", headers=headers, json=_shift_payload())
+    assert first.status_code == 201
+
+    second = await client.post("/api/v1/shifts", headers=headers, json=_shift_payload())
+    assert second.status_code == 201
+    assert second.json() == first.json()
+
+    mine = await client.get("/api/v1/shifts/me", headers=employer)
+    assert len(mine.json()) == 1  # UN solo turno, no dos
+
+
+async def test_create_event_twice_same_key_creates_one_set_of_shifts(client: AsyncClient):
+    """Un evento crea varios turnos de una sola vez (uno por rol): sin
+    idempotencia, un reintento duplica el set entero, no sólo un turno."""
+    employer = await _employer_with_company(client, "emp_idem_create_event@staffya.com")
+    key = str(uuid.uuid4())
+    headers = {**employer, "Idempotency-Key": key}
+    payload = {
+        "name": "Boda Idempotencia",
+        "start_at": "2026-09-10T20:00:00",
+        "end_at": "2026-09-11T02:00:00",
+        "city": "Palermo",
+        "roles": [
+            {"position": "mozo", "count": 2, "pay_amount": "50000.00"},
+            {"position": "bartender", "count": 1, "pay_amount": "60000.00"},
+        ],
+    }
+
+    first = await client.post("/api/v1/shifts/events", headers=headers, json=payload)
+    assert first.status_code == 201
+    assert first.json()["requested"] == 3
+
+    second = await client.post("/api/v1/shifts/events", headers=headers, json=payload)
+    assert second.status_code == 201
+    assert second.json() == first.json()
+
+    mine = await client.get("/api/v1/shifts/me", headers=employer)
+    assert len(mine.json()) == 3  # TRES turnos (uno por rol), no seis
+
+
 # --- 2. Key repetida, sin re-ejecutar: probado con una transición que la ---
 # --- segunda vez fallaría por regla de negocio si de verdad se re-ejecutara -
 

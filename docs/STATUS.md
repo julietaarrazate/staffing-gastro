@@ -42,6 +42,23 @@ backlog en el orden de impacto de la auditoría:
   `clearSession()`. Test unitario nuevo (`lib/screen-cache.test.ts`, 4
   casos). Verificado: `tsc`/`build`/lint limpios, Playwright 27/27, Vitest
   52/52.
+- **PR3 — idempotencia en creación de turno/evento (hallazgo P2,
+  duplicados por reintento de red):** `POST /shifts` y `POST /shifts/events`
+  eran las únicas dos mutaciones críticas del repo sin protección de
+  `Idempotency-Key` — a diferencia de postularse, asignar, publicar,
+  cancelar, no-show y suscribirse, que sí la tenían. Un comercio publicando
+  un evento completo (varios turnos a la vez, uno por rol) que sufre un
+  timeout/corte de red justo después de que el backend ya creó los turnos,
+  y reintenta al ver el error, terminaba con el set entero duplicado. Fix:
+  `RecorderDep` en ambos endpoints
+  (`backend/app/modules/shift/api/routes.py`) + key de idempotencia en el
+  frontend (`keyFor("create-shift")`/`keyFor("create-event")`,
+  `app/shifts/new/page.tsx`/`app/shifts/new-event/page.tsx`), mismo patrón
+  que ya usaba el resto del repo. 2 tests backend nuevos
+  (`test_idempotency.py`). Verificado: pytest 301/301, `tsc`/`build`/lint
+  limpios, Playwright 27/27.
+
+Ver el artifact de la auditoría para el resto del backlog P0-P4.
 
 Antes, mismo día: **El mapa embebido del alta de local
 atrapaba el scroll de la página.** Julieta reportó que al
