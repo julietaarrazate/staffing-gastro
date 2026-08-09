@@ -5,8 +5,20 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**TECH_DEBT.md T2 resuelto: tests
-unitarios de frontend con Vitest/Testing Library (en revisión).** Tercer
+*Última actualización: 2026-08-09 (**CV en PDF sube pero no abre: causa
+identificada, pendiente de Julieta (no es bug de código).** Julieta subió un
+CV de prueba en PDF y no lo podía ver ni desde el propio perfil del
+trabajador ni desde `/workers/[id]` (`ERR_INVALID_RESPONSE` al abrir la
+URL). El código está bien — el dato se guarda, el link se arma correcto —
+pero Cloudinary bloquea por default la entrega de PDF/ZIP subidos sin firma
+(`upload_preset` unsigned, nuestro caso) desde 2023, como medida
+anti-abuso. Se arregla en el dashboard: Settings → Security → "Allow
+delivery of PDF and ZIP files". Documentado en `CLAUDE.md` → "Pendiente de
+la operadora" para que Julieta lo active cuando pueda. Una foto (JPG/PNG)
+no debería pisar esta restricción, pero no está confirmado todavía.
+
+Antes, mismo día: **TECH_DEBT.md T2 resuelto: tests
+unitarios de frontend con Vitest/Testing Library (#174, mergeado).** Tercer
 ítem de la deuda técnica por prioridad tras S1 y F4 (ver más abajo). El
 frontend tenía E2E (Playwright, flujos completos con API mockeada) pero cero
 tests de lógica/componentes aislados. Se agregó Vitest + Testing Library
