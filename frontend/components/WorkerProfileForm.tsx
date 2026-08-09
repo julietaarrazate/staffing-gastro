@@ -140,7 +140,10 @@ export default function WorkerProfileForm() {
       />
 
       <div>
-        <label className="block text-sm font-medium text-ink/70">Ubicación</label>
+        {/* No es un `<label>`: el selector de abajo es un widget compuesto
+            (cascada provincia/localidad), no un único control asociable —
+            jsx-a11y/label-has-associated-control, TECH_DEBT.md F4. */}
+        <p className="block text-sm font-medium text-ink/70">Ubicación</p>
         <p className="mt-0.5 text-xs text-ink/50">
           Tu zona define a qué turnos te recomendamos primero (los más cercanos).
         </p>
@@ -171,8 +174,14 @@ export default function WorkerProfileForm() {
       />
 
       <div>
-        <label className="block text-sm font-medium text-ink/70">Habilidades</label>
-        <div className="mt-2 flex flex-wrap gap-2">
+        {/* No es un `<label>`: es un grupo de botones toggle, no un único
+            control — `role="group"` + `aria-labelledby` es el patrón
+            correcto para que un lector de pantalla anuncie el conjunto
+            (jsx-a11y/label-has-associated-control, TECH_DEBT.md F4). */}
+        <p id="worker-skills-heading" className="block text-sm font-medium text-ink/70">
+          Habilidades
+        </p>
+        <div role="group" aria-labelledby="worker-skills-heading" className="mt-2 flex flex-wrap gap-2">
           {WORKER_SKILLS.map((skill) => {
             const active = skills.includes(skill);
             return (
@@ -199,11 +208,14 @@ export default function WorkerProfileForm() {
           los dejaba cargar, así que el perfil se veía pobre aunque hubiera
           datos para mostrar. */}
       <div>
-        <label className="block text-sm font-medium text-ink/70">Sobre mí</label>
+        <label htmlFor="worker-bio" className="block text-sm font-medium text-ink/70">
+          Sobre mí
+        </label>
         <p className="mt-0.5 text-xs text-ink/50">
           Contá tu experiencia en una o dos líneas — es lo primero que lee el comercio.
         </p>
         <textarea
+          id="worker-bio"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           rows={3}

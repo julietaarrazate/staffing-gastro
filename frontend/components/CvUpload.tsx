@@ -60,7 +60,10 @@ export default function CvUpload({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-ink/70">CV</label>
+      {/* No es un `<label>`: abajo hay un dropzone/archivo adjunto o un
+          campo de texto alternativo, no un único control fijo asociable —
+          jsx-a11y/label-has-associated-control, TECH_DEBT.md F4. */}
+      <p className="block text-sm font-medium text-ink/70">CV</p>
       <p className="mt-0.5 text-xs text-ink/50">
         Opcional. Un CV le da más seguridad al comercio a la hora de elegir.
       </p>
