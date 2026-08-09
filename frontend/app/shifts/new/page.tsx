@@ -408,7 +408,13 @@ function NewShiftWizard() {
                   />
                 </div>
                 <div className="mt-5">
-                  <TextField label="Dress code (opcional)" value={dressCode} onChange={setDressCode} placeholder="Ej: camisa negra" />
+                  <TextField
+                    label="Dress code (opcional)"
+                    value={dressCode}
+                    onChange={setDressCode}
+                    placeholder="Ej: camisa negra"
+                    maxLength={255}
+                  />
                 </div>
               </div>
             )}

@@ -247,7 +247,11 @@ export default function WorkerProfileForm() {
         onChange={setIsAvailable}
       />
 
-      {error && <p className="text-sm text-danger-text">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-danger-text">
+          {error}
+        </p>
+      )}
       {saved && <p className="text-sm font-medium text-success-text">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>
