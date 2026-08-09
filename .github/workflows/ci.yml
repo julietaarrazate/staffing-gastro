@@ -17,6 +17,13 @@ jobs:
   changes:
     name: Detectar cambios
     runs-on: ubuntu-latest
+    # dorny/paths-filter necesita listar los archivos del PR vía la API de
+    # GitHub (el checkout por default es shallow, sin historia para un diff
+    # local) — sin este permiso explícito falla con "Resource not accessible
+    # by integration" (el GITHUB_TOKEN por default de este repo es read-only).
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
