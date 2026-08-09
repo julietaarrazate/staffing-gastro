@@ -286,6 +286,16 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 - El preset de Cloudinary debe ser **unsigned** (Settings → Upload → Upload
   presets → Signing mode: Unsigned); las `NEXT_PUBLIC_*` se **hornean en el
   build** → marcar en *Production* y **redeployar sin caché**.
+- 🔴 **Activar entrega de PDF/ZIP en Cloudinary** (Settings → Security →
+  "Allow delivery of PDF and ZIP files"): sin esto, un CV subido como PDF
+  (`CvUpload.tsx`, PR #166) sube bien (Cloudinary devuelve `secure_url` y
+  queda guardado) pero **la URL no abre** — `ERR_INVALID_RESPONSE` en el
+  navegador, confirmado por Julieta con un CV de prueba real 2026-08-09.
+  Cloudinary bloquea por default la entrega de PDF/ZIP subidos sin firma
+  (`upload_preset` unsigned, nuestro caso) desde 2023, como medida de
+  seguridad contra abuso — no es un bug de este repo. Un CV subido como
+  **foto** (JPG/PNG) no debería pisar esta restricción (sólo aplica a
+  PDF/ZIP); no confirmado todavía porque Julieta sólo probó con PDF.
 
 ## Convenciones de git
 
