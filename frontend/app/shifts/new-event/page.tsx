@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { getErrorMessage } from "@/lib/errors";
 import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { localInputToArgentinaISO } from "@/lib/datetime";
@@ -31,7 +31,7 @@ function newRole(): RoleRow {
  * parcial si el plan del comercio se queda sin cupo a mitad de camino.
  */
 export default function NewEventPage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const router = useRouter();
   const toast = useToast();
 

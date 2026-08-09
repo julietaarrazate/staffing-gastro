@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
@@ -35,7 +35,7 @@ const WorkerSearchMap = dynamic(() => import("@/components/WorkerSearchMap"), {
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816];
 
 export default function SearchPage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [skill, setSkill] = useState<WorkerSkill | "">("");
   const [radiusKm, setRadiusKm] = useState(15);

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
@@ -18,7 +18,7 @@ import { CardSkeletons, ErrorBanner, Modal, Button, useToast } from "@/component
  * completa: estado + turnos usados, y las 3 tarjetas de plan para cambiar.
  */
 export default function SubscriptionPage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const toast = useToast();
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);

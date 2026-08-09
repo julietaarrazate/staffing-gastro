@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch } from "@/lib/types";
 import CandidateCard from "@/components/CandidateCard";
@@ -26,7 +26,7 @@ import { UsersIcon } from "@/components/icons";
 type Tab = "postulantes" | "recomendados";
 
 function ShiftCandidatesContent() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const router = useRouter();
   const toast = useToast();
   const params = useParams<{ id: string }>();

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
@@ -34,7 +34,7 @@ function ProfilePageSkeleton() {
 }
 
 export default function PublicWorkerProfilePage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);

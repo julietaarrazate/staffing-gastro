@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
@@ -29,7 +29,7 @@ interface CachedFeed {
 const FEED_CACHE_KEY = "worker-feed";
 
 export default function WorkerHomePage() {
-  const { token, user } = useAuth();
+  const { token, user } = useRequireAuth();
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   // Stale-while-revalidate (lib/screen-cache.ts): si el trabajador ya estuvo
