@@ -44,7 +44,12 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > salieron 16 errores reales (labels de formulario sin asociar a su control,
 > tarjetas de turno en `/map` sin soporte de teclado) — corregidos con el
 > mismo criterio que T5 (arreglar lo genuino, documentar lo que se descarta
-> con motivo). Detalle en `docs/TECH_DEBT.md` F4.
+> con motivo). Detalle en `docs/TECH_DEBT.md` F4. **T2 (tests unitarios de
+> frontend) resuelto**: Vitest + Testing Library (`npm run test:unit`, ahora
+> en CI), 48 tests apuntando a lógica con valor real de romperse en silencio
+> (zona horaria Argentina, tabla de "única acción" del panel del comercio,
+> Haversine/tiempos de viaje) y un componente con estado real
+> (`EditableName`). Detalle en `docs/TECH_DEBT.md` T2.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas

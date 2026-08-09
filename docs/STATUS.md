@@ -5,9 +5,32 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**TECH_DEBT.md F4 resuelto: accesibilidad
-sistematizada con `jsx-a11y/recommended` en el lint (en revisión).** Segundo
-ítem de la deuda técnica por prioridad tras S1 (ver más abajo). `eslint-
+*Última actualización: 2026-08-09 (**TECH_DEBT.md T2 resuelto: tests
+unitarios de frontend con Vitest/Testing Library (en revisión).** Tercer
+ítem de la deuda técnica por prioridad tras S1 y F4 (ver más abajo). El
+frontend tenía E2E (Playwright, flujos completos con API mockeada) pero cero
+tests de lógica/componentes aislados. Se agregó Vitest + Testing Library
+(`vitest.config.mts`, `vitest.setup.ts`, script `npm run test:unit`, ahora
+parte del job `frontend` en CI junto a `tsc`/`build`) — sin buscar cobertura
+por número, apuntando a lógica con valor real de romperse en silencio: 48
+tests en 6 archivos — `lib/datetime.ts` (conversión de zona horaria
+Argentina cruzando medianoche, formato de rango mismo-día vs cruza-día,
+duración con singular/plural), `lib/errors.ts`, `lib/shift-next-step.ts` (la
+tabla completa de "única acción por estado" del panel del comercio),
+`lib/map/geo.ts`/`lib/map/travel-time.ts` (Haversine y tiempos de viaje
+estimados), y un componente con estado real, `components/EditableName.tsx`
+(editar/guardar/cancelar, no reenvía si no cambió nada, mantiene el input si
+falla el guardado). De paso: `@testing-library/react` en esta versión no
+trae auto-cleanup para Vitest (sí para Jest) — sin `afterEach(cleanup)` en
+`vitest.setup.ts` el DOM de un test de componente quedaba montado para el
+siguiente y rompía los `getByRole` del test de después con duplicados;
+quedó documentado en el propio setup para no volver a perder tiempo con eso.
+Verificado: `npm run test:unit` → 48/48, `tsc`/`lint`/`build` limpios,
+Playwright 27/27.
+
+Antes, mismo día: **TECH_DEBT.md F4 resuelto: accesibilidad
+sistematizada con `jsx-a11y/recommended` en el lint (#173, mergeado).**
+Segundo ítem de la deuda técnica por prioridad tras S1 (ver más abajo). `eslint-
 config-next` ya traía `jsx-a11y` como dependencia transitiva, pero sólo
 activaba 6 de sus ~30 reglas — ninguna cubría lo que de verdad importaba
 (labels de formulario sin asociar a su control, controles clickeables sin

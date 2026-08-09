@@ -778,7 +778,7 @@ fecha de esta auditoría (2026-07-02).
 > Bloquea el merge si falla — verificado en cada uno de los PRs de esta
 > misma sesión.
 
-### T2 — Sin tests de frontend ni E2E ✅ Resuelto (parcial — e2e sí, unitarios no)
+### T2 — Sin tests de frontend ni E2E ✅ Resuelto
 
 - **Descripción (histórica):** `frontend/package.json` no tenía script de
   test; sin `.test.ts*`/`.spec.ts*` en todo el repo. Sólo `tsc --noEmit` +
@@ -788,10 +788,29 @@ fecha de esta auditoría (2026-07-02).
 > **Actualización 2026-08-02:** resuelto el E2E — Playwright corre en CI
 > con 25 specs en `frontend/e2e/` (auth, wizard de publicación, postulación,
 > mapa, responsive/overflow, WebSocket de chat, etc.), API 100% mockeada.
-> **Sigue sin resolver:** tests unitarios de componentes/lógica aislada
-> (Vitest/RTL) — `grep -n "vitest\|@testing-library" frontend/package.json`
-> → sin resultados. El E2E cubre los flujos completos pero no lógica
-> puntual de un componente en aislamiento.
+> **Sigue sin resolver (histórico):** tests unitarios de componentes/lógica
+> aislada (Vitest/RTL) — `grep -n "vitest\|@testing-library"
+> frontend/package.json` → sin resultados. El E2E cubre los flujos completos
+> pero no lógica puntual de un componente en aislamiento.
+>
+> **Actualización 2026-08-09 — resuelto:** Vitest + Testing Library
+> (`vitest.config.mts`, `vitest.setup.ts`, script `npm run test:unit`, ahora
+> parte del job `frontend` en CI junto a `tsc`/`build`). No busca cobertura
+> por número: apunta a lógica con valor real de romperse en silencio —
+> **48 tests** en 6 archivos. Pura/aislada: `lib/datetime.ts` (conversión de
+> zona horaria Argentina cruzando medianoche, formato de rango mismo-día vs
+> cruza-día, duración con singular/plural), `lib/errors.ts`
+> (`getErrorMessage`/`isNotFound`/`isPlanLimitError`), `lib/shift-next-step.ts`
+> (la tabla completa de "única acción por estado" del panel del comercio),
+> `lib/map/geo.ts` y `lib/map/travel-time.ts` (Haversine y estimación de
+> tiempos de viaje). Un componente con estado real:
+> `components/EditableName.tsx` (editar/guardar/cancelar, no reenvía si no
+> cambió nada, mantiene el input si falla el guardado). `@testing-library/
+> react` en esta versión no trae auto-cleanup para Vitest (sí para Jest) —
+> sin `afterEach(cleanup)` en `vitest.setup.ts` el DOM de un test de
+> componente quedaba montado para el siguiente y rompía los `getByRole`
+> siguientes con duplicados; quedó documentado en el propio setup para no
+> repetir la investigación.
 
 ### T3 — Sin observabilidad (logging estructurado, tracing, alertas) ✅ Resuelto
 
@@ -904,6 +923,6 @@ fecha de esta auditoría (2026-07-02).
 | Prioridad | Ítems |
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), ~~S1 (tokens/revocación)~~ ✅ resuelta 2026-08-08 (cookie httpOnly, último pendiente), I1 (DB 90 días), T1 (sin CI) |
-| 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
+| 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), ~~T2 (sin tests frontend)~~ ✅ resuelta 2026-08-09 (Vitest/RTL, 48 tests, en CI), T3 (sin observabilidad) |
 | 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), ~~F4 (accesibilidad)~~ ✅ resuelta 2026-08-09 (jsx-a11y/recommended en lint, 16 errores reales corregidos), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |
