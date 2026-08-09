@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
@@ -54,7 +54,7 @@ export default function NewShiftPage() {
 }
 
 function NewShiftWizard() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const { requestOptIn } = usePushPrompt();
   const router = useRouter();
   const toast = useToast();

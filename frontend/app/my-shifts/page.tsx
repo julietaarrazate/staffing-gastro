@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftApplication } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -39,7 +39,7 @@ const APPLICATION_LABELS: Record<string, string> = {
 };
 
 export default function MatchesPage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("asignados");
   const [shifts, setShifts] = useState<Shift[]>([]);

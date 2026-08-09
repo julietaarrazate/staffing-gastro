@@ -231,10 +231,15 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
   skeletons, a11y) y C4 (onboarding post-registro) sin arrancar** — el orden
   del propio roadmap es C2→C0+C1→C3→C4; C4 necesita que T1 (Julieta) cierre
   el spec del flujo exacto antes de ejecutar.
-- Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: no-show automático por cron
-  (hoy sólo manual, ADR-0007), `on_time_payment_rate`/`events_published` del
-  comercio nunca se actualizan, `npm run lint` fuera de CI (~20 errores/10
-  warnings baseline), formularios con `<input>` crudo en 4 pantallas (F1).
+- Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: `npm run lint` fuera de CI
+  (~20 errores/10 warnings baseline), formularios con `<input>` crudo en 4
+  pantallas (F1). (Corregido 2026-08-09: las dos líneas que decían "no-show
+  automático por cron, hoy sólo manual" y "`on_time_payment_rate`/
+  `events_published` del comercio nunca se actualizan" estaban
+  desactualizadas — ambas ya están implementadas, ver
+  `backend/app/modules/shift/application/scheduler.py` [ADR-0008] y
+  `backend/app/modules/company/infrastructure/repositories.py:121-139`
+  respectivamente. Hallazgo de la auditoría de producto/UI 2026-08-09.)
 
 ## Pendiente de la operadora (Julieta — no es trabajo de código)
 

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { ChatMessage } from "@/lib/types";
 import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
@@ -33,7 +33,7 @@ function ChatBubblesSkeleton() {
 }
 
 export default function ConversationPage() {
-  const { token, user } = useAuth();
+  const { token, user } = useRequireAuth();
   const params = useParams<{ shiftId: string }>();
   const shiftId = params.shiftId;
 

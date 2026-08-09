@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
@@ -40,7 +40,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function PublicCompanyProfilePage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<CompanyProfile | null>(null);

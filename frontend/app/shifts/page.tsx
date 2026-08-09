@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
@@ -108,7 +108,7 @@ const ACTION_PATH: Record<Action, string> = {
 };
 
 export default function MyShiftsPage() {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const router = useRouter();
   const toast = useToast();
   const [shifts, setShifts] = useState<Shift[]>([]);

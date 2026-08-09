@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -143,7 +143,7 @@ function ShiftRow({
 }
 
 export default function MapPage() {
-  const { token, user } = useAuth();
+  const { token, user } = useRequireAuth();
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);

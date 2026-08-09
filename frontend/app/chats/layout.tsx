@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useAuth } from "@/lib/auth-context";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import { Conversation } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MessageIcon } from "@/components/icons";
@@ -42,7 +42,7 @@ function ConversationRowSkeleton() {
  * en `/chats` y `children` sólo se ve en `/chats/{shiftId}`.
  */
 export default function ChatsLayout({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
+  const { token } = useRequireAuth();
   const pathname = usePathname();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [error, setError] = useState<string | null>(null);

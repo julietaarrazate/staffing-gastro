@@ -5,8 +5,35 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**El mapa embebido del alta de local
-atrapaba el scroll de la página (en revisión).** Julieta reportó que al
+*Última actualización: 2026-08-09 (**Auditoría de producto/UI completa +
+arranque del backlog (en curso).** Julieta pidió una auditoría sistemática
+de calidad de producto (UI/UX, funcional, responsive, accesibilidad,
+estados) para llevar la app "de un 40% a un 90%". Se hizo con 3 agentes de
+investigación en paralelo + una pasada propia con Playwright (build de
+producción real, 8 anchos de viewport × 3 roles, detector de overflow
+automatizado) — reporte completo publicado como artifact, backlog P0-P4 con
+plan de PRs chicos. Dos hallazgos de paso: `CLAUDE.md`/`TECH_DEBT.md` tenían
+dos líneas desactualizadas (reputación del comercio y no-show automático ya
+estaban implementados, no pendientes — corregido más abajo). Arrancando el
+backlog en el orden de impacto de la auditoría:
+
+- **PR1 — guard de sesión (hallazgo P1 más serio de la auditoría):** 13
+  páginas protegidas (`/my-shifts`, `/shifts`, `/shifts/[id]/candidates`,
+  `/chats`, `/chats/[shiftId]`, `/search`, `/map`, `/subscription`,
+  `/workers/[id]`, `/companies/[id]`, `/shifts/new`, `/shifts/new-event`,
+  `/feed`) leían sólo `token` de `useAuth()` (nunca `user`/`loading`
+  global) y su `load()` hacía `if (!token) return;` sin apagar su propio
+  `loading` local — con sesión vencida o entrando por URL directa sin login
+  previo, quedaban con el skeleton girando para siempre, sin ningún camino
+  de salida. Fix: hook compartido `lib/use-require-auth.ts` (mismo patrón
+  que ya usaban `/profile`/`/admin`/`/bienvenida`, sólo que ninguna de las
+  13 lo tenía) que redirige a `/login` en cuanto se resuelve que no hay
+  sesión. Cambio mínimo por archivo (una línea de import + una de uso,
+  mismos nombres desestructurados). Verificado: `tsc`/`build`/lint limpios,
+  Playwright 27/27, Vitest 48/48.
+
+Antes, mismo día: **El mapa embebido del alta de local
+atrapaba el scroll de la página.** Julieta reportó que al
 scrollear la pantalla del comercio donde está el mapa con el pin, el mapa se
 movía en vez de la página — "no te permite navegar con naturalidad". Causa:
 `MapAddressPicker` (el mapa embebido en `CompanyProfileForm` para elegir la
