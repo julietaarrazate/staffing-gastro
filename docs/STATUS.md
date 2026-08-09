@@ -5,7 +5,20 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**Auditoría de producto/UI completa +
+*Última actualización: 2026-08-09 (**CI: filtro por carpeta para no gastar
+minutos de más.** Julieta corre CI con presupuesto acotado (2000 min/mes) y
+notó que el workflow (`.github/workflows/ci.yml`) corría los 3 jobs
+completos (`pytest`, `tsc`+`build`, Playwright) en cada push, sin importar
+qué había cambiado — una PR 100% de frontend igual pagaba el `pytest`
+completo, y viceversa. Fix: job nuevo `changes` (usa `dorny/paths-filter`)
+que detecta si el cambio tocó `backend/**`/`frontend/**`, y los 3 jobs
+existentes ahora sólo corren si su área cambió (`.github/workflows/ci.yml`
+cuenta como cambio de ambas, a propósito: un cambio al workflow se valida
+completo). De paso, se agrupa el resto del backlog de la auditoría de
+producto/UI en menos PRs (2-3 en vez de 7) para bajar también la cantidad de
+corridas de CI — ver más abajo.
+
+Antes, mismo día: **Auditoría de producto/UI completa +
 arranque del backlog (en curso).** Julieta pidió una auditoría sistemática
 de calidad de producto (UI/UX, funcional, responsive, accesibilidad,
 estados) para llevar la app "de un 40% a un 90%". Se hizo con 3 agentes de
