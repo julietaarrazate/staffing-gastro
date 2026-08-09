@@ -31,3 +31,14 @@ export function setCached<T>(key: string, value: T): void {
 export function clearCached(key: string): void {
   cache.delete(key);
 }
+
+/**
+ * Vacía todo el caché. Debe llamarse en `logout()`: sin esto, en una
+ * computadora compartida una segunda cuenta que se loguea en la misma
+ * pestaña ve por un instante (o indefinidamente, si el refetch de fondo
+ * falla) los datos cacheados de la cuenta anterior — nombre, turnos,
+ * disponibilidad (hallazgo D2 de la auditoría de producto/UI 2026-08-09).
+ */
+export function clearAllCached(): void {
+  cache.clear();
+}

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { api, NetworkError } from "@/lib/api";
+import { clearAllCached } from "@/lib/screen-cache";
 import { User } from "@/lib/types";
 
 /** Resultado de `loginWithGoogle`: o bien ya se completó la sesión, o el
@@ -289,6 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // que leerla ni reenviarla a mano. El backend la revoca server-side y la
     // limpia en la respuesta.
     clearSession();
+    clearAllCached();
     setToken(null);
     setUser(null);
     // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
