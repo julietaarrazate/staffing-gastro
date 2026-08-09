@@ -5,7 +5,33 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**Auditoría de producto/UI: batch de
+*Última actualización: 2026-08-09 (**Auditoría de producto/UI: batch UX
+(PR6) — race condition en `/search`, límites de caracteres y errores de
+formulario anunciados.** Dos hallazgos agrupados:
+- **D4 — race condition en `/search`:** al montar se buscaba con el centro
+  por defecto (Obelisco) y otra vez cuando `getCurrentPosition` resolvía
+  con la ubicación real, sin cancelar la primera — si la respuesta vieja
+  llegaba después (variación de latencia normal), pisaba los resultados
+  correctos. Fix: contador de secuencia en `app/search/page.tsx` (sin tocar
+  `lib/api.ts`); una respuesta que ya no es la más reciente se descarta en
+  silencio.
+- **D5/F4 — `TextField` sin `maxLength` ni error asociado al campo:**
+  `components/ui/TextField.tsx` no tenía forma de reflejar el límite de
+  caracteres del backend ni de asociar un error a su input (`aria-invalid`/
+  `aria-describedby`) — toda la validación era un `<p>` suelto al pie del
+  formulario. Agregadas ambas props (`maxLength`, `error` con `role="alert"`
+  + `useId()` para el id); aplicado `maxLength` a los 3 campos concretos del
+  hallazgo (nombre del evento, dress code en los dos wizards, nombre del
+  comercio); agregado `role="alert"` a los `<p>` de error general de
+  `register`, `WorkerProfileForm` y `CompanyProfileForm` para que un lector
+  de pantalla los anuncie. 3 tests unitarios nuevos (`TextField.test.tsx`).
+  La migración de `CompanyProfileForm` del `<input>` crudo al `TextField`
+  del design system queda para el próximo PR (C3), junto con el focus trap
+  de `Modal`/`Sheet` (F1).
+
+Verificado: `tsc`/`build`/lint limpios, Playwright 28/28, Vitest 55/55.
+
+Antes, mismo día: **Auditoría de producto/UI: batch de
 polish (PR5) — overflow, `<h1>` de `/profile`, botones en loading y
 consistencia visual.** Cinco hallazgos chicos y de bajo riesgo agrupados en
 un solo PR (para no multiplicar corridas de CI, ver el punto anterior):

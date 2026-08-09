@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -45,6 +45,14 @@ export default function SearchPage() {
   // token/ubicación, así el sheet nunca llega a mostrar "0 trabajadores" antes
   // de que la primera búsqueda resuelva.
   const [loading, setLoading] = useState(true);
+  // D4 (auditoría de producto/UI 2026-08-09): al montar se busca con
+  // DEFAULT_CENTER de inmediato, y otra vez cuando `getCurrentPosition`
+  // resuelve con la ubicación real — sin esto, si la respuesta del centro
+  // por defecto llega DESPUÉS que la de la ubicación real (variación de
+  // latencia normal), pisaba los resultados correctos con los del Obelisco.
+  // Contador de secuencia: sólo la búsqueda más reciente puede escribir
+  // estado; una respuesta vieja que llega tarde se descarta en silencio.
+  const searchSeq = useRef(0);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -58,6 +66,7 @@ export default function SearchPage() {
 
   async function search() {
     if (!token) return;
+    const seq = ++searchSeq.current;
     setLoading(true);
     setError(null);
     try {
@@ -71,11 +80,13 @@ export default function SearchPage() {
         `/matching/search?${params.toString()}`,
         token
       );
+      if (seq !== searchSeq.current) return;
       setWorkers(results);
     } catch (err) {
+      if (seq !== searchSeq.current) return;
       setError(getErrorMessage(err, "No se pudo buscar trabajadores"));
     } finally {
-      setLoading(false);
+      if (seq === searchSeq.current) setLoading(false);
     }
   }
 

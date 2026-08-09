@@ -156,7 +156,13 @@ export default function NewEventPage() {
       </div>
 
       <div className="mt-6 flex-1 space-y-5 pb-4">
-        <TextField label="Nombre del evento" value={name} onChange={setName} placeholder="Ej: Boda Martínez" />
+        <TextField
+          label="Nombre del evento"
+          value={name}
+          onChange={setName}
+          placeholder="Ej: Boda Martínez"
+          maxLength={200}
+        />
 
         <div className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
@@ -194,7 +200,13 @@ export default function NewEventPage() {
           )}
         </div>
 
-        <TextField label="Dress code (opcional)" value={dressCode} onChange={setDressCode} placeholder="Ej: camisa negra" />
+        <TextField
+          label="Dress code (opcional)"
+          value={dressCode}
+          onChange={setDressCode}
+          placeholder="Ej: camisa negra"
+          maxLength={255}
+        />
 
         <div className="flex flex-col gap-3">
           <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />

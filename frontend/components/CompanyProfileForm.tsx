@@ -114,6 +114,7 @@ export default function CompanyProfileForm() {
         <input
           id="company-name"
           required
+          maxLength={255}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="mt-1 w-full rounded-lg border border-line px-3 py-2"
@@ -163,7 +164,11 @@ export default function CompanyProfileForm() {
         )}
       </div>
 
-      {error && <p className="text-sm text-danger-text">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-danger-text">
+          {error}
+        </p>
+      )}
       {saved && <p className="text-sm font-medium text-success-text">Perfil guardado</p>}
 
       <Button type="submit" loading={submitting} disabled={submitting}>

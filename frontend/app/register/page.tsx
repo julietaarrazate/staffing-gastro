@@ -124,7 +124,11 @@ function RegisterForm() {
                 </Link>
               </span>
             </label>
-            {error && <p className="text-sm text-danger-text">{error}</p>}
+            {error && (
+              <p role="alert" className="text-sm text-danger-text">
+                {error}
+              </p>
+            )}
             <Button type="submit" fullWidth loading={submitting} disabled={!acceptedTerms}>
               Crear cuenta
             </Button>

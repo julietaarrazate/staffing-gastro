@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { EyeIcon, EyeOffIcon } from "@/components/icons";
 
@@ -17,6 +17,8 @@ export default function TextField({
   min,
   max,
   minLength,
+  maxLength,
+  error,
   className,
 }: {
   label?: string;
@@ -30,6 +32,13 @@ export default function TextField({
   min?: number;
   max?: number;
   minLength?: number;
+  maxLength?: number;
+  /** Mensaje de error del campo: conecta `aria-describedby`/`aria-invalid`
+   *  con el `<input>` y se anuncia a lectores de pantalla (`role="alert"`).
+   *  Hallazgo F4 de la auditoría de producto/UI 2026-08-09 — antes ningún
+   *  campo del repo tenía esto, los errores de formulario eran un `<p>`
+   *  suelto sin asociación programática con ningún input específico. */
+  error?: string;
   className?: string;
 }) {
   // Ver la contraseña que se está escribiendo. Sin esto, en un teclado de
@@ -38,6 +47,7 @@ export default function TextField({
   const [reveal, setReveal] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword && reveal ? "text" : type;
+  const errorId = useId();
 
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
@@ -56,10 +66,14 @@ export default function TextField({
           min={min}
           max={max}
           minLength={minLength}
+          maxLength={maxLength}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           className={cn(
             "min-h-[48px] w-full rounded-[var(--radius-input)] bg-white px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40",
             Boolean(leftIcon) && "pl-11",
-            isPassword && "pr-12"
+            isPassword && "pr-12",
+            error && "ring-2 ring-danger"
           )}
         />
         {isPassword && (
@@ -74,6 +88,11 @@ export default function TextField({
           </button>
         )}
       </span>
+      {error && (
+        <span id={errorId} role="alert" className="text-sm text-danger-text">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
