@@ -6,7 +6,7 @@
  * por distancia, sin pedir latitud/longitud a mano. Incluye un atajo para usar
  * la ubicación actual del dispositivo y precisar las coordenadas.
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import { PROVINCES } from "@/lib/locations";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { MapPinIcon } from "@/components/icons";
@@ -34,6 +34,9 @@ export default function LocationPicker({
 }: {
   onSelect: (selection: LocationSelection) => void;
 }) {
+  // Id único por instancia (no hardcodeado): el picker se usa en varios
+  // formularios y un id fijo colisionaría si dos llegaran a montarse juntos.
+  const idPrefix = useId();
   const [provinceIdx, setProvinceIdx] = useState(0);
   const [localityName, setLocalityName] = useState("");
   const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "done" | "error">(
@@ -86,8 +89,11 @@ export default function LocationPicker({
     <div className="grid gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-semibold text-ink/70">Provincia</label>
+          <label htmlFor={`${idPrefix}-province`} className="block text-sm font-semibold text-ink/70">
+            Provincia
+          </label>
           <select
+            id={`${idPrefix}-province`}
             value={provinceIdx}
             onChange={(e) => changeProvince(Number(e.target.value))}
             className={selectClass}
@@ -100,10 +106,11 @@ export default function LocationPicker({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-ink/70">
+          <label htmlFor={`${idPrefix}-locality`} className="block text-sm font-semibold text-ink/70">
             {province.localityLabel}
           </label>
           <select
+            id={`${idPrefix}-locality`}
             value={localityName}
             onChange={(e) => selectLocality(e.target.value)}
             className={selectClass}

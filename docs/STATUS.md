@@ -5,8 +5,35 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-08 (**TECH_DEBT.md S1 resuelto: refresh token
-como cookie httpOnly (en revisión).** Con el frente de QA de Julieta al día,
+*Última actualización: 2026-08-09 (**TECH_DEBT.md F4 resuelto: accesibilidad
+sistematizada con `jsx-a11y/recommended` en el lint (en revisión).** Segundo
+ítem de la deuda técnica por prioridad tras S1 (ver más abajo). `eslint-
+config-next` ya traía `jsx-a11y` como dependencia transitiva, pero sólo
+activaba 6 de sus ~30 reglas — ninguna cubría lo que de verdad importaba
+(labels de formulario sin asociar a su control, controles clickeables sin
+soporte de teclado). Se agregó como dependencia directa y se activó el set
+`recommended` completo (`eslint.config.mjs`, sólo las reglas — el plugin ya
+lo registra `eslint-config-next` bajo el mismo nombre, y ESLint flat config
+no permite redefinir un plugin). Salieron 16 errores reales, corregidos con
+el mismo criterio que T5 (arreglar lo genuino, documentar y silenciar
+puntual lo que se descarta con motivo, nada de blanket-disable): 7 labels
+sin asociar (`CompanyProfileForm`, `WorkerProfileForm`, `CvUpload`,
+`LocationPicker` — 3 eran labels reales de un input/textarea/select, se
+arreglan con `htmlFor`/`id`; los otros 4 eran un `<label>` usado como
+encabezado de sección sobre un widget compuesto, se bajan a `<p>` porque no
+son labels de verdad), 4 tarjetas de turno en `/map` sin soporte de teclado
+(`role="button"`+`tabIndex`+`onKeyDown`, no pueden ser `<button>` porque ya
+contienen un botón real adentro), y un `autoFocus` intencional en
+`EditableName` (foco esperado tras una acción explícita del usuario, no el
+antipatrón que la regla previene — silenciado puntual con motivo, no
+sacado). Aparte, una auditoría separada de "íconos sin `aria-label`"
+(agente de exploración, 57 archivos/64 botones/142 `onClick`) no encontró
+ningún caso — ya estaba resuelto de sesiones anteriores. Verificado: `npm
+run lint` → 0 errores/6 warnings (los `<img>` de F5, sin cambios), `tsc`/
+`build` limpios, **Playwright 27/27**.
+
+Antes, mismo día: **TECH_DEBT.md S1 resuelto: refresh token
+como cookie httpOnly (#172, mergeado).** Con el frente de QA de Julieta al día,
 se retomó la deuda técnica por prioridad — arrancando por S1 (🔴 Crítica,
 seguridad), el único ítem crítico de `TECH_DEBT.md` que seguía realmente
 abierto (P1/I1/T1 ya estaban resueltos, sólo desactualizado el resumen).

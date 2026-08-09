@@ -4,7 +4,7 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-08-08**. Si pasó mucho tiempo desde esta fecha,
+> Última actualización: **2026-08-09**. Si pasó mucho tiempo desde esta fecha,
 > desconfiá de los números/estados de abajo y releé
 > [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
 >
@@ -31,14 +31,20 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 > 40%, llevarla a 90%") — es una línea de trabajo continua, no una tarea
 > puntual; seguir por prioridad desde `docs/TECH_DEBT.md`.
 >
-> **Deuda técnica por prioridad (en curso, 2026-08-08):** con el frente de QA
-> de Julieta al día, se retomó `docs/TECH_DEBT.md` por prioridad. Primer
-> ítem, **S1 (tokens de sesión) resuelto**: el refresh token dejó de viajar
-> por `localStorage`/body de respuesta — ahora es una cookie `httpOnly`
+> **Deuda técnica por prioridad (en curso, 2026-08-09):** con el frente de QA
+> de Julieta al día, se retomó `docs/TECH_DEBT.md` por prioridad. **S1
+> (tokens de sesión) resuelto**: el refresh token dejó de viajar por
+> `localStorage`/body de respuesta — ahora es una cookie `httpOnly`
 > (`identity/api/routes.py::_set_refresh_cookie`), así que un XSS ya no puede
 > robarlo. Detalle completo y un punto operativo que ahora importa más
 > (`ENVIRONMENT=production` en Render) en `docs/TECH_DEBT.md` S1 y
-> "Pendiente de la operadora" más abajo.
+> "Pendiente de la operadora" más abajo. **F4 (accesibilidad) resuelto**:
+> `eslint-config-next` ya traía `jsx-a11y` pero sólo con 6 de ~30 reglas
+> activas; se prendió el set `recommended` completo en `eslint.config.mjs` y
+> salieron 16 errores reales (labels de formulario sin asociar a su control,
+> tarjetas de turno en `/map` sin soporte de teclado) — corregidos con el
+> mismo criterio que T5 (arreglar lo genuino, documentar lo que se descarta
+> con motivo). Detalle en `docs/TECH_DEBT.md` F4.
 >
 > **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
 > pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas

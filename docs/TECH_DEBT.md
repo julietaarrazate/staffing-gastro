@@ -412,13 +412,13 @@ fecha de esta auditoría (2026-07-02).
 > `StatCard` envuelve `components/ui/Card` (`docs/STATUS.md`, entrada
 > "R3.2 (DS v2 en Employer/Admin)"). Sin colores Tailwind crudos.
 
-### F4 — Accesibilidad no sistematizada 🟡 Media
+### F4 — Accesibilidad no sistematizada ✅ Resuelto (2026-08-09)
 
-- **Descripción:** `aria-*` presente en sólo 13 de 56 archivos `.tsx`;
-  `focus-visible`/`focus:ring` explícito en sólo 7 de 56. El foco de teclado
-  funciona por herencia en los componentes del DS (`Button.tsx:65`), pero no
-  hay checklist ni lint que lo garantice en pantallas con controles ad-hoc
-  (toggles de `feed/page.tsx`, botones del wizard).
+- **Descripción (histórica):** `aria-*` presente en sólo 13 de 56 archivos
+  `.tsx`; `focus-visible`/`focus:ring` explícito en sólo 7 de 56. El foco de
+  teclado funciona por herencia en los componentes del DS (`Button.tsx:65`),
+  pero no había checklist ni lint que lo garantizara en pantallas con
+  controles ad-hoc (toggles de `feed/page.tsx`, botones del wizard).
 - **Impacto:** riesgo de regresiones de accesibilidad en pantallas nuevas
   que no reutilicen el DS.
 - **Riesgo:** medio (cumplimiento + experiencia para usuarios con lector de
@@ -426,8 +426,60 @@ fecha de esta auditoría (2026-07-02).
 - **Prioridad:** 🟡 Media.
 - **Esfuerzo:** medio — auditoría puntual + regla de lint
   (`eslint-plugin-jsx-a11y`, no confirmado si está instalado).
-- **Solución sugerida:** agregar `jsx-a11y` al lint si no está, y una pasada
-  de `aria-label` en controles icon-only restantes.
+- **Solución sugerida (histórica):** agregar `jsx-a11y` al lint si no está,
+  y una pasada de `aria-label` en controles icon-only restantes.
+
+> **Resolución 2026-08-09:** `eslint-config-next` ya traía `jsx-a11y` como
+> dependencia transitiva, pero sólo activaba 6 de sus ~30 reglas (`alt-text`,
+> `aria-props`/`aria-proptypes`, `aria-unsupported-elements`,
+> `role-has-required-aria-props`, `role-supports-aria-props`) — ninguna
+> cubría lo que de verdad importaba (labels sin asociar, controles
+> clickeables sin soporte de teclado). Se agregó como dependencia directa
+> (`package.json`) y se activó el set `recommended` completo en
+> `eslint.config.mjs` (sólo las reglas, no el registro del plugin — ya lo
+> registra `eslint-config-next` bajo el mismo nombre, y ESLint flat config no
+> permite redefinir un plugin). Salieron **16 errores reales** en 4 archivos,
+> corregidos con el mismo criterio que T5 (arreglar lo genuino, documentar lo
+> que se descarta con motivo, nada de blanket-disable):
+> - **`jsx-a11y/label-has-associated-control`** (7×, `CompanyProfileForm`,
+>   `WorkerProfileForm` x3, `CvUpload`, `LocationPicker` x2 real — el linter
+>   sólo marcó 1 de los 2 selects de `LocationPicker`, pero el segundo tenía
+>   el mismo bug real, así que se corrigieron ambos): 3 eran labels
+>   genuinamente sueltos de un control real (`<input>`/`<textarea>`/
+>   `<select>`) — se les agregó `htmlFor`/`id` (con `useId()` en
+>   `LocationPicker`, que se monta en varios formularios distintos, para no
+>   arriesgar colisión de ids si dos instancias coincidieran alguna vez en
+>   una misma página). Los otros 4 eran un `<label>` usado como encabezado de
+>   sección sobre un widget compuesto sin un único control asociable
+>   ("Ubicación", "CV", "Habilidades") — se bajaron a `<p>` (no son labels de
+>   verdad); "Habilidades" (grupo de botones toggle) sumó además
+>   `role="group"`+`aria-labelledby`, más correcto que un texto suelto.
+> - **`jsx-a11y/click-events-have-key-events` + `no-static-element-
+>   interactions`** (4 pares, `app/map/page.tsx`): las tarjetas de turno son
+>   un `<div onClick>` (no pueden ser `<button>`: ya contienen un botón real
+>   adentro, "Postularme", y HTML no permite anidar `<button>`) — se les
+>   agregó `role="button"`, `tabIndex={0}` y `onKeyDown` (Enter/Espacio
+>   activan igual que el click), ahora sí navegables por teclado. El wrapper
+>   interno que sólo hace `stopPropagation()` para que el botón anidado no
+>   dispare también el click de la tarjeta no tiene semántica propia que
+>   agregar — se documentó y se silenció puntual (`eslint-disable-next-line`
+>   con motivo inline), no es un caso real.
+> - **`jsx-a11y/no-autofocus`** (1×, `EditableName.tsx`): `autoFocus` en el
+>   input que aparece al tocar "Editar nombre" — foco esperado por una acción
+>   explícita del usuario, no el antipatrón que la regla previene (foco
+>   inesperado al cargar la página). Se mantiene, silenciado puntual con
+>   motivo inline (mismo criterio que T5 con `react-hooks/set-state-in-
+>   effect`: revisar caso por caso, no descartar la regla entera).
+>
+> **Icon-only sin `aria-label`:** auditoría separada (agente de exploración,
+> 57 archivos con íconos, 64 `<button>`, 142 `onClick`) — **cero casos
+> encontrados**, ya estaba resuelto de sesiones anteriores (`Sheet`,
+> `EditableName`, `CvUpload`, markers del mapa, `TextField`, `SwipeDeck`,
+> etc. ya traían `aria-label` explícito). No hizo falta ningún cambio ahí.
+>
+> Verificado: `npm run lint` → **0 errores, 6 warnings** (mismos `<img>` ya
+> catalogados en F5, sin cambios), `tsc --noEmit`/`npm run build` limpios,
+> **Playwright 27/27**.
 
 ### F5 — `<img>` sin `next/image` (persiste desde v1) 🟢 Baja
 
@@ -853,5 +905,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), ~~S1 (tokens/revocación)~~ ✅ resuelta 2026-08-08 (cookie httpOnly, último pendiente), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), T2 (sin tests frontend), T3 (sin observabilidad) |
-| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), F4 (accesibilidad), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
+| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), ~~F4 (accesibilidad)~~ ✅ resuelta 2026-08-09 (jsx-a11y/recommended en lint, 16 errores reales corregidos), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |

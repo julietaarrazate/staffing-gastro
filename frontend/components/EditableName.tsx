@@ -54,7 +54,12 @@ export default function EditableName({ className = "" }: { className?: string })
         }}
         className="flex items-center gap-1.5"
       >
+        {/* autoFocus es intencional acá, no el antipatrón que la regla
+            previene (foco inesperado al cargar la página): este input sólo
+            aparece cuando el usuario tocó "Editar nombre" — el foco cae
+            exactamente donde acaba de pedir escribir. */}
         <input
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}

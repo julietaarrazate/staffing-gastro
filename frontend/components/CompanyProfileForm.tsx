@@ -108,8 +108,11 @@ export default function CompanyProfileForm() {
       <ImageUpload value={logoUrl} onChange={setLogoUrl} fallbackLabel={name || "C"} shape="square" />
 
       <div>
-        <label className="block text-sm font-medium text-ink/70">Nombre del comercio</label>
+        <label htmlFor="company-name" className="block text-sm font-medium text-ink/70">
+          Nombre del comercio
+        </label>
         <input
+          id="company-name"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -117,7 +120,11 @@ export default function CompanyProfileForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-ink/70">Ubicación del comercio</label>
+        {/* No es un `<label>`: no hay un único control al que asociar (el
+            selector de ubicación de abajo es un widget compuesto, mapa o
+            cascada de provincia/localidad — jsx-a11y/label-has-associated-
+            control, TECH_DEBT.md F4). */}
+        <p className="block text-sm font-medium text-ink/70">Ubicación del comercio</p>
         <div className="mt-2">
           {useManualPicker ? (
             <div className="flex flex-col gap-2">

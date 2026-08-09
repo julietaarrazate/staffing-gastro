@@ -24,6 +24,18 @@ const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
 
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
 
+/** Enter/Espacio activan igual que un click — necesario para que las
+ * tarjetas de turno (arriba) sean usables con teclado: son un `<div>`, no un
+ * `<button>`, porque ya contienen un botón real adentro ("Postularme") y un
+ * `<button>` no puede anidar otro `<button>` (jsx-a11y/no-static-element-
+ * interactions, TECH_DEBT.md F4). */
+function handleCardActivate(e: React.KeyboardEvent, onActivate: () => void) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    onActivate();
+  }
+}
+
 function MapCardSkeleton({ wide = false }: { wide?: boolean }) {
   return (
     <div
@@ -81,8 +93,11 @@ function ShiftRow({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onMouseEnter={onSelect}
       onClick={onOpenDetail}
+      onKeyDown={(e) => handleCardActivate(e, onOpenDetail)}
       className={`w-full cursor-pointer rounded-[var(--radius-card)] border p-3.5 text-left transition ${
         active ? "border-primary/40 bg-orange-50/60" : "border-line bg-white hover:bg-surface"
       }`}
@@ -114,6 +129,10 @@ function ShiftRow({
           {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
         </p>
       </div>
+      {/* Sólo corta la propagación del click hacia la tarjeta — el botón de
+          adentro ya es interactivo/accesible por su cuenta, este div no
+          necesita semántica ni soporte de teclado propios. */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
       <div onClick={(e) => e.stopPropagation()} className="mt-3">
         <Button fullWidth size="sm" loading={applying} disabled={disabled} onClick={onApply}>
           Postularme
@@ -344,6 +363,8 @@ export default function MapPage() {
             return (
               <div
                 key={shift.id}
+                role="button"
+                tabIndex={0}
                 // Tocar la tarjeta ABRE el detalle para revisar — NO postula
                 // sola. Antes tocaba postular directo con cualquier toque en
                 // la tarjeta, y eso disparaba postulaciones sin querer al
@@ -354,6 +375,7 @@ export default function MapPage() {
                 // comercio corta la propagación para no abrir el detalle al
                 // navegar a su perfil.
                 onClick={() => setPreviewShift(shift)}
+                onKeyDown={(e) => handleCardActivate(e, () => setPreviewShift(shift))}
                 className="flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] bg-white p-4 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98]"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -413,7 +435,10 @@ export default function MapPage() {
                 {/* stopPropagation: sin esto, el toque también burbujea al
                     onClick de la tarjeta y abre el sheet de detalle a la vez
                     que postula. Este botón es el atajo directo para quien ya
-                    decidió sin necesidad de revisar más. */}
+                    decidió sin necesidad de revisar más. El div en sí no
+                    necesita semántica/teclado propios — el botón de adentro
+                    ya es interactivo y accesible por su cuenta. */}
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
                 <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                   <Button
                     fullWidth
