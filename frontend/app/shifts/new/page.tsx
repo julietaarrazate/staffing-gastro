@@ -161,6 +161,11 @@ function NewShiftWizard() {
     if (!token || position === null) return;
     setSubmitting(true);
     try {
+      // Idempotencia (D3, auditoría de producto/UI 2026-08-09): antes sólo
+      // el POST de publicación estaba protegido — un reintento tras un
+      // timeout/corte de red que sí llegó a crear el turno duplicaba el
+      // turno al reintentar desde cero. Key estable por intento del wizard
+      // (no por-turno: el turno todavía no existe en el primer intento).
       const created = await api.post<{ id: string }>(
         "/shifts",
         {
@@ -178,8 +183,11 @@ function NewShiftWizard() {
           latitude,
           longitude,
         },
-        token
+        token,
+        undefined,
+        keyFor("create-shift")
       );
+      clearIdempotencyKey("create-shift");
       try {
         // Idempotencia (product/IDEMPOTENCIA_SPEC.md): protege el POST de
         // publicación en sí (el turno recién creado ya tiene un id propio,
