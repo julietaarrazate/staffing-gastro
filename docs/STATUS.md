@@ -31,6 +31,17 @@ backlog en el orden de impacto de la auditoría:
   sesión. Cambio mínimo por archivo (una línea de import + una de uso,
   mismos nombres desestructurados). Verificado: `tsc`/`build`/lint limpios,
   Playwright 27/27, Vitest 48/48.
+- **PR2 — limpiar `screen-cache` en logout (hallazgo P1, fuga de datos
+  entre cuentas):** `lib/screen-cache.ts` cachea el feed/perfil a nivel de
+  módulo (vive lo que vive la pestaña) y ya exponía `clearCached(key)` para
+  invalidar una entrada puntual, pero nada lo llamaba en `logout()` — en
+  una computadora compartida, una segunda cuenta logueada en la misma
+  pestaña veía por un instante (o indefinidamente, si el refetch de fondo
+  fallaba) los datos cacheados de la cuenta anterior. Fix: nuevo
+  `clearAllCached()` (vacía todo el `Map`), llamado en `logout()` junto a
+  `clearSession()`. Test unitario nuevo (`lib/screen-cache.test.ts`, 4
+  casos). Verificado: `tsc`/`build`/lint limpios, Playwright 27/27, Vitest
+  52/52.
 
 Antes, mismo día: **El mapa embebido del alta de local
 atrapaba el scroll de la página.** Julieta reportó que al
