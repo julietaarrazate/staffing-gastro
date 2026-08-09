@@ -5,7 +5,37 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**CI: filtro por carpeta para no gastar
+*Última actualización: 2026-08-09 (**Auditoría de producto/UI: batch de
+polish (PR5) — overflow, `<h1>` de `/profile`, botones en loading y
+consistencia visual.** Cinco hallazgos chicos y de bajo riesgo agrupados en
+un solo PR (para no multiplicar corridas de CI, ver el punto anterior):
+- **E1 — overflow real en "Pago c/u" del wizard de evento:** confirmado con
+  Playwright (516px de contenido en un viewport de 320-412px). Causa:
+  `<input type="number">` dentro de un `<label className="flex flex-1">`
+  sin `min-w-0` no se achica por debajo de su ancho intrínseco. Fix:
+  `min-w-0` en los labels e inputs de "Cantidad"/"Pago c/u"
+  (`app/shifts/new-event/page.tsx`). Test de regresión nuevo en
+  `overflow-audit.spec.ts` a 320px específicamente en esa ruta.
+- **F2 — `/profile` no tenía `<h1>`:** rompía la navegación por headings.
+  Agregado con el mismo patrón visual que el resto de las pantallas.
+- **F3 — los botones en `loading` perdían su nombre accesible:** el
+  spinner de `components/ui/Button.tsx` no tenía texto ni `aria-busy`.
+  Agregado `aria-busy={loading}` + `<span className="sr-only">Cargando…</span>`.
+- **C2 — el botón/link primario naranja tenía dos radios distintos**
+  (`rounded-full` en 6 lugares vs. el token `--radius-btn` del design
+  system): unificados todos a `--radius-btn`
+  (`app/turno/[id]`, `app/chats/[shiftId]` —de paso, el botón "Enviar"
+  también estaba por debajo del mínimo de 44px de alto, corregido—,
+  `app/shifts`, `Navbar`, `ShiftActions`, `ImageCropModal`).
+- **C4 — tamaño de `<h1>` de pantalla inconsistente:** unificado a
+  `text-2xl` en `/map` (panel lateral), `/feed`, `/turno/[id]` y el propio
+  wizard de evento (que además tenía DOS tamaños distintos en el mismo
+  flujo, entre su formulario y su pantalla de resultado).
+
+Verificado: `tsc`/`build`/lint limpios, Playwright 28/28 (incluye el test
+nuevo de E1), Vitest 52/52.
+
+Antes, mismo día: **CI: filtro por carpeta para no gastar
 minutos de más.** Julieta corre CI con presupuesto acotado (2000 min/mes) y
 notó que el workflow (`.github/workflows/ci.yml`) corría los 3 jobs
 completos (`pytest`, `tsc`+`build`, Playwright) en cada push, sin importar

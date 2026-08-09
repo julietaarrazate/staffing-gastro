@@ -150,7 +150,7 @@ export default function NewEventPage() {
           <ChevronLeftIcon size={18} />
         </button>
         <div>
-          <h1 className="font-display text-xl font-semibold text-ink">Publicar para un evento</h1>
+          <h1 className="font-display text-2xl font-semibold text-ink">Publicar para un evento</h1>
           <p className="text-sm text-ink/50">Varios roles, un solo formulario.</p>
         </div>
       </div>
@@ -239,7 +239,12 @@ export default function NewEventPage() {
                   )}
                 </div>
                 <div className="mt-2 flex gap-2">
-                  <label className="flex flex-1 flex-col gap-1">
+                  {/* min-w-0: sin esto, dos <input type="number"> flex-1 no se
+                      achican por debajo de su ancho intrínseco (con spinner
+                      nativo, ~170px+) y desbordan el contenedor en viewports
+                      angostos (confirmado con Playwright, hallazgo E1 de la
+                      auditoría de producto/UI 2026-08-09). */}
+                  <label className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-xs font-semibold text-ink/50">Cantidad</span>
                     <input
                       type="number"
@@ -247,10 +252,10 @@ export default function NewEventPage() {
                       min={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
-                      className="min-h-[44px] rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
-                  <label className="flex flex-1 flex-col gap-1">
+                  <label className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-xs font-semibold text-ink/50">Pago c/u</span>
                     <input
                       type="number"
@@ -259,7 +264,7 @@ export default function NewEventPage() {
                       placeholder="15000"
                       value={role.payAmount}
                       onChange={(e) => updateRole(role.key, { payAmount: e.target.value })}
-                      className="min-h-[44px] rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                 </div>

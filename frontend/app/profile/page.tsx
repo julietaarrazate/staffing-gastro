@@ -63,6 +63,12 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl">
+      {/* F2 (auditoría de producto/UI 2026-08-09): la pantalla no tenía
+          ningún <h1> — rompía la navegación por headings (tecla H en
+          lectores de pantalla) en una de las pantallas más usadas de la
+          app. Mismo patrón visual que el resto de las pantallas (`/shifts`,
+          `/feed`, etc.). */}
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Perfil</h1>
       {/* En lg+ el formulario principal queda en una columna angosta y
           legible (ensanchar los inputs a todo el ancho se ve mal, mismo
           criterio que /my-shifts al no forzar una altura pareja en
@@ -70,7 +76,7 @@ export default function ProfilePage() {
           al lado, en vez de apilarse debajo con media pantalla vacía a los
           costados. Sin `lg:grid`, en mobile/tablet sigue siendo un único
           stack en el mismo orden de siempre. */}
-      <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
+      <div className="mt-4 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
         <div className="lg:col-span-2">
           {user.role === "worker" ? (
             <WorkerGameCard />
