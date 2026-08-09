@@ -8,7 +8,7 @@ import { CompanyProfile } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import MapAddressPicker, { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
-import { Button, ErrorBanner, Skeleton } from "@/components/ui";
+import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
@@ -107,19 +107,13 @@ export default function CompanyProfileForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <ImageUpload value={logoUrl} onChange={setLogoUrl} fallbackLabel={name || "C"} shape="square" />
 
-      <div>
-        <label htmlFor="company-name" className="block text-sm font-medium text-ink/70">
-          Nombre del comercio
-        </label>
-        <input
-          id="company-name"
-          required
-          maxLength={255}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-line px-3 py-2"
-        />
-      </div>
+      <TextField
+        label="Nombre del comercio"
+        value={name}
+        onChange={setName}
+        required
+        maxLength={255}
+      />
       <div>
         {/* No es un `<label>`: no hay un único control al que asociar (el
             selector de ubicación de abajo es un widget compuesto, mapa o

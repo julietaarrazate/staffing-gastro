@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { CloseIcon } from "@/components/icons";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
  * Bottom sheet modal del Design System: backdrop con fade, panel que sube
@@ -52,6 +53,8 @@ export default function Sheet({
   const reducedMotion = useReducedMotion();
   const y = useMotionValue(0);
   const dragState = useRef<{ startY: number; startClientY: number } | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +110,7 @@ export default function Sheet({
             className="absolute inset-0 bg-black/40"
           />
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label={title ?? "Acciones"}

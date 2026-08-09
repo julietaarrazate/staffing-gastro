@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
  * Diálogo centrado con backdrop (para confirmaciones). Para acciones desde
@@ -25,6 +26,8 @@ export default function Modal({
   children: ReactNode;
 }) {
   const reducedMotion = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -62,6 +65,7 @@ export default function Modal({
             className="absolute inset-0 bg-black/40"
           />
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label={title ?? "Diálogo"}
