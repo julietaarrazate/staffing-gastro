@@ -201,7 +201,7 @@ export default function ConversationPage() {
         <button
           type="submit"
           disabled={sending || !draft.trim()}
-          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-ink hover:bg-primary-strong disabled:opacity-50"
+          className="flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-sm font-semibold text-ink hover:bg-primary-strong disabled:opacity-50"
         >
           Enviar
         </button>

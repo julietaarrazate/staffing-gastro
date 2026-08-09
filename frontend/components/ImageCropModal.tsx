@@ -167,7 +167,7 @@ export default function ImageCropModal({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="flex-1 rounded-full border border-line py-2.5 text-sm font-semibold text-ink/70 disabled:opacity-50"
+            className="flex-1 rounded-[var(--radius-btn)] border border-line py-2.5 text-sm font-semibold text-ink/70 disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -175,7 +175,7 @@ export default function ImageCropModal({
             type="button"
             onClick={confirm}
             disabled={saving || natural.width === 0}
-            className="flex-1 rounded-full bg-primary py-2.5 text-sm font-semibold text-ink disabled:opacity-60"
+            className="flex-1 rounded-[var(--radius-btn)] bg-primary py-2.5 text-sm font-semibold text-ink disabled:opacity-60"
           >
             {saving ? "Guardando..." : "Usar esta foto"}
           </button>

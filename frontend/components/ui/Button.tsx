@@ -62,6 +62,7 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
+      aria-busy={loading}
       aria-label={ariaLabel}
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -74,7 +75,14 @@ export default function Button({
       )}
     >
       {loading ? (
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <>
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          {/* F3 (auditoría de producto/UI 2026-08-09): sin esto, el botón
+              pierde su nombre accesible mientras carga (el spinner no tiene
+              texto) — un lector de pantalla no anuncia nada al re-enfocarlo
+              durante el submit. */}
+          <span className="sr-only">Cargando…</span>
+        </>
       ) : (
         <>
           {leftIcon}

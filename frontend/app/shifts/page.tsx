@@ -235,13 +235,13 @@ export default function MyShiftsPage() {
         <div className="flex shrink-0 gap-2">
           <Link
             href="/shifts/new-event"
-            className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
+            className="rounded-[var(--radius-btn)] bg-white px-4 py-2.5 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
           >
             + Evento
           </Link>
           <Link
             href="/shifts/new"
-            className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
+            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
           >
             + Publicar
           </Link>

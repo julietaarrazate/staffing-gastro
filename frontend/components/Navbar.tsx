@@ -92,7 +92,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-primary px-3.5 py-1.5 text-ink shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
+                className="rounded-[var(--radius-btn)] bg-primary px-3.5 py-1.5 text-ink shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
               >
                 Crear cuenta
               </Link>

@@ -265,7 +265,7 @@ export default function MapPage() {
           y vacía en pantallas anchas). En mobile no se renderiza (hidden). */}
       <aside className="hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line bg-white md:flex">
         <div className="sticky top-0 z-10 border-b border-line bg-white/95 px-5 py-4 backdrop-blur">
-          <h1 className="font-display text-lg font-semibold text-ink">
+          <h1 className="font-display text-2xl font-semibold text-ink">
             {loading ? "Buscando turnos..." : `${shifts.length} turnos cerca tuyo`}
           </h1>
         </div>

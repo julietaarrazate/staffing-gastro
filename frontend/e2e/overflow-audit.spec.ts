@@ -121,6 +121,7 @@ const SCREENS = [
   "/feed",
   "/shifts",
   "/shifts/new",
+  "/shifts/new-event",
   "/my-shifts",
   "/profile",
   "/search",
@@ -188,3 +189,20 @@ for (const role of ["worker", "employer"] as const) {
     expect(findings.join("\n")).toBe("");
   });
 }
+
+// E1 (auditoría de producto/UI 2026-08-09): a 320-412px, dos <input
+// type="number"> flex-1 ("Cantidad"/"Pago c/u") desbordaban el contenedor
+// porque no tenían `min-w-0` — confirmado con este mismo detector. Regresión
+// dedicada al ancho mínimo soportado, más angosto que el resto del suite.
+test("encuadre 320px — /shifts/new-event (E1)", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await skipSplash(page);
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockApi(page, "employer");
+
+  const r = await auditOverflow(page, "/shifts/new-event");
+  expect(r.out, JSON.stringify(r.out)).toEqual([]);
+  expect(r.scrollWidth).toBeLessThanOrEqual(r.vw + 1);
+});
