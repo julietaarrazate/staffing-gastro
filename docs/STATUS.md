@@ -5,7 +5,28 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Favoritos y recontratación —
+*Última actualización: 2026-08-10 (**Dos hallazgos P1 más de la misma
+auditoría — filtro de urgentes en el feed + nombre real del CV.**
+- **Chip "Sólo urgentes" en `/feed`:** el backend ya soportaba
+  `GET /shifts/feed?urgent=true` (`ShiftRepository.list_open`), pero no
+  había ningún control en la UI del trabajador para usarlo — sólo se veía
+  el badge "Urgente" en la tarjeta. Filtro client-side en
+  `app/feed/page.tsx` (el feed ya carga completo, sin paginar), visible
+  sólo cuando hay al menos un turno urgente; estado vacío propio con CTA
+  "Ver todos" para no confundir "no hay más turnos" con "no hay urgentes".
+- **`cv_filename` en `worker_profiles` (migración `0027`):** el nombre de
+  archivo que mostraba `CvUpload.tsx` era el `public_id` que Cloudinary le
+  asigna a un upload sin firma (un hash, no el nombre real) — bug
+  reportado por Julieta. Se captura `file.name` al subir y se guarda
+  aparte de `cv_url` en las 4 capas (domain/application/infrastructure/api,
+  mismo patrón que el resto del perfil); perfiles ya subidos antes de este
+  campo siguen cayendo al nombre derivado de la URL (compatibilidad hacia
+  atrás, sin migración de datos).
+
+Verificado: `pytest` 310/310, `tsc`/`build`/lint limpios, Playwright
+32/32, Vitest 59/59.
+
+Antes, mismo día: **Favoritos y recontratación —
 implementación del hallazgo #1 de la auditoría de producto 2026-08-10.**
 La auditoría completa de producto/UX/arquitectura (14 ideas evaluadas,
 sección H con veredictos ✅/🟡/⏸️/❌ para cada una) marcó "Favoritos y
