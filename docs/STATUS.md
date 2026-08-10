@@ -5,7 +5,39 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Corrección de diagnóstico + fix real
+*Última actualización: 2026-08-10 (**Onboarding del comercio (C4,
+`docs/planning/PULIDO_ROADMAP.md`) — Julieta pasó de referencia el alta
+guiado de otra app del rubro (Trabajos Gastro) y se adaptó al modelo real
+de Staffya.** El trabajador ya tenía `/bienvenida` (zona + oficio, 2
+pasos) desde antes; el comercio caía directo en `/shifts` sin haber
+cargado nada — el nombre quedaba vacío (los candidatos veían "Un comercio
+cerca tuyo") y la ubicación nunca se pedía de entrada, así que cada turno
+se publicaba a mano desde cero. Ahora `/bienvenida` también atiende el rol
+`employer`:
+  - **Paso 1 — nombre+logo:** el logo es opcional y se puede saltear
+    (misma regla de fricción que la foto del trabajador: sacarse/subir una
+    foto es donde más gente abandona un alta).
+  - **Paso 2 — ubicación:** reusa `MapAddressPicker` (ADR-0006), el mismo
+    componente de `CompanyProfileForm`, con su fallback al selector manual
+    si el geocoder falla.
+  - Al terminar, guarda el perfil (`POST`/`PUT /companies/me/profile`,
+    mismo endpoint que ya existía — sin cambios de backend) y va directo a
+    **publicar el primer turno** (`/shifts/new`), no a un panel vacío — ahí
+    es cuando el comercio ve el valor real (candidatos rankeados en
+    minutos).
+  - `register/page.tsx` ahora manda a los dos roles a `/bienvenida` (antes
+    sólo al trabajador); `/bienvenida` decide qué mostrar según
+    `user.role`.
+  - Se dejó afuera, a propósito, el "tour guiado" con tooltips que sí tiene
+    la referencia (Trabajos Gastro) después del alta — es un componente
+    nuevo más grande (spotlight/overlay), mejor evaluarlo una vez que este
+    wizard esté andando.
+  - 1 test E2E nuevo (`e2e/employer-onboarding.spec.ts`), mismo patrón que
+    `e2e/onboarding.spec.ts` (trabajador).
+
+Verificado: Vitest 69/69, `tsc`/`build`/lint limpios, Playwright 35/35.
+
+Antes, mismo día: **Corrección de diagnóstico + fix real
 del bug "el CV sube pero no abre", y botón de descarga de CV.** La entrada
 de abajo ("CV firmada") diagnosticó mal la causa: la subida firmada
 **no** resuelve este bug — probado en vivo con Julieta, un CV recién

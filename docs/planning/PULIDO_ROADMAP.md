@@ -125,10 +125,15 @@ provistos), tsc/build verdes.
 
 ## Batch C4 — Primera experiencia (post-registro)
 
-Scope: onboarding. Modelo: Sonnet — pero el flujo exacto lo cierra T1 antes
-de ejecutar (NO arrancar sin ese spec).
-Idea a especificar: bienvenida por rol con 3 pantallas máx., nudge de
-completar perfil (foto + zona = más candidatos/turnos), primer turno guiado.
+**Comercio: resuelto 2026-08-10** (auditoría de producto, disparado por una
+referencia real que pasó Julieta de otra app del rubro). El trabajador ya
+tenía `/bienvenida` (zona + oficio, 2 pasos); el comercio caía directo en
+`/shifts` sin haber cargado nada. Ahora `/bienvenida` también atiende
+`employer`: nombre+logo (logo opcional) → ubicación (`MapAddressPicker`,
+reusa ADR-0006) → termina en `/shifts/new` (primer turno guiado), no en un
+panel vacío. 2 pantallas, no 3 — se dejó afuera el "nudge de completar
+perfil" del borrador original por ahora (no bloqueaba nada concreto); se
+puede sumar después si hace falta. Ver `frontend/app/bienvenida/page.tsx`.
 
 ## Orden y reglas de ejecución
 
