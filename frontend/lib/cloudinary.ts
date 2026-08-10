@@ -1,3 +1,5 @@
+import { api } from "@/lib/api";
+
 /**
  * Devuelve una variante optimizada de una imagen de Cloudinary: formato y
  * calidad automáticos (`f_auto,q_auto` → WebP/AVIF) y ancho tope al tamaño real
@@ -24,21 +26,6 @@ export function cldThumb(url: string | null | undefined, width: number): string 
 }
 
 export async function uploadImage(file: File): Promise<string> {
-  return uploadToCloudinary(file, "image");
-}
-
-/**
- * Sube cualquier archivo (PDF, foto, doc) al endpoint `/auto/upload` de
- * Cloudinary, que detecta el tipo de recurso solo — a diferencia de
- * `uploadImage`, que pega directo a `/image/upload` y sólo acepta imágenes.
- * Usado por el CV del trabajador (`CvUpload.tsx`): antes sólo se podía pegar
- * un link, pedido real de Julieta de poder arrastrar un PDF o una foto.
- */
-export async function uploadFile(file: File): Promise<string> {
-  return uploadToCloudinary(file, "auto");
-}
-
-async function uploadToCloudinary(file: File, resourceType: "image" | "auto"): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
   if (!cloudName || !uploadPreset) {
@@ -49,7 +36,47 @@ async function uploadToCloudinary(file: File, resourceType: "image" | "auto"): P
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error("No se pudo subir el archivo. Probá de nuevo.");
+  }
+  const data = await res.json();
+  return data.secure_url as string;
+}
+
+/**
+ * Sube el CV con una subida FIRMADA (en vez del `upload_preset` unsigned de
+ * `uploadFile`): Cloudinary bloquea por default la entrega de PDF subido sin
+ * firma (medida anti-abuso desde 2023) — causa real confirmada de que el CV
+ * suba bien pero no abra (`ERR_INVALID_RESPONSE`). El backend firma la
+ * subida (`POST /uploads/sign-cv`, sólo trabajador) sin ver el archivo; si
+ * no está configurada en el servidor (`CLOUDINARY_API_KEY`/`_SECRET`), tira
+ * un error claro (503) en vez de fallar en silencio.
+ */
+export async function uploadCv(file: File, token: string): Promise<string> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  if (!cloudName) {
+    throw new Error("La subida de archivos no está configurada todavía.");
+  }
+
+  const { timestamp, signature, api_key, allowed_formats } = await api.post<{
+    timestamp: string;
+    signature: string;
+    api_key: string;
+    allowed_formats: string;
+  }>("/uploads/sign-cv", undefined, token);
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", api_key);
+  formData.append("timestamp", timestamp);
+  formData.append("signature", signature);
+  formData.append("allowed_formats", allowed_formats);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
     method: "POST",
     body: formData,
   });

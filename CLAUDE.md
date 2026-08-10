@@ -276,6 +276,15 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
    cross-site real Vercel→Render, el login sigue andando pero el refresh/
    logout fallan en silencio y todos tendrían que volver a loguearse cada 15
    minutos.
+5. 🟠 **`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`** (Render, nuevas
+   2026-08-10, C.2(b) auditoría de producto): habilitan la subida de CV
+   **firmada** (`POST /uploads/sign-cv`), que resuelve de raíz el bug de
+   "el PDF sube pero no abre" sin depender del toggle de Cloudinary (ver el
+   ítem de abajo). Se buscan en el dashboard de Cloudinary → Settings →
+   Access Keys (el `api_key` de ahí, y "Generate new API secret" si hace
+   falta uno). Sin esto, `POST /uploads/sign-cv` responde 503 (flag por
+   ausencia, mismo patrón que `google_client_id`) y el CV sigue sin poder
+   subirse por PDF hasta que se active el toggle del ítem de abajo.
 
 > El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
@@ -291,16 +300,19 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 - El preset de Cloudinary debe ser **unsigned** (Settings → Upload → Upload
   presets → Signing mode: Unsigned); las `NEXT_PUBLIC_*` se **hornean en el
   build** → marcar en *Production* y **redeployar sin caché**.
-- 🔴 **Activar entrega de PDF/ZIP en Cloudinary** (Settings → Security →
-  "Allow delivery of PDF and ZIP files"): sin esto, un CV subido como PDF
-  (`CvUpload.tsx`, PR #166) sube bien (Cloudinary devuelve `secure_url` y
-  queda guardado) pero **la URL no abre** — `ERR_INVALID_RESPONSE` en el
-  navegador, confirmado por Julieta con un CV de prueba real 2026-08-09.
-  Cloudinary bloquea por default la entrega de PDF/ZIP subidos sin firma
-  (`upload_preset` unsigned, nuestro caso) desde 2023, como medida de
-  seguridad contra abuso — no es un bug de este repo. Un CV subido como
-  **foto** (JPG/PNG) no debería pisar esta restricción (sólo aplica a
-  PDF/ZIP); no confirmado todavía porque Julieta sólo probó con PDF.
+- ~~**Activar entrega de PDF/ZIP en Cloudinary**~~ (Settings → Security →
+  "Allow delivery of PDF and ZIP files"): **resuelto de raíz en código**
+  (2026-08-10, C.2(b) auditoría de producto) con subida **firmada** de CV
+  (`POST /uploads/sign-cv`, `backend/app/core/cloudinary.py`,
+  `frontend/lib/cloudinary.ts::uploadCv`) — Cloudinary sólo bloquea por
+  default la entrega de PDF/ZIP subidos **sin firma** (`upload_preset`
+  unsigned, el caso viejo); un archivo subido con firma no pisa esa
+  restricción, así que ya no depende del toggle del dashboard. Confirmado el
+  bug original por Julieta con un CV de prueba real 2026-08-09
+  (`ERR_INVALID_RESPONSE` al abrir la URL). **Requiere** las env vars
+  `CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` en Render (ítem 5 de "Faltan /
+  a confirmar" arriba) — sin ellas, `POST /uploads/sign-cv` responde 503 y el
+  toggle del dashboard sigue siendo el único fallback que queda.
 
 ## Convenciones de git
 

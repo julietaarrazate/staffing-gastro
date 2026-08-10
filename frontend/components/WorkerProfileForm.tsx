@@ -245,6 +245,7 @@ export default function WorkerProfileForm() {
       <CvUpload
         value={cvUrl}
         fileName={cvFilename}
+        token={token}
         onChange={(url, name) => {
           setCvUrl(url);
           setCvFilename(name);
