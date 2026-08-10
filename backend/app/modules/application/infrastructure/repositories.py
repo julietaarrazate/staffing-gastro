@@ -16,6 +16,7 @@ from app.modules.application.domain.repositories import ShiftApplicationReposito
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.infrastructure.models import ShiftApplicationModel
 from app.modules.identity.infrastructure.models import UserModel
+from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
 from app.modules.worker.infrastructure.models import WorkerProfileModel
 
 
@@ -129,6 +130,8 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 events_completed=worker.events_completed,
                 punctuality_rate=worker.punctuality_rate,
                 years_experience=worker.years_experience,
+                badges=tuple(WorkerBadge(b) for b in (worker.badges or [])),
+                level=GamificationLevel(worker.level),
             )
             for application, worker, full_name in result.all()
         ]

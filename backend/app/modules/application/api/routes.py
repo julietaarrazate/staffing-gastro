@@ -143,6 +143,8 @@ async def shift_applicants(
             events_completed=applicant.events_completed,
             punctuality_rate=applicant.punctuality_rate,
             years_experience=applicant.years_experience,
+            badges=list(applicant.badges),
+            level=applicant.level,
         )
         for applicant in applicants
     ]

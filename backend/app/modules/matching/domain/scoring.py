@@ -115,6 +115,8 @@ def rank_candidates(
                 events_completed=candidate.events_completed,
                 punctuality_rate=candidate.punctuality_rate,
                 years_experience=candidate.years_experience,
+                badges=candidate.badges,
+                level=candidate.level,
             )
         )
     return sorted(results, key=lambda r: r.score, reverse=True)

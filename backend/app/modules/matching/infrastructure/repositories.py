@@ -11,7 +11,7 @@ from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.matching.domain.entities import CandidateProfile
 from app.modules.matching.domain.repositories import CandidateRepository
-from app.modules.worker.domain.value_objects import WorkerSkill
+from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge, WorkerSkill
 from app.modules.worker.infrastructure.models import WorkerProfileModel
 
 
@@ -31,6 +31,8 @@ def _to_candidate(model: WorkerProfileModel, full_name: str) -> CandidateProfile
         is_available=model.is_available,
         latitude=model.latitude,
         longitude=model.longitude,
+        badges=tuple(WorkerBadge(b) for b in (model.badges or [])),
+        level=GamificationLevel(model.level),
     )
 
 
