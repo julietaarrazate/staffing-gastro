@@ -15,14 +15,25 @@ export const TOKEN_KEY = "staffya_token";
 // vence, sin exponer ningún secreto.
 export const HAS_SESSION_KEY = "staffya_has_session";
 
+// Claves de localStorage de los mini-tours de `components/GuidedTour.tsx`
+// (uno por pantalla). `injectSession` los marca como ya vistos por
+// defecto: sin esto, cualquier spec que navegue a `/feed` como worker se
+// topa con el overlay del tour tapando la pantalla entera y bloqueando
+// clicks — el mismo síntoma que ya rompió specs de `Sheet`/`Modal` antes
+// de portarlos a `document.body` (ver docs/BUGS.md). El spec dedicado al
+// tour (`guided-tour.spec.ts`) limpia esta clave a propósito para
+// ejercitar el flujo real.
+export const GUIDED_TOUR_KEYS = ["staffya_tour_worker_feed"];
+
 /** Inyecta una sesión ya logueada en localStorage antes de la primera carga. */
 export async function injectSession(page: Page) {
   await page.addInitScript(
-    ({ tokenKey, hasSessionKey }) => {
+    ({ tokenKey, hasSessionKey, tourKeys }) => {
       window.localStorage.setItem(tokenKey, "e2e-fake-access-token");
       window.localStorage.setItem(hasSessionKey, "1");
+      for (const key of tourKeys) window.localStorage.setItem(key, "1");
     },
-    { tokenKey: TOKEN_KEY, hasSessionKey: HAS_SESSION_KEY }
+    { tokenKey: TOKEN_KEY, hasSessionKey: HAS_SESSION_KEY, tourKeys: GUIDED_TOUR_KEYS }
   );
 }
 

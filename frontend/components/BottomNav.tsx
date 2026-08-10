@@ -61,6 +61,7 @@ export default function BottomNav() {
           <Link
             key={href}
             href={href}
+            data-tour={`nav-${href.slice(1)}`}
             // `replace` (no push): cambiar de pestaña NO apila historial, igual
             // que una app nativa. Antes cada tap sumaba una entrada y el botón
             // "atrás" retrocedía pestaña por pestaña (Perfil→Chats→Matches→...)

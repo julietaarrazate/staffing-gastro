@@ -135,6 +135,19 @@ panel vacío. 2 pantallas, no 3 — se dejó afuera el "nudge de completar
 perfil" del borrador original por ahora (no bloqueaba nada concreto); se
 puede sumar después si hace falta. Ver `frontend/app/bienvenida/page.tsx`.
 
+**Trabajador + "tour guiado": resuelto 2026-08-10** (pedido explícito de
+Julieta: el onboarding quedaba muy breve). `/bienvenida` del trabajador
+suma un 3er paso opcional ("Contanos más de vos": foto + años de
+experiencia). El "tour guiado" con tooltips que sí tiene la referencia
+después del alta — dejado afuera a propósito cuando se resolvió el batch
+de comercio, "mejor evaluarlo una vez que este wizard esté andando" — ya
+está construido como `components/GuidedTour.tsx`: 3 globos al aterrizar en
+`/feed` por primera vez (mazo de turnos, filtro de urgentes, tab
+"Matches"), una sola vez por navegador. El comercio no lo tiene todavía —
+ya cubre un rol similar con el wizard de publicar turno + la pantalla
+"esto es lo que sigue"; sumarlo ahí es trivial si hace falta más adelante
+(el componente es genérico, sólo necesita una lista de pasos nueva).
+
 ## Orden y reglas de ejecución
 
 C2 (hecho, #81) → C0+C1 → C3 → C4 (C0 va con C1 en un mismo PR: legales es lo único bloqueante para usuarios
