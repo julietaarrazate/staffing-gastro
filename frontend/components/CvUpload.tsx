@@ -7,6 +7,12 @@ import { TextField } from "@/components/ui";
 import { FileTextIcon, TrashIcon, UploadIcon } from "@/components/icons";
 
 const ACCEPT = ".pdf,.doc,.docx,image/*";
+// Resguardo de cuota (no de seguridad — un cliente hostil puede saltearlo):
+// el plan free de Cloudinary es de a millares de CVs (~25GB), pero un
+// archivo gigante subido sin querer sí lo pega. Cloudinary mismo ya limita
+// ~10MB por imagen en el plan free; usamos el mismo tope para todo tipo de
+// CV por simplicidad.
+const MAX_CV_SIZE_MB = 10;
 
 /**
  * CV del trabajador: antes sólo había un campo de texto para pegar un link
@@ -41,6 +47,10 @@ export default function CvUpload({
   async function upload(file: File) {
     if (!token) return;
     setError(null);
+    if (file.size > MAX_CV_SIZE_MB * 1024 * 1024) {
+      setError(`El archivo pesa más de ${MAX_CV_SIZE_MB}MB. Subí uno más liviano.`);
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadCv(file, token);
