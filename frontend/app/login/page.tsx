@@ -57,7 +57,11 @@ function LoginForm() {
     setGuestLoading(guestRole);
     try {
       await loginAsGuest(pin.trim(), guestRole);
-      router.replace("/");
+      // Mismo onboarding que vería un usuario real recién registrado
+      // (`/bienvenida`, C4): el invitado prueba la app desde cero, no
+      // arranca ya adentro del panel. Va a la cuenta invitado compartida,
+      // consistente con que su exploración ya es de por sí compartida.
+      router.replace("/bienvenida");
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo entrar como invitado"

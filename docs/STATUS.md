@@ -5,7 +5,20 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Turno por texto libre con IA (P2,
+*Última actualización: 2026-08-10 (**Invitado ("Explorar sin cuenta") entra
+por el onboarding, no directo al panel.** Pedido de Julieta: quería que
+quien prueba con el PIN de invitado vea la misma primera experiencia
+(`/bienvenida`, C4) que un usuario recién registrado, en vez de caer ya
+adentro. Antes, `handleGuestSubmit` en `login/page.tsx` hacía
+`router.replace("/")` tras `loginAsGuest`; ahora manda a `/bienvenida`. Es
+la cuenta invitado compartida (`invitado.trabajador@oido.beta`/
+`invitado.comercio@oido.beta`), así que cada persona que la usa reescribe
+el nombre/zona/oficio de la última — consistente con que esa exploración
+ya era compartida de antes (no se protegía especialmente). 1 test E2E
+nuevo (`e2e/guest-onboarding.spec.ts`). Verificado: `tsc`/lint/build
+limpios, Vitest 69/69, Playwright 37/37 (sin tocar backend).
+
+Antes, mismo día: **Turno por texto libre con IA (P2,
 auditoría de producto 2026-08-10) — último ítem del backlog P2.** El
 comercio escribe algo como "necesito un mozo el sábado a la noche, se
 paga 45000" en `/shifts/new` y se precargan puesto/horario/pago/toggles
