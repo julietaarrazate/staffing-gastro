@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadFile } from "@/lib/cloudinary";
+import { uploadCv } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { TextField } from "@/components/ui";
 import { FileTextIcon, TrashIcon, UploadIcon } from "@/components/icons";
@@ -11,14 +11,16 @@ const ACCEPT = ".pdf,.doc,.docx,image/*";
 /**
  * CV del trabajador: antes sólo había un campo de texto para pegar un link
  * (Drive, LinkedIn) — pedido real de Julieta de poder arrastrar un PDF o una
- * foto directo, más simple que ir a buscar un link. Sube a Cloudinary
- * (`uploadFile`, resource_type `auto`: acepta PDF/imagen/doc) y sigue
- * guardando una URL en `cv_url` — el campo de texto queda como alternativa
- * para quien ya tiene el link a mano.
+ * foto directo, más simple que ir a buscar un link. Sube con firma del
+ * servidor (`uploadCv`, C.2(b) auditoría 2026-08-10: evita el bloqueo de
+ * Cloudinary a la entrega de PDF subido sin firmar) y sigue guardando una
+ * URL en `cv_url` — el campo de texto queda como alternativa para quien ya
+ * tiene el link a mano.
  */
 export default function CvUpload({
   value,
   fileName,
+  token,
   onChange,
 }: {
   value: string;
@@ -27,6 +29,8 @@ export default function CvUpload({
    * cuando `value` es un link pegado a mano, o un archivo subido antes de
    * este campo existir (en ese caso se cae al nombre derivado de la URL). */
   fileName: string | null;
+  /** Necesario para firmar la subida server-side (`POST /uploads/sign-cv`). */
+  token: string | null;
   onChange: (url: string, fileName: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,10 +39,11 @@ export default function CvUpload({
   const [dragOver, setDragOver] = useState(false);
 
   async function upload(file: File) {
+    if (!token) return;
     setError(null);
     setUploading(true);
     try {
-      const url = await uploadFile(file);
+      const url = await uploadCv(file, token);
       onChange(url, file.name);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir el archivo"));

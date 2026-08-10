@@ -129,6 +129,19 @@ class Settings(BaseSettings):
     # contactar al operador si una suscripción abusa del canal.
     vapid_contact_email: str = "soporte@staffya.com"
 
+    # --- Cloudinary (subida firmada) — C.2(b), auditoría de producto 2026-08-10 ---
+    # Cloudinary bloquea por default la entrega de recursos raw/PDF subidos con
+    # un `upload_preset` unsigned (medida anti-abuso desde 2023) — causa real
+    # confirmada de que un CV subido como PDF suba bien pero no abra
+    # (`ERR_INVALID_RESPONSE`, docs/STATUS.md). Vacío = `POST /uploads/sign-cv`
+    # responde 503 (mismo patrón "flag por ausencia" que `google_client_id`) y
+    # el CV sigue subiéndose sin firmar (el toggle del dashboard de Cloudinary
+    # sigue siendo el fallback documentado para Julieta). El `api_key` no es
+    # secreto por sí solo (necesita la firma para ser usable), pero se carga
+    # server-side igual, junto al `api_secret`, para no duplicar configuración.
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.

@@ -5,7 +5,50 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Soporte interno (C.1, auditoría de
+*Última actualización: 2026-08-10 (**CV firmada (C.2(b), primer ítem de P2
+de la auditoría de producto 2026-08-10) — resuelve de raíz el bug real
+"el PDF del CV sube pero no abre" (`ERR_INVALID_RESPONSE`, confirmado por
+Julieta 2026-08-09).** Causa: Cloudinary bloquea por default la entrega de
+recursos raw/PDF subidos con un `upload_preset` **unsigned** (medida
+anti-abuso desde 2023) — nuestra subida de CV usaba ese camino. La solución
+elegida no fue el toggle del dashboard ("Allow delivery of PDF and ZIP
+files", que sigue funcionando pero desactiva esa protección para *toda* la
+cuenta), sino migrar el CV a una subida **firmada**: el archivo sigue
+subiendo cliente→Cloudinary directo (sin pasar por el backend), pero ahora
+con una firma HMAC-SHA1 que el backend calcula sin ver el archivo.
+  - **Backend:** `app/core/cloudinary.py` (nuevo, sin domain — función pura
+    `sign_cv_upload()`/`_sign()`: ordena los params a firmar
+    alfabéticamente, arma `k=v&k2=v2`, pega `api_secret` al final, SHA-1
+    hex — algoritmo documentado de Cloudinary). `allowed_formats` viaja
+    firmado también, así el backend limita los formatos aceptados
+    (`pdf,doc,docx,jpg,jpeg,png`) sin tocar el archivo. Nuevo módulo
+    `app/modules/upload/` con sólo capa `api/` (`POST /uploads/sign-cv`,
+    sólo rol `worker`) — sin domain/application/infrastructure porque no
+    hay persistencia ni entidad de negocio, misma categoría que
+    `idempotency.py`/`rate_limit.py` en `app/core/` pero necesita ser
+    alcanzable por HTTP. Nuevas env vars `CLOUDINARY_API_KEY`/
+    `CLOUDINARY_API_SECRET` (Render) con el mismo patrón "flag por
+    ausencia" que `google_client_id`: vacías → `503` en vez de fallar en
+    silencio. 5 tests nuevos (`tests/test_cloudinary_signing.py`): firma
+    pura + endpoint 503 sin configurar/200 configurado/403 para `employer`.
+  - **Frontend:** `lib/cloudinary.ts::uploadCv(file, token)` reemplaza el
+    upload sin firmar para CV (pide la firma a `/uploads/sign-cv`, sube a
+    `/auto/upload` en vez de `/image/upload` — un PDF no es una imagen).
+    `CvUpload.tsx` ahora requiere un `token` prop (ya estaba en scope en
+    `WorkerProfileForm` vía `useAuth()`). Se borró `uploadFile`/
+    `uploadToCloudinary` (sin más callers tras el cambio) — `uploadImage`
+    (fotos de perfil, sigue sin firmar por ahora) quedó con su lógica
+    inline.
+  - **`CLAUDE.md`:** nueva env var pendiente (`CLOUDINARY_API_KEY`/
+    `_SECRET`) en "Pendiente de la operadora", y el ítem viejo "Activar
+    entrega de PDF/ZIP en Cloudinary" tachado/reconciliado — el toggle del
+    dashboard queda como fallback si las env vars no se cargan, ya no como
+    único camino.
+
+Verificado: `pytest` 326/326, `tsc`/`build`/lint limpios, Playwright
+34/34, Vitest 63/63.
+
+Antes, mismo día: **Soporte interno (C.1, auditoría de
 producto 2026-08-10) — la política de privacidad ya prometía un canal de
 soporte dentro de la app que no existía; ahora existe.**
 Módulo nuevo `backend/app/modules/support/` (mismo patrón
