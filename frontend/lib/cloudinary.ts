@@ -25,6 +25,26 @@ export function cldThumb(url: string | null | undefined, width: number): string 
   return `${head}f_auto,q_auto,c_limit,dpr_auto,w_${width}/${tail}`;
 }
 
+/**
+ * Fuerza la descarga (en vez de mostrarla en el navegador) de un archivo
+ * subido a Cloudinary agregando la transformación `fl_attachment`, que hace
+ * que Cloudinary responda con `Content-Disposition: attachment` — el
+ * atributo HTML `download` no alcanza porque `res.cloudinary.com` es un
+ * origen cruzado y los navegadores lo ignoran ahí. Pensado para que el
+ * comercio pueda guardar una copia del CV del trabajador, no sólo verlo.
+ * URLs que no son de Cloudinary (link pegado a mano) se devuelven tal cual
+ * — no podemos garantizar el comportamiento de descarga en esos casos.
+ */
+export function cldAttachment(url: string): string {
+  const marker = "/upload/";
+  const at = url.indexOf(marker);
+  if (!url.includes("res.cloudinary.com") || at === -1) return url;
+  const head = url.slice(0, at + marker.length);
+  const tail = url.slice(at + marker.length);
+  if (tail.startsWith("fl_attachment")) return url;
+  return `${head}fl_attachment/${tail}`;
+}
+
 export async function uploadImage(file: File): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
