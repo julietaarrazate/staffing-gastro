@@ -8,7 +8,7 @@ import {
   StarIcon,
   type IconProps,
 } from "@/components/icons";
-import { formatPunctuality } from "@/lib/reputation";
+import { BADGE_ICONS, badgeLabel, formatPunctuality, levelLabel } from "@/lib/reputation";
 
 /**
  * Señales legibles de un candidato/postulante, para que el comercio vea *por
@@ -22,6 +22,10 @@ export interface CandidateSignals {
   punctuality_rate: number;
   years_experience: number;
   distance_km?: number | null;
+  // F1 (auditoría de producto 2026-08-10): insignias/nivel (ADR-0004) ya
+  // calculados, ahora visibles donde el comercio decide a quién elegir.
+  badges?: string[];
+  level?: string;
 }
 
 interface Reason {
@@ -78,6 +82,21 @@ export function CandidateStatChips({
       {signals.years_experience > 0 && (
         <StatChip>{signals.years_experience} {signals.years_experience === 1 ? "año" : "años"} exp.</StatChip>
       )}
+      {signals.level && signals.level !== "bronce" && (
+        <StatChip>{levelLabel(signals.level)}</StatChip>
+      )}
+      {(signals.badges ?? []).map((badge) => {
+        const Icon = BADGE_ICONS[badge] ?? AwardIcon;
+        return (
+          <span
+            key={badge}
+            title={badgeLabel(badge)}
+            className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-bold text-primary-text"
+          >
+            <Icon size={11} /> {badgeLabel(badge)}
+          </span>
+        );
+      })}
     </div>
   );
 }

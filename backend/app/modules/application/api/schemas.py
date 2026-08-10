@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from app.modules.shift.api.schemas import ShiftResponse
+from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
 
 
 class ApplicationResponse(BaseModel):
@@ -37,3 +38,5 @@ class ApplicantResponse(BaseModel):
     events_completed: int = 0
     punctuality_rate: float = 0.0
     years_experience: int = 0
+    badges: list[WorkerBadge] = []
+    level: GamificationLevel = GamificationLevel.BRONCE

@@ -121,6 +121,10 @@ async def test_employer_sees_applicants_enriched(client: AsyncClient):
     assert body[0]["events_completed"] == 0
     assert body[0]["punctuality_rate"] == 0.0
     assert body[0]["years_experience"] == 0
+    # F1 (auditoría de producto 2026-08-10): mismas señales de reputación que
+    # el matching, ahora también en la lista de postulantes.
+    assert body[0]["badges"] == []
+    assert body[0]["level"] == "bronce"
 
 
 async def test_other_company_cannot_see_applicants(client: AsyncClient):

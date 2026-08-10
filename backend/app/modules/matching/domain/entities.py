@@ -8,7 +8,7 @@ Esto mantiene el cálculo del score testeable de forma aislada.
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.modules.worker.domain.value_objects import WorkerSkill
+from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge, WorkerSkill
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,12 @@ class CandidateProfile:
     is_available: bool
     latitude: float | None
     longitude: float | None
+    # F1 (auditoría de producto 2026-08-10): señales de reputación ya
+    # calculadas (ADR-0004) que el comercio no podía ver al elegir entre
+    # candidatos — sólo se muestran, no alteran el score (`scoring.py` sigue
+    # sin leerlas).
+    badges: tuple[WorkerBadge, ...] = ()
+    level: GamificationLevel = GamificationLevel.BRONCE
 
 
 @dataclass(frozen=True)
@@ -62,6 +68,8 @@ class MatchResult:
     events_completed: int
     punctuality_rate: float
     years_experience: int
+    badges: tuple[WorkerBadge, ...] = ()
+    level: GamificationLevel = GamificationLevel.BRONCE
 
 
 @dataclass(frozen=True)

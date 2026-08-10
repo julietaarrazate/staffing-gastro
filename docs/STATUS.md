@@ -5,7 +5,30 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Dos hallazgos P1 más de la misma
+*Última actualización: 2026-08-10 (**Últimos dos P1 de la auditoría —
+badges/nivel en matching+postulantes, y el feed ya no pisa el orden
+urgente-primero al reordenar por distancia.**
+- **`badges`/`level` en candidatos y postulantes:** ADR-0004 ya calcula
+  insignias y nivel de gamificación del trabajador, pero el comercio sólo
+  los veía entrando al perfil — no en la lista de recomendados
+  (`/shifts/{id}/candidates`, tab Recomendados) ni en la de postulantes
+  (mismo endpoint, tab Postulantes). Se agregaron a `CandidateProfile`/
+  `MatchResult` (matching) y `EnrichedApplicant` (application), sin tocar
+  `scoring.py`: son señales que se muestran, no pesan en el score. Chips
+  reutilizados en `CandidateSignals.tsx` (compartido por `CandidateCard` y
+  la lista de postulantes), mismo estilo que ya usa `/workers/[id]`.
+- **`sortByDistance` ya no pisa el orden urgente-primero:** el backend
+  ordena el feed `urgent DESC, created_at DESC`, pero el reorder por
+  distancia del cliente (`lib/current-location.ts`) no tenía en cuenta la
+  urgencia — un turno urgente lejos podía terminar varias tarjetas después
+  de uno común y cercano. Ahora ordena primero por urgencia y recién ahí
+  desempata por distancia dentro de cada grupo. 4 tests unitarios nuevos
+  (`current-location.test.ts`).
+
+Verificado: `pytest` 311/311, `tsc`/`build`/lint limpios, Playwright
+32/32, Vitest 63/63.
+
+Antes, mismo día: **Dos hallazgos P1 más de la misma
 auditoría — filtro de urgentes en el feed + nombre real del CV.**
 - **Chip "Sólo urgentes" en `/feed`:** el backend ya soportaba
   `GET /shifts/feed?urgent=true` (`ShiftRepository.list_open`), pero no

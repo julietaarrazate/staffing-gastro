@@ -74,13 +74,23 @@ export function originFor(
 }
 
 /**
- * Ordena los turnos del más cercano al más lejano. Los que no tienen
- * coordenadas van al final (no se los puede ubicar, pero tampoco se ocultan:
- * siguen siendo turnos válidos a los que alguien puede postularse).
+ * Ordena los turnos del más cercano al más lejano, respetando primero los
+ * urgentes.
+ *
+ * El backend ya devuelve el feed con `urgent` primero
+ * (`ShiftRepository.list_open`, `ORDER BY urgent DESC, created_at DESC`),
+ * pero un reorder por distancia que no tuviera en cuenta esa prioridad la
+ * pisaba en silencio — un turno urgente lejos terminaba varias tarjetas
+ * después de uno común y cercano (F1, auditoría de producto 2026-08-10).
+ * Acá se ordena primero por urgencia y sólo entre turnos de la misma
+ * urgencia se desempata por distancia, para no perder ninguna de las dos
+ * señales. Los que no tienen coordenadas van al final de su grupo (no se
+ * los puede ubicar, pero tampoco se ocultan).
  */
 export function sortByDistance(shifts: Shift[], origin: [number, number] | null): Shift[] {
-  if (!origin) return shifts;
   return [...shifts].sort((a, b) => {
+    if (a.urgent !== b.urgent) return a.urgent ? -1 : 1;
+    if (!origin) return 0;
     const da = distanceOf(a, origin);
     const db = distanceOf(b, origin);
     if (da === null) return db === null ? 0 : 1;

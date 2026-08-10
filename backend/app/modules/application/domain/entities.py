@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from app.modules.application.domain.exceptions import InvalidApplicationTransitionError
 from app.modules.application.domain.value_objects import ApplicationStatus
+from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
 
 
 @dataclass
@@ -105,3 +106,9 @@ class EnrichedApplicant:
     events_completed: int = 0
     punctuality_rate: float = 0.0
     years_experience: int = 0
+    # F1 (auditoría de producto 2026-08-10): mismas señales de reputación que
+    # ya se muestran en /workers/[id] (ADR-0004), ahora también visibles en
+    # la lista de postulantes — el comercio elige con más contexto, sin que
+    # esto altere el orden (la lista de postulantes no se rankea).
+    badges: tuple[WorkerBadge, ...] = ()
+    level: GamificationLevel = GamificationLevel.BRONCE

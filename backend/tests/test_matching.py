@@ -91,6 +91,23 @@ async def test_ranking_orders_by_score_desc(client: AsyncClient):
     assert candidates[0]["distance_km"] < candidates[1]["distance_km"]
 
 
+async def test_candidates_expose_badges_and_level(client: AsyncClient):
+    """F1 (auditoría de producto 2026-08-10): `badges`/`level` (ADR-0004) ya
+    se calculan, pero no llegaban a la lista de recomendados del comercio.
+    Un perfil recién creado no tiene insignias todavía (nivel BRONCE)."""
+    employer_headers = await _employer_with_company(client, "emp_badges@staffya.com")
+    shift_id = await _publish_shift(client, employer_headers)
+    await _worker_profile(client, "w_badges@staffya.com")
+
+    response = await client.get(
+        f"/api/v1/shifts/{shift_id}/candidates", headers=employer_headers
+    )
+    assert response.status_code == 200
+    candidate = response.json()[0]
+    assert candidate["badges"] == []
+    assert candidate["level"] == "bronce"
+
+
 async def test_other_company_cannot_see_candidates(client: AsyncClient):
     headers_a = await _employer_with_company(client, "empA@staffya.com")
     shift_id = await _publish_shift(client, headers_a)

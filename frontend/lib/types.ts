@@ -152,6 +152,8 @@ export interface CandidateMatch {
   events_completed: number;
   punctuality_rate: number;
   years_experience: number;
+  badges: string[];
+  level: string;
   identidad_verificada: boolean;
 }
 
@@ -246,6 +248,8 @@ export interface Applicant {
   events_completed: number;
   punctuality_rate: number;
   years_experience: number;
+  badges: string[];
+  level: string;
 }
 
 export interface Review {
