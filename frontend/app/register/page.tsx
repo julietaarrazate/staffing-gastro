@@ -38,11 +38,11 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       await register(email, password, fullName, role);
-      // `replace` para no volver a /register al ir "atrás". El trabajador pasa
-      // por el onboarding de dos pasos (zona + oficio): sin esos dos datos el
-      // feed le muestra turnos irrelevantes. El comercio va directo a su panel,
-      // donde el estado vacío ya lo guía a publicar su primer turno.
-      router.replace(role === "worker" ? "/bienvenida" : "/shifts");
+      // `replace` para no volver a /register al ir "atrás". Los dos roles pasan
+      // por el onboarding de `/bienvenida` (zona+oficio para el trabajador,
+      // nombre+ubicación para el comercio) — ese componente decide qué mostrar
+      // según `user.role`.
+      router.replace("/bienvenida");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
     } finally {
