@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
@@ -13,7 +13,70 @@ import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import WorkerReviews from "@/components/WorkerReviews";
-import { BriefcaseIcon, ClipboardIcon, MapPinIcon } from "@/components/icons";
+import { BriefcaseIcon, ClipboardIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+
+/** Botón "Favorito" (comercio → trabajador), sólo visible para empleadores
+ * (el propio trabajador no ve ni sabe quién lo favoriteó — bookmark privado
+ * y unidireccional, ver docs/STATUS.md). Idempotente en el backend: no hace
+ * falta manejar 409 al togglear. */
+function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; token: string }) {
+  const [isFavorite, setIsFavorite] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<{ is_favorite: boolean }>(`/favorites/${workerProfileId}/status`, token)
+      .then((data) => {
+        if (!cancelled) setIsFavorite(data.is_favorite);
+      })
+      .catch(() => {
+        // Sin favorito visible no rompe la pantalla: el trabajador sigue
+        // viéndose igual, sólo no se puede togglear hasta reintentar.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workerProfileId, token]);
+
+  async function toggle() {
+    if (isFavorite === null || busy) return;
+    setBusy(true);
+    const next = !isFavorite;
+    setIsFavorite(next); // optimista
+    try {
+      if (next) {
+        await api.put<{ is_favorite: boolean }>(`/favorites/${workerProfileId}`, undefined, token);
+      } else {
+        await api.del<{ is_favorite: boolean }>(`/favorites/${workerProfileId}`, undefined, token);
+      }
+    } catch (err) {
+      setIsFavorite(!next); // revertir si falló
+      if (!(err instanceof ApiError)) throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (isFavorite === null) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={busy}
+      aria-pressed={isFavorite}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
+        isFavorite
+          ? "bg-primary/10 text-primary-text ring-primary/30"
+          : "bg-white text-ink/60 ring-line hover:bg-surface"
+      }`}
+    >
+      <HeartIcon size={16} filled={isFavorite} />
+      {isFavorite ? "Favorito" : "Agregar a favoritos"}
+    </button>
+  );
+}
 
 function ProfilePageSkeleton() {
   return (
@@ -34,7 +97,7 @@ function ProfilePageSkeleton() {
 }
 
 export default function PublicWorkerProfilePage() {
-  const { token } = useRequireAuth();
+  const { token, user } = useRequireAuth();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
@@ -108,10 +171,15 @@ export default function PublicWorkerProfilePage() {
         </div>
 
         <div className="px-5 py-5">
-          <div className="flex items-center gap-2">
-            <StarRating value={Math.round(profile.rating)} size={18} />
-            <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
-            <span className="text-sm text-ink/40">· {profile.events_completed} eventos</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <StarRating value={Math.round(profile.rating)} size={18} />
+              <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
+              <span className="text-sm text-ink/40">· {profile.events_completed} eventos</span>
+            </div>
+            {user?.role === "employer" && token && (
+              <FavoriteToggle workerProfileId={params.id} token={token} />
+            )}
           </div>
 
           {profile.identidad_verificada && (

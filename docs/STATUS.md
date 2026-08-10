@@ -5,10 +5,43 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-09 (**Auditoría de producto/UI: batch a11y
-(PR7, ÚLTIMO del backlog) — focus trap en Modal/Sheet + CompanyProfileForm
+*Última actualización: 2026-08-10 (**Favoritos y recontratación —
+implementación del hallazgo #1 de la auditoría de producto 2026-08-10.**
+La auditoría completa de producto/UX/arquitectura (14 ideas evaluadas,
+sección H con veredictos ✅/🟡/⏸️/❌ para cada una) marcó "Favoritos y
+recontratación" como la propuesta con mejor relación valor/esfuerzo de
+todo el informe. Implementado como módulo nuevo y chico
+(`backend/app/modules/favorite/`, dominio/aplicación/infraestructura/api,
+mismo patrón que `application`/`matching`), deliberadamente **fuera** de
+Reputation/Identity: es un bookmark privado y unidireccional del comercio
+sobre un trabajador (el trabajador ni se entera de quién lo favoriteó), sin
+ningún efecto sobre reputación, matching ni ninguna otra métrica.
+  - **Backend:** tabla `favorites` (`company_id`+`worker_profile_id` con
+    `UniqueConstraint`, migración `0026`), `PUT`/`DELETE /favorites/{worker_profile_id}`
+    (idempotentes: togglear dos veces no duplica ni falla), `GET /favorites`
+    (lista enriquecida con foto/rating/skills/disponibilidad) y
+    `GET /favorites/{worker_profile_id}/status`. Señal derivada
+    `shifts_together`: cuenta turnos FINALIZADO/PAGADO entre ESE comercio y
+    ESE trabajador con un `COUNT` correlacionado en la misma consulta (sin
+    N+1) — no es una relación de empleo ni afecta el ranking de matching,
+    sólo contexto para decidir a quién recontratar. 8 tests nuevos
+    (`tests/test_favorite.py`), incluido uno que corre el ciclo completo de
+    un turno (asignar→confirmar→check-in/out→finalizar) para verificar que
+    `shifts_together` cuenta sólo turnos realmente cerrados.
+  - **Frontend:** botón "Agregar a favoritos"/"Favorito" (ícono corazón) en
+    `/workers/[id]`, visible sólo para rol `employer`, con actualización
+    optimista y revert si falla la request; pantalla nueva `/favorites`
+    (lista + "Quitar", estado vacío); accesible desde el Navbar de escritorio
+    y desde `/profile` ("Trabajadores favoritos"). 2 tests E2E nuevos
+    (`e2e/favorites.spec.ts`, API mockeada).
+
+Verificado: `pytest` 309/309 (backend completo), `tsc`/`build`/lint
+limpios, Playwright 31/31, Vitest 59/59.
+
+Antes, mismo día: **Auditoría de producto/UI: batch a11y
+(PR7, ÚLTIMO del backlog previo) — focus trap en Modal/Sheet + CompanyProfileForm
 al design system.** Cierra el backlog de 7 PRs arrancado por la auditoría
-de producto/UI (ver el artifact de la auditoría para el detalle completo):
+de producto/UI anterior (ver el artifact de la auditoría para el detalle completo):
 - **F1 — `Modal`/`Sheet` sin focus trap:** ambos ya tenían
   `role="dialog"`/`aria-modal="true"` y cierre con Escape, pero ninguno
   atrapaba `Tab`/`Shift+Tab` dentro del diálogo, movía el foco al abrir, ni

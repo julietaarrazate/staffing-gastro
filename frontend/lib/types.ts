@@ -167,6 +167,18 @@ export interface WorkerMapResult {
   distance_km: number | null;
 }
 
+export interface FavoriteWorker {
+  worker_profile_id: string;
+  full_name: string;
+  photo_url: string | null;
+  rating: number;
+  skills: WorkerSkill[];
+  is_available: boolean;
+  events_completed: number;
+  shifts_together: number;
+  favorited_at: string | null;
+}
+
 export interface WorkerProfile {
   id: string;
   user_id: string;

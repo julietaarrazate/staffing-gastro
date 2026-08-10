@@ -52,6 +52,9 @@ export default function Navbar() {
               <Link href="/search" replace className="hidden hover:text-primary-text md:inline">
                 Buscar
               </Link>
+              <Link href="/favorites" replace className="hidden hover:text-primary-text md:inline">
+                Favoritos
+              </Link>
               <Link href="/chats" replace className="hidden hover:text-primary-text md:inline">
                 Mensajes
               </Link>
