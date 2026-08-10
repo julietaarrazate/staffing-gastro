@@ -44,3 +44,39 @@ test("un invitado (comercio) entra por el PIN y cae en el onboarding, no directo
   await expect(page).toHaveURL("/bienvenida");
   await expect(page.getByText("¿Cómo se llama tu comercio?")).toBeVisible();
 });
+
+test("un invitado (trabajador) entra por el PIN y cae en el onboarding, no directo al feed", async ({
+  page,
+}) => {
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/guest", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: "e2e-guest-token",
+        user: {
+          id: "guest-worker-1",
+          email: "invitado.trabajador@oido.beta",
+          full_name: "Invitado · Trabajador",
+          role: "worker",
+          status: "activo",
+          is_active: true,
+          is_verified: true,
+        },
+      }),
+    })
+  );
+
+  await page.goto("/login");
+
+  await page.getByRole("button", { name: "Soy trabajador" }).click();
+  await page.getByLabel("PIN de acceso").fill("3526");
+  await page.getByRole("button", { name: "Entrar" }).click();
+
+  await expect(page).toHaveURL("/bienvenida");
+  await expect(page.getByText("¿Dónde querés trabajar?")).toBeVisible();
+});

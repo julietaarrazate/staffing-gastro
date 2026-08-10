@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -27,11 +27,33 @@ import {
   ChevronLeftIcon,
   FlameIcon,
   MapPinIcon,
+  MicIcon,
+  MicOffIcon,
   SparklesIcon,
   UsersIcon,
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
+
+// Web Speech API: no tiene tipos oficiales en el DOM lib de TypeScript.
+// Sólo lo mínimo que usamos, para no traer @types/dom-speech-recognition
+// por una sola pantalla.
+interface SpeechRecognitionResultLike {
+  0: { transcript: string };
+}
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
 
 const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
 
@@ -85,6 +107,51 @@ function NewShiftWizard() {
   const [describeText, setDescribeText] = useState("");
   const [parsingText, setParsingText] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  // Dictado por voz (pedido de Julieta: "es donde más se aprovecha" un
+  // asistente de IA — más rápido hablar el turno que tipearlo). Web Speech
+  // API nativa del navegador: sin costo, sin backend, sin SDK. Sólo Chrome/
+  // Edge/Android la soportan hoy (no Safari/iOS) — se detecta en el cliente
+  // y el botón de micrófono directamente no aparece donde falta.
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    const w = window as unknown as {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+    return () => recognitionRef.current?.stop();
+  }, []);
+
+  function toggleDictation() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    const recognition = new Ctor();
+    recognition.lang = "es-AR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0].transcript)
+        .join(" ");
+      setDescribeText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500));
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): se
   // guarda el id recién publicado y se navega recién cuando el comercio
   // interactúa con la pantalla (no de inmediato), a diferencia del
@@ -312,16 +379,39 @@ function NewShiftWizard() {
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
                     <SparklesIcon size={16} className="text-primary" /> Describilo y lo completamos
                   </p>
-                  <textarea
-                    value={describeText}
-                    onChange={(e) => setDescribeText(e.target.value)}
-                    rows={2}
-                    maxLength={500}
-                    placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
-                    className="mt-2 w-full resize-none rounded-2xl bg-white px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
-                  />
+                  <div className="relative mt-2">
+                    <textarea
+                      value={describeText}
+                      onChange={(e) => setDescribeText(e.target.value)}
+                      rows={2}
+                      maxLength={500}
+                      placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
+                      className={`w-full resize-none rounded-2xl bg-white px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
+                        speechSupported ? "pr-10" : ""
+                      }`}
+                    />
+                    {speechSupported && (
+                      <button
+                        type="button"
+                        onClick={toggleDictation}
+                        aria-label={listening ? "Detener dictado" : "Dictar por voz"}
+                        aria-pressed={listening}
+                        className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full transition ${
+                          listening
+                            ? "animate-pulse bg-danger text-white"
+                            : "bg-surface text-ink/50 ring-1 ring-line"
+                        }`}
+                      >
+                        {listening ? <MicOffIcon size={14} /> : <MicIcon size={14} />}
+                      </button>
+                    )}
+                  </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    {parseError && <p className="text-xs text-danger-text">{parseError}</p>}
+                    {listening ? (
+                      <p className="text-xs font-semibold text-primary-text">Escuchando…</p>
+                    ) : (
+                      parseError && <p className="text-xs text-danger-text">{parseError}</p>
+                    )}
                     <Button
                       type="button"
                       size="sm"

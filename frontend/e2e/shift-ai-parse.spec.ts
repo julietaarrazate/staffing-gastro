@@ -79,3 +79,45 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   // El pago también viene precargado — no hace falta tipearlo.
   await expect(page.getByPlaceholder("48000")).toHaveValue("45000");
 });
+
+/**
+ * Dictado por voz (pedido de Julieta: hablar el turno es más rápido que
+ * tipearlo, "donde más se aprovecha" un asistente de IA). Web Speech API
+ * nativa del navegador — Chromium headless expone el constructor aunque no
+ * haya micrófono real, así que el botón aparece; no probamos la
+ * transcripción en sí (requeriría audio real y permisos), sólo que el
+ * botón está ahí y es clickeable sin romper la pantalla.
+ */
+test("el botón de dictado por voz aparece junto al textarea de descripción", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-2",
+        email: "demo.palermo@staffya.com",
+        full_name: "Comercio Demo",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+
+  await page.goto("/shifts/new");
+
+  const micButton = page.getByRole("button", { name: "Dictar por voz" });
+  await expect(micButton).toBeVisible();
+  await micButton.click();
+  // El textarea sigue ahí y sigue siendo editable a mano, dicte o no.
+  await page
+    .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
+    .fill("mozo el sábado");
+});

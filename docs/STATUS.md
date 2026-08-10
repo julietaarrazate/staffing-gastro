@@ -5,7 +5,28 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Invitado ("Explorar sin cuenta") entra
+*Última actualización: 2026-08-10 (**Dictado por voz en el asistente de IA
+del turno + confirmación de que el onboarding del invitado ya cubre ambos
+roles.** Pedido de Julieta: "el asistente de IA no tiene mensajes de voz,
+que es donde más se aprovecha el uso". El botón "Describilo y lo
+completamos" de `/shifts/new` (turno por texto libre, PR #191) ahora tiene
+un micrófono al lado del textarea — Web Speech API nativa del navegador
+(`SpeechRecognition`/`webkitSpeechRecognition`, español `es-AR`), sin SDK
+ni backend nuevo: la transcripción pasa por el mismo flujo de texto que ya
+existía, Gemini nunca recibe audio. Chrome/Edge/Android la soportan hoy,
+Safari/iOS no — se detecta del lado del cliente y el botón directamente no
+aparece donde falta (mismo criterio "no romper, degradar" que el resto de
+las integraciones opcionales). Aparte, Julieta pidió que el onboarding de
+invitado (recién agregado) fuera "para ambos trabajador y para comercio":
+ya lo era — `handleGuestSubmit` en `login/page.tsx` es un único handler
+compartido por los dos roles, así que el fix anterior ya cubría a los dos
+— se sumó un segundo test E2E (`invitado (trabajador)`) para dejarlo
+verificado en vez de sólo afirmado. Detalle completo en `docs/STATUS.md`
+más abajo (entrada del onboarding de invitado). Sin cambios de backend.
+Verificado: `tsc`/lint/build limpios, Vitest 69/69, Playwright 39/39 (2
+tests nuevos: mic button + invitado trabajador).
+
+Antes, mismo día: **Invitado ("Explorar sin cuenta") entra
 por el onboarding, no directo al panel.** Pedido de Julieta: quería que
 quien prueba con el PIN de invitado vea la misma primera experiencia
 (`/bienvenida`, C4) que un usuario recién registrado, en vez de caer ya

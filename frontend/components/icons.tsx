@@ -41,6 +41,8 @@ import {
   MapPin,
   Medal,
   MessageCircle,
+  Mic,
+  MicOff,
   Pencil,
   Plus,
   Route,
@@ -80,6 +82,8 @@ export const BoltIcon = make(Zap);
 export const MapPinIcon = make(MapPin);
 export const SearchIcon = make(Search);
 export const MessageIcon = make(MessageCircle);
+export const MicIcon = make(Mic);
+export const MicOffIcon = make(MicOff);
 export const BellIcon = make(Bell);
 export const StarIcon = make(Star);
 export const CheckIcon = make(Check);
