@@ -5,7 +5,19 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**CV firmada (C.2(b), primer ítem de P2
+*Última actualización: 2026-08-10 (**Tope de tamaño en la subida de CV
+(10MB)** — resguardo de cuota, no de seguridad: el plan free de Cloudinary
+alcanza para miles de CVs, pero un archivo gigante subido por error sí se
+nota. `CvUpload.tsx` rechaza en el cliente cualquier archivo de más de
+10MB (mismo tope que Cloudinary ya aplica a imágenes en el plan free)
+antes de intentar subirlo, con un mensaje claro en vez de dejar que
+Cloudinary lo rechace en silencio o consuma cuota. 2 tests nuevos
+(`CvUpload.test.tsx`, mismo patrón que `EditableName.test.tsx`): archivo
+grande → error y no llama a `uploadCv`; archivo dentro del límite → sube
+normal. Verificado: Vitest 65/65, `tsc`/`build`/lint limpios, Playwright
+34/34.
+
+Antes, mismo día: **CV firmada (C.2(b), primer ítem de P2
 de la auditoría de producto 2026-08-10) — resuelve de raíz el bug real
 "el PDF del CV sube pero no abre" (`ERR_INVALID_RESPONSE`, confirmado por
 Julieta 2026-08-09).** Causa: Cloudinary bloquea por default la entrega de
