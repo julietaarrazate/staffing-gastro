@@ -60,14 +60,12 @@ export default function PrivacidadPage() {
             <p>
               Oído es responsable de los datos que cargás en la app. Para
               cualquier consulta, ejercicio de derechos o reclamo sobre tus
-              datos, escribinos por el chat de soporte dentro de la app.
+              datos, escribinos por{" "}
+              <Link href="/support" className="font-semibold text-primary-text underline underline-offset-2">
+                soporte dentro de la app
+              </Link>
+              .
             </p>
-            {/*
-              No hay un email de soporte publicado en el repo al momento de
-              escribir esto (batch C2). Si en el futuro se publica uno
-              (ej. soporte@staffya.com.ar), sumarlo acá. Hasta entonces, el
-              canal de contacto real es el chat de la app.
-            */}
           </Section>
 
           <Section title="Qué datos recopilamos">

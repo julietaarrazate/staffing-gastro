@@ -221,7 +221,8 @@ export type NotificationType =
   | "new_applicant"
   | "shift_no_show"
   | "shift_cancelled_late"
-  | "new_shift_nearby";
+  | "new_shift_nearby"
+  | "support_reply";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 
@@ -360,4 +361,51 @@ export interface CompanyProfile {
   events_published: number;
   on_time_payment_rate: number;
   late_cancellations: number;
+}
+
+export type TicketCategory = "general" | "cv_documentos" | "pagos" | "cuenta" | "otro";
+export type TicketStatus = "abierto" | "cerrado";
+
+export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
+  general: "General",
+  cv_documentos: "CV / Documentos",
+  pagos: "Pagos",
+  cuenta: "Mi cuenta",
+  otro: "Otro",
+};
+
+export interface SupportMessage {
+  id: string;
+  ticket_id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string | null;
+}
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  category: TicketCategory;
+  subject: string;
+  status: TicketStatus;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface SupportTicketDetail extends SupportTicket {
+  messages: SupportMessage[];
+}
+
+export interface AdminSupportTicket {
+  id: string;
+  user_id: string;
+  user_full_name: string;
+  user_email: string;
+  user_role: string;
+  category: TicketCategory;
+  subject: string;
+  status: TicketStatus;
+  message_count: number;
+  last_message_at: string | null;
+  created_at: string | null;
 }

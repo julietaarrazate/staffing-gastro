@@ -5,7 +5,48 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Últimos dos P1 de la auditoría —
+*Última actualización: 2026-08-10 (**Soporte interno (C.1, auditoría de
+producto 2026-08-10) — la política de privacidad ya prometía un canal de
+soporte dentro de la app que no existía; ahora existe.**
+Módulo nuevo `backend/app/modules/support/` (mismo patrón
+domain/application/infrastructure/api que el resto), deliberadamente
+**separado** de tres cosas con las que se venía mezclando: el chat
+comercio↔trabajador (`chat_messages`, no reusado — 3 razones técnicas
+concretas: FK `shift_id` NOT NULL con CASCADE, participantes derivados del
+turno en cada llamada, el admin no es un participante posible en ese modelo
+de autorización), soporte Oído↔usuario (esto), y moderación/denuncias (no
+construido — sin señal real de abuso todavía). Versión mínima a propósito:
+sólo dos estados (`abierto`/`cerrado`), sin SLA, sin asignación, sin
+categorías de progreso — sobredimensionado para 3-5 comercios y 20-50
+trabajadores.
+  - **Backend:** tablas `support_tickets`/`support_messages` (migración
+    `0028`), con `category` desde el día uno (para que "reportar
+    turno"/"reportar usuario" puedan entrar más adelante como una categoría
+    más, sin dominio nuevo). `POST /support/tickets` (abrir con el primer
+    mensaje), `GET /support/tickets/mine`, `GET /support/tickets/{id}`
+    (dueño o admin, no-disclosure), `POST /support/tickets/{id}/messages`
+    (dueño si está abierto, o admin — el admin puede seguir aclarando algo
+    en uno cerrado, el usuario no puede "reabrirlo" solo mandando otro
+    mensaje), `POST /support/tickets/{id}/close`, y
+    `GET /support/tickets` (admin, todos los tickets enriquecidos con
+    usuario + cantidad de mensajes + último mensaje, un único JOIN + 2
+    subconsultas correlacionadas, sin N+1 — mismo patrón que
+    `favorite/infrastructure/repositories.py`). Notificación in-app nueva
+    (`SUPPORT_REPLY`) cuando un admin responde. Rate limiting igual que
+    chat. 10 tests nuevos (`tests/test_support.py`).
+  - **Frontend:** `/support` (mis tickets + modal "Nuevo ticket"),
+    `/support/[id]` (thread, reutilizada tanto por el usuario dueño como
+    por el admin — la autorización ya la resuelve el backend), y
+    `/admin/support` (inbox del admin, filtro por estado). Accesos desde
+    `/profile` ("Otros" → Soporte, ambos roles) y desde el panel de admin.
+    El texto de `/privacidad` que prometía "el chat de soporte dentro de la
+    app" ahora enlaza de verdad a `/support` (antes era una promesa sin
+    nada detrás). 2 tests E2E nuevos (`e2e/support.spec.ts`).
+
+Verificado: `pytest` 321/321, `tsc`/`build`/lint limpios, Playwright
+34/34, Vitest 63/63.
+
+Antes, mismo día: **Últimos dos P1 de la auditoría —
 badges/nivel en matching+postulantes, y el feed ya no pisa el orden
 urgente-primero al reordenar por distancia.**
 - **`badges`/`level` en candidatos y postulantes:** ADR-0004 ya calcula

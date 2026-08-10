@@ -11,6 +11,7 @@ import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
   CheckCircleIcon,
   EyeIcon,
+  MessageIcon,
   ShieldIcon,
   UsersIcon,
 } from "@/components/icons";
@@ -156,9 +157,18 @@ export default function AdminPage() {
     // md+ en vez de una sola columna angosta con la pantalla vacía al
     // costado; las tarjetas de stat ya escalaban solas (sm:grid-cols-4).
     <div className="mx-auto max-w-3xl px-4 py-8 md:max-w-6xl">
-      <div className="flex items-center gap-2">
-        <ShieldIcon size={22} className="text-primary-text" />
-        <h1 className="font-display text-2xl font-semibold text-ink">Panel de administración</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldIcon size={22} className="text-primary-text" />
+          <h1 className="font-display text-2xl font-semibold text-ink">Panel de administración</h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push("/admin/support")}
+          className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition hover:bg-line"
+        >
+          <MessageIcon size={16} /> Soporte
+        </button>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
