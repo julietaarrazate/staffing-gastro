@@ -71,6 +71,36 @@ async def test_worker_get_and_update_profile(client: AsyncClient):
     assert updated.json()["is_available"] is False
 
 
+async def test_worker_cv_filename_roundtrips_with_cv_url(client: AsyncClient):
+    """F1 (auditoría de producto 2026-08-10): el nombre de archivo real del CV
+    se guarda aparte de la URL (el `public_id` de Cloudinary es un hash)."""
+    headers = await auth_headers(client, "worker", "mozo_cv@staffya.com")
+    created = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=headers,
+        json={
+            "city": "Palermo",
+            "cv_url": "https://res.cloudinary.com/demo/raw/upload/v1/abc123hash.pdf",
+            "cv_filename": "Mi CV actualizado.pdf",
+        },
+    )
+    assert created.status_code == 201
+    assert created.json()["cv_filename"] == "Mi CV actualizado.pdf"
+
+    got = await client.get("/api/v1/workers/me/profile", headers=headers)
+    assert got.json()["cv_filename"] == "Mi CV actualizado.pdf"
+
+    # Al quitar el CV (URL vacía), no debería quedar un nombre huérfano.
+    updated = await client.put(
+        "/api/v1/workers/me/profile",
+        headers=headers,
+        json={"cv_url": None, "cv_filename": None},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["cv_url"] is None
+    assert updated.json()["cv_filename"] is None
+
+
 async def test_employer_cannot_create_worker_profile(client: AsyncClient):
     headers = await auth_headers(client, "employer", "empleador1@staffya.com")
     response = await client.post(

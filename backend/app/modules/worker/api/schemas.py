@@ -26,6 +26,7 @@ class WorkerProfileInput(BaseModel):
     languages: list[str] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
     cv_url: str | None = Field(default=None, max_length=512)
+    cv_filename: str | None = Field(default=None, max_length=255)
     is_available: bool = True
 
 
@@ -47,6 +48,7 @@ class WorkerProfileResponse(BaseModel):
     languages: list[str]
     certifications: list[str]
     cv_url: str | None
+    cv_filename: str | None = None
     is_available: bool
     # métricas
     rating: float

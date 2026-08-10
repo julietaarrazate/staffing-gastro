@@ -195,6 +195,7 @@ export interface WorkerProfile {
   languages: string[];
   certifications: string[];
   cv_url: string | null;
+  cv_filename: string | null;
   is_available: boolean;
   rating: number;
   events_completed: number;

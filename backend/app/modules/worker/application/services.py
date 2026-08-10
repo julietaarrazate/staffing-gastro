@@ -64,4 +64,5 @@ def _apply(profile: WorkerProfile, data: WorkerProfileData) -> None:
     profile.languages = data.languages
     profile.certifications = data.certifications
     profile.cv_url = data.cv_url
+    profile.cv_filename = data.cv_filename
     profile.is_available = data.is_available

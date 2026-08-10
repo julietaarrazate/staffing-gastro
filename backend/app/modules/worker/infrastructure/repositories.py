@@ -31,6 +31,7 @@ def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
         languages=list(model.languages or []),
         certifications=list(model.certifications or []),
         cv_url=model.cv_url,
+        cv_filename=model.cv_filename,
         is_available=model.is_available,
         rating=model.rating,
         events_completed=model.events_completed,
@@ -57,6 +58,7 @@ def _apply_editable_fields(model: WorkerProfileModel, profile: WorkerProfile) ->
     model.languages = profile.languages
     model.certifications = profile.certifications
     model.cv_url = profile.cv_url
+    model.cv_filename = profile.cv_filename
     model.is_available = profile.is_available
 
 

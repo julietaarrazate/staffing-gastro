@@ -32,6 +32,7 @@ export default function WorkerProfileForm() {
   const [languagesText, setLanguagesText] = useState("");
   const [certificationsText, setCertificationsText] = useState("");
   const [cvUrl, setCvUrl] = useState("");
+  const [cvFilename, setCvFilename] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -58,6 +59,7 @@ export default function WorkerProfileForm() {
         setLanguagesText((p.languages ?? []).join(", "));
         setCertificationsText((p.certifications ?? []).join(", "));
         setCvUrl(p.cv_url ?? "");
+        setCvFilename(p.cv_filename ?? null);
         setLatitude(p.latitude ?? null);
         setLongitude(p.longitude ?? null);
         setIsAvailable(p.is_available);
@@ -98,6 +100,7 @@ export default function WorkerProfileForm() {
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
       cv_url: cvUrl.trim() || null,
+      cv_filename: cvUrl.trim() ? cvFilename : null,
       latitude,
       longitude,
       is_available: isAvailable,
@@ -239,7 +242,14 @@ export default function WorkerProfileForm() {
         placeholder="Ej: Manipulación de alimentos, Carnet de manipulador"
       />
 
-      <CvUpload value={cvUrl} onChange={setCvUrl} />
+      <CvUpload
+        value={cvUrl}
+        fileName={cvFilename}
+        onChange={(url, name) => {
+          setCvUrl(url);
+          setCvFilename(name);
+        }}
+      />
 
       <Toggle
         label="Disponible para tomar turnos"
