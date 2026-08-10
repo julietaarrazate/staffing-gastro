@@ -32,6 +32,9 @@ class NotificationType(str, Enum):
     # amplía el círculo de candidatos avisados (ver
     # `ShiftService.escalate_urgency`).
     URGENT_SHIFT_NEARBY = "urgent_shift_nearby"
+    # C.1 (auditoría de producto 2026-08-10): un admin respondió un ticket de
+    # soporte del usuario.
+    SUPPORT_REPLY = "support_reply"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -59,6 +62,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # Ambos roles
     NotificationType.CHAT_MESSAGE: "/chats",
     NotificationType.REVIEW_RECEIVED: "/profile",
+    NotificationType.SUPPORT_REPLY: "/support",
 }
 
 

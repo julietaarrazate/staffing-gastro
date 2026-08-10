@@ -29,6 +29,7 @@ from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.shift.application.scheduler import start_scheduler
 from app.modules.subscription.api.routes import router as subscription_router
+from app.modules.support.api.routes import router as support_router
 from app.modules.verification.api.routes import router as verification_router
 from app.modules.worker.api.routes import router as worker_router
 
@@ -116,3 +117,4 @@ app.include_router(admin_router, prefix="/api/v1")
 app.include_router(application_router, prefix="/api/v1")
 app.include_router(subscription_router, prefix="/api/v1")
 app.include_router(favorite_router, prefix="/api/v1")
+app.include_router(support_router, prefix="/api/v1")

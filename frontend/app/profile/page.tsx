@@ -10,7 +10,13 @@ import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
 import { Spinner } from "@/components/ui";
-import { ChevronRightIcon, CreditCardIcon, HeartIcon, LogOutIcon } from "@/components/icons";
+import {
+  ChevronRightIcon,
+  CreditCardIcon,
+  HeartIcon,
+  LogOutIcon,
+  MessageIcon,
+} from "@/components/icons";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -163,6 +169,9 @@ export default function ProfilePage() {
                 `lib/reputation.tsx`) cuando corresponde. */}
             <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
               <PushToggle />
+              <Row icon={<MessageIcon size={18} />} onClick={() => router.push("/support")}>
+                Soporte
+              </Row>
               <Row icon={<LogOutIcon size={18} />} onClick={logout}>
                 Cerrar sesión
               </Row>

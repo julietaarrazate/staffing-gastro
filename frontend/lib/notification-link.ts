@@ -17,6 +17,7 @@ const BY_TYPE: Record<NotificationType, string> = {
   new_shift_nearby: "/feed",
   chat_message: "/chats",
   review_received: "/profile",
+  support_reply: "/support",
 };
 
 /** Pantalla que debe abrir una notificación al tocarla. */
