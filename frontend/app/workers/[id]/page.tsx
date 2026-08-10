@@ -8,12 +8,12 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { cldThumb } from "@/lib/cloudinary";
+import { cldAttachment, cldThumb } from "@/lib/cloudinary";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
 import WorkerReviews from "@/components/WorkerReviews";
-import { BriefcaseIcon, ClipboardIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+import { BriefcaseIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
 
 /** Botón "Favorito" (comercio → trabajador), sólo visible para empleadores
  * (el propio trabajador no ve ni sabe quién lo favoriteó — bookmark privado
@@ -233,7 +233,7 @@ export default function PublicWorkerProfilePage() {
           )}
 
           {profile.cv_url && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-2">
               <a
                 href={profile.cv_url}
                 target="_blank"
@@ -242,6 +242,14 @@ export default function PublicWorkerProfilePage() {
               >
                 <ClipboardIcon size={16} /> Ver CV
               </a>
+              {profile.cv_url.includes("res.cloudinary.com") && (
+                <a
+                  href={cldAttachment(profile.cv_url)}
+                  className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+                >
+                  <DownloadIcon size={16} /> Descargar
+                </a>
+              )}
             </div>
           )}
 

@@ -5,7 +5,32 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Tope de tamaño en la subida de CV
+*Última actualización: 2026-08-10 (**Corrección de diagnóstico + fix real
+del bug "el CV sube pero no abre", y botón de descarga de CV.** La entrada
+de abajo ("CV firmada") diagnosticó mal la causa: la subida firmada
+**no** resuelve este bug — probado en vivo con Julieta, un CV recién
+subido con firma seguía dando `ERR_INVALID_RESPONSE`. La restricción real
+de Cloudinary ("Allow delivery of PDF and ZIP files") es de **toda la
+cuenta**, no depende de si la subida fue firmada o sin firmar. El fix real
+fue activar ese toggle en el dashboard de Cloudinary (Settings →
+Security) — con eso, confirmado, el CV abre. La subida firmada sigue
+teniendo valor real (nadie más puede subir archivos a la cuenta sin pasar
+por el backend), pero no era la causa de este bug puntual. `CLAUDE.md`
+corregido para no repetir el diagnóstico incompleto.
+  - **Descargar CV, no sólo verlo** (pedido de Julieta: el comercio quiere
+    guardar una copia): `lib/cloudinary.ts::cldAttachment(url)` agrega la
+    transformación `fl_attachment` a una URL de Cloudinary, que hace que
+    Cloudinary responda con `Content-Disposition: attachment` — el
+    atributo HTML `download` no alcanza porque `res.cloudinary.com` es un
+    origen cruzado y los navegadores lo ignoran ahí. Botón "Descargar"
+    nuevo al lado de "Ver CV" en `/workers/[id]` (perfil del candidato que
+    ve el comercio), sólo cuando el CV es un archivo subido a Cloudinary
+    (no para links pegados a mano, donde no podemos garantizar la
+    descarga). 4 tests nuevos (`lib/cloudinary.test.ts`).
+
+Verificado: Vitest 69/69, `tsc`/`build`/lint limpios, Playwright 34/34.
+
+Antes, mismo día: **Tope de tamaño en la subida de CV
 (10MB)** — resguardo de cuota, no de seguridad: el plan free de Cloudinary
 alcanza para miles de CVs, pero un archivo gigante subido por error sí se
 nota. `CvUpload.tsx` rechaza en el cliente cualquier archivo de más de

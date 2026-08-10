@@ -31,6 +31,7 @@ import {
   Coffee,
   Copy,
   CreditCard,
+  Download,
   Flame,
   Footprints,
   Heart,
@@ -123,5 +124,6 @@ export const ShareIcon = make(Share2);
 export const CopyIcon = make(Copy);
 export const FileTextIcon = make(FileText);
 export const UploadIcon = make(Upload);
+export const DownloadIcon = make(Download);
 export const PencilIcon = make(Pencil);
 export const HeartIcon = make(Heart);
