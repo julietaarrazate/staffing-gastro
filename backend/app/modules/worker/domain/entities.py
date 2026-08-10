@@ -34,6 +34,12 @@ class WorkerProfile:
     languages: list[str] = field(default_factory=list)
     certifications: list[str] = field(default_factory=list)
     cv_url: str | None = None
+    # Nombre de archivo original (F1 auditoría 2026-08-10): el `public_id` que
+    # asigna Cloudinary a un upload no firmado es un hash, no el nombre real
+    # del archivo — sin esto, la UI no tenía forma de mostrar algo legible
+    # más que la URL entera. Sólo tiene sentido cuando `cv_url` viene de un
+    # archivo subido (no de un link pegado a mano).
+    cv_filename: str | None = None
     is_available: bool = True
 
     # --- Métricas (gestionadas por el sistema) ---

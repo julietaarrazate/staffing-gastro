@@ -24,6 +24,7 @@ from app.core import idempotency as idempotency_models  # noqa: F401
 from app.modules.application.infrastructure import models as application_models  # noqa: F401
 from app.modules.chat.infrastructure import models as chat_models  # noqa: F401
 from app.modules.company.infrastructure import models as company_models  # noqa: F401
+from app.modules.favorite.infrastructure import models as favorite_models  # noqa: F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
 from app.modules.notification.infrastructure import models as notification_models  # noqa: F401
 from app.modules.review.infrastructure import models as review_models  # noqa: F401

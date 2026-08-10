@@ -41,6 +41,7 @@ class WorkerProfileModel(Base):
     languages: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     certifications: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     cv_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    cv_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     # --- Métricas ---

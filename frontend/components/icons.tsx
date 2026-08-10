@@ -33,6 +33,7 @@ import {
   CreditCard,
   Flame,
   Footprints,
+  Heart,
   Home,
   type LucideProps,
   LogOut,
@@ -123,3 +124,4 @@ export const CopyIcon = make(Copy);
 export const FileTextIcon = make(FileText);
 export const UploadIcon = make(Upload);
 export const PencilIcon = make(Pencil);
+export const HeartIcon = make(Heart);

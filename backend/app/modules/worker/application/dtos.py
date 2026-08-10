@@ -21,4 +21,5 @@ class WorkerProfileData:
     languages: list[str] = field(default_factory=list)
     certifications: list[str] = field(default_factory=list)
     cv_url: str | None = None
+    cv_filename: str | None = None
     is_available: bool = True

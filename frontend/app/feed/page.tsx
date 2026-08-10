@@ -19,7 +19,7 @@ import LocationBar from "@/components/worker/LocationBar";
 import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
-import { CalendarIcon } from "@/components/icons";
+import { CalendarIcon, FlameIcon } from "@/components/icons";
 
 /** Lo que se conserva del feed entre visitas a la pestaña (ver screen-cache). */
 interface CachedFeed {
@@ -49,6 +49,12 @@ export default function WorkerHomePage() {
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
   const [here, setHere] = useState<CurrentLocation | null>(null);
   useEffect(() => setHere(getStoredLocation()), []);
+  // F1 (auditoría de producto 2026-08-10): el backend ya soporta filtrar por
+  // `urgent` (GET /shifts/feed?urgent=true), pero no había ningún control en
+  // esta pantalla para usarlo — sólo se veía el badge "Urgente" en la
+  // tarjeta. Filtro client-side (el feed ya está cargado completo, sin
+  // paginar) para no perder el orden por distancia ni disparar otro request.
+  const [urgentOnly, setUrgentOnly] = useState(false);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -180,7 +186,13 @@ export default function WorkerHomePage() {
   const firstName = user?.full_name?.split(" ")[0];
 
   const origin = originFor(here, profile);
-  const visibleShifts = sortByDistance(shifts, origin);
+  const sortedShifts = sortByDistance(shifts, origin);
+  const visibleShifts = urgentOnly ? sortedShifts.filter((s) => s.urgent) : sortedShifts;
+  const urgentCount = sortedShifts.filter((s) => s.urgent).length;
+  const emptyTitle = urgentOnly ? "No hay turnos urgentes ahora" : "No hay más turnos cerca";
+  const emptySubtitle = urgentOnly
+    ? "Sacá el filtro para ver el resto de las oportunidades disponibles."
+    : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)] md:max-w-5xl">
@@ -223,6 +235,25 @@ export default function WorkerHomePage() {
         onChange={setHere}
       />
 
+      {(urgentCount > 0 || urgentOnly) && (
+        <div className="mb-2 flex">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={urgentOnly}
+            onClick={() => setUrgentOnly((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+              urgentOnly
+                ? "bg-primary/10 text-primary-text ring-primary/30"
+                : "bg-white text-ink/60 ring-line hover:bg-surface"
+            }`}
+          >
+            <FlameIcon size={14} />
+            Sólo urgentes{urgentCount > 0 ? ` (${urgentCount})` : ""}
+          </button>
+        </div>
+      )}
+
       {/* Deck */}
       <div className="min-h-0 flex-1 md:overflow-y-auto">
         {loading ? (
@@ -254,9 +285,13 @@ export default function WorkerHomePage() {
                 empty={
                   <EmptyState
                     icon={<CalendarIcon size={30} />}
-                    title="No hay más turnos cerca"
-                    subtitle="Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato."
-                    primaryAction={{ label: "Actualizar", onClick: load }}
+                    title={emptyTitle}
+                    subtitle={emptySubtitle}
+                    primaryAction={
+                      urgentOnly
+                        ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
+                        : { label: "Actualizar", onClick: load }
+                    }
                   />
                 }
               />
@@ -271,14 +306,18 @@ export default function WorkerHomePage() {
               {visibleShifts.length === 0 ? (
                 <EmptyState
                   icon={<CalendarIcon size={30} />}
-                  title="No hay más turnos cerca"
-                  subtitle="Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato."
-                  primaryAction={{ label: "Actualizar", onClick: load }}
+                  title={emptyTitle}
+                  subtitle={emptySubtitle}
+                  primaryAction={
+                    urgentOnly
+                      ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
+                      : { label: "Actualizar", onClick: load }
+                  }
                 />
               ) : (
                 <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
                   {visibleShifts.map((shift) => (
-                    <div key={shift.id} className="h-[620px]">
+                    <div key={shift.id} data-testid="feed-grid-card" className="h-[620px]">
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}

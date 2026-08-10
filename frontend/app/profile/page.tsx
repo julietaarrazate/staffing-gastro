@@ -10,7 +10,7 @@ import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
 import { Spinner } from "@/components/ui";
-import { ChevronRightIcon, CreditCardIcon, LogOutIcon } from "@/components/icons";
+import { ChevronRightIcon, CreditCardIcon, HeartIcon, LogOutIcon } from "@/components/icons";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -120,6 +120,12 @@ export default function ProfilePage() {
                   onClick={() => router.push("/subscription")}
                 >
                   Mi plan
+                </Row>
+                <Row
+                  icon={<HeartIcon size={18} />}
+                  onClick={() => router.push("/favorites")}
+                >
+                  Trabajadores favoritos
                 </Row>
               </div>
             </div>
