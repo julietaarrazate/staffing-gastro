@@ -162,3 +162,23 @@ class GeoCheckRequest(BaseModel):
 
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
+
+
+class ParseShiftTextRequest(BaseModel):
+    """Texto libre a interpretar (P2, auditoría de producto 2026-08-10)."""
+
+    text: str = Field(min_length=3, max_length=500)
+
+
+class ParsedShiftDraftResponse(BaseModel):
+    """Campos parciales para PRECARGAR el wizard — el comercio revisa y
+    confirma cada paso a mano, esto nunca publica un turno directamente."""
+
+    position: WorkerSkill | None
+    start_at: datetime | None
+    end_at: datetime | None
+    pay_amount: Decimal | None
+    urgent: bool
+    meal: bool
+    tips: bool
+    dress_code: str | None

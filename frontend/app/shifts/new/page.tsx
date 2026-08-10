@@ -9,7 +9,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
-import { SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
+import { ParsedShiftDraft, SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import {
   argentinaISOToLocalInput,
@@ -27,6 +27,7 @@ import {
   ChevronLeftIcon,
   FlameIcon,
   MapPinIcon,
+  SparklesIcon,
   UsersIcon,
   UtensilsIcon,
   WalletIcon,
@@ -78,6 +79,12 @@ function NewShiftWizard() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
+  // Turno por texto libre (P2, auditoría de producto 2026-08-10): la IA sólo
+  // PRECARGA estos mismos campos de estado — el comercio sigue revisando y
+  // confirmando cada paso a mano antes de publicar. Nunca crea el turno.
+  const [describeText, setDescribeText] = useState("");
+  const [parsingText, setParsingText] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): se
   // guarda el id recién publicado y se navega recién cuando el comercio
   // interactúa con la pantalla (no de inmediato), a diferencia del
@@ -122,6 +129,32 @@ function NewShiftWizard() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duplicateId, token]);
+
+  async function parseWithAI() {
+    if (!token || !describeText.trim()) return;
+    setParseError(null);
+    setParsingText(true);
+    try {
+      const draft = await api.post<ParsedShiftDraft>(
+        "/shifts/parse-text",
+        { text: describeText.trim() },
+        token
+      );
+      if (draft.position) setPosition(draft.position);
+      if (draft.start_at) setStartAt(argentinaISOToLocalInput(draft.start_at));
+      if (draft.end_at) setEndAt(argentinaISOToLocalInput(draft.end_at));
+      if (draft.pay_amount) setPayAmount(draft.pay_amount);
+      setTips(draft.tips);
+      setMeal(draft.meal);
+      setUrgent(draft.urgent);
+      if (draft.dress_code) setDressCode(draft.dress_code);
+      toast("Completamos lo que pudimos — revisá cada paso antes de publicar");
+    } catch (err) {
+      setParseError(getErrorMessage(err, "No pudimos interpretar el texto. Completá los datos a mano."));
+    } finally {
+      setParsingText(false);
+    }
+  }
 
   function go(next: number) {
     setDir(next > step ? 1 : -1);
@@ -271,6 +304,37 @@ function NewShiftWizard() {
               <div>
                 <h1 className="font-display text-2xl font-semibold text-ink">¿Qué necesitás?</h1>
                 <p className="mt-1 text-sm text-ink/50">Elegí el puesto a cubrir.</p>
+
+                {/* Turno por texto libre (P2, auditoría de producto 2026-08-10):
+                    la IA sólo PRECARGA los pasos siguientes — nunca publica nada
+                    sola, el comercio revisa y confirma cada paso a mano. */}
+                <div className="mt-4 rounded-3xl bg-surface p-4 ring-1 ring-line">
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
+                    <SparklesIcon size={16} className="text-primary" /> Describilo y lo completamos
+                  </p>
+                  <textarea
+                    value={describeText}
+                    onChange={(e) => setDescribeText(e.target.value)}
+                    rows={2}
+                    maxLength={500}
+                    placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
+                    className="mt-2 w-full resize-none rounded-2xl bg-white px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
+                  />
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    {parseError && <p className="text-xs text-danger-text">{parseError}</p>}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="ml-auto"
+                      disabled={!describeText.trim()}
+                      loading={parsingText}
+                      onClick={parseWithAI}
+                    >
+                      Completar
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   {WORKER_SKILLS.map((skill) => {
                     const { Icon, bg, fg } = SKILL_ACCENT[skill];

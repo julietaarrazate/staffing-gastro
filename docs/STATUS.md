@@ -5,7 +5,48 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Onboarding del comercio (C4,
+*Última actualización: 2026-08-10 (**Turno por texto libre con IA (P2,
+auditoría de producto 2026-08-10) — último ítem del backlog P2.** El
+comercio escribe algo como "necesito un mozo el sábado a la noche, se
+paga 45000" en `/shifts/new` y se precargan puesto/horario/pago/toggles
+del wizard — la IA **nunca publica nada sola**, el comercio sigue
+revisando y confirmando cada paso a mano (regla no negociable: la IA
+interpreta intención, el motor de turnos/matching decide resultados).
+Proveedor: **Gemini** (plan free de Google, elegido por el mismo motivo
+que en otros proyectos de Julieta — sin costo para el volumen de esta
+beta: `gemini-2.5-flash`, 250 requests/día).
+  - **Backend:** `app/core/gemini.py` (nuevo, sin domain — función pura
+    `parse_shift_text()`: llamada HTTP directa a `generateContent` con
+    `responseSchema` para forzar JSON estructurado, sin SDK, mismo
+    criterio que `ResendEmailSender`). El prompt resuelve fechas
+    relativas ("el sábado", "mañana") contra `now_art()` — sin eso,
+    Gemini no tiene forma de saber qué día es hoy en Argentina. Nueva
+    ruta `POST /shifts/parse-text` (sólo rol `employer`, dentro del
+    módulo `shift` ya existente — no amerita un módulo nuevo, el
+    resultado ya tiene la forma de `ShiftData`) con rate limit por
+    usuario (15/10min, protege contra loops del frontend, no es la
+    cuota real que ya aplica Gemini del lado del proveedor). Nueva env
+    var `GEMINI_API_KEY` (flag por ausencia: vacía → 503, mismo patrón
+    que `google_client_id`). Un horario mal formado que Gemini pueda
+    devolver pese al `responseSchema` no rompe el endpoint entero: ese
+    campo puntual queda en `null` (`_safe_datetime`), el resto de los
+    datos parseados se sigue devolviendo. 8 tests nuevos
+    (`tests/test_gemini_shift_parser.py`): cliente HTTP mockeado (nunca
+    pega a la red real) + integración del endpoint (503 sin configurar,
+    200 con draft, 403 para `worker`, degradación con fecha inválida).
+  - **Frontend:** bloque "Describilo y lo completamos" arriba del
+    selector de puesto en `/shifts/new` (paso 1) — textarea + botón
+    "Completar". La respuesta llena los mismos `useState` que ya
+    llenaba manualmente el wizard (posición, `startAt`/`endAt` vía
+    `argentinaISOToLocalInput`, `payAmount`, toggles) — el comercio
+    sigue tocando "Continuar" en cada paso como siempre. 1 test E2E
+    nuevo (`e2e/shift-ai-parse.spec.ts`).
+  - `CLAUDE.md` actualizado con la env var pendiente.
+
+Verificado: `pytest` 334/334, `tsc`/`build`/lint limpios, Playwright
+35/35, Vitest 69/69.
+
+Antes, mismo día: **Onboarding del comercio (C4,
 `docs/planning/PULIDO_ROADMAP.md`) — Julieta pasó de referencia el alta
 guiado de otra app del rubro (Trabajos Gastro) y se adaptó al modelo real
 de Staffya.** El trabajador ya tenía `/bienvenida` (zona + oficio, 2

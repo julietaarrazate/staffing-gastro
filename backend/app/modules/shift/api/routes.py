@@ -1,15 +1,19 @@
 """Rutas HTTP del módulo shift (publicación y ciclo de vida del turno)."""
 
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, parse_shift_text
 from app.core.idempotency import IdempotencyRecorder, idempotent
+from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
-from app.modules.identity.api.dependencies import get_current_user
+from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.api.dependencies import (
     get_my_company_id,
     get_my_worker_profile_id,
@@ -21,6 +25,8 @@ from app.modules.shift.api.schemas import (
     EventInput,
     EventResponse,
     GeoCheckRequest,
+    ParsedShiftDraftResponse,
+    ParseShiftTextRequest,
     ShiftInput,
     ShiftPublicResponse,
     ShiftResponse,
@@ -57,6 +63,15 @@ OffsetDep = Annotated[int, Query(ge=0)]
 # parámetro de dependencia de cada endpoint, después de `company_id`/
 # `worker_profile_id`, para que un 403 de rol falle antes de reservar la key.
 RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
+EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
+
+# Por usuario, no por IP (mismo criterio que `_send_message_rate_limit` en
+# chat/api/routes.py): protege contra un doble click/loop del frontend, no
+# es la cuota real de Gemini (250/día, la aplica Google del lado del
+# proveedor y se devuelve como GeminiRequestError si se agota).
+_parse_shift_text_rate_limit = RateLimiter(
+    max_attempts=15, window_seconds=600, name="parse-shift-text"
+)
 
 
 def _to_data(payload: ShiftInput) -> ShiftData:
@@ -116,6 +131,55 @@ async def create_shift(
     # wizard.
     await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
     return response
+
+
+@router.post(
+    "/parse-text",
+    response_model=ParsedShiftDraftResponse,
+    summary="Interpretar una descripción en texto libre y precargar el wizard de turno",
+)
+async def parse_text(
+    payload: ParseShiftTextRequest, current_user: EmployerDep
+) -> ParsedShiftDraftResponse:
+    # Sólo PRECARGA el wizard — el comercio revisa y confirma cada paso a
+    # mano en /shifts/new antes de publicar nada (la IA interpreta
+    # intención, el motor de turnos/matching decide resultados).
+    _parse_shift_text_rate_limit.check(str(current_user.id))
+    try:
+        draft = await parse_shift_text(payload.text)
+    except GeminiNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La interpretación por IA no está configurada en este servidor",
+        ) from exc
+    except GeminiRequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No pudimos interpretar el texto. Completá los datos a mano.",
+        ) from exc
+
+    return ParsedShiftDraftResponse(
+        position=draft.position,
+        start_at=_safe_datetime(draft.start_at),
+        end_at=_safe_datetime(draft.end_at),
+        pay_amount=draft.pay_amount,
+        urgent=draft.urgent,
+        meal=draft.meal,
+        tips=draft.tips,
+        dress_code=draft.dress_code,
+    )
+
+
+def _safe_datetime(value: str | None) -> datetime | None:
+    """Gemini puede devolver un horario mal formado (o directamente texto
+    en vez de ISO-8601) pese al `responseSchema` — se descarta ese campo en
+    vez de romper el endpoint entero; el comercio lo completa a mano."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 @router.get(

@@ -290,6 +290,16 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
    esto por sí solo NO resuelve "el PDF sube pero no abre" (ver el ítem de
    abajo, corregido tras probarlo en vivo) — hace falta además el toggle
    del dashboard.
+6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
+   producto): habilita "Describí el turno" en `/shifts/new` — el comercio
+   escribe algo como "necesito un mozo el sábado a la noche, se paga
+   45000" y se precargan puesto/horario/pago (nunca publica nada solo, el
+   comercio revisa y confirma cada paso). Se saca de
+   [aistudio.google.com](https://aistudio.google.com) → "Get API key"
+   (cuenta de Google, plan free — alcanza de sobra: 250 requests/día con
+   `gemini-2.5-flash`). Sin esta var, `POST /shifts/parse-text` responde
+   503 (flag por ausencia) y el botón "Completar" muestra un error claro
+   en vez de fallar en silencio.
 
 > El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
