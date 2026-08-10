@@ -227,10 +227,17 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 - **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
   `docs/reference/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
   arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).
-- **`docs/planning/PULIDO_ROADMAP.md` batches C3 (confianza/conversión: SEO,
-  skeletons, a11y) y C4 (onboarding post-registro) sin arrancar** — el orden
-  del propio roadmap es C2→C0+C1→C3→C4; C4 necesita que T1 (Julieta) cierre
-  el spec del flujo exacto antes de ejecutar.
+- **`docs/planning/PULIDO_ROADMAP.md` batch C3 (confianza/conversión: SEO,
+  skeletons, a11y) sin arrancar.** **C4 (onboarding post-registro) resuelto
+  para el comercio 2026-08-10** (auditoría de producto, a partir de una
+  referencia real que pasó Julieta de otra app del rubro): `/bienvenida`
+  ahora también atiende al rol `employer` (antes sólo al `worker`) — 2
+  pasos, nombre+logo (logo opcional, misma regla de fricción que la foto
+  del trabajador) y ubicación (reusa `MapAddressPicker`, ADR-0006), y
+  termina en `/shifts/new` en vez de en un panel vacío. Antes, el comercio
+  caía directo en `/shifts` sin haber cargado nada — los candidatos veían
+  "Un comercio cerca tuyo" en vez del nombre real. Ver
+  `frontend/app/bienvenida/page.tsx`.
 - Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: `npm run lint` fuera de CI
   (~20 errores/10 warnings baseline), formularios con `<input>` crudo en 4
   pantallas (F1). (Corregido 2026-08-09: las dos líneas que decían "no-show
