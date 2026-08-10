@@ -118,6 +118,21 @@ export interface Shift {
   company_logo_url: string | null;
 }
 
+/** Campos parciales de `POST /shifts/parse-text` (P2, auditoría de
+ * producto 2026-08-10): PRECARGA el wizard de `/shifts/new`, cualquiera
+ * puede venir `null` cuando la IA no pudo inferirlo — el comercio revisa y
+ * confirma cada paso a mano, esto nunca publica un turno directo. */
+export interface ParsedShiftDraft {
+  position: WorkerSkill | null;
+  start_at: string | null;
+  end_at: string | null;
+  pay_amount: string | null;
+  urgent: boolean;
+  meal: boolean;
+  tips: boolean;
+  dress_code: string | null;
+}
+
 /** Resultado de `POST /shifts/events`: `requested` vs. `shifts.length` —
  *  si son distintos, el plan del comercio se quedó sin cupo a mitad de
  *  camino (publicación parcial). */

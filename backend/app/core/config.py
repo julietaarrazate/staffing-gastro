@@ -142,6 +142,17 @@ class Settings(BaseSettings):
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
 
+    # --- Gemini (turno por texto libre) — P2, auditoría de producto 2026-08-10 ---
+    # El comercio describe el turno en texto libre ("necesito 2 mozos el sábado
+    # a la noche") y Gemini lo traduce a campos estructurados que PRECARGAN el
+    # wizard de publicar turno — el comercio sigue revisando y confirmando cada
+    # paso a mano, nunca se publica nada directo desde acá (regla no negociable:
+    # la IA interpreta intención, el motor de turnos/matching decide
+    # resultados). Vacío = `POST /shifts/parse-text` responde 503 (mismo patrón
+    # "flag por ausencia" que `google_client_id`). Plan free de Google alcanza
+    # de sobra para esta beta (gemini-2.5-flash: 250 requests/día).
+    gemini_api_key: str = ""
+
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.
