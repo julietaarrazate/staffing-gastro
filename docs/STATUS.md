@@ -5,7 +5,23 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Tarjeta de turno: el look "atenuado"
+*Última actualización: 2026-08-11 (**Ya no se puede marcar "llegué" en un
+turno con fecha a días de distancia.** Julieta, probando como comercio
+invitado: "que se pueda poner una fecha a futuro y que pongan como llegue
+me fui pagado si todavía no llegó esa fecha" — `Shift.check_in()`
+(`backend/app/modules/shift/domain/entities.py`) no comparaba nunca contra
+`start_at`, sólo validaba el estado (CONFIRMADO/EN_CAMINO). Se agregó
+`EARLY_CHECKIN_WINDOW` (30 minutos antes del horario pactado): antes de esa
+ventana, `check_in()` rechaza con `InvalidShiftTransitionError` (mapea a
+400, mismo patrón que el resto de las transiciones inválidas). No hizo
+falta un guard aparte en `check_out()`/`finish()`/`mark_paid()` — ya
+dependen de haber pasado por `check_in()` primero, así que bloquear ahí
+alcanza para cortar toda la cadena. Tests nuevos en `test_attendance.py`:
+un turno a 3 días bloquea el check-in (400, mensaje "todavía..."), uno a 10
+minutos lo sigue permitiendo (ventana real de llegada anticipada, no exacta
+al segundo). Verificado: `pytest` 353/353.
+
+Antes, mismo día: **Tarjeta de turno: el look "atenuado"
 (opacity, como deshabilitado) ya no aparece apenas el trabajador hace
 check-out.** Julieta, sobre una captura real de un turno "Finalizado" con
 "Falta registrar el pago" todavía visible: "cuando cerrás el turno, queda en
