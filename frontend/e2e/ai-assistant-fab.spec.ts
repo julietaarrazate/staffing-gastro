@@ -2,12 +2,12 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
- * Asistente de turnos por IA como botón flotante global (pedido de Julieta:
- * separado del wizard, "un botón afuera", accesible desde cualquier
- * pantalla del comercio) — antes sólo vivía adentro de /shifts/new. Reusa
- * el mismo `POST /shifts/parse-text`; sólo cambia el punto de entrada: acá
- * el draft se guarda y se navega al wizard, que lo aplica al montar (ver el
- * efecto de handoff en shifts/new/page.tsx).
+ * Asistente general del panel del comercio, como botón flotante global
+ * (pedido de Julieta: separado del wizard, "un botón afuera", que entienda
+ * "si es un evento, si es un turno, y toda la app, no sólo lo básico") —
+ * antes sólo vivía adentro de /shifts/new y sólo sabía armar un turno.
+ * `POST /assistant/query` clasifica el pedido en uno de 5 intents; estos
+ * tests cubren cada rama del frontend.
  */
 
 const EMPLOYER_SESSION = {
@@ -36,7 +36,40 @@ async function mockSession(page: Page, session: typeof EMPLOYER_SESSION) {
   );
 }
 
-test("el comercio puede abrir el asistente flotante desde /shifts y llega al wizard con el turno precargado", async ({
+/** Respuesta base de `POST /assistant/query`: todo en `null`/default salvo
+ * lo que cada test necesite pisar para su intent. */
+function assistantResponse(overrides: Record<string, unknown>) {
+  return {
+    intent: "desconocido",
+    message: null,
+    position: null,
+    start_at: null,
+    end_at: null,
+    pay_amount: null,
+    urgent: null,
+    meal: null,
+    tips: null,
+    dress_code: null,
+    event_positions: null,
+    query_summary: null,
+    query_count: null,
+    query_tab: null,
+    search_position: null,
+    matched_shift_id: null,
+    ...overrides,
+  };
+}
+
+async function openAssistantAndAsk(page: Page, text: string) {
+  await page.getByRole("button", { name: "Asistente de turnos con IA" }).click();
+  await expect(page.getByRole("dialog", { name: "Asistente" })).toBeVisible();
+  await page
+    .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
+    .fill(text);
+  await page.getByRole("button", { name: "Completar" }).click();
+}
+
+test("crear_turno: llega al wizard de turno único con el puesto ya precargado", async ({
   page,
 }) => {
   await injectSession(page);
@@ -46,39 +79,181 @@ test("el comercio puede abrir el asistente flotante desde /shifts y llega al wiz
   await page.route("**/api/v1/shifts/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
-  await page.route("**/api/v1/shifts/parse-text", (route) =>
+  await page.route("**/api/v1/assistant/query", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({
-        position: "mozo",
-        start_at: "2026-08-15T20:00:00-03:00",
-        end_at: "2026-08-16T02:00:00-03:00",
-        pay_amount: "45000",
-        urgent: false,
-        meal: false,
-        tips: true,
-        dress_code: null,
-      }),
+      body: JSON.stringify(
+        assistantResponse({
+          intent: "crear_turno",
+          position: "mozo",
+          start_at: "2026-08-15T20:00:00-03:00",
+          end_at: "2026-08-16T02:00:00-03:00",
+          pay_amount: "45000",
+          urgent: false,
+          meal: false,
+          tips: true,
+        })
+      ),
     })
   );
 
   await page.goto("/shifts");
-  await page.getByRole("button", { name: "Asistente de turnos con IA" }).click();
-  await expect(page.getByRole("dialog", { name: "Asistente de turnos" })).toBeVisible();
-
-  await page
-    .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
-    .fill("necesito un mozo el sábado a la noche, se paga 45000");
-  await page.getByRole("button", { name: "Completar turno" }).click();
+  await openAssistantAndAsk(page, "necesito un mozo el sábado a la noche, se paga 45000");
 
   await expect(page).toHaveURL(/\/shifts\/new/);
-  // El puesto ya quedó elegido — "Continuar" está habilitado sin haber
-  // tocado ninguna tarjeta a mano en esta pantalla.
   await expect(page.getByRole("button", { name: "Continuar" })).toBeEnabled();
 });
 
-test("el botón flotante no aparece en /shifts/new (ya tiene el mismo cuadro integrado)", async ({
+test("crear_evento: llega al wizard de evento con los roles ya precargados", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({
+          intent: "crear_evento",
+          event_positions: [
+            { position: "ayudante_cocina", quantity: 1 },
+            { position: "bartender", quantity: 1 },
+            { position: "mozo", quantity: 2 },
+          ],
+          start_at: "2026-08-15T20:00:00-03:00",
+          end_at: "2026-08-16T02:00:00-03:00",
+          pay_amount: "45000",
+        })
+      ),
+    })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "necesito crear un evento: 1 bachero, 1 bartender, 2 mozos");
+
+  await expect(page).toHaveURL(/\/shifts\/new-event/);
+  await expect(page.getByRole("button", { name: "Sacar este rol" })).toHaveCount(3);
+});
+
+test("consultar_turnos: muestra el resumen adentro del asistente y lleva al panel filtrado", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({
+          intent: "consultar_turnos",
+          query_summary: "Tenés 2 turnos urgentes sin cubrir.",
+          query_count: 2,
+          query_tab: "buscando",
+        })
+      ),
+    })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "¿qué tengo urgente?");
+
+  await expect(page.getByText("Tenés 2 turnos urgentes sin cubrir.")).toBeVisible();
+  await page.getByRole("button", { name: "Ver en el panel" }).click();
+  await expect(page).toHaveURL("/shifts?tab=buscando");
+});
+
+test("buscar_candidatos: navega a /search con el puesto ya filtrado", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(assistantResponse({ intent: "buscar_candidatos", search_position: "mozo" })),
+    })
+  );
+  await page.route("**/api/v1/matching/search**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "buscame mozos disponibles");
+
+  await expect(page).toHaveURL("/search?skill=mozo");
+});
+
+test("ver_postulantes: con match, navega directo a los postulantes del turno", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({ intent: "ver_postulantes", matched_shift_id: "shift-123" })
+      ),
+    })
+  );
+  await page.route("**/api/v1/applications/shifts/shift-123", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/shifts/shift-123/candidates**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "¿quién se postuló al turno de mozo?");
+
+  await expect(page).toHaveURL(/\/shifts\/shift-123\/candidates/);
+});
+
+test("desconocido: muestra un mensaje amigable sin navegar a ningún lado", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({ intent: "desconocido", message: "No entendí bien qué necesitás." })
+      ),
+    })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "esto no significa nada");
+
+  await expect(page.getByText("No entendí bien qué necesitás.")).toBeVisible();
+  await expect(page).toHaveURL("/shifts");
+});
+
+test("el botón flotante no aparece en /shifts/new ni en /shifts/new-event (ya tienen el cuadro integrado)", async ({
   page,
 }) => {
   await injectSession(page);
@@ -87,6 +262,9 @@ test("el botón flotante no aparece en /shifts/new (ya tiene el mismo cuadro int
   await mockSession(page, EMPLOYER_SESSION);
 
   await page.goto("/shifts/new");
+  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+
+  await page.goto("/shifts/new-event");
   await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
 });
 

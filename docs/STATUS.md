@@ -5,7 +5,53 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Asistente de turnos con IA como botón
+*Última actualización: 2026-08-11 (**El asistente de IA ahora entiende 5
+pedidos, no sólo "crear un turno".** Julieta probó el botón flotante recién
+mergeado con "necesito crear un evento para el sábado a la noche 1 bachero 1
+barrender 2 mozos" y no anduvo — el asistente sólo sabía interpretar UN
+turno de UN puesto, así que un pedido con 3 puestos distintos lo hacía
+fallar. Pidió, explícitamente, que el asistente entendiera "si es un evento,
+si es un turno, y toda la app, no sólo lo básico". Se confirmó el alcance
+con dos preguntas (`AskUserQuestion`) antes de construir: "asistente general
+de toda la app" (no sólo turno-vs-evento) y, de las capacidades candidatas,
+Julieta eligió las 4: crear turno/evento, consultar mis turnos, buscar
+candidatos, ver postulantes.
+  - **`interpret_assistant_query` (`core/gemini.py`, nuevo):** una sola
+    llamada a Gemini clasifica la intención (`crear_turno` / `crear_evento` /
+    `consultar_turnos` / `buscar_candidatos` / `ver_postulantes` /
+    `desconocido`) Y extrae los campos que esa intención necesita — evita un
+    segundo round-trip. Si el texto menciona más de un puesto, ya no fuerza
+    todo a un solo turno: arma `crear_evento` con un rol por puesto
+    mencionado (con cantidad cada uno).
+  - **Módulo nuevo `app/modules/assistant/` (`POST /assistant/query`):**
+    `AssistantService` depende sólo del PUERTO `ShiftRepository` del módulo
+    shift (mismo patrón de composición cross-módulo que ya usa `ShiftService`
+    para matching/company — nunca se importa el *servicio* de otro módulo).
+    `consultar_turnos`/`ver_postulantes` no necesitaron una query nueva en el
+    repositorio: alcanza con `list_by_company` (ya paginado) filtrado en
+    Python, dado el volumen chico de turnos por comercio en esta etapa.
+    `ver_postulantes` resuelve el turno por puesto + fecha aproximada sin
+    disambiguación interactiva (con más de un candidato, gana el más
+    reciente) — simplificación consciente de esta primera versión.
+  - **Frontend:** `AIAssistantFab` pasó de llamar `/shifts/parse-text` fijo a
+    `/assistant/query` y ramifica por `intent` — `crear_turno`/`crear_evento`
+    navegan al wizard correspondiente con el draft precargado (mismo
+    criterio "la IA sólo precarga, nunca publica"), `consultar_turnos`
+    muestra el resumen adentro del mismo panel con un botón a `/shifts?tab=`,
+    `buscar_candidatos` navega a `/search?skill=`, `ver_postulantes` navega
+    directo a `/shifts/{id}/candidates` (o cae a `desconocido` con un
+    mensaje si no encuentra el turno). `/shifts` y `/search` ahora leen su
+    filtro inicial de la URL (antes sólo `/shifts/[id]/candidates` lo hacía),
+    y `/shifts/new-event` suma el mismo handoff por `sessionStorage` que ya
+    tenía `/shifts/new`. `_safe_datetime` (antes sólo en
+    `shift/api/routes.py`) se promovió a `core/dt.py` como
+    `parse_iso_datetime` para reusarlo acá sin duplicar la lógica.
+  - Verificado: `pytest` 351/351 (340 previos + 11 de `test_assistant.py`),
+    `tsc`/`build` limpios, Playwright 52/52 (47 previos, con
+    `ai-assistant-fab.spec.ts` reescrito de 3 a 8 tests para el nuevo
+    contrato de `/assistant/query` — 5 netos más).
+
+Antes, mismo día: **Asistente de turnos con IA como botón
 flotante global + sugerencia de IA en soporte.** Julieta, sobre el turno por
 texto libre (P2): "no me deja apretar el botón de micrófono" (fix aparte,
 ver más abajo), "estaría bueno tener el asistente como algo separado del

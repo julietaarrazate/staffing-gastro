@@ -14,7 +14,7 @@ requests/minuto, 250/día — de sobra para esta beta).
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -206,4 +206,206 @@ async def parse_shift_text(text: str) -> ParsedShiftDraft:
         meal=bool(data.get("meal", False)),
         tips=bool(data.get("tips", True)),
         dress_code=data.get("dress_code"),
+    )
+
+
+# Asistente general del panel del comercio (pedido de Julieta: "que entienda
+# si es un evento, si es un turno, y toda la app, no sólo lo básico"). Una
+# sola llamada clasifica la intención Y extrae los campos que esa intención
+# necesita — evita un segundo round-trip a Gemini. Mismo principio no
+# negociable que el resto de este archivo: la IA sólo interpreta intención,
+# nunca ejecuta ni publica nada por su cuenta.
+_ASSISTANT_INTENTS = [
+    "crear_turno",
+    "crear_evento",
+    "consultar_turnos",
+    "buscar_candidatos",
+    "ver_postulantes",
+    "desconocido",
+]
+
+_ASSISTANT_QUERY_FILTERS = ["hoy", "urgentes", "sin_cubrir", "todos"]
+
+_ASSISTANT_SYSTEM_INSTRUCTION = """Sos el asistente del panel de un comercio en Oído (marketplace \
+de staffing gastronómico eventual, Argentina). Interpretás lo que el comercio escribe o dicta y \
+decidís qué quiere hacer. Hoy es {today} (hora de Argentina). Intents posibles:
+
+- `crear_turno`: publicar UN turno para UN solo puesto (ej: "necesito un mozo el sábado").
+- `crear_evento`: cubrir VARIOS puestos a la vez para el mismo evento (ej: "necesito 1 bachero, 1 \
+bartender y 2 mozos para el sábado"). Si el texto menciona más de un puesto, o más de una cantidad \
+de personas para puestos distintos, es `crear_evento`, no `crear_turno`.
+- `consultar_turnos`: ver el estado de SUS turnos ya publicados (ej: "¿qué tengo urgente hoy?", \
+"¿cuántos turnos sin cubrir tengo?").
+- `buscar_candidatos`: buscar trabajadores disponibles para un puesto (ej: "buscame mozos \
+disponibles").
+- `ver_postulantes`: ver quién se postuló a un turno puntual ya publicado (ej: "¿quién se postuló \
+al turno de mozo del sábado?").
+- `desconocido`: no se puede inferir ninguno de los anteriores con confianza.
+
+Reglas de extracción según el intent (dejá en null/"desconocido" lo que no puedas inferir con \
+confianza, no inventes datos que el texto no sugiere):
+- `crear_turno`: `position` (de esta lista: {positions}; si no podés inferirlo, "desconocido"), \
+`start_at`/`end_at` (ISO-8601 con offset -03:00, resolviendo días relativos contra hoy), \
+`pay_amount` (sólo el número), `urgent`, `meal`, `tips` (true salvo que diga explícitamente que no \
+hay), `dress_code`.
+- `crear_evento`: `event_positions` (lista de {{position, quantity}}, una entrada por puesto \
+mencionado, `position` de la misma lista de arriba), y los mismos `start_at`/`end_at`/`pay_amount`/\
+`urgent`/`meal`/`tips`/`dress_code` de arriba, compartidos por todos los roles del evento.
+- `consultar_turnos`: `query_filter`, uno de "hoy"/"urgentes"/"sin_cubrir"/"todos" (el que mejor \
+represente la pregunta; "todos" si no se puede inferir algo más específico).
+- `buscar_candidatos`: `search_position` (de la lista de arriba, o "desconocido").
+- `ver_postulantes`: `applicants_position` (de la lista de arriba, o "desconocido") y \
+`applicants_date_hint` (fecha ISO YYYY-MM-DD si se puede inferir del texto, null si no)."""
+
+_ASSISTANT_RESPONSE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "intent": {"type": "STRING", "enum": _ASSISTANT_INTENTS},
+        "position": {"type": "STRING", "enum": [*_POSITIONS, "desconocido"], "nullable": True},
+        "start_at": {"type": "STRING", "nullable": True},
+        "end_at": {"type": "STRING", "nullable": True},
+        "pay_amount": {"type": "NUMBER", "nullable": True},
+        "urgent": {"type": "BOOLEAN", "nullable": True},
+        "meal": {"type": "BOOLEAN", "nullable": True},
+        "tips": {"type": "BOOLEAN", "nullable": True},
+        "dress_code": {"type": "STRING", "nullable": True},
+        "event_positions": {
+            "type": "ARRAY",
+            "nullable": True,
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "position": {"type": "STRING", "enum": [*_POSITIONS, "desconocido"]},
+                    "quantity": {"type": "INTEGER"},
+                },
+                "required": ["position", "quantity"],
+            },
+        },
+        "query_filter": {"type": "STRING", "enum": _ASSISTANT_QUERY_FILTERS, "nullable": True},
+        "search_position": {"type": "STRING", "enum": [*_POSITIONS, "desconocido"], "nullable": True},
+        "applicants_position": {
+            "type": "STRING",
+            "enum": [*_POSITIONS, "desconocido"],
+            "nullable": True,
+        },
+        "applicants_date_hint": {"type": "STRING", "nullable": True},
+    },
+    "required": ["intent"],
+}
+
+
+@dataclass(frozen=True)
+class AssistantEventRole:
+    position: str
+    quantity: int
+
+
+@dataclass(frozen=True)
+class AssistantQueryResult:
+    intent: str
+    # `crear_turno`, y campos compartidos de `crear_evento` (todo menos `position`).
+    position: str | None = None
+    start_at: str | None = None
+    end_at: str | None = None
+    pay_amount: float | None = None
+    urgent: bool = False
+    meal: bool = False
+    tips: bool = True
+    dress_code: str | None = None
+    # `crear_evento`
+    event_positions: list[AssistantEventRole] = field(default_factory=list)
+    # `consultar_turnos`
+    query_filter: str | None = None
+    # `buscar_candidatos`
+    search_position: str | None = None
+    # `ver_postulantes`
+    applicants_position: str | None = None
+    applicants_date_hint: str | None = None
+
+
+async def interpret_assistant_query(text: str) -> AssistantQueryResult:
+    if not settings.gemini_api_key:
+        raise GeminiNotConfiguredError()
+
+    payload = {
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": _ASSISTANT_SYSTEM_INSTRUCTION.format(
+                        today=now_art().date().isoformat(),
+                        positions=", ".join(_POSITIONS),
+                    )
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": text}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": _ASSISTANT_RESPONSE_SCHEMA,
+        },
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                _GEMINI_URL,
+                params={"key": settings.gemini_api_key},
+                json=payload,
+            )
+            response.raise_for_status()
+            body = response.json()
+        raw = body["candidates"][0]["content"]["parts"][0]["text"]
+        data = json.loads(raw)
+    except Exception as exc:
+        logger.exception("interpret_assistant_query: falló la llamada a Gemini")
+        raise GeminiRequestError() from exc
+
+    intent = data.get("intent")
+    if intent not in _ASSISTANT_INTENTS:
+        intent = "desconocido"
+
+    position = data.get("position")
+    if position not in _POSITIONS:
+        position = None
+
+    event_positions: list[AssistantEventRole] = []
+    for role in data.get("event_positions") or []:
+        if not isinstance(role, dict):
+            continue
+        role_position = role.get("position")
+        quantity = role.get("quantity")
+        if role_position not in _POSITIONS or not isinstance(quantity, int) or quantity < 1:
+            continue
+        event_positions.append(AssistantEventRole(position=role_position, quantity=quantity))
+    # Sin roles válidos, no hay evento que armar — degrada a "desconocido" en
+    # vez de mandar al comercio a un wizard de evento vacío.
+    if intent == "crear_evento" and not event_positions:
+        intent = "desconocido"
+
+    query_filter = data.get("query_filter")
+    if query_filter not in _ASSISTANT_QUERY_FILTERS:
+        query_filter = "todos"
+
+    search_position = data.get("search_position")
+    if search_position not in _POSITIONS:
+        search_position = None
+
+    applicants_position = data.get("applicants_position")
+    if applicants_position not in _POSITIONS:
+        applicants_position = None
+
+    return AssistantQueryResult(
+        intent=intent,
+        position=position,
+        start_at=data.get("start_at"),
+        end_at=data.get("end_at"),
+        pay_amount=data.get("pay_amount"),
+        urgent=bool(data.get("urgent", False)),
+        meal=bool(data.get("meal", False)),
+        tips=bool(data.get("tips", True)),
+        dress_code=data.get("dress_code"),
+        event_positions=event_positions,
+        query_filter=query_filter,
+        search_position=search_position,
+        applicants_position=applicants_position,
+        applicants_date_hint=data.get("applicants_date_hint"),
     )

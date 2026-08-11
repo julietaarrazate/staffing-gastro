@@ -1,11 +1,11 @@
 """Rutas HTTP del módulo shift (publicación y ciclo de vida del turno)."""
 
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.dt import parse_iso_datetime
 from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, parse_shift_text
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
@@ -160,26 +160,14 @@ async def parse_text(
 
     return ParsedShiftDraftResponse(
         position=draft.position,
-        start_at=_safe_datetime(draft.start_at),
-        end_at=_safe_datetime(draft.end_at),
+        start_at=parse_iso_datetime(draft.start_at),
+        end_at=parse_iso_datetime(draft.end_at),
         pay_amount=draft.pay_amount,
         urgent=draft.urgent,
         meal=draft.meal,
         tips=draft.tips,
         dress_code=draft.dress_code,
     )
-
-
-def _safe_datetime(value: str | None) -> datetime | None:
-    """Gemini puede devolver un horario mal formado (o directamente texto
-    en vez de ISO-8601) pese al `responseSchema` — se descarta ese campo en
-    vez de romper el endpoint entero; el comercio lo completa a mano."""
-    if not value:
-        return None
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError:
-        return None
 
 
 @router.get(

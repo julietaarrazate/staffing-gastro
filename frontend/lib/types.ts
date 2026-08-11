@@ -133,6 +133,49 @@ export interface ParsedShiftDraft {
   dress_code: string | null;
 }
 
+/** Un rol dentro de un evento (`crear_evento`) — mismo par que una fila del
+ * formulario de /shifts/new-event, sin `payAmount` propio: el asistente
+ * comparte un único `pay_amount` para todos los roles del evento. */
+export interface AssistantEventRole {
+  position: WorkerSkill;
+  quantity: number;
+}
+
+/** Respuesta de `POST /assistant/query` (asistente general del panel del
+ * comercio, pedido de Julieta: "que entienda si es un evento, un turno, y
+ * toda la app"). Un único intent viene con datos poblados; el resto queda
+ * en `null` — el frontend rama por `intent` (ver `AIAssistantFab.tsx`). */
+export interface AssistantQueryResponse {
+  intent:
+    | "crear_turno"
+    | "crear_evento"
+    | "consultar_turnos"
+    | "buscar_candidatos"
+    | "ver_postulantes"
+    | "desconocido";
+  message: string | null;
+  // `crear_turno`
+  position: WorkerSkill | null;
+  start_at: string | null;
+  end_at: string | null;
+  pay_amount: string | null;
+  urgent: boolean | null;
+  meal: boolean | null;
+  tips: boolean | null;
+  dress_code: string | null;
+  // `crear_evento` (comparte start_at/end_at/pay_amount/urgent/meal/tips/
+  // dress_code de arriba)
+  event_positions: AssistantEventRole[] | null;
+  // `consultar_turnos`
+  query_summary: string | null;
+  query_count: number | null;
+  query_tab: string | null;
+  // `buscar_candidatos`
+  search_position: WorkerSkill | null;
+  // `ver_postulantes`
+  matched_shift_id: string | null;
+}
+
 /** Resultado de `POST /shifts/events`: `requested` vs. `shifts.length` —
  *  si son distintos, el plan del comercio se quedó sin cupo a mitad de
  *  camino (publicación parcial). */

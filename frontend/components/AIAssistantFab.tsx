@@ -5,28 +5,54 @@ import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
-import { ParsedShiftDraft } from "@/lib/types";
+import { AssistantQueryResponse, ParsedShiftDraft } from "@/lib/types";
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
 import Sheet from "@/components/ui/Sheet";
 import { Button } from "@/components/ui";
 import { MicIcon, MicOffIcon, SparklesIcon } from "@/components/icons";
 
-/** Clave de sessionStorage para pasarle el draft ya parseado al wizard de
- * /shifts/new (ver el efecto de handoff en esa página). */
+/** Claves de sessionStorage para pasarle el draft ya parseado al wizard
+ * correspondiente (ver los efectos de handoff en esas páginas). */
 export const AI_SHIFT_DRAFT_STORAGE_KEY = "staffya_ai_shift_draft";
+export const AI_EVENT_DRAFT_STORAGE_KEY = "staffya_ai_event_draft";
+
+/** Draft de evento (`crear_evento`): comparte un único `pay_amount`/horario
+ * para todos los roles — cada uno se puede ajustar a mano en el wizard. */
+export interface AssistantEventDraft {
+  event_positions: { position: string; quantity: number }[];
+  start_at: string | null;
+  end_at: string | null;
+  pay_amount: string | null;
+  urgent: boolean;
+  meal: boolean;
+  tips: boolean;
+  dress_code: string | null;
+}
+
+interface InlineResult {
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}
 
 /**
- * Asistente de turnos con IA, como botón flotante disponible en toda la app
- * (pedido de Julieta: separado del wizard, no sólo dentro de él). Sólo el
- * comercio publica turnos — nada que ofrecerle acá a un trabajador/admin.
- * Se oculta en /shifts/new, que ya tiene el mismo cuadro de texto+dictado
- * integrado en su paso 1 (evita mostrar dos entradas para lo mismo).
+ * Asistente general del panel del comercio, como botón flotante disponible
+ * en toda la app (pedido de Julieta: separado del wizard, "un botón
+ * afuera", y que entienda "si es un evento, si es un turno, y toda la app,
+ * no sólo lo básico"). Una sola llamada a `POST /assistant/query` clasifica
+ * la intención — crear turno, crear evento, consultar turnos propios,
+ * buscar candidatos, o ver postulantes de un turno — y esta pantalla rama
+ * según el `intent` que vuelve. Sólo el comercio publica turnos y ve sus
+ * propios postulantes — nada que ofrecerle acá a un trabajador/admin.
  *
- * Reusa el endpoint `POST /shifts/parse-text` (mismo que el wizard); la
- * única diferencia es que acá el resultado no se aplica in-place (el
- * componente no tiene el estado del formulario) sino que se guarda y se
- * navega al wizard, que lo aplica al montar — nunca crea ni publica nada
- * por su cuenta, mismo criterio de "la IA sólo precarga" que ya regía.
+ * Se oculta en /shifts/new y /shifts/new-event, que ya tienen su propio
+ * cuadro de texto+dictado integrado (evita dos entradas para lo mismo en
+ * la misma pantalla).
+ *
+ * Ningún intent PUBLICA ni EJECUTA nada solo: crear_turno/crear_evento sólo
+ * precargan el wizard correspondiente (el comercio revisa y confirma cada
+ * paso a mano); consultar_turnos/buscar_candidatos/ver_postulantes son de
+ * sólo lectura, navegan o resumen sin tocar ningún dato.
  */
 export default function AIAssistantFab() {
   const { user, token } = useAuth();
@@ -36,30 +62,101 @@ export default function AIAssistantFab() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inlineResult, setInlineResult] = useState<InlineResult | null>(null);
   const { listening, supported: speechSupported, toggle: toggleDictation } = useVoiceDictation(
     (transcript) => setText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500))
   );
 
-  if (user?.role !== "employer" || pathname === "/shifts/new") return null;
+  const hiddenOnThisPage = pathname === "/shifts/new" || pathname === "/shifts/new-event";
+  if (user?.role !== "employer" || hiddenOnThisPage) return null;
+
+  function reset() {
+    setText("");
+    setInlineResult(null);
+    setError(null);
+  }
+
+  function closeAndGo(to: string) {
+    setOpen(false);
+    reset();
+    router.push(to);
+  }
 
   async function handleSubmit() {
     if (!token || !text.trim()) return;
     setError(null);
+    setInlineResult(null);
     setLoading(true);
     try {
-      const draft = await api.post<ParsedShiftDraft>(
-        "/shifts/parse-text",
+      const result = await api.post<AssistantQueryResponse>(
+        "/assistant/query",
         { text: text.trim() },
         token
       );
-      sessionStorage.setItem(AI_SHIFT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-      setOpen(false);
-      setText("");
-      router.push("/shifts/new?ai=1");
+      handleResult(result);
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos interpretar el texto. Probá describirlo distinto."));
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleResult(result: AssistantQueryResponse) {
+    switch (result.intent) {
+      case "crear_turno": {
+        const draft: ParsedShiftDraft = {
+          position: result.position,
+          start_at: result.start_at,
+          end_at: result.end_at,
+          pay_amount: result.pay_amount,
+          urgent: result.urgent ?? false,
+          meal: result.meal ?? false,
+          tips: result.tips ?? true,
+          dress_code: result.dress_code,
+        };
+        sessionStorage.setItem(AI_SHIFT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        closeAndGo("/shifts/new?ai=1");
+        return;
+      }
+      case "crear_evento": {
+        const draft: AssistantEventDraft = {
+          event_positions: result.event_positions ?? [],
+          start_at: result.start_at,
+          end_at: result.end_at,
+          pay_amount: result.pay_amount,
+          urgent: result.urgent ?? false,
+          meal: result.meal ?? false,
+          tips: result.tips ?? true,
+          dress_code: result.dress_code,
+        };
+        sessionStorage.setItem(AI_EVENT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        closeAndGo("/shifts/new-event?ai=1");
+        return;
+      }
+      case "buscar_candidatos": {
+        const query = result.search_position ? `?skill=${result.search_position}` : "";
+        closeAndGo(`/search${query}`);
+        return;
+      }
+      case "ver_postulantes": {
+        if (result.matched_shift_id) {
+          closeAndGo(`/shifts/${result.matched_shift_id}/candidates`);
+          return;
+        }
+        setInlineResult({ message: "No encontré un turno tuyo así — revisalo en el panel." });
+        return;
+      }
+      case "consultar_turnos": {
+        setInlineResult({
+          message: result.query_summary ?? "Listo.",
+          actionLabel: "Ver en el panel",
+          onAction: () => closeAndGo(`/shifts?tab=${result.query_tab ?? "todos"}`),
+        });
+        return;
+      }
+      default: {
+        setInlineResult({ message: result.message ?? "No entendí bien qué necesitás. ¿Podés reformularlo?" });
+      }
     }
   }
 
@@ -73,11 +170,11 @@ export default function AIAssistantFab() {
       >
         <SparklesIcon size={22} />
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Asistente de turnos">
+      <Sheet open={open} onClose={() => { setOpen(false); reset(); }} title="Asistente">
         <div className="pb-6">
           <p className="text-sm text-ink/60">
-            Contame qué turno necesitás — escribilo o dictalo — y te llevo directo a revisarlo,
-            desde donde estés.
+            Contame qué necesitás — publicar un turno o evento, ver tus turnos, buscar candidatos,
+            o quién se postuló a algo — escribilo o dictalo.
           </p>
           <div className="relative mt-3">
             <textarea
@@ -121,9 +218,25 @@ export default function AIAssistantFab() {
               loading={loading}
               onClick={handleSubmit}
             >
-              Completar turno
+              Completar
             </Button>
           </div>
+          {inlineResult && (
+            <div className="mt-3 rounded-2xl bg-surface p-3.5 ring-1 ring-line">
+              <p className="text-sm text-ink">{inlineResult.message}</p>
+              {inlineResult.actionLabel && inlineResult.onAction && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="surface"
+                  className="mt-2"
+                  onClick={inlineResult.onAction}
+                >
+                  {inlineResult.actionLabel}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </Sheet>
     </>
