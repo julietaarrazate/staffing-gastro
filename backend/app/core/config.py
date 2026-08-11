@@ -150,7 +150,7 @@ class Settings(BaseSettings):
     # la IA interpreta intención, el motor de turnos/matching decide
     # resultados). Vacío = `POST /shifts/parse-text` responde 503 (mismo patrón
     # "flag por ausencia" que `google_client_id`). Plan free de Google alcanza
-    # de sobra para esta beta (gemini-2.5-flash: 250 requests/día).
+    # de sobra para esta beta (gemini-flash-latest: 250 requests/día).
     gemini_api_key: str = ""
 
     # --- Administración ---
