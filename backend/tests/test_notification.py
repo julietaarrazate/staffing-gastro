@@ -210,3 +210,50 @@ async def test_cannot_mark_someone_elses_notification_as_read(client: AsyncClien
         f"/api/v1/notifications/{notification_id}/read", headers=other_headers
     )
     assert response.status_code == 404
+
+
+def test_notifications_websocket_closes_after_too_many_frames():
+    """TECH_DEBT.md S2: mismo tope que el WS de chat — antes no había límite
+    sobre cuántos frames podía mandar el cliente por esta conexión (el
+    servidor los descarta, es un canal push-only, pero cada uno igual
+    entraba al loop sin parar)."""
+    from fastapi.testclient import TestClient
+    from starlette.websockets import WebSocketDisconnect
+
+    from app.core.config import settings
+    from app.core.rate_limit import reset_all_rate_limiters
+    from app.main import app
+    from tests.test_chat import _setup_in_memory_db
+
+    _setup_in_memory_db()
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+
+    try:
+        with TestClient(app) as client:
+            register = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "ws_notif_flood@staffya.com",
+                    "password": "supersecreta123",
+                    "full_name": "Worker Flood",
+                    "role": "worker",
+                },
+            )
+            assert register.status_code == 201
+            login = client.post(
+                "/api/v1/auth/login",
+                json={"email": "ws_notif_flood@staffya.com", "password": "supersecreta123"},
+            )
+            token = login.json()["access_token"]
+
+            with client.websocket_connect(f"/api/v1/notifications/ws?token={token}") as ws:
+                for _ in range(120):
+                    ws.send_text("ping")
+                ws.send_text("ping")
+                with pytest.raises(WebSocketDisconnect):
+                    ws.receive_text()
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+        app.dependency_overrides.clear()

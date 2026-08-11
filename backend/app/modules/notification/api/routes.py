@@ -14,6 +14,7 @@ from fastapi import (
 )
 
 from app.core.config import settings as app_settings
+from app.core.rate_limit import RateLimiter
 from app.core.ws_manager import ws_manager
 from app.modules.identity.api.dependencies import get_current_user, get_current_user_ws
 from app.modules.identity.domain.entities import User
@@ -32,6 +33,14 @@ from app.modules.notification.domain.exceptions import NotificationNotFoundError
 
 router = APIRouter(prefix="/notifications", tags=["notification"])
 push_router = APIRouter(prefix="/push", tags=["push"])
+
+# TECH_DEBT.md S2: mismo tope que el WS de chat (`chat/api/routes.py`) —
+# el servidor descarta cualquier frame que mande el cliente acá (es un
+# canal push-only), pero sin límite un cliente con bug o malicioso podía
+# mandarlos sin parar.
+_ws_frame_rate_limit = RateLimiter(
+    max_attempts=120, window_seconds=60, name="notification_ws_frame"
+)
 
 ServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
 PushServiceDep = Annotated[PushService, Depends(get_push_service)]
@@ -85,6 +94,11 @@ async def notifications_stream(
     try:
         while True:
             await websocket.receive_text()
+            try:
+                _ws_frame_rate_limit.check(str(current_user.id))
+            except HTTPException:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                break
     except WebSocketDisconnect:
         pass
     finally:

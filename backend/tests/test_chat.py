@@ -191,8 +191,10 @@ async def test_outsider_cannot_access_conversation(client: AsyncClient):
     assert send.status_code == 404
 
 
-def test_chat_websocket_pushes_new_messages():
-    """El websocket de la conversación entrega en vivo el mensaje que llega por HTTP."""
+def _setup_in_memory_db():
+    """Esquema SQLite en memoria + override de `get_session`, para los tests
+    de WS que necesitan el `TestClient` sync de Starlette (no el fixture
+    `client: AsyncClient` de conftest, que no soporta `websocket_connect`)."""
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
     factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -209,73 +211,88 @@ def test_chat_websocket_pushes_new_messages():
     asyncio.get_event_loop().run_until_complete(_create_schema())
     app.dependency_overrides[get_session] = override_get_session
 
+
+def _setup_assigned_shift_sync(client: TestClient, emp_email: str, worker_email: str):
+    """Mismo flujo que `_assigned_shift` (async) pero con el `TestClient`
+    sync, para los tests de WS."""
+    employer = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": emp_email,
+            "password": "supersecreta123",
+            "full_name": "Bar WS",
+            "role": "employer",
+        },
+    )
+    assert employer.status_code == 201
+    employer_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": emp_email, "password": "supersecreta123"},
+    )
+    employer_token = employer_login.json()["access_token"]
+    employer_headers = {"Authorization": f"Bearer {employer_token}"}
+    client.post(
+        "/api/v1/companies/me/profile",
+        headers=employer_headers,
+        json={"name": "Bar WS", "city": "Palermo"},
+    )
+
+    worker_register = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": worker_email,
+            "password": "supersecreta123",
+            "full_name": "Worker WS",
+            "role": "worker",
+        },
+    )
+    assert worker_register.status_code == 201
+    worker_user_id = worker_register.json()["id"]
+    worker_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": worker_email, "password": "supersecreta123"},
+    )
+    worker_token = worker_login.json()["access_token"]
+    worker_headers = {"Authorization": f"Bearer {worker_token}"}
+    worker_profile = client.post(
+        "/api/v1/workers/me/profile",
+        headers=worker_headers,
+        json={"skills": ["mozo"]},
+    )
+    worker_profile_id = worker_profile.json()["id"]
+
+    created = client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": "2026-06-28T20:00:00",
+            "end_at": "2026-06-29T03:00:00",
+            "pay_amount": "70000.00",
+            "city": "Palermo",
+        },
+    )
+    shift_id = created.json()["id"]
+    client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+    client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    return shift_id, employer_headers, worker_token, worker_user_id
+
+
+def test_chat_websocket_pushes_new_messages():
+    """El websocket de la conversación entrega en vivo el mensaje que llega por HTTP."""
+    _setup_in_memory_db()
+
     try:
         with TestClient(app) as client:
-            employer = client.post(
-                "/api/v1/auth/register",
-                json={
-                    "email": "ws_emp@staffya.com",
-                    "password": "supersecreta123",
-                    "full_name": "Bar WS",
-                    "role": "employer",
-                },
+            shift_id, employer_headers, worker_token, worker_user_id = (
+                _setup_assigned_shift_sync(client, "ws_emp@staffya.com", "ws_worker@staffya.com")
             )
-            assert employer.status_code == 201
-            employer_login = client.post(
-                "/api/v1/auth/login",
-                json={"email": "ws_emp@staffya.com", "password": "supersecreta123"},
-            )
-            employer_token = employer_login.json()["access_token"]
-            employer_headers = {"Authorization": f"Bearer {employer_token}"}
-            client.post(
-                "/api/v1/companies/me/profile",
-                headers=employer_headers,
-                json={"name": "Bar WS", "city": "Palermo"},
-            )
-
-            worker_register = client.post(
-                "/api/v1/auth/register",
-                json={
-                    "email": "ws_worker@staffya.com",
-                    "password": "supersecreta123",
-                    "full_name": "Worker WS",
-                    "role": "worker",
-                },
-            )
-            assert worker_register.status_code == 201
-            worker_user_id = worker_register.json()["id"]
-            worker_login = client.post(
-                "/api/v1/auth/login",
-                json={"email": "ws_worker@staffya.com", "password": "supersecreta123"},
-            )
-            worker_token = worker_login.json()["access_token"]
             worker_headers = {"Authorization": f"Bearer {worker_token}"}
-            worker_profile = client.post(
-                "/api/v1/workers/me/profile",
-                headers=worker_headers,
-                json={"skills": ["mozo"]},
-            )
-            worker_profile_id = worker_profile.json()["id"]
-
-            created = client.post(
-                "/api/v1/shifts",
-                headers=employer_headers,
-                json={
-                    "position": "mozo",
-                    "quantity": 1,
-                    "start_at": "2026-06-28T20:00:00",
-                    "end_at": "2026-06-29T03:00:00",
-                    "pay_amount": "70000.00",
-                    "city": "Palermo",
-                },
-            )
-            shift_id = created.json()["id"]
-            client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
-            client.post(
-                f"/api/v1/shifts/{shift_id}/assign",
-                headers=employer_headers,
-                json={"worker_profile_id": worker_profile_id},
-            )
 
             with client.websocket_connect(
                 f"/api/v1/chats/{shift_id}/ws?token={worker_token}"
@@ -305,6 +322,40 @@ def test_chat_websocket_pushes_new_messages():
                 with client.websocket_connect(f"/api/v1/chats/{shift_id}/ws"):
                     pass
     finally:
+        app.dependency_overrides.clear()
+
+
+def test_chat_websocket_closes_after_too_many_frames():
+    """TECH_DEBT.md S2: antes el WS de chat no tenía ningún tope sobre
+    cuántos frames podía mandar el cliente por la conexión (el servidor los
+    descarta, pero cada uno igual entraba al loop sin parar). Ahora se
+    corta la conexión pasado el límite (120/min)."""
+    from app.core.config import settings
+    from app.core.rate_limit import reset_all_rate_limiters
+
+    _setup_in_memory_db()
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+
+    try:
+        with TestClient(app) as client:
+            shift_id, _employer_headers, worker_token, _worker_user_id = (
+                _setup_assigned_shift_sync(client, "ws_flood_emp@staffya.com", "ws_flood_w@staffya.com")
+            )
+
+            with client.websocket_connect(
+                f"/api/v1/chats/{shift_id}/ws?token={worker_token}"
+            ) as ws:
+                # Los primeros 120 frames no cortan la conexión.
+                for _ in range(120):
+                    ws.send_text("ping")
+                # El 121º hace que el servidor cierre la conexión.
+                ws.send_text("ping")
+                with pytest.raises(WebSocketDisconnect):
+                    ws.receive_text()
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
         app.dependency_overrides.clear()
 
 

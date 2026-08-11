@@ -40,6 +40,15 @@ CurrentUserDep = Annotated[User, Depends(get_current_user)]
 _send_message_rate_limit = RateLimiter(
     max_attempts=30, window_seconds=60, name="chat_send_message"
 )
+# TECH_DEBT.md S2: el POST de arriba ya limitaba mensajes reales, pero el
+# WS en sí no tenía ningún tope sobre cuántos frames podía mandar el
+# cliente por la conexión — un cliente con bug o malicioso podía mandar
+# frames sin parar (el servidor los descarta, pero cada uno igual entra al
+# loop). Más generoso que el POST (30/min) porque acá cuenta cualquier
+# frame, no sólo mensajes de verdad enviados.
+_ws_frame_rate_limit = RateLimiter(
+    max_attempts=120, window_seconds=60, name="chat_ws_frame"
+)
 
 
 @router.get(
@@ -116,6 +125,11 @@ async def chat_stream(
     try:
         while True:
             await websocket.receive_text()
+            try:
+                _ws_frame_rate_limit.check(str(current_user.id))
+            except HTTPException:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                break
     except WebSocketDisconnect:
         pass
     finally:

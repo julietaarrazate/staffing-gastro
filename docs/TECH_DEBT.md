@@ -590,17 +590,27 @@ fecha de esta auditoría (2026-07-02).
 > `mocks.ts`) actualizados al mismo contrato. **pytest 299/299**, `tsc`/`build`
 > limpios, **Playwright 27/27**.
 
-### S2 — Límites de conexión/mensajes por WebSocket ausentes 🟡 Media
+### S2 — Límites de conexión/mensajes por WebSocket ausentes ✅ Resuelto (2026-08-11)
 
-- **Descripción:** sin cambios desde la v1 — no se encontró rate limiting ni
-  cuota por usuario/turno sobre los WS de chat/notificaciones.
-- **Impacto:** un cliente malicioso o con bug podría abrir conexiones o
+- **Descripción:** la mitad ya estaba resuelta (tope de conexiones
+  concurrentes por turno/usuario, `ws_manager.connect_chat`/
+  `connect_notification`); faltaba la otra mitad — ningún límite sobre
+  cuántos *frames* podía mandar el cliente ya conectado. Los dos WS
+  (`chats/{shift_id}/ws`, `notifications/ws`) son *receive-only* del lado
+  del servidor (`await websocket.receive_text()` en loop, sin procesar el
+  contenido — mandar mensajes de verdad es un POST aparte, ya limitado),
+  pero un cliente con bug o malicioso podía igual mandar frames sin
+  parar, cada uno entrando al loop.
+- **Impacto:** un cliente malicioso o con bug podía abrir conexiones o
   enviar mensajes sin límite.
-- **Riesgo:** medio.
-- **Prioridad:** 🟡 Media.
-- **Esfuerzo:** bajo-medio — reusar `app/core/rate_limit.py` (ya existe para
-  HTTP) adaptado a mensajes WS.
-- **Solución sugerida:** cuota simple (N mensajes/minuto por conexión).
+- **Riesgo:** medio (ahora bajo).
+- **Solución:** reusa `app/core/rate_limit.py` (mismo mecanismo que HTTP,
+  ver `RateLimiter.check`) — cada frame recibido cuenta contra una cuota
+  por usuario (120/min, más generosa que el POST de mensajes reales
+  porque acá cuenta cualquier frame); al superarla, el servidor cierra la
+  conexión (`WS_1008_POLICY_VIOLATION`) en vez de seguir aceptando. 2
+  tests nuevos (uno por WS, `test_chat.py`/`test_notification.py`) que
+  confirman que el cliente se corta pasado el límite.
 
 ### S3 — Dependencias con CVEs conocidas 🟠 Alta (parcial — lo bajo riesgo ✅ resuelto)
 
@@ -924,5 +934,5 @@ fecha de esta auditoría (2026-07-02).
 |---|---|
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), ~~S1 (tokens/revocación)~~ ✅ resuelta 2026-08-08 (cookie httpOnly, último pendiente), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), ~~T2 (sin tests frontend)~~ ✅ resuelta 2026-08-09 (Vitest/RTL, 48 tests, en CI), T3 (sin observabilidad) |
-| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), ~~F4 (accesibilidad)~~ ✅ resuelta 2026-08-09 (jsx-a11y/recommended en lint, 16 errores reales corregidos), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-04 (tope de conexiones), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
+| 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), ~~F4 (accesibilidad)~~ ✅ resuelta 2026-08-09 (jsx-a11y/recommended en lint, 16 errores reales corregidos), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-11 (tope de conexiones 2026-08-04 + tope de frames/mensajes 2026-08-11, completo), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
 | 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |
