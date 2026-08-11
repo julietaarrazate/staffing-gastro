@@ -5,7 +5,41 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Bug real de soporte: el admin nunca
+*Última actualización: 2026-08-10 (**Mini-tour post-onboarding + tercer
+paso opcional en el onboarding del trabajador.** Pedido de Julieta:
+"falta las tooltips en onboarding para que sea más guiado, quizás el
+perfil de trabajador esté muy breve el onboarding".
+  - **Tour guiado (`components/GuidedTour.tsx`, nuevo):** globos
+    ("coachmarks") sobre elementos reales de la pantalla, una sola vez por
+    navegador (`localStorage`) — el "tour guiado" que
+    `docs/planning/PULIDO_ROADMAP.md` C4 ya había dejado afuera del wizard a
+    propósito para evaluarlo aparte. Portado a `document.body` (mismo
+    motivo que `Modal`/`Sheet`: un ancestro con `whileTap` rompe el
+    *containing block* del `position: fixed`). Aplicado sólo al trabajador
+    en `/feed` (3 pasos: el mazo de turnos, el filtro "Sólo urgentes" si
+    hay, y el tab "Matches" del nav — `data-tour="..."` nuevo en
+    `BottomNav.tsx` y en los targets del feed). El comercio no lo necesita
+    todavía: ya tiene el wizard de 5 pasos + la pantalla "esto es lo que
+    sigue" al publicar, que cumplen un rol similar.
+  - **Trampa evitada a tiempo:** el overlay del tour (`z-[70]`, captura
+    clicks) rompía 3 specs E2E preexistentes que visitan `/feed`
+    (`current-location`, `feed-urgent-filter`, `worker-apply`) porque
+    ninguno esperaba el tour — mismo síntoma que ya rompió `Sheet`/`Modal`
+    antes. Fix: `injectSession` (mocks.ts) marca el tour como visto por
+    defecto; el spec dedicado (`guided-tour.spec.ts`) limpia esa clave a
+    propósito para ejercitar el flujo real. 2 tests E2E nuevos.
+  - **Onboarding del trabajador, tercer paso "Contanos más de vos"**
+    (`/bienvenida`): foto (opcional, `ImageUpload`) y años de experiencia
+    (opcional, hoy quedaba hardcodeado en 0 y nunca se preguntaba) —
+    simétrico con lo que ya tenía el comercio (logo opcional). Zona y
+    oficio siguen siendo los únicos obligatorios; el paso 3 se puede
+    terminar sin cargar nada. `StepDots` se generalizó a `{ active, total }`
+    para soportar 3 pasos sin duplicar el componente. 2 tests E2E
+    actualizados/nuevos (`onboarding.spec.ts`).
+  - Sin cambios de backend (los campos ya existían en `WorkerProfile`).
+  - Verificado: `tsc`/lint/build limpios, Vitest 69/69, Playwright 42/42.
+
+Antes, mismo día: **Bug real de soporte: el admin nunca
 veía los tickets de otros usuarios desde su perfil.** Julieta abrió un
 ticket de prueba como trabajador y no lo encontró "en su perfil de admin".
 Causa: el ítem "Soporte" de `/profile` (sección "Otros") mandaba a

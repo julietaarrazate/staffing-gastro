@@ -3,13 +3,16 @@
 /**
  * Onboarding del usuario recién registrado, distinto por rol.
  *
- * Trabajador: dos pasos, zona y oficio. Antes, al registrarse caía en
- * `/profile` — un formulario largo con foto, bio, años de experiencia,
- * disponibilidad y ubicación, todo junto y sin explicar para qué sirve nada.
- * El feed necesita sólo dos datos para dejar de mostrar turnos irrelevantes:
- * DÓNDE está (rankea por distancia) y QUÉ sabe hacer (filtra por oficio).
- * Todo lo demás — foto incluida — se pide después, cuando tiene sentido para
- * el usuario (la foto recién importa cuando se postula y quiere que lo elijan).
+ * Trabajador: tres pasos, zona, oficio y "contanos más" (foto + años de
+ * experiencia, los dos opcionales). Antes, al registrarse caía en `/profile`
+ * — un formulario largo con foto, bio, años de experiencia, disponibilidad
+ * y ubicación, todo junto y sin explicar para qué sirve nada. El feed
+ * necesita sólo DÓNDE está (rankea por distancia) y QUÉ sabe hacer (filtra
+ * por oficio) para dejar de mostrar turnos irrelevantes — esos dos siguen
+ * siendo obligatorios. El tercer paso (pedido explícito de Julieta: el
+ * onboarding quedaba "muy breve") suma la foto y la experiencia sin bloquear
+ * el avance si se saltean — un perfil con menos datos igual entra al feed,
+ * sólo que un comercio lo ve con menos contexto al postularse.
  *
  * Comercio: dos pasos, nombre y ubicación (auditoría de producto 2026-08-10,
  * C4). Antes caía directo en `/shifts` sin haber cargado nada — el nombre
@@ -69,20 +72,22 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StepDots({ active }: { active: 0 | 1 }) {
+function StepDots({ active, total }: { active: number; total: number }) {
   return (
     <div className="mt-6 flex items-center gap-2" aria-hidden>
-      <span className="h-1.5 flex-1 rounded-full bg-primary" />
-      <span
-        className={`h-1.5 flex-1 rounded-full transition-colors ${
-          active === 1 ? "bg-primary" : "bg-white/20"
-        }`}
-      />
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 flex-1 rounded-full transition-colors ${
+            i <= active ? "bg-primary" : "bg-white/20"
+          }`}
+        />
+      ))}
     </div>
   );
 }
 
-type WorkerStep = "zona" | "oficio";
+type WorkerStep = "zona" | "oficio" | "detalles";
 
 function WorkerOnboarding() {
   const { token } = useAuth();
@@ -91,6 +96,8 @@ function WorkerOnboarding() {
   const [step, setStep] = useState<WorkerStep>("zona");
   const [location, setLocation] = useState<LocationSelection | null>(null);
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [yearsExperience, setYearsExperience] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,11 +113,14 @@ function WorkerOnboarding() {
     setSaving(true);
     // El perfil todavía no existe (el usuario se acaba de registrar), pero si
     // entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
+    // `photo_url`/`years_experience` son opcionales — un trabajador que
+    // saltea el paso "Contanos más" igual entra al feed, sólo que el
+    // comercio lo ve con menos contexto al postularse.
     const payload = {
-      photo_url: null,
+      photo_url: photoUrl,
       city: location.city,
       skills,
-      years_experience: 0,
+      years_experience: yearsExperience,
       latitude: location.latitude,
       longitude: location.longitude,
       is_available: true,
@@ -128,9 +138,11 @@ function WorkerOnboarding() {
     }
   }
 
+  const stepIndex = step === "zona" ? 0 : step === "oficio" ? 1 : 2;
+
   return (
     <Shell>
-      <StepDots active={step === "zona" ? 0 : 1} />
+      <StepDots active={stepIndex} total={3} />
 
       {step === "zona" ? (
         <section className="mt-8 flex flex-1 flex-col">
@@ -159,7 +171,7 @@ function WorkerOnboarding() {
             </Button>
           </div>
         </section>
-      ) : (
+      ) : step === "oficio" ? (
         <section className="mt-8 flex flex-1 flex-col">
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
             ¿Qué sabés hacer?
@@ -190,20 +202,58 @@ function WorkerOnboarding() {
             })}
           </div>
 
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
-
           <div className="mt-auto flex flex-col gap-2 pt-8">
-            <Button
-              fullWidth
-              disabled={skills.length === 0}
-              loading={saving}
-              onClick={finish}
-            >
-              Ver turnos cerca mío
+            <Button fullWidth disabled={skills.length === 0} onClick={() => setStep("detalles")}>
+              Continuar
             </Button>
             <button
               type="button"
               onClick={() => setStep("zona")}
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98]"
+            >
+              Volver
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="mt-8 flex flex-1 flex-col">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
+            Contanos más de vos
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+            Opcional, pero un perfil completo consigue turnos más rápido. Lo podés
+            cargar después si preferís arrancar ya.
+          </p>
+
+          <div className="mt-6 flex justify-center">
+            <ImageUpload
+              value={photoUrl}
+              onChange={setPhotoUrl}
+              fallbackLabel="T"
+            />
+          </div>
+
+          <div className="mt-6 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <TextField
+              label="Años de experiencia"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={80}
+              value={yearsExperience}
+              onChange={(v) => setYearsExperience(Number(v) || 0)}
+            />
+          </div>
+
+          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+
+          <div className="mt-auto flex flex-col gap-2 pt-8">
+            <Button fullWidth loading={saving} onClick={finish}>
+              Ver turnos cerca mío
+            </Button>
+            <button
+              type="button"
+              onClick={() => setStep("oficio")}
               className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98]"
             >
               Volver
@@ -261,7 +311,7 @@ function EmployerOnboarding() {
 
   return (
     <Shell>
-      <StepDots active={step === "nombre" ? 0 : 1} />
+      <StepDots active={step === "nombre" ? 0 : 1} total={2} />
 
       {step === "nombre" ? (
         <section className="mt-8 flex flex-1 flex-col">

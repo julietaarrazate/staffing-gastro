@@ -19,7 +19,31 @@ import LocationBar from "@/components/worker/LocationBar";
 import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
+import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { CalendarIcon, FlameIcon } from "@/components/icons";
+
+/** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
+ * corto — al aterrizar en el feed no había nada que explicara cómo se usa.
+ * Mini-tour de una sola vez (ver `GuidedTour`), apuntando a lo mínimo para
+ * entender la pantalla: el mazo de turnos, el filtro de urgentes (si hay) y
+ * dónde encontrar después las postulaciones. */
+const WORKER_FEED_TOUR: TourStep[] = [
+  {
+    target: '[data-tour="feed-deck"]',
+    title: "Así se ven los turnos",
+    body: "Deslizá o tocá una tarjeta para ver el detalle y postularte. Van apareciendo en tiempo real.",
+  },
+  {
+    target: '[data-tour="feed-urgent-filter"]',
+    title: "Los urgentes se cubren rápido",
+    body: "Activá este filtro para ver primero los turnos que el comercio necesita cubrir ya.",
+  },
+  {
+    target: '[data-tour="nav-my-shifts"]',
+    title: "Acá seguís tus postulaciones",
+    body: 'Cuando te postulás o te asignan un turno, lo vas a encontrar en "Matches".',
+  },
+];
 
 /** Lo que se conserva del feed entre visitas a la pestaña (ver screen-cache). */
 interface CachedFeed {
@@ -241,6 +265,7 @@ export default function WorkerHomePage() {
             type="button"
             role="switch"
             aria-checked={urgentOnly}
+            data-tour="feed-urgent-filter"
             onClick={() => setUrgentOnly((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
               urgentOnly
@@ -275,7 +300,7 @@ export default function WorkerHomePage() {
         ) : (
           <>
             {/* Mobile: mazo tipo Tinder, se decide con swipe. */}
-            <div className="h-full md:hidden">
+            <div className="h-full md:hidden" data-tour="feed-deck">
               <SwipeDeck
                 shifts={visibleShifts}
                 onDecide={onDecide}
@@ -333,6 +358,7 @@ export default function WorkerHomePage() {
           </>
         )}
       </div>
+      {!loading && <GuidedTour steps={WORKER_FEED_TOUR} storageKey="staffya_tour_worker_feed" />}
     </div>
   );
 }
