@@ -14,6 +14,7 @@ import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
+import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
   Button,
   CardSkeletons,
@@ -303,7 +304,7 @@ function MyShiftsPanel() {
           componente que usan los estados vacíos por familia, abajo). */}
       {!loading && !error && shifts.length === 0 && (
         <EmptyState
-          icon={<ClipboardIcon size={26} />}
+          icon={<EmptyPanelIllustration color="#f97316" />}
           title="Publicá tu primer turno"
           subtitle="Publicás el turno, te recomendamos a los mejores candidatos disponibles cerca tuyo, y vos elegís a quién asignar. En minutos vas a tener gente lista para cubrirlo."
           primaryAction={{
