@@ -8,11 +8,15 @@ matching decide resultados).
 Llamada HTTP directa a la API de Gemini (`generateContent` con
 `responseSchema` para forzar JSON estructurado) — sin SDK, mismo criterio
 que `ResendEmailSender` (un único endpoint simple no amerita una
-dependencia nueva). Modelo `gemini-flash-latest` — alias que Google
-mantiene apuntando al Flash vigente (plan free: de sobra para esta beta),
-en vez de fijar una versión puntual que Google puede dar de baja para
-cuentas nuevas sin avisar (pasó con `gemini-2.5-flash`: "no longer
-available to new users", ver docs/STATUS.md 2026-08-11).
+dependencia nueva). Modelo fijo (no el alias `-latest`): Google documenta
+que `-latest` puede pasar a apuntar a una release preview/experimental —
+un hot-swap sin deploy propio que un endpoint que depende de
+`responseSchema` estructurado no puede permitirse (aviso previo de sólo 2
+semanas por mail, que nadie del equipo monitorea). Se fija a
+`gemini-3.5-flash` (GA estable vigente a 2026-08). Cuando Google la dé de
+baja para cuentas nuevas —como pasó con `gemini-2.5-flash`, ver
+docs/STATUS.md 2026-08-11— hay que revisar `GET /v1beta/models` y
+actualizar esta constante a mano; no es automático a propósito.
 """
 
 import json
@@ -29,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 _GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-flash-latest:generateContent"
+    "gemini-3.5-flash:generateContent"
 )
 
 _POSITIONS = [skill.value for skill in WorkerSkill]

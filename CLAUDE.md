@@ -297,11 +297,13 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
    comercio revisa y confirma cada paso). Se saca de
    [aistudio.google.com](https://aistudio.google.com) → "Get API key"
    (cuenta de Google, plan free — alcanza de sobra: 250 requests/día con
-   `gemini-flash-latest`, el alias vigente — `gemini-2.5-flash` dejó de
-   estar disponible para cuentas nuevas, ver `docs/STATUS.md` 2026-08-11).
-   Sin esta var, `POST /shifts/parse-text` responde 503 (flag por
-   ausencia) y el botón "Completar" muestra un error claro en vez de
-   fallar en silencio.
+   `gemini-3.5-flash`, la versión GA estable fijada en `core/gemini.py`
+   — `gemini-2.5-flash` dejó de estar disponible para cuentas nuevas, ver
+   `docs/STATUS.md` 2026-08-11; **no** se usa el alias `-latest` a
+   propósito, Google documenta que puede hot-swapear a un preview/
+   experimental sin deploy propio). Sin esta var, `POST /shifts/parse-text`
+   responde 503 (flag por ausencia) y el botón "Completar" muestra un
+   error claro en vez de fallar en silencio.
 
 > El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).

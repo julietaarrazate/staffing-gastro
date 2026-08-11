@@ -35,9 +35,14 @@ tercero de fondo):
      cuentas de Google de Julieta son nuevas; los proyectos de Cuadra/
      Andamio/Canillita son más viejos y quedaron "heredados" con acceso
      al modelo. **Fix:** `_GEMINI_URL` pasa de `gemini-2.5-flash` a
-     `gemini-flash-latest` — alias que Google mantiene apuntando al Flash
-     vigente, para no repetir este mismo problema la próxima vez que
-     Google dé de baja una versión puntual.
+     `gemini-3.5-flash` (GA estable vigente). Primer intento fue el alias
+     `gemini-flash-latest` — descartado en review (Codex, PR #201):
+     Google documenta que `-latest` puede hot-swapear a una release
+     preview/experimental con sólo 2 semanas de aviso por mail, riesgo
+     real para un endpoint que depende de `responseSchema` estructurado.
+     Se prefiere fijar una versión estable a mano y aceptar que en algún
+     momento futuro habrá que repetir este mismo diagnóstico — es más
+     seguro que un cambio de comportamiento silencioso en producción.
   - Lección del proceso: cuando un error HTTP sólo deja el status code en
     los logs (no el cuerpo de la respuesta), cualquier diagnóstico previo
     es necesariamente una lista de hipótesis a descartar una por una, no
