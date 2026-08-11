@@ -112,16 +112,41 @@ landing (papel/tinta), tsc/build verdes, capturas.
 
 ## Batch C3 — Confianza y conversión
 
-Scope: metadata + estados de carga. Modelo: Sonnet. Un PR.
-1. SEO: `sitemap.ts` + `robots.ts` de Next, metadata por página pública
-   (landing, /turno/[id], legales), OG específico por página.
-2. Skeletons coherentes en feed, turnos y perfil (un solo estilo de
-   skeleton), en vez de spinners mixtos.
-3. Estados de error unificados (patrón de `EmptyState` con retry).
-4. A11y: contraste AA en chips naranjas sobre papel, focus-visible en todos
-   los interactivos, `aria-label` en icon-buttons.
-Aceptación: Lighthouse a11y ≥ 95 en landing (correr con los browsers ya
-provistos), tsc/build verdes.
+**Resuelto 2026-08-11** (CLAUDE.md lo tenía marcado "sin arrancar" — quedó
+desactualizado; al auditar de nuevo, 3 de los 4 puntos ya estaban hechos por
+trabajo de otras sesiones, sólo faltaba uno):
+1. **SEO — ya estaba hecho.** `app/sitemap.ts` + `app/robots.ts` existen,
+   con `generateMetadata`/`metadata` en `layout.tsx` (root), `turno/[id]`,
+   `terminos` y `privacidad`.
+2. **Skeletons — faltaba `/profile`.** `/feed` (`CardSkeleton`/
+   `CardSkeletons`), `/shifts` y `/my-shifts` ya usaban el mismo estilo de
+   skeleton. `/profile` mostraba un `<Spinner>` centrado tapando toda la
+   pantalla (pop-in brusco al terminar) — cambiado a un skeleton con la
+   forma aproximada del layout real (título + tarjeta de header + tarjeta
+   de formulario + panel lateral), mismo criterio del resto de la app.
+   `/admin` también tiene un `<Spinner>` en su primer render, pero es el
+   guard de sesión (`useRequireAuth`, común a las 13 pantallas protegidas,
+   antes incluso de saber el rol) — no el de datos, que ya usa
+   `StatCardSkeleton`/`AdminUserRowSkeleton`; se dejó como está.
+3. **Estados de error — ya estaba hecho.** El patrón `EmptyState` con
+   `primaryAction` de retry es el estándar ya usado en toda la app (varios
+   PRs de esta misma sesión lo extendieron, no lo crearon).
+4. **A11y — ya estaba hecho** por F4 (`docs/TECH_DEBT.md`): `jsx-a11y`
+   `recommended` completo activado en `eslint.config.mjs`, 16 errores reales
+   corregidos (labels de formulario, tarjetas de turno sin soporte de
+   teclado). No se corrió Lighthouse (fuera del alcance de esta sesión) —
+   pendiente si hace falta el número exacto.
+
+~~Scope original: metadata + estados de carga. Modelo: Sonnet. Un PR.~~
+~~1. SEO: `sitemap.ts` + `robots.ts` de Next, metadata por página pública~~
+~~   (landing, /turno/[id], legales), OG específico por página.~~
+~~2. Skeletons coherentes en feed, turnos y perfil (un solo estilo de~~
+~~   skeleton), en vez de spinners mixtos.~~
+~~3. Estados de error unificados (patrón de `EmptyState` con retry).~~
+~~4. A11y: contraste AA en chips naranjas sobre papel, focus-visible en todos~~
+~~   los interactivos, `aria-label` en icon-buttons.~~
+~~Aceptación: Lighthouse a11y ≥ 95 en landing (correr con los browsers ya~~
+~~provistos), tsc/build verdes.~~
 
 ## Batch C4 — Primera experiencia (post-registro)
 
