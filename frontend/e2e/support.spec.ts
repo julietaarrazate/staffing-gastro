@@ -179,3 +179,28 @@ test("el admin lista los tickets y puede responder", async ({ page }) => {
   await page.getByRole("button", { name: "Enviar" }).click();
   await expect(page.getByText("Ya lo revisamos, probá de nuevo.")).toBeVisible();
 });
+
+/**
+ * Confusión real de Julieta: abrió un ticket de prueba como trabajador y
+ * nunca lo vio "en su perfil de admin" — porque el ítem "Soporte" de
+ * `/profile` mandaba a `/support` ("mis tickets", `GET /support/tickets/mine`)
+ * para cualquier rol, admin incluido. Para un admin esa lista es casi
+ * siempre vacía; el inbox real de tickets de otros usuarios está en
+ * `/admin/support`. Este test fija que el ítem rutea distinto según el rol.
+ */
+test("el ítem Soporte del perfil lleva al admin al inbox, no a sus propios tickets", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, ADMIN_SESSION);
+
+  await page.route("**/api/v1/support/tickets?status=abierto", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto("/profile");
+  await page.getByText("Soporte").click();
+  await expect(page).toHaveURL("/admin/support");
+});

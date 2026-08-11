@@ -39,6 +39,22 @@ perfil de trabajador esté muy breve el onboarding".
   - Sin cambios de backend (los campos ya existían en `WorkerProfile`).
   - Verificado: `tsc`/lint/build limpios, Vitest 69/69, Playwright 42/42.
 
+Antes, mismo día: **Bug real de soporte: el admin nunca
+veía los tickets de otros usuarios desde su perfil.** Julieta abrió un
+ticket de prueba como trabajador y no lo encontró "en su perfil de admin".
+Causa: el ítem "Soporte" de `/profile` (sección "Otros") mandaba a
+`/support` — la pantalla de "MIS tickets" (`GET /support/tickets/mine`) —
+para **cualquier** rol, admin incluido. Para un admin esa lista es casi
+siempre vacía (rara vez abre tickets propios); el inbox real con los
+tickets de otros usuarios vive en `/admin/support`
+(`GET /support/tickets`), sólo alcanzable antes desde el panel de admin.
+El backend nunca perdió el mensaje — estaba bien guardado y devuelto por
+`GET /support/tickets`, era pura navegación. Fix: `profile/page.tsx` rutea
+el ítem "Soporte" según el rol (`/admin/support` si `role === "admin"`,
+`/support` si no). 1 test E2E nuevo (`e2e/support.spec.ts`) que fija el
+destino según rol. Sin cambios de backend. Verificado: `tsc`/lint/build
+limpios, Vitest 69/69, Playwright 40/40.
+
 Antes, mismo día: **Dictado por voz en el asistente de IA
 del turno + confirmación de que el onboarding del invitado ya cubre ambos
 roles.** Pedido de Julieta: "el asistente de IA no tiene mensajes de voz,

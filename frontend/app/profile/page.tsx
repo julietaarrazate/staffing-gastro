@@ -169,7 +169,18 @@ export default function ProfilePage() {
                 `lib/reputation.tsx`) cuando corresponde. */}
             <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
               <PushToggle />
-              <Row icon={<MessageIcon size={18} />} onClick={() => router.push("/support")}>
+              {/* `/support` es "mis tickets" (GET /support/tickets/mine) — para un
+                  admin eso es casi siempre una lista vacía, porque los tickets que
+                  importa ver son los que abren OTROS usuarios. Confusión real de
+                  Julieta: abrió un ticket de prueba como trabajador y no lo veía
+                  "en su perfil de admin" porque este ítem la mandaba a /support en
+                  vez de al inbox real (/admin/support, GET /support/tickets). */}
+              <Row
+                icon={<MessageIcon size={18} />}
+                onClick={() =>
+                  router.push(user.role === "admin" ? "/admin/support" : "/support")
+                }
+              >
                 Soporte
               </Row>
               <Row icon={<LogOutIcon size={18} />} onClick={logout}>
