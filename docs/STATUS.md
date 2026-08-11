@@ -5,7 +5,23 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Onboarding del comercio: se puede
+*Última actualización: 2026-08-11 (**Guided tour para el comercio en
+`/shifts`, paridad con el que ya tenía el trabajador en `/feed`.** Julieta:
+"el onboarding comercio no tiene los popups que te ayudan a conocer la app
+como en empleado". `GuidedTour.tsx` (los globos "coachmarks" de una sola
+vez por navegador, ya usados en `/feed`) es completamente genérico — sólo
+hizo falta sumar `data-tour` a 3 elementos reales de `/shifts` (el botón
+"+ Publicar", el `SegmentedControl` de familias de estado, y el ítem
+"Buscar" del nav — este último ya lo etiqueta automáticamente `BottomNav`
+para todos sus links) y montar `<GuidedTour>` con esos 3 pasos, mismo
+patrón que `WORKER_FEED_TOUR`. Nueva clave de localStorage
+(`staffya_tour_employer_panel`) sumada a `GUIDED_TOUR_KEYS` en
+`e2e/mocks.ts` para que `injectSession` la marque como vista por defecto —
+si no, cualquier spec existente que navegue a `/shifts` como comercio se
+topaba con el overlay tapando la pantalla. Verificado: `tsc`/build limpios,
+Playwright 54/54 (53 previos + 1 nuevo, el recorrido completo del tour).
+
+Antes, mismo día: **Onboarding del comercio: se puede
 omitir por completo, y la IA ya no aparece flotando durante el
 onboarding.** Dos pedidos más de Julieta sobre la misma cuenta invitada de
 comercio:

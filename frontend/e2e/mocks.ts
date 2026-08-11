@@ -23,7 +23,7 @@ export const HAS_SESSION_KEY = "staffya_has_session";
 // de portarlos a `document.body` (ver docs/BUGS.md). El spec dedicado al
 // tour (`guided-tour.spec.ts`) limpia esta clave a propósito para
 // ejercitar el flujo real.
-export const GUIDED_TOUR_KEYS = ["staffya_tour_worker_feed"];
+export const GUIDED_TOUR_KEYS = ["staffya_tour_worker_feed", "staffya_tour_employer_panel"];
 
 /** Inyecta una sesión ya logueada en localStorage antes de la primera carga. */
 export async function injectSession(page: Page) {
