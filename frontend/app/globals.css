@@ -25,6 +25,16 @@
   /* Sombras suaves: las cards flotan, nunca sombras pesadas. */
   --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
   --shadow-float: 0 16px 40px rgba(17, 17, 17, 0.12);
+
+  /* Motion (ART_DIRECTION.md §13.3, DESIGN_TOKENS.md §3.7). Sin rebote a
+   * propósito: la llegada seca comunica precisión, no juego (§13.2). Estos
+   * mismos valores están duplicados como números en lib/motion.ts para
+   * Framer Motion (no puede leer CSS custom properties en su prop
+   * `transition`) — si cambia uno, cambia el otro. */
+  --motion-ui: 200ms; /* transiciones de interfaz: hojas, tooltips, fades */
+  --motion-brand: 500ms; /* el gesto de marca: algo que llega y se asienta */
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1); /* entrada rápida, salida firme */
+  --motion-press: scale(0.96); /* feedback táctil */
 }
 
 /* Colores de marca: registrados como tokens de Tailwind v4 (generan

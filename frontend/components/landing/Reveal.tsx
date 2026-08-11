@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+import { MOTION_BRAND } from "@/lib/motion";
 
 /** Aparece con fade + slide al entrar en viewport (una sola vez). */
 export default function Reveal({
@@ -19,7 +20,7 @@ export default function Reveal({
       initial={reducedMotion ? false : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={reducedMotion ? { duration: 0 } : { duration: 0.5, delay, ease: "easeOut" }}
+      transition={reducedMotion ? { duration: 0 } : { ...MOTION_BRAND, delay }}
       className={className}
     >
       {children}

@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import Button from "./Button";
 import { LogoGlyph } from "@/components/Logo";
+import { MOTION_UI } from "@/lib/motion";
 
 /**
  * Estado vacío con ilustración (ícono grande), título, subtítulo y hasta dos
@@ -29,7 +30,7 @@ export default function EmptyState({
     <motion.div
       initial={reducedMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={reducedMotion ? { duration: 0 } : { duration: 0.3 }}
+      transition={reducedMotion ? { duration: 0 } : MOTION_UI}
       className="mx-auto mt-10 flex max-w-xs flex-col items-center px-6 text-center"
     >
       <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-surface text-primary-text">

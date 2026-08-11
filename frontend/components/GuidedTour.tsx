@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { Button } from "@/components/ui";
 import { CloseIcon } from "@/components/icons";
+import { MOTION_UI } from "@/lib/motion";
 
 export interface TourStep {
   /** Selector CSS de un elemento ya presente en el DOM (`data-tour="..."`). */
@@ -130,7 +131,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
           initial={reducedMotion ? false : { opacity: 0, y: placeBelow ? -8 : 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 0.2 }}
+          transition={reducedMotion ? { duration: 0 } : MOTION_UI}
           className="absolute rounded-2xl bg-white p-4 shadow-[var(--shadow-float)]"
           style={{
             top: placeBelow ? rect.bottom + GAP : undefined,

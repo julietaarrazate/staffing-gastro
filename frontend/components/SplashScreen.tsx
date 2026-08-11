@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Spinner from "@/components/ui/Spinner";
 import { LogoGlyph } from "@/components/Logo";
+import { MOTION_BRAND, MOTION_UI } from "@/lib/motion";
 
 // Tiempo mínimo en pantalla: deja que termine la coreografía de entrada (pop
 // del logo + título + subtítulo) sin que se sienta un corte brusco.
@@ -68,7 +69,7 @@ export default function SplashScreen() {
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reducedMotion ? 1 : 1.08 }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 0.5, ease: "easeInOut" }}
+          transition={reducedMotion ? { duration: 0 } : MOTION_BRAND}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong"
         >
           {/* Anillos pulsantes detrás del logo: sólo durante la coreografía de
@@ -102,7 +103,7 @@ export default function SplashScreen() {
           <motion.h1
             initial={reducedMotion ? false : { y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={reducedMotion ? { duration: 0 } : { delay: 0.35, duration: 0.5 }}
+            transition={reducedMotion ? { duration: 0 } : { ...MOTION_BRAND, delay: 0.35 }}
             className="relative mt-6 font-display text-5xl font-semibold tracking-tight text-white"
           >
             oído
@@ -110,7 +111,7 @@ export default function SplashScreen() {
           <motion.p
             initial={reducedMotion ? false : { y: 12, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={reducedMotion ? { duration: 0 } : { delay: 0.55, duration: 0.5 }}
+            transition={reducedMotion ? { duration: 0 } : { ...MOTION_BRAND, delay: 0.55 }}
             className="relative mt-1 text-sm font-medium text-white"
           >
             Personal gastronómico, ya
@@ -123,7 +124,7 @@ export default function SplashScreen() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
+              transition={{ ...MOTION_UI, delay: 0.2 }}
               className="relative mt-8 flex items-center gap-2 text-sm font-medium text-white"
             >
               <Spinner size={16} />

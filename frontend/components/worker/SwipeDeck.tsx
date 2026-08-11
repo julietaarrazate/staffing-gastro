@@ -10,6 +10,7 @@ import {
 } from "motion/react";
 import { Shift } from "@/lib/types";
 import { CheckIcon } from "@/components/icons";
+import { MOTION_UI } from "@/lib/motion";
 
 type Decision = "like" | "pass";
 
@@ -64,7 +65,7 @@ export default function SwipeDeck({
       x: dir * 520,
       rotate: dir * 18,
       opacity: 0,
-      transition: reducedMotion ? { duration: 0 } : { duration: 0.28, ease: "easeIn" },
+      transition: reducedMotion ? { duration: 0 } : MOTION_UI,
     });
     x.set(0);
     controls.set({ x: 0, rotate: 0, opacity: 1 });
