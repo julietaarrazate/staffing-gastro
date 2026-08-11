@@ -5,7 +5,44 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Deuda técnica: cuota de frames en
+*Última actualización: 2026-08-11 (**Asistente de turnos con IA como botón
+flotante global + sugerencia de IA en soporte.** Julieta, sobre el turno por
+texto libre (P2): "no me deja apretar el botón de micrófono" (fix aparte,
+ver más abajo), "estaría bueno tener el asistente como algo separado del
+onboarding que sea un botón afuera", "también me serviría para el soporte
+para que conteste de qué se trata el ticket y dar solución o respuestas".
+Dos features, confirmadas con Julieta antes de construir (`AskUserQuestion`:
+botón flotante global vs. sólo mover el cuadro; sugerencia interna para el
+admin vs. respuesta automática al usuario — eligió lo primero en ambas):
+  - **Botón flotante (`components/AIAssistantFab.tsx`, nuevo):** el
+    "Describilo y lo completamos" que antes sólo vivía adentro del wizard de
+    `/shifts/new` ahora también es un botón flotante visible en toda la app
+    para el comercio (oculto en `/shifts/new`, que ya tiene el mismo cuadro
+    integrado — evita duplicar la misma entrada dos veces en una pantalla).
+    Reusa `POST /shifts/parse-text`; el draft parseado se guarda y navega al
+    wizard (`?ai=1` + `sessionStorage`), que lo aplica al montar — nunca
+    publica nada por su cuenta, mismo criterio "la IA sólo precarga". De
+    paso se extrajo `lib/use-voice-dictation.ts` (dictado por voz, antes
+    sólo inline en el wizard) para reusarlo en los dos lugares.
+  - **Sugerencia de IA en soporte (`suggest_ticket_reply` en
+    `core/gemini.py`, endpoint `POST /support/tickets/{id}/ai-suggestion`):**
+    resume el ticket y propone una respuesta — **siempre interna**, el admin
+    la revisa/edita en `/support/[id]` antes de mandar, nunca le contesta
+    directo al usuario (decisión explícita de Julieta sobre la alternativa
+    de auto-respuesta). Mismo patrón que el turno por texto: HTTP directo a
+    Gemini sin SDK nuevo, 503 si `GEMINI_API_KEY` no está configurada.
+  - Verificado: `pytest` 340/340 (336 previos + 4), `tsc`/`build` limpios,
+    Playwright 47/47 (43 previos + 3 del botón flotante + 1 de la
+    sugerencia en soporte).
+
+**Aparte, mismo pedido: fix del micrófono bloqueado en producción** (PR
+separado, `claude/staffya-mic-permission`) — causa real: `next.config.ts`
+mandaba `Permissions-Policy: microphone=()` (política vacía = mic bloqueado
+en todo el sitio, el propio origen incluido), así que `SpeechRecognition`
+fallaba de entrada sin ningún error visible — el botón se sentía trabado.
+Fix: `microphone=(self)`, mismo criterio que ya tenía `geolocation=(self)`.
+
+Antes, mismo día: **Deuda técnica: cuota de frames en
 los WebSocket de chat/notificaciones (TECH_DEBT.md S2, resuelto).** El
 tope de *conexiones* concurrentes ya existía; faltaba la otra mitad —
 ningún límite sobre cuántos frames podía mandar el cliente ya conectado.
