@@ -11,6 +11,7 @@ import { getCurrentPosition } from "@/lib/geolocation";
 import ShiftCard from "@/components/ShiftCard";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
+import { ShiftCoveredIllustration } from "@/components/illustrations";
 import {
   Button,
   CardSkeletons,
@@ -52,6 +53,11 @@ export default function MatchesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [confirmWithdrawId, setConfirmWithdrawId] = useState<string | null>(null);
+  // "Turno cubierto" (ART_DIRECTION.md §10.4): confirmar un turno asignado
+  // antes no daba ningún feedback de éxito (ni toast) — se recargaba la
+  // lista en silencio. Julieta: "seguí por ahí" con las 2 ilustraciones que
+  // faltaban del set.
+  const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -112,6 +118,7 @@ export default function MatchesPage() {
       await api.post(`/shifts/${id}/${path}`, body, token, undefined, keyFor(key));
       clearIdempotencyKey(key);
       if (geo) setLastGeoAction(null);
+      if (path === "confirm") setJustConfirmedId(id);
       await load();
     } catch (err) {
       const msg = getErrorMessage(err, "No se pudo completar la acción");
@@ -359,6 +366,21 @@ export default function MatchesPage() {
             onClick={() => confirmWithdrawId && withdrawApplication(confirmWithdrawId)}
           >
             Sí, cancelar
+          </Button>
+        </div>
+      </Modal>
+
+      {/* "Turno cubierto" (ART_DIRECTION.md §10.4): antes confirmar un turno
+          asignado no daba ningún feedback de éxito. */}
+      <Modal open={justConfirmedId !== null} onClose={() => setJustConfirmedId(null)}>
+        <div className="flex flex-col items-center text-center">
+          <ShiftCoveredIllustration size={56} color="#f97316" />
+          <h3 className="mt-3 text-xl font-extrabold tracking-tight text-ink">¡Turno confirmado!</h3>
+          <p className="mt-1 text-sm text-ink/60">Ya estás en la lista. Nos vemos en el turno.</p>
+        </div>
+        <div className="mt-5">
+          <Button fullWidth onClick={() => setJustConfirmedId(null)}>
+            Entendido
           </Button>
         </div>
       </Modal>

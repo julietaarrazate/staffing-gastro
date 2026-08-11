@@ -5,7 +5,25 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Reputación con visualización real
+*Última actualización: 2026-08-11 (**Últimas 2 piezas del set de
+ilustración — completo, 5/5 (`ART_DIRECTION.md` §10.4).** Julieta: "seguí
+por ahí" tras el resumen que marcaba estas 2 como pendientes por necesitar
+UI nueva, no sólo un reemplazo de ícono — se construyó esa UI:
+  - **`WelcomeIllustration`** ("el gesto previo a empezar": un delantal
+    atándose) — se agregó al primer paso de `/bienvenida` (trabajador:
+    "¿Dónde querés trabajar?"; comercio: "¿Cómo se llama tu comercio?"),
+    que antes arrancaba directo sin ningún saludo. Sólo en el primer paso,
+    no en cada uno del wizard.
+  - **`ShiftCoveredIllustration`** ("el pase": dos manos entregando una
+    bandeja) — nuevo modal de celebración en `/my-shifts` al confirmar un
+    turno asignado. Antes ese click no daba NINGÚN feedback de éxito (ni
+    siquiera un toast): la lista se recargaba en silencio.
+  - Ambas en `frontend/components/illustrations/`, mismo criterio que las
+    3 anteriores (trazo único, primer pase propio, reemplazable).
+  - Verificado: `tsc --noEmit` limpio, `npm run test:unit` 69/69, sin
+    cambios de backend.
+
+Antes, mismo día: **Reputación con visualización real
 (`RateMeter`) en vez de sólo texto — punto #4 de la auditoría de diseño
 original que Julieta pidió retomar.** El perfil del trabajador y el perfil
 público del comercio mostraban "puntualidad"/"pago a tiempo" como un
