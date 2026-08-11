@@ -7,18 +7,17 @@ import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import {
   BADGE_ICONS,
   BADGE_LABELS,
-  formatPunctuality,
   formatRating,
   levelLabel,
   levelMeta,
 } from "@/lib/reputation";
 import { Avatar, ErrorBanner, Skeleton } from "@/components/ui";
 import EditableName from "@/components/EditableName";
+import RateMeter from "@/components/RateMeter";
 import {
   AwardIcon,
   BriefcaseIcon,
   CheckCircleIcon,
-  ClockIcon,
   MedalIcon,
   StarIcon,
   XCircleIcon,
@@ -81,17 +80,24 @@ export default function WorkerGameCard() {
         </div>
       </div>
 
+      {/* Puntualidad: proporción contra un límite (100%), no un stat tile de
+          texto plano — se muestra como barra con severidad (dataviz skill,
+          "single ratio against a limit" → meter). Antes competía en tamaño
+          con "Turnos"/"Cancelaciones", que son valores sueltos, no ratios. */}
+      <div className="px-4 pt-4">
+        <RateMeter
+          label="Puntualidad"
+          rate={profile.punctuality_rate}
+          hasHistory={profile.events_completed > 0}
+        />
+      </div>
+
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2.5 p-4 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2.5 p-4">
         <StatTile
           icon={<BriefcaseIcon size={20} />}
           value={String(profile.events_completed)}
           label="Turnos"
-        />
-        <StatTile
-          icon={<ClockIcon size={20} />}
-          value={formatPunctuality(profile.punctuality_rate)}
-          label="Puntualidad"
         />
         <StatTile
           icon={<XCircleIcon size={20} />}
