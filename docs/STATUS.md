@@ -5,7 +5,52 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**El asistente de IA ahora entiende 5
+*Última actualización: 2026-08-11 (**Encontrada la causa real de por qué el
+asistente de IA no andaba en producción: no era la key, ni el proyecto de
+Google Cloud, ni permisos — Google dejó de dar acceso a `gemini-2.5-flash`
+para cuentas nuevas.** Investigación larga (Julieta reportó "no me deja
+apretar el botón de micrófono" → resultó ser dos bugs distintos + un
+tercero de fondo):
+  1. **Bug real #1 (ya resuelto, PR #197):** `Permissions-Policy:
+     microphone=()` bloqueaba el micrófono en producción — nada que ver
+     con Gemini.
+  2. **Bug real #2 (ya resuelto, PR #199):** el asistente forzaba todo a
+     un turno único; con "1 bachero 1 bartender 2 mozos" (varios puestos)
+     fallaba — se agregó el intent `crear_evento`.
+  3. **La key `GEMINI_API_KEY` seguía sin andar después de arreglar los
+     dos anteriores.** Descartamos, en orden, con evidencia real en cada
+     paso (no por corazonada): (a) que la key no empezara con `AIza` — no
+     era eso, **todos** los proyectos de Google de Julieta (Cuadra,
+     Andamio, Canillita, staffya) emiten keys `AQ.` por igual, y esas
+     otras sí andan; (b) que la Generative Language API no estuviera
+     habilitada en el proyecto `staffya` — estaba habilitada, confirmado
+     en Cloud Console; (c) que la key no tuviera acceso — `GET
+     /v1beta/models` con esa key devuelve `gemini-2.5-flash` con
+     `generateContent` soportado. Con las tres descartadas y sin más
+     señales visibles desde afuera, se subió un fix de diagnóstico (PR
+     #200: loguear `response.text` de Gemini antes de
+     `raise_for_status()`, antes se perdía el motivo real del 404) — y
+     ahí apareció el error real de Google: *"This model
+     models/gemini-2.5-flash is no longer available to new users"*. Las
+     cuentas de Google de Julieta son nuevas; los proyectos de Cuadra/
+     Andamio/Canillita son más viejos y quedaron "heredados" con acceso
+     al modelo. **Fix:** `_GEMINI_URL` pasa de `gemini-2.5-flash` a
+     `gemini-3.5-flash` (GA estable vigente). Primer intento fue el alias
+     `gemini-flash-latest` — descartado en review (Codex, PR #201):
+     Google documenta que `-latest` puede hot-swapear a una release
+     preview/experimental con sólo 2 semanas de aviso por mail, riesgo
+     real para un endpoint que depende de `responseSchema` estructurado.
+     Se prefiere fijar una versión estable a mano y aceptar que en algún
+     momento futuro habrá que repetir este mismo diagnóstico — es más
+     seguro que un cambio de comportamiento silencioso en producción.
+  - Lección del proceso: cuando un error HTTP sólo deja el status code en
+    los logs (no el cuerpo de la respuesta), cualquier diagnóstico previo
+    es necesariamente una lista de hipótesis a descartar una por una, no
+    una certeza — vale la pena invertir en loguear el cuerpo real del
+    error ANTES de seguir adivinando causas más elaboradas.
+  - Verificado: `pytest` 351/351, sin cambios de frontend.
+
+Antes, mismo día: **El asistente de IA ahora entiende 5
 pedidos, no sólo "crear un turno".** Julieta probó el botón flotante recién
 mergeado con "necesito crear un evento para el sábado a la noche 1 bachero 1
 barrender 2 mozos" y no anduvo — el asistente sólo sabía interpretar UN
