@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, suggest_ticket_reply
 from app.core.rate_limit import RateLimiter
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
@@ -17,6 +18,7 @@ from app.modules.support.api.schemas import (
     SendMessageRequest,
     TicketDetailResponse,
     TicketResponse,
+    TicketSuggestionResponse,
 )
 from app.modules.support.application.services import SupportService
 from app.modules.support.domain.exceptions import (
@@ -41,6 +43,13 @@ _create_ticket_rate_limit = RateLimiter(
 )
 _send_message_rate_limit = RateLimiter(
     max_attempts=30, window_seconds=60, name="support_send_message"
+)
+# Por admin, no por IP (mismo criterio que `_parse_shift_text_rate_limit` en
+# shift/api/routes.py): protege contra un doble click/loop del frontend, no
+# es la cuota real de Gemini (250/día, la aplica Google del lado del
+# proveedor y se devuelve como GeminiRequestError si se agota).
+_ai_suggestion_rate_limit = RateLimiter(
+    max_attempts=15, window_seconds=600, name="support_ai_suggestion"
 )
 
 _TICKET_NOT_FOUND = HTTPException(
@@ -117,6 +126,42 @@ async def get_ticket(ticket_id: UUID, current_user: CurrentUserDep, service: Ser
         created_at=ticket.created_at,
         updated_at=ticket.updated_at,
         messages=[MessageResponse.model_validate(m, from_attributes=True) for m in messages],
+    )
+
+
+@router.post(
+    "/tickets/{ticket_id}/ai-suggestion",
+    response_model=TicketSuggestionResponse,
+    summary="Resumen + respuesta sugerida por IA para un ticket (admin)",
+)
+async def get_ticket_ai_suggestion(ticket_id: UUID, admin: AdminDep, service: ServiceDep):
+    # Sugerencia interna para el admin — nunca le contesta directo al
+    # usuario, sólo precarga el campo de respuesta para que la persona de
+    # soporte la revise/edite antes de mandar (mismo criterio "la IA sólo
+    # precarga" que el turno por texto libre en shift/api/routes.py).
+    _ai_suggestion_rate_limit.check(str(admin.id))
+    try:
+        ticket, messages = await service.get_ticket(admin.id, ticket_id, is_admin=True)
+    except TicketNotFoundError as exc:
+        raise _TICKET_NOT_FOUND from exc
+    transcript = "\n".join(
+        f"{'Usuario' if m.sender_user_id == ticket.user_id else 'Soporte'}: {m.body}"
+        for m in messages
+    )
+    try:
+        suggestion = await suggest_ticket_reply(ticket.subject, ticket.category.value, transcript)
+    except GeminiNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La sugerencia por IA no está configurada en este servidor",
+        ) from exc
+    except GeminiRequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No pudimos generar una sugerencia. Respondé a mano.",
+        ) from exc
+    return TicketSuggestionResponse(
+        summary=suggestion.summary, suggested_reply=suggestion.suggested_reply
     )
 
 

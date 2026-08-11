@@ -44,6 +44,14 @@ class TicketDetailResponse(TicketResponse):
     messages: list[MessageResponse]
 
 
+class TicketSuggestionResponse(BaseModel):
+    """Sugerencia interna de IA (P?, ver core/gemini.py) — nunca se le manda
+    directo al usuario, sólo precarga el campo de respuesta del admin."""
+
+    summary: str
+    suggested_reply: str
+
+
 class AdminTicketResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
