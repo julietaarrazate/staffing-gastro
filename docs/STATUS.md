@@ -5,7 +5,25 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Tratamiento tipográfico de "número
+*Última actualización: 2026-08-11 (**Tercera ilustración de estado vacío:
+"sin conexión/error" reemplaza el ícono genérico del error de `/feed`.**
+Continuación del set de `ART_DIRECTION.md` §10.4 tras el batch de acabado
+visual anterior — quedan 3/5 piezas. De las 3 restantes, sólo ésta ("lámpara
+de salón parpadeando") tenía un lugar de enganche limpio y de bajo riesgo:
+el `EmptyState` de error ya existente en `feed/page.tsx`. Las otras dos
+("bienvenida" y "turno cubierto") NO tienen hoy un lugar natural sin
+inventar UI nueva — el onboarding (`/bienvenida`) entra directo al primer
+paso funcional, sin pantalla de bienvenida separada, y ya tuvo varias
+rondas de bugs reales reportados por Julieta esta sesión; la asignación de
+un turno (`/shifts/[id]/candidates`) hoy confirma con un toast, sin modal.
+Quedan pendientes a propósito, para no arriesgar una pantalla ya delicada
+sin poder verificarla visualmente.
+  - `ErrorIllustration` (nuevo, `frontend/components/illustrations/`),
+    mismo criterio de las dos anteriores (trazo único, primer pase propio,
+    reemplazable).
+  - Verificado: `tsc --noEmit` limpio, sin cambios de backend.
+
+Antes, mismo día: **Tratamiento tipográfico de "número
 héroe" para el pago, tercer y último paso del plan de acabado visual
 acordado con Julieta ("1 luego 3 y después 2").** `ART_DIRECTION.md` §9.4
 ("jerarquía brutal: el elemento dominante está al menos dos escalones por
