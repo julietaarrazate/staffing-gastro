@@ -14,6 +14,13 @@ from tests.conftest import auth_headers
 
 
 class _FakeResponse:
+    # Faltaba imitar esto de httpx.Response: `_call_gemini` (core/gemini.py)
+    # ahora lee `status_code`/`text` para loguear el error real de Google
+    # antes de `raise_for_status()` — sin este atributo, el mock rompía con
+    # AttributeError incluso en el camino feliz.
+    status_code = 200
+    text = ""
+
     def __init__(self, body: dict):
         self._body = body
 

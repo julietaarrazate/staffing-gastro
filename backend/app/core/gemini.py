@@ -70,6 +70,26 @@ class GeminiRequestError(Exception):
     """La llamada a Gemini falló (red, cuota agotada, respuesta inválida)."""
 
 
+async def _call_gemini(payload: dict) -> dict:
+    """POST común a `generateContent`, compartido por las 3 llamadas de este
+    archivo. Antes cada una hacía `response.raise_for_status()` sin loguear
+    el cuerpo del error — Google manda un JSON con el motivo real (ej.
+    `PERMISSION_DENIED` con el detalle de qué falta), y se perdía: sólo
+    quedaba "404 Not Found" en Sentry, sin explicar el porqué."""
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.post(
+            _GEMINI_URL,
+            params={"key": settings.gemini_api_key},
+            json=payload,
+        )
+        if response.status_code >= 400:
+            logger.error("Gemini respondió %s: %s", response.status_code, response.text)
+        response.raise_for_status()
+        body = response.json()
+    raw = body["candidates"][0]["content"]["parts"][0]["text"]
+    return json.loads(raw)
+
+
 @dataclass(frozen=True)
 class ParsedShiftDraft:
     """Campos parciales de `ShiftData` inferidos del texto — cualquiera
@@ -137,16 +157,7 @@ async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> 
         },
     }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(
-                _GEMINI_URL,
-                params={"key": settings.gemini_api_key},
-                json=payload,
-            )
-            response.raise_for_status()
-            body = response.json()
-        raw = body["candidates"][0]["content"]["parts"][0]["text"]
-        data = json.loads(raw)
+        data = await _call_gemini(payload)
     except Exception as exc:
         logger.exception("suggest_ticket_reply: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
@@ -179,16 +190,7 @@ async def parse_shift_text(text: str) -> ParsedShiftDraft:
         },
     }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(
-                _GEMINI_URL,
-                params={"key": settings.gemini_api_key},
-                json=payload,
-            )
-            response.raise_for_status()
-            body = response.json()
-        raw = body["candidates"][0]["content"]["parts"][0]["text"]
-        data = json.loads(raw)
+        data = await _call_gemini(payload)
     except Exception as exc:
         logger.exception("parse_shift_text: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
@@ -345,16 +347,7 @@ async def interpret_assistant_query(text: str) -> AssistantQueryResult:
         },
     }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(
-                _GEMINI_URL,
-                params={"key": settings.gemini_api_key},
-                json=payload,
-            )
-            response.raise_for_status()
-            body = response.json()
-        raw = body["candidates"][0]["content"]["parts"][0]["text"]
-        data = json.loads(raw)
+        data = await _call_gemini(payload)
     except Exception as exc:
         logger.exception("interpret_assistant_query: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
