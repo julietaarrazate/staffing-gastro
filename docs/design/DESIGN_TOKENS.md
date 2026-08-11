@@ -123,12 +123,16 @@ Escala modular 1.25: `12 · 14 · 16 · 20 · 25 · 31 · 39 · 49`.
 | `--icon-md` | 24 |
 | `--icon-lg` | 32 |
 
-### 3.7 Motion — **a crear**
+### 3.7 Motion
 
-`ART_DIRECTION` §13.3 especifica estos valores, pero **hoy están hardcodeados
-en cada componente**:
+`ART_DIRECTION` §13.3 especifica estos valores. Viven como CSS custom
+properties en `globals.css` **y**, duplicados como números, en
+`frontend/lib/motion.ts` (`MOTION_UI`/`MOTION_BRAND`/`MOTION_EASE`/
+`MOTION_PRESS_SCALE`) — Framer Motion no puede leer una CSS var dentro de su
+prop `transition`, así que hace falta la versión JS. Si cambia un valor,
+cambia en los dos lugares.
 
-| Token propuesto | Valor | Uso |
+| Token | Valor | Uso |
 |---|---|---|
 | `--motion-ui` | `200ms` | Transiciones de interfaz |
 | `--motion-brand` | `500ms` | Gesto de marca |
@@ -137,6 +141,13 @@ en cada componente**:
 
 **Sin rebote.** El rebote comunica juego; la llegada seca comunica precisión
 (§13.2).
+
+**Migrados a los tokens (2026-08-11):** `EmptyState`, `GuidedTour`,
+`SwipeDeck` (dismiss) → `MOTION_UI`; `Reveal`, `SplashScreen` (logo/título/
+subtítulo) → `MOTION_BRAND`. **Sin migrar a propósito:** las springs de tap
+(`Button` y similares — sistema de animación distinto, sin token propio) y
+el `markerPop`/pulsos infinitos del mapa (efectos con rebote deliberado o en
+bucle, fuera de la regla "sin rebote" de la UI general).
 
 ### 3.8 Z-index — **a crear**
 

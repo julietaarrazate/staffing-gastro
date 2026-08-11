@@ -5,7 +5,26 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Primer par de ilustraciones de estado
+*Última actualización: 2026-08-11 (**Tokens de motion, DESIGN_TOKENS.md §3.7
+pasa de "a crear" a implementado.** Parte del mismo pedido de Julieta de
+llevar el acabado visual más cerca del nivel de Pasito: la propia auditoría
+de `ART_DIRECTION.md`/`DESIGN_TOKENS.md` ya marcaba el motion como
+hardcodeado por componente (cuatro duraciones sueltas sin relación entre
+sí), lo que arriesga inconsistencia entre pantallas.
+  - `--motion-ui`/`--motion-brand`/`--motion-ease`/`--motion-press` nuevos
+    en `globals.css` (§13.3 de ART_DIRECTION: 200ms UI, 500ms marca, curva
+    `cubic-bezier(0.2,0,0,1)`, **sin rebote** a propósito).
+  - `frontend/lib/motion.ts` (nuevo) espeja esos mismos valores como
+    números de JS — Framer Motion no lee CSS custom properties en su prop
+    `transition`.
+  - Migrados: `EmptyState`, `GuidedTour`, `SwipeDeck` (dismiss) a
+    `MOTION_UI`; `Reveal` (landing) y `SplashScreen` (logo/título/
+    subtítulo) a `MOTION_BRAND`. Sin tocar a propósito: las springs de tap
+    (`Button`) y el `markerPop`/pulsos del mapa (rebote/loop deliberados,
+    fuera de la regla general).
+  - Verificado: `tsc --noEmit` limpio, sin cambios de backend.
+
+Antes, mismo día: **Primer par de ilustraciones de estado
 vacío, arrancando el sistema de ilustración de `ART_DIRECTION.md` §10.4.**
 Julieta pidió una auditoría de diseño con Pasito como referencia visual de
 "nivel premium"; el propio `ART_DIRECTION.md` ya había analizado Pasito
@@ -28,7 +47,6 @@ personajes con cara). Arranca con 2 de las 5:
     el isotipo (rasterizado → vector final del diseñador). Las 3 piezas
     restantes del set (bienvenida, turno cubierto, error/sin conexión)
     quedan para un PR siguiente.
-  - Verificado: `tsc --noEmit` limpio, sin cambios de backend.
 
 Antes, mismo día: **El asistente de IA ya usa el
 historial del propio comercio para completar lo que el pedido no dice.**
