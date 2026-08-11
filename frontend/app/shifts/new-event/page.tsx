@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { getErrorMessage } from "@/lib/errors";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
-import { localInputToArgentinaISO } from "@/lib/datetime";
+import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
+import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/components/AIAssistantFab";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
@@ -19,8 +20,8 @@ interface RoleRow {
   payAmount: string;
 }
 
-function newRole(): RoleRow {
-  return { key: crypto.randomUUID(), position: "mozo", count: "1", payAmount: "" };
+function newRole(overrides?: Partial<Pick<RoleRow, "position" | "count" | "payAmount">>): RoleRow {
+  return { key: crypto.randomUUID(), position: "mozo", count: "1", payAmount: "", ...overrides };
 }
 
 /**
@@ -32,9 +33,19 @@ function newRole(): RoleRow {
  * parcial si el plan del comercio se queda sin cupo a mitad de camino.
  */
 export default function NewEventPage() {
+  // useSearchParams exige un boundary de Suspense en build estático.
+  return (
+    <Suspense fallback={null}>
+      <NewEventForm />
+    </Suspense>
+  );
+}
+
+function NewEventForm() {
   const { token } = useRequireAuth();
   const router = useRouter();
   const toast = useToast();
+  const searchParams = useSearchParams();
 
   const [name, setName] = useState("");
   const [startAt, setStartAt] = useState("");
@@ -50,6 +61,43 @@ export default function NewEventPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<EventResult | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+
+  // Handoff del asistente flotante (AIAssistantFab): ya clasificó el pedido
+  // como "crear_evento" y parseó los roles con IA en otra pantalla — lo
+  // aplicamos una sola vez al montar y limpiamos el rastro (storage +
+  // querystring) para que un refresh no lo reaplique. El comercio sigue
+  // revisando/editando cada rol a mano antes de publicar.
+  useEffect(() => {
+    if (searchParams.get("ai") !== "1") return;
+    const raw = sessionStorage.getItem(AI_EVENT_DRAFT_STORAGE_KEY);
+    sessionStorage.removeItem(AI_EVENT_DRAFT_STORAGE_KEY);
+    router.replace("/shifts/new-event");
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as AssistantEventDraft;
+      if (draft.event_positions.length > 0) {
+        setRoles(
+          draft.event_positions.map((role) =>
+            newRole({
+              position: role.position as WorkerSkill,
+              count: String(role.quantity),
+              payAmount: draft.pay_amount ?? "",
+            })
+          )
+        );
+      }
+      if (draft.start_at) setStartAt(argentinaISOToLocalInput(draft.start_at));
+      if (draft.end_at) setEndAt(argentinaISOToLocalInput(draft.end_at));
+      if (draft.dress_code) setDressCode(draft.dress_code);
+      setUrgent(draft.urgent);
+      setTips(draft.tips);
+      setMeal(draft.meal);
+      toast("Completamos lo que pudimos — revisá cada rol antes de publicar");
+    } catch {
+      // Draft corrupto/inesperado: no rompe el formulario, se completa a mano.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function updateRole(key: string, patch: Partial<RoleRow>) {
     setRoles((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));

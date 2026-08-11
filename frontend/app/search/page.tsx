@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -34,10 +35,29 @@ const WorkerSearchMap = dynamic(() => import("@/components/WorkerSearchMap"), {
 // Centro por defecto: Obelisco (CABA), por si el navegador no comparte ubicación.
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816];
 
+function isWorkerSkill(value: string | null): value is WorkerSkill {
+  return value !== null && (WORKER_SKILLS as string[]).includes(value);
+}
+
 export default function SearchPage() {
+  // useSearchParams exige un boundary de Suspense en build estático.
+  return (
+    <Suspense fallback={null}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageContent() {
   const { token } = useRequireAuth();
+  const searchParams = useSearchParams();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
-  const [skill, setSkill] = useState<WorkerSkill | "">("");
+  // Precargable por URL (?skill=mozo): el asistente de IA (buscar_candidatos)
+  // te trae directo con el filtro ya puesto.
+  const [skill, setSkill] = useState<WorkerSkill | "">(() => {
+    const fromUrl = searchParams.get("skill");
+    return isWorkerSkill(fromUrl) ? fromUrl : "";
+  });
   const [radiusKm, setRadiusKm] = useState(15);
   const [workers, setWorkers] = useState<WorkerMapResult[]>([]);
   const [error, setError] = useState<string | null>(null);

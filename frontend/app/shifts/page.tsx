@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -61,6 +61,11 @@ function familyOf(status: ShiftStatus): Family {
 
 type Tab = "todos" | Family;
 
+const VALID_TABS: Tab[] = ["todos", ...FAMILY_ORDER];
+function isTab(value: string | null): value is Tab {
+  return value !== null && (VALID_TABS as string[]).includes(value);
+}
+
 const FAMILY_META: Record<
   Family,
   { title: string; icon: React.ReactNode; emptyTitle: string; emptySubtitle: string }
@@ -108,11 +113,27 @@ const ACTION_PATH: Record<Action, string> = {
 };
 
 export default function MyShiftsPage() {
+  // useSearchParams exige un boundary de Suspense en build estático.
+  return (
+    <Suspense fallback={null}>
+      <MyShiftsPanel />
+    </Suspense>
+  );
+}
+
+function MyShiftsPanel() {
   const { token } = useRequireAuth();
   const router = useRouter();
   const toast = useToast();
+  const searchParams = useSearchParams();
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [tab, setTab] = useState<Tab>("todos");
+  // Precargable por URL (?tab=buscando): el asistente de IA (consultar_turnos)
+  // te trae directo a la pestaña que preguntaste, en vez de dejarte en
+  // "Todos" a que la busques vos.
+  const [tab, setTab] = useState<Tab>(() => {
+    const fromUrl = searchParams.get("tab");
+    return isTab(fromUrl) ? fromUrl : "todos";
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
