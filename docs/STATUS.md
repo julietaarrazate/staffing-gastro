@@ -5,7 +5,32 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Batch C3 de `PULIDO_ROADMAP.md`
+*Última actualización: 2026-08-11 (**Reputación con visualización real
+(`RateMeter`) en vez de sólo texto — punto #4 de la auditoría de diseño
+original que Julieta pidió retomar.** El perfil del trabajador y el perfil
+público del comercio mostraban "puntualidad"/"pago a tiempo" como un
+número suelto (`94%`), sin ninguna señal visual de qué tan bueno es ese
+número. Usando la skill `dataviz` (§choosing-a-form: "una proporción
+contra un límite" → **meter**, no un stat tile de texto): se agregó
+`RateMeter` (nuevo, `frontend/components/RateMeter.tsx`) — barra con
+severidad (verde/naranja/rojo, Ley de marca: sólo de estado) y track del
+mismo tono más claro.
+  - `WorkerGameCard.tsx` (perfil del trabajador, `/profile`): reemplaza el
+    tile de "Puntualidad" que competía en tamaño con "Turnos"/
+    "Cancelaciones" (que son valores sueltos, no ratios).
+  - `companies/[id]/page.tsx` (perfil público del comercio, visible para
+    trabajadores evaluando un turno): reemplaza el `Metric` de "Pago a
+    tiempo".
+  - **Ojo con los ceros falsos:** el backend guarda `punctuality_rate`/
+    `on_time_payment_rate` en `0.0` por default hasta el primer turno/pago
+    — sin guard, un perfil recién creado se vería en rojo alarmante sin
+    haber hecho nada malo. `RateMeter` acepta `hasHistory` (`events_completed
+    > 0` / `events_published > 0`) y muestra "Sin datos" en gris neutro en
+    ese caso, nunca rojo.
+  - Verificado: `tsc --noEmit` limpio, `npm run test:unit` 69/69, sin
+    cambios de backend.
+
+Antes, mismo día: **Batch C3 de `PULIDO_ROADMAP.md`
 ("confianza y conversión") cerrado — CLAUDE.md lo tenía como "sin
 arrancar", desactualizado.** Julieta pidió retomar los puntos #4 y #5 de la
 auditoría de diseño original (visualización de datos en reputación y este

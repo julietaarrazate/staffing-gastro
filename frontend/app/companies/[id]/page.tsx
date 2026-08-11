@@ -9,6 +9,7 @@ import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
+import RateMeter from "@/components/RateMeter";
 import MiniMap from "@/components/MiniMap";
 import { MapPinIcon, RouteIcon } from "@/components/icons";
 
@@ -141,11 +142,15 @@ export default function PublicCompanyProfilePage() {
             </div>
           )}
 
-          <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-            <Metric
+          <div className="mt-5">
+            <RateMeter
               label="Pago a tiempo"
-              value={`${Math.round(profile.on_time_payment_rate * 100)}%`}
+              rate={profile.on_time_payment_rate}
+              hasHistory={profile.events_published > 0}
             />
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             {profile.capacity != null && (
               <Metric label="Capacidad" value={`${profile.capacity} personas`} />
             )}
