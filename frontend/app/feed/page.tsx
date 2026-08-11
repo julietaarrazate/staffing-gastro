@@ -21,6 +21,7 @@ import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { CalendarIcon, FlameIcon } from "@/components/icons";
+import { EmptyFeedIllustration } from "@/components/illustrations";
 
 /** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
  * corto — al aterrizar en el feed no había nada que explicara cómo se usa.
@@ -309,7 +310,7 @@ export default function WorkerHomePage() {
                 )}
                 empty={
                   <EmptyState
-                    icon={<CalendarIcon size={30} />}
+                    icon={<EmptyFeedIllustration color="#f97316" />}
                     title={emptyTitle}
                     subtitle={emptySubtitle}
                     primaryAction={
@@ -330,7 +331,7 @@ export default function WorkerHomePage() {
             <div className="hidden md:block">
               {visibleShifts.length === 0 ? (
                 <EmptyState
-                  icon={<CalendarIcon size={30} />}
+                  icon={<EmptyFeedIllustration color="#f97316" />}
                   title={emptyTitle}
                   subtitle={emptySubtitle}
                   primaryAction={

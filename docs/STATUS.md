@@ -5,7 +5,32 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**El asistente de IA ya usa el
+*Última actualización: 2026-08-11 (**Primer par de ilustraciones de estado
+vacío, arrancando el sistema de ilustración de `ART_DIRECTION.md` §10.4.**
+Julieta pidió una auditoría de diseño con Pasito como referencia visual de
+"nivel premium"; el propio `ART_DIRECTION.md` ya había analizado Pasito
+(referente #11) y concluyó que lo que da esa sensación de acabado no es el
+tono lúdico (rechazado a propósito para Staffya, arquetipo "Bufón"
+descartado en §3.1) sino la disciplina y el compromiso visual — y que la
+pieza más grande que Staffya tenía spec'eada pero sin construir era el set
+de ilustración de estados vacíos (§10.4: 5 piezas, "manos y oficio", nunca
+personajes con cara). Arranca con 2 de las 5:
+  - **`EmptyFeedIllustration`** ("el hueco esperando": una comanda vacía en
+    el clip de cocina) reemplaza el ícono genérico de Lucide en el mazo/
+    grilla vacíos de `/feed` (trabajador).
+  - **`EmptyPanelIllustration`** ("mesa preparada sin ocupar": plato +
+    cubiertos sin comida) reemplaza el ícono genérico en "Publicá tu primer
+    turno" de `/shifts` (comercio).
+  - Ambas en `frontend/components/illustrations/`, trazo único monocromo
+    sin relleno (§10.2), primer pase propio (no de un diseñador — el
+    roadmap §16 pide "una mano entrenada" para esto) documentado como
+    placeholder de calidad reemplazable, mismo criterio que ya se usó con
+    el isotipo (rasterizado → vector final del diseñador). Las 3 piezas
+    restantes del set (bienvenida, turno cubierto, error/sin conexión)
+    quedan para un PR siguiente.
+  - Verificado: `tsc --noEmit` limpio, sin cambios de backend.
+
+Antes, mismo día: **El asistente de IA ya usa el
 historial del propio comercio para completar lo que el pedido no dice.**
 Julieta: "la IA tiene que aprender cosas de cada persona, está muy
 genérica, no hace nada". Alcance elegido entre las opciones propuestas

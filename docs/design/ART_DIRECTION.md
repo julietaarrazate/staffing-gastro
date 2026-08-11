@@ -1085,7 +1085,7 @@ Además de §6.3, prohibiciones que salen del negocio:
 | **3.2** | `TYPOGRAPHY_SYSTEM.md` — display elegida y probada | Bloqueado |
 | **3.3** | `COLOR_SYSTEM.md` + `DESIGN_TOKENS.md` | Bloqueado |
 | **3.4** | `ICONOGRAPHY_SYSTEM.md` | Bloqueado |
-| **3.5** | `ILLUSTRATION_SYSTEM.md` + 5 piezas | Bloqueado |
+| **3.5** | `ILLUSTRATION_SYSTEM.md` + 5 piezas | 🟡 En curso — 2/5 piezas (feed vacío, panel vacío) implementadas como primer pase propio en código, `frontend/components/illustrations/`; ver `docs/STATUS.md` 2026-08-11. Faltan bienvenida, turno cubierto, error/sin conexión |
 | **3.6** | `BRAND_GUIDELINES.md` | Bloqueado |
 | **3.7** | `MARKETING_VISUAL_SYSTEM.md` | Bloqueado |
 | **4** | Implementación en producto | Bloqueado |
