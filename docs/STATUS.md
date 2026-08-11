@@ -5,7 +5,26 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Ya no se puede marcar "llegué" en un
+*Última actualización: 2026-08-11 (**Onboarding del comercio: se puede
+omitir por completo, y la IA ya no aparece flotando durante el
+onboarding.** Dos pedidos más de Julieta sobre la misma cuenta invitada de
+comercio:
+  1. **"tenés que poder omitir el paso del onboarding si querés":** un paso
+     más allá de "Cargar la ubicación después" (ya en producción, ver
+     abajo) — ahora el paso 1 (nombre) también suma "Omitir por ahora".
+     Guarda un nombre placeholder ("Mi comercio", editable después desde el
+     perfil) en vez de dejar el perfil sin nombre — evita reintroducir el
+     bug que el `name` obligatorio ya había arreglado (candidatos viendo
+     "Un comercio cerca tuyo" en vez de un nombre real).
+  2. **"la IA... tiene que estar fuera del onboarding inicial, ya cuando
+     estás adentro podés usarla, si no está ese botón ahí flotando y queda
+     raro":** `AIAssistantFab` ya se ocultaba en `/shifts/new` y
+     `/shifts/new-event`; se sumó `/bienvenida` a esa lista.
+  - Verificado: `tsc`/`npm run build` limpios, Playwright 55/55 (53
+    previos + 2 nuevos: skip completo del onboarding, FAB oculto en
+    `/bienvenida`).
+
+Antes, mismo día: **Ya no se puede marcar "llegué" en un
 turno con fecha a días de distancia.** Julieta, probando como comercio
 invitado: "que se pueda poner una fecha a futuro y que pongan como llegue
 me fui pagado si todavía no llegó esa fecha" — `Shift.check_in()`

@@ -268,6 +268,16 @@ test("el botón flotante no aparece en /shifts/new ni en /shifts/new-event (ya t
   await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
 });
 
+test("el botón flotante no aparece durante el onboarding (/bienvenida)", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+
+  await page.goto("/bienvenida");
+  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+});
+
 test("el botón flotante no aparece para un trabajador (sólo el comercio publica turnos)", async ({
   page,
 }) => {
