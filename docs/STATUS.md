@@ -5,7 +5,23 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-10 (**Mini-tour post-onboarding + tercer
+*Última actualización: 2026-08-11 (**Deuda técnica: cuota de frames en
+los WebSocket de chat/notificaciones (TECH_DEBT.md S2, resuelto).** El
+tope de *conexiones* concurrentes ya existía; faltaba la otra mitad —
+ningún límite sobre cuántos frames podía mandar el cliente ya conectado.
+Los dos WS (`/chats/{shift_id}/ws`, `/notifications/ws`) son
+*receive-only* del lado del servidor (mandar un mensaje de verdad es un
+POST aparte, ya limitado a 30/min), pero antes un cliente con bug o
+malicioso podía igual mandar frames sin parar. Fix: reusa
+`app/core/rate_limit.py` (mismo mecanismo que HTTP) — 120 frames/min por
+usuario, y al superarlo el servidor cierra la conexión
+(`WS_1008_POLICY_VIOLATION`) en vez de seguir aceptando. De paso se
+extrajo `_setup_assigned_shift_sync`/`_setup_in_memory_db` en
+`test_chat.py` (antes duplicado inline en el único test de WS que
+existía) para poder reusarlo en los 2 tests nuevos (uno por WS). Sin
+cambios de frontend. Verificado: `pytest` 336/336 (334 previos + 2).
+
+Antes, mismo día: **Mini-tour post-onboarding + tercer
 paso opcional en el onboarding del trabajador.** Pedido de Julieta:
 "falta las tooltips en onboarding para que sea más guiado, quizás el
 perfil de trabajador esté muy breve el onboarding".
