@@ -5,7 +5,25 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Tokens de motion, DESIGN_TOKENS.md §3.7
+*Última actualización: 2026-08-11 (**Tratamiento tipográfico de "número
+héroe" para el pago, tercer y último paso del plan de acabado visual
+acordado con Julieta ("1 luego 3 y después 2").** `ART_DIRECTION.md` §9.4
+("jerarquía brutal: el elemento dominante está al menos dos escalones por
+encima del siguiente") y §6.2 citan como bug real ya corregido que "el
+pago del feed estaba al mismo tamaño que el título del puesto" — pero el
+mismo antipatrón seguía vivo en la tarjeta del PANEL (`ShiftCard`, usada en
+`/shifts` y `/my-shifts`): título 18px vs. pago 20px, prácticamente
+empatados.
+  - `ShiftCard.tsx`: el pago pasa a 30px (paso ~31 de la escala modular),
+    con el mismo patrón de label "Pago" + número que ya usaba
+    `OpportunityCard` en el feed — para que ambas tarjetas se lean de la
+    misma app (criterio 4 de aprobación, §17).
+  - `OpportunityCard.tsx`: el número ya era grande (36px) pero con un valor
+    arbitrario sin relación con la escala modular `12·14·16·20·25·31·39·49`
+    — ajustado a 39px, el paso real más cercano.
+  - Verificado: `tsc --noEmit` limpio, sin cambios de backend.
+
+Antes, mismo día: **Tokens de motion, DESIGN_TOKENS.md §3.7
 pasa de "a crear" a implementado.** Parte del mismo pedido de Julieta de
 llevar el acabado visual más cerca del nivel de Pasito: la propia auditoría
 de `ART_DIRECTION.md`/`DESIGN_TOKENS.md` ya marcaba el motion como

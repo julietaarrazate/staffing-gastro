@@ -148,10 +148,18 @@ export default function ShiftCard({
             {STATUS_LABELS[shift.status]}
           </span>
           <div className="text-right">
-            <p className="text-xl font-extrabold text-primary-text">
+            {/* Jerarquía brutal (ART_DIRECTION.md §9.4, §6.2 punto 1): el
+                pago tiene que dominar la tarjeta, no empatar con el título
+                del puesto (18px) como pasaba antes con text-xl (20px) —
+                mismo antipatrón que el doc cita como bug real ya corregido
+                en el feed del trabajador. Mismo patrón de label+número que
+                `OpportunityCard`, para que las dos tarjetas se lean de la
+                misma app (criterio 4 de aprobación, §17). */}
+            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
+            <p className="text-3xl font-extrabold leading-none tracking-tight text-primary-text">
               {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
-            {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}
+            {shift.tips && <p className="mt-1 text-xs font-medium text-ink/40">+ propinas</p>}
             {shift.meal && <p className="text-xs font-medium text-ink/40">+ comida</p>}
           </div>
         </div>

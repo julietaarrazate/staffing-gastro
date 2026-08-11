@@ -146,7 +146,9 @@ export default function OpportunityCard({
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
             <p className="flex items-baseline gap-1 font-extrabold text-primary-text">
               <span className="text-lg">{shift.currency}</span>
-              <span className="text-[2.25rem] leading-none tracking-tight">
+              {/* 39px: paso de la escala modular 1.25 (ART_DIRECTION §9.4),
+                  antes 36px (2.25rem) sin relación con la escala. */}
+              <span className="text-[2.4375rem] leading-none tracking-tight">
                 {Number(shift.pay_amount).toLocaleString("es-AR")}
               </span>
             </p>
