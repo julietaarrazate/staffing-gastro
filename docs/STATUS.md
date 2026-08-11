@@ -5,7 +5,27 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Tercera ilustración de estado vacío:
+*Última actualización: 2026-08-11 (**Batch C3 de `PULIDO_ROADMAP.md`
+("confianza y conversión") cerrado — CLAUDE.md lo tenía como "sin
+arrancar", desactualizado.** Julieta pidió retomar los puntos #4 y #5 de la
+auditoría de diseño original (visualización de datos en reputación y este
+batch). Al auditar C3 de nuevo, 3 de sus 4 puntos ya estaban resueltos por
+trabajo de otras sesiones — sólo faltaba uno:
+  - SEO (`sitemap.ts`/`robots.ts`/metadata por página) — ya estaba.
+  - Estados de error unificados (`EmptyState` con retry) — ya estaba,
+    reforzado por los PRs de ilustraciones de esta sesión.
+  - A11y — ya resuelto por F4 (`jsx-a11y` recommended, ver `TECH_DEBT.md`).
+  - **Skeletons: faltaba `/profile`**, que mostraba un `<Spinner>`
+    centrado (pop-in brusco) en vez del mismo estilo de skeleton que
+    `/feed`/`/shifts`/`/my-shifts` — corregido con un skeleton con la
+    forma aproximada del layout real. `/admin` también tiene un spinner,
+    pero es el guard de sesión común a las 13 pantallas protegidas (antes
+    de saber el rol), no el de datos — se dejó como está.
+  - Detalle completo en `docs/planning/PULIDO_ROADMAP.md` §C3 y
+    `CLAUDE.md` (línea corregida).
+  - Verificado: `tsc --noEmit` limpio, sin cambios de backend.
+
+Antes, mismo día: **Tercera ilustración de estado vacío:
 "sin conexión/error" reemplaza el ícono genérico del error de `/feed`.**
 Continuación del set de `ART_DIRECTION.md` §10.4 tras el batch de acabado
 visual anterior — quedan 3/5 piezas. De las 3 restantes, sólo ésta ("lámpara

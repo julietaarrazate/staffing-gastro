@@ -9,7 +9,7 @@ import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
-import { Spinner } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
 import {
   ChevronRightIcon,
   CreditCardIcon,
@@ -58,9 +58,24 @@ export default function ProfilePage() {
   const router = useRouter();
 
   if (loading) {
+    // Mismo estilo de skeleton que el resto de la app (batch C3,
+    // docs/planning/PULIDO_ROADMAP.md: "un solo estilo de skeleton, en vez
+    // de spinners mixtos") — antes un spinner centrado tapaba toda la
+    // pantalla y después aparecía de golpe el layout completo. Forma
+    // aproximada (no sabemos todavía si el rol es trabajador/comercio/
+    // admin) para que la transición sea progresiva, no un pop-in.
     return (
-      <div className="flex justify-center px-4 py-16">
-        <Spinner size={28} className="text-ink/40" />
+      <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl" aria-hidden>
+        <Skeleton className="h-8 w-24" />
+        <div className="mt-4 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
+          <div className="lg:col-span-2">
+            <Skeleton className="h-[86px] w-full" />
+            <Skeleton className="mt-7 h-48 w-full" />
+          </div>
+          <div className="mt-7 lg:mt-0">
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
