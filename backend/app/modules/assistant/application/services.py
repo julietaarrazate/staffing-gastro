@@ -9,8 +9,10 @@ necesitan una query nueva en el repositorio: alcanza con `list_by_company`
 comercio en esta etapa.
 """
 
+from collections import Counter
 from dataclasses import dataclass
-from datetime import date, timezone
+from datetime import date, datetime, timezone
+from statistics import median
 from uuid import UUID
 
 from app.core.tz import ARG_TZ, hoy_art
@@ -22,6 +24,14 @@ from app.modules.shift.domain.value_objects import OPEN_STATUSES
 # Un comercio de la beta no se acerca a este volumen; de sobrarse, es mejor
 # señal de que hace falta un filtro server-side que fallar en silencio.
 _LOOKUP_LIMIT = 200
+
+# Con menos turnos previos que esto, no hay señal real de "lo habitual" —
+# mejor no mandarle nada a Gemini que arriesgar un contexto armado con un
+# solo dato suelto (P2, auditoría de producto: "la IA tiene que aprender
+# cosas de cada persona, está muy genérica, no hace nada" — Julieta eligió
+# alcance chico, contexto del propio comercio por sesión, sin memoria
+# persistente nueva).
+_MIN_SHIFTS_FOR_CONTEXT = 2
 
 
 @dataclass(frozen=True)
@@ -73,11 +83,46 @@ class AssistantService:
             return shift.status in OPEN_STATUSES
         return True  # "todos"
 
-    def _start_at_art_date(self, shift: Shift) -> date:
+    def _start_at_art(self, shift: Shift) -> datetime:
         dt = shift.start_at
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(ARG_TZ).date()
+        return dt.astimezone(ARG_TZ)
+
+    def _start_at_art_date(self, shift: Shift) -> date:
+        return self._start_at_art(shift).date()
+
+    async def build_context_summary(self, company_id: UUID) -> str | None:
+        """Resumen en texto plano de "lo habitual" de ESTE comercio (puesto
+        más pedido, horario típico, pago típico, si suele incluir propinas/
+        comida) para que el asistente complete campos que el pedido no
+        menciona explícitamente — nunca para contradecir lo que el texto sí
+        dice (esa regla vive en el prompt, `_ASSISTANT_CONTEXT_INSTRUCTION`
+        en `core/gemini.py`). Alcance chico a propósito (P2, elegido por
+        Julieta): se recalcula en cada consulta a partir de los turnos ya
+        publicados, sin memoria persistente nueva."""
+        shifts = await self._shifts.list_by_company(company_id, limit=_LOOKUP_LIMIT)
+        if len(shifts) < _MIN_SHIFTS_FOR_CONTEXT:
+            return None
+
+        positions = Counter(shift.position.value for shift in shifts)
+        top_position, top_count = positions.most_common(1)[0]
+        top_hour, _hour_count = Counter(self._start_at_art(s).hour for s in shifts).most_common(1)[0]
+        typical_pay = median(float(shift.pay_amount) for shift in shifts)
+        tips_share = sum(1 for shift in shifts if shift.tips) / len(shifts)
+        meal_share = sum(1 for shift in shifts if shift.meal) / len(shifts)
+
+        parts = [
+            f'Publicó {len(shifts)} turnos antes. El puesto más pedido es "{top_position}" '
+            f"({top_count} de {len(shifts)}).",
+            f"Suele arrancarlos alrededor de las {top_hour:02d}:00hs.",
+            f"El pago típico ronda ${typical_pay:,.0f}.".replace(",", "."),
+        ]
+        if tips_share >= 0.5:
+            parts.append("Generalmente incluye propinas.")
+        if meal_share >= 0.5:
+            parts.append("Generalmente incluye comida de personal.")
+        return " ".join(parts)
 
     def _summary_text(self, query_filter: str, count: int) -> str:
         plural = "s" if count != 1 else ""

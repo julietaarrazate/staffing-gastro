@@ -266,6 +266,17 @@ represente la pregunta; "todos" si no se puede inferir algo más específico).
 - `ver_postulantes`: `applicants_position` (de la lista de arriba, o "desconocido") y \
 `applicants_date_hint` (fecha ISO YYYY-MM-DD si se puede inferir del texto, null si no)."""
 
+# P2 (auditoría de producto, elegido por Julieta entre las opciones
+# propuestas): "la IA tiene que aprender cosas de cada persona, está muy
+# genérica, no hace nada". Se le suma como una SEGUNDA parte de
+# `systemInstruction` (Gemini acepta varias, no hace falta tocar el prompt
+# base) sólo cuando `AssistantService.build_context_summary` encuentra
+# suficiente historial — nunca reemplaza lo que el texto dice, sólo completa
+# lo que no dice.
+_ASSISTANT_CONTEXT_INSTRUCTION = """Contexto de turnos anteriores de este comercio (usalo SÓLO para \
+completar campos de `crear_turno`/`crear_evento` que el texto no menciona explícitamente — nunca \
+para contradecir algo que el texto sí dice): {context}"""
+
 _ASSISTANT_RESPONSE_SCHEMA = {
     "type": "OBJECT",
     "properties": {
@@ -332,21 +343,25 @@ class AssistantQueryResult:
     applicants_date_hint: str | None = None
 
 
-async def interpret_assistant_query(text: str) -> AssistantQueryResult:
+async def interpret_assistant_query(
+    text: str, company_context: str | None = None
+) -> AssistantQueryResult:
     if not settings.gemini_api_key:
         raise GeminiNotConfiguredError()
 
+    system_parts = [
+        {
+            "text": _ASSISTANT_SYSTEM_INSTRUCTION.format(
+                today=now_art().date().isoformat(),
+                positions=", ".join(_POSITIONS),
+            )
+        }
+    ]
+    if company_context:
+        system_parts.append({"text": _ASSISTANT_CONTEXT_INSTRUCTION.format(context=company_context)})
+
     payload = {
-        "systemInstruction": {
-            "parts": [
-                {
-                    "text": _ASSISTANT_SYSTEM_INSTRUCTION.format(
-                        today=now_art().date().isoformat(),
-                        positions=", ".join(_POSITIONS),
-                    )
-                }
-            ]
-        },
+        "systemInstruction": {"parts": system_parts},
         "contents": [{"parts": [{"text": text}]}],
         "generationConfig": {
             "responseMimeType": "application/json",

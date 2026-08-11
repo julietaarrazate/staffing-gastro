@@ -50,8 +50,15 @@ async def query(
     service: ServiceDep,
 ) -> AssistantQueryResponse:
     _assistant_query_rate_limit.check(str(company_id))
+    # P2 (Julieta: "la IA tiene que aprender cosas de cada persona, está muy
+    # genérica"): contexto de turnos anteriores de ESTE comercio, para que
+    # el asistente complete campos que el texto no menciona (puesto más
+    # pedido, horario típico, pago típico) en vez de dejarlos siempre en
+    # null. `None` si no hay suficiente historial — Gemini ignora el bloque
+    # de contexto cuando no se lo mandamos.
+    company_context = await service.build_context_summary(company_id)
     try:
-        result = await interpret_assistant_query(payload.text)
+        result = await interpret_assistant_query(payload.text, company_context)
     except GeminiNotConfiguredError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
