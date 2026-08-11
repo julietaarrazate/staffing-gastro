@@ -17,6 +17,7 @@ from app.core.observability import RequestIdMiddleware, setup_logging, setup_sen
 from app.modules.admin.api.routes import router as admin_router
 from app.modules.admin.bootstrap import promote_configured_admins
 from app.modules.application.api.routes import router as application_router
+from app.modules.assistant.api.routes import router as assistant_router
 from app.modules.chat.api.routes import router as chat_router
 from app.modules.company.api.routes import router as company_router
 from app.modules.favorite.api.routes import router as favorite_router
@@ -108,6 +109,7 @@ app.include_router(worker_router, prefix="/api/v1")
 app.include_router(verification_router, prefix="/api/v1")
 app.include_router(company_router, prefix="/api/v1")
 app.include_router(shift_router, prefix="/api/v1")
+app.include_router(assistant_router, prefix="/api/v1")
 app.include_router(matching_router, prefix="/api/v1")
 app.include_router(matching_search_router, prefix="/api/v1")
 app.include_router(notification_router, prefix="/api/v1")
