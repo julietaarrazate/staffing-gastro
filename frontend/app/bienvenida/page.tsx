@@ -20,7 +20,16 @@
  * nombre real) y la ubicación nunca se pedía de entrada, así que cada turno
  * se publicaba como si el comercio recién apareciera. Mismo criterio que el
  * trabajador: el logo es opcional y se puede saltear (alta fricción, no es
- * indispensable para publicar el primer turno).
+ * indispensable para publicar el primer turno). El nombre sí es obligatorio
+ * (única exigencia real del backend); la ubicación se puede "Cargar después"
+ * desde el paso 2 y completar el perfil solo se guarda con lo que haya.
+ *
+ * Termina en `/shifts` (el panel, con "+ Publicar"/"+ Evento" ya visibles),
+ * no en `/shifts/new` directo — probado en vivo por Julieta con una cuenta
+ * invitada: el botón "Publicar mi primer turno" empujaba a publicar sin
+ * pensar si hacía falta (arriesgando gastar un turno del plan free en una
+ * prueba), y "Volver" sólo daba vueltas entre los dos pasos del onboarding
+ * sin ninguna salida real hacia la app (docs/STATUS.md 2026-08-11).
  *
  * Decisión de producto compartida: no se pide foto/logo a propósito en el
  * primer paso obligatorio. Sacarse o subir una foto es la fricción más alta
@@ -280,33 +289,57 @@ function EmployerOnboarding() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [useManualPicker, setUseManualPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function finish() {
-    if (!token || !name.trim() || latitude === null || longitude === null) return;
+  // `latitude`/`longitude` son opcionales en el backend (sólo `name` es
+  // obligatorio) — permite terminar sin ubicación en vez de dejar al
+  // comercio sin salida del onboarding si no la quiere cargar ahora
+  // (Julieta, prueba en vivo: "volver atrás te hace volver a cómo se llama
+  // tu comercio, pero no va a la app"). Devuelve `false` si falló, para que
+  // cada botón decida cómo reaccionar sin duplicar el guardado.
+  async function save(withLocation: boolean): Promise<boolean> {
+    if (!token || !name.trim()) return false;
     setError(null);
-    setSaving(true);
-    // El perfil todavía no existe (el usuario se acaba de registrar), pero si
-    // entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
     const payload = {
       name: name.trim(),
       logo_url: logoUrl,
-      address: address || null,
-      city: city || null,
-      latitude,
-      longitude,
+      address: withLocation ? address || null : null,
+      city: withLocation ? city || null : null,
+      latitude: withLocation ? latitude : null,
+      longitude: withLocation ? longitude : null,
     };
     try {
+      // El perfil todavía no existe (el usuario se acaba de registrar), pero
+      // si entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
       try {
         await api.post<CompanyProfile>("/companies/me/profile", payload, token);
       } catch {
         await api.put<CompanyProfile>("/companies/me/profile", payload, token);
       }
-      router.replace("/shifts/new");
+      return true;
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos guardar tus datos. Probá de nuevo."));
-      setSaving(false);
+      return false;
     }
+  }
+
+  // Termina el onboarding sin forzar la publicación de un turno — antes
+  // mandaba directo a /shifts/new ("Publicar mi primer turno"), empujando a
+  // publicar sin pensar si hace falta (y gastar un turno del plan free sólo
+  // por curiosidad). El panel (/shifts) ya tiene "+ Publicar"/"+ Evento" bien
+  // visibles para cuando el comercio decida que sí lo necesita.
+  async function finish() {
+    if (latitude === null || longitude === null) return;
+    setSaving(true);
+    if (await save(true)) router.replace("/shifts");
+    else setSaving(false);
+  }
+
+  async function skipLocation() {
+    setSkipping(true);
+    if (await save(false)) router.replace("/shifts");
+    else setSkipping(false);
   }
 
   return (
@@ -405,12 +438,20 @@ function EmployerOnboarding() {
               loading={saving}
               onClick={finish}
             >
-              Publicar mi primer turno
+              Terminar
             </Button>
             <button
               type="button"
+              disabled={skipping}
+              onClick={skipLocation}
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98] disabled:opacity-60"
+            >
+              {skipping ? "Guardando…" : "Cargar la ubicación después"}
+            </button>
+            <button
+              type="button"
               onClick={() => setStep("nombre")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/40 transition active:scale-[0.98]"
             >
               Volver
             </button>

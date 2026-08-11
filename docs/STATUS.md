@@ -5,7 +5,32 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Encontrada la causa real de por qué el
+*Última actualización: 2026-08-11 (**Onboarding del comercio: ya no empuja a
+publicar un turno sin pensarlo, y "Volver" ahora tiene salida real a la
+app.** Julieta, probando en vivo con la cuenta invitada de comercio: "no te
+puede pedir que publiques un turno sin pensar si verdaderamente necesitas y
+gastas del plan free un turno, y volver atrás te hace volver a cómo se llama
+tu comercio, pero no va a la app si querés omitir esos pasos o cargarlos
+después". Dos bugs reales en `EmployerOnboarding` (`frontend/app/bienvenida/
+page.tsx`, del C4 mergeado el día anterior):
+  1. El paso final terminaba en `/shifts/new` ("Publicar mi primer turno"),
+     el wizard de publicar directo — nada frenaba a un comercio que sólo
+     quería cargar su perfil y mirar la app antes de gastar un turno del
+     plan free. Ahora termina en `/shifts` (el panel, con los botones
+     "+ Publicar"/"+ Evento" ya visibles si el comercio decide publicar).
+  2. No había forma de saltear el paso de ubicación ni de salir del
+     onboarding sin completarlo — "Volver" sólo circulaba entre los 2 pasos
+     (nombre ↔ ubicación), nunca afuera. Se sumó "Cargar la ubicación
+     después" en el paso de ubicación: guarda sólo el `name` (único campo
+     obligatorio en `CompanyProfileInput`, backend) con
+     `address`/`city`/`latitude`/`longitude` en `null`, y termina igual en
+     `/shifts` — el comercio completa la ubicación cuando quiera desde su
+     perfil.
+  - Verificado: `tsc --noEmit` limpio, `npm run build` limpio, Playwright
+    54/54 (52 previos + 2 nuevos: el flujo completo actualizado a "termina
+    en el panel" + el nuevo test de "omitir ubicación").
+
+Antes, mismo día: **Encontrada la causa real de por qué el
 asistente de IA no andaba en producción: no era la key, ni el proyecto de
 Google Cloud, ni permisos — Google dejó de dar acceso a `gemini-2.5-flash`
 para cuentas nuevas.** Investigación larga (Julieta reportó "no me deja
