@@ -47,7 +47,10 @@ interface InlineResult {
  *
  * Se oculta en /shifts/new y /shifts/new-event, que ya tienen su propio
  * cuadro de texto+dictado integrado (evita dos entradas para lo mismo en
- * la misma pantalla).
+ * la misma pantalla), y en /bienvenida — el onboarding recién arrancado no
+ * es el momento de ofrecer el asistente (Julieta: "tiene que estar fuera
+ * del onboarding inicial, ya cuando estás adentro podés usarla, si no está
+ * ese botón ahí flotando y queda raro").
  *
  * Ningún intent PUBLICA ni EJECUTA nada solo: crear_turno/crear_evento sólo
  * precargan el wizard correspondiente (el comercio revisa y confirma cada
@@ -67,7 +70,8 @@ export default function AIAssistantFab() {
     (transcript) => setText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500))
   );
 
-  const hiddenOnThisPage = pathname === "/shifts/new" || pathname === "/shifts/new-event";
+  const hiddenOnThisPage =
+    pathname === "/shifts/new" || pathname === "/shifts/new-event" || pathname === "/bienvenida";
   if (user?.role !== "employer" || hiddenOnThisPage) return null;
 
   function reset() {

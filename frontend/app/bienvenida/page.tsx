@@ -31,6 +31,12 @@
  * prueba), y "Volver" sólo daba vueltas entre los dos pasos del onboarding
  * sin ninguna salida real hacia la app (docs/STATUS.md 2026-08-11).
  *
+ * "Omitir por ahora" en el paso 1 (nombre): mismo pedido de Julieta, un paso
+ * más allá — poder saltear el onboarding completo, no sólo la ubicación.
+ * Guarda un nombre placeholder ("Mi comercio", editable después desde el
+ * perfil) en vez de dejar el perfil sin nombre — evita reintroducir el bug
+ * que el `name` obligatorio ya había arreglado (ver párrafo de arriba).
+ *
  * Decisión de producto compartida: no se pide foto/logo a propósito en el
  * primer paso obligatorio. Sacarse o subir una foto es la fricción más alta
  * del alta y es donde más gente abandona.
@@ -290,19 +296,23 @@ function EmployerOnboarding() {
   const [useManualPicker, setUseManualPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  const [skippingAll, setSkippingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // `latitude`/`longitude` son opcionales en el backend (sólo `name` es
   // obligatorio) — permite terminar sin ubicación en vez de dejar al
   // comercio sin salida del onboarding si no la quiere cargar ahora
   // (Julieta, prueba en vivo: "volver atrás te hace volver a cómo se llama
-  // tu comercio, pero no va a la app"). Devuelve `false` si falló, para que
-  // cada botón decida cómo reaccionar sin duplicar el guardado.
-  async function save(withLocation: boolean): Promise<boolean> {
-    if (!token || !name.trim()) return false;
+  // tu comercio, pero no va a la app"). `nameOverride` existe sólo para
+  // `skipAll()`: necesita mandar un nombre placeholder sin esperar a que el
+  // estado de `name` se actualice. Devuelve `false` si falló, para que cada
+  // botón decida cómo reaccionar sin duplicar el guardado.
+  async function save(withLocation: boolean, nameOverride?: string): Promise<boolean> {
+    const finalName = (nameOverride ?? name).trim();
+    if (!token || !finalName) return false;
     setError(null);
     const payload = {
-      name: name.trim(),
+      name: finalName,
       logo_url: logoUrl,
       address: withLocation ? address || null : null,
       city: withLocation ? city || null : null,
@@ -342,6 +352,18 @@ function EmployerOnboarding() {
     else setSkipping(false);
   }
 
+  // Salida completa del onboarding desde el paso 1, sin cargar nada todavía
+  // (Julieta: "tenés que poder omitir el paso del onboarding si querés").
+  // Guarda un nombre placeholder editable ("Mi comercio") en vez de dejar el
+  // perfil sin nombre — evita reintroducir el bug que el onboarding en sí
+  // había arreglado (candidatos viendo "Un comercio cerca tuyo" en vez de un
+  // nombre real, ver docstring del archivo).
+  async function skipAll() {
+    setSkippingAll(true);
+    if (await save(false, name.trim() || "Mi comercio")) router.replace("/shifts");
+    else setSkippingAll(false);
+  }
+
   return (
     <Shell>
       <StepDots active={step === "nombre" ? 0 : 1} total={2} />
@@ -374,10 +396,20 @@ function EmployerOnboarding() {
             />
           </div>
 
-          <div className="mt-auto pt-8">
+          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+
+          <div className="mt-auto flex flex-col gap-2 pt-8">
             <Button fullWidth disabled={!name.trim()} onClick={() => setStep("ubicacion")}>
               Continuar
             </Button>
+            <button
+              type="button"
+              disabled={skippingAll}
+              onClick={skipAll}
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98] disabled:opacity-60"
+            >
+              {skippingAll ? "Guardando…" : "Omitir por ahora"}
+            </button>
           </div>
         </section>
       ) : (

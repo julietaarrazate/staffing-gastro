@@ -186,3 +186,74 @@ test("el comercio puede omitir la ubicación y cargarla después", async ({ page
   expect(saved.latitude).toBeNull();
   expect(saved.longitude).toBeNull();
 });
+
+/**
+ * Un paso más allá de "omitir la ubicación": poder saltear el onboarding
+ * completo desde el paso 1, sin cargar nada (Julieta: "tenés que poder
+ * omitir el paso del onboarding si querés"). Guarda un nombre placeholder
+ * en vez de dejar el perfil sin nombre.
+ */
+test("el comercio puede omitir el onboarding completo desde el paso 1", async ({ page }) => {
+  await skipSplash(page);
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-4",
+        email: "tercer.comercio@staffya.com",
+        full_name: "Tercer Dueño",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  let postedBody: Record<string, unknown> | null = null;
+  await page.route("**/api/v1/companies/me/profile", (route) => {
+    if (route.request().method() === "POST") {
+      postedBody = route.request().postDataJSON();
+      return route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "company-3",
+          user_id: "user-4",
+          name: "Mi comercio",
+          logo_url: null,
+          category: null,
+          description: null,
+          address: null,
+          city: null,
+          latitude: null,
+          longitude: null,
+          capacity: null,
+          opening_hours: null,
+          rating: 0,
+          events_published: 0,
+          on_time_payment_rate: 0,
+        }),
+      });
+    }
+    return route.continue();
+  });
+
+  await page.goto("/bienvenida");
+  await page.getByRole("button", { name: "Omitir por ahora" }).click();
+  await page.waitForURL("**/shifts");
+
+  expect(postedBody).not.toBeNull();
+  const saved = postedBody as unknown as Record<string, unknown>;
+  expect(saved.name).toBe("Mi comercio");
+  expect(saved.latitude).toBeNull();
+  expect(saved.longitude).toBeNull();
+});
