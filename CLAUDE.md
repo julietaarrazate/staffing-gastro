@@ -227,8 +227,14 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 - **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
   `docs/reference/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
   arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).
-- **`docs/planning/PULIDO_ROADMAP.md` batch C3 (confianza/conversión: SEO,
-  skeletons, a11y) sin arrancar.** **C4 (onboarding post-registro) resuelto
+- ~~**`docs/planning/PULIDO_ROADMAP.md` batch C3 (confianza/conversión: SEO,
+  skeletons, a11y) sin arrancar.**~~ **Resuelto 2026-08-11** — esta línea
+  estaba desactualizada: al auditar de nuevo, SEO (sitemap/robots/metadata),
+  estados de error (`EmptyState` con retry) y a11y (F4, `jsx-a11y`) ya
+  estaban hechos por trabajo de otras sesiones; sólo faltaba el skeleton de
+  `/profile` (mostraba un spinner centrado en vez del mismo estilo de
+  skeleton que `/feed`/`/shifts`), ya corregido. Detalle en
+  `docs/planning/PULIDO_ROADMAP.md` §C3. **C4 (onboarding post-registro) resuelto
   para el comercio 2026-08-10** (auditoría de producto, a partir de una
   referencia real que pasó Julieta de otra app del rubro): `/bienvenida`
   ahora también atiende al rol `employer` (antes sólo al `worker`) — 2
