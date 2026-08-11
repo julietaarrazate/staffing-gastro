@@ -5,9 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
-import { SupportTicketDetail, TICKET_CATEGORY_LABELS } from "@/lib/types";
+import { SupportTicketDetail, TicketSuggestion, TICKET_CATEGORY_LABELS } from "@/lib/types";
 import { Badge, Button, CardSkeletons, ErrorBanner, useToast } from "@/components/ui";
-import { ChevronLeftIcon } from "@/components/icons";
+import { ChevronLeftIcon, SparklesIcon } from "@/components/icons";
 
 export default function SupportTicketPage() {
   const { token, user } = useRequireAuth();
@@ -20,6 +20,11 @@ export default function SupportTicketPage() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [closing, setClosing] = useState(false);
+  // Sugerencia interna de IA (sólo admin): resume el ticket y precarga una
+  // respuesta propuesta en el campo de abajo — nunca contesta directo,
+  // siempre queda a mano para revisar/editar antes de mandar.
+  const [suggestion, setSuggestion] = useState<TicketSuggestion | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -50,6 +55,24 @@ export default function SupportTicketPage() {
       toast(getErrorMessage(err, "No se pudo enviar el mensaje"), "error");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function requestAiSuggestion() {
+    if (!token) return;
+    setSuggesting(true);
+    try {
+      const data = await api.post<TicketSuggestion>(
+        `/support/tickets/${params.id}/ai-suggestion`,
+        undefined,
+        token
+      );
+      setSuggestion(data);
+      setReply(data.suggested_reply);
+    } catch (err) {
+      toast(getErrorMessage(err, "No pudimos generar una sugerencia. Respondé a mano."), "error");
+    } finally {
+      setSuggesting(false);
     }
   }
 
@@ -131,6 +154,31 @@ export default function SupportTicketPage() {
 
       {!isClosed || isAdmin ? (
         <form onSubmit={sendReply} className="mt-5 flex flex-col gap-2.5">
+          {isAdmin && (
+            <div className="rounded-[var(--radius-card)] bg-surface p-3.5 ring-1 ring-line">
+              <div className="flex items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
+                  <SparklesIcon size={16} className="text-primary" /> Sugerencia de IA
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="surface"
+                  loading={suggesting}
+                  onClick={requestAiSuggestion}
+                >
+                  {suggestion ? "Regenerar" : "Sugerir"}
+                </Button>
+              </div>
+              {suggestion && (
+                <p className="mt-2 text-sm text-ink/60">{suggestion.summary}</p>
+              )}
+              <p className="mt-1.5 text-xs text-ink/40">
+                Sólo precarga la respuesta de abajo — revisala antes de mandar, nunca le contesta
+                directo al usuario.
+              </p>
+            </div>
+          )}
           <textarea
             value={reply}
             onChange={(e) => setReply(e.target.value)}

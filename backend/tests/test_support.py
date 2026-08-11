@@ -1,11 +1,14 @@
 """Tests de integración del módulo support (tickets de soporte usuario ↔ Oído)."""
 
+import json
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from tests.conftest import auth_headers, login
+from tests.test_gemini_shift_parser import _FakeAsyncClient, configured_gemini  # noqa: F401
 
 pytestmark = pytest.mark.asyncio
 
@@ -198,6 +201,80 @@ async def test_admin_can_filter_tickets_by_status(
         "/api/v1/support/tickets", headers=admin, params={"status": "cerrado"}
     )
     assert any(t["id"] == ticket_id for t in closed_tickets.json())
+
+
+async def test_ai_suggestion_returns_503_when_not_configured(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    worker = await auth_headers(client, "worker", "w_sup_ai1@staffya.com")
+    admin = await _make_admin(client, session_factory, "admin_sup_ai1@staffya.com")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "pagos", "subject": "No me pagaron", "body": "El turno terminó hace 3 días."},
+    )
+    ticket_id = created.json()["id"]
+
+    response = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/ai-suggestion", headers=admin
+    )
+    assert response.status_code == 503
+
+
+async def test_ai_suggestion_returns_summary_and_reply_when_configured(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession], configured_gemini
+):
+    worker = await auth_headers(client, "worker", "w_sup_ai2@staffya.com")
+    admin = await _make_admin(client, session_factory, "admin_sup_ai2@staffya.com")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "pagos", "subject": "No me pagaron", "body": "El turno terminó hace 3 días."},
+    )
+    ticket_id = created.json()["id"]
+
+    _FakeAsyncClient.next_gemini_text = json.dumps(
+        {
+            "summary": "El trabajador no recibió el pago de un turno finalizado hace 3 días.",
+            "suggested_reply": "Hola, gracias por avisarnos — vamos a revisar el pago de tu turno.",
+        }
+    )
+    response = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/ai-suggestion", headers=admin
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "pago" in body["summary"]
+    assert body["suggested_reply"].startswith("Hola")
+
+
+async def test_worker_cannot_request_ai_suggestion(
+    client: AsyncClient, configured_gemini
+):
+    """Es una herramienta interna del admin — un trabajador no la ve ni la usa."""
+    worker = await auth_headers(client, "worker", "w_sup_ai3@staffya.com")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "general", "subject": "Consulta", "body": "¿Cómo cambio mi zona?"},
+    )
+    ticket_id = created.json()["id"]
+
+    response = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/ai-suggestion", headers=worker
+    )
+    assert response.status_code == 403
+
+
+async def test_ai_suggestion_for_missing_ticket_returns_404(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession], configured_gemini
+):
+    admin = await _make_admin(client, session_factory, "admin_sup_ai4@staffya.com")
+    response = await client.post(
+        "/api/v1/support/tickets/00000000-0000-0000-0000-000000000000/ai-suggestion",
+        headers=admin,
+    )
+    assert response.status_code == 404
 
 
 async def test_empty_ticket_body_is_rejected(client: AsyncClient):

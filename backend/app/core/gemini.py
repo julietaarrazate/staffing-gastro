@@ -86,6 +86,77 @@ class ParsedShiftDraft:
     dress_code: str | None
 
 
+_SUPPORT_SYSTEM_INSTRUCTION = """Sos un asistente interno para el equipo de soporte de Oído \
+(marketplace de staffing gastronómico eventual en Argentina). Te paso el asunto, la categoría \
+y la conversación completa de un ticket de soporte. Tu respuesta es SIEMPRE una sugerencia \
+interna que una persona del equipo revisa y edita antes de mandar — nunca le llega directo al \
+usuario. Devolvé:
+- `summary`: 1-2 frases, en español, de qué necesita el usuario (para que la persona de soporte
+  entienda el ticket de un vistazo sin releer todo).
+- `suggested_reply`: una respuesta propuesta, tono cordial y directo, coherente con el resto de
+  la conversación. No inventes políticas, plazos ni montos que no estén en la conversación (ej.
+  reembolsos, tiempos de resolución exactos) — si hace falta algo así, sugerí pedir más info o
+  escalar en vez de prometerlo. No te identifiques como IA en el texto de `suggested_reply` (lo
+  firma la persona de soporte)."""
+
+_SUPPORT_RESPONSE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "summary": {"type": "STRING"},
+        "suggested_reply": {"type": "STRING"},
+    },
+    "required": ["summary", "suggested_reply"],
+}
+
+
+@dataclass(frozen=True)
+class TicketSuggestion:
+    """Sugerencia interna para el admin — nunca se le manda directo al
+    usuario (ver `_SUPPORT_SYSTEM_INSTRUCTION`)."""
+
+    summary: str
+    suggested_reply: str
+
+
+async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> TicketSuggestion:
+    if not settings.gemini_api_key:
+        raise GeminiNotConfiguredError()
+
+    payload = {
+        "systemInstruction": {"parts": [{"text": _SUPPORT_SYSTEM_INSTRUCTION}]},
+        "contents": [
+            {
+                "parts": [
+                    {"text": f"Asunto: {subject}\nCategoría: {category}\n\n{transcript}"}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": _SUPPORT_RESPONSE_SCHEMA,
+        },
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                _GEMINI_URL,
+                params={"key": settings.gemini_api_key},
+                json=payload,
+            )
+            response.raise_for_status()
+            body = response.json()
+        raw = body["candidates"][0]["content"]["parts"][0]["text"]
+        data = json.loads(raw)
+    except Exception as exc:
+        logger.exception("suggest_ticket_reply: falló la llamada a Gemini")
+        raise GeminiRequestError() from exc
+
+    return TicketSuggestion(
+        summary=str(data.get("summary", "")).strip(),
+        suggested_reply=str(data.get("suggested_reply", "")).strip(),
+    )
+
+
 async def parse_shift_text(text: str) -> ParsedShiftDraft:
     if not settings.gemini_api_key:
         raise GeminiNotConfiguredError()
