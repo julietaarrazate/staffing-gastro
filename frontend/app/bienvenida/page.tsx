@@ -60,6 +60,7 @@ import ImageUpload from "@/components/ImageUpload";
 import Logo from "@/components/Logo";
 import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
+import { WelcomeIllustration } from "@/components/illustrations";
 
 export default function BienvenidaPage() {
   const { token, user, loading: authLoading } = useAuth();
@@ -161,6 +162,12 @@ function WorkerOnboarding() {
 
       {step === "zona" ? (
         <section className="mt-8 flex flex-1 flex-col">
+          {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — sólo en
+              el primer paso, como un saludo de bienvenida, no en cada paso
+              del wizard. */}
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+            <WelcomeIllustration size={32} color="#f97316" />
+          </div>
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
             ¿Dónde querés trabajar?
           </h1>
@@ -370,6 +377,11 @@ function EmployerOnboarding() {
 
       {step === "nombre" ? (
         <section className="mt-8 flex flex-1 flex-col">
+          {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — mismo
+              saludo que ve el trabajador en su primer paso. */}
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+            <WelcomeIllustration size={32} color="#f97316" />
+          </div>
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
             ¿Cómo se llama tu comercio?
           </h1>

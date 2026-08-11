@@ -1085,7 +1085,7 @@ Además de §6.3, prohibiciones que salen del negocio:
 | **3.2** | `TYPOGRAPHY_SYSTEM.md` — display elegida y probada | Bloqueado |
 | **3.3** | `COLOR_SYSTEM.md` + `DESIGN_TOKENS.md` | Bloqueado |
 | **3.4** | `ICONOGRAPHY_SYSTEM.md` | Bloqueado |
-| **3.5** | `ILLUSTRATION_SYSTEM.md` + 5 piezas | 🟡 En curso — 3/5 piezas (feed vacío, panel vacío, error/sin conexión) implementadas como primer pase propio en código, `frontend/components/illustrations/`; ver `docs/STATUS.md` 2026-08-11. Faltan bienvenida y turno cubierto — sin lugar de enganche limpio hoy (requieren agregar una pantalla/modal nueva, no sólo reemplazar un ícono existente) |
+| **3.5** | `ILLUSTRATION_SYSTEM.md` + 5 piezas | 🟢 **5/5 piezas** implementadas como primer pase propio en código, `frontend/components/illustrations/`; ver `docs/STATUS.md` 2026-08-11. Bienvenida y turno cubierto necesitaron UI nueva (no sólo reemplazar un ícono): el primer paso de `/bienvenida` (antes sin saludo) y un modal de celebración al confirmar un turno asignado (antes sin feedback de éxito). Falta `ILLUSTRATION_SYSTEM.md` como doc formal y el trazo final de un diseñador — el set actual es placeholder de calidad |
 | **3.6** | `BRAND_GUIDELINES.md` | Bloqueado |
 | **3.7** | `MARKETING_VISUAL_SYSTEM.md` | Bloqueado |
 | **4** | Implementación en producto | Bloqueado |
