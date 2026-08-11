@@ -13,6 +13,7 @@ import ShiftActions from "@/components/ShiftActions";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
+import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import {
   Button,
   CardSkeletons,
@@ -101,6 +102,30 @@ const FAMILY_META: Record<
     emptySubtitle: "Buena señal: todavía no cancelaste ningún turno.",
   },
 };
+
+/** Pedido de Julieta: el comercio no tenía nada parecido al mini-tour que ya
+ * ve el trabajador al aterrizar en el feed por primera vez ("el onboarding
+ * comercio no tiene los popups que te ayudan a conocer la app como en
+ * empleado"). Mismo componente (`GuidedTour`), apuntando a lo mínimo para
+ * entender el panel: cómo publicar, las pestañas por familia de estado (si
+ * ya hay turnos) y dónde buscar candidatos directo. */
+const EMPLOYER_PANEL_TOUR: TourStep[] = [
+  {
+    target: '[data-tour="shifts-publish"]',
+    title: "Publicá tu primer turno",
+    body: "Contanos el puesto, el horario y el pago. Te recomendamos los mejores candidatos disponibles cerca tuyo.",
+  },
+  {
+    target: '[data-tour="shifts-tabs"]',
+    title: "Organizado por estado",
+    body: "Buscando, en marcha, terminados o cancelados — para encontrar cualquier turno de un vistazo.",
+  },
+  {
+    target: '[data-tour="nav-search"]',
+    title: "También podés buscar vos",
+    body: "Si no querés esperar postulaciones, buscá candidatos disponibles directo desde acá.",
+  },
+];
 
 type Action = "publish" | "cancel" | "finish" | "markPaid" | "noShow";
 
@@ -262,6 +287,7 @@ function MyShiftsPanel() {
           </Link>
           <Link
             href="/shifts/new"
+            data-tour="shifts-publish"
             className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
           >
             + Publicar
@@ -315,7 +341,7 @@ function MyShiftsPanel() {
               segmentos con conteo no entran sin achicar el texto a ilegible
               — el `min-w` fuerza el ancho real del control y el contenedor
               scrollea horizontal (mismo patrón que un tab bar nativo). */}
-          <div className="-mx-4 mt-4 overflow-x-auto px-4 no-scrollbar">
+          <div className="-mx-4 mt-4 overflow-x-auto px-4 no-scrollbar" data-tour="shifts-tabs">
             <SegmentedControl<Tab>
               value={tab}
               onChange={setTab}
@@ -434,6 +460,8 @@ function MyShiftsPanel() {
           </Button>
         </div>
       </Modal>
+
+      {!loading && <GuidedTour steps={EMPLOYER_PANEL_TOUR} storageKey="staffya_tour_employer_panel" />}
     </div>
   );
 }

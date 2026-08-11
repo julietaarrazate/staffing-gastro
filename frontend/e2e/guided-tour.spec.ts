@@ -146,3 +146,95 @@ test("saltar el tour lo marca como visto sin terminar los pasos", async ({ page 
   await expect(page.getByText("Así se ven los turnos")).not.toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("staffya_tour_worker_feed"))).toBe("1");
 });
+
+/**
+ * Mismo mini-tour, ahora del lado del comercio (`/shifts`): Julieta, sobre
+ * la auditoría de onboarding — "el onboarding comercio no tiene los popups
+ * que te ayudan a conocer la app como en empleado". 3 globos: publicar,
+ * las pestañas por familia de estado, y buscar candidatos directo.
+ */
+const EMPLOYER = {
+  id: "user-9",
+  email: "tour.comercio@staffya.com",
+  full_name: "Comercio Nuevo",
+  role: "employer",
+  status: "activo",
+  is_active: true,
+  is_verified: true,
+};
+
+async function mockEmployerPanel(page: import("@playwright/test").Page) {
+  await page.route("**/api/v1/auth/me", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPLOYER) })
+  );
+  await page.route("**/api/v1/shifts/me", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          id: "s1",
+          company_id: "c1",
+          position: "mozo",
+          quantity: 1,
+          start_at: "2026-08-15T20:00:00-03:00",
+          end_at: "2026-08-16T02:00:00-03:00",
+          pay_amount: "45000",
+          currency: "ARS",
+          tips: false,
+          meal: false,
+          dress_code: null,
+          urgent: false,
+          address: null,
+          city: "Palermo",
+          latitude: null,
+          longitude: null,
+          title: null,
+          description: null,
+          status: "buscando_personal",
+          worker_profile_id: null,
+          check_in_latitude: null,
+          check_in_longitude: null,
+          check_in_at: null,
+          check_out_latitude: null,
+          check_out_longitude: null,
+          check_out_at: null,
+          paid_at: null,
+          no_show_at: null,
+          last_no_show_worker_profile_id: null,
+          event_id: null,
+          event_name: null,
+          created_at: "2026-08-01T12:00:00-03:00",
+          company_name: null,
+          company_logo_url: null,
+        },
+      ]),
+    })
+  );
+}
+
+test("el tour del panel del comercio recorre publicar, pestañas y buscar", async ({ page }) => {
+  await skipSplash(page);
+  await injectSession(page);
+  await page.addInitScript(() => window.localStorage.removeItem("staffya_tour_employer_panel"));
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockEmployerPanel(page);
+
+  await page.goto("/shifts");
+
+  await expect(page.getByText("Publicá tu primer turno", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+
+  await expect(page.getByText("Organizado por estado")).toBeVisible();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+
+  await expect(page.getByText("También podés buscar vos")).toBeVisible();
+  await page.getByRole("button", { name: "Entendido" }).click();
+
+  await expect(page.getByText("Publicá tu primer turno", { exact: true })).not.toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("staffya_tour_employer_panel"))).toBe("1");
+
+  await page.reload();
+  await expect(page.getByText("Publicá tu primer turno", { exact: true })).not.toBeVisible();
+});
