@@ -5,7 +5,31 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Guided tour para el comercio en
+*Última actualización: 2026-08-11 (**El asistente de IA ya usa el
+historial del propio comercio para completar lo que el pedido no dice.**
+Julieta: "la IA tiene que aprender cosas de cada persona, está muy
+genérica, no hace nada". Alcance elegido entre las opciones propuestas
+(`AskUserQuestion`): contexto del propio comercio, por sesión, sin memoria
+persistente nueva — no "recordar" conversaciones pasadas.
+  - **`AssistantService.build_context_summary`** (nuevo,
+    `assistant/application/services.py`): con 2+ turnos ya publicados por el
+    comercio, arma un resumen en texto plano — puesto más pedido, horario
+    típico (moda de la hora ART de `start_at`), pago típico (mediana), si
+    suele incluir propinas/comida. Con menos de 2 turnos devuelve `None`: no
+    hay señal real de "lo habitual" con un solo dato suelto.
+  - **`interpret_assistant_query`** (`core/gemini.py`) ahora acepta
+    `company_context: str | None` — cuando hay contexto, se lo suma como
+    una SEGUNDA parte de `systemInstruction` (Gemini acepta varias, no hizo
+    falta tocar el prompt base), con la regla explícita de usarlo SÓLO para
+    completar campos de `crear_turno`/`crear_evento` que el texto no
+    menciona — nunca para contradecir lo que el texto sí dice.
+  - `POST /assistant/query` arma el contexto antes de llamar a Gemini
+    (`AssistantService` ya tenía el puerto `ShiftRepository` inyectado, sin
+    dependencia nueva).
+  - Verificado: `pytest` 353/353 (351 previos + 2 nuevos — con/sin
+    suficiente historial), sin cambios de frontend.
+
+Antes, mismo día: **Guided tour para el comercio en
 `/shifts`, paridad con el que ya tenía el trabajador en `/feed`.** Julieta:
 "el onboarding comercio no tiene los popups que te ayudan a conocer la app
 como en empleado". `GuidedTour.tsx` (los globos "coachmarks" de una sola

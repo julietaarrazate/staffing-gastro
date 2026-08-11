@@ -250,3 +250,54 @@ async def test_desconocido_intent_returns_friendly_message(client: AsyncClient, 
     body = response.json()
     assert body["intent"] == "desconocido"
     assert body["message"]
+
+
+async def test_assistant_gets_no_company_context_with_little_history(
+    client: AsyncClient, configured_gemini
+):
+    """P2 (Julieta: "la IA tiene que aprender cosas de cada persona, está
+    muy genérica"): con 0 o 1 turno previo no hay señal real de "lo
+    habitual" — no se manda ningún contexto de más (`_MIN_SHIFTS_FOR_CONTEXT`,
+    `assistant/application/services.py`)."""
+    employer = await _employer_with_company(client, "asst_emp_ctx1@staffya.com")
+    await client.post("/api/v1/shifts", headers=employer, json=_shift_payload())
+
+    _FakeAsyncClient.next_gemini_text = _assistant_json(intent="desconocido")
+    response = await client.post(
+        "/api/v1/assistant/query", headers=employer, json={"text": "necesito personal"}
+    )
+    assert response.status_code == 200
+
+    system_parts = _FakeAsyncClient.last_payload["systemInstruction"]["parts"]
+    assert len(system_parts) == 1
+
+
+async def test_assistant_gets_company_context_with_enough_history(
+    client: AsyncClient, configured_gemini
+):
+    """Con 2+ turnos previos, se le suma a Gemini una segunda parte de
+    `systemInstruction` resumiendo lo habitual de este comercio (puesto más
+    pedido, horario típico, pago típico) — para que complete lo que el
+    texto no dice en vez de dejarlo siempre en null."""
+    employer = await _employer_with_company(client, "asst_emp_ctx2@staffya.com")
+    await client.post("/api/v1/shifts", headers=employer, json=_shift_payload())
+    await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json=_shift_payload(start_at="2026-06-29T20:00:00", end_at="2026-06-30T03:00:00"),
+    )
+
+    _FakeAsyncClient.next_gemini_text = _assistant_json(intent="desconocido")
+    response = await client.post(
+        "/api/v1/assistant/query", headers=employer, json={"text": "necesito personal"}
+    )
+    assert response.status_code == 200
+
+    system_parts = _FakeAsyncClient.last_payload["systemInstruction"]["parts"]
+    assert len(system_parts) == 2
+    context_text = system_parts[1]["text"]
+    assert "mozo" in context_text
+    # `start_at` naive se asume UTC (mismo criterio que el resto del
+    # dominio, ver `_naive`/`core/dt.py`): 20:00 se traduce a las 17:00 ART.
+    assert "17:00hs" in context_text
+    assert "70.000" in context_text
