@@ -40,11 +40,26 @@ const STATUS_COLORS: Record<string, string> = {
   cancelado: "bg-red-50 text-danger-text",
 };
 
-// Estados terminales: la tarjeta entera se atenúa (opacity) para que, en una
-// lista mixta, se note de un vistazo qué turno sigue vivo y cuál ya no. El
-// color del chip (verde/rojo) sigue siendo la señal principal; la opacidad
-// es un refuerzo, no reemplaza el color.
-const TERMINAL_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
+// El turno ya pasó (finalizado/pagado/cancelado): no tiene sentido
+// ofrecerle al trabajador indicaciones para llegar a un turno que ya
+// terminó o que no va a pasar.
+const PAST_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
+
+// La tarjeta entera se atenúa (opacity) para que, en una lista mixta, se
+// note de un vistazo qué turno sigue vivo y cuál ya no. El color del chip
+// (verde/rojo) sigue siendo la señal principal; la opacidad es un refuerzo.
+//
+// OJO: a diferencia de `PAST_STATUSES`, acá "finalizado" (el trabajador ya
+// hizo check-out) NO cuenta — antes sí, y la tarjeta se veía "apagada" apenas
+// terminaba el turno aunque todavía faltara "Marcar como pagado" y calificar
+// (Julieta, 2026-08-11: "eso debería ser un paso final ... recién cuando
+// terminás que quede en ese color"). El look atenuado queda reservado a los
+// dos estados donde ya no queda ninguna acción pendiente: `pagado` (el
+// comercio ya confirmó el pago) y `cancelado`. La calificación sigue siendo
+// opcional a propósito (no bloquea el pago ni el look de "terminado") —
+// forzarla dejaría turnos sin calificar atascados con el look de "algo
+// falta" para siempre.
+const DIMMED_STATUSES = new Set(["cancelado", "pagado"]);
 
 export default function ShiftCard({
   shift,
@@ -58,7 +73,8 @@ export default function ShiftCard({
   children?: React.ReactNode;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
-  const isTerminal = TERMINAL_STATUSES.has(shift.status);
+  const isPast = PAST_STATUSES.has(shift.status);
+  const isDimmed = DIMMED_STATUSES.has(shift.status);
 
   return (
     // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
@@ -77,7 +93,7 @@ export default function ShiftCard({
       // finita en vez de mostrarse completo (bug real con captura, Julieta
       // 2026-07-29). El link de arriba ahora redondea sus propias esquinas.
       className={`no-select rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
-        isTerminal ? "opacity-65 saturate-[0.85]" : ""
+        isDimmed ? "opacity-65 saturate-[0.85]" : ""
       }`}
     >
       {shift.company_name && (
@@ -166,7 +182,7 @@ export default function ShiftCard({
             su propio local, ruido puro (Julieta, 2026-07-29). Se oculta en
             turnos ya terminados/cancelados: no hay nada que agendar de un
             turno que ya pasó. */}
-        {perspective === "worker" && !isTerminal && (
+        {perspective === "worker" && !isPast && (
           <>
             {shift.latitude != null && shift.longitude != null && (
               <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
