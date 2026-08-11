@@ -20,8 +20,8 @@ import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/com
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
-import { CalendarIcon, FlameIcon } from "@/components/icons";
-import { EmptyFeedIllustration } from "@/components/illustrations";
+import { FlameIcon } from "@/components/icons";
+import { EmptyFeedIllustration, ErrorIllustration } from "@/components/illustrations";
 
 /** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
  * corto — al aterrizar en el feed no había nada que explicara cómo se usa.
@@ -293,7 +293,7 @@ export default function WorkerHomePage() {
           </>
         ) : error ? (
           <EmptyState
-            icon={<CalendarIcon size={30} />}
+            icon={<ErrorIllustration color="#f97316" />}
             title="No se pudo cargar"
             subtitle={error}
             primaryAction={{ label: "Reintentar", onClick: load }}
