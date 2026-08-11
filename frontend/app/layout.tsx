@@ -8,6 +8,7 @@ import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import AIAssistantFab from "@/components/AIAssistantFab";
 
 // Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
 // por defecto de toda la app.
@@ -107,6 +108,7 @@ export default function RootLayout({
               <ImpersonationBanner />
               <Navbar />
               <main className="flex-1 pb-20 md:pb-0">{children}</main>
+              <AIAssistantFab />
               <BottomNav />
             </PushPromptProvider>
           </ToastProvider>

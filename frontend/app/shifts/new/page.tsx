@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -18,6 +18,8 @@ import {
   localInputToArgentinaISO,
   shiftDurationMinutes,
 } from "@/lib/datetime";
+import { useVoiceDictation } from "@/lib/use-voice-dictation";
+import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/components/AIAssistantFab";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
@@ -34,26 +36,6 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
-
-// Web Speech API: no tiene tipos oficiales en el DOM lib de TypeScript.
-// Sólo lo mínimo que usamos, para no traer @types/dom-speech-recognition
-// por una sola pantalla.
-interface SpeechRecognitionResultLike {
-  0: { transcript: string };
-}
-interface SpeechRecognitionEventLike {
-  results: ArrayLike<SpeechRecognitionResultLike>;
-}
-interface SpeechRecognitionLike {
-  lang: string;
-  interimResults: boolean;
-  maxAlternatives: number;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
 
 const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
 
@@ -108,50 +90,11 @@ function NewShiftWizard() {
   const [parsingText, setParsingText] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   // Dictado por voz (pedido de Julieta: "es donde más se aprovecha" un
-  // asistente de IA — más rápido hablar el turno que tipearlo). Web Speech
-  // API nativa del navegador: sin costo, sin backend, sin SDK. Sólo Chrome/
-  // Edge/Android la soportan hoy (no Safari/iOS) — se detecta en el cliente
-  // y el botón de micrófono directamente no aparece donde falta.
-  const [listening, setListening] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-
-  useEffect(() => {
-    const w = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionLike;
-      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-    };
-    setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
-    return () => recognitionRef.current?.stop();
-  }, []);
-
-  function toggleDictation() {
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const w = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionLike;
-      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-    };
-    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) return;
-    const recognition = new Ctor();
-    recognition.lang = "es-AR";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript)
-        .join(" ");
-      setDescribeText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500));
-    };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
-  }
+  // asistente de IA — más rápido hablar el turno que tipearlo).
+  const { listening, supported: speechSupported, toggle: toggleDictation } = useVoiceDictation(
+    (transcript) =>
+      setDescribeText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500))
+  );
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): se
   // guarda el id recién publicado y se navega recién cuando el comercio
   // interactúa con la pantalla (no de inmediato), a diferencia del
@@ -197,6 +140,18 @@ function NewShiftWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duplicateId, token]);
 
+  function applyParsedDraft(draft: ParsedShiftDraft) {
+    if (draft.position) setPosition(draft.position);
+    if (draft.start_at) setStartAt(argentinaISOToLocalInput(draft.start_at));
+    if (draft.end_at) setEndAt(argentinaISOToLocalInput(draft.end_at));
+    if (draft.pay_amount) setPayAmount(draft.pay_amount);
+    setTips(draft.tips);
+    setMeal(draft.meal);
+    setUrgent(draft.urgent);
+    if (draft.dress_code) setDressCode(draft.dress_code);
+    toast("Completamos lo que pudimos — revisá cada paso antes de publicar");
+  }
+
   async function parseWithAI() {
     if (!token || !describeText.trim()) return;
     setParseError(null);
@@ -207,21 +162,31 @@ function NewShiftWizard() {
         { text: describeText.trim() },
         token
       );
-      if (draft.position) setPosition(draft.position);
-      if (draft.start_at) setStartAt(argentinaISOToLocalInput(draft.start_at));
-      if (draft.end_at) setEndAt(argentinaISOToLocalInput(draft.end_at));
-      if (draft.pay_amount) setPayAmount(draft.pay_amount);
-      setTips(draft.tips);
-      setMeal(draft.meal);
-      setUrgent(draft.urgent);
-      if (draft.dress_code) setDressCode(draft.dress_code);
-      toast("Completamos lo que pudimos — revisá cada paso antes de publicar");
+      applyParsedDraft(draft);
     } catch (err) {
       setParseError(getErrorMessage(err, "No pudimos interpretar el texto. Completá los datos a mano."));
     } finally {
       setParsingText(false);
     }
   }
+
+  // Handoff del asistente flotante (AIAssistantFab, fuera del wizard): ya
+  // parseó el texto con IA en otra pantalla y nos manda acá con el draft
+  // guardado — lo aplicamos una sola vez al montar y limpiamos el rastro
+  // (storage + querystring) para que un refresh no lo reaplique.
+  useEffect(() => {
+    if (searchParams.get("ai") !== "1") return;
+    const raw = sessionStorage.getItem(AI_SHIFT_DRAFT_STORAGE_KEY);
+    sessionStorage.removeItem(AI_SHIFT_DRAFT_STORAGE_KEY);
+    router.replace("/shifts/new");
+    if (!raw) return;
+    try {
+      applyParsedDraft(JSON.parse(raw) as ParsedShiftDraft);
+    } catch {
+      // Draft corrupto/inesperado: no rompe el wizard, el comercio completa a mano.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function go(next: number) {
     setDir(next > step ? 1 : -1);

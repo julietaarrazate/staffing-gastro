@@ -411,6 +411,13 @@ export interface SupportTicketDetail extends SupportTicket {
   messages: SupportMessage[];
 }
 
+/** Sugerencia interna de IA para un ticket (sólo admin) — nunca se le manda
+ * directo al usuario, sólo precarga el campo de respuesta para revisar. */
+export interface TicketSuggestion {
+  summary: string;
+  suggested_reply: string;
+}
+
 export interface AdminSupportTicket {
   id: string;
   user_id: string;

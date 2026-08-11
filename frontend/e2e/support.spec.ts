@@ -181,6 +181,59 @@ test("el admin lista los tickets y puede responder", async ({ page }) => {
 });
 
 /**
+ * Sugerencia de IA para el admin (pedido de Julieta): resume el ticket y
+ * precarga una respuesta propuesta en el campo de abajo — nunca contesta
+ * directo al usuario, siempre queda a mano para revisar antes de mandar.
+ */
+test("el admin puede pedir una sugerencia de IA y queda precargada para revisar", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, ADMIN_SESSION);
+
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...TICKET,
+        messages: [
+          {
+            id: "msg-1",
+            ticket_id: TICKET.id,
+            sender_user_id: "user-1",
+            body: "Me da error al elegir el archivo.",
+            created_at: "2026-08-10T12:00:00-03:00",
+          },
+        ],
+      }),
+    })
+  );
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}/ai-suggestion`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        summary: "No puede subir el CV, le da error al elegir el archivo.",
+        suggested_reply: "Hola, gracias por avisarnos. ¿Qué formato tiene el archivo?",
+      }),
+    })
+  );
+
+  await page.goto(`/support/${TICKET.id}`);
+  await page.getByRole("button", { name: "Sugerir" }).click();
+
+  await expect(
+    page.getByText("No puede subir el CV, le da error al elegir el archivo.")
+  ).toBeVisible();
+  await expect(page.getByPlaceholder("Escribí tu respuesta...")).toHaveValue(
+    "Hola, gracias por avisarnos. ¿Qué formato tiene el archivo?"
+  );
+});
+
+/**
  * Confusión real de Julieta: abrió un ticket de prueba como trabajador y
  * nunca lo vio "en su perfil de admin" — porque el ítem "Soporte" de
  * `/profile` mandaba a `/support` ("mis tickets", `GET /support/tickets/mine`)
