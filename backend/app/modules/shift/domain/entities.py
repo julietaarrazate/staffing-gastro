@@ -5,10 +5,11 @@ Encapsula los datos del turno y las reglas de transición de estado del
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+from app.core.dt import naive as _naive
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
@@ -21,6 +22,16 @@ from app.modules.shift.domain.value_objects import (
     ShiftStatus,
 )
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+# Cuánto antes del horario pactado se puede marcar llegada. Nada impedía
+# marcar "llegué"/"me fui"/pagado en un turno con `start_at` a días de
+# distancia — el trabajador (o cualquiera probando la app) podía completar
+# el ciclo entero de un turno futuro sin que nadie lo notara (Julieta,
+# 2026-08-11, probando como comercio invitado: "que se pueda poner una
+# fecha a futuro y que pongan como llegué/me fui/pagado si todavía no llegó
+# esa fecha"). `check_out()`/`finish()`/`mark_paid()` no necesitan su propio
+# guard: ya dependen de haber pasado por `check_in()` primero.
+EARLY_CHECKIN_WINDOW = timedelta(minutes=30)
 
 
 @dataclass
@@ -252,10 +263,16 @@ class Shift:
             raise InvalidShiftTransitionError(
                 f"No se puede marcar llegada desde el estado {self.status.value}"
             )
+        now = datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at) - EARLY_CHECKIN_WINDOW:
+            raise InvalidShiftTransitionError(
+                "Todavía no se puede marcar llegada: el turno empieza el "
+                f"{self.start_at.isoformat()}."
+            )
         self.status = ShiftStatus.CHECK_IN
         self.check_in_latitude = latitude
         self.check_in_longitude = longitude
-        self.check_in_at = datetime.now(timezone.utc)
+        self.check_in_at = now
 
     def start_working(self) -> None:
         """CHECK_IN → TRABAJANDO: el trabajador empieza su turno.

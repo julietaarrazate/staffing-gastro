@@ -153,6 +153,47 @@ async def test_check_in_still_works_after_legacy_depart(client: AsyncClient):
     assert response.status_code == 200
 
 
+async def test_check_in_blocked_days_before_the_shift(client: AsyncClient):
+    """Julieta, probando como comercio invitado: se podía marcar "llegué"
+    (y de ahí, "me fui"/pagado) en un turno con `start_at` a días de
+    distancia — nada comparaba contra la fecha real pactada."""
+    future_start = (datetime.now(timezone.utc) + timedelta(days=3)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "att_emp_future@staffya.com",
+        "att_w_future@staffya.com",
+        start_at=future_start.isoformat(),
+        end_at=(future_start + timedelta(hours=6)).isoformat(),
+    )
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    assert response.status_code == 400
+    assert "todavía" in response.json()["detail"].lower()
+
+
+async def test_check_in_allowed_shortly_before_the_shift(client: AsyncClient):
+    """La ventana de 30 minutos antes del horario pactado sigue permitiendo
+    la llegada anticipada real (no sólo exacta al segundo)."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=10)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "att_emp_soon@staffya.com",
+        "att_w_soon@staffya.com",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "check_in"
+
+
 async def test_check_out_directly_from_check_in(client: AsyncClient):
     """Mismo criterio que el check-in: `check_out()` va directo desde
     CHECK_IN, sin exigir `start_working()` (TRABAJANDO) primero."""
