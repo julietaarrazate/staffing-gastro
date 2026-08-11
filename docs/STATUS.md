@@ -5,7 +5,24 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Onboarding del comercio: ya no empuja a
+*Última actualización: 2026-08-11 (**Tarjeta de turno: el look "atenuado"
+(opacity, como deshabilitado) ya no aparece apenas el trabajador hace
+check-out.** Julieta, sobre una captura real de un turno "Finalizado" con
+"Falta registrar el pago" todavía visible: "cuando cerrás el turno, queda en
+ese color como inhabilitado, pero eso debería ser un paso final, primero
+poner pagado, la reseña, etc, y recién cuando terminás que quede en ese
+color". `ShiftCard.tsx` tenía un solo set `TERMINAL_STATUSES` (cancelado/
+finalizado/pagado) para dos cosas distintas: atenuar la tarjeta entera Y
+ocultarle al trabajador el mapa/"Cómo llegar" de un turno que ya pasó. Se
+separaron: `DIMMED_STATUSES` (pagado/cancelado — ya no queda ninguna acción
+pendiente) controla el look atenuado; `PAST_STATUSES` (+finalizado) sigue
+controlando el mapa, sin cambios ahí. La calificación queda afuera a
+propósito (es opcional, forzarla dejaría turnos sin calificar atascados con
+el look de "algo falta" para siempre) — sólo el pago, que sí es una acción
+real y rastreada, gatilla el look de "terminado". Verificado: `tsc`/Playwright
+53/53 sin regresiones.
+
+Antes, mismo día: **Onboarding del comercio: ya no empuja a
 publicar un turno sin pensarlo, y "Volver" ahora tiene salida real a la
 app.** Julieta, probando en vivo con la cuenta invitada de comercio: "no te
 puede pedir que publiques un turno sin pensar si verdaderamente necesitas y
