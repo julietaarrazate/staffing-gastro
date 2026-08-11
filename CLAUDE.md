@@ -233,11 +233,16 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
   referencia real que pasó Julieta de otra app del rubro): `/bienvenida`
   ahora también atiende al rol `employer` (antes sólo al `worker`) — 2
   pasos, nombre+logo (logo opcional, misma regla de fricción que la foto
-  del trabajador) y ubicación (reusa `MapAddressPicker`, ADR-0006), y
-  termina en `/shifts/new` en vez de en un panel vacío. Antes, el comercio
-  caía directo en `/shifts` sin haber cargado nada — los candidatos veían
-  "Un comercio cerca tuyo" en vez del nombre real. Ver
-  `frontend/app/bienvenida/page.tsx`.
+  del trabajador) y ubicación (reusa `MapAddressPicker`, ADR-0006). Antes,
+  el comercio caía directo en `/shifts` sin haber cargado nada — los
+  candidatos veían "Un comercio cerca tuyo" en vez del nombre real. Ver
+  `frontend/app/bienvenida/page.tsx`. **Corregido 2026-08-11** (Julieta,
+  prueba en vivo con cuenta invitada): terminaba en `/shifts/new` directo
+  ("Publicar mi primer turno"), empujando a publicar sin pensar si hacía
+  falta, y "Volver" sólo daba vueltas entre los 2 pasos sin salida real a
+  la app. Ahora termina en `/shifts` (el panel, con "+ Publicar"/
+  "+ Evento" visibles) y el paso de ubicación suma "Cargar la ubicación
+  después" (sólo `name` es obligatorio en el backend).
 - Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: `npm run lint` fuera de CI
   (~20 errores/10 warnings baseline), formularios con `<input>` crudo en 4
   pantallas (F1). (Corregido 2026-08-09: las dos líneas que decían "no-show
