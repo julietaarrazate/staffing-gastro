@@ -58,8 +58,20 @@ class PlatformStats:
     no_show_sample_size: int
     no_show_rate_pct: float | None
 
-    worker_repeat_sample_size: int
-    worker_repeat_rate_pct: float | None
+    # OJO al leer: NO es "% de trabajadores que vuelven a usar Oído"
+    # (retención/login) — mide, entre los trabajadores que alguna vez
+    # COMPLETARON un turno (ciclo entero: confirmar→check-in→check-out→
+    # finalizar), qué % completó un segundo. Un trabajador que se postuló
+    # 10 veces y nunca fue elegido NO entra en el denominador (no cuenta
+    # como "no repite": queda directamente afuera de la muestra). Ver
+    # docs/audits/ETAPA1_QUALITY_REVIEW.md §1.4 para la definición completa
+    # y por qué se renombró desde `worker_repeat_rate`.
+    worker_completion_repeat_sample_size: int
+    worker_completion_repeat_rate_pct: float | None
 
+    # Más cercana a "recurrencia de uso" que la de arriba: `events_published`
+    # se incrementa en CADA publicación (no requiere que el turno se cubra),
+    # así que el denominador es "comercios que publicaron >=1 vez" — más
+    # inclusivo que el de trabajadores. Igual sin ventana temporal (all-time).
     employer_repeat_sample_size: int
     employer_repeat_rate_pct: float | None

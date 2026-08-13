@@ -53,8 +53,8 @@ class PlatformStatsResponse(BaseModel):
     no_show_sample_size: int
     no_show_rate_pct: float | None
 
-    worker_repeat_sample_size: int
-    worker_repeat_rate_pct: float | None
+    worker_completion_repeat_sample_size: int
+    worker_completion_repeat_rate_pct: float | None
 
     employer_repeat_sample_size: int
     employer_repeat_rate_pct: float | None

@@ -274,9 +274,13 @@ async def _run_shift_to_finish(
     await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=employer)
 
 
-async def test_admin_stats_no_show_rate_and_worker_repeat_rate(client, session_factory):
-    """`no_show_rate`/`worker_repeat_rate`: un trabajador completa 2 turnos
-    (recurrente, sin no-shows) y otro tiene un no-show en su único turno."""
+async def test_admin_stats_no_show_rate_and_worker_completion_repeat_rate(
+    client, session_factory
+):
+    """`no_show_rate`/`worker_completion_repeat_rate`: un trabajador completa
+    2 turnos (repite COMPLETACIÓN, sin no-shows) y otro tiene un no-show en
+    su único turno (nunca completa nada -> no entra en la muestra de repeat,
+    ver docs/audits/ETAPA1_QUALITY_REVIEW.md §1.4)."""
     admin = await _make_admin(client, session_factory, "admin_repeat_w@test.com")
     employer = await _employer_with_company(client, "emp_repeat_w@test.com")
 
@@ -318,8 +322,8 @@ async def test_admin_stats_no_show_rate_and_worker_repeat_rate(client, session_f
     # 2 trabajadores con >=1 evento (el recurrente + el no-show cuenta sólo
     # si tiene >=1 *completado*, no aplica acá) -> sólo el recurrente cuenta
     # para el numerador (events_completed=2 >= 2).
-    assert body["worker_repeat_sample_size"] == 1
-    assert body["worker_repeat_rate_pct"] == pytest.approx(100.0, abs=1)
+    assert body["worker_completion_repeat_sample_size"] == 1
+    assert body["worker_completion_repeat_rate_pct"] == pytest.approx(100.0, abs=1)
 
 
 async def test_admin_suspends_and_activates_user(client, session_factory):

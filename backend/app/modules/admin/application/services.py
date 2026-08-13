@@ -118,8 +118,8 @@ class AdminService:
             ),
             no_show_sample_size=no_show_sample_size,
             no_show_rate_pct=_rate_pct(worker_stats.no_shows_total, no_show_sample_size),
-            worker_repeat_sample_size=worker_stats.workers_with_1plus_events,
-            worker_repeat_rate_pct=_rate_pct(
+            worker_completion_repeat_sample_size=worker_stats.workers_with_1plus_events,
+            worker_completion_repeat_rate_pct=_rate_pct(
                 worker_stats.workers_with_2plus_events, worker_stats.workers_with_1plus_events
             ),
             employer_repeat_sample_size=company_stats.companies_with_1plus_shifts,

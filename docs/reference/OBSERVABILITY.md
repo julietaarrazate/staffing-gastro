@@ -62,10 +62,17 @@ producto que se construyeron encima) en
 >    `GET /admin/stats` ya expone `avg_time_to_fill_minutes`/
 >    `pct_filled_under_10_min` (tiempo a cubrir, meta < 10 min) y, desde esta
 >    fecha, `shift_fill_rate_pct`, `application_to_acceptance_rate_pct`,
->    `no_show_rate_pct`, `worker_repeat_rate_pct`, `employer_repeat_rate_pct`
->    — todas derivadas de columnas ya existentes (sin tabla nueva). Falta
->    latencia de endpoints y tasa de error (fuera de alcance de esta ronda:
->    requeriría un middleware de timing, no cubierto todavía).
+>    `no_show_rate_pct`, `worker_completion_repeat_rate_pct`,
+>    `employer_repeat_rate_pct` — todas derivadas de columnas ya existentes
+>    (sin tabla nueva). Ver
+>    [`docs/audits/ETAPA1_QUALITY_REVIEW.md`](../audits/ETAPA1_QUALITY_REVIEW.md)
+>    para la definición exacta de cada una (numerador/denominador/qué queda
+>    afuera) — 4 de las 5 miden con precisión lo que su nombre sugiere;
+>    `shift_fill_rate_pct` mide "encontró candidato alguna vez", no
+>    "terminó cubierto exitosamente" (hallazgo abierto, sin resolver
+>    todavía). Falta latencia de endpoints y tasa de error (fuera de
+>    alcance de esta ronda: requeriría un middleware de timing, no
+>    cubierto todavía).
 > 3. **Alertas propias** sobre el healthcheck y sobre errores capturados por
 >    Sentry (hoy, sin `SENTRY_DSN` configurado en producción, no hay alerta
 >    activa más allá del monitor externo de uptime que ya existe — ver nota
