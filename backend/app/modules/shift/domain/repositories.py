@@ -2,11 +2,38 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+
+@dataclass
+class ShiftPublicationStats:
+    """Conteos agregados de `shifts` para `shift_assignment_rate`/
+    `shift_completion_rate` (panel de admin) — dos métricas DISTINTAS a
+    propósito (docs/audits/ETAPA1_QUALITY_REVIEW.md §1.1):
+
+    - `assigned`: turnos que alguna vez tuvieron `first_assigned_at` seteado
+      (mismo criterio que `time_to_cover`/`list_recently_filled` — "el
+      matching encontró a alguien", sin importar qué pasó después: un turno
+      asignado→no-show→cancelado cuenta acá).
+    - `completed`: turnos cuyo `status` ACTUAL es `FINALIZADO` o `PAGADO`
+      (`Shift.finish()`/`Shift.mark_paid()`, estados ya existentes del
+      dominio — ningún estado nuevo). Mide cobertura real de punta a punta.
+
+    La brecha entre `assigned/published` y `completed/published` es la
+    señal útil: cuánto de lo "encontrado" efectivamente se trabajó.
+    Calculado con `SUM(CASE...)` en SQL (mismo patrón que `UserCounts` de
+    identity), no trayendo filas a Python. Reutiliza `published_at`/
+    `first_assigned_at`/`status` (todas ya existentes) — sin columnas
+    nuevas, sin migración."""
+
+    published: int
+    assigned: int
+    completed: int
 
 
 class ShiftRepository(ABC):
@@ -102,3 +129,8 @@ class ShiftRepository(ABC):
         decidir —comparando `published_at` en Python, mismo criterio que el
         resto de los chequeos del scheduler— si ya toca escalar la urgencia
         (`ShiftService.escalate_urgency`)."""
+
+    @abstractmethod
+    async def count_publication_stats(self) -> ShiftPublicationStats:
+        """Cuenta turnos publicados y turnos cubiertos (`shift_fill_rate`,
+        panel de admin) — agregado en SQL, no una lista de filas."""

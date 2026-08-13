@@ -155,6 +155,230 @@ async def test_admin_stats_compute_coverage_metric(client, session_factory):
     assert body["pct_filled_under_10_min"] == pytest.approx(50.0, abs=1)
 
 
+PALERMO = {"latitude": -34.58, "longitude": -58.43}
+
+
+async def test_admin_stats_shift_assignment_rate_and_application_acceptance(
+    client, session_factory
+):
+    """`shift_assignment_rate`/`application_to_acceptance_rate`
+    (docs/audits/ETAPA1_QUALITY_REVIEW.md §1.1/§1.2): sobre 2 turnos
+    publicados con 2 postulaciones en total, sólo 1 termina asignado/aceptado."""
+    admin = await _make_admin(client, session_factory, "admin_fill@test.com")
+    employer = await _employer_with_company(client, "emp_fill@test.com")
+
+    # Turno 1: se publica, recibe una postulación y se asigna (pero NO se
+    # completa el ciclo — sigue ASIGNADO). Cuenta para assignment, no para
+    # completion (ver test de más abajo para el caso que sí completa).
+    created1 = await client.post(
+        "/api/v1/shifts", headers=employer, json=_shift_payload()
+    )
+    shift1_id = created1.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift1_id}/publish", headers=employer)
+    worker1, worker1_profile_id = await _worker_with_profile(client, "w_fill1@test.com")
+    await client.post(f"/api/v1/applications/shifts/{shift1_id}", headers=worker1)
+    await client.post(
+        f"/api/v1/shifts/{shift1_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker1_profile_id},
+    )
+
+    # Turno 2: se publica y recibe una postulación, pero NUNCA se asigna
+    # (queda abierto) — no cuenta como asignado ni como aceptado.
+    created2 = await client.post(
+        "/api/v1/shifts", headers=employer, json=_shift_payload()
+    )
+    shift2_id = created2.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift2_id}/publish", headers=employer)
+    worker2, _ = await _worker_with_profile(client, "w_fill2@test.com")
+    await client.post(f"/api/v1/applications/shifts/{shift2_id}", headers=worker2)
+
+    stats = await client.get("/api/v1/admin/stats", headers=admin)
+    body = stats.json()
+    assert body["shift_assignment_rate_sample_size"] == 2
+    assert body["shift_assignment_rate_pct"] == pytest.approx(50.0, abs=1)
+    assert body["application_acceptance_sample_size"] == 2
+    assert body["application_to_acceptance_rate_pct"] == pytest.approx(50.0, abs=1)
+
+
+async def test_admin_stats_shift_completion_rate_differs_from_assignment_rate(
+    client, session_factory
+):
+    """`shift_completion_rate` != `shift_assignment_rate`: un turno puede
+    asignarse y nunca completarse (no-show, se cancela) — sólo el que
+    termina FINALIZADO/PAGADO cuenta como "completion" (docs/audits/
+    ETAPA1_QUALITY_REVIEW.md §1.1 — el hallazgo que motivó separar las 2
+    métricas)."""
+    admin = await _make_admin(client, session_factory, "admin_completion@test.com")
+    employer = await _employer_with_company(client, "emp_completion@test.com")
+
+    # Turno A: se asigna, el trabajador nunca se presenta -> no-show ->
+    # el comercio termina cancelándolo. Cuenta para "assigned", NUNCA para
+    # "completed".
+    created_a = await client.post(
+        "/api/v1/shifts", headers=employer, json=_shift_payload()
+    )
+    shift_a_id = created_a.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_a_id}/publish", headers=employer)
+    worker_a = await auth_headers(client, "worker", "w_completion_a@test.com")
+    profile_a = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=worker_a,
+        json={"skills": ["mozo"], "is_available": True, **PALERMO},
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_a_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": profile_a.json()["id"]},
+    )
+    await client.post(f"/api/v1/shifts/{shift_a_id}/confirm", headers=worker_a)
+    await client.post(f"/api/v1/shifts/{shift_a_id}/no-show", headers=employer)
+    await client.post(f"/api/v1/shifts/{shift_a_id}/cancel", headers=employer)
+
+    # Turno B: ciclo completo hasta FINALIZADO -> cuenta para "assigned" Y
+    # para "completed".
+    worker_b, worker_b_id = await _worker_with_profile_palermo(
+        client, "w_completion_b@test.com"
+    )
+    await _run_shift_to_finish(client, employer, worker_b, worker_b_id)
+
+    stats = await client.get("/api/v1/admin/stats", headers=admin)
+    body = stats.json()
+    # published = 2 (A, B). assigned = 2 (A se asignó una vez aunque luego
+    # se canceló; B se asignó y completó). completed = 1 (sólo B).
+    assert body["shift_assignment_rate_sample_size"] == 2
+    assert body["shift_assignment_rate_pct"] == pytest.approx(100.0, abs=1)
+    assert body["shift_completion_rate_sample_size"] == 2
+    assert body["shift_completion_rate_pct"] == pytest.approx(50.0, abs=1)
+
+
+async def test_admin_stats_employer_repeat_rate(client, session_factory):
+    """`employer_repeat_rate`: un comercio que publica 2+ turnos cuenta como
+    "recurrente"; uno que publica sólo 1, no."""
+    admin = await _make_admin(client, session_factory, "admin_repeat_emp@test.com")
+    repeat_employer = await _employer_with_company(client, "emp_repeat@test.com")
+    once_employer = await _employer_with_company(client, "emp_once@test.com")
+
+    for _ in range(2):
+        created = await client.post(
+            "/api/v1/shifts", headers=repeat_employer, json=_shift_payload()
+        )
+        await client.post(
+            f"/api/v1/shifts/{created.json()['id']}/publish", headers=repeat_employer
+        )
+    created_once = await client.post(
+        "/api/v1/shifts", headers=once_employer, json=_shift_payload()
+    )
+    await client.post(
+        f"/api/v1/shifts/{created_once.json()['id']}/publish", headers=once_employer
+    )
+
+    stats = await client.get("/api/v1/admin/stats", headers=admin)
+    body = stats.json()
+    assert body["employer_repeat_sample_size"] == 2  # 2 comercios con >=1 turno
+    assert body["employer_repeat_rate_pct"] == pytest.approx(50.0, abs=1)  # 1 de 2 repite
+
+
+async def _worker_with_profile_palermo(
+    client: AsyncClient, email: str
+) -> tuple[dict, str]:
+    headers = await auth_headers(client, "worker", email)
+    profile = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=headers,
+        json={"skills": ["mozo"], "is_available": True, **PALERMO},
+    )
+    return headers, profile.json()["id"]
+
+
+async def _run_shift_to_finish(
+    client: AsyncClient, employer: dict, worker_headers: dict, worker_profile_id: str
+) -> None:
+    """Ciclo completo turno->finalizado (mismo patrón que
+    `test_full_shift_lifecycle.py`), para poblar `events_completed`.
+
+    Recibe un trabajador ya registrado (no lo crea) para poder llamarse
+    varias veces con el MISMO trabajador (turnos repetidos) sin pisar su
+    perfil, que sólo se puede crear una vez por usuario."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    payload = _shift_payload(
+        start_at=now.isoformat(),
+        end_at=(now + timedelta(hours=5)).isoformat(),
+        **PALERMO,
+    )
+    created = await client.post("/api/v1/shifts", headers=employer, json=payload)
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers)
+    await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in", headers=worker_headers, json=PALERMO
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/start-working", headers=worker_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/check-out", headers=worker_headers, json=PALERMO
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=employer)
+
+
+async def test_admin_stats_no_show_rate_and_worker_completion_repeat_rate(
+    client, session_factory
+):
+    """`no_show_rate`/`worker_completion_repeat_rate`: un trabajador completa
+    2 turnos (repite COMPLETACIÓN, sin no-shows) y otro tiene un no-show en
+    su único turno (nunca completa nada -> no entra en la muestra de repeat,
+    ver docs/audits/ETAPA1_QUALITY_REVIEW.md §1.4)."""
+    admin = await _make_admin(client, session_factory, "admin_repeat_w@test.com")
+    employer = await _employer_with_company(client, "emp_repeat_w@test.com")
+
+    repeat_worker, repeat_worker_id = await _worker_with_profile_palermo(
+        client, "w_repeat1@test.com"
+    )
+    await _run_shift_to_finish(client, employer, repeat_worker, repeat_worker_id)
+    await _run_shift_to_finish(client, employer, repeat_worker, repeat_worker_id)
+
+    # Trabajador con un no-show: asignado y confirmado, pero nunca hace check-in.
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    ns_payload = _shift_payload(
+        start_at=now.isoformat(), end_at=(now + timedelta(hours=5)).isoformat(), **PALERMO
+    )
+    created = await client.post("/api/v1/shifts", headers=employer, json=ns_payload)
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+    ns_worker = await auth_headers(client, "worker", "w_noshow@test.com")
+    ns_profile = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=ns_worker,
+        json={"skills": ["mozo"], "is_available": True, **PALERMO},
+    )
+    ns_profile_id = ns_profile.json()["id"]
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=ns_worker)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": ns_profile_id},
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=ns_worker)
+    await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)
+
+    stats = await client.get("/api/v1/admin/stats", headers=admin)
+    body = stats.json()
+    # denominador = events_completed(2) + cancellations(0) + no_shows(1) = 3
+    assert body["no_show_sample_size"] == 3
+    assert body["no_show_rate_pct"] == pytest.approx(33.33, abs=1)
+    # 2 trabajadores con >=1 evento (el recurrente + el no-show cuenta sólo
+    # si tiene >=1 *completado*, no aplica acá) -> sólo el recurrente cuenta
+    # para el numerador (events_completed=2 >= 2).
+    assert body["worker_completion_repeat_sample_size"] == 1
+    assert body["worker_completion_repeat_rate_pct"] == pytest.approx(100.0, abs=1)
+
+
 async def test_admin_suspends_and_activates_user(client, session_factory):
     admin = await _make_admin(client, session_factory, "admin@test.com")
     await auth_headers(client, "worker", "target@test.com")
