@@ -44,6 +44,13 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - name: Instalar dependencias
         run: pip install -r requirements.txt
+      - name: Actualizar pip/setuptools del venv
+        # setuptools/pip vienen bundleados con el venv (no están en
+        # requirements.txt — no son dependencias de la app) pero pip-audit
+        # los audita igual por default. El runner trae setuptools 79.0.1
+        # con un CVE conocido (PYSEC-2026-3447); esto es sólo el toolchain
+        # de build de CI, no algo que se despliegue.
+        run: pip install --upgrade pip setuptools
       - name: pip-audit
         run: |
           pip install pip-audit
