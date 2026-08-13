@@ -208,7 +208,15 @@ def _setup_in_memory_db():
 
     import asyncio
 
-    asyncio.get_event_loop().run_until_complete(_create_schema())
+    # `asyncio.run()`, no `get_event_loop().run_until_complete()`: este
+    # helper es sync (lo llaman tests deliberadamente no-async, con el
+    # `TestClient` sync de Starlette para `websocket_connect`) y corre
+    # después de tests async en el mismo módulo — con pytest-asyncio 1.x
+    # ya no queda un loop "ambiente" seteado en el hilo principal entre
+    # tests, así que `get_event_loop()` sin loop activo revienta con
+    # "There is no current event loop in thread". `asyncio.run()` crea y
+    # cierra su propio loop, sin depender de estado dejado por otro test.
+    asyncio.run(_create_schema())
     app.dependency_overrides[get_session] = override_get_session
 
 

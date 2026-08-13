@@ -149,7 +149,7 @@ def _resolve_existing(existing: IdempotencyKeyModel, fingerprint: str) -> None:
     respuesta guardada."""
     if existing.request_fingerprint != fingerprint:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Esta Idempotency-Key ya se usó con un pedido distinto",
         )
     if existing.response_status is not None:

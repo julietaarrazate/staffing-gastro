@@ -93,7 +93,7 @@ async def submit_my_document(
         ) from exc
     except EvidenceRequiredError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Necesitás subir el DNI y la selfie",
         ) from exc
     summary = await service.get_identity_summary(current_user.id)

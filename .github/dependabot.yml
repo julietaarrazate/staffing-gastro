@@ -1,0 +1,23 @@
+# Dependabot: alertas + PRs automáticos de actualización de dependencias.
+# Antes de esto, la única corrida de pip-audit/npm audit del repo fue manual
+# y una sola vez (docs/STATUS.md 2026-08-02) — sin esto un CVE nuevo no se
+# detecta hasta que alguien lo busca a mano (ver DUE_DILIGENCE_REPORT.md C4).
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

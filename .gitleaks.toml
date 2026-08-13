@@ -1,0 +1,17 @@
+# Config de gitleaks (ver .github/workflows/security.yml). Extiende el
+# ruleset default sin reemplazarlo — sólo agrega un allowlist puntual para
+# el único falso positivo real encontrado al correrlo por primera vez
+# (2026-08-13) contra las 422 commits del historial.
+title = "Staffya gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = '''Password dummy de test (backend/tests/test_google_auth.py) — literal en español ("cualquier-cosa-123") usado para probar que una cuenta creada sólo por Google OAuth rechaza login con password. No es un secreto real, nunca funcionó como credencial de nada.'''
+paths = [
+  '''backend/tests/test_google_auth\.py''',
+]
+regexes = [
+  '''cualquier-cosa-123''',
+]
