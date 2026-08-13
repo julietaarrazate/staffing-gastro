@@ -70,7 +70,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # jsdom 30 (Vitest, T2) exige Node ^22.22.2 || ^24.15.0 || >=26 —
           # Node 20 rompe en runtime ("webidl.util.markAsUncloneable is not
@@ -97,7 +97,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22" # misma versión que el job frontend (jsdom 30)
           cache: npm
