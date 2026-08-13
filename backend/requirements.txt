@@ -1,5 +1,10 @@
 # --- Core ---
-fastapi==0.115.6
+# fastapi/starlette: pineados al mínimo que resuelve las 6 CVEs de starlette
+# encontradas por pip-audit (2026-08-13, ver DUE_DILIGENCE_REPORT.md C4) —
+# 0.115.6 permitía starlette<0.42.0 (0.41.3 instalada, vulnerable); hace
+# falta cruzar a la serie 1.x de starlette para tener los fixes, lo que
+# exige fastapi>=0.135.0 (0.130.0 todavía tope-a en starlette<1.0.0).
+fastapi==0.141.1
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.1
@@ -20,8 +25,9 @@ python-multipart==0.0.32
 pywebpush==2.3.0
 
 # --- Tests ---
-pytest==8.3.4
-pytest-asyncio==0.25.0
+# pytest: pineado a 9.0.3+ (fix de PYSEC-2026-1845, ver DUE_DILIGENCE_REPORT.md C4).
+pytest==9.1.1
+pytest-asyncio==1.4.0
 httpx==0.28.1
 aiosqlite==0.20.0
 sentry-sdk[fastapi]==2.19.2

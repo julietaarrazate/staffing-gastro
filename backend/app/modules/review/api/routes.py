@@ -88,7 +88,7 @@ async def submit_review(
         ) from exc
     except InvalidRatingError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="La calificación debe ser entre 1 y 5",
         ) from exc
     response = ReviewResponse.model_validate(review)

@@ -73,7 +73,7 @@ async def create_ticket(
         )
     except EmptyMessageError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El asunto y el mensaje no pueden estar vacíos",
         ) from exc
     return ticket
@@ -192,7 +192,7 @@ async def send_message(
         ) from exc
     except EmptyMessageError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El mensaje no puede estar vacío",
         ) from exc
 
