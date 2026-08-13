@@ -2,11 +2,25 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+
+@dataclass
+class ShiftPublicationStats:
+    """Conteos agregados de `shifts` para `shift_fill_rate` (panel de admin).
+
+    Calculado con `SUM(CASE...)` en SQL (mismo patrón que `UserCounts` de
+    identity), no trayendo filas a Python. Reutiliza `published_at`/
+    `first_assigned_at` (migración 0020, ya usados por `list_recently_filled`
+    para `time_to_cover`) — sin columnas nuevas."""
+
+    published: int
+    filled: int
 
 
 class ShiftRepository(ABC):
@@ -102,3 +116,8 @@ class ShiftRepository(ABC):
         decidir —comparando `published_at` en Python, mismo criterio que el
         resto de los chequeos del scheduler— si ya toca escalar la urgencia
         (`ShiftService.escalate_urgency`)."""
+
+    @abstractmethod
+    async def count_publication_stats(self) -> ShiftPublicationStats:
+        """Cuenta turnos publicados y turnos cubiertos (`shift_fill_rate`,
+        panel de admin) — agregado en SQL, no una lista de filas."""

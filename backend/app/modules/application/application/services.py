@@ -1,5 +1,6 @@
 """Casos de uso del módulo application (postulación del trabajador a un turno)."""
 
+import logging
 from uuid import UUID
 
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
@@ -18,6 +19,8 @@ from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import OPEN_STATUSES
 from app.modules.worker.domain.repositories import WorkerProfileRepository
+
+logger = logging.getLogger(__name__)
 
 
 class ApplicationService:
@@ -60,6 +63,10 @@ class ApplicationService:
 
         application = await self._applications.add(
             ShiftApplication(shift_id=shift_id, worker_profile_id=worker_profile_id)
+        )
+        logger.info(
+            "application.submitted",
+            extra={"shift_id": str(shift_id), "worker_profile_id": str(worker_profile_id)},
         )
 
         company = await self._companies.get_by_id(shift.company_id)
@@ -138,4 +145,12 @@ class ApplicationService:
         if application is None or application.worker_profile_id != worker_profile_id:
             raise ApplicationNotFoundError(str(application_id))
         application.withdraw()
-        return await self._applications.update(application)
+        updated = await self._applications.update(application)
+        logger.info(
+            "application.withdrawn",
+            extra={
+                "shift_id": str(application.shift_id),
+                "worker_profile_id": str(worker_profile_id),
+            },
+        )
+        return updated

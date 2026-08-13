@@ -15,12 +15,19 @@ from app.modules.admin.application.exceptions import (
     CannotModifySelfError,
     TargetUserNotFoundError,
 )
+from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
+
+
+def _rate_pct(numerator: int, denominator: int) -> float | None:
+    """`%` de dos conteos, o `None` sin muestra — nunca un `%` sobre cero
+    casos (mismo criterio que `pct_filled_under_10_min`, ya existente)."""
+    return (numerator / denominator) * 100 if denominator else None
 
 
 class AdminService:
@@ -32,11 +39,13 @@ class AdminService:
         shifts: ShiftRepository,
         workers: WorkerProfileRepository,
         companies: CompanyProfileRepository,
+        applications: ShiftApplicationRepository,
     ) -> None:
         self._users = users
         self._shifts = shifts
         self._workers = workers
         self._companies = companies
+        self._applications = applications
 
     async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[AdminUserRow]:
         """Lista usuarios paginados (más recientes primero), con la foto de
@@ -76,6 +85,18 @@ class AdminService:
             for s in filled_shifts
             if s.published_at is not None and s.first_assigned_at is not None
         ]
+
+        publication_stats = await self._shifts.count_publication_stats()
+        application_stats = await self._applications.count_application_stats()
+        worker_stats = await self._workers.count_engagement_stats()
+        company_stats = await self._companies.count_engagement_stats()
+
+        no_show_sample_size = (
+            worker_stats.completed_total
+            + worker_stats.cancellations_total
+            + worker_stats.no_shows_total
+        )
+
         return PlatformStats(
             total_users=counts.total,
             workers=counts.workers,
@@ -88,6 +109,23 @@ class AdminService:
             avg_time_to_fill_minutes=(sum(minutes) / len(minutes)) if minutes else None,
             pct_filled_under_10_min=(
                 (sum(1 for m in minutes if m <= 10) / len(minutes)) * 100 if minutes else None
+            ),
+            shift_fill_rate_sample_size=publication_stats.published,
+            shift_fill_rate_pct=_rate_pct(publication_stats.filled, publication_stats.published),
+            application_acceptance_sample_size=application_stats.total,
+            application_to_acceptance_rate_pct=_rate_pct(
+                application_stats.accepted, application_stats.total
+            ),
+            no_show_sample_size=no_show_sample_size,
+            no_show_rate_pct=_rate_pct(worker_stats.no_shows_total, no_show_sample_size),
+            worker_repeat_sample_size=worker_stats.workers_with_1plus_events,
+            worker_repeat_rate_pct=_rate_pct(
+                worker_stats.workers_with_2plus_events, worker_stats.workers_with_1plus_events
+            ),
+            employer_repeat_sample_size=company_stats.companies_with_1plus_shifts,
+            employer_repeat_rate_pct=_rate_pct(
+                company_stats.companies_with_2plus_shifts,
+                company_stats.companies_with_1plus_shifts,
             ),
         )
 

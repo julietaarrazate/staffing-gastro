@@ -3,11 +3,11 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.shift.domain.entities import Shift
-from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.shift.domain.repositories import ShiftPublicationStats, ShiftRepository
 from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -202,6 +202,27 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def count_publication_stats(self) -> ShiftPublicationStats:
+        # Una sola query con SUM/CASE (mismo patrón que
+        # `UserRepository.count_stats`), no traer filas y contar en Python.
+        stmt = select(
+            func.sum(case((ShiftModel.published_at.is_not(None), 1), else_=0)).label(
+                "published"
+            ),
+            func.sum(
+                case(
+                    (
+                        (ShiftModel.published_at.is_not(None))
+                        & (ShiftModel.first_assigned_at.is_not(None)),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("filled"),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return ShiftPublicationStats(published=row.published or 0, filled=row.filled or 0)
 
     async def list_open(
         self,

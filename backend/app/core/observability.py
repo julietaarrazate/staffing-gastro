@@ -40,6 +40,20 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Atributos estándar de `LogRecord` (stdlib): lo que NO está en este set y
+# se haya pasado vía `logger.info(msg, extra={...})` se interpreta como
+# datos propios del evento (ver `_JsonFormatter`). Lista fija de la propia
+# documentación de `logging` — no cambia entre versiones de Python 3.
+_STANDARD_LOG_RECORD_ATTRS = frozenset(
+    {
+        "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
+        "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
+        "created", "msecs", "relativeCreated", "thread", "threadName",
+        "processName", "process", "message", "asctime", "taskName",
+    }
+)
+
+
 class _JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
@@ -51,7 +65,19 @@ class _JsonFormatter(logging.Formatter):
         }
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
-        return json.dumps(payload, ensure_ascii=False)
+        # Eventos de negocio (`logger.info("shift.published", extra={...})`,
+        # ver docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md §5): los
+        # campos de `extra` viajan bajo "data" en vez de perderse — sin esto,
+        # el JSON estructurado sólo tenía el mensaje como texto libre, no
+        # campos filtrables. No afecta ningún log existente sin `extra`.
+        extra = {
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in _STANDARD_LOG_RECORD_ATTRS and not k.startswith("_")
+        }
+        if extra:
+            payload["data"] = extra
+        return json.dumps(payload, ensure_ascii=False, default=str)
 
 
 class _PlainFormatter(logging.Formatter):

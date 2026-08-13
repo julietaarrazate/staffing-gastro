@@ -1,9 +1,23 @@
 """Puerto del repositorio de perfiles de comercio."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.modules.company.domain.entities import CompanyProfile
+
+
+@dataclass
+class CompanyEngagementStats:
+    """Conteos agregados de `company_profiles` para `employer_repeat_rate`
+    (panel de admin). Agregado en SQL sobre `events_published` (ya existente,
+    ver docs/reference/REPUTATION.md) — sin tabla nueva.
+
+    `employer_repeat_rate` = `companies_with_2plus_shifts / companies_with_1plus_shifts`.
+    """
+
+    companies_with_1plus_shifts: int
+    companies_with_2plus_shifts: int
 
 
 class CompanyProfileRepository(ABC):
@@ -67,3 +81,8 @@ class CompanyProfileRepository(ABC):
         Disparado por `ShiftService.mark_paid` — `on_time` lo decide el
         servicio comparando `paid_at` contra `end_at` con la tolerancia de
         `PAYMENT_TOLERANCE`."""
+
+    @abstractmethod
+    async def count_engagement_stats(self) -> CompanyEngagementStats:
+        """Cuenta agregados de compromiso de comercios (`employer_repeat_rate`,
+        panel de admin) — agregado en SQL, no una lista de filas."""

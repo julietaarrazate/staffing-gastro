@@ -25,15 +25,15 @@
 
 | # | Ítem | Fase | Costo/Tiempo | Riesgo | Quién |
 |---|---|---|---|---|---|
-| C1 | Apagar `SEED_DEMO_DATA` en Render antes de onboardear comercios reales — credenciales demo (`staffyaDemo123`) activas en producción hoy | `03_SECURITY.md §2` | Operativo, minutos | Bajo (ya hay runbook en `DEPLOY.md`) | Julieta |
+| C1 | ~~Apagar `SEED_DEMO_DATA` en Render antes de onboardear comercios reales~~ | `03_SECURITY.md §2` | Operativo, minutos | Bajo (ya hay runbook en `DEPLOY.md`) | ✅ Resuelto (2026-08-06, commit `879fbbe` #160): `render.yaml` → `value: "false"` |
 | C2 | ~~Completar `Copyright [yyyy] [name]` en `LICENSE`~~ | `12_DNDA.md §1` | — | — | ✅ Resuelto (2026-08-04): Julieta Arrazate, 2026 |
 | C3 | ~~Decidir si Apache 2.0 es la licencia querida~~ | `12_DNDA.md §2` | — | — | ✅ Resuelto (2026-08-04): reemplazada por licencia propietaria "All Rights Reserved" |
 
-*De los 3 ítems críticos, sólo C1 sigue abierto — es operativo (Render), no
-de código. C2 y C3 se resolvieron el mismo día de esta auditoría, a pedido
-explícito de Julieta — igual que la pregunta de `12_DNDA.md §3` (autoría de
-los tramos con asistencia de IA), cerrada con el criterio que fijó Julieta
-y formalizada en el archivo `NOTICE` de la raíz del repo.*
+*Los 3 ítems críticos de esta auditoría están resueltos — verificado contra
+el código real (commit `8b87269`, 2026-08-11) en la auditoría puntual de
+2026-08-13, ver
+[`../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md §0`](../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md#0-hallazgo-transversal-el-código-sigue-adelante-de-la-documentación).
+No queda ningún hallazgo crítico abierto en ninguna de las dos auditorías.*
 
 ---
 
@@ -65,7 +65,7 @@ cambios de código triviales.
 
 | # | Ítem | Fase | Costo | Riesgo |
 |---|---|---|---|---|
-| H1 | Cuota/rate limit en WebSockets (chat + notificaciones) — `TECH_DEBT.md` S2 | `03_SECURITY.md §8` | 4-8h | Medio (toca `ws_manager.py`, superficie usada en producción) |
+| H1 | ~~Cuota/rate limit en WebSockets (chat + notificaciones)~~ — ✅ Resuelto (2026-08-10, PR #196): `_ws_frame_rate_limit` en `notification/api/routes.py` y `chat/api/routes.py` | `03_SECURITY.md §8` | 4-8h | Medio (toca `ws_manager.py`, superficie usada en producción) |
 | H2 | Instrumentar logging de eventos de seguridad (login fallido, 403, 429, acciones de admin) — la plomería (`request_id`+JSON+Sentry) ya existe | `03_SECURITY.md §10` | 4-6h | Bajo |
 | H3 | Flujo de verificación de email (`/auth/verify-email`) | `03_SECURITY.md §9` | 1-2 días (requiere proveedor de email, ya integrado vía Resend) | Medio |
 | H4 | Migrar los 11 usos de `<img>` a `next/image` + `images.remotePatterns` para Cloudinary | `04_PERFORMANCE.md §2` | 4-8h | Bajo-medio |
@@ -85,9 +85,9 @@ Estos ítems **ya están documentados** en `docs/TECH_DEBT.md`/
 no se re-estiman acá, sólo se listan para que este roadmap sea el punto de
 entrada único:
 
-- **S1 (parcial):** migrar refresh token de `localStorage` a cookie
-  `httpOnly` — cambio de arquitectura de auth, requiere ADR. Esfuerzo
-  alto, no urgente mientras no haya XSS.
+- **S1:** ~~migrar refresh token de `localStorage` a cookie `httpOnly`~~ —
+  ✅ Resuelto (2026-08-08, commit `782bdae` #172): `identity/api/routes.py`
+  ya setea `httponly=True`.
 - **Starlette 0.41→1.x / FastAPI / pytest 8→9:** saltos de versión mayor
   con CVEs de bajo riesgo actual — diferido a propósito, requiere ciclo de
   test dedicado (`docs/TECH_DEBT.md` S3).
@@ -122,14 +122,21 @@ entrada único:
 
 ## Resumen ejecutivo del roadmap
 
-- **3 ítems críticos**, ninguno de código — 2 son decisiones de Julieta/
-  legal, 1 es una acción operativa de minutos con runbook ya escrito.
+- **3 ítems críticos, los 3 resueltos** (última verificación: 2026-08-13,
+  commit `8b87269`) — C1 era operativo (Render), C2/C3 eran decisiones de
+  Julieta/legal. **No hay ningún hallazgo crítico abierto en el repo.**
 - **14 quick wins**, ~10-16 horas en total, en su mayoría documentación
   (el hallazgo transversal de toda esta auditoría: el código está más
-  sano que su documentación).
-- **7 ítems de alto impacto**, ~3-5 días, con la cuota de WebSockets (H1)
-  y el logging de seguridad (H2) como los de mayor relación
-  riesgo-mitigado/esfuerzo.
+  sano que su documentación — confirmado de nuevo el 2026-08-13, ver
+  [`../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md §0`](../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md)).
+- **7 ítems de alto impacto**: **H1 (cuota de WebSockets) resuelto**
+  (2026-08-10); quedan 6, con el logging de seguridad (H2) como el de
+  mayor relación riesgo-mitigado/esfuerzo — nota: el mecanismo técnico
+  que pide H2 (logging estructurado de eventos) ya se instrumentó para
+  eventos de **producto** (`shift.published`, `application.submitted`,
+  etc.) en la auditoría de 2026-08-13; falta el mismo tratamiento para
+  eventos de **seguridad** (login fallido, 403, 429, acciones de admin),
+  que sigue siendo H2 tal cual.
 - **6 ítems de deuda técnica** ya catalogados en `TECH_DEBT.md`, sin
   necesidad de re-priorizar — se referencian, no se duplican.
 - **9 ítems nice-to-have**, incluida la cola del barrido de responsive
@@ -140,3 +147,13 @@ vigente** de `docs/planning/LAUNCH_PLAN.md` (lista para beta cerrada con usuario
 reales) — lo que sí cambia es la lista concreta de qué hacer antes de
 escalar más allá de la beta, consolidada acá en un solo lugar por primera
 vez.
+
+## Ver también
+
+- [`../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md`](../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md) —
+  auditoría puntual (2026-08-13) de observability, business events y
+  métricas de producto (`shift_fill_rate`, `application_to_acceptance_rate`,
+  `no_show_rate`, tasas de repetición) — implementadas en esa misma sesión.
+- [`../MATCHING_QUALITY_ANALYSIS.md`](../MATCHING_QUALITY_ANALYSIS.md) —
+  análisis del motor de matching + diseño mínimo propuesto (no
+  implementado) para medir si el ranking predice la selección real.

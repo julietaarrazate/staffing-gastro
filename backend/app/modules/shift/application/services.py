@@ -202,6 +202,10 @@ class ShiftService:
         # Reputación del comercio (`events_published`, docs/reference/REPUTATION.md):
         # antes quedaba en 0 para siempre, sin cálculo automático.
         await self._companies.record_published_shift(company_id)
+        logger.info(
+            "shift.published",
+            extra={"shift_id": str(published.id), "company_id": str(company_id)},
+        )
         await self._notify_nearby_workers(published)
         return published
 
@@ -310,6 +314,7 @@ class ShiftService:
         shift.urgent = True
         shift.escalated_at = datetime.now(timezone.utc)
         updated = await self._shifts.update(shift)
+        logger.info("shift.escalated", extra={"shift_id": str(updated.id)})
         await self._notify_nearby_workers(
             updated,
             max_radius_km=self.ESCALATION_RADIUS_KM,
@@ -366,6 +371,14 @@ class ShiftService:
         affected_worker_profile_id = shift.worker_profile_id
         shift.cancel()
         updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.cancelled",
+            extra={
+                "shift_id": str(updated.id),
+                "company_id": str(company_id),
+                "was_committed": was_committed,
+            },
+        )
         await self._reject_pending_applicants(shift_id)
         if was_committed and affected_worker_profile_id is not None:
             await self._companies.record_late_cancellation(company_id)
@@ -380,7 +393,9 @@ class ShiftService:
             )
         return updated
 
-    async def mark_no_show(self, company_id: UUID, shift_id: UUID) -> Shift:
+    async def mark_no_show(
+        self, company_id: UUID, shift_id: UUID, *, _trigger: str = "manual"
+    ) -> Shift:
         """El comercio marca que el trabajador asignado no se presentó
         (ADR-0007, Parte C): sólo alcanzable desde `CONFIRMADO`/`EN_CAMINO`
         (antes del check-in — si ya hizo check-in, se presentó).
@@ -393,11 +408,25 @@ class ShiftService:
         `record_cancellation` — nunca un UPDATE a mano); (c) queda
         registrado en el propio turno (`Shift.no_show_at`/
         `last_no_show_worker_profile_id`) y notifica al trabajador para que
-        pueda ver/disputar el evento."""
+        pueda ver/disputar el evento.
+
+        `_trigger` distingue en el log de negocio si lo marcó el comercio
+        (default, endpoint real) o el scheduler (`auto_mark_no_show`) — no
+        es parte del contrato público, sólo etiqueta el evento."""
         shift = await self._get_owned(company_id, shift_id)
         absent_worker_profile_id = shift.worker_profile_id
         shift.no_show()
         updated = await self._shifts.update(shift)
+        logger.info(
+            "worker.no_show",
+            extra={
+                "shift_id": str(updated.id),
+                "worker_profile_id": (
+                    str(absent_worker_profile_id) if absent_worker_profile_id else None
+                ),
+                "trigger": _trigger,
+            },
+        )
         await self._restore_rejected_applicants(shift_id)
         if absent_worker_profile_id is not None:
             await self._workers.record_no_show(absent_worker_profile_id)
@@ -446,7 +475,7 @@ class ShiftService:
         viene de un request de ese comercio, lo dispara un proceso de
         sistema)."""
         shift = await self.get_shift(shift_id)
-        return await self.mark_no_show(shift.company_id, shift.id)
+        return await self.mark_no_show(shift.company_id, shift.id, _trigger="automatic")
 
     async def assign_worker(
         self, company_id: UUID, shift_id: UUID, worker_profile_id: UUID
@@ -469,6 +498,14 @@ class ShiftService:
         shift = await self._get_owned(company_id, shift_id)
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.assigned",
+            extra={
+                "shift_id": str(updated.id),
+                "worker_profile_id": str(worker_profile_id),
+                "company_id": str(company_id),
+            },
+        )
         await self._accept_application(shift_id, worker_profile_id)
         await self._reject_pending_applicants(shift_id)
         await self._notify_worker(
@@ -491,6 +528,10 @@ class ShiftService:
             return
         application.accept()
         await self._applications.update(application)
+        logger.info(
+            "application.accepted",
+            extra={"shift_id": str(shift_id), "worker_profile_id": str(worker_profile_id)},
+        )
 
     async def _reject_pending_applicants(self, shift_id: UUID) -> None:
         """Marca RECHAZADA las postulaciones PENDIENTE que quedan en un turno
@@ -503,10 +544,20 @@ class ShiftService:
         propósito (evita un mensaje desalentador que además sería erróneo si el
         turno se reabre; la corrección es sólo de estado para que no quede
         'esperando respuesta' eterno)."""
+        rejected_count = 0
         for application in await self._applications.list_by_shift(shift_id):
             if application.status == ApplicationStatus.PENDIENTE:
                 application.reject()
                 await self._applications.update(application)
+                rejected_count += 1
+        if rejected_count:
+            # Un solo log agregado (no uno por postulante rechazado): son
+            # rechazos automáticos del mismo evento (se cubrió el turno),
+            # no decisiones individuales que valga la pena narrar una por una.
+            logger.info(
+                "application.rejected",
+                extra={"shift_id": str(shift_id), "count": rejected_count},
+            )
 
     async def _restore_rejected_applicants(self, shift_id: UUID) -> None:
         """Vuelve a PENDIENTE las postulaciones que habían quedado RECHAZADA al

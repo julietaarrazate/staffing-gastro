@@ -1,9 +1,19 @@
 """Puerto del repositorio de postulaciones."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
+
+
+@dataclass
+class ApplicationStats:
+    """Conteos agregados de `applications` para `application_to_acceptance_rate`
+    (panel de admin). Agregado en SQL, mismo patrón que `UserCounts`."""
+
+    total: int
+    accepted: int
 
 
 class ShiftApplicationRepository(ABC):
@@ -49,3 +59,8 @@ class ShiftApplicationRepository(ABC):
         Uso interno (no expuesto por API): detectar solapamiento de horarios
         al confirmar un turno (ver `ShiftService.confirm_assignment`, regla
         de doble turno)."""
+
+    @abstractmethod
+    async def count_application_stats(self) -> ApplicationStats:
+        """Cuenta postulaciones totales y aceptadas (`application_to_acceptance_rate`,
+        panel de admin) — agregado en SQL, no una lista de filas."""

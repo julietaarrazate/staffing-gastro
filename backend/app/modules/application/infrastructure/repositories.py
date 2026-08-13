@@ -8,11 +8,14 @@ el perfil y el usuario de cada postulante con un único JOIN (fix de P2 en
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
-from app.modules.application.domain.repositories import ShiftApplicationRepository
+from app.modules.application.domain.repositories import (
+    ApplicationStats,
+    ShiftApplicationRepository,
+)
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.infrastructure.models import ShiftApplicationModel
 from app.modules.identity.infrastructure.models import UserModel
@@ -135,3 +138,13 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             )
             for application, worker, full_name in result.all()
         ]
+
+    async def count_application_stats(self) -> ApplicationStats:
+        stmt = select(
+            func.count().label("total"),
+            func.sum(
+                case((ShiftApplicationModel.status == ApplicationStatus.ACEPTADA.value, 1), else_=0)
+            ).label("accepted"),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return ApplicationStats(total=row.total or 0, accepted=row.accepted or 0)

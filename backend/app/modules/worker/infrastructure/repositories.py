@@ -2,11 +2,11 @@
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.worker.domain.entities import WorkerProfile
-from app.modules.worker.domain.repositories import WorkerProfileRepository
+from app.modules.worker.domain.repositories import WorkerEngagementStats, WorkerProfileRepository
 from app.modules.worker.domain.rules import compute_badges, compute_level
 from app.modules.worker.domain.value_objects import (
     GamificationLevel,
@@ -146,6 +146,29 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         model.no_shows += 1
         self._recompute_badges_and_level(model)
         await self._session.commit()
+
+    async def count_engagement_stats(self) -> WorkerEngagementStats:
+        # Una sola query con SUM/CASE (mismo patrón que
+        # `UserRepository.count_stats`), no traer filas y contar en Python.
+        stmt = select(
+            func.sum(WorkerProfileModel.events_completed).label("completed_total"),
+            func.sum(WorkerProfileModel.cancellations).label("cancellations_total"),
+            func.sum(WorkerProfileModel.no_shows).label("no_shows_total"),
+            func.sum(case((WorkerProfileModel.events_completed >= 1, 1), else_=0)).label(
+                "workers_1plus"
+            ),
+            func.sum(case((WorkerProfileModel.events_completed >= 2, 1), else_=0)).label(
+                "workers_2plus"
+            ),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return WorkerEngagementStats(
+            completed_total=row.completed_total or 0,
+            cancellations_total=row.cancellations_total or 0,
+            no_shows_total=row.no_shows_total or 0,
+            workers_with_1plus_events=row.workers_1plus or 0,
+            workers_with_2plus_events=row.workers_2plus or 0,
+        )
 
     @staticmethod
     def _recompute_badges_and_level(model: WorkerProfileModel) -> None:

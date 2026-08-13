@@ -32,22 +32,40 @@
   SQLAlchemy loguea el SQL (`engine echo=settings.debug`); en producción
   (`DEBUG=false`) queda silencioso. Los logs viven en el dashboard de Render.
 
+## Business events de producto (2026-08-13)
+
+`_JsonFormatter` (`app/core/observability.py`) ahora mergea los campos de
+`extra=` bajo una clave `data` en el JSON — antes se descartaban en
+silencio. Sobre esa base, `shift/application/services.py` y
+`application/application/services.py` instrumentan los hitos del dominio:
+`shift.published`, `shift.escalated`, `shift.cancelled`, `shift.assigned`,
+`worker.no_show` (con `trigger=manual|automatic`), `application.submitted`,
+`application.accepted`, `application.rejected`, `application.withdrawn`.
+Cada uno loguea `shift_id`/`worker_profile_id`/`company_id` según
+corresponda. Ver el detalle completo (fuente, señales, y las 5 métricas de
+producto que se construyeron encima) en
+[`docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md`](../audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md).
+
 ## Qué falta (a construir)
 
 > Priorizar por costo/beneficio para la escala actual (un solo servicio):
 >
 > 1. **Eventos de seguridad instrumentados.** La plomería (`request_id` +
->    JSON + Sentry) ya existe, pero ningún módulo llama a
+>    JSON + Sentry) ya existe, y ya se usó para instrumentar eventos de
+>    **producto** (ver arriba) — pero ningún módulo llama a
 >    `logger.warning`/`logger.error` en un login fallido, un 403 por rol
 >    insuficiente, un 429 de rate limit, o una acción de moderación de admin
->    (suspender/activar/promover usuario). Es el ítem de mayor
->    relación valor/esfuerzo pendiente — ver `docs/audits/2026-08-oido/03_SECURITY.md §10` de
->    la auditoría OÍDO.
-> 2. **Métricas básicas** de negocio y sistema: turnos publicados/cubiertos,
->    tiempo a cubrir (¿se cumple la meta de < 10 min?), latencia de
->    endpoints, tasa de error. Ver métricas de dominio en
->    [REPUTATION.md](./REPUTATION.md) y el endpoint `/admin/stats` como
->    punto de partida.
+>    (suspender/activar/promover usuario). Sigue siendo el ítem de mayor
+>    relación valor/esfuerzo pendiente en la dimensión de **seguridad** — ver
+>    `docs/audits/2026-08-oido/03_SECURITY.md §10` de la auditoría OÍDO.
+> 2. **Métricas de negocio agregadas — resuelto en parte (2026-08-13).**
+>    `GET /admin/stats` ya expone `avg_time_to_fill_minutes`/
+>    `pct_filled_under_10_min` (tiempo a cubrir, meta < 10 min) y, desde esta
+>    fecha, `shift_fill_rate_pct`, `application_to_acceptance_rate_pct`,
+>    `no_show_rate_pct`, `worker_repeat_rate_pct`, `employer_repeat_rate_pct`
+>    — todas derivadas de columnas ya existentes (sin tabla nueva). Falta
+>    latencia de endpoints y tasa de error (fuera de alcance de esta ronda:
+>    requeriría un middleware de timing, no cubierto todavía).
 > 3. **Alertas propias** sobre el healthcheck y sobre errores capturados por
 >    Sentry (hoy, sin `SENTRY_DSN` configurado en producción, no hay alerta
 >    activa más allá del monitor externo de uptime que ya existe — ver nota
@@ -55,6 +73,9 @@
 >    plataforma/servicio elegido.
 > 4. **Trazas de WebSocket** (conexiones activas, reconexiones) — hoy el
 >    `ws_manager` no expone métricas.
+> 5. **Calidad del matching** (¿el ranking predice quién termina
+>    seleccionado?) — analizado pero deliberadamente no implementado, ver
+>    [`docs/audits/MATCHING_QUALITY_ANALYSIS.md`](../audits/MATCHING_QUALITY_ANALYSIS.md).
 
 ## Nota: ya existe un monitor de uptime externo
 
