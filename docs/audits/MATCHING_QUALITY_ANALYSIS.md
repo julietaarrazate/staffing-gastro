@@ -314,8 +314,9 @@ Las tres miden cosas distintas, ninguna es "la incorrecta":
 ### 9.5 ¿Cuál de esos outcomes es el verdadero KPI?
 
 **Ninguno solo alcanza.** El KPI de negocio ya existe y es compuesto
-(`shift_fill_rate` + `avg_time_to_fill_minutes` + `no_show_rate`, ya
-implementados en Etapa 1 — no son parte de este documento). Para la
+(`shift_assignment_rate` + `shift_completion_rate` + `avg_time_to_fill_minutes`
++ `no_show_rate`, ya implementados en Etapa 1 — no son parte de este
+documento). Para la
 calidad del **matching específicamente**:
 
 - **Proxy rápido (seguimiento semanal):** `score → application`. Se

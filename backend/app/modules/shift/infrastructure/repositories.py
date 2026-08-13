@@ -206,6 +206,9 @@ class SqlAlchemyShiftRepository(ShiftRepository):
     async def count_publication_stats(self) -> ShiftPublicationStats:
         # Una sola query con SUM/CASE (mismo patrón que
         # `UserRepository.count_stats`), no traer filas y contar en Python.
+        # `completed` usa dos estados YA existentes del dominio
+        # (`FINALIZADO`/`PAGADO`, `shift/domain/entities.py::finish`/
+        # `mark_paid`) — no se inventa ningún estado nuevo.
         stmt = select(
             func.sum(case((ShiftModel.published_at.is_not(None), 1), else_=0)).label(
                 "published"
@@ -219,10 +222,28 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     ),
                     else_=0,
                 )
-            ).label("filled"),
+            ).label("assigned"),
+            func.sum(
+                case(
+                    (
+                        (ShiftModel.published_at.is_not(None))
+                        & (
+                            ShiftModel.status.in_(
+                                [ShiftStatus.FINALIZADO.value, ShiftStatus.PAGADO.value]
+                            )
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("completed"),
         )
         row = (await self._session.execute(stmt)).one()
-        return ShiftPublicationStats(published=row.published or 0, filled=row.filled or 0)
+        return ShiftPublicationStats(
+            published=row.published or 0,
+            assigned=row.assigned or 0,
+            completed=row.completed or 0,
+        )
 
     async def list_open(
         self,

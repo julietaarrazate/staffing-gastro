@@ -36,7 +36,32 @@
 
 ---
 
-### 1.1 `shift_fill_rate_pct`
+### 1.1 `shift_fill_rate_pct` → ✅ CORREGIDO: separado en `shift_assignment_rate_pct` + `shift_completion_rate_pct`
+
+> **Actualización (2026-08-13, misma revisión):** el hallazgo de abajo se
+> corrigió — ya no queda pendiente de decisión. `shift_fill_rate_pct` se
+> **eliminó** del contrato (la PR seguía sin mergear, mismo criterio que el
+> rename de `worker_repeat_rate` en §1.4) y se reemplazó por **dos**
+> métricas con semántica separada, usando únicamente estados que ya existen
+> en `ShiftStatus` (`FINALIZADO`/`PAGADO`, `Shift.finish()`/`mark_paid()`)
+> — ningún estado nuevo, sin migración:
+>
+> - **`shift_assignment_rate_pct`** = exactamente la fórmula de abajo (sin
+>   cambios) — "¿el matching encontró a alguien alguna vez?". Mismo
+>   `sample_size` (denominador = `published`).
+> - **`shift_completion_rate_pct`** (nueva) = `COUNT(status IN
+>   ('finalizado','pagado')) / published` — "¿terminó cubierto y trabajado
+>   de punta a punta?". El ejemplo de abajo, con esta métrica nueva, da
+>   `completed = 1` (sólo A) → **`shift_completion_rate_pct = 20%`** —
+>   exactamente el número que el análisis original señalaba como "el
+>   correcto" en el párrafo de abajo.
+>
+> Verificado con un test dedicado
+> (`test_admin_stats_shift_completion_rate_differs_from_assignment_rate`,
+> `backend/tests/test_admin.py`) que arma a propósito un turno
+> asignado→no-show→cancelado (cuenta para assignment, no para completion) y
+> uno completado de punta a punta (cuenta para ambas). El análisis original
+> queda abajo sin editar — es la evidencia que motivó la corrección.
 
 **Código:** `shift/infrastructure/repositories.py::count_publication_stats()`.
 
@@ -457,21 +482,25 @@ disparará CI de nuevo sobre el commit nuevo; se reporta cuando termine.
 
 ## Resumen ejecutivo
 
-- **4 de 5 métricas están bien calibradas** (`no_show_rate`,
+- **Las 4 métricas restantes están bien calibradas** (`no_show_rate`,
   `application_to_acceptance_rate` con el caveat de `PENDIENTE`/`RETIRADA`
   documentado, `employer_repeat_rate`, y la ya renombrada
   `worker_completion_repeat_rate`). Ninguna tiene bugs de cálculo — los 4
   `SUM(CASE...)`/`COUNT(...)` están matemáticamente correctos para lo que
   dicen medir.
-- **1 métrica (`shift_fill_rate`) tiene un nombre más ambicioso que lo que
-  mide** — mide "encontró un match alguna vez", no "terminó cubierto
-  exitosamente". Recomendación pendiente de tu decisión (§1.1): renombrar,
-  o sumar una segunda métrica de cobertura real. **No apliqué ningún cambio
-  de código para ésta** — a diferencia de `worker_repeat_rate`, acá hay dos
-  soluciones razonables y prefiero que elijas antes de tocar el contrato de
-  la API por segunda vez en la misma revisión.
+- **`shift_fill_rate` → ✅ CORREGIDO**, separada en dos métricas
+  (§1.1): `shift_assignment_rate_pct` (la fórmula original, sin cambios —
+  "encontró un match alguna vez") y `shift_completion_rate_pct` (nueva —
+  "terminó cubierto/trabajado de punta a punta", usando `FINALIZADO`/
+  `PAGADO`, estados ya existentes del dominio, sin migración). Test
+  dedicado que arma un caso asignado→no-show→cancelado (queda fuera de
+  completion) y uno completado de punta a punta.
 - **`worker_repeat_rate` → renombrada a `worker_completion_repeat_rate`**
-  (código + tests ya actualizados, 15/15 tests verdes).
+  (código + tests ya actualizados). Documentado explícitamente que NO es
+  retención general de trabajadores — es recurrencia de COMPLETACIÓN entre
+  quienes ya completaron ≥1 turno.
+- **370/370 tests backend verdes**, `ruff` limpio en todos los archivos
+  tocados.
 - **Los 9 business events están limpios**: siempre después del commit
   correspondiente, sin PII/secretos/coordenadas, sin concepto de event
   store. Único riesgo real de doble emisión es una carrera concurrente

@@ -110,8 +110,14 @@ class AdminService:
             pct_filled_under_10_min=(
                 (sum(1 for m in minutes if m <= 10) / len(minutes)) * 100 if minutes else None
             ),
-            shift_fill_rate_sample_size=publication_stats.published,
-            shift_fill_rate_pct=_rate_pct(publication_stats.filled, publication_stats.published),
+            shift_assignment_rate_sample_size=publication_stats.published,
+            shift_assignment_rate_pct=_rate_pct(
+                publication_stats.assigned, publication_stats.published
+            ),
+            shift_completion_rate_sample_size=publication_stats.published,
+            shift_completion_rate_pct=_rate_pct(
+                publication_stats.completed, publication_stats.published
+            ),
             application_acceptance_sample_size=application_stats.total,
             application_to_acceptance_rate_pct=_rate_pct(
                 application_stats.accepted, application_stats.total

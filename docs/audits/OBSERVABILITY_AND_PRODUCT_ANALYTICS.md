@@ -309,20 +309,24 @@ de negocio ya vive en las tablas existentes.
 | `employer_repeat_rate` | % de comercios con `events_published >= 2` sobre total con `>= 1` | `CompanyProfileRepository`, agregación nueva | 🟢 Baja |
 | **Matching quality** (`match_score` vs. selección real) | Correlación entre score al momento de mostrar y si ese candidato terminó `ACEPTADA` | Requiere `match_log` (§5) — sin esto, no calculable | 🔴 Alta — es la pregunta que Julieta marcó como "especialmente importante" |
 
-> **Nota post-implementación (2026-08-13):** esta tabla es el plan
-> *original*, previo a escribir código. La implementación real terminó
-> difiriendo en 3 puntos, revisados a fondo en
-> [`ETAPA1_QUALITY_REVIEW.md`](./ETAPA1_QUALITY_REVIEW.md): (1) ninguna
+> **Nota post-implementación (2026-08-13, actualizada tras revisión de
+> calidad):** esta tabla es el plan *original*, previo a escribir código.
+> La implementación real terminó difiriendo en 3 puntos, revisados a fondo
+> en [`ETAPA1_QUALITY_REVIEW.md`](./ETAPA1_QUALITY_REVIEW.md): (1) ninguna
 > métrica quedó con ventana temporal — todas son all-time; (2)
-> `shift_fill_rate` se implementó como "¿tuvo `first_assigned_at` alguna
-> vez?" en vez de "¿está ASIGNADO+ y no cancelado hoy?" como decía este
-> plan — una definición más laxa de lo planeado acá, señalada como
-> hallazgo abierto en la revisión; (3) `worker_repeat_rate` se renombró a
-> `worker_completion_repeat_rate` porque medía algo más específico que
-> "retención" (el propio riesgo que esta fila ya anticipaba con la nota
-> "útil para retención"). `time_to_first_application` **no se implementó**
-> (seguía en el roadmap, Etapa 2). Leer `ETAPA1_QUALITY_REVIEW.md` para la
-> definición exacta de lo que quedó implementado, no esta tabla.
+> `shift_fill_rate` se implementó primero como "¿tuvo `first_assigned_at`
+> alguna vez?" (más laxo que "¿está ASIGNADO+ y no cancelado hoy?" que
+> decía este plan) — hallazgo detectado en la revisión de calidad y **ya
+> corregido**: se eliminó `shift_fill_rate_pct` del contrato y se
+> reemplazó por `shift_assignment_rate_pct` (la fórmula laxa original, ahora
+> con nombre honesto) + `shift_completion_rate_pct` (nueva, usa
+> `FINALIZADO`/`PAGADO` — el estado real que este plan quería medir); (3)
+> `worker_repeat_rate` se renombró a `worker_completion_repeat_rate` porque
+> medía algo más específico que "retención" (el propio riesgo que esta fila
+> ya anticipaba con la nota "útil para retención"). `time_to_first_application`
+> **no se implementó** (seguía en el roadmap, Etapa 2). Leer
+> `ETAPA1_QUALITY_REVIEW.md` para la definición exacta de lo que quedó
+> implementado, no esta tabla.
 
 **Todas** se exponen naturalmente extendiendo `PlatformStats`/`GET
 /admin/stats`, que ya es el punto de entrada de métricas del panel de

@@ -44,8 +44,11 @@ class PlatformStatsResponse(BaseModel):
     avg_time_to_fill_minutes: float | None
     pct_filled_under_10_min: float | None
 
-    shift_fill_rate_sample_size: int
-    shift_fill_rate_pct: float | None
+    shift_assignment_rate_sample_size: int
+    shift_assignment_rate_pct: float | None
+
+    shift_completion_rate_sample_size: int
+    shift_completion_rate_pct: float | None
 
     application_acceptance_sample_size: int
     application_to_acceptance_rate_pct: float | None

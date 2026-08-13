@@ -49,8 +49,22 @@ class PlatformStats:
     # Métricas de producto (docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md
     # §6): todas derivadas de columnas ya existentes, `None` sin muestra (0
     # denominador) — nunca un `%` silencioso sobre cero casos.
-    shift_fill_rate_sample_size: int
-    shift_fill_rate_pct: float | None
+
+    # `shift_assignment_rate` (antes `shift_fill_rate`, renombrada — ver
+    # docs/audits/ETAPA1_QUALITY_REVIEW.md §1.1): turnos que alguna vez
+    # tuvieron un candidato asignado (`first_assigned_at`), sin importar
+    # qué pasó después. Un turno asignado→no-show→cancelado CUENTA acá —
+    # mide "el matching encontró a alguien", no "terminó cubierto".
+    shift_assignment_rate_sample_size: int
+    shift_assignment_rate_pct: float | None
+
+    # Complementaria a la de arriba: turnos cuyo estado ACTUAL es
+    # `FINALIZADO`/`PAGADO` (Shift.finish()/mark_paid(), estados ya
+    # existentes del dominio) — cobertura real de punta a punta. La brecha
+    # entre esta tasa y `shift_assignment_rate_pct` es la señal útil:
+    # cuánto de lo "encontrado" efectivamente se trabajó.
+    shift_completion_rate_sample_size: int
+    shift_completion_rate_pct: float | None
 
     application_acceptance_sample_size: int
     application_to_acceptance_rate_pct: float | None

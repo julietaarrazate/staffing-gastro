@@ -158,16 +158,18 @@ async def test_admin_stats_compute_coverage_metric(client, session_factory):
 PALERMO = {"latitude": -34.58, "longitude": -58.43}
 
 
-async def test_admin_stats_shift_fill_rate_and_application_acceptance(
+async def test_admin_stats_shift_assignment_rate_and_application_acceptance(
     client, session_factory
 ):
-    """`shift_fill_rate`/`application_to_acceptance_rate`
-    (docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md §6): sobre 2 turnos
-    publicados con 2 postulaciones en total, sólo 1 termina cubierto/aceptado."""
+    """`shift_assignment_rate`/`application_to_acceptance_rate`
+    (docs/audits/ETAPA1_QUALITY_REVIEW.md §1.1/§1.2): sobre 2 turnos
+    publicados con 2 postulaciones en total, sólo 1 termina asignado/aceptado."""
     admin = await _make_admin(client, session_factory, "admin_fill@test.com")
     employer = await _employer_with_company(client, "emp_fill@test.com")
 
-    # Turno 1: se publica, recibe una postulación y se asigna (cubierto).
+    # Turno 1: se publica, recibe una postulación y se asigna (pero NO se
+    # completa el ciclo — sigue ASIGNADO). Cuenta para assignment, no para
+    # completion (ver test de más abajo para el caso que sí completa).
     created1 = await client.post(
         "/api/v1/shifts", headers=employer, json=_shift_payload()
     )
@@ -182,7 +184,7 @@ async def test_admin_stats_shift_fill_rate_and_application_acceptance(
     )
 
     # Turno 2: se publica y recibe una postulación, pero NUNCA se asigna
-    # (queda abierto) — no cuenta como cubierto ni como aceptado.
+    # (queda abierto) — no cuenta como asignado ni como aceptado.
     created2 = await client.post(
         "/api/v1/shifts", headers=employer, json=_shift_payload()
     )
@@ -193,10 +195,61 @@ async def test_admin_stats_shift_fill_rate_and_application_acceptance(
 
     stats = await client.get("/api/v1/admin/stats", headers=admin)
     body = stats.json()
-    assert body["shift_fill_rate_sample_size"] == 2
-    assert body["shift_fill_rate_pct"] == pytest.approx(50.0, abs=1)
+    assert body["shift_assignment_rate_sample_size"] == 2
+    assert body["shift_assignment_rate_pct"] == pytest.approx(50.0, abs=1)
     assert body["application_acceptance_sample_size"] == 2
     assert body["application_to_acceptance_rate_pct"] == pytest.approx(50.0, abs=1)
+
+
+async def test_admin_stats_shift_completion_rate_differs_from_assignment_rate(
+    client, session_factory
+):
+    """`shift_completion_rate` != `shift_assignment_rate`: un turno puede
+    asignarse y nunca completarse (no-show, se cancela) — sólo el que
+    termina FINALIZADO/PAGADO cuenta como "completion" (docs/audits/
+    ETAPA1_QUALITY_REVIEW.md §1.1 — el hallazgo que motivó separar las 2
+    métricas)."""
+    admin = await _make_admin(client, session_factory, "admin_completion@test.com")
+    employer = await _employer_with_company(client, "emp_completion@test.com")
+
+    # Turno A: se asigna, el trabajador nunca se presenta -> no-show ->
+    # el comercio termina cancelándolo. Cuenta para "assigned", NUNCA para
+    # "completed".
+    created_a = await client.post(
+        "/api/v1/shifts", headers=employer, json=_shift_payload()
+    )
+    shift_a_id = created_a.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_a_id}/publish", headers=employer)
+    worker_a = await auth_headers(client, "worker", "w_completion_a@test.com")
+    profile_a = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=worker_a,
+        json={"skills": ["mozo"], "is_available": True, **PALERMO},
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_a_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": profile_a.json()["id"]},
+    )
+    await client.post(f"/api/v1/shifts/{shift_a_id}/confirm", headers=worker_a)
+    await client.post(f"/api/v1/shifts/{shift_a_id}/no-show", headers=employer)
+    await client.post(f"/api/v1/shifts/{shift_a_id}/cancel", headers=employer)
+
+    # Turno B: ciclo completo hasta FINALIZADO -> cuenta para "assigned" Y
+    # para "completed".
+    worker_b, worker_b_id = await _worker_with_profile_palermo(
+        client, "w_completion_b@test.com"
+    )
+    await _run_shift_to_finish(client, employer, worker_b, worker_b_id)
+
+    stats = await client.get("/api/v1/admin/stats", headers=admin)
+    body = stats.json()
+    # published = 2 (A, B). assigned = 2 (A se asignó una vez aunque luego
+    # se canceló; B se asignó y completó). completed = 1 (sólo B).
+    assert body["shift_assignment_rate_sample_size"] == 2
+    assert body["shift_assignment_rate_pct"] == pytest.approx(100.0, abs=1)
+    assert body["shift_completion_rate_sample_size"] == 2
+    assert body["shift_completion_rate_pct"] == pytest.approx(50.0, abs=1)
 
 
 async def test_admin_stats_employer_repeat_rate(client, session_factory):

@@ -152,8 +152,14 @@ vez.
 
 - [`../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md`](../OBSERVABILITY_AND_PRODUCT_ANALYTICS.md) —
   auditoría puntual (2026-08-13) de observability, business events y
-  métricas de producto (`shift_fill_rate`, `application_to_acceptance_rate`,
-  `no_show_rate`, tasas de repetición) — implementadas en esa misma sesión.
+  métricas de producto (`shift_assignment_rate`, `shift_completion_rate`,
+  `application_to_acceptance_rate`, `no_show_rate`, tasas de repetición) —
+  implementadas en esa misma sesión.
+- [`../ETAPA1_QUALITY_REVIEW.md`](../ETAPA1_QUALITY_REVIEW.md) — revisión
+  de calidad de esas métricas y los business events (definición exacta,
+  numerador/denominador, casos límite) — motivó separar `shift_fill_rate`
+  en `shift_assignment_rate`/`shift_completion_rate` y renombrar
+  `worker_repeat_rate` a `worker_completion_repeat_rate`.
 - [`../MATCHING_QUALITY_ANALYSIS.md`](../MATCHING_QUALITY_ANALYSIS.md) —
   análisis del motor de matching + diseño mínimo propuesto (no
   implementado) para medir si el ranking predice la selección real.
