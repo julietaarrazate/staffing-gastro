@@ -5,7 +5,7 @@
 # falta cruzar a la serie 1.x de starlette para tener los fixes, lo que
 # exige fastapi>=0.135.0 (0.130.0 todavía tope-a en starlette<1.0.0).
 fastapi==0.141.1
-uvicorn[standard]==0.34.0
+uvicorn[standard]==0.52.1
 pydantic==2.10.4
 pydantic-settings==2.7.1
 email-validator==2.2.0
