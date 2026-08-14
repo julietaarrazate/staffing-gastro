@@ -11,7 +11,11 @@ from uuid import UUID
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
+from app.modules.application.domain.entities import (
+    ApplicantMatch,
+    EnrichedApplicant,
+    ShiftApplication,
+)
 from app.modules.application.domain.repositories import (
     ApplicationStats,
     ShiftApplicationRepository,
@@ -19,6 +23,7 @@ from app.modules.application.domain.repositories import (
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.infrastructure.models import ShiftApplicationModel
 from app.modules.identity.infrastructure.models import UserModel
+from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
 from app.modules.worker.infrastructure.models import WorkerProfileModel
 
@@ -138,6 +143,33 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             )
             for application, worker, full_name in result.all()
         ]
+
+    async def find_applicant_by_name(
+        self, company_id: UUID, name_query: str
+    ) -> ApplicantMatch | None:
+        # INNER JOIN hasta `shifts` (para filtrar por comercio) y hasta
+        # `users` (sin usuario no hay a quién verificar) — a diferencia de
+        # `list_by_shift_enriched`, acá un postulante sin usuario resuelto no
+        # sirve de nada, así que no hace falta el LEFT JOIN + fallback.
+        stmt = (
+            select(UserModel.id, UserModel.full_name)
+            .join(WorkerProfileModel, WorkerProfileModel.user_id == UserModel.id)
+            .join(
+                ShiftApplicationModel,
+                ShiftApplicationModel.worker_profile_id == WorkerProfileModel.id,
+            )
+            .join(ShiftModel, ShiftModel.id == ShiftApplicationModel.shift_id)
+            .where(
+                ShiftModel.company_id == company_id,
+                UserModel.full_name.ilike(f"%{name_query}%"),
+            )
+            .order_by(ShiftApplicationModel.created_at.desc())
+            .limit(1)
+        )
+        row = (await self._session.execute(stmt)).first()
+        if row is None:
+            return None
+        return ApplicantMatch(user_id=row.id, full_name=row.full_name)
 
     async def count_application_stats(self) -> ApplicationStats:
         stmt = select(

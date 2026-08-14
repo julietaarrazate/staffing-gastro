@@ -83,6 +83,18 @@ class ShiftApplication:
 
 
 @dataclass(frozen=True)
+class ApplicantMatch:
+    """Resultado de buscar, entre los postulantes de un comercio, uno cuyo
+    nombre coincide con lo que preguntó el asistente de IA (ver
+    `ShiftApplicationRepository.find_applicant_by_name`). `user_id` es lo
+    que necesita `VerificationService` — `Claim` se indexa por usuario, no
+    por perfil de trabajador."""
+
+    user_id: UUID
+    full_name: str
+
+
+@dataclass(frozen=True)
 class EnrichedApplicant:
     """Postulación de un turno junto con los datos del trabajador para la UI.
 

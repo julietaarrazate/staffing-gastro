@@ -4,7 +4,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
+from app.modules.application.domain.entities import (
+    ApplicantMatch,
+    EnrichedApplicant,
+    ShiftApplication,
+)
 
 
 @dataclass
@@ -51,6 +55,17 @@ class ShiftApplicationRepository(ABC):
     async def list_by_shift_enriched(self, shift_id: UUID) -> list[EnrichedApplicant]:
         """Postulantes de un turno con datos del trabajador (perfil + usuario),
         en pocas consultas (JOIN) en vez de 2 por postulante."""
+
+    @abstractmethod
+    async def find_applicant_by_name(
+        self, company_id: UUID, name_query: str
+    ) -> ApplicantMatch | None:
+        """Busca, entre TODOS los postulantes a turnos de este comercio (no un
+        directorio global de trabajadores — sólo gente que ya se postuló acá),
+        el primero cuyo nombre contiene `name_query` (sin distinguir
+        mayúsculas/acentos). Usado por el asistente de IA para "¿fulano está
+        verificado?" sin necesitar una búsqueda de trabajadores por nombre a
+        nivel plataforma, que no existe hoy y sería un alcance mayor."""
 
     @abstractmethod
     async def list_pending_by_worker(self, worker_profile_id: UUID) -> list[ShiftApplication]:

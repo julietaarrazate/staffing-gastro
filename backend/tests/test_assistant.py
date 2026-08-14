@@ -4,13 +4,20 @@ postulantes — a partir de una única llamada de clasificación de intención).
 """
 
 import json
-from datetime import date
+from datetime import date, datetime, timezone
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 import app.modules.assistant.application.services as assistant_services
-from tests.conftest import auth_headers
+from app.modules.assistant.infrastructure.models import AssistantQueryLogModel
+from app.modules.verification.domain.entities import Claim
+from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
+from app.modules.verification.infrastructure.repositories import SqlAlchemyClaimRepository
+from tests.conftest import auth_headers, login, register_user
 from tests.test_gemini_shift_parser import _FakeAsyncClient, configured_gemini  # noqa: F401
 
 pytestmark = pytest.mark.asyncio
@@ -42,6 +49,13 @@ def _shift_payload(**overrides) -> dict:
     return payload
 
 
+async def _published_shift(client: AsyncClient, employer_headers: dict) -> str:
+    created = await client.post("/api/v1/shifts", headers=employer_headers, json=_shift_payload())
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+    return shift_id
+
+
 def _assistant_json(**overrides) -> str:
     data = {
         "intent": "desconocido",
@@ -58,6 +72,7 @@ def _assistant_json(**overrides) -> str:
         "search_position": None,
         "applicants_position": None,
         "applicants_date_hint": None,
+        "verification_name": None,
     }
     data.update(overrides)
     return json.dumps(data)
@@ -301,3 +316,144 @@ async def test_assistant_gets_company_context_with_enough_history(
     # dominio, ver `_naive`/`core/dt.py`): 20:00 se traduce a las 17:00 ART.
     assert "17:00hs" in context_text
     assert "70.000" in context_text
+
+
+async def test_consultar_verificacion_reports_verified_applicant(
+    client: AsyncClient, configured_gemini, session_factory: async_sessionmaker
+):
+    """El asistente responde si un postulante puntual (encontrado por nombre
+    entre los postulantes de ESTE comercio) tiene la identidad verificada —
+    reusa `VerificationService.verified_user_ids`, el mismo mecanismo ya
+    probado en ADR-0010, sin dominio nuevo."""
+    employer = await _employer_with_company(client, "asst_emp_verif1@staffya.com")
+    shift_id = await _published_shift(client, employer)
+
+    await register_user(
+        client, email="asst_w_verified@staffya.com", full_name="Camila Duarte", role="worker"
+    )
+    worker_tokens = await login(client, "asst_w_verified@staffya.com")
+    worker_headers = {"Authorization": f"Bearer {worker_tokens['access_token']}"}
+    worker_user_id = worker_tokens["user"]["id"]
+    await client.post(
+        "/api/v1/workers/me/profile", headers=worker_headers, json={"skills": ["mozo"]}
+    )
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker_headers)
+
+    async with session_factory() as session:
+        repo = SqlAlchemyClaimRepository(session)
+        await repo.add(
+            Claim(
+                user_id=UUID(worker_user_id),
+                claim_type=ClaimType.DOCUMENTO_VERIFICADO,
+                status=ClaimStatus.VERIFICADA,
+                decided_at=datetime.now(timezone.utc),
+            )
+        )
+
+    _FakeAsyncClient.next_gemini_text = _assistant_json(
+        intent="consultar_verificacion", verification_name="Camila"
+    )
+    response = await client.post(
+        "/api/v1/assistant/query",
+        headers=employer,
+        json={"text": "¿Camila está verificada?"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "consultar_verificacion"
+    assert body["verification_full_name"] == "Camila Duarte"
+    assert body["verification_verified"] is True
+
+
+async def test_consultar_verificacion_reports_unverified_applicant(
+    client: AsyncClient, configured_gemini
+):
+    employer = await _employer_with_company(client, "asst_emp_verif2@staffya.com")
+    shift_id = await _published_shift(client, employer)
+
+    worker_headers = await auth_headers(
+        client, "worker", "asst_w_unverified@staffya.com", full_name="Bruno Sosa"
+    )
+    await client.post(
+        "/api/v1/workers/me/profile", headers=worker_headers, json={"skills": ["mozo"]}
+    )
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker_headers)
+
+    _FakeAsyncClient.next_gemini_text = _assistant_json(
+        intent="consultar_verificacion", verification_name="Bruno"
+    )
+    response = await client.post(
+        "/api/v1/assistant/query",
+        headers=employer,
+        json={"text": "¿Bruno está verificado?"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "consultar_verificacion"
+    assert body["verification_full_name"] == "Bruno Sosa"
+    assert body["verification_verified"] is False
+
+
+async def test_consultar_verificacion_without_match_falls_back_gracefully(
+    client: AsyncClient, configured_gemini
+):
+    employer = await _employer_with_company(client, "asst_emp_verif3@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _assistant_json(
+        intent="consultar_verificacion", verification_name="Nadie Existente"
+    )
+    response = await client.post(
+        "/api/v1/assistant/query",
+        headers=employer,
+        json={"text": "¿Nadie Existente está verificado?"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "desconocido"
+    assert body["verification_full_name"] is None
+
+
+async def test_consultar_verificacion_without_name_degrades_to_desconocido(
+    client: AsyncClient, configured_gemini
+):
+    """Gemini devolvió el intent sin `verification_name` (o vacío) — degrada
+    a `desconocido` antes de llegar a buscar nada, mismo criterio que
+    `crear_evento` sin roles válidos."""
+    employer = await _employer_with_company(client, "asst_emp_verif4@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _assistant_json(
+        intent="consultar_verificacion", verification_name=None
+    )
+    response = await client.post(
+        "/api/v1/assistant/query",
+        headers=employer,
+        json={"text": "¿está verificado?"},
+    )
+    assert response.status_code == 200
+    assert response.json()["intent"] == "desconocido"
+
+
+async def test_query_logs_the_resolved_intent(
+    client: AsyncClient, configured_gemini, session_factory: async_sessionmaker
+):
+    """Señal de uso (P2, Julieta: "que vaya aprendiendo") — cada consulta
+    resuelta queda registrada con el intent FINAL, base para un aprendizaje
+    real futuro cuando haya volumen. Todavía no hay pipeline de
+    entrenamiento; esto sólo junta la materia prima."""
+    employer = await _employer_with_company(client, "asst_emp_log1@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _assistant_json(
+        intent="buscar_candidatos", search_position="mozo"
+    )
+    response = await client.post(
+        "/api/v1/assistant/query",
+        headers=employer,
+        json={"text": "buscame mozos disponibles"},
+    )
+    assert response.status_code == 200
+
+    # Sin método de lectura en el puerto todavía (nadie lo necesita hoy, ver
+    # docstring de `AssistantQueryLogEntry`) — se lee directo del modelo ORM,
+    # sólo para esta verificación.
+    async with session_factory() as session:
+        rows = (await session.execute(select(AssistantQueryLogModel))).scalars().all()
+    assert len(rows) == 1
+    assert rows[0].text == "buscame mozos disponibles"
+    assert rows[0].intent == "buscar_candidatos"

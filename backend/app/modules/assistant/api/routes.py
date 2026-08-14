@@ -1,6 +1,7 @@
 """Rutas HTTP del módulo assistant (asistente general de IA del panel del
 comercio: crear turno/evento, consultar turnos, buscar candidatos, ver
-postulantes — todo a partir de una descripción en texto libre o dictada).
+postulantes, consultar verificación de un postulante puntual — todo a partir
+de una descripción en texto libre o dictada).
 """
 
 from typing import Annotated
@@ -10,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.dt import parse_iso_datetime
 from app.core.gemini import (
+    AssistantQueryResult,
     GeminiNotConfiguredError,
     GeminiRequestError,
     interpret_assistant_query,
@@ -23,6 +25,8 @@ from app.modules.assistant.api.schemas import (
 )
 from app.modules.assistant.application.services import AssistantService
 from app.modules.shift.api.dependencies import get_my_company_id
+from app.modules.verification.api.dependencies import get_verification_service
+from app.modules.verification.application.services import VerificationService
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
@@ -30,6 +34,7 @@ ServiceDep = Annotated[AssistantService, Depends(get_assistant_service)]
 # Sólo el comercio (dueño de sus turnos/postulantes) usa el asistente; ya
 # fuerza rol EMPLOYER internamente (ver `get_my_company_id`).
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
+VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 
 # Por comercio, no por IP (mismo criterio que parse-shift-text/ai-suggestion
 # de soporte — protege contra un doble click/loop del frontend, no es la
@@ -48,6 +53,7 @@ async def query(
     payload: AssistantQueryRequest,
     company_id: CompanyIdDep,
     service: ServiceDep,
+    verification: VerificationDep,
 ) -> AssistantQueryResponse:
     _assistant_query_rate_limit.check(str(company_id))
     # P2 (Julieta: "la IA tiene que aprender cosas de cada persona, está muy
@@ -70,6 +76,21 @@ async def query(
             detail="No pudimos interpretar el texto. Probá reformularlo.",
         ) from exc
 
+    response = await _resolve(result, company_id, service, verification)
+    # Señal de uso (P2, Julieta: "que vaya aprendiendo") — se loguea el
+    # intent FINAL (post-degrade, ej. `ver_postulantes` sin turno encontrado
+    # ya llega acá como `desconocido`), que es la señal honesta de qué tan
+    # seguido el asistente resuelve algo útil, no sólo qué clasificó Gemini.
+    await service.log_query(company_id, payload.text, response.intent)
+    return response
+
+
+async def _resolve(
+    result: AssistantQueryResult,
+    company_id: UUID,
+    service: AssistantService,
+    verification: VerificationService,
+) -> AssistantQueryResponse:
     if result.intent == "crear_turno":
         return AssistantQueryResponse(
             intent=result.intent,
@@ -121,6 +142,20 @@ async def query(
                 message="No encontré un turno tuyo así — revisalo en el panel.",
             )
         return AssistantQueryResponse(intent=result.intent, matched_shift_id=shift.id)
+
+    if result.intent == "consultar_verificacion":
+        match = await service.find_applicant_by_name(company_id, result.verification_name or "")
+        if match is None:
+            return AssistantQueryResponse(
+                intent="desconocido",
+                message="No encontré ningún postulante con ese nombre entre tus turnos.",
+            )
+        verified_ids = await verification.verified_user_ids([match.user_id])
+        return AssistantQueryResponse(
+            intent=result.intent,
+            verification_full_name=match.full_name,
+            verification_verified=match.user_id in verified_ids,
+        )
 
     return AssistantQueryResponse(
         intent="desconocido",
