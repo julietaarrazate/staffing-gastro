@@ -71,13 +71,35 @@ const GESTURE_HANDLERS = [
   "touchPitch",
 ] as const;
 
-function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
+export function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
   for (const name of GESTURE_HANDLERS) {
     const handler = (raw as Record<string, { enable(): void; disable(): void } | undefined>)[name];
     if (!handler) continue;
     if (interactive) handler.enable();
     else handler.disable();
   }
+}
+
+// Mismo problema que arriba, pero con `cooperativeGestures` — el gesto que
+// exige dos dedos para panear un mapa embebido en una página con scroll
+// (reporte real de Julieta, ver el prop más abajo). `cooperativeGestures` es
+// una opción de CONSTRUCTOR: maplibre-gl la usa una sola vez para armar
+// `map.cooperativeGestures` (un handler más, con su propio `.enable()`/
+// `.disable()`) y después no vuelve a mirar la prop — ni la librería base ni
+// el wrapper la re-sincronizan en `setProps`/`reuse` (no está en su lista de
+// handlers togglables). Con `reuseMaps`, si el mapa reciclado se construyó
+// SIN `cooperativeGestures` (p. ej. porque el usuario visitó antes `/map` o
+// `/search`, pantalla completa, sin esta opción) y ahora se monta uno que sí
+// la pide (`MapAddressPicker`, adentro de un formulario con scroll), el
+// mapa reciclado queda con la protección apagada aunque el prop diga
+// `true` — un dedo vuelve a panear el mapa en vez de scrollear la página.
+// Mismo mecanismo de sincronización manual en cada `load` que `interactive`.
+export function syncCooperativeGestures(raw: unknown, cooperativeGestures: boolean) {
+  const handler = (raw as { cooperativeGestures?: { enable(): void; disable(): void } })
+    .cooperativeGestures;
+  if (!handler) return;
+  if (cooperativeGestures) handler.enable();
+  else handler.disable();
 }
 
 const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
@@ -116,6 +138,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           // eso usamos `e.target` (el `mapboxgl.Map` real, disponible ya) en
           // vez de `mapRef.current` para sincronizar los handlers.
           syncInteractiveHandlers(e.target, interactive);
+          syncCooperativeGestures(e.target, cooperativeGestures);
           if (mapRef.current) onLoad?.(mapRef.current);
         }}
         onMoveEnd={onMoveEnd}

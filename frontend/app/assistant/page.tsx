@@ -31,6 +31,7 @@ export default function AssistantPage() {
     handleSubmit,
   } = useAIAssistant();
   const historyEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Es una herramienta del panel del comercio (mismo alcance que la cápsula/
   // barra que reemplaza) — un trabajador que llega acá por URL directa se va
@@ -42,6 +43,15 @@ export default function AssistantPage() {
   useEffect(() => {
     historyEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history.length]);
+
+  // Foco inicial en el campo (jsx-a11y/no-autofocus: el atributo `autoFocus`
+  // de JSX roba el foco incluso cuando el usuario llega por otro camino que
+  // no sea "recién abrí esta pantalla para escribir"; enfocar a mano en un
+  // efecto es el mismo resultado sin ese problema — acá vale la pena, es
+  // literalmente una pantalla de chat, todo el punto es escribir de una).
+  useEffect(() => {
+    if (!authLoading && user?.role === "employer") textareaRef.current?.focus();
+  }, [authLoading, user]);
 
   if (authLoading || !user || user.role !== "employer") {
     return (
@@ -106,12 +116,12 @@ export default function AssistantPage() {
       <div className="sticky bottom-0 mt-3 bg-background pt-1">
         <div className="relative">
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={2}
             maxLength={500}
             placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
-            autoFocus
             className={`w-full resize-none rounded-2xl bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
               speechSupported ? "pr-10" : ""
             }`}
