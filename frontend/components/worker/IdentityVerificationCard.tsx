@@ -163,7 +163,10 @@ export default function IdentityVerificationCard() {
     <div className="p-4">
       {/* Encabezado con el estado actual */}
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-primary-text">
+        {/* Petróleo (ADR-0011), no naranja: esta card ES el caso de uso que
+            el token de trust existe para resolver — identidad verificada,
+            no una acción ni un estado genérico de éxito. */}
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-trust-tint text-trust-text">
           <ShieldIcon size={18} />
         </span>
         <div className="min-w-0 flex-1">
