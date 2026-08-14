@@ -22,6 +22,7 @@ const ParallaxCard = dynamic(() => import("@/components/landing/ParallaxCard"));
 const PricingPlans = dynamic(() => import("@/components/landing/PricingPlans"));
 import {
   BellIcon,
+  BriefcaseIcon,
   CheckIcon,
   type IconProps,
   MapPinIcon,
@@ -230,25 +231,29 @@ export default function Home() {
 
         {/* Franja para trabajadores. `.no-select` (regla C0,
             docs/planning/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
-            vitrina. Fondo Espresso (ADR-0011), no ink genérico — separa esta
-            franja del footer, que va justo debajo con el mismo tono oscuro;
-            antes las dos secciones se leían como un único bloque negro repetido. */}
+            vitrina. Tarjeta clara, no un bloque Espresso sólido (retirado,
+            feedback real de Julieta comparando con Pasito: demasiado fondo
+            oscuro sostenido "sobrecarga y apaga" — el patrón que funciona es
+            superficie clara con el acento en un detalle puntual, acá el
+            ícono, no en toda la tarjeta). Sigue distinguiéndose del footer
+            oscuro de abajo por contraste (clara vs. oscura), no por repetir
+            el mismo tono oscuro. */}
         <Reveal className="mt-20">
-          <section
-            className="no-select rounded-[var(--radius-card)] px-6 py-14 text-center text-white"
-            style={{ background: "var(--color-structure)" }}
-          >
-            <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+          <section className="no-select rounded-[var(--radius-card)] bg-white px-6 py-14 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-structure)] text-white">
+              <BriefcaseIcon size={22} />
+            </span>
+            <h2 className="mt-5 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               ¿Trabajás en gastronomía? Elegí tus turnos.
             </h2>
-            <p className="mx-auto mt-2 max-w-md text-white/70">
+            <p className="mx-auto mt-2 max-w-md text-ink/60">
               Sumate gratis, mirá los turnos cerca tuyo y postulate al que
               mejor te quede.
             </p>
             <div className="mt-7">
               <Link
                 href="/register?rol=trabajador"
-                className="inline-flex rounded-[var(--radius-btn)] border border-white/30 px-7 py-3.5 font-semibold text-white transition active:scale-95 hover:bg-white/10"
+                className="inline-flex rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.28)] transition active:scale-95 hover:brightness-[1.04]"
               >
                 Quiero trabajar
               </Link>
@@ -258,7 +263,7 @@ export default function Home() {
                 procesa ni retiene). Repetido acá en tono de marketing porque
                 es justo lo que un trabajador necesita saber antes de
                 registrarse, no algo para encontrar leyendo la letra chica. */}
-            <p className="mx-auto mt-5 flex max-w-sm items-center justify-center gap-1.5 text-xs font-medium text-white/50">
+            <p className="mx-auto mt-5 flex max-w-sm items-center justify-center gap-1.5 text-xs font-medium text-ink/45">
               <CheckIcon size={14} className="shrink-0" />
               El comercio te paga directo, sin comisión ni intermediarios.
             </p>
