@@ -156,6 +156,7 @@ export interface AssistantQueryResponse {
     | "consultar_turnos"
     | "buscar_candidatos"
     | "ver_postulantes"
+    | "consultar_verificacion"
     | "desconocido";
   message: string | null;
   // `crear_turno`
@@ -178,6 +179,9 @@ export interface AssistantQueryResponse {
   search_position: WorkerSkill | null;
   // `ver_postulantes`
   matched_shift_id: string | null;
+  // `consultar_verificacion`
+  verification_full_name: string | null;
+  verification_verified: boolean | null;
 }
 
 /** Resultado de `POST /shifts/events`: `requested` vs. `shifts.length` —

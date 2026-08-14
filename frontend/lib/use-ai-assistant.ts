@@ -32,38 +32,56 @@ export interface InlineResult {
   onAction?: () => void;
 }
 
+/** Un intercambio ya resuelto (pregunta del comercio + respuesta del
+ * asistente) — el "lugar propio" del asistente (`/assistant`, pedido de
+ * Julieta: "que no sea un botón escondido, que tenga su lugar para
+ * pedirle") se siente como una conversación, no como un formulario de un
+ * solo uso. Vive sólo en memoria de esta visita a la página — no es la
+ * memoria persistente entre sesiones que Julieta decidió no construir
+ * todavía (ver `AssistantQueryLogEntry` en el backend para la señal que sí
+ * se guarda, como base de un aprendizaje real futuro). */
+export interface AssistantHistoryEntry {
+  id: string;
+  question: string;
+  result: InlineResult;
+}
+
 /**
  * Lógica compartida del asistente de IA del comercio (clasifica intención vía
  * `POST /assistant/query` y rama según el resultado) — separada de la
- * presentación del disparador (`AIAssistantFab` cápsula flotante,
- * `AIAssistantBar` barra prominente de home) para que ambas compartan el
- * mismo comportamiento sin duplicar lógica.
+ * presentación (`/assistant`, la pantalla dedicada) para que el disparador
+ * (`AIAssistantFab`/`AIAssistantBar`, que ahora sólo navegan ahí) no cargue
+ * con esta lógica.
  */
 export function useAIAssistant() {
   const { token } = useAuth();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inlineResult, setInlineResult] = useState<InlineResult | null>(null);
+  const [history, setHistory] = useState<AssistantHistoryEntry[]>([]);
   const { listening, supported: speechSupported, toggle: toggleDictation } = useVoiceDictation(
     (transcript) => setText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500))
   );
 
   function reset() {
     setText("");
-    setInlineResult(null);
     setError(null);
   }
 
-  function closeAndGo(to: string) {
-    setOpen(false);
+  function goTo(to: string) {
     reset();
     router.push(to);
   }
 
-  function handleResult(result: AssistantQueryResponse) {
+  /** Agrega el intercambio al historial de la sesión y limpia el campo de
+   * texto para la próxima pregunta — mismo gesto que un chat. */
+  function showInline(question: string, result: InlineResult) {
+    setHistory((prev) => [...prev, { id: crypto.randomUUID(), question, result }]);
+    setText("");
+  }
+
+  function handleResult(question: string, result: AssistantQueryResponse) {
     switch (result.intent) {
       case "crear_turno": {
         const draft: ParsedShiftDraft = {
@@ -77,7 +95,7 @@ export function useAIAssistant() {
           dress_code: result.dress_code,
         };
         sessionStorage.setItem(AI_SHIFT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-        closeAndGo("/shifts/new?ai=1");
+        goTo("/shifts/new?ai=1");
         return;
       }
       case "crear_evento": {
@@ -92,48 +110,59 @@ export function useAIAssistant() {
           dress_code: result.dress_code,
         };
         sessionStorage.setItem(AI_EVENT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-        closeAndGo("/shifts/new-event?ai=1");
+        goTo("/shifts/new-event?ai=1");
         return;
       }
       case "buscar_candidatos": {
         const query = result.search_position ? `?skill=${result.search_position}` : "";
-        closeAndGo(`/search${query}`);
+        goTo(`/search${query}`);
         return;
       }
       case "ver_postulantes": {
         if (result.matched_shift_id) {
-          closeAndGo(`/shifts/${result.matched_shift_id}/candidates`);
+          goTo(`/shifts/${result.matched_shift_id}/candidates`);
           return;
         }
-        setInlineResult({ message: "No encontré un turno tuyo así — revisalo en el panel." });
+        showInline(question, { message: "No encontré un turno tuyo así — revisalo en el panel." });
         return;
       }
       case "consultar_turnos": {
-        setInlineResult({
+        showInline(question, {
           message: result.query_summary ?? "Listo.",
           actionLabel: "Ver en el panel",
-          onAction: () => closeAndGo(`/shifts?tab=${result.query_tab ?? "todos"}`),
+          onAction: () => goTo(`/shifts?tab=${result.query_tab ?? "todos"}`),
+        });
+        return;
+      }
+      case "consultar_verificacion": {
+        const name = result.verification_full_name ?? "Esa persona";
+        showInline(question, {
+          message: result.verification_verified
+            ? `Sí, ${name} tiene la identidad verificada.`
+            : `No, ${name} todavía no verificó su identidad.`,
         });
         return;
       }
       default: {
-        setInlineResult({ message: result.message ?? "No entendí bien qué necesitás. ¿Podés reformularlo?" });
+        showInline(question, {
+          message: result.message ?? "No entendí bien qué necesitás. ¿Podés reformularlo?",
+        });
       }
     }
   }
 
   async function handleSubmit() {
-    if (!token || !text.trim()) return;
+    const question = text.trim();
+    if (!token || !question) return;
     setError(null);
-    setInlineResult(null);
     setLoading(true);
     try {
       const result = await api.post<AssistantQueryResponse>(
         "/assistant/query",
-        { text: text.trim() },
+        { text: question },
         token
       );
-      handleResult(result);
+      handleResult(question, result);
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos interpretar el texto. Probá describirlo distinto."));
     } finally {
@@ -142,17 +171,14 @@ export function useAIAssistant() {
   }
 
   return {
-    open,
-    setOpen,
     text,
     setText,
     loading,
     error,
-    inlineResult,
+    history,
     listening,
     speechSupported,
     toggleDictation,
-    reset,
     handleSubmit,
   };
 }

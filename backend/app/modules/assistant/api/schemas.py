@@ -49,3 +49,7 @@ class AssistantQueryResponse(BaseModel):
 
     # `ver_postulantes`
     matched_shift_id: UUID | None = None
+
+    # `consultar_verificacion`
+    verification_full_name: str | None = None
+    verification_verified: bool | None = None

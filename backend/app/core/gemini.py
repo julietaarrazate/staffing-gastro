@@ -230,6 +230,7 @@ _ASSISTANT_INTENTS = [
     "consultar_turnos",
     "buscar_candidatos",
     "ver_postulantes",
+    "consultar_verificacion",
     "desconocido",
 ]
 
@@ -249,6 +250,10 @@ de personas para puestos distintos, es `crear_evento`, no `crear_turno`.
 disponibles").
 - `ver_postulantes`: ver quién se postuló a un turno puntual ya publicado (ej: "¿quién se postuló \
 al turno de mozo del sábado?").
+- `consultar_verificacion`: preguntar si UNA persona puntual (postulante o candidato, nombrada por \
+su nombre) tiene la identidad verificada (ej: "¿Juan Pérez está verificado?", "¿le verificaron el \
+DNI a Camila?"). Sólo cuando se menciona un nombre de persona — una pregunta general sobre \
+verificación sin nombre es `desconocido`.
 - `desconocido`: no se puede inferir ninguno de los anteriores con confianza.
 
 Reglas de extracción según el intent (dejá en null/"desconocido" lo que no puedas inferir con \
@@ -264,7 +269,10 @@ mencionado, `position` de la misma lista de arriba), y los mismos `start_at`/`en
 represente la pregunta; "todos" si no se puede inferir algo más específico).
 - `buscar_candidatos`: `search_position` (de la lista de arriba, o "desconocido").
 - `ver_postulantes`: `applicants_position` (de la lista de arriba, o "desconocido") y \
-`applicants_date_hint` (fecha ISO YYYY-MM-DD si se puede inferir del texto, null si no)."""
+`applicants_date_hint` (fecha ISO YYYY-MM-DD si se puede inferir del texto, null si no).
+- `consultar_verificacion`: `verification_name`, el nombre (o parte del nombre) de la persona \
+mencionada, tal cual aparece en el texto (ej. "Juan Pérez", "Camila"). Si no se menciona ningún \
+nombre, el intent es `desconocido`, no `consultar_verificacion`."""
 
 # P2 (auditoría de producto, elegido por Julieta entre las opciones
 # propuestas): "la IA tiene que aprender cosas de cada persona, está muy
@@ -309,6 +317,7 @@ _ASSISTANT_RESPONSE_SCHEMA = {
             "nullable": True,
         },
         "applicants_date_hint": {"type": "STRING", "nullable": True},
+        "verification_name": {"type": "STRING", "nullable": True},
     },
     "required": ["intent"],
 }
@@ -341,6 +350,8 @@ class AssistantQueryResult:
     # `ver_postulantes`
     applicants_position: str | None = None
     applicants_date_hint: str | None = None
+    # `consultar_verificacion`
+    verification_name: str | None = None
 
 
 async def interpret_assistant_query(
@@ -408,6 +419,15 @@ async def interpret_assistant_query(
     if applicants_position not in _POSITIONS:
         applicants_position = None
 
+    verification_name = data.get("verification_name")
+    if not isinstance(verification_name, str) or not verification_name.strip():
+        verification_name = None
+    # Sin nombre no hay a quién buscar — degrada a "desconocido" en vez de
+    # mandar una búsqueda vacía al repositorio (mismo criterio que
+    # `crear_evento` sin roles, arriba).
+    if intent == "consultar_verificacion" and verification_name is None:
+        intent = "desconocido"
+
     return AssistantQueryResult(
         intent=intent,
         position=position,
@@ -423,4 +443,5 @@ async def interpret_assistant_query(
         search_position=search_position,
         applicants_position=applicants_position,
         applicants_date_hint=data.get("applicants_date_hint"),
+        verification_name=verification_name,
     )

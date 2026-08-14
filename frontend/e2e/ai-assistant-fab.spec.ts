@@ -6,8 +6,12 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * (pedido de Julieta: separado del wizard, "un botón afuera", que entienda
  * "si es un evento, si es un turno, y toda la app, no sólo lo básico") —
  * antes sólo vivía adentro de /shifts/new y sólo sabía armar un turno.
- * `POST /assistant/query` clasifica el pedido en uno de 5 intents; estos
- * tests cubren cada rama del frontend.
+ * `POST /assistant/query` clasifica el pedido en uno de varios intents;
+ * estos tests cubren cada rama del frontend.
+ *
+ * El disparador (cápsula flotante o barra) navega a `/assistant` — la
+ * pantalla dedicada (pedido de Julieta: "que no sea un botón escondido, que
+ * tenga su lugar para pedirle"), ya no abre una hoja modal encima.
  */
 
 const EMPLOYER_SESSION = {
@@ -56,6 +60,8 @@ function assistantResponse(overrides: Record<string, unknown>) {
     query_tab: null,
     search_position: null,
     matched_shift_id: null,
+    verification_full_name: null,
+    verification_verified: null,
     ...overrides,
   };
 }
@@ -63,10 +69,11 @@ function assistantResponse(overrides: Record<string, unknown>) {
 /** En `/shifts` (panel del comercio) el disparador es la barra prominente
  * (`AIAssistantBar`, "¿Qué necesitás?") — la cápsula flotante se oculta ahí
  * a propósito para no duplicar el mismo punto de entrada dos veces en la
- * misma pantalla (ver `AIAssistantFab`). Misma hoja, mismo comportamiento. */
+ * misma pantalla (ver `AIAssistantFab`). Mismo destino (`/assistant`),
+ * mismo comportamiento. */
 async function openAssistantAndAsk(page: Page, text: string) {
   await page.getByRole("button", { name: "¿Qué necesitás?" }).click();
-  await expect(page.getByRole("dialog", { name: "Asistente" })).toBeVisible();
+  await expect(page).toHaveURL("/assistant");
   await page
     .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
     .fill(text);
@@ -177,6 +184,39 @@ test("consultar_turnos: muestra el resumen adentro del asistente y lleva al pane
   await expect(page).toHaveURL("/shifts?tab=buscando");
 });
 
+test("consultar_verificacion: responde si el postulante nombrado está verificado", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({
+          intent: "consultar_verificacion",
+          verification_full_name: "Camila Duarte",
+          verification_verified: true,
+        })
+      ),
+    })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "¿Camila está verificada?");
+
+  await expect(
+    page.getByText("Sí, Camila Duarte tiene la identidad verificada.")
+  ).toBeVisible();
+  await expect(page).toHaveURL("/assistant");
+});
+
 test("buscar_candidatos: navega a /search con el puesto ya filtrado", async ({ page }) => {
   await injectSession(page);
   await blockExternalHosts(page);
@@ -254,7 +294,44 @@ test("desconocido: muestra un mensaje amigable sin navegar a ningún lado", asyn
   await openAssistantAndAsk(page, "esto no significa nada");
 
   await expect(page.getByText("No entendí bien qué necesitás.")).toBeVisible();
-  await expect(page).toHaveURL("/shifts");
+  await expect(page).toHaveURL("/assistant");
+});
+
+test("varias preguntas seguidas quedan en el historial de la misma visita", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({
+          intent: "consultar_turnos",
+          query_summary: "No tenés turnos para hoy.",
+          query_count: 0,
+          query_tab: "todos",
+        })
+      ),
+    })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "¿qué tengo hoy?");
+  await expect(page.getByText("No tenés turnos para hoy.")).toBeVisible();
+
+  // El campo se limpia solo para la próxima pregunta, sin perder la anterior.
+  await page
+    .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
+    .fill("¿y mañana?");
+  await page.getByRole("button", { name: "Completar" }).click();
+
+  await expect(page.getByText("¿qué tengo hoy?")).toBeVisible();
+  await expect(page.getByText("¿y mañana?")).toBeVisible();
 });
 
 test("en /shifts la cápsula flotante se oculta y aparece la barra prominente en su lugar", async ({
@@ -298,6 +375,16 @@ test("el botón flotante no aparece durante el onboarding (/bienvenida)", async 
   await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
 });
 
+test("el botón flotante no aparece en /assistant (ya estás ahí)", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+
+  await page.goto("/assistant");
+  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+});
+
 test("el botón flotante no aparece para un trabajador (sólo el comercio publica turnos)", async ({
   page,
 }) => {
@@ -311,4 +398,17 @@ test("el botón flotante no aparece para un trabajador (sólo el comercio public
 
   await page.goto("/feed");
   await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+});
+
+test("un trabajador que entra a /assistant por URL directa se va a su feed", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+  await page.route("**/api/v1/shifts**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto("/assistant");
+  await expect(page).toHaveURL("/feed");
 });

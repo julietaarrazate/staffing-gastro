@@ -9,6 +9,7 @@ necesitan una query nueva en el repositorio: alcanza con `list_by_company`
 comercio en esta etapa.
 """
 
+import logging
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -16,9 +17,15 @@ from statistics import median
 from uuid import UUID
 
 from app.core.tz import ARG_TZ, hoy_art
+from app.modules.application.domain.entities import ApplicantMatch
+from app.modules.application.domain.repositories import ShiftApplicationRepository
+from app.modules.assistant.domain.entities import AssistantQueryLogEntry
+from app.modules.assistant.domain.repositories import AssistantQueryLogRepository
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import OPEN_STATUSES
+
+logger = logging.getLogger(__name__)
 
 # Tope de turnos considerados al resolver consultar_turnos/ver_postulantes.
 # Un comercio de la beta no se acerca a este volumen; de sobrarse, es mejor
@@ -42,8 +49,26 @@ class ShiftsQueryResult:
 
 
 class AssistantService:
-    def __init__(self, shifts: ShiftRepository) -> None:
+    def __init__(
+        self,
+        shifts: ShiftRepository,
+        applications: ShiftApplicationRepository,
+        query_log: AssistantQueryLogRepository,
+    ) -> None:
         self._shifts = shifts
+        self._applications = applications
+        self._query_log = query_log
+
+    async def log_query(self, company_id: UUID, text: str, intent: str) -> None:
+        """Fire-and-forget: se llama al final de la resolución de la consulta,
+        nunca antes (ver `api/routes.py`) — un fallo acá no debe tapar un
+        resultado real ya calculado."""
+        try:
+            await self._query_log.add(
+                AssistantQueryLogEntry(company_id=company_id, text=text, intent=intent)
+            )
+        except Exception:  # noqa: BLE001 — logging nunca puede romper la respuesta real
+            logger.exception("No se pudo registrar la consulta del asistente")
 
     async def summarize_shifts(self, company_id: UUID, query_filter: str) -> ShiftsQueryResult:
         shifts = await self._shifts.list_by_company(company_id, limit=_LOOKUP_LIMIT)
@@ -73,6 +98,15 @@ class AssistantService:
                 candidates = date_matches
         candidates.sort(key=lambda s: s.created_at or s.start_at, reverse=True)
         return candidates[0]
+
+    async def find_applicant_by_name(
+        self, company_id: UUID, name_query: str
+    ) -> ApplicantMatch | None:
+        """Delegación fina al puerto de `application` — el service de
+        assistant no agrega lógica acá, sólo compone (mismo criterio del
+        módulo: depender del PUERTO de otro dominio, nunca de su propio
+        servicio de aplicación)."""
+        return await self._applications.find_applicant_by_name(company_id, name_query)
 
     def _matches_filter(self, shift: Shift, query_filter: str) -> bool:
         if query_filter == "hoy":
