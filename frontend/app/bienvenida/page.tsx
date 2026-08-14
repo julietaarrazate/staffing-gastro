@@ -77,15 +77,16 @@ export default function BienvenidaPage() {
 }
 
 /** Envoltorio común: mismo fondo, logo y layout que ambos onboardings comparten.
- * Fondo Espresso (ADR-0011), no ink genérico — primera aplicación real del
- * "momento de marca" que el token ya documentaba. Mismo contraste que antes
- * para texto blanco/overlays (ambos son fondos oscuros de luminancia similar). */
+ * Fondo cálido de la app, no un bloque sólido oscuro (retirado, feedback real
+ * de Julieta comparando con Pasito: un fondo oscuro sostenido durante todo un
+ * wizard de varios pasos "sobrecarga y apaga" — el patrón que funciona es
+ * superficie clara con acentos puntuales en tarjetas, no un lienzo entero
+ * pintado). El Espresso de ADR-0011 pasa del fondo al ícono de bienvenida
+ * (ver más abajo), que sigue siendo el "momento de marca" del primer paso
+ * pero como acento, no como pantalla completa. */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="-mb-20 flex min-h-[100dvh] flex-col px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-white md:mb-0"
-      style={{ background: "var(--color-structure)" }}
-    >
+    <div className="-mb-20 flex min-h-[100dvh] flex-col bg-paper px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-ink md:mb-0">
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
         <Logo size={34} withWordmark={false} />
         {children}
@@ -101,7 +102,7 @@ function StepDots({ active, total }: { active: number; total: number }) {
         <span
           key={i}
           className={`h-1.5 flex-1 rounded-full transition-colors ${
-            i <= active ? "bg-primary" : "bg-white/20"
+            i <= active ? "bg-primary" : "bg-line"
           }`}
         />
       ))}
@@ -171,13 +172,13 @@ function WorkerOnboarding() {
           {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — sólo en
               el primer paso, como un saludo de bienvenida, no en cada paso
               del wizard. */}
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-structure)]">
             <WelcomeIllustration size={32} color="#f97316" />
           </div>
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Dónde querés trabajar?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
             Te mostramos primero los turnos más cerca tuyo. Podés cambiarlo cuando
             quieras desde tu perfil.
           </p>
@@ -187,7 +188,7 @@ function WorkerOnboarding() {
           </div>
 
           {location && (
-            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-white/80">
+            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-ink/70">
               <MapPinIcon size={16} className="text-primary" />
               {location.city}
             </p>
@@ -201,10 +202,10 @@ function WorkerOnboarding() {
         </section>
       ) : step === "oficio" ? (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Qué sabés hacer?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
             Elegí todo lo que puedas cubrir. Cuantos más elijas, más turnos vas a ver.
           </p>
 
@@ -220,7 +221,7 @@ function WorkerOnboarding() {
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
                     active
                       ? "bg-primary text-ink"
-                      : "bg-white/10 text-white/80 ring-1 ring-white/15"
+                      : "bg-surface text-ink/70 ring-1 ring-line hover:bg-line"
                   }`}
                 >
                   {active && <CheckIcon size={15} />}
@@ -237,7 +238,7 @@ function WorkerOnboarding() {
             <button
               type="button"
               onClick={() => setStep("zona")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98]"
             >
               Volver
             </button>
@@ -245,10 +246,10 @@ function WorkerOnboarding() {
         </section>
       ) : (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             Contanos más de vos
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
             Opcional, pero un perfil completo consigue turnos más rápido. Lo podés
             cargar después si preferís arrancar ya.
           </p>
@@ -282,7 +283,7 @@ function WorkerOnboarding() {
             <button
               type="button"
               onClick={() => setStep("oficio")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98]"
             >
               Volver
             </button>
@@ -385,13 +386,13 @@ function EmployerOnboarding() {
         <section className="mt-8 flex flex-1 flex-col">
           {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — mismo
               saludo que ve el trabajador en su primer paso. */}
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-structure)]">
             <WelcomeIllustration size={32} color="#f97316" />
           </div>
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Cómo se llama tu comercio?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
             Es lo primero que ven los candidatos cuando les llega tu turno.
           </p>
 
@@ -424,7 +425,7 @@ function EmployerOnboarding() {
               type="button"
               disabled={skippingAll}
               onClick={skipAll}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98] disabled:opacity-60"
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98] disabled:opacity-60"
             >
               {skippingAll ? "Guardando…" : "Omitir por ahora"}
             </button>
@@ -432,10 +433,10 @@ function EmployerOnboarding() {
         </section>
       ) : (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-white">
+          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Dónde está?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
             Los turnos que publiques van a mostrar esta dirección, y les ordena
             la cercanía a los trabajadores.
           </p>
@@ -473,7 +474,7 @@ function EmployerOnboarding() {
           </div>
 
           {city && (
-            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-white/80">
+            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-ink/70">
               <MapPinIcon size={16} className="text-primary" />
               {city}
             </p>
@@ -494,14 +495,14 @@ function EmployerOnboarding() {
               type="button"
               disabled={skipping}
               onClick={skipLocation}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/60 transition active:scale-[0.98] disabled:opacity-60"
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98] disabled:opacity-60"
             >
               {skipping ? "Guardando…" : "Cargar la ubicación después"}
             </button>
             <button
               type="button"
               onClick={() => setStep("nombre")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-white/40 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/35 transition active:scale-[0.98]"
             >
               Volver
             </button>
