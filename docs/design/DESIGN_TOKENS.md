@@ -62,29 +62,38 @@ duraciones de animación hardcodeadas en cuatro valores distintos.
 
 ### 3.1 Color — superficie
 
+> Tabla corregida (2026-08-14) para coincidir con `globals.css` real —
+> quedaba desactualizada desde la pasada editorial (crema/naranja actual,
+> antes gris/naranja más saturado). Regla de esta misma sección, punto 7:
+> "si el CSS y este documento se contradicen, gana el CSS".
+
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-primary` | `#ff6b00` | Acento de marca: fondo de botón, chips activos |
-| `--color-primary-strong` | `#e85f00` | Estado presionado, par de marca |
-| `--color-ink` | `#111111` | Texto principal; fondo en momentos de marca |
-| `--color-background` | `#f8f9fa` | Fondo de app |
-| `--color-surface` | `#f1f3f5` | Chips, campos inactivos, tracks |
-| `--color-line` | `#ececee` | Bordes de 1 px |
-| `--color-paper` | `#fbf8f4` | Fondo cálido de la landing |
-| `--color-success` | `#22c55e` | Superficie de éxito |
+| `--color-primary` | `#f97316` | Acento de marca: fondo de botón, chips activos |
+| `--color-primary-strong` | `#e65a00` | Estado presionado, par de marca |
+| `--color-ink` | `#1f1f1c` | Texto principal; fondo en momentos de marca |
+| `--background` | `#fff8f0` | Fondo cálido de la app |
+| `--color-surface` | `#f5ecdd` | Chips, campos inactivos, tracks |
+| `--color-line` | `#ebe2d4` | Bordes de 1 px |
+| `--color-paper` | `#fbf2e6` | Franja cálida más profunda que el fondo (landing) |
+| `--color-success` | `#2e8b57` | Superficie de éxito |
 | `--color-danger` | `#ef4444` | Superficie de error |
+| `--color-structure` | `#4a3428` (Espresso) | Estructura/momentos de marca (ADR-0011). Definido, rollout amplio pendiente de verificación visual. |
+| `--color-trust` | `#1e4a47` (Petróleo) | Identidad/confianza verificada, **exclusivamente** (ADR-0011, cierra gap de ADR-0010 §5) — nunca estado, nunca reputación |
+| `--color-trust-tint` | `#e8f1f0` | Superficie clara del chip de confianza (mismo patrón que `orange-50`/`green-50`) |
 
 ### 3.2 Color — texto (contraste AA verificado)
 
 | Token | Valor | Contraste sobre blanco |
 |---|---|---|
-| `--color-primary-text` | `#c65300` | **4.53** ✅ |
-| `--color-success-text` | `#17853f` | **4.71** ✅ |
+| `--color-primary-text` | `#b23c08` | **5.93** ✅ |
+| `--color-success-text` | `#16823e` | **4.89** ✅ |
 | `--color-danger-text` | `#d73d3d` | **4.54** ✅ |
+| `--color-trust-text` | `#1e4a47` | Muy oscuro — cumple AA de sobra, no necesita variante separada de la superficie (a diferencia de primary/success/danger) |
 
 > **Regla crítica:** sobre fondo **ink** se usa el token de *superficie*
-> (brillante), no el de texto. Sobre `#111111` el naranja brillante da **6.61**
-> y el de texto **4.17** — invertido, falla. Ver `COLOR_SYSTEM.md` §4.
+> (brillante), no el de texto. Sobre el ink actual el naranja de superficie
+> cumple; el de texto queda invertido y falla. Ver `COLOR_SYSTEM.md` §4.
 
 ### 3.3 Geometría
 
