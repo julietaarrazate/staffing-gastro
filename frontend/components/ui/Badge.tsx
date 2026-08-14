@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Tone = "primary" | "secondary" | "danger" | "neutral" | "info";
+type Tone = "primary" | "secondary" | "danger" | "neutral" | "info" | "trust";
 
 const TONES: Record<Tone, string> = {
   primary: "bg-orange-50 text-primary-text",
@@ -9,6 +9,10 @@ const TONES: Record<Tone, string> = {
   danger: "bg-red-50 text-danger-text",
   neutral: "bg-surface text-ink/70",
   info: "bg-blue-50 text-blue-700",
+  // Identidad/confianza verificada — nunca estado ni reputación (ADR-0010
+  // §5, ADR-0011). No reusar para nada que no sea una verificación de
+  // identidad real.
+  trust: "bg-trust-tint text-trust-text",
 };
 
 /** Badge / etiqueta de estado, pequeña y redonda. */
