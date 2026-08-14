@@ -24,6 +24,7 @@ import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
+import { LogoGlyph } from "@/components/Logo";
 import {
   CalendarIcon,
   ChevronLeftIcon,
@@ -31,7 +32,6 @@ import {
   MapPinIcon,
   MicIcon,
   MicOffIcon,
-  SparklesIcon,
   UsersIcon,
   UtensilsIcon,
   WalletIcon,
@@ -366,7 +366,7 @@ function NewShiftWizard() {
                     sola, el comercio revisa y confirma cada paso a mano. */}
                 <div className="mt-4 rounded-3xl bg-surface p-4 ring-1 ring-line">
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
-                    <SparklesIcon size={16} className="text-primary" /> Describilo y lo completamos
+                    <LogoGlyph size={14} color="var(--color-primary)" /> Describilo y lo completamos
                   </p>
                   <div className="relative mt-2">
                     <textarea

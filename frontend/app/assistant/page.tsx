@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useAIAssistant } from "@/lib/use-ai-assistant";
 import { Button, Skeleton } from "@/components/ui";
-import { ChevronLeftIcon, MicIcon, MicOffIcon, SparklesIcon } from "@/components/icons";
+import { LogoGlyph } from "@/components/Logo";
+import { ChevronLeftIcon, MicIcon, MicOffIcon } from "@/components/icons";
 
 /**
  * Pantalla dedicada del asistente de IA del comercio (pedido de Julieta:
@@ -78,9 +79,17 @@ export default function AssistantPage() {
 
       <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
         {history.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface px-4 py-8 text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
-              <SparklesIcon size={18} />
+          // Tarjeta blanca, no bg-surface (reporte real de Julieta: "todo
+          // beige, se confunde, parece teñido") — bg-surface es para chips/
+          // insets (ver DESIGN_TOKENS.md §3.1), no para la única tarjeta de
+          // contenido de una pantalla vacía; mismo tratamiento que el resto
+          // de las tarjetas reales de la app (perfil, resumen del wizard).
+          // El ícono usa Espresso (ADR-0011, "momento de marca") en vez de
+          // naranja — distingue esta tarjeta de bienvenida de los globos de
+          // chat de abajo, que sí son naranja/superficie.
+          <div className="flex flex-col items-center gap-2 rounded-2xl bg-white px-4 py-8 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-structure)]">
+              <LogoGlyph size={18} color="#fff" />
             </span>
             <p className="text-sm text-ink/60">
               Contame qué necesitás — publicar un turno o evento, ver tus turnos, buscar
