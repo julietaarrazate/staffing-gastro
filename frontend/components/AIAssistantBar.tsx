@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SparklesIcon } from "@/components/icons";
+import { LogoGlyph } from "@/components/Logo";
 
 /**
  * Barra prominente del asistente de IA, para el panel/home del comercio
@@ -23,7 +23,7 @@ export default function AIAssistantBar() {
       className="flex w-full items-center gap-3 rounded-full bg-surface px-4 py-3.5 text-left ring-1 ring-line transition active:scale-[0.99]"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-        <SparklesIcon size={16} />
+        <LogoGlyph size={16} color="#fff" />
       </span>
       <span className="text-sm font-medium text-ink/50">¿Qué necesitás?</span>
     </button>

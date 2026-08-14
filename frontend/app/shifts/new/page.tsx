@@ -24,6 +24,7 @@ import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
+import { LogoGlyph } from "@/components/Logo";
 import {
   CalendarIcon,
   ChevronLeftIcon,
@@ -31,7 +32,6 @@ import {
   MapPinIcon,
   MicIcon,
   MicOffIcon,
-  SparklesIcon,
   UsersIcon,
   UtensilsIcon,
   WalletIcon,
@@ -149,7 +149,31 @@ function NewShiftWizard() {
     setMeal(draft.meal);
     setUrgent(draft.urgent);
     if (draft.dress_code) setDressCode(draft.dress_code);
-    toast("Completamos lo que pudimos — revisá cada paso antes de publicar");
+
+    // Salta directo al primer paso que la IA NO pudo resolver, en vez de
+    // dejar el wizard en el paso 1 con todo ya completo (reporte real de
+    // Julieta: "no tiene sentido, en el paso uno ya se bloquea" — si le
+    // pedís por lenguaje natural, tiene que presetear todo y sólo frenar
+    // en lo que falta, no hacer repetir "Continuar" sobre campos que ya
+    // están). Mismo criterio que "Duplicar turno" arriba, que ya salta
+    // directo al último paso — acá la diferencia es que un draft de la IA
+    // puede venir incompleto (ej. sin fecha), así que el destino depende
+    // de qué faltó, no siempre es el final. `quantity` no entra en la
+    // cuenta: siempre vale 1 (R1.4), el paso 1 nunca bloquea.
+    const startInput = draft.start_at ? argentinaISOToLocalInput(draft.start_at) : "";
+    const endInput = draft.end_at ? argentinaISOToLocalInput(draft.end_at) : "";
+    const hasWhen = startInput !== "" && endInput !== "" && endInput > startInput;
+    const hasPay = draft.pay_amount != null && Number(draft.pay_amount) > 0;
+    if (!draft.position) setStep(0);
+    else if (!hasWhen) setStep(2);
+    else if (!hasPay) setStep(3);
+    else setStep(STEPS.length - 1);
+
+    toast(
+      draft.position && hasWhen && hasPay
+        ? "Completamos todo — revisá la zona y publicá"
+        : "Completamos lo que pudimos — seguí desde donde quedó"
+    );
   }
 
   async function parseWithAI() {
@@ -342,7 +366,7 @@ function NewShiftWizard() {
                     sola, el comercio revisa y confirma cada paso a mano. */}
                 <div className="mt-4 rounded-3xl bg-surface p-4 ring-1 ring-line">
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
-                    <SparklesIcon size={16} className="text-primary" /> Describilo y lo completamos
+                    <LogoGlyph size={14} color="var(--color-primary)" /> Describilo y lo completamos
                   </p>
                   <div className="relative mt-2">
                     <textarea

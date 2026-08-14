@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { SparklesIcon } from "@/components/icons";
+import { LogoGlyph } from "@/components/Logo";
 
 /**
  * Cápsula flotante del asistente, disponible en toda la app del comercio
@@ -21,6 +21,11 @@ import { SparklesIcon } from "@/components/icons";
  * recién arrancado no es el momento de ofrecer el asistente (Julieta:
  * "tiene que estar fuera del onboarding inicial, ya cuando estás adentro
  * podés usarla, si no está ese botón ahí flotando y queda raro").
+ *
+ * Ícono: el glifo de la marca (`LogoGlyph`), no un genérico de "IA" tipo
+ * estrellita (reporte real de Julieta: "la IA tiene ese ícono genérico") —
+ * mismo criterio en `AIAssistantBar` y `/assistant`, un solo punto de
+ * identidad visual para el asistente en toda la app.
  */
 export default function AIAssistantFab() {
   const { user } = useAuth();
@@ -42,7 +47,7 @@ export default function AIAssistantFab() {
       aria-label="Asistente de turnos con IA"
       className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[var(--shadow-float)] transition active:scale-95 md:bottom-6 md:right-6"
     >
-      <SparklesIcon size={22} />
+      <LogoGlyph size={22} color="#fff" />
     </button>
   );
 }

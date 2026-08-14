@@ -80,9 +80,14 @@ async function openAssistantAndAsk(page: Page, text: string) {
   await page.getByRole("button", { name: "Completar" }).click();
 }
 
-test("crear_turno: llega al wizard de turno único con el puesto ya precargado", async ({
+test("crear_turno: con datos completos, salta directo a revisar y publicar", async ({
   page,
 }) => {
+  // Reporte real de Julieta probando la app: "no tiene sentido, en el paso
+  // uno ya se bloquea" — un draft completo (puesto+horario+pago, los tres
+  // presentes acá) tiene que aterrizar en el último paso (zona + resumen +
+  // "Publicar turno"), no en el paso 1 pidiendo "Continuar" sobre campos
+  // que ya están completos.
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -113,7 +118,49 @@ test("crear_turno: llega al wizard de turno único con el puesto ya precargado",
   await openAssistantAndAsk(page, "necesito un mozo el sábado a la noche, se paga 45000");
 
   await expect(page).toHaveURL(/\/shifts\/new/);
-  await expect(page.getByRole("button", { name: "Continuar" })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
+  await expect(page.getByText("Mozo/a").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Publicar turno" })).toBeVisible();
+});
+
+test("crear_turno: con datos parciales, frena justo en lo primero que falta", async ({
+  page,
+}) => {
+  // El mismo criterio, del otro lado: si la IA no pudo inferir el pago (acá
+  // no vino en el texto), el wizard tiene que frenar en el paso "Pago" —
+  // ni en el paso 1 (puesto/horario ya están) ni saltarse directo a
+  // publicar con un monto vacío.
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/assistant/query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({
+          intent: "crear_turno",
+          position: "mozo",
+          start_at: "2026-08-15T20:00:00-03:00",
+          end_at: "2026-08-16T02:00:00-03:00",
+          pay_amount: null,
+          urgent: false,
+          meal: false,
+          tips: true,
+        })
+      ),
+    })
+  );
+
+  await page.goto("/shifts");
+  await openAssistantAndAsk(page, "necesito un mozo el sábado a la noche");
+
+  await expect(page).toHaveURL(/\/shifts\/new/);
+  await expect(page.getByRole("heading", { name: "¿Cuánto pagás?" })).toBeVisible();
 });
 
 test("crear_evento: llega al wizard de evento con los roles ya precargados", async ({ page }) => {
