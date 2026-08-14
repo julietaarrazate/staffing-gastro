@@ -10,6 +10,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
+import AIAssistantBar from "@/components/AIAssistantBar";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
@@ -294,6 +295,10 @@ function MyShiftsPanel() {
             + Publicar
           </Link>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <AIAssistantBar />
       </div>
 
       {loading && <CardSkeletons />}
