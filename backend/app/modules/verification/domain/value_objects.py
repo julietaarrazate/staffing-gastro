@@ -23,6 +23,12 @@ class ClaimType(str, Enum):
     SELFIE_VERIFICADA = "selfie_verificada"
     PRUEBA_DE_VIDA = "prueba_de_vida"
     MAYORIA_DE_EDAD = "mayoria_de_edad"
+    # Identidad de NEGOCIO, no de persona (sujeto = CompanyProfile.user_id) —
+    # el ejemplo que este mismo docstring ya anticipaba, TRUST_SYSTEM.md §11.
+    # Reusa el mecanismo de aprobación genérico (approve_claim/reject_claim);
+    # sin flujo de envío/revisión de evidencias de negocio todavía (ADR-0011)
+    # — el tipo queda listo para cuando exista, no se simula con datos falsos.
+    NEGOCIO_VERIFICADO = "negocio_verificado"
 
 
 class ClaimStatus(str, Enum):

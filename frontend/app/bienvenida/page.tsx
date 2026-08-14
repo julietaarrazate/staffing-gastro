@@ -76,10 +76,16 @@ export default function BienvenidaPage() {
   return <WorkerOnboarding />;
 }
 
-/** Envoltorio común: mismo fondo, logo y layout que ambos onboardings comparten. */
+/** Envoltorio común: mismo fondo, logo y layout que ambos onboardings comparten.
+ * Fondo Espresso (ADR-0011), no ink genérico — primera aplicación real del
+ * "momento de marca" que el token ya documentaba. Mismo contraste que antes
+ * para texto blanco/overlays (ambos son fondos oscuros de luminancia similar). */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="-mb-20 flex min-h-[100dvh] flex-col bg-ink px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-white md:mb-0">
+    <div
+      className="-mb-20 flex min-h-[100dvh] flex-col px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-white md:mb-0"
+      style={{ background: "var(--color-structure)" }}
+    >
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
         <Logo size={34} withWordmark={false} />
         {children}

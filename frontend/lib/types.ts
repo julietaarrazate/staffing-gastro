@@ -116,6 +116,10 @@ export interface Shift {
   created_at: string | null;
   company_name: string | null;
   company_logo_url: string | null;
+  // ADR-0011: claim `negocio_verificado` del dueño del comercio. Sin flujo
+  // de envío/revisión de evidencias de negocio todavía, así que hoy es
+  // `false` para todos — el campo ya está listo para cuando exista.
+  company_verified: boolean;
 }
 
 /** Campos parciales de `POST /shifts/parse-text` (P2, auditoría de

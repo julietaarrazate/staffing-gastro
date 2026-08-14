@@ -44,6 +44,8 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
+from app.modules.verification.api.dependencies import get_verification_service
+from app.modules.verification.application.services import VerificationService
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 router = APIRouter(prefix="/shifts", tags=["shifts"])
@@ -53,6 +55,7 @@ CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 AuthUserDep = Annotated[User, Depends(get_current_user)]
 CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
+VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 # Paginación (R2.1, docs/reference/API.md#paginación): límite generoso por defecto para
 # no romper pantallas existentes, tope duro de 100 para no exponer tablas
 # completas cuando la plataforma crezca.
@@ -79,7 +82,9 @@ def _to_data(payload: ShiftInput) -> ShiftData:
 
 
 async def _with_company_info(
-    shifts: list[Shift], companies: CompanyProfileRepository
+    shifts: list[Shift],
+    companies: CompanyProfileRepository,
+    verification: VerificationService | None = None,
 ) -> list[ShiftResponse]:
     """Suma el nombre/logo del comercio a cada turno (resuelto vía company,
     sin acoplar el dominio de shift a company).
@@ -89,9 +94,19 @@ async def _with_company_info(
     comercio dos veces) — un feed de 40 turnos de 40 comercios distintos
     disparaba 40 queries secuenciales. Ahora arma la lista de ids únicos y
     hace UN `list_by_ids` (`WHERE id IN (...)`) antes del loop: 1 query
-    total, sin importar cuántos comercios distintos aparezcan en la página."""
+    total, sin importar cuántos comercios distintos aparezcan en la página.
+
+    `verification` es opcional (ADR-0011): `my_shifts`/otras llamadas del
+    propio comercio no necesitan el chequeo de "comercio verificado" (ya
+    saben quiénes son) — sólo las vistas del trabajador lo pasan, mismo
+    patrón de un solo `verified_business_user_ids` batch (no N+1)."""
     unique_ids = list({shift.company_id for shift in shifts})
     companies_by_id = await companies.list_by_ids(unique_ids)
+    verified_owner_ids: set = set()
+    if verification is not None:
+        owner_ids = [c.user_id for c in companies_by_id.values()]
+        if owner_ids:
+            verified_owner_ids = await verification.verified_business_user_ids(owner_ids)
     responses = []
     for shift in shifts:
         company = companies_by_id.get(shift.company_id)
@@ -99,6 +114,7 @@ async def _with_company_info(
         if company:
             response.company_name = company.name
             response.company_logo_url = company.logo_url
+            response.company_verified = company.user_id in verified_owner_ids
         responses.append(response)
     return responses
 
@@ -178,6 +194,7 @@ async def parse_text(
 async def feed(
     service: ServiceDep,
     companies: CompaniesDep,
+    verification: VerificationDep,
     _current_user: AuthUserDep,
     my_skills: Annotated[list[WorkerSkill] | None, Depends(get_my_worker_skills)],
     city: Annotated[str | None, Query()] = None,
@@ -199,7 +216,7 @@ async def feed(
         limit=limit,
         offset=offset,
     )
-    return await _with_company_info(shifts, companies)
+    return await _with_company_info(shifts, companies, verification)
 
 
 @router.get(
@@ -225,11 +242,12 @@ async def my_assigned_shifts(
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     companies: CompaniesDep,
+    verification: VerificationDep,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
     shifts = await service.list_worker_shifts(worker_profile_id, limit=limit, offset=offset)
-    return await _with_company_info(shifts, companies)
+    return await _with_company_info(shifts, companies, verification)
 
 
 @router.post(
