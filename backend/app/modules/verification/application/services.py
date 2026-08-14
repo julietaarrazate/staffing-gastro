@@ -129,6 +129,15 @@ class VerificationService:
             user_ids, ClaimType.DOCUMENTO_VERIFICADO
         )
 
+    async def verified_business_user_ids(self, user_ids: list[UUID]) -> set[UUID]:
+        """Igual que `verified_user_ids` pero para el claim de NEGOCIO — sujeto
+        distinto (`CompanyProfile.user_id`, no un trabajador). Para que el feed
+        del trabajador pueda mostrar "Comercio verificado" (ADR-0011) sin
+        mezclar el claim de negocio con el de persona."""
+        return await self._claims.verified_user_ids(
+            user_ids, ClaimType.NEGOCIO_VERIFICADO
+        )
+
     async def get_identity_summary(self, user_id: UUID) -> IdentitySummary:
         """Estado de identidad del sujeto (sin datos sensibles): nivel de
         garantía + flag visible + estado de cada claim."""

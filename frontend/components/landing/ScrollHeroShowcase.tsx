@@ -61,6 +61,7 @@ function exampleShift(input: {
     created_at: null,
     company_name: input.companyName,
     company_logo_url: null,
+    company_verified: false,
   };
 }
 

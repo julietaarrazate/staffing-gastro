@@ -22,6 +22,7 @@ const ParallaxCard = dynamic(() => import("@/components/landing/ParallaxCard"));
 const PricingPlans = dynamic(() => import("@/components/landing/PricingPlans"));
 import {
   BellIcon,
+  CheckIcon,
   type IconProps,
   MapPinIcon,
   MessageIcon,
@@ -229,9 +230,14 @@ export default function Home() {
 
         {/* Franja para trabajadores. `.no-select` (regla C0,
             docs/planning/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
-            vitrina. */}
+            vitrina. Fondo Espresso (ADR-0011), no ink genérico — separa esta
+            franja del footer, que va justo debajo con el mismo tono oscuro;
+            antes las dos secciones se leían como un único bloque negro repetido. */}
         <Reveal className="mt-20">
-          <section className="no-select rounded-[var(--radius-card)] bg-ink px-6 py-14 text-center text-white">
+          <section
+            className="no-select rounded-[var(--radius-card)] px-6 py-14 text-center text-white"
+            style={{ background: "var(--color-structure)" }}
+          >
             <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
               ¿Trabajás en gastronomía? Elegí tus turnos.
             </h2>
@@ -247,6 +253,15 @@ export default function Home() {
                 Quiero trabajar
               </Link>
             </div>
+            {/* Transparencia de pago (mismo hecho que ya dice /terminos §"Publicar
+                y postularse a turnos": el comercio paga directo, Oído no
+                procesa ni retiene). Repetido acá en tono de marketing porque
+                es justo lo que un trabajador necesita saber antes de
+                registrarse, no algo para encontrar leyendo la letra chica. */}
+            <p className="mx-auto mt-5 flex max-w-sm items-center justify-center gap-1.5 text-xs font-medium text-white/50">
+              <CheckIcon size={14} className="shrink-0" />
+              El comercio te paga directo, sin comisión ni intermediarios.
+            </p>
           </section>
         </Reveal>
       </div>

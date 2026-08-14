@@ -93,6 +93,11 @@ class ShiftResponse(BaseModel):
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
+    # ADR-0011: claim `negocio_verificado` del dueño del comercio
+    # (`CompanyProfile.user_id`) — no hay flujo de envío/revisión de
+    # evidencias de negocio todavía, así que hoy siempre da `False`; el
+    # campo queda listo para cuando exista (sin datos simulados).
+    company_verified: bool = False
 
 
 class EventRoleInput(BaseModel):

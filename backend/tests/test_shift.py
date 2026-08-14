@@ -1,7 +1,8 @@
 """Tests de integración del módulo shift (publicación y ciclo de vida del turno)."""
 
 from contextlib import contextmanager
-from uuid import uuid4
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -12,7 +13,10 @@ from app.core.config import settings
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
-from tests.conftest import auth_headers
+from app.modules.verification.domain.entities import Claim
+from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
+from app.modules.verification.infrastructure.repositories import SqlAlchemyClaimRepository
+from tests.conftest import auth_headers, login, register_user
 
 pytestmark = pytest.mark.asyncio
 
@@ -783,13 +787,63 @@ async def test_feed_resolves_company_info_in_constant_queries(
     # Antes del fix: >= n_companies queries de `company_profiles` (una por
     # comercio distinto) además de la del propio feed y la de auth. Ahora:
     # 1 query de auth (`/auth/me` vía token) + 1 de feed + 1 de
-    # `list_by_ids` = 3, constante sin importar cuántos comercios distintos
-    # haya en la página. Se deja margen (<=4) para no acoplar el test a un
-    # detalle interno de la dependencia de auth.
-    assert counter["n"] <= 4, (
-        f"se esperaban <=4 queries (constante, no una por comercio distinto), "
+    # `list_by_ids` + 1 de `verified_business_user_ids` (ADR-0011, batcheada
+    # igual que `list_by_ids` — no una por comercio) = 4, constante sin
+    # importar cuántos comercios distintos haya en la página. Se deja margen
+    # (<=5) para no acoplar el test a un detalle interno de la dependencia
+    # de auth.
+    assert counter["n"] <= 5, (
+        f"se esperaban <=5 queries (constante, no una por comercio distinto), "
         f"se hicieron {counter['n']}"
     )
+
+
+async def test_feed_shows_company_verified_for_business_claim(
+    client: AsyncClient, session_factory: async_sessionmaker
+):
+    """ADR-0011: el feed marca `company_verified` cuando el dueño del
+    comercio tiene un claim `negocio_verificado` aprobado — no cuando no lo
+    tiene. Sin flujo de envío/admin-UI todavía, el claim se inserta directo
+    con el repositorio (simula el resultado de una futura revisión, no un
+    endpoint que ya exista)."""
+    await register_user(client, email="emp_verified@staffya.com", role="employer")
+    tokens_a = await login(client, "emp_verified@staffya.com")
+    headers_a = {"Authorization": f"Bearer {tokens_a['access_token']}"}
+    user_id_a = tokens_a["user"]["id"]
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=headers_a,
+        json={"name": "Bar Verificado", "city": "Palermo"},
+    )
+    created_a = await client.post(
+        "/api/v1/shifts", headers=headers_a, json=_shift_payload(city="VerifCity")
+    )
+    await client.post(f"/api/v1/shifts/{created_a.json()['id']}/publish", headers=headers_a)
+
+    headers_b = await _employer_with_company(client, "emp_unverified@staffya.com")
+    created_b = await client.post(
+        "/api/v1/shifts", headers=headers_b, json=_shift_payload(city="UnverifCity")
+    )
+    await client.post(f"/api/v1/shifts/{created_b.json()['id']}/publish", headers=headers_b)
+
+    async with session_factory() as session:
+        repo = SqlAlchemyClaimRepository(session)
+        await repo.add(
+            Claim(
+                user_id=UUID(user_id_a),
+                claim_type=ClaimType.NEGOCIO_VERIFICADO,
+                status=ClaimStatus.VERIFICADA,
+                decided_at=datetime.now(timezone.utc),
+            )
+        )
+
+    worker_headers, _ = await _worker_with_profile(client, "w_trust_feed@staffya.com")
+    feed = await client.get(
+        "/api/v1/shifts/feed", headers=worker_headers, params={"limit": 100}
+    )
+    by_city = {s["city"]: s["company_verified"] for s in feed.json()}
+    assert by_city["VerifCity"] is True
+    assert by_city["UnverifCity"] is False
 
 
 # --- Vista pública del turno (sin autenticación, para compartir) ----------

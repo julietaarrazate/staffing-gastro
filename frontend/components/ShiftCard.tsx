@@ -2,13 +2,14 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { Avatar, Button } from "@/components/ui";
+import { Avatar, Badge, Button } from "@/components/ui";
 import {
   CalendarIcon,
   CalendarPlusIcon,
   FlameIcon,
   MapPinIcon,
   RouteIcon,
+  ShieldIcon,
   UsersIcon,
 } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
@@ -103,6 +104,13 @@ export default function ShiftCard({
         >
           <Avatar src={shift.company_logo_url} name={shift.company_name} size="sm" />
           <span className="text-sm font-semibold text-ink/80">{shift.company_name}</span>
+          {/* ADR-0011: única señal de confianza del comercio visible en el
+              feed del trabajador hoy — antes no había ninguna. */}
+          {shift.company_verified && (
+            <Badge tone="trust" icon={<ShieldIcon size={11} />} className="ml-auto">
+              Comercio verificado
+            </Badge>
+          )}
         </Link>
       )}
 
