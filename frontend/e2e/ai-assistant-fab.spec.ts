@@ -60,8 +60,12 @@ function assistantResponse(overrides: Record<string, unknown>) {
   };
 }
 
+/** En `/shifts` (panel del comercio) el disparador es la barra prominente
+ * (`AIAssistantBar`, "¿Qué necesitás?") — la cápsula flotante se oculta ahí
+ * a propósito para no duplicar el mismo punto de entrada dos veces en la
+ * misma pantalla (ver `AIAssistantFab`). Misma hoja, mismo comportamiento. */
 async function openAssistantAndAsk(page: Page, text: string) {
-  await page.getByRole("button", { name: "Asistente de turnos con IA" }).click();
+  await page.getByRole("button", { name: "¿Qué necesitás?" }).click();
   await expect(page.getByRole("dialog", { name: "Asistente" })).toBeVisible();
   await page
     .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
@@ -251,6 +255,22 @@ test("desconocido: muestra un mensaje amigable sin navegar a ningún lado", asyn
 
   await expect(page.getByText("No entendí bien qué necesitás.")).toBeVisible();
   await expect(page).toHaveURL("/shifts");
+});
+
+test("en /shifts la cápsula flotante se oculta y aparece la barra prominente en su lugar", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, EMPLOYER_SESSION);
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto("/shifts");
+  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "¿Qué necesitás?" })).toBeVisible();
 });
 
 test("el botón flotante no aparece en /shifts/new ni en /shifts/new-event (ya tienen el cuadro integrado)", async ({
