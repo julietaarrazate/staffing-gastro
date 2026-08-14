@@ -19,7 +19,7 @@ import {
   shiftDurationMinutes,
 } from "@/lib/datetime";
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
-import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/components/AIAssistantFab";
+import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";

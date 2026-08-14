@@ -8,7 +8,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
 import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
-import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/components/AIAssistantFab";
+import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
