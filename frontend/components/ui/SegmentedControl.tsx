@@ -21,7 +21,7 @@ export default function SegmentedControl<T extends string>({
 }) {
   const id = useId();
   return (
-    <div className={cn("flex gap-1 rounded-[var(--radius-input)] bg-surface p-1", className)}>
+    <div className={cn("flex gap-1 rounded-full bg-surface p-1", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -29,13 +29,13 @@ export default function SegmentedControl<T extends string>({
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className="relative flex-1 rounded-[14px] px-3 py-2 text-sm font-semibold"
+            className="relative flex-1 rounded-full px-3 py-2 text-sm font-semibold"
           >
             {active && (
               <motion.span
                 layoutId={`seg-${id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                className="absolute inset-0 rounded-[14px] bg-white shadow-[var(--shadow-soft)]"
+                className="absolute inset-0 rounded-full bg-white shadow-[var(--shadow-soft)]"
               />
             )}
             <span className={cn("relative z-10 transition-colors", active ? "text-ink" : "text-ink/45")}>

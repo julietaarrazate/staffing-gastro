@@ -35,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <Card className="p-4">
+    <Card className="p-5">
       <p className="text-2xl font-extrabold text-ink">{value}</p>
       <p className="text-xs font-medium text-ink/50">{label}</p>
     </Card>
@@ -44,7 +44,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 function StatCardSkeleton() {
   return (
-    <Card className="p-4" aria-hidden>
+    <Card className="p-5" aria-hidden>
       <Skeleton className="h-7 w-10" />
       <Skeleton className="mt-2 h-3 w-16" />
     </Card>
@@ -53,7 +53,7 @@ function StatCardSkeleton() {
 
 function AdminUserRowSkeleton() {
   return (
-    <Card className="p-4" aria-hidden>
+    <Card className="p-5" aria-hidden>
       <div className="flex items-center gap-3">
         <Skeleton className="h-11 w-11 rounded-full" />
         <div className="flex-1 space-y-2">
@@ -244,7 +244,7 @@ export default function AdminPage() {
             </>
           ) : (
           users.map((u) => (
-            <Card key={u.id} className="p-4">
+            <Card key={u.id} className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Avatar src={u.photo_url} name={u.full_name} size="md" />
