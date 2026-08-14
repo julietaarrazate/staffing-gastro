@@ -22,6 +22,7 @@ const ParallaxCard = dynamic(() => import("@/components/landing/ParallaxCard"));
 const PricingPlans = dynamic(() => import("@/components/landing/PricingPlans"));
 import {
   BellIcon,
+  CheckIcon,
   type IconProps,
   MapPinIcon,
   MessageIcon,
@@ -252,6 +253,15 @@ export default function Home() {
                 Quiero trabajar
               </Link>
             </div>
+            {/* Transparencia de pago (mismo hecho que ya dice /terminos §"Publicar
+                y postularse a turnos": el comercio paga directo, Oído no
+                procesa ni retiene). Repetido acá en tono de marketing porque
+                es justo lo que un trabajador necesita saber antes de
+                registrarse, no algo para encontrar leyendo la letra chica. */}
+            <p className="mx-auto mt-5 flex max-w-sm items-center justify-center gap-1.5 text-xs font-medium text-white/50">
+              <CheckIcon size={14} className="shrink-0" />
+              El comercio te paga directo, sin comisión ni intermediarios.
+            </p>
           </section>
         </Reveal>
       </div>
