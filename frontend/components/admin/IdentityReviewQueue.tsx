@@ -10,7 +10,7 @@ import { ShieldIcon } from "@/components/icons";
 
 function ReviewCardSkeleton() {
   return (
-    <Card className="p-4" aria-hidden>
+    <Card className="p-5" aria-hidden>
       <div className="flex items-center gap-3">
         <Skeleton className="h-11 w-11 rounded-full" />
         <Skeleton className="h-4 w-1/3" />
@@ -93,7 +93,7 @@ export default function IdentityReviewQueue() {
   return (
     <div className="mt-2 grid gap-3 md:grid-cols-2">
       {claims.map((claim) => (
-        <Card key={claim.claim_id} className="p-4">
+        <Card key={claim.claim_id} className="p-5">
           <div className="flex items-center gap-3">
             <Avatar name={claim.full_name ?? "?"} size="md" />
             <div className="min-w-0">
