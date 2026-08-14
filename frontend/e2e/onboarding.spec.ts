@@ -135,3 +135,53 @@ test("el trabajador nuevo puede cargar años de experiencia en el paso opcional"
   const saved = savedBody as unknown as Record<string, unknown>;
   expect(saved.years_experience).toBe(5);
 });
+
+/**
+ * Un paso más allá de saltear sólo el paso opcional: poder salir del
+ * onboarding completo desde el paso 1, sin zona ni oficio todavía (pedido
+ * de Julieta: "que tenga un botón dejar para después por si no quieren
+ * llenar en el momento"). No rompe el feed: `skills=[]` y sin ubicación
+ * ya se tratan como "sin filtro" del lado del backend.
+ */
+test("el trabajador puede dejar el onboarding para después desde el paso 1", async ({
+  page,
+}) => {
+  await skipSplash(page);
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(WORKER) })
+  );
+
+  let savedBody: Record<string, unknown> | null = null;
+  await page.route("**/api/v1/workers/me/profile", (route) => {
+    if (route.request().method() === "POST") {
+      savedBody = route.request().postDataJSON();
+      return route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "p1", ...savedBody }),
+      });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+  await page.route("**/api/v1/shifts/feed", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/applications/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto("/bienvenida");
+  await page.getByRole("button", { name: "Dejar para después" }).click();
+
+  await page.waitForURL("**/feed");
+  expect(savedBody).not.toBeNull();
+  const saved = savedBody as unknown as Record<string, unknown>;
+  expect(saved.skills).toEqual([]);
+  expect(saved.city).toBeNull();
+  expect(saved.latitude).toBeNull();
+  expect(saved.longitude).toBeNull();
+});
