@@ -229,9 +229,14 @@ export default function Home() {
 
         {/* Franja para trabajadores. `.no-select` (regla C0,
             docs/planning/PULIDO_ROADMAP.md fix 2): título de marketing, chrome de
-            vitrina. */}
+            vitrina. Fondo Espresso (ADR-0011), no ink genérico — separa esta
+            franja del footer, que va justo debajo con el mismo tono oscuro;
+            antes las dos secciones se leían como un único bloque negro repetido. */}
         <Reveal className="mt-20">
-          <section className="no-select rounded-[var(--radius-card)] bg-ink px-6 py-14 text-center text-white">
+          <section
+            className="no-select rounded-[var(--radius-card)] px-6 py-14 text-center text-white"
+            style={{ background: "var(--color-structure)" }}
+          >
             <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
               ¿Trabajás en gastronomía? Elegí tus turnos.
             </h2>
