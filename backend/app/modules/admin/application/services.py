@@ -6,11 +6,17 @@ moderación de usuarios y el cálculo de métricas agregadas.
 """
 
 import secrets
+from decimal import Decimal
 from uuid import UUID
 
 from app.core.dt import naive as _naive
 from app.core.security import create_access_token, hash_password
-from app.modules.admin.application.dtos import AdminUserRow, PlatformStats, TestAccount
+from app.modules.admin.application.dtos import (
+    AdminUserRow,
+    PlatformStats,
+    SubscriptionStats,
+    TestAccount,
+)
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
@@ -22,6 +28,9 @@ from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
+from app.modules.subscription.domain.repositories import SubscriptionRepository
+from app.modules.subscription.domain.value_objects import SubscriptionStatus
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 
@@ -57,12 +66,14 @@ class AdminService:
         workers: WorkerProfileRepository,
         companies: CompanyProfileRepository,
         applications: ShiftApplicationRepository,
+        subscriptions: SubscriptionRepository,
     ) -> None:
         self._users = users
         self._shifts = shifts
         self._workers = workers
         self._companies = companies
         self._applications = applications
+        self._subscriptions = subscriptions
 
     async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[AdminUserRow]:
         """Lista usuarios paginados (más recientes primero), con la foto de
@@ -174,6 +185,40 @@ class AdminService:
                 TestAccount(id=user.id, email=user.email, full_name=user.full_name, role=user.role)
             )
         return accounts
+
+    async def get_subscription_stats(self) -> SubscriptionStats:
+        """Ingreso mensual recurrente (MRR) y distribución de comercios por
+        plan (ADR-0005), para el panel de administración.
+
+        Un comercio sin fila en `subscriptions` (nunca llamó `get_or_create`,
+        ver `SubscriptionRepository`) está implícitamente en `gratis` — se
+        suma ahí usando el total real de comercios como denominador, en vez
+        de sólo contar filas existentes (subestimaría "gratis")."""
+        plan_status_counts = await self._subscriptions.count_by_plan_and_status()
+        total_companies = await self._companies.count_total()
+
+        companies_by_plan: dict[str, int] = {}
+        subscribed_total = 0
+        mrr = Decimal("0")
+        for plan_code, status, count in plan_status_counts:
+            companies_by_plan[plan_code] = companies_by_plan.get(plan_code, 0) + count
+            subscribed_total += count
+            if status == SubscriptionStatus.ACTIVA.value:
+                mrr += get_plan(plan_code).price_ars * count
+
+        companies_by_plan[DEFAULT_PLAN_CODE] = companies_by_plan.get(
+            DEFAULT_PLAN_CODE, 0
+        ) + max(total_companies - subscribed_total, 0)
+
+        limits = {plan.code: plan.max_turnos_mes for plan in list_plans() if plan.max_turnos_mes is not None}
+        companies_at_plan_limit = await self._subscriptions.count_at_plan_limit(limits)
+
+        return SubscriptionStats(
+            mrr_ars=mrr,
+            total_companies=total_companies,
+            companies_by_plan=companies_by_plan,
+            companies_at_plan_limit=companies_at_plan_limit,
+        )
 
     async def suspend_user(self, actor: User, user_id: UUID) -> User:
         """Suspende a un usuario. No permite que un admin se suspenda a sí mismo."""

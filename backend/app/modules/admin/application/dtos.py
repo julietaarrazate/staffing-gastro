@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
@@ -101,3 +102,16 @@ class PlatformStats:
     # inclusivo que el de trabajadores. Igual sin ventana temporal (all-time).
     employer_repeat_sample_size: int
     employer_repeat_rate_pct: float | None
+
+
+@dataclass
+class SubscriptionStats:
+    """Métricas de suscripción/mensualidad (ADR-0005) para el panel de
+    administración: ingreso mensual recurrente y distribución de comercios
+    por plan, incluidos los que todavía no tienen fila en `subscriptions`
+    (implícitamente en `gratis`, ver `AdminService.get_subscription_stats`)."""
+
+    mrr_ars: Decimal
+    total_companies: int
+    companies_by_plan: dict[str, int]
+    companies_at_plan_limit: int

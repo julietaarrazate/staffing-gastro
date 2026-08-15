@@ -440,6 +440,15 @@ export interface PlatformStats {
   employer_repeat_rate_pct: number | null;
 }
 
+export interface SubscriptionStats {
+  mrr_ars: number | string;
+  total_companies: number;
+  /** Cantidad de comercios por `plan_code` (incluye a los que todavía no
+   * tienen fila en `subscriptions`, contados en `gratis`). */
+  companies_by_plan: Record<string, number>;
+  companies_at_plan_limit: number;
+}
+
 // Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,
 // construido en paralelo por el backend — no inventar campos ni endpoints.
 export type SubscriptionStatus = "activa" | "vencida" | "cancelada" | string;

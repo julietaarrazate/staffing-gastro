@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import { AdminUser, PlatformStats, TestAccount } from "@/lib/types";
+import { AdminUser, PlatformStats, SubscriptionStats, TestAccount } from "@/lib/types";
 import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Skeleton, Spinner } from "@/components/ui";
 import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
@@ -15,11 +15,18 @@ import {
   MessageIcon,
   ShieldIcon,
   UsersIcon,
+  WalletIcon,
 } from "@/components/icons";
 
 const TEST_ACCOUNT_ROLE_LABELS: Record<string, string> = {
   worker: "Ver como trabajador",
   employer: "Ver como comercio",
+};
+
+const PLAN_LABELS: Record<string, string> = {
+  gratis: "Gratis",
+  basico: "Básico",
+  pro: "Pro",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -91,6 +98,7 @@ export default function AdminPage() {
   const { user, token, loading, impersonate } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [subscriptionStats, setSubscriptionStats] = useState<SubscriptionStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [testAccounts, setTestAccounts] = useState<TestAccount[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -109,11 +117,13 @@ export default function AdminPage() {
       api.get<PlatformStats>("/admin/stats", token),
       api.get<AdminUser[]>("/admin/users", token),
       api.get<TestAccount[]>("/admin/test-accounts", token),
+      api.get<SubscriptionStats>("/admin/subscription-stats", token),
     ])
-      .then(([s, u, t]) => {
+      .then(([s, u, t, sub]) => {
         setStats(s);
         setUsers(u);
         setTestAccounts(t);
+        setSubscriptionStats(sub);
       })
       .catch((err) => setError(getErrorMessage(err, "Error al cargar el panel")))
       .finally(() => {
@@ -343,6 +353,37 @@ export default function AdminPage() {
                 "comercios activos"
               )}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Suscripciones (ADR-0005): MRR real y distribución de comercios por
+          plan, incluidos los que todavía no tienen fila en `subscriptions`
+          (arrancan en gratis, ver `AdminService.get_subscription_stats`). */}
+      {!statsLoading && subscriptionStats && (
+        <div className="mt-8">
+          <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+            Suscripciones
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Card className="col-span-2 p-5">
+              <div className="flex items-center gap-1.5 text-ink/50">
+                <WalletIcon size={14} />
+                <p className="text-xs font-medium">Ingreso mensual recurrente</p>
+              </div>
+              <p className="mt-1 text-2xl font-extrabold text-ink">
+                ARS {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
+              </p>
+            </Card>
+            <StatCard label="Comercios" value={subscriptionStats.total_companies} />
+            <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(subscriptionStats.companies_by_plan).map(([planCode, count]) => (
+              <Badge key={planCode} tone="neutral">
+                {PLAN_LABELS[planCode] ?? planCode}: {count}
+              </Badge>
+            ))}
           </div>
         </div>
       )}

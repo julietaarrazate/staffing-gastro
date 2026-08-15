@@ -1,6 +1,7 @@
 """Esquemas HTTP (Pydantic) del módulo de administración."""
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr
@@ -73,3 +74,14 @@ class PlatformStatsResponse(BaseModel):
 
     employer_repeat_sample_size: int
     employer_repeat_rate_pct: float | None
+
+
+class SubscriptionStatsResponse(BaseModel):
+    """Ver `AdminService.get_subscription_stats`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    mrr_ars: Decimal
+    total_companies: int
+    companies_by_plan: dict[str, int]
+    companies_at_plan_limit: int
