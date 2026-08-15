@@ -487,6 +487,61 @@ async def test_impersonate_missing_user_returns_404(client, session_factory):
     assert resp.status_code == 404
 
 
+# --- Cuentas de prueba -------------------------------------------------
+
+
+async def test_admin_gets_test_accounts_worker_and_employer(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin_test_acc@test.com")
+
+    resp = await client.get("/api/v1/admin/test-accounts", headers=admin)
+    assert resp.status_code == 200
+    body = resp.json()
+    roles = {row["role"] for row in body}
+    assert roles == {"worker", "employer"}
+
+
+async def test_test_accounts_are_idempotent_across_calls(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin_test_acc2@test.com")
+
+    first = await client.get("/api/v1/admin/test-accounts", headers=admin)
+    second = await client.get("/api/v1/admin/test-accounts", headers=admin)
+    first_ids = sorted(row["id"] for row in first.json())
+    second_ids = sorted(row["id"] for row in second.json())
+    assert first_ids == second_ids
+
+    # No aparecen como usuarios nuevos en cada llamado (no se duplican filas).
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    test_emails = [u["email"] for u in users.json() if u["email"].endswith("@oido.beta")]
+    assert len(test_emails) == len(set(test_emails)) == 2
+
+
+async def test_admin_can_impersonate_test_account(client, session_factory):
+    admin = await _make_admin(client, session_factory, "admin_test_acc3@test.com")
+
+    accounts = await client.get("/api/v1/admin/test-accounts", headers=admin)
+    worker_account = next(row for row in accounts.json() if row["role"] == "worker")
+
+    resp = await client.post(
+        f"/api/v1/admin/users/{worker_account['id']}/impersonate", headers=admin
+    )
+    assert resp.status_code == 200
+    assert resp.json()["user"]["email"] == worker_account["email"]
+
+    # La cuenta de prueba no tiene contraseña conocida: no se puede loguear
+    # directamente con email+contraseña, sólo vía "Ver como".
+    login_attempt = await client.post(
+        "/api/v1/auth/login",
+        json={"email": worker_account["email"], "password": "supersecreta123"},
+    )
+    assert login_attempt.status_code in (400, 401)
+
+
+async def test_non_admin_cannot_get_test_accounts(client: AsyncClient):
+    worker = await auth_headers(client, "worker", "worker_no_admin@test.com")
+    resp = await client.get("/api/v1/admin/test-accounts", headers=worker)
+    assert resp.status_code == 403
+
+
 async def test_non_admin_cannot_impersonate(client: AsyncClient):
     worker = await auth_headers(client, "worker", "worker2@test.com")
 

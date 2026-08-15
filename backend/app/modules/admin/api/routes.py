@@ -15,6 +15,7 @@ from app.modules.admin.api.schemas import (
     AdminUserResponse,
     ImpersonateResponse,
     PlatformStatsResponse,
+    TestAccountResponse,
 )
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
@@ -38,6 +39,15 @@ OffsetDep = Annotated[int, Query(ge=0)]
 @router.get("/stats", response_model=PlatformStatsResponse, summary="Métricas de la plataforma")
 async def stats(_: AdminDep, service: ServiceDep):
     return await service.get_stats()
+
+
+@router.get(
+    "/test-accounts",
+    response_model=list[TestAccountResponse],
+    summary="Cuentas de prueba (trabajador/comercio) para \"Ver como\"",
+)
+async def test_accounts(_: AdminDep, service: ServiceDep):
+    return await service.get_or_create_test_accounts()
 
 
 @router.get("/users", response_model=list[AdminUserResponse], summary="Listar usuarios")

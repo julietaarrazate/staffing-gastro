@@ -30,6 +30,18 @@ class ImpersonateResponse(BaseModel):
     user: AdminUserResponse
 
 
+class TestAccountResponse(BaseModel):
+    """Cuenta de prueba (trabajador o comercio) para "Ver como", ver
+    `AdminService.get_or_create_test_accounts`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+
+
 class PlatformStatsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

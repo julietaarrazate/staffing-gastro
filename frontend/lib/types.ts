@@ -397,6 +397,13 @@ export interface AdminUser {
   photo_url: string | null;
 }
 
+export interface TestAccount {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+}
+
 export interface PlatformStats {
   total_users: number;
   workers: number;
