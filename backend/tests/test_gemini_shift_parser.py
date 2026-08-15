@@ -95,6 +95,14 @@ async def test_parse_shift_text_returns_structured_draft(configured_gemini):
 
 
 @pytest.mark.asyncio
+async def test_parse_shift_text_caps_output_tokens(configured_gemini):
+    """F4 (auditoría 2026-08-15): sin `maxOutputTokens`, el rate limit acota
+    la cantidad de llamadas a Gemini pero no el gasto por token de CADA una."""
+    await parse_shift_text("necesito un mozo el sábado")
+    assert _FakeAsyncClient.last_payload["generationConfig"]["maxOutputTokens"] > 0
+
+
+@pytest.mark.asyncio
 async def test_parse_shift_text_discards_unknown_position(configured_gemini, monkeypatch):
     _FakeAsyncClient.next_gemini_text = _gemini_json(position="desconocido")
     draft = await parse_shift_text("necesito gente para el sábado")

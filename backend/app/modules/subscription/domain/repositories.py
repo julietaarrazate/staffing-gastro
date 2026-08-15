@@ -8,6 +8,7 @@ nunca la capa de aplicación de `subscription` (ver
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.subscription.domain.entities import Subscription
@@ -44,7 +45,15 @@ class SubscriptionRepository(ABC):
         (`CompanyProfileRepository.count_total`), ver ADR-0005."""
 
     @abstractmethod
-    async def count_at_plan_limit(self, limits: dict[str, int]) -> int:
+    async def count_at_plan_limit(self, limits: dict[str, int], *, now: datetime) -> int:
         """Cuenta comercios cuyo `turnos_usados_mes` ya alcanzó o superó el
         tope de SU plan actual, dado un `{plan_code: max_turnos_mes}` con
-        sólo los planes que tienen tope (nunca incluye `pro`, ilimitado)."""
+        sólo los planes que tienen tope (nunca incluye `pro`, ilimitado).
+
+        Sólo cuenta suscripciones cuyo período sigue vigente
+        (`period_end > now`): `turnos_usados_mes` se resetea recién en la
+        próxima publicación (`roll_period_if_expired`, sólo se llama al
+        publicar), así que sin este chequeo un comercio con el período ya
+        vencido sigue apareciendo "cerca del límite" aunque su contador se
+        reseteraría solo en cuanto vuelva a publicar (auditoría 2026-08-15,
+        F3)."""

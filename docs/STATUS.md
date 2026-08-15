@@ -5,8 +5,33 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-15 (**F1 de la auditoría delta: el MRR ya
-no muestra plata que nunca se cobró.**) `SubscriptionStats` suma
+*Última actualización: 2026-08-15 (**F2-F5 de la auditoría delta,
+cerrados en un solo PR.**) Completa el ciclo de remediación abierto con F1
+(`docs/audits/2026-08-15-delta-superficie-nueva.md`):
+  - **F2**: `UserRepository.count_stats()` suma `exclude_emails` — el panel
+    ya no cuenta las cuentas sintéticas (2 invitado + 2 de prueba,
+    `GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS`) como usuarios reales.
+  - **F3**: `count_at_plan_limit()` suma `now` y filtra `period_end` (en
+    Python, no en SQL — mismo motivo que `roll_period_if_expired`:
+    SQLite/Postgres devuelven naive/aware distinto). Un comercio con el
+    período vencido ya no aparece "cerca del límite".
+  - **F4**: `AssistantQueryRequest`/`WorkerQueryRequest` acotan `text` a
+    500 caracteres (mismo tope que `ParseShiftTextRequest`, el hermano que
+    ya lo tenía). Las 4 llamadas de `core/gemini.py` suman
+    `maxOutputTokens=1024` — el rate limit acotaba la cantidad de llamadas,
+    no el gasto por token de cada una.
+  - **F5**: `npm run lint` sumado a `.github/workflows/ci.yml` (era el
+    único gate que no corría). El error real que encontró
+    (`use-voice-dictation.ts`: una ref se escribía durante el render,
+    inseguro bajo render concurrente/StrictMode) se movió a un efecto.
+
+`pytest -q`: 412 passed (+7 tests nuevos). `tsc`/`eslint`(ahora en
+CI)/`build` limpios. Playwright: 77 passed. Sólo queda F6 (lección sobre
+EKP, ya archivada en `evolution/INTAKE.md` cycle 36 — no es un fix de
+código de este repo).
+
+Antes, mismo día: **F1 de la auditoría delta: el MRR ya
+no muestra plata que nunca se cobró.** `SubscriptionStats` suma
 `billing_enabled` (`BillingGateway.enabled` inyectado por puerto,
 `admin/application/services.py`). El panel: sin credenciales de Mercado
 Pago (default), el número principal es **$0** con el badge "Cobro no
@@ -15,8 +40,7 @@ chico ("Potencial si se cobrara: ARS X") — nunca al revés. Con el cobro
 activo, se muestra el MRR real sin badge, comportamiento sin cambios.
 `pytest -q`: 405 passed (+1 test nuevo, `billing_enabled` con
 `FakeBillingGateway`). `tsc`/`eslint`/`build` limpios. Playwright: 77
-passed (+1 spec nuevo del caso sin cobro). F2-F6 de la misma auditoría
-siguen abiertos (`docs/audits/2026-08-15-delta-superficie-nueva.md`).
+passed (+1 spec nuevo del caso sin cobro).
 
 Antes, mismo día: **Auditoría delta de la superficie sin
 auditar — el panel de admin nuevo reporta 3 métricas que no significan lo

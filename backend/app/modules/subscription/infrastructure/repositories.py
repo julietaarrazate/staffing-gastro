@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dt import naive as _naive
 from app.modules.subscription.domain.entities import PERIOD_LENGTH, Subscription
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE
 from app.modules.subscription.domain.repositories import SubscriptionRepository
@@ -86,13 +87,19 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         result = await self._session.execute(stmt)
         return [(plan_code, status, count) for plan_code, status, count in result.all()]
 
-    async def count_at_plan_limit(self, limits: dict[str, int]) -> int:
+    async def count_at_plan_limit(self, limits: dict[str, int], *, now: datetime) -> int:
         if not limits:
             return 0
         conditions = [
             and_(SubscriptionModel.plan_code == plan_code, SubscriptionModel.turnos_usados_mes >= limit)
             for plan_code, limit in limits.items()
         ]
-        stmt = select(func.count()).select_from(SubscriptionModel).where(or_(*conditions))
+        # `period_end` se filtra en Python (no en el WHERE) por el mismo
+        # motivo que `roll_period_if_expired` en el dominio: SQLite (tests)
+        # devuelve datetimes naive, Postgres los devuelve con tz — comparar
+        # directo en SQL mezclaría los dos formatos. Volumen chico en esta
+        # etapa (un comercio por fila), sin costo real.
+        stmt = select(SubscriptionModel.period_end).where(or_(*conditions))
         result = await self._session.execute(stmt)
-        return result.scalar_one() or 0
+        now_naive = _naive(now)
+        return sum(1 for period_end in result.scalars().all() if _naive(period_end) > now_naive)

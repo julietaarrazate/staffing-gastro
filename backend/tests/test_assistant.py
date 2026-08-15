@@ -86,6 +86,43 @@ async def test_query_returns_503_when_not_configured(client: AsyncClient):
     assert response.status_code == 503
 
 
+async def test_query_rejects_text_over_500_chars(client: AsyncClient, configured_gemini):
+    """F4 (auditoría 2026-08-15): mismo tope que `ParseShiftTextRequest`
+    (shift/api/schemas.py) — sin esto, el rate limit acota la cantidad de
+    llamadas a Gemini pero no el tamaño (y costo) de cada una."""
+    employer = await _employer_with_company(client, "asst_emp_toolong@staffya.com")
+    response = await client.post(
+        "/api/v1/assistant/query", headers=employer, json={"text": "a" * 501}
+    )
+    assert response.status_code == 422
+
+
+async def test_worker_query_rejects_text_over_500_chars(client: AsyncClient, configured_gemini):
+    worker = await auth_headers(client, "worker", "asst_w_toolong@staffya.com")
+    response = await client.post(
+        "/api/v1/assistant/worker-query", headers=worker, json={"text": "a" * 501}
+    )
+    assert response.status_code == 422
+
+
+async def test_query_caps_output_tokens(client: AsyncClient, configured_gemini):
+    employer = await _employer_with_company(client, "asst_emp_tokens@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _assistant_json(intent="desconocido")
+    await client.post(
+        "/api/v1/assistant/query", headers=employer, json={"text": "hola"}
+    )
+    assert _FakeAsyncClient.last_payload["generationConfig"]["maxOutputTokens"] > 0
+
+
+async def test_worker_query_caps_output_tokens(client: AsyncClient, configured_gemini):
+    worker = await auth_headers(client, "worker", "asst_w_tokens@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _worker_query_json(intent="desconocido")
+    await client.post(
+        "/api/v1/assistant/worker-query", headers=worker, json={"text": "hola"}
+    )
+    assert _FakeAsyncClient.last_payload["generationConfig"]["maxOutputTokens"] > 0
+
+
 async def test_worker_cannot_use_assistant(client: AsyncClient, configured_gemini):
     """Es una herramienta del panel del comercio — un trabajador no la ve ni la usa."""
     worker = await auth_headers(client, "worker", "asst_w1@staffya.com")

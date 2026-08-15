@@ -38,6 +38,13 @@ _GEMINI_URL = (
 
 _POSITIONS = [skill.value for skill in WorkerSkill]
 
+# Tope de salida para las 4 llamadas de este archivo: todas devuelven JSON
+# estructurado chico (campos de un turno, intención+filtros, resumen de
+# ticket) — nunca deberían necesitar más. Sin esto, el rate limit de cada
+# endpoint acota la CANTIDAD de llamadas pero no lo que Google factura por
+# CADA una (auditoría 2026-08-15, F4).
+_MAX_OUTPUT_TOKENS = 1024
+
 _SYSTEM_INSTRUCTION = """Extraés datos de un turno gastronómico eventual a partir de una descripción \
 en español informal de Argentina. Hoy es {today} (hora de Argentina). Reglas:
 - `position`: el puesto más parecido de esta lista: {positions}. Si no podés
@@ -161,6 +168,7 @@ async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> 
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": _SUPPORT_RESPONSE_SCHEMA,
+            "maxOutputTokens": _MAX_OUTPUT_TOKENS,
         },
     }
     try:
@@ -194,6 +202,7 @@ async def parse_shift_text(text: str) -> ParsedShiftDraft:
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": _RESPONSE_SCHEMA,
+            "maxOutputTokens": _MAX_OUTPUT_TOKENS,
         },
     }
     try:
@@ -377,6 +386,7 @@ async def interpret_assistant_query(
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": _ASSISTANT_RESPONSE_SCHEMA,
+            "maxOutputTokens": _MAX_OUTPUT_TOKENS,
         },
     }
     try:
@@ -521,6 +531,7 @@ async def interpret_worker_shift_query(text: str) -> WorkerQueryResult:
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": _WORKER_QUERY_RESPONSE_SCHEMA,
+            "maxOutputTokens": _MAX_OUTPUT_TOKENS,
         },
     }
     try:
