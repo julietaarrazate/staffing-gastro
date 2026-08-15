@@ -4,21 +4,95 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useAIAssistant } from "@/lib/use-ai-assistant";
+import { useWorkerAIAssistant } from "@/lib/use-worker-ai-assistant";
 import { Button, Skeleton } from "@/components/ui";
 import { LogoGlyph } from "@/components/Logo";
 import { ChevronLeftIcon, MicIcon, MicOffIcon } from "@/components/icons";
 
 /**
- * Pantalla dedicada del asistente de IA del comercio (pedido de Julieta:
- * "que no sea un botón escondido, que tenga su lugar para pedirle") —
- * reemplaza la hoja modal que abrían `AIAssistantFab`/`AIAssistantBar`. Cada
- * intercambio se agrega al historial de ESTA visita (no persiste al salir:
- * la memoria entre sesiones es una decisión aparte, todavía no tomada — ver
- * `AssistantQueryLogEntry` en el backend para la señal que sí se guarda,
- * como base de un aprendizaje real cuando haya volumen).
+ * Pantalla dedicada del asistente de IA (pedido de Julieta: "que no sea un
+ * botón escondido, que tenga su lugar para pedirle") — reemplaza la hoja
+ * modal que abrían `AIAssistantFab`/`AIAssistantBar`. Cada intercambio se
+ * agrega al historial de ESTA visita (no persiste al salir: la memoria
+ * entre sesiones es una decisión aparte, todavía no tomada — ver
+ * `AssistantQueryLogEntry` en el backend para la señal que sí se guarda del
+ * comercio, como base de un aprendizaje real cuando haya volumen).
+ *
+ * Un solo lugar, dos asistentes: el comercio hace de todo un poco (crear/
+ * consultar turnos, candidatos, verificación, vía `useAIAssistant`); el
+ * trabajador busca turnos (vía `useWorkerAIAssistant`, pedido de Julieta:
+ * "el asistente de ia falta para el trabajador"). Comparten la misma
+ * pantalla de chat (`AssistantChatShell`) — la diferencia es de dominio, no
+ * de interacción.
  */
 export default function AssistantPage() {
   const { user, loading: authLoading } = useRequireAuth();
+  const router = useRouter();
+
+  // Es una herramienta para trabajador/comercio — un admin que llega acá por
+  // URL directa se va a su panel, no ve una pantalla rota o vacía.
+  useEffect(() => {
+    if (!authLoading && user?.role === "admin") router.replace("/admin");
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user || user.role === "admin") {
+    return (
+      <div className="mx-auto max-w-md px-4 py-4">
+        <Skeleton className="h-9 w-9 rounded-full" />
+        <Skeleton className="mt-6 h-24 w-full" />
+      </div>
+    );
+  }
+
+  return user.role === "employer" ? <EmployerAssistant /> : <WorkerAssistant />;
+}
+
+function EmployerAssistant() {
+  const chat = useAIAssistant();
+  return (
+    <AssistantChatShell
+      emptyStateMessage="Contame qué necesitás — publicar un turno o evento, ver tus turnos, buscar candidatos, quién se postuló a algo, o si un postulante está verificado."
+      placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
+      chat={chat}
+    />
+  );
+}
+
+function WorkerAssistant() {
+  const chat = useWorkerAIAssistant();
+  return (
+    <AssistantChatShell
+      emptyStateMessage="Contame qué turno buscás — puesto, zona, a cuántos kilómetros y para cuándo."
+      placeholder="Ej: buscame un turno de mozo en Palermo a menos de 2 km para hoy"
+      chat={chat}
+    />
+  );
+}
+
+/** Forma común de `useAIAssistant`/`useWorkerAIAssistant` — mismo historial
+ * de chat + campo de texto/dictado, sólo cambia qué endpoint interpreta el
+ * texto y qué hace cada intent (ver ambos hooks). */
+interface AssistantChat {
+  text: string;
+  setText: (value: string) => void;
+  loading: boolean;
+  error: string | null;
+  history: { id: string; question: string; result: { message: string; actionLabel?: string; onAction?: () => void } }[];
+  listening: boolean;
+  speechSupported: boolean;
+  toggleDictation: () => void;
+  handleSubmit: () => void;
+}
+
+function AssistantChatShell({
+  emptyStateMessage,
+  placeholder,
+  chat,
+}: {
+  emptyStateMessage: string;
+  placeholder: string;
+  chat: AssistantChat;
+}) {
   const router = useRouter();
   const {
     text,
@@ -30,16 +104,9 @@ export default function AssistantPage() {
     speechSupported,
     toggleDictation,
     handleSubmit,
-  } = useAIAssistant();
+  } = chat;
   const historyEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Es una herramienta del panel del comercio (mismo alcance que la cápsula/
-  // barra que reemplaza) — un trabajador que llega acá por URL directa se va
-  // a su home, no ve una pantalla rota o vacía.
-  useEffect(() => {
-    if (!authLoading && user && user.role !== "employer") router.replace("/feed");
-  }, [authLoading, user, router]);
 
   useEffect(() => {
     historyEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,17 +118,8 @@ export default function AssistantPage() {
   // efecto es el mismo resultado sin ese problema — acá vale la pena, es
   // literalmente una pantalla de chat, todo el punto es escribir de una).
   useEffect(() => {
-    if (!authLoading && user?.role === "employer") textareaRef.current?.focus();
-  }, [authLoading, user]);
-
-  if (authLoading || !user || user.role !== "employer") {
-    return (
-      <div className="mx-auto max-w-md px-4 py-4">
-        <Skeleton className="h-9 w-9 rounded-full" />
-        <Skeleton className="mt-6 h-24 w-full" />
-      </div>
-    );
-  }
+    textareaRef.current?.focus();
+  }, []);
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)]">
@@ -91,10 +149,7 @@ export default function AssistantPage() {
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-structure)]">
               <LogoGlyph size={18} color="#fff" />
             </span>
-            <p className="text-sm text-ink/60">
-              Contame qué necesitás — publicar un turno o evento, ver tus turnos, buscar
-              candidatos, quién se postuló a algo, o si un postulante está verificado.
-            </p>
+            <p className="text-sm text-ink/60">{emptyStateMessage}</p>
           </div>
         ) : (
           history.map((entry) => (
@@ -130,7 +185,7 @@ export default function AssistantPage() {
             onChange={(e) => setText(e.target.value)}
             rows={2}
             maxLength={500}
-            placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
+            placeholder={placeholder}
             className={`w-full resize-none rounded-2xl bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
               speechSupported ? "pr-10" : ""
             }`}

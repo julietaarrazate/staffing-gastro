@@ -75,6 +75,14 @@ export function formatDuration(minutes: number): string {
   return parts.join(" ") || "0 min";
 }
 
+/** ¿Este ISO cae hoy, en el día de Argentina? Compara fechas "YYYY-MM-DD"
+ * (formato `en-CA`, mismo truco que `argentinaISOToLocalInput`) en vez de
+ * timestamps — evita el desfasaje de comparar contra la medianoche UTC. */
+export function isTodayInArgentina(iso: string): boolean {
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIMEZONE });
+  return fmt.format(new Date(iso)) === fmt.format(new Date());
+}
+
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */
 export function formatShiftRange(startIso: string, endIso: string): string {
   const date = formatShiftDate(startIso);

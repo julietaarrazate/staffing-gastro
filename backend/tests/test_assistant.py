@@ -457,3 +457,97 @@ async def test_query_logs_the_resolved_intent(
     assert len(rows) == 1
     assert rows[0].text == "buscame mozos disponibles"
     assert rows[0].intent == "buscar_candidatos"
+
+
+# --- Asistente del trabajador (búsqueda de turnos en texto libre) ----------
+
+
+def _worker_query_json(**overrides) -> str:
+    data = {
+        "intent": "desconocido",
+        "positions": [],
+        "zone_name": None,
+        "radius_km": None,
+        "date_filter": "todos",
+    }
+    data.update(overrides)
+    return json.dumps(data)
+
+
+async def test_worker_query_returns_503_when_not_configured(client: AsyncClient):
+    worker = await auth_headers(client, "worker", "wq_w1@staffya.com")
+    response = await client.post(
+        "/api/v1/assistant/worker-query", headers=worker, json={"text": "turno de mozo"}
+    )
+    assert response.status_code == 503
+
+
+async def test_employer_cannot_use_worker_query(client: AsyncClient, configured_gemini):
+    """Es una herramienta del trabajador — un comercio no la ve ni la usa."""
+    employer = await _employer_with_company(client, "wq_emp1@staffya.com")
+    response = await client.post(
+        "/api/v1/assistant/worker-query", headers=employer, json={"text": "turno de mozo"}
+    )
+    assert response.status_code == 403
+
+
+async def test_buscar_turnos_intent_returns_structured_filters(
+    client: AsyncClient, configured_gemini
+):
+    """Caso real reportado por Julieta: "búscame un turno en palermo a menos
+    de 2 kilómetros para hoy tanto para mozo barista y cajero"."""
+    worker = await auth_headers(client, "worker", "wq_w2@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _worker_query_json(
+        intent="buscar_turnos",
+        positions=["mozo", "barista", "cajero"],
+        zone_name="Palermo",
+        radius_km=2,
+        date_filter="hoy",
+    )
+    response = await client.post(
+        "/api/v1/assistant/worker-query",
+        headers=worker,
+        json={
+            "text": "búscame un turno en palermo a menos de 2 kilómetros para hoy "
+            "tanto para mozo barista y cajero"
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "buscar_turnos"
+    assert set(body["positions"]) == {"mozo", "barista", "cajero"}
+    assert body["zone_name"] == "Palermo"
+    assert body["radius_km"] == 2
+    assert body["date_filter"] == "hoy"
+
+
+async def test_worker_query_without_position_or_zone_degrades_to_desconocido(
+    client: AsyncClient, configured_gemini
+):
+    """Sin puesto ni zona no hay nada que buscar distinto de lo que el feed
+    ya muestra sin pasar por el asistente."""
+    worker = await auth_headers(client, "worker", "wq_w3@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _worker_query_json(intent="buscar_turnos")
+    response = await client.post(
+        "/api/v1/assistant/worker-query",
+        headers=worker,
+        json={"text": "hola"},
+    )
+    assert response.status_code == 200
+    assert response.json()["intent"] == "desconocido"
+
+
+async def test_worker_query_desconocido_intent_returns_friendly_message(
+    client: AsyncClient, configured_gemini
+):
+    worker = await auth_headers(client, "worker", "wq_w4@staffya.com")
+    _FakeAsyncClient.next_gemini_text = _worker_query_json(intent="desconocido")
+    response = await client.post(
+        "/api/v1/assistant/worker-query",
+        headers=worker,
+        json={"text": "qué día es hoy"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent"] == "desconocido"
+    assert body["message"]

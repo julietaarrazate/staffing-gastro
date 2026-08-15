@@ -184,6 +184,22 @@ export interface AssistantQueryResponse {
   verification_verified: boolean | null;
 }
 
+/** Respuesta de `POST /assistant/worker-query` (asistente del trabajador,
+ * pedido de Julieta: "búscame un turno en palermo a menos de 2 kilómetros
+ * para hoy tanto para mozo barista y cajero"). A diferencia del asistente
+ * del comercio, esto son SIEMPRE filtros estructurados, nunca resultados ya
+ * resueltos — el frontend arma la búsqueda con esto (zona -> lat/lng con la
+ * tabla de barrios de `lib/locations.ts`, radio, fecha) y la ejecuta contra
+ * `GET /shifts/feed`, que ya sabe rankear/filtrar por distancia. */
+export interface WorkerAssistantQueryResponse {
+  intent: "buscar_turnos" | "desconocido";
+  message: string | null;
+  positions: WorkerSkill[] | null;
+  zone_name: string | null;
+  radius_km: number | null;
+  date_filter: "hoy" | "todos" | null;
+}
+
 /** Resultado de `POST /shifts/events`: `requested` vs. `shifts.length` —
  *  si son distintos, el plan del comercio se quedó sin cupo a mitad de
  *  camino (publicación parcial). */

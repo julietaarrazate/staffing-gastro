@@ -199,19 +199,25 @@ async def feed(
     my_skills: Annotated[list[WorkerSkill] | None, Depends(get_my_worker_skills)],
     city: Annotated[str | None, Query()] = None,
     position: Annotated[WorkerSkill | None, Query()] = None,
+    # Varios puestos a la vez (asistente de IA del trabajador: "turno de
+    # mozo, barista o cajero") — `list_open` ya soportaba esto internamente
+    # para el fallback de `my_skills`, sólo faltaba exponerlo como filtro
+    # explícito. `position` (uno solo) sigue ganando si se manda junto.
+    positions: Annotated[list[WorkerSkill] | None, Query()] = None,
     urgent: Annotated[bool | None, Query()] = None,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
-    # Sin filtro explícito de `position`, el feed sólo muestra los rubros que
-    # el trabajador eligió en su perfil — antes le llegaban ofertas de
-    # cualquier rubro (a un cajero/bartender le aparecía una de cocinero),
-    # ruido puro (Julieta, 2026-07-30). Si no tiene perfil o no eligió
-    # ninguno todavía, no se filtra (mismo comportamiento de siempre).
+    # Sin filtro explícito de `position`/`positions`, el feed sólo muestra
+    # los rubros que el trabajador eligió en su perfil — antes le llegaban
+    # ofertas de cualquier rubro (a un cajero/bartender le aparecía una de
+    # cocinero), ruido puro (Julieta, 2026-07-30). Si no tiene perfil o no
+    # eligió ninguno todavía, no se filtra (mismo comportamiento de siempre).
+    effective_positions = positions if positions else my_skills
     shifts = await service.list_feed(
         city=city,
         position=position,
-        positions=None if position is not None else my_skills,
+        positions=None if position is not None else effective_positions,
         urgent=urgent,
         limit=limit,
         offset=offset,

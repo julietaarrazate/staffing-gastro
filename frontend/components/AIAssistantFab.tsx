@@ -5,16 +5,22 @@ import { useAuth } from "@/lib/auth-context";
 import { LogoGlyph } from "@/components/Logo";
 
 /**
- * Cápsula flotante del asistente, disponible en toda la app del comercio
- * (pedido de Julieta: separado del wizard, "un botón afuera"). Navega a
+ * Cápsula flotante del asistente, disponible en toda la app (comercio Y
+ * trabajador — pedido de Julieta: "el asistente de ia falta para el
+ * trabajador"; separado del wizard, "un botón afuera"). Navega a
  * `/assistant` — la pantalla dedicada del asistente (pedido de Julieta: "que
  * no sea un botón escondido, que tenga su lugar para pedirle"), no una hoja
- * que se abre encima.
+ * que se abre encima. La pantalla rama internamente por rol (ver
+ * `app/assistant/page.tsx`) — el trabajador busca turnos, el comercio hace
+ * de todo un poco (crear/consultar turnos, candidatos, verificación).
  *
  * En `/shifts` (panel/home del comercio) se oculta: ahí vive `AIAssistantBar`,
  * la versión prominente inline — tener las dos juntas en la misma pantalla
- * duplica el mismo punto de entrada. En `/assistant` también se oculta —
- * no tiene sentido flotar un botón hacia la pantalla en la que ya estás.
+ * duplica el mismo punto de entrada. El trabajador no tiene todavía una
+ * barra equivalente en `/feed` (alcance de esta primera versión: sólo la
+ * cápsula), así que ahí se ve. En `/assistant` también se oculta, para
+ * cualquier rol — no tiene sentido flotar un botón hacia la pantalla en la
+ * que ya estás.
  *
  * Se oculta también en /shifts/new y /shifts/new-event, que ya tienen su
  * propio cuadro de texto+dictado integrado, y en /bienvenida — el onboarding
@@ -38,7 +44,7 @@ export default function AIAssistantFab() {
     pathname === "/shifts/new-event" ||
     pathname === "/bienvenida" ||
     pathname === "/assistant";
-  if (user?.role !== "employer" || hiddenOnThisPage) return null;
+  if (!user || user.role === "admin" || hiddenOnThisPage) return null;
 
   return (
     <button
