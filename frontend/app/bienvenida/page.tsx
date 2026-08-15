@@ -264,7 +264,7 @@ function WorkerOnboarding() {
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
                     active
                       ? "bg-primary text-ink"
-                      : "bg-surface text-ink/70 ring-1 ring-line hover:bg-line"
+                      : "bg-white text-ink/70 ring-1 ring-line hover:bg-surface"
                   }`}
                 >
                   {active && <CheckIcon size={15} />}
