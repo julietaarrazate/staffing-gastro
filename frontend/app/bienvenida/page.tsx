@@ -8,11 +8,17 @@
  * — un formulario largo con foto, bio, años de experiencia, disponibilidad
  * y ubicación, todo junto y sin explicar para qué sirve nada. El feed
  * necesita sólo DÓNDE está (rankea por distancia) y QUÉ sabe hacer (filtra
- * por oficio) para dejar de mostrar turnos irrelevantes — esos dos siguen
- * siendo obligatorios. El tercer paso (pedido explícito de Julieta: el
- * onboarding quedaba "muy breve") suma la foto y la experiencia sin bloquear
- * el avance si se saltean — un perfil con menos datos igual entra al feed,
- * sólo que un comercio lo ve con menos contexto al postularse.
+ * por oficio) para dejar de mostrar turnos irrelevantes — completarlos de
+ * entrada sigue siendo lo esperado, pero "Dejar para después" (paso 1,
+ * mismo pedido de Julieta que el "Omitir por ahora" del comercio, ver
+ * abajo) permite salir sin cargarlos: el feed no se rompe sin ellos
+ * (`skills=[]`/sin ubicación ya se tratan como "sin filtro" del lado del
+ * backend, no como error), sólo queda sin personalizar hasta que el
+ * trabajador complete el perfil. El tercer paso (pedido explícito de
+ * Julieta: el onboarding quedaba "muy breve") suma la foto y la
+ * experiencia sin bloquear el avance si se saltean — un perfil con menos
+ * datos igual entra al feed, sólo que un comercio lo ve con menos
+ * contexto al postularse.
  *
  * Comercio: dos pasos, nombre y ubicación (auditoría de producto 2026-08-10,
  * C4). Antes caía directo en `/shifts` sin haber cargado nada — el nombre
@@ -120,8 +126,14 @@ function WorkerOnboarding() {
   const [location, setLocation] = useState<LocationSelection | null>(null);
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [yearsExperience, setYearsExperience] = useState(0);
+  // Texto crudo, no número: arrancar en 0 dejaba un "0" pegado en el campo
+  // que el teclado numérico de Android no siempre reemplazaba solo al
+  // escribir encima (quedaba "05" en vez de "5") — reporte real de Julieta,
+  // "sacalo que la gente ponga los años". Vacío de entrada, con "0" sólo
+  // como placeholder; se convierte a número recién al mandar el form.
+  const [yearsExperienceInput, setYearsExperienceInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [skippingAll, setSkippingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function toggleSkill(skill: WorkerSkill) {
@@ -130,22 +142,25 @@ function WorkerOnboarding() {
     );
   }
 
-  async function finish() {
-    if (!token || !location || skills.length === 0) return;
+  // `withDetails=false` es lo que usa `skipAll()`: guarda un perfil vacío
+  // (sin zona, sin oficio) en vez de bloquear la salida del onboarding
+  // hasta completar los dos — pedido real de Julieta ("un botón dejar
+  // para después por si no quieren llenar en el momento"). No rompe el
+  // feed: `skills=[]` y sin ubicación ya se tratan como "sin filtro/sin
+  // orden por cercanía" del lado del backend (`get_my_worker_skills`,
+  // `shift/api/dependencies.py`), no como error.
+  async function save(withDetails: boolean): Promise<boolean> {
+    if (!token) return false;
     setError(null);
-    setSaving(true);
     // El perfil todavía no existe (el usuario se acaba de registrar), pero si
     // entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
-    // `photo_url`/`years_experience` son opcionales — un trabajador que
-    // saltea el paso "Contanos más" igual entra al feed, sólo que el
-    // comercio lo ve con menos contexto al postularse.
     const payload = {
-      photo_url: photoUrl,
-      city: location.city,
-      skills,
-      years_experience: yearsExperience,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      photo_url: withDetails ? photoUrl : null,
+      city: withDetails ? (location?.city ?? null) : null,
+      skills: withDetails ? skills : [],
+      years_experience: withDetails ? Number(yearsExperienceInput) || 0 : 0,
+      latitude: withDetails ? (location?.latitude ?? null) : null,
+      longitude: withDetails ? (location?.longitude ?? null) : null,
       is_available: true,
     };
     try {
@@ -154,11 +169,31 @@ function WorkerOnboarding() {
       } catch {
         await api.put<WorkerProfile>("/workers/me/profile", payload, token);
       }
-      router.replace("/feed");
+      return true;
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos guardar tus datos. Probá de nuevo."));
-      setSaving(false);
+      return false;
     }
+  }
+
+  async function finish() {
+    // `photo_url`/`years_experience` son opcionales — un trabajador que
+    // saltea el paso "Contanos más" igual entra al feed, sólo que el
+    // comercio lo ve con menos contexto al postularse.
+    if (!location || skills.length === 0) return;
+    setSaving(true);
+    if (await save(true)) router.replace("/feed");
+    else setSaving(false);
+  }
+
+  // Salida completa del onboarding desde el paso 1, sin zona ni oficio
+  // todavía (mismo criterio que `skipAll` del comercio, unas líneas más
+  // abajo en este archivo): el feed queda sin filtrar/sin ordenar por
+  // cercanía hasta que complete el perfil, pero no se lo deja trabado acá.
+  async function skipAll() {
+    setSkippingAll(true);
+    if (await save(false)) router.replace("/feed");
+    else setSkippingAll(false);
   }
 
   const stepIndex = step === "zona" ? 0 : step === "oficio" ? 1 : 2;
@@ -194,10 +229,18 @@ function WorkerOnboarding() {
             </p>
           )}
 
-          <div className="mt-auto pt-8">
+          <div className="mt-auto flex flex-col gap-2 pt-8">
             <Button fullWidth disabled={!location} onClick={() => setStep("oficio")}>
               Continuar
             </Button>
+            <button
+              type="button"
+              disabled={skippingAll}
+              onClick={skipAll}
+              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98] disabled:opacity-60"
+            >
+              {skippingAll ? "Guardando…" : "Dejar para después"}
+            </button>
           </div>
         </section>
       ) : step === "oficio" ? (
@@ -267,10 +310,11 @@ function WorkerOnboarding() {
               label="Años de experiencia"
               type="number"
               inputMode="numeric"
+              placeholder="0"
               min={0}
               max={80}
-              value={yearsExperience}
-              onChange={(v) => setYearsExperience(Number(v) || 0)}
+              value={yearsExperienceInput}
+              onChange={(v) => setYearsExperienceInput(v.replace(/[^0-9]/g, "").slice(0, 2))}
             />
           </div>
 
