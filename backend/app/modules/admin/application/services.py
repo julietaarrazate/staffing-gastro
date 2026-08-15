@@ -5,11 +5,12 @@ Reutiliza los puertos `UserRepository` (identity) y `ShiftRepository`
 moderación de usuarios y el cálculo de métricas agregadas.
 """
 
+import secrets
 from uuid import UUID
 
 from app.core.dt import naive as _naive
-from app.core.security import create_access_token
-from app.modules.admin.application.dtos import AdminUserRow, PlatformStats
+from app.core.security import create_access_token, hash_password
+from app.modules.admin.application.dtos import AdminUserRow, PlatformStats, TestAccount
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
@@ -22,6 +23,22 @@ from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
+
+
+# Cuentas de prueba para que la administradora entre como cada rol vía
+# "Ver como" sin usar datos de usuarios reales (mismo patrón que
+# `_GUEST_ACCOUNTS` en identity, pero acá el acceso es por impersonación
+# admin en vez de un PIN público).
+_TEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
+    UserRole.WORKER: ("prueba.trabajador@oido.beta", "Prueba · Trabajador"),
+    UserRole.EMPLOYER: ("prueba.comercio@oido.beta", "Prueba · Comercio"),
+}
+
+
+def _local_password() -> str:
+    """Contraseña local irrecuperable: nadie puede iniciar sesión en la
+    cuenta de prueba con email+contraseña, sólo vía "Ver como" (admin)."""
+    return hash_password(secrets.token_urlsafe(32))
 
 
 def _rate_pct(numerator: int, denominator: int) -> float | None:
@@ -134,6 +151,29 @@ class AdminService:
                 company_stats.companies_with_1plus_shifts,
             ),
         )
+
+    async def get_or_create_test_accounts(self) -> list[TestAccount]:
+        """Devuelve las cuentas de prueba (trabajador y comercio) para que la
+        administradora testee cada rol vía "Ver como", creándolas la primera
+        vez que se piden (get-or-create, mismo patrón que
+        `IdentityService.guest_login`)."""
+        accounts = []
+        for role, (email, name) in _TEST_ACCOUNTS.items():
+            user = await self._users.get_by_email(email)
+            if user is None:
+                user = await self._users.add(
+                    User(
+                        email=email,
+                        hashed_password=_local_password(),
+                        full_name=name,
+                        role=role,
+                        is_verified=True,
+                    )
+                )
+            accounts.append(
+                TestAccount(id=user.id, email=user.email, full_name=user.full_name, role=user.role)
+            )
+        return accounts
 
     async def suspend_user(self, actor: User, user_id: UUID) -> User:
         """Suspende a un usuario. No permite que un admin se suspenda a sí mismo."""

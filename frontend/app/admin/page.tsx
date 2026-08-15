@@ -5,16 +5,22 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import { AdminUser, PlatformStats } from "@/lib/types";
+import { AdminUser, PlatformStats, TestAccount } from "@/lib/types";
 import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Skeleton, Spinner } from "@/components/ui";
 import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
   CheckCircleIcon,
   EyeIcon,
+  FlaskIcon,
   MessageIcon,
   ShieldIcon,
   UsersIcon,
 } from "@/components/icons";
+
+const TEST_ACCOUNT_ROLE_LABELS: Record<string, string> = {
+  worker: "Ver como trabajador",
+  employer: "Ver como comercio",
+};
 
 const ROLE_LABELS: Record<string, string> = {
   worker: "Trabajador",
@@ -70,6 +76,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [testAccounts, setTestAccounts] = useState<TestAccount[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -85,10 +92,12 @@ export default function AdminPage() {
     Promise.all([
       api.get<PlatformStats>("/admin/stats", token),
       api.get<AdminUser[]>("/admin/users", token),
+      api.get<TestAccount[]>("/admin/test-accounts", token),
     ])
-      .then(([s, u]) => {
+      .then(([s, u, t]) => {
         setStats(s);
         setUsers(u);
+        setTestAccounts(t);
       })
       .catch((err) => setError(getErrorMessage(err, "Error al cargar el panel")))
       .finally(() => {
@@ -172,6 +181,36 @@ export default function AdminPage() {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
+
+      {/* Acceso rápido para testear la app en cada rol sin usar datos de
+          usuarios reales (pedido de Julieta): reutiliza "Ver como"
+          (impersonate) sobre 2 cuentas dedicadas que se crean solas la
+          primera vez que se piden (`AdminService.get_or_create_test_accounts`). */}
+      {testAccounts.length > 0 && (
+        <Card className="mt-6 p-5">
+          <div className="flex items-center gap-1.5">
+            <FlaskIcon size={16} className="text-primary-text" />
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+              Mis cuentas de prueba
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {testAccounts.map((account) => (
+              <Button
+                key={account.id}
+                size="sm"
+                variant="surface"
+                leftIcon={<EyeIcon size={14} />}
+                disabled={busy !== null}
+                loading={busy === `${account.id}:impersonate`}
+                onClick={() => handleImpersonate(account.id)}
+              >
+                {TEST_ACCOUNT_ROLE_LABELS[account.role] ?? account.full_name}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {statsLoading ? (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-hidden>

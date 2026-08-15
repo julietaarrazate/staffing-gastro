@@ -27,6 +27,18 @@ class AdminUserRow:
 
 
 @dataclass
+class TestAccount:
+    """Cuenta de prueba (trabajador o comercio) para que la administradora
+    testee la app en cada rol vía "Ver como" (`AdminService.impersonate`).
+    Ver `AdminService.get_or_create_test_accounts`."""
+
+    id: UUID
+    email: str
+    full_name: str
+    role: UserRole
+
+
+@dataclass
 class PlatformStats:
     """Métricas agregadas de la plataforma para el panel de administración."""
 
