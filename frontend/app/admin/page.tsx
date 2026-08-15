@@ -367,13 +367,28 @@ export default function AdminPage() {
           </p>
           <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Card className="col-span-2 p-5">
-              <div className="flex items-center gap-1.5 text-ink/50">
+              <div className="flex flex-wrap items-center gap-1.5 text-ink/50">
                 <WalletIcon size={14} />
                 <p className="text-xs font-medium">Ingreso mensual recurrente</p>
+                {!subscriptionStats.billing_enabled && <Badge tone="neutral">Cobro no activado</Badge>}
               </div>
               <p className="mt-1 text-2xl font-extrabold text-ink">
-                ARS {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
+                ARS{" "}
+                {Number(
+                  subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0
+                ).toLocaleString("es-AR")}
               </p>
+              {/* Mientras el cobro real esté apagado, `mrr_ars` es lo que se
+                  cobraría si estuviera activo — nunca ingreso real (auditoría
+                  2026-08-15, F1: se mostraba como si ya hubiera pasado). Señal
+                  de demanda igual de real (comercios que ELIGEN un plan pago),
+                  por eso se muestra, pero nunca como el número principal. */}
+              {!subscriptionStats.billing_enabled && (
+                <p className="mt-1 text-xs text-ink/40">
+                  Potencial si se cobrara: ARS{" "}
+                  {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
+                </p>
+              )}
             </Card>
             <StatCard label="Comercios" value={subscriptionStats.total_companies} />
             <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />

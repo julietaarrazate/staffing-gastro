@@ -81,6 +81,7 @@ async function mockAdminPanel(page: import("@playwright/test").Page) {
         total_companies: 0,
         companies_by_plan: {},
         companies_at_plan_limit: 0,
+        billing_enabled: false,
       }),
     })
   );

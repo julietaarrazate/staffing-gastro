@@ -32,7 +32,7 @@ existiera.
 admin **no es confiable para decidir nada de negocio** hasta corregir F1–F3.
 
 **Los 3 movimientos, en orden:**
-1. Arreglar las 3 métricas mentirosas del panel (F1, F2, F3) — 2-3 horas.
+1. ~~Arreglar las 3 métricas mentirosas del panel (F1, F2, F3)~~ — F1 resuelto (2026-08-15, mismo día). F2, F3 pendientes.
 2. Acotar el texto de entrada de los 2 endpoints de IA sin tope y poner
    `maxOutputTokens` (F4) — 1 hora.
 3. Sumar `lint` al CI y corregir el único error real que hoy nadie ve (F5).
@@ -118,7 +118,7 @@ reproducir las reglas de dominio que les dan sentido.* No son tres bugs
 sueltos: es una capa de métricas construida sin un paso de "¿este número
 significa lo que dice la etiqueta?".
 
-### F1 — "Ingreso mensual recurrente" muestra plata que nunca se cobró · S1 · E1
+### F1 — "Ingreso mensual recurrente" muestra plata que nunca se cobró · S1 · E1 · ✅ Resuelto (2026-08-15, mismo día)
 **Evidencia:** `config.py:87` `mercadopago_access_token: str = ""` (vacío por
 defecto) ⇒ `subscription/application/services.py:57` `self._billing.enabled`
 es False ⇒ rama `else`: `subscription.change_plan(plan.code)` asigna el plan

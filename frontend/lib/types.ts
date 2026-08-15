@@ -447,6 +447,10 @@ export interface SubscriptionStats {
    * tienen fila en `subscriptions`, contados en `gratis`). */
   companies_by_plan: Record<string, number>;
   companies_at_plan_limit: number;
+  /** False mientras no haya credenciales de Mercado Pago: `mrr_ars` es
+   * entonces un monto POTENCIAL (lo que se cobraría), nunca ingreso real —
+   * el panel lo tiene que mostrar distinguible (auditoría 2026-08-15, F1). */
+  billing_enabled: boolean;
 }
 
 // Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,

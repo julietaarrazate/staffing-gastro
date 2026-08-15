@@ -47,13 +47,10 @@ const SUBSCRIPTION_STATS = {
   total_companies: 4,
   companies_by_plan: { gratis: 2, basico: 1, pro: 1 },
   companies_at_plan_limit: 1,
+  billing_enabled: true,
 };
 
-test("la sección Suscripciones muestra el MRR y la distribución por plan", async ({ page }) => {
-  await injectSession(page);
-  await blockExternalHosts(page);
-  await mockEmptyNotifications(page);
-
+async function mockAdminShell(page: import("@playwright/test").Page) {
   await page.route("**/api/v1/auth/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(ADMIN_SESSION) })
   );
@@ -66,6 +63,19 @@ test("la sección Suscripciones muestra el MRR y la distribución por plan", asy
   await page.route("**/api/v1/admin/test-accounts", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
+  await page.route("**/api/v1/identity/claims/pending", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+}
+
+test("con el cobro activo, la sección Suscripciones muestra el MRR real y la distribución por plan", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockAdminShell(page);
+
   await page.route("**/api/v1/admin/subscription-stats", (route) =>
     route.fulfill({
       status: 200,
@@ -73,17 +83,45 @@ test("la sección Suscripciones muestra el MRR y la distribución por plan", asy
       body: JSON.stringify(SUBSCRIPTION_STATS),
     })
   );
-  await page.route("**/api/v1/identity/claims/pending", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
-  );
 
   await page.goto("/admin");
 
   await expect(page.getByText("Suscripciones")).toBeVisible();
   await expect(page.getByText("Ingreso mensual recurrente")).toBeVisible();
   await expect(page.getByText("ARS 65.000")).toBeVisible();
+  await expect(page.getByText("Cobro no activado")).toHaveCount(0);
+  await expect(page.getByText("Potencial si se cobrara")).toHaveCount(0);
   await expect(page.getByText("Cerca del límite")).toBeVisible();
   await expect(page.getByText("Gratis: 2")).toBeVisible();
   await expect(page.getByText("Básico: 1")).toBeVisible();
   await expect(page.getByText("Pro: 1")).toBeVisible();
+});
+
+/**
+ * F1 de la auditoría 2026-08-15: sin credenciales de Mercado Pago
+ * (`billing_enabled: false`, el default real), el panel mostraba pesos
+ * que nunca se cobraron como si fueran ingreso real. El número principal
+ * ahora es $0, con el potencial como dato secundario, nunca al revés.
+ */
+test("sin el cobro activo, el MRR muestra $0 real y el potencial como dato secundario", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockAdminShell(page);
+
+  await page.route("**/api/v1/admin/subscription-stats", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...SUBSCRIPTION_STATS, billing_enabled: false }),
+    })
+  );
+
+  await page.goto("/admin");
+
+  await expect(page.getByText("Cobro no activado")).toBeVisible();
+  await expect(page.getByText("ARS 0")).toBeVisible();
+  await expect(page.getByText("Potencial si se cobrara: ARS 65.000")).toBeVisible();
 });

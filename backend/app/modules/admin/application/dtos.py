@@ -115,3 +115,10 @@ class SubscriptionStats:
     total_companies: int
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
+    # False mientras no haya credenciales de Mercado Pago
+    # (`BillingGateway.enabled`): `mrr_ars` es entonces un monto POTENCIAL
+    # (lo que se cobraría si el cobro estuviera activo), nunca ingreso real
+    # — el panel de admin lo tiene que mostrar distinguible (auditoría
+    # 2026-08-15, F1: la tarjeta mostraba plata nunca cobrada como si fuera
+    # ingreso real).
+    billing_enabled: bool
