@@ -464,7 +464,7 @@ async def _seed_workers(session) -> None:
         NullEmailSender(),
         GoogleTokenInfoVerifier(settings),
     )
-    worker_service = WorkerProfileService(workers)
+    worker_service = WorkerProfileService(workers, SqlAlchemyShiftRepository(session))
 
     already_registered = await _existing_emails(
         session, [entry["email"] for entry in WORKERS]

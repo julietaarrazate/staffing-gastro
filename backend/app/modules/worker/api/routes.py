@@ -13,6 +13,7 @@ from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
 from app.modules.worker.api.dependencies import get_user_repository, get_worker_service
 from app.modules.worker.api.schemas import (
+    WorkerEarningsResponse,
     WorkerProfileInput,
     WorkerProfileResponse,
 )
@@ -103,6 +104,26 @@ async def update_my_profile(
             detail="Todavía no creaste tu perfil de trabajador",
         ) from exc
     return await _to_response(profile, users, verification)
+
+
+@router.get(
+    "/me/earnings",
+    response_model=WorkerEarningsResponse,
+    summary="Resumen de ganancias del trabajador autenticado",
+)
+async def get_my_earnings(current_user: WorkerDep, service: ServiceDep):
+    try:
+        summary = await service.get_my_earnings_summary(current_user.id)
+    except WorkerProfileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Todavía no creaste tu perfil de trabajador",
+        ) from exc
+    return WorkerEarningsResponse(
+        total_earned=summary.total_earned,
+        this_month_earned=summary.this_month_earned,
+        shifts_completed=summary.shifts_completed,
+    )
 
 
 @router.get(

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
+import { SKILL_LABELS, WorkerEarnings, WorkerProfile } from "@/lib/types";
 import {
   BADGE_ICONS,
   BADGE_LABELS,
@@ -44,6 +44,7 @@ function StatTile({
 export default function WorkerGameCard() {
   const { token, user } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const [earnings, setEarnings] = useState<WorkerEarnings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,6 +57,12 @@ export default function WorkerGameCard() {
         setError(err instanceof ApiError ? err.message : "No se pudo cargar tu reputación")
       )
       .finally(() => setLoading(false));
+    // Aparte del perfil: si falla, la tarjeta igual se ve completa sin el
+    // bloque de ganancias, en vez de tapar toda la reputación por esto.
+    api
+      .get<WorkerEarnings>("/workers/me/earnings", token)
+      .then(setEarnings)
+      .catch(() => {});
   }, [token]);
 
   if (loading) return <Skeleton className="h-72 w-full rounded-[var(--radius-card)]" />;
@@ -79,6 +86,31 @@ export default function WorkerGameCard() {
           {formatRating(profile.rating)}
         </div>
       </div>
+
+      {/* Ganancias (pedido de Julieta: "un resumen de ganancias acumuladas
+          en el perfil"): el dato que más motiva y hoy no se veía en ningún
+          lado — el perfil mostraba reputación/puntualidad pero nunca
+          cuánta plata hiciste. Jerarquía brutal en el total (mismo criterio
+          que el pago en ShiftCard/OpportunityCard), "Este mes" como
+          secundario al lado. */}
+      {earnings && (
+        <div className="grid grid-cols-2 gap-2.5 px-4 pt-4">
+          <div className="rounded-2xl bg-orange-50 px-3.5 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">
+              Ganancias totales
+            </p>
+            <p className="text-xl font-extrabold leading-tight text-primary-text">
+              ARS {Number(earnings.total_earned).toLocaleString("es-AR")}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-surface px-3.5 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Este mes</p>
+            <p className="text-xl font-extrabold leading-tight text-ink">
+              ARS {Number(earnings.this_month_earned).toLocaleString("es-AR")}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Puntualidad: proporción contra un límite (100%), no un stat tile de
           texto plano — se muestra como barra con severidad (dataviz skill,

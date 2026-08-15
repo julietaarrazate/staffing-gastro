@@ -291,6 +291,17 @@ export interface WorkerProfile {
   identidad_verificada: boolean;
 }
 
+/** Respuesta de `GET /workers/me/earnings` (pedido de Julieta: "un resumen
+ * de ganancias acumuladas en el perfil ... por mes"). Cuenta turnos
+ * FINALIZADO/PAGADO — ya trabajados, cuenten o no todavía como "cobrados"
+ * en el sistema (mismo criterio que `shifts_together` en favoritos). Los
+ * montos vienen como string (`Decimal` del backend, ver `ShiftResponse`). */
+export interface WorkerEarnings {
+  total_earned: string;
+  this_month_earned: string;
+  shifts_completed: number;
+}
+
 export type NotificationType =
   | "shift_assigned"
   | "shift_confirmed"
