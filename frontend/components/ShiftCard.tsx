@@ -65,12 +65,19 @@ const DIMMED_STATUSES = new Set(["cancelado", "pagado"]);
 export default function ShiftCard({
   shift,
   perspective = "employer",
+  showLifecycle = true,
   children,
 }: {
   shift: Shift;
   /** "employer" (default, `/shifts`): Publicado→Asignado→En curso→Finalizado.
    *  "worker" (`/my-shifts`): Postulado→Aceptado→En curso→Finalizado. */
   perspective?: ShiftStepperPerspective;
+  /** El stepper asume que el trabajador YA tiene alguna relación con el
+   * turno (se postuló o lo asignaron) — el paso 1 dice literalmente
+   * "Postulado". Un turno guardado (`/my-shifts`, tab Guardados) todavía
+   * no tiene ninguna relación: mostrar el stepper ahí diría "Postulado"
+   * sobre un turno al que el trabajador ni se postuló. */
+  showLifecycle?: boolean;
   children?: React.ReactNode;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
@@ -174,7 +181,9 @@ export default function ShiftCard({
 
         {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md, inspiración
             Clickie): de un vistazo, en qué punto del viaje está el turno. */}
-        <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
+        {showLifecycle && (
+          <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
+        )}
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink/70">
           <span className="inline-flex items-center gap-1.5">
