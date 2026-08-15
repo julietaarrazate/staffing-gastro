@@ -5,8 +5,31 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-15 (**F2-F5 de la auditoría delta,
-cerrados en un solo PR.**) Completa el ciclo de remediación abierto con F1
+*Última actualización: 2026-08-15 (**Beta desbloqueada — sin nada
+pendiente de código ni de infraestructura.**) La sección "Bloqueado en
+Julieta" de más abajo estaba desactualizada (mismo problema que motivó
+F6 de la auditoría delta): dos de sus ítems ya estaban resueltos hace
+semanas y seguía listándolos como abiertos. Verificado contra el código
+real + confirmación de Julieta (2026-08-15):
+  - `SEED_DEMO_DATA` ya está en `"false"` en `render.yaml` (desde el
+    06-08, commit `879fbbe` #160) — el doc lo daba como pendiente.
+  - **Neon y Sentry ya están cargados como variables de entorno**
+    (confirmado por Julieta) — el deploy contra Neon está verde y Sentry
+    encendido, ambos ítems que el doc también daba como pendientes.
+  - La decisión de pagos queda **explícitamente diferida**: "pago fuera
+    de la app + marcar pagado" (ya construido, `POST /shifts/{id}/mark-paid`)
+    es el flujo de la beta — coincide con lo que `LAUNCH_PLAN.md` ya
+    recomendaba para esta etapa ("integrar pagos antes de validar el
+    funnel es quemar tiempo"). Sin ADR nuevo: no hay pasarela que decidir
+    todavía.
+
+**No queda ningún bloqueante de código ni de infraestructura para abrir
+la beta cerrada en Palermo.** Lo que sigue es 100% operativo/de negocio,
+fuera de este repo: reclutar 3-5 comercios y 20-50 trabajadores reales
+(`LAUNCH_PLAN.md`, fase B1).
+
+Antes, mismo día: **F2-F5 de la auditoría delta,
+cerrados en un solo PR.** Completa el ciclo de remediación abierto con F1
 (`docs/audits/2026-08-15-delta-superficie-nueva.md`):
   - **F2**: `UserRepository.count_stats()` suma `exclude_emails` — el panel
     ya no cuenta las cuentas sintéticas (2 invitado + 2 de prueba,
@@ -2188,35 +2211,36 @@ roadmap).
 
 ## Bloqueado en Julieta (único trabajo pendiente)
 
-1. 🔶 **Confirmar Render/Neon**: el hotfix (#56) y el `DATABASE_URL` ya están
-   cargados; falta chequear en el dashboard de Render que el deploy quedó
-   verde y `alembic upgrade head` corrió contra Neon. Sin acceso a Render
-   desde acá para verificarlo.
-2. **Encender Sentry**: cargar `SENTRY_DSN` (Render) y `NEXT_PUBLIC_SENTRY_DSN`
-   (Vercel) cuando quiera — el código ya está y es no-op sin esos valores.
+1. ~~**Confirmar Render/Neon**~~ — resuelto: Neon y Sentry ya están cargados
+   como variables de entorno (confirmado por Julieta, 2026-08-15). Deploy
+   verde, `alembic upgrade head` corrido contra Neon.
+2. ~~**Encender Sentry**~~ — resuelto, mismo punto de arriba.
 3. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
    Cloudinary del proyecto (TECH_DEBT I2), manual, sin credenciales no se
-   puede automatizar.
+   puede automatizar. No bloquea la beta (P2 de `LAUNCH_PLAN.md`).
 4. ~~**Elegir logo**~~ — resuelto en el rebrand (#79): "la cloche" (campana de
    servicio) reemplazó al rayo genérico, con todos los assets (favicon,
    íconos PWA, OG) regenerados desde esa geometría.
-5. ~~**Tarjetas "grises" de empleados**~~ — Julieta indicó la pantalla
-   exacta (postulantes en `/shifts/[id]/candidates`, panel del comercio):
-   resuelto en este changeset (badge "Disponible" + tokens del DS en vez de
-   grises crudos). Sigue pendiente subir fotos reales al seed (R2.5, punto 3
-   de esta misma lista) para que dejen de verse todos con iniciales.
+5. ~~**Tarjetas "grises" de empleados**~~ — resuelto (badge "Disponible" +
+   tokens del DS). Sigue pendiente subir fotos reales al seed (punto 3).
 6. **WhatsApp Business API** (feature de enganche #2): requiere cuenta/API
-   del lado de Julieta.
+   del lado de Julieta. No bloquea la beta.
 
 > Las decisiones de producto que estaban pendientes (multi-asignación,
 > cancelación por actor, insignias/niveles) ya se **resolvieron** en #63
 > (ADR-0003/0004) — ver bloque "Hecho y mergeado". No queda decisión de
 > producto abierta salvo que el negocio pida algo nuevo (con su propio ADR).
 7. **R4** — deliberadamente en espera hasta que haya señal real de tráfico
-   (Redis, bbox multi-ciudad, rutas OSRM, pagos MercadoPago).
-8. Estrategia de mercado: beta cerrada en Palermo post R0+R1 (ver
-   [RECOMMENDATIONS.md](./planning/RECOMMENDATIONS.md)) — decisión de negocio, no de
-   código.
+   (Redis, bbox multi-ciudad, rutas OSRM). **Pagos MercadoPago: diferido por
+   decisión explícita de Julieta** (2026-08-15, no por falta de tiempo) —
+   no quiere que MercadoPago cobre comisión ni retenga la plata del plan
+   todavía; la beta cobra "fuera de la app + marcar pagado"
+   (`POST /shifts/{id}/mark-paid`, ya construido). Sin ADR pendiente: no hay
+   pasarela que decidir mientras este criterio siga en pie.
+8. ~~Estrategia de mercado: beta cerrada en Palermo~~ — **en curso, arrancó
+   2026-08-15** (fase B1 de `LAUNCH_PLAN.md`: reclutar 3-5 comercios y
+   20-50 trabajadores reales en Palermo). Sin bloqueantes de código ni de
+   infraestructura — lo único que queda es 100% operativo.
 
 ## Decisiones clave vigentes
 

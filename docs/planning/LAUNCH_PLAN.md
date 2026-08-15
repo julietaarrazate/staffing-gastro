@@ -9,6 +9,17 @@
 
 ## Veredicto actualizado
 
+> **2026-08-15 — sin bloqueantes.** Los 2 ítems de la tabla de abajo ya
+> están resueltos (Neon+Sentry confirmados por Julieta; `SEED_DEMO_DATA`
+> apagado desde el 06-08). El puntaje re-baseado de este doc es del
+> 2026-07-02 — quedó viejo (150+ PRs desde entonces). Para el estado
+> técnico ACTUAL, ver las auditorías más recientes:
+> `docs/audits/2026-08-oido/ROADMAP.md` (13/08) y
+> `docs/audits/2026-08-15-delta-superficie-nueva.md` (15/08, todos sus
+> hallazgos F1-F5 ya resueltos). **La beta arrancó (fase B1) el
+> 2026-08-15** — reclutamiento de comercios/trabajadores reales en
+> Palermo, en curso.
+
 **Staffya está lista para una beta cerrada con usuarios reales acotados,
 apenas Julieta confirme dos cosas operativas (Neon + apagar seed).** No es
 "1–3 semanas de trabajo" como decía la evaluación vieja: ese trabajo **ya se
@@ -38,15 +49,18 @@ ingeniería, es **operación y una decisión de negocio**.
 **Global ponderado: ~78/100** — de "beta sólida, producción no todavía" a
 **"beta abierta lista; producción a escala pendiente sólo de R4 (con demanda)"**.
 
-## Lo único entre hoy y la beta (2 ítems, ambos de Julieta)
+## Lo único entre hoy y la beta (2 ítems, ambos de Julieta) — ✅ ambos resueltos, 2026-08-15
 
 | # | Qué | Quién | Bloquea |
 |---|-----|-------|---------|
-| 1 | Confirmar que el deploy de Render quedó verde contra **Neon** (código y `DATABASE_URL` ya están; falta mirar el dashboard) | Julieta | la durabilidad de datos |
-| 2 | Apagar `SEED_DEMO_DATA` y purgar cuentas demo **el día que entren usuarios reales** (runbook en [DEPLOY.md](../reference/DEPLOY.md)) | Julieta | seguridad de la beta |
+| 1 | ~~Confirmar que el deploy de Render quedó verde contra **Neon**~~ | Julieta | ✅ Resuelto — Neon confirmado en variables de entorno |
+| 2 | ~~Apagar `SEED_DEMO_DATA` y purgar cuentas demo~~ | Julieta | ✅ Resuelto — `render.yaml` en `"false"` desde el 06-08 (#160) |
 
-Todo lo demás (Sentry, imágenes propias, decisiones de producto con ADR) es
-**mejora, no bloqueante** de la beta.
+Todo lo demás (Sentry —ya encendido también—, imágenes propias, decisiones
+de producto con ADR) es **mejora, no bloqueante** de la beta. Pagos
+MercadoPago quedaron diferidos por decisión explícita de Julieta (no por
+falta de tiempo): la beta cobra "fuera de la app + marcar pagado", como
+este mismo doc ya recomendaba más abajo.
 
 ## Plan de beta cerrada — Palermo
 
