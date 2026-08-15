@@ -15,6 +15,7 @@ from app.modules.admin.api.schemas import (
     AdminUserResponse,
     ImpersonateResponse,
     PlatformStatsResponse,
+    SubscriptionStatsResponse,
     TestAccountResponse,
 )
 from app.modules.admin.application.exceptions import (
@@ -48,6 +49,15 @@ async def stats(_: AdminDep, service: ServiceDep):
 )
 async def test_accounts(_: AdminDep, service: ServiceDep):
     return await service.get_or_create_test_accounts()
+
+
+@router.get(
+    "/subscription-stats",
+    response_model=SubscriptionStatsResponse,
+    summary="Métricas de suscripción/mensualidad (MRR, distribución por plan)",
+)
+async def subscription_stats(_: AdminDep, service: ServiceDep):
+    return await service.get_subscription_stats()
 
 
 @router.get("/users", response_model=list[AdminUserResponse], summary="Listar usuarios")

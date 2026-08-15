@@ -56,6 +56,18 @@ async function mockAdminPanel(page: import("@playwright/test").Page) {
   await page.route("**/api/v1/admin/test-accounts", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
+  await page.route("**/api/v1/admin/subscription-stats", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        mrr_ars: "0",
+        total_companies: 0,
+        companies_by_plan: {},
+        companies_at_plan_limit: 0,
+      }),
+    })
+  );
   await page.route("**/api/v1/identity/claims/pending", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
@@ -116,6 +128,18 @@ test("sin muestra todavía, una métrica de producto muestra un guion en vez de 
   );
   await page.route("**/api/v1/admin/test-accounts", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/admin/subscription-stats", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        mrr_ars: "0",
+        total_companies: 0,
+        companies_by_plan: {},
+        companies_at_plan_limit: 0,
+      }),
+    })
   );
   await page.route("**/api/v1/identity/claims/pending", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })

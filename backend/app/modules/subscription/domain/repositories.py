@@ -34,3 +34,17 @@ class SubscriptionRepository(ABC):
         acceso), la crea en el plan `gratis` con un período nuevo y la
         persiste. Así "cada comercio nuevo arranca en gratis" (ADR-0005) sin
         depender de un hook en el alta del perfil de comercio."""
+
+    @abstractmethod
+    async def count_by_plan_and_status(self) -> list[tuple[str, str, int]]:
+        """Conteo agregado `(plan_code, status, cantidad)` de las suscripciones
+        que ya tienen fila (panel de admin, MRR). Un comercio sin fila
+        todavía (nunca llamó `get_or_create`) NO aparece acá — el llamador lo
+        suma al plan `gratis` usando el total real de comercios
+        (`CompanyProfileRepository.count_total`), ver ADR-0005."""
+
+    @abstractmethod
+    async def count_at_plan_limit(self, limits: dict[str, int]) -> int:
+        """Cuenta comercios cuyo `turnos_usados_mes` ya alcanzó o superó el
+        tope de SU plan actual, dado un `{plan_code: max_turnos_mes}` con
+        sólo los planes que tienen tope (nunca incluye `pro`, ilimitado)."""

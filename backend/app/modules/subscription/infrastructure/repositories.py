@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.subscription.domain.entities import PERIOD_LENGTH, Subscription
@@ -78,3 +78,21 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
             period_end=now + PERIOD_LENGTH,
         )
         return await self.add(subscription)
+
+    async def count_by_plan_and_status(self) -> list[tuple[str, str, int]]:
+        stmt = select(
+            SubscriptionModel.plan_code, SubscriptionModel.status, func.count()
+        ).group_by(SubscriptionModel.plan_code, SubscriptionModel.status)
+        result = await self._session.execute(stmt)
+        return [(plan_code, status, count) for plan_code, status, count in result.all()]
+
+    async def count_at_plan_limit(self, limits: dict[str, int]) -> int:
+        if not limits:
+            return 0
+        conditions = [
+            and_(SubscriptionModel.plan_code == plan_code, SubscriptionModel.turnos_usados_mes >= limit)
+            for plan_code, limit in limits.items()
+        ]
+        stmt = select(func.count()).select_from(SubscriptionModel).where(or_(*conditions))
+        result = await self._session.execute(stmt)
+        return result.scalar_one() or 0

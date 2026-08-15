@@ -13,6 +13,9 @@ from app.modules.application.infrastructure.repositories import (
 from app.modules.company.infrastructure.repositories import SqlAlchemyCompanyProfileRepository
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.infrastructure.repositories import (
+    SqlAlchemySubscriptionRepository,
+)
 from app.modules.worker.infrastructure.repositories import SqlAlchemyWorkerProfileRepository
 
 
@@ -25,4 +28,5 @@ def get_admin_service(
         SqlAlchemyWorkerProfileRepository(session),
         SqlAlchemyCompanyProfileRepository(session),
         SqlAlchemyShiftApplicationRepository(session),
+        SqlAlchemySubscriptionRepository(session),
     )

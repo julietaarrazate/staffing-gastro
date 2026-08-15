@@ -158,3 +158,8 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
             companies_with_1plus_shifts=row.companies_1plus or 0,
             companies_with_2plus_shifts=row.companies_2plus or 0,
         )
+
+    async def count_total(self) -> int:
+        stmt = select(func.count()).select_from(CompanyProfileModel)
+        result = await self._session.execute(stmt)
+        return result.scalar_one() or 0
