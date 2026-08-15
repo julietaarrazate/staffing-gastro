@@ -29,6 +29,7 @@ from app.modules.favorite.infrastructure import models as favorite_models  # noq
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
 from app.modules.notification.infrastructure import models as notification_models  # noqa: F401
 from app.modules.review.infrastructure import models as review_models  # noqa: F401
+from app.modules.saved_shift.infrastructure import models as saved_shift_models  # noqa: F401
 from app.modules.shift.infrastructure import models as shift_models  # noqa: F401
 from app.modules.subscription.infrastructure import models as subscription_models  # noqa: F401
 from app.modules.support.infrastructure import models as support_models  # noqa: F401

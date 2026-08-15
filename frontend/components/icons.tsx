@@ -10,6 +10,7 @@ import {
   Award,
   Bell,
   Bike,
+  Bookmark,
   Briefcase,
   Building2,
   Calendar,
@@ -79,6 +80,7 @@ function make(LucideIcon: ComponentType<LucideProps>) {
 }
 
 export const BoltIcon = make(Zap);
+export const BookmarkIcon = make(Bookmark);
 export const MapPinIcon = make(MapPin);
 export const SearchIcon = make(Search);
 export const MessageIcon = make(MessageCircle);

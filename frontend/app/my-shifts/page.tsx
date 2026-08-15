@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -22,6 +22,7 @@ import {
   useToast,
 } from "@/components/ui";
 import {
+  BookmarkIcon,
   BriefcaseIcon,
   CheckIcon,
   ClockIcon,
@@ -30,7 +31,7 @@ import {
   MessageIcon,
 } from "@/components/icons";
 
-type Tab = "asignados" | "postulaciones";
+type Tab = "asignados" | "postulaciones" | "guardados";
 
 const APPLICATION_LABELS: Record<string, string> = {
   pendiente: "Postulado · esperando respuesta",
@@ -46,12 +47,18 @@ export default function MatchesPage() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [applications, setApplications] = useState<ShiftApplication[]>([]);
   const [appShifts, setAppShifts] = useState<Record<string, Shift>>({});
+  // Turnos guardados (pedido de Julieta: "guardar turnos ordenados por
+  // fecha" — el backend ya los devuelve ordenados por fecha del turno, ver
+  // `SavedShiftService.list_my_saved_shifts`).
+  const [savedShifts, setSavedShifts] = useState<Shift[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [lastGeoAction, setLastGeoAction] = useState<{ id: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [unsaving, setUnsaving] = useState<string | null>(null);
+  const [applyingSaved, setApplyingSaved] = useState<string | null>(null);
   const [confirmWithdrawId, setConfirmWithdrawId] = useState<string | null>(null);
   // "Turno cubierto" (ART_DIRECTION.md §10.4): confirmar un turno asignado
   // antes no daba ningún feedback de éxito (ni toast) — se recargaba la
@@ -64,12 +71,14 @@ export default function MatchesPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [assigned, apps] = await Promise.all([
+      const [assigned, apps, saved] = await Promise.all([
         api.get<Shift[]>("/shifts/mine", token),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+        api.get<Shift[]>("/saved-shifts", token).catch(() => []),
       ]);
       setShifts(assigned);
       setApplications(apps);
+      setSavedShifts(saved);
       // El turno ya viene embebido en cada postulación (campo `shift`): un solo
       // GET /applications/mine, sin el N+1 de un GET /shifts/{id} por
       // postulación (cada uno pagando el round-trip a la base remota).
@@ -148,21 +157,71 @@ export default function MatchesPage() {
     }
   }
 
+  async function unsaveShift(shiftId: string) {
+    if (!token) return;
+    setUnsaving(shiftId);
+    const previous = savedShifts;
+    // Optimista: mismo criterio que `withdrawApplication` arriba.
+    setSavedShifts((prev) => prev.filter((s) => s.id !== shiftId));
+    try {
+      await api.del(`/saved-shifts/${shiftId}`, undefined, token);
+    } catch (err) {
+      setSavedShifts(previous); // revertir: no se pudo sacar de verdad
+      toast(getErrorMessage(err, "No se pudo sacar de guardados"), "error");
+    } finally {
+      setUnsaving(null);
+    }
+  }
+
+  async function applyToSavedShift(shift: Shift) {
+    if (!token) return;
+    setApplyingSaved(shift.id);
+    try {
+      await api.post(
+        `/applications/shifts/${shift.id}`,
+        undefined,
+        token,
+        undefined,
+        keyFor(shift.id)
+      );
+      clearIdempotencyKey(shift.id);
+      toast("¡Te postulaste! El comercio ya te puede ver");
+      // Ya avanzó de "para evaluar" a "postulado" — sale de guardados solo
+      // (fire-and-forget: si falla, el trabajador lo puede sacar a mano
+      // igual, no vale la pena bloquear ni avisar por esto).
+      api.del(`/saved-shifts/${shift.id}`, undefined, token).catch(() => {});
+      setSavedShifts((prev) => prev.filter((s) => s.id !== shift.id));
+      await load();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        clearIdempotencyKey(shift.id);
+        toast("Ya te habías postulado a este turno");
+        setSavedShifts((prev) => prev.filter((s) => s.id !== shift.id));
+        return;
+      }
+      toast(getErrorMessage(err, "No se pudo enviar tu postulación"), "error");
+    } finally {
+      setApplyingSaved(null);
+    }
+  }
+
   // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
   const pending = applications.filter((a) => a.status === "pendiente");
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
       <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Matches</h1>
-      <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados y tus postulaciones.</p>
+      <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados, postulaciones y guardados.</p>
 
-      <div className="mt-4">
+      <div className="mt-4 -mx-4 overflow-x-auto px-4 no-scrollbar">
         <SegmentedControl
           value={tab}
           onChange={setTab}
+          className="min-w-[420px]"
           options={[
             { value: "asignados", label: `Asignados${shifts.length > 0 ? ` (${shifts.length})` : ""}` },
             { value: "postulaciones", label: `Postulaciones${pending.length > 0 ? ` (${pending.length})` : ""}` },
+            { value: "guardados", label: `Guardados${savedShifts.length > 0 ? ` (${savedShifts.length})` : ""}` },
           ]}
         />
       </div>
@@ -342,6 +401,46 @@ export default function MatchesPage() {
                 </ShiftCard>
               );
             })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!loading && !error && tab === "guardados" && (
+        <div className="mt-5">
+          {savedShifts.length === 0 ? (
+            <EmptyState
+              icon={<BookmarkIcon size={28} />}
+              title="No tenés turnos guardados"
+              subtitle="Tocá el marcador en una tarjeta de Inicio para guardarla y decidir con calma después."
+            />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {savedShifts.map((shift) => (
+                <ShiftCard key={shift.id} shift={shift} perspective="worker" showLifecycle={false}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => applyToSavedShift(shift)}
+                      loading={applyingSaved === shift.id}
+                      disabled={applyingSaved !== null || unsaving !== null}
+                    >
+                      Postularme
+                    </Button>
+                    <ShareShiftButton shift={shift} shiftId={shift.id} />
+                    <Button
+                      size="sm"
+                      variant="surface"
+                      leftIcon={<CloseIcon size={16} />}
+                      onClick={() => unsaveShift(shift.id)}
+                      loading={unsaving === shift.id}
+                      disabled={unsaving !== null || applyingSaved !== null}
+                    >
+                      Quitar de guardados
+                    </Button>
+                  </div>
+                </ShiftCard>
+              ))}
             </div>
           )}
         </div>
