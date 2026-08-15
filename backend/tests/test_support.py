@@ -246,6 +246,9 @@ async def test_ai_suggestion_returns_summary_and_reply_when_configured(
     body = response.json()
     assert "pago" in body["summary"]
     assert body["suggested_reply"].startswith("Hola")
+    # F4 (auditoría 2026-08-15): tope de gasto por llamada, no sólo de
+    # cantidad de llamadas.
+    assert _FakeAsyncClient.last_payload["generationConfig"]["maxOutputTokens"] > 0
 
 
 async def test_worker_cannot_request_ai_suggestion(

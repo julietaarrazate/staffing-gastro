@@ -40,7 +40,13 @@ export function useVoiceDictation(onTranscript: (transcript: string) => void) {
   // Evita re-crear `toggle` (y por lo tanto el efecto que la usa en algún
   // consumidor) cada vez que cambia la referencia de `onTranscript`.
   const onTranscriptRef = useRef(onTranscript);
-  onTranscriptRef.current = onTranscript;
+  // F5 (auditoría 2026-08-15): escribir una ref durante el render es
+  // inseguro con render concurrente/StrictMode (un render descartado podía
+  // dejarla apuntando a un callback que no corresponde al commit final) —
+  // se mueve a un efecto sin deps, que corre después de cada render.
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  });
 
   useEffect(() => {
     const w = window as unknown as SpeechRecognitionWindow;

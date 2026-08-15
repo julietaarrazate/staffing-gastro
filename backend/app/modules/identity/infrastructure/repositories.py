@@ -101,7 +101,7 @@ class SqlAlchemyUserRepository(UserRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(model) for model in result.scalars().all()]
 
-    async def count_stats(self) -> UserCounts:
+    async def count_stats(self, *, exclude_emails: frozenset[str] = frozenset()) -> UserCounts:
         # Una sola query con SUM/CASE en vez de traer toda la tabla y contar
         # en Python (P5, PRODUCTION_HARDENING.md) — portable SQLite/Postgres.
         stmt = select(
@@ -123,6 +123,8 @@ class SqlAlchemyUserRepository(UserRepository):
             ).label("suspended"),
             func.sum(case((UserModel.is_verified.is_(True), 1), else_=0)).label("verified"),
         )
+        if exclude_emails:
+            stmt = stmt.where(UserModel.email.notin_(exclude_emails))
         row = (await self._session.execute(stmt)).one()
         return UserCounts(
             total=row.total or 0,

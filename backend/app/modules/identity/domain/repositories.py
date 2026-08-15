@@ -68,8 +68,12 @@ class UserRepository(ABC):
         """Indica si ya existe un usuario con ese email."""
 
     @abstractmethod
-    async def count_stats(self) -> UserCounts:
-        """Conteos agregados por rol/estado/verificación, calculados en SQL."""
+    async def count_stats(self, *, exclude_emails: frozenset[str] = frozenset()) -> UserCounts:
+        """Conteos agregados por rol/estado/verificación, calculados en SQL.
+
+        `exclude_emails` saca cuentas sintéticas (invitado/prueba) del conteo
+        — sin esto, el panel de admin cuenta cuentas que no son usuarios
+        reales como si lo fueran (auditoría 2026-08-15, F2)."""
 
 
 class RefreshSessionRepository(ABC):

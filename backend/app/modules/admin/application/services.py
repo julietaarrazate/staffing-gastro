@@ -6,6 +6,7 @@ moderación de usuarios y el cálculo de métricas agregadas.
 """
 
 import secrets
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -24,6 +25,7 @@ from app.modules.admin.application.exceptions import (
 )
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
@@ -43,6 +45,14 @@ _TEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
     UserRole.WORKER: ("prueba.trabajador@oido.beta", "Prueba · Trabajador"),
     UserRole.EMPLOYER: ("prueba.comercio@oido.beta", "Prueba · Comercio"),
 }
+
+# Emails de las cuentas de prueba, para excluirlas de las métricas del panel
+# (mismo motivo que `GUEST_ACCOUNT_EMAILS` en identity — auditoría
+# 2026-08-15, F2: se creaban solas al abrir el panel y se contaban como
+# usuarios reales).
+TEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
+    email for email, _ in _TEST_ACCOUNTS.values()
+)
 
 
 def _local_password() -> str:
@@ -109,7 +119,9 @@ class AdminService:
         Los conteos de usuarios se calculan en SQL (`UserRepository.count_stats`,
         PRODUCTION_HARDENING.md P5) — antes traía toda la tabla `users` y
         contaba en Python en cada carga del panel de admin."""
-        counts = await self._users.count_stats()
+        counts = await self._users.count_stats(
+            exclude_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        )
         filled_shifts = await self._shifts.list_recently_filled()
         minutes = [
             (_naive(s.first_assigned_at) - _naive(s.published_at)).total_seconds() / 60
@@ -214,7 +226,9 @@ class AdminService:
         ) + max(total_companies - subscribed_total, 0)
 
         limits = {plan.code: plan.max_turnos_mes for plan in list_plans() if plan.max_turnos_mes is not None}
-        companies_at_plan_limit = await self._subscriptions.count_at_plan_limit(limits)
+        companies_at_plan_limit = await self._subscriptions.count_at_plan_limit(
+            limits, now=datetime.now(timezone.utc)
+        )
 
         return SubscriptionStats(
             mrr_ars=mrr,

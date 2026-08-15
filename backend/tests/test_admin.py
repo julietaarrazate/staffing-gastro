@@ -6,6 +6,7 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.main import app
@@ -15,6 +16,7 @@ from app.modules.subscription.api.dependencies import get_billing_gateway
 from app.modules.subscription.infrastructure.fake_billing_gateway import (
     FakeBillingGateway,
 )
+from app.modules.subscription.infrastructure.models import SubscriptionModel
 from tests.conftest import auth_headers, login
 
 pytestmark = pytest.mark.asyncio
@@ -108,6 +110,31 @@ async def test_admin_lists_users_and_stats(client, session_factory):
     assert body["coverage_sample_size"] == 0
     assert body["avg_time_to_fill_minutes"] is None
     assert body["pct_filled_under_10_min"] is None
+
+
+async def test_admin_stats_exclude_synthetic_accounts(client, session_factory):
+    """F2 (auditoría 2026-08-15): las cuentas de invitado y de prueba no son
+    usuarios reales — `GET /admin/test-accounts` las crea solas (get-or-create)
+    apenas se abre el panel, así que sin exclusión el propio acto de mirar el
+    panel infla `total_users`."""
+    admin = await _make_admin(client, session_factory, "admin_synth@test.com")
+    await auth_headers(client, "worker", "real_worker@test.com")
+
+    # Crea las 2 cuentas de prueba (get-or-create).
+    await client.get("/api/v1/admin/test-accounts", headers=admin)
+    # Crea 1 cuenta de invitado (get-or-create, mismo patrón).
+    guest = await client.post(
+        "/api/v1/auth/guest", json={"pin": "3526", "role": "worker"}
+    )
+    assert guest.status_code == 200
+
+    stats = await client.get("/api/v1/admin/stats", headers=admin)
+    body = stats.json()
+    # admin + real_worker = 2. Las 2 cuentas de prueba + 1 invitado (3
+    # sintéticas) NO cuentan, aunque ya existan como filas reales en `users`.
+    assert body["total_users"] == 2
+    assert body["workers"] == 1
+    assert body["admins"] == 1
 
 
 async def test_admin_stats_compute_coverage_metric(client, session_factory):
@@ -583,6 +610,29 @@ async def test_subscription_stats_detects_companies_at_plan_limit(client, sessio
     stats = await client.get("/api/v1/admin/subscription-stats", headers=admin)
     body = stats.json()
     assert body["companies_at_plan_limit"] == 1
+
+
+async def test_subscription_stats_excludes_companies_with_expired_period(
+    client, session_factory
+):
+    """F3 (auditoría 2026-08-15): `turnos_usados_mes` se resetea recién en la
+    próxima publicación (`roll_period_if_expired`) — un comercio con el
+    período ya vencido no debe seguir contando como "cerca del límite" aunque
+    su contador todavía no se haya reseteado."""
+    admin = await _make_admin(client, session_factory, "admin_sub4@test.com")
+    expired_employer = await _employer_with_company(client, "emp_sub_expired@test.com")
+
+    await _publish_n_shifts(client, expired_employer, 3)
+
+    async with session_factory() as session:
+        stmt = select(SubscriptionModel)
+        result = await session.execute(stmt)
+        subscription = result.scalar_one()
+        subscription.period_end = datetime.now(timezone.utc) - timedelta(days=1)
+        await session.commit()
+
+    stats = await client.get("/api/v1/admin/subscription-stats", headers=admin)
+    assert stats.json()["companies_at_plan_limit"] == 0
 
 
 async def test_non_admin_cannot_get_subscription_stats(client: AsyncClient):

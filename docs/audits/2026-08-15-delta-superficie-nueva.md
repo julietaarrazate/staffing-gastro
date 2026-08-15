@@ -31,11 +31,11 @@ existiera.
 **Veredicto:** la superficie nueva no bloquea la beta, pero el panel de
 admin **no es confiable para decidir nada de negocio** hasta corregir F1–F3.
 
-**Los 3 movimientos, en orden:**
-1. ~~Arreglar las 3 métricas mentirosas del panel (F1, F2, F3)~~ — F1 resuelto (2026-08-15, mismo día). F2, F3 pendientes.
-2. Acotar el texto de entrada de los 2 endpoints de IA sin tope y poner
-   `maxOutputTokens` (F4) — 1 hora.
-3. Sumar `lint` al CI y corregir el único error real que hoy nadie ve (F5).
+**Los 3 movimientos, en orden — los 3 resueltos el mismo día:**
+1. ~~Arreglar las 3 métricas mentirosas del panel (F1, F2, F3)~~ — resuelto.
+2. ~~Acotar el texto de entrada de los 2 endpoints de IA sin tope y poner
+   `maxOutputTokens` (F4)~~ — resuelto.
+3. ~~Sumar `lint` al CI y corregir el único error real que hoy nadie ve (F5)~~ — resuelto.
 
 ## 2. Contexto y vara
 
@@ -134,7 +134,7 @@ lo muestra como si ya hubiera pasado.
 **Arreglo:** mientras `billing.enabled` sea False, rotular sin ambigüedad
 ("MRR potencial — cobro no activado") o mostrar 0 con el estado explícito.
 
-### F2 — Las cuentas sintéticas inflan las métricas del propio panel · S2 · E1
+### F2 — Las cuentas sintéticas inflan las métricas del propio panel · S2 · E1 · ✅ Resuelto (2026-08-15, mismo día)
 **Evidencia:** `identity/infrastructure/repositories.py:104` `count_stats()`
 cuenta **todas** las filas de `users`, sin exclusión. Existen 4 usuarios
 sintéticos: 2 invitados (`invitado.*@oido.beta`) y 2 de prueba
@@ -148,7 +148,7 @@ verificó. Toda tasa con usuarios en el denominador queda sesgada.
 **Arreglo:** excluir el conjunto de emails sintéticos en `count_stats()`
 (ya existe `GUEST_ACCOUNT_EMAILS` como precedente del patrón).
 
-### F3 — "Cerca del límite" cuenta comercios cuyo período ya venció · S2 · E1
+### F3 — "Cerca del límite" cuenta comercios cuyo período ya venció · S2 · E1 · ✅ Resuelto (2026-08-15, mismo día)
 **Evidencia:** `subscription/domain/entities.py:41` `roll_period_if_expired()`
 se invoca desde **un solo lugar**: `shift/application/services.py:347`, o sea
 sólo al publicar un turno. Ningún camino de lectura lo llama. Mi
@@ -161,7 +161,7 @@ solo en su próxima publicación. Julieta lo llama para venderle un upgrade
 que no necesita.
 **Arreglo:** sumar `period_end > now` a la condición del query.
 
-### F4 — Texto sin tope hacia endpoints que se pagan por token · S2 · E1
+### F4 — Texto sin tope hacia endpoints que se pagan por token · S2 · E1 · ✅ Resuelto (2026-08-15, mismo día — la parte operativa, tope de gasto en Google Cloud, sigue en manos de la operadora)
 **Evidencia:** `assistant/api/schemas.py:13` y `:59` declaran `text: str`
 **sin `max_length`**, mientras el endpoint hermano y más viejo
 `shift/api/schemas.py:175` sí lo acota (`Field(min_length=3, max_length=500)`).
@@ -180,7 +180,7 @@ tope de requests no acota el gasto.
 **Arreglo:** `max_length=500` en los 2 schemas (misma vara que el hermano) +
 `maxOutputTokens` en `_call_gemini` + tope de gasto en la consola de Google.
 
-### F5 — `lint` es el único gate que no corre en CI, y ya hay 1 error real · S3 · E1
+### F5 — `lint` es el único gate que no corre en CI, y ya hay 1 error real · S3 · E1 · ✅ Resuelto (2026-08-15, mismo día)
 **Evidencia:** `.github/workflows/ci.yml` corre pytest, tsc, `test:unit`,
 build y Playwright — **no** `npm run lint`. Corriéndolo hoy:
 `lib/use-voice-dictation.ts:43` → `error Cannot access refs during render`

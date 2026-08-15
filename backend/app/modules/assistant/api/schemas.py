@@ -4,13 +4,16 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 
 class AssistantQueryRequest(BaseModel):
-    text: str
+    # Mismo tope que `ParseShiftTextRequest` (shift/api/schemas.py) — sin
+    # esto, el rate limit acota la CANTIDAD de llamadas a Gemini pero no el
+    # TAMAÑO de cada una (auditoría 2026-08-15, F4).
+    text: str = Field(min_length=1, max_length=500)
 
 
 class EventRoleDraft(BaseModel):
@@ -56,7 +59,7 @@ class AssistantQueryResponse(BaseModel):
 
 
 class WorkerQueryRequest(BaseModel):
-    text: str
+    text: str = Field(min_length=1, max_length=500)
 
 
 class WorkerQueryResponse(BaseModel):

@@ -82,6 +82,8 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
       - name: Tests unitarios
         run: npm run test:unit
       - name: Build
