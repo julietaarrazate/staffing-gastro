@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -8,6 +9,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
+import { isTodayInArgentina } from "@/lib/datetime";
 import {
   distanceOf,
   getStoredLocation,
@@ -20,7 +22,7 @@ import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/com
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
-import { FlameIcon } from "@/components/icons";
+import { CloseIcon, FlameIcon } from "@/components/icons";
 import { EmptyFeedIllustration, ErrorIllustration } from "@/components/illustrations";
 
 /** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
@@ -53,8 +55,58 @@ interface CachedFeed {
 }
 const FEED_CACHE_KEY = "worker-feed";
 
+/** Búsqueda armada por el asistente de IA del trabajador (`/assistant`,
+ * `lib/use-worker-ai-assistant.ts`: "búscame un turno en Palermo a menos de
+ * 2 km para hoy tanto para mozo barista y cajero") y pasada acá por query
+ * params — la zona ya viene resuelta a lat/lng (el hook la busca en
+ * `lib/locations.ts`), así que este componente sólo filtra/ordena, no
+ * geocodifica nada. */
+interface AssistantSearch {
+  positions: string[];
+  origin: [number, number];
+  zoneName: string;
+  radiusKm: number | null;
+  todayOnly: boolean;
+}
+
+function useAssistantSearch(): AssistantSearch | null {
+  const searchParams = useSearchParams();
+  return useMemo(() => {
+    const positions = searchParams.getAll("positions");
+    const lat = searchParams.get("zoneLat");
+    const lng = searchParams.get("zoneLng");
+    const zoneName = searchParams.get("zoneName");
+    if (positions.length === 0 || !lat || !lng || !zoneName) return null;
+    const radiusKmRaw = searchParams.get("radiusKm");
+    return {
+      positions,
+      origin: [Number(lat), Number(lng)],
+      zoneName,
+      radiusKm: radiusKmRaw ? Number(radiusKmRaw) : null,
+      todayOnly: searchParams.get("today") === "1",
+    };
+  }, [searchParams]);
+}
+
+function feedPathFor(positions: string[]): string {
+  if (positions.length === 0) return "/shifts/feed";
+  const params = new URLSearchParams();
+  positions.forEach((p) => params.append("positions", p));
+  return `/shifts/feed?${params.toString()}`;
+}
+
 export default function WorkerHomePage() {
+  return (
+    <Suspense fallback={null}>
+      <WorkerFeedPanel />
+    </Suspense>
+  );
+}
+
+function WorkerFeedPanel() {
   const { token, user } = useRequireAuth();
+  const router = useRouter();
+  const assistantSearch = useAssistantSearch();
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   // Stale-while-revalidate (lib/screen-cache.ts): si el trabajador ya estuvo
@@ -84,13 +136,17 @@ export default function WorkerHomePage() {
 
   const load = useCallback(async () => {
     if (!token) return;
-    // Sólo bloqueamos con esqueleto en la primera carga real; si ya hay algo
-    // cacheado, el refresco es silencioso.
-    if (getCached<CachedFeed>(FEED_CACHE_KEY) === undefined) setLoading(true);
+    // Una búsqueda del asistente siempre recarga (no hay caché previo que
+    // sirva para una consulta puntual) y siempre bloquea con esqueleto —
+    // fuera de eso, sólo bloqueamos en la primera carga real; si ya hay algo
+    // cacheado, el refresco del feed normal es silencioso.
+    if (assistantSearch || getCached<CachedFeed>(FEED_CACHE_KEY) === undefined) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [feed, prof, applied] = await Promise.all([
-        api.get<Shift[]>("/shifts/feed", token),
+        api.get<Shift[]>(feedPathFor(assistantSearch?.positions ?? []), token),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
@@ -101,13 +157,16 @@ export default function WorkerHomePage() {
         setProfile(prof);
         setAvailable(prof.is_available);
       }
-      setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
+      // No cachear resultados de una búsqueda del asistente: son la
+      // respuesta a ESA consulta puntual, no "el feed" que se restaura al
+      // volver a la pestaña sin más contexto.
+      if (!assistantSearch) setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, assistantSearch]);
 
   useEffect(() => {
     load();
@@ -210,14 +269,38 @@ export default function WorkerHomePage() {
 
   const firstName = user?.full_name?.split(" ")[0];
 
-  const origin = originFor(here, profile);
-  const sortedShifts = sortByDistance(shifts, origin);
+  // Búsqueda del asistente: origen fijo en la zona pedida (no "acá ahora"/
+  // perfil), radio como corte duro (no sólo orden, como en el feed normal —
+  // "a menos de 2 km" tiene que sacar lo que no entra) y sólo hoy si lo pidió.
+  const origin = assistantSearch ? assistantSearch.origin : originFor(here, profile);
+  let sortedShifts = sortByDistance(shifts, origin);
+  if (assistantSearch?.radiusKm != null) {
+    const radiusKm = assistantSearch.radiusKm;
+    sortedShifts = sortedShifts.filter((s) => {
+      const d = distanceOf(s, origin);
+      return d != null && d <= radiusKm;
+    });
+  }
+  if (assistantSearch?.todayOnly) {
+    sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
+  }
   const visibleShifts = urgentOnly ? sortedShifts.filter((s) => s.urgent) : sortedShifts;
   const urgentCount = sortedShifts.filter((s) => s.urgent).length;
-  const emptyTitle = urgentOnly ? "No hay turnos urgentes ahora" : "No hay más turnos cerca";
-  const emptySubtitle = urgentOnly
-    ? "Sacá el filtro para ver el resto de las oportunidades disponibles."
-    : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+  const emptyTitle = assistantSearch
+    ? "No encontramos turnos con esa búsqueda"
+    : urgentOnly
+      ? "No hay turnos urgentes ahora"
+      : "No hay más turnos cerca";
+  const emptySubtitle = assistantSearch
+    ? "Probá un radio más amplio o menos puestos a la vez."
+    : urgentOnly
+      ? "Sacá el filtro para ver el resto de las oportunidades disponibles."
+      : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+  const emptyStateAction = assistantSearch
+    ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
+    : urgentOnly
+      ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
+      : { label: "Actualizar", onClick: load };
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)] md:max-w-5xl">
@@ -254,11 +337,26 @@ export default function WorkerHomePage() {
         </button>
       </header>
 
-      <LocationBar
-        current={here}
-        profileCity={profile?.city ?? null}
-        onChange={setHere}
-      />
+      {assistantSearch ? (
+        // Reemplaza a LocationBar mientras hay una búsqueda del asistente
+        // activa: el origen ya no es "acá ahora"/perfil, es la zona pedida
+        // — mostrar los dos juntos confundiría cuál manda.
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <p className="text-sm text-ink/70">
+            Turnos que buscaste en <span className="font-semibold text-ink">{assistantSearch.zoneName}</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/feed")}
+            aria-label="Ver todos los turnos"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-ink/50"
+          >
+            <CloseIcon size={14} />
+          </button>
+        </div>
+      ) : (
+        <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
+      )}
 
       {(urgentCount > 0 || urgentOnly) && (
         <div className="mb-2 flex">
@@ -313,11 +411,7 @@ export default function WorkerHomePage() {
                     icon={<EmptyFeedIllustration color="#f97316" />}
                     title={emptyTitle}
                     subtitle={emptySubtitle}
-                    primaryAction={
-                      urgentOnly
-                        ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
-                        : { label: "Actualizar", onClick: load }
-                    }
+                    primaryAction={emptyStateAction}
                   />
                 }
               />
@@ -334,11 +428,7 @@ export default function WorkerHomePage() {
                   icon={<EmptyFeedIllustration color="#f97316" />}
                   title={emptyTitle}
                   subtitle={emptySubtitle}
-                  primaryAction={
-                    urgentOnly
-                      ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
-                      : { label: "Actualizar", onClick: load }
-                  }
+                  primaryAction={emptyStateAction}
                 />
               ) : (
                 <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">

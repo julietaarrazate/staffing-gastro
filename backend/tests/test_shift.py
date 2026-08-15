@@ -241,6 +241,30 @@ async def test_feed_filters_by_position(client: AsyncClient):
     assert positions == {"bartender"}
 
 
+async def test_feed_filters_by_multiple_positions(client: AsyncClient):
+    """`positions` (repetido) filtra por varios puestos a la vez — usado por
+    el asistente de IA del trabajador ("turno de mozo, barista o cajero"),
+    a diferencia de `position` (uno solo)."""
+    headers = await _employer_with_company(client, "emp_multipos@staffya.com")
+    for position in ("mozo", "barista", "cajero", "bartender"):
+        created = await client.post(
+            "/api/v1/shifts",
+            headers=headers,
+            json=_shift_payload(position=position, city="MultiposCity"),
+        )
+        await client.post(
+            f"/api/v1/shifts/{created.json()['id']}/publish", headers=headers
+        )
+
+    feed = await client.get(
+        "/api/v1/shifts/feed",
+        headers=headers,
+        params={"city": "MultiposCity", "positions": ["mozo", "barista", "cajero"]},
+    )
+    assert feed.status_code == 200
+    assert {s["position"] for s in feed.json()} == {"mozo", "barista", "cajero"}
+
+
 async def test_feed_filters_by_worker_skills(client: AsyncClient):
     """El feed sólo muestra los rubros que el trabajador eligió en su perfil
     (Julieta, 2026-07-30): antes le llegaba de cualquier rubro, aunque no le

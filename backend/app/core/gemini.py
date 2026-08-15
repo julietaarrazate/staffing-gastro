@@ -445,3 +445,118 @@ async def interpret_assistant_query(
         applicants_date_hint=data.get("applicants_date_hint"),
         verification_name=verification_name,
     )
+
+
+# Asistente del TRABAJADOR (pedido de Julieta: "el asistente de ia falta para
+# el trabajador, por ejemplo búscame un turno en palermo a menos de 2
+# kilómetros para hoy tanto para mozo barista y cajero, así comienza algo más
+# de evaluar opciones que convengan"). Endpoint separado del asistente del
+# comercio (`interpret_assistant_query`), no una rama más ahí: el trabajador
+# tiene un solo intent real hoy (buscar turnos) contra 7 del comercio, y
+# `/assistant/query` fuerza rol EMPLOYER en su propia dependencia — mezclar
+# los dos hubiera significado reescribir esa inyección para algo que todavía
+# no lo necesita. Mismo principio no negociable que el resto de este archivo:
+# esto sólo interpreta texto a filtros estructurados, nunca ejecuta la
+# búsqueda — eso lo resuelve el feed ya existente (`GET /shifts/feed`,
+# filtrado por posiciones acá y por zona/radio/fecha en el frontend, que ya
+# tiene la tabla de barrios y el cálculo de distancia para el propio feed).
+_WORKER_QUERY_INTENTS = ["buscar_turnos", "desconocido"]
+
+_WORKER_QUERY_DATE_FILTERS = ["hoy", "todos"]
+
+_WORKER_QUERY_SYSTEM_INSTRUCTION = """Sos el asistente de un trabajador en Oído (marketplace de \
+staffing gastronómico eventual, Argentina). El trabajador te describe qué turno busca, en texto \
+libre o dictado. Hoy es {today} (hora de Argentina). Extraé:
+
+- `intent`: `buscar_turnos` si el texto describe una búsqueda de turnos (puesto, zona, radio y/o \
+fecha). `desconocido` si no se puede inferir ninguna búsqueda con confianza.
+- `positions`: lista de puestos mencionados, cada uno de esta lista: {positions}. Si menciona más \
+de uno (ej. "mozo, barista y cajero"), incluí todos. Si no menciona ningún puesto, dejá la lista \
+vacía (no inventes uno).
+- `zone_name`: el nombre del barrio/zona/ciudad mencionado tal cual aparece en el texto (ej. \
+"Palermo", "Belgrano"). Null si no se menciona ninguna zona.
+- `radius_km`: el radio en kilómetros si se menciona ("a menos de 2 kilómetros" -> 2). Null si no \
+se menciona.
+- `date_filter`: "hoy" si el texto pide turnos para hoy/ahora/ya, "todos" si no se menciona ninguna \
+restricción de fecha o pide "cualquier día"."""
+
+_WORKER_QUERY_RESPONSE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "intent": {"type": "STRING", "enum": _WORKER_QUERY_INTENTS},
+        "positions": {"type": "ARRAY", "items": {"type": "STRING", "enum": _POSITIONS}},
+        "zone_name": {"type": "STRING", "nullable": True},
+        "radius_km": {"type": "NUMBER", "nullable": True},
+        "date_filter": {"type": "STRING", "enum": _WORKER_QUERY_DATE_FILTERS},
+    },
+    "required": ["intent", "positions", "date_filter"],
+}
+
+
+@dataclass(frozen=True)
+class WorkerQueryResult:
+    intent: str
+    positions: list[str] = field(default_factory=list)
+    zone_name: str | None = None
+    radius_km: float | None = None
+    date_filter: str = "todos"
+
+
+async def interpret_worker_shift_query(text: str) -> WorkerQueryResult:
+    if not settings.gemini_api_key:
+        raise GeminiNotConfiguredError()
+
+    payload = {
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": _WORKER_QUERY_SYSTEM_INSTRUCTION.format(
+                        today=now_art().date().isoformat(),
+                        positions=", ".join(_POSITIONS),
+                    )
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": text}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": _WORKER_QUERY_RESPONSE_SCHEMA,
+        },
+    }
+    try:
+        data = await _call_gemini(payload)
+    except Exception as exc:
+        logger.exception("interpret_worker_shift_query: falló la llamada a Gemini")
+        raise GeminiRequestError() from exc
+
+    intent = data.get("intent")
+    if intent not in _WORKER_QUERY_INTENTS:
+        intent = "desconocido"
+
+    positions = [p for p in (data.get("positions") or []) if p in _POSITIONS]
+
+    zone_name = data.get("zone_name")
+    if not isinstance(zone_name, str) or not zone_name.strip():
+        zone_name = None
+
+    radius_km = data.get("radius_km")
+    if not isinstance(radius_km, (int, float)) or radius_km <= 0:
+        radius_km = None
+
+    date_filter = data.get("date_filter")
+    if date_filter not in _WORKER_QUERY_DATE_FILTERS:
+        date_filter = "todos"
+
+    # Sin puesto y sin zona no hay nada que buscar — degrada a "desconocido"
+    # en vez de mandar al feed un filtro vacío que en la práctica es "todos
+    # los turnos", que ya es lo que el feed muestra sin pasar por acá.
+    if intent == "buscar_turnos" and not positions and zone_name is None:
+        intent = "desconocido"
+
+    return WorkerQueryResult(
+        intent=intent,
+        positions=positions,
+        zone_name=zone_name,
+        radius_km=radius_km,
+        date_filter=date_filter,
+    )

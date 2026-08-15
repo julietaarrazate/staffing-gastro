@@ -15,6 +15,7 @@ from app.core.gemini import (
     GeminiNotConfiguredError,
     GeminiRequestError,
     interpret_assistant_query,
+    interpret_worker_shift_query,
 )
 from app.core.rate_limit import RateLimiter
 from app.modules.assistant.api.dependencies import get_assistant_service
@@ -22,8 +23,13 @@ from app.modules.assistant.api.schemas import (
     AssistantQueryRequest,
     AssistantQueryResponse,
     EventRoleDraft,
+    WorkerQueryRequest,
+    WorkerQueryResponse,
 )
 from app.modules.assistant.application.services import AssistantService
+from app.modules.identity.api.dependencies import require_roles
+from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.api.dependencies import get_my_company_id
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -35,12 +41,18 @@ ServiceDep = Annotated[AssistantService, Depends(get_assistant_service)]
 # fuerza rol EMPLOYER internamente (ver `get_my_company_id`).
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+WorkerUserDep = Annotated[User, Depends(require_roles(UserRole.WORKER))]
 
 # Por comercio, no por IP (mismo criterio que parse-shift-text/ai-suggestion
 # de soporte — protege contra un doble click/loop del frontend, no es la
 # cuota real de Gemini).
 _assistant_query_rate_limit = RateLimiter(
     max_attempts=15, window_seconds=600, name="assistant_query"
+)
+
+# Por trabajador (mismo criterio que `_assistant_query_rate_limit` arriba).
+_worker_query_rate_limit = RateLimiter(
+    max_attempts=15, window_seconds=600, name="worker_assistant_query"
 )
 
 
@@ -83,6 +95,48 @@ async def query(
     # seguido el asistente resuelve algo útil, no sólo qué clasificó Gemini.
     await service.log_query(company_id, payload.text, response.intent)
     return response
+
+
+@router.post(
+    "/worker-query",
+    response_model=WorkerQueryResponse,
+    summary="Asistente del trabajador: interpreta una búsqueda de turnos en texto libre",
+)
+async def worker_query(
+    payload: WorkerQueryRequest,
+    current_user: WorkerUserDep,
+) -> WorkerQueryResponse:
+    _worker_query_rate_limit.check(str(current_user.id))
+    try:
+        result = await interpret_worker_shift_query(payload.text)
+    except GeminiNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El asistente no está configurado en este servidor",
+        ) from exc
+    except GeminiRequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No pudimos interpretar el texto. Probá reformularlo.",
+        ) from exc
+
+    # Sin logging de esta consulta a propósito (a diferencia de `query` de
+    # arriba): `AssistantQueryLogEntry` está atado a `company_id` (no
+    # nullable) — sumarle una señal del trabajador es una migración de
+    # esquema aparte, no algo para colar en esta PR.
+    if result.intent != "buscar_turnos":
+        return WorkerQueryResponse(
+            intent="desconocido",
+            message="No entendí bien qué turno buscás. ¿Podés reformularlo?",
+        )
+
+    return WorkerQueryResponse(
+        intent=result.intent,
+        positions=result.positions,
+        zone_name=result.zone_name,
+        radius_km=result.radius_km,
+        date_filter=result.date_filter,
+    )
 
 
 async def _resolve(

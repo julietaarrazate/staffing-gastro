@@ -53,3 +53,22 @@ class AssistantQueryResponse(BaseModel):
     # `consultar_verificacion`
     verification_full_name: str | None = None
     verification_verified: bool | None = None
+
+
+class WorkerQueryRequest(BaseModel):
+    text: str
+
+
+class WorkerQueryResponse(BaseModel):
+    """Respuesta del asistente del trabajador: filtros estructurados para
+    `GET /shifts/feed`, nunca resultados ya resueltos (ver docstring de
+    `interpret_worker_shift_query` en `core/gemini.py`) — el frontend arma la
+    búsqueda con esto (zona -> lat/lng via la tabla de barrios que ya tiene,
+    radio, fecha) y la ejecuta contra el feed real."""
+
+    intent: str
+    message: str | None = None
+    positions: list[WorkerSkill] | None = None
+    zone_name: str | None = None
+    radius_km: float | None = None
+    date_filter: str | None = None

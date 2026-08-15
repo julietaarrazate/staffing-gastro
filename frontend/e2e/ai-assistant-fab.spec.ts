@@ -432,9 +432,11 @@ test("el botón flotante no aparece en /assistant (ya estás ahí)", async ({ pa
   await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
 });
 
-test("el botón flotante no aparece para un trabajador (sólo el comercio publica turnos)", async ({
+test("el botón flotante SÍ aparece para un trabajador y lleva a su propio asistente", async ({
   page,
 }) => {
+  // Antes se ocultaba del todo para cualquier rol que no fuera comercio —
+  // pedido de Julieta: "el asistente de ia falta para el trabajador".
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -442,20 +444,91 @@ test("el botón flotante no aparece para un trabajador (sólo el comercio public
   await page.route("**/api/v1/shifts**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
+  await page.route("**/api/v1/applications/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/workers/me/profile", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  );
 
   await page.goto("/feed");
-  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+  const fab = page.getByRole("button", { name: "Asistente de turnos con IA" });
+  await expect(fab).toBeVisible();
+  await fab.click();
+  await expect(page).toHaveURL("/assistant");
+  await expect(
+    page.getByText("Contame qué turno buscás — puesto, zona, a cuántos kilómetros y para cuándo.")
+  ).toBeVisible();
 });
 
-test("un trabajador que entra a /assistant por URL directa se va a su feed", async ({ page }) => {
+test("un admin que entra a /assistant por URL directa se va a su panel", async ({ page }) => {
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
-  await mockSession(page, WORKER_SESSION);
-  await page.route("**/api/v1/shifts**", (route) =>
+  await mockSession(page, {
+    ...WORKER_SESSION,
+    id: "user-3",
+    email: "admin.demo@staffya.com",
+    role: "admin",
+  });
+  await page.route("**/api/v1/admin/**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
 
   await page.goto("/assistant");
-  await expect(page).toHaveURL("/feed");
+  await expect(page).toHaveURL("/admin");
+});
+
+test("buscar_turnos: el trabajador pide un turno por zona/radio/fecha y el asistente arma la búsqueda", async ({
+  page,
+}) => {
+  // Caso real reportado por Julieta: "búscame un turno en palermo a menos
+  // de 2 kilómetros para hoy tanto para mozo barista y cajero".
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  let requestBody: Record<string, unknown> | null = null;
+  await page.route("**/api/v1/assistant/worker-query", (route) => {
+    requestBody = route.request().postDataJSON();
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        intent: "buscar_turnos",
+        message: null,
+        positions: ["mozo", "barista", "cajero"],
+        zone_name: "Palermo",
+        radius_km: 2,
+        date_filter: "hoy",
+      }),
+    });
+  });
+
+  await page.goto("/assistant");
+  await page
+    .getByPlaceholder("Ej: buscame un turno de mozo en Palermo a menos de 2 km para hoy")
+    .fill("búscame un turno en palermo a menos de 2 kilómetros para hoy tanto para mozo barista y cajero");
+  await page.getByRole("button", { name: "Completar" }).click();
+
+  expect(requestBody).not.toBeNull();
+  await expect(page.getByText(/Mozo\/a, Barista, Cajero\/a en Palermo/)).toBeVisible();
+  const verTurnos = page.getByRole("button", { name: "Ver turnos" });
+  await expect(verTurnos).toBeVisible();
+
+  await page.route("**/api/v1/shifts/feed**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/applications/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  await page.route("**/api/v1/workers/me/profile", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  );
+
+  await verTurnos.click();
+  await expect(page).toHaveURL(/\/feed\?.*zoneName=Palermo/);
+  await expect(page.getByText("Turnos que buscaste en")).toBeVisible();
+  await expect(page.getByText("Palermo")).toBeVisible();
 });
