@@ -5,9 +5,45 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-15 (**Bitácora puesta al día — quedó
+*Última actualización: 2026-08-15 (**Auditoría delta de la superficie sin
+auditar — el panel de admin nuevo reporta 3 métricas que no significan lo
+que dice su etiqueta.**) Corrida con el generador de due-diligence de EKP
+en modo delta: alcance = los 20 PRs posteriores a la auditoría del 08-13,
+que ninguna auditoría previa cubría (asistente de IA, guardar turnos,
+cuentas de prueba, panel operacional). Informe completo:
+[`docs/audits/2026-08-15-delta-superficie-nueva.md`](audits/2026-08-15-delta-superficie-nueva.md).
+
+Veredicto: **aptitud condicionada**. No bloquea lanzar la beta; bloquea
+**usar el panel de admin para decidir sobre el negocio**, que es para lo
+que se pidió. Los bloqueantes son de horas, no de días, y los 3 primeros
+son sobre código escrito el mismo 08-15:
+  - **F1 (S1)**: la tarjeta "Ingreso mensual recurrente" muestra pesos que
+    nunca se cobraron — el cobro real está apagado por defecto
+    (`mercadopago_access_token` vacío ⇒ `subscribe()` asigna el plan sin
+    cobrar). Es exactamente el número que la auditoría del 08-04 marcó como
+    lo único sin validar, mostrado como si ya hubiera pasado.
+  - **F2 (S2)**: las 4 cuentas sintéticas (2 invitado + 2 de prueba) se
+    cuentan en `count_stats()` sin exclusión, y las de prueba se crean solas
+    al abrir el panel — con 10 comercios reales, ~40% de error.
+  - **F3 (S2)**: "Cerca del límite" cuenta comercios cuyo período ya venció
+    (`roll_period_if_expired` sólo corre al publicar, ningún camino de
+    lectura lo llama).
+  - **F4 (S2)**: los 2 endpoints nuevos de IA aceptan texto sin tope de
+    largo, mientras el endpoint hermano más viejo sí lo acota en 500 — el
+    rate limit acota cantidad de requests, no gasto por token.
+  - **F5/F6 (S3)**: `lint` es el único gate que no corre en CI (hay 1 error
+    real hoy, `use-voice-dictation.ts:43`); y los roadmaps de auditoría
+    envejecen en días (3 de 4 ítems del 08-13 verificados ya estaban hechos).
+
+Fortalezas confirmadas: la IA sólo interpreta, nunca ejecuta (salida
+forzada por schema y revalidada contra allowlist); rate limit en los 4
+endpoints que cuestan plata; `saved_shift` sin IDOR. Las bandas de CI/CD y
+testing se acreditaron **ejecutando** los pipelines (pytest 404, test:unit
+74, tsc limpio), no leyendo su config.
+
+Antes, mismo día: **Bitácora puesta al día — quedó
 parada en el 08-11 pese a que siguió mergeando (#239–#247); catch-up +
-panel de admin operacional.**) Esta entrada cubre dos cosas: cerrar el
+panel de admin operacional.** Esa entrada cubre dos cosas: cerrar el
 hueco de la bitácora (regla de mantenimiento incumplida varios PRs
 seguidos) y el pedido nuevo de Julieta: **"que mi mail de admin sea apta
 para ingresar como comercio, trabajador y admin, así testeo cada cosa;
