@@ -1,6 +1,7 @@
 """Esquemas HTTP (Pydantic) del módulo worker."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -62,3 +63,13 @@ class WorkerProfileResponse(BaseModel):
     # insignia de reputación. Lo ve el comercio; nunca se exponen evidencias.
     identidad_verificada: bool = False
     created_at: datetime | None = None
+
+
+class WorkerEarningsResponse(BaseModel):
+    """Resumen de ganancias del trabajador (pedido de Julieta: "un resumen
+    de ganancias acumuladas en el perfil"). Cuenta turnos FINALIZADO/PAGADO
+    — ya trabajados, cuenten o no todavía como "cobrados" en el sistema."""
+
+    total_earned: Decimal
+    this_month_earned: Decimal
+    shifts_completed: int

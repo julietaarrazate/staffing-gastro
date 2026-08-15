@@ -6,11 +6,17 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
-import { Shift, ShiftApplication } from "@/lib/types";
+import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
+import {
+  getStoredLocation,
+  originFor,
+  type CurrentLocation,
+} from "@/lib/current-location";
 import ShiftCard from "@/components/ShiftCard";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
+import CompareShiftsModal from "@/components/worker/CompareShiftsModal";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
 import {
   Button,
@@ -29,9 +35,14 @@ import {
   CloseIcon,
   MapPinIcon,
   MessageIcon,
+  ScaleIcon,
 } from "@/components/icons";
 
 type Tab = "asignados" | "postulaciones" | "guardados";
+
+// Tres columnas es lo que entra legible en el modal comparador sin achicar
+// el texto de más — un cuarto turno pisaría la utilidad de comparar rápido.
+const MAX_COMPARE = 3;
 
 const APPLICATION_LABELS: Record<string, string> = {
   pendiente: "Postulado · esperando respuesta",
@@ -51,6 +62,15 @@ export default function MatchesPage() {
   // fecha" — el backend ya los devuelve ordenados por fecha del turno, ver
   // `SavedShiftService.list_my_saved_shifts`).
   const [savedShifts, setSavedShifts] = useState<Shift[]>([]);
+  // Comparador (evolución de "guardados": pedido original de Julieta era
+  // "empezar a evaluar opciones que convengan" — una lista sola no
+  // compara). Mismo origen que el feed para la distancia: perfil o "estoy
+  // acá ahora", ver lib/current-location.ts.
+  const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const [here, setHere] = useState<CurrentLocation | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [lastGeoAction, setLastGeoAction] = useState<{ id: string; path: string } | null>(null);
@@ -67,18 +87,22 @@ export default function MatchesPage() {
   const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
+  useEffect(() => setHere(getStoredLocation()), []);
+
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const [assigned, apps, saved] = await Promise.all([
+      const [assigned, apps, saved, prof] = await Promise.all([
         api.get<Shift[]>("/shifts/mine", token),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
         api.get<Shift[]>("/saved-shifts", token).catch(() => []),
+        api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
       ]);
       setShifts(assigned);
       setApplications(apps);
       setSavedShifts(saved);
+      setProfile(prof);
       // El turno ya viene embebido en cada postulación (campo `shift`): un solo
       // GET /applications/mine, sin el N+1 de un GET /shifts/{id} por
       // postulación (cada uno pagando el round-trip a la base remota).
@@ -173,6 +197,19 @@ export default function MatchesPage() {
     }
   }
 
+  function toggleCompareSelection(shiftId: string) {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(shiftId)) return prev.filter((id) => id !== shiftId);
+      if (prev.length >= MAX_COMPARE) return prev;
+      return [...prev, shiftId];
+    });
+  }
+
+  function exitCompareMode() {
+    setCompareMode(false);
+    setSelectedForCompare([]);
+  }
+
   async function applyToSavedShift(shift: Shift) {
     if (!token) return;
     setApplyingSaved(shift.id);
@@ -208,6 +245,13 @@ export default function MatchesPage() {
   // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
   const pending = applications.filter((a) => a.status === "pendiente");
 
+  const origin = originFor(here, profile);
+  // En el orden en que se fueron tocando (no el orden de la lista): más
+  // fácil de seguir mientras se arma la comparación.
+  const compareShifts = selectedForCompare
+    .map((id) => savedShifts.find((s) => s.id === id))
+    .filter((s): s is Shift => s !== undefined);
+
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
       <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Matches</h1>
@@ -216,7 +260,10 @@ export default function MatchesPage() {
       <div className="mt-4 -mx-4 overflow-x-auto px-4 no-scrollbar">
         <SegmentedControl
           value={tab}
-          onChange={setTab}
+          onChange={(next) => {
+            setTab(next);
+            exitCompareMode();
+          }}
           className="min-w-[420px]"
           options={[
             { value: "asignados", label: `Asignados${shifts.length > 0 ? ` (${shifts.length})` : ""}` },
@@ -407,7 +454,7 @@ export default function MatchesPage() {
       )}
 
       {!loading && !error && tab === "guardados" && (
-        <div className="mt-5">
+        <div className="mt-5 pb-16">
           {savedShifts.length === 0 ? (
             <EmptyState
               icon={<BookmarkIcon size={28} />}
@@ -415,36 +462,100 @@ export default function MatchesPage() {
               subtitle="Tocá el marcador en una tarjeta de Inicio para guardarla y decidir con calma después."
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {savedShifts.map((shift) => (
-                <ShiftCard key={shift.id} shift={shift} perspective="worker" showLifecycle={false}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => applyToSavedShift(shift)}
-                      loading={applyingSaved === shift.id}
-                      disabled={applyingSaved !== null || unsaving !== null}
-                    >
-                      Postularme
-                    </Button>
-                    <ShareShiftButton shift={shift} shiftId={shift.id} />
-                    <Button
-                      size="sm"
-                      variant="surface"
-                      leftIcon={<CloseIcon size={16} />}
-                      onClick={() => unsaveShift(shift.id)}
-                      loading={unsaving === shift.id}
-                      disabled={unsaving !== null || applyingSaved !== null}
-                    >
-                      Quitar de guardados
-                    </Button>
-                  </div>
-                </ShiftCard>
-              ))}
-            </div>
+            <>
+              {/* Comparador (evolución de "guardados": el pedido original de
+                  Julieta era "empezar a evaluar opciones que convengan" —
+                  una lista sola no compara). Sólo tiene sentido con 2+
+                  turnos guardados. */}
+              {savedShifts.length > 1 && (
+                <div className="mb-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => (compareMode ? exitCompareMode() : setCompareMode(true))}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+                      compareMode
+                        ? "bg-primary/10 text-primary-text ring-primary/30"
+                        : "bg-white text-ink/60 ring-line hover:bg-surface"
+                    }`}
+                  >
+                    <ScaleIcon size={14} />
+                    {compareMode ? "Cancelar comparación" : "Comparar"}
+                  </button>
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {savedShifts.map((shift) => {
+                  const selected = selectedForCompare.includes(shift.id);
+                  return (
+                    <div key={shift.id} className="relative">
+                      {compareMode && (
+                        <button
+                          type="button"
+                          onClick={() => toggleCompareSelection(shift.id)}
+                          disabled={!selected && selectedForCompare.length >= MAX_COMPARE}
+                          aria-pressed={selected}
+                          aria-label={selected ? "Sacar de la comparación" : "Sumar a la comparación"}
+                          className={`absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-white transition disabled:opacity-40 ${
+                            selected ? "bg-primary text-white" : "bg-white/95 text-ink/40 shadow-sm"
+                          }`}
+                        >
+                          {selected ? <CheckIcon size={14} /> : null}
+                        </button>
+                      )}
+                      <ShiftCard shift={shift} perspective="worker" showLifecycle={false}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => applyToSavedShift(shift)}
+                            loading={applyingSaved === shift.id}
+                            disabled={applyingSaved !== null || unsaving !== null}
+                          >
+                            Postularme
+                          </Button>
+                          <ShareShiftButton shift={shift} shiftId={shift.id} />
+                          <Button
+                            size="sm"
+                            variant="surface"
+                            leftIcon={<CloseIcon size={16} />}
+                            onClick={() => unsaveShift(shift.id)}
+                            loading={unsaving === shift.id}
+                            disabled={unsaving !== null || applyingSaved !== null}
+                          >
+                            Quitar de guardados
+                          </Button>
+                        </div>
+                      </ShiftCard>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
+
+      {/* Barra flotante de comparación: aparece recién con 2+ elegidos (un
+          turno solo no compara contra nada). Fija sobre el bottom nav
+          (z-40, mismo nivel que otros overlays flotantes de la app). */}
+      {compareMode && selectedForCompare.length >= 2 && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 md:bottom-4">
+          <Button
+            leftIcon={<ScaleIcon size={16} />}
+            onClick={() => setCompareOpen(true)}
+            className="shadow-[var(--shadow-float)]"
+          >
+            Comparar ({selectedForCompare.length})
+          </Button>
+        </div>
+      )}
+
+      <CompareShiftsModal
+        shifts={compareShifts}
+        origin={origin}
+        open={compareOpen}
+        onClose={() => setCompareOpen(false)}
+      />
 
       <Modal
         open={confirmWithdrawId !== null}

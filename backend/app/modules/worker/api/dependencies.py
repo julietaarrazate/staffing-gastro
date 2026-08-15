@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.infrastructure.repositories import (
     SqlAlchemyWorkerProfileRepository,
@@ -18,7 +19,7 @@ def get_worker_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> WorkerProfileService:
     repository = SqlAlchemyWorkerProfileRepository(session)
-    return WorkerProfileService(repository)
+    return WorkerProfileService(repository, SqlAlchemyShiftRepository(session))
 
 
 def get_user_repository(

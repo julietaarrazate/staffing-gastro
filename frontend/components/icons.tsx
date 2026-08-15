@@ -47,6 +47,7 @@ import {
   Pencil,
   Plus,
   Route,
+  Scale,
   Search,
   Share2,
   Shield,
@@ -101,6 +102,7 @@ export const UtensilsIcon = make(Utensils);
 export const WalletIcon = make(Wallet);
 export const FlameIcon = make(Flame);
 export const RouteIcon = make(Route);
+export const ScaleIcon = make(Scale);
 export const ShieldIcon = make(Shield);
 export const ChevronDownIcon = make(ChevronDown);
 export const ChevronLeftIcon = make(ChevronLeft);
