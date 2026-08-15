@@ -418,6 +418,26 @@ export interface PlatformStats {
   coverage_sample_size: number;
   avg_time_to_fill_minutes: number | null;
   pct_filled_under_10_min: number | null;
+
+  // Métricas de producto (docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md
+  // §6), ya calculadas por el backend — `null` sin muestra (denominador 0).
+  shift_assignment_rate_sample_size: number;
+  shift_assignment_rate_pct: number | null;
+
+  shift_completion_rate_sample_size: number;
+  shift_completion_rate_pct: number | null;
+
+  application_acceptance_sample_size: number;
+  application_to_acceptance_rate_pct: number | null;
+
+  no_show_sample_size: number;
+  no_show_rate_pct: number | null;
+
+  worker_completion_repeat_sample_size: number;
+  worker_completion_repeat_rate_pct: number | null;
+
+  employer_repeat_sample_size: number;
+  employer_repeat_rate_pct: number | null;
 }
 
 // Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,

@@ -57,6 +57,22 @@ function StatCardSkeleton() {
   );
 }
 
+function RateCard({ label, pct, caption }: { label: string; pct: number | null; caption: string }) {
+  return (
+    <Card className="p-5">
+      <p className="text-2xl font-extrabold text-ink">{pct === null ? "—" : `${pct.toFixed(0)}%`}</p>
+      <p className="text-xs font-medium text-ink/50">{label}</p>
+      <p className="mt-1.5 text-[11px] text-ink/40">{caption}</p>
+    </Card>
+  );
+}
+
+/** "Sobre 3 turnos publicados" / "Sobre 1 turno publicado" — evita el plural
+ * mal puesto sobre una muestra chica, que en el panel de admin es común. */
+function sampleCaption(n: number, singular: string, plural: string): string {
+  return `Sobre ${n} ${n === 1 ? singular : plural}`;
+}
+
 function AdminUserRowSkeleton() {
   return (
     <Card className="p-5" aria-hidden>
@@ -213,7 +229,9 @@ export default function AdminPage() {
       )}
 
       {statsLoading ? (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-hidden>
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-hidden>
+          <StatCardSkeleton />
+          <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
@@ -221,10 +239,12 @@ export default function AdminPage() {
         </div>
       ) : (
         stats && (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <StatCard label="Usuarios" value={stats.total_users} />
             <StatCard label="Trabajadores" value={stats.workers} />
             <StatCard label="Comercios" value={stats.employers} />
+            <StatCard label="Admins" value={stats.admins} />
+            <StatCard label="Verificados" value={stats.verified} />
             <StatCard label="Suspendidos" value={stats.suspended} />
           </div>
         )
@@ -260,6 +280,70 @@ export default function AdminPage() {
             {stats.coverage_sample_size === 1 ? "" : "s"} cubierto
             {stats.coverage_sample_size === 1 ? "" : "s"} hasta ahora.
           </p>
+        </div>
+      )}
+
+      {/* Métricas de producto (docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md
+          §6): el backend ya las calculaba (`GET /admin/stats`), sólo faltaba
+          mostrarlas acá — pedido de Julieta de un panel operacional con
+          datos reales, no sólo conteos de usuarios. */}
+      {!statsLoading && stats && (
+        <div className="mt-8">
+          <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+            Métricas de producto
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <RateCard
+              label="Turnos asignados"
+              pct={stats.shift_assignment_rate_pct}
+              caption={sampleCaption(
+                stats.shift_assignment_rate_sample_size,
+                "turno publicado",
+                "turnos publicados"
+              )}
+            />
+            <RateCard
+              label="Turnos completados"
+              pct={stats.shift_completion_rate_pct}
+              caption={sampleCaption(
+                stats.shift_completion_rate_sample_size,
+                "turno publicado",
+                "turnos publicados"
+              )}
+            />
+            <RateCard
+              label="Postulaciones aceptadas"
+              pct={stats.application_to_acceptance_rate_pct}
+              caption={sampleCaption(
+                stats.application_acceptance_sample_size,
+                "postulación",
+                "postulaciones"
+              )}
+            />
+            <RateCard
+              label="No-shows"
+              pct={stats.no_show_rate_pct}
+              caption={sampleCaption(stats.no_show_sample_size, "asignación", "asignaciones")}
+            />
+            <RateCard
+              label="Trabajadores que repiten"
+              pct={stats.worker_completion_repeat_rate_pct}
+              caption={sampleCaption(
+                stats.worker_completion_repeat_sample_size,
+                "trabajador con turno completo",
+                "trabajadores con turnos completos"
+              )}
+            />
+            <RateCard
+              label="Comercios que repiten"
+              pct={stats.employer_repeat_rate_pct}
+              caption={sampleCaption(
+                stats.employer_repeat_sample_size,
+                "comercio activo",
+                "comercios activos"
+              )}
+            />
+          </div>
         </div>
       )}
 
