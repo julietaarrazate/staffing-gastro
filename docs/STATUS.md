@@ -5,7 +5,60 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-11 (**Últimas 2 piezas del set de
+*Última actualización: 2026-08-15 (**Bitácora puesta al día — quedó
+parada en el 08-11 pese a que siguió mergeando (#239–#247); catch-up +
+panel de admin operacional.**) Esta entrada cubre dos cosas: cerrar el
+hueco de la bitácora (regla de mantenimiento incumplida varios PRs
+seguidos) y el pedido nuevo de Julieta: **"que mi mail de admin sea apta
+para ingresar como comercio, trabajador y admin, así testeo cada cosa;
+después quiero un dashboard operacional del negocio."**
+
+**Multi-rol de testing (#245).** En vez de rediseñar el modelo de datos
+(`User.role` único por email, `unique=True` a nivel DB), se confirmó con
+la operadora reusar el sistema de impersonación ("Ver como") ya
+existente: 2 cuentas de prueba (`prueba.trabajador@oido.beta`,
+`prueba.comercio@oido.beta`) se crean solas la primera vez que se piden
+(`GET /admin/test-accounts`), con contraseña local irrecuperable — sólo
+accesibles vía "Ver como" de un admin, nunca con email+contraseña. Sección
+"Mis cuentas de prueba" en `/admin` con 2 botones de acceso directo.
+
+**Panel operacional — parte 1, exponer lo ya calculado (#246).** El
+backend ya calculaba 6 tasas de producto (`shift_assignment_rate`,
+`shift_completion_rate`, `application_to_acceptance_rate`, `no_show_rate`,
+`worker_completion_repeat_rate`, `employer_repeat_rate`, ver
+`docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md §6`) y el frontend las
+descartaba en silencio, mostrando sólo 4 de ~20 campos del payload de
+`/admin/stats`. Sin cambios de backend: se agregó `Admins`/`Verificados` a
+la grilla principal y una sección nueva "Métricas de producto" con las 6
+tasas + su tamaño de muestra (nunca un `%` sobre denominador 0).
+
+**Panel operacional — parte 2, suscripciones/MRR (#247).** Esto sí
+necesitaba backend nuevo: `SubscriptionRepository.count_by_plan_and_status`
++ `count_at_plan_limit` (agregado en SQL) y `CompanyProfileRepository.
+count_total` (para no subestimar el plan `gratis` — un comercio sin fila
+en `subscriptions` todavía cuenta ahí, ADR-0005). Nueva sección
+"Suscripciones" en `/admin`: MRR real, comercios por plan, comercios cerca
+del tope de su plan.
+
+Verificado en las 3: `pytest -q` completo (404 passed), `tsc`/`eslint`/
+`build` limpios, Playwright completo (76 passed). Único fallo de CI en los
+3 PRs: el job preexistente de auditoría de dependencias/secret-scan por
+cuota agotada — no relacionado al código (mismo patrón que viene desde
+hace semanas).
+
+**Deuda de bitácora que se cierra acá (sin entrada propia por PR, sólo
+mención — el detalle está en los mensajes de commit de cada uno):**
+`#239` fix del wizard del asistente (saltar a revisar cuando la IA ya
+completó todo) · `#240` omitir onboarding del trabajador + fix de años de
+experiencia con cero fijo · `#241` contraste de color (barra del
+asistente, tabs de `/shifts`, chips de oficio) · `#242` asistente de IA
+para el trabajador (búsqueda de turnos en lenguaje natural, pantalla
+`/assistant` dedicada) · `#243` guardar turnos para evaluarlos después
+(`/my-shifts`, tab "Guardados") · `#244` comparador de hasta 3 turnos
+guardados (pago, pago/hora, distancia) + resumen de ganancias
+(total + del mes) en el perfil del trabajador.
+
+Antes, 2026-08-11 (**Últimas 2 piezas del set de
 ilustración — completo, 5/5 (`ART_DIRECTION.md` §10.4).** Julieta: "seguí
 por ahí" tras el resumen que marcaba estas 2 como pendientes por necesitar
 UI nueva, no sólo un reemplazo de ícono — se construyó esa UI:
@@ -2032,6 +2085,8 @@ roadmap).
 | **Launch-gate** — cierre de 3 lazos construidos-pero-nunca-validados (`PRIMER_TURNO_REAL_SPEC`) | #88 | **Parte A (verificado, no roto):** test de integración de punta a punta (`tests/test_full_shift_lifecycle.py`) recorre publicar→postular→asignar→check-in→check-out→finalizar→ambos califican→reputación actualizada→**la reputación real SÍ entra al ranking de matching** de un turno nuevo (dos trabajadores con historial idéntico salvo la reseña — 5★ vs. 1★ — quedan ordenados por esa diferencia). Nada estaba roto en ese lazo: ya andaba. **Parte B (frontend):** panel del comercio nuevo (0 turnos) con CTA "Publicá tu primer turno" + 3 pasos (`app/shifts/page.tsx`), y cartel una-sola-vez tras el primer turno publicado ("Ya estás buscando personal..."), persistido en `localStorage` (mismo criterio que el opt-in de push). **Parte C (backend + frontend, `ADR-0007`):** no-show manual del comercio (`POST /shifts/{id}/no-show`, sólo desde CONFIRMADO/EN_CAMINO — reabre el turno, `WorkerProfile.no_shows` nuevo y separado de `cancellations`, pesa el doble en el score de desempeño del matching, rompe `nunca_falto`) + cancelación tardía del comercio (`ShiftService.cancel_shift` detecta `COMMITTED_STATUSES`; **hallazgo:** antes no avisaba nada al trabajador — ahora `shift_cancelled_late` in-app+push y `CompanyProfile.late_cancellations` nuevo, simétrico). Migración `0014`. `pytest -q`: 205 passed (antes 194, +11: 2 unit + 9 integración). `tsc`/`build`/lint sin errores nuevos (lint baseline pre-existente sin cambios: 20 errores/10 warnings, verificado contra `origin/main`); e2e (17 specs) verdes. |
 | Deuda chica post launch-gate: postulación aceptada + STATUS al día | `claude/estado-postulacion` *(PR draft pendiente)* | **Fix 1:** `ShiftService.assign_worker` dejaba la `ShiftApplication` PENDIENTE del trabajador elegido sin transicionar — quedaba "pendiente" para siempre aunque el comercio ya lo hubiera asignado (`docs/TECH_DEBT.md` P5). Ahora, de mínima invasión: `ShiftApplication.accept()` nuevo (dominio, mismo patrón que `withdraw()`) + `ShiftService._accept_application` busca la postulación por turno+trabajador (`ShiftApplicationRepository.get_by_shift_and_worker`, puerto ya inyectado desde la regla de doble turno) y la acepta si está PENDIENTE; si la asignación fue directa (búsqueda/mapa, sin postulación previa) no hace nada y no falla. **No** se tocan las postulaciones de los demás candidatos (RECHAZADA de los no elegidos sigue abierto, ver TECH_DEBT P5 actualizado). **Fix 2:** esta misma bitácora, puesta al día (faltaban #74–#87). `pytest -q`: 207 passed (antes 205, +2); `tsc`/`build`/lint sin errores nuevos (lint: mismo baseline 20/10); e2e 17/17 |
 | Stepper del ciclo de vida + pantalla "esto es lo que sigue" al publicar (inspiración Clickie) | `claude/stepper-ciclo` *(PR draft pendiente)* | **Fix 1:** `ShiftLifecycleStepper` nuevo (numeritos en círculo + línea, paso actual sólido, completados con check tenue, futuros en gris — un solo acento naranja) integrado en `ShiftCard` con dos mapeos de los 12 `ShiftStatus` reales a 4 hitos: comercio (`/shifts`, default) Publicado→Asignado→En curso→Finalizado; trabajador (`/my-shifts`, prop `perspective="worker"`) Postulado→Aceptado→En curso→Finalizado. **Corrección documentada:** el spec original agrupaba `confirmado` con `finalizado/pagado`; se corrigió a agruparlo con `asignado` porque el orden real del dominio (`asignado→confirmado→en_camino→…→finalizado`) haría que el stepper retrocediera de "Finalizado" a "En curso". Cancelado: no agrega un 5º paso — corta la línea (punteada) y reemplaza el hito donde murió por un marcador rojo "Cancelado", inferido de las marcas que sobreviven (`worker_profile_id`/`check_in_at`/`check_out_at`, el dominio no guarda el estado previo a cancelar). **Fix 2:** `ShiftPublishedNextSteps` (pantalla "¡Turno publicado!" con timeline vertical de 4 pasos del comercio) reemplaza el cartel de una sola vez del launch-gate (#88); decisión documentada: se muestra **cada vez** que se publica un turno (no sólo la primera vez), tanto desde el wizard (`/shifts/new`) como desde "Publicar" de un borrador en el panel (`/shifts`) — es informativa, no una interrupción. `Modal` del DS ganó `max-h-[85vh] overflow-y-auto` (cambio genérico y no disruptivo) para que el timeline no se corte en pantallas bajas. `tsc`/`build` verdes; lint sin errores nuevos (mismo baseline 20/10); Playwright 19/19 (2 specs nuevos del stepper + `employer-wizard.spec.ts` actualizado para el nuevo flujo de publicación, resto sin tocar) |
+| *(hueco de bitácora, #89–#238)* | — | Esta tabla no se actualizó en ese tramo — el trabajo sí se hizo y se mergeó (rebrand, pulido C0–C4, diseño Espresso/Petróleo ADR-0011, asistente de IA v1, verificación de identidad, entre otros vistos en `git log`), pero no quedó con entrada propia acá. No reconstruido retroactivamente por esta sesión para no inventar detalle que no verificó de primera mano — si hace falta el detalle está en los mensajes de cada PR (`git log --oneline`). |
+| Cuentas de prueba multi-rol + panel operacional (admin) | #245, #246, #247 | Pedido de Julieta: su mail de admin apto para testear como comercio/trabajador/admin, más un dashboard operacional. **#245**: 2 cuentas de prueba (`prueba.trabajador@oido.beta`/`prueba.comercio@oido.beta`) get-or-create, accesibles sólo vía "Ver como" (impersonación admin ya existente) — sin rediseñar el modelo `User.role` único. **#246**: el panel sólo mostraba 4 de ~20 campos que el backend ya calculaba; se sumaron `Admins`/`Verificados` + 6 tasas de producto (asignación, completado, aceptación de postulaciones, no-show, repetición worker/comercio) con su tamaño de muestra. **#247**: `SubscriptionRepository.count_by_plan_and_status`/`count_at_plan_limit` + `CompanyProfileRepository.count_total` (SQL agregado) para MRR real y distribución por plan (comercios sin fila en `subscriptions` se pliegan en `gratis`, ADR-0005). `pytest -q`: 404 passed. `tsc`/`eslint`/`build` limpios. Playwright: 76 passed. Único fallo de CI en los 3: auditoría de dependencias/secret-scan por cuota agotada (preexistente, no relacionado al código) |
 
 ## En vuelo ahora
 
