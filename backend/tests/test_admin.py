@@ -8,8 +8,13 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.main import app
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.models import ShiftModel
+from app.modules.subscription.api.dependencies import get_billing_gateway
+from app.modules.subscription.infrastructure.fake_billing_gateway import (
+    FakeBillingGateway,
+)
 from tests.conftest import auth_headers, login
 
 pytestmark = pytest.mark.asyncio
@@ -517,6 +522,10 @@ async def test_subscription_stats_folds_company_without_row_into_gratis(
     assert body["companies_by_plan"] == {"gratis": 1}
     assert Decimal(str(body["mrr_ars"])) == Decimal("0")
     assert body["companies_at_plan_limit"] == 0
+    # Sin credenciales de Mercado Pago configuradas (default de test): el
+    # cobro real está apagado — `mrr_ars` es un monto potencial, nunca
+    # ingreso real (auditoría 2026-08-15, F1).
+    assert body["billing_enabled"] is False
 
 
 async def test_subscription_stats_computes_mrr_and_plan_distribution(client, session_factory):
@@ -540,6 +549,24 @@ async def test_subscription_stats_computes_mrr_and_plan_distribution(client, ses
     assert body["companies_by_plan"] == {"gratis": 1, "basico": 1, "pro": 1}
     # MRR = básico ($20.000) + pro ($45.000); gratis no aporta.
     assert Decimal(str(body["mrr_ars"])) == Decimal("65000")
+
+
+async def test_subscription_stats_reports_billing_enabled_when_gateway_is_active(
+    client, session_factory
+):
+    """Con credenciales de Mercado Pago configuradas (`BillingGateway.enabled`
+    real), el panel puede mostrar el MRR como ingreso real en vez de
+    potencial — `billing_enabled` es la señal que distingue los dos casos."""
+    admin = await _make_admin(client, session_factory, "admin_sub_billing@test.com")
+
+    fake_gateway = FakeBillingGateway(enabled_=True)
+    app.dependency_overrides[get_billing_gateway] = lambda: fake_gateway
+    try:
+        stats = await client.get("/api/v1/admin/subscription-stats", headers=admin)
+        assert stats.status_code == 200
+        assert stats.json()["billing_enabled"] is True
+    finally:
+        app.dependency_overrides.pop(get_billing_gateway, None)
 
 
 async def test_subscription_stats_detects_companies_at_plan_limit(client, session_factory):

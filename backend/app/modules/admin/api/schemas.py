@@ -85,3 +85,4 @@ class SubscriptionStatsResponse(BaseModel):
     total_companies: int
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
+    billing_enabled: bool

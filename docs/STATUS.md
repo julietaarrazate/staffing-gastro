@@ -5,9 +5,22 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-15 (**Auditoría delta de la superficie sin
+*Última actualización: 2026-08-15 (**F1 de la auditoría delta: el MRR ya
+no muestra plata que nunca se cobró.**) `SubscriptionStats` suma
+`billing_enabled` (`BillingGateway.enabled` inyectado por puerto,
+`admin/application/services.py`). El panel: sin credenciales de Mercado
+Pago (default), el número principal es **$0** con el badge "Cobro no
+activado", y el monto que se cobraría queda como dato secundario más
+chico ("Potencial si se cobrara: ARS X") — nunca al revés. Con el cobro
+activo, se muestra el MRR real sin badge, comportamiento sin cambios.
+`pytest -q`: 405 passed (+1 test nuevo, `billing_enabled` con
+`FakeBillingGateway`). `tsc`/`eslint`/`build` limpios. Playwright: 77
+passed (+1 spec nuevo del caso sin cobro). F2-F6 de la misma auditoría
+siguen abiertos (`docs/audits/2026-08-15-delta-superficie-nueva.md`).
+
+Antes, mismo día: **Auditoría delta de la superficie sin
 auditar — el panel de admin nuevo reporta 3 métricas que no significan lo
-que dice su etiqueta.**) Corrida con el generador de due-diligence de EKP
+que dice su etiqueta.** Corrida con el generador de due-diligence de EKP
 en modo delta: alcance = los 20 PRs posteriores a la auditoría del 08-13,
 que ninguna auditoría previa cubría (asistente de IA, guardar turnos,
 cuentas de prueba, panel operacional). Informe completo:

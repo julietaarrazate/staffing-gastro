@@ -13,6 +13,8 @@ from app.modules.application.infrastructure.repositories import (
 from app.modules.company.infrastructure.repositories import SqlAlchemyCompanyProfileRepository
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.api.dependencies import get_billing_gateway
+from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
@@ -21,6 +23,7 @@ from app.modules.worker.infrastructure.repositories import SqlAlchemyWorkerProfi
 
 def get_admin_service(
     session: Annotated[AsyncSession, Depends(get_session)],
+    billing: Annotated[BillingGateway, Depends(get_billing_gateway)],
 ) -> AdminService:
     return AdminService(
         SqlAlchemyUserRepository(session),
@@ -29,4 +32,5 @@ def get_admin_service(
         SqlAlchemyCompanyProfileRepository(session),
         SqlAlchemyShiftApplicationRepository(session),
         SqlAlchemySubscriptionRepository(session),
+        billing,
     )

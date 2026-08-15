@@ -28,6 +28,7 @@ from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
 from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
@@ -67,6 +68,7 @@ class AdminService:
         companies: CompanyProfileRepository,
         applications: ShiftApplicationRepository,
         subscriptions: SubscriptionRepository,
+        billing: BillingGateway,
     ) -> None:
         self._users = users
         self._shifts = shifts
@@ -74,6 +76,7 @@ class AdminService:
         self._companies = companies
         self._applications = applications
         self._subscriptions = subscriptions
+        self._billing = billing
 
     async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[AdminUserRow]:
         """Lista usuarios paginados (más recientes primero), con la foto de
@@ -218,6 +221,7 @@ class AdminService:
             total_companies=total_companies,
             companies_by_plan=companies_by_plan,
             companies_at_plan_limit=companies_at_plan_limit,
+            billing_enabled=self._billing.enabled,
         )
 
     async def suspend_user(self, actor: User, user_id: UUID) -> User:
