@@ -147,6 +147,12 @@ export default function MapPage() {
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  // `true` mientras no sabemos si la ubicación real llegó o falló — antes el
+  // catch de abajo fallaba en silencio y el mapa mostraba el centro de
+  // Buenos Aires (Obelisco) sin avisar, indistinguible de "estás ahí" para
+  // quien no reconoce la zona (auditoría UX 2026-08-16, reporte de Julieta:
+  // el mapa mostraba Recoleta/Retiro sin ser su ubicación real).
+  const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -162,7 +168,7 @@ export default function MapPage() {
   useEffect(() => {
     getCurrentPosition()
       .then((p) => setCenter([p.latitude, p.longitude]))
-      .catch(() => {}); // fallback al Obelisco
+      .catch(() => setLocationUnavailable(true)); // fallback al Obelisco, avisado
   }, []);
 
   const load = useCallback(async () => {
@@ -266,8 +272,18 @@ export default function MapPage() {
       <aside className="hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line bg-white md:flex">
         <div className="sticky top-0 z-10 border-b border-line bg-white/95 px-5 py-4 backdrop-blur">
           <h1 className="font-display text-2xl font-semibold text-ink">
-            {loading ? "Buscando turnos..." : `${shifts.length} turnos cerca tuyo`}
+            {loading
+              ? "Buscando turnos..."
+              : locationUnavailable
+                ? "Turnos en el centro de Buenos Aires"
+                : `${shifts.length} turnos cerca tuyo`}
           </h1>
+          {!loading && locationUnavailable && (
+            <p className="mt-1 text-sm text-ink/50">
+              No pudimos ubicarte — activá la ubicación para ver los turnos
+              realmente cerca tuyo.
+            </p>
+          )}
         </div>
         <div className="flex-1 px-3 py-3">
           {loading ? (
@@ -315,11 +331,21 @@ export default function MapPage() {
 
       {/* Encabezado flotante (sólo mobile: en desktop el conteo ya está en el
           panel lateral, repetirlo acá arriba del mapa sería ruido). */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3 md:hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-start gap-1.5 p-3 md:hidden">
         <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-ink/70 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
           <MapPinIcon size={16} className="text-primary-text" />
-          {loading ? "Buscando turnos cerca..." : `${shifts.length} turnos cerca tuyo`}
+          {loading
+            ? "Buscando turnos cerca..."
+            : locationUnavailable
+              ? "Turnos en el centro de Buenos Aires"
+              : `${shifts.length} turnos cerca tuyo`}
         </div>
+        {!loading && locationUnavailable && (
+          <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-ink/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
+            No pudimos ubicarte — activá la ubicación para ver lo que está
+            realmente cerca
+          </div>
+        )}
       </div>
 
       {/* Sheet inferior arrastrable con el carrusel de tarjetas — SÓLO mobile,
