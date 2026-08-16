@@ -688,7 +688,16 @@ fecha de esta auditoría (2026-07-02).
 > `CLAUDE.md` y `docs/INCIDENTE_2026-07-23_BACKEND_CAIDO.md` para el
 > incidente y el runbook completo de esa migración.
 
-### I2 — `SEED_DEMO_DATA=true` activo en producción con imágenes externas 🟠 Alta
+### I2 — `SEED_DEMO_DATA=true` activo en producción con imágenes externas ✅ Resuelto (apagado, 2026-08-15 aprox.)
+
+> **Nota 2026-08-16:** `render.yaml` fija `SEED_DEMO_DATA: "false"` desde el
+> commit `879fbbe` (#160, "apagar seed demo"). Esta entrada quedó marcada
+> 🟠 Alta/abierta en el doc mucho después de que el fix real se mergeara —
+> mismo patrón de staleness ya nombrado hoy en `STATUS.md` (fix de región
+> Render/Neon) y en `evolution/INTAKE.md` de Andamio (cycle 41): un cambio
+> real en código que no se propaga de vuelta al documento que lo describe
+> como problema. La descripción de abajo queda como registro histórico de
+> por qué existía el riesgo, no como estado actual.
 
 > **Nota 2026-07-02 (R2.5, intentado y no ejecutado):** se evaluó reemplazar
 > `loremflickr`/`pravatar` en `backend/scripts/seed_demo_data.py` por un set
