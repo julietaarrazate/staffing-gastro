@@ -5,8 +5,23 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-15 (**Beta desbloqueada — sin nada
-pendiente de código ni de infraestructura.**) La sección "Bloqueado en
+*Última actualización: 2026-08-16 (**Primera pasada de auditoría con los
+nuevos reviewers de UX/frontend de Andamio (domains/ux, domains/frontend,
+profundizados el 2026-08-16) — un hallazgo real, corregido.** `Toast`
+(confirmaciones/errores de acción en toda la app) no tenía `role`/
+`aria-live` en su contenedor: para un usuario de lector de pantalla, esos
+mensajes aparecían y desaparecían sin ningún anuncio. Agregado
+`role="status"` + `aria-live="polite"`, con test que confirma la región
+viva. El resto del reconocimiento (overlays Modal/Sheet, degradación de
+`auth-context` ante backend dormido, `SplashScreen`) no encontró gaps
+nuevos de esa misma clase — el focus-trap (2026-08-09) y el manejo de
+cold-start ya estaban bien resueltos; confirmar que el loop cierra es en
+sí mismo un resultado honesto, no todo audit tiene que encontrar un bug
+grande. `pytest`/`vitest`/`tsc`/`eslint`/`build`: sin regresiones (76/76
+tests unitarios frontend, +2 nuevos).
+
+Antes (2026-08-15): **Beta desbloqueada — sin nada
+pendiente de código ni de infraestructura.** La sección "Bloqueado en
 Julieta" de más abajo estaba desactualizada (mismo problema que motivó
 F6 de la auditoría delta): dos de sus ítems ya estaban resueltos hace
 semanas y seguía listándolos como abiertos. Verificado contra el código
