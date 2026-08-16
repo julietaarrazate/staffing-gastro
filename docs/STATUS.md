@@ -5,7 +5,25 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Primera pasada de auditoría con los
+*Última actualización: 2026-08-16 (**Segunda pasada de auditoría —
+reviewers de QA/security de Andamio (domains/qa, domains/security,
+profundizados el 2026-08-16). Un hallazgo real de seguridad,
+corregido.** `AdminService.suspend_user` ponía `status=SUSPENDED` pero
+nunca revocaba las `RefreshSession` del usuario — coincide exactamente
+con `domains/security/trees/authn-strategy.md` leaf L5 ("suspensión =
+revocar en todos lados, sin excepción"), construido hoy sobre la misma
+lección real que ya tenía bien resuelta `reset_password` (revocación
+completa desde cycle 23). Sin el fix: un usuario suspendido y después
+reactivado recuperaba su sesión de refresh de antes (posiblemente el
+dispositivo comprometido que motivó la suspensión) sin volver a
+loguearse. `AdminService` gana una dependencia `RefreshSessionRepository`;
+test de regresión nuevo que confirma el refresh viejo falla 401 después
+de reactivar. Reconocimiento más amplio (impersonate, prompt de Gemini,
+entorno de test sqlite) confirmó que esos tres ya estaban bien resueltos
+— sin gaps nuevos ahí. `pytest`: 413/413 (412 + 1 nuevo), sin
+regresiones.
+
+Antes, mismo día: **Primera pasada de auditoría con los
 nuevos reviewers de UX/frontend de Andamio (domains/ux, domains/frontend,
 profundizados el 2026-08-16) — un hallazgo real, corregido.** `Toast`
 (confirmaciones/errores de acción en toda la app) no tenía `role`/
