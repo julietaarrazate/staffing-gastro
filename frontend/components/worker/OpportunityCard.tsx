@@ -74,8 +74,16 @@ export default function OpportunityCard({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          <div className={`absolute inset-0 ${bg}`}>
-            <Icon size={140} className={`absolute -right-4 -top-2 ${fg} opacity-25`} />
+          // Antes: tinte pálido de SKILL_ACCENT (bg-orange-50, etc.) a toda la
+          // tarjeta — esos tokens están pensados sólo para el chip chico del
+          // ícono (ver comentario en skill-style.tsx: "nunca como banda de
+          // color a toda la tarjeta"), y el resultado se veía plano/beige
+          // (Julieta, captura 2026-08-16). Mismo tratamiento que ya usa el
+          // hero sin foto del perfil de trabajador (/workers/[id]): gradiente
+          // saturado de marca + gráfico grande centrado, un solo acento por
+          // pantalla en vez del tinte de rubro extendido a toda la tarjeta.
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary to-primary-strong">
+            <Icon size={120} className="text-white/90" />
           </div>
         )}
         {/* Velo para legibilidad del texto sobre la foto */}
@@ -111,19 +119,16 @@ export default function OpportunityCard({
             líneas en columnas angostas) para que nunca crezca más de lo que
             el hero tiene reservado. */}
         <div className="absolute inset-x-0 bottom-0 p-5">
-          <h2
-            className={`line-clamp-2 text-3xl font-extrabold leading-tight ${hasPhoto ? "text-white drop-shadow" : "text-ink"}`}
-          >
+          {/* Blanco siempre, con o sin foto: el fallback ahora es un gradiente
+              saturado (no la banda pálida de antes), así que necesita el
+              mismo contraste que la foto+velo. */}
+          <h2 className="line-clamp-2 text-3xl font-extrabold leading-tight text-white drop-shadow">
             {SKILL_LABELS[shift.position]}
           </h2>
-          <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${hasPhoto ? "text-white/90" : "text-ink/60"}`}>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
             <MapPinIcon size={15} />
             {shift.city ?? "Ubicación a confirmar"}
-            {distanceKm != null && (
-              <span className={hasPhoto ? "text-white/70" : "text-ink/45"}>
-                · {formatDistance(distanceKm)}
-              </span>
-            )}
+            {distanceKm != null && <span className="text-white/70">· {formatDistance(distanceKm)}</span>}
           </p>
         </div>
       </div>

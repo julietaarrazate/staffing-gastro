@@ -5,7 +5,28 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Auditoría de diseño con capturas
+*Última actualización: 2026-08-16 (**`OpportunityCard`: el fallback sin
+foto pasa de tinte pálido a gradiente de marca — mismo tratamiento que ya
+usa el perfil de trabajador.**) Julieta comparó su propia foto de perfil
+(hero grande con foto o, si falta, gradiente saturado `from-primary
+to-primary-strong` con la inicial) contra la tarjeta de turno sin foto de
+comercio (antes: banda plana con el tinte pálido de `SKILL_ACCENT`,
+`bg-orange-50` y similares) y pidió el mismo tratamiento — "el banner
+tipo Twitter te tiene que poner otra foto o color más allá de la foto
+redonda de perfil". Resuelto usando exactamente el patrón que ya existe
+en `/workers/[id]`: mismo gradiente `from-primary to-primary-strong` +
+ícono del rubro grande centrado en blanco, en vez del tinte de
+`SKILL_ACCENT` extendido a toda la tarjeta. Esto además cierra la
+contradicción de código que había quedado documentada como pendiente en
+la entrada anterior (`skill-style.tsx` dice de su propia paleta "nunca
+como banda de color a toda la tarjeta", pero `OpportunityCard` la usaba
+así en el fallback) — no era sólo falta de contenido, había una elección
+de color real para corregir. `components/worker/OpportunityCard.tsx`:
+hero sin foto ahora en gradiente de marca; título/ubicación pasan a texto
+blanco siempre (antes variaban según había foto o no). Verificado:
+tsc/eslint limpios, vitest 76/76, build de producción limpio.
+
+Antes, mismo día: **Auditoría de diseño con capturas
 reales de Julieta (Inicio/mazo y Mapa del trabajador) — 2 bugs
 confirmados y corregidos.**) (1) El mapa mostraba Recoleta/Retiro en vez
 de la ubicación real: `getCurrentPosition().catch(() => {})` tragaba el
@@ -23,7 +44,7 @@ contenido (fotos reales), no una nueva feature. Queda pendiente de
 decisión: revisar qué contenido prioriza la tarjeta (hoy scrollea para
 mostrar "Cómo llegar"/compartir en algunos viewports).
 
-Antes, mismo día: **Cierre real del "🐌 causa raíz de la
+Antes (2026-08-16): **Cierre real del "🐌 causa raíz de la
 app lenta" — ya estaba resuelto desde el 2026-07-27, sólo faltaba
 tildarlo.**) Al construir `domains/cloud` en Andamio horas antes citó este
 incidente como abierto ("pendiente co-locar en us-east-1"); al pedirle el
