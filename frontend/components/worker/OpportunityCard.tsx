@@ -56,12 +56,17 @@ export default function OpportunityCard({
           en pantallas más bajas o con dress code largo, el cuerpo perdía esa
           pulseada y su cola (el botón de compartir) quedaba recortada en
           silencio por el `overflow-hidden` del padre, sin scroll ni aviso
-          (bug real reportado por Julieta con captura, 2026-07-29). Ahora el
-          hero tiene una altura fija (`shrink-0`, no negocia) y el cuerpo se
-          lleva TODO el resto — con su propio scroll de respaldo (ver abajo)
-          para cualquier combinación de contenido/pantalla que igual no
-          entre. */}
-      <div className="relative h-[42%] min-h-[168px] shrink-0">
+          (bug real reportado por Julieta con captura, 2026-07-29). El hero
+          tiene una altura fija (`shrink-0`, no negocia) y el cuerpo se lleva
+          TODO el resto — con su propio scroll de respaldo (ver abajo) para
+          cualquier combinación de contenido/pantalla que igual no entre.
+          42%→36% (Julieta, 2026-08-16, con "Cómo llegar" pidiendo entrar sin
+          deslizar): con el body real medido (pago, fecha/cantidad/dress
+          code, "Cómo llegar") el hero al 42% dejaba el cuerpo just al límite
+          en viewports comunes — cualquier dress code que ocupara una línea
+          de más ya lo hacía scrollear. 36% le devuelve ~30px reales al
+          cuerpo sin que la foto deje de ser lo primero que se ve. */}
+      <div className="relative h-[36%] min-h-[150px] shrink-0">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -151,7 +156,7 @@ export default function OpportunityCard({
           sólo funcionaba arrancando justo sobre la parte ilustrada (bug real,
           Julieta 2026-07-31). Con `touch-pan-y` el navegador sólo reclama el
           gesto si es vertical y deja pasar el horizontal. */}
-      <div className="flex flex-1 flex-col justify-between gap-3 overflow-y-auto p-5 pt-4 touch-pan-y md:overflow-visible">
+      <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto p-5 pt-3 touch-pan-y md:overflow-visible">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>

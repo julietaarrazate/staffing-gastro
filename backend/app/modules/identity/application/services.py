@@ -76,7 +76,11 @@ GUEST_ACCESS_PIN = "3526"
 # Cuentas invitadas compartidas (una por rol), creadas on-demand la primera vez
 # que alguien entra con el PIN. Son sandboxes COMPARTIDOS: todos los testers de
 # un mismo rol usan la misma cuenta (suficiente para "que mis amigos prueben").
-_GUEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
+#
+# Exportada sin `_` (antes privada) para que `scripts/seed_demo_data.py` pueda
+# resolver email+nombre por rol sin duplicar estos datos a mano (riesgo real
+# de drift si alguna vez cambia acá y no allá).
+GUEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
     UserRole.WORKER: ("invitado.trabajador@oido.beta", "Invitado · Trabajador"),
     UserRole.EMPLOYER: ("invitado.comercio@oido.beta", "Invitado · Comercio"),
 }
@@ -88,7 +92,7 @@ _GUEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
 # Su propia exploración de /search o /map no se ve afectada: ese filtro sólo
 # saca la cuenta invitado de los RESULTADOS, no le cambia lo que ella ve.
 GUEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
-    email for email, _ in _GUEST_ACCOUNTS.values()
+    email for email, _ in GUEST_ACCOUNTS.values()
 )
 
 # Vigencia del token de recuperación de contraseña.
@@ -162,7 +166,7 @@ class IdentityService:
         if not secrets.compare_digest(pin, GUEST_ACCESS_PIN):
             raise InvalidGuestPinError()
 
-        email, name = _GUEST_ACCOUNTS[role]
+        email, name = GUEST_ACCOUNTS[role]
         user = await self._users.get_by_email(email)
         if user is None:
             user = await self._users.add(
