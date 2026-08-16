@@ -125,7 +125,13 @@ export default function SwipeDeck({
         </motion.div>
       </div>
 
-      {/* Acciones */}
+      {/* Acciones. Tamaño ajustado (auditoría UX 2026-08-16, reporte de
+          Julieta con referencias de Uber/Tegu): los botones eran 64px/80px,
+          desproporcionados frente al resto de la app — el mismo par de
+          acciones en la grilla de escritorio (OpportunityCard) usa 44px.
+          56px/64px sigue siendo un target cómodo para el pulgar (>44px,
+          mínimo táctil habitual) sin competir visualmente con la tarjeta,
+          en línea con el tamaño de los íconos principales de Uber/Tegu. */}
       <div className="mt-4 flex items-center justify-center gap-6">
         <motion.button
           type="button"
@@ -133,7 +139,7 @@ export default function SwipeDeck({
           onClick={() => decide("pass")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
         >
           <CrossIcon />
         </motion.button>
@@ -143,9 +149,9 @@ export default function SwipeDeck({
           onClick={() => decide("like")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-20 w-20 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
         >
-          <CheckIcon size={34} />
+          <CheckIcon size={28} />
         </motion.button>
       </div>
     </div>
@@ -154,7 +160,7 @@ export default function SwipeDeck({
 
 function CrossIcon() {
   return (
-    <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
       <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
