@@ -27,7 +27,7 @@ from app.modules.application.domain.repositories import ShiftApplicationReposito
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
-from app.modules.identity.domain.repositories import UserRepository
+from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.subscription.domain.billing_gateway import BillingGateway
@@ -79,6 +79,7 @@ class AdminService:
         applications: ShiftApplicationRepository,
         subscriptions: SubscriptionRepository,
         billing: BillingGateway,
+        sessions: RefreshSessionRepository,
     ) -> None:
         self._users = users
         self._shifts = shifts
@@ -87,6 +88,7 @@ class AdminService:
         self._applications = applications
         self._subscriptions = subscriptions
         self._billing = billing
+        self._sessions = sessions
 
     async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[AdminUserRow]:
         """Lista usuarios paginados (más recientes primero), con la foto de
@@ -239,12 +241,23 @@ class AdminService:
         )
 
     async def suspend_user(self, actor: User, user_id: UUID) -> User:
-        """Suspende a un usuario. No permite que un admin se suspenda a sí mismo."""
+        """Suspende a un usuario. No permite que un admin se suspenda a sí mismo.
+
+        Revoca TODAS sus sesiones de refresh activas en la misma operación
+        (auditoría de seguridad, `domains/security/trees/authn-strategy.md`
+        leaf L5: suspensión = revocar en todos lados, sin excepción). Sin
+        esto, `is_active=False` bloquea el próximo request/refresh (ambos lo
+        chequean en vivo contra la DB), pero las filas de sesión seguían sin
+        marcarse revocadas — si el usuario se reactivaba después, sus
+        sesiones viejas (posiblemente el dispositivo que motivó la
+        suspensión) volvían a funcionar solas, sin pedir un login nuevo."""
         if actor.id == user_id:
             raise CannotModifySelfError()
         user = await self._get(user_id)
         user.suspend()
-        return await self._users.update(user)
+        updated = await self._users.update(user)
+        await self._sessions.revoke_all_for_user(user_id)
+        return updated
 
     async def activate_user(self, user_id: UUID) -> User:
         """Reactiva a un usuario suspendido."""

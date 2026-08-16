@@ -17,7 +17,7 @@ from app.modules.subscription.infrastructure.fake_billing_gateway import (
     FakeBillingGateway,
 )
 from app.modules.subscription.infrastructure.models import SubscriptionModel
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, login, new_client, refresh_with_cookie, register_user
 
 pytestmark = pytest.mark.asyncio
 
@@ -433,6 +433,37 @@ async def test_admin_suspends_and_activates_user(client, session_factory):
     activated = await client.post(f"/api/v1/admin/users/{target_id}/activate", headers=admin)
     assert activated.status_code == 200
     assert activated.json()["status"] == "active"
+
+
+async def test_admin_suspend_revokes_refresh_session(client, session_factory):
+    """Auditoría de seguridad (domains/security/trees/authn-strategy.md leaf
+    L5): suspender revoca TODAS las sesiones de refresh existentes, no sólo
+    bloquea el próximo login. Sin esto, un usuario suspendido y después
+    reactivado recuperaba su sesión vieja (la de un dispositivo posiblemente
+    comprometido, la razón original de la suspensión) sin volver a loguearse."""
+    admin = await _make_admin(client, session_factory, "admin@test.com")
+
+    # El target loguea en su propio cliente/jar (dispositivo independiente),
+    # así su cookie de refresh no se pisa con la del admin.
+    async with new_client() as target_client:
+        await register_user(target_client, email="target@test.com", role="worker")
+        await login(target_client, "target@test.com")
+        target_refresh = target_client.cookies.get("staffya_refresh")
+    assert target_refresh
+
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == "target@test.com")
+
+    suspended = await client.post(f"/api/v1/admin/users/{target_id}/suspend", headers=admin)
+    assert suspended.status_code == 200
+
+    activated = await client.post(f"/api/v1/admin/users/{target_id}/activate", headers=admin)
+    assert activated.status_code == 200
+
+    # Reactivado, pero la sesión de refresh de ANTES de la suspensión quedó
+    # revocada — tiene que volver a loguearse, no reanudar sola.
+    reused = await refresh_with_cookie(target_refresh)
+    assert reused.status_code == 401
 
 
 async def test_admin_cannot_suspend_self(client, session_factory):
