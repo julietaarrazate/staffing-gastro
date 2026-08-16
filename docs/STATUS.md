@@ -5,7 +5,36 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Cuarta vuelta de la misma
+*Última actualización: 2026-08-16 (**Quinta vuelta: fotos reales en las
+4 cuentas compartidas (invitado + prueba) y hero de `OpportunityCard`
+más chico para que "Cómo llegar" entre sin deslizar.**) Julieta pidió
+subir "fotos de prueba a las cuentas de invitado tanto comercio como
+trabajador" — las que usa la gente que prueba la app públicamente (PIN
+de invitado) y las que ella misma usa desde `/admin` vía "Ver como" —
+para poder evaluar cómo queda todo el diseño foto-first con datos
+reales, no fallback de color. `scripts/seed_demo_data.py`, que ya corre
+en cada arranque (`SEED_DEMO_DATA=true`), ahora también completa
+`logo_url`/`photo_url` en las 4 cuentas compartidas SI ya tienen perfil
+(onboarding hecho) y todavía no tienen foto — no crea perfiles nuevos ni
+pisa nombre/categoría/ubicación cargados a mano. Cuidado explícito de
+performance: sumar esto sin pensarlo hubiera roto la garantía de
+"segunda corrida barata" que ya existía (`test_second_seed_run_is_
+cheap_...`, R-perf) — quedó en 3 queries batch más (antes de esto ya
+había 2), lejos de una lectura por cuenta. **No** se fabricó rating,
+nivel ni "comercio verificado" para estas cuentas — son señales de
+confianza reales (reseñas/verificación de identidad), simularlas
+engañaría a cualquiera evaluando qué significan esos badges.
+Adicionalmente, `OpportunityCard`: el hero baja de 42% a 36% del alto
+de la tarjeta (min-height 168→150px) y el cuerpo se ajusta un poco más
+compacto — con el "Compartir por WhatsApp" ya sacado (vuelta anterior)
+esto termina de resolver el pedido de que "Cómo llegar" entre sin
+deslizar en los viewports más comunes, sin perder el criterio
+foto-first de la tarjeta. Verificado: `pytest` backend 413/413 (dos
+tests de `seed_demo_data` actualizados para reflejar las 4 cuentas
+nuevas y el nuevo presupuesto de queries), tsc/eslint frontend limpios,
+vitest 76/76, build de producción limpio.
+
+Antes, mismo día: **Cuarta vuelta de la misma
 auditoría: se saca la cápsula flotante del asistente de TODA la app
 (no sólo de /feed), botones de aceptar/rechazar del mazo al mismo
 tamaño, y se corrige un doble margen real en la cabecera de /feed.**)

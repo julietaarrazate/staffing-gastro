@@ -45,14 +45,17 @@ async def _user_count(session_factory: async_sessionmaker) -> int:
 async def test_seed_is_idempotent(session_factory, monkeypatch):
     """Correr el seed dos veces no duplica usuarios (mismo comportamiento de
     siempre: `EmailAlreadyExistsError`/chequeo batch hacen que la segunda
-    corrida no cree nada nuevo)."""
+    corrida no cree nada nuevo). Incluye las 4 cuentas compartidas (2
+    invitado + 2 de prueba, `_seed_shared_account_photos`, 2026-08-16) además
+    de los comercios/trabajadores ficticios."""
     monkeypatch.setattr(seed_demo_data, "AsyncSessionLocal", session_factory)
 
     await seed_demo_data.main()
     n_companies = len(seed_demo_data.COMPANIES)
     n_workers = len(seed_demo_data.WORKERS)
+    n_shared = len(seed_demo_data._SHARED_ACCOUNTS)
     first_run_count = await _user_count(session_factory)
-    assert first_run_count == n_companies + n_workers
+    assert first_run_count == n_companies + n_workers + n_shared
 
     await seed_demo_data.main()
     second_run_count = await _user_count(session_factory)
@@ -77,10 +80,13 @@ async def test_second_seed_run_is_cheap_regardless_of_demo_size(session_factory,
 
     # 2 queries batch (1 `_existing_emails` para comercios + 1 para
     # trabajadores) + 0 de turnos (el seed de turnos corta apenas ve que no
-    # hay comercios nuevos). Se deja margen generoso (<=6) para no acoplar
-    # el test a detalles internos menores, pero bien lejos de 26+.
-    assert counter["n"] <= 6, (
-        f"se esperaban <=6 queries en la segunda corrida (constante, no una "
+    # hay comercios nuevos) + 3 de `_seed_shared_account_photos` (2026-08-16:
+    # 1 select de las 4 cuentas compartidas + 1 `photo_urls_by_user_ids` de
+    # comercios + 1 de trabajadores) = 5 en el caso real medido. Se deja
+    # margen (<=8, no ajustado al número exacto) para no acoplar el test a
+    # detalles internos menores, pero bien lejos de 26+.
+    assert counter["n"] <= 8, (
+        f"se esperaban <=8 queries en la segunda corrida (constante, no una "
         f"por cada una de las {n_demo_entries} entradas demo), se hicieron "
         f"{counter['n']}"
     )

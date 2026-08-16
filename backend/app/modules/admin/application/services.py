@@ -39,9 +39,12 @@ from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 # Cuentas de prueba para que la administradora entre como cada rol vía
 # "Ver como" sin usar datos de usuarios reales (mismo patrón que
-# `_GUEST_ACCOUNTS` en identity, pero acá el acceso es por impersonación
+# `GUEST_ACCOUNTS` en identity, pero acá el acceso es por impersonación
 # admin en vez de un PIN público).
-_TEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
+#
+# Exportada sin `_` (antes privada) para que `scripts/seed_demo_data.py` pueda
+# resolver email+nombre por rol sin duplicar estos datos a mano.
+TEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
     UserRole.WORKER: ("prueba.trabajador@oido.beta", "Prueba · Trabajador"),
     UserRole.EMPLOYER: ("prueba.comercio@oido.beta", "Prueba · Comercio"),
 }
@@ -51,7 +54,7 @@ _TEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
 # 2026-08-15, F2: se creaban solas al abrir el panel y se contaban como
 # usuarios reales).
 TEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
-    email for email, _ in _TEST_ACCOUNTS.values()
+    email for email, _ in TEST_ACCOUNTS.values()
 )
 
 
@@ -186,7 +189,7 @@ class AdminService:
         vez que se piden (get-or-create, mismo patrón que
         `IdentityService.guest_login`)."""
         accounts = []
-        for role, (email, name) in _TEST_ACCOUNTS.items():
+        for role, (email, name) in TEST_ACCOUNTS.items():
             user = await self._users.get_by_email(email)
             if user is None:
                 user = await self._users.add(

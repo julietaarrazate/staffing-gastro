@@ -12,6 +12,7 @@ el resto. Usa la misma `DATABASE_URL` configurada en `.env`/entorno.
 """
 
 import asyncio
+import secrets
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -20,6 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
+from app.core.security import hash_password
+from app.modules.admin.application.services import TEST_ACCOUNTS
 from app.modules.application.infrastructure.repositories import (
     SqlAlchemyShiftApplicationRepository,
 )
@@ -31,7 +34,8 @@ from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
 from app.modules.identity.application.dtos import RegisterCommand
-from app.modules.identity.application.services import IdentityService
+from app.modules.identity.application.services import GUEST_ACCOUNTS, IdentityService
+from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import EmailAlreadyExistsError
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.identity.infrastructure.google_token_verifier import (
@@ -582,6 +586,132 @@ async def _seed_shifts(session, created_company_emails: set[str]) -> None:
         start += timedelta(hours=2)
 
 
+# Foto real para las cuentas compartidas invitado/prueba (Julieta, 2026-08-16:
+# "vamos a poner fotos de prueba a las cuentas de invitado tanto comercio como
+# trabajador así podemos ver como queda con fotos de locales" — son las
+# cuentas que usa la gente cuando hace "build in public" con el PIN público, y
+# las que ella misma usa desde /admin vía "Ver como"). Mismo servicio
+# (LoremFlickr/pravatar) que ya usan COMPANIES/WORKERS arriba, con un `lock`
+# fijo propio para no repetir la foto de ningún comercio/trabajador de la
+# lista.
+_GUEST_COMPANY_PHOTO = "https://loremflickr.com/600/400/bar,restaurant?lock=9001"
+_GUEST_WORKER_PHOTO = "https://i.pravatar.cc/300?img=68"
+
+
+# Las 4 cuentas compartidas: 2 invitado (PIN público) + 2 de prueba
+# (impersonación admin). En el caso real de cada arranque (`SEED_DEMO_DATA=
+# true`, ver startup_seed.py) las 4 ya existen con foto puesta — R-perf
+# (docs/audits/PERFORMANCE_REPORT.md, mismo motivo que `_existing_emails`
+# arriba): esta función tiene que quedar en un puñado constante de queries
+# en ese caso de régimen, no una ronda de lecturas por cuenta.
+_SHARED_ACCOUNTS: list[tuple[str, str, str, UserRole]] = [
+    (label, email, name, role)
+    for label, accounts in (("invitado", GUEST_ACCOUNTS), ("prueba", TEST_ACCOUNTS))
+    for role, (email, name) in accounts.items()
+]
+
+
+async def _seed_shared_account_photos(session: AsyncSession) -> None:
+    """Da una foto real a las 4 cuentas compartidas que YA tienen perfil
+    (onboarding hecho) y todavía no tienen una — no crea perfiles nuevos (eso
+    sigue pasando en `/bienvenida` o al pedir "Ver como" por primera vez) ni
+    pisa nombre/categoría/ubicación ya cargados a mano. NO fabrica rating/
+    nivel ni "comercio verificado": son señales de confianza reales
+    (reseñas/verificación de identidad), no cosméticas — simularlas ahí
+    engañaría a quien esté evaluando qué significan esos badges."""
+    users = SqlAlchemyUserRepository(session)
+    all_emails = [email for _, email, _, _ in _SHARED_ACCOUNTS]
+
+    # 1 sola consulta resuelve existencia + id de las 4 de una — el caso real
+    # de cada arranque (las 4 ya existen) no paga ninguna consulta extra por
+    # crearlas (ver docstring de arriba, R-perf).
+    rows_stmt = select(UserModel.id, UserModel.email).where(UserModel.email.in_(all_emails))
+    rows = (await session.execute(rows_stmt)).all()
+    id_by_email = {row.email: row.id for row in rows}
+
+    for label, email, name, role in _SHARED_ACCOUNTS:
+        if email not in id_by_email:
+            created = await users.add(
+                User(
+                    email=email,
+                    hashed_password=hash_password(secrets.token_urlsafe(32)),
+                    full_name=name,
+                    role=role,
+                    is_verified=True,
+                )
+            )
+            id_by_email[email] = created.id
+            print(f"  [ok] {label} {email} creada")
+
+    employer_ids = [
+        id_by_email[email]
+        for _, email, _, role in _SHARED_ACCOUNTS
+        if role == UserRole.EMPLOYER and email in id_by_email
+    ]
+    worker_ids = [
+        id_by_email[email]
+        for _, email, _, role in _SHARED_ACCOUNTS
+        if role == UserRole.WORKER and email in id_by_email
+    ]
+
+    # 1 consulta batch por familia de perfil (mismo método que ya usa
+    # `AdminService.list_users` para lo mismo) — sólo trae los que YA tienen
+    # perfil; el resto (onboarding sin terminar) no aparece en el dict y se
+    # omite, no se fuerza a crear uno.
+    companies = SqlAlchemyCompanyProfileRepository(session)
+    workers = SqlAlchemyWorkerProfileRepository(session)
+    company_photos = await companies.photo_urls_by_user_ids(employer_ids)
+    worker_photos = await workers.photo_urls_by_user_ids(worker_ids)
+
+    company_service = CompanyProfileService(companies)
+    worker_service = WorkerProfileService(workers, SqlAlchemyShiftRepository(session))
+
+    for user_id, logo_url in company_photos.items():
+        if logo_url:
+            continue
+        profile = await company_service.get_my_profile(user_id)
+        await company_service.update_profile(
+            user_id,
+            CompanyProfileData(
+                name=profile.name,
+                logo_url=_GUEST_COMPANY_PHOTO,
+                category=profile.category,
+                description=profile.description,
+                address=profile.address,
+                city=profile.city,
+                latitude=profile.latitude,
+                longitude=profile.longitude,
+                capacity=profile.capacity,
+                opening_hours=profile.opening_hours,
+            ),
+        )
+        print(f"  [ok] foto de comercio agregada a {user_id}")
+
+    for user_id, photo_url in worker_photos.items():
+        if photo_url:
+            continue
+        profile = await worker_service.get_my_profile(user_id)
+        await worker_service.update_profile(
+            user_id,
+            WorkerProfileData(
+                photo_url=_GUEST_WORKER_PHOTO,
+                birth_date=profile.birth_date,
+                city=profile.city,
+                bio=profile.bio,
+                latitude=profile.latitude,
+                longitude=profile.longitude,
+                skills=profile.skills,
+                years_experience=profile.years_experience,
+                languages=profile.languages,
+                certifications=profile.certifications,
+                cv_url=profile.cv_url,
+                cv_filename=profile.cv_filename,
+                is_available=profile.is_available,
+            ),
+        )
+        print(f"  [ok] foto de trabajador agregada a {user_id}")
+
+
 async def main() -> None:
     async with AsyncSessionLocal() as session:
         print("Comercios de prueba:")
@@ -590,6 +720,8 @@ async def main() -> None:
         await _seed_workers(session)
         print("Turnos de prueba:")
         await _seed_shifts(session, created)
+        print("Fotos de cuentas invitado/prueba compartidas:")
+        await _seed_shared_account_photos(session)
     print(f"\nListo. Contraseña de todas las cuentas demo: {DEMO_PASSWORD}")
 
 
