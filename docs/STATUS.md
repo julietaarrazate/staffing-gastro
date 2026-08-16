@@ -5,7 +5,38 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Tercera vuelta de la misma
+*Última actualización: 2026-08-16 (**Cuarta vuelta de la misma
+auditoría: se saca la cápsula flotante del asistente de TODA la app
+(no sólo de /feed), botones de aceptar/rechazar del mazo al mismo
+tamaño, y se corrige un doble margen real en la cabecera de /feed.**)
+(1) Julieta, confirmando el fix anterior: "el asistente ya esta en que
+necesitas en el inicio, no quiero botones flotantes" — la cápsula
+(`AIAssistantFab`) seguía viva en el resto de la app (mapa, matches,
+chats, perfil), sólo se había ocultado en `/shifts` y `/feed`. Se borró
+el componente entero: el asistente vive únicamente en `AIAssistantBar`,
+ya presente en `/shifts` (comercio) y `/feed` (trabajador). (2) "El
+botón de rechazar y aceptar tienen distintos tamaños" — en
+`SwipeDeck.tsx` habían quedado en 56px/64px (ajuste de la vuelta
+anterior, que igual dejaba una asimetría). Ahora los dos en 64px, mismo
+peso de ícono (26px), para que se lean como un único par de opciones.
+(3) "Optimiza bien la página los espacios" — auditando el layout de
+`/feed` encontré un bug real de espaciado, no sólo estético: el
+contenedor es `flex flex-col`, donde los márgenes entre hermanos NO
+colapsan (a diferencia del flujo normal); `AIAssistantBar` tenía
+`mb-3` y `LocationBar` (component propio) tenía `mt-3` — el hueco real
+entre ambos terminaba siendo 24px, el doble del resto de la pantalla, y
+encima sin nada de aire después, antes del chip de "Sólo urgentes".
+Unifiqué todo el bloque de cabecera a un único ritmo de `mb-2` (8px),
+recuperando alto real para el mazo de turnos, que es el contenido
+principal de la pantalla. Verificado: tsc/eslint limpios (sin warnings
+nuevos), vitest 76/76, build de producción limpio; e2e no se pudo
+correr en este entorno (mismo límite de sandbox de la vuelta anterior:
+el binario de Chromium que pide el runner de Playwright no es el
+preinstalado acá) — test `ai-assistant-fab.spec.ts` reescrito a mano
+para reflejar que ya no existe ninguna cápsula flotante en ningún lado
+de la app.
+
+Antes, mismo día: **Tercera vuelta de la misma
 auditoría de Julieta: asistente flotante fuera del feed del trabajador,
 "Compartir por WhatsApp" fuera del mazo, chip de rubro más chico en
 Matches.**) (1) La cápsula flotante del asistente (`AIAssistantFab`) se

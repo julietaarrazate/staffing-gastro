@@ -8,7 +8,6 @@ import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
-import AIAssistantFab from "@/components/AIAssistantFab";
 
 // Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
 // por defecto de toda la app.
@@ -107,8 +106,12 @@ export default function RootLayout({
               <SplashScreen />
               <ImpersonationBanner />
               <Navbar />
+              {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no
+                  quiero botones flotantes") — el asistente vive en
+                  AIAssistantBar, el punto de entrada fijo de /shifts
+                  (comercio) y /feed (trabajador), no en una cápsula suelta
+                  sobre el resto de las pantallas. */}
               <main className="flex-1 pb-20 md:pb-0">{children}</main>
-              <AIAssistantFab />
               <BottomNav />
             </PushPromptProvider>
           </ToastProvider>

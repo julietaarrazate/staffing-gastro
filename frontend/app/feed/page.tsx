@@ -305,8 +305,15 @@ function WorkerFeedPanel() {
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)] md:max-w-5xl">
-      {/* Header: saludo + disponibilidad */}
-      <header className="mb-3 flex items-center justify-between">
+      {/* Header: saludo + disponibilidad. `mb-2` (no `mb-3`): en un
+          `flex flex-col` los márgenes entre hermanos no colapsan, así que
+          todo este bloque de cabecera (saludo, barra del asistente,
+          ubicación, filtro de urgentes) usa el mismo `mb-2` para un ritmo
+          parejo de 8px y recuperar alto real para el mazo — antes eran 12px
+          acá y hasta 24px más abajo por el doble margen entre la barra del
+          asistente y LocationBar (auditoría de espaciado, Julieta,
+          2026-08-16). */}
+      <header className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="lg" />
           <div>
@@ -340,10 +347,10 @@ function WorkerFeedPanel() {
 
       {/* Mismo lugar y tratamiento que ya tiene el comercio en /shifts
           (pedido de Julieta: "queda mejor como tiene comercio, un lugar
-          arriba... lo mismo tiene que tener para trabajador") — reemplaza a
-          la cápsula flotante, que ahora se oculta en esta pantalla (ver
-          AIAssistantFab). */}
-      <div className="mb-3">
+          arriba... lo mismo tiene que tener para trabajador"); reemplaza a la
+          cápsula flotante, que se sacó de toda la app (Julieta, 2026-08-16:
+          "no quiero botones flotantes"). */}
+      <div className="mb-2">
         <AIAssistantBar />
       </div>
 
@@ -351,7 +358,7 @@ function WorkerFeedPanel() {
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente
         // activa: el origen ya no es "acá ahora"/perfil, es la zona pedida
         // — mostrar los dos juntos confundiría cuál manda.
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <p className="text-sm text-ink/70">
             Turnos que buscaste en <span className="font-semibold text-ink">{assistantSearch.zoneName}</span>
           </p>
@@ -365,7 +372,9 @@ function WorkerFeedPanel() {
           </button>
         </div>
       ) : (
-        <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
+        <div className="mb-2">
+          <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
+        </div>
       )}
 
       {(urgentCount > 0 || urgentOnly) && (

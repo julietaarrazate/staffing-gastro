@@ -49,7 +49,14 @@ export default function LocationBar({
   }
 
   return (
-    <div className="mt-3">
+    // Sin margen propio: el espaciado antes/después lo controla el padre
+    // (app/feed/page.tsx), igual que el resto de los bloques apilados de la
+    // cabecera — antes tenía `mt-3` acá Y `mb-3` en el bloque anterior, que en
+    // un `flex flex-col` NO colapsan (a diferencia del flujo normal): el
+    // espacio real terminaba siendo el doble (24px) de lo que se ve en el
+    // resto de la pantalla (8px), y encima sin nada de aire después, antes
+    // del chip de urgentes (auditoría de espaciado, Julieta, 2026-08-16).
+    <div>
       <div className="flex items-center gap-2 rounded-full bg-white px-3.5 py-2 ring-1 ring-line">
         <MapPinIcon size={16} className="shrink-0 text-primary-text" />
         <p className="min-w-0 flex-1 truncate text-sm text-ink/70">
