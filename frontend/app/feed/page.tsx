@@ -18,6 +18,7 @@ import {
   type CurrentLocation,
 } from "@/lib/current-location";
 import LocationBar from "@/components/worker/LocationBar";
+import AIAssistantBar from "@/components/AIAssistantBar";
 import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/components/ui";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import OpportunityCard from "@/components/worker/OpportunityCard";
@@ -336,6 +337,15 @@ function WorkerFeedPanel() {
           </span>
         </button>
       </header>
+
+      {/* Mismo lugar y tratamiento que ya tiene el comercio en /shifts
+          (pedido de Julieta: "queda mejor como tiene comercio, un lugar
+          arriba... lo mismo tiene que tener para trabajador") — reemplaza a
+          la cápsula flotante, que ahora se oculta en esta pantalla (ver
+          AIAssistantFab). */}
+      <div className="mb-3">
+        <AIAssistantBar />
+      </div>
 
       {assistantSearch ? (
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente

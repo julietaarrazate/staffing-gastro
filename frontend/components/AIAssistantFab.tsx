@@ -14,13 +14,14 @@ import { LogoGlyph } from "@/components/Logo";
  * `app/assistant/page.tsx`) — el trabajador busca turnos, el comercio hace
  * de todo un poco (crear/consultar turnos, candidatos, verificación).
  *
- * En `/shifts` (panel/home del comercio) se oculta: ahí vive `AIAssistantBar`,
- * la versión prominente inline — tener las dos juntas en la misma pantalla
- * duplica el mismo punto de entrada. El trabajador no tiene todavía una
- * barra equivalente en `/feed` (alcance de esta primera versión: sólo la
- * cápsula), así que ahí se ve. En `/assistant` también se oculta, para
- * cualquier rol — no tiene sentido flotar un botón hacia la pantalla en la
- * que ya estás.
+ * En `/shifts` (panel/home del comercio) y, desde 2026-08-16, en `/feed`
+ * (Inicio del trabajador) se oculta: ambas pantallas ya tienen
+ * `AIAssistantBar`, la versión prominente inline — tener las dos juntas en la
+ * misma pantalla duplica el mismo punto de entrada. Julieta pidió
+ * explícitamente sacar la cápsula flotante y que el trabajador tenga "un
+ * lugar arriba" como ya tiene el comercio, no un botón suelto tapando el
+ * mazo. En `/assistant` también se oculta, para cualquier rol — no tiene
+ * sentido flotar un botón hacia la pantalla en la que ya estás.
  *
  * Se oculta también en /shifts/new y /shifts/new-event, que ya tienen su
  * propio cuadro de texto+dictado integrado, y en /bienvenida — el onboarding
@@ -43,7 +44,8 @@ export default function AIAssistantFab() {
     pathname === "/shifts/new" ||
     pathname === "/shifts/new-event" ||
     pathname === "/bienvenida" ||
-    pathname === "/assistant";
+    pathname === "/assistant" ||
+    pathname === "/feed";
   if (!user || user.role === "admin" || hiddenOnThisPage) return null;
 
   return (

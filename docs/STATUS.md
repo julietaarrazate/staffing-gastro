@@ -5,7 +5,35 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**`OpportunityCard`: el fallback sin
+*Última actualización: 2026-08-16 (**Tercera vuelta de la misma
+auditoría de Julieta: asistente flotante fuera del feed del trabajador,
+"Compartir por WhatsApp" fuera del mazo, chip de rubro más chico en
+Matches.**) (1) La cápsula flotante del asistente (`AIAssistantFab`) se
+ocultaba sólo en `/shifts` (panel del comercio), que ya tiene la barra
+prominente `AIAssistantBar` ("¿Qué necesitás?") arriba del todo; en
+`/feed` (Inicio del trabajador) seguía flotando sobre el mazo. Julieta:
+"el asistente flotante no me gusta sacalo, queda mejor como tiene
+comercio un lugar arriba, lo mismo tiene que tener para trabajador" —
+ahora `/feed` tiene la misma `AIAssistantBar` debajo del saludo, y la
+cápsula se oculta ahí también (mismo criterio que ya regía para
+`/shifts`). Test e2e actualizado (`ai-assistant-fab.spec.ts`) para
+reflejar el nuevo comportamiento. (2) "Compartir por WhatsApp" sacado de
+`OpportunityCard` (el mazo de turnos): duplicaba `ShareShiftButton`, que
+ya vive en `/turno/[id]`, y en pantallas más bajas tapaba "Cómo llegar"
+obligando a deslizar dentro de la tarjeta — Julieta: "no sé si aporta
+algo, sacando eso entra bien cómo llegar sin quedar oculto". (3)
+`ShiftCard` (usada en Matches: Asignados/Postulaciones/Guardados): el
+chip de ícono por rubro bajó de 48px a 40px — era más grande que el
+propio avatar del comercio arriba (32px) y, con el tinte pálido de
+`SKILL_ACCENT`, se leía "genérico, opaco, grande, desproporcionado"
+(captura de Julieta). Verificado: tsc/eslint limpios, vitest 76/76,
+build de producción limpio; e2e no se pudo correr localmente (el
+Chromium que espera el runner de Playwright en este entorno no es el
+binario preinstalado — limitación de sandbox, no del cambio; ver
+patrón ya conocido: E2E siempre da "skipped" en el CI de este repo por
+la cuota agotada de billing, no específico de este PR).
+
+Antes, mismo día: **`OpportunityCard`: el fallback sin
 foto pasa de tinte pálido a gradiente de marca — mismo tratamiento que ya
 usa el perfil de trabajador.**) Julieta comparó su propia foto de perfil
 (hero grande con foto o, si falta, gradiente saturado `from-primary
