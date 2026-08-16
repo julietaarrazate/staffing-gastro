@@ -148,7 +148,7 @@ export interface AssistantEventRole {
 /** Respuesta de `POST /assistant/query` (asistente general del panel del
  * comercio, pedido de Julieta: "que entienda si es un evento, un turno, y
  * toda la app"). Un único intent viene con datos poblados; el resto queda
- * en `null` — el frontend rama por `intent` (ver `AIAssistantFab.tsx`). */
+ * en `null` — el frontend rama por `intent` (ver `AIAssistantBar.tsx`). */
 export interface AssistantQueryResponse {
   intent:
     | "crear_turno"

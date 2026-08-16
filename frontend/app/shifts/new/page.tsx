@@ -194,7 +194,7 @@ function NewShiftWizard() {
     }
   }
 
-  // Handoff del asistente flotante (AIAssistantFab, fuera del wizard): ya
+  // Handoff del asistente (AIAssistantBar, fuera del wizard): ya
   // parseó el texto con IA en otra pantalla y nos manda acá con el draft
   // guardado — lo aplicamos una sola vez al montar y limpiamos el rastro
   // (storage + querystring) para que un refresh no lo reaplique.

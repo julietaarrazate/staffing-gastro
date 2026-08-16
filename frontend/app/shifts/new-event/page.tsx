@@ -62,7 +62,7 @@ function NewEventForm() {
   const [result, setResult] = useState<EventResult | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  // Handoff del asistente flotante (AIAssistantFab): ya clasificó el pedido
+  // Handoff del asistente (AIAssistantBar): ya clasificó el pedido
   // como "crear_evento" y parseó los roles con IA en otra pantalla — lo
   // aplicamos una sola vez al montar y limpiamos el rastro (storage +
   // querystring) para que un refresh no lo reaplique. El comercio sigue

@@ -2,16 +2,18 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
- * Asistente general del panel del comercio, como botón flotante global
- * (pedido de Julieta: separado del wizard, "un botón afuera", que entienda
- * "si es un evento, si es un turno, y toda la app, no sólo lo básico") —
- * antes sólo vivía adentro de /shifts/new y sólo sabía armar un turno.
- * `POST /assistant/query` clasifica el pedido en uno de varios intents;
- * estos tests cubren cada rama del frontend.
+ * Asistente general del panel del comercio (pedido de Julieta: separado del
+ * wizard, "un botón afuera", que entienda "si es un evento, si es un turno, y
+ * toda la app, no sólo lo básico") — antes sólo vivía adentro de /shifts/new
+ * y sólo sabía armar un turno. `POST /assistant/query` clasifica el pedido en
+ * uno de varios intents; estos tests cubren cada rama del frontend.
  *
- * El disparador (cápsula flotante o barra) navega a `/assistant` — la
- * pantalla dedicada (pedido de Julieta: "que no sea un botón escondido, que
- * tenga su lugar para pedirle"), ya no abre una hoja modal encima.
+ * El disparador es siempre `AIAssistantBar` ("¿Qué necesitás?"), la barra fija
+ * arriba de /shifts (comercio) y /feed (trabajador) — nunca un botón flotante
+ * (hubo uno, `AIAssistantFab`, sacado del todo el 2026-08-16: Julieta, "no
+ * quiero botones flotantes"). Navega a `/assistant` — la pantalla dedicada
+ * (pedido de Julieta: "que no sea un botón escondido, que tenga su lugar para
+ * pedirle"), no una hoja modal.
  */
 
 const EMPLOYER_SESSION = {
@@ -381,7 +383,7 @@ test("varias preguntas seguidas quedan en el historial de la misma visita", asyn
   await expect(page.getByText("¿y mañana?")).toBeVisible();
 });
 
-test("en /shifts la cápsula flotante se oculta y aparece la barra prominente en su lugar", async ({
+test("en /shifts (comercio) la barra prominente es el único punto de entrada del asistente", async ({
   page,
 }) => {
   await injectSession(page);
@@ -393,53 +395,22 @@ test("en /shifts la cápsula flotante se oculta y aparece la barra prominente en
   );
 
   await page.goto("/shifts");
-  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "¿Qué necesitás?" })).toBeVisible();
+  // Nunca hubo, y ya no puede haber, una cápsula flotante en ningún lado
+  // (se sacó del todo el 2026-08-16: Julieta, "no quiero botones flotantes").
+  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
 });
 
-test("el botón flotante no aparece en /shifts/new ni en /shifts/new-event (ya tienen el cuadro integrado)", async ({
+test("en /feed (Inicio del trabajador) la barra prominente es el único punto de entrada del asistente", async ({
   page,
 }) => {
-  await injectSession(page);
-  await blockExternalHosts(page);
-  await mockEmptyNotifications(page);
-  await mockSession(page, EMPLOYER_SESSION);
-
-  await page.goto("/shifts/new");
-  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
-
-  await page.goto("/shifts/new-event");
-  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
-});
-
-test("el botón flotante no aparece durante el onboarding (/bienvenida)", async ({ page }) => {
-  await injectSession(page);
-  await blockExternalHosts(page);
-  await mockEmptyNotifications(page);
-  await mockSession(page, EMPLOYER_SESSION);
-
-  await page.goto("/bienvenida");
-  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
-});
-
-test("el botón flotante no aparece en /assistant (ya estás ahí)", async ({ page }) => {
-  await injectSession(page);
-  await blockExternalHosts(page);
-  await mockEmptyNotifications(page);
-  await mockSession(page, EMPLOYER_SESSION);
-
-  await page.goto("/assistant");
-  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
-});
-
-test("en /feed (Inicio del trabajador) la cápsula flotante se oculta y aparece la barra prominente en su lugar", async ({
-  page,
-}) => {
-  // Antes el trabajador tenía la cápsula flotante tapando el mazo de turnos.
-  // Julieta pidió sacarla y darle el mismo lugar arriba que ya tiene el
-  // comercio en /shifts (mismo criterio, ver el test análogo arriba):
-  // "queda mejor como tiene comercio un lugar arriba, lo mismo tiene que
-  // tener para trabajador" (2026-08-16).
+  // Antes el trabajador tenía una cápsula flotante tapando el mazo de
+  // turnos. Julieta pidió sacarla y darle el mismo lugar arriba que ya tiene
+  // el comercio en /shifts: "queda mejor como tiene comercio un lugar
+  // arriba, lo mismo tiene que tener para trabajador" (2026-08-16) — y
+  // después, viendo que la cápsula seguía flotando en el resto de la app,
+  // "no quiero botones flotantes": se sacó del todo, no sólo de esta
+  // pantalla.
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -463,6 +434,20 @@ test("en /feed (Inicio del trabajador) la cápsula flotante se oculta y aparece 
   await expect(
     page.getByText("Contame qué turno buscás — puesto, zona, a cuántos kilómetros y para cuándo.")
   ).toBeVisible();
+});
+
+test("ninguna pantalla sin AIAssistantBar (map, bienvenida, el propio /assistant) tiene una cápsula flotante", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  for (const path of ["/bienvenida", "/assistant"]) {
+    await page.goto(path);
+    await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+  }
 });
 
 test("un admin que entra a /assistant por URL directa se va a su panel", async ({ page }) => {

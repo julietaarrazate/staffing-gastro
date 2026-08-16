@@ -50,7 +50,7 @@ export interface AssistantHistoryEntry {
  * Lógica compartida del asistente de IA del comercio (clasifica intención vía
  * `POST /assistant/query` y rama según el resultado) — separada de la
  * presentación (`/assistant`, la pantalla dedicada) para que el disparador
- * (`AIAssistantFab`/`AIAssistantBar`, que ahora sólo navegan ahí) no cargue
+ * (`AIAssistantBar`, que sólo navega ahí) no cargue
  * con esta lógica.
  */
 export function useAIAssistant() {
