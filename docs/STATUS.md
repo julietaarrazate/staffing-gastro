@@ -5,7 +5,25 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Cierre real del "🐌 causa raíz de la
+*Última actualización: 2026-08-16 (**Auditoría de diseño con capturas
+reales de Julieta (Inicio/mazo y Mapa del trabajador) — 2 bugs
+confirmados y corregidos.**) (1) El mapa mostraba Recoleta/Retiro en vez
+de la ubicación real: `getCurrentPosition().catch(() => {})` tragaba el
+error en silencio y caía al Obelisco sin avisar — ahora dice
+explícitamente "no pudimos ubicarte" en vez de mentir con "X turnos
+cerca tuyo". (2) Los botones de decisión del mazo (`SwipeDeck`) eran
+64px/80px, desproporcionados frente a los 44px que usa la misma acción
+en escritorio — bajados a 56px/64px (referencia de proporción: Uber/
+Tegu, capturas de Julieta). El "muy beige/plano" que reportó tiene causa
+real pero no es bug de código: `OpportunityCard` ya está construida
+"foto-first estilo Airbnb" — cae a un color plano sólo cuando el
+comercio no subió foto (contradice el propio comentario de
+`skill-style.tsx`: "nunca como banda de color a toda la tarjeta"); falta
+contenido (fotos reales), no una nueva feature. Queda pendiente de
+decisión: revisar qué contenido prioriza la tarjeta (hoy scrollea para
+mostrar "Cómo llegar"/compartir en algunos viewports).
+
+Antes, mismo día: **Cierre real del "🐌 causa raíz de la
 app lenta" — ya estaba resuelto desde el 2026-07-27, sólo faltaba
 tildarlo.**) Al construir `domains/cloud` en Andamio horas antes citó este
 incidente como abierto ("pendiente co-locar en us-east-1"); al pedirle el
