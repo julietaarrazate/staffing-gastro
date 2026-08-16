@@ -131,11 +131,17 @@ export default function ShiftCard({
           </p>
         )}
 
-        {/* Encabezado: rubro con chip de acento + urgente */}
+        {/* Encabezado: rubro con chip de acento + urgente. Antes 48px (h-12),
+            más grande que el propio avatar del comercio arriba (32px,
+            size="sm") — desproporcionado y, con el tinte pálido de
+            SKILL_ACCENT, se leía "opaco" al lado del gradiente saturado del
+            avatar (Julieta, captura 2026-08-16 de /my-shifts). 40px lo
+            acerca al peso visual del avatar sin perder legibilidad del
+            ícono. */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
-            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${bg} ${fg}`}>
-              <Icon size={24} />
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${bg} ${fg}`}>
+              <Icon size={20} />
             </span>
             <div>
               <h3 className="text-lg font-extrabold leading-tight text-ink">

@@ -432,11 +432,14 @@ test("el botón flotante no aparece en /assistant (ya estás ahí)", async ({ pa
   await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
 });
 
-test("el botón flotante SÍ aparece para un trabajador y lleva a su propio asistente", async ({
+test("en /feed (Inicio del trabajador) la cápsula flotante se oculta y aparece la barra prominente en su lugar", async ({
   page,
 }) => {
-  // Antes se ocultaba del todo para cualquier rol que no fuera comercio —
-  // pedido de Julieta: "el asistente de ia falta para el trabajador".
+  // Antes el trabajador tenía la cápsula flotante tapando el mazo de turnos.
+  // Julieta pidió sacarla y darle el mismo lugar arriba que ya tiene el
+  // comercio en /shifts (mismo criterio, ver el test análogo arriba):
+  // "queda mejor como tiene comercio un lugar arriba, lo mismo tiene que
+  // tener para trabajador" (2026-08-16).
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -452,9 +455,10 @@ test("el botón flotante SÍ aparece para un trabajador y lleva a su propio asis
   );
 
   await page.goto("/feed");
-  const fab = page.getByRole("button", { name: "Asistente de turnos con IA" });
-  await expect(fab).toBeVisible();
-  await fab.click();
+  await expect(page.getByRole("button", { name: "Asistente de turnos con IA" })).toHaveCount(0);
+  const bar = page.getByRole("button", { name: "¿Qué necesitás?" });
+  await expect(bar).toBeVisible();
+  await bar.click();
   await expect(page).toHaveURL("/assistant");
   await expect(
     page.getByText("Contame qué turno buscás — puesto, zona, a cuántos kilómetros y para cuándo.")

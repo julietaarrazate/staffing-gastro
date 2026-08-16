@@ -12,11 +12,9 @@ import {
   FlameIcon,
   MapPinIcon,
   RouteIcon,
-  ShareIcon,
   UsersIcon,
 } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
-import { shareShift } from "@/lib/shift-share";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
@@ -135,10 +133,14 @@ export default function OpportunityCard({
 
       {/* Cuerpo: ya no compite con el hero por el alto (el hero ahora es fijo,
           arriba). `overflow-y-auto` sólo por debajo de `md` — en mobile el
-          mazo mide su alto contra el viewport real y con "Cómo llegar" +
-          share sumados, algunos dispositivos igual se quedan cortos (bug real
-          confirmado con captura, Julieta 2026-07-29): esto scrollea en vez de
-          recortar en silencio. En `md+` se saca (`md:overflow-visible`) — ahí
+          mazo mide su alto contra el viewport real y con dress code largo
+          algunos dispositivos igual se quedan cortos (bug real confirmado con
+          captura, Julieta 2026-07-29): esto scrollea en vez de recortar en
+          silencio. "Compartir por WhatsApp" (que ocupaba espacio acá abajo)
+          se sacó el 2026-08-16 — duplicaba `ShareShiftButton`, que ya vive en
+          /turno/[id], y tapaba "Cómo llegar" en pantallas más bajas (pedido
+          de Julieta: "no sé si aporta algo, sacando eso entra bien cómo
+          llegar sin quedar oculto"). En `md+` se saca (`md:overflow-visible`) — ahí
           la tarjeta ya tiene un alto fijo generoso (grilla de escritorio) y un
           overflow-y-auto anidado atrapaba la rueda del mouse (confirmado
           antes: rompía el scroll de toda la grilla).
@@ -228,26 +230,6 @@ export default function OpportunityCard({
               )}
             </div>
           )}
-
-          {/* Compartir a un colega que esté buscando trabajo (WhatsApp/share
-              sheet → página pública del turno). Verde (mismo que ya usa
-              `ShareShiftButton` en /turno/[id], variant="secondary" = éxito):
-              antes este botón puntual quedaba crema/beige, inconsistente con
-              el resto de los botones de WhatsApp de la app (Julieta,
-              2026-07-29). stopPropagation en pointer/click para que el gesto
-              no arranque el drag del SwipeDeck ni cuente como swipe. */}
-          <button
-            type="button"
-            aria-label="Compartir turno por WhatsApp"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-success py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(34,197,94,0.25)] active:scale-[0.98] hover:brightness-[1.04]"
-          >
-            <ShareIcon size={16} /> Compartir por WhatsApp
-          </button>
         </div>
       </div>
 
