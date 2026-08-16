@@ -35,7 +35,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4">
+      {/* role="status" + aria-live="polite": sin esto un toast (confirmación
+          de acción, error de una mutación) es invisible para un usuario de
+          lector de pantalla — no hay foco que mover a un elemento que
+          aparece y desaparece solo, así que la única forma de que se entere
+          es una región viva que el navegador anuncia sola. */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4"
+      >
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div
