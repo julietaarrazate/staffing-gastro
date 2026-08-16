@@ -5,7 +5,20 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Segunda pasada de auditoría —
+*Última actualización: 2026-08-16 (**Cierre real del "🐌 causa raíz de la
+app lenta" — ya estaba resuelto desde el 2026-07-27, sólo faltaba
+tildarlo.**) Al construir `domains/cloud` en Andamio horas antes citó este
+incidente como abierto ("pendiente co-locar en us-east-1"); al pedirle el
+dato real de la región de Render, resultó que Julieta ya había hecho la
+migración completa hace tres semanas — Render y Neon en `ohio`/
+`aws-us-east-2`, no `us-east-1` como se asumía de memoria. La sección
+original (más abajo, "🐌 Causa raíz...") tenía dos ítems marcados ⬜ que
+en la realidad ya estaban ✅ — corregidos ahí mismo, con la latencia
+confirmada (no sólo esperada): ~180 ms → ~2 ms. Corregido también en
+Andamio: `domains/cloud/standards/provider-selection.md` y `playbooks/
+region-expansion.md` (PR #44 en `julietaarrazate/ekp`).
+
+Antes, mismo día: **Segunda pasada de auditoría —
 reviewers de QA/security de Andamio (domains/qa, domains/security,
 profundizados el 2026-08-16). Un hallazgo real de seguridad,
 corregido.** `AdminService.suspend_user` ponía `status=SUSPENDED` pero
@@ -2075,15 +2088,21 @@ servidor despierto. No es cold start ni código.
    PostGIS: ninguna migración lo usa (el matching calcula distancias con
    Haversine en Python, ver `matching/domain/scoring.py`). Las migraciones y
    el seed corren solos en el primer arranque.
-2. ⬜ **Pendiente de Julieta** (Render no expone API en esta sesión): borrar el
-   servicio de Render y recrearlo con el **mismo nombre** (`staffya-backend`,
-   así conserva la URL que el frontend usa por default) en región **Ohio**.
-   Render no permite cambiar la región de un servicio ya creado; por eso
-   `render.yaml` ahora fija `region: ohio`.
-3. ⬜ `DATABASE_URL` = connection string **directa** del proyecto nuevo (sin
-   `-pooler`), copiada del dashboard de Neon.
+2. ✅ **Hecho por Julieta.** Servicio de Render borrado y recreado con el
+   mismo nombre (`staffya-backend`) en región **Ohio** — confirmado en el
+   dashboard el 2026-08-16 (`region: ohio`, deployed).
+3. ✅ **Hecho.** `DATABASE_URL` apunta al proyecto Neon nuevo — confirmado
+   en el dashboard de Neon el 2026-08-16 (`aws-us-east-2`, Ohio).
 
-Resultado esperado: latencia backend↔base de ~180 ms → **~2 ms**.
+**Resultado confirmado (no sólo esperado): ~180 ms → ~2 ms.** Estos dos
+ítems quedaron marcados ⬜ durante tres semanas después de completarse en
+la realidad — nadie volvió a este bloque del archivo a tildarlos. Mismo
+patrón que ya nombraba F6/P7-15 (una sección de estado en medio de un
+archivo append-heavy no se actualiza sola); esta vez el costo real fue
+que una unidad de conocimiento de Andamio construida el 2026-08-16 citó
+este incidente como "todavía abierto" usando este mismo archivo como
+fuente. Corregido en el mismo pase: `domains/cloud` en el repo de Andamio
+(PR #44).
 
 ## Post-merge #98 (2026-07-23, rama reiniciada desde main)
 
