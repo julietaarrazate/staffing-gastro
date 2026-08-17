@@ -125,22 +125,21 @@ export default function SwipeDeck({
         </motion.div>
       </div>
 
-      {/* Acciones. Tamaño ajustado dos veces por auditoría de Julieta:
-          primero 64px/80px→56px/64px (2026-08-16, referencias Uber/Tegu —
-          el par en la grilla de escritorio, OpportunityCard, usa 44px);
-          ahora, mismo día, "el botón de rechazar y aceptar tienen distintos
-          tamaños" — quedaban asimétricos (56 vs 64) pese al ajuste. Mismo
-          tamaño para las dos acciones (64px, por encima del mínimo táctil de
-          44px) y mismo peso de ícono adentro (26px), para que se lean como
-          un único par de opciones y no como una principal/secundaria. */}
-      <div className="mt-4 flex items-center justify-center gap-6">
+      {/* Acciones. Tamaño y posición ajustados tres veces por auditoría de
+          Julieta el mismo día: 64px/80px→56px/64px (referencias Uber/Tegu) →
+          64px/64px parejo ("tienen distintos tamaños") → ahora 56px/56px y
+          más separado de la tarjeta ("más abajo y más chicos"). Achicarlos
+          además le devuelve alto real a la tarjeta de arriba (`flex-1`): esta
+          fila ya no compite tanto por espacio, así que el cuerpo del turno
+          entra más cómodo sin deslizar. */}
+      <div className="mt-6 flex items-center justify-center gap-6">
         <motion.button
           type="button"
           aria-label="No gracias"
           onClick={() => decide("pass")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
         >
           <CrossIcon />
         </motion.button>
@@ -150,9 +149,9 @@ export default function SwipeDeck({
           onClick={() => decide("like")}
           disabled={busy}
           whileTap={{ scale: 0.88 }}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
         >
-          <CheckIcon size={26} />
+          <CheckIcon size={22} />
         </motion.button>
       </div>
     </div>
@@ -161,7 +160,7 @@ export default function SwipeDeck({
 
 function CrossIcon() {
   return (
-    <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
       <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );

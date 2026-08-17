@@ -35,6 +35,7 @@ export default function OpportunityCard({
   onApply,
   onPass,
   applying = false,
+  heroFallbackClassName = "bg-gradient-to-br from-primary to-primary-strong",
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
@@ -45,6 +46,17 @@ export default function OpportunityCard({
   onApply?: () => void;
   onPass?: () => void;
   applying?: boolean;
+  /** Clase de fondo del hero cuando no hay foto — por defecto el gradiente
+   *  de marca (un solo acento, Ley de marca; ver comentario abajo). SÓLO la
+   *  usa `ScrollHeroShowcase` (landing) para dar un color distinto a cada
+   *  una de sus 3 tarjetas de ejemplo: ahí las 3 conviven a la vista al
+   *  mismo tiempo como "product shot", así que un solo naranja repetido se
+   *  ve monótono/roto (Julieta, captura 2026-08-16: "modificaste el color
+   *  de las tarjetas que se mueven a un solo naranja, antes eran de
+   *  colores"). En el feed real las tarjetas nunca conviven dos a la vista
+   *  (un turno por vez, swipe), así que ahí el default de un solo acento
+   *  sigue siendo lo correcto — este prop no cambia ese comportamiento. */
+  heroFallbackClassName?: string;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
   const [broken, setBroken] = useState(false);
@@ -85,7 +97,7 @@ export default function OpportunityCard({
           // hero sin foto del perfil de trabajador (/workers/[id]): gradiente
           // saturado de marca + gráfico grande centrado, un solo acento por
           // pantalla en vez del tinte de rubro extendido a toda la tarjeta.
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary to-primary-strong">
+          <div className={`absolute inset-0 flex items-center justify-center ${heroFallbackClassName}`}>
             <Icon size={120} className="text-white/90" />
           </div>
         )}

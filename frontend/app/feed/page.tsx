@@ -313,9 +313,15 @@ function WorkerFeedPanel() {
           acá y hasta 24px más abajo por el doble margen entre la barra del
           asistente y LocationBar (auditoría de espaciado, Julieta,
           2026-08-16). */}
+      {/* Avatar "md" (44px), no "lg" (64px): un círculo grande de marca acá
+          arriba quedaba apilado muy cerca del círculo del ícono de
+          AIAssistantBar apenas debajo — dos "globos" naranjas del mismo
+          tamaño casi tocándose (Julieta, 2026-08-16: "el ícono de Oído en
+          qué necesitás se junta demasiado con otros globos"). De paso
+          devuelve unos px más de alto real para el mazo de abajo. */}
       <header className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="lg" />
+          <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="md" />
           <div>
             <h1 className="font-display text-2xl font-semibold leading-tight text-ink">
               {firstName ? `Hola, ${firstName}` : "Hola"}

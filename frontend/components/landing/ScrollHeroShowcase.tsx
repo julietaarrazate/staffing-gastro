@@ -99,6 +99,22 @@ const EXAMPLE_SHIFTS: Shift[] = [
   }),
 ];
 
+// Ninguna tiene foto (`company_logo_url: null` arriba) — las 3 conviven a la
+// vista al mismo tiempo como "product shot" del hero, así que acá SÍ importa
+// que cada una tenga su propio color (a diferencia del feed real, donde un
+// turno por vez hace que un solo acento de marca sea lo correcto — ver
+// `heroFallbackClassName` en OpportunityCard). Julieta, captura 2026-08-16:
+// "modificaste el color de las tarjetas que se mueven a un solo naranja,
+// antes eran de colores, ponele un color que combine y contraste, uno para
+// cada una". Se mantiene dentro de la paleta cálida de la marca (naranja/
+// terracota/ámbar, mismo criterio que `SKILL_ACCENT` en skill-style.tsx) en
+// vez de volver al arcoíris que esa paleta reemplazó a propósito.
+const HERO_FALLBACKS = [
+  "bg-gradient-to-br from-primary to-primary-strong",
+  "bg-gradient-to-br from-red-600 to-red-900",
+  "bg-gradient-to-br from-amber-500 to-amber-800",
+];
+
 type Pose = { x: number; y: number; rotate: number; opacity: number; scale: number; z: number };
 
 // Las 3 poses del stack: de encima (front) a la más lejana (back2). Mismos
@@ -124,10 +140,12 @@ function StackCard({
   shift,
   index,
   progress,
+  heroFallbackClassName,
 }: {
   shift: Shift;
   index: number;
   progress: MotionValue<number>;
+  heroFallbackClassName: string;
 }) {
   const poseAt = (seg: number) => POSES[(index + seg) % 3];
   const values = (key: keyof Pose) => [
@@ -149,7 +167,7 @@ function StackCard({
 
   return (
     <motion.div className="absolute inset-0" style={{ x, y, rotate, opacity, scale, zIndex }}>
-      <OpportunityCard shift={shift} />
+      <OpportunityCard shift={shift} heroFallbackClassName={heroFallbackClassName} />
     </motion.div>
   );
 }
@@ -215,7 +233,13 @@ export default function ScrollHeroShowcase() {
           <div className="absolute inset-x-0 top-[92px] z-20 mx-auto w-[276px] sm:top-[100px] sm:w-[292px]">
             <div className="relative h-[440px] sm:h-[460px]">
               {EXAMPLE_SHIFTS.map((shift, i) => (
-                <StackCard key={shift.id} shift={shift} index={i} progress={progress} />
+                <StackCard
+                  key={shift.id}
+                  shift={shift}
+                  index={i}
+                  progress={progress}
+                  heroFallbackClassName={HERO_FALLBACKS[i]}
+                />
               ))}
             </div>
           </div>
