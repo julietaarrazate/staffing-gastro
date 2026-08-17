@@ -37,6 +37,7 @@ export default function SwipeDeck({
   onDecide,
   renderCard,
   empty,
+  onOpen,
 }: {
   shifts: Shift[];
   /**
@@ -47,6 +48,14 @@ export default function SwipeDeck({
   onDecide: (shift: Shift, decision: Decision) => Promise<boolean>;
   renderCard: (shift: Shift) => ReactNode;
   empty: ReactNode;
+  /** Tocar la tarjeta (sin arrastrar) abre el detalle del turno. Antes el
+   *  mazo SÓLO dejaba swipear: no había forma de mirar el turno completo ni
+   *  de entrar al comercio sin decidir primero (Julieta, 2026-08-17: "cuando
+   *  quiero abrir para mirar bien el turno tampoco abre, no hace nada, no
+   *  puedo indagar el comercio, sólo me deja hacer swipe"). Se usa `onTap` de
+   *  motion, que distingue tap de arrastre por diseño — un `onClick` común se
+   *  disparaba también al terminar un swipe. */
+  onOpen?: (shift: Shift) => void;
 }) {
   // Mazo local para poder avanzar de forma OPTIMISTA: la siguiente carta se
   // habilita apenas termina la animación de salida, sin esperar la respuesta
@@ -123,6 +132,12 @@ export default function SwipeDeck({
           dragSnapToOrigin
           dragElastic={0.6}
           animate={controls}
+          onTap={() => {
+            // `busy` cubre la animación de salida: sin esto, un tap durante
+            // el vuelo de la carta abriría el detalle de un turno que el
+            // usuario acaba de descartar.
+            if (!busy) onOpen?.(current);
+          }}
           onDragEnd={(_, info) => {
             if (info.offset.x > 120 || info.velocity.x > 700) decide("like");
             else if (info.offset.x < -120 || info.velocity.x < -700) decide("pass");

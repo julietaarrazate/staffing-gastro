@@ -64,12 +64,21 @@ export default function OpportunityCard({
           que "Cómo llegar" entre sin deslizar): con el body real medido
           (pago, fecha/cantidad/dress code, "Cómo llegar") el hero al 42%
           dejaba el cuerpo al límite en viewports comunes — cualquier dress
-          code de una línea más ya lo hacía scrollear. 31% le devuelve ~45px
-          al cuerpo respecto del original y, junto con sacar la pista de
-          scroll, hace que todo entre sin deslizar. El `min-h` baja en la
-          misma proporción para que en pantallas bajas el porcentaje mande de
-          verdad y no lo pise el mínimo. */}
-      <div className="relative h-[31%] min-h-[128px] shrink-0">
+          code de una línea más ya lo hacía scrollear.
+
+          FIX ESTRUCTURAL (Julieta, 2026-08-17: "el título Mozo y Palermo
+          está muy junto de Mi comercio, bajalo para que no se superponga").
+          Era una regresión que introduje yo al bajar el hero a 31%: sus dos
+          bloques (pastilla del comercio arriba, título+ubicación abajo)
+          estaban `absolute` contra un alto FIJO, así que al achicar el alto
+          por debajo de lo que mide el contenido, los bloques se pisan — el
+          alto no reacciona al contenido. Ahora el hero es un flex column con
+          los dos bloques EN FLUJO (`justify-between`): el `min-h` cubre lo
+          que miden de verdad (~54px la fila de arriba + ~82px el título y la
+          ubicación + aire), así que superponerse es imposible por
+          construcción, no por haber elegido bien un número. Sólo el fondo
+          (foto/gradiente/velo) sigue absolute, que es lo que corresponde. */}
+      <div className="relative flex h-[31%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -101,7 +110,7 @@ export default function OpportunityCard({
             sin tope: un nombre largo envolvía a 2 líneas y se superponía con
             el título de abajo — bug real reportado por Julieta con captura,
             "Catering Puerto Madero" pisando "Personal de eventos", 2026-07-29). */}
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3.5">
+        <div className="relative flex items-center justify-between gap-2 p-3.5">
           <Link
             href={`/companies/${shift.company_id}`}
             onClick={(e) => e.stopPropagation()}
@@ -124,7 +133,7 @@ export default function OpportunityCard({
             rubros, "Personal de eventos"/"Ayudante de cocina", ya ocupan 2
             líneas en columnas angostas) para que nunca crezca más de lo que
             el hero tiene reservado. */}
-        <div className="absolute inset-x-0 bottom-0 p-5">
+        <div className="relative px-5 pb-4">
           {/* Blanco siempre, con o sin foto: el fallback ahora es un gradiente
               saturado (no la banda pálida de antes), así que necesita el
               mismo contraste que la foto+velo. */}

@@ -74,13 +74,20 @@ services:
       # sólo vivía en el dashboard, invisible desde el repo — ver
       # docs/reference/DEPLOY.md).
       #
-      # OJO con el MODELO, no sólo con la clave: `app/core/gemini.py` fija
-      # `gemini-3.5-flash` a propósito (no el alias `-latest`). Google ya dio
-      # de baja `gemini-2.5-flash` una vez y rompió esta feature en
-      # producción (docs/STATUS.md 2026-08-11). Si el asistente empieza a
-      # contestar "no pudimos interpretar el texto" con la clave puesta,
-      # mirar los logs: `_call_gemini` loguea el cuerpo del error de Google,
-      # que dice si es cuota agotada o modelo dado de baja.
+      # OJO con el MODELO, no sólo con la clave. Google ya dio de baja
+      # `gemini-2.5-flash` una vez y rompió esta feature en producción
+      # (docs/STATUS.md 2026-08-11). Si el asistente contesta "no pudimos
+      # interpretar el texto" con la clave puesta, mirar los logs:
+      # `_call_gemini` loguea el modelo usado y el cuerpo del error de
+      # Google, que dice si es cuota agotada o modelo dado de baja.
       - key: GEMINI_API_KEY
+        sync: false
+      # Vacío = el default del código (`gemini-3.5-flash`, ver
+      # `app/core/config.py`). Se setea a mano sólo para migrar de modelo
+      # cuando Google da de baja el vigente o lo saca del plan gratis: antes
+      # eso exigía un deploy con cambio de código porque el modelo estaba
+      # fijo dentro de la URL. `sync: false` para que un redeploy del
+      # blueprint no pise lo que el operador puso en medio de un incidente.
+      - key: GEMINI_MODEL
         sync: false
     autoDeploy: true

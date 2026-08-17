@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/ui";
 import { BookmarkIcon } from "@/components/icons";
 
 /**
@@ -25,6 +26,7 @@ export default function SaveShiftButton({
   className?: string;
 }) {
   const { token } = useAuth();
+  const toast = useToast();
   const [isSaved, setIsSaved] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -58,6 +60,13 @@ export default function SaveShiftButton({
       }
     } catch (err) {
       setIsSaved(!next); // revertir si falló
+      // AVISAR, no sólo revertir (Julieta, 2026-08-17: "cuando aprieto el
+      // botón de guardar no guarda"). Antes el `catch` revertía en
+      // silencio: el ícono se llenaba por el optimismo y volvía atrás sin
+      // decir nada, así que desde afuera se ve idéntico a un botón roto.
+      // Misma clase de falla silenciosa que el `.catch(() => {})` de la
+      // geolocalización, ya corregido.
+      toast(next ? "No pudimos guardar el turno" : "No pudimos quitarlo de guardados", "error");
       if (!(err instanceof ApiError)) throw err;
     } finally {
       setBusy(false);

@@ -35,6 +35,7 @@ class _FakeAsyncClient:
     """Reemplaza `httpx.AsyncClient` para no pegar a la red real en tests."""
 
     last_payload: dict | None = None
+    last_url: str | None = None
     next_gemini_text: str = ""
 
     def __init__(self, *args, **kwargs):
@@ -48,6 +49,7 @@ class _FakeAsyncClient:
 
     async def post(self, url, params=None, json=None):
         _FakeAsyncClient.last_payload = json
+        _FakeAsyncClient.last_url = url
         text = _FakeAsyncClient.next_gemini_text
         return _FakeResponse(
             {"candidates": [{"content": {"parts": [{"text": text}]}}]}
@@ -100,6 +102,24 @@ async def test_parse_shift_text_caps_output_tokens(configured_gemini):
     la cantidad de llamadas a Gemini pero no el gasto por token de CADA una."""
     await parse_shift_text("necesito un mozo el sábado")
     assert _FakeAsyncClient.last_payload["generationConfig"]["maxOutputTokens"] > 0
+
+
+@pytest.mark.asyncio
+async def test_gemini_model_comes_from_settings(configured_gemini, monkeypatch):
+    """El modelo tiene que salir de `settings` EN CADA LLAMADA, no de una
+    constante congelada al import: eso último es lo que obligaba a un deploy
+    con cambio de código cada vez que Google daba de baja un modelo, aunque
+    el operador ya supiera cuál poner (Julieta, 2026-08-17)."""
+    monkeypatch.setattr(settings, "gemini_model", "gemini-9.9-turbo")
+    await parse_shift_text("necesito un mozo el sábado")
+    assert "models/gemini-9.9-turbo:generateContent" in _FakeAsyncClient.last_url
+
+
+@pytest.mark.asyncio
+async def test_gemini_model_default_is_pinned():
+    """Nunca el alias `-latest`: un hot-swap de Google del otro lado rompería
+    el `responseSchema` sin deploy nuestro (ver docstring de `gemini.py`)."""
+    assert not settings.gemini_model.endswith("-latest")
 
 
 @pytest.mark.asyncio

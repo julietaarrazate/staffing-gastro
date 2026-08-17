@@ -12,11 +12,14 @@ dependencia nueva). Modelo fijo (no el alias `-latest`): Google documenta
 que `-latest` puede pasar a apuntar a una release preview/experimental —
 un hot-swap sin deploy propio que un endpoint que depende de
 `responseSchema` estructurado no puede permitirse (aviso previo de sólo 2
-semanas por mail, que nadie del equipo monitorea). Se fija a
-`gemini-3.5-flash` (GA estable vigente a 2026-08). Cuando Google la dé de
-baja para cuentas nuevas —como pasó con `gemini-2.5-flash`, ver
-docs/STATUS.md 2026-08-11— hay que revisar `GET /v1beta/models` y
-actualizar esta constante a mano; no es automático a propósito.
+semanas por mail, que nadie del equipo monitorea). El default es
+`gemini-3.5-flash` (GA estable vigente a 2026-08), pero el modelo es
+`GEMINI_MODEL`, una variable de entorno: cuando Google da de baja uno
+—como pasó con `gemini-2.5-flash`, ver docs/STATUS.md 2026-08-11— el
+operador cambia la variable en Render y listo, sin esperar un deploy con
+cambio de código. Sigue sin ser automático a propósito (nada de
+`-latest`), pero ahora la corrección está en manos de quien detecta la
+falla.
 """
 
 import json
@@ -31,10 +34,14 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
 
-_GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-3.5-flash:generateContent"
-)
+def _gemini_url() -> str:
+    """Se arma en cada llamada, no una vez al importar: `settings.gemini_model`
+    se lee del entorno y una constante de módulo la congelaría al import,
+    justo lo que hacía imposible cambiar de modelo sin tocar el código."""
+    return (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{settings.gemini_model}:generateContent"
+    )
 
 _POSITIONS = [skill.value for skill in WorkerSkill]
 
@@ -109,12 +116,21 @@ async def _call_gemini(payload: dict) -> dict:
     quedaba "404 Not Found" en Sentry, sin explicar el porqué."""
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.post(
-            _GEMINI_URL,
+            _gemini_url(),
             params={"key": settings.gemini_api_key},
             json=payload,
         )
         if response.status_code >= 400:
-            logger.error("Gemini respondió %s: %s", response.status_code, response.text)
+            # El modelo va en el log: el 404 de Google por modelo dado de baja
+            # y el 404 por endpoint mal armado se ven idénticos desde afuera, y
+            # sin saber CON QUÉ modelo se llamó no hay forma de distinguirlos
+            # desde los logs de Render.
+            logger.error(
+                "Gemini (%s) respondió %s: %s",
+                settings.gemini_model,
+                response.status_code,
+                response.text,
+            )
         response.raise_for_status()
         body = response.json()
     raw = body["candidates"][0]["content"]["parts"][0]["text"]
