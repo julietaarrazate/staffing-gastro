@@ -3,6 +3,7 @@
 Cada módulo de dominio (identity, worker, shift, ...) registra su propio router.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -44,6 +45,20 @@ setup_sentry()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Email transaccional apagado: `NullEmailSender` no falla NUNCA (a
+    # propósito: un problema de email no debe romper un registro ni una
+    # asignación de turno), así que la única señal de que no está configurado
+    # es esta línea. Sin ella el síntoma llega como bug de producto —
+    # "recuperar contraseña" contesta OK y no llega nada (Julieta,
+    # 2026-08-17) — en vez de como un aviso en el arranque. Mismo criterio
+    # que la alerta de `SEED_DEMO_DATA` en `scripts/startup_seed.py`.
+    if not settings.resend_api_key:
+        logging.getLogger(__name__).warning(
+            "RESEND_API_KEY sin configurar: NO se envía ningún email "
+            "transaccional (recuperar contraseña, verificar email, avisos). "
+            "Ver runbook 'Prender el email transaccional' en "
+            "docs/reference/DEPLOY.md."
+        )
     # Promueve a admin los emails configurados en ADMIN_EMAILS (idempotente).
     await promote_configured_admins()
     # Scheduler del ciclo de vida del turno (asistencia + escalada de

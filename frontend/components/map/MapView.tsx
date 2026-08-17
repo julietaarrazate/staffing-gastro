@@ -15,7 +15,14 @@ import {
 import { MAP_STYLE_URL } from "@/lib/map/style";
 
 export interface MapViewProps {
-  /** Centro inicial `[lat, lng]`. Vista no controlada: sólo se usa al montar. */
+  /**
+   * Centro `[lat, lng]`. La vista sigue siendo no controlada (mover el mapa
+   * con el dedo no avisa hacia arriba), pero este valor SÍ se aplica en cada
+   * `load` —incluido el `load` sintético de un mapa reciclado— vía
+   * `syncCamera`: sin eso, un mapa del pool abre con la cámara del montaje
+   * anterior. Para mover la vista después del `load`, usar los helpers de
+   * `lib/map/camera` (`flyToPoint`/`easeToPoint`) como hace `ShiftMap`.
+   */
   center: [number, number];
   zoom?: number;
   children?: ReactNode;
@@ -102,6 +109,31 @@ export function syncCooperativeGestures(raw: unknown, cooperativeGestures: boole
   else handler.disable();
 }
 
+// Tercer efecto del mismo `reuseMaps`, y el más visible de los tres para el
+// usuario: la CÁMARA. `initialViewState` es —como su nombre dice— sólo
+// inicial: maplibre-gl la aplica al construir el `Map` y nunca más. Con el
+// pool estático de la librería, un mapa reciclado llega con el centro/zoom
+// del montaje ANTERIOR y `initialViewState` no vuelve a correr, así que la
+// pantalla nueva muestra la vista de la vieja. Se ve en todos lados:
+//   - `/map` y `/search` abren en el centro por defecto (Obelisco) aunque la
+//     geolocalización ya haya resuelto (reporte repetido de Julieta:
+//     "sigue sin apuntar a la geolocalización en la que estoy");
+//   - el mini-mapa de una tarjeta de turno (`MiniMap`) muestra la zona del
+//     turno anterior en vez de la del suyo ("en mapa de turno también tiene
+//     que apuntar a la zona que muestra el turno").
+// Además cierra una carrera real independiente del reuse: si la
+// geolocalización resuelve ANTES de que el mapa termine de cargar, el
+// `flyTo` que hace `ShiftMap` al cambiar `center` se ejecuta con
+// `mapRef.current` todavía en `null` y se pierde para siempre (su efecto no
+// vuelve a correr porque `center` ya no cambia). Al saltar acá, en `load`,
+// leemos el `center` VIGENTE en ese momento y la vista queda bien igual.
+export function syncCamera(raw: unknown, center: [number, number], zoom: number) {
+  const map = raw as {
+    jumpTo?(opts: { center: [number, number]; zoom: number }): void;
+  };
+  map.jumpTo?.({ center: [center[1], center[0]], zoom });
+}
+
 const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   {
     center,
@@ -139,6 +171,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           // vez de `mapRef.current` para sincronizar los handlers.
           syncInteractiveHandlers(e.target, interactive);
           syncCooperativeGestures(e.target, cooperativeGestures);
+          syncCamera(e.target, center, zoom);
           if (mapRef.current) onLoad?.(mapRef.current);
         }}
         onMoveEnd={onMoveEnd}

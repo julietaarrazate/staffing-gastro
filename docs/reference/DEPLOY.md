@@ -35,8 +35,10 @@ Config declarativa en `render.yaml` (raíz del repo).
 | `ENVIRONMENT` | `production` | |
 | `DEBUG` | `"false"` | |
 | `CORS_ORIGINS` | dominio Vercel de producción | sin `localhost` |
-| `SEED_DEMO_DATA` | `"true"` | seed demo al arrancar |
+| `SEED_DEMO_DATA` | `"false"` | **APAGADO** desde 2026-08-07 (runbook más abajo): sembraba ~26 cuentas demo con contraseña pública en la base real. Las fotos de las 4 cuentas invitado/prueba **no** cuelgan de este flag — corren siempre, ver `scripts/startup_seed.py` |
 | `ADMIN_EMAILS` | (opcional) | promueve admins al bootstrap |
+| `RESEND_API_KEY` | Manual (`sync: false`) | **Sin esta clave no sale NINGÚN email.** Ver runbook "Prender el email transaccional" |
+| `EMAIL_FROM` | Manual (`sync: false`) | Default del código: `onboarding@resend.dev` — dominio de prueba de Resend, sólo entrega a la casilla dueña de la cuenta |
 
 > **Credenciales:** nunca en el repo ni en el chat; siempre env vars en
 > Render/Vercel. Si se filtran, revocar. Ver [SECURITY.md](./SECURITY.md).
@@ -69,6 +71,36 @@ La DB productiva vive en **Neon** (la free de Render expiraba a los 90 días;
 - **Verificación post-cambio de DB:** el deploy corre `alembic upgrade head` al
   arrancar; si falla, Render conserva el deploy anterior. Chequear
   `GET /health` y los logs del servicio.
+
+## Runbook: prender el email transaccional (Resend)
+
+**Síntoma si está apagado:** "Recuperar contraseña" responde *"si el mail
+existe, te enviamos un enlace"* y **no llega nada** (reporte real de Julieta,
+2026-08-17). Lo mismo con verificación de email y cualquier aviso. No es un
+bug del flujo: sin `RESEND_API_KEY` el backend inyecta `NullEmailSender`, que
+sólo escribe una línea en el log y nunca falla — decisión deliberada para que
+un problema de email jamás rompa un registro o una asignación de turno. El
+costo es que el fallo es silencioso; por eso el arranque ahora deja un
+`WARNING` explícito en los logs de Render cuando la clave falta.
+
+Pasos:
+
+1. Crear cuenta en [resend.com](https://resend.com) (plan free: 3.000
+   emails/mes, 100/día — de sobra para la beta).
+2. **Verificar un dominio propio.** Sin esto, Resend sólo entrega a la casilla
+   dueña de la cuenta: el default `onboarding@resend.dev` sirve para probarte
+   a vos misma, pero **no** para escribirle a un usuario real. Requiere poder
+   agregar registros DNS (ver la sección de dominio propio más abajo).
+3. Crear una API key (`Full access` alcanza) y cargarla en Render →
+   Environment → `RESEND_API_KEY`.
+4. Cargar `EMAIL_FROM` con el remitente del dominio verificado, formato
+   `Oído <hola@tudominio.com>`.
+5. Redeploy. Verificar en los logs que **no** aparece el `WARNING` de
+   `RESEND_API_KEY sin configurar`, y probar el flujo real de recuperación.
+
+> Mientras el paso 2 no esté hecho, se puede cargar igual la API key para
+> probar: los emails van a llegar sólo a la casilla con la que se registró la
+> cuenta de Resend. Es suficiente para validar el flujo de punta a punta.
 
 ## Runbook de lanzamiento: apagar el modo demo (R1.6)
 
