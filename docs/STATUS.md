@@ -5,7 +5,56 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-17 (**Causa raíz del mapa que no apunta a
+*Última actualización: 2026-08-17 (**El asistente ahora deduce el horario
+de fin y pregunta lo que falta; color por oficio en las listas que eran
+todas blancas; la tarjeta del mazo entra sin deslizar.**)
+
+(1) **Asistente que razona** (Julieta: "no razona, entiende sólo lo
+básico... si digo hoy 10 am y es de 7 horas debe hacer el cálculo de qué
+hora termina... o si algo no se dijo, que pregunte qué falta"). Dos
+cambios distintos: **(a)** el prompt de `parse_shift_text` ahora pide
+explícitamente DEDUCIR `end_at` de inicio + duración, con ejemplos
+resueltos ("7 horas de 10 a.m" → 10:00–17:00; "de 20 a 2" → cruza
+medianoche, fin al día siguiente), normalización de montos ("$50,000",
+"50.000", "50 lucas" → 50000) y de horas en habla argentina. Antes el
+prompt sólo decía "si no podés inferir un horario, dejalo en null" — no
+pedía aritmética, así que no la hacía. **(b)** El borrador vuelve con
+`missing`: qué campos obligatorios faltan, **en palabras** ("a qué hora
+termina"), y el wizard los pregunta en ámbar en vez de dejar al comercio
+adivinar por qué frenó donde frenó. Decisión deliberada: esa lista se
+calcula **en código**, no se le pide a Gemini — es una regla fija (los 4
+campos que el wizard exige), determinística, testeable y sin gastar
+tokens en algo que ya sabemos. 4 tests nuevos, incluido el borde real de
+que un puesto "desconocido" cuente como faltante.
+
+(2) **Diagnóstico del asistente.** Los dos mensajes de error significan
+cosas distintas y no se distinguían al leerlos: 503 = falta la clave;
+502 = la clave está pero la llamada a Google falló (cuota agotada, o
+**modelo dado de baja**, que ya rompió esta feature una vez — ver
+2026-08-11). Tabla de diagnóstico nueva en `docs/reference/DEPLOY.md`, y
+`GEMINI_API_KEY` declarada en `render.yaml` (antes vivía sólo en el
+dashboard, invisible desde el repo — mismo problema que tenía el email).
+
+(3) **Color por oficio donde todo era blanco.** Riel izquierdo de 6px
+(`SKILL_RAIL_BORDER`, tercer registro de la familia junto a
+`SKILL_ACCENT` y `SKILL_HERO_GRADIENT`) en los resultados de `/search`
+—que eran íntegramente blancos— y en las dos tarjetas de lista de
+`/map`. El naranja queda para quien de verdad es mozo/cocinero, no como
+color de marca genérico (pedido explícito: "ponele colores, naranja
+no"). En la hoja de detalle de UN turno NO se puso riel: ahí no hay
+filas de las cuales diferenciarse, sería decoración sin información.
+
+(4) **La tarjeta del mazo entra sin deslizar.** Se sacó la pista de
+scroll (degradé + chevron): con el WhatsApp ya fuera y el hero más chico
+el contenido entra completo, así que anunciaba un scroll inexistente — y
+encima el degradé se dibujaba encima de "Cómo llegar", que era el
+síntoma real. Hero 36%→31% (min-h 150→128) para el margen que faltaba.
+El `overflow-y-auto` queda como red de seguridad, sin anunciarse.
+Verificado: pytest backend, vitest 79/79, tsc/eslint limpios, build
+limpio (un fallo intermitente de descarga de la fuente de Google no se
+repitió al reintentar).
+
+Antes, mismo día: **Causa raíz del mapa que no apunta a
 tu ubicación (tercer bug del mismo `reuseMaps`), y el email transaccional
 que nunca estuvo configurado.**)
 

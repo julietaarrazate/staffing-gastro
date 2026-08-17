@@ -167,3 +167,48 @@ async def test_parse_text_endpoint_falls_back_gracefully_on_malformed_datetime(
     body = response.json()
     assert body["start_at"] is None
     assert body["position"] == "mozo"
+
+
+@pytest.mark.asyncio
+async def test_parse_shift_text_reports_nothing_missing_when_text_is_complete(
+    configured_gemini,
+):
+    """Texto que define los 4 campos obligatorios -> `missing` vacío."""
+    draft = await parse_shift_text("necesito un mozo el sábado 20 a 2, pago 45000")
+    assert draft.missing == []
+
+
+@pytest.mark.asyncio
+async def test_parse_shift_text_lists_what_is_missing(configured_gemini):
+    """Julieta, 2026-08-17: "si algo no se dijo, que pregunte qué falta para
+    poder completar". La lista se calcula en código sobre el borrador ya
+    parseado (regla fija: los 4 campos que el wizard exige), no se le pide a
+    Gemini — determinística y sin gastar tokens en algo que ya sabemos."""
+    _FakeAsyncClient.next_gemini_text = _gemini_json(end_at=None, pay_amount=None)
+    draft = await parse_shift_text("necesito un mozo el sábado a las 20")
+    assert draft.missing == ["a qué hora termina", "cuánto pagás"]
+
+
+@pytest.mark.asyncio
+async def test_missing_counts_unknown_position_as_missing(configured_gemini):
+    """Un puesto que Gemini no supo inferir llega como "desconocido" y se
+    normaliza a `None`: tiene que contar como FALTANTE. Si `missing` se
+    calculara sobre el dict crudo de Gemini, "desconocido" pasaría por un
+    puesto definido y el wizard no preguntaría."""
+    _FakeAsyncClient.next_gemini_text = _gemini_json(position="desconocido")
+    draft = await parse_shift_text("necesito gente para el sábado")
+    assert draft.position is None
+    assert "qué puesto necesitás" in draft.missing
+
+
+@pytest.mark.asyncio
+async def test_parse_text_endpoint_exposes_missing(client: AsyncClient, configured_gemini):
+    """El wizard necesita `missing` en la respuesta HTTP para poder
+    preguntarlo (ver `app/shifts/new/page.tsx`)."""
+    _FakeAsyncClient.next_gemini_text = _gemini_json(pay_amount=None)
+    employer = await auth_headers(client, "employer", "emp_gemini_missing@staffya.com")
+    response = await client.post(
+        "/api/v1/shifts/parse-text", json={"text": "necesito un mozo el sábado"}, headers=employer
+    )
+    assert response.status_code == 200
+    assert response.json()["missing"] == ["cuánto pagás"]

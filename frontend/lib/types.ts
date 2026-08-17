@@ -135,6 +135,9 @@ export interface ParsedShiftDraft {
   meal: boolean;
   tips: boolean;
   dress_code: string | null;
+  /** Qué campos obligatorios no alcanzó a definir el texto, ya en palabras
+   *  ("a qué hora termina"). Lo calcula el backend en código, no la IA. */
+  missing?: string[];
 }
 
 /** Un rol dentro de un evento (`crear_evento`) — mismo par que una fila del

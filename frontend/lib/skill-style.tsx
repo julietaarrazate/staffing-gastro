@@ -69,3 +69,30 @@ export const SKILL_HERO_GRADIENT: Record<WorkerSkill, string> = {
   ayudante_cocina: "bg-gradient-to-br from-amber-500 to-orange-800",
   personal_salon: "bg-gradient-to-br from-stone-600 to-stone-900",
 };
+
+/**
+ * Color de RIEL (borde izquierdo grueso) por oficio, para filas de lista que
+ * siguen siendo blancas — hoy los resultados de `/search`. Es el tercer
+ * registro de la misma familia: `SKILL_ACCENT` (tinte pálido para chips
+ * chicos), `SKILL_HERO_GRADIENT` (banner saturado con texto blanco encima) y
+ * éste, para cuando el color tiene que identificar una fila sin invadirla.
+ *
+ * Nace del pedido de Julieta (2026-08-17) sobre la lista de trabajadores:
+ * "no me gusta todo blanco, ponele colores — naranja no". El riel diferencia
+ * cada fila por su oficio principal, y el naranja queda reservado para quien
+ * de verdad es mozo/cocinero en vez de pintar todo de color de marca. Tono
+ * medio a propósito (-600/-700): tiene que leerse contra el blanco de la
+ * tarjeta sin competir con el nombre.
+ */
+export const SKILL_RAIL_BORDER: Record<WorkerSkill, string> = {
+  mozo: "border-l-orange-500",
+  bartender: "border-l-red-700",
+  barista: "border-l-amber-600",
+  runner: "border-l-stone-500",
+  cocinero: "border-l-orange-600",
+  cajero: "border-l-green-700",
+  recepcionista: "border-l-amber-700",
+  personal_eventos: "border-l-emerald-700",
+  ayudante_cocina: "border-l-amber-600",
+  personal_salon: "border-l-stone-600",
+};

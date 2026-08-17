@@ -67,4 +67,20 @@ services:
       # "Oído <hola@tudominio.com>".
       - key: EMAIL_FROM
         sync: false
+      # --- Interpretación por IA (Gemini) ---
+      # Sin esta clave, `POST /shifts/parse-text` y los dos asistentes
+      # responden 503 y la app cae a "completá los datos a mano". Se declara
+      # acá con `sync: false` para que el slot exista en el blueprint (antes
+      # sólo vivía en el dashboard, invisible desde el repo — ver
+      # docs/reference/DEPLOY.md).
+      #
+      # OJO con el MODELO, no sólo con la clave: `app/core/gemini.py` fija
+      # `gemini-3.5-flash` a propósito (no el alias `-latest`). Google ya dio
+      # de baja `gemini-2.5-flash` una vez y rompió esta feature en
+      # producción (docs/STATUS.md 2026-08-11). Si el asistente empieza a
+      # contestar "no pudimos interpretar el texto" con la clave puesta,
+      # mirar los logs: `_call_gemini` loguea el cuerpo del error de Google,
+      # que dice si es cuota agotada o modelo dado de baja.
+      - key: GEMINI_API_KEY
+        sync: false
     autoDeploy: true

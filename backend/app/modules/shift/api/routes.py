@@ -183,6 +183,7 @@ async def parse_text(
         meal=draft.meal,
         tips=draft.tips,
         dress_code=draft.dress_code,
+        missing=draft.missing,
     )
 
 

@@ -89,6 +89,7 @@ function NewShiftWizard() {
   const [describeText, setDescribeText] = useState("");
   const [parsingText, setParsingText] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   // Dictado por voz (pedido de Julieta: "es donde más se aprovecha" un
   // asistente de IA — más rápido hablar el turno que tipearlo).
   const { listening, supported: speechSupported, toggle: toggleDictation } = useVoiceDictation(
@@ -179,6 +180,7 @@ function NewShiftWizard() {
   async function parseWithAI() {
     if (!token || !describeText.trim()) return;
     setParseError(null);
+    setMissingFields([]);
     setParsingText(true);
     try {
       const draft = await api.post<ParsedShiftDraft>(
@@ -187,6 +189,11 @@ function NewShiftWizard() {
         token
       );
       applyParsedDraft(draft);
+      // Preguntar lo que falta en vez de dejar al comercio adivinar por qué
+      // el wizard frenó donde frenó (Julieta, 2026-08-17: "si algo no se
+      // dijo, que pregunte qué falta para poder completar"). El backend
+      // manda la lista ya en palabras; acá sólo se arma la frase.
+      setMissingFields(draft.missing ?? []);
     } catch (err) {
       setParseError(getErrorMessage(err, "No pudimos interpretar el texto. Completá los datos a mano."));
     } finally {
@@ -398,8 +405,18 @@ function NewShiftWizard() {
                   <div className="mt-2 flex items-center justify-between gap-2">
                     {listening ? (
                       <p className="text-xs font-semibold text-primary-text">Escuchando…</p>
+                    ) : parseError ? (
+                      <p className="text-xs text-danger-text">{parseError}</p>
                     ) : (
-                      parseError && <p className="text-xs text-danger-text">{parseError}</p>
+                      // Falta algo para publicar: se pregunta en vez de dejar
+                      // al comercio adivinar por qué el wizard frenó donde
+                      // frenó. En ámbar (no rojo): no es un error, es una
+                      // pregunta — lo que sí se entendió ya quedó precargado.
+                      missingFields.length > 0 && (
+                        <p className="text-xs font-medium text-amber-700">
+                          Me falta saber {missingFields.join(", ")}. Completalo abajo.
+                        </p>
+                      )
                     )}
                     <Button
                       type="button"

@@ -7,7 +7,6 @@ import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
 import { Avatar } from "@/components/ui";
 import {
   CalendarIcon,
-  ChevronDownIcon,
   CloseIcon,
   FlameIcon,
   MapPinIcon,
@@ -61,13 +60,16 @@ export default function OpportunityCard({
           tiene una altura fija (`shrink-0`, no negocia) y el cuerpo se lleva
           TODO el resto — con su propio scroll de respaldo (ver abajo) para
           cualquier combinación de contenido/pantalla que igual no entre.
-          42%→36% (Julieta, 2026-08-16, con "Cómo llegar" pidiendo entrar sin
-          deslizar): con el body real medido (pago, fecha/cantidad/dress
-          code, "Cómo llegar") el hero al 42% dejaba el cuerpo just al límite
-          en viewports comunes — cualquier dress code que ocupara una línea
-          de más ya lo hacía scrollear. 36% le devuelve ~30px reales al
-          cuerpo sin que la foto deje de ser lo primero que se ve. */}
-      <div className="relative h-[36%] min-h-[150px] shrink-0">
+          42%→36%→31% (Julieta, 2026-08-16 y 2026-08-17, pidiendo dos veces
+          que "Cómo llegar" entre sin deslizar): con el body real medido
+          (pago, fecha/cantidad/dress code, "Cómo llegar") el hero al 42%
+          dejaba el cuerpo al límite en viewports comunes — cualquier dress
+          code de una línea más ya lo hacía scrollear. 31% le devuelve ~45px
+          al cuerpo respecto del original y, junto con sacar la pista de
+          scroll, hace que todo entre sin deslizar. El `min-h` baja en la
+          misma proporción para que en pantallas bajas el porcentaje mande de
+          verdad y no lo pise el mínimo. */}
+      <div className="relative h-[31%] min-h-[128px] shrink-0">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -157,14 +159,10 @@ export default function OpportunityCard({
           sólo funcionaba arrancando justo sobre la parte ilustrada (bug real,
           Julieta 2026-07-31). Con `touch-pan-y` el navegador sólo reclama el
           gesto si es vertical y deja pasar el horizontal. */}
-      {/* `pb-10` (no el `pb-5` del `p-5`): la pista de scroll de abajo es un
-          degradé blanco absolute de ~36px que se dibuja ENCIMA del final del
-          cuerpo. Con el padding chico, el último control ("Cómo llegar")
-          quedaba justo debajo y se veía apagado/tapado — leído como "no entra"
-          (Julieta, captura 2026-08-17). No era falta de alto: el contenido
-          entraba, lo tapaba el propio indicador. El padding extra le deja el
-          espacio que el degradé ocupa. */}
-      <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto px-5 pb-10 pt-3 touch-pan-y md:overflow-visible md:pb-5">
+      {/* Vuelve a `pb-5` parejo: el `pb-10` era el hueco que necesitaba la
+          pista de scroll para no taparle "Cómo llegar", y esa pista ya no
+          existe (ver abajo). */}
+      <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto px-5 pb-5 pt-3 touch-pan-y md:overflow-visible">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
@@ -246,13 +244,17 @@ export default function OpportunityCard({
         </div>
       </div>
 
-      {/* Pista de que hay más para ver deslizando el dedo adentro de la
-          tarjeta (no era obvio, Julieta 2026-07-31) — sólo mobile, donde el
-          cuerpo puede scrollear; en `md+` la tarjeta ya tiene alto fijo de
-          sobra y nunca hace falta. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/80 to-transparent pb-1 pt-4 md:hidden">
-        <ChevronDownIcon size={16} className="text-ink/30" />
-      </div>
+      {/* Acá vivía la pista de scroll (degradé blanco + chevron), agregada el
+          2026-07-31 cuando el cuerpo era más largo y no era obvio que hubiera
+          más abajo. Se saca (Julieta, 2026-08-17: "saca el botón de deslizar,
+          todo tiene que entrar bien"): con el WhatsApp ya fuera de la tarjeta
+          y el hero más chico, el contenido entra completo, así que la pista
+          anunciaba un scroll que ya no existe — y encima el degradé se
+          dibujaba ENCIMA de "Cómo llegar" y lo hacía ver apagado, que fue el
+          síntoma reportado. El `overflow-y-auto` del cuerpo se mantiene como
+          red de seguridad para combinaciones raras (dress code muy largo en
+          una pantalla muy baja): si alguna vez hace falta scrollear, se puede
+          igual, sólo que ya no se anuncia. */}
     </div>
   );
 }

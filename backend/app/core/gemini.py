@@ -52,13 +52,30 @@ en español informal de Argentina. Hoy es {today} (hora de Argentina). Reglas:
 - `start_at`/`end_at`: horario ISO-8601 CON offset -03:00 (ej: "2026-08-15T20:00:00-03:00").
   Resolvé días relativos ("mañana", "el sábado", "hoy") contra la fecha de hoy de arriba.
   Si no podés inferir un horario, dejalo en null.
-- `pay_amount`: el monto en pesos argentinos que se menciona (sólo el número). Si no se
+- **DEDUCÍ el horario de fin cuando el texto da inicio + duración.** Es el caso más
+  común: la gente dice cuándo arranca y cuánto dura, no cuándo termina.
+  Ejemplos, todos con "hoy" = {today}:
+  · "7 horas de 10 a.m" -> start 10:00, end 17:00 del mismo día.
+  · "de 20 a 2" -> start 20:00 de hoy, end 02:00 del día SIGUIENTE (cruza medianoche).
+  · "turno de 6 horas arrancando 18hs" -> start 18:00, end 00:00 del día siguiente.
+  Si el fin cae después de medianoche, la fecha de `end_at` es la del día siguiente.
+  Si el texto SÓLO da la duración y ninguna hora de inicio, dejá los dos en null:
+  no inventes a qué hora arranca.
+- Interpretá la hora como la diría alguien en Argentina: "10 a.m"/"10 am"/"10 de la
+  mañana" = 10:00; "10 de la noche"/"22hs"/"10 pm" = 22:00. Si sólo dice "a las 8" y
+  el puesto es de gastronomía nocturna (bartender), asumí 20:00; si es de mañana
+  (barista), 08:00.
+- `pay_amount`: el monto en pesos argentinos que se menciona (sólo el número, sin
+  puntos ni comas ni signo: "$50,000" y "50.000" y "50 lucas" -> 50000). Si no se
   menciona, null.
-- `urgent`: true si el texto sugiere que es para cubrir ya/hoy/urgente.
+- `urgent`: true si el texto sugiere que es para cubrir ya/hoy/urgente. "para hoy"
+  cuenta como urgente.
 - `meal`: true si menciona que incluye comida/vianda.
 - `tips`: true salvo que el texto diga explícitamente que NO hay propinas.
-- `dress_code`: si se menciona un código de vestimenta, transcribilo corto. Si no, null.
-No inventes datos que el texto no sugiere."""
+- `dress_code`: si se menciona un código de vestimenta, transcribilo corto
+  ("camisa negra", "todo de negro", "uniforme del local"). Si no, null.
+No inventes datos que el texto no sugiere, pero SÍ deducí lo que se sigue \
+aritméticamente de lo que dice (sobre todo el horario de fin)."""
 
 _RESPONSE_SCHEMA = {
     "type": "OBJECT",
@@ -118,6 +135,30 @@ class ParsedShiftDraft:
     meal: bool
     tips: bool
     dress_code: str | None
+    # Qué le falta al borrador para poder publicarse, en palabras, para que la
+    # UI pueda PREGUNTAR en vez de dejar al comercio adivinar por qué el
+    # wizard frenó donde frenó (Julieta, 2026-08-17: "si algo no se dijo, que
+    # pregunte qué falta para poder completar"). Se calcula acá, en código, a
+    # partir del borrador ya parseado — NO se le pide a Gemini: es una regla
+    # fija (los 4 campos que el wizard exige), determinística y testeable, y
+    # pedírsela al modelo sería pagar tokens para que invente una lista que
+    # ya sabemos.
+    missing: list[str] = field(default_factory=list)
+
+
+# Campos que el wizard de publicar turno exige sí o sí, en el orden en que los
+# pide. El texto es el que se le muestra al comercio.
+_REQUIRED_DRAFT_FIELDS: list[tuple[str, str]] = [
+    ("position", "qué puesto necesitás"),
+    ("start_at", "a qué hora arranca"),
+    ("end_at", "a qué hora termina"),
+    ("pay_amount", "cuánto pagás"),
+]
+
+
+def _missing_draft_fields(data: dict) -> list[str]:
+    """Los campos obligatorios que el texto no alcanzó a definir."""
+    return [label for key, label in _REQUIRED_DRAFT_FIELDS if not data.get(key)]
 
 
 _SUPPORT_SYSTEM_INSTRUCTION = """Sos un asistente interno para el equipo de soporte de Oído \
@@ -224,6 +265,11 @@ async def parse_shift_text(text: str) -> ParsedShiftDraft:
         meal=bool(data.get("meal", False)),
         tips=bool(data.get("tips", True)),
         dress_code=data.get("dress_code"),
+        # Ojo: se calcula sobre `position` YA normalizado (un puesto que
+        # Gemini no supo inferir llega como "desconocido", que no está en
+        # `_POSITIONS` y acá arriba quedó en `None`) — si se calculara sobre
+        # el dict crudo, "desconocido" contaría como puesto definido.
+        missing=_missing_draft_fields({**data, "position": position}),
     )
 
 
