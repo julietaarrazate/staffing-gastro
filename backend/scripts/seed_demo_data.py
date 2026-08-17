@@ -599,11 +599,12 @@ _GUEST_WORKER_PHOTO = "https://i.pravatar.cc/300?img=68"
 
 
 # Las 4 cuentas compartidas: 2 invitado (PIN público) + 2 de prueba
-# (impersonación admin). En el caso real de cada arranque (`SEED_DEMO_DATA=
-# true`, ver startup_seed.py) las 4 ya existen con foto puesta — R-perf
-# (docs/audits/PERFORMANCE_REPORT.md, mismo motivo que `_existing_emails`
-# arriba): esta función tiene que quedar en un puñado constante de queries
-# en ese caso de régimen, no una ronda de lecturas por cuenta.
+# (impersonación admin). En el caso real de cada arranque las 4 ya existen con
+# foto puesta — R-perf (docs/audits/PERFORMANCE_REPORT.md, mismo motivo que
+# `_existing_emails` arriba): esta función tiene que quedar en un puñado
+# constante de queries en ese caso de régimen, no una ronda de lecturas por
+# cuenta. Corre SIEMPRE, no atada a `SEED_DEMO_DATA` (ver
+# `seed_shared_account_photos` abajo y `startup_seed.py`).
 _SHARED_ACCOUNTS: list[tuple[str, str, str, UserRole]] = [
     (label, email, name, role)
     for label, accounts in (("invitado", GUEST_ACCOUNTS), ("prueba", TEST_ACCOUNTS))
@@ -710,6 +711,28 @@ async def _seed_shared_account_photos(session: AsyncSession) -> None:
             ),
         )
         print(f"  [ok] foto de trabajador agregada a {user_id}")
+
+
+async def seed_shared_account_photos() -> None:
+    """Punto de entrada propio, SIN el resto del seed demo.
+
+    Las fotos de las 4 cuentas compartidas no pueden colgar de
+    `SEED_DEMO_DATA`: ese flag está en `"false"` en `render.yaml` a propósito
+    (prende la siembra de ~26 cuentas demo con contraseña PÚBLICA conocida en
+    la base real, ver el runbook "Apagar el modo demo" en
+    docs/reference/DEPLOY.md), así que atarle esto significaba que en
+    producción no corría nunca — que es exactamente lo que pasó con el primer
+    intento (2026-08-16): Julieta siguió viendo la tarjeta genérica porque el
+    código sólo corría con el flag prendido, y el flag está apagado.
+
+    Estas 4 cuentas son otra cosa: existen igual (la de invitado la crea el
+    PIN, la de prueba el panel de admin), no tienen contraseña usable, y
+    darles una foto no agrega ninguna superficie de riesgo. Por eso corre
+    siempre — 3 queries batch, ver `_seed_shared_account_photos`.
+    """
+    async with AsyncSessionLocal() as session:
+        print("Fotos de cuentas invitado/prueba compartidas:")
+        await _seed_shared_account_photos(session)
 
 
 async def main() -> None:

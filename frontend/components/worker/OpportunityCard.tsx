@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
 import { Avatar } from "@/components/ui";
 import {
   CalendarIcon,
@@ -35,7 +35,6 @@ export default function OpportunityCard({
   onApply,
   onPass,
   applying = false,
-  heroFallbackClassName = "bg-gradient-to-br from-primary to-primary-strong",
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
@@ -46,19 +45,9 @@ export default function OpportunityCard({
   onApply?: () => void;
   onPass?: () => void;
   applying?: boolean;
-  /** Clase de fondo del hero cuando no hay foto — por defecto el gradiente
-   *  de marca (un solo acento, Ley de marca; ver comentario abajo). SÓLO la
-   *  usa `ScrollHeroShowcase` (landing) para dar un color distinto a cada
-   *  una de sus 3 tarjetas de ejemplo: ahí las 3 conviven a la vista al
-   *  mismo tiempo como "product shot", así que un solo naranja repetido se
-   *  ve monótono/roto (Julieta, captura 2026-08-16: "modificaste el color
-   *  de las tarjetas que se mueven a un solo naranja, antes eran de
-   *  colores"). En el feed real las tarjetas nunca conviven dos a la vista
-   *  (un turno por vez, swipe), así que ahí el default de un solo acento
-   *  sigue siendo lo correcto — este prop no cambia ese comportamiento. */
-  heroFallbackClassName?: string;
 }) {
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+  const heroFallback = SKILL_HERO_GRADIENT[shift.position];
   const [broken, setBroken] = useState(false);
   const hasPhoto = Boolean(shift.company_logo_url) && !broken;
 
@@ -89,15 +78,15 @@ export default function OpportunityCard({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          // Antes: tinte pálido de SKILL_ACCENT (bg-orange-50, etc.) a toda la
-          // tarjeta — esos tokens están pensados sólo para el chip chico del
-          // ícono (ver comentario en skill-style.tsx: "nunca como banda de
-          // color a toda la tarjeta"), y el resultado se veía plano/beige
-          // (Julieta, captura 2026-08-16). Mismo tratamiento que ya usa el
-          // hero sin foto del perfil de trabajador (/workers/[id]): gradiente
-          // saturado de marca + gráfico grande centrado, un solo acento por
-          // pantalla en vez del tinte de rubro extendido a toda la tarjeta.
-          <div className={`absolute inset-0 flex items-center justify-center ${heroFallbackClassName}`}>
+          // Banner sin foto, en tres iteraciones (Julieta, 2026-08-16):
+          // arrancó con el tinte pálido de SKILL_ACCENT a toda la tarjeta
+          // ("muy beige, plano" — y además contra el propio comentario de
+          // skill-style.tsx: "nunca como banda de color a toda la tarjeta");
+          // pasó a un único gradiente naranja de marca (mejor, pero todas
+          // las tarjetas iguales); ahora usa el gradiente del RUBRO
+          // (SKILL_HERO_GRADIENT), así dos turnos seguidos no se sienten la
+          // misma tarjeta repetida, manteniendo la paleta cálida.
+          <div className={`absolute inset-0 flex items-center justify-center ${heroFallback}`}>
             <Icon size={120} className="text-white/90" />
           </div>
         )}

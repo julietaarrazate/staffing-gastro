@@ -5,7 +5,51 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Sexta vuelta: se corrige una
+*Última actualización: 2026-08-17 (**Swipe estilo OkCupid (sin botones
+fijos), color por rubro en el banner del turno, y CORRECCIÓN de un error
+propio: las fotos de las cuentas compartidas nunca corrían en
+producción.**)
+
+**Corrección honesta primero.** La entrada del 2026-08-16 ("quinta
+vuelta", más abajo) dice que `scripts/seed_demo_data.py` "ya corre en
+cada arranque (`SEED_DEMO_DATA=true`)". Es FALSO: `render.yaml` tiene
+`SEED_DEMO_DATA: "false"`, apagado a propósito (prende la siembra de ~26
+cuentas demo con contraseña pública conocida en la base real, ver runbook
+"Apagar el modo demo" en docs/reference/DEPLOY.md). Lo escribí de memoria
+sin abrir `render.yaml` — otra recurrencia de la misma clase de falla de
+staleness que este repo viene documentando (F6/P7-15). Consecuencia real:
+Julieta siguió viendo la publicación genérica de la cuenta invitado
+porque el código que le pone foto no se ejecutaba nunca. Arreglado
+separando las dos cosas en `startup_seed.py`: las fotos de las 4 cuentas
+compartidas (invitado + prueba) corren SIEMPRE —son cuentas que existen
+igual, sin contraseña usable, darles foto no agrega superficie de
+riesgo—, y el seed demo de las otras ~26 sigue detrás de
+`SEED_DEMO_DATA`, intacto.
+
+(1) **`SwipeDeck` sin fila de botones** (Julieta con capturas de OkCupid:
+"borra el botón x y check, que aparezcan dependiendo si haces swipe para
+un lado u otro"): los indicadores ahora son círculos grandes que aparecen
+y CRECEN sobre la tarjeta según hacia dónde arrastrás (opacidad plena a
+±150px, alineado con el ±120px que dispara la decisión al soltar).
+Reemplazan tanto a la fila de botones como a los sellos de texto "ME
+INTERESA"/"NO" que había antes. Accesibilidad preservada: quedan dos
+botones `sr-only` + `focus:not-sr-only` — invisibles con el dedo,
+alcanzables con Tab y anunciados por lector de pantalla; sin eso el mazo
+quedaba inoperable sin puntero. (2) **Tarjeta más amplia**: sacar la fila
+de botones le devuelve ~80px de alto real al mazo, que es lo que faltaba
+para que el cuerpo del turno entre sin deslizar. (3) **Color por rubro en
+el banner** (`SKILL_HERO_GRADIENT`, nuevo en `skill-style.tsx`): Julieta
+vio los 3 colores que quedaron en la landing y pidió traerlos adentro
+("algo de esos colores quedarían bien adentro también"). El banner sin
+foto pasa de un único naranja de marca a un gradiente saturado por rubro,
+siempre dentro de la paleta cálida. Como los 3 turnos de ejemplo de la
+landing son mozo/bartender/barista, sus colores ahora salen de esa misma
+tabla — se eliminó el override `heroFallbackClassName` agregado el día
+anterior, que quedó redundante: una sola fuente de verdad para landing y
+feed. Verificado: pytest backend (seed/guest/admin, 34/34), tsc/eslint
+limpios, vitest 76/76, build de producción limpio.
+
+Antes (2026-08-16): **Sexta vuelta: se corrige una
 regresión real en la landing (tarjetas todas del mismo naranja) y se
 sigue afinando /feed — avatar más chico, botones del mazo más chicos y
 separados.**) (1) La landing (`ScrollHeroShowcase`) reusa `OpportunityCard`
