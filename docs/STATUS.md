@@ -5,7 +5,35 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-17 (**Swipe estilo OkCupid (sin botones
+*Última actualización: 2026-08-17 (**`ShiftCard` con banner (foto o color
+por rubro) en las listas, y fix de la pestaña "Postulaciones" que quedaba
+más alta.**) (1) Julieta, capturas de Matches y del Panel: "todas las
+publicaciones son genéricas, sin fotos, sin distinto color de banner... la
+idea es que entre tantas tengan distinto color, al menos un corte de otro
+color hasta la parte donde muestra los pasos 1 2 3 4". `ShiftCard` —la
+tarjeta de TODAS las listas (Matches del trabajador, Panel del comercio,
+guardados), distinta de la `OpportunityCard` del mazo— era íntegramente
+blanca con un chip chico de color por rubro: en una lista de varias, todas
+se leían iguales. Ahora arranca con el mismo tratamiento que el mazo: foto
+real del local si el comercio la subió, y si no el gradiente del rubro
+(`SKILL_HERO_GRADIENT`), con el nombre del comercio, el puesto, la
+ubicación, "Urgente" y el pago encima; el corte de color termina justo
+arriba del bloque de estado + pasos, que quedan sobre blanco. Tres
+detalles cuidados a propósito: el `overflow-hidden` va en el banner y NO
+en la raíz (en la raíz recortaba el menú "Más" de `ShiftActions`, bug ya
+corregido el 2026-07-29 que no había que reintroducir); el chip de estado
+conserva sus clases de color (`text-primary-text`/`text-success-text`/
+`text-danger-text`), que los e2e de `/shifts` asertan; y el sello
+"Comercio verificado" pasa a ser hermano de la pastilla del comercio en
+vez de ir adentro, porque `Badge` ya es una pastilla con fondo propio y
+anidarlas daba dos píldoras encastradas. (2) `SegmentedControl`: la
+etiqueta larga ("Postulaciones (1)") envolvía a dos líneas y, como el
+track es flex, estiraba a todos los segmentos — la pista entera quedaba
+más alta ("donde dice postulaciones tiene una altura diferente").
+`whitespace-nowrap` lo resuelve; el scroll horizontal del contenedor ya
+existía. Verificado: tsc/eslint limpios, vitest 76/76, build limpio.
+
+Antes, mismo día: **Swipe estilo OkCupid (sin botones
 fijos), color por rubro en el banner del turno, y CORRECCIÓN de un error
 propio: las fotos de las cuentas compartidas nunca corrían en
 producción.**)

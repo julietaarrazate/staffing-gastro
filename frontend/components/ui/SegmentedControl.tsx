@@ -35,7 +35,15 @@ export default function SegmentedControl<T extends string>({
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className="relative flex-1 rounded-full px-3 py-2 text-sm font-semibold"
+            // `whitespace-nowrap`: sin esto una etiqueta larga
+            // ("Postulaciones (1)" en /my-shifts) envuelve a dos líneas y,
+            // como el track es flex, ESTIRA a todos los segmentos — la pista
+            // entera queda más alta que las demás de la app (Julieta,
+            // captura 2026-08-17: "donde dice postulaciones tiene una altura
+            // diferente"). Con nowrap todos miden una línea; si la suma no
+            // entra, el contenedor de la página ya scrollea en horizontal
+            // (ver `overflow-x-auto` en my-shifts/shifts).
+            className="relative flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold"
           >
             {active && (
               <motion.span
