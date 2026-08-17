@@ -157,7 +157,14 @@ export default function OpportunityCard({
           sólo funcionaba arrancando justo sobre la parte ilustrada (bug real,
           Julieta 2026-07-31). Con `touch-pan-y` el navegador sólo reclama el
           gesto si es vertical y deja pasar el horizontal. */}
-      <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto p-5 pt-3 touch-pan-y md:overflow-visible">
+      {/* `pb-10` (no el `pb-5` del `p-5`): la pista de scroll de abajo es un
+          degradé blanco absolute de ~36px que se dibuja ENCIMA del final del
+          cuerpo. Con el padding chico, el último control ("Cómo llegar")
+          quedaba justo debajo y se veía apagado/tapado — leído como "no entra"
+          (Julieta, captura 2026-08-17). No era falta de alto: el contenido
+          entraba, lo tapaba el propio indicador. El padding extra le deja el
+          espacio que el degradé ocupa. */}
+      <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto px-5 pb-10 pt-3 touch-pan-y md:overflow-visible md:pb-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import type { MapRef } from "@vis.gl/react-maplibre";
 import MapView from "@/components/map/MapView";
 import UserPuck from "@/components/map/UserPuck";
 import WorkerMarker from "@/components/map/WorkerMarker";
+import { flyToPoint } from "@/lib/map/camera";
 import { WorkerMapResult } from "@/lib/types";
 
 /**
@@ -27,6 +29,29 @@ export default function WorkerSearchMap({
   className?: string;
 }) {
   const router = useRouter();
+  const mapRef = useRef<MapRef | null>(null);
+  const initialCenterRef = useRef(center);
+  const hasCenteredOnUserRef = useRef(false);
+
+  const handleLoad = useCallback((map: MapRef) => {
+    mapRef.current = map;
+  }, []);
+
+  // Mismo comportamiento que `ShiftMap` en `/map`: cuando la geolocalización
+  // resuelve DESPUÉS de que el mapa cargó, `center` pasa del default (CABA) a
+  // la posición real y hay que volar hasta ahí — `MapView` no es una vista
+  // controlada. Sin esto, `/search` se quedaba para siempre en el centro por
+  // defecto aunque el puck del usuario ya estuviera en otro lado (Julieta,
+  // reporte repetido: "sigue sin apuntar a la geolocalización en la que
+  // estoy"). El caso inverso —geolocalización antes del load— lo cubre
+  // `syncCamera` dentro de `MapView`.
+  useEffect(() => {
+    if (hasCenteredOnUserRef.current || !mapRef.current) return;
+    const [initLat, initLng] = initialCenterRef.current;
+    if (center[0] === initLat && center[1] === initLng) return;
+    hasCenteredOnUserRef.current = true;
+    flyToPoint(mapRef.current, center, { zoom: 13, duration: 1400 });
+  }, [center]);
 
   const located = useMemo(
     () =>
@@ -42,7 +67,12 @@ export default function WorkerSearchMap({
     // posición/bordes), igual que antes cuando se aplicaba directo al mapa.
     <div className={className}>
       <div className="relative h-full w-full overflow-hidden rounded-[inherit]">
-        <MapView center={center} zoom={13} className="absolute inset-0 h-full w-full">
+        <MapView
+          center={center}
+          zoom={13}
+          onLoad={handleLoad}
+          className="absolute inset-0 h-full w-full"
+        >
           <UserPuck center={center} />
           {located.map((worker, index) => (
             <WorkerMarker

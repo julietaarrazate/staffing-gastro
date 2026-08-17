@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { syncCooperativeGestures, syncInteractiveHandlers } from "./MapView";
+import { syncCamera, syncCooperativeGestures, syncInteractiveHandlers } from "./MapView";
 
 /**
  * Regresión real (reporte de Julieta, 2026-08-14: "arreglé que no se mueva
@@ -22,6 +22,7 @@ function fakeMap() {
     touchZoomRotate: { enable: vi.fn(), disable: vi.fn() },
     touchPitch: { enable: vi.fn(), disable: vi.fn() },
     cooperativeGestures: { enable: vi.fn(), disable: vi.fn() },
+    jumpTo: vi.fn(),
   };
 }
 
@@ -42,6 +43,33 @@ describe("syncCooperativeGestures", () => {
 
   it("no explota si el mapa reciclado no expone el handler", () => {
     expect(() => syncCooperativeGestures({}, true)).not.toThrow();
+  });
+});
+
+/**
+ * Regresión real, reportada dos veces por Julieta ("el mapa sigue sin apuntar
+ * a la geolocalización en la que estoy", 2026-08-16 y 2026-08-17): tercera
+ * consecuencia del mismo `reuseMaps`. `initialViewState` sólo se aplica al
+ * CONSTRUIR el mapa, así que uno reciclado del pool abre con la cámara del
+ * montaje anterior — `/map` y `/search` mostrando el centro por defecto
+ * aunque la geolocalización ya hubiera resuelto, y el mini-mapa de una
+ * tarjeta mostrando la zona del turno anterior.
+ */
+describe("syncCamera", () => {
+  it("salta al centro pedido, convirtiendo [lat,lng] al [lng,lat] de maplibre", () => {
+    const map = fakeMap();
+    syncCamera(map, [-34.6037, -58.3816], 14);
+    expect(map.jumpTo).toHaveBeenCalledWith({ center: [-58.3816, -34.6037], zoom: 14 });
+  });
+
+  it("respeta el zoom de cada consumidor (MiniMap 14, /search 13)", () => {
+    const map = fakeMap();
+    syncCamera(map, [-34.58, -58.42], 13);
+    expect(map.jumpTo).toHaveBeenCalledWith({ center: [-58.42, -34.58], zoom: 13 });
+  });
+
+  it("no explota si el mapa reciclado todavía no expone jumpTo", () => {
+    expect(() => syncCamera({}, [-34.6, -58.38], 14)).not.toThrow();
   });
 });
 

@@ -5,7 +5,56 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-17 (**`ShiftCard` con banner (foto o color
+*Última actualización: 2026-08-17 (**Causa raíz del mapa que no apunta a
+tu ubicación (tercer bug del mismo `reuseMaps`), y el email transaccional
+que nunca estuvo configurado.**)
+
+(1) **Mapa — causa raíz, reportado dos veces.** `MapView` usa `reuseMaps`
+de `@vis.gl/react-maplibre`, y el archivo ya documentaba dos bugs por eso
+(handlers de gesto y `cooperativeGestures`: opciones de constructor que un
+mapa reciclado conserva del montaje anterior). Hay un TERCERO, el más
+visible: la **cámara**. `initialViewState` es sólo inicial —maplibre la
+aplica al construir el `Map` y nunca más—, así que un mapa que sale del
+pool estático abre con el centro/zoom del montaje anterior. Explica los
+dos síntomas juntos: `/map` y `/search` abriendo en el centro por defecto
+aunque la geolocalización ya hubiera resuelto, y el mini-mapa de una
+tarjeta mostrando la zona del turno anterior. Fix: `syncCamera` en el
+`load` de `MapView` (mismo patrón defensivo que los otros dos syncs, y se
+dispara también en el `load` sintético del reuse). De paso cierra una
+**carrera real e independiente del reuse**: si la geolocalización resolvía
+ANTES de que el mapa cargara, el `flyTo` de `ShiftMap` corría con
+`mapRef.current` todavía en `null` y se perdía para siempre (su efecto no
+vuelve a correr porque `center` ya no cambia); al saltar en `load` leemos
+el `center` vigente. Además `WorkerSearchMap` (`/search`) no tenía NINGÚN
+re-centrado —dependía sólo de `initialViewState`—, así que ahora hace el
+mismo vuelo único que `ShiftMap`. 3 tests nuevos en `MapView.test.ts`.
+
+(2) **Email transaccional: nunca estuvo prendido.** `RESEND_API_KEY` no
+existía en `render.yaml`, así que en producción se inyecta
+`NullEmailSender`: sólo loguea, nunca falla. Por eso "recuperar
+contraseña" contesta OK y no llega nada — ídem verificación de email y
+avisos. El silencio es deliberado (un problema de email no debe romper un
+registro), pero era invisible: ahora el arranque deja un `WARNING`
+explícito si falta la clave, `render.yaml` declara los slots
+`RESEND_API_KEY`/`EMAIL_FROM` con `sync: false`, y hay runbook en
+`docs/reference/DEPLOY.md`. **Requiere acción de la operadora**: crear
+cuenta en Resend, verificar un dominio y cargar la clave — sin dominio
+propio verificado, Resend sólo entrega a la casilla dueña de la cuenta. De
+paso se corrigió la tabla de variables de ese mismo doc, que decía
+`SEED_DEMO_DATA | "true"` cuando `render.yaml` lo tiene en `"false"`:
+justamente el dato stale que el día anterior me llevó a afirmar que el
+seed de fotos corría en producción.
+
+(3) `OpportunityCard`: "Cómo llegar" no estaba cortado por falta de alto
+—el contenido entraba— sino **tapado por el degradé blanco** de la pista
+de scroll, que se dibuja encima del final del cuerpo. `pb-10` en mobile le
+deja el espacio que ese indicador ocupa. (4) Las tarjetas del mapa pasan
+del chip pálido de `SKILL_ACCENT` al gradiente por rubro
+(`SKILL_HERO_GRADIENT`) con ícono blanco, para seguir la misma paleta que
+la landing y el mazo. Verificado: vitest 79/79 (3 nuevos), pytest backend,
+tsc/eslint limpios, build limpio.
+
+Antes, mismo día: **`ShiftCard` con banner (foto o color
 por rubro) en las listas, y fix de la pestaña "Postulaciones" que quedaba
 más alta.**) (1) Julieta, capturas de Matches y del Panel: "todas las
 publicaciones son genéricas, sin fotos, sin distinto color de banner... la

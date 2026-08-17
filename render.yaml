@@ -48,4 +48,23 @@ services:
         value: "false"
       - key: SENTRY_DSN
         sync: false
+      # --- Email transaccional (Resend) ---
+      # SIN ESTA CLAVE NO SE ENVÍA NINGÚN EMAIL. El backend cae a
+      # `NullEmailSender`, que sólo loguea y nunca falla — por diseño, para
+      # que un problema de email jamás rompa un registro o una asignación de
+      # turno. El efecto secundario es que "recuperar contraseña" responde
+      # OK ("si el mail existe, te enviamos un enlace") y no llega nada
+      # (reporte real de Julieta, 2026-08-17). Se declara acá con
+      # `sync: false` para que el slot exista y se complete en el dashboard
+      # de Render; ver el runbook "Prender el email transaccional" en
+      # docs/reference/DEPLOY.md.
+      - key: RESEND_API_KEY
+        sync: false
+      # Remitente. El default del código es `onboarding@resend.dev`, el
+      # dominio de PRUEBA de Resend, que sólo entrega a la casilla dueña de
+      # la cuenta — para poder escribirle a cualquier usuario hay que
+      # verificar un dominio propio en Resend y poner acá algo como
+      # "Oído <hola@tudominio.com>".
+      - key: EMAIL_FROM
+        sync: false
     autoDeploy: true
