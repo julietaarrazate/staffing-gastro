@@ -1,7 +1,10 @@
+"use client";
+
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState } from "react";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
 import { Avatar, Badge, Button } from "@/components/ui";
 import {
   CalendarIcon,
@@ -13,6 +16,7 @@ import {
   UsersIcon,
 } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
+import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
 
@@ -80,9 +84,13 @@ export default function ShiftCard({
   showLifecycle?: boolean;
   children?: React.ReactNode;
 }) {
-  const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+  const { Icon } = SKILL_ACCENT[shift.position];
   const isPast = PAST_STATUSES.has(shift.status);
   const isDimmed = DIMMED_STATUSES.has(shift.status);
+  // Igual que en `OpportunityCard`: si la foto del comercio falla al cargar,
+  // se cae al gradiente del rubro en vez de dejar un banner roto.
+  const [broken, setBroken] = useState(false);
+  const hasPhoto = Boolean(shift.company_logo_url) && !broken;
 
   return (
     // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
@@ -104,63 +112,112 @@ export default function ShiftCard({
         isDimmed ? "opacity-65 saturate-[0.85]" : ""
       }`}
     >
-      {shift.company_name && (
-        <Link
-          href={`/companies/${shift.company_id}`}
-          className="flex items-center gap-2 rounded-t-[var(--radius-card)] border-b border-line px-5 py-2.5 hover:bg-surface"
-        >
-          <Avatar src={shift.company_logo_url} name={shift.company_name} size="sm" />
-          <span className="text-sm font-semibold text-ink/80">{shift.company_name}</span>
-          {/* ADR-0011: única señal de confianza del comercio visible en el
-              feed del trabajador hoy — antes no había ninguna. */}
-          {shift.company_verified && (
-            <Badge tone="trust" icon={<ShieldIcon size={11} />} className="ml-auto">
-              Comercio verificado
-            </Badge>
-          )}
-        </Link>
-      )}
+      {/* BANNER (Julieta, captura 2026-08-17: "todas las publicaciones son
+          genéricas, sin fotos, sin distinto color de banner... la idea es que
+          entre tantas tengan distinto color, al menos un corte de otro color
+          hasta la parte donde muestra los pasos 1 2 3 4"). Antes esta tarjeta
+          era íntegramente blanca con un chip chico de color por rubro: en una
+          lista de varias, todas se leían iguales. Ahora arranca con el mismo
+          tratamiento que `OpportunityCard`: foto real del local si el
+          comercio la subió, y si no el gradiente del rubro
+          (`SKILL_HERO_GRADIENT`) — así dos turnos seguidos se distinguen de
+          un vistazo. El corte va justo hasta el bloque de estado + pasos, que
+          quedan sobre blanco.
 
-      <div className="px-5 pb-5 pt-4">
-        {/* Turno publicado como parte de un evento masivo (varios roles a la
-            vez, ver /shifts/new-event): se marca para poder identificarlo
-            aunque la familia de estado lo separe de sus hermanos. */}
-        {shift.event_name && (
-          <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-xs font-bold text-ink/50">
-            <CalendarPlusIcon size={12} /> {shift.event_name}
-          </p>
+          `overflow-hidden` va ACÁ y no en la raíz: la raíz lo tenía y
+          recortaba el menú "Más" de `ShiftActions` (dropdown absolute) a una
+          tira finita (bug real con captura, Julieta 2026-07-29). */}
+      <div className="relative overflow-hidden rounded-t-[var(--radius-card)]">
+        {hasPhoto ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cldThumb(shift.company_logo_url, 800)}
+              alt={shift.company_name ?? "Local"}
+              onError={() => setBroken(true)}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/35" />
+          </>
+        ) : (
+          <div className={`absolute inset-0 ${SKILL_HERO_GRADIENT[shift.position]}`}>
+            {/* Velo: los extremos claros de algunos gradientes (ámbar, naranja)
+                no dan contraste suficiente para el texto blanco por sí solos. */}
+            <div className="absolute inset-0 bg-black/15" />
+            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
+          </div>
         )}
 
-        {/* Encabezado: rubro con chip de acento + urgente. Antes 48px (h-12),
-            más grande que el propio avatar del comercio arriba (32px,
-            size="sm") — desproporcionado y, con el tinte pálido de
-            SKILL_ACCENT, se leía "opaco" al lado del gradiente saturado del
-            avatar (Julieta, captura 2026-08-16 de /my-shifts). 40px lo
-            acerca al peso visual del avatar sin perder legibilidad del
-            ícono. */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${bg} ${fg}`}>
-              <Icon size={20} />
-            </span>
-            <div>
-              <h3 className="text-lg font-extrabold leading-tight text-ink">
-                {SKILL_LABELS[shift.position]}
-              </h3>
-              <p className="inline-flex items-center gap-1 text-sm font-medium text-ink/50">
-                <MapPinIcon size={13} />
-                {shift.city ?? "Ubicación a confirmar"}
-              </p>
+        <div className="relative px-5 pb-4 pt-3.5">
+          <div className="flex items-start justify-between gap-2">
+            {/* El sello de verificación va COMO HERMANO de la pastilla del
+                comercio, no adentro: `Badge` ya es una pastilla con fondo
+                propio, y anidarla dentro de la pastilla blanca daba dos
+                píldoras encastradas. */}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {shift.company_name && (
+                <Link
+                  href={`/companies/${shift.company_id}`}
+                  className="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-sm backdrop-blur"
+                >
+                  <Avatar src={shift.company_logo_url} name={shift.company_name} size="sm" />
+                  <span className="truncate text-sm font-semibold text-ink/80">
+                    {shift.company_name}
+                  </span>
+                </Link>
+              )}
+              {/* ADR-0011: única señal de confianza del comercio visible en
+                  el feed del trabajador hoy — antes no había ninguna. */}
+              {shift.company_verified && (
+                <Badge tone="trust" icon={<ShieldIcon size={11} />} className="shadow-sm">
+                  Comercio verificado
+                </Badge>
+              )}
             </div>
+            {shift.urgent && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm backdrop-blur">
+                <FlameIcon size={13} /> Urgente
+              </span>
+            )}
           </div>
-          {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-danger-text">
-              <FlameIcon size={13} /> Urgente
-            </span>
-          )}
-        </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2">
+          {/* Turno publicado como parte de un evento masivo (varios roles a la
+              vez, ver /shifts/new-event): se marca para poder identificarlo
+              aunque la familia de estado lo separe de sus hermanos. */}
+          {shift.event_name && (
+            <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
+              <CalendarPlusIcon size={12} /> {shift.event_name}
+            </p>
+          )}
+
+          <h3 className="mt-3 text-2xl font-extrabold leading-tight text-white drop-shadow">
+            {SKILL_LABELS[shift.position]}
+          </h3>
+          <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/85">
+            <MapPinIcon size={13} />
+            {shift.city ?? "Ubicación a confirmar"}
+          </p>
+
+          {/* Jerarquía brutal (ART_DIRECTION.md §9.4, §6.2 punto 1): el pago
+              tiene que dominar la tarjeta, no empatar con el título del
+              puesto. Mismo patrón de label+número que `OpportunityCard`, para
+              que las dos tarjetas se lean de la misma app (criterio 4 de
+              aprobación, §17). */}
+          <div className="mt-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">Pago</p>
+            <p className="text-3xl font-extrabold leading-none tracking-tight text-white drop-shadow">
+              {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+            </p>
+            {shift.tips && <p className="mt-1 text-xs font-medium text-white/75">+ propinas</p>}
+            {shift.meal && <p className="text-xs font-medium text-white/75">+ comida</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 pb-5 pt-4">
+        <div className="flex items-center justify-between gap-2">
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-bold ${
               STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
@@ -168,21 +225,6 @@ export default function ShiftCard({
           >
             {STATUS_LABELS[shift.status]}
           </span>
-          <div className="text-right">
-            {/* Jerarquía brutal (ART_DIRECTION.md §9.4, §6.2 punto 1): el
-                pago tiene que dominar la tarjeta, no empatar con el título
-                del puesto (18px) como pasaba antes con text-xl (20px) —
-                mismo antipatrón que el doc cita como bug real ya corregido
-                en el feed del trabajador. Mismo patrón de label+número que
-                `OpportunityCard`, para que las dos tarjetas se lean de la
-                misma app (criterio 4 de aprobación, §17). */}
-            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
-            <p className="text-3xl font-extrabold leading-none tracking-tight text-primary-text">
-              {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
-            </p>
-            {shift.tips && <p className="mt-1 text-xs font-medium text-ink/40">+ propinas</p>}
-            {shift.meal && <p className="text-xs font-medium text-ink/40">+ comida</p>}
-          </div>
         </div>
 
         {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md, inspiración
