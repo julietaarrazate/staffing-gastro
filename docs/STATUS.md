@@ -5,7 +5,39 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-16 (**Quinta vuelta: fotos reales en las
+*Última actualización: 2026-08-16 (**Sexta vuelta: se corrige una
+regresión real en la landing (tarjetas todas del mismo naranja) y se
+sigue afinando /feed — avatar más chico, botones del mazo más chicos y
+separados.**) (1) La landing (`ScrollHeroShowcase`) reusa `OpportunityCard`
+para mostrar 3 tarjetas de ejemplo sin foto, una al lado de la otra —
+al arreglar el fallback sin foto del feed real (vuelta anterior:
+gradiente de marca único en vez del tinte pálido por rubro), sin querer
+esto también le pintó las 3 tarjetas de la landing del mismo naranja
+(antes tenían colores distintos por rubro). Julieta: "modificaste el
+color de las tarjetas que se mueven a un solo naranja, antes eran de
+colores, ponele un color que combine y contraste, uno para cada una".
+Arreglado con una prop nueva (`heroFallbackClassName`, default el
+gradiente de marca — el feed real no cambia) que sólo usa la landing
+para pintar sus 3 tarjetas de ejemplo con 3 gradientes saturados
+distintos dentro de la misma paleta cálida (naranja/terracota/ámbar,
+mismo criterio que `SKILL_ACCENT`). (2) `SwipeDeck`: los botones de
+aceptar/rechazar bajan de 64px a 56px y quedan más separados de la
+tarjeta (`mt-6`) — "el botón de x o okey podrían estar más abajo y más
+chicos"; de paso le devuelve alto real a la tarjeta de arriba. (3)
+`/feed`: el avatar del saludo baja de "lg" (64px) a "md" (44px) — dos
+círculos naranjas grandes (avatar + ícono de `AIAssistantBar`) quedaban
+apilados muy cerca uno del otro ("el ícono de Oído en qué necesitás se
+junta demasiado con otros globos"), y de paso libera más alto para el
+mazo ("la tarjeta puede ser más amplia para que entre todo"). Pendiente
+de confirmar con Julieta, no tocado en esta vuelta por el riesgo de
+sacar una función real sin estar segura de la lectura correcta: el
+punto sobre que "urgente es redundante porque ya lo muestra en el
+turno" — ¿se refiere al chip "Sólo urgentes" (arriba del mazo) siendo
+redundante con el badge "Urgente" que ya tiene la propia tarjeta?
+Verificado: tsc/eslint limpios, vitest 76/76, build de producción
+limpio.
+
+Antes, mismo día: **Quinta vuelta: fotos reales en las
 4 cuentas compartidas (invitado + prueba) y hero de `OpportunityCard`
 más chico para que "Cómo llegar" entre sin deslizar.**) Julieta pidió
 subir "fotos de prueba a las cuentas de invitado tanto comercio como
