@@ -38,6 +38,7 @@ Config declarativa en `render.yaml` (raíz del repo).
 | `SEED_DEMO_DATA` | `"false"` | **APAGADO** desde 2026-08-07 (runbook más abajo): sembraba ~26 cuentas demo con contraseña pública en la base real. Las fotos de las 4 cuentas invitado/prueba **no** cuelgan de este flag — corren siempre, ver `scripts/startup_seed.py` |
 | `ADMIN_EMAILS` | (opcional) | promueve admins al bootstrap |
 | `RESEND_API_KEY` | Manual (`sync: false`) | **Sin esta clave no sale NINGÚN email.** Ver runbook "Prender el email transaccional" |
+| `GEMINI_API_KEY` | Manual (`sync: false`) | Sin ella, `POST /shifts/parse-text` y los asistentes responden 503. **Ojo también con el MODELO**, no sólo con la clave: ver nota abajo |
 | `EMAIL_FROM` | Manual (`sync: false`) | Default del código: `onboarding@resend.dev` — dominio de prueba de Resend, sólo entrega a la casilla dueña de la cuenta |
 
 > **Credenciales:** nunca en el repo ni en el chat; siempre env vars en
@@ -71,6 +72,28 @@ La DB productiva vive en **Neon** (la free de Render expiraba a los 90 días;
 - **Verificación post-cambio de DB:** el deploy corre `alembic upgrade head` al
   arrancar; si falla, Render conserva el deploy anterior. Chequear
   `GET /health` y los logs del servicio.
+
+## Diagnóstico: "no pudimos interpretar el texto" (Gemini)
+
+Los dos mensajes que puede mostrar la app significan cosas distintas —
+conviene leerlos con cuidado antes de tocar nada:
+
+| Lo que ve el comercio | Qué pasó | Dónde se arregla |
+|---|---|---|
+| *"La interpretación por IA no está configurada en este servidor"* (503) | Falta `GEMINI_API_KEY` | Render → Environment |
+| *"No pudimos interpretar el texto. Completá los datos a mano."* (502) | La clave está, pero la llamada a Google **falló** | Ver logs (abajo) |
+
+Para el segundo caso, la causa real está en los logs de Render:
+`_call_gemini` (en `app/core/gemini.py`) loguea el cuerpo del error que
+devuelve Google, que dice si es cuota agotada (free: 250 requests/día),
+clave inválida o **modelo dado de baja**.
+
+Ese último caso ya pasó una vez y rompió la feature en producción
+(`gemini-2.5-flash`, ver `docs/STATUS.md` 2026-08-11). El modelo está
+fijado a mano —`gemini-3.5-flash`, no el alias `-latest`— justamente para
+que un cambio de Google no entre sin deploy; el costo es que cuando lo dan
+de baja hay que actualizar la constante a mano: consultar
+`GET /v1beta/models` y editar `_GEMINI_URL`.
 
 ## Runbook: prender el email transaccional (Resend)
 

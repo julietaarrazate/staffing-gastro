@@ -187,3 +187,7 @@ class ParsedShiftDraftResponse(BaseModel):
     meal: bool
     tips: bool
     dress_code: str | None
+    # Qué falta definir, en palabras ("a qué hora termina"), para que la UI
+    # pueda PREGUNTARLO en vez de dejar al comercio adivinar por qué el
+    # wizard frenó donde frenó. Lista vacía = el texto alcanzó para todo.
+    missing: list[str] = []

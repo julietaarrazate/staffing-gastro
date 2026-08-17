@@ -10,7 +10,7 @@ import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { SearchIcon, UsersIcon } from "@/components/icons";
-import { SKILL_ACCENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_GRADIENT, SKILL_RAIL_BORDER } from "@/lib/skill-style";
 import StarRating from "@/components/StarRating";
 import BottomSheet from "@/components/BottomSheet";
 
@@ -176,7 +176,22 @@ function SearchPageContent() {
               <Link
                 key={worker.profile_id}
                 href={`/workers/${worker.profile_id}`}
-                className="flex gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg"
+                // Riel de color a la izquierda, del OFICIO PRINCIPAL del
+                // trabajador (Julieta, captura 2026-08-17: "la foto donde
+                // están los trabajadores reales no me gusta todo blanco,
+                // ponele colores — naranja no"). La lista era íntegramente
+                // blanca y todas las filas se leían iguales; el riel las
+                // diferencia de un vistazo sin cambiar el fondo blanco que
+                // hace legible el texto. Naranja sólo le toca a quien
+                // efectivamente es mozo/cocinero: el resto de los oficios
+                // trae su propio color de `SKILL_HERO_GRADIENT` (bartender
+                // terracota, barista ámbar, cajero verde...), la misma tabla
+                // que ya usan la landing, el mazo y las listas de turnos.
+                className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-white p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
+                  worker.skills.length > 0
+                    ? SKILL_RAIL_BORDER[worker.skills[0]]
+                    : "border-l-line"
+                }`}
               >
                 {worker.photo_url ? (
                   <img
@@ -187,7 +202,13 @@ function SearchPageContent() {
                     className="h-16 w-16 rounded-2xl object-cover ring-1 ring-line"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-strong text-xl font-bold text-white">
+                  <div
+                    className={`flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-bold text-white ${
+                      worker.skills.length > 0
+                        ? SKILL_HERO_GRADIENT[worker.skills[0]]
+                        : "bg-gradient-to-br from-primary to-primary-strong"
+                    }`}
+                  >
                     {worker.full_name.charAt(0).toUpperCase()}
                   </div>
                 )}

@@ -11,7 +11,7 @@ import { getCurrentPosition } from "@/lib/geolocation";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_GRADIENT, SKILL_RAIL_BORDER } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
@@ -89,6 +89,7 @@ function ShiftRow({
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
   const heroGradient = SKILL_HERO_GRADIENT[shift.position];
+  const rail = SKILL_RAIL_BORDER[shift.position];
   const distance =
     shift.latitude != null && shift.longitude != null ? haversineKm(center, [shift.latitude, shift.longitude]) : null;
 
@@ -99,7 +100,12 @@ function ShiftRow({
       onMouseEnter={onSelect}
       onClick={onOpenDetail}
       onKeyDown={(e) => handleCardActivate(e, onOpenDetail)}
-      className={`w-full cursor-pointer rounded-[var(--radius-card)] border p-3.5 text-left transition ${
+      // Riel de color por rubro a la izquierda: estas tarjetas eran todas
+      // blancas y en una lista de varias se leían iguales (Julieta,
+      // 2026-08-17: "en mapa, donde se ven los turnos en blanco, también que
+      // las tarjetas tengan colores"). El estado activo sigue marcándose con
+      // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
+      className={`w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
         active ? "border-primary/40 bg-orange-50/60" : "border-line bg-white hover:bg-surface"
       }`}
     >
@@ -384,6 +390,7 @@ export default function MapPage() {
           shifts.map((shift) => {
             const { Icon } = SKILL_ACCENT[shift.position];
             const heroGradient = SKILL_HERO_GRADIENT[shift.position];
+            const rail = SKILL_RAIL_BORDER[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
                 ? haversineKm(center, [shift.latitude, shift.longitude])
@@ -404,7 +411,7 @@ export default function MapPage() {
                 // navegar a su perfil.
                 onClick={() => setPreviewShift(shift)}
                 onKeyDown={(e) => handleCardActivate(e, () => setPreviewShift(shift))}
-                className="flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] bg-white p-4 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98]"
+                className={`flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-white p-4 pl-3.5 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98] ${rail}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -500,6 +507,10 @@ export default function MapPage() {
           {(() => {
             const shift = previewShift;
             const { Icon } = SKILL_ACCENT[shift.position];
+            // Sin riel de color acá, a diferencia de las dos tarjetas de
+            // lista: esto es la hoja de detalle de UN turno, y el riel existe
+            // para diferenciar filas entre sí. Sobre un único elemento a
+            // pantalla completa sería decoración sin información.
             const heroGradient = SKILL_HERO_GRADIENT[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
