@@ -15,9 +15,22 @@ import { MOTION_UI } from "@/lib/motion";
 type Decision = "like" | "pass";
 
 /**
- * Mazo de tarjetas estilo Tinder: la de arriba se arrastra (drag horizontal)
- * o se decide con los botones. Derecha = "Me interesa", izquierda = "No gracias".
- * Muestra la siguiente tarjeta detrás para dar profundidad.
+ * Mazo de tarjetas: la de arriba se arrastra (drag horizontal). Derecha =
+ * "Me interesa", izquierda = "No gracias". Muestra la siguiente tarjeta
+ * detrás para dar profundidad.
+ *
+ * Sin fila de botones fija debajo (Julieta, 2026-08-16, con capturas de
+ * OkCupid: "borra el botón x y check, que aparezcan dependiendo si haces
+ * swipe para un lado u otro"): los indicadores aparecen SOBRE la tarjeta
+ * mientras arrastrás, y crecen con el gesto. Eso además le devuelve a la
+ * tarjeta los ~80px de alto que ocupaba la fila — parte del pedido de que
+ * "entre todo el contenido" sin deslizar dentro de la tarjeta.
+ *
+ * Accesibilidad: sacar los botones visibles dejaría el mazo sin ninguna
+ * forma de decidir con teclado o lector de pantalla (el drag es puro
+ * puntero). Por eso quedan dos botones `sr-only` + `focus:not-sr-only`:
+ * invisibles mientras usás el dedo, pero alcanzables con Tab y anunciados
+ * por el lector — misma función, cero costo visual.
  */
 export default function SwipeDeck({
   shifts,
@@ -48,8 +61,15 @@ export default function SwipeDeck({
   }, [shifts]);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 0, 220], [-14, 0, 14]);
+  // Los indicadores no sólo aparecen: CRECEN con el gesto (0.6→1), así el
+  // arrastre se siente proporcional a la decisión, como en OkCupid. El umbral
+  // de opacidad plena (±150) coincide a propósito con el punto en que soltar
+  // ya dispara la decisión (±120 en `onDragEnd`): cuando el círculo está
+  // lleno, ya estás del otro lado del umbral.
   const likeOpacity = useTransform(x, [40, 150], [0, 1]);
+  const likeScale = useTransform(x, [40, 150], [0.6, 1]);
   const nopeOpacity = useTransform(x, [-150, -40], [1, 0]);
+  const nopeScale = useTransform(x, [-150, -40], [1, 0.6]);
   const controls = useAnimationControls();
   const reducedMotion = useReducedMotion();
 
@@ -110,49 +130,49 @@ export default function SwipeDeck({
         >
           {renderCard(current)}
 
+          {/* Indicadores de decisión, estilo OkCupid: círculos grandes que
+              aparecen y crecen sobre la tarjeta según hacia dónde arrastrás.
+              Reemplazan a la fila de botones fija que había debajo y a los
+              sellos de texto ("ME INTERESA"/"NO") que había antes acá.
+              Centrados verticalmente y hacia el borde correspondiente, para
+              que el pulgar no los tape mientras arrastra. */}
           <motion.div
-            style={{ opacity: likeOpacity }}
-            className="pointer-events-none absolute left-5 top-6 -rotate-12 rounded-xl border-4 border-success px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-success"
+            style={{ opacity: nopeOpacity, scale: nopeScale }}
+            className="pointer-events-none absolute left-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line"
           >
-            Me interesa
+            <CrossIcon />
           </motion.div>
           <motion.div
-            style={{ opacity: nopeOpacity }}
-            className="pointer-events-none absolute right-5 top-6 rotate-12 rounded-xl border-4 border-danger px-3 py-1 text-2xl font-extrabold uppercase tracking-wide text-danger-text"
+            style={{ opacity: likeOpacity, scale: likeScale }}
+            className="pointer-events-none absolute right-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.45)]"
           >
-            No
+            <CheckIcon size={34} />
           </motion.div>
         </motion.div>
       </div>
 
-      {/* Acciones. Tamaño y posición ajustados tres veces por auditoría de
-          Julieta el mismo día: 64px/80px→56px/64px (referencias Uber/Tegu) →
-          64px/64px parejo ("tienen distintos tamaños") → ahora 56px/56px y
-          más separado de la tarjeta ("más abajo y más chicos"). Achicarlos
-          además le devuelve alto real a la tarjeta de arriba (`flex-1`): esta
-          fila ya no compite tanto por espacio, así que el cuerpo del turno
-          entra más cómodo sin deslizar. */}
-      <div className="mt-6 flex items-center justify-center gap-6">
-        <motion.button
+      {/* Único camino no-táctil para decidir, ahora que no hay botones
+          visibles: invisibles hasta que los enfocás con Tab, y ahí sí se
+          muestran (`focus:not-sr-only`). Sin esto el mazo quedaría
+          inoperable con teclado o lector de pantalla — el drag es puro
+          puntero. */}
+      <div className="sr-only focus-within:not-sr-only focus-within:mt-4 focus-within:flex focus-within:items-center focus-within:justify-center focus-within:gap-4">
+        <button
           type="button"
-          aria-label="No gracias"
           onClick={() => decide("pass")}
           disabled={busy}
-          whileTap={{ scale: 0.88 }}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line disabled:opacity-50"
+          className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-danger-text ring-1 ring-line disabled:opacity-50"
         >
-          <CrossIcon />
-        </motion.button>
-        <motion.button
+          No gracias
+        </button>
+        <button
           type="button"
-          aria-label="Me interesa"
           onClick={() => decide("like")}
           disabled={busy}
-          whileTap={{ scale: 0.88 }}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.4)] disabled:opacity-50"
+          className="rounded-full bg-success px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
-          <CheckIcon size={22} />
-        </motion.button>
+          Me interesa
+        </button>
       </div>
     </div>
   );
@@ -160,7 +180,7 @@ export default function SwipeDeck({
 
 function CrossIcon() {
   return (
-    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+    <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
       <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
