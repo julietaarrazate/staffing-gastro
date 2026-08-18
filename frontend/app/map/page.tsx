@@ -270,7 +270,7 @@ export default function MapPage() {
   const activeId = shifts[activeIndex]?.id ?? null;
 
   return (
-    <div className="flex h-[calc(100dvh-4rem-5rem)] overflow-hidden md:h-[calc(100dvh-4rem)]">
+    <div className="flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
       {/* Panel lateral (desktop, md+): la MISMA lista de turnos que en mobile
           vive en el sheet inferior, acá como columna fija — así la función
           del mapa no queda "escondida"/reducida en la versión web (antes el

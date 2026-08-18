@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MapRef } from "@vis.gl/react-maplibre";
 import MapView from "@/components/map/MapView";
@@ -32,9 +32,14 @@ export default function WorkerSearchMap({
   const mapRef = useRef<MapRef | null>(null);
   const initialCenterRef = useRef(center);
   const hasCenteredOnUserRef = useRef(false);
+  // Ver el comentario largo en `ShiftMap`: mutar una ref no re-dispara
+  // efectos, así que sin este estado el vuelo a la ubicación real se pierde
+  // cuando la geolocalización resuelve ANTES de que el mapa cargue.
+  const [ready, setReady] = useState(false);
 
   const handleLoad = useCallback((map: MapRef) => {
     mapRef.current = map;
+    setReady(true);
   }, []);
 
   // Mismo comportamiento que `ShiftMap` en `/map`: cuando la geolocalización
@@ -51,7 +56,7 @@ export default function WorkerSearchMap({
     if (center[0] === initLat && center[1] === initLng) return;
     hasCenteredOnUserRef.current = true;
     flyToPoint(mapRef.current, center, { zoom: 13, duration: 1400 });
-  }, [center]);
+  }, [center, ready]);
 
   const located = useMemo(
     () =>

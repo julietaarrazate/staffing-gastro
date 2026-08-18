@@ -26,6 +26,22 @@
   --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
   --shadow-float: 0 16px 40px rgba(17, 17, 17, 0.12);
 
+  /* Alto REAL del cromo de la app, con los insets del dispositivo adentro.
+   * Las pantallas de alto fijo (feed, mapa, chats, wizard de publicar)
+   * restan estas variables en vez de un `4rem`/`5rem` escrito a mano.
+   *
+   * Por qué importa: el header es `sticky` con `.safe-top` y la bottom nav
+   * lleva `pb-[env(safe-area-inset-bottom)]`, así que en cualquier equipo
+   * con notch u home indicator —o sea, la PWA instalada, que es como se
+   * mira la app— el cromo mide MÁS que el número fijo. La pantalla quedaba
+   * entonces más alta que la ventana y su primera fila terminaba tapada
+   * por la barra blanca del header (Julieta, 2026-08-17: "la parte de
+   * arriba parece que no entra del todo por la sombra blanca"). En
+   * escritorio los insets valen 0 y el cálculo da exactamente lo de antes,
+   * así que el arreglo no cambia nada del layout web. */
+  --chrome-top: calc(4rem + env(safe-area-inset-top));
+  --chrome-bottom: calc(5rem + env(safe-area-inset-bottom));
+
   /* Motion (ART_DIRECTION.md §13.3, DESIGN_TOKENS.md §3.7). Sin rebote a
    * propósito: la llegada seca comunica precisión, no juego (§13.2). Estos
    * mismos valores están duplicados como números en lib/motion.ts para

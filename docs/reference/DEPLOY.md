@@ -39,6 +39,7 @@ Config declarativa en `render.yaml` (raíz del repo).
 | `ADMIN_EMAILS` | (opcional) | promueve admins al bootstrap |
 | `RESEND_API_KEY` | Manual (`sync: false`) | **Sin esta clave no sale NINGÚN email.** Ver runbook "Prender el email transaccional" |
 | `GEMINI_API_KEY` | Manual (`sync: false`) | Sin ella, `POST /shifts/parse-text` y los asistentes responden 503. **Ojo también con el MODELO**, no sólo con la clave: ver nota abajo |
+| `GEMINI_MODEL` | Manual (`sync: false`), opcional | Vacío = default del código (`gemini-3.5-flash`). Se setea para migrar de modelo sin deploy — ver "Migrar de modelo" abajo |
 | `EMAIL_FROM` | Manual (`sync: false`) | Default del código: `onboarding@resend.dev` — dominio de prueba de Resend, sólo entrega a la casilla dueña de la cuenta |
 
 > **Credenciales:** nunca en el repo ni en el chat; siempre env vars en
@@ -84,16 +85,37 @@ conviene leerlos con cuidado antes de tocar nada:
 | *"No pudimos interpretar el texto. Completá los datos a mano."* (502) | La clave está, pero la llamada a Google **falló** | Ver logs (abajo) |
 
 Para el segundo caso, la causa real está en los logs de Render:
-`_call_gemini` (en `app/core/gemini.py`) loguea el cuerpo del error que
-devuelve Google, que dice si es cuota agotada (free: 250 requests/día),
-clave inválida o **modelo dado de baja**.
+`_call_gemini` (en `app/core/gemini.py`) loguea **el modelo con el que
+llamó** y el cuerpo del error que devuelve Google, que dice si es cuota
+agotada (free: 250 requests/día), clave inválida o **modelo dado de baja**.
+La línea se ve así:
 
-Ese último caso ya pasó una vez y rompió la feature en producción
-(`gemini-2.5-flash`, ver `docs/STATUS.md` 2026-08-11). El modelo está
-fijado a mano —`gemini-3.5-flash`, no el alias `-latest`— justamente para
-que un cambio de Google no entre sin deploy; el costo es que cuando lo dan
-de baja hay que actualizar la constante a mano: consultar
-`GET /v1beta/models` y editar `_GEMINI_URL`.
+```
+ERROR ... Gemini (gemini-3.5-flash) respondió 404: {"error":{...}}
+```
+
+### Migrar de modelo (`GEMINI_MODEL`)
+
+El caso "modelo dado de baja" ya pasó una vez y rompió la feature en
+producción (`gemini-2.5-flash`, ver `docs/STATUS.md` 2026-08-11). El modelo
+se fija a mano —nunca el alias `-latest`— para que un cambio de Google no
+entre sin que nadie lo decida; pero **desde 2026-08-17 es una env var, no
+una constante de código**: antes estaba adentro de la URL, así que la única
+salida era un deploy con cambio de código aunque el operador ya supiera qué
+modelo poner.
+
+1. Listar los modelos vigentes para la clave:
+   `curl "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY"`
+   — mirar que el elegido tenga `generateContent` en `supportedGenerationMethods`.
+2. Render → Environment → `GEMINI_MODEL` = el nombre exacto (ej.
+   `gemini-3.5-flash`). Guardar dispara el redeploy.
+3. Verificar en `/publicar` con un texto de prueba; si sigue fallando, el
+   log ahora dice con qué modelo se llamó, así que se distingue "puse mal el
+   nombre" de "la cuota está agotada".
+
+El default del código (`gemini_model` en `app/core/config.py`) sigue siendo
+la referencia cuando la variable está vacía; conviene actualizarlo en el
+repo después de un cambio de modelo así el próximo entorno arranca bien.
 
 ## Runbook: prender el email transaccional (Resend)
 

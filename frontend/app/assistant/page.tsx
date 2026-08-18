@@ -122,7 +122,7 @@ function AssistantChatShell({
   }, []);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)]">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
       <div className="flex items-center gap-3">
         <button
           type="button"

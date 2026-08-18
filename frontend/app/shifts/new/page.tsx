@@ -320,7 +320,7 @@ function NewShiftWizard() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)] lg:max-w-5xl lg:flex-row lg:items-start lg:gap-10 lg:px-6 lg:pt-10">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-5xl lg:flex-row lg:items-start lg:gap-10 lg:px-6 lg:pt-10">
     <div className="flex flex-1 flex-col">
       {/* Header con progreso */}
       <div className="flex items-center gap-3">

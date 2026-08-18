@@ -45,10 +45,20 @@ export default function ShiftMap({
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const initialCenterRef = useRef(center);
   const hasCenteredOnUserRef = useRef(false);
+  // ESTADO, no sólo la ref: los dos efectos de cámara de abajo necesitan
+  // volver a correr cuando el mapa termina de cargar. Con sólo `mapRef` no
+  // pueden — mutar una ref no dispara ningún re-render, así que un efecto que
+  // salió temprano porque `mapRef.current` era `null` NO se reintenta nunca.
+  // Ésa es la raíz de "el mapa no apunta a donde le pido", reportada varias
+  // veces: la orden de cámara se emitía antes de que el mapa existiera y se
+  // perdía en silencio. Con `ready` en las dependencias, cada intención de
+  // cámara se re-aplica en cuanto hay mapa.
+  const [ready, setReady] = useState(false);
 
   const handleLoad = useCallback((map: MapRef) => {
     mapRef.current = map;
     setViewport({ bbox: boundsToBbox(map), zoom: map.getZoom() });
+    setReady(true);
   }, []);
 
   const handleMoveEnd = useCallback((event: ViewStateChangeEvent) => {
@@ -64,17 +74,25 @@ export default function ShiftMap({
     if (center[0] === initLat && center[1] === initLng) return;
     hasCenteredOnUserRef.current = true;
     flyToPoint(mapRef.current, center, { zoom: 14, duration: 1400 });
-  }, [center]);
+  }, [center, ready]);
 
   const active = shifts.find((s) => s.id === activeId);
   const activeLat = active?.latitude;
   const activeLng = active?.longitude;
 
-  // Scroll del carrusel -> tarjeta activa -> paneo suave al marcador.
+  // Scroll del carrusel -> tarjeta activa -> paneo al marcador de ESE turno.
+  // `ready` en las dependencias (ver arriba): la primera tarjeta ya está
+  // activa antes de que el mapa cargue, así que sin esto el paneo inicial se
+  // perdía y el mapa se quedaba mostrando la zona del usuario en vez de la
+  // dirección del turno — justo el síntoma reportado ("deberían pinearte y
+  // dirigirte directamente a la dirección, no mostrar una zona que ya no
+  // estás"). `zoom: 15` para que el paneo ACERQUE a la dirección: sin fijar
+  // zoom, `easeTo` conserva el que hubiera, que tras el vuelo inicial es una
+  // vista de barrio donde el pin queda perdido.
   useEffect(() => {
     if (!mapRef.current || activeLat == null || activeLng == null) return;
-    easeToPoint(mapRef.current, [activeLat, activeLng], { duration: 450 });
-  }, [activeLat, activeLng]);
+    easeToPoint(mapRef.current, [activeLat, activeLng], { zoom: 15, duration: 450 });
+  }, [activeLat, activeLng, ready]);
 
   const clusterIndex = useMemo(() => buildShiftClusterIndex(shifts), [shifts]);
 

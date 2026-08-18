@@ -70,7 +70,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
   const activeShiftId = !isIndex ? pathname.split("/")[2] : null;
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-6xl overflow-hidden md:h-[calc(100dvh-4rem)]">
+    <div className="mx-auto flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-6xl overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
       <aside
         className={`w-full shrink-0 flex-col overflow-y-auto border-r border-line bg-white md:flex md:max-w-[380px] ${
           isIndex ? "flex" : "hidden"

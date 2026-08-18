@@ -158,7 +158,7 @@ function NewEventForm() {
   if (result) {
     const missing = result.requested - result.shifts.length;
     return (
-      <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)]">
+      <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <h1 className="font-display text-2xl font-semibold text-ink">
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
@@ -188,7 +188,7 @@ function NewEventForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-4rem)]">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/shifts")}

@@ -153,6 +153,16 @@ class Settings(BaseSettings):
     # de sobra para esta beta (gemini-3.5-flash: 250 requests/día).
     gemini_api_key: str = ""
 
+    # Modelo de Gemini, CONFIGURABLE a propósito. Antes estaba fijo dentro de
+    # la URL en `app/core/gemini.py`, así que cuando Google daba de baja un
+    # modelo (o lo sacaba del plan gratis) la única salida era un deploy con
+    # cambio de código — aunque el operador ya supiera cuál poner. Julieta,
+    # 2026-08-17: "hay uno que antes usaba que dejó de ser gratis y puse el que
+    # es gratis, debería andar" — puso la clave nueva en el dashboard y no
+    # cambió nada, porque el modelo no se podía tocar desde ahí.
+    # Sigue sin usar el alias `-latest`: ver el docstring de `gemini.py`.
+    gemini_model: str = "gemini-3.5-flash"
+
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.

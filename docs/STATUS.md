@@ -5,7 +5,80 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-17 (**El asistente ahora deduce el horario
+*Última actualización: 2026-08-17 (**Tocar la tarjeta abre el turno;
+guardar avisa cuando falla; el mapa apunta a la dirección del turno —
+causa raíz, no otro parche; el modelo de Gemini pasa a ser variable de
+entorno; el cromo con notch ya no come la primera fila.**)
+
+(1) **El mazo dejaba mirar, no indagar.** Tocar una tarjeta no hacía
+nada: la única acción posible era decidir con swipe, sin poder abrir el
+turno ni entrar al comercio (Julieta: "cuando quiero abrir para mirar
+bien el turno tampoco abre... sólo me deja hacer swipe"). Lo notable es
+que el propio tour de la app ya lo prometía: *"Deslizá **o tocá** una
+tarjeta para ver el detalle"*. Fix: `onTap` de motion en `SwipeDeck`
+—que distingue tap de arrastre por diseño, donde un `onClick` común se
+dispararía también al terminar un swipe— guardado por `busy` para que un
+toque durante el vuelo de salida no abra el turno recién descartado.
+
+(2) **Guardar fallaba en silencio.** `SaveShiftButton` es optimista:
+pinta el corazón y, si la red falla, revierte. La reversión no decía
+nada, así que desde afuera "no guarda" y "guardó y se deshizo" se ven
+idénticos ("cuando aprieto el botón de guardar no guarda"). Ahora el
+error se dice: toast "No pudimos guardar el turno". Mismo criterio que
+ya se aplicó al `.catch(() => {})` de geolocalización — un fallo que no
+se comunica es un bug que el usuario carga solo.
+
+(3) **Mapa: la causa raíz real** (reportado tres veces: "hace mucho que
+te pido lo mismo y no resolvés el problema de raíz"). El fix de ayer
+—`syncCamera`— era correcto pero atacaba sólo el reciclado de instancias.
+Faltaba lo de fondo: **mutar una ref no dispara ningún re-render**, así
+que un efecto de cámara que salió temprano porque `mapRef.current` era
+`null` NO se reintenta nunca. Toda intención de cámara emitida antes de
+que el mapa cargara se perdía en silencio — y la primera tarjeta del
+carrusel ya está activa antes del load, así que el paneo inicial al turno
+era justamente el que se perdía. Fix: estado `ready` que `handleLoad`
+levanta, presente en las dependencias de cada efecto de cámara, en
+`ShiftMap` y en `WorkerSearchMap`. Las intenciones se re-aplican en
+cuanto hay mapa. Además el paneo al turno activo ahora fija `zoom: 15`:
+sin zoom explícito `easeTo` conserva el que hubiera, que tras el vuelo
+inicial es una vista de barrio donde el pin queda perdido.
+
+(4) **El modelo de Gemini es `GEMINI_MODEL`, una variable de entorno.**
+Julieta: "hay uno que antes usaba que dejó de ser gratis y puse el que es
+gratis, debería andar" — puso la clave nueva en Render y no cambió nada.
+Motivo: **el modelo estaba adentro de la URL, en el código**, así que
+desde el dashboard era intocable; la única salida a un modelo dado de
+baja era un deploy con cambio de código, aunque el operador ya supiera
+cuál poner. Ahora sale de `settings.gemini_model` **en cada llamada** (no
+una constante congelada al import), con default `gemini-3.5-flash` y sin
+alias `-latest` — la política de fijar el modelo no cambia, lo que cambia
+es quién puede corregirlo. El log de error incluye el modelo usado, así
+"puse mal el nombre" y "se agotó la cuota" dejan de verse iguales en los
+logs de Render. Runbook "Migrar de modelo" en `DEPLOY.md`. **Pendiente
+del lado del operador:** mirar en los logs de Render qué dice Google
+ahora — eso decide si es cuota o modelo.
+
+(5) **El cromo con notch se comía la primera fila** ("la parte de arriba
+parece que no entra del todo por la sombra blanca"). Ocho pantallas de
+alto fijo restaban `4rem`/`5rem` a mano, pero el header lleva `.safe-top`
+y la bottom nav `pb-[env(safe-area-inset-bottom)]`: en la PWA instalada
+el cromo mide **más** que esos números, así que la pantalla quedaba más
+alta que la ventana y su primera fila terminaba debajo de la barra
+blanca. Ahora hay dos tokens —`--chrome-top`/`--chrome-bottom`, con los
+insets adentro— y las ocho pantallas los usan. En escritorio los insets
+valen 0: el layout web queda idéntico.
+
+(6) **Título del mazo pisando la píldora del comercio.** Regresión propia
+de ayer: al achicar el hero a 31% los dos bloques seguían siendo
+`absolute` contra un alto fijo, y a menos alto se superponían. Fix
+estructural, no de márgenes: el hero es `flex flex-col justify-between` y
+los dos bloques están en flujo normal, así que la superposición es
+imposible por construcción.
+
+Verificado: pytest 419/419, vitest 79/79, tsc y eslint sin errores,
+`next build` limpio.
+
+Antes, mismo día: **El asistente ahora deduce el horario
 de fin y pregunta lo que falta; color por oficio en las listas que eran
 todas blancas; la tarjeta del mazo entra sin deslizar.**)
 

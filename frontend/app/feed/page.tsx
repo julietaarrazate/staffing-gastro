@@ -304,7 +304,7 @@ function WorkerFeedPanel() {
       : { label: "Actualizar", onClick: load };
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem-5rem)] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-4rem)] md:max-w-5xl">
+    <div className="mx-auto flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl">
       {/* Header: saludo + disponibilidad. `mb-2` (no `mb-3`): en un
           `flex flex-col` los márgenes entre hermanos no colapsan, así que
           todo este bloque de cabecera (saludo, barra del asistente,
@@ -428,6 +428,12 @@ function WorkerFeedPanel() {
               <SwipeDeck
                 shifts={visibleShifts}
                 onDecide={onDecide}
+                // Tocar la tarjeta abre el turno completo (`/turno/[id]`),
+                // que ya existe como página pública y trae el detalle y el
+                // link al comercio. Antes desde el mazo sólo se podía
+                // swipear: no había forma de mirar el turno antes de decidir
+                // (Julieta, 2026-08-17).
+                onOpen={(shift) => router.push(`/turno/${shift.id}`)}
                 renderCard={(shift) => (
                   <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />
                 )}
