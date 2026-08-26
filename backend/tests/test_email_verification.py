@@ -127,15 +127,22 @@ async def test_resend_verification_already_verified_sends_nothing(
     fake_email_sender: FakeEmailSender,
     session_factory: async_sessionmaker[AsyncSession],
 ):
+    """Confirmar el email dispara, además del email de confirmación (al
+    registrarse), el de bienvenida — una sola vez, al confirmar por primera
+    vez (ver `_send_welcome_email`). Por eso acá ya hay 2 antes de pedir el
+    reenvío, no 1: lo que este test protege es que el reenvío posterior no
+    sume un tercero."""
     await register_user(client, email="yaverificado@staffya.com")
     token = _extract_token(fake_email_sender.sent[0].html)
     await client.post("/api/v1/auth/verify-email", json={"token": token})
+    assert len(fake_email_sender.sent) == 2
+    assert "Bienvenido" in fake_email_sender.sent[1].subject
 
     response = await client.post(
         "/api/v1/auth/resend-verification", json={"email": "yaverificado@staffya.com"}
     )
     assert response.status_code == 202
-    assert len(fake_email_sender.sent) == 1
+    assert len(fake_email_sender.sent) == 2
 
 
 async def test_resend_verification_is_silently_rate_limited(

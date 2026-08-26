@@ -57,6 +57,11 @@ from app.modules.identity.domain.repositories import (
 )
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.notification.domain.email_sender import EmailSender
+from app.modules.notification.domain.email_templates import (
+    render_confirm_email_html,
+    render_welcome_employer_email_html,
+    render_welcome_worker_email_html,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -372,13 +377,7 @@ class IdentityService:
             )
         )
         link = f"{settings.frontend_url}/verificar-email?token={raw_token}"
-        html = (
-            f"<p>Hola {user.full_name},</p>"
-            "<p>Gracias por registrarte en Oído. Confirmá tu email haciendo "
-            f'clic en el siguiente enlace (vence en 48 horas): '
-            f'<a href="{link}">{link}</a></p>'
-            "<p>Si vos no creaste esta cuenta, podés ignorar este email.</p>"
-        )
+        html = render_confirm_email_html(user.full_name, link)
         try:
             await self._email_sender.send(
                 to=user.email,
@@ -388,6 +387,28 @@ class IdentityService:
         except Exception:
             logger.exception(
                 "No se pudo enviar el email de verificación a %s", user.id
+            )
+
+    async def _send_welcome_email(self, user: User) -> None:
+        """Bienvenida con próximos pasos — se manda una sola vez, al
+        confirmar el email por primera vez (ver `verify_email`), no al
+        registrarse: mandar dos emails (confirmación + bienvenida) en el
+        mismo instante del registro se siente a spam, y recién ahí la cuenta
+        queda activa de verdad. Best-effort, mismo contrato que el resto."""
+        profile_link = f"{settings.frontend_url}/bienvenida"
+        if user.role == UserRole.EMPLOYER:
+            html = render_welcome_employer_email_html(user.full_name, profile_link)
+        else:
+            html = render_welcome_worker_email_html(user.full_name, profile_link)
+        try:
+            await self._email_sender.send(
+                to=user.email,
+                subject="¡Bienvenido/a a Oído! Estos son tus próximos pasos",
+                html=html,
+            )
+        except Exception:
+            logger.exception(
+                "No se pudo enviar el email de bienvenida a %s", user.id
             )
 
     async def resend_verification_email(self, email: str) -> None:
@@ -428,6 +449,11 @@ class IdentityService:
         if not user.is_verified:
             user.verify()
             await self._users.update(user)
+            # Recién ahora la cuenta está activa de verdad — es el momento
+            # natural para la bienvenida con próximos pasos, no el registro
+            # (ver `_send_welcome_email`). El `if` de arriba ya garantiza que
+            # esto corre una única vez por usuario.
+            await self._send_welcome_email(user)
         await self._verification_tokens.mark_used(verification_token.id)
 
     async def _issue_tokens(self, user: User) -> TokenPair:

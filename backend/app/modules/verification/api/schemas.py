@@ -49,6 +49,10 @@ class IdentitySummaryResponse(BaseModel):
     claims: list[ClaimSummaryResponse]
 
 
+class ReminderSentResponse(BaseModel):
+    sent: bool
+
+
 class PendingEvidenceResponse(BaseModel):
     evidence_type: EvidenceType
     data_url: str | None = None

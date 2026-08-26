@@ -12,7 +12,10 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.main import app
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
 from app.modules.verification.domain.entities import Claim, Evidence
 from app.modules.verification.domain.exceptions import (
     ClaimAlreadyVerifiedError,
@@ -278,3 +281,94 @@ async def test_reject_flow_lets_worker_resubmit(client, session_factory):
         json={"dni_frente_url": "https://x/c.jpg", "selfie_url": "https://x/d.jpg"},
     )
     assert resubmit.json()["claims"][0]["status"] == "pendiente"
+
+
+# --- Recordatorio de verificación por email (admin) ------------------------
+
+
+@pytest.fixture
+def fake_email_sender():
+    fake = FakeEmailSender()
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_email_sender, None)
+
+
+async def _worker_user_id(client: AsyncClient, headers: dict) -> str:
+    me = await client.get("/api/v1/identity/me", headers=headers)
+    return me.json()["user_id"]
+
+
+def _subjects(fake_email_sender: FakeEmailSender) -> list[str]:
+    return [email.subject for email in fake_email_sender.sent]
+
+
+@pytest.mark.asyncio
+async def test_admin_can_send_identity_verification_reminder(
+    client, session_factory, fake_email_sender: FakeEmailSender
+):
+    worker = await auth_headers(client, "worker", "w-remind@test.com")
+    admin = await _make_admin(client, session_factory, "admin-remind@test.com")
+    user_id = await _worker_user_id(client, worker)
+
+    resp = await client.post(
+        f"/api/v1/identity/claims/document/{user_id}/remind", headers=admin
+    )
+    assert resp.status_code == 202
+    assert resp.json() == {"sent": True}
+    # `auth_headers` ya disparó 2 emails de confirmación (worker + admin) antes
+    # de esto — lo que importa es que el de recordatorio se haya sumado.
+    assert "Verificá tu identidad" in _subjects(fake_email_sender)[-1]
+
+
+@pytest.mark.asyncio
+async def test_reminder_rejects_already_verified_worker(
+    client, session_factory, fake_email_sender: FakeEmailSender
+):
+    worker = await auth_headers(client, "worker", "w-remind-ok@test.com")
+    admin = await _make_admin(client, session_factory, "admin-remind-ok@test.com")
+    user_id = await _worker_user_id(client, worker)
+
+    await client.post(
+        "/api/v1/identity/me/document",
+        headers=worker,
+        json={"dni_frente_url": "https://x/a.jpg", "selfie_url": "https://x/b.jpg"},
+    )
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    claim_id = pending.json()[0]["claim_id"]
+    await client.post(f"/api/v1/identity/claims/{claim_id}/approve", headers=admin)
+    sent_before = len(fake_email_sender.sent)
+
+    resp = await client.post(
+        f"/api/v1/identity/claims/document/{user_id}/remind", headers=admin
+    )
+    assert resp.status_code == 409
+    assert not any("Verificá tu identidad" in s for s in _subjects(fake_email_sender))
+    assert len(fake_email_sender.sent) == sent_before
+
+
+@pytest.mark.asyncio
+async def test_reminder_rejects_non_worker(
+    client, session_factory, fake_email_sender: FakeEmailSender
+):
+    admin = await _make_admin(client, session_factory, "admin-remind-emp@test.com")
+    employer = await auth_headers(client, "employer", "emp-remind@test.com")
+    employer_id = await _worker_user_id(client, employer)
+    sent_before = len(fake_email_sender.sent)
+
+    resp = await client.post(
+        f"/api/v1/identity/claims/document/{employer_id}/remind", headers=admin
+    )
+    assert resp.status_code == 422
+    assert len(fake_email_sender.sent) == sent_before
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_send_reminder(client, session_factory):
+    worker = await auth_headers(client, "worker", "w-remind-noadmin@test.com")
+    user_id = await _worker_user_id(client, worker)
+
+    resp = await client.post(
+        f"/api/v1/identity/claims/document/{user_id}/remind", headers=worker
+    )
+    assert resp.status_code == 403
