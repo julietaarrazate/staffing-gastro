@@ -5,7 +5,42 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-26 (**Mails transaccionales con identidad
+*Última actualización: 2026-08-26 (**Incidente: la app quedó caída por
+cuota de cómputo de Neon agotada — causa raíz encontrada y corregida
+(`pool_size`), acceso vuelve solo con el reset del 2026-09-01.**)
+
+**Síntoma:** la app dejó de responder. Diagnóstico contra la API real de
+Neon (no supuesto): `NeonDbError 402 — "exceeded the compute time
+quota"` en el proyecto `staffya-us-east` (la base de producción, ver
+`render.yaml`). Vercel/frontend estaba sano (último deploy `READY`); el
+bloqueo era 100% de base de datos, y afecta prácticamente cualquier
+request porque casi todo endpoint toca Postgres.
+
+**Causa raíz real, no sólo "mucho tráfico":** `pool_size=5` en
+`core/database.py` mantenía 5 conexiones abiertas todo el tiempo —
+Neon (plan free) sólo suspende el cómputo, y deja de consumir cuota,
+con **cero** conexiones activas. Sumado al scheduler de asistencia/
+escalada (`shift/application/scheduler.py`) tocando la base cada 5
+minutos las 24hs, el cómputo nunca llegaba a dormir: ~441 horas activas
+acumuladas en menos de un mes, en una beta de 5-25 comercios que no
+justifica ese consumo.
+
+**Fix (PR #271):** `pool_size` 5→1 (`max_overflow=10` sigue cubriendo
+picos reales de concurrencia sin sostener conexiones ociosas en
+reposo). **No** se tocó el intervalo del scheduler — se evaluó subirlo
+a 15 minutos para el mismo objetivo, pero `ESCALATION_DELAY` es de sólo
+8 minutos, fijado a propósito "un poco antes de los 10 minutos de la
+promesa" (ADR-0009, misión central del producto) — un intervalo más
+largo correría la escalada después de que esa promesa ya se incumplió.
+Queda documentado en el propio código para no reabrirse sin razón
+nueva. 423/423 tests de backend en verde.
+
+**Importante — esto no restaura el acceso de este mes.** La cuota ya
+consumida no se recupera con un cambio de código; sólo evita que se
+repita después del reset (2026-09-01) o de un eventual upgrade de
+plan. Decisión de Julieta: esperar el reset en vez de upgradear ahora.
+
+Antes, mismo día: **Mails transaccionales con identidad
 visual de marca — bienvenida por rol, confirmación de email y una
 invitación nueva a verificar identidad — reemplazando el `<p>` plano que
 tenían antes.**)
