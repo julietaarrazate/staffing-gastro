@@ -17,6 +17,7 @@ from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
+from app.modules.shift.application.scheduler_signal import notify_scheduler
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
     ShiftNotAssignedToWorkerError,
@@ -207,6 +208,11 @@ class ShiftService:
             extra={"shift_id": str(published.id), "company_id": str(company_id)},
         )
         await self._notify_nearby_workers(published)
+        # Nueva deadline: la escalada de urgencia a los `ESCALATION_DELAY`.
+        # Despierta al scheduler (que ahora duerme hasta la próxima deadline en
+        # vez de sondear) para que no se pierda esa ventana. Ver
+        # `scheduler_signal.py`.
+        notify_scheduler()
         return published
 
     # Cuántos trabajadores reciben el aviso de turno nuevo. El tope existe
@@ -631,6 +637,10 @@ class ShiftService:
             f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.value}\".",
         )
         await self._withdraw_overlapping_applications(worker_profile_id, updated)
+        # Nuevas deadlines: recordatorio de check-in / no-show alrededor del
+        # `start_at` del turno recién confirmado. Despierta al scheduler para
+        # que las agende (ver `scheduler_signal.py`).
+        notify_scheduler()
         return updated
 
     async def _withdraw_overlapping_applications(
