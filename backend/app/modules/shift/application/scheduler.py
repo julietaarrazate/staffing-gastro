@@ -58,6 +58,17 @@ logger = logging.getLogger(__name__)
 # Cada cuánto corre el chequeo. No necesita ser fino: los umbrales de arriba
 # se miden en minutos/horas, así que revisar cada 5 minutos alcanza sin
 # generar carga.
+#
+# NO subir este intervalo para "ahorrar" cómputo de Neon (evaluado y
+# descartado en el incidente 2026-08-26, ver `core/database.py` — ese
+# incidente sí bajó `pool_size`, que era la causa dominante). `ESCALATION_DELAY`
+# (`shift/application/services.py`) es de sólo 8 minutos — fijado a propósito
+# "un poco antes de los 10 minutos de la promesa" (ADR-0009) para poder
+# actuar mientras todavía hay margen sobre la misión central del producto
+# ("cubrir un turno en menos de 10 minutos"). Un intervalo de chequeo más
+# largo que ese umbral puede terminar corriendo la escalada DESPUÉS de que la
+# promesa de 10 minutos ya se incumplió, vaciándola de sentido — no es un
+# ajuste de performance aceptable acá.
 CHECK_INTERVAL = timedelta(minutes=5)
 
 
