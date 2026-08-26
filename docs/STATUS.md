@@ -5,7 +5,59 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-17 (**Tocar la tarjeta abre el turno;
+*Última actualización: 2026-08-26 (**Mails transaccionales con identidad
+visual de marca — bienvenida por rol, confirmación de email y una
+invitación nueva a verificar identidad — reemplazando el `<p>` plano que
+tenían antes.**)
+
+Julieta, tras ver el onboarding de un competidor (Wana Pet, capturas):
+"prolijizá los mails transaccionales... dame plantillas de cómo llegaría
+un registro, una validación, o un mail para validar identidad".
+
+(1) **Plantillas nuevas** en `notification/domain/email_templates.py`
+(funciones puras, sin proveedor) — header de marca (naranja/tinta), tarjeta
+blanca, Fraunces/Inter, compatibles con Gmail/Outlook (tablas + estilos
+inline, sin flexbox). Tres usos reales:
+  - **Confirmación de email**: reemplaza el `<p>` suelto que tenía
+    `_send_verification_email` — mismo flujo, mismo link, sólo con diseño.
+  - **Bienvenida con próximos pasos**, por rol (trabajador: zona/oficio/
+    "contanos más"; comercio: nombre del local/ubicación) — calcada del
+    onboarding real de `/bienvenida`. Se dispara desde `verify_email()`,
+    la PRIMERA vez que se confirma el email — no en el registro, porque
+    mandar confirmación + bienvenida en el mismo instante se siente a
+    spam y recién ahí la cuenta queda activa de verdad.
+  - **Invitá a verificar tu identidad**: color petróleo (#1e4a47), no
+    naranja — el mismo que ya usa `IdentityVerificationCard` en el
+    producto (ADR-0011), no un capricho de diseño. Honestidad de
+    contenido a propósito: dice "nuestro equipo revisa tu documento", NO
+    "verificación instantánea respaldada por RENAPER" como el
+    competidor, porque `VerificationMethod.ADMIN_MANUAL` es el único
+    método implementado hoy (RENAPER es F5, diferido, ver
+    `docs/TRUST_SYSTEM.md`) — prometer una capacidad que no existe le
+    mentiría al trabajador sobre cómo funciona su propia cuenta.
+
+(2) **Sin disparador automático para el tercer mail, a propósito.** Sí
+existe un endpoint real: `POST /identity/claims/document/{user_id}/remind`
+(admin), que dispara el mail a un trabajador puntual. Automatizarlo con
+una cadencia (¿a los cuántos días? ¿sólo si no verificó nada?) es una
+decisión de producto que nadie tomó todavía — inventarla unilateralmente
+sería crear una campaña de mails no pedida. El botón de admin es lo
+mínimo real y reversible mientras tanto.
+
+(3) **Sin el emoji de auricular** en el cierre de los mails de bienvenida
+(Julieta: "oído es una jerga gastronómica, ese ícono no representa
+nada" — "¡oído!" es el grito de cocina para confirmar un pedido, no una
+referencia a audio).
+
+8 tests nuevos/actualizados (incluido el ajuste de
+`test_resend_verification_already_verified_sends_nothing`, que ahora
+espera 2 emails —confirmación + bienvenida— no 1, porque el segundo es
+correcto y no un bug). Verificado: pytest 423/423, vitest 79/79,
+tsc/eslint sin errores (mismos 6 warnings preexistentes de `<img>`), sin
+cambios de frontend en este lote (el diseño se validó primero como
+archivos `.html` sueltos, fuera del repo).
+
+Antes, mismo día: **Tocar la tarjeta abre el turno;
 guardar avisa cuando falla; el mapa apunta a la dirección del turno —
 causa raíz, no otro parche; el modelo de Gemini pasa a ser variable de
 entorno; el cromo con notch ya no come la primera fila.**)

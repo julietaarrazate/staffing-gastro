@@ -10,16 +10,23 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.config import settings
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.domain.email_sender import EmailSender
+from app.modules.notification.domain.email_templates import (
+    render_identity_verification_email_html,
+)
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.api.schemas import (
     ClaimSummaryResponse,
     IdentitySummaryResponse,
     PendingClaimResponse,
     PendingEvidenceResponse,
+    ReminderSentResponse,
     RejectClaimInput,
     SubmitIdentityDocumentInput,
 )
@@ -38,6 +45,7 @@ router = APIRouter(prefix="/identity", tags=["identity-verification"])
 ServiceDep = Annotated[VerificationService, Depends(get_verification_service)]
 UsersDep = Annotated[UserRepository, Depends(get_user_repository)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 
 
@@ -187,3 +195,48 @@ async def reject_claim(
         decided_at=claim.decided_at,
         rejection_reason=claim.rejection_reason,
     )
+
+
+@router.post(
+    "/claims/document/{user_id}/remind",
+    response_model=ReminderSentResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Invitar a un trabajador a verificar su identidad por email (admin)",
+)
+async def remind_identity_verification(
+    user_id: UUID,
+    _current_user: AdminDep,
+    service: ServiceDep,
+    users: UsersDep,
+    email_sender: EmailSenderDep,
+):
+    """Dispara el email "Verificá tu identidad" a un trabajador puntual.
+
+    A propósito NO es un cron/campaña automática todavía: el disparador de
+    ESTE mail (¿cuántos días después del alta? ¿sólo si no verificó nada?)
+    es una decisión de producto que nadie tomó, y automatizarla sin que se
+    decida sería inventar una campaña de mails que la operadora no pidió.
+    Esto es lo mínimo real y reversible: un botón de admin para probarlo y
+    para usarlo caso por caso hasta que se decida una cadencia."""
+    user = await users.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.role != UserRole.WORKER:
+        raise HTTPException(
+            status_code=422,
+            detail="La verificación de identidad sólo aplica a trabajadores",
+        )
+    summary = await service.get_identity_summary(user_id)
+    if summary.identidad_verificada:
+        raise HTTPException(
+            status_code=409, detail="Este trabajador ya tiene la identidad verificada"
+        )
+    html = render_identity_verification_email_html(
+        user.full_name, f"{settings.frontend_url}/profile"
+    )
+    await email_sender.send(
+        to=user.email,
+        subject="Verificá tu identidad y sumá la insignia de perfil verificado",
+        html=html,
+    )
+    return ReminderSentResponse(sent=True)
