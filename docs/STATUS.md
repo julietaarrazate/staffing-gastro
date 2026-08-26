@@ -5,7 +5,40 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-26 (**Incidente: la app quedó caída por
+*Última actualización: 2026-08-26 (**Scheduler: despertar por deadline en
+vez de sondear cada 5 min — segundo tramo del fix de cuota de Neon, sobre
+la causa dominante que `pool_size` no resolvía.**)
+
+El scheduler del ciclo de vida del turno (asistencia/no-show ADR-0008 +
+escalada ADR-0009) sondeaba la base **cada 5 minutos las 24 horas**,
+hubiera o no algo que hacer. Ese sondeo fijo —no el `pool_size`, que fue
+el primer tramo— era lo que mantenía el cómputo de Neon despierto de
+noche y en horas muertas y agotaba la cuota del plan free (100 CU-horas/
+mes; el proyecto acumulaba ~4,2 CU-h/día → moría cerca del día 23).
+
+**Fix:** cada pasada calcula la próxima deadline real (recordatorio/
+no-show de un turno confirmado, escalada de un turno recién publicado) y
+duerme hasta ahí, acotado a `[30s, 6h]` — 6h de latido de seguridad
+cuando no hay nada pendiente. Un turno publicado para un día futuro ya no
+despierta nada cada 5 min: su única deadline es la de su propia hora.
+`publish_shift`/`confirm_assignment` llaman a `notify_scheduler()`
+(`scheduler_signal.py`, un `asyncio.Event` compartido sin dependencias,
+para no acoplar el servicio con el scheduler) que despierta al loop antes
+de tiempo cuando entra trabajo nuevo, así la escalada de 8 min no se
+pierde aunque durmiera horas. Al reiniciar Render la primera pasada
+reconstruye la próxima deadline desde la base sola, sin persistir timers.
+La lógica de acción (umbrales, notificaciones, idempotencia) no cambió;
+sólo CUÁNDO corre el loop.
+
+**Efecto esperado (estimado, a validar con el uso real post-reset):** el
+consumo pasa a depender del uso real de la app, no del robot 24/7 — a 20
+comercios/100 trabajadores baja a un rango (~45-90 CU-h/mes) que
+probablemente entra en el plan free todo el mes. En plan pago (Launch,
+USD 0,106/CU-h) el gasto cae ~a la mitad (de ~USD 14 a ~USD 6-8/mes)
+porque Neon duerme de noche. 7 tests nuevos (`test_scheduler.py`),
+pytest 429/429.
+
+Antes, mismo día: **Incidente: la app quedó caída por
 cuota de cómputo de Neon agotada — causa raíz encontrada y corregida
 (`pool_size`), acceso vuelve solo con el reset del 2026-09-01.**)
 
