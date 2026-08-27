@@ -5,7 +5,75 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-26 (**Mails transaccionales con identidad
+*Última actualización: 2026-08-26 (**Scheduler: despertar por deadline en
+vez de sondear cada 5 min — segundo tramo del fix de cuota de Neon, sobre
+la causa dominante que `pool_size` no resolvía.**)
+
+El scheduler del ciclo de vida del turno (asistencia/no-show ADR-0008 +
+escalada ADR-0009) sondeaba la base **cada 5 minutos las 24 horas**,
+hubiera o no algo que hacer. Ese sondeo fijo —no el `pool_size`, que fue
+el primer tramo— era lo que mantenía el cómputo de Neon despierto de
+noche y en horas muertas y agotaba la cuota del plan free (100 CU-horas/
+mes; el proyecto acumulaba ~4,2 CU-h/día → moría cerca del día 23).
+
+**Fix:** cada pasada calcula la próxima deadline real (recordatorio/
+no-show de un turno confirmado, escalada de un turno recién publicado) y
+duerme hasta ahí, acotado a `[30s, 6h]` — 6h de latido de seguridad
+cuando no hay nada pendiente. Un turno publicado para un día futuro ya no
+despierta nada cada 5 min: su única deadline es la de su propia hora.
+`publish_shift`/`confirm_assignment` llaman a `notify_scheduler()`
+(`scheduler_signal.py`, un `asyncio.Event` compartido sin dependencias,
+para no acoplar el servicio con el scheduler) que despierta al loop antes
+de tiempo cuando entra trabajo nuevo, así la escalada de 8 min no se
+pierde aunque durmiera horas. Al reiniciar Render la primera pasada
+reconstruye la próxima deadline desde la base sola, sin persistir timers.
+La lógica de acción (umbrales, notificaciones, idempotencia) no cambió;
+sólo CUÁNDO corre el loop.
+
+**Efecto esperado (estimado, a validar con el uso real post-reset):** el
+consumo pasa a depender del uso real de la app, no del robot 24/7 — a 20
+comercios/100 trabajadores baja a un rango (~45-90 CU-h/mes) que
+probablemente entra en el plan free todo el mes. En plan pago (Launch,
+USD 0,106/CU-h) el gasto cae ~a la mitad (de ~USD 14 a ~USD 6-8/mes)
+porque Neon duerme de noche. 7 tests nuevos (`test_scheduler.py`),
+pytest 429/429.
+
+Antes, mismo día: **Incidente: la app quedó caída por
+cuota de cómputo de Neon agotada — causa raíz encontrada y corregida
+(`pool_size`), acceso vuelve solo con el reset del 2026-09-01.**)
+
+**Síntoma:** la app dejó de responder. Diagnóstico contra la API real de
+Neon (no supuesto): `NeonDbError 402 — "exceeded the compute time
+quota"` en el proyecto `staffya-us-east` (la base de producción, ver
+`render.yaml`). Vercel/frontend estaba sano (último deploy `READY`); el
+bloqueo era 100% de base de datos, y afecta prácticamente cualquier
+request porque casi todo endpoint toca Postgres.
+
+**Causa raíz real, no sólo "mucho tráfico":** `pool_size=5` en
+`core/database.py` mantenía 5 conexiones abiertas todo el tiempo —
+Neon (plan free) sólo suspende el cómputo, y deja de consumir cuota,
+con **cero** conexiones activas. Sumado al scheduler de asistencia/
+escalada (`shift/application/scheduler.py`) tocando la base cada 5
+minutos las 24hs, el cómputo nunca llegaba a dormir: ~441 horas activas
+acumuladas en menos de un mes, en una beta de 5-25 comercios que no
+justifica ese consumo.
+
+**Fix (PR #271):** `pool_size` 5→1 (`max_overflow=10` sigue cubriendo
+picos reales de concurrencia sin sostener conexiones ociosas en
+reposo). **No** se tocó el intervalo del scheduler — se evaluó subirlo
+a 15 minutos para el mismo objetivo, pero `ESCALATION_DELAY` es de sólo
+8 minutos, fijado a propósito "un poco antes de los 10 minutos de la
+promesa" (ADR-0009, misión central del producto) — un intervalo más
+largo correría la escalada después de que esa promesa ya se incumplió.
+Queda documentado en el propio código para no reabrirse sin razón
+nueva. 423/423 tests de backend en verde.
+
+**Importante — esto no restaura el acceso de este mes.** La cuota ya
+consumida no se recupera con un cambio de código; sólo evita que se
+repita después del reset (2026-09-01) o de un eventual upgrade de
+plan. Decisión de Julieta: esperar el reset en vez de upgradear ahora.
+
+Antes, mismo día: **Mails transaccionales con identidad
 visual de marca — bienvenida por rol, confirmación de email y una
 invitación nueva a verificar identidad — reemplazando el `<p>` plano que
 tenían antes.**)

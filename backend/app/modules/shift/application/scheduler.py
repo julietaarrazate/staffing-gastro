@@ -16,6 +16,25 @@ nueva no es necesario ni gratis. Gateado a producción
 (`settings.is_production`) para no correr durante los tests: el único test
 que dispara el lifespan (`test_chat.py`, vía `TestClient`) no debe quedar
 esperando un loop infinito ni tocando la base de datos de fondo.
+
+**Despierta por deadline, no por reloj (incidente 2026-08-26, cuota de Neon).**
+Antes el loop sondeaba la base cada 5 minutos las 24 horas, aunque no hubiera
+nada que hacer — eso mantenía el cómputo de Neon despierto de noche y en horas
+muertas y agotaba la cuota del plan free (detalle en `core/database.py`).
+Ahora cada pasada calcula **cuándo** es la próxima acción real posible (el
+recordatorio/no-show de un turno confirmado, la escalada de un turno recién
+publicado) y **duerme hasta ese momento**, no un intervalo fijo. Si no hay
+ningún turno pendiente, duerme hasta `MAX_SLEEP` (un latido de seguridad, no
+un sondeo). Cuando aparece trabajo nuevo mientras duerme, `notify_scheduler()`
+(`scheduler_signal.py`) lo despierta antes de tiempo. Efecto: la base sólo se
+toca cuando de verdad hace falta, así que Neon puede suspenderse entre medio.
+
+Un turno publicado para un día futuro ya no despierta nada cada 5 minutos: su
+única deadline es la de su propia hora, y el loop duerme hasta ahí.
+
+Al arrancar (y tras cada reinicio de Render, que borra el estado en memoria)
+la primera pasada recorre la base y reconstruye la próxima deadline sola — no
+hace falta persistir timers.
 """
 
 import asyncio
@@ -25,6 +44,7 @@ from datetime import datetime, timedelta, timezone
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.dt import naive as _naive
+from app.modules.shift.application.scheduler_signal import wait_for_wakeup
 from app.modules.application.infrastructure.repositories import (
     SqlAlchemyShiftApplicationRepository,
 )
@@ -55,10 +75,46 @@ from app.modules.worker.infrastructure.repositories import (
 
 logger = logging.getLogger(__name__)
 
-# Cada cuánto corre el chequeo. No necesita ser fino: los umbrales de arriba
-# se miden en minutos/horas, así que revisar cada 5 minutos alcanza sin
-# generar carga.
-CHECK_INTERVAL = timedelta(minutes=5)
+# Piso del sueño: aunque la próxima deadline sea "ya mismo", nunca se re-
+# consulta la base más seguido que esto, para no girar en falso si un turno
+# quedara al borde de su umbral. 30s de atraso sobre una escalada de 8
+# minutos o un recordatorio de 20 es irrelevante (el sistema viejo llegaba
+# hasta 5 minutos tarde).
+MIN_SLEEP = timedelta(seconds=30)
+
+# Techo del sueño: latido de seguridad. Aunque no haya ninguna deadline
+# pendiente ni llegue ninguna señal, el loop se despierta al menos cada tanto
+# para re-chequear — red de contención por si se perdiera una señal o el
+# reloj diera un salto. Con la base dormida entre medio, despertarse ~cada 6h
+# es intrascendente para la cuota (4 consultas/día, no 288).
+MAX_SLEEP = timedelta(hours=6)
+
+# Si un chequeo lanzó una excepción (ej. error transitorio de la base), no
+# conviene dormir las 6h del techo: se reintenta pronto, como hacía el loop
+# viejo cada 5 minutos.
+ERROR_RETRY = timedelta(minutes=5)
+
+
+def _earlier(a: datetime | None, b: datetime | None) -> datetime | None:
+    """La más temprana de dos deadlines, ignorando las `None`."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return min(a, b)
+
+
+def _seconds_until(next_deadline: datetime | None, *, had_error: bool) -> float:
+    """Cuánto dormir hasta la próxima deadline, acotado a [MIN_SLEEP, MAX_SLEEP]
+    (o a ERROR_RETRY si la pasada falló)."""
+    if next_deadline is None:
+        base = MAX_SLEEP.total_seconds()
+    else:
+        remaining = (next_deadline - _naive(datetime.now(timezone.utc))).total_seconds()
+        base = min(max(remaining, MIN_SLEEP.total_seconds()), MAX_SLEEP.total_seconds())
+    if had_error:
+        base = min(base, ERROR_RETRY.total_seconds())
+    return base
 
 
 def _build_service(session) -> ShiftService:
@@ -77,55 +133,89 @@ def _build_service(session) -> ShiftService:
     )
 
 
-async def run_attendance_check() -> None:
+async def run_attendance_check() -> datetime | None:
     """Una pasada del chequeo de asistencia. Público para poder testearlo
-    sin el loop."""
+    sin el loop.
+
+    Devuelve la próxima deadline FUTURA que este chequeo conoce (la más
+    temprana entre los recordatorios y no-shows todavía pendientes), o `None`
+    si no queda nada por vigilar. El loop la usa para saber hasta cuándo
+    dormir. La lógica de acción (recordatorio a `CHECKIN_REMINDER_DELAY`,
+    no-show a `NO_SHOW_GRACE_PERIOD`) es idéntica a la de antes — sólo se
+    agrega el cálculo de la próxima deadline."""
     async with AsyncSessionLocal() as session:
         service = _build_service(session)
-        now = datetime.now(timezone.utc)
+        now = _naive(datetime.now(timezone.utc))
         shifts = await service.list_shifts_awaiting_checkin()
+        next_deadline: datetime | None = None
         for shift in shifts:
-            elapsed = _naive(now) - _naive(shift.start_at)
-            if elapsed < CHECKIN_REMINDER_DELAY:
-                continue
+            start = _naive(shift.start_at)
+            reminder_at = start + CHECKIN_REMINDER_DELAY
+            no_show_at = start + NO_SHOW_GRACE_PERIOD
+            elapsed = now - start
             if elapsed >= NO_SHOW_GRACE_PERIOD:
                 await service.auto_mark_no_show(shift.id)
-            elif shift.checkin_reminder_sent_at is None:
+                # Se resolvió (salió de CONFIRMADO/EN_CAMINO): no aporta deadline.
+                continue
+            if shift.checkin_reminder_sent_at is None and elapsed >= CHECKIN_REMINDER_DELAY:
                 await service.send_checkin_reminder(shift.id)
+                # Ya recordado: su próxima (y última) deadline es el no-show.
+                next_deadline = _earlier(next_deadline, no_show_at)
+                continue
+            # Todavía no accionable: su próxima deadline es el umbral que falta.
+            pending = reminder_at if shift.checkin_reminder_sent_at is None else no_show_at
+            next_deadline = _earlier(next_deadline, pending)
+        return next_deadline
 
 
-async def run_escalation_check() -> None:
+async def run_escalation_check() -> datetime | None:
     """Una pasada del chequeo de escalada de urgencia. Público para poder
-    testearlo sin el loop."""
+    testearlo sin el loop.
+
+    Devuelve la próxima deadline de escalada FUTURA (el `published_at +
+    ESCALATION_DELAY` más temprano entre los turnos abiertos sin escalar), o
+    `None`. La lógica de acción es idéntica a la de antes."""
     async with AsyncSessionLocal() as session:
         service = _build_service(session)
-        now = datetime.now(timezone.utc)
+        now = _naive(datetime.now(timezone.utc))
         shifts = await service.list_shifts_awaiting_escalation()
+        next_deadline: datetime | None = None
         for shift in shifts:
             if shift.published_at is None:
                 continue
-            elapsed = _naive(now) - _naive(shift.published_at)
-            if elapsed >= ESCALATION_DELAY:
+            escalate_at = _naive(shift.published_at) + ESCALATION_DELAY
+            if now >= escalate_at:
                 await service.escalate_urgency(shift.id)
+            else:
+                next_deadline = _earlier(next_deadline, escalate_at)
+        return next_deadline
 
 
 async def scheduler_loop() -> None:
-    """Loop infinito: corre ambos chequeos cada `CHECK_INTERVAL`.
+    """Loop infinito: corre ambos chequeos y duerme hasta la próxima deadline.
+
+    En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
+    entre ambos chequeos y duerme hasta ahí (acotado a [MIN_SLEEP, MAX_SLEEP]),
+    despertable antes por `notify_scheduler()` cuando entra trabajo nuevo.
 
     Los errores de una pasada no matan el loop (best-effort, mismo criterio
     que el resto de las tareas de fondo del repo, ej. el push best-effort de
-    `SqlAlchemyNotificationRepository`) — se logean y se reintenta en el
-    próximo tick. Un chequeo que falla no bloquea al otro."""
+    `SqlAlchemyNotificationRepository`) — se logean, se reintenta pronto
+    (`ERROR_RETRY`) y un chequeo que falla no bloquea al otro."""
     while True:
+        next_deadline: datetime | None = None
+        had_error = False
         try:
-            await run_attendance_check()
+            next_deadline = _earlier(next_deadline, await run_attendance_check())
         except Exception:
+            had_error = True
             logger.exception("Error en el chequeo de asistencia")
         try:
-            await run_escalation_check()
+            next_deadline = _earlier(next_deadline, await run_escalation_check())
         except Exception:
+            had_error = True
             logger.exception("Error en el chequeo de escalada de urgencia")
-        await asyncio.sleep(CHECK_INTERVAL.total_seconds())
+        await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 
 def start_scheduler() -> asyncio.Task | None:

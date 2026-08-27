@@ -277,3 +277,134 @@ async def test_does_not_escalate_already_assigned_shift(client, session_factory,
     body = shift.json()
     assert body["status"] == "asignado"
     assert body["urgent"] is False
+
+
+# --- Despertar por deadline en vez de sondear (incidente Neon 2026-08-26) ---
+#
+# El loop ya no duerme un intervalo fijo: cada chequeo devuelve su próxima
+# deadline futura y el loop duerme hasta ahí. Estos tests fijan ese contrato
+# nuevo (los de arriba ya cubren que la lógica de ACCIÓN no cambió).
+
+
+async def test_attendance_check_returns_next_deadline_for_future_shift(
+    client, session_factory, monkeypatch
+):
+    """Un turno confirmado cuyo `start_at` es futuro (ej. mañana) NO dispara
+    ninguna acción, pero SÍ aporta su deadline (start + recordatorio) para que
+    el loop sepa hasta cuándo dormir en vez de sondear cada 5 minutos."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    # `ago` negativo = start_at en el futuro.
+    shift_id, _emp, worker_headers = await _confirmed_shift_starting_ago(
+        client,
+        "sched_fut_emp@staffya.com",
+        "sched_fut_w@staffya.com",
+        ago=-timedelta(days=1),
+    )
+
+    next_deadline = await scheduler.run_attendance_check()
+
+    # No hizo nada (sigue confirmado, sin recordatorio).
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker_headers)
+    assert shift.json()["status"] == "confirmado"
+    notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "checkin_reminder" for n in notifications.json())
+
+    # Pero devolvió una deadline futura (~mañana + 20 min), no None.
+    assert next_deadline is not None
+    assert next_deadline > datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+async def test_attendance_check_returns_none_when_nothing_pending(
+    client, session_factory, monkeypatch
+):
+    """Sin turnos que vigilar, el chequeo devuelve None → el loop duerme hasta
+    MAX_SLEEP (latido de seguridad), sin sondear la base."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    assert await scheduler.run_attendance_check() is None
+
+
+async def test_attendance_check_returns_no_show_deadline_after_reminder_sent(
+    client, session_factory, monkeypatch
+):
+    """Un turno ya recordado pero antes del período de gracia devuelve como
+    próxima deadline su no-show (start + gracia), no el recordatorio ya
+    enviado."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, _emp, worker_headers = await _confirmed_shift_starting_ago(
+        client,
+        "sched_rem_emp@staffya.com",
+        "sched_rem_w@staffya.com",
+        ago=CHECKIN_REMINDER_DELAY + timedelta(minutes=1),
+    )
+
+    # Primera pasada: manda el recordatorio y devuelve la deadline del no-show.
+    next_deadline = await scheduler.run_attendance_check()
+
+    notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert any(n["type"] == "checkin_reminder" for n in notifications.json())
+    assert next_deadline is not None
+
+
+async def test_escalation_check_returns_deadline_for_recent_publish(
+    client, session_factory, monkeypatch
+):
+    """Un turno abierto publicado hace poco (antes del umbral de escalada) no
+    se escala pero devuelve su deadline de escalada (publish + delay)."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, employer_headers = await _open_shift_published_ago(
+        client, session_factory, "sched_esc_emp5@staffya.com", ago=timedelta(minutes=1)
+    )
+
+    next_deadline = await scheduler.run_escalation_check()
+
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
+    assert shift.json()["urgent"] is False
+    assert next_deadline is not None
+
+
+async def test_seconds_until_clamps_between_min_and_max():
+    """La aritmética del sueño: acota al piso y al techo, y respeta ERROR_RETRY."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Sin deadline → duerme MAX_SLEEP.
+    assert scheduler._seconds_until(None, had_error=False) == pytest.approx(
+        scheduler.MAX_SLEEP.total_seconds()
+    )
+    # Deadline lejana → se recorta al techo.
+    far = now + timedelta(days=30)
+    assert scheduler._seconds_until(far, had_error=False) == pytest.approx(
+        scheduler.MAX_SLEEP.total_seconds(), abs=2
+    )
+    # Deadline ya pasada → se sube al piso, nunca negativo.
+    assert scheduler._seconds_until(
+        now - timedelta(hours=1), had_error=False
+    ) == pytest.approx(scheduler.MIN_SLEEP.total_seconds())
+    # Con error → nunca más que ERROR_RETRY aunque no haya deadline.
+    assert scheduler._seconds_until(None, had_error=True) == pytest.approx(
+        scheduler.ERROR_RETRY.total_seconds()
+    )
+
+
+async def test_notify_scheduler_wakes_a_sleeping_loop():
+    """`notify_scheduler()` interrumpe un `wait_for_wakeup` largo antes de que
+    se cumpla su timeout — es lo que hace que un turno recién publicado escale
+    a tiempo aunque el loop estuviera durmiendo horas."""
+    import asyncio
+
+    from app.modules.shift.application import scheduler_signal
+
+    # Estado limpio: otros tests publican/confirman turnos, que ahora setean la
+    # señal — sin esto, el sleeper podría volver por una señal vieja y el test
+    # pasaría sin probar nada.
+    scheduler_signal._wakeup.clear()
+
+    async def sleeper():
+        # Pediría dormir 1 hora; la señal debe cortarlo casi al instante.
+        await scheduler_signal.wait_for_wakeup(3600)
+
+    task = asyncio.create_task(sleeper())
+    await asyncio.sleep(0.05)  # dejar que entre al wait
+    scheduler_signal.notify_scheduler()
+    # Si la señal funciona, el task termina ya; si no, este wait_for expira.
+    await asyncio.wait_for(task, timeout=2.0)
+    assert task.done()

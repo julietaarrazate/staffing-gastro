@@ -46,17 +46,32 @@ class Base(DeclarativeBase):
 # - `pool_size`/`max_overflow` explícitos (antes eran el default implícito de
 #   `AsyncAdaptedQueuePool`, 5/10 — ver P/pool en PERFORMANCE_REPORT.md):
 #   documentados acá en vez de dejarlos implícitos. Con un solo worker
-#   uvicorn (`backend/Dockerfile`, sin `--workers`) 5+10=15 conexiones
-#   concurrentes alcanza de sobra y es compatible con el límite del pooler de
-#   Neon en el plan free. Si se agregan workers uvicorn, este número se
-#   multiplica por worker — revisar contra el límite de conexiones del plan
+#   uvicorn (`backend/Dockerfile`, sin `--workers`) `pool_size + max_overflow`
+#   conexiones concurrentes alcanza de sobra y es compatible con el límite del
+#   pooler de Neon en el plan free. Si se agregan workers uvicorn, este número
+#   se multiplica por worker — revisar contra el límite de conexiones del plan
 #   antes de escalar horizontalmente (ver SCALABILITY_REPORT.md).
+# - INCIDENTE 2026-08-26: `pool_size` bajó de 5 a 1. `pool_size` conexiones
+#   quedan ABIERTAS en el pool aunque no haya requests — y Neon (plan free)
+#   sólo suspende el cómputo (deja de contar horas) cuando ve CERO conexiones
+#   activas. Con 5 conexiones ociosas sosteniéndose todo el día, más el
+#   scheduler tocando la base cada pocos minutos (ver `shift/application/
+#   scheduler.py`), el cómputo nunca llegaba a dormir: ~441 horas activas en
+#   menos de un mes, cuota mensual del free tier agotada
+#   (`NeonDbError 402: exceeded the compute time quota`), app entera caída
+#   hasta el reset. `max_overflow=10` sigue cubriendo picos de concurrencia
+#   real (esas conexiones se abren bajo demanda y se cierran solas al
+#   liberarse, no sostienen el cómputo despierto en reposo) — sólo se achica
+#   el piso que queda permanentemente abierto. Costo: la primera consulta
+#   tras un hueco largo paga la reconexión (cubierta por `pool_pre_ping`,
+#   unas pocas decenas de ms) en vez de reusar una conexión ya viva —
+#   aceptable para el volumen de tráfico de la beta actual.
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     pool_pre_ping=True,
     pool_recycle=280,
-    pool_size=5,
+    pool_size=1,
     max_overflow=10,
 )
 
