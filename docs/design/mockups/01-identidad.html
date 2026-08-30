@@ -1,0 +1,515 @@
+<title>Identidad Oído</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --naranja: #F94E1B;
+    --naranja-oscuro: #D63A0C;
+    --crema: #F7F1E5;
+    --crema-2: #FBF7EE;
+    --cafe: #35190E;
+    --cafe-2: #4A2716;
+    --tinta: #24140C;
+    --manteca: #F1E7A0;
+    --cielo: #CFE4FF;
+    --cielo-tinta: #1C4B87;
+    --linea: #E4D8C3;
+    --linea-fuerte: #CDBFA4;
+
+    --display: 'Fredoka', system-ui, sans-serif;
+    --sans: 'Hanken Grotesk', -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'Space Mono', 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--crema);
+    color: var(--tinta);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--naranja);
+    margin: 0 0 14px;
+  }
+  .eyebrow.on-dark { color: var(--manteca); }
+
+  /* ---- Checker signature strip ---- */
+  .checker {
+    height: 20px;
+    background-image:
+      repeating-conic-gradient(var(--naranja) 0deg 90deg, transparent 90deg 180deg);
+    background-size: 20px 20px;
+    background-color: var(--crema);
+  }
+  .checker.on-orange { background-color: var(--crema); }
+
+  /* ---- HERO ---- */
+  .hero {
+    background: var(--naranja);
+    color: var(--crema);
+    padding: 68px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-inner { display: flex; flex-direction: column; gap: 26px; padding-bottom: 60px; }
+  .hero .eyebrow { color: #FFE7DC; }
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(84px, 17vw, 188px);
+    line-height: 0.86;
+    letter-spacing: -0.02em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .wordmark .bell { flex: none; width: clamp(56px, 10vw, 104px); height: auto; color: var(--crema); }
+  .hero-lede {
+    font-size: clamp(18px, 2.4vw, 24px);
+    max-width: 620px;
+    color: #FFEDE4;
+    font-weight: 500;
+  }
+  .hero-lede b { color: var(--crema); font-weight: 700; }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 15px;
+    border-radius: 999px;
+    border: 1.5px solid currentColor;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .hero .pill { color: #FFE0D4; }
+
+  /* ---- Sections ---- */
+  section { padding: 66px 0; }
+  .section-head { max-width: 640px; margin-bottom: 40px; }
+  h2.title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .section-head p { font-size: 17px; margin: 0; color: #5a4433; }
+
+  /* ---- Idea band ---- */
+  .idea {
+    background: var(--cafe);
+    color: var(--crema);
+  }
+  .idea .lede {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(24px, 3.6vw, 40px);
+    line-height: 1.16;
+    letter-spacing: -0.01em;
+    max-width: 860px;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .idea .lede b { color: var(--naranja); font-weight: 600; }
+  .idea .sub { margin: 26px 0 0; color: #C9B7A3; max-width: 620px; font-size: 16px; }
+
+  /* ---- Paleta ---- */
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .swatch {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1.5px solid var(--linea);
+    background: var(--crema-2);
+  }
+  .swatch .chip { height: 128px; }
+  .swatch .meta { padding: 14px 16px 16px; }
+  .swatch .name { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0 0 3px; }
+  .swatch .role { font-size: 13px; color: #6d5844; margin: 0 0 8px; line-height: 1.4; }
+  .swatch .hex { font-family: var(--mono); font-size: 12.5px; color: var(--naranja); letter-spacing: 0.03em; }
+
+  /* ---- Tipografía ---- */
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .type-card {
+    border: 1.5px solid var(--linea);
+    border-radius: 18px;
+    background: var(--crema-2);
+    padding: 26px 26px 28px;
+  }
+  .type-card.wide { grid-column: 1 / -1; }
+  .type-card .role { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--naranja); margin: 0 0 6px; }
+  .type-card .fam { font-size: 13px; color: #6d5844; margin: 0 0 18px; }
+  .spec-display { font-family: var(--display); font-weight: 600; font-size: clamp(40px, 6vw, 62px); line-height: 0.98; margin: 0; letter-spacing: -0.01em; }
+  .spec-sans { font-family: var(--sans); font-size: 22px; font-weight: 500; margin: 0; }
+  .spec-sans .grey { color: #8a7660; }
+  .spec-mono { font-family: var(--mono); font-size: 15px; margin: 0; color: var(--tinta); letter-spacing: 0.02em; }
+  .glyphs { font-family: var(--display); font-weight: 600; font-size: 26px; color: #b09a7e; margin-top: 14px; letter-spacing: 0.04em; }
+
+  /* ---- Elementos ---- */
+  .elem-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+  .card {
+    border: 1.5px solid var(--linea);
+    border-radius: 18px;
+    background: var(--crema-2);
+    padding: 26px;
+  }
+  .card h3 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 0 0 6px; }
+  .card p.desc { font-size: 14.5px; color: #6d5844; margin: 0 0 20px; }
+  .demo-pills { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pill.solid { background: var(--naranja); color: var(--crema); border-color: var(--naranja); }
+  .pill.manteca { background: var(--manteca); color: #6a5a12; border-color: #E4D686; }
+  .pill.cielo { background: var(--cielo); color: #1C4B87; border-color: #AFD2FA; }
+  .pill.ghost { color: var(--naranja); }
+
+  .icon-row { display: flex; gap: 22px; align-items: center; color: var(--naranja); }
+  .icon-row svg { width: 58px; height: 58px; }
+
+  /* ---- Phones ---- */
+  .phones-band { background: var(--cafe-2); color: var(--crema); }
+  .phones-band .section-head p { color: #C9B7A3; }
+  .phones { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .phone {
+    width: 300px;
+    background: var(--crema);
+    border-radius: 40px;
+    padding: 12px;
+    border: 2px solid #1c0d05;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+    color: var(--tinta);
+  }
+  .screen { background: var(--crema-2); border-radius: 30px; overflow: hidden; }
+  .statusbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px 6px; font-family: var(--mono); font-size: 11px; color: #7a6a58;
+  }
+  .statusbar .dots { display: flex; gap: 4px; }
+  .statusbar .dots i { width: 5px; height: 5px; border-radius: 50%; background: #b7a68f; display: block; }
+
+  .app-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 18px 12px; }
+  .app-brand { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--naranja); }
+  .app-brand svg { width: 20px; height: 20px; color: var(--naranja); }
+  .loc-chip { font-family: var(--mono); font-size: 11px; color: #6d5844; border: 1.4px solid var(--linea-fuerte); border-radius: 999px; padding: 5px 10px; }
+
+  .assistant {
+    margin: 0 16px 16px;
+    background: var(--crema);
+    border: 2px solid var(--naranja);
+    border-radius: 18px;
+    padding: 13px 15px;
+  }
+  .assistant .lab { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--naranja); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .assistant .q { font-size: 14px; color: #46331f; }
+  .assistant .q .cursor { color: var(--naranja); font-weight: 700; }
+
+  .mini-lab { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 0 20px 8px; color:#8a7660; }
+
+  .shift {
+    margin: 0 16px 12px;
+    border: 1.5px solid var(--linea);
+    border-radius: 16px;
+    background: var(--crema);
+    overflow: hidden;
+  }
+  .shift .banner {
+    height: 74px;
+    background: linear-gradient(135deg, var(--naranja), var(--naranja-oscuro));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--crema);
+    position: relative;
+  }
+  .shift .banner svg { width: 40px; height: 40px; opacity: 0.92; }
+  .shift .banner .checker-mini {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+    background-image: repeating-conic-gradient(var(--crema) 0deg 90deg, transparent 90deg 180deg);
+    background-size: 8px 8px;
+  }
+  .shift .body { padding: 12px 14px 14px; }
+  .shift .biz { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10.5px; color: #7a6a58; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .shift .biz .verified { color: #1C4B87; }
+  .shift .role { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0 0 6px; }
+  .shift .pay { font-family: var(--mono); font-size: 13px; color: var(--naranja); font-weight: 700; }
+  .shift .pay .grey { color: #8a7660; font-weight: 400; }
+  .shift .tagrow { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .tag-sm { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 8px; border-radius: 999px; background: var(--manteca); color: #6a5a12; }
+  .tag-sm.cielo { background: var(--cielo); color: #1C4B87; }
+
+  .cta-row { padding: 4px 16px 18px; display: flex; gap: 10px; }
+  .btn {
+    flex: 1; text-align: center; font-family: var(--display); font-weight: 600;
+    padding: 13px; border-radius: 14px; font-size: 15px;
+  }
+  .btn.primary { background: var(--naranja); color: var(--crema); }
+  .btn.ghost { background: transparent; color: var(--naranja); border: 1.5px solid var(--naranja); flex: 0 0 44px; }
+
+  /* Phone 2 detail */
+  .detail-banner {
+    height: 150px; margin: 0 16px 0; border-radius: 18px 18px 0 0;
+    background: linear-gradient(135deg, var(--naranja), var(--naranja-oscuro));
+    display: flex; align-items: center; justify-content: center; color: var(--crema); position: relative; overflow: hidden;
+  }
+  .detail-banner svg { width: 74px; height: 74px; opacity: 0.95; }
+  .detail-banner .checker-mini {
+    position: absolute; left:0; right:0; bottom:0; height: 10px;
+    background-image: repeating-conic-gradient(var(--crema) 0deg 90deg, transparent 90deg 180deg);
+    background-size: 10px 10px;
+  }
+  .detail-body { margin: 0 16px 16px; border: 1.5px solid var(--linea); border-top: none; border-radius: 0 0 18px 18px; padding: 16px 16px 18px; background: var(--crema); }
+  .detail-body .biz { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; color: #7a6a58; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .detail-body h4 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0 0 8px; line-height: 1.05; }
+  .detail-body .meta { font-family: var(--mono); font-size: 12px; color: #6d5844; }
+  .detail-body .meta b { color: var(--naranja); }
+  .detail-body .tagrow { display: flex; gap: 6px; margin: 12px 0 4px; flex-wrap: wrap; }
+
+  /* footer */
+  .foot { background: var(--cafe); color: var(--crema); padding: 54px 0; }
+  .foot h2 { font-family: var(--display); font-weight: 600; font-size: clamp(26px, 4vw, 38px); margin: 0 0 16px; letter-spacing: -0.01em; }
+  .foot ol { margin: 0; padding-left: 20px; color: #D8C7B3; font-size: 16px; max-width: 640px; }
+  .foot ol li { margin-bottom: 8px; }
+  .foot ol li b { color: var(--manteca); }
+
+  @media (max-width: 720px) {
+    .swatches { grid-template-columns: repeat(2, 1fr); }
+    .type-grid, .elem-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="wrap hero-inner">
+    <p class="eyebrow">Identidad de marca · Propuesta 01</p>
+    <h1 class="wordmark">
+      <svg class="bell" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 38h36"/>
+        <path d="M9 34a15 15 0 0 1 30 0"/>
+        <path d="M24 19v-4"/>
+        <circle cx="24" cy="12.5" r="2.6"/>
+      </svg>
+      Oído
+    </h1>
+    <p class="hero-lede">El <b>“¡voy!”</b> de la cocina, hecho app. La palabra que grita el equipo cuando entra la comanda — ahora es la marca que conecta locales y personal en minutos.</p>
+    <div class="hero-tags">
+      <span class="pill">Cálida</span>
+      <span class="pill">De cocina</span>
+      <span class="pill">Moderna</span>
+      <span class="pill">Rápida</span>
+    </div>
+  </div>
+  <div class="checker"></div>
+</header>
+
+<!-- ===================== IDEA ===================== -->
+<section class="idea">
+  <div class="wrap">
+    <p class="eyebrow on-dark">La idea</p>
+    <p class="lede">Una marca con <b>calor de restaurante</b> y precisión de app. Toma la cultura gastronómica de tus referencias —naranja quemado, crema, tipografía redonda, ilustración de trazo— y la ordena con la prolijidad de un producto digital serio.</p>
+    <p class="sub">Nada de degradés genéricos ni stock. Todo remite a la cocina: el timbre del pase, el damero del mantel, el trazo de un menú escrito a mano.</p>
+  </div>
+</section>
+
+<!-- ===================== PALETA ===================== -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Paleta</p>
+      <h2 class="title">Cinco colores con oficio</h2>
+      <p>El naranja manda —ya es tu color— sobre una crema cálida. El café da profundidad, la manteca y el cielo son los acentos que la sacan del cliché de “naranja y beige”.</p>
+    </div>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="chip" style="background:#F94E1B"></div>
+        <div class="meta"><p class="name">Naranja Oído</p><p class="role">El héroe. Acciones, marca, energía.</p><span class="hex">#F94E1B</span></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#F7F1E5"></div>
+        <div class="meta"><p class="name">Crema</p><p class="role">El fondo de todo. Cálido, no blanco frío.</p><span class="hex">#F7F1E5</span></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#35190E"></div>
+        <div class="meta"><p class="name">Café</p><p class="role">Tinta y superficies oscuras. Modo noche.</p><span class="hex">#35190E</span></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#F1E7A0"></div>
+        <div class="meta"><p class="name">Manteca</p><p class="role">Resaltados suaves, chips, estados.</p><span class="hex">#F1E7A0</span></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#CFE4FF"></div>
+        <div class="meta"><p class="name">Cielo</p><p class="role">Confianza y verificación. El acento frío.</p><span class="hex">#CFE4FF</span></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#E4D8C3"></div>
+        <div class="meta"><p class="name">Línea</p><p class="role">Bordes y hairlines sobre crema.</p><span class="hex">#E4D8C3</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="checker"></div>
+
+<!-- ===================== TIPOGRAFÍA ===================== -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Tipografía</p>
+      <h2 class="title">Redonda para la voz, limpia para trabajar</h2>
+      <p>Un display redondo y macizo para el logotipo y los títulos —el guiño a la cartelería gastronómica— con una grotesca clara para la interfaz y una monoespaciada para precios, etiquetas y datos.</p>
+    </div>
+    <div class="type-grid">
+      <div class="type-card wide">
+        <p class="role">Display · títulos y logotipo</p>
+        <p class="fam">Fredoka — redonda, maciza, con carácter</p>
+        <p class="spec-display">Oído, ¿qué se cocina?</p>
+        <p class="glyphs">Aa Bb Gg Oo · 0123 · ¡Oído! ñÑ áéí</p>
+      </div>
+      <div class="type-card">
+        <p class="role">Interfaz · cuerpo</p>
+        <p class="fam">Hanken Grotesk</p>
+        <p class="spec-sans">Postulate a un turno en dos toques. <span style="color:#8a7660">Guardá tus favoritos y seguí el estado en tiempo real.</span></p>
+      </div>
+      <div class="type-card">
+        <p class="role">Datos · etiquetas y precios</p>
+        <p class="fam">Space Mono</p>
+        <p class="spec-mono">$4.200/h · TURNO NOCHE<br>PALERMO · HOY 20:00<br>VERIFICADO ✓</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ELEMENTOS ===================== -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Elementos</p>
+      <h2 class="title">Las piezas que se repiten</h2>
+      <p>Detalles que hacen que cualquier pantalla “se sienta Oído” sin tener el logo puesto.</p>
+    </div>
+    <div class="elem-grid">
+      <div class="card">
+        <h3>Píldoras</h3>
+        <p class="desc">Todo lo tocable y todo lo etiquetable es una píldora. Sólida para la acción principal, de contorno para filtros, manteca y cielo para estados.</p>
+        <div class="demo-pills">
+          <span class="pill solid">Postularme</span>
+          <span class="pill ghost">Guardar</span>
+          <span class="pill manteca">Turno noche</span>
+          <span class="pill cielo">Verificado</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Damero + trazo</h3>
+        <p class="desc">La tira de damero como firma (el mantel, el pase) y la ilustración de una sola línea: el timbre y la toque, nunca fotos de stock.</p>
+        <div class="icon-row">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 38h36"/><path d="M9 34a15 15 0 0 1 30 0"/><path d="M24 19v-4"/><circle cx="24" cy="12.5" r="2.4"/></svg>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 40h18v-9H15z"/><path d="M15 31c-4.2 0-7-2.6-7-6.5S11 18 14 18.4C14 13.5 17.6 10 24 10s10 3.5 10 8.4c3-.4 6 1.6 6 6.1S37.2 31 33 31"/></svg>
+          <div style="flex:1"><div class="checker" style="border-radius:6px;border:1.5px solid var(--linea-fuerte)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="checker"></div>
+
+<!-- ===================== EN LA APP ===================== -->
+<section class="phones-band">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow on-dark">En la app</p>
+      <h2 class="title" style="color:var(--crema)">Cómo se ve puesta a trabajar</h2>
+      <p>La misma estructura que ya tiene Oído —búsqueda con asistente, tarjetas de turno, detalle— vestida con la identidad nueva.</p>
+    </div>
+    <div class="phones">
+
+      <!-- Phone 1: home + asistente -->
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+          <div class="app-head">
+            <div class="app-brand">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 38h36"/><path d="M9 34a15 15 0 0 1 30 0"/><path d="M24 19v-4"/><circle cx="24" cy="12.5" r="2.6"/></svg>
+              Oído
+            </div>
+            <span class="loc-chip">Palermo ▾</span>
+          </div>
+          <div class="assistant">
+            <div class="lab">◆ Asistente</div>
+            <div class="q">turno de cocina, noche, cerca<span class="cursor">▍</span></div>
+          </div>
+          <p class="mini-lab" style="color:#8a7660">Cerca tuyo</p>
+          <div class="shift">
+            <div class="banner">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 40h18v-9H15z"/><path d="M15 31c-4.2 0-7-2.6-7-6.5S11 18 14 18.4C14 13.5 17.6 10 24 10s10 3.5 10 8.4c3-.4 6 1.6 6 6.1S37.2 31 33 31"/></svg>
+              <div class="checker-mini"></div>
+            </div>
+            <div class="body">
+              <div class="biz">Bodegón San Telmo <span class="verified">✓</span></div>
+              <p class="role">Cocinero/a de línea</p>
+              <p class="pay">$4.200/h <span class="grey">· 8 hs</span></p>
+              <div class="tagrow"><span class="tag-sm">Turno noche</span><span class="tag-sm cielo">Hoy 20:00</span></div>
+            </div>
+          </div>
+          <div class="shift">
+            <div class="banner">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h24l-2 20H14z"/><path d="M18 20c0-6 2.6-9 6-9s6 3 6 9"/></svg>
+              <div class="checker-mini"></div>
+            </div>
+            <div class="body">
+              <div class="biz">Café Palermo</div>
+              <p class="role">Moza / Mozo</p>
+              <p class="pay">$3.800/h <span class="grey">· 6 hs</span></p>
+              <div class="tagrow"><span class="tag-sm">Fin de semana</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone 2: detalle -->
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+          <div class="detail-banner">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 40h18v-9H15z"/><path d="M15 31c-4.2 0-7-2.6-7-6.5S11 18 14 18.4C14 13.5 17.6 10 24 10s10 3.5 10 8.4c3-.4 6 1.6 6 6.1S37.2 31 33 31"/></svg>
+            <div class="checker-mini"></div>
+          </div>
+          <div class="detail-body">
+            <div class="biz">Bodegón San Telmo <span style="color:#1C4B87">✓ Verificado</span></div>
+            <h4>Cocinero/a de línea</h4>
+            <p class="meta"><b>$4.200/h</b> · Turno noche · 8 horas</p>
+            <div class="tagrow"><span class="tag-sm">Parrilla</span><span class="tag-sm cielo">Hoy 20:00</span><span class="tag-sm">Palermo</span></div>
+          </div>
+          <div class="cta-row">
+            <span class="btn primary">Postularme</span>
+            <span class="btn ghost">♥</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="foot">
+  <div class="wrap">
+    <p class="eyebrow on-dark">Cómo seguimos</p>
+    <h2>Esto es la propuesta, no el final</h2>
+    <ol>
+      <li><b>Reaccionás vos</b> — decime qué te gusta y qué no: la tipografía, el nivel de “redondez”, el celeste, el damero.</li>
+      <li><b>Ajusto el tablero</b> hasta que sea exactamente tu gusto (tu gusto es la spec).</li>
+      <li><b>Recién ahí toco código</b> — bajo la paleta y las tipografías a tokens reales del producto y lo aplico por PR, superficie por superficie, sin romper nada.</li>
+    </ol>
+  </div>
+</footer>

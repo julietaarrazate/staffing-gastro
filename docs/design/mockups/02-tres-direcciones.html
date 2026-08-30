@@ -1,0 +1,303 @@
+<title>Oído · 3 direcciones</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..48,500;12..48,600;12..48,700;12..48,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --naranja: #F94E1B;
+    --naranja-fuerte: #D63A0C;
+    --naranja-texto: #B23C08;
+    --crema: #FFF8F0;
+    --negro: #191410;
+    --negro-2: #221A12;
+    --tinta: #1F1F1C;
+    --tinta-50: rgba(31,31,28,0.52);
+    --tinta-38: rgba(31,31,28,0.38);
+    --manteca: #F1E7A0;
+    --manteca-tint: #FBF3C9;
+    --manteca-texto: #6A5A12;
+    --cielo: #CFE4FF;
+    --cielo-tint: #E8F1FF;
+    --cielo-texto: #1C4B87;
+    --arena: #F5ECDD;
+    --linea: #EBE2D4;
+
+    --disp: 'Bricolage Grotesque', system-ui, sans-serif;
+    --sans: 'Hanken Grotesk', -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ECE7DE; color: var(--tinta); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  img { max-width: 100%; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  .intro { padding: 54px 0 30px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--naranja-texto); margin: 0 0 14px; }
+  .intro h1 { font-family: var(--disp); font-weight: 700; font-size: clamp(32px, 5.4vw, 54px); line-height: 1; letter-spacing: -0.02em; margin: 0 0 16px; }
+  .intro p { font-size: 17px; color: #5a4a38; max-width: 660px; margin: 0; }
+  .intro p b { color: var(--tinta); }
+
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; padding: 26px 0 70px; align-items: start; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .col-head { text-align: center; }
+  .col-head .tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; margin-bottom: 10px; }
+  .a .col-head .tag { background: var(--negro); color: var(--crema); }
+  .b .col-head .tag { background: var(--cielo); color: var(--cielo-texto); }
+  .c .col-head .tag { background: var(--naranja); color: #fff; }
+  .col-head h2 { font-family: var(--disp); font-weight: 700; font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .col-head p { font-size: 13px; color: #6a5a48; margin: 0; line-height: 1.4; max-width: 240px; }
+
+  /* phone */
+  .phone { width: 300px; max-width: 100%; background: #0f0a06; border-radius: 40px; padding: 10px; box-shadow: 0 30px 60px rgba(0,0,0,0.28); }
+  .scr { position: relative; border-radius: 31px; overflow: hidden; height: 636px; display: flex; flex-direction: column; }
+  .a .scr { background: var(--crema); }
+  .b .scr { background: #FCF8F1; }
+  .c .scr { background: var(--crema); }
+
+  .sb { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 2px; font-family: var(--mono); font-size: 10.5px; color: var(--tinta-50); flex: none; }
+  .sb .dots { display: flex; gap: 4px; } .sb .dots i { width: 5px; height: 5px; border-radius: 50%; background: #b7a68f; display: block; }
+
+  .body { flex: 1; overflow: hidden; padding: 6px 16px 0; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .top .hi { font-family: var(--disp); font-weight: 700; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .top .sub { font-size: 12.5px; color: var(--tinta-50); margin: 1px 0 0; }
+  .ava { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--naranja), var(--naranja-fuerte)); display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--disp); font-weight: 700; font-size: 17px; flex: none; }
+
+  .lab { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-38); margin: 0 0 9px; }
+
+  /* earnings */
+  .earn { border-radius: 22px; padding: 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
+  .earn-ic { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .earn-ic svg { width: 23px; height: 23px; }
+  .earn-l { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 3px; }
+  .earn-v { font-family: var(--disp); font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 3px; line-height: 1; }
+  .earn-v .cur { font-size: 17px; } .earn-v .amt { font-size: 33px; }
+  .earn-tr { font-family: var(--mono); font-size: 10.5px; margin-left: auto; text-align: right; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat { border-radius: 18px; padding: 15px; }
+  .stat-ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .stat-ic svg { width: 17px; height: 17px; }
+  .stat-v { font-family: var(--disp); font-weight: 700; font-size: 25px; line-height: 1; letter-spacing: -0.01em; }
+  .stat-l { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 4px; }
+
+  /* today */
+  .today { border-radius: 22px; padding: 17px; }
+  .t-role { font-family: var(--disp); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .t-place { font-size: 12.5px; margin: 2px 0 12px; }
+  .t-chips { display: flex; gap: 7px; margin-bottom: 15px; }
+  .tchip { font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+  .tchip svg { width: 11px; height: 11px; }
+  .t-cta { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 13px; border-radius: 14px; font-family: var(--disp); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .t-cta svg { width: 17px; height: 17px; }
+
+  /* nav */
+  .nav { flex: none; display: flex; justify-content: space-around; align-items: center; }
+  .nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 600; }
+  .nav a svg { width: 21px; height: 21px; }
+
+  /* ============ OPTION A — CONTRASTE (dark cards) ============ */
+  .a .earn, .a .today { background: var(--negro); color: var(--crema); }
+  .a .stat { background: var(--negro); color: var(--crema); }
+  .a .earn-ic { background: var(--naranja); color: #fff; }
+  .a .earn-l { color: rgba(255,248,240,0.6); }
+  .a .earn-v .cur { color: var(--naranja); } .a .earn-v .amt { color: var(--crema); }
+  .a .earn-tr { color: var(--manteca); }
+  .a .stat:nth-child(1) .stat-ic { background: var(--manteca); color: var(--manteca-texto); }
+  .a .stat:nth-child(2) .stat-ic { background: var(--cielo); color: var(--cielo-texto); }
+  .a .stat-l { color: rgba(255,248,240,0.55); }
+  .a .t-place { color: rgba(255,248,240,0.6); }
+  .a .tchip { background: rgba(255,255,255,0.1); color: var(--crema); }
+  .a .t-cta { background: var(--naranja); color: #fff; }
+  .a .nav { background: var(--negro); margin: 0 14px 14px; border-radius: 22px; padding: 12px 6px; }
+  .a .nav a { color: rgba(255,248,240,0.5); }
+  .a .nav a.on { color: var(--naranja); }
+
+  /* ============ OPTION B — AIRE (light + pastel) ============ */
+  .b .body { padding: 6px 18px 0; }
+  .b .earn { background: #fff; border: 1.4px solid var(--linea); box-shadow: 0 10px 26px rgba(17,17,17,0.05); }
+  .b .earn-ic { background: var(--manteca-tint); color: var(--manteca-texto); }
+  .b .earn-l { color: var(--tinta-50); }
+  .b .earn-v .cur { color: var(--naranja-texto); } .b .earn-v .amt { color: var(--tinta); }
+  .b .earn-tr { color: var(--naranja-texto); }
+  .b .stat:nth-child(1) { background: var(--manteca-tint); }
+  .b .stat:nth-child(2) { background: var(--cielo-tint); }
+  .b .stat:nth-child(1) .stat-ic { background: #fff; color: var(--manteca-texto); }
+  .b .stat:nth-child(2) .stat-ic { background: #fff; color: var(--cielo-texto); }
+  .b .stat-v { color: var(--tinta); }
+  .b .stat-l { color: var(--tinta-50); }
+  .b .today { background: #fff; border: 1.4px solid var(--linea); box-shadow: 0 10px 26px rgba(17,17,17,0.05); }
+  .b .t-place { color: var(--tinta-50); }
+  .b .tchip { background: var(--arena); color: var(--tinta-50); }
+  .b .t-cta { background: var(--naranja); color: #fff; }
+  .b .nav { background: #fff; margin: 0 16px 16px; border-radius: 22px; padding: 11px 6px; border: 1.4px solid var(--linea); box-shadow: 0 10px 26px rgba(17,17,17,0.06); }
+  .b .nav a { color: var(--tinta-38); }
+  .b .nav a.on { color: var(--naranja); }
+
+  /* ============ OPTION C — CÁLIDO (warm white evolution) ============ */
+  .c .earn { background: #fff; border: 1.4px solid var(--linea); box-shadow: 0 8px 20px rgba(17,17,17,0.05); }
+  .c .earn-ic { background: var(--arena); color: var(--naranja-texto); }
+  .c .earn-l { color: var(--tinta-50); }
+  .c .earn-v .cur { color: var(--naranja-texto); } .c .earn-v .amt { color: var(--naranja-texto); }
+  .c .earn-tr { color: var(--tinta-50); }
+  .c .stat { background: #fff; border: 1.4px solid var(--linea); box-shadow: 0 8px 20px rgba(17,17,17,0.04); }
+  .c .stat:nth-child(1) .stat-ic { background: var(--arena); color: var(--naranja-texto); }
+  .c .stat:nth-child(2) .stat-ic { background: var(--arena); color: var(--naranja-texto); }
+  .c .stat-v { color: var(--tinta); }
+  .c .stat-l { color: var(--tinta-50); }
+  .c .today { background: #fff; border: 1.4px solid var(--linea); border-left: 4px solid var(--naranja); box-shadow: 0 8px 20px rgba(17,17,17,0.05); }
+  .c .t-place { color: var(--tinta-50); }
+  .c .tchip { background: var(--arena); color: var(--naranja-texto); }
+  .c .t-cta { background: linear-gradient(135deg, var(--naranja), var(--naranja-fuerte)); color: #fff; }
+  .c .nav { background: #fff; border-top: 1.4px solid var(--linea); padding: 10px 6px 14px; }
+  .c .nav a { color: var(--tinta-38); }
+  .c .nav a.on { color: var(--naranja); }
+
+  @media (max-width: 980px) { .cols { grid-template-columns: 1fr; justify-items: center; gap: 40px; } }
+</style>
+
+<section class="intro">
+  <div class="wrap">
+    <p class="eyebrow">Pruebas · 3 direcciones · sin implementar</p>
+    <h1>Tres formas de modernizar Oído</h1>
+    <p>La misma pantalla —el inicio del trabajador con su actividad— en tres tratamientos distintos, todos con <b>tus colores</b> (naranja, crema, manteca, celeste). Tomados de tus referencias: la de <b>alto contraste</b>, la <b>aireada</b> y la <b>cálida</b>. Elegís la dirección y la expandimos a toda la app.</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="cols">
+
+    <!-- ===== OPTION A ===== -->
+    <div class="col a">
+      <div class="col-head">
+        <span class="tag">Opción A</span>
+        <h2>Contraste</h2>
+        <p>Tarjetas oscuras, naranja que salta. Premium y decidida.</p>
+      </div>
+      <div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="top">
+            <div><p class="hi">Hola, Julieta</p><p class="sub">Tenés un turno hoy</p></div>
+            <div class="ava">J</div>
+          </div>
+          <p class="lab">Mi actividad</p>
+          <div class="earn">
+            <span class="earn-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v12H3z"/><path d="M16 12h3"/><path d="M3 7l3-3h10l3 3"/></svg></span>
+            <div><p class="earn-l">Ganado este mes</p><p class="earn-v"><span class="cur">$</span><span class="amt">2.200</span></p></div>
+            <span class="earn-tr">+$320<br>esta semana</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-6"/></svg></span><div class="stat-v">12</div><div class="stat-l">Turnos</div></div>
+            <div class="stat"><span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="stat-v">100 h</div><div class="stat-l">Trabajadas</div></div>
+          </div>
+          <p class="lab">Tu turno de hoy</p>
+          <div class="today">
+            <p class="t-role">Cocinero/a</p>
+            <p class="t-place">Bodegón San Telmo · Palermo</p>
+            <div class="t-chips">
+              <span class="tchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Hoy</span>
+              <span class="tchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>20:00</span>
+            </div>
+            <div class="t-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Marcar entrada</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4h6v3H9z"/></svg>Matches</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Mapa</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Perfil</a>
+        </nav>
+      </div></div>
+    </div>
+
+    <!-- ===== OPTION B ===== -->
+    <div class="col b">
+      <div class="col-head">
+        <span class="tag">Opción B</span>
+        <h2>Aire</h2>
+        <p>Claro, con acentos pastel y espacio. Calmada y prolija.</p>
+      </div>
+      <div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="top">
+            <div><p class="hi">Hola, Julieta</p><p class="sub">Tenés un turno hoy</p></div>
+            <div class="ava">J</div>
+          </div>
+          <p class="lab">Mi actividad</p>
+          <div class="earn">
+            <span class="earn-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v12H3z"/><path d="M16 12h3"/><path d="M3 7l3-3h10l3 3"/></svg></span>
+            <div><p class="earn-l">Ganado este mes</p><p class="earn-v"><span class="cur">$</span><span class="amt">2.200</span></p></div>
+            <span class="earn-tr">+$320<br>esta semana</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-6"/></svg></span><div class="stat-v">12</div><div class="stat-l">Turnos</div></div>
+            <div class="stat"><span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="stat-v">100 h</div><div class="stat-l">Trabajadas</div></div>
+          </div>
+          <p class="lab">Tu turno de hoy</p>
+          <div class="today">
+            <p class="t-role">Cocinero/a</p>
+            <p class="t-place">Bodegón San Telmo · Palermo</p>
+            <div class="t-chips">
+              <span class="tchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Hoy</span>
+              <span class="tchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>20:00</span>
+            </div>
+            <div class="t-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Marcar entrada</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4h6v3H9z"/></svg>Matches</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Mapa</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Perfil</a>
+        </nav>
+      </div></div>
+    </div>
+
+    <!-- ===== OPTION C ===== -->
+    <div class="col c">
+      <div class="col-head">
+        <span class="tag">Opción C</span>
+        <h2>Cálido</h2>
+        <p>Evolución de lo actual, más pulido. Reconocible y seguro.</p>
+      </div>
+      <div class="phone"><div class="scr">
+        <div class="sb"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="top">
+            <div><p class="hi">Hola, Julieta</p><p class="sub">Tenés un turno hoy</p></div>
+            <div class="ava">J</div>
+          </div>
+          <p class="lab">Mi actividad</p>
+          <div class="earn">
+            <span class="earn-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v12H3z"/><path d="M16 12h3"/><path d="M3 7l3-3h10l3 3"/></svg></span>
+            <div><p class="earn-l">Ganado este mes</p><p class="earn-v"><span class="cur">$</span><span class="amt">2.200</span></p></div>
+            <span class="earn-tr">+$320<br>esta semana</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-6"/></svg></span><div class="stat-v">12</div><div class="stat-l">Turnos</div></div>
+            <div class="stat"><span class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="stat-v">100 h</div><div class="stat-l">Trabajadas</div></div>
+          </div>
+          <p class="lab">Tu turno de hoy</p>
+          <div class="today">
+            <p class="t-role">Cocinero/a</p>
+            <p class="t-place">Bodegón San Telmo · Palermo</p>
+            <div class="t-chips">
+              <span class="tchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Hoy</span>
+              <span class="tchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>20:00</span>
+            </div>
+            <div class="t-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Marcar entrada</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4h6v3H9z"/></svg>Matches</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Mapa</a>
+          <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Perfil</a>
+        </nav>
+      </div></div>
+    </div>
+
+  </div>
+</div>
