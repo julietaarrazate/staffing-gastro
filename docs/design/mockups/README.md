@@ -25,6 +25,7 @@ pantalla por pantalla.
 | `03-app-claro-oscuro.html` | La app con modo claro/oscuro conmutable: inicio, buscar por categoría, detalle, perfil, panel del comercio, **ranking de perfiles con puntaje**, mapa. |
 | `04-landing.html` | Landing **original** (centrada, serif) recoloreada con los acentos nuevos. |
 | `05-onboarding-ubicacion.html` | Onboarding de comercio y trabajador + pantalla de geolocalización (claro por defecto). |
+| `06-mails.html` | Los 4 mails transaccionales recoloreados (identidad pasa de petróleo a azul celeste). |
 
 ## Pendiente / en discusión
 
