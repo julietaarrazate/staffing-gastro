@@ -23,7 +23,8 @@ pantalla por pantalla.
 | `01-identidad.html` | Tablero de identidad: paleta, tipografía, elementos. |
 | `02-tres-direcciones.html` | Las 3 direcciones comparadas (Contraste / Aire / Cálido). Se eligió **Contraste**. |
 | `03-app-claro-oscuro.html` | La app con modo claro/oscuro conmutable: inicio, buscar por categoría, detalle, perfil, panel del comercio, **ranking de perfiles con puntaje**, mapa. |
-| `04-landing.html` | Landing rediseñada. |
+| `04-landing.html` | Landing **original** (centrada, serif) recoloreada con los acentos nuevos. |
+| `05-onboarding-ubicacion.html` | Onboarding de comercio y trabajador + pantalla de geolocalización (claro por defecto). |
 
 ## Pendiente / en discusión
 
