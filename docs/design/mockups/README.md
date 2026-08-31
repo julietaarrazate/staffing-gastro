@@ -26,12 +26,19 @@ pantalla por pantalla.
 | `01-identidad.html` | Tablero de identidad: paleta, tipografía, elementos. |
 | `02-tres-direcciones.html` | Las 3 direcciones comparadas (Contraste / Aire / Cálido). Se eligió **Contraste**. |
 | `03-app-claro-oscuro.html` | La app con modo claro/oscuro conmutable: inicio, buscar por categoría, detalle, perfil, panel del comercio, **ranking de perfiles con puntaje**, mapa. |
-| `04-landing.html` | Landing en **híbrido**, con el stack de tarjetas que rota al scrollear, reveals y micro-parallax. |
+| `04-landing.html` | Landing **original sin cambios de diseño**, sólo con los acentos de color nuevos (decisión de Julieta). |
 | `05-onboarding-ubicacion.html` | Onboarding de comercio y trabajador + pantalla de geolocalización (claro por defecto). |
 | `06-mails.html` | Los 4 mails en **híbrido**: bloque de foco oscuro antes del CTA, naranjas corregidos, identidad en azul celeste. |
 | `07-comparativo.html` | La misma pantalla en Original / Contraste / **Híbrido** — se eligió Híbrido. |
 | `08-auditoria-contraste.html` | Auditoría WCAG AA de la paleta híbrida: 15/17 pasan, 2 correcciones al naranja. |
 | `09-hibrido-app.html` | **La app completa en híbrido** (7 pantallas) con los naranjas ya corregidos. Referencia principal. |
+
+## Regla de contenido
+
+- **El monto que se publica es el de la jornada completa, no por hora.** El
+  código real muestra `pay_amount` bajo el label "Pago", sin `/h`. Las maquetas
+  usan montos de jornada (ej. $45.000 por un turno de 8 hs) y acompañan con la
+  duración al lado.
 
 ## Pendiente / en discusión
 
