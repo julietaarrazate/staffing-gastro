@@ -8,10 +8,13 @@ pantalla por pantalla.
 
 ## Dirección aprobada
 
-- **Estilo:** "Contraste" — tarjetas oscuras (`#191410`) sobre crema, el naranja
-  como único acento de acción, con modo claro (tarjetas blancas) equivalente.
-- **Tipografía:** display `Bricolage Grotesque` (reemplaza a Fraunces), cuerpo
-  `Hanken Grotesk`, datos/etiquetas en `Space Mono`.
+- **Estilo: "Híbrido"** (elegido tras el comparativo `07`) — base cálida del
+  diseño original, con contraste oscuro (`#191410`) **solo donde importa el
+  foco** (el módulo de ganancias), y los acentos nuevos en chips y stats.
+  Conserva Fraunces como display.
+- **Tipografía:** se **conserva Fraunces** como display (activo de marca), con
+  `Space Mono` para datos y etiquetas. (`Bricolage Grotesque` se probó en la
+  dirección "Contraste" y quedó descartada con el híbrido.)
 - **Acentos de identidad:** naranja (acción), **manteca** (datos), **celeste**
   (confianza/verificación).
 - **Logo real** (la mano al oído), wordmark `oído` en minúscula. Sin el "damero".
@@ -26,9 +29,16 @@ pantalla por pantalla.
 | `04-landing.html` | Landing **original** (centrada, serif) recoloreada con los acentos nuevos. |
 | `05-onboarding-ubicacion.html` | Onboarding de comercio y trabajador + pantalla de geolocalización (claro por defecto). |
 | `06-mails.html` | Los 4 mails transaccionales recoloreados (identidad pasa de petróleo a azul celeste). |
+| `07-comparativo.html` | La misma pantalla en Original / Contraste / **Híbrido** — se eligió Híbrido. |
+| `08-auditoria-contraste.html` | Auditoría WCAG AA de la paleta híbrida: 15/17 pasan, 2 correcciones al naranja. |
 
 ## Pendiente / en discusión
 
+- **Correcciones de contraste obligatorias** (ver `08`): el naranja nuevo
+  `#F94E1B` falla como texto (3.25) y con blanco encima (3.42). Se conserva
+  para superficies y se agregan `--primary-text: #D63606` y
+  `--primary-cta: #DB3706`. Manteca, celeste y el módulo oscuro pasan todos.
+- Expandir el híbrido al resto de las pantallas.
 - Métricas del ranking (Puntualidad / Trabajo / Presentación): confirmar el set.
-- Modo por defecto (claro u oscuro) al abrir la app.
-- Bajar la paleta y tipografías a `globals.css` una vez cerrado el diseño.
+- Modo claro por defecto (decidido).
+- Bajar la paleta a `globals.css` una vez cerrado el diseño.
