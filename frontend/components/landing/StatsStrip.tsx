@@ -61,9 +61,16 @@ export default function StatsStrip() {
   return (
     <section className="no-select mt-20 sm:mt-24">
       <div className="grid grid-cols-1 gap-8 rounded-[var(--radius-card)] bg-white p-8 shadow-[var(--shadow-soft)] ring-1 ring-line sm:grid-cols-2 sm:gap-6 sm:p-10">
-        {STATS.map((s) => (
+        {STATS.map((s, i) => (
           <div key={s.label} className="text-center">
-            <p className="text-4xl font-extrabold tracking-tight text-primary-text tabular-nums sm:text-5xl">
+            {/* El segundo dato va en cielo-text, no en naranja: son dos hechos
+                distintos (cobertura y velocidad) y pintarlos iguales los hacía
+                leer como uno solo. El naranja queda para el primero. */}
+            <p
+              className={`text-4xl font-extrabold tracking-tight tabular-nums sm:text-5xl ${
+                i === 0 ? "text-primary-text" : "text-cielo-text"
+              }`}
+            >
               <Counter value={s.value} suffix={s.suffix} />
             </p>
             <p className="mx-auto mt-2 max-w-[22ch] text-sm font-medium text-ink/60">{s.label}</p>

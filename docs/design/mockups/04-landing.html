@@ -1,0 +1,402 @@
+<title>Oído · Landing</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap"><style>  :root{
+    /* tokens REALES del sistema (globals.css) */
+    --background:#fff8f0; --paper:#fbf2e6; --surface:#f5ecdd; --line:#ebe2d4;
+    --ink:#1f1f1c; --primary:#f97316; --primary-strong:#e65a00; --primary-text:#b23c08;
+    --structure:#4a3428; --trust:#1e4a47; --success-text:#16823e;
+    --radius-card:1.5rem; --radius-btn:1.25rem;
+    --shadow-soft:0 8px 24px rgba(17,17,17,.06); --shadow-float:0 16px 40px rgba(17,17,17,.12);
+    --motion-ease:cubic-bezier(.2,0,0,1);
+    /* ACENTOS NUEVOS (lo unico que se suma) */
+    --manteca:#F1E7A0; --manteca-tint:#FBF3C9; --manteca-text:#6A5A12;
+    --cielo:#CFE4FF; --cielo-tint:#E8F1FF; --cielo-text:#1C4B87;
+    --disp:'Fraunces',Georgia,serif; --sans:'Inter',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--background);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  img{max-width:100%;display:block}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  .no-select{user-select:none}
+  .font-display{font-family:var(--disp);font-weight:600;letter-spacing:-.01em}
+
+  .rv{opacity:0;transform:translateY(24px);transition:opacity .5s var(--motion-ease),transform .5s var(--motion-ease)}
+  .rv.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+
+  /* NAV */
+  .nav{position:sticky;top:0;z-index:60;background:rgba(255,248,240,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand .logo{width:27px;height:27px;color:var(--primary)}
+  .brand .wm{font-family:var(--disp);font-weight:600;font-size:22px}
+  .nav-r{display:flex;align-items:center;gap:14px}
+  .nav-r .link{font-size:14px;font-weight:600;color:rgba(31,31,28,.6)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:15px;border-radius:var(--radius-btn);padding:14px 28px;transition:transform .18s var(--motion-ease),filter .18s var(--motion-ease)}
+  .btn:active{transform:scale(.95)}
+  .btn.primary{background:var(--primary);color:var(--ink);box-shadow:0 8px 20px rgba(249,115,22,.28)}
+  .btn.primary:hover{filter:brightness(1.04)}
+  .btn.plain{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  .btn.plain:hover{background:var(--surface)}
+
+  /* HERO (bg-paper) */
+  .hero-sec{background:var(--paper)}
+  .hero{padding:56px 0 0;text-align:center}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:7px 15px;font-size:12px;font-weight:700;color:rgba(31,31,28,.6);box-shadow:inset 0 0 0 1px var(--line)}
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--manteca)}   /* acento */
+  .hero h1{font-family:var(--disp);font-weight:600;font-size:clamp(46px,7.6vw,80px);line-height:1.05;letter-spacing:-.02em;margin:24px auto 0;max-width:16ch}
+  .hero h1 .ya{color:var(--primary-text)}
+  .hero .lede{font-size:18px;color:rgba(31,31,28,.6);max-width:36ch;margin:20px auto 0}
+  .hero .tagline{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(31,31,28,.4);margin-top:12px}
+  .hero .ctas{display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap}
+
+  /* SCROLL SHOWCASE */
+  .showcase{height:150vh;position:relative;margin-top:16px}
+  .stick{position:sticky;top:12vh;height:78vh;display:flex;align-items:flex-end;justify-content:center}
+  .device{position:relative;width:300px;height:530px;background:#0f0a06;border-radius:38px 38px 0 0;padding:10px 10px 0;box-shadow:0 -6px 60px rgba(0,0,0,.22)}
+  .dscreen{position:relative;width:100%;height:100%;background:var(--background);border-radius:29px 29px 0 0;overflow:hidden}
+  .stack{position:absolute;inset:14px}
+  .oc{position:absolute;inset:0;background:#fff;border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-float);box-shadow:0 16px 40px rgba(17,17,17,.12),inset 0 0 0 1px var(--line);will-change:transform,opacity;transition:transform .55s var(--motion-ease),opacity .55s var(--motion-ease)}
+  .oc .banner{height:190px;position:relative;display:flex;align-items:center;justify-content:center}
+  .oc .banner.g1{background:linear-gradient(135deg,var(--primary),var(--primary-strong))}
+  .oc .banner.g2{background:linear-gradient(135deg,#D97706,#78350F)}
+  .oc .banner.g3{background:linear-gradient(135deg,#F59E0B,#92400E)}
+  .oc .banner svg{width:76px;height:76px;color:rgba(255,255,255,.9)}
+  .oc .banner .ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,.06) 55%,rgba(0,0,0,.18))}
+  .oc .bizrow{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+  .oc .bpill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.95);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700}
+  .oc .urg{background:rgba(255,255,255,.95);color:#d73d3d;font-size:11px;font-weight:800;border-radius:999px;padding:5px 10px}
+  .oc .cap{position:absolute;left:16px;bottom:14px;z-index:2}
+  .oc .cap h3{font-size:27px;font-weight:800;color:#fff;margin:0;line-height:1.1;letter-spacing:-.01em}
+  .oc .cap .city{font-size:13px;color:rgba(255,255,255,.9);display:flex;align-items:center;gap:5px;margin-top:3px}
+  .oc .bd{padding:16px 20px 18px}
+  .oc .pk{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:rgba(31,31,28,.4);margin:0 0 2px}
+  .oc .pv{display:flex;align-items:baseline;gap:4px;color:var(--primary-text);font-weight:800;margin:0}
+  .oc .pv .cur{font-size:17px}.oc .pv .amt{font-size:39px;line-height:1;letter-spacing:-.02em}
+  .oc .extras{font-size:12px;font-weight:600;color:rgba(31,31,28,.4);margin-top:2px}
+  .oc .chips{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+  .oc .chip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--manteca-tint);color:var(--manteca-text)}  /* acento */
+  .oc .chip.c{background:var(--cielo-tint);color:var(--cielo-text)}                                                                        /* acento */
+  .dots{display:flex;gap:6px;justify-content:center;padding:14px 0 0}
+  .dots i{width:20px;height:4px;border-radius:999px;background:var(--line);transition:all .4s var(--motion-ease)}
+  .dots i.on{background:var(--primary);width:30px}
+  @media(max-width:640px){.showcase{height:128vh}.stick{top:9vh;height:82vh}.device{width:264px;height:472px}}
+
+  /* MARQUEE */
+  .mq-sec{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(255,255,255,.7);padding:16px 0}
+  .mq-mask{overflow:hidden;padding:4px 0;-webkit-mask-image:linear-gradient(to right,transparent,black 10%,black 90%,transparent);mask-image:linear-gradient(to right,transparent,black 10%,black 90%,transparent)}
+  .mq{display:flex;width:max-content;gap:12px;animation:mq 44s linear infinite}
+  @keyframes mq{to{transform:translateX(-50%)}}
+  .mq span{flex:none;border-radius:999px;background:#fff;padding:8px 16px;font-size:14px;font-weight:700;color:rgba(31,31,28,.6);box-shadow:inset 0 0 0 1px var(--line);white-space:nowrap}
+  .mq span.m{background:var(--manteca-tint);color:var(--manteca-text);box-shadow:none}   /* acento */
+  .mq span.c{background:var(--cielo-tint);color:var(--cielo-text);box-shadow:none}       /* acento */
+  @media(prefers-reduced-motion:reduce){.mq{animation:none}}
+
+  /* STATS */
+  .stats{margin-top:80px;background:#fff;border-radius:var(--radius-card);padding:40px;box-shadow:var(--shadow-soft),inset 0 0 0 1px var(--line);display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .st{text-align:center}
+  .st .n{font-size:clamp(36px,5vw,48px);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .st:nth-child(1) .n{color:var(--primary-text)}
+  .st:nth-child(2) .n{color:var(--cielo-text)}                                            /* acento */
+  .st .l{margin:8px auto 0;max-width:22ch;font-size:14px;font-weight:500;color:rgba(31,31,28,.6)}
+  @media(max-width:640px){.stats{grid-template-columns:1fr;gap:32px}}
+
+  /* HOW IT WORKS */
+  .how{margin-top:80px}
+  .how h2{text-align:center;font-family:var(--disp);font-weight:600;font-size:clamp(24px,3.2vw,30px);letter-spacing:-.01em;margin:0}
+  .track{position:relative;max-width:576px;margin:40px auto 0}
+  .rail{position:absolute;top:8px;bottom:8px;left:24px;width:3px;border-radius:999px;background:var(--line)}
+  .rail-fill{position:absolute;top:8px;bottom:8px;left:24px;width:3px;border-radius:999px;background:var(--primary);transform-origin:top;transform:scaleY(0)}
+  .steps{display:flex;flex-direction:column;gap:40px}
+  .stp{position:relative;display:flex;gap:20px}
+  .stp .ic{position:relative;z-index:10;width:48px;height:48px;flex:none;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:var(--shadow-soft),inset 0 0 0 1px var(--line)}
+  .stp .ic svg{width:22px;height:22px}
+  .stp:nth-child(1) .ic{color:var(--manteca-text);background:var(--manteca-tint)}         /* acento */
+  .stp:nth-child(2) .ic{color:var(--cielo-text);background:var(--cielo-tint)}             /* acento */
+  .stp:nth-child(3) .ic{color:var(--primary-text)}
+  .stp .txt{padding-top:6px}
+  .stp .k{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:rgba(31,31,28,.4);margin:0}
+  .stp h3{font-size:16px;font-weight:700;margin:4px 0 0}
+  .stp p{font-size:14px;color:rgba(31,31,28,.6);margin:6px 0 0}
+
+  /* BENTO FEATURES */
+  .bento-sec{margin-top:80px}
+  .bento-sec h2{text-align:center;font-family:var(--disp);font-weight:600;font-size:clamp(24px,3.2vw,30px);letter-spacing:-.01em;margin:0}
+  .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+  .px{will-change:transform}
+  .bcard{height:100%;border-radius:var(--radius-card);background:#fff;padding:24px;box-shadow:var(--shadow-soft),inset 0 0 0 1px var(--line);transition:transform .2s var(--motion-ease),box-shadow .2s var(--motion-ease)}
+  .bcard:hover{transform:translateY(-4px);box-shadow:var(--shadow-float),inset 0 0 0 1px var(--line)}
+  .bcard .ic{width:48px;height:48px;border-radius:16px;background:var(--surface);color:var(--ink);display:flex;align-items:center;justify-content:center}
+  .bcard .ic svg{width:22px;height:22px}
+  .bcard h3{font-size:16px;font-weight:700;margin:16px 0 0}
+  .bcard p{font-size:14px;color:rgba(31,31,28,.6);margin:8px 0 0}
+  /* acentos rotando en los iconos (antes: todos bg-surface) */
+  .px:nth-child(2) .bcard .ic{background:var(--manteca-tint);color:var(--manteca-text)}
+  .px:nth-child(3) .bcard .ic{background:var(--cielo-tint);color:var(--cielo-text)}
+  .px:nth-child(5) .bcard .ic{background:var(--manteca-tint);color:var(--manteca-text)}
+  .px:nth-child(6) .bcard .ic{background:var(--cielo-tint);color:var(--cielo-text)}
+  .hero-card{grid-column:span 2;display:flex;flex-direction:column;justify-content:space-between;height:100%;border-radius:var(--radius-card);background:var(--primary);color:var(--ink);padding:24px;box-shadow:0 8px 20px rgba(249,115,22,.28);transition:transform .2s var(--motion-ease)}
+  .hero-card:hover{transform:translateY(-4px)}
+  .hero-card .ic{width:48px;height:48px;border-radius:16px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center}
+  .hero-card .ic svg{width:22px;height:22px}
+  .hero-card h3{font-size:20px;font-weight:700;margin:16px 0 0}
+  .hero-card p{margin:8px 0 0;max-width:28rem;color:rgba(255,255,255,.85)}
+  @media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.bento{grid-template-columns:1fr}.hero-card{grid-column:span 1}}
+
+  /* PRICING */
+  .pricing{margin-top:80px;text-align:center}
+  .pricing h2{font-family:var(--disp);font-weight:600;font-size:clamp(24px,3.2vw,30px);letter-spacing:-.01em;margin:0}
+  .pricing .sub{margin:12px auto 0;max-width:46ch;font-size:15px;color:rgba(31,31,28,.6)}
+  .pricing .sub b{color:rgba(31,31,28,.8)}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px;text-align:left}
+  .plan{display:flex;flex-direction:column;height:100%;border-radius:var(--radius-card);background:#fff;padding:24px;box-shadow:var(--shadow-soft);transition:transform .2s var(--motion-ease),box-shadow .2s var(--motion-ease)}
+  .plan:hover{transform:translateY(-4px);box-shadow:var(--shadow-float)}
+  .plan.rec{box-shadow:var(--shadow-float),inset 0 0 0 2px var(--primary)}
+  .plan .tagr{align-self:flex-start;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink);background:var(--manteca);border-radius:999px;padding:4px 10px;margin-bottom:12px}  /* acento */
+  .plan h3{font-size:16px;font-weight:700;margin:0}
+  .plan .price{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:10px 0 0}
+  .plan .price span{font-size:14px;font-weight:500;color:rgba(31,31,28,.5)}
+  .plan ul{list-style:none;padding:0;margin:16px 0 24px;display:flex;flex-direction:column;gap:10px}
+  .plan li{display:flex;gap:9px;font-size:14px;color:rgba(31,31,28,.6)}
+  .plan li svg{width:16px;height:16px;color:var(--success-text);flex:none;margin-top:3px}
+  .plan .btn{margin-top:auto;width:100%}
+  @media(max-width:900px){.plans{grid-template-columns:1fr}}
+
+  /* CTA TRABAJADORES */
+  .wcta{margin-top:80px;border-radius:var(--radius-card);background:#fff;padding:56px 24px;text-align:center;box-shadow:var(--shadow-soft),inset 0 0 0 1px var(--line)}
+  .wcta .ic{margin:0 auto;width:48px;height:48px;border-radius:16px;background:var(--cielo);color:var(--cielo-text);display:flex;align-items:center;justify-content:center}  /* acento: era espresso */
+  .wcta .ic svg{width:22px;height:22px}
+  .wcta h2{font-family:var(--disp);font-weight:600;font-size:clamp(24px,3.2vw,30px);letter-spacing:-.01em;margin:20px 0 0}
+  .wcta p{margin:8px auto 0;max-width:28rem;color:rgba(31,31,28,.6)}
+  .wcta .go{margin-top:28px}
+
+  /* FOOTER */
+  .foot{margin-top:80px;background:var(--ink);color:#fff;padding:40px 0}
+  .foot-in{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .foot .brand .wm{color:#fff}.foot .brand .logo{color:var(--primary)}
+  .foot-links{display:flex;gap:22px;font-size:14px;color:rgba(255,255,255,.6);flex-wrap:wrap}
+  .foot-links a:hover{color:#fff}
+</style><nav class="nav"><div class="wrap nav-in">
+  <a class="brand"><svg class="logo" viewBox="21.21 15.02 75.55 86.46"><path d="M61.94 16.12C63.14 16.16 66.97 16.13 69.06 16.47C71.16 16.82 72.59 17.34 74.53 18.2C76.47 19.06 79.41 20.76 80.72 21.65C82.03 22.55 82.19 23.15 82.37 23.6C82.55 24.04 82.12 24.23 81.8 24.32C81.47 24.4 81.31 24.57 80.43 24.1C79.56 23.63 78.27 22.35 76.55 21.51C74.82 20.67 72.57 19.59 70.07 19.06C67.58 18.54 64.36 18.2 61.58 18.35C58.8 18.49 55.66 19.26 53.38 19.93C51.1 20.6 49.4 21.53 47.91 22.37C46.43 23.21 45.18 24.56 44.46 24.96C43.74 25.37 43.85 25 43.6 24.82C43.35 24.64 43 24.15 42.95 23.88C42.9 23.62 42.22 24.06 43.31 23.24C44.4 22.41 47.22 20.05 49.5 18.92C51.77 17.79 54.92 16.93 56.98 16.47C59.04 16.02 61.04 16.25 61.87 16.19C62.7 16.13 60.74 16.07 61.94 16.12ZM36.33 25.9C36.59 25.9 37.31 25.66 37.84 25.97C38.37 26.28 39.17 27.28 39.5 27.77C39.82 28.26 39.76 27.67 39.78 28.92C39.81 30.17 39.93 31.92 39.64 35.25C39.35 38.59 38.32 46.24 38.06 48.92C37.79 51.61 37.95 50.88 38.06 51.37C38.17 51.86 38.42 51.89 38.71 51.87C38.99 51.85 39.29 54.59 39.78 51.22C40.28 47.85 41.22 35.2 41.65 31.65C42.09 28.11 41.93 30.49 42.37 29.93C42.82 29.36 43.68 28.53 44.32 28.27C44.95 28.02 45.67 28.12 46.19 28.42C46.7 28.72 47.09 29.17 47.41 30.07C47.73 30.97 48.13 30.84 48.13 33.81C48.13 36.79 47.47 45.41 47.41 47.91C47.35 50.42 47.48 48.59 47.77 48.85C48.06 49.11 48.88 45.98 49.14 49.5C49.39 53.01 49.14 65.66 49.28 69.93C49.42 74.2 49.54 73.36 50 75.11C50.46 76.86 51.09 78.88 52.01 80.43C52.94 81.98 54.26 83.47 55.54 84.39C56.82 85.31 58.51 85.68 59.71 85.97C60.91 86.26 61.34 86.31 62.73 86.12C64.12 85.92 66.52 84.92 68.06 84.82C69.59 84.72 70.95 85 71.94 85.54C72.94 86.08 73.71 87.06 74.03 88.06C74.35 89.05 74.74 90.78 73.88 91.51C73.03 92.24 70.14 91.87 68.92 92.45C67.7 93.02 66.97 94.3 66.55 94.96C66.13 95.62 66.32 96.13 66.4 96.4C66.49 96.68 66.58 96.99 67.05 96.62C67.52 96.25 68.42 94.72 69.21 94.17C70 93.62 71 93.32 71.8 93.31C72.6 93.3 73.68 93.68 74.03 94.1C74.38 94.52 74.42 95.14 73.88 95.83C73.35 96.51 72.63 97.52 70.79 98.2C68.96 98.88 65.73 99.57 62.88 99.93C60.02 100.29 56.09 100.38 53.67 100.36C51.25 100.34 50.26 100.14 48.35 99.78C46.43 99.42 44.27 99.04 42.16 98.2C40.05 97.36 37.57 96.08 35.68 94.75C33.8 93.42 32.17 91.74 30.86 90.22C29.56 88.69 28.92 87.84 27.84 85.61C26.76 83.38 25.28 80.24 24.39 76.83C23.5 73.43 22.83 68.75 22.52 65.18C22.21 61.61 22.37 58.27 22.52 55.4C22.66 52.52 22.97 50.74 23.38 47.91C23.79 45.08 24.53 40.46 24.96 38.42C25.4 36.38 25.46 36.73 25.97 35.68C26.49 34.64 27.33 32.79 28.06 32.16C28.79 31.52 29.87 31.79 30.36 31.87C30.85 31.95 30.9 32.24 31.01 32.66C31.12 33.08 31.15 33.26 31.01 34.39C30.86 35.52 30.36 36.71 30.14 39.42C29.93 42.13 29.72 48.69 29.71 50.65C29.7 52.6 29.9 51.15 30.07 51.15C30.24 51.15 30.25 54.06 30.72 50.65C31.19 47.23 32.35 34.44 32.88 30.65C33.41 26.86 33.32 28.69 33.88 27.91C34.45 27.13 35.85 26.31 36.26 25.97C36.67 25.64 36.07 25.9 36.33 25.9ZM62.95 27.19C64.29 27.24 68 26.89 70.94 27.55C73.87 28.21 78.51 30.26 80.58 31.15C82.64 32.04 82.22 31.98 83.31 32.88C84.4 33.78 86.08 35.43 87.12 36.55C88.17 37.66 88.73 38.25 89.57 39.57C90.41 40.89 91.29 41.82 92.16 44.46C93.02 47.1 94.17 51.89 94.75 55.4C95.32 58.9 95.47 59.98 95.61 65.47C95.76 70.96 95.73 83.81 95.61 88.35C95.49 92.88 95.18 91.68 94.89 92.66C94.6 93.65 94.3 93.87 93.88 94.24C93.47 94.62 92.81 95.06 92.37 94.89C91.94 94.72 91.43 96.53 91.29 93.24C91.16 89.94 91.56 78.8 91.58 75.11C91.61 71.41 91.59 71.81 91.44 71.08C91.28 70.35 90.86 70.7 90.65 70.72C90.43 70.74 90.32 67.01 90.14 71.22C89.96 75.43 89.81 91.46 89.57 95.97C89.33 100.48 89.15 97.61 88.71 98.27C88.26 98.93 87.47 99.68 86.91 99.93C86.34 100.18 85.84 100.08 85.32 99.78C84.81 99.48 84.11 98.79 83.81 98.13C83.51 97.47 83.38 98.15 83.53 95.83C83.67 93.5 84.48 88.32 84.68 84.17C84.87 80.02 84.81 73.2 84.68 70.94C84.54 68.67 84.12 70.48 83.88 70.58C83.65 70.67 83.39 69.17 83.24 71.51C83.08 73.85 83.17 80.67 82.95 84.6C82.73 88.54 82.28 93.05 81.94 95.11C81.61 97.17 81.38 96.53 80.94 96.98C80.49 97.42 79.8 97.69 79.28 97.77C78.76 97.85 78.29 97.78 77.84 97.48C77.4 97.18 76.97 96.94 76.62 95.97C76.27 95 75.88 96.79 75.76 91.65C75.64 86.52 75.44 70.82 75.9 65.18C76.35 59.54 78.06 60.38 78.49 57.84C78.92 55.3 78.92 52.47 78.49 49.93C78.06 47.39 77.06 44.57 75.9 42.59C74.74 40.61 73.23 39.24 71.51 38.06C69.8 36.87 68.13 35.83 65.61 35.47C63.09 35.11 58.26 35.98 56.4 35.9C54.54 35.82 54.9 35.41 54.46 34.96C54.02 34.52 53.81 33.76 53.74 33.24C53.67 32.71 53.47 32.7 54.03 31.8C54.59 30.9 55.65 28.6 57.12 27.84C58.6 27.09 61.91 27.37 62.88 27.27C63.85 27.16 61.61 27.15 62.95 27.19ZM60.36 46.04C60.82 46.02 62.1 45.74 63.02 45.97C63.94 46.2 65.1 46.82 65.9 47.41C66.7 48 67.3 48.53 67.84 49.5C68.38 50.47 68.76 52.43 69.14 53.24C69.51 54.04 69.56 54.11 70.07 54.32C70.59 54.52 71.65 54.56 72.23 54.46C72.81 54.36 73.23 53.8 73.53 53.74C73.82 53.68 73.85 52.63 74.03 54.1C74.21 55.58 74.6 60.7 74.6 62.59C74.6 64.48 74.17 61.89 74.03 65.47C73.88 69.04 74.45 81.14 73.74 84.03C73.03 86.92 70.8 83.01 69.78 82.81C68.76 82.6 69.21 82.59 67.63 82.81C66.04 83.02 62.18 84.12 60.29 84.1C58.39 84.08 57.33 83.32 56.26 82.66C55.19 82 54.24 80.67 53.88 80.14C53.53 79.62 53.49 79.75 54.1 79.5C54.71 79.24 56.59 79.06 57.55 78.63C58.51 78.2 59.09 77.07 59.86 76.91C60.62 76.74 61.15 77.55 62.16 77.63C63.17 77.7 64.88 77.66 65.9 77.34C66.92 77.01 67.59 76.44 68.27 75.68C68.96 74.93 69.71 73.6 70 72.81C70.29 72.01 70.16 71.33 70 70.94C69.84 70.54 69.35 70.43 69.06 70.43C68.78 70.43 68.48 70.54 68.27 70.94C68.07 71.33 68.21 72.12 67.84 72.81C67.47 73.49 66.58 74.54 66.04 75.04C65.5 75.53 65.16 75.64 64.6 75.76C64.05 75.88 63.26 75.88 62.73 75.76C62.21 75.64 61.95 75.62 61.44 75.04C60.92 74.45 59.96 73.42 59.64 72.23C59.32 71.04 59.66 69.11 59.5 67.91C59.33 66.71 59.47 66.57 58.63 65.04C57.79 63.5 55.28 60.22 54.46 58.71C53.65 57.19 53.74 57.34 53.74 55.97C53.74 54.6 53.94 51.91 54.46 50.5C54.98 49.1 55.86 48.29 56.83 47.55C57.81 46.82 59.7 46.37 60.29 46.12C60.88 45.86 59.9 46.07 60.36 46.04ZM60.72 50.72C60.37 50.92 59.2 51.24 58.78 51.94C58.36 52.65 58.14 54.28 58.2 54.96C58.26 55.65 58.85 56.33 59.14 56.04C59.42 55.76 59.62 53.81 59.93 53.24C60.24 52.66 60.61 52.67 61.01 52.59C61.4 52.51 61.91 52.55 62.3 52.73C62.7 52.91 63.03 53.18 63.38 53.67C63.73 54.16 64.46 55.13 64.39 55.68C64.32 56.24 63.33 56.28 62.95 56.98C62.57 57.67 62.11 58.73 62.09 59.86C62.06 60.98 62.58 62.99 62.81 63.74C63.03 64.5 63.06 64.5 63.45 64.39C63.85 64.28 64.75 63.31 65.18 63.09C65.61 62.88 65.67 62.91 66.04 63.09C66.41 63.27 67 63.65 67.41 64.17C67.82 64.7 68.18 66.04 68.49 66.26C68.8 66.47 69.15 65.84 69.28 65.47C69.41 65.1 69.62 64.8 69.28 64.03C68.94 63.26 67.6 61.58 67.27 60.86C66.93 60.14 66.86 60.29 67.27 59.71C67.67 59.14 69.28 58.13 69.71 57.41C70.14 56.69 69.94 55.77 69.86 55.4C69.77 55.02 69.51 55.02 69.21 55.18C68.91 55.34 68.47 56.12 68.06 56.33C67.65 56.55 67.48 57.29 66.76 56.47C66.04 55.66 64.72 52.4 63.74 51.44C62.76 50.48 61.37 50.84 60.86 50.72C60.36 50.6 61.07 50.52 60.72 50.72Z" fill="currentColor" fill-rule="evenodd"/></svg><span class="wm">oído</span></a>
+  <div class="nav-r"><a class="link">Ingresá</a><a class="btn primary" style="padding:10px 18px;font-size:14px">Necesito personal</a></div>
+</div></nav>
+
+<section class="hero-sec"><div class="wrap hero">
+  <div class="no-select">
+    <span class="badge rv"><span class="dot"></span>Staffing gastronómico en Argentina</span>
+    <h1 class="rv">Personal gastronómico, <span class="ya">ya</span>.</h1>
+    <p class="lede rv">Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.</p>
+    <p class="tagline rv">Publicá. Elegí. Listo.</p>
+    <div class="ctas rv"><a class="btn primary">Necesito personal</a><a class="btn plain">Quiero trabajar</a></div>
+  </div>
+
+  <div class="showcase" id="showcase"><div class="stick"><div>
+    <div class="device"><div class="dscreen"><div class="stack" id="stack">
+      <article class="oc" data-i="0">
+        <div class="banner g1">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22h24M14 22l-1-8h18l-1 8M17 14a7 7 0 0 1 14 0"/><path d="M18 30h12v10H18z"/></svg>
+          <div class="ov"></div>
+          <div class="bizrow"><span class="bpill">Bodegón San Telmo</span><span class="urg">Urgente</span></div>
+          <div class="cap"><h3>Mozo/a</h3><span class="city">San Telmo · 1,2 km</span></div>
+        </div>
+        <div class="bd">
+          <p class="pk">Pago</p>
+          <p class="pv"><span class="cur">ARS</span><span class="amt">45.000</span></p>
+          <p class="extras">+ propinas · Turno noche · 8 hs</p>
+          <div class="chips"><span class="chip">Hoy 20:00</span><span class="chip c">Ambo negro</span></div>
+        </div>
+      </article>
+
+      <article class="oc" data-i="1">
+        <div class="banner g2">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10h20l-2 12H16z"/><path d="M18 22v16M30 22v16M14 38h20"/></svg>
+          <div class="ov"></div>
+          <div class="bizrow"><span class="bpill">Café Rivas</span></div>
+          <div class="cap"><h3>Bartender</h3><span class="city">San Telmo · 2,0 km</span></div>
+        </div>
+        <div class="bd">
+          <p class="pk">Pago</p>
+          <p class="pv"><span class="cur">ARS</span><span class="amt">40.000</span></p>
+          <p class="extras">+ propinas · Turno tarde · 6 hs</p>
+          <div class="chips"><span class="chip">Sábado</span><span class="chip c">Con experiencia</span></div>
+        </div>
+      </article>
+
+      <article class="oc" data-i="2">
+        <div class="banner g3">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18h24v6a10 10 0 0 1-20 0z"/><path d="M32 20h4a4 4 0 0 1 0 8h-4"/><path d="M14 8v4M20 6v6M26 8v4"/></svg>
+          <div class="ov"></div>
+          <div class="bizrow"><span class="bpill">El Preferido</span></div>
+          <div class="cap"><h3>Barista</h3><span class="city">Palermo · 2,4 km</span></div>
+        </div>
+        <div class="bd">
+          <p class="pk">Pago</p>
+          <p class="pv"><span class="cur">ARS</span><span class="amt">32.000</span></p>
+          <p class="extras">+ comida · Turno mañana · 6 hs</p>
+          <div class="chips"><span class="chip">Mañana 08:00</span><span class="chip c">Especialidad</span></div>
+        </div>
+      </article>
+    </div></div></div>
+    <div class="dots" id="dots"><i class="on"></i><i></i><i></i></div>
+  </div></div></div>
+</div></section>
+
+<section class="mq-sec"><div class="mq-mask"><div class="mq">
+  <span>Mozo/a</span><span>Bartender</span><span class="m">Barista</span><span>Runner</span><span>Cocinero/a</span><span class="c">Cajero/a</span><span>Recepcionista</span><span class="m">Personal de eventos</span><span>Ayudante de cocina</span><span>Personal de salón</span><span class="c">Palermo</span><span>San Telmo</span><span>Recoleta</span><span class="m">Belgrano</span><span>Villa Crespo</span><span>Caballito</span>
+  <span>Mozo/a</span><span>Bartender</span><span class="m">Barista</span><span>Runner</span><span>Cocinero/a</span><span class="c">Cajero/a</span><span>Recepcionista</span><span class="m">Personal de eventos</span><span>Ayudante de cocina</span><span>Personal de salón</span><span class="c">Palermo</span><span>San Telmo</span><span>Recoleta</span><span class="m">Belgrano</span><span>Villa Crespo</span><span>Caballito</span>
+</div></div></section>
+
+<main class="wrap">
+  <section class="stats no-select rv">
+    <div class="st"><div class="n" data-count="10">0</div><p class="l">Puestos gastronómicos que cubrimos</p></div>
+    <div class="st"><div class="n" data-count="10" data-suffix=" min">0</div><p class="l">Objetivo: tiempo hasta el primer candidato</p></div>
+  </section>
+
+  <section class="how">
+    <h2 class="rv">Cubrir un turno, en tres pasos</h2>
+    <div class="track" id="track">
+      <div class="rail"></div><div class="rail-fill" id="railfill"></div>
+      <div class="steps">
+        <div class="stp rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg></span>
+          <div class="txt"><p class="k">Paso 1</p><h3>Publicá el turno</h3><p>Cargá la posición, el horario y la paga. Queda visible al instante.</p></div></div>
+        <div class="stp rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
+          <div class="txt"><p class="k">Paso 2</p><h3>Elegí de una lista rankeada</h3><p>Te mostramos candidatos ordenados por cercanía, experiencia y reputación.</p></div></div>
+        <div class="stp rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <div class="txt"><p class="k">Paso 3</p><h3>Listo, turno cubierto</h3><p>El trabajador confirma, hace check-in con ubicación y coordinan por chat.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bento-sec no-select">
+    <h2 class="rv">Todo lo que necesitás para resolver el staffing</h2>
+    <div class="bento">
+      <div class="px" data-px="10" style="grid-column:span 2">
+        <div class="hero-card rv">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.9 5.6L19.5 9l-4.5 3.3L16.5 18 12 14.7 7.5 18l1.5-5.7L4.5 9l5.6-1.4z"/></svg></span>
+          <div><h3>Candidatos en minutos</h3><p>Publicás el turno y en minutos tenés una lista rankeada por cercanía y reputación, lista para asignar.</p></div>
+        </div>
+      </div>
+      <div class="px" data-px="16"><div class="bcard rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><h3>Asistencia con GPS</h3><p>Check-in y check-out geolocalizado para saber que todo salió bien.</p></div></div>
+      <div class="px" data-px="10"><div class="bcard rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.4L3 21l1.1-4A8.38 8.38 0 1 1 21 11.5Z"/></svg></span><h3>Chat integrado</h3><p>Coordiná los detalles de cada turno sin salir de la app.</p></div></div>
+      <div class="px" data-px="18"><div class="bcard rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.6 9.1l5.8-.8z"/></svg></span><h3>Reputación</h3><p>Rating, puntualidad e historial para elegir con confianza.</p></div></div>
+      <div class="px" data-px="12"><div class="bcard rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Doble reserva imposible</h3><p>El sistema bloquea solapamientos: nadie queda comprometido en dos turnos a la vez.</p></div></div>
+      <div class="px" data-px="14"><div class="bcard rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8h16v-8"/><path d="M12 16V3M8 7l4-4 4 4"/></svg></span><h3>Compartí por WhatsApp</h3><p>Mandá un turno abierto por WhatsApp con un link, sin salir de la app.</p></div></div>
+    </div>
+  </section>
+
+  <section class="pricing" id="precios">
+    <h2 class="rv">Precios claros para tu local</h2>
+    <p class="sub rv"><b>Sin comisión por turno</b> y con un plan gratis para arrancar.</p>
+    <div class="plans">
+      <div class="plan rv"><h3>Gratis</h3><div class="price">$0</div>
+        <ul><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Hasta 3 turnos por mes</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Candidatos rankeados</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Chat y asistencia GPS</li></ul>
+        <a class="btn plain">Empezar gratis</a></div>
+      <div class="plan rec rv"><span class="tagr">Recomendado</span><h3>Básico</h3><div class="price">$— <span>/mes</span></div>
+        <ul><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Turnos ilimitados</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Ranking y reputación completos</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Cuentas para todo tu equipo</li></ul>
+        <a class="btn primary">Elegir Básico</a></div>
+      <div class="plan rv"><h3>Pro</h3><div class="price">$— <span>/mes</span></div>
+        <ul><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Todo lo del Básico</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Varios locales</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>Soporte prioritario</li></ul>
+        <a class="btn plain">Hablar con ventas</a></div>
+    </div>
+  </section>
+
+  <section class="wcta no-select rv">
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></span>
+    <h2>¿Trabajás en gastronomía? Elegí tus turnos.</h2>
+    <p>Sumate gratis, mirá los turnos cerca tuyo y postulate al que mejor te quede.</p>
+    <div class="go"><a class="btn primary">Quiero trabajar</a></div>
+  </section>
+</main>
+
+<footer class="foot"><div class="wrap foot-in">
+  <span class="brand no-select"><svg class="logo" viewBox="21.21 15.02 75.55 86.46"><path d="M61.94 16.12C63.14 16.16 66.97 16.13 69.06 16.47C71.16 16.82 72.59 17.34 74.53 18.2C76.47 19.06 79.41 20.76 80.72 21.65C82.03 22.55 82.19 23.15 82.37 23.6C82.55 24.04 82.12 24.23 81.8 24.32C81.47 24.4 81.31 24.57 80.43 24.1C79.56 23.63 78.27 22.35 76.55 21.51C74.82 20.67 72.57 19.59 70.07 19.06C67.58 18.54 64.36 18.2 61.58 18.35C58.8 18.49 55.66 19.26 53.38 19.93C51.1 20.6 49.4 21.53 47.91 22.37C46.43 23.21 45.18 24.56 44.46 24.96C43.74 25.37 43.85 25 43.6 24.82C43.35 24.64 43 24.15 42.95 23.88C42.9 23.62 42.22 24.06 43.31 23.24C44.4 22.41 47.22 20.05 49.5 18.92C51.77 17.79 54.92 16.93 56.98 16.47C59.04 16.02 61.04 16.25 61.87 16.19C62.7 16.13 60.74 16.07 61.94 16.12ZM36.33 25.9C36.59 25.9 37.31 25.66 37.84 25.97C38.37 26.28 39.17 27.28 39.5 27.77C39.82 28.26 39.76 27.67 39.78 28.92C39.81 30.17 39.93 31.92 39.64 35.25C39.35 38.59 38.32 46.24 38.06 48.92C37.79 51.61 37.95 50.88 38.06 51.37C38.17 51.86 38.42 51.89 38.71 51.87C38.99 51.85 39.29 54.59 39.78 51.22C40.28 47.85 41.22 35.2 41.65 31.65C42.09 28.11 41.93 30.49 42.37 29.93C42.82 29.36 43.68 28.53 44.32 28.27C44.95 28.02 45.67 28.12 46.19 28.42C46.7 28.72 47.09 29.17 47.41 30.07C47.73 30.97 48.13 30.84 48.13 33.81C48.13 36.79 47.47 45.41 47.41 47.91C47.35 50.42 47.48 48.59 47.77 48.85C48.06 49.11 48.88 45.98 49.14 49.5C49.39 53.01 49.14 65.66 49.28 69.93C49.42 74.2 49.54 73.36 50 75.11C50.46 76.86 51.09 78.88 52.01 80.43C52.94 81.98 54.26 83.47 55.54 84.39C56.82 85.31 58.51 85.68 59.71 85.97C60.91 86.26 61.34 86.31 62.73 86.12C64.12 85.92 66.52 84.92 68.06 84.82C69.59 84.72 70.95 85 71.94 85.54C72.94 86.08 73.71 87.06 74.03 88.06C74.35 89.05 74.74 90.78 73.88 91.51C73.03 92.24 70.14 91.87 68.92 92.45C67.7 93.02 66.97 94.3 66.55 94.96C66.13 95.62 66.32 96.13 66.4 96.4C66.49 96.68 66.58 96.99 67.05 96.62C67.52 96.25 68.42 94.72 69.21 94.17C70 93.62 71 93.32 71.8 93.31C72.6 93.3 73.68 93.68 74.03 94.1C74.38 94.52 74.42 95.14 73.88 95.83C73.35 96.51 72.63 97.52 70.79 98.2C68.96 98.88 65.73 99.57 62.88 99.93C60.02 100.29 56.09 100.38 53.67 100.36C51.25 100.34 50.26 100.14 48.35 99.78C46.43 99.42 44.27 99.04 42.16 98.2C40.05 97.36 37.57 96.08 35.68 94.75C33.8 93.42 32.17 91.74 30.86 90.22C29.56 88.69 28.92 87.84 27.84 85.61C26.76 83.38 25.28 80.24 24.39 76.83C23.5 73.43 22.83 68.75 22.52 65.18C22.21 61.61 22.37 58.27 22.52 55.4C22.66 52.52 22.97 50.74 23.38 47.91C23.79 45.08 24.53 40.46 24.96 38.42C25.4 36.38 25.46 36.73 25.97 35.68C26.49 34.64 27.33 32.79 28.06 32.16C28.79 31.52 29.87 31.79 30.36 31.87C30.85 31.95 30.9 32.24 31.01 32.66C31.12 33.08 31.15 33.26 31.01 34.39C30.86 35.52 30.36 36.71 30.14 39.42C29.93 42.13 29.72 48.69 29.71 50.65C29.7 52.6 29.9 51.15 30.07 51.15C30.24 51.15 30.25 54.06 30.72 50.65C31.19 47.23 32.35 34.44 32.88 30.65C33.41 26.86 33.32 28.69 33.88 27.91C34.45 27.13 35.85 26.31 36.26 25.97C36.67 25.64 36.07 25.9 36.33 25.9ZM62.95 27.19C64.29 27.24 68 26.89 70.94 27.55C73.87 28.21 78.51 30.26 80.58 31.15C82.64 32.04 82.22 31.98 83.31 32.88C84.4 33.78 86.08 35.43 87.12 36.55C88.17 37.66 88.73 38.25 89.57 39.57C90.41 40.89 91.29 41.82 92.16 44.46C93.02 47.1 94.17 51.89 94.75 55.4C95.32 58.9 95.47 59.98 95.61 65.47C95.76 70.96 95.73 83.81 95.61 88.35C95.49 92.88 95.18 91.68 94.89 92.66C94.6 93.65 94.3 93.87 93.88 94.24C93.47 94.62 92.81 95.06 92.37 94.89C91.94 94.72 91.43 96.53 91.29 93.24C91.16 89.94 91.56 78.8 91.58 75.11C91.61 71.41 91.59 71.81 91.44 71.08C91.28 70.35 90.86 70.7 90.65 70.72C90.43 70.74 90.32 67.01 90.14 71.22C89.96 75.43 89.81 91.46 89.57 95.97C89.33 100.48 89.15 97.61 88.71 98.27C88.26 98.93 87.47 99.68 86.91 99.93C86.34 100.18 85.84 100.08 85.32 99.78C84.81 99.48 84.11 98.79 83.81 98.13C83.51 97.47 83.38 98.15 83.53 95.83C83.67 93.5 84.48 88.32 84.68 84.17C84.87 80.02 84.81 73.2 84.68 70.94C84.54 68.67 84.12 70.48 83.88 70.58C83.65 70.67 83.39 69.17 83.24 71.51C83.08 73.85 83.17 80.67 82.95 84.6C82.73 88.54 82.28 93.05 81.94 95.11C81.61 97.17 81.38 96.53 80.94 96.98C80.49 97.42 79.8 97.69 79.28 97.77C78.76 97.85 78.29 97.78 77.84 97.48C77.4 97.18 76.97 96.94 76.62 95.97C76.27 95 75.88 96.79 75.76 91.65C75.64 86.52 75.44 70.82 75.9 65.18C76.35 59.54 78.06 60.38 78.49 57.84C78.92 55.3 78.92 52.47 78.49 49.93C78.06 47.39 77.06 44.57 75.9 42.59C74.74 40.61 73.23 39.24 71.51 38.06C69.8 36.87 68.13 35.83 65.61 35.47C63.09 35.11 58.26 35.98 56.4 35.9C54.54 35.82 54.9 35.41 54.46 34.96C54.02 34.52 53.81 33.76 53.74 33.24C53.67 32.71 53.47 32.7 54.03 31.8C54.59 30.9 55.65 28.6 57.12 27.84C58.6 27.09 61.91 27.37 62.88 27.27C63.85 27.16 61.61 27.15 62.95 27.19ZM60.36 46.04C60.82 46.02 62.1 45.74 63.02 45.97C63.94 46.2 65.1 46.82 65.9 47.41C66.7 48 67.3 48.53 67.84 49.5C68.38 50.47 68.76 52.43 69.14 53.24C69.51 54.04 69.56 54.11 70.07 54.32C70.59 54.52 71.65 54.56 72.23 54.46C72.81 54.36 73.23 53.8 73.53 53.74C73.82 53.68 73.85 52.63 74.03 54.1C74.21 55.58 74.6 60.7 74.6 62.59C74.6 64.48 74.17 61.89 74.03 65.47C73.88 69.04 74.45 81.14 73.74 84.03C73.03 86.92 70.8 83.01 69.78 82.81C68.76 82.6 69.21 82.59 67.63 82.81C66.04 83.02 62.18 84.12 60.29 84.1C58.39 84.08 57.33 83.32 56.26 82.66C55.19 82 54.24 80.67 53.88 80.14C53.53 79.62 53.49 79.75 54.1 79.5C54.71 79.24 56.59 79.06 57.55 78.63C58.51 78.2 59.09 77.07 59.86 76.91C60.62 76.74 61.15 77.55 62.16 77.63C63.17 77.7 64.88 77.66 65.9 77.34C66.92 77.01 67.59 76.44 68.27 75.68C68.96 74.93 69.71 73.6 70 72.81C70.29 72.01 70.16 71.33 70 70.94C69.84 70.54 69.35 70.43 69.06 70.43C68.78 70.43 68.48 70.54 68.27 70.94C68.07 71.33 68.21 72.12 67.84 72.81C67.47 73.49 66.58 74.54 66.04 75.04C65.5 75.53 65.16 75.64 64.6 75.76C64.05 75.88 63.26 75.88 62.73 75.76C62.21 75.64 61.95 75.62 61.44 75.04C60.92 74.45 59.96 73.42 59.64 72.23C59.32 71.04 59.66 69.11 59.5 67.91C59.33 66.71 59.47 66.57 58.63 65.04C57.79 63.5 55.28 60.22 54.46 58.71C53.65 57.19 53.74 57.34 53.74 55.97C53.74 54.6 53.94 51.91 54.46 50.5C54.98 49.1 55.86 48.29 56.83 47.55C57.81 46.82 59.7 46.37 60.29 46.12C60.88 45.86 59.9 46.07 60.36 46.04ZM60.72 50.72C60.37 50.92 59.2 51.24 58.78 51.94C58.36 52.65 58.14 54.28 58.2 54.96C58.26 55.65 58.85 56.33 59.14 56.04C59.42 55.76 59.62 53.81 59.93 53.24C60.24 52.66 60.61 52.67 61.01 52.59C61.4 52.51 61.91 52.55 62.3 52.73C62.7 52.91 63.03 53.18 63.38 53.67C63.73 54.16 64.46 55.13 64.39 55.68C64.32 56.24 63.33 56.28 62.95 56.98C62.57 57.67 62.11 58.73 62.09 59.86C62.06 60.98 62.58 62.99 62.81 63.74C63.03 64.5 63.06 64.5 63.45 64.39C63.85 64.28 64.75 63.31 65.18 63.09C65.61 62.88 65.67 62.91 66.04 63.09C66.41 63.27 67 63.65 67.41 64.17C67.82 64.7 68.18 66.04 68.49 66.26C68.8 66.47 69.15 65.84 69.28 65.47C69.41 65.1 69.62 64.8 69.28 64.03C68.94 63.26 67.6 61.58 67.27 60.86C66.93 60.14 66.86 60.29 67.27 59.71C67.67 59.14 69.28 58.13 69.71 57.41C70.14 56.69 69.94 55.77 69.86 55.4C69.77 55.02 69.51 55.02 69.21 55.18C68.91 55.34 68.47 56.12 68.06 56.33C67.65 56.55 67.48 57.29 66.76 56.47C66.04 55.66 64.72 52.4 63.74 51.44C62.76 50.48 61.37 50.84 60.86 50.72C60.36 50.6 61.07 50.52 60.72 50.72Z" fill="currentColor" fill-rule="evenodd"/></svg><span class="wm">oído</span></span>
+  <div class="foot-links"><a>Ingresá</a><a>Crear cuenta</a><a href="#precios">Precios</a><a>Términos</a><a>Privacidad</a></div>
+</div></footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var rvs = document.querySelectorAll('.rv');
+  if (reduce || !('IntersectionObserver' in window)) {
+    rvs.forEach(function(el){ el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '-60px' });
+    rvs.forEach(function(el,i){ el.style.transitionDelay = (i%3)*60 + 'ms'; io.observe(el); });
+  }
+
+  /* contadores de StatsStrip (0 -> valor, easeOutCubic, una sola vez) */
+  document.querySelectorAll('.st .n').forEach(function(el){
+    var target = parseInt(el.getAttribute('data-count'),10) || 0;
+    var suffix = el.getAttribute('data-suffix') || '';
+    if (reduce){ el.textContent = target + suffix; return; }
+    var done = false;
+    var ob = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(!e.isIntersecting || done) return; done = true; ob.disconnect();
+        var start = performance.now(), dur = 1100;
+        (function tick(now){
+          var p = Math.min((now-start)/dur, 1);
+          var eased = 1 - Math.pow(1-p, 3);
+          el.textContent = Math.round(target*eased) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        })(start);
+      });
+    }, { rootMargin: '-80px' });
+    ob.observe(el);
+  });
+
+  var POSES = [
+    { x:0, y:0, r:0, o:1, s:1, z:30 },
+    { x:-12, y:12, r:-4, o:.95, s:.97, z:20 },
+    { x:16, y:28, r:6, o:.9, s:.94, z:10 }
+  ];
+  var showcase = document.getElementById('showcase');
+  var cards = [].slice.call(document.querySelectorAll('#stack .oc'));
+  var dots = [].slice.call(document.querySelectorAll('#dots i'));
+  var track = document.getElementById('track');
+  var railfill = document.getElementById('railfill');
+
+  function pose(card,p){
+    card.style.transform = 'translate('+p.x+'px,'+p.y+'px) rotate('+p.r+'deg) scale('+p.s+')';
+    card.style.opacity = p.o; card.style.zIndex = p.z;
+  }
+  cards.forEach(function(c,i){ pose(c, POSES[i%3]); });
+
+  function render(){
+    if (showcase){
+      var r = showcase.getBoundingClientRect();
+      var total = r.height - window.innerHeight;
+      var prog = total > 0 ? Math.min(Math.max(-r.top/total,0),1) : 0;
+      var seat = prog < 0.33 ? 0 : (prog < 0.66 ? 1 : 2);
+      cards.forEach(function(c,i){ pose(c, POSES[(i+seat)%3]); });
+      dots.forEach(function(d,i){ d.classList.toggle('on', i===seat); });
+    }
+    /* riel naranja que se dibuja con el scroll (HowItWorksTimeline) */
+    if (track && railfill){
+      var tr = track.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var p2 = (vh - tr.top) / (vh + tr.height);
+      railfill.style.transform = 'scaleY(' + Math.min(Math.max(p2,0),1).toFixed(3) + ')';
+    }
+    /* micro-parallax del bento */
+    document.querySelectorAll('.px').forEach(function(el){
+      var r2 = el.getBoundingClientRect(), vh2 = window.innerHeight;
+      if (r2.bottom < 0 || r2.top > vh2) return;
+      var range = parseFloat(el.getAttribute('data-px')) || 12;
+      var p3 = 1 - (r2.top + r2.height/2)/vh2;
+      el.style.transform = 'translateY(' + (-p3*range/2).toFixed(2) + 'px)';
+    });
+  }
+  if (!reduce){
+    var t=false;
+    addEventListener('scroll',function(){ if(!t){ t=true; requestAnimationFrame(function(){ render(); t=false; }); } },{passive:true});
+    addEventListener('resize', render, {passive:true});
+    render();
+  }
+})();
+</script>
