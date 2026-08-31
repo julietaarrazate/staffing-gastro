@@ -42,7 +42,13 @@ test("un invitado (comercio) entra por el PIN y cae en el onboarding, no directo
   await page.getByRole("button", { name: "Entrar" }).click();
 
   await expect(page).toHaveURL("/bienvenida");
-  await expect(page.getByText("¿Cómo se llama tu comercio?")).toBeVisible();
+  // getByRole("heading", ...) en vez de getByText(...): Next.js monta su
+  // propio anunciador de ruta (`#__next-route-announcer__`, aria-live) con
+  // el mismo texto del <h1> mientras dura el anuncio — un getByText sin
+  // acotar hace "strict mode violation" (2 elementos) si la asserción cae
+  // justo en esa ventana, más frecuente bajo la carga de CI. El heading es
+  // el elemento real que le importa al test.
+  await expect(page.getByRole("heading", { name: "¿Cómo se llama tu comercio?" })).toBeVisible();
 });
 
 test("un invitado (trabajador) entra por el PIN y cae en el onboarding, no directo al feed", async ({
@@ -78,5 +84,8 @@ test("un invitado (trabajador) entra por el PIN y cae en el onboarding, no direc
   await page.getByRole("button", { name: "Entrar" }).click();
 
   await expect(page).toHaveURL("/bienvenida");
-  await expect(page.getByText("¿Dónde querés trabajar?")).toBeVisible();
+  // Mismo motivo que en el test de comercio (ver comentario arriba): el
+  // heading, no un getByText sin acotar que también matchea el anunciador
+  // de ruta de Next.js.
+  await expect(page.getByRole("heading", { name: "¿Dónde querés trabajar?" })).toBeVisible();
 });
