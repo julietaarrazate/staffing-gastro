@@ -26,9 +26,9 @@ pantalla por pantalla.
 | `01-identidad.html` | Tablero de identidad: paleta, tipografía, elementos. |
 | `02-tres-direcciones.html` | Las 3 direcciones comparadas (Contraste / Aire / Cálido). Se eligió **Contraste**. |
 | `03-app-claro-oscuro.html` | La app con modo claro/oscuro conmutable: inicio, buscar por categoría, detalle, perfil, panel del comercio, **ranking de perfiles con puntaje**, mapa. |
-| `04-landing.html` | Landing **original** (centrada, serif) recoloreada con los acentos nuevos. |
+| `04-landing.html` | Landing en **híbrido**, con el stack de tarjetas que rota al scrollear, reveals y micro-parallax. |
 | `05-onboarding-ubicacion.html` | Onboarding de comercio y trabajador + pantalla de geolocalización (claro por defecto). |
-| `06-mails.html` | Los 4 mails transaccionales recoloreados (identidad pasa de petróleo a azul celeste). |
+| `06-mails.html` | Los 4 mails en **híbrido**: bloque de foco oscuro antes del CTA, naranjas corregidos, identidad en azul celeste. |
 | `07-comparativo.html` | La misma pantalla en Original / Contraste / **Híbrido** — se eligió Híbrido. |
 | `08-auditoria-contraste.html` | Auditoría WCAG AA de la paleta híbrida: 15/17 pasan, 2 correcciones al naranja. |
 | `09-hibrido-app.html` | **La app completa en híbrido** (7 pantallas) con los naranjas ya corregidos. Referencia principal. |
@@ -38,7 +38,6 @@ pantalla por pantalla.
 - Correcciones de contraste: **ya aplicadas** en `09` — `--primary #F94E1B`
   (superficie), `--primary-text #D63606` (texto), `--primary-cta #DB3706`
   (botones). Manteca, celeste y el módulo oscuro pasan todos.
-- Recolorear la landing y los mails al híbrido (hoy usan la variante anterior).
 - Métricas del ranking (Puntualidad / Trabajo / Presentación): confirmar el set.
 - Modo claro por defecto (decidido).
 - Bajar la paleta a `globals.css` una vez cerrado el diseño.
