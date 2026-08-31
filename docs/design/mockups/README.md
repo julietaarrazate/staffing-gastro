@@ -31,14 +31,14 @@ pantalla por pantalla.
 | `06-mails.html` | Los 4 mails transaccionales recoloreados (identidad pasa de petróleo a azul celeste). |
 | `07-comparativo.html` | La misma pantalla en Original / Contraste / **Híbrido** — se eligió Híbrido. |
 | `08-auditoria-contraste.html` | Auditoría WCAG AA de la paleta híbrida: 15/17 pasan, 2 correcciones al naranja. |
+| `09-hibrido-app.html` | **La app completa en híbrido** (7 pantallas) con los naranjas ya corregidos. Referencia principal. |
 
 ## Pendiente / en discusión
 
-- **Correcciones de contraste obligatorias** (ver `08`): el naranja nuevo
-  `#F94E1B` falla como texto (3.25) y con blanco encima (3.42). Se conserva
-  para superficies y se agregan `--primary-text: #D63606` y
-  `--primary-cta: #DB3706`. Manteca, celeste y el módulo oscuro pasan todos.
-- Expandir el híbrido al resto de las pantallas.
+- Correcciones de contraste: **ya aplicadas** en `09` — `--primary #F94E1B`
+  (superficie), `--primary-text #D63606` (texto), `--primary-cta #DB3706`
+  (botones). Manteca, celeste y el módulo oscuro pasan todos.
+- Recolorear la landing y los mails al híbrido (hoy usan la variante anterior).
 - Métricas del ranking (Puntualidad / Trabajo / Presentación): confirmar el set.
 - Modo claro por defecto (decidido).
 - Bajar la paleta a `globals.css` una vez cerrado el diseño.
