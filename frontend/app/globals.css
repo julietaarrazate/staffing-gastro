@@ -93,6 +93,23 @@
   --color-trust: #1e4a47;
   --color-trust-text: #1e4a47;
   --color-trust-tint: #e8f1f0; /* superficie clara del chip, mismo patrón que orange-50/green-50 */
+
+  /* Acentos de apoyo (rediseño visual 2026-08-30). NO son acentos
+     interactivos: el naranja sigue siendo el único que marca acción (ADR-0011).
+     Existen porque hoy TODO chip/ícono de apoyo cae en `surface` (arena) y las
+     superficies se leen todas iguales — estos dos le dan un rol de color a la
+     información secundaria (manteca = dato) y a lo verificable (cielo).
+     Se usan SIEMPRE como tinte de fondo con su texto oscuro encima; ninguno de
+     los dos sirve como color de texto sobre claro.
+     Contrastes verificados WCAG AA:
+       manteca-text sobre manteca-tint 6.08 · sobre manteca 5.41
+       cielo-text   sobre cielo-tint   7.67 · sobre cielo   6.73 */
+  --color-manteca: #f1e7a0;
+  --color-manteca-tint: #fbf3c9;
+  --color-manteca-text: #6a5a12;
+  --color-cielo: #cfe4ff;
+  --color-cielo-tint: #e8f1ff;
+  --color-cielo-text: #1c4b87;
 }
 
 @theme inline {

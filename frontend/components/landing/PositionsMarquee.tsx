@@ -6,7 +6,20 @@ import { SKILL_LABELS, WORKER_SKILLS } from "@/lib/types";
 // es la misma ambientación de ejemplo que ya usa el hero.
 const NEIGHBORHOODS = ["Palermo", "San Telmo", "Recoleta", "Belgrano", "Villa Crespo", "Caballito"];
 
-const CHIPS = [...WORKER_SKILLS.map((skill) => SKILL_LABELS[skill]), ...NEIGHBORHOODS];
+/* Puestos y barrios se distinguen por color en vez de ir todos blancos: la
+   cinta mezcla dos cosas distintas ("Barista" y "Palermo" no son lo mismo) y
+   hasta ahora se leían igual. Manteca para el oficio, cielo para el lugar —
+   el color acá lleva información, no es decoración. */
+const CHIPS: { label: string; accent: string }[] = [
+  ...WORKER_SKILLS.map((skill) => ({
+    label: SKILL_LABELS[skill],
+    accent: "bg-manteca-tint text-manteca-text",
+  })),
+  ...NEIGHBORHOODS.map((name) => ({
+    label: name,
+    accent: "bg-cielo-tint text-cielo-text",
+  })),
+];
 
 /**
  * Cinta horizontal de chips (puestos + barrios) con desplazamiento continuo
@@ -24,12 +37,12 @@ export default function PositionsMarquee() {
       }}
     >
       <div className="flex w-max gap-3 animate-marquee">
-        {[...CHIPS, ...CHIPS].map((label, i) => (
+        {[...CHIPS, ...CHIPS].map((chip, i) => (
           <span
-            key={`${label}-${i}`}
-            className="shrink-0 select-none rounded-full bg-white px-4 py-2 text-sm font-bold text-ink/60 ring-1 ring-line"
+            key={`${chip.label}-${i}`}
+            className={`shrink-0 select-none rounded-full px-4 py-2 text-sm font-bold ${chip.accent}`}
           >
-            {label}
+            {chip.label}
           </span>
         ))}
       </div>

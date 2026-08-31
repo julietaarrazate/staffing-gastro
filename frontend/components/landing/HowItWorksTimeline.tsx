@@ -6,23 +6,32 @@ import type { ComponentType } from "react";
 import Reveal from "./Reveal";
 import { BoltIcon, ClipboardIcon, ShieldIcon, type IconProps } from "@/components/icons";
 
-type Step = { Icon: ComponentType<IconProps>; title: string; text: string };
+type Step = {
+  Icon: ComponentType<IconProps>;
+  title: string;
+  text: string;
+  /** Tinte del ícono: acompaña el rol del paso, no rota por rotar. */
+  accent: string;
+};
 
 const STEPS: Step[] = [
   {
     Icon: ClipboardIcon,
     title: "Publicá el turno",
     text: "Cargá la posición, el horario y la paga. Queda visible al instante.",
+    accent: "bg-manteca-tint text-manteca-text",
   },
   {
     Icon: BoltIcon,
     title: "Elegí de una lista rankeada",
     text: "Te mostramos candidatos ordenados por cercanía, experiencia y reputación.",
+    accent: "bg-cielo-tint text-cielo-text",
   },
   {
     Icon: ShieldIcon,
     title: "Listo, turno cubierto",
     text: "El trabajador confirma, hace check-in con ubicación y coordinan por chat.",
+    accent: "bg-white text-primary-text",
   },
 ];
 
@@ -69,7 +78,9 @@ export default function HowItWorksTimeline() {
           {STEPS.map((s, i) => (
             <Reveal key={s.title} delay={i * 0.1}>
               <div className="relative flex gap-5">
-                <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-ink shadow-[var(--shadow-soft)] ring-1 ring-line">
+                <span
+                  className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-[var(--shadow-soft)] ring-1 ring-line ${s.accent}`}
+                >
                   <s.Icon size={22} />
                 </span>
                 <div className="pt-1.5">

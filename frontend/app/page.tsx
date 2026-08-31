@@ -36,6 +36,8 @@ type Feature = {
   Icon: ComponentType<IconProps>;
   title: string;
   text: string;
+  /** Clases del tinte del ícono. Sólo las tarjetas del bento lo usan. */
+  accent?: string;
 };
 
 const HERO_FEATURE: Feature = {
@@ -44,31 +46,45 @@ const HERO_FEATURE: Feature = {
   text: "Publicás el turno y en minutos tenés una lista rankeada por cercanía y reputación, lista para asignar.",
 };
 
+/* Acento del ícono de cada feature. No es decoración rotativa: sigue el rol
+   de cada token — `cielo` en lo que da confianza (que estuvo, que se puede
+   confiar, que el sistema no falla) y `manteca` en lo operativo. Una queda en
+   `surface` a propósito, para que la grilla no se lea como un arcoíris.
+   Clases literales (no interpoladas) porque Tailwind las descubre por texto. */
+const ACCENT_CIELO = "bg-cielo-tint text-cielo-text";
+const ACCENT_MANTECA = "bg-manteca-tint text-manteca-text";
+const ACCENT_NEUTRO = "bg-surface text-ink";
+
 const FEATURES: Feature[] = [
   {
     Icon: MapPinIcon,
     title: "Asistencia con GPS",
     text: "Check-in y check-out geolocalizado para saber que todo salió bien.",
+    accent: ACCENT_CIELO,
   },
   {
     Icon: MessageIcon,
     title: "Chat integrado",
     text: "Coordiná los detalles de cada turno sin salir de la app.",
+    accent: ACCENT_MANTECA,
   },
   {
     Icon: StarIcon,
     title: "Reputación",
     text: "Rating, puntualidad e historial para elegir con confianza.",
+    accent: ACCENT_CIELO,
   },
   {
     Icon: BellIcon,
     title: "Doble reserva imposible",
     text: "El sistema bloquea solapamientos: nadie queda comprometido en dos turnos a la vez.",
+    accent: ACCENT_MANTECA,
   },
   {
     Icon: ShareIcon,
     title: "Compartí por WhatsApp",
     text: "Mandá un turno abierto por WhatsApp con un link, sin salir de la app.",
+    accent: ACCENT_NEUTRO,
   },
 ];
 
@@ -122,7 +138,8 @@ export default function Home() {
             // seleccionaban como texto de página al arrastrar el dedo.
             className="no-select text-center"
           >
-            <span className="inline-flex items-center rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ink/60 ring-1 ring-line">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ink/60 ring-1 ring-line">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-manteca" />
               Staffing gastronómico en Argentina
             </span>
 
@@ -210,7 +227,9 @@ export default function Home() {
                     whileHover={{ y: -4 }}
                     className="h-full rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:shadow-[var(--shadow-float)]"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface text-ink">
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl ${f.accent ?? "bg-surface text-ink"}`}
+                    >
                       <f.Icon size={22} />
                     </div>
                     <h3 className="mt-4 font-bold text-ink">{f.title}</h3>
@@ -240,7 +259,10 @@ export default function Home() {
             el mismo tono oscuro. */}
         <Reveal className="mt-20">
           <section className="no-select rounded-[var(--radius-card)] bg-white px-6 py-14 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-structure)] text-white">
+            {/* Celeste, no espresso: esta franja le habla al trabajador, y el
+                celeste es el token de confianza — el mismo que lleva su
+                insignia de perfil verificado adentro de la app. */}
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-cielo text-cielo-text">
               <BriefcaseIcon size={22} />
             </span>
             <h2 className="mt-5 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
