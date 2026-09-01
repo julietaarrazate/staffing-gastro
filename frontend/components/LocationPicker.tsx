@@ -138,9 +138,13 @@ export default function LocationPicker({
       </button>
 
       {geoMsg && (
+        // Celeste, no verde de éxito genérico: esto confirma una ubicación
+        // verificada (coordenadas reales del dispositivo), el mismo rol que
+        // cumple el celeste en el resto de la app (ADR-0011) — no es un
+        // "operación completada" cualquiera.
         <p
           className={`text-xs ${
-            geoStatus === "error" ? "text-danger-text" : "text-success-text"
+            geoStatus === "error" ? "text-danger-text" : "text-cielo-text"
           }`}
         >
           {geoMsg}

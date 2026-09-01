@@ -223,8 +223,11 @@ function WorkerOnboarding() {
           </div>
 
           {location && (
+            // Celeste, no naranja: confirma una ubicación ya verificada, el
+            // mismo rol de "confianza" que cumple el celeste en el resto de
+            // la app (ADR-0011) — el naranja sigue siendo sólo de acción.
             <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-ink/70">
-              <MapPinIcon size={16} className="text-primary" />
+              <MapPinIcon size={16} className="text-cielo-text" />
               {location.city}
             </p>
           )}
@@ -518,8 +521,10 @@ function EmployerOnboarding() {
           </div>
 
           {city && (
+            // Mismo criterio que el paso de zona del trabajador: celeste de
+            // confianza, no naranja de acción.
             <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-ink/70">
-              <MapPinIcon size={16} className="text-primary" />
+              <MapPinIcon size={16} className="text-cielo-text" />
               {city}
             </p>
           )}
