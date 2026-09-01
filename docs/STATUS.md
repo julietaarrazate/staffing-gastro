@@ -5,7 +5,48 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-26 (**Scheduler: despertar por deadline en
+*Última actualización: 2026-08-31 (**Landing: acentos manteca y celeste
+mergeados a main — cierre del rediseño visual de Oído.**)
+
+La landing de `main` queda igual en estructura, tipografía, copy y
+efectos (`ScrollHeroShowcase`, `Reveal`, `ParallaxCard`, marquee,
+contadores, riel del timeline); el único cambio es de color. Hasta ahora
+todo el cromo de apoyo (íconos del bento, chips del marquee, segundo
+dato de stats, tag "Recomendado") caía en naranja o arena y las
+superficies se leían todas iguales. Se agregan dos tokens de rol
+(`globals.css`): **manteca** para el dato y **celeste** para lo
+verificable/confianza — ninguno reemplaza al naranja como acento de
+acción (ADR-0011), ambos verificados WCAG AA. `docs/design/mockups/`
+documenta el proceso completo (identidad, 3 direcciones comparadas,
+comparativo, auditoría de contraste) que llevó a elegir esta dirección
+sobre la app original.
+
+**Hallazgo de paso, no relacionado con este cambio:** el job E2E de CI
+falla de forma reproducible en `worker-apply.spec.ts` y de forma
+intermitente en `guest-onboarding.spec.ts` (×2). Verificado corriendo
+los mismos specs contra `main` sin este cambio: fallan igual, así que es
+preexistente, no una regresión de la landing (y no es de Neon: el E2E
+corre 100% mockeado vía `page.route`, sin backend real).
+
+- **`worker-apply.spec.ts` (causa raíz encontrada, bug del test):**
+  clickea `getByRole("button", { name: "Me interesa" })`, que en
+  `SwipeDeck.tsx` vive a propósito dentro de un `sr-only
+  focus-within:not-sr-only` — invisible hasta que se enfoca por teclado;
+  un usuario real decide arrastrando la tarjeta. Playwright lo trata
+  como "visible" (opacidad 1) pero su caja real es de 1×1px recortada,
+  así que el click cae sobre lo que sea que esté ahí encima —
+  consistente con que el log muestre un elemento interceptor distinto en
+  cada reintento. El test debería enfocar con Tab (o simular el drag)
+  en vez de clickear el control de accesibilidad directamente; no hay
+  nada que corregir en la app.
+- **`guest-onboarding.spec.ts` (sin causa de código identificada):**
+  corrido solo, pasa limpio (2/2). Compatible con contención de recursos
+  al correr en paralelo con el resto de la suite en el runner de CI, no
+  con un defecto encontrado en el código.
+
+---
+
+*Actualización anterior: 2026-08-26 (**Scheduler: despertar por deadline en
 vez de sondear cada 5 min — segundo tramo del fix de cuota de Neon, sobre
 la causa dominante que `pool_size` no resolvía.**)
 
