@@ -128,7 +128,22 @@ test("un worker ve un turno en el feed y se postula", async ({ page }) => {
   const applyResponse = page.waitForResponse(
     (res) => res.url().includes("/api/v1/applications/shifts/shift-1") && res.request().method() === "POST"
   );
-  await page.getByRole("button", { name: "Me interesa" }).click();
+
+  // El botón "Me interesa" vive a propósito dentro de un `sr-only
+  // focus-within:not-sr-only` (SwipeDeck.tsx): invisible al tacto/mouse,
+  // sólo se revela cuando algo adentro tiene foco de teclado — es la
+  // alternativa accesible al gesto de swipe, no un botón de uso normal.
+  // Por eso hace falta enfocarlo de verdad (`.focus()`, mismo evento de
+  // foco que dispara un usuario tabulando) antes de clickearlo: sin esto
+  // Playwright lo ve "visible" (opacidad 1) pero su caja real es ~1×1px
+  // recortada, y el click cae sobre lo que sea que esté ahí encima en vez
+  // de decidir nada — un intento de simular el drag con mouse.move/down/up
+  // no disparó el gesto de Framer Motion en Chromium headless, así que se
+  // optó por este camino, más explícitamente accesible.
+  const applyButton = page.getByRole("button", { name: "Me interesa" });
+  await applyButton.focus();
+  await expect(applyButton).toBeVisible();
+  await applyButton.click();
   await applyResponse;
 
   expect(applyCalled).toBe(true);
