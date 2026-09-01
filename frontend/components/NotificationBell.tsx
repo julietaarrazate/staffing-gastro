@@ -98,14 +98,14 @@ export default function NotificationBell() {
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-ink">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-night">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-line bg-white shadow-lg">
+        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-line bg-card shadow-lg">
           <div className="border-b border-line px-4 py-2 text-sm font-semibold text-ink/70">
             Notificaciones
           </div>
@@ -138,7 +138,7 @@ export default function NotificationBell() {
                 key={n.id}
                 onClick={() => openNotification(n)}
                 className={`block w-full border-b border-line px-4 py-3 text-left text-sm hover:bg-surface ${
-                  n.read ? "bg-white" : "bg-orange-50"
+                  n.read ? "bg-card" : "bg-orange-50"
                 }`}
               >
                 <p className="font-medium text-ink/80">{n.title}</p>

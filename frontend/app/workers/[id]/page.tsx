@@ -69,7 +69,7 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
         isFavorite
           ? "bg-primary/10 text-primary-text ring-primary/30"
-          : "bg-white text-ink/60 ring-line hover:bg-surface"
+          : "bg-card text-ink/60 ring-line hover:bg-surface"
       }`}
     >
       <HeartIcon size={16} filled={isFavorite} />
@@ -81,7 +81,7 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
 function ProfilePageSkeleton() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8" aria-hidden>
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
         <Skeleton className="h-56 w-full rounded-none" />
         <div className="space-y-4 px-5 py-5">
           <Skeleton className="h-5 w-1/3" />
@@ -148,7 +148,7 @@ export default function PublicWorkerProfilePage() {
           dejando media pantalla vacía a los costados. Sin `lg:grid`, en
           mobile/tablet sigue siendo un único stack en el mismo orden. */}
       <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
-      <div className="lg:col-span-2 overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+      <div className="lg:col-span-2 overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
         <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
           {profile.photo_url ? (
             <img src={cldThumb(profile.photo_url, 800)} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
@@ -283,7 +283,7 @@ export default function PublicWorkerProfilePage() {
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
           Reseñas
         </p>
-        <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <WorkerReviews workerProfileId={params.id} />
         </div>
       </div>

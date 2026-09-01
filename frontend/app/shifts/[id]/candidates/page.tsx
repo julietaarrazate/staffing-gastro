@@ -137,7 +137,7 @@ function ShiftCandidatesContent() {
                     key={a.application_id}
                     // `.no-select`: fila de chrome (rating, chips), mismo criterio
                     // C0 #2 que ShiftCard/CandidateCard.
-                    className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+                    className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
                   >
                     <Link href={`/workers/${a.worker_profile_id}`}>
                       <Avatar src={a.photo_url} name={a.full_name} size="lg" />

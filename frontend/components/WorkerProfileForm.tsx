@@ -195,7 +195,7 @@ export default function WorkerProfileForm() {
                 onClick={() => toggleSkill(skill)}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   active
-                    ? "bg-primary text-ink"
+                    ? "bg-primary text-night"
                     : "bg-surface text-ink/70 hover:bg-line"
                 }`}
               >
@@ -224,7 +224,7 @@ export default function WorkerProfileForm() {
           rows={3}
           maxLength={1000}
           placeholder="Ej: Mozo con 5 años en cafeterías de especialidad, experiencia en barra y salón."
-          className="mt-2 w-full rounded-[var(--radius-input)] bg-white px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
+          className="mt-2 w-full rounded-[var(--radius-input)] bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
         />
       </div>
 

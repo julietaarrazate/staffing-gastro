@@ -108,7 +108,7 @@ export default function ShiftCard({
       // dropdown `position: absolute`, quedaba tapado/recortado en una tira
       // finita en vez de mostrarse completo (bug real con captura, Julieta
       // 2026-07-29). El link de arriba ahora redondea sus propias esquinas.
-      className={`no-select rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
+      className={`no-select rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
         isDimmed ? "opacity-65 saturate-[0.85]" : ""
       }`}
     >

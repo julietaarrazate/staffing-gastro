@@ -8,9 +8,9 @@ type ToastTone = "success" | "error" | "info";
 type ToastItem = { id: number; message: string; tone: ToastTone };
 
 const TONE_STYLES: Record<ToastTone, string> = {
-  success: "bg-ink text-white",
+  success: "bg-night text-white",
   error: "bg-danger text-white",
-  info: "bg-ink text-white",
+  info: "bg-night text-white",
 };
 
 const ToastContext = createContext<((message: string, tone?: ToastTone) => void) | null>(null);

@@ -51,7 +51,7 @@ export default function OpportunityCard({
   const hasPhoto = Boolean(shift.company_logo_url) && !broken;
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
       {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
           en pantallas más bajas o con dress code largo, el cuerpo perdía esa
           pulseada y su cola (el botón de compartir) quedaba recortada en
@@ -222,7 +222,7 @@ export default function OpportunityCard({
                   "noopener,noreferrer"
                 );
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-white py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
             >
               <RouteIcon size={16} /> Cómo llegar
             </button>
@@ -238,7 +238,7 @@ export default function OpportunityCard({
                   aria-label="No, gracias"
                   onClick={onPass}
                   disabled={applying}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-white text-danger-text disabled:opacity-50"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-danger-text disabled:opacity-50"
                 >
                   <CloseIcon size={18} />
                 </button>

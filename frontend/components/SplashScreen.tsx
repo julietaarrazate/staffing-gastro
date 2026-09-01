@@ -94,7 +94,7 @@ export default function SplashScreen() {
             initial={reducedMotion ? false : { scale: 0, rotate: -25, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 14, delay: 0.1 }}
-            className="relative flex h-24 w-24 items-center justify-center rounded-[28px] bg-white shadow-2xl"
+            className="relative flex h-24 w-24 items-center justify-center rounded-[28px] bg-card shadow-2xl"
           >
             <LogoGlyph size={48} color="#f97316" />
           </motion.div>

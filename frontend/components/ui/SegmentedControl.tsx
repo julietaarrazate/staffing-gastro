@@ -49,7 +49,7 @@ export default function SegmentedControl<T extends string>({
               <motion.span
                 layoutId={`seg-${id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                className="absolute inset-0 rounded-full bg-white shadow-[var(--shadow-soft)]"
+                className="absolute inset-0 rounded-full bg-card shadow-[var(--shadow-soft)]"
               />
             )}
             <span className={cn("relative z-10 transition-colors", active ? "text-ink" : "text-ink/60")}>

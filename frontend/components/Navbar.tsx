@@ -19,7 +19,7 @@ export default function Navbar() {
     // real de la pantalla, así que en PWA instalada el header arrancaría
     // DEBAJO de la barra de estado / notch. El padding del inset lo baja a la
     // zona visible, como cualquier app nativa.
-    <header className="safe-top sticky top-0 z-40 border-b border-line bg-white">
+    <header className="safe-top sticky top-0 z-40 border-b border-line bg-card">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />
@@ -95,7 +95,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/register"
-                className="rounded-[var(--radius-btn)] bg-primary px-3.5 py-1.5 text-ink shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
+                className="rounded-[var(--radius-btn)] bg-primary px-3.5 py-1.5 text-night shadow-sm shadow-orange-500/30 transition active:scale-95 hover:brightness-[1.04]"
               >
                 Crear cuenta
               </Link>

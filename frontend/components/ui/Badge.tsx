@@ -11,8 +11,13 @@ const TONES: Record<Tone, string> = {
   info: "bg-blue-50 text-blue-700",
   // Identidad/confianza verificada — nunca estado ni reputación (ADR-0010
   // §5, ADR-0011). No reusar para nada que no sea una verificación de
-  // identidad real.
-  trust: "bg-trust-tint text-trust-text",
+  // identidad real. Color: CELESTE (cielo), no petróleo — es el rol de
+  // "confianza/verificación" de la identidad visual nueva (mockups 03/09) y
+  // coincide con lo que la landing ya asumía ("el celeste es el token de
+  // confianza, el mismo de su insignia de perfil verificado"). El tinte
+  // celeste es claro y su texto oscuro no se voltea, así que se lee igual en
+  // modo claro y oscuro (pastilla celeste clara sobre tarjeta oscura).
+  trust: "bg-cielo-tint text-cielo-text",
 };
 
 /** Badge / etiqueta de estado, pequeña y redonda. */

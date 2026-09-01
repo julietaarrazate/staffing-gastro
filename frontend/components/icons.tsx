@@ -54,6 +54,9 @@ import {
   Shield,
   Sparkles,
   Star,
+  Sun,
+  Moon,
+  Monitor,
   Trash2,
   Upload,
   Users,
@@ -90,6 +93,9 @@ export const MicIcon = make(Mic);
 export const MicOffIcon = make(MicOff);
 export const BellIcon = make(Bell);
 export const StarIcon = make(Star);
+export const SunIcon = make(Sun);
+export const MoonIcon = make(Moon);
+export const MonitorIcon = make(Monitor);
 export const CheckIcon = make(Check);
 export const CheckCheckIcon = make(CheckCheck);
 export const CheckCircleIcon = make(CheckCircle2);

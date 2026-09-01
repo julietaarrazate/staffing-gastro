@@ -82,7 +82,7 @@ export default function ImageUpload({
           )}
         </span>
         {value && !uploading && (
-          <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-ink text-white ring-2 ring-white">
+          <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-night text-white ring-2 ring-white">
             <CameraIcon size={14} />
           </span>
         )}

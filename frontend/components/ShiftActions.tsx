@@ -56,7 +56,7 @@ export default function ShiftActions({
         {step.action === "candidates" ? (
           <Link
             href={`/shifts/${shift.id}/candidates`}
-            className="flex-1 rounded-[var(--radius-btn)] bg-primary px-4 py-2 text-center text-sm font-semibold text-ink transition active:scale-95"
+            className="flex-1 rounded-[var(--radius-btn)] bg-primary px-4 py-2 text-center text-sm font-semibold text-night transition active:scale-95"
           >
             {step.actionLabel}
           </Link>

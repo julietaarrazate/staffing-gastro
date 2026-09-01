@@ -12,6 +12,7 @@
  * Contrastes verificados WCAG AA — ver docs/design/COLOR_SYSTEM.md.
  */
 :root {
+  color-scheme: light; /* claro por defecto; el bloque de modo oscuro lo vuelca a dark */
   --background: #fff8f0; /* Crema — fondo cálido de la app (antes gris #f8f9fa) */
   --foreground: #1f1f1c; /* Carbón — tinta cálida de marca (antes negro puro #111) */
   --line: #ebe2d4; /* bordes 1px, hairline cálido (antes gris #ececee) */
@@ -79,6 +80,19 @@
   --color-line: #ebe2d4; /* hairline cálido */
   --color-paper: #fbf2e6; /* franja cálida algo más profunda que el fondo (landing) */
 
+  /* Superficie de tarjeta (rediseño 2026-09: modo claro/oscuro). Antes las
+     tarjetas usaban `bg-white` literal, que no puede voltearse en oscuro. Este
+     token ES blanco en claro y carbón (#191410) en oscuro — todas las tarjetas
+     de superficie (feed, perfil, panel, sheets, inputs) pasan por acá. Ver el
+     bloque "Modo oscuro" más abajo. */
+  --color-card: #ffffff;
+  /* Superficie SIEMPRE oscura, en los dos modos (módulos de foco, botón dark,
+     toast, burbujas propias del chat, badges sobre foto/mapa). Antes eran
+     `bg-ink`, que ahora se voltea a claro en modo oscuro — por eso se separan.
+     No cambia entre modos: en claro contrasta contra el crema, en oscuro se
+     integra pero conserva su borde. */
+  --color-night: #191410;
+
   /* Segunda y tercera tinta (ADR-0011) — roles que NO se solapan, ninguna
      reemplaza al naranja como acento interactivo (sigue siendo el único). */
   /* Espresso: estructura y momentos de marca (fondos de sección, heroes de
@@ -120,6 +134,77 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ===========================================================================
+ * Modo oscuro / claro / sistema (rediseño 2026-09).
+ *
+ * Tres estados, controlados por `data-theme` en <html> (ver lib/theme.tsx):
+ *   - sin atributo  → "sistema": sigue `prefers-color-scheme` del dispositivo.
+ *   - data-theme="light" → fuerza claro aunque el sistema esté en oscuro.
+ *   - data-theme="dark"  → fuerza oscuro aunque el sistema esté en claro.
+ *
+ * Sólo se redefinen TOKENS (las utilidades de Tailwind ya referencian
+ * `var(--color-*)`, así que voltear la variable voltea la utilidad en runtime).
+ * El naranja de acción NO cambia (ADR-0011). Los tintes manteca/cielo tampoco:
+ * son chips claros que se leen bien sobre tarjeta oscura, igual que en la
+ * maqueta aprobada (docs/design/mockups/03-app-claro-oscuro.html).
+ *
+ * La paleta oscura sale de esa maqueta:
+ *   fondo #14100c · tarjeta/paper #191410 · tinta #fff8f0 · línea blanca 10%.
+ * El naranja-texto sube a #ff7a45 y verde/rojo/petróleo suben su luminancia
+ * para cumplir contraste sobre superficie oscura.
+ *
+ * Los valores oscuros están duplicados en dos selectores a propósito (no hay
+ * forma en CSS de reusar un bloque de declaraciones): uno para "sistema en
+ * oscuro salvo que se fuerce claro", otro para "oscuro forzado".
+ * ======================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #14100c;
+    --foreground: #fff8f0;
+    --line: rgba(255, 248, 240, 0.1);
+    --color-ink: #fff8f0;
+    --color-surface: rgba(255, 248, 240, 0.07);
+    --color-line: rgba(255, 248, 240, 0.1);
+    --color-paper: #191410;
+    --color-card: #191410;
+    --color-primary-text: #ff7a45;
+    --color-success-text: #4bbd7a;
+    --color-danger-text: #f4746f;
+    --color-trust: #7fc9c0;
+    --color-trust-text: #7fc9c0;
+    --color-trust-tint: rgba(127, 201, 192, 0.14);
+    --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #14100c;
+  --foreground: #fff8f0;
+  --line: rgba(255, 248, 240, 0.1);
+  --color-ink: #fff8f0;
+  --color-surface: rgba(255, 248, 240, 0.07);
+  --color-line: rgba(255, 248, 240, 0.1);
+  --color-paper: #191410;
+  --color-card: #191410;
+  --color-primary-text: #ff7a45;
+  --color-success-text: #4bbd7a;
+  --color-danger-text: #f4746f;
+  --color-trust: #7fc9c0;
+  --color-trust-text: #7fc9c0;
+  --color-trust-tint: rgba(127, 201, 192, 0.14);
+  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* Forzado a claro: los tokens de :root ya son claros; sólo hay que asegurar
+   que el navegador pinte controles nativos (scrollbars, inputs) en claro. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -127,7 +212,9 @@ body {
 }
 
 html {
-  color-scheme: light;
+  /* `color-scheme` ya NO se fija acá: lo maneja el sistema de tokens de
+     arriba (claro por defecto en :root, oscuro bajo el bloque de modo oscuro),
+     para que "sistema/claro/oscuro" funcione en vez de forzar siempre claro. */
   -webkit-tap-highlight-color: transparent;
   /* `clip` evita el desplazamiento horizontal SIN crear un contenedor de
    * scroll (a diferencia de `hidden`, que fuerza overflow-y a auto y, junto

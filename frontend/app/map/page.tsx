@@ -39,7 +39,7 @@ function handleCardActivate(e: React.KeyboardEvent, onActivate: () => void) {
 function MapCardSkeleton({ wide = false }: { wide?: boolean }) {
   return (
     <div
-      className={`overflow-hidden rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-float)] ring-1 ring-line ${
+      className={`overflow-hidden rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-float)] ring-1 ring-line ${
         wide ? "w-full" : "w-[86%] shrink-0 snap-center"
       }`}
       aria-hidden
@@ -106,7 +106,7 @@ function ShiftRow({
       // las tarjetas tengan colores"). El estado activo sigue marcándose con
       // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
       className={`w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
-        active ? "border-primary/40 bg-orange-50/60" : "border-line bg-white hover:bg-surface"
+        active ? "border-primary/40 bg-orange-50/60" : "border-line bg-card hover:bg-surface"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -276,7 +276,7 @@ export default function MapPage() {
           del mapa no queda "escondida"/reducida en la versión web (antes el
           bottom-sheet mobile se estiraba tal cual a una tarjeta gigantesca
           y vacía en pantallas anchas). En mobile no se renderiza (hidden). */}
-      <aside className="hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line bg-white md:flex">
+      <aside className="hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line bg-card md:flex">
         <div className="sticky top-0 z-10 border-b border-line bg-white/95 px-5 py-4 backdrop-blur">
           <h1 className="font-display text-2xl font-semibold text-ink">
             {loading
@@ -339,7 +339,11 @@ export default function MapPage() {
       {/* Encabezado flotante (sólo mobile: en desktop el conteo ya está en el
           panel lateral, repetirlo acá arriba del mapa sería ruido). */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-start gap-1.5 p-3 md:hidden">
-        <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-ink/70 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
+        {/* Pastillas flotantes SOBRE el mapa: el mapa (MapLibre) no cambia de
+            tema, así que la pastilla queda blanca en ambos modos y su texto
+            debe ser SIEMPRE oscuro (`text-night`), no `text-ink` que se voltea
+            a claro en oscuro y desaparecería sobre el blanco. */}
+        <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-night/70 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
           <MapPinIcon size={16} className="text-primary-text" />
           {loading
             ? "Buscando turnos cerca..."
@@ -348,7 +352,7 @@ export default function MapPage() {
               : `${shifts.length} turnos cerca tuyo`}
         </div>
         {!loading && locationUnavailable && (
-          <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-ink/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
+          <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-night/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
             No pudimos ubicarte — activá la ubicación para ver lo que está
             realmente cerca
           </div>
@@ -360,7 +364,7 @@ export default function MapPage() {
       <div className="md:hidden">
       {!loading && shifts.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-10 px-4">
-          <div className="rounded-[var(--radius-card)] bg-white p-2 shadow-[var(--shadow-float)]">
+          <div className="rounded-[var(--radius-card)] bg-card p-2 shadow-[var(--shadow-float)]">
             <EmptyState
               icon={<CalendarIcon size={28} />}
               title={error ?? "No hay turnos cerca"}
@@ -411,7 +415,7 @@ export default function MapPage() {
                 // navegar a su perfil.
                 onClick={() => setPreviewShift(shift)}
                 onKeyDown={(e) => handleCardActivate(e, () => setPreviewShift(shift))}
-                className={`flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-white p-4 pl-3.5 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98] ${rail}`}
+                className={`flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-card p-4 pl-3.5 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98] ${rail}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">

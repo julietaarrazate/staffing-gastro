@@ -40,7 +40,7 @@ export default function TerminosPage() {
           <Logo size={28} withWordmark={false} />
         </div>
 
-        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             Términos y Condiciones
           </h1>

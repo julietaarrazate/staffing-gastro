@@ -475,7 +475,7 @@ export default function MatchesPage() {
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
                       compareMode
                         ? "bg-primary/10 text-primary-text ring-primary/30"
-                        : "bg-white text-ink/60 ring-line hover:bg-surface"
+                        : "bg-card text-ink/60 ring-line hover:bg-surface"
                     }`}
                   >
                     <ScaleIcon size={14} />

@@ -153,7 +153,7 @@ export default function SwipeDeck({
               que el pulgar no los tape mientras arrastra. */}
           <motion.div
             style={{ opacity: nopeOpacity, scale: nopeScale }}
-            className="pointer-events-none absolute left-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-white text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line"
+            className="pointer-events-none absolute left-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-card text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line"
           >
             <CrossIcon />
           </motion.div>
@@ -176,7 +176,7 @@ export default function SwipeDeck({
           type="button"
           onClick={() => decide("pass")}
           disabled={busy}
-          className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-danger-text ring-1 ring-line disabled:opacity-50"
+          className="rounded-full bg-card px-4 py-2 text-sm font-semibold text-danger-text ring-1 ring-line disabled:opacity-50"
         >
           No gracias
         </button>

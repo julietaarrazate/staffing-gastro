@@ -218,7 +218,7 @@ function WorkerOnboarding() {
             quieras desde tu perfil.
           </p>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
             <LocationPicker onSelect={setLocation} />
           </div>
 
@@ -266,8 +266,8 @@ function WorkerOnboarding() {
                   onClick={() => toggleSkill(skill)}
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
                     active
-                      ? "bg-primary text-ink"
-                      : "bg-white text-ink/70 ring-1 ring-line hover:bg-surface"
+                      ? "bg-primary text-night"
+                      : "bg-card text-ink/70 ring-1 ring-line hover:bg-surface"
                   }`}
                 >
                   {active && <CheckIcon size={15} />}
@@ -308,7 +308,7 @@ function WorkerOnboarding() {
             />
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
             <TextField
               label="Años de experiencia"
               type="number"
@@ -452,7 +452,7 @@ function EmployerOnboarding() {
             />
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
             <TextField
               label="Nombre del comercio"
               value={name}
@@ -488,7 +488,7 @@ function EmployerOnboarding() {
             la cercanía a los trabajadores.
           </p>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
             {useManualPicker ? (
               <div className="flex flex-col gap-2">
                 <LocationPicker

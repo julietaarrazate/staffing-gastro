@@ -132,7 +132,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={reducedMotion ? { duration: 0 } : MOTION_UI}
-          className="absolute rounded-2xl bg-white p-4 shadow-[var(--shadow-float)]"
+          className="absolute rounded-2xl bg-card p-4 shadow-[var(--shadow-float)]"
           style={{
             top: placeBelow ? rect.bottom + GAP : undefined,
             bottom: placeBelow ? undefined : window.innerHeight - rect.top + GAP,

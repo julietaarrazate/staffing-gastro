@@ -283,14 +283,14 @@ function MyShiftsPanel() {
         <div className="flex shrink-0 gap-2">
           <Link
             href="/shifts/new-event"
-            className="rounded-[var(--radius-btn)] bg-white px-4 py-2.5 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
+            className="rounded-[var(--radius-btn)] bg-card px-4 py-2.5 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
           >
             + Evento
           </Link>
           <Link
             href="/shifts/new"
             data-tour="shifts-publish"
-            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
+            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-night shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
           >
             + Publicar
           </Link>
@@ -324,7 +324,7 @@ function MyShiftsPanel() {
           {eventGroups.map((event) => (
             <div
               key={event.eventId}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-line"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-line"
             >
               <p className="truncate text-sm font-semibold text-ink">{event.name}</p>
               <span

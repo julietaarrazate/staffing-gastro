@@ -340,7 +340,7 @@ function WorkerFeedPanel() {
             }`}
           >
             <span
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-card shadow transition-all ${
                 available ? "left-[22px]" : "left-0.5"
               }`}
             />
@@ -364,7 +364,7 @@ function WorkerFeedPanel() {
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente
         // activa: el origen ya no es "acá ahora"/perfil, es la zona pedida
         // — mostrar los dos juntos confundiría cuál manda.
-        <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <p className="text-sm text-ink/70">
             Turnos que buscaste en <span className="font-semibold text-ink">{assistantSearch.zoneName}</span>
           </p>
@@ -394,7 +394,7 @@ function WorkerFeedPanel() {
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
               urgentOnly
                 ? "bg-primary/10 text-primary-text ring-primary/30"
-                : "bg-white text-ink/60 ring-line hover:bg-surface"
+                : "bg-card text-ink/60 ring-line hover:bg-surface"
             }`}
           >
             <FlameIcon size={14} />

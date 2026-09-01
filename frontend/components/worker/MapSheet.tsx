@@ -73,7 +73,7 @@ export default function MapSheet({
       transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 340, damping: 34 }}
       onDragEnd={(_, info) => snapToClosest(offsetFor(snap) + info.offset.y)}
       style={{ height: panelHeight || "58%" }}
-      className="absolute inset-x-0 bottom-0 z-10 flex flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-white shadow-[0_-8px_30px_rgba(17,17,20,0.14)]"
+      className="absolute inset-x-0 bottom-0 z-10 flex flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-card shadow-[0_-8px_30px_rgba(17,17,20,0.14)]"
     >
       <button
         type="button"

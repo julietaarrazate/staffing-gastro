@@ -163,10 +163,11 @@ export default function IdentityVerificationCard() {
     <div className="p-4">
       {/* Encabezado con el estado actual */}
       <div className="flex items-start gap-3">
-        {/* Petróleo (ADR-0011), no naranja: esta card ES el caso de uso que
-            el token de trust existe para resolver — identidad verificada,
-            no una acción ni un estado genérico de éxito. */}
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-trust-tint text-trust-text">
+        {/* Celeste (cielo), no naranja ni petróleo: es el rol de
+            confianza/verificación de la identidad visual nueva (mockups
+            03/09), el mismo tinte que la insignia de perfil verificado. No es
+            una acción ni un estado de éxito genérico. */}
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cielo-tint text-cielo-text">
           <ShieldIcon size={18} />
         </span>
         <div className="min-w-0 flex-1">
