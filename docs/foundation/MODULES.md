@@ -35,10 +35,17 @@ El núcleo compartido está en `backend/app/core/` (ver [SECURITY.md](../referen
 | `chat` | `/chats` | Mensajería por turno en tiempo real | [CHAT.md](../reference/CHAT.md) |
 | `review` | `/reviews` | Reseñas bidireccionales | [REPUTATION.md](../reference/REPUTATION.md) |
 | `admin` | `/admin` | Métricas y moderación (sólo admin) | — |
+| `subscription` | `/subscription` | Plan del comercio, gating de capacidad (ADR-0005 Fase 1) | [PAYMENTS.md](../reference/PAYMENTS.md) |
+| `verification` | `/identity` | Verificación de identidad (DNI/selfie), cola de revisión admin | — |
+| `favorite` | `/favorites` | Comercios/trabajadores favoritos | — |
+| `saved_shift` | `/saved-shifts` | Turnos guardados por el trabajador | — |
+| `upload` | `/uploads` | Subida firmada de archivos (CV) a Cloudinary | — |
+| `assistant` | `/assistant` | Asistente con IA (Gemini): interpretar texto libre al publicar un turno | — |
+| `support` | `/support` | Canal de soporte/contacto | — |
 
-Todos se montan bajo `/api/v1` en `main.py`. No hay módulos `payment` ni `ai`:
-son **placeholders/pendientes** (ver [PAYMENTS.md](../reference/PAYMENTS.md) y
-[ARCHITECTURE.md](./ARCHITECTURE.md#estado-de-los-módulos)).
+Todos se montan bajo `/api/v1` en `main.py`. No hay módulo `payment` propio: el
+cobro real comercio→trabajador (ADR-0005 Fase 2) sigue sin construir, `mark-paid`
+es manual (ver [PAYMENTS.md](../reference/PAYMENTS.md)).
 
 ## Reglas de dependencia (intra-módulo)
 
