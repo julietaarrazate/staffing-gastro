@@ -185,7 +185,7 @@ export default function MapAddressPicker({
   return (
     <div className="flex flex-col gap-3">
       <div className="relative">
-        <div className="flex items-center gap-2 rounded-[var(--radius-input)] bg-white px-3.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-primary/40">
+        <div className="flex items-center gap-2 rounded-[var(--radius-input)] bg-card px-3.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-primary/40">
           <SearchIcon size={17} className="shrink-0 text-ink/40" />
           <input
             value={query}
@@ -214,7 +214,7 @@ export default function MapAddressPicker({
         </div>
 
         {query.trim().length >= 3 && status === "success" && results.length > 0 && (
-          <ul className="absolute z-10 mt-1.5 w-full overflow-hidden rounded-2xl bg-white py-1 shadow-[var(--shadow-float)] ring-1 ring-line">
+          <ul className="absolute z-10 mt-1.5 w-full overflow-hidden rounded-2xl bg-card py-1 shadow-[var(--shadow-float)] ring-1 ring-line">
             {results.map((result, idx) => (
               <li key={`${result.latitude}-${result.longitude}-${idx}`}>
                 <button
@@ -302,7 +302,7 @@ export default function MapAddressPicker({
         </MapView>
 
         {!pin && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/60 px-6 text-center text-sm font-medium text-ink/50">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/60 px-6 text-center text-sm font-medium text-night/50">
             Buscá tu dirección arriba para ubicar el local en el mapa
           </div>
         )}
@@ -338,7 +338,7 @@ export default function MapAddressPicker({
           className={cn(
             "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-60",
             justPickedFromSearch
-              ? "bg-primary text-ink hover:bg-primary/90"
+              ? "bg-primary text-night hover:bg-primary/90"
               : "bg-surface text-ink/70 hover:bg-line"
           )}
         >

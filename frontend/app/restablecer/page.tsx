@@ -53,7 +53,7 @@ function RestablecerForm() {
           Escribila dos veces para confirmar.
         </p>
 
-        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           {!token ? (
             <p className="text-sm text-danger-text">
               El enlace es inválido o le falta el token. Pedí uno nuevo desde{" "}

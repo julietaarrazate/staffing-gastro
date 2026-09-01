@@ -125,7 +125,13 @@ export default function Home() {
   if (user) return null;
 
   return (
-    <div className="overflow-x-clip">
+    // `data-theme="light"` fija el landing en claro SIEMPRE, sin importar el
+    // modo del sistema/usuario: es la página de marketing (pre-login), se
+    // diseñó y verificó sólo en claro, y las maquetas de modo oscuro son de la
+    // app autenticada, no del landing. El modo oscuro empieza adentro de la
+    // app (feed, perfil, panel, etc.). Los tokens cascadean, así que todo el
+    // subárbol del landing resuelve en claro aunque <html> esté en oscuro.
+    <div data-theme="light" className="overflow-x-clip bg-background">
       {/* Hero: papel cálido, un solo acento naranja */}
       <section className="bg-paper">
         <div className="mx-auto max-w-5xl px-4 pb-10 pt-14 sm:pt-20">
@@ -138,7 +144,7 @@ export default function Home() {
             // seleccionaban como texto de página al arrastrar el dedo.
             className="no-select text-center"
           >
-            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ink/60 ring-1 ring-line">
+            <span className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 text-xs font-bold text-ink/60 ring-1 ring-line">
               <span aria-hidden className="h-2 w-2 rounded-full bg-manteca" />
               Staffing gastronómico en Argentina
             </span>
@@ -165,7 +171,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/register?rol=trabajador"
-                className="rounded-[var(--radius-btn)] bg-white px-7 py-3.5 font-semibold text-ink ring-1 ring-line transition active:scale-95 hover:bg-surface"
+                className="rounded-[var(--radius-btn)] bg-card px-7 py-3.5 font-semibold text-ink ring-1 ring-line transition active:scale-95 hover:bg-surface"
               >
                 Quiero trabajar
               </Link>
@@ -225,7 +231,7 @@ export default function Home() {
                 <ParallaxCard range={PARALLAX_RANGES[i + 1]} className="h-full">
                   <motion.div
                     whileHover={{ y: -4 }}
-                    className="h-full rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:shadow-[var(--shadow-float)]"
+                    className="h-full rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:shadow-[var(--shadow-float)]"
                   >
                     <div
                       className={`flex h-12 w-12 items-center justify-center rounded-2xl ${f.accent ?? "bg-surface text-ink"}`}
@@ -258,7 +264,7 @@ export default function Home() {
             oscuro de abajo por contraste (clara vs. oscura), no por repetir
             el mismo tono oscuro. */}
         <Reveal className="mt-20">
-          <section className="no-select rounded-[var(--radius-card)] bg-white px-6 py-14 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <section className="no-select rounded-[var(--radius-card)] bg-card px-6 py-14 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
             {/* Celeste, no espresso: esta franja le habla al trabajador, y el
                 celeste es el token de confianza — el mismo que lleva su
                 insignia de perfil verificado adentro de la app. */}
@@ -294,7 +300,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-20 bg-ink py-10 text-white">
+      <footer className="mt-20 bg-night py-10 text-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 text-center">
           {/* `.no-select`: wordmark de marca, chrome, no texto de lectura.
               Antes decía literalmente "staffya" (nombre interno del

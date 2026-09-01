@@ -116,7 +116,7 @@ export default function SupportPage() {
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="block rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
+              className="block rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate font-semibold text-ink">{t.subject}</p>
@@ -137,7 +137,7 @@ export default function SupportPage() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as TicketCategory)}
-              className="min-h-[48px] w-full rounded-[var(--radius-input)] bg-white px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
+              className="min-h-[48px] w-full rounded-[var(--radius-input)] bg-card px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -165,7 +165,7 @@ export default function SupportPage() {
               maxLength={2000}
               required
               rows={5}
-              className="w-full rounded-[var(--radius-input)] bg-white px-4 py-3 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-[var(--radius-input)] bg-card px-4 py-3 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
             />
           </label>
 

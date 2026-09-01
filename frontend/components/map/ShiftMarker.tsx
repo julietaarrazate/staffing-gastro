@@ -69,14 +69,14 @@ function ShiftMarker({
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-white shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
+          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-card shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
             active ? "scale-[1.25]" : "scale-100"
           }`}
         >
           {active && (
             <>
               <span className="absolute -inset-2 rounded-full border-2 border-primary [animation:markerHalo_1.6s_ease-out_infinite]" />
-              <span className="absolute -bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-white shadow-[2px_2px_4px_rgba(17,17,20,0.12)]" />
+              <span className="absolute -bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-card shadow-[2px_2px_4px_rgba(17,17,20,0.12)]" />
             </>
           )}
           <Icon size={19} strokeWidth={2.4} className={fg} />

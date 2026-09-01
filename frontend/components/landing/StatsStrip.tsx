@@ -60,7 +60,7 @@ function Counter({ value, suffix = "" }: { value: number; suffix?: string }) {
 export default function StatsStrip() {
   return (
     <section className="no-select mt-20 sm:mt-24">
-      <div className="grid grid-cols-1 gap-8 rounded-[var(--radius-card)] bg-white p-8 shadow-[var(--shadow-soft)] ring-1 ring-line sm:grid-cols-2 sm:gap-6 sm:p-10">
+      <div className="grid grid-cols-1 gap-8 rounded-[var(--radius-card)] bg-card p-8 shadow-[var(--shadow-soft)] ring-1 ring-line sm:grid-cols-2 sm:gap-6 sm:p-10">
         {STATS.map((s, i) => (
           <div key={s.label} className="text-center">
             {/* El segundo dato va en cielo-text, no en naranja: son dos hechos

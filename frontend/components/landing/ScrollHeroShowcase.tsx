@@ -209,7 +209,7 @@ export default function ScrollHeroShowcase() {
       >
         <div className="relative mx-auto h-[560px] w-[320px] select-none sm:h-[600px] sm:w-[340px]">
           {/* Chasis del teléfono */}
-          <div className="absolute inset-x-0 top-0 h-[500px] rounded-[3rem] bg-ink p-2.5 shadow-2xl sm:h-[536px]">
+          <div className="absolute inset-x-0 top-0 h-[500px] rounded-[3rem] bg-night p-2.5 shadow-2xl sm:h-[536px]">
             <div className="relative h-full w-full overflow-hidden rounded-[2.4rem] bg-paper">
               <div className="absolute left-1/2 top-3 z-10 h-1.5 w-14 -translate-x-1/2 rounded-full bg-ink/15" />
               <div className="px-6 pt-11">

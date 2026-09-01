@@ -146,8 +146,8 @@ export default function ConversationPage() {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
                   mine
-                    ? "rounded-br-sm bg-primary text-ink"
-                    : "rounded-bl-sm bg-white text-ink/80 ring-1 ring-line"
+                    ? "rounded-br-sm bg-primary text-night"
+                    : "rounded-bl-sm bg-card text-ink/80 ring-1 ring-line"
                 }`}
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
@@ -201,7 +201,7 @@ export default function ConversationPage() {
         <button
           type="submit"
           disabled={sending || !draft.trim()}
-          className="flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-sm font-semibold text-ink hover:bg-primary-strong disabled:opacity-50"
+          className="flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:opacity-50"
         >
           Enviar
         </button>

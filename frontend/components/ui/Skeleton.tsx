@@ -21,7 +21,7 @@ export function CardSkeletons({ count = 3 }: { count?: number }) {
 /** Skeleton de una tarjeta grande tipo turno/oportunidad. */
 export function CardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+    <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
       <Skeleton className="h-40 rounded-none" />
       <div className="space-y-3 p-5">
         <Skeleton className="h-5 w-2/3" />

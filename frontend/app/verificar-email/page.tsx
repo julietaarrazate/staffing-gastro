@@ -50,7 +50,7 @@ function VerificarEmailContent() {
           Confirmá tu email
         </h1>
 
-        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           {status === "verifying" && (
             <p className="text-center text-sm text-ink/60">Confirmando tu email…</p>
           )}

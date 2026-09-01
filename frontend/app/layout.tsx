@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { PushPromptProvider } from "@/lib/push-prompt-context";
 import { ToastProvider } from "@/components/ui";
 import SplashScreen from "@/components/SplashScreen";
@@ -81,12 +82,11 @@ export const viewport: Viewport = {
   // que iOS reporte los insets del notch/indicador (lo que ya consumen
   // `BottomNav`, `Sheet` y las utilidades `.safe-*` de globals.css).
   viewportFit: "cover",
-  // La app sólo diseña modo claro (fuera de alcance implementar dark mode
-  // real, ver docs/planning/PULIDO_ROADMAP.md batch C0 #1). Sin esto, el auto-dark de
-  // Chrome Android puede invertir los colores de la página creyendo que no
-  // declaramos ningún esquema soportado. `color-scheme: light` ya estaba en
-  // `globals.css`; esto lo refuerza a nivel de metadata del layout raíz.
-  colorScheme: "light",
+  // La app ahora soporta claro / oscuro / sistema (ver lib/theme.tsx +
+  // globals.css). Declaramos ambos esquemas para que el navegador respete
+  // nuestro theming en vez de auto-invertir; el modo concreto lo fija
+  // `data-theme` en <html> y los tokens de globals.css.
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -100,22 +100,28 @@ export default function RootLayout({
       className={`${inter.variable} ${fraunces.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
-        <AuthProvider>
-          <ToastProvider>
-            <PushPromptProvider>
-              <SplashScreen />
-              <ImpersonationBanner />
-              <Navbar />
-              {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no
-                  quiero botones flotantes") — el asistente vive en
-                  AIAssistantBar, el punto de entrada fijo de /shifts
-                  (comercio) y /feed (trabajador), no en una cápsula suelta
-                  sobre el resto de las pantallas. */}
-              <main className="flex-1 pb-20 md:pb-0">{children}</main>
-              <BottomNav />
-            </PushPromptProvider>
-          </ToastProvider>
-        </AuthProvider>
+        {/* Anti-flash: fija data-theme antes del primer paint según la
+            preferencia guardada, para que la app no salga en claro y salte a
+            oscuro al hidratar. Ver lib/theme.tsx. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <ThemeProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <PushPromptProvider>
+                <SplashScreen />
+                <ImpersonationBanner />
+                <Navbar />
+                {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no
+                    quiero botones flotantes") — el asistente vive en
+                    AIAssistantBar, el punto de entrada fijo de /shifts
+                    (comercio) y /feed (trabajador), no en una cápsula suelta
+                    sobre el resto de las pantallas. */}
+                <main className="flex-1 pb-20 md:pb-0">{children}</main>
+                <BottomNav />
+              </PushPromptProvider>
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

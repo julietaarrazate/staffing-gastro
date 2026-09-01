@@ -23,7 +23,7 @@ function timeAgo(iso: string): string {
 
 function ConversationRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+    <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
       <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-1/2" />
@@ -72,7 +72,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
   return (
     <div className="mx-auto flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-6xl overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
       <aside
-        className={`w-full shrink-0 flex-col overflow-y-auto border-r border-line bg-white md:flex md:max-w-[380px] ${
+        className={`w-full shrink-0 flex-col overflow-y-auto border-r border-line bg-card md:flex md:max-w-[380px] ${
           isIndex ? "flex" : "hidden"
         }`}
       >
@@ -113,7 +113,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                 className={`flex items-center gap-3 rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-soft)] ring-1 transition hover:shadow-md ${
                   c.shift_id === activeShiftId
                     ? "bg-orange-50 ring-primary/40"
-                    : "bg-white ring-line"
+                    : "bg-card ring-line"
                 }`}
               >
                 {c.other_party_photo ? (
@@ -140,7 +140,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                   <p className="truncate text-sm text-ink/60">{c.last_message}</p>
                 </div>
                 {c.unread_count > 0 && (
-                  <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-ink">
+                  <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-night">
                     {c.unread_count}
                   </span>
                 )}

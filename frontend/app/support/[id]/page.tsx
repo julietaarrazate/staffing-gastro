@@ -140,7 +140,7 @@ export default function SupportTicketPage() {
               className={`max-w-[85%] rounded-[var(--radius-card)] px-4 py-2.5 text-sm ${
                 isMine
                   ? "ml-auto bg-primary/10 text-ink"
-                  : "bg-white text-ink ring-1 ring-line"
+                  : "bg-card text-ink ring-1 ring-line"
               }`}
             >
               <p className="mb-0.5 text-xs font-semibold text-ink/40">
@@ -185,7 +185,7 @@ export default function SupportTicketPage() {
             placeholder="Escribí tu respuesta..."
             maxLength={2000}
             rows={3}
-            className="w-full rounded-[var(--radius-input)] bg-white px-4 py-3 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-[var(--radius-input)] bg-card px-4 py-3 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
           />
           <div className="flex gap-2">
             <Button type="submit" loading={sending} disabled={!reply.trim()}>

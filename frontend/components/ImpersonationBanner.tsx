@@ -23,7 +23,7 @@ export default function ImpersonationBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center justify-between gap-3 bg-ink px-4 py-2 text-sm text-white"
+      className="flex items-center justify-between gap-3 bg-night px-4 py-2 text-sm text-white"
     >
       <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
         <EyeIcon size={15} className="shrink-0" />

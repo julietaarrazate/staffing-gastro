@@ -62,7 +62,7 @@ export default function ShiftPublishedNextSteps({
               <span
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  i === 0 ? "bg-primary text-ink" : "bg-orange-50 text-primary-text"
+                  i === 0 ? "bg-primary text-night" : "bg-orange-50 text-primary-text"
                 )}
               >
                 {i + 1}

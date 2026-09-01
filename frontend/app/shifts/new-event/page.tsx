@@ -219,7 +219,7 @@ function NewEventForm() {
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </label>
           <label className="flex flex-col gap-1.5">
@@ -228,7 +228,7 @@ function NewEventForm() {
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </label>
         </div>
@@ -279,7 +279,7 @@ function NewEventForm() {
                   <select
                     value={role.position}
                     onChange={(e) => updateRole(role.key, { position: e.target.value as WorkerSkill })}
-                    className="min-h-[44px] flex-1 rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     {WORKER_SKILLS.map((skill) => (
                       <option key={skill} value={skill}>
@@ -312,7 +312,7 @@ function NewEventForm() {
                       min={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
@@ -324,7 +324,7 @@ function NewEventForm() {
                       placeholder="15000"
                       value={role.payAmount}
                       onChange={(e) => updateRole(role.key, { payAmount: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-white px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                 </div>

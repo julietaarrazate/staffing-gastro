@@ -382,7 +382,7 @@ function NewShiftWizard() {
                       rows={2}
                       maxLength={500}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
-                      className={`w-full resize-none rounded-2xl bg-white px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
+                      className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
                         speechSupported ? "pr-10" : ""
                       }`}
                     />
@@ -441,7 +441,7 @@ function NewShiftWizard() {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setPosition(skill)}
                         className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
-                          active ? "bg-orange-50 ring-primary" : "bg-white ring-line"
+                          active ? "bg-orange-50 ring-primary" : "bg-card ring-line"
                         }`}
                       >
                         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} ${fg}`}>
@@ -494,7 +494,7 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1.5">
@@ -503,7 +503,7 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={endAt}
                       onChange={(e) => setEndAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                 </div>
@@ -534,7 +534,7 @@ function NewShiftWizard() {
                 <p className="mt-1 text-sm text-ink/50">
                   Pago por la jornada completa, por persona (no por hora).
                 </p>
-                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40">
+                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
                   <span className="text-2xl font-bold text-ink/40">$</span>
                   <input
                     type="number"
@@ -691,7 +691,7 @@ function PreviewRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-ink/50 ring-1 ring-line">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card text-ink/50 ring-1 ring-line">
         {icon}
       </span>
       <div className="min-w-0">
@@ -772,7 +772,7 @@ function WizardPreview({
         </div>
 
         {dressCode && (
-          <p className="mt-5 rounded-2xl bg-white px-3.5 py-2.5 text-sm text-ink/70 ring-1 ring-line">
+          <p className="mt-5 rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink/70 ring-1 ring-line">
             Dress code: {dressCode}
           </p>
         )}

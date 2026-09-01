@@ -84,7 +84,7 @@ export default function AdminSupportPage() {
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="block rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
+              className="block rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate font-semibold text-ink">{t.subject}</p>

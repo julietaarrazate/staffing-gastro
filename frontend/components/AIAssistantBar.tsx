@@ -29,7 +29,7 @@ export default function AIAssistantBar() {
     <button
       type="button"
       onClick={() => router.push("/assistant")}
-      className="flex w-full items-center gap-3 rounded-full bg-white px-4 py-3.5 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+      className="flex w-full items-center gap-3 rounded-full bg-card px-4 py-3.5 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
         <LogoGlyph size={16} color="#fff" />

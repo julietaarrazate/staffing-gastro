@@ -74,7 +74,7 @@ export default function FavoritesPage() {
           {favorites.map((f) => (
             <div
               key={f.worker_profile_id}
-              className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+              className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
             >
               <Link href={`/workers/${f.worker_profile_id}`}>
                 <Avatar src={f.photo_url} name={f.full_name} size="lg" />

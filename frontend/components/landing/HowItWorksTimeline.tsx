@@ -31,7 +31,7 @@ const STEPS: Step[] = [
     Icon: ShieldIcon,
     title: "Listo, turno cubierto",
     text: "El trabajador confirma, hace check-in con ubicación y coordinan por chat.",
-    accent: "bg-white text-primary-text",
+    accent: "bg-card text-primary-text",
   },
 ];
 

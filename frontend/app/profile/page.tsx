@@ -9,6 +9,7 @@ import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
+import AppearanceControl from "@/components/AppearanceControl";
 import { Skeleton } from "@/components/ui";
 import {
   ChevronRightIcon,
@@ -102,7 +103,7 @@ export default function ProfilePage() {
           {user.role === "worker" ? (
             <WorkerGameCard />
           ) : (
-            <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xl font-bold text-primary-text">
                 {user.full_name.charAt(0).toUpperCase()}
               </div>
@@ -124,7 +125,7 @@ export default function ProfilePage() {
           {user.role !== "admin" && (
             <div className="mt-7">
               <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
                 {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
               </div>
             </div>
@@ -135,7 +136,7 @@ export default function ProfilePage() {
           {user.role === "employer" && (
             <div className="mt-7 lg:mt-0">
               <SectionLabel>Suscripción</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <div className="mt-2 rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
                 <Row
                   icon={<CreditCardIcon size={18} />}
                   onClick={() => router.push("/subscription")}
@@ -155,7 +156,7 @@ export default function ProfilePage() {
           {user.role === "worker" && (
             <div className="mt-7 lg:mt-0">
               <SectionLabel>Identidad</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <div className="mt-2 rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
                 <IdentityVerificationCard />
               </div>
             </div>
@@ -164,11 +165,18 @@ export default function ProfilePage() {
           {user.role !== "admin" && (
             <div className="mt-7">
               <SectionLabel>Reseñas recibidas</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+              <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
                 <ReceivedReviews />
               </div>
             </div>
           )}
+
+          <div className="mt-7">
+            <SectionLabel>Apariencia</SectionLabel>
+            <div className="mt-2">
+              <AppearanceControl />
+            </div>
+          </div>
 
           <div className="mt-7">
             <SectionLabel>Otros</SectionLabel>
@@ -182,7 +190,7 @@ export default function ProfilePage() {
                 acá; el estado de verificación del trabajador ya es visible como
                 insignia "Perfil Verificado" en `WorkerGameCard` (ver
                 `lib/reputation.tsx`) cuando corresponde. */}
-            <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
               <PushToggle />
               {/* `/support` es "mis tickets" (GET /support/tickets/mine) — para un
                   admin eso es casi siempre una lista vacía, porque los tickets que

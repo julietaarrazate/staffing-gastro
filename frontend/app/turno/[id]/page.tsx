@@ -86,7 +86,7 @@ export default async function PublicShiftPage({
 
   return (
     <div className="mx-auto max-w-md px-4 pb-10 pt-8">
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] ring-1 ring-line">
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
         <div className="px-5 pb-5 pt-5">
           <div className="flex items-center gap-3">
             <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${bg} ${fg}`}>
@@ -126,7 +126,7 @@ export default async function PublicShiftPage({
               no hacerlo elegir de más y no perderlo en la pestaña equivocada. */}
           <Link
             href="/register?rol=trabajador"
-            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-[var(--radius-btn)] bg-primary px-6 text-base font-bold text-ink shadow-[0_8px_20px_rgba(249,115,22,0.28)] transition active:scale-[0.98]"
+            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-[var(--radius-btn)] bg-primary px-6 text-base font-bold text-night shadow-[0_8px_20px_rgba(249,115,22,0.28)] transition active:scale-[0.98]"
           >
             Postulate en Oído
           </Link>

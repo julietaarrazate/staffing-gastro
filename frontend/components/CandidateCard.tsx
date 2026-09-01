@@ -29,12 +29,12 @@ export default function CandidateCard({
     // `.no-select`: tarjeta de chrome (rating, chips) — mismo criterio C0 #2
     // que ShiftCard (docs/planning/PULIDO_ROADMAP.md fix 2).
     <div
-      className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-soft)] transition active:scale-[0.99] ${
+      className={`no-select overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] transition active:scale-[0.99] ${
         recommended ? "ring-2 ring-primary" : "ring-1 ring-line"
       }`}
     >
       {recommended && (
-        <div className="flex items-center gap-1.5 bg-primary px-5 py-2 text-xs font-extrabold uppercase tracking-wide text-ink">
+        <div className="flex items-center gap-1.5 bg-primary px-5 py-2 text-xs font-extrabold uppercase tracking-wide text-night">
           <BoltIcon size={14} /> Recomendado por Oído
         </div>
       )}

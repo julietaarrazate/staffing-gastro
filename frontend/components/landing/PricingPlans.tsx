@@ -60,7 +60,7 @@ export default function PricingPlans() {
           return (
             <Reveal key={plan.code} delay={i * 0.06}>
               <div
-                className={`flex h-full flex-col rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] transition ${
+                className={`flex h-full flex-col rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] transition ${
                   recommended ? "ring-2 ring-primary" : "ring-1 ring-line"
                 }`}
               >

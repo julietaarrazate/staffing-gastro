@@ -40,7 +40,7 @@ export default function PrivacidadPage() {
           <Logo size={28} withWordmark={false} />
         </div>
 
-        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             Política de Privacidad
           </h1>
@@ -48,7 +48,7 @@ export default function PrivacidadPage() {
 
           {/* Destacado: principio no-negociable, un solo acento naranja */}
           <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3.5 ring-1 ring-primary/20">
-            <span className="inline-flex shrink-0 items-center rounded-full bg-primary px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-ink">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-primary px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-night">
               Promesa
             </span>
             <p className="text-sm font-bold text-ink">

@@ -145,7 +145,7 @@ function AssistantChatShell({
           // El ícono usa Espresso (ADR-0011, "momento de marca") en vez de
           // naranja — distingue esta tarjeta de bienvenida de los globos de
           // chat de abajo, que sí son naranja/superficie.
-          <div className="flex flex-col items-center gap-2 rounded-2xl bg-white px-4 py-8 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="flex flex-col items-center gap-2 rounded-2xl bg-card px-4 py-8 text-center shadow-[var(--shadow-soft)] ring-1 ring-line">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-structure)]">
               <LogoGlyph size={18} color="#fff" />
             </span>
@@ -154,7 +154,7 @@ function AssistantChatShell({
         ) : (
           history.map((entry) => (
             <div key={entry.id} className="space-y-1.5">
-              <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-md bg-primary px-3.5 py-2 text-sm text-ink">
+              <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-md bg-primary px-3.5 py-2 text-sm text-night">
                 {entry.question}
               </p>
               <div className="mr-auto w-fit max-w-[85%] rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5">
@@ -199,7 +199,7 @@ function AssistantChatShell({
               className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full transition ${
                 listening
                   ? "animate-pulse bg-danger text-white"
-                  : "bg-white text-ink/50 ring-1 ring-line"
+                  : "bg-card text-ink/50 ring-1 ring-line"
               }`}
             >
               {listening ? <MicOffIcon size={14} /> : <MicIcon size={14} />}

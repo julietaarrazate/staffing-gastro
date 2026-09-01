@@ -25,7 +25,7 @@ export default function Toggle({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-line outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      className="flex items-center justify-between rounded-2xl bg-card px-4 py-3 ring-1 ring-line outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
       <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink/80">
         {icon} {label}
@@ -34,7 +34,7 @@ export default function Toggle({
         className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-success" : "bg-line"}`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`}
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`}
         />
       </span>
     </button>

@@ -61,7 +61,7 @@ function RegisterForm() {
           Empezá a cubrir o conseguir turnos en minutos.
         </p>
 
-        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <SegmentedControl
             options={[
               { value: "worker", label: "Soy trabajador/a" },

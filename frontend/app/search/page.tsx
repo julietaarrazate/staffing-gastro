@@ -16,7 +16,7 @@ import BottomSheet from "@/components/BottomSheet";
 
 function WorkerRowSkeleton() {
   return (
-    <div className="flex gap-3 rounded-[var(--radius-card)] bg-white p-4 shadow-[var(--shadow-soft)] ring-1 ring-line" aria-hidden>
+    <div className="flex gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line" aria-hidden>
       <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-2/3" />
@@ -116,11 +116,11 @@ function SearchPageContent() {
   }, [token, center]);
 
   const filterControls = (
-    <div className="flex items-center gap-2 rounded-full bg-white/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-white md:shadow-none md:ring-line">
+    <div className="flex items-center gap-2 rounded-full bg-white/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
-        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-white focus:ring-orange-300"
+        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-orange-300"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
@@ -136,7 +136,7 @@ function SearchPageContent() {
         value={radiusKm}
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
-        className="w-14 rounded-full bg-surface px-2 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-white focus:ring-orange-300"
+        className="w-14 rounded-full bg-surface px-2 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-orange-300"
       />
       <button
         onClick={search}
@@ -187,7 +187,7 @@ function SearchPageContent() {
                 // trae su propio color de `SKILL_HERO_GRADIENT` (bartender
                 // terracota, barista ámbar, cajero verde...), la misma tabla
                 // que ya usan la landing, el mazo y las listas de turnos.
-                className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-white p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
+                className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-card p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
                   worker.skills.length > 0
                     ? SKILL_RAIL_BORDER[worker.skills[0]]
                     : "border-l-line"
@@ -251,7 +251,7 @@ function SearchPageContent() {
           vive en el BottomSheet. Antes el sheet mobile se estiraba tal cual a
           la web y dejaba media pantalla vacía (mismo patrón que tenía /map,
           ver docs/STATUS.md). En mobile no se renderiza (hidden). */}
-      <aside className="hidden w-full max-w-[400px] shrink-0 flex-col overflow-hidden border-r border-line bg-white md:flex">
+      <aside className="hidden w-full max-w-[400px] shrink-0 flex-col overflow-hidden border-r border-line bg-card md:flex">
         <div className="border-b border-line px-4 py-3">
           {filterControls}
           {error && (

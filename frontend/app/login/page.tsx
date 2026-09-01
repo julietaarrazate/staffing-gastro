@@ -88,7 +88,7 @@ function LoginForm() {
           </p>
         )}
 
-        <div className="mt-6 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <TextField
               type="email"
@@ -121,7 +121,7 @@ function LoginForm() {
           <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
         </div>
 
-        <div className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-ink/40">
             Explorar sin cuenta
           </p>

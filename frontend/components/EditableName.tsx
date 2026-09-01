@@ -65,7 +65,7 @@ export default function EditableName({ className = "" }: { className?: string })
           onChange={(e) => setValue(e.target.value)}
           maxLength={255}
           disabled={saving}
-          className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2 py-1 text-ink outline-none focus:border-primary disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-card px-2 py-1 text-ink outline-none focus:border-primary disabled:opacity-60"
         />
         <button
           type="submit"
