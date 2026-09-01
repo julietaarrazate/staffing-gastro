@@ -113,13 +113,29 @@ def _shell(
 </html>"""
 
 
-def _step_box(number: int, title: str, description: str, *, optional: bool = False) -> str:
+def _step_box(
+    number: int,
+    title: str,
+    description: str,
+    *,
+    accent: str | None = None,
+    optional: bool = False,
+) -> str:
+    """`accent` distingue cada paso del onboarding real (manteca = dato,
+    celeste = confianza/ubicación — mismo rol que en la landing y el
+    onboarding, ADR-0011) en vez de que los tres cayeran en el mismo fondo
+    arena de siempre. El número sigue naranja: no es un acento nuevo, ya lo
+    era antes de este cambio."""
+    bg, border = {
+        "manteca": ("#fbf3c9", "transparent"),
+        "cielo": ("#e8f1ff", "transparent"),
+    }.get(accent or "", ("#fbf2e6", "#ebe2d4"))
     optional_span = (
         ' <span style="text-transform:none;font-weight:500;color:#8a8378;">(opcional)</span>'
         if optional
         else ""
     )
-    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fbf2e6;border:1px solid #ebe2d4;border-radius:16px;margin-bottom:12px;">
+    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{bg};border:1px solid {border};border-radius:16px;margin-bottom:12px;">
   <tr><td style="padding:16px 18px;">
     <table role="presentation" cellpadding="0" cellspacing="0"><tr>
       <td valign="top" style="padding-right:12px;width:26px;">
@@ -148,8 +164,8 @@ def render_welcome_worker_email_html(full_name: str, profile_link: str) -> str:
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Hola {full_name},</p>
     <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Gracias por sumarte. Estos son tus próximos pasos para que te empiecen a llegar turnos:</p>
-    {_step_box(1, "Tu zona", "Decinos en qué barrio o zona estás para mostrarte turnos cerca tuyo primero.")}
-    {_step_box(2, "Tu oficio", "Elegí en qué rubro trabajás — mozo, cocinero, bartender, cadete. Podés sumar más de uno.")}
+    {_step_box(1, "Tu zona", "Decinos en qué barrio o zona estás para mostrarte turnos cerca tuyo primero.", accent="manteca")}
+    {_step_box(2, "Tu oficio", "Elegí en qué rubro trabajás — mozo, cocinero, bartender, cadete. Podés sumar más de uno.", accent="cielo")}
     {_step_box(3, "Contanos más", "Sumá una foto y tus años de experiencia. No es obligatorio, pero los comercios confían más en un perfil completo.", optional=True)}
     <p style="margin:18px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#4a4640;">Con eso ya podés ver los turnos disponibles en tu zona y postularte con un toque.</p>
     {_cta_button("Completar mi perfil", profile_link)}
@@ -175,8 +191,8 @@ def render_welcome_employer_email_html(full_name: str, profile_link: str) -> str
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Hola {full_name},</p>
     <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Gracias por sumar tu local. Con estos dos pasos ya podés publicar tu primer turno:</p>
-    {_step_box(1, "Nombre de tu local", 'Así te van a ver los trabajadores cuando publiques un turno — nada de "Un comercio cerca tuyo".')}
-    {_step_box(2, "Ubicación", "Para que el feed le muestre tu turno a los trabajadores cerca tuyo primero.")}
+    {_step_box(1, "Nombre de tu local", 'Así te van a ver los trabajadores cuando publiques un turno — nada de "Un comercio cerca tuyo".', accent="manteca")}
+    {_step_box(2, "Ubicación", "Para que el feed le muestre tu turno a los trabajadores cerca tuyo primero.", accent="cielo")}
     <p style="margin:18px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#4a4640;">Con eso ya podés publicar tu primer turno — contale a nuestro asistente qué necesitás en una frase ("un mozo para el sábado a la noche, pago 45 mil") y te lo arma solo.</p>
     {_cta_button("Completar mi perfil", profile_link)}
     <p style="margin:24px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1f1f1c;">Cualquier duda, respondé este mail.</p>
