@@ -80,9 +80,9 @@ test("el perfil del trabajador muestra ganancias totales y del mes", async ({ pa
 
   await page.goto("/profile");
 
-  await expect(page.getByText("Ganancias totales")).toBeVisible();
-  await expect(page.getByText("ARS 245.000")).toBeVisible();
-  await expect(page.getByText("ARS 80.000")).toBeVisible();
+  await expect(page.getByText("Ganado este mes")).toBeVisible();
+  await expect(page.getByText("80.000")).toBeVisible();
+  await expect(page.getByText("245.000")).toBeVisible();
 });
 
 test("sin ganancias todavía, el perfil se ve completo igual (el bloque no rompe nada)", async ({
@@ -121,5 +121,5 @@ test("sin ganancias todavía, el perfil se ve completo igual (el bloque no rompe
   await page.goto("/profile");
 
   await expect(page.getByText("Nivel Bronce").first()).toBeVisible();
-  await expect(page.getByText("Ganancias totales")).toHaveCount(0);
+  await expect(page.getByText("Ganado este mes")).toHaveCount(0);
 });
