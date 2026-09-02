@@ -195,7 +195,7 @@ export default function AdminPage() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <ShieldIcon size={22} className="text-primary-text" />
-          <h1 className="font-display text-2xl font-semibold text-ink">Panel de administración</h1>
+          <h1 className="font-display text-h1 font-semibold text-ink">Panel de administración</h1>
         </div>
         <button
           type="button"

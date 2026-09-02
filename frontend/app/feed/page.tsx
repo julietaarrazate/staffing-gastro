@@ -323,7 +323,7 @@ function WorkerFeedPanel() {
         <div className="flex items-center gap-3">
           <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="md" />
           <div>
-            <h1 className="font-display text-2xl font-semibold leading-tight text-ink">
+            <h1 className="font-display text-h1 font-semibold text-ink">
               {firstName ? `Hola, ${firstName}` : "Hola"}
             </h1>
           </div>

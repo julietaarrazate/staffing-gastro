@@ -86,7 +86,7 @@ export default function SupportPage() {
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-4xl">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Soporte</h1>
+          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Soporte</h1>
           <p className="mt-0.5 text-sm text-ink/50">
             ¿Algún problema con la app? Contanos y te respondemos por acá.
           </p>

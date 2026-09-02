@@ -77,7 +77,7 @@ function LoginForm() {
         <div className="flex justify-center">
           <Logo size={48} withWordmark={false} />
         </div>
-        <h1 className="mt-4 text-center font-display text-2xl font-semibold tracking-tight text-ink">Ingresar</h1>
+        <h1 className="mt-4 text-center font-display text-h1 font-semibold tracking-tight text-ink">Ingresar</h1>
         <p className="mt-1 text-center text-sm text-ink/50">
           Entrá para ver tus turnos y mensajes.
         </p>

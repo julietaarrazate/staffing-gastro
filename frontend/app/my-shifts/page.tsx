@@ -254,7 +254,7 @@ export default function MatchesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Matches</h1>
+      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Matches</h1>
       <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados, postulaciones y guardados.</p>
 
       <div className="mt-4 -mx-4 overflow-x-auto px-4 no-scrollbar">

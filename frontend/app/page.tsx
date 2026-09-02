@@ -204,7 +204,7 @@ export default function Home() {
             chrome de vitrina, no contenido de lectura. */}
         <section className="no-select mt-20">
           <Reveal>
-            <h2 className="text-center font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            <h2 className="text-center font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
               Todo lo que necesitás para resolver el staffing
             </h2>
           </Reveal>
@@ -271,7 +271,7 @@ export default function Home() {
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-cielo text-cielo-text">
               <BriefcaseIcon size={22} />
             </span>
-            <h2 className="mt-5 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            <h2 className="mt-5 font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
               ¿Trabajás en gastronomía? Elegí tus turnos.
             </h2>
             <p className="mx-auto mt-2 max-w-md text-ink/60">

@@ -46,7 +46,7 @@ function RestablecerForm() {
         <div className="flex justify-center">
           <Logo size={48} withWordmark={false} />
         </div>
-        <h1 className="mt-4 text-center font-display text-2xl font-semibold text-ink">
+        <h1 className="mt-4 text-center font-display text-h1 font-semibold text-ink">
           Elegí una nueva contraseña
         </h1>
         <p className="mt-1 text-center text-sm text-ink/50">

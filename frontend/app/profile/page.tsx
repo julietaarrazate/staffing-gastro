@@ -90,7 +90,7 @@ export default function ProfilePage() {
           lectores de pantalla) en una de las pantallas más usadas de la
           app. Mismo patrón visual que el resto de las pantallas (`/shifts`,
           `/feed`, etc.). */}
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Perfil</h1>
+      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Perfil</h1>
       {/* En lg+ el formulario principal queda en una columna angosta y
           legible (ensanchar los inputs a todo el ancho se ve mal, mismo
           criterio que /my-shifts al no forzar una altura pareja en
