@@ -116,7 +116,16 @@ export default function RootLayout({
                     AIAssistantBar, el punto de entrada fijo de /shifts
                     (comercio) y /feed (trabajador), no en una cápsula suelta
                     sobre el resto de las pantallas. */}
-                <main className="flex-1 pb-20 md:pb-0">{children}</main>
+                {/* `pb-[var(--chrome-bottom)]`, no `pb-20`: BottomNav le suma su
+                    propio `env(safe-area-inset-bottom)` a los 80px base (mismo
+                    token `--chrome-bottom` que ya usan las páginas con
+                    `min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))]`)
+                    — con el `pb-20` fijo, el contenido con scroll quedaba corto
+                    en un iPhone con home indicator y el final se tapaba
+                    parcialmente detrás de la barra. Donde el inset vale 0 (todo
+                    dispositivo sin notch, y cualquier entorno de test) el
+                    cálculo da exactamente 5rem = 80px, igual que antes. */}
+                <main className="flex-1 pb-[var(--chrome-bottom)] md:pb-0">{children}</main>
                 <BottomNav />
               </PushPromptProvider>
             </ToastProvider>
