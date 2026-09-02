@@ -8,13 +8,13 @@ import { MOTION_UI } from "@/lib/motion";
  * trabajador, pago a tiempo del comercio) — no un stat tile de texto
  * plano. El relleno lleva la severidad (Ley de marca: verde/rojo sólo de
  * estado, nunca decorativo); el track sin llenar es un escalón más claro
- * de la MISMA rampa (orange-50 bajo naranja, etc.), para que el estado se
- * lea en la barra entera, no sólo en el número.
+ * de la MISMA rampa (el tinte bajo su color sólido, tokens `-tint`), para
+ * que el estado se lea en la barra entera, no sólo en el número.
  */
 const SEVERITY = {
-  good: { fill: "bg-success", track: "bg-green-50", text: "text-success-text" },
-  ok: { fill: "bg-primary", track: "bg-orange-50", text: "text-primary-text" },
-  low: { fill: "bg-danger", track: "bg-red-50", text: "text-danger-text" },
+  good: { fill: "bg-success", track: "bg-success-tint", text: "text-success-text" },
+  ok: { fill: "bg-primary", track: "bg-primary-tint", text: "text-primary-text" },
+  low: { fill: "bg-danger", track: "bg-danger-tint", text: "text-danger-text" },
   // Sin historial: el backend guarda 0.0 por default (ver
   // `worker/infrastructure/models.py`/`company/infrastructure/models.py`),
   // que NO es "mal desempeño" — es "todavía no hay datos". Mostrarlo en

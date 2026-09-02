@@ -1,14 +1,18 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Tone = "primary" | "secondary" | "danger" | "neutral" | "info" | "trust";
+type Tone = "primary" | "secondary" | "danger" | "neutral" | "trust";
 
 const TONES: Record<Tone, string> = {
-  primary: "bg-orange-50 text-primary-text",
-  secondary: "bg-green-50 text-success-text",
-  danger: "bg-red-50 text-danger-text",
+  // Tokens de tinte (rediseño 2026-09), no `bg-orange-50`/`bg-green-50`/
+  // `bg-red-50` de Tailwind directo — mismos valores exactos, cero cambio
+  // visual, pero ahora pasan por el sistema (ver ShiftCard.tsx, mismo
+  // criterio). `info` (azul crudo, fuera de la paleta de ADR-0011) se sacó:
+  // no tenía ningún uso real en la app.
+  primary: "bg-primary-tint text-primary-text",
+  secondary: "bg-success-tint text-success-text",
+  danger: "bg-danger-tint text-danger-text",
   neutral: "bg-surface text-ink/70",
-  info: "bg-blue-50 text-blue-700",
   // Identidad/confianza verificada — nunca estado ni reputación (ADR-0010
   // §5, ADR-0011). No reusar para nada que no sea una verificación de
   // identidad real. Color: CELESTE (cielo), no petróleo — es el rol de
