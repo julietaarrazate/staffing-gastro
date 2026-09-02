@@ -32,17 +32,17 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
 // turnos cancelados/aceptados se veían iguales).
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-surface text-ink/60",
-  publicado: "bg-orange-50 text-primary-text",
-  buscando_personal: "bg-orange-50 text-primary-text",
-  asignado: "bg-orange-50 text-primary-text",
-  confirmado: "bg-green-50 text-success-text",
-  en_camino: "bg-orange-50 text-primary-text",
-  check_in: "bg-orange-50 text-primary-text",
-  trabajando: "bg-orange-50 text-primary-text",
-  check_out: "bg-orange-50 text-primary-text",
-  finalizado: "bg-green-50 text-success-text",
-  pagado: "bg-green-50 text-success-text",
-  cancelado: "bg-red-50 text-danger-text",
+  publicado: "bg-primary-tint text-primary-text",
+  buscando_personal: "bg-primary-tint text-primary-text",
+  asignado: "bg-primary-tint text-primary-text",
+  confirmado: "bg-success-tint text-success-text",
+  en_camino: "bg-primary-tint text-primary-text",
+  check_in: "bg-primary-tint text-primary-text",
+  trabajando: "bg-primary-tint text-primary-text",
+  check_out: "bg-primary-tint text-primary-text",
+  finalizado: "bg-success-tint text-success-text",
+  pagado: "bg-success-tint text-success-text",
+  cancelado: "bg-danger-tint text-danger-text",
 };
 
 // El turno ya pasó (finalizado/pagado/cancelado): no tiene sentido

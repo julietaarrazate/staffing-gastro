@@ -66,6 +66,12 @@
      fondos donde se usa: blanco (5.93), crema (5.63), Arena/surface (5.06),
      orange-50 (5.58) y orange-100 (5.17). Ver docs/design/COLOR_SYSTEM.md. */
   --color-primary-text: #b23c08;
+  /* Tinte pálido de acción/activo (mismo valor que traía el `bg-orange-50`
+     suelto ya usado en ~20 archivos — ShiftCard, Badge, RateMeter, chips de
+     "publicado"/"en curso", etc.). Formalizarlo no es cosmético: es la mitad
+     de los "chips de estado" del panel del comercio (ver STATUS_COLORS en
+     ShiftCard.tsx), que el brief pide reconocibles sin depender del texto. */
+  --color-primary-tint: #fff7ed;
   --color-ink: #1f1f1c; /* Carbón cálido (antes negro puro #111) */
   /* Verde Éxito del style-guide: bosque sobrio, no el semáforo brillante
      anterior (#22c55e). Como relleno con texto blanco da 4.25 (antes 2.28). */
@@ -73,6 +79,9 @@
   /* Verde como TEXTO sobre claro. Cumple AA sobre blanco (4.89), crema (4.64)
      y el tinte de los chips de estado green-50 (4.67). */
   --color-success-text: #16823e;
+  /* Tinte pálido de éxito (mismo valor que `bg-green-50`) — mismo criterio
+     que `--color-primary-tint` arriba. */
+  --color-success-tint: #f0fdf4;
   --color-danger: #ef4444;
   /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
   --color-danger-text: #d73d3d;
