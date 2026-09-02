@@ -9,6 +9,7 @@ import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import MapAddressPicker, { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
 import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
+import { MapPinIcon } from "@/components/icons";
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
@@ -119,7 +120,12 @@ export default function CompanyProfileForm() {
             selector de ubicación de abajo es un widget compuesto, mapa o
             cascada de provincia/localidad — jsx-a11y/label-has-associated-
             control, TECH_DEBT.md F4). */}
-        <p className="block text-sm font-medium text-ink/70">Ubicación del comercio</p>
+        <p className="flex items-center gap-2 text-sm font-medium text-ink/70">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary-text">
+            <MapPinIcon size={13} />
+          </span>
+          Ubicación del comercio
+        </p>
         <div className="mt-2">
           {useManualPicker ? (
             <div className="flex flex-col gap-2">
