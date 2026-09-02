@@ -416,7 +416,7 @@ function WorkerFeedPanel() {
           </>
         ) : error ? (
           <EmptyState
-            icon={<ErrorIllustration color="#f97316" />}
+            icon={<ErrorIllustration color="#f94e1b" />}
             title="No se pudo cargar"
             subtitle={error}
             primaryAction={{ label: "Reintentar", onClick: load }}
@@ -439,7 +439,7 @@ function WorkerFeedPanel() {
                 )}
                 empty={
                   <EmptyState
-                    icon={<EmptyFeedIllustration color="#f97316" />}
+                    icon={<EmptyFeedIllustration color="#f94e1b" />}
                     title={emptyTitle}
                     subtitle={emptySubtitle}
                     primaryAction={emptyStateAction}
@@ -456,7 +456,7 @@ function WorkerFeedPanel() {
             <div className="hidden md:block">
               {visibleShifts.length === 0 ? (
                 <EmptyState
-                  icon={<EmptyFeedIllustration color="#f97316" />}
+                  icon={<EmptyFeedIllustration color="#f94e1b" />}
                   title={emptyTitle}
                   subtitle={emptySubtitle}
                   primaryAction={emptyStateAction}

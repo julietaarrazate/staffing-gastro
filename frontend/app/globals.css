@@ -57,15 +57,17 @@
 /* Colores de marca: registrados como tokens de Tailwind v4 (generan
  * utilidades bg-primary, text-secondary, ring-danger, etc.). */
 @theme {
-  /* Naranja exacto del style-guide del diseñador (Tailwind orange-500). */
-  --color-primary: #f97316;
-  /* Naranja oscuro del style-guide (hover/pressed y fin del degradé del splash). */
-  --color-primary-strong: #e65a00;
-  /* Naranja cuando es TEXTO sobre claro. El de superficie (#f97316) da 2.8
-     sobre blanco y no llega al AA de 4.5. Este (#b23c08) cumple sobre TODOS los
-     fondos donde se usa: blanco (5.93), crema (5.63), Arena/surface (5.06),
-     orange-50 (5.58) y orange-100 (5.17). Ver docs/design/COLOR_SYSTEM.md. */
-  --color-primary-text: #b23c08;
+  /* Naranja corregido por la auditoría WCAG de la maqueta híbrida
+     (docs/design/mockups/08-auditoria-contraste.html, superó a los valores
+     de COLOR_SYSTEM.md v2.0): #F94E1B da 4.83 de contraste con texto tinta/
+     night encima (pasa AA) — no hace falta un token de botón aparte, la
+     app ya usa ese mismo par (bg-primary text-night/text-ink) en todos lados. */
+  --color-primary: #f94e1b;
+  /* Naranja oscuro (fin del degradé, hover/pressed). */
+  --color-primary-strong: #d63a0c;
+  /* Naranja cuando es TEXTO sobre claro (el de superficie da sólo 3.25 como
+     texto — falla). #D63606 da 4.54 sobre blanco, pasa AA. */
+  --color-primary-text: #d63606;
   /* Tinte pálido de acción/activo (mismo valor que traía el `bg-orange-50`
      suelto ya usado en ~20 archivos — ShiftCard, Badge, RateMeter, chips de
      "publicado"/"en curso", etc.). Formalizarlo no es cosmético: es la mitad

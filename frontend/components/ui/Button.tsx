@@ -13,7 +13,7 @@ const VARIANTS: Record<Variant, string> = {
   // que el boton siga siendo NARANJA (y no ink) sale de ART_DIRECTION §6.2:
   // "el naranja marca la accion principal". Ver docs/design/COLOR_SYSTEM.md §2.3.
   primary:
-    "bg-primary text-night shadow-[0_8px_20px_rgba(249,115,22,0.28)] hover:brightness-[1.04]",
+    "bg-primary text-night shadow-[0_8px_20px_rgba(249,78,27,0.28)] hover:brightness-[1.04]",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
   secondary:
