@@ -167,10 +167,16 @@ export default function WorkerProfileForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {/* `compact`: la foto ya se ve grande en el hero de `WorkerGameCard`,
+          arriba de este formulario en la misma pantalla — repetirla acá era
+          literalmente la misma imagen dos veces (reporte real de Julieta,
+          "no puede tener dos veces fotos"). Se deja sólo el control para
+          cambiarla, sin la vista previa redundante. */}
       <ImageUpload
         value={photoUrl}
         onChange={setPhotoUrl}
         fallbackLabel={profile?.full_name ?? user?.full_name ?? "T"}
+        compact
       />
 
       <div>
