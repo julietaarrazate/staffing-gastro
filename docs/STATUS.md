@@ -5,7 +5,54 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-08-31 (**Landing: acentos manteca y celeste
+*Última actualización: 2026-09-02 (**Expediente de registro de obra de
+software ante la DNDA — 31 documentos en `REGISTRO_OBRA_SOFTWARE/`, PR
+#310, draft.**)
+
+Julieta pidió armar para Oído el mismo trámite de protección de autoría y
+código fuente que ya tiene preparado (y aprobado) para su otro proyecto
+(conciliación bancaria), guiándose por esa carpeta como referencia. Se
+replicaron las 31 unidades de ese expediente, con todo el contenido
+técnico derivado directamente del código real de este repositorio (17
+módulos DDD/hexagonal, 17 routers, 14 modelos, 30 migraciones, 429 tests
+backend + 75 E2E, 11 ADRs) — nada inventado ni supuesto. Decisiones ya
+confirmadas por Julieta antes de escribir nada: nombre de la obra
+"Oído" directo (es la marca real y pública, sin salvedad de
+"denominación de trabajo" como en el otro proyecto), sin capturas de
+pantalla simuladas (las toma ella desde su cuenta real de producción;
+`DNDA_CAPTURAS.md` deja la guía completa), y placeholders `[COMPLETAR]`
+sólo para lo que nadie más que ella puede declarar (contexto laboral/
+contractual en `EVIDENCIA_AUTORIA.md` §7). DNI y email reutilizados de
+su identidad ya acreditada en el expediente de referencia (misma
+persona).
+
+Dos correcciones hechas antes de commitear, no dejadas para después: (1)
+un glitch real de generación — un carácter chino colado en medio de una
+palabra española en `ACTIVOS_PI.md` — detectado con un scan de rangos
+Unicode y corregido; (2) una comparación de producto que nombraba dos
+apps de terceros conocidas en `MEMORIA_DESCRIPTIVA.md`, reemplazada por
+una descripción funcional neutral, por pedido explícito de Julieta de no
+nombrar competencia. Verificado además: sin nombres de comercios/
+clientes reales (los datos demo usan combinación rubro+barrio genérica,
+p.ej. "Bar Palermo Soho"), sin secretos ni credenciales en ningún
+documento.
+
+**PR #310** (`registro-obra-software-dnda` → `main`, draft, CI verde —
+sólo toca `REGISTRO_OBRA_SOFTWARE/`, cero cambios de código): dejado en
+draft a propósito, sin merge automático, porque el expediente incluye
+una declaración firmable con DNI de Julieta y todavía tiene un campo
+`[COMPLETAR]` legal pendiente — este es un caso donde el criterio
+general de la sesión ("mergear apenas verde") no aplica: falta revisión
+humana antes de subir esto a `main`. Pendiente enteramente de Julieta,
+documentado en `DNDA_CHECKLIST_FINAL.md`: completar el campo laboral/
+contractual, tomar las capturas reales, armar los 4 diagramas, pagar
+arancel ($3.800) + tasa (0,2% del valor declarado), completar el
+formulario del portal DNDA, y crear el tag `dnda-oido-2026-v1` sobre
+`main` una vez mergeado.
+
+---
+
+*Actualización anterior: 2026-08-31 (**Landing: acentos manteca y celeste
 mergeados a main — cierre del rediseño visual de Oído.**)
 
 La landing de `main` queda igual en estructura, tipografía, copy y
