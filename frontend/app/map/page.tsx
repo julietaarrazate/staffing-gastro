@@ -277,7 +277,7 @@ export default function MapPage() {
           bottom-sheet mobile se estiraba tal cual a una tarjeta gigantesca
           y vacía en pantallas anchas). En mobile no se renderiza (hidden). */}
       <aside className="hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line bg-card md:flex">
-        <div className="sticky top-0 z-10 border-b border-line bg-white/95 px-5 py-4 backdrop-blur">
+        <div className="sticky top-0 z-10 border-b border-line bg-card/95 px-5 py-4 backdrop-blur">
           <h1 className="font-display text-h1 font-semibold text-ink">
             {loading
               ? "Buscando turnos..."

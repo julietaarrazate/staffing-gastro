@@ -86,7 +86,7 @@ export default function SaveShiftButton({
       disabled={busy}
       aria-label={isSaved ? "Quitar de guardados" : "Guardar para después"}
       aria-pressed={isSaved}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm backdrop-blur transition active:scale-90 disabled:opacity-60 ${
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-card shadow-sm transition active:scale-90 disabled:opacity-60 ${
         isSaved ? "text-primary" : "text-ink/60"
       } ${className}`}
     >

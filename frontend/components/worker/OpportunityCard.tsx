@@ -114,14 +114,14 @@ export default function OpportunityCard({
           <Link
             href={`/companies/${shift.company_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-sm backdrop-blur"
+            className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
           >
             <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
             <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
             {shift.urgent && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm backdrop-blur">
+              <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm">
                 <FlameIcon size={13} /> Urgente
               </span>
             )}

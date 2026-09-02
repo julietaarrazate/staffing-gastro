@@ -497,7 +497,7 @@ export default function MatchesPage() {
                           aria-pressed={selected}
                           aria-label={selected ? "Sacar de la comparación" : "Sumar a la comparación"}
                           className={`absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-white transition disabled:opacity-40 ${
-                            selected ? "bg-primary text-white" : "bg-white/95 text-ink/40 shadow-sm"
+                            selected ? "bg-primary text-night" : "bg-white/95 text-ink/40 shadow-sm"
                           }`}
                         >
                           {selected ? <CheckIcon size={14} /> : null}

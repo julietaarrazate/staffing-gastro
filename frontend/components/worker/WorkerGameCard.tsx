@@ -98,7 +98,7 @@ export default function WorkerGameCard() {
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
-          <StarIcon size={16} filled className="text-amber-400" />
+          <StarIcon size={16} filled className="text-rating" />
           {formatRating(profile.rating)}
         </div>
       </div>
@@ -113,7 +113,7 @@ export default function WorkerGameCard() {
           secundario en manteca — es un NÚMERO, no una tarjeta de éxito. */}
       {earnings && (
         <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-night px-4 py-4">
-          <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
+          <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-night">
             <WalletIcon size={21} />
           </span>
           <div className="min-w-0 flex-1">

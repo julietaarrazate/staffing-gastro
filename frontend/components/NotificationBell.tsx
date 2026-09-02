@@ -122,7 +122,7 @@ export default function NotificationBell() {
                 <button
                   type="button"
                   onClick={load}
-                  className="mt-1 font-semibold underline decoration-red-300 underline-offset-2 hover:text-red-800"
+                  className="mt-1 font-semibold underline decoration-danger/40 underline-offset-2 hover:opacity-80"
                 >
                   Reintentar
                 </button>

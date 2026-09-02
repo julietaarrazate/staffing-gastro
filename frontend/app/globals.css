@@ -74,6 +74,14 @@
      de los "chips de estado" del panel del comercio (ver STATUS_COLORS en
      ShiftCard.tsx), que el brief pide reconocibles sin depender del texto. */
   --color-primary-tint: #fff7ed;
+  /* Estrella de calificación (auditoría de colores crudos, rediseño 2026-09):
+     mismo `amber-400` de Tailwind que ya usaban por igual StarRating,
+     Rating, WorkerGameCard y WorkerMarker — se formaliza como token en vez
+     de 4 clases crudas idénticas. No es un acento de marca (no compite con
+     naranja/manteca/cielo): es la convención universal de "estrella
+     dorada" para una calificación, ninguna tinta de la paleta cálida la
+     reemplaza sin perder legibilidad como rating. */
+  --color-rating: #fbbf24;
   --color-ink: #1f1f1c; /* Carbón cálido (antes negro puro #111) */
   /* Verde Éxito del style-guide: bosque sobrio, no el semáforo brillante
      anterior (#22c55e). Como relleno con texto blanco da 4.25 (antes 2.28). */

@@ -26,7 +26,7 @@ export default function StarRating({
           <StarIcon
             size={size}
             filled={star <= value}
-            className={star <= value ? "text-amber-400" : "text-ink/25"}
+            className={star <= value ? "text-rating" : "text-ink/25"}
           />
         </button>
       ))}

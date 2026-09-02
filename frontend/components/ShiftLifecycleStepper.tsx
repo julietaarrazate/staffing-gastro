@@ -105,7 +105,7 @@ export default function ShiftLifecycleStepper({
                   state === "completed" && "bg-primary-tint text-primary-text",
                   state === "current" && "bg-primary text-night ring-2 ring-primary/20",
                   state === "future" && "bg-surface text-ink/35",
-                  state === "death" && "bg-danger text-white ring-2 ring-red-100",
+                  state === "death" && "bg-danger text-white ring-2 ring-danger/20",
                   state === "cutoff" && "bg-surface text-ink/20"
                 )}
               >

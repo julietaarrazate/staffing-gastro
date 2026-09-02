@@ -159,7 +159,7 @@ export default function SwipeDeck({
           </motion.div>
           <motion.div
             style={{ opacity: likeOpacity, scale: likeScale }}
-            className="pointer-events-none absolute right-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(34,197,94,0.45)]"
+            className="pointer-events-none absolute right-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_rgba(46,139,87,0.45)]"
           >
             <CheckIcon size={34} />
           </motion.div>
