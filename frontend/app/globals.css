@@ -86,6 +86,15 @@
      de superficie (feed, perfil, panel, sheets, inputs) pasan por acá. Ver el
      bloque "Modo oscuro" más abajo. */
   --color-card: #ffffff;
+  /* Cromo de navegación (header sticky, bottom nav): SIEMPRE blanco, en los
+     tres modos — a diferencia de `--color-card`, no invierte nunca (maquetas
+     "La app en sus dos modos", 2026-09-02: esa barra fija se ve idéntica en
+     modo oscuro y claro en las 6 pantallas de referencia; lo único que
+     cambia de color son las tarjetas de CONTENIDO). Antes `Navbar`/
+     `BottomNav` usaban `bg-card` como cualquier tarjeta, y por eso se
+     volvían negros en oscuro — la barra de navegación no es una tarjeta de
+     contenido, es el cromo fijo de la app. */
+  --color-chrome: #ffffff;
   /* Superficie SIEMPRE oscura, en los dos modos (módulos de foco, botón dark,
      toast, burbujas propias del chat, badges sobre foto/mapa). Antes eran
      `bg-ink`, que ahora se voltea a claro en modo oscuro — por eso se separan.
@@ -135,23 +144,46 @@
 }
 
 /* ===========================================================================
- * Modo oscuro / claro / sistema (rediseño 2026-09).
+ * Modo oscuro / claro / sistema (rediseño 2026-09, corregido 2026-09-02).
  *
  * Tres estados, controlados por `data-theme` en <html> (ver lib/theme.tsx):
  *   - sin atributo  → "sistema": sigue `prefers-color-scheme` del dispositivo.
  *   - data-theme="light" → fuerza claro aunque el sistema esté en oscuro.
  *   - data-theme="dark"  → fuerza oscuro aunque el sistema esté en claro.
  *
- * Sólo se redefinen TOKENS (las utilidades de Tailwind ya referencian
- * `var(--color-*)`, así que voltear la variable voltea la utilidad en runtime).
- * El naranja de acción NO cambia (ADR-0011). Los tintes manteca/cielo tampoco:
- * son chips claros que se leen bien sobre tarjeta oscura, igual que en la
- * maqueta aprobada (docs/design/mockups/03-app-claro-oscuro.html).
+ * CORRECCIÓN (Julieta, 2026-09-02, con las maquetas "La app en sus dos
+ * modos" — docs/design/mockups/09-hibrido-app.html/07-comparativo.html como
+ * referencia definitiva): "los colores viven en las tarjetas, no en la
+ * totalidad de la pantalla". La primera versión de este bloque volteaba
+ * `--background`/`--foreground` (el lienzo de la página) a negro en modo
+ * oscuro — la pantalla ENTERA se oscurecía, calcando la dirección
+ * "Contraste" del comparativo. Pero la dirección aprobada es "Híbrido": el
+ * fondo cálido crema NO CAMBIA NUNCA, en los tres modos — sólo cada
+ * TARJETA (`bg-card`/`bg-surface`/`bg-night`, cualquier elemento que pinta
+ * su PROPIO fondo) invierte su combinación de colores. Por eso:
+ *   - `--background`/`--foreground` (el lienzo, `body`) y las sombras
+ *     (siempre proyectadas sobre ese mismo crema) NO se tocan acá: siguen
+ *     siendo los valores claros de :root en los tres modos.
+ *   - `--color-card`/`--color-surface` SÍ se voltean sin scope: son los
+ *     tokens que ALGUIEN pinta como fondo propio (`bg-card`/`bg-surface`),
+ *     así que cualquier elemento con esa clase es, por definición, una
+ *     "tarjeta" que tiene que invertir.
+ *   - `--color-ink`/`--color-line`/los -text semánticos son de doble uso:
+ *     texto/borde tanto suelto sobre el lienzo (que nunca debe invertir —
+ *     sería texto claro sobre crema, ilegible) como DENTRO de una tarjeta
+ *     que si invierte (donde sí hace falta texto claro para leerse sobre
+ *     fondo oscuro). Se resuelven con un SEGUNDO bloque más abajo, con
+ *     selector `.bg-card`/`.bg-surface`/`.bg-night`: las custom properties
+ *     de CSS heredan por cascada, así que fijar el valor oscuro ahí adentro
+ *     lo aplica a ese elemento y a todo lo que contiene, sin tocar ningún
+ *     componente — y lo que quede fuera de una tarjeta conserva el valor
+ *     claro fijo de :root.
  *
  * La paleta oscura sale de esa maqueta:
- *   fondo #14100c · tarjeta/paper #191410 · tinta #fff8f0 · línea blanca 10%.
+ *   tarjeta #191410 · tinta clara #fff8f0 · línea blanca 10%.
  * El naranja-texto sube a #ff7a45 y verde/rojo/petróleo suben su luminancia
- * para cumplir contraste sobre superficie oscura.
+ * para cumplir contraste sobre superficie oscura — pero sólo DENTRO de una
+ * tarjeta oscura, nunca sueltos sobre el crema.
  *
  * Los valores oscuros están duplicados en dos selectores a propósito (no hay
  * forma en CSS de reusar un bloque de declaraciones): uno para "sistema en
@@ -160,43 +192,43 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #14100c;
-    --foreground: #fff8f0;
-    --line: rgba(255, 248, 240, 0.1);
-    --color-ink: #fff8f0;
     --color-surface: rgba(255, 248, 240, 0.07);
-    --color-line: rgba(255, 248, 240, 0.1);
-    --color-paper: #191410;
     --color-card: #191410;
+  }
+
+  /* Texto/borde/-text semánticos: sólo invierten DENTRO de una tarjeta
+     (ver nota arriba) — nunca sueltos sobre el lienzo crema. */
+  :root:not([data-theme="light"]) .bg-card,
+  :root:not([data-theme="light"]) .bg-surface,
+  :root:not([data-theme="light"]) .bg-night {
+    --color-ink: #fff8f0;
+    --color-line: rgba(255, 248, 240, 0.1);
     --color-primary-text: #ff7a45;
     --color-success-text: #4bbd7a;
     --color-danger-text: #f4746f;
     --color-trust: #7fc9c0;
     --color-trust-text: #7fc9c0;
     --color-trust-tint: rgba(127, 201, 192, 0.14);
-    --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.45);
-    --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.55);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #14100c;
-  --foreground: #fff8f0;
-  --line: rgba(255, 248, 240, 0.1);
-  --color-ink: #fff8f0;
   --color-surface: rgba(255, 248, 240, 0.07);
-  --color-line: rgba(255, 248, 240, 0.1);
-  --color-paper: #191410;
   --color-card: #191410;
+}
+
+:root[data-theme="dark"] .bg-card,
+:root[data-theme="dark"] .bg-surface,
+:root[data-theme="dark"] .bg-night {
+  --color-ink: #fff8f0;
+  --color-line: rgba(255, 248, 240, 0.1);
   --color-primary-text: #ff7a45;
   --color-success-text: #4bbd7a;
   --color-danger-text: #f4746f;
   --color-trust: #7fc9c0;
   --color-trust-text: #7fc9c0;
   --color-trust-tint: rgba(127, 201, 192, 0.14);
-  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
 /* Forzado a claro: los tokens de :root ya son claros; sólo hay que asegurar
