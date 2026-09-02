@@ -163,11 +163,11 @@ export default function IdentityVerificationCard() {
     <div className="p-4">
       {/* Encabezado con el estado actual */}
       <div className="flex items-start gap-3">
-        {/* Celeste (cielo), no naranja ni petróleo: es el rol de
-            confianza/verificación de la identidad visual nueva (mockups
-            03/09), el mismo tinte que la insignia de perfil verificado. No es
-            una acción ni un estado de éxito genérico. */}
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cielo-tint text-cielo-text">
+        {/* Círculo `bg-card` (blanco/carbón según tema), no `bg-cielo-tint`:
+            desde el rediseño de Fase 5 esta tarjeta ENTERA ya es celeste
+            (ver app/profile/page.tsx), así que el chip necesita contraste
+            contra ESE fondo, no camuflarse en el mismo tono. */}
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-cielo-text">
           <ShieldIcon size={18} />
         </span>
         <div className="min-w-0 flex-1">
