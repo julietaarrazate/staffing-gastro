@@ -20,21 +20,33 @@ import {
   CheckCircleIcon,
   MedalIcon,
   StarIcon,
+  WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
+
+// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): manteca
+// para el dato operativo, celeste para lo que acumula confianza, y una queda
+// neutra a propósito — no todas las tiles llevan color. Ícono sobre `bg-card`
+// (blanco en claro, carbón en oscuro): antes usaban `bg-surface`, que en el
+// mockup "Híbrido"/"Contraste" es la tarjeta ELEVADA, no el tinte de fondo.
+const TILE_MANTECA = "bg-manteca-tint text-manteca-text";
+const TILE_CIELO = "bg-cielo-tint text-cielo-text";
+const TILE_NEUTRAL = "bg-surface text-ink/60";
 
 function StatTile({
   icon,
   value,
   label,
+  accent = TILE_NEUTRAL,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
+  accent?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl bg-surface px-2 py-3 text-center">
-      <span className="text-primary-text">{icon}</span>
+    <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card px-2 py-3.5 text-center ring-1 ring-line">
+      <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accent}`}>{icon}</span>
       <span className="text-lg font-extrabold leading-none text-ink">{value}</span>
       <span className="text-[11px] font-medium text-ink/50">{label}</span>
     </div>
@@ -89,26 +101,32 @@ export default function WorkerGameCard() {
 
       {/* Ganancias (pedido de Julieta: "un resumen de ganancias acumuladas
           en el perfil"): el dato que más motiva y hoy no se veía en ningún
-          lado — el perfil mostraba reputación/puntualidad pero nunca
-          cuánta plata hiciste. Jerarquía brutal en el total (mismo criterio
-          que el pago en ShiftCard/OpportunityCard), "Este mes" como
-          secundario al lado. */}
+          lado. Tarjeta `bg-night` (SIEMPRE oscura, en los dos modos — mockup
+          "Híbrido"/"Contraste"): es el "módulo de foco" de la identidad
+          nueva, el mismo rol que ya cumple el hero de arriba. Ícono naranja
+          sólido + monto grande en blanco (jerarquía brutal, mismo criterio
+          que el pago en ShiftCard/OpportunityCard); "Este mes" como dato
+          secundario en manteca — es un NÚMERO, no una tarjeta de éxito. */}
       {earnings && (
-        <div className="grid grid-cols-2 gap-2.5 px-4 pt-4">
-          <div className="rounded-2xl bg-orange-50 px-3.5 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">
-              Ganancias totales
+        <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-night px-4 py-4">
+          <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
+            <WalletIcon size={21} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-white/60">
+              Ganado este mes
             </p>
-            <p className="text-xl font-extrabold leading-tight text-primary-text">
-              ARS {Number(earnings.total_earned).toLocaleString("es-AR")}
+            <p className="flex items-baseline gap-1 font-display leading-none">
+              <span className="text-sm font-semibold text-primary">ARS</span>
+              <span className="text-2xl font-semibold text-white">
+                {Number(earnings.this_month_earned).toLocaleString("es-AR")}
+              </span>
             </p>
           </div>
-          <div className="rounded-2xl bg-surface px-3.5 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Este mes</p>
-            <p className="text-xl font-extrabold leading-tight text-ink">
-              ARS {Number(earnings.this_month_earned).toLocaleString("es-AR")}
-            </p>
-          </div>
+          <p className="shrink-0 text-right text-xs font-bold text-manteca">
+            ARS {Number(earnings.total_earned).toLocaleString("es-AR")}
+            <span className="block text-[10px] font-medium text-white/50">total</span>
+          </p>
         </div>
       )}
 
@@ -124,22 +142,27 @@ export default function WorkerGameCard() {
         />
       </div>
 
-      {/* Stats */}
+      {/* Stats: manteca en el dato operativo (turnos), celeste en lo que
+          acumula confianza (experiencia) — mismo criterio que StatsStrip/el
+          bento de la landing. Cancelaciones queda neutra a propósito: no es
+          un logro que destacar. */}
       <div className="grid grid-cols-3 gap-2.5 p-4">
         <StatTile
-          icon={<BriefcaseIcon size={20} />}
+          icon={<BriefcaseIcon size={16} />}
           value={String(profile.events_completed)}
           label="Turnos"
+          accent={TILE_MANTECA}
         />
         <StatTile
-          icon={<XCircleIcon size={20} />}
+          icon={<XCircleIcon size={16} />}
           value={String(profile.cancellations)}
           label="Cancelaciones"
         />
         <StatTile
-          icon={<CheckCircleIcon size={20} />}
+          icon={<CheckCircleIcon size={16} />}
           value={String(profile.years_experience)}
           label="Años exp."
+          accent={TILE_CIELO}
         />
       </div>
 
