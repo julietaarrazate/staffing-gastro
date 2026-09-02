@@ -9,6 +9,37 @@ import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import ImageUpload from "@/components/ImageUpload";
 import CvUpload from "@/components/CvUpload";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
+import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
+
+/**
+ * Encabezado de sección con ícono de acento (mismo patrón que los
+ * `StatTile` de `WorkerGameCard`, escalado a label): sin esto, todo el
+ * formulario quedaba en un solo gris monocromo, sin nada del lenguaje de
+ * color de la tarjeta de arriba — reporte real de Julieta con captura,
+ * "que se vea con color lo que va con color". Sólo dos secciones lo usan
+ * (Ubicación, Años de experiencia): son las dos con un acento YA
+ * establecido en otro lado (el naranja de "Tu zona" acá abajo, el celeste
+ * del mismo dato en el stat tile de WorkerGameCard) — no se inventa color
+ * nuevo para el resto.
+ */
+function FieldHeading({
+  icon,
+  accent,
+  children,
+}: {
+  icon: React.ReactNode;
+  accent: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <p className="flex items-center gap-2 text-sm font-medium text-ink/70">
+      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${accent}`}>
+        {icon}
+      </span>
+      {children}
+    </p>
+  );
+}
 
 /** "Español, Inglés" → ["Español", "Inglés"] (limpia vacíos y espacios). */
 function parseList(text: string): string[] {
@@ -146,7 +177,9 @@ export default function WorkerProfileForm() {
         {/* No es un `<label>`: el selector de abajo es un widget compuesto
             (cascada provincia/localidad), no un único control asociable —
             jsx-a11y/label-has-associated-control, TECH_DEBT.md F4. */}
-        <p className="block text-sm font-medium text-ink/70">Ubicación</p>
+        <FieldHeading icon={<MapPinIcon size={13} />} accent="bg-primary-tint text-primary-text">
+          Ubicación
+        </FieldHeading>
         <p className="mt-0.5 text-xs text-ink/50">
           Tu zona define a qué turnos te recomendamos primero (los más cercanos).
         </p>
@@ -166,15 +199,19 @@ export default function WorkerProfileForm() {
         )}
       </div>
 
-      <TextField
-        label="Años de experiencia"
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={80}
-        value={yearsExperience}
-        onChange={(v) => setYearsExperience(Number(v) || 0)}
-      />
+      <div className="flex flex-col gap-1.5">
+        <FieldHeading icon={<CheckCircleIcon size={13} />} accent="bg-cielo-tint text-cielo-text">
+          Años de experiencia
+        </FieldHeading>
+        <TextField
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={80}
+          value={yearsExperience}
+          onChange={(v) => setYearsExperience(Number(v) || 0)}
+        />
+      </div>
 
       <div>
         {/* No es un `<label>`: es un grupo de botones toggle, no un único
