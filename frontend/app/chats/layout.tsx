@@ -125,7 +125,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                     className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-line"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg font-bold text-primary-text">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-tint text-lg font-bold text-primary-text">
                     {c.other_party_name.charAt(0).toUpperCase()}
                   </div>
                 )}
