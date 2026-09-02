@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
-import { SKILL_ACCENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
 import { formatShiftRange } from "@/lib/datetime";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShareShiftButton from "@/components/ShareShiftButton";
@@ -82,27 +82,34 @@ export default async function PublicShiftPage({
     notFound();
   }
 
-  const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+  const { Icon } = SKILL_ACCENT[shift.position];
 
   return (
     <div className="mx-auto max-w-md px-4 pb-10 pt-8">
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-        <div className="px-5 pb-5 pt-5">
-          <div className="flex items-center gap-3">
-            <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${bg} ${fg}`}>
-              <Icon size={28} />
-            </span>
-            <div>
-              <h1 className="font-display text-h1 font-semibold text-ink">
-                {SKILL_LABELS[shift.position]}
-              </h1>
-              {shift.company_name && (
-                <p className="text-sm font-semibold text-ink/60">{shift.company_name}</p>
-              )}
-            </div>
+        {/* Mismo banner-hero que ShiftCard/OpportunityCard (gradiente por
+            rubro + ícono watermark): esta es la primera pantalla de Oído que
+            ve mucha gente (llega por un link de WhatsApp) — tenía un header
+            chico y plano mientras el resto de la app ya usa este tratamiento
+            para turnos sin foto de local, y se leía como una pantalla de
+            otra app. */}
+        <div className="relative overflow-hidden">
+          <div className={`absolute inset-0 ${SKILL_HERO_GRADIENT[shift.position]}`}>
+            <div className="absolute inset-0 bg-black/15" />
+            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
           </div>
+          <div className="relative px-5 pb-5 pt-6">
+            <h1 className="font-display text-h1 font-semibold text-white drop-shadow">
+              {SKILL_LABELS[shift.position]}
+            </h1>
+            {shift.company_name && (
+              <p className="mt-0.5 text-sm font-semibold text-white/85">{shift.company_name}</p>
+            )}
+          </div>
+        </div>
 
-          <div className="mt-4 flex flex-col gap-2 text-sm text-ink/70">
+        <div className="px-5 pb-5 pt-5">
+          <div className="flex flex-col gap-2 text-sm text-ink/70">
             <span className="inline-flex items-center gap-1.5">
               <CalendarIcon size={16} className="text-ink/35" />
               {formatShiftRange(shift.start_at, shift.end_at)}
