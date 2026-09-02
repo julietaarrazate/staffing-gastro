@@ -76,6 +76,19 @@
   --color-danger: #ef4444;
   /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
   --color-danger-text: #d73d3d;
+  /* Tinte pálido para chips/banners de error — mismo patrón que manteca/
+     cielo: NO cambia entre modos, se lee bien tanto sobre tarjeta clara
+     como oscura. Reemplaza el `bg-red-50` suelto de SubscriptionStatusCard. */
+  --color-danger-tint: #fef2f2;
+  /* Ámbar de advertencia (rediseño 2026-09, sistema de tokens): reemplaza el
+     `amber-50`/`amber-700` sueltos que ya existían en SubscriptionStatusCard
+     — "cerca del límite" es un estado semántico real (ni éxito ni error),
+     y andaba sin token propio, cada pantalla lo hubiera reinventado con su
+     propio literal. Mismo patrón que success/danger: tinte pálido + texto
+     que cumple AA sobre blanco/crema (4.52). */
+  --color-warning: #f59e0b;
+  --color-warning-tint: #fffbeb;
+  --color-warning-text: #92660a;
   --color-surface: #f5ecdd; /* Arena — relleno cálido (chips, tracks, inputs idle) */
   --color-line: #ebe2d4; /* hairline cálido */
   --color-paper: #fbf2e6; /* franja cálida algo más profunda que el fondo (landing) */
@@ -133,6 +146,40 @@
   --color-cielo: #cfe4ff;
   --color-cielo-tint: #e8f1ff;
   --color-cielo-text: #1c4b87;
+
+  /* Escala tipográfica editorial (rediseño 2026-09, sistema de tokens):
+     antes cada pantalla elegía su tamaño ad-hoc (text-2xl/text-3xl/text-lg
+     sueltos, sin relación entre sí) — funcional, pero sin jerarquía
+     deliberada entre "esto es un título" y "esto es una etiqueta". Genera
+     utilidades `text-display`/`text-h1`/etc. (convención de Tailwind v4:
+     `--text-<nombre>` + su `--line-height` emparejada). Migración
+     progresiva: se van adoptando pantalla por pantalla, no reemplaza de
+     golpe los tamaños ya en uso — no rompe nada por sí sola.
+     `--text-price` retoma el tamaño que ya usaba el pago en OpportunityCard
+     (39px): el dinero YA tenía protagonismo ahí, esto sólo le pone nombre
+     para reusarlo donde corresponda (WorkerGameCard, detalle del turno). */
+  --text-display: 2.75rem; /* 44px — hero/splash */
+  --text-display--line-height: 1.05;
+  --text-h1: 1.75rem; /* 28px — título de pantalla */
+  --text-h1--line-height: 1.15;
+  --text-h2: 1.375rem; /* 22px — encabezado de sección */
+  --text-h2--line-height: 1.2;
+  --text-h3: 1.125rem; /* 18px — título de tarjeta */
+  --text-h3--line-height: 1.3;
+  --text-price: 2.4375rem; /* 39px — dinero, siempre el elemento dominante */
+  --text-price--line-height: 1;
+  --text-metric: 1.5rem; /* 24px — números de estadística (turnos, rating) */
+  --text-metric--line-height: 1.1;
+  --text-body-strong: 0.9375rem; /* 15px */
+  --text-body-strong--line-height: 1.4;
+  --text-body: 0.9375rem; /* 15px */
+  --text-body--line-height: 1.5;
+  --text-caption: 0.8125rem; /* 13px — texto secundario */
+  --text-caption--line-height: 1.4;
+  --text-label: 0.6875rem; /* 11px — eyebrow, uppercase + tracking */
+  --text-label--line-height: 1.3;
+  --text-metadata: 0.75rem; /* 12px — timestamps, fine print */
+  --text-metadata--line-height: 1.4;
 }
 
 @theme inline {
@@ -206,6 +253,7 @@
     --color-primary-text: #ff7a45;
     --color-success-text: #4bbd7a;
     --color-danger-text: #f4746f;
+    --color-warning-text: #fbbf76;
     --color-trust: #7fc9c0;
     --color-trust-text: #7fc9c0;
     --color-trust-tint: rgba(127, 201, 192, 0.14);
@@ -226,6 +274,7 @@
   --color-primary-text: #ff7a45;
   --color-success-text: #4bbd7a;
   --color-danger-text: #f4746f;
+  --color-warning-text: #fbbf76;
   --color-trust: #7fc9c0;
   --color-trust-text: #7fc9c0;
   --color-trust-tint: rgba(127, 201, 192, 0.14);
