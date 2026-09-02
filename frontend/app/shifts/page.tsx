@@ -368,7 +368,7 @@ function MyShiftsPanel() {
               const meta = FAMILY_META[family];
               return (
                 <section key={family} className="mt-6 first:mt-4" data-family={family}>
-                  <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ink/40">
+                  <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-ink/40">
                     {meta.icon}
                     {meta.title}
                     <span className="font-semibold text-ink/25">· {list.length}</span>

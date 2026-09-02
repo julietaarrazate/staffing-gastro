@@ -206,7 +206,7 @@ export default function ShiftCard({
               que las dos tarjetas se lean de la misma app (criterio 4 de
               aprobación, §17). */}
           <div className="mt-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-white/70">Pago</p>
+            <p className="text-[11px] font-bold font-mono uppercase tracking-wide text-white/70">Pago</p>
             <p className="text-3xl font-extrabold leading-none tracking-tight text-white drop-shadow">
               {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>

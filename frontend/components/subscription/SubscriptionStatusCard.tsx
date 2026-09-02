@@ -42,7 +42,7 @@ export default function SubscriptionStatusCard({
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Mi plan</p>
+          <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Mi plan</p>
           <h2 className="mt-0.5 text-xl font-extrabold text-ink">{planName}</h2>
           <p className="mt-0.5 text-sm text-ink/50">{formatArs(price_ars)}/mes</p>
         </div>

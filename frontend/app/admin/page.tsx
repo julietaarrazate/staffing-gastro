@@ -216,7 +216,7 @@ export default function AdminPage() {
         <Card className="mt-6 p-5">
           <div className="flex items-center gap-1.5">
             <FlaskIcon size={16} className="text-primary-text" />
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+            <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
               Mis cuentas de prueba
             </p>
           </div>
@@ -299,7 +299,7 @@ export default function AdminPage() {
           datos reales, no sólo conteos de usuarios. */}
       {!statsLoading && stats && (
         <div className="mt-8">
-          <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
             Métricas de producto
           </p>
           <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -362,7 +362,7 @@ export default function AdminPage() {
           (arrancan en gratis, ver `AdminService.get_subscription_stats`). */}
       {!statsLoading && subscriptionStats && (
         <div className="mt-8">
-          <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
             Suscripciones
           </p>
           <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -404,14 +404,14 @@ export default function AdminPage() {
       )}
 
       <div className="mt-8">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+        <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
           Identidades por verificar
         </p>
         <IdentityReviewQueue />
       </div>
 
       <div className="mt-8">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+        <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
           Usuarios
         </p>
         <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">

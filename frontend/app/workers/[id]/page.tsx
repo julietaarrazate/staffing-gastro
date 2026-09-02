@@ -218,14 +218,14 @@ export default function PublicWorkerProfilePage() {
 
           {profile.languages.length > 0 && (
             <div className="mt-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Idiomas</p>
+              <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Idiomas</p>
               <p className="mt-1 text-sm text-ink/75">{profile.languages.join(", ")}</p>
             </div>
           )}
 
           {profile.certifications.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+              <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
                 Certificaciones
               </p>
               <p className="mt-1 text-sm text-ink/75">{profile.certifications.join(", ")}</p>
@@ -255,7 +255,7 @@ export default function PublicWorkerProfilePage() {
 
           {profile.badges.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+              <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
                 Insignias
               </p>
               <div className="mt-1.5 flex flex-wrap gap-2">
@@ -280,7 +280,7 @@ export default function PublicWorkerProfilePage() {
       {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar
           (inspiración "Reseñas recientes" de Clickie). */}
       <div className="mt-7 lg:mt-0">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+        <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
           Reseñas
         </p>
         <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">

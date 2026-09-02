@@ -167,7 +167,7 @@ export default function PublicCompanyProfilePage() {
           (Julieta, 2026-07-29). */}
       {hasCoords && (
         <div className="mt-7 lg:mt-0">
-          <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
             Ubicación
           </p>
           <div className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">

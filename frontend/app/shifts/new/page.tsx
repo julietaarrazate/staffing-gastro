@@ -695,7 +695,7 @@ function PreviewRow({
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">{label}</p>
+        <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">{label}</p>
         <p className={`text-sm font-semibold ${value ? "text-ink" : "text-ink/35"}`}>
           {value ?? "Todavía sin definir"}
         </p>

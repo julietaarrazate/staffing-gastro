@@ -122,7 +122,7 @@ function LoginForm() {
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <p className="text-center text-xs font-semibold uppercase tracking-wide text-ink/40">
+          <p className="text-center text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
             Explorar sin cuenta
           </p>
           {guestRole === null ? (

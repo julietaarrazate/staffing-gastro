@@ -45,7 +45,7 @@ export default function RateMeter({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">{label}</span>
+        <span className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">{label}</span>
         <span className={`text-sm font-extrabold ${severity.text}`}>
           {hasHistory ? `${pct}%` : "Sin datos"}
         </span>
