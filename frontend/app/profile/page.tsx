@@ -22,7 +22,7 @@ import {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-1 text-xs font-semibold uppercase tracking-wide text-ink/40">
+    <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
       {children}
     </p>
   );

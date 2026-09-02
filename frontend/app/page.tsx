@@ -158,7 +158,7 @@ export default function Home() {
               cercanía y reputación.
             </p>
 
-            <p className="mt-3 text-sm font-bold uppercase tracking-wide text-ink/40">
+            <p className="mt-3 text-sm font-bold font-mono uppercase tracking-wide text-ink/40">
               Publicá. Elegí. Listo.
             </p>
 

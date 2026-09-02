@@ -174,7 +174,7 @@ export default function OpportunityCard({
       <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto px-5 pb-5 pt-3 touch-pan-y md:overflow-visible">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
+            <p className="text-[11px] font-bold font-mono uppercase tracking-wide text-ink/40">Pago</p>
             <p className="flex items-baseline gap-1 font-extrabold text-primary-text">
               <span className="text-lg">{shift.currency}</span>
               {/* `text-price` (39px, rediseño 2026-09): este número era el

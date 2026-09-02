@@ -55,14 +55,14 @@ export default function CompareShiftsModal({
 
                 <div className="mt-3 space-y-2.5 text-xs">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
+                    <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-ink/40">Pago</p>
                     <p className="text-base font-extrabold leading-tight text-primary-text">
                       {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
                     </p>
                   </div>
                   {perHour !== null && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-ink/40">
+                      <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-ink/40">
                         Por hora
                       </p>
                       <p className="font-semibold text-ink">
@@ -71,13 +71,13 @@ export default function CompareShiftsModal({
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-ink/40">Cuándo</p>
+                    <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-ink/40">Cuándo</p>
                     <p className="font-medium leading-snug text-ink/80">
                       {formatShiftRange(shift.start_at, shift.end_at)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-ink/40">
+                    <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-ink/40">
                       Distancia
                     </p>
                     <p className="font-medium text-ink/80">
@@ -86,7 +86,7 @@ export default function CompareShiftsModal({
                   </div>
                   {(shift.tips || shift.meal) && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-ink/40">
+                      <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-ink/40">
                         Beneficios
                       </p>
                       <p className="font-medium text-ink/80">

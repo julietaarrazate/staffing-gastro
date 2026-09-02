@@ -48,7 +48,7 @@ export default function PrivacidadPage() {
 
           {/* Destacado: principio no-negociable, un solo acento naranja */}
           <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3.5 ring-1 ring-primary/20">
-            <span className="inline-flex shrink-0 items-center rounded-full bg-primary px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-night">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-primary px-3 py-1 text-xs font-extrabold font-mono uppercase tracking-wide text-night">
               Promesa
             </span>
             <p className="text-sm font-bold text-ink">

@@ -94,7 +94,7 @@ export default function WorkerGameCard() {
       <div className="relative flex flex-col items-center bg-gradient-to-br from-ink to-[#2f2f33] px-5 pb-5 pt-6 text-white">
         <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/20" />
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
-        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold uppercase tracking-wide">
+        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
@@ -117,7 +117,7 @@ export default function WorkerGameCard() {
             <WalletIcon size={21} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-white/60">
+            <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-white/60">
               Ganado este mes
             </p>
             <p className="flex items-baseline gap-1 font-display leading-none">
@@ -183,7 +183,7 @@ export default function WorkerGameCard() {
 
       {/* Insignias */}
       <div className="px-4 pb-3">
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Insignias</p>
+        <p className="mb-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Insignias</p>
         {profile.badges.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {profile.badges.map((badge) => {
@@ -208,7 +208,7 @@ export default function WorkerGameCard() {
       {/* Rubros */}
       {profile.skills.length > 0 && (
         <div className="px-4 pb-5">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/40">Rubros</p>
+          <p className="mb-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Rubros</p>
           <div className="flex flex-wrap gap-1.5">
             {profile.skills.map((skill) => (
               <span key={skill} className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/75 ring-1 ring-line">

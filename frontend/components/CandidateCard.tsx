@@ -34,7 +34,7 @@ export default function CandidateCard({
       }`}
     >
       {recommended && (
-        <div className="flex items-center gap-1.5 bg-primary px-5 py-2 text-xs font-extrabold uppercase tracking-wide text-night">
+        <div className="flex items-center gap-1.5 bg-primary px-5 py-2 text-xs font-extrabold font-mono uppercase tracking-wide text-night">
           <BoltIcon size={14} /> Recomendado por Oído
         </div>
       )}

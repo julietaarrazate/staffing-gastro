@@ -73,7 +73,7 @@ export default function ShiftPublishedNextSteps({
               <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink">
                 {item.title}
                 {item.tag && (
-                  <span className="rounded-full bg-primary-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-text">
+                  <span className="rounded-full bg-primary-tint px-2 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wide text-primary-text">
                     {item.tag}
                   </span>
                 )}

@@ -84,7 +84,7 @@ export default function HowItWorksTimeline() {
                   <s.Icon size={22} />
                 </span>
                 <div className="pt-1.5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-ink/40">
+                  <p className="text-xs font-bold font-mono uppercase tracking-wide text-ink/40">
                     Paso {i + 1}
                   </p>
                   <h3 className="mt-1 font-bold text-ink">{s.title}</h3>
