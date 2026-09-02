@@ -160,7 +160,7 @@ export default function ShiftCard({
               {shift.company_name && (
                 <Link
                   href={`/companies/${shift.company_id}`}
-                  className="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-sm backdrop-blur"
+                  className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
                 >
                   <Avatar src={shift.company_logo_url} name={shift.company_name} size="sm" />
                   <span className="truncate text-sm font-semibold text-ink/80">
@@ -177,7 +177,7 @@ export default function ShiftCard({
               )}
             </div>
             {shift.urgent && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm backdrop-blur">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm">
                 <FlameIcon size={13} /> Urgente
               </span>
             )}
@@ -233,19 +233,19 @@ export default function ShiftCard({
           <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
         )}
 
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink/70">
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink/80">
           <span className="inline-flex items-center gap-1.5">
-            <CalendarIcon size={15} className="text-ink/35" />
+            <CalendarIcon size={15} className="text-ink/50" />
             {formatShiftRange(shift.start_at, shift.end_at)}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <UsersIcon size={15} className="text-ink/35" />
+            <UsersIcon size={15} className="text-ink/50" />
             {shift.quantity} persona(s)
           </span>
         </div>
 
         {shift.dress_code && (
-          <p className="mt-2 text-xs text-ink/50">Dress code: {shift.dress_code}</p>
+          <p className="mt-2 text-xs text-ink/65">Dress code: {shift.dress_code}</p>
         )}
 
         {/* Mini-mapa + "Cómo llegar"/"Agendar": sólo tiene sentido del lado

@@ -53,7 +53,13 @@ function DocSlot({
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
         aria-label={value ? `Cambiar ${label}` : `Subir ${label}`}
-        className="relative flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl bg-surface text-ink/50 ring-1 ring-line transition active:scale-[0.98] disabled:opacity-70"
+        // `bg-card`, no `bg-surface`: esta tarjeta vive dentro de un
+        // `bg-cielo-tint` que nunca voltea, así que necesita el mismo truco
+        // del círculo de arriba (fondo Y texto invierten juntos) — con
+        // `bg-surface` el ícono/label quedaban en tinta clara de modo oscuro
+        // sobre un fondo que seguía siendo claro (bug real, captura de
+        // Julieta 2026-09-02).
+        className="relative flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl bg-card text-ink/50 ring-1 ring-line transition active:scale-[0.98] disabled:opacity-70"
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
