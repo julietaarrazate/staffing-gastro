@@ -224,7 +224,7 @@ export default function WorkerProfileForm() {
           rows={3}
           maxLength={1000}
           placeholder="Ej: Mozo con 5 años en cafeterías de especialidad, experiencia en barra y salón."
-          className="mt-2 w-full rounded-[var(--radius-input)] bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
+          className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
         />
       </div>
 
