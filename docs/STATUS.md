@@ -2798,9 +2798,54 @@ roadmap).
 | Stepper del ciclo de vida + pantalla "esto es lo que sigue" al publicar (inspiración Clickie) | `claude/stepper-ciclo` *(PR draft pendiente)* | **Fix 1:** `ShiftLifecycleStepper` nuevo (numeritos en círculo + línea, paso actual sólido, completados con check tenue, futuros en gris — un solo acento naranja) integrado en `ShiftCard` con dos mapeos de los 12 `ShiftStatus` reales a 4 hitos: comercio (`/shifts`, default) Publicado→Asignado→En curso→Finalizado; trabajador (`/my-shifts`, prop `perspective="worker"`) Postulado→Aceptado→En curso→Finalizado. **Corrección documentada:** el spec original agrupaba `confirmado` con `finalizado/pagado`; se corrigió a agruparlo con `asignado` porque el orden real del dominio (`asignado→confirmado→en_camino→…→finalizado`) haría que el stepper retrocediera de "Finalizado" a "En curso". Cancelado: no agrega un 5º paso — corta la línea (punteada) y reemplaza el hito donde murió por un marcador rojo "Cancelado", inferido de las marcas que sobreviven (`worker_profile_id`/`check_in_at`/`check_out_at`, el dominio no guarda el estado previo a cancelar). **Fix 2:** `ShiftPublishedNextSteps` (pantalla "¡Turno publicado!" con timeline vertical de 4 pasos del comercio) reemplaza el cartel de una sola vez del launch-gate (#88); decisión documentada: se muestra **cada vez** que se publica un turno (no sólo la primera vez), tanto desde el wizard (`/shifts/new`) como desde "Publicar" de un borrador en el panel (`/shifts`) — es informativa, no una interrupción. `Modal` del DS ganó `max-h-[85vh] overflow-y-auto` (cambio genérico y no disruptivo) para que el timeline no se corte en pantallas bajas. `tsc`/`build` verdes; lint sin errores nuevos (mismo baseline 20/10); Playwright 19/19 (2 specs nuevos del stepper + `employer-wizard.spec.ts` actualizado para el nuevo flujo de publicación, resto sin tocar) |
 | *(hueco de bitácora, #89–#238)* | — | Esta tabla no se actualizó en ese tramo — el trabajo sí se hizo y se mergeó (rebrand, pulido C0–C4, diseño Espresso/Petróleo ADR-0011, asistente de IA v1, verificación de identidad, entre otros vistos en `git log`), pero no quedó con entrada propia acá. No reconstruido retroactivamente por esta sesión para no inventar detalle que no verificó de primera mano — si hace falta el detalle está en los mensajes de cada PR (`git log --oneline`). |
 | Cuentas de prueba multi-rol + panel operacional (admin) | #245, #246, #247 | Pedido de Julieta: su mail de admin apto para testear como comercio/trabajador/admin, más un dashboard operacional. **#245**: 2 cuentas de prueba (`prueba.trabajador@oido.beta`/`prueba.comercio@oido.beta`) get-or-create, accesibles sólo vía "Ver como" (impersonación admin ya existente) — sin rediseñar el modelo `User.role` único. **#246**: el panel sólo mostraba 4 de ~20 campos que el backend ya calculaba; se sumaron `Admins`/`Verificados` + 6 tasas de producto (asignación, completado, aceptación de postulaciones, no-show, repetición worker/comercio) con su tamaño de muestra. **#247**: `SubscriptionRepository.count_by_plan_and_status`/`count_at_plan_limit` + `CompanyProfileRepository.count_total` (SQL agregado) para MRR real y distribución por plan (comercios sin fila en `subscriptions` se pliegan en `gratis`, ADR-0005). `pytest -q`: 404 passed. `tsc`/`eslint`/`build` limpios. Playwright: 76 passed. Único fallo de CI en los 3: auditoría de dependencias/secret-scan por cuota agotada (preexistente, no relacionado al código) |
+| Rediseño visual "Oído" (identidad Híbrido, 18 fases) | #277–#301 | Sistema de diseño propio de punta a punta sobre las maquetas `docs/design/mockups/` (dirección "Híbrido" elegida entre Original/Contraste/Híbrido, `07-comparativo.html`): tokens de color semánticos (naranja=acción, manteca=dato, celeste=confianza/verificación, `bg-night`=módulo de foco del dinero, lienzo cálido que NUNCA invierte — sólo tarjetas), escala tipográfica (`--text-display/h1/h2/h3/price/metric/body/caption/label`), Space Mono para eyebrows/labels, sweep completo de colores crudos de Tailwind a tokens, materialidad de tarjetas (radios/sombras), botones/badges/estados semánticos, Home/Búsqueda/Detalle de turno/Perfil/Panel del comercio/Mapa rediseñados, responsive desktop real (no mobile agrandado), auditoría WCAG de contraste de la maqueta (corrigió el naranja base a `#f94e1b`, PR #300) + QA visual final contra las maquetas (#301). `tsc`/lint/build/Playwright (76 specs) verdes en cada PR. |
+| **Auditoría de consistencia visual post-rediseño** (en curso) | #302–#308 | Julieta reportó con capturas reales del dispositivo (no simuladas) que la implementación no coincidía del todo con las maquetas — arrancó una auditoría sistémica AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR, corrigiendo a nivel de token/componente compartido, no pantalla por pantalla. **#302**: 10 bugs de color crudo/inconsistencia (clases Tailwind fuera del sistema de tokens, 5 tratamientos distintos de "Reintentar" unificados, estrella de rating formalizada a token, glow del botón "success" con el verde equivocado, `bg-primary+text-white` sobreviviendo a la migración WCAG en 4 lugares). **#303**: bug de contraste real — `TextField`/`Toggle`/`LocationPicker` pintaban su propio fondo con el mismo token (`bg-card`) que la tarjeta que los contiene; en modo oscuro ambos niveles dan el mismo negro sólido y el formulario se funde en un bloque sin jerarquía (reportado en `/profile` y `/login`) — cambia el relleno a `bg-surface`. **#304**: el botón de Google (widget de Identity Services, fuera de nuestro control de estilos) quedaba blanco sólido en oscuro — ahora resuelve el modo oscuro real y le pide a Google `theme: "filled_black"`. **#305/#306/#307**: `/profile` (trabajador) tenía DOS fotos idénticas en pantalla (hero + formulario "Mi perfil", reporte real "no puede tener dos veces fotos") — `ImageUpload` gana un modo `compact` que saca la vista previa duplicada sin tocar el flujo de subida; acentos de color (celeste/naranja) agregados a "Ubicación"/"Años de experiencia" del formulario para que no quede monocromo contra el hero de arriba; mismo acento aplicado a `CompanyProfileForm` (paridad trabajador/comercio). **#308 (el hallazgo más grande)**: `--color-surface` en modo oscuro era `rgba(255,248,240,0.07)` — pensado como inset ANIDADO dentro de una `.bg-card` sólida, pero usado SUELTO directamente sobre el lienzo (ej. `/shifts/new`, "Describilo y lo completamos") queda con texto reescrito a claro sobre un fondo que sigue siendo, a los ojos, el mismo crema de siempre — **texto invisible**. Encontrado también como regresión del propio fix de #303 en los wizards de turno (`/shifts/new`, `/shifts/new-event`: los `Toggle` ahí habrían quedado con el mismo bug). Fix de un solo token: `--color-surface` oscuro pasa a sólido (`#292420`, el resultado visual aproximado de mezclar ese 7% blanco con el negro de `--color-card`) — anidado se ve igual que antes, suelto ahora también funciona. `tsc`/lint/build/Playwright (76 specs) verdes en cada PR; #303 de paso resolvió una falla de CI ajena a su cambio (vulnerabilidad alta de `fast-uri` vía `npm audit fix`, reproducible igual en `main`). **Sin cerrar** — ver "En vuelo ahora". |
 
 ## En vuelo ahora
 
+- **Auditoría de consistencia visual post-rediseño (#302–#308) — EN CURSO, no cerrada.**
+  Julieta la pidió con capturas reales del dispositivo (no simuladas) y sigue mandando
+  más a medida que las reviso; el método es AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR,
+  arreglando a nivel de token/componente compartido. Estado real por fase (A–M del brief
+  original, no todas ejecutadas todavía):
+  - **Hecho y verificado con captura real**: colores crudos/inconsistencias (#302),
+    contraste de formularios anidados en tarjeta (#303), botón de Google en oscuro
+    (#304), foto duplicada + acentos de color en `/profile` trabajador y comercio
+    (#305/#306/#307), y el bug grande de `--color-surface` invisible cuando se usa
+    suelto sobre el lienzo (#308, ver fila de arriba — corrige TODO uso suelto de
+    `bg-surface` de un saque, no sólo los que se vieron con captura).
+  - **Falta, explícitamente pedido por Julieta ("avanza con todo")**: pasada pantalla
+    por pantalla de **comercio** (Panel `/shifts`, Publicar `/shifts/new` y
+    `/shifts/new-event`, Postulantes `/shifts/[id]/candidates`, Suscripción) en los
+    3 modos (claro/oscuro/sistema) — sólo se tocaron `CompanyProfileForm` y se
+    confirmó que `/shifts/new` ya no tiene el bug de #308, pero no hubo una revisión
+    exhaustiva de esas pantallas más allá de eso.
+  - **Pregunta abierta sin resolver, NO decidir sola**: si el modo "Híbrido" (la
+    dirección aprobada, `07-comparativo.html`) debería comportarse distinto de
+    "Oscuro forzado" — hoy activar oscuro en el sistema invierte prácticamente
+    cualquier `bg-card`/`bg-surface`, y Julieta señaló con capturas que eso se ve
+    "igual" a la columna Contraste del comparativo en vez de la Híbrido (sólo la
+    plata debería ir siempre oscura). Su propia aclaración fue: en oscuro SÍ pueden
+    invertir más tarjetas de las que invierte Híbrido, pero deben mantener jerarquía
+    y acentos de color — no volverse un bloque negro sin diferenciación (eso ya lo
+    resuelve #308 para el caso `bg-surface`; queda por ver si hace falta algo más
+    para el resto de las superficies). No tocar los bloques de modo oscuro de
+    `globals.css` de nuevo sin releer este párrafo y sin capturas nuevas que lo
+    justifiquen.
+  - **Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
+    onboarding de comercio (`app/bienvenida/page.tsx`, paso "¿Cómo se llama tu
+    comercio?") se veía marrón/óxido en una captura de Julieta en vez de naranja
+    vivo — el código (`ImageUpload`, gradiente `from-primary to-primary-strong`) se
+    ve correcto en la lectura; puede ser un artefacto de la foto de la pantalla
+    (compresión/muaré), no confirmado con una segunda captura ni reproducido en
+    esta sesión. Pedirle a Julieta otra foto de ese paso específico antes de tocar
+    nada ahí.
+  - **Regla aprendida esta sesión, aplicar de acá en más**: antes de cambiar el
+    relleno de un componente compartido (`bg-card`↔`bg-surface`), buscar TODOS sus
+    usos (`grep -rn "<NombreComponente"`) y confirmar si cada uno vive anidado
+    dentro de una `.bg-card`/`.bg-night` o suelto directamente sobre el lienzo —
+    son casos opuestos que necesitan tratamientos opuestos en modo oscuro (ver
+    #303 vs. la regresión que #308 tuvo que corregir).
 - **`docs/planning/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
   por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
   **C3** (confianza y conversión): **SEO base hecho** (`app/robots.ts` +
