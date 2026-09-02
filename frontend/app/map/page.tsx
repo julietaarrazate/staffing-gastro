@@ -546,11 +546,17 @@ export default function MapPage() {
                   )}
                 </div>
 
-                <div className="mt-4 rounded-2xl bg-surface px-4 py-3.5 text-center">
-                  <p className="text-2xl font-extrabold text-primary-text">
-                    {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+                {/* `bg-night` (Fase 14, mismo criterio que `/turno/[id]` en
+                    PR #288): el dinero es un módulo de foco en toda la app,
+                    no una superficie más — acá quedaba con el tratamiento
+                    viejo (`bg-surface`) mientras el resto ya cambió. Texto
+                    hardcoded claro: esta superficie no invierte con el tema. */}
+                <div className="mt-4 rounded-2xl bg-night px-4 py-4 text-center">
+                  <p className="font-display text-price font-extrabold tracking-tight text-white">
+                    <span className="text-lg text-primary">{shift.currency}</span>{" "}
+                    {Number(shift.pay_amount).toLocaleString("es-AR")}
                   </p>
-                  <p className="text-xs font-medium text-ink/50">
+                  <p className="text-xs font-medium text-white/50">
                     Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
