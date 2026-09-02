@@ -177,9 +177,11 @@ export default function OpportunityCard({
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
             <p className="flex items-baseline gap-1 font-extrabold text-primary-text">
               <span className="text-lg">{shift.currency}</span>
-              {/* 39px: paso de la escala modular 1.25 (ART_DIRECTION §9.4),
-                  antes 36px (2.25rem) sin relación con la escala. */}
-              <span className="text-[2.4375rem] leading-none tracking-tight">
+              {/* `text-price` (39px, rediseño 2026-09): este número era el
+                  origen del token — "el dinero tiene que tener un
+                  tratamiento visual premium" (brief), ahora formalizado y
+                  reusable en vez de un tamaño mágico local. */}
+              <span className="text-price tracking-tight">
                 {Number(shift.pay_amount).toLocaleString("es-AR")}
               </span>
             </p>

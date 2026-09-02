@@ -113,11 +113,20 @@ export default async function PublicShiftPage({
             </span>
           </div>
 
-          <div className="mt-5 rounded-2xl bg-surface px-4 py-3.5 text-center">
-            <p className="text-2xl font-extrabold text-primary-text">
-              {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+          {/* `bg-night` (siempre oscura, en los tres modos), no `bg-surface`:
+              mismo "módulo de foco" que ya usa el dinero en WorkerGameCard —
+              el brief pide que el precio tenga peso visual real en esta
+              pantalla, que es la de conversión. Por eso el texto es
+              hardcoded claro (`text-primary`/`text-white`), NO los tokens
+              `-text` (pensados para superficies que SÍ invierten con el
+              tema): acá la superficie nunca cambia, así que el texto
+              tampoco debe hacerlo. */}
+          <div className="mt-5 rounded-2xl bg-night px-4 py-4 text-center">
+            <p className="font-display text-price font-extrabold tracking-tight text-white">
+              <span className="text-lg text-primary">{shift.currency}</span>{" "}
+              {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
-            <p className="text-xs font-medium text-ink/50">Pago ofrecido</p>
+            <p className="text-xs font-medium text-white/50">Pago ofrecido</p>
           </div>
 
           {/* Quien llega por un link compartido casi siempre es un trabajador
