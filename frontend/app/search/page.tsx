@@ -16,7 +16,7 @@ import BottomSheet from "@/components/BottomSheet";
 
 function WorkerRowSkeleton() {
   return (
-    <div className="flex gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line" aria-hidden>
+    <div className="flex gap-3 rounded-[var(--radius-card)] bg-surface p-4 shadow-[var(--shadow-soft)] ring-1 ring-line" aria-hidden>
       <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-2/3" />
@@ -187,7 +187,7 @@ function SearchPageContent() {
                 // trae su propio color de `SKILL_HERO_GRADIENT` (bartender
                 // terracota, barista ámbar, cajero verde...), la misma tabla
                 // que ya usan la landing, el mazo y las listas de turnos.
-                className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-card p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
+                className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-surface p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
                   worker.skills.length > 0
                     ? SKILL_RAIL_BORDER[worker.skills[0]]
                     : "border-l-line"

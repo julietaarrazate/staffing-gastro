@@ -126,10 +126,13 @@
 
   /* Segunda y tercera tinta (ADR-0011) — roles que NO se solapan, ninguna
      reemplaza al naranja como acento interactivo (sigue siendo el único). */
-  /* Espresso: estructura y momentos de marca (fondos de sección, heroes de
-     onboarding). Definido y documentado; rollout amplio queda pendiente de
-     verificación visual pantalla por pantalla (ver ADR-0011). */
-  --color-structure: #4a3428;
+  /* Estructura y momentos de marca (fondos de sección, heroes de onboarding).
+     Originalmente un "espresso" #4a3428 (ADR-0011); Julieta, captura
+     2026-09-02, lo señaló como remanente de la identidad anterior en el
+     onboarding ("sigue siendo color anterior café") — se supera al negro
+     material del sistema actual (mismo valor que `--color-night`) en vez
+     de introducir un tercer tono oscuro. */
+  --color-structure: #191410;
   /* Petróleo: identidad/confianza verificada, EXCLUSIVAMENTE — cierra un gap
      contra ADR-0010 §5 (IdentityVerifiedBadge usaba el verde de éxito
      genérico). Un solo valor: a esta oscuridad ya cumple AA de sobra como
