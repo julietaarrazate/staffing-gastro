@@ -501,7 +501,7 @@ function EmployerOnboarding() {
                 <button
                   type="button"
                   onClick={() => setUseManualPicker(false)}
-                  className="w-fit text-xs font-medium text-ink/40 underline decoration-zinc-200 underline-offset-2 hover:text-ink/60"
+                  className="w-fit text-xs font-medium text-ink/40 underline decoration-line underline-offset-2 hover:text-ink/60"
                 >
                   Volver a buscar en el mapa
                 </button>

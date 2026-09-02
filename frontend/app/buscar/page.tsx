@@ -39,7 +39,7 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
 function pillClass(active: boolean): string {
   return `inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold ring-1 transition active:scale-95 ${
     active
-      ? "bg-primary text-white ring-primary"
+      ? "bg-primary text-night ring-primary"
       : "bg-card text-ink/60 ring-line hover:bg-surface"
   }`;
 }

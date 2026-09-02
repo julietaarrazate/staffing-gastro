@@ -17,7 +17,7 @@ const VARIANTS: Record<Variant, string> = {
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
   secondary:
-    "bg-success text-white shadow-[0_8px_20px_rgba(34,197,94,0.25)] hover:brightness-[1.04]",
+    "bg-success text-white shadow-[0_8px_20px_rgba(46,139,87,0.25)] hover:brightness-[1.04]",
   danger: "bg-danger text-white shadow-[0_8px_20px_rgba(239,68,68,0.22)] hover:brightness-[1.04]",
   surface: "bg-card text-ink ring-1 ring-line hover:bg-surface",
   ghost: "bg-transparent text-ink/80 hover:bg-surface",

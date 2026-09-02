@@ -356,7 +356,7 @@ export default function MapAddressPicker({
       <button
         type="button"
         onClick={onFallback}
-        className="w-fit text-xs font-medium text-ink/40 underline decoration-zinc-200 underline-offset-2 hover:text-ink/60"
+        className="w-fit text-xs font-medium text-ink/40 underline decoration-line underline-offset-2 hover:text-ink/60"
       >
         ¿No encontrás tu dirección? Cargala a mano
       </button>

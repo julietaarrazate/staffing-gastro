@@ -152,12 +152,12 @@ export default function ConversationPage() {
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <p
-                  className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-orange-100" : "text-ink/40"}`}
+                  className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-night/50" : "text-ink/40"}`}
                 >
                   {formatShiftTime(m.created_at)}
                   {mine &&
                     (m.read ? (
-                      <CheckCheckIcon size={13} className="text-white" aria-label="Visto" />
+                      <CheckCheckIcon size={13} aria-label="Visto" />
                     ) : (
                       <CheckIcon size={13} aria-label="Enviado" />
                     ))}
@@ -184,7 +184,7 @@ export default function ConversationPage() {
           <button
             type="button"
             onClick={sendMessage}
-            className="font-semibold underline decoration-red-300 underline-offset-2 hover:text-red-800"
+            className="font-semibold underline decoration-danger/40 underline-offset-2 hover:opacity-80"
           >
             Reintentar
           </button>
