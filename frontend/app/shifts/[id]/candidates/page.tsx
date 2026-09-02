@@ -7,7 +7,9 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
-import { Applicant, CandidateMatch } from "@/lib/types";
+import { Applicant, CandidateMatch, SKILL_LABELS, Shift } from "@/lib/types";
+import { SKILL_ACCENT } from "@/lib/skill-style";
+import { formatShiftRange } from "@/lib/datetime";
 import CandidateCard from "@/components/CandidateCard";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
@@ -21,7 +23,7 @@ import {
   SegmentedControl,
   useToast,
 } from "@/components/ui";
-import { UsersIcon } from "@/components/icons";
+import { CalendarIcon, UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
@@ -43,6 +45,7 @@ function ShiftCandidatesContent() {
     setTabState(next);
     router.replace(`/shifts/${shiftId}/candidates?tab=${next}`, { scroll: false });
   }
+  const [shift, setShift] = useState<Shift | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +69,10 @@ function ShiftCandidatesContent() {
     } finally {
       setLoading(false);
     }
+    // Aparte de la carga principal: si falla, la pantalla igual funciona sin
+    // el resumen del turno de arriba (era información nueva agregada acá, no
+    // el contenido central de esta pantalla).
+    api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
   }, [token, shiftId]);
 
   useEffect(() => {
@@ -101,6 +108,35 @@ function ShiftCandidatesContent() {
       <p className="mt-0.5 text-sm text-ink/50">
         Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano.
       </p>
+
+      {/* Recordatorio de PARA QUÉ turno son estos candidatos: un comercio con
+          varios turnos abiertos podía llegar acá (desde el panel, un link
+          del asistente de IA, o el próximo-paso de publicar) sin ninguna
+          referencia de puesto/horario/pago en la pantalla. Mismo endpoint
+          que ya usa "Duplicar turno" (`GET /shifts/{id}`) — no hace falta
+          nada nuevo del backend. */}
+      {shift && (
+        <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          {(() => {
+            const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+            return (
+              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg} ${fg}`}>
+                <Icon size={20} />
+              </span>
+            );
+          })()}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-ink">{SKILL_LABELS[shift.position]}</p>
+            <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-ink/50">
+              <CalendarIcon size={13} className="shrink-0 text-ink/35" />
+              {formatShiftRange(shift.start_at, shift.end_at)}
+            </p>
+          </div>
+          <p className="shrink-0 text-right font-display text-lg font-extrabold text-ink">
+            {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+          </p>
+        </div>
+      )}
 
       <div className="mt-4">
         <SegmentedControl
