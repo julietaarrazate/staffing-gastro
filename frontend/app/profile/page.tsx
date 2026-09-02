@@ -156,7 +156,13 @@ export default function ProfilePage() {
           {user.role === "worker" && (
             <div className="mt-7 lg:mt-0">
               <SectionLabel>Identidad</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
+              {/* Trust card (rediseño 2026-09, Fase 5): celeste/cielo, NO
+                  `bg-card` — la verificación es una pieza estratégica de
+                  confianza, no una tarjeta de contenido más (brief: "no
+                  limitarlo a un pequeño badge azul genérico"). El tinte es
+                  constante en los tres modos, igual que cualquier chip
+                  manteca/cielo — no es una superficie que "voltea". */}
+              <div className="mt-2 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
                 <IdentityVerificationCard />
               </div>
             </div>
