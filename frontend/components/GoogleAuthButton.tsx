@@ -12,8 +12,35 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui";
+
+/**
+ * El botón de Google (widget de Google Identity Services, fuera de nuestro
+ * control de estilos) se renderiza SIEMPRE con `theme: "outline"` — blanco
+ * sólido — sin importar el tema de la app. Sobre una tarjeta negra (login en
+ * modo oscuro) queda un bloque blanco fuera de lugar (reporte real de
+ * Julieta, captura de /login en oscuro). Google sí soporta un tema oscuro
+ * (`filled_black`); hay que elegirlo a mano según el modo RESUELTO (no sólo
+ * la preferencia guardada: "sistema" depende del dispositivo en vivo).
+ */
+function useResolvedDarkMode(): boolean {
+  const { theme } = useTheme();
+  const [systemPrefersDark, setSystemPrefersDark] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setSystemPrefersDark(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  if (theme === "dark") return true;
+  if (theme === "light") return false;
+  return systemPrefersDark;
+}
 
 declare global {
   interface Window {
@@ -41,6 +68,7 @@ export default function GoogleAuthButton({
   onDone: (isNewAccount: boolean) => void;
 }) {
   const { loginWithGoogle } = useAuth();
+  const isDark = useResolvedDarkMode();
   const buttonHostRef = useRef<HTMLDivElement>(null);
   const idTokenRef = useRef<string | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
@@ -83,15 +111,20 @@ export default function GoogleAuthButton({
         void handleCredential(response.credential);
       },
     });
+    // Re-renderizar (no sólo inicializar) cada vez que cambia el modo
+    // resuelto: `renderButton` no es reactivo a props, hay que llamarlo de
+    // nuevo con el tema correcto. Se limpia el host antes para no duplicar
+    // el botón (Google inyecta un iframe nuevo en cada llamada).
+    buttonHostRef.current.innerHTML = "";
     window.google.accounts.id.renderButton(buttonHostRef.current, {
-      theme: "outline",
+      theme: isDark ? "filled_black" : "outline",
       size: "large",
       shape: "pill",
       text: "continue_with",
       locale: "es",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scriptReady]);
+  }, [scriptReady, isDark]);
 
   async function chooseRole(role: "worker" | "employer") {
     if (!idTokenRef.current) return;
