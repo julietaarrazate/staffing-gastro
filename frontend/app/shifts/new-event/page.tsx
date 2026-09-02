@@ -167,7 +167,7 @@ function NewEventForm() {
             Se publicaron {result.shifts.length} de {result.requested} turnos.
           </p>
           {missing > 0 && (
-            <p className="mt-3 max-w-xs rounded-2xl bg-orange-50 p-3 text-sm text-primary-text">
+            <p className="mt-3 max-w-xs rounded-2xl bg-primary-tint p-3 text-sm text-primary-text">
               Tu plan no alcanza para los {missing} turnos restantes.{" "}
               <button
                 type="button"
@@ -242,7 +242,7 @@ function NewEventForm() {
             }}
           />
           {city && (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary-text">
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
               <MapPinIcon size={15} /> {city}
             </p>
           )}

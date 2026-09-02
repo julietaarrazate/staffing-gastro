@@ -14,7 +14,7 @@ const POINTS = [
 
 export default function GuaranteeCard() {
   return (
-    <div className="rounded-[var(--radius-card)] bg-orange-50 p-4 ring-1 ring-orange-100">
+    <div className="rounded-[var(--radius-card)] bg-primary-tint p-4 ring-1 ring-primary/15">
       <p className="flex items-center gap-2 font-bold text-primary-text">
         <ShieldIcon size={18} /> Garantía Oído
       </p>

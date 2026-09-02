@@ -67,7 +67,7 @@ export default function PricingPlans() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-ink">{plan.name}</h3>
                   {recommended && (
-                    <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-primary-text">
+                    <span className="rounded-full bg-primary-tint px-2.5 py-0.5 text-xs font-bold text-primary-text">
                       Recomendado
                     </span>
                   )}

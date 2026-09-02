@@ -83,7 +83,7 @@ function LoginForm() {
         </p>
 
         {infoMessage && (
-          <p className="mt-4 rounded-xl bg-green-50 px-3.5 py-2.5 text-center text-sm font-medium text-success-text">
+          <p className="mt-4 rounded-xl bg-success-tint px-3.5 py-2.5 text-center text-sm font-medium text-success-text">
             {infoMessage}
           </p>
         )}

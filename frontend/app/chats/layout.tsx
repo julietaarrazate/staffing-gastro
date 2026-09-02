@@ -112,7 +112,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                 }
                 className={`flex items-center gap-3 rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-soft)] ring-1 transition hover:shadow-md ${
                   c.shift_id === activeShiftId
-                    ? "bg-orange-50 ring-primary/40"
+                    ? "bg-primary-tint ring-primary/40"
                     : "bg-card ring-line"
                 }`}
               >

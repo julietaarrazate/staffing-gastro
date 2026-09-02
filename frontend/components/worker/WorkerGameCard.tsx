@@ -191,7 +191,7 @@ export default function WorkerGameCard() {
               return (
                 <span
                   key={badge}
-                  className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-primary-text"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary-text"
                 >
                   <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
                 </span>

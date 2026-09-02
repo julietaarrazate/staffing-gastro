@@ -264,7 +264,7 @@ export default function PublicWorkerProfilePage() {
                   return (
                     <span
                       key={badge}
-                      className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-primary-text shadow-sm"
+                      className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary-text shadow-sm"
                     >
                       <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
                     </span>
