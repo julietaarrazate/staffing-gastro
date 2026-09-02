@@ -70,12 +70,12 @@ export default function SubscriptionStatusCard({
       {(atLimit || nearLimit) && (
         <div
           className={`mt-4 flex flex-col gap-3 rounded-2xl p-3.5 ring-1 ${
-            atLimit ? "bg-red-50 ring-red-100" : "bg-amber-50 ring-amber-100"
+            atLimit ? "bg-danger-tint ring-danger/20" : "bg-warning-tint ring-warning/20"
           }`}
         >
           <p
             className={`flex items-start gap-2 text-sm font-semibold ${
-              atLimit ? "text-danger-text" : "text-amber-700"
+              atLimit ? "text-danger-text" : "text-warning-text"
             }`}
           >
             <AlertTriangleIcon size={16} className="mt-0.5 shrink-0" />
