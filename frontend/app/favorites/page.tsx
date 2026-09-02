@@ -49,7 +49,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-4xl">
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
         Trabajadores favoritos
       </h1>
       <p className="mt-0.5 text-sm text-ink/50">

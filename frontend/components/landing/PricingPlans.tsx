@@ -42,7 +42,7 @@ export default function PricingPlans() {
   return (
     <section className="no-select mt-20">
       <Reveal>
-        <h2 className="text-center font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+        <h2 className="text-center font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
           Precios claros para tu comercio
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-ink/60">

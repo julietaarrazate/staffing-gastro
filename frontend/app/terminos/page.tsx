@@ -41,7 +41,7 @@ export default function TerminosPage() {
         </div>
 
         <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
             Términos y Condiciones
           </h1>
           <p className="mt-1 text-sm text-ink/40">{LAST_UPDATED}</p>

@@ -46,7 +46,7 @@ function VerificarEmailContent() {
         <div className="flex justify-center">
           <Logo size={48} withWordmark={false} />
         </div>
-        <h1 className="mt-4 text-center font-display text-2xl font-semibold text-ink">
+        <h1 className="mt-4 text-center font-display text-h1 font-semibold text-ink">
           Confirmá tu email
         </h1>
 

@@ -93,7 +93,7 @@ export default async function PublicShiftPage({
               <Icon size={28} />
             </span>
             <div>
-              <h1 className="font-display text-2xl font-semibold leading-tight text-ink">
+              <h1 className="font-display text-h1 font-semibold text-ink">
                 {SKILL_LABELS[shift.position]}
               </h1>
               {shift.company_name && (

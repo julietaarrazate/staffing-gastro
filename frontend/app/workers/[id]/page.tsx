@@ -158,7 +158,7 @@ export default function PublicWorkerProfilePage() {
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-            <h1 className="font-display text-2xl font-semibold text-white drop-shadow-sm">
+            <h1 className="font-display text-h1 font-semibold text-white drop-shadow-sm">
               {name}
               {profile.age != null && <span className="font-normal">, {profile.age}</span>}
             </h1>

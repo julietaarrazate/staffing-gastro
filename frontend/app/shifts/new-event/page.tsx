@@ -160,7 +160,7 @@ function NewEventForm() {
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h1 className="font-display text-2xl font-semibold text-ink">
+          <h1 className="font-display text-h1 font-semibold text-ink">
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
           </h1>
           <p className="mt-2 text-ink/60">
@@ -198,7 +198,7 @@ function NewEventForm() {
           <ChevronLeftIcon size={18} />
         </button>
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Publicar para un evento</h1>
+          <h1 className="font-display text-h1 font-semibold text-ink">Publicar para un evento</h1>
           <p className="text-sm text-ink/50">Varios roles, un solo formulario.</p>
         </div>
       </div>

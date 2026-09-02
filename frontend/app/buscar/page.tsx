@@ -125,7 +125,7 @@ export default function BuscarPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-10 pt-6">
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
         Buscar turnos
       </h1>
       <p className="mt-0.5 text-sm text-ink/50">

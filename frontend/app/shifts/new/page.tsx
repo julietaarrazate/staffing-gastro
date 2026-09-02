@@ -365,7 +365,7 @@ function NewShiftWizard() {
           >
             {step === 0 && (
               <div>
-                <h1 className="font-display text-2xl font-semibold text-ink">¿Qué necesitás?</h1>
+                <h1 className="font-display text-h1 font-semibold text-ink">¿Qué necesitás?</h1>
                 <p className="mt-1 text-sm text-ink/50">Elegí el puesto a cubrir.</p>
 
                 {/* Turno por texto libre (P2, auditoría de producto 2026-08-10):
@@ -457,7 +457,7 @@ function NewShiftWizard() {
 
             {step === 1 && (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <h1 className="font-display text-2xl font-semibold text-ink">¿Cuántas personas?</h1>
+                <h1 className="font-display text-h1 font-semibold text-ink">¿Cuántas personas?</h1>
                 <p className="mt-1 text-sm text-ink/50">Para este puesto.</p>
                 <div className="mt-10 flex items-center gap-6">
                   <button
@@ -485,7 +485,7 @@ function NewShiftWizard() {
 
             {step === 2 && (
               <div>
-                <h1 className="font-display text-2xl font-semibold text-ink">¿Cuándo?</h1>
+                <h1 className="font-display text-h1 font-semibold text-ink">¿Cuándo?</h1>
                 <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
@@ -530,7 +530,7 @@ function NewShiftWizard() {
 
             {step === 3 && (
               <div>
-                <h1 className="font-display text-2xl font-semibold text-ink">¿Cuánto pagás?</h1>
+                <h1 className="font-display text-h1 font-semibold text-ink">¿Cuánto pagás?</h1>
                 <p className="mt-1 text-sm text-ink/50">
                   Pago por la jornada completa, por persona (no por hora).
                 </p>
@@ -581,7 +581,7 @@ function NewShiftWizard() {
 
             {step === 4 && (
               <div>
-                <h1 className="font-display text-2xl font-semibold text-ink">¿Dónde es?</h1>
+                <h1 className="font-display text-h1 font-semibold text-ink">¿Dónde es?</h1>
                 <p className="mt-1 text-sm text-ink/50">
                   Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
                 </p>

@@ -77,7 +77,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
         }`}
       >
         <div className="px-4 pb-2 pt-6">
-          <h1 className="font-display text-2xl font-semibold">Mensajes</h1>
+          <h1 className="font-display text-h1 font-semibold">Mensajes</h1>
           <p className="mt-1 text-sm text-ink/50">
             Coordiná los detalles de cada turno con la otra parte.
           </p>
