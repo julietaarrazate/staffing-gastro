@@ -257,11 +257,24 @@
  * Los valores oscuros están duplicados en dos selectores a propósito (no hay
  * forma en CSS de reusar un bloque de declaraciones): uno para "sistema en
  * oscuro salvo que se fuerce claro", otro para "oscuro forzado".
- * ======================================================================== */
+ *
+ * `--color-surface` en oscuro es SÓLIDO, no `rgba(255,248,240,0.07)` como
+ * era antes (bug real con captura, Julieta 2026-09: "Describilo y lo
+ * completamos" en /shifts/new era invisible). Esa rgba sólo se ve bien
+ * ANIDADA dentro de una `.bg-card` sólida (el 7% de blanco aclara el negro
+ * de fondo un poco) — pero `.bg-surface` también reescribe `--color-ink` a
+ * claro para lo que contiene (ver bloque de abajo), así que usada SUELTA
+ * sobre el lienzo crema (sin ningún `.bg-card` ancestro) quedaba con texto
+ * claro sobre un fondo que seguía siendo, a los ojos, el mismo crema de
+ * siempre — texto claro sobre claro. El sólido de acá abajo es
+ * aproximadamente el resultado visual de mezclar ese 7% blanco con el negro
+ * de `--color-card`, así que una `.bg-surface` anidada en una `.bg-card`
+ * sigue viéndose igual que antes (un inset más claro) — pero ahora TAMBIÉN
+ * funciona suelta sobre el lienzo, sin depender de dónde se use. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --color-surface: rgba(255, 248, 240, 0.07);
+    --color-surface: #292420;
     --color-card: #191410;
   }
 
