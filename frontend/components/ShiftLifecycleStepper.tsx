@@ -102,7 +102,7 @@ export default function ShiftLifecycleStepper({
                 aria-current={state === "current" || state === "death" ? "step" : undefined}
                 className={cn(
                   "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors",
-                  state === "completed" && "bg-orange-100 text-primary-text",
+                  state === "completed" && "bg-primary-tint text-primary-text",
                   state === "current" && "bg-primary text-night ring-2 ring-primary/20",
                   state === "future" && "bg-surface text-ink/35",
                   state === "death" && "bg-danger text-white ring-2 ring-red-100",

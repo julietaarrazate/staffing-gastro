@@ -66,7 +66,7 @@ export default function PushToggle() {
         <span
           className={
             "rounded-full px-2.5 py-0.5 text-xs font-semibold " +
-            (enabled ? "bg-green-100 text-success-text" : "bg-surface text-ink/50")
+            (enabled ? "bg-success-tint text-success-text" : "bg-surface text-ink/50")
           }
         >
           {enabled ? "Activadas" : "Desactivadas"}
