@@ -7,6 +7,7 @@ import IdentityVerificationCard from "@/components/worker/IdentityVerificationCa
 import CompanyProfileForm from "@/components/CompanyProfileForm";
 import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
 import AppearanceControl from "@/components/AppearanceControl";
@@ -110,9 +111,17 @@ export default function ProfilePage() {
               <div className="min-w-0">
                 <EditableName className="font-display text-lg font-semibold text-ink" />
                 <p className="truncate text-sm text-ink/50">{user.email}</p>
-                <span className="mt-1 inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
-                  {user.role === "admin" ? "Administrador" : "Comercio"}
-                </span>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
+                    {user.role === "admin" ? "Administrador" : "Comercio"}
+                  </span>
+                  {/* Mismo sello que ve el trabajador en la tarjeta de un
+                      turno de este comercio (`ShiftCard`, `company_verified`)
+                      — acá el comercio ve su PROPIO estado, no un dato de
+                      terceros; brief: la verificación no puede ser metadata
+                      escondida. */}
+                  <IdentityVerifiedBadge verified={user.is_verified} />
+                </div>
               </div>
             </div>
           )}
