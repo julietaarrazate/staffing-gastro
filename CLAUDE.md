@@ -320,6 +320,34 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
 
 **Otros pendientes operativos (no env vars):**
+- **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02, aún sin
+  conectar): 3 pasos, ninguno de código.
+  1. En Vercel → proyecto `staffing-gastro` → Settings → Domains → agregar
+     `oido.com.ar` y `www.oido.com.ar`. Vercel da los registros DNS exactos
+     (normalmente A `oido.com.ar` → `76.76.21.21`, CNAME `www` →
+     `cname.vercel-dns.com`); cargarlos en el panel de DNS de NIC.ar. SSL lo
+     emite Vercel solo una vez que el DNS propaga.
+  2. En Render (backend) agregar el dominio nuevo a `CORS_ORIGINS` (sin sacar
+     el `.vercel.app` todavía) y setear `FRONTEND_URL=https://oido.com.ar`
+     (arma los links de los mails transaccionales, hoy cae al default de
+     `core/config.py`).
+  3. En Google Cloud Console, agregar `https://oido.com.ar` y
+     `https://www.oido.com.ar` a "Authorized JavaScript origins" del Client
+     ID de Google Sign-In — si no, el botón de Google deja de andar en el
+     dominio nuevo.
+  Opcional, no bloquea nada: dominio propio para el backend
+  (`api.oido.com.ar` en vez de `staffya-backend.onrender.com`) y dominio de
+  envío propio en Resend (`@oido.com.ar` en vez del sandbox `resend.dev`).
+- **Expediente de registro de obra ante la DNDA** (protección de autoría y
+  código fuente de Oído): documentación completa y lista en
+  `REGISTRO_OBRA_SOFTWARE/` (PR #310, en draft a propósito — no mergear sin
+  que Julieta lo revise, lleva su DNI en una declaración firmable). Checklist
+  operativo completo, con tiempos estimados, en
+  `REGISTRO_OBRA_SOFTWARE/DNDA_CHECKLIST_FINAL.md`: completar el campo
+  laboral/contractual de `EVIDENCIA_AUTORIA.md` §7, tomar las capturas
+  reales (`DNDA_CAPTURAS.md`), armar los diagramas
+  (`MATERIAL_COMPLEMENTARIO.md`), pagar arancel ($3.800) + tasa (0,2% del
+  valor declarado) y completar el formulario del portal de la DNDA.
 - **Ensayo de restore de Neon**: confirmar que el backup/restore funciona de
   verdad antes de depender de él con usuarios reales.
 - Confirmar en el dashboard de Render que el deploy quedó verde contra Neon
