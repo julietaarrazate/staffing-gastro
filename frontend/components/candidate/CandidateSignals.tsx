@@ -91,7 +91,7 @@ export function CandidateStatChips({
           <span
             key={badge}
             title={badgeLabel(badge)}
-            className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-bold text-primary-text"
+            className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2 py-0.5 text-xs font-bold text-primary-text"
           >
             <Icon size={11} /> {badgeLabel(badge)}
           </span>

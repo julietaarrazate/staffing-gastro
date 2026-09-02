@@ -427,7 +427,7 @@ export default function MatchesPage() {
               return (
                 <ShiftCard key={application.id} shift={shift} perspective="worker">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary-text">
+                    <p className="inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
                       <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
                     </p>
                     {/* Compartir a un colega: este turno sigue abierto, pasarlo

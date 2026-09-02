@@ -330,8 +330,8 @@ function MyShiftsPanel() {
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
                   event.covered === event.total
-                    ? "bg-green-50 text-success-text"
-                    : "bg-orange-50 text-primary-text"
+                    ? "bg-success-tint text-success-text"
+                    : "bg-primary-tint text-primary-text"
                 }`}
               >
                 {event.covered}/{event.total} cubiertos

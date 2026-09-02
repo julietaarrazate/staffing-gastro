@@ -106,7 +106,7 @@ function ShiftRow({
       // las tarjetas tengan colores"). El estado activo sigue marcándose con
       // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
       className={`w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
-        active ? "border-primary/40 bg-orange-50/60" : "border-line bg-card hover:bg-surface"
+        active ? "border-primary/40 bg-primary-tint/60" : "border-line bg-card hover:bg-surface"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -122,7 +122,7 @@ function ShiftRow({
           </div>
         </div>
         {shift.urgent && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-danger-text">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[10px] font-bold text-danger-text">
             <FlameIcon size={10} /> Urgente
           </span>
         )}
@@ -436,7 +436,7 @@ export default function MapPage() {
                     </div>
                   </div>
                   {shift.urgent && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-danger-text">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[11px] font-bold text-danger-text">
                       <FlameIcon size={11} /> Urgente
                     </span>
                   )}
@@ -540,7 +540,7 @@ export default function MapPage() {
                     </p>
                   </div>
                   {shift.urgent && (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-danger-text">
+                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[11px] font-bold text-danger-text">
                       <FlameIcon size={11} /> Urgente
                     </span>
                   )}

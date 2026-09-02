@@ -138,7 +138,7 @@ export default function NotificationBell() {
                 key={n.id}
                 onClick={() => openNotification(n)}
                 className={`block w-full border-b border-line px-4 py-3 text-left text-sm hover:bg-surface ${
-                  n.read ? "bg-card" : "bg-orange-50"
+                  n.read ? "bg-card" : "bg-primary-tint"
                 }`}
               >
                 <p className="font-medium text-ink/80">{n.title}</p>

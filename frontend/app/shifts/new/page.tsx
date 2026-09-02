@@ -413,7 +413,7 @@ function NewShiftWizard() {
                       // frenó. En ámbar (no rojo): no es un error, es una
                       // pregunta — lo que sí se entendió ya quedó precargado.
                       missingFields.length > 0 && (
-                        <p className="text-xs font-medium text-amber-700">
+                        <p className="text-xs font-medium text-warning-text">
                           Me falta saber {missingFields.join(", ")}. Completalo abajo.
                         </p>
                       )
@@ -441,7 +441,7 @@ function NewShiftWizard() {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setPosition(skill)}
                         className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
-                          active ? "bg-orange-50 ring-primary" : "bg-card ring-line"
+                          active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
                         }`}
                       >
                         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} ${fg}`}>
@@ -516,7 +516,7 @@ function NewShiftWizard() {
                   </div>
                 )}
                 {spansMultipleDays && (
-                  <div className="mt-4 rounded-2xl bg-orange-50 p-3.5 text-sm text-ink/75 ring-1 ring-orange-100">
+                  <div className="mt-4 rounded-2xl bg-primary-tint p-3.5 text-sm text-ink/75 ring-1 ring-primary/15">
                     Un turno es una sola jornada, no dura varios días. Si querés
                     cubrir <strong>varios días o varias jornadas</strong>, conviene{" "}
                     <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
@@ -595,7 +595,7 @@ function NewShiftWizard() {
                   />
                 </div>
                 {city && (
-                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-semibold text-primary-text">
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
                     <MapPinIcon size={15} /> {city}
                   </p>
                 )}
@@ -778,7 +778,7 @@ function WizardPreview({
         )}
 
         {urgent && (
-          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-semibold text-primary-text">
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-xs font-semibold text-primary-text">
             <FlameIcon size={13} className="text-danger-text" /> Se muestra como urgente en el feed
           </p>
         )}

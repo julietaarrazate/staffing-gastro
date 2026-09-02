@@ -243,7 +243,7 @@ export default function MapAddressPicker({
       </div>
 
       {status === "error" && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-100">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text ring-1 ring-warning/20">
           <span className="flex items-center gap-2">
             <AlertTriangleIcon size={16} className="shrink-0" />
             No pudimos conectarnos al buscador de direcciones.
@@ -251,7 +251,7 @@ export default function MapAddressPicker({
           <button
             type="button"
             onClick={onFallback}
-            className="shrink-0 font-semibold underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
+            className="shrink-0 font-semibold underline decoration-warning/40 underline-offset-2 hover:opacity-80"
           >
             Usar selector manual
           </button>
@@ -309,7 +309,7 @@ export default function MapAddressPicker({
       </div>
 
       {justPickedFromSearch && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-100">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text ring-1 ring-warning/20">
           <span className="flex items-center gap-2">
             <AlertTriangleIcon size={16} className="shrink-0" />
             Este punto es aproximado. Arrastrá el pin hasta la entrada de tu
@@ -318,7 +318,7 @@ export default function MapAddressPicker({
           <button
             type="button"
             onClick={() => setJustPickedFromSearch(false)}
-            className="shrink-0 font-semibold underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
+            className="shrink-0 font-semibold underline decoration-warning/40 underline-offset-2 hover:opacity-80"
           >
             Ya lo verifiqué
           </button>

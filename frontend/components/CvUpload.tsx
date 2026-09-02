@@ -124,7 +124,7 @@ export default function CvUpload({
           onDrop={handleDrop}
           disabled={uploading}
           className={`mt-2 flex w-full flex-col items-center gap-1.5 rounded-[var(--radius-input)] border-2 border-dashed px-4 py-5 text-center transition disabled:opacity-60 ${
-            dragOver ? "border-primary bg-orange-50" : "border-line hover:bg-surface"
+            dragOver ? "border-primary bg-primary-tint" : "border-line hover:bg-surface"
           }`}
         >
           {uploading ? (
