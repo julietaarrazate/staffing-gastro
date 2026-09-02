@@ -37,7 +37,7 @@ export default function AppearanceControl() {
             onClick={() => setTheme(value)}
             className={`flex flex-1 flex-col items-center gap-1.5 rounded-[var(--radius-btn)] px-2 py-3 text-xs font-semibold transition active:scale-[0.97] ${
               active
-                ? "bg-primary text-night shadow-[0_4px_12px_rgba(249,115,22,0.28)]"
+                ? "bg-primary text-night shadow-[0_4px_12px_rgba(249,78,27,0.28)]"
                 : "text-ink/55 hover:bg-surface"
             }`}
           >

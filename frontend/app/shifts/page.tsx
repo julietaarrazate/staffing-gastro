@@ -290,7 +290,7 @@ function MyShiftsPanel() {
           <Link
             href="/shifts/new"
             data-tour="shifts-publish"
-            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-night shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition active:scale-95"
+            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-night shadow-[0_8px_20px_rgba(249,78,27,0.3)] transition active:scale-95"
           >
             + Publicar
           </Link>
@@ -309,7 +309,7 @@ function MyShiftsPanel() {
           componente que usan los estados vacíos por familia, abajo). */}
       {!loading && !error && shifts.length === 0 && (
         <EmptyState
-          icon={<EmptyPanelIllustration color="#f97316" />}
+          icon={<EmptyPanelIllustration color="#f94e1b" />}
           title="Publicá tu primer turno"
           subtitle="Publicás el turno, te recomendamos a los mejores candidatos disponibles cerca tuyo, y vos elegís a quién asignar. En minutos vas a tener gente lista para cubrirlo."
           primaryAction={{

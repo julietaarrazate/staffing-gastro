@@ -4,7 +4,47 @@
 > Define la paleta, sus reglas de uso y —lo más importante— **los contrastes
 > reales medidos**, no estimados.
 >
-> Preparado: 2026-07-28 · Versión 1.0 · **Actualizado 2026-07-29 → v2.0**
+> Preparado: 2026-07-28 · Versión 1.0 · Actualizado 2026-07-29 → v2.0 ·
+> **Actualizado 2026-09-02 → v3.0**
+
+---
+
+## 🎨 -1. v3.0 — Corrección de la auditoría de la maqueta híbrida (2026-09-02)
+
+El rediseño de identidad de septiembre (`docs/design/mockups/`, dirección
+"Híbrido" aprobada) trajo su **propia** auditoría de contraste
+(`08-auditoria-contraste.html`, mismo rigor: fórmula WCAG oficial, no
+estimada) sobre la paleta que terminó definiendo `09-hibrido-app.html` — y esa
+auditoría midió el naranja de superficie **más brillante** que el `#F97316`
+de v2.0, lo que cambia los números:
+
+| Token | v2.0 (2026-07-29) | v3.0 (2026-09-02) | Motivo |
+|---|---|---|---|
+| `--color-primary` | `#F97316` | **`#F94E1B`** | Superficie de marca de la maqueta híbrida aprobada. |
+| `--color-primary-strong` | `#E65A00` | **`#D63A0C`** | Naranja oscuro (fin de degradé, hover/pressed) a tono con la superficie nueva. |
+| `--color-primary-text` | `#B23C08` | **`#D63606`** | El naranja-texto viejo daba 4.5+ sobre la superficie vieja; sobre la nueva superficie se recalculó: 4.54 sobre blanco, pasa AA. |
+
+**El par botón (`bg-primary text-night`/`text-ink`) no cambia de opción.**
+v2.0 ya había elegido "Opción A: naranja + texto tinta" (§2.3) sobre blanco-
+con-naranja (que fallaba). La auditoría de la maqueta híbrida vuelve a medir
+esa MISMA combinación con la superficie nueva — "Naranja vivo + texto tinta:
+**4.83**, pasa AA" — así que sigue siendo la opción vigente, sin necesidad de
+un token de botón aparte (`--primary-cta`) ni de texto blanco en ningún botón
+existente.
+
+Se actualizaron en cadena, igual que en la migración de v2.0: el
+`themeColor`/`theme_color` (metadata del layout + manifest), todas las
+sombras-glow `rgba(249,115,22,…)` → `rgba(249,78,27,…)`, y los usos
+hardcodeados en ilustraciones (`WelcomeIllustration`, `EmptyFeedIllustration`,
+`LogoGlyph`, etc.) y en el mapa (`RadiusRing`). **Pendiente, fuera de este
+cambio de código:** regenerar los íconos PWA + `og-image` + `logo-mark` con
+el naranja nuevo (son assets de imagen, no código — requiere el pipeline de
+diseño original).
+
+Las secciones de v2.0/v1.0 de abajo quedan como registro histórico de CÓMO se
+llegó a la paleta anterior — el detalle metodológico (fórmula WCAG, tabla de
+opciones del botón, reglas de uso) sigue vigente; sólo los hex de v2.0
+quedan superados por la tabla de arriba.
 
 ---
 

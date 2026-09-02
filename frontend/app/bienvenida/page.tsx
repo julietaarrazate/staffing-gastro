@@ -208,7 +208,7 @@ function WorkerOnboarding() {
               el primer paso, como un saludo de bienvenida, no en cada paso
               del wizard. */}
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-structure)]">
-            <WelcomeIllustration size={32} color="#f97316" />
+            <WelcomeIllustration size={32} color="#f94e1b" />
           </div>
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Dónde querés trabajar?
@@ -434,7 +434,7 @@ function EmployerOnboarding() {
           {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — mismo
               saludo que ve el trabajador en su primer paso. */}
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-structure)]">
-            <WelcomeIllustration size={32} color="#f97316" />
+            <WelcomeIllustration size={32} color="#f94e1b" />
           </div>
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Cómo se llama tu comercio?
