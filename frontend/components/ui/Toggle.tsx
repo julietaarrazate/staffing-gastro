@@ -25,7 +25,7 @@ export default function Toggle({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex items-center justify-between rounded-2xl bg-card px-4 py-3 ring-1 ring-line outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 ring-1 ring-line outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
       <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink/80">
         {icon} {label}

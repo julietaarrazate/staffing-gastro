@@ -27,7 +27,7 @@ function shortProvince(name: string): string {
 // radio y anillo por token): antes usaba grises/naranjas crudos y quedaba
 // visiblemente distinto a los demás campos de la app.
 const selectClass =
-  "mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-card px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40";
+  "mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40";
 
 export default function LocationPicker({
   onSelect,
