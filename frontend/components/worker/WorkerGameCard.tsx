@@ -47,7 +47,11 @@ function StatTile({
   return (
     <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card px-2 py-3.5 text-center ring-1 ring-line">
       <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accent}`}>{icon}</span>
-      <span className="text-lg font-extrabold leading-none text-ink">{value}</span>
+      {/* `text-metric` (rediseño 2026-09): antes `text-lg` (18px), la misma
+          escala que cualquier título de card — un número de estadística no
+          es texto, es un DATO (brief: "los números... deben tener presencia
+          visual"), necesita su propio peso. */}
+      <span className="text-metric font-extrabold text-ink">{value}</span>
       <span className="text-[11px] font-medium text-ink/50">{label}</span>
     </div>
   );
