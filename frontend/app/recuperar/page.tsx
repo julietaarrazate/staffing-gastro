@@ -43,7 +43,7 @@ export default function RecuperarPage() {
           Te mandamos un enlace a tu email para elegir una nueva.
         </p>
 
-        <div className="mt-6 rounded-2xl bg-card p-6 shadow-sm ring-1 ring-line">
+        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           {sent ? (
             <p className="text-center text-sm font-medium text-success-text">
               {GENERIC_MESSAGE}
