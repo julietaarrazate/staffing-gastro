@@ -158,7 +158,7 @@ function NewEventForm() {
   if (result) {
     const missing = result.requested - result.shifts.length;
     return (
-      <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
+      <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-lg">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <h1 className="font-display text-h1 font-semibold text-ink">
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
@@ -188,7 +188,7 @@ function NewEventForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-2xl">
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/shifts")}
@@ -212,8 +212,8 @@ function NewEventForm() {
           maxLength={200}
         />
 
-        <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:gap-3">
+          <label className="flex flex-1 flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink/70">Inicio</span>
             <input
               type="datetime-local"
@@ -222,7 +222,7 @@ function NewEventForm() {
               className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </label>
-          <label className="flex flex-col gap-1.5">
+          <label className="flex flex-1 flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink/70">Fin</span>
             <input
               type="datetime-local"
@@ -256,7 +256,7 @@ function NewEventForm() {
           maxLength={255}
         />
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:gap-x-6 lg:gap-y-3">
           <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
           <Toggle label="Incluye comida (perso)" checked={meal} onChange={setMeal} icon={<UtensilsIcon size={16} className="text-ink/50" />} />
           <Toggle
