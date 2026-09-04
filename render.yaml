@@ -36,8 +36,12 @@ services:
         value: production
       - key: DEBUG
         value: "false"
+      # oido.com.ar/www agregados de antemano (2026-09, dominio comprado en
+      # NIC.ar, DNS todavía sin propagar) — agregar un origen no rompe nada
+      # mientras el dominio no resuelva; así ya queda listo apenas Julieta
+      # cargue los registros DNS, sin depender de otro deploy después.
       - key: CORS_ORIGINS
-        value: https://staffing-gastro.vercel.app
+        value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
       # APAGADO (2026-08-07): ya no se re-siembran datos demo en cada arranque.
