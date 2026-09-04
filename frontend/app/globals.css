@@ -57,23 +57,31 @@
 /* Colores de marca: registrados como tokens de Tailwind v4 (generan
  * utilidades bg-primary, text-secondary, ring-danger, etc.). */
 @theme {
-  /* Naranja corregido por la auditoría WCAG de la maqueta híbrida
-     (docs/design/mockups/08-auditoria-contraste.html, superó a los valores
-     de COLOR_SYSTEM.md v2.0): #F94E1B da 4.83 de contraste con texto tinta/
-     night encima (pasa AA) — no hace falta un token de botón aparte, la
-     app ya usa ese mismo par (bg-primary text-night/text-ink) en todos lados. */
-  --color-primary: #f94e1b;
-  /* Naranja oscuro (fin del degradé, hover/pressed). */
-  --color-primary-strong: #d63a0c;
-  /* Naranja cuando es TEXTO sobre claro (el de superficie da sólo 3.25 como
-     texto — falla). #D63606 da 4.54 sobre blanco, pasa AA. */
-  --color-primary-text: #d63606;
-  /* Tinte pálido de acción/activo (mismo valor que traía el `bg-orange-50`
-     suelto ya usado en ~20 archivos — ShiftCard, Badge, RateMeter, chips de
-     "publicado"/"en curso", etc.). Formalizarlo no es cosmético: es la mitad
-     de los "chips de estado" del panel del comercio (ver STATUS_COLORS en
+  /* Naranja de marca v2 (2026-09): Julieta prefirió el ámbar que ya usaba
+     sin querer la insignia "Nivel Bronce" (Tailwind amber-600/700, nunca
+     tokenizado) sobre el naranja-rojizo anterior. Reemplaza a `#f94e1b`
+     (el que había corregido la auditoría WCAG de la maqueta híbrida,
+     docs/design/mockups/08-auditoria-contraste.html) — mismo criterio de
+     contraste, valores nuevos: `--color-night` (#191410) da 5.74 encima de
+     este tono (pasa AA; el anterior daba 5.34) — no hace falta un token de
+     botón aparte, la app ya usa ese mismo par (bg-primary text-night) en
+     todos lados. */
+  --color-primary: #d97706;
+  /* Naranja oscuro (fin del degradé, hover/pressed). `--color-night` da 3.64
+     encima (el anterior daba 3.89 — mismo orden de magnitud: es un estado
+     transitorio de hover, no el reposo, igual que ya era antes). */
+  --color-primary-strong: #b45309;
+  /* Naranja cuando es TEXTO sobre claro (el de superficie da sólo 3.02 como
+     texto — falla). #B45309 da 4.77 sobre crema, pasa AA (el anterior daba
+     4.54 con #d63606). */
+  --color-primary-text: #b45309;
+  /* Tinte pálido de acción/activo — actualizado a la familia ámbar
+     (Tailwind amber-50) para que combine con el naranja v2 de arriba; sigue
+     dando 4.84 de contraste con `--color-primary-text` encima (antes 4.73
+     con el tinte naranja-rojizo). Mismo rol que antes: la mitad de los
+     "chips de estado" del panel del comercio (ver STATUS_COLORS en
      ShiftCard.tsx), que el brief pide reconocibles sin depender del texto. */
-  --color-primary-tint: #fff7ed;
+  --color-primary-tint: #fffbeb;
   /* Estrella de calificación (auditoría de colores crudos, rediseño 2026-09):
      mismo `amber-400` de Tailwind que ya usaban por igual StarRating,
      Rating, WorkerGameCard y WorkerMarker — se formaliza como token en vez
@@ -250,7 +258,7 @@
  *
  * La paleta oscura sale de esa maqueta:
  *   tarjeta #191410 · tinta clara #fff8f0 · línea blanca 10%.
- * El naranja-texto sube a #ff7a45 y verde/rojo/petróleo suben su luminancia
+ * El naranja-texto sube a #d97706 y verde/rojo/petróleo suben su luminancia
  * para cumplir contraste sobre superficie oscura — pero sólo DENTRO de una
  * tarjeta oscura, nunca sueltos sobre el crema.
  *
@@ -285,7 +293,7 @@
   :root:not([data-theme="light"]) .bg-night {
     --color-ink: #fff8f0;
     --color-line: rgba(255, 248, 240, 0.1);
-    --color-primary-text: #ff7a45;
+    --color-primary-text: #d97706; /* Naranja v2 en oscuro: 5.74 sobre tarjeta oscura (pasa AA) */
     --color-success-text: #4bbd7a;
     --color-danger-text: #f4746f;
     --color-warning-text: #fbbf76;
@@ -312,7 +320,7 @@
 :root[data-theme="dark"] .bg-night {
   --color-ink: #fff8f0;
   --color-line: rgba(255, 248, 240, 0.1);
-  --color-primary-text: #ff7a45;
+  --color-primary-text: #d97706; /* Naranja v2 en oscuro: 5.74 sobre tarjeta oscura (pasa AA) */
   --color-success-text: #4bbd7a;
   --color-danger-text: #f4746f;
   --color-warning-text: #fbbf76;

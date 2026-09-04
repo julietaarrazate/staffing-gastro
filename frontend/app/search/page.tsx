@@ -142,7 +142,7 @@ function SearchPageContent() {
         onClick={search}
         disabled={loading}
         aria-label="Buscar"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-white shadow-[0_8px_20px_rgba(249,78,27,0.28)] transition active:scale-95 disabled:opacity-60"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-white shadow-[0_8px_20px_rgba(217,119,6,0.28)] transition active:scale-95 disabled:opacity-60"
       >
         <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
       </button>

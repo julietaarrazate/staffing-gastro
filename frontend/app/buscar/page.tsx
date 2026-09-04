@@ -162,7 +162,7 @@ export default function BuscarPage() {
           <CardSkeletons count={6} />
         ) : sortedShifts.length === 0 ? (
           <EmptyState
-            icon={<EmptyFeedIllustration color="#f94e1b" />}
+            icon={<EmptyFeedIllustration color="var(--color-primary)" />}
             title="No hay turnos en este rubro"
             subtitle="Probá con otra categoría o volvé más tarde."
           />

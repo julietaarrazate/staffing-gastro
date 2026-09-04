@@ -165,7 +165,7 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/register?rol=comercio"
-                className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[0_8px_20px_rgba(249,78,27,0.28)] transition active:scale-95 hover:brightness-[1.04]"
+                className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[0_8px_20px_rgba(217,119,6,0.28)] transition active:scale-95 hover:brightness-[1.04]"
               >
                 Necesito personal
               </Link>
@@ -213,7 +213,7 @@ export default function Home() {
               <ParallaxCard range={PARALLAX_RANGES[0]}>
                 <motion.div
                   whileHover={{ y: -4 }}
-                  className="flex h-full flex-col justify-between rounded-[var(--radius-card)] bg-primary p-6 text-ink shadow-[0_8px_20px_rgba(249,78,27,0.28)] transition"
+                  className="flex h-full flex-col justify-between rounded-[var(--radius-card)] bg-primary p-6 text-ink shadow-[0_8px_20px_rgba(217,119,6,0.28)] transition"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
                     <HERO_FEATURE.Icon size={22} />
@@ -281,7 +281,7 @@ export default function Home() {
             <div className="mt-7">
               <Link
                 href="/register?rol=trabajador"
-                className="inline-flex rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[0_8px_20px_rgba(249,78,27,0.28)] transition active:scale-95 hover:brightness-[1.04]"
+                className="inline-flex rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[0_8px_20px_rgba(217,119,6,0.28)] transition active:scale-95 hover:brightness-[1.04]"
               >
                 Quiero trabajar
               </Link>
