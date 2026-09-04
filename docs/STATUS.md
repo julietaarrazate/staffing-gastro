@@ -2861,12 +2861,20 @@ roadmap).
     (#305/#306/#307), y el bug grande de `--color-surface` invisible cuando se usa
     suelto sobre el lienzo (#308, ver fila de arriba — corrige TODO uso suelto de
     `bg-surface` de un saque, no sólo los que se vieron con captura).
-  - **Falta, explícitamente pedido por Julieta ("avanza con todo")**: pasada pantalla
-    por pantalla de **comercio** (Panel `/shifts`, Publicar `/shifts/new` y
-    `/shifts/new-event`, Postulantes `/shifts/[id]/candidates`, Suscripción) en los
-    3 modos (claro/oscuro/sistema) — sólo se tocaron `CompanyProfileForm` y se
-    confirmó que `/shifts/new` ya no tiene el bug de #308, pero no hubo una revisión
-    exhaustiva de esas pantallas más allá de eso.
+  - **Pasada pantalla por pantalla de comercio — HECHA (#313, sin mergear)**:
+    Panel `/shifts`, Publicar `/shifts/new`, `/shifts/new-event`, Postulantes
+    `/shifts/[id]/candidates` y Suscripción, con Playwright + mocks (sin
+    backend real), comparando explícitamente "Oscuro" (toggle) vs "Sistema"
+    (media query) pantalla por pantalla. 4 de 5 sin problemas. **Hallazgo**:
+    `/shifts/new-event` quedaba con el formulario entero (inputs, selects,
+    labels de los toggles) invisible en "Oscuro" explícito — el fix de #308
+    (`--color-surface` de `rgba(255,248,240,0.07)` a `#292420` sólido) sólo se
+    había aplicado al bloque `@media(prefers-color-scheme:dark)` ("Sistema"),
+    no al bloque `:root[data-theme="dark"]` ("Oscuro" forzado) — quedaron
+    desincronizados pese a que el propio comentario del archivo ya advertía
+    que había que mantenerlos iguales. Fix de una línea + comentario cruzado
+    en ambos bloques para que no vuelva a pasar. `tsc`/lint/build/Playwright
+    (76 specs) verdes.
   - **Pregunta abierta sin resolver, NO decidir sola**: si el modo "Híbrido" (la
     dirección aprobada, `07-comparativo.html`) debería comportarse distinto de
     "Oscuro forzado" — hoy activar oscuro en el sistema invierte prácticamente
