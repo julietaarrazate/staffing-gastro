@@ -92,6 +92,8 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <TextField
               type="email"
+              name="email"
+              autoComplete="email"
               label="Email"
               value={email}
               onChange={setEmail}
@@ -100,6 +102,8 @@ function LoginForm() {
             />
             <TextField
               type="password"
+              name="password"
+              autoComplete="current-password"
               label="Contraseña"
               value={password}
               onChange={setPassword}
@@ -164,6 +168,8 @@ function LoginForm() {
               <div className="mt-3">
                 <TextField
                   label="PIN de acceso"
+                  name="pin"
+                  autoComplete="off"
                   value={pin}
                   onChange={setPin}
                   placeholder="Ingresá el PIN"

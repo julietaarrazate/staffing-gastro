@@ -52,6 +52,8 @@ export default function RecuperarPage() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <TextField
                 type="email"
+                name="email"
+                autoComplete="email"
                 label="Email"
                 required
                 placeholder="Email"

@@ -74,6 +74,8 @@ function RegisterForm() {
           <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
             <TextField
               label="Nombre completo"
+              name="name"
+              autoComplete="name"
               value={fullName}
               onChange={setFullName}
               placeholder="Nombre completo"
@@ -81,6 +83,8 @@ function RegisterForm() {
             />
             <TextField
               type="email"
+              name="email"
+              autoComplete="email"
               label="Email"
               value={email}
               onChange={setEmail}
@@ -89,6 +93,8 @@ function RegisterForm() {
             />
             <TextField
               type="password"
+              name="new-password"
+              autoComplete="new-password"
               label="Contraseña"
               value={password}
               onChange={setPassword}

@@ -7,7 +7,10 @@ export default function ErrorBanner({
   onRetry?: () => void;
 }) {
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-danger-tint px-4 py-3 text-sm font-medium text-danger-text ring-1 ring-danger/15">
+    <div
+      role="alert"
+      className="mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-xl bg-danger-tint px-4 py-3 text-sm font-medium text-danger-text ring-1 ring-danger/15"
+    >
       <span>{message}</span>
       {onRetry && (
         <button

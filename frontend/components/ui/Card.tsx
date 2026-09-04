@@ -23,6 +23,16 @@ export default function Card({
   return (
     <motion.div
       onClick={onClick}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       whileTap={clickable ? { scale: 0.985 } : undefined}
