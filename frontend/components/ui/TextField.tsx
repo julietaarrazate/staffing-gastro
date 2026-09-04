@@ -7,9 +7,11 @@ import { EyeIcon, EyeOffIcon } from "@/components/icons";
 /** Input de texto del Design System, con label y touch target alto. */
 export default function TextField({
   label,
+  name,
   value,
   onChange,
   type = "text",
+  autoComplete,
   placeholder,
   required = false,
   leftIcon,
@@ -22,9 +24,16 @@ export default function TextField({
   className,
 }: {
   label?: string;
+  /** Nombre del campo: identifica el input para autofill/gestores de
+   *  contraseña y para lectura de formularios nativos. */
+  name?: string;
   value: string | number;
   onChange: (value: string) => void;
   type?: string;
+  /** Pista de autocompletado (`"email"`, `"current-password"`,
+   *  `"new-password"`, `"name"`, etc.) — sin esto el navegador y los
+   *  gestores de contraseña no pueden ofrecer autofill en el campo. */
+  autoComplete?: string;
   placeholder?: string;
   required?: boolean;
   leftIcon?: ReactNode;
@@ -48,6 +57,9 @@ export default function TextField({
   const isPassword = type === "password";
   const inputType = isPassword && reveal ? "text" : type;
   const errorId = useId();
+  // Códigos, contraseñas y usernames no se benefician del corrector — y en
+  // password activamente lo entorpece (subraya cada tecleo).
+  const noSpellCheck = isPassword || type === "email" || type === "tel";
 
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
@@ -58,11 +70,14 @@ export default function TextField({
         )}
         <input
           type={inputType}
+          name={name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
           inputMode={inputMode}
+          autoComplete={autoComplete}
+          spellCheck={noSpellCheck ? false : undefined}
           min={min}
           max={max}
           minLength={minLength}

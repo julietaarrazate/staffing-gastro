@@ -66,6 +66,8 @@ function RestablecerForm() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <TextField
                 type="password"
+                name="new-password"
+                autoComplete="new-password"
                 label="Nueva contraseña"
                 required
                 minLength={8}
@@ -75,6 +77,8 @@ function RestablecerForm() {
               />
               <TextField
                 type="password"
+                name="confirm-password"
+                autoComplete="new-password"
                 label="Confirmá la nueva contraseña"
                 required
                 minLength={8}

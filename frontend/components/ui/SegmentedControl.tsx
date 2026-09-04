@@ -34,6 +34,7 @@ export default function SegmentedControl<T extends string>({
           <button
             key={o.value}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(o.value)}
             // `whitespace-nowrap`: sin esto una etiqueta larga
             // ("Postulaciones (1)" en /my-shifts) envuelve a dos líneas y,
@@ -43,7 +44,7 @@ export default function SegmentedControl<T extends string>({
             // diferente"). Con nowrap todos miden una línea; si la suma no
             // entra, el contenedor de la página ya scrollea en horizontal
             // (ver `overflow-x-auto` en my-shifts/shifts).
-            className="relative flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold"
+            className="relative flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {active && (
               <motion.span

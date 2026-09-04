@@ -42,6 +42,8 @@ export default function Avatar({
         <img
           src={cldThumb(src, px)}
           alt={name}
+          width={px}
+          height={px}
           onError={() => setBroken(true)}
           loading="lazy"
           decoding="async"

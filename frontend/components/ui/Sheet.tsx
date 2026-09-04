@@ -119,7 +119,7 @@ export default function Sheet({
             exit={{ y: "100%" }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 32 }}
             style={{ y }}
-            className="relative z-10 max-h-[88dvh] overflow-y-auto rounded-t-[var(--radius-sheet)] bg-card pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-[var(--shadow-float)]"
+            className="relative z-10 max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-card pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-[var(--shadow-float)]"
           >
             <div className="sticky top-0 z-10 flex flex-col items-center gap-2 rounded-t-[var(--radius-sheet)] bg-card pb-2 pt-3">
               {/* El arrastre sólo arranca acá (la manija), nunca en la X ni

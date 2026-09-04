@@ -10,6 +10,7 @@ export default function Spinner({
 }) {
   return (
     <span
+      aria-hidden="true"
       style={{ width: size, height: size }}
       className={cn(
         "inline-block animate-spin rounded-full border-2 border-current border-t-transparent",
