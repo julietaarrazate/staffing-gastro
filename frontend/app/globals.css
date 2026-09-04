@@ -295,9 +295,15 @@
   }
 }
 
+/* Oscuro forzado: valores de --color-surface/--color-card duplicados a
+   propósito del bloque @media de arriba (ver nota grande antes de esa regla)
+   — mantenerlos idénticos. Este bloque quedó desincronizado una vez (drift
+   real, auditoría 2026-09): "Oscuro" explícito en Perfil→Apariencia seguía
+   con el rgba(255,248,240,0.07) viejo de antes de #308 mientras "Sistema"
+   (el @media) ya tenía el sólido #292420 — invisible en /shifts/new-event. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-surface: rgba(255, 248, 240, 0.07);
+  --color-surface: #292420;
   --color-card: #191410;
 }
 
