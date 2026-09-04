@@ -2897,6 +2897,29 @@ roadmap).
     mismo criterio que `bg-night`) se invertía a claro→oscuro. Fix:
     carbón fijo (`#1f1f1c`) en vez del token. `tsc`/lint/build/Playwright
     (76 specs) verdes.
+  - **Naranja de marca v2 (2026-09)**: mostrándole la comparación de arriba,
+    Julieta señaló que el naranja que le gusta de verdad es el ámbar de la
+    insignia "Nivel Bronce" (Tailwind `amber-600`/`amber-700`, nunca
+    tokenizado — un color que convivía sin querer con el naranja de acción).
+    Le armé un artifact comparando los dos naranjas lado a lado sobre
+    elementos reales (botón, chip de ganancias, tab activo, la insignia) en
+    claro y oscuro antes de tocar nada; eligió la alternativa. Reemplaza
+    `--color-primary`/`--color-primary-strong`/`--color-primary-text`/
+    `--color-primary-tint` en `globals.css` (`#f94e1b`→`#d97706`,
+    `#d63a0c`→`#b45309`, `#d63606`/`#ff7a45`→`#b45309`/`#d97706`,
+    `#fff7ed`→`#fffbeb`) — contraste recalculado y verificado, no
+    reutilizado a ojo (`--color-night` sobre el nuevo primary da 5.74,
+    antes 5.34; `--color-primary-text` sobre crema da 4.77, antes 4.54).
+    De paso, sweep de los ~15 lugares que tenían el hex viejo pegado en vez
+    del token: ilustraciones (`color="var(--color-primary)"`, no un literal
+    — no vuelve a desincronizarse), `RadiusRing` del mapa, `theme_color` del
+    manifest/layout, y los `rgba(249,78,27,…)` de sombras de botones en 9
+    archivos. **La pregunta abierta de abajo sobre `#B23C08` vs `#d63606`
+    queda obsoleta** — ese token ya no existe, ambos números eran del
+    naranja-rojizo anterior. **No tocado a propósito**: el logo mark
+    (`logo-mark.svg`, `#f97316`) — es la identidad visual del ícono/isotipo,
+    una decisión aparte de los acentos de UI que no se le mostró en la
+    comparación. `tsc`/lint/build/Playwright (76 specs) verdes.
   - **Pregunta abierta sin resolver, NO decidir sola**: si el modo "Híbrido" (la
     dirección aprobada, `07-comparativo.html`) debería comportarse distinto de
     "Oscuro forzado" — hoy activar oscuro en el sistema invierte prácticamente

@@ -46,7 +46,7 @@ function ClusterMarker({ clusterId, longitude, latitude, count, delayMs = 0, onC
             e.stopPropagation();
             onClick(clusterId, longitude, latitude);
           }}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-sm font-extrabold text-ink shadow-[0_4px_12px_rgba(17,17,20,0.2),0_0_0_4px_rgba(249,78,27,0.25)] transition-transform active:scale-90"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-sm font-extrabold text-ink shadow-[0_4px_12px_rgba(17,17,20,0.2),0_0_0_4px_rgba(217,119,6,0.25)] transition-transform active:scale-90"
         >
           {count}
         </button>
