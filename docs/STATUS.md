@@ -2861,7 +2861,7 @@ roadmap).
     (#305/#306/#307), y el bug grande de `--color-surface` invisible cuando se usa
     suelto sobre el lienzo (#308, ver fila de arriba — corrige TODO uso suelto de
     `bg-surface` de un saque, no sólo los que se vieron con captura).
-  - **Pasada pantalla por pantalla de comercio — HECHA (#313, sin mergear)**:
+  - **Pasada pantalla por pantalla de comercio — HECHA Y MERGEADA (#313)**:
     Panel `/shifts`, Publicar `/shifts/new`, `/shifts/new-event`, Postulantes
     `/shifts/[id]/candidates` y Suscripción, con Playwright + mocks (sin
     backend real), comparando explícitamente "Oscuro" (toggle) vs "Sistema"
@@ -2874,6 +2874,28 @@ roadmap).
     desincronizados pese a que el propio comentario del archivo ya advertía
     que había que mantenerlos iguales. Fix de una línea + comentario cruzado
     en ambos bloques para que no vuelva a pasar. `tsc`/lint/build/Playwright
+    (76 specs) verdes.
+  - **Pasada pantalla por pantalla de trabajador — HECHA**: Julieta compartió
+    la captura de `docs/design/mockups/07-comparativo.html` (columna
+    Híbrido) pidiendo usarla como referencia de color en toda la app.
+    Comparación exacta (valores hex literales de la maqueta contra
+    `globals.css`, no a ojo): todos los tokens coinciden salvo
+    `--color-primary-text` (maqueta `#B23C08` vs. app `#d63606`) — no se
+    tocó, es casi seguro un ajuste posterior de la auditoría WCAG de
+    contraste (#300) que nunca se reflejó en el HTML estático de la
+    maqueta; revertirlo podría reintroducir ese problema. Ojo aparte:
+    la pantalla que muestra la maqueta ("Mi actividad": ganancias +
+    stats) no es literalmente `/feed` — es el resumen que hoy vive en
+    `/profile` (`WorkerGameCard`), la "panel de ganancias" que estaba en
+    la cola de pendientes. Con eso mapeado, auditoría de `/feed`,
+    `/buscar`, `/map`, `/my-shifts`, `/chats` y `/profile` en los 3
+    modos de apariencia. 5 de 6 sin problemas. **Hallazgo**: el hero
+    "estilo Apple Wallet" de `/profile` (`WorkerGameCard`) usaba
+    `bg-gradient-to-br from-ink to-[#2f2f33]` — `ink` es un token de
+    doble uso que dentro de una `.bg-card` se vuelve claro en modo
+    oscuro, así que el gradiente (pensado para quedar SIEMPRE oscuro,
+    mismo criterio que `bg-night`) se invertía a claro→oscuro. Fix:
+    carbón fijo (`#1f1f1c`) en vez del token. `tsc`/lint/build/Playwright
     (76 specs) verdes.
   - **Pregunta abierta sin resolver, NO decidir sola**: si el modo "Híbrido" (la
     dirección aprobada, `07-comparativo.html`) debería comportarse distinto de

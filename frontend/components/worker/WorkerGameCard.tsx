@@ -90,8 +90,13 @@ export default function WorkerGameCard() {
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-      {/* Hero oscuro estilo Apple Wallet */}
-      <div className="relative flex flex-col items-center bg-gradient-to-br from-ink to-[#2f2f33] px-5 pb-5 pt-6 text-white">
+      {/* Hero oscuro estilo Apple Wallet — SIEMPRE oscuro en los dos temas
+          (mismo criterio que bg-night más abajo), por eso el carbón va
+          fijo y no como `from-ink`: ese token es de doble uso (texto/borde)
+          y dentro de esta tarjeta (`bg-card`) se vuelve claro en modo
+          oscuro, lo que invertía el gradiente a claro→oscuro en vez de
+          quedarse oscuro (bug real con captura, auditoría 2026-09). */}
+      <div className="relative flex flex-col items-center bg-gradient-to-br from-[#1f1f1c] to-[#2f2f33] px-5 pb-5 pt-6 text-white">
         <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/20" />
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
