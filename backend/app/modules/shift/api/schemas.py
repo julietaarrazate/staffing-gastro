@@ -77,6 +77,11 @@ class ShiftResponse(BaseModel):
     description: str | None
     status: ShiftStatus
     worker_profile_id: UUID | None
+    # "Va en camino": última posición del trabajador viajando al turno. `None`
+    # salvo mientras efectivamente va en camino — se borra al llegar.
+    en_route_latitude: float | None = None
+    en_route_longitude: float | None = None
+    en_route_at: datetime | None = None
     check_in_latitude: float | None
     check_in_longitude: float | None
     check_in_at: datetime | None
