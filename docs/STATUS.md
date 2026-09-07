@@ -2975,18 +2975,71 @@ roadmap).
     **NO resuelve la pregunta abierta de abajo**: Híbrido y Oscuro forzado
     siguen comportándose exactamente igual que antes, sólo que ahora por una
     sola ruta de código en vez de dos. Sigue esperando criterio de Julieta.
-  - **Pregunta abierta sin resolver, NO decidir sola**: si el modo "Híbrido" (la
-    dirección aprobada, `07-comparativo.html`) debería comportarse distinto de
-    "Oscuro forzado" — hoy activar oscuro en el sistema invierte prácticamente
-    cualquier `bg-card`/`bg-surface`, y Julieta señaló con capturas que eso se ve
-    "igual" a la columna Contraste del comparativo en vez de la Híbrido (sólo la
-    plata debería ir siempre oscura). Su propia aclaración fue: en oscuro SÍ pueden
-    invertir más tarjetas de las que invierte Híbrido, pero deben mantener jerarquía
-    y acentos de color — no volverse un bloque negro sin diferenciación (eso ya lo
-    resuelve #308 para el caso `bg-surface`; queda por ver si hace falta algo más
-    para el resto de las superficies). No tocar los bloques de modo oscuro de
-    `globals.css` de nuevo sin releer este párrafo y sin capturas nuevas que lo
-    justifiquen.
+  - **RESUELTA (2026-09-07, PR #318) la pregunta que estuvo abierta desde el
+    rediseño** sobre Híbrido vs. Oscuro forzado. Lo que la destrabó fue
+    entender bien la queja: Julieta no estaba pidiendo un oscuro distinto, sino
+    señalando que **"Sistema" y "Oscuro" daban la misma pantalla** — con el
+    teléfono en oscuro, dos opciones distintas del selector de Apariencia para
+    un único resultado ("cuando entro a la app ambos modos son iguales, eso es
+    lo que no quiero justamente").
+    **Decisión: la app no se oscurece sola.** "Sistema" resuelve a claro; el
+    oscuro es una elección explícita del usuario. El criterio es de identidad,
+    no técnico: el crema cálido ES Oído, y la app no se apaga por una
+    preferencia del sistema operativo — mismo criterio con el que la landing se
+    sirve siempre clara.
+    Consecuencia anotada en `resolveTheme` (`lib/theme.tsx`): "Sistema" quedó
+    equivalente a "Claro". Si el selector se siente redundante con tres
+    opciones, la salida limpia es dejar Claro/Oscuro — es sacar una entrada de
+    `OPTIONS` en `AppearanceControl.tsx`.
+    De paso, en el mismo PR: **el isotipo de Oído aparecía dos veces en el
+    feed** (navbar + tile naranja de la barra del asistente), compitiendo con
+    el avatar y el círculo del comercio — cuatro círculos, contra la regla de
+    CLAUDE.md de "un solo acento naranja por pantalla" (Julieta: "está
+    sobrecargado ... es demasiada cosa poco agradable visualmente"). El
+    asistente pasó al ícono convencional en tinta, sin fondo propio.
+  - **Rediseño del mapa, fase 1 (PR #319)**: el marcador de turno era un
+    círculo de 38px con el ícono del rubro. No era estético: un trabajador abre
+    el mapa para saber qué hay cerca Y CUÁNTO PAGA, y esa segunda mitad costaba
+    un toque por pin. Ahora la pastilla lleva el monto y el rubro es un punto de
+    color. La maqueta aprobada ya lo mostraba así (`$4.200`, `$3.800`); el
+    código nunca lo implementó. Estado activo baja de escala 1.25 a 1.14: con
+    una pastilla más ancha que un círculo, 1.25 tapaba a los vecinos.
+    **Pendiente de la fase**: el estado "match" necesita un score de
+    compatibilidad que el turno no trae del backend.
+  - **"Va en camino" (PRs #320 backend + #321 frontend)**: idea de Julieta —
+    "cuando el match se da y el turno se cubre, que muestre la ruta del
+    trabajador yendo al local, como hace Rappi, eso genera tranquilidad al
+    comercio". Ataca el no-show, que es el problema real del staffing eventual.
+    **Decisión de privacidad, y es la parte importante**: se guarda SÓLO la
+    última posición, nunca un historial. El comercio necesita "dónde está ahora
+    y cuánto falta", no por dónde anduvo — sin historial no queda un rastro de
+    los movimientos de una persona que después haya que custodiar, y la función
+    cumple igual. Por eso ni siquiera hay tabla nueva: tres columnas en
+    `shifts` (migración `0031`) que se pisan en cada reporte.
+    La ventana ES la protección (Ley 25.326). Los tres guards viven en el
+    DOMINIO, no en la UI —que la única forma de compartir posición pase por esa
+    regla es lo que la hace auditable—: sólo `CONFIRMADO`/`EN_CAMINO` (después
+    del check-in sería rastrear a alguien EN EL TRABAJO, otra cosa distinta de
+    la que se pidió), sólo 2h antes (`EN_ROUTE_WINDOW`), y sólo el trabajador
+    asignado (un tercero recibe 404, no 403). El dato se borra al llegar y en
+    las cuatro transiciones que desasignan.
+    Del lado del trabajador el control es explícito y reversible, y **no se
+    recuerda entre sesiones a propósito** (no hay `localStorage`): si cierra la
+    app, deja de compartir. Un consentimiento que sobrevive a cerrar la app es
+    uno que la gente olvida que dio.
+    Del lado del comercio, la línea al local es RECTA a propósito: es la
+    distancia que falta, no el camino: dibujar calles sugeriría que sabemos por
+    dónde viene. El "hace cuánto" va siempre — un punto sin esa referencia es
+    peor que no mostrarlo, porque una posición vieja se lee como actual.
+    `/privacidad` se actualizó: decía "sólo durante el check-in y check-out", y
+    ya no era cierto.
+  - **Fix encontrado mirando la captura de "va en camino" (PR #322)**: en
+    `/shifts`, la familia `terminado` incluía `confirmado`, así que un turno
+    confirmado —que todavía no pasó— aparecía bajo "Terminados" junto a
+    finalizados y pagados, mientras "En marcha" ni lo incluía. Con la función
+    nueva quedó absurdo: el trabajador viajando al local y su turno figurando
+    como terminado. El criterio de la familia es "¿queda algo por pasar?", no
+    "¿está cerrado el trato?".
   - **Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
     onboarding de comercio (`app/bienvenida/page.tsx`, paso "¿Cómo se llama tu
     comercio?") se veía marrón/óxido en una captura de Julieta en vez de naranja

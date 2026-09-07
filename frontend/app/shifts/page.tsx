@@ -47,8 +47,17 @@ type Family = "borrador" | "buscando" | "en_marcha" | "terminado" | "cancelado";
 const FAMILY_STATUSES: Record<Family, ShiftStatus[]> = {
   borrador: ["borrador"],
   buscando: ["publicado", "buscando_personal"],
-  en_marcha: ["asignado", "en_camino", "check_in", "trabajando", "check_out"],
-  terminado: ["confirmado", "finalizado", "pagado"],
+  // `confirmado` va en "en marcha", no en "terminado" (fix 2026-09). Estaba
+  // agrupado con finalizado/pagado, así que un turno confirmado —que todavía
+  // no pasó, y donde el trabajador ni siquiera llegó— aparecía bajo
+  // "Terminados". Quedó a la vista con "va en camino": el trabajador viajando
+  // al local y su turno figurando como terminado.
+  //
+  // El criterio de la familia es "¿queda algo por pasar?", no "¿está cerrado
+  // el trato?": confirmado es exactamente el momento en que el turno está en
+  // curso hacia su ejecución, igual que asignado o check_in.
+  en_marcha: ["asignado", "confirmado", "en_camino", "check_in", "trabajando", "check_out"],
+  terminado: ["finalizado", "pagado"],
   cancelado: ["cancelado"],
 };
 
@@ -95,7 +104,7 @@ const FAMILY_META: Record<
     title: "Terminados",
     icon: <CheckCircleIcon size={14} />,
     emptyTitle: "Todavía no tenés turnos terminados",
-    emptySubtitle: "Los turnos confirmados, finalizados o pagados van a quedar acá.",
+    emptySubtitle: "Los turnos finalizados o pagados van a quedar acá.",
   },
   cancelado: {
     title: "Cancelados",

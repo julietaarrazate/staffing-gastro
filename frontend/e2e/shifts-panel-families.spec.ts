@@ -159,3 +159,43 @@ test("una familia sin turnos muestra su propio estado vacío en voseo, no una li
     page.getByText("Cuando asignes un turno a un trabajador, va a aparecer acá hasta que se cierre.")
   ).toBeVisible();
 });
+
+/**
+ * Un turno CONFIRMADO todavía no pasó: el trabajador aceptó y va a ir, pero
+ * no llegó ni trabajó. Estaba clasificado junto a finalizado/pagado, así que
+ * aparecía bajo "Terminados" mientras "En marcha" ni lo incluía — y con la
+ * función de "va en camino" quedó absurdo: el trabajador viajando al local y
+ * su turno figurando como terminado.
+ *
+ * El criterio de la familia es "¿queda algo por pasar?", no "¿está cerrado el
+ * trato?". Este test lo fija por la vía que le importa al comercio: en qué
+ * pestaña lo encuentra.
+ */
+test("un turno confirmado está 'en marcha', no en 'terminados'", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(EMPLOYER_SESSION),
+    })
+  );
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        shift({ id: "shift-confirmado", status: "confirmado", worker_profile_id: "wp-1" }),
+      ]),
+    })
+  );
+
+  await page.goto("/shifts");
+
+  await expect(page.getByRole("button", { name: /En marcha \(1\)/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("button", { name: /Terminados \(0\)/ })).toBeVisible();
+});
