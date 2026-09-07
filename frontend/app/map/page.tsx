@@ -45,7 +45,7 @@ function MapCardSkeleton({ wide = false }: { wide?: boolean }) {
       aria-hidden
     >
       <div className="flex items-center gap-2.5">
-        <Skeleton className="h-11 w-11 rounded-2xl" />
+        <Skeleton className="h-11 w-11 rounded-[var(--radius-chip)]" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-3 w-1/2" />
@@ -111,7 +111,7 @@ function ShiftRow({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white ${heroGradient}`}>
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroGradient}`}>
             <Icon size={20} />
           </span>
           <div className="min-w-0">
@@ -419,7 +419,7 @@ export default function MapPage() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-white ${heroGradient}`}>
+                    <span className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroGradient}`}>
                       <Icon size={22} />
                     </span>
                     <div>
@@ -523,7 +523,7 @@ export default function MapPage() {
             return (
               <div className="pb-2 pt-1">
                 <div className="flex items-center gap-3">
-                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white ${heroGradient}`}>
+                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroGradient}`}>
                     <Icon size={26} />
                   </span>
                   <div className="min-w-0">

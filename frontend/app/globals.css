@@ -17,15 +17,54 @@
   --foreground: #1f1f1c; /* Carbón — tinta cálida de marca (antes negro puro #111) */
   --line: #ebe2d4; /* bordes 1px, hairline cálido (antes gris #ececee) */
 
-  /* Radios */
-  --radius-card: 1.5rem; /* 24px */
-  --radius-btn: 1.25rem; /* 20px */
+  /* Radios — alineados a la maqueta aprobada (2026-09).
+   *
+   * Los cuatro valores estaban 4-6px POR ENCIMA de la dirección Híbrido
+   * (`docs/design/mockups/09-hibrido-app.html`, la referencia que Julieta fijó
+   * como fuente de verdad). Medido clase por clase contra esa maqueta:
+   * `.card`/`.nav`/`.d-hero` = 20px (acá había 24), `.btn-primary`/`.pub` =
+   * 15px (acá 20), `.sheet` = 22px (acá 28). Toda la app venía sistemáticamente
+   * más redondeada que su propia maqueta — el motivo de fondo de que las
+   * pantallas "no terminaran de parecerse" aunque el color ya estuviera bien.
+   *
+   * `--radius-chip` es el peldaño que faltaba: la maqueta da 12px a toda
+   * miniatura (`.thumb`, `.t-thumb`, `.rc-thumb`, `.park`), un rol que en el
+   * código caía en `rounded-2xl` (16px de Tailwind) — un valor de fuera del
+   * sistema, elegido por defecto y no por diseño.
+   *
+   * `--radius-input` se deja en 18px: la maqueta no muestra un campo de
+   * formulario del que sacar el número (18px es lo que usan `.id-card` y
+   * `.biz-header`), y bajarlo por simetría sería inventar. */
+  --radius-card: 1.25rem; /* 20px */
+  --radius-btn: 0.9375rem; /* 15px */
   --radius-input: 1.125rem; /* 18px */
-  --radius-sheet: 1.75rem; /* 28px */
+  --radius-sheet: 1.375rem; /* 22px */
+  --radius-chip: 0.75rem; /* 12px — miniaturas, íconos cuadrados, chips chicos */
 
   /* Sombras suaves: las cards flotan, nunca sombras pesadas. */
   --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
   --shadow-float: 0 16px 40px rgba(17, 17, 17, 0.12);
+
+  /* Glows semánticos de acción (2026-09). Un botón de acción no proyecta una
+   * sombra neutra: proyecta su PROPIO color, apenas, para despegarse del
+   * lienzo cálido. Antes esto vivía como valores sueltos pegados en cada
+   * componente — llegaron a convivir tres glows de primary casi idénticos
+   * (`…(217,119,6,0.28)`, `…0.3` y un `0 4px 12px` con la misma alpha), dos de
+   * success con el doble de opacidad entre sí, y uno de danger.
+   *
+   * Peor que la divergencia: el rgb del color de marca estaba HORNEADO en cada
+   * uno, así que el rebrand de #315 tuvo que barrer nueve archivos a mano para
+   * cambiar un color. Derivándolos con `color-mix()` del token, el glow sigue
+   * al color solo y ese barrido no vuelve a hacer falta.
+   *
+   * La alpha sube en el glow de primary porque el ámbar es más claro que el
+   * verde/rojo y a igual opacidad se lee más débil sobre el crema. */
+  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 28%, transparent);
+  --shadow-success: 0 8px 20px color-mix(in srgb, var(--color-success) 25%, transparent);
+  --shadow-danger: 0 8px 20px color-mix(in srgb, var(--color-danger) 22%, transparent);
+  /* Escalón chico: un chip o píldora seleccionada (~40px de alto) con el glow
+   * de un botón grande flota de más y se despega del riel que lo contiene. */
+  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 28%, transparent);
 
   /* Alto REAL del cromo de la app, con los insets del dispositivo adentro.
    * Las pantallas de alto fijo (feed, mapa, chats, wizard de publicar)
@@ -262,9 +301,30 @@
  * para cumplir contraste sobre superficie oscura — pero sólo DENTRO de una
  * tarjeta oscura, nunca sueltos sobre el crema.
  *
- * Los valores oscuros están duplicados en dos selectores a propósito (no hay
- * forma en CSS de reusar un bloque de declaraciones): uno para "sistema en
- * oscuro salvo que se fuerce claro", otro para "oscuro forzado".
+ * UNA SOLA FUENTE DE VERDAD (2026-09): antes esto vivía en DOS bloques
+ * duplicados a mano — un `@media (prefers-color-scheme: dark)` para "sistema"
+ * y un `:root[data-theme="dark"]` para "oscuro forzado" — con la nota de que
+ * "no hay forma en CSS de reusar un bloque de declaraciones". Se
+ * desincronizaron DOS veces, y las dos salieron como bugs reales con captura
+ * de Julieta (#308 y #313: formularios con texto invisible en "Oscuro"
+ * explícito mientras "Sistema" ya estaba arreglado). La duplicación no era el
+ * síntoma, era la causa.
+ *
+ * Ahora `lib/theme.tsx` RESUELVE el modo en el script anti-flash (síncrono,
+ * antes del primer paint) y escribe SIEMPRE `data-theme="dark"|"light"`
+ * explícito en <html>; la elección del usuario ("sistema") se guarda aparte en
+ * localStorage y el provider re-resuelve en vivo cuando cambia
+ * `prefers-color-scheme`. Así el CSS necesita un único bloque y el drift deja
+ * de ser posible por construcción.
+ *
+ * Beneficio extra: el modo resuelto queda legible desde JS (`data-theme` en el
+ * DOM) en vez de que cada componente lo re-derive por su cuenta con su propio
+ * `matchMedia` — que es como el botón de Google terminaba renderizándose en su
+ * variante clara sobre una tarjeta oscura.
+ *
+ * Contrapartida asumida: sin JavaScript no hay `data-theme` y la app queda en
+ * claro. Es aceptable acá — es una SPA con auth, mapas y todo el producto en
+ * el cliente: sin JS no hay app que temear.
  *
  * `--color-surface` en oscuro es SÓLIDO, no `rgba(255,248,240,0.07)` como
  * era antes (bug real con captura, Julieta 2026-09: "Describilo y lo
@@ -279,42 +339,14 @@
  * de `--color-card`, así que una `.bg-surface` anidada en una `.bg-card`
  * sigue viéndose igual que antes (un inset más claro) — pero ahora TAMBIÉN
  * funciona suelta sobre el lienzo, sin depender de dónde se use. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --color-surface: #292420;
-    --color-card: #191410;
-  }
-
-  /* Texto/borde/-text semánticos: sólo invierten DENTRO de una tarjeta
-     (ver nota arriba) — nunca sueltos sobre el lienzo crema. */
-  :root:not([data-theme="light"]) .bg-card,
-  :root:not([data-theme="light"]) .bg-surface,
-  :root:not([data-theme="light"]) .bg-night {
-    --color-ink: #fff8f0;
-    --color-line: rgba(255, 248, 240, 0.1);
-    --color-primary-text: #d97706; /* Naranja v2 en oscuro: 5.74 sobre tarjeta oscura (pasa AA) */
-    --color-success-text: #4bbd7a;
-    --color-danger-text: #f4746f;
-    --color-warning-text: #fbbf76;
-    --color-trust: #7fc9c0;
-    --color-trust-text: #7fc9c0;
-    --color-trust-tint: rgba(127, 201, 192, 0.14);
-  }
-}
-
-/* Oscuro forzado: valores de --color-surface/--color-card duplicados a
-   propósito del bloque @media de arriba (ver nota grande antes de esa regla)
-   — mantenerlos idénticos. Este bloque quedó desincronizado una vez (drift
-   real, auditoría 2026-09): "Oscuro" explícito en Perfil→Apariencia seguía
-   con el rgba(255,248,240,0.07) viejo de antes de #308 mientras "Sistema"
-   (el @media) ya tenía el sólido #292420 — invisible en /shifts/new-event. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --color-surface: #292420;
   --color-card: #191410;
 }
 
+/* Texto/borde/-text semánticos: sólo invierten DENTRO de una tarjeta (ver nota
+   arriba) — nunca sueltos sobre el lienzo crema. */
 :root[data-theme="dark"] .bg-card,
 :root[data-theme="dark"] .bg-surface,
 :root[data-theme="dark"] .bg-night {
@@ -390,6 +422,25 @@ textarea,
 .select-text {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* Foco visible, por sistema y no por componente (2026-09).
+ *
+ * Antes el anillo de foco se declaraba a mano en cada componente: sólo tres
+ * archivos de los ~72 con elementos interactivos lo tenían (Button, y poco
+ * más). Todo el resto —divs con role="button", enlaces, botones sueltos de
+ * pantalla— caía al outline por defecto del navegador, que sobre el crema de
+ * marca casi no se ve, o directamente a nada. Quien navega con teclado perdía
+ * el rastro de dónde está parado.
+ *
+ * `:focus-visible` (no `:focus`) es la clave: el anillo aparece cuando el
+ * navegador juzga que hace falta —teclado, lector de pantalla— y no en cada
+ * tap del dedo, que es lo que hacía que la gente lo sacara con `outline:none`.
+ * Los componentes que ya definen su propio anillo lo siguen ganando por
+ * especificidad; esto es el piso, no un techo. */
+:where(a, button, [role="button"], [tabindex]:not([tabindex="-1"]), input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Oculta scrollbars en carruseles/filas horizontales sin perder el scroll. */
