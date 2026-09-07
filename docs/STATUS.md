@@ -2920,6 +2920,61 @@ roadmap).
     (`logo-mark.svg`, `#f97316`) — es la identidad visual del ícono/isotipo,
     una decisión aparte de los acentos de UI que no se le mostró en la
     comparación. `tsc`/lint/build/Playwright (76 specs) verdes.
+  - **Logo al ámbar (PR #316)**: Julieta confirmó después, con captura de
+    `/login`, que el logo desentonaba al lado del naranja ya migrado. Cambia
+    `#f97316` → `#d97706` en `logo-mark.svg` (el que se ve en Navbar/login/
+    register/landing), `logo.svg`, `logo-maskable.svg` y `oido-isotipo.svg`.
+    **Pendiente**: los íconos PNG rasterizados (favicon, apple-icon,
+    icon-192/512, icon-maskable-512, badge-96) siguen con el naranja viejo
+    horneado — no hay rasterizador SVG→PNG en el entorno de la sesión.
+  - **Refinamiento sistémico del Design System (2026-09, PR #317)**: pedido de
+    Julieta de una pasada completa de UI/UX y sistema, no pantalla por pantalla.
+    Auditoría con medición antes de tocar nada; el sistema resultó estar sano en
+    lo que ya se había barrido (6 hex sueltos, todos justificados; 0 colores
+    Tailwind crudos) y con cuatro problemas **de arquitectura**, cada uno
+    arreglado en su raíz para que se propague solo:
+    1. **Theming a una sola fuente de verdad.** Los valores oscuros vivían
+       duplicados en dos bloques CSS mantenidos a mano (`@media` para "sistema",
+       `[data-theme="dark"]` para forzado), con la nota de que "no hay forma en
+       CSS de reusar un bloque". Se desincronizaron **dos veces** y las dos
+       salieron como bugs con captura (#308, #313). Ahora `lib/theme.tsx`
+       RESUELVE el modo en el script anti-flash y escribe siempre `data-theme`
+       explícito; el CSS quedó en un bloque y el drift es imposible por
+       construcción. Efecto lateral valioso: el modo resuelto ahora es legible
+       desde JS, así que `GoogleAuthButton` dejó de re-derivarlo con su propio
+       `matchMedia` en paralelo al CSS — que es cómo terminaba pintándose en su
+       variante clara sobre una tarjeta oscura (lo que Julieta fotografió).
+    2. **Glows semánticos tokenizados.** Había 10 sombras de color distintas
+       para 3 roles (tres glows de primary casi idénticos, dos de success con el
+       doble de opacidad entre sí), cada una con el rgb de marca HORNEADO — la
+       razón real de que el rebrand de #315 tuviera que barrer 9 archivos a
+       mano. Ahora son `--shadow-primary`/`-sm`/`--shadow-success`/
+       `--shadow-danger`, derivados del token con `color-mix()`: el glow sigue
+       al color solo y ese barrido no vuelve a hacer falta. Quedan 0 rgb de
+       marca pegados en componentes.
+    3. **Radios alineados a la maqueta aprobada.** Medido clase por clase contra
+       `09-hibrido-app.html`: `.card`/`.nav`/`.d-hero` = 20px (el token decía
+       24), `.btn-primary`/`.pub` = 15px (decía 20), `.sheet` = 22px (decía 28).
+       **Toda la app venía 4-6px más redondeada que su propia maqueta** — la
+       causa de fondo de que las pantallas "no terminaran de parecerse" aunque
+       el color ya estuviera bien. Se agregó `--radius-chip` (12px), el peldaño
+       que faltaba: la maqueta le da 12px a toda miniatura (`.thumb`, `.park`) y
+       en el código ese rol caía en `rounded-2xl`, un valor de Tailwind elegido
+       por defecto y no por diseño. `--radius-input` se dejó en 18px a
+       propósito: la maqueta no muestra un campo del que sacar el número.
+    4. **Foco visible por sistema.** No había ninguna regla global: sólo 3 de
+       ~72 archivos con elementos interactivos declaraban su anillo, el resto
+       caía al outline del navegador (casi invisible sobre el crema) o a nada.
+       Se agregó una regla base con `:focus-visible` — piso, no techo: lo que ya
+       define su propio anillo lo sigue ganando por especificidad.
+    Verificado: `tsc`, lint (0 errores), `build`, Playwright **76/76**, y
+    capturas reales de `/login` y `/feed` en los tres modos confirmando que
+    "sistema en oscuro" resuelve a `data-theme="dark"` y que ambos temas
+    conservan jerarquía (el claro no es blanco plano; el oscuro invierte sólo
+    las tarjetas, el lienzo crema no se toca).
+    **NO resuelve la pregunta abierta de abajo**: Híbrido y Oscuro forzado
+    siguen comportándose exactamente igual que antes, sólo que ahora por una
+    sola ruta de código en vez de dos. Sigue esperando criterio de Julieta.
   - **Pregunta abierta sin resolver, NO decidir sola**: si el modo "Híbrido" (la
     dirección aprobada, `07-comparativo.html`) debería comportarse distinto de
     "Oscuro forzado" — hoy activar oscuro en el sistema invierte prácticamente

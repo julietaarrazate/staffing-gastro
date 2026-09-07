@@ -17,7 +17,7 @@ import BottomSheet from "@/components/BottomSheet";
 function WorkerRowSkeleton() {
   return (
     <div className="flex gap-3 rounded-[var(--radius-card)] bg-surface p-4 shadow-[var(--shadow-soft)] ring-1 ring-line" aria-hidden>
-      <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
+      <Skeleton className="h-16 w-16 shrink-0 rounded-[var(--radius-chip)]" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-3.5 w-1/3" />
@@ -142,7 +142,7 @@ function SearchPageContent() {
         onClick={search}
         disabled={loading}
         aria-label="Buscar"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-white shadow-[0_8px_20px_rgba(217,119,6,0.28)] transition active:scale-95 disabled:opacity-60"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-white shadow-[var(--shadow-primary)] transition active:scale-95 disabled:opacity-60"
       >
         <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
       </button>
@@ -199,11 +199,11 @@ function SearchPageContent() {
                     alt={worker.full_name}
                     loading="lazy"
                     decoding="async"
-                    className="h-16 w-16 rounded-2xl object-cover ring-1 ring-line"
+                    className="h-16 w-16 rounded-[var(--radius-chip)] object-cover ring-1 ring-line"
                   />
                 ) : (
                   <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-bold text-white ${
+                    className={`flex h-16 w-16 items-center justify-center rounded-[var(--radius-chip)] text-xl font-bold text-white ${
                       worker.skills.length > 0
                         ? SKILL_HERO_GRADIENT[worker.skills[0]]
                         : "bg-gradient-to-br from-primary to-primary-strong"

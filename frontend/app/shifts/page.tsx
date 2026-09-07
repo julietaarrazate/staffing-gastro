@@ -290,7 +290,7 @@ function MyShiftsPanel() {
           <Link
             href="/shifts/new"
             data-tour="shifts-publish"
-            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-night shadow-[0_8px_20px_rgba(217,119,6,0.3)] transition active:scale-95"
+            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition active:scale-95"
           >
             + Publicar
           </Link>

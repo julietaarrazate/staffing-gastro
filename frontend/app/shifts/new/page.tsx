@@ -444,7 +444,7 @@ function NewShiftWizard() {
                           active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
                         }`}
                       >
-                        <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} ${fg}`}>
+                        <span className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-chip)] ${bg} ${fg}`}>
                           <Icon size={22} />
                         </span>
                         <span className="text-sm font-semibold text-ink/80">{SKILL_LABELS[skill]}</span>

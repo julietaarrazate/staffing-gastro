@@ -79,7 +79,7 @@ export default function HowItWorksTimeline() {
             <Reveal key={s.title} delay={i * 0.1}>
               <div className="relative flex gap-5">
                 <span
-                  className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-[var(--shadow-soft)] ring-1 ring-line ${s.accent}`}
+                  className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-chip)] shadow-[var(--shadow-soft)] ring-1 ring-line ${s.accent}`}
                 >
                   <s.Icon size={22} />
                 </span>
