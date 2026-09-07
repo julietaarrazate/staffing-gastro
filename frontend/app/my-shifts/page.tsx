@@ -17,6 +17,7 @@ import ShiftCard from "@/components/ShiftCard";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
 import CompareShiftsModal from "@/components/worker/CompareShiftsModal";
+import EnRouteToggle from "@/components/worker/EnRouteToggle";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
 import {
   Button,
@@ -355,6 +356,13 @@ export default function MatchesPage() {
                       Cancelar mi asignación
                     </Button>
                   </div>
+                )}
+                {/* "Va en camino": debajo de "Llegué" y sólo con el turno
+                    confirmado. El backend además exige estar dentro de las 2h
+                    previas al inicio, así que en un turno de mañana el botón
+                    devuelve el error explicando desde cuándo se puede. */}
+                {shift.status === "confirmado" && (
+                  <EnRouteToggle shiftId={shift.id} token={token} />
                 )}
                 {/* Legacy (ADR-0008): turnos que ya estaban "en camino" al
                     desplegar el cambio siguen pudiendo marcar llegada acá —

@@ -25,6 +25,15 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   loading: () => <div className="h-28 w-full animate-pulse rounded-2xl bg-surface" />,
 });
 
+// Mismo criterio que MiniMap: sólo aparece mientras alguien va en camino, así
+// que no tiene por qué pesar en el bundle de todas las tarjetas.
+const EnRouteMap = dynamic(() => import("@/components/employer/EnRouteMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-36 w-full animate-pulse rounded-[var(--radius-card)] bg-surface" />
+  ),
+});
+
 // Ley de marca (docs/planning/PULIDO_ROADMAP.md): un solo acento por pantalla. Naranja
 // para todo lo activo/publicado/en curso, verde sólo para éxito (confirmado
 // además de los terminales finalizado/pagado), rojo sólo para cancelado, gris
@@ -247,6 +256,28 @@ export default function ShiftCard({
         {shift.dress_code && (
           <p className="mt-2 text-xs text-ink/65">Dress code: {shift.dress_code}</p>
         )}
+
+        {/* "Va en camino": sólo del lado del comercio, y sólo mientras el
+            trabajador está compartiendo. El backend borra estos campos al
+            marcar llegada, así que la tarjeta vuelve sola a su estado normal
+            sin que haya que limpiar nada acá. Es la pregunta que se hace un
+            comercio a las 20:45 con el turno confirmado: "¿viene?". */}
+        {perspective === "employer" &&
+          shift.en_route_latitude != null &&
+          shift.en_route_longitude != null &&
+          shift.en_route_at != null &&
+          shift.latitude != null &&
+          shift.longitude != null && (
+            <div className="mt-3">
+              <EnRouteMap
+                venueLatitude={shift.latitude}
+                venueLongitude={shift.longitude}
+                workerLatitude={shift.en_route_latitude}
+                workerLongitude={shift.en_route_longitude}
+                reportedAt={shift.en_route_at}
+              />
+            </div>
+          )}
 
         {/* Mini-mapa + "Cómo llegar"/"Agendar": sólo tiene sentido del lado
             del trabajador (es quien tiene que viajar hasta el local y

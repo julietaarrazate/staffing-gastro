@@ -61,7 +61,10 @@ function exampleShift(input: {
     created_at: null,
     company_name: input.companyName,
     company_logo_url: null,
-    company_verified: false,
+    en_route_latitude: null,
+  en_route_longitude: null,
+  en_route_at: null,
+  company_verified: false,
   };
 }
 

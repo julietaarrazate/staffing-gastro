@@ -78,10 +78,14 @@ export default function PrivacidadPage() {
                 experiencia y habilidades (posiciones en las que trabajás).
               </li>
               <li>
-                <strong>Ubicación:</strong> sólo durante el check-in y
-                check-out de un turno ya confirmado, para verificar que
-                estuviste ahí. Nunca te seguimos en segundo plano ni fuera
-                de esa ventana.
+                <strong>Ubicación:</strong> durante el check-in y check-out de
+                un turno ya confirmado, para verificar que estuviste ahí; y
+                mientras vos elijas avisar que vas en camino, para que el
+                comercio vea que estás llegando. Esto último lo prendés y lo
+                apagás vos, sólo funciona hasta dos horas antes del turno, se
+                corta solo cuando marcás tu llegada, y guardamos únicamente tu
+                última posición — nunca el recorrido. Fuera de esas ventanas no
+                te seguimos, ni en segundo plano.
               </li>
               <li>
                 <strong>Mensajes:</strong> el chat entre comercio y

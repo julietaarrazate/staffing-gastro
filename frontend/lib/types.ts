@@ -98,6 +98,13 @@ export interface Shift {
   description: string | null;
   status: ShiftStatus;
   worker_profile_id: string | null;
+  // "Va en camino": última posición del trabajador viajando al turno. `null`
+  // salvo mientras efectivamente va en camino — el backend la borra al llegar
+  // y en toda transición que lo desasigne. No es un historial: cada reporte
+  // pisa al anterior.
+  en_route_latitude: number | null;
+  en_route_longitude: number | null;
+  en_route_at: string | null;
   check_in_latitude: number | null;
   check_in_longitude: number | null;
   check_in_at: string | null;
