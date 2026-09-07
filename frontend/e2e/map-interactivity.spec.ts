@@ -186,3 +186,23 @@ test("el mapa responde a un arrastre real de mouse en carga directa de /map", as
   expect(after).not.toBeNull();
   expect(Math.abs(after!.x - before!.x)).toBeGreaterThan(5);
 });
+
+/**
+ * El marcador lleva el PAGO, no un ícono de rubro (rediseño de mapa 2026-09).
+ * El dato viaja desde el turno hasta el pin por una cadena larga —
+ * `Shift.pay_amount` → propiedades del punto de supercluster → props del
+ * marcador— y cualquier eslabón puede perderlo sin que falle el build: el pin
+ * seguiría dibujándose, sólo que vacío. Este test fija el resultado visible.
+ */
+test("el marcador del mapa muestra el pago del turno", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockWorkerRoutes(page);
+
+  await page.goto("/map");
+  // `pay_amount: "15000"` del fixture, con el formato de `formatArs`.
+  await expect(page.getByRole("button", { name: /Turno de .*\$15\.000/ })).toBeVisible({
+    timeout: 15_000,
+  });
+});

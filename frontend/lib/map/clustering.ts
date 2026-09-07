@@ -16,6 +16,13 @@ export interface ShiftPointProps {
   shiftId: string;
   urgent: boolean;
   position: WorkerSkill;
+  /** Pago del turno, para pintarlo EN el marcador (2026-09).
+   *
+   * El marcador dejó de ser un ícono del rubro y pasa a llevar el dato que
+   * decide si vale la pena tocarlo. Un trabajador abre el mapa para saber qué
+   * hay cerca y cuánto paga: con el ícono solo, esa respuesta costaba un toque
+   * por pin. Ver `ShiftMarker`. */
+  payAmount: string | number;
 }
 
 type ShiftWithCoords = Shift & { latitude: number; longitude: number };
@@ -39,7 +46,12 @@ export function buildShiftClusterIndex(
     .filter((s): s is ShiftWithCoords => s.latitude != null && s.longitude != null)
     .map((s) => ({
       type: "Feature",
-      properties: { shiftId: s.id, urgent: s.urgent, position: s.position },
+      properties: {
+        shiftId: s.id,
+        urgent: s.urgent,
+        position: s.position,
+        payAmount: s.pay_amount,
+      },
       geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
     }));
   const index = new Supercluster<ShiftPointProps, Record<string, never>>({

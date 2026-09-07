@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { Marker } from "@vis.gl/react-maplibre";
 import { SKILL_ACCENT } from "@/lib/skill-style";
+import { formatArs } from "@/lib/format";
 import type { WorkerSkill } from "@/lib/types";
 
 interface ShiftMarkerProps {
@@ -10,6 +11,8 @@ interface ShiftMarkerProps {
   longitude: number;
   latitude: number;
   position: WorkerSkill;
+  /** Pago del turno: es el contenido del marcador, no un dato secundario. */
+  payAmount: string | number;
   urgent: boolean;
   active: boolean;
   /** Delay del scale-in de aparición, para el efecto stagger. */
@@ -20,26 +23,35 @@ interface ShiftMarkerProps {
 }
 
 /**
- * Marcador de turno: pastilla blanca redonda con el ícono del rubro en su
- * acento (`SKILL_ACCENT`). Seleccionado: escala 1.25x + halo naranja + "pico"
- * inferior. Urgente: punto rojo pulsante. Ver docs/reference/MAPS_REDESIGN.md §5.
+ * Marcador de turno: pastilla con EL PAGO adentro (rediseño de mapa, 2026-09).
  *
- * Envuelto en `memo`: junto con el `onClick(id)` estable del padre, evita
- * que los N marcadores se re-rendericen todos al seleccionar uno solo — sólo
- * cambian props (y por lo tanto re-renderizan) el que sale y el que entra de
- * `active`.
+ * Antes era un círculo de 38px con el ícono del rubro. El problema no era
+ * estético: un trabajador abre el mapa para saber qué hay cerca y CUÁNTO PAGA,
+ * y con el ícono solo esa segunda mitad de la pregunta costaba un toque por
+ * pin. Ahora el marcador lleva el monto —el dato que decide si vale la pena
+ * abrirlo— y el rubro sigue presente como punto de color, no como ícono, para
+ * no volver a llenar la pastilla.
+ *
+ * Estados (docs/reference/MAPS_REDESIGN.md §5, ampliado):
+ *   - reposo  → carbón, se lee sin pedir atención.
+ *   - urgente → punto rojo pulsante: hay actividad ahora.
+ *   - activo  → pasa a naranja, escala y saca el "pico" hacia el punto exacto.
+ *
+ * Pendiente: el estado "match" (oportunidad especialmente compatible) necesita
+ * un score de compatibilidad que hoy el turno no trae del backend.
  */
 function ShiftMarker({
   id,
   longitude,
   latitude,
   position,
+  payAmount,
   urgent,
   active,
   delayMs = 0,
   onClick,
 }: ShiftMarkerProps) {
-  const { Icon, fg } = SKILL_ACCENT[position];
+  const { fg } = SKILL_ACCENT[position];
 
   return (
     <Marker
@@ -63,25 +75,33 @@ function ShiftMarker({
       >
         <button
           type="button"
-          aria-label={`Ver turno de ${position}`}
+          aria-label={`Turno de ${position}, ${formatArs(payAmount)}`}
           aria-pressed={active}
           onClick={(e) => {
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-card shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
-            active ? "scale-[1.25]" : "scale-100"
+          className={`relative flex items-center gap-1.5 rounded-full border-2 border-white px-2.5 py-1.5 text-xs font-bold tabular-nums transition-transform duration-300 ease-out ${
+            active
+              ? "scale-[1.14] bg-primary text-night shadow-[var(--shadow-primary)]"
+              : "scale-100 bg-night text-white shadow-[0_4px_10px_rgba(17,17,20,0.22)]"
           }`}
         >
           {active && (
-            <>
-              <span className="absolute -inset-2 rounded-full border-2 border-primary [animation:markerHalo_1.6s_ease-out_infinite]" />
-              <span className="absolute -bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-card shadow-[2px_2px_4px_rgba(17,17,20,0.12)]" />
-            </>
+            <span className="absolute -bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-primary" />
           )}
-          <Icon size={19} strokeWidth={2.4} className={fg} />
+          {/* El rubro pasa a ser un punto de color en vez de un ícono: mantiene
+              la lectura por oficio sin robarle lugar al monto. Activo hereda el
+              carbón para no perder contraste sobre el naranja. */}
+          <span
+            aria-hidden
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+              active ? "bg-night" : fg.replace("text-", "bg-")
+            }`}
+          />
+          {formatArs(payAmount)}
           {urgent && (
-            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-danger [animation:urgentPulse_1.2s_infinite]" />
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-danger [animation:urgentPulse_1.2s_infinite]" />
           )}
         </button>
       </div>
