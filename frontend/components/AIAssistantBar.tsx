@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogoGlyph } from "@/components/Logo";
+import { SparklesIcon } from "@/components/icons";
 
 /**
  * Barra prominente del asistente de IA: punto de entrada único en toda la
@@ -31,9 +31,17 @@ export default function AIAssistantBar() {
       onClick={() => router.push("/assistant")}
       className="flex w-full items-center gap-3 rounded-full bg-card px-4 py-3.5 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-night">
-        <LogoGlyph size={16} color="var(--color-night)" />
-      </span>
+      {/* Sin tile naranja ni isotipo (2026-09, reporte de Julieta sobre el
+          feed: "está sobrecargado el ícono del asistente, el ícono de oído, el
+          círculo del comercio, es demasiada cosa").
+          Dos problemas en un solo elemento: el isotipo de Oído ya estaba en el
+          navbar de la misma pantalla, así que la marca aparecía DOS veces; y su
+          tile naranja competía con el avatar y con el círculo del comercio —
+          cuatro círculos, dos de ellos del mismo naranja, contra la regla de
+          CLAUDE.md de "un solo acento naranja por pantalla".
+          El logo identifica a la app, no a una función dentro de la app: acá va
+          el ícono convencional de asistente, en tinta, sin fondo propio. */}
+      <SparklesIcon size={18} className="shrink-0 text-ink/45" />
       <span className="text-sm font-medium text-ink/60">¿Qué necesitás?</span>
     </button>
   );

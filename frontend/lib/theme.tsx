@@ -7,9 +7,9 @@
  * los tokens. Este módulo:
  *   1. Recuerda la ELECCIÓN del usuario en localStorage ("system"/"light"/"dark").
  *   2. RESUELVE esa elección a un modo concreto y lo escribe SIEMPRE en
- *      `data-theme` ("dark"|"light"), incluso cuando la elección es "sistema".
- *   3. Re-resuelve en vivo cuando cambia `prefers-color-scheme` del dispositivo.
- *   4. Expone `useTheme()` (la elección, para el control de apariencia) y
+ *      `data-theme` ("dark"|"light"). "Sistema" resuelve a claro: la app no
+ *      se oscurece sola (ver `resolveTheme`).
+ *   3. Expone `useTheme()` (la elección, para el control de apariencia) y
  *      `useResolvedTheme()` (el modo real pintado, para los componentes que lo
  *      necesitan en JS).
  *
@@ -39,19 +39,32 @@ import {
 } from "react";
 
 export type ThemeChoice = "system" | "light" | "dark";
-/** El modo realmente pintado: "sistema" ya resuelto contra el dispositivo. */
+/** El modo realmente pintado, con la elección ya resuelta. */
 export type ResolvedTheme = "light" | "dark";
 
 const STORAGE_KEY = "oido-theme";
 
-function systemPrefersDark(): boolean {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-/** Resuelve la elección a un modo concreto. "sistema" consulta al dispositivo. */
+/**
+ * Resuelve la elección al modo que efectivamente se pinta.
+ *
+ * "Sistema" NO oscurece la app aunque el dispositivo esté en oscuro (decisión
+ * de Julieta, 2026-09). Dos motivos:
+ *
+ * 1. Con el teléfono en oscuro, "Sistema" y "Oscuro" daban exactamente la misma
+ *    pantalla: dos opciones distintas del selector de Apariencia para un único
+ *    resultado ("cuando entro a la app ambos modos son iguales, eso es lo que
+ *    no quiero justamente").
+ * 2. La identidad de Oído es el crema cálido. La app no se apaga sola por una
+ *    preferencia del sistema operativo — mismo criterio que la landing, que se
+ *    sirve siempre clara. El oscuro es una elección explícita del usuario, no
+ *    algo que le pasa a la app.
+ *
+ * Consecuencia a mirar: "Sistema" queda hoy equivalente a "Claro". Si el
+ * selector se siente redundante con tres opciones, la más limpia es dejar
+ * Claro/Oscuro — es sacar una entrada de `OPTIONS` en `AppearanceControl.tsx`.
+ */
 function resolveTheme(choice: ThemeChoice): ResolvedTheme {
-  if (choice === "light" || choice === "dark") return choice;
-  return systemPrefersDark() ? "dark" : "light";
+  return choice === "dark" ? "dark" : "light";
 }
 
 /** Escribe el modo RESUELTO en <html>. Siempre hay atributo: es la única
@@ -73,13 +86,12 @@ function readStored(): ThemeChoice {
 
 /**
  * Script síncrono anti-flash. Se serializa dentro de un <script> en el layout
- * y corre ANTES del primer paint: lee la preferencia, la RESUELVE (si es
- * "sistema", consultando `prefers-color-scheme`) y setea `data-theme` con el
- * modo concreto, para que la página pinte de una en el modo correcto y para
- * que el atributo exista desde el primer frame. Envuelto en try/catch porque
+ * y corre ANTES del primer paint: lee la preferencia guardada y setea
+ * `data-theme`, para que la página pinte de una en el modo correcto y para que
+ * el atributo exista desde el primer frame. Envuelto en try/catch porque
  * corre antes que cualquier otra cosa y no puede permitirse tirar.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var c=localStorage.getItem('${STORAGE_KEY}');var r=(c==='dark'||c==='light')?c:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',r);}catch(e){}})();`;
+export const THEME_INIT_SCRIPT = `(function(){try{var c=localStorage.getItem('${STORAGE_KEY}');document.documentElement.setAttribute('data-theme',c==='dark'?'dark':'light');}catch(e){}})();`;
 
 type ThemeContextValue = {
   /** Lo que eligió el usuario: incluye "system". Para el control de apariencia. */
@@ -105,21 +117,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(stored);
     setResolvedTheme(resolveTheme(stored));
   }, []);
-
-  // "Sistema" tiene que seguir al dispositivo EN VIVO (sin recargar): antes eso
-  // salía gratis del `@media` de CSS; ahora que el modo se resuelve acá, hay
-  // que re-resolver cuando el sistema operativo cambia de tema.
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      const next = resolveTheme("system");
-      setResolvedTheme(next);
-      applyTheme(next);
-    };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
 
   const setTheme = useCallback((choice: ThemeChoice) => {
     const resolved = resolveTheme(choice);
