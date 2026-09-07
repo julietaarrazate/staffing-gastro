@@ -72,6 +72,15 @@ class ShiftModel(Base):
         index=True,
     )
 
+    # "Va en camino": última posición del trabajador yendo al turno. Se pisa en
+    # cada reporte y se borra al llegar — nunca hay historial de recorrido
+    # (ver `Shift.report_en_route_location` en el dominio).
+    en_route_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    en_route_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    en_route_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     check_in_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     check_in_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     check_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

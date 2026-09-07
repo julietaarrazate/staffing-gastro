@@ -504,6 +504,33 @@ async def depart(
 
 
 @router.post(
+    "/{shift_id}/en-route",
+    response_model=ShiftResponse,
+    summary="Compartir la ubicación de camino al turno (trabajador)",
+)
+async def report_en_route(
+    shift_id: UUID,
+    payload: GeoCheckRequest,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+):
+    """El trabajador asignado comparte dónde está mientras viaja al turno.
+
+    Se llama periódicamente mientras dura el viaje, así que NO pasa por el
+    grabador de idempotencia: cada reporte es un dato nuevo que pisa al
+    anterior, no una acción a deduplicar."""
+    try:
+        shift = await service.report_en_route_location(
+            worker_profile_id, shift_id, payload.latitude, payload.longitude
+        )
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+    return ShiftResponse.model_validate(shift)
+
+
+@router.post(
     "/{shift_id}/check-in",
     response_model=ShiftResponse,
     summary="Marcar llegada al turno con ubicación (trabajador)",

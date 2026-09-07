@@ -410,3 +410,148 @@ async def test_finish_with_late_checkin_does_not_count_as_punctual(client: Async
     body = profile.json()
     assert body["events_completed"] == 1
     assert body["punctuality_rate"] == pytest.approx(0.0)
+
+
+# --- "Va en camino": el trabajador comparte dónde está mientras viaja ---
+#
+# Los tests de la ventana y de la limpieza no son de conveniencia: la ubicación
+# de una persona es dato personal (Ley 25.326) y lo que la hace aceptable acá es
+# que sólo exista mientras responde "¿va a llegar?". Esa promesa es una regla de
+# dominio, y sin estos tests nada la sostiene.
+
+
+async def test_worker_shares_location_on_the_way(client: AsyncClient):
+    """El caso feliz: turno confirmado y cerca de empezar, el trabajador
+    comparte su posición y el comercio la ve en el turno."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp1@staffya.com",
+        "enroute_w1@staffya.com",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=worker_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["en_route_latitude"] == -34.60
+    assert body["en_route_longitude"] == -58.40
+    assert body["en_route_at"] is not None
+    # El comercio, que es para quien existe la función, la ve en su turno.
+    seen = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
+    assert seen.json()["en_route_latitude"] == -34.60
+
+
+async def test_location_report_overwrites_instead_of_accumulating(client: AsyncClient):
+    """No hay historial de recorrido: cada reporte pisa al anterior. Es la
+    decisión que hace que no haya un rastro que custodiar."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp2@staffya.com",
+        "enroute_w2@staffya.com",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    for lat in (-34.60, -34.59, -34.58):
+        await client.post(
+            f"/api/v1/shifts/{shift_id}/en-route",
+            headers=worker_headers,
+            json={"latitude": lat, "longitude": -58.40},
+        )
+    current = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker_headers)
+    assert current.json()["en_route_latitude"] == -34.58
+
+
+async def test_location_rejected_long_before_the_shift(client: AsyncClient):
+    """Fuera de la ventana no se acepta: compartir ubicación tres días antes
+    no responde ninguna pregunta útil, así que no se guarda."""
+    future_start = (datetime.now(timezone.utc) + timedelta(days=3)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp3@staffya.com",
+        "enroute_w3@staffya.com",
+        start_at=future_start.isoformat(),
+        end_at=(future_start + timedelta(hours=6)).isoformat(),
+    )
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=worker_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+    assert response.status_code == 400
+    assert "falta" in response.json()["detail"].lower()
+
+
+async def test_location_is_erased_on_arrival(client: AsyncClient):
+    """Al llegar, el dato deja de existir. Seguir guardando dónde está una
+    persona que ya está trabajando es otra cosa que la que se pidió."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=10)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp4@staffya.com",
+        "enroute_w4@staffya.com",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=worker_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+    arrived = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    assert arrived.status_code == 200
+    assert arrived.json()["en_route_latitude"] is None
+    assert arrived.json()["en_route_at"] is None
+
+
+async def test_location_rejected_after_arrival(client: AsyncClient):
+    """Y una vez que llegó, ya no se acepta un reporte nuevo: la ventana se
+    cierra al hacer check-in, no queda abierta durante el turno."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=10)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp5@staffya.com",
+        "enroute_w5@staffya.com",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=worker_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+    assert response.status_code == 400
+
+
+async def test_another_worker_cannot_report_location(client: AsyncClient):
+    """Sólo el trabajador asignado. Un tercero recibe 404, no 403
+    (no-disclosure: ni siquiera confirma que el turno exista)."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, _employer_headers, _worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp6@staffya.com",
+        "enroute_w6@staffya.com",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    intruder_headers, _ = await _worker_with_profile(client, "enroute_intruder@staffya.com")
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=intruder_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+    assert response.status_code == 404

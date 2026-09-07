@@ -33,6 +33,18 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 # guard: ya dependen de haber pasado por `check_in()` primero.
 EARLY_CHECKIN_WINDOW = timedelta(minutes=30)
 
+# "Va en camino" (2026-09): cuánto antes del turno el trabajador puede empezar
+# a compartir dónde está, para que el comercio vea que está llegando (pedido de
+# Julieta: "que muestre la ruta del trabajador yendo al local, como hace Rappi,
+# eso genera tranquilidad al comercio").
+#
+# Dos horas y no más: la ventana ES la protección. La ubicación de una persona
+# es dato personal (Ley 25.326), así que sólo se acepta mientras responde la
+# pregunta "¿va a llegar?" — ni antes ni después. El guard vive acá, en el
+# dominio, y no en la UI: que la única forma de compartir posición pase por
+# esta regla es lo que hace auditable la promesa.
+EN_ROUTE_WINDOW = timedelta(hours=2)
+
 
 @dataclass
 class Shift:
@@ -61,6 +73,16 @@ class Shift:
 
     status: ShiftStatus = ShiftStatus.BORRADOR
     worker_profile_id: UUID | None = None
+
+    # "Va en camino": ÚLTIMA posición conocida del trabajador yendo al turno.
+    # Se PISA en cada reporte, nunca se acumula — a propósito. El comercio
+    # necesita "dónde está ahora y cuánto falta", no por dónde anduvo: sin
+    # historial no hay recorrido que filtrar ni que custodiar, y la función
+    # queda igual de útil. Se limpia al llegar (`check_in`) y en toda salida
+    # que desasigne al trabajador.
+    en_route_latitude: float | None = None
+    en_route_longitude: float | None = None
+    en_route_at: datetime | None = None
 
     check_in_latitude: float | None = None
     check_in_longitude: float | None = None
@@ -191,6 +213,7 @@ class Shift:
             )
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
+        self._clear_en_route()
 
     def cancel(self) -> None:
         """Cancela el turno desde cualquier estado no terminal (comercio, terminal)."""
@@ -199,6 +222,7 @@ class Shift:
                 f"No se puede cancelar un turno en estado {self.status.value}"
             )
         self.status = ShiftStatus.CANCELADO
+        self._clear_en_route()
 
     def worker_cancel(self) -> None:
         """CONFIRMADO → BUSCANDO_PERSONAL: el trabajador cancela su asignación ya
@@ -217,6 +241,7 @@ class Shift:
             )
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
+        self._clear_en_route()
 
     def no_show(self) -> None:
         """CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: el comercio marca que el
@@ -239,6 +264,7 @@ class Shift:
         self.last_no_show_worker_profile_id = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
+        self._clear_en_route()
 
     def depart(self) -> None:
         """CONFIRMADO → EN_CAMINO: el trabajador sale hacia el turno.
@@ -248,6 +274,48 @@ class Shift:
         turnos que ya estaban en EN_CAMINO al desplegar el cambio — la UI
         actual no ofrece este botón."""
         self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO)
+
+    def report_en_route_location(self, latitude: float, longitude: float) -> None:
+        """El trabajador asignado comparte dónde está mientras viaja al turno.
+
+        Sostiene el "va en camino" que ve el comercio. Tres guards, y los tres
+        son de privacidad antes que de negocio:
+
+        1. **Estado**: sólo CONFIRMADO o EN_CAMINO. Antes de confirmar no hay
+           viaje que reportar, y una vez hecho el check-in la persona ya llegó:
+           seguir recibiendo su posición sería rastrearla en el trabajo, que es
+           otra cosa completamente distinta de la que se pidió.
+        2. **Ventana**: `EN_ROUTE_WINDOW` antes del inicio pactado. Compartir
+           ubicación un día antes no responde ninguna pregunta útil.
+        3. **Turno vivo**: nunca en un estado terminal.
+
+        No acumula: cada reporte pisa al anterior (ver los campos `en_route_*`).
+        """
+        if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
+            raise InvalidShiftTransitionError(
+                "Sólo se puede compartir la ubicación de camino a un turno "
+                f"confirmado, no en estado {self.status.value}"
+            )
+        now = datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at) - EN_ROUTE_WINDOW:
+            raise InvalidShiftTransitionError(
+                "Todavía falta para el turno: la ubicación se comparte recién "
+                f"desde {EN_ROUTE_WINDOW} antes del inicio."
+            )
+        self.en_route_latitude = latitude
+        self.en_route_longitude = longitude
+        self.en_route_at = now
+
+    def _clear_en_route(self) -> None:
+        """Borra la última posición compartida.
+
+        Se llama en cada salida del "va en camino": al llegar y en toda
+        transición que desasigne al trabajador. El dato deja de existir apenas
+        deja de tener propósito — no queda esperando a que algo lo limpie
+        después."""
+        self.en_route_latitude = None
+        self.en_route_longitude = None
+        self.en_route_at = None
 
     def check_in(self, latitude: float, longitude: float) -> None:
         """CONFIRMADO/EN_CAMINO → CHECK_IN: el trabajador llega y marca su
@@ -273,6 +341,7 @@ class Shift:
         self.check_in_latitude = latitude
         self.check_in_longitude = longitude
         self.check_in_at = now
+        self._clear_en_route()
 
     def start_working(self) -> None:
         """CHECK_IN → TRABAJANDO: el trabajador empieza su turno.

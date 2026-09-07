@@ -713,6 +713,25 @@ class ShiftService:
         shift.depart()
         return await self._shifts.update(shift)
 
+    async def report_en_route_location(
+        self, worker_profile_id: UUID, shift_id: UUID, latitude: float, longitude: float
+    ) -> Shift:
+        """El trabajador comparte dónde está mientras viaja al turno.
+
+        `_get_assigned_to` hace de guard de autorización: sólo el trabajador
+        asignado a ESE turno puede reportar, y un tercero recibe 404 en vez de
+        403 (no-disclosure, mismo criterio que el resto del módulo). Cuándo se
+        acepta el reporte y cuándo se borra el dato son reglas de la entidad,
+        no de acá.
+
+        No notifica al comercio a propósito: son reportes periódicos mientras
+        viaja, y un push por cada uno sería inusable. El comercio lo ve cuando
+        mira el turno.
+        """
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        shift.report_en_route_location(latitude, longitude)
+        return await self._shifts.update(shift)
+
     async def check_in(
         self, worker_profile_id: UUID, shift_id: UUID, latitude: float, longitude: float
     ) -> Shift:
