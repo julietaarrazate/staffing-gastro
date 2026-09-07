@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import ImageUpload from "@/components/ImageUpload";
+import { toWorkerProfileInput } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerEarnings, WorkerProfile } from "@/lib/types";
 import {
@@ -11,7 +13,7 @@ import {
   levelLabel,
   levelMeta,
 } from "@/lib/reputation";
-import { Avatar, ErrorBanner, Skeleton } from "@/components/ui";
+import { ErrorBanner, Skeleton } from "@/components/ui";
 import EditableName from "@/components/EditableName";
 import RateMeter from "@/components/RateMeter";
 import {
@@ -81,6 +83,20 @@ export default function WorkerGameCard() {
       .catch(() => {});
   }, [token]);
 
+  async function savePhoto(url: string) {
+    if (!token || !profile) return;
+    // Payload COMPLETO con la foto nueva: el endpoint reemplaza el perfil, no
+    // lo parchea, así que mandar sólo `photo_url` borraría skills, bio, CV y
+    // disponibilidad. `toWorkerProfileInput` es el único lugar donde vive ese
+    // mapeo, compartido con el formulario.
+    const saved = await api.put<WorkerProfile>(
+      "/workers/me/profile",
+      toWorkerProfileInput(profile, { photo_url: url }),
+      token
+    );
+    setProfile(saved);
+  }
+
   if (loading) return <Skeleton className="h-72 w-full rounded-[var(--radius-card)]" />;
   if (error) return <ErrorBanner message={error} />;
   if (!profile) return null;
@@ -97,7 +113,21 @@ export default function WorkerGameCard() {
           oscuro, lo que invertía el gradiente a claro→oscuro en vez de
           quedarse oscuro (bug real con captura, auditoría 2026-09). */}
       <div className="relative flex flex-col items-center bg-gradient-to-br from-[#1f1f1c] to-[#2f2f33] px-5 pb-5 pt-6 text-white">
-        <Avatar src={profile.photo_url} name={user?.full_name ?? "Vos"} size="xl" className="ring-4 ring-white/20" />
+        {/* La foto se sube ACÁ, tocando el avatar (Julieta, 2026-09: "la foto
+            se tiene que poder subir arriba con el nombre"). Antes se veía
+            arriba pero el control para cambiarla vivía en el formulario de
+            abajo, en una sección "Mi perfil" aparte — dos lugares para una
+            sola cosa, en la misma pantalla.
+            Se persiste sola, sin esperar a que se guarde el formulario
+            entero: tocar tu foto y que quede es el comportamiento que
+            cualquiera espera de un perfil. */}
+        <ImageUpload
+          avatar
+          size={88}
+          value={profile.photo_url}
+          onChange={savePhoto}
+          fallbackLabel={user?.full_name ?? "Vos"}
+        />
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}

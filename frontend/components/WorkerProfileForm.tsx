@@ -6,8 +6,8 @@ import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
-import ImageUpload from "@/components/ImageUpload";
 import CvUpload from "@/components/CvUpload";
+import { toWorkerProfileInput, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
 
@@ -50,10 +50,8 @@ function parseList(text: string): string[] {
 }
 
 export default function WorkerProfileForm() {
-  const { token, user } = useAuth();
-  const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const { token } = useAuth();
   const [exists, setExists] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [city, setCity] = useState("");
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
   const [yearsExperience, setYearsExperience] = useState(0);
@@ -80,9 +78,7 @@ export default function WorkerProfileForm() {
     api
       .get<WorkerProfile>("/workers/me/profile", token)
       .then((p) => {
-        setProfile(p);
         setExists(true);
-        setPhotoUrl(p.photo_url);
         setCity(p.city ?? "");
         setSkills(p.skills);
         setYearsExperience(p.years_experience);
@@ -122,8 +118,7 @@ export default function WorkerProfileForm() {
     e.preventDefault();
     setError(null);
     setSaved(false);
-    const payload = {
-      photo_url: photoUrl,
+    const changes = {
       city: city || null,
       bio: bio.trim() || null,
       skills,
@@ -138,10 +133,28 @@ export default function WorkerProfileForm() {
     };
     setSubmitting(true);
     try {
-      const result = exists
-        ? await api.put<WorkerProfile>("/workers/me/profile", payload, token)
-        : await api.post<WorkerProfile>("/workers/me/profile", payload, token);
-      setProfile(result);
+      if (exists) {
+        // El endpoint reemplaza, no parchea (ver `toWorkerProfileInput`), y la
+        // foto se sube desde otro componente — el hero de `WorkerGameCard`,
+        // con su propia copia del perfil. Si mandáramos el `photo_url` que
+        // leímos al montar, guardar el formulario después de cambiar la foto
+        // la revertiría en silencio. Por eso se relee el perfil justo antes de
+        // guardar y los cambios del formulario van encima de ese estado.
+        const current = await api.get<WorkerProfile>("/workers/me/profile", token);
+        await api.put<WorkerProfile>(
+          "/workers/me/profile",
+          toWorkerProfileInput(current, changes),
+          token
+        );
+      } else {
+        // Todavía no hay perfil: no hay nada que preservar.
+        const payload: WorkerProfileInput = {
+          ...changes,
+          photo_url: null,
+          birth_date: null,
+        };
+        await api.post<WorkerProfile>("/workers/me/profile", payload, token);
+      }
       setExists(true);
       setSaved(true);
     } catch (err) {
@@ -167,18 +180,10 @@ export default function WorkerProfileForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {/* `compact`: la foto ya se ve grande en el hero de `WorkerGameCard`,
-          arriba de este formulario en la misma pantalla — repetirla acá era
-          literalmente la misma imagen dos veces (reporte real de Julieta,
-          "no puede tener dos veces fotos"). Se deja sólo el control para
-          cambiarla, sin la vista previa redundante. */}
-      <ImageUpload
-        value={photoUrl}
-        onChange={setPhotoUrl}
-        fallbackLabel={profile?.full_name ?? user?.full_name ?? "T"}
-        compact
-      />
-
+      {/* La foto no se edita acá: se sube tocando el avatar del hero de
+          `WorkerGameCard`, arriba en la misma pantalla, junto al nombre.
+          Tener además un "Subir foto" en este formulario era el mismo dato
+          pedido dos veces en una pantalla que ya se titula "Perfil". */}
       <div>
         {/* No es un `<label>`: el selector de abajo es un widget compuesto
             (cascada provincia/localidad), no un único control asociable —
