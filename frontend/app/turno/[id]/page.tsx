@@ -8,7 +8,7 @@ import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
 import { formatShiftRange } from "@/lib/datetime";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShareShiftButton from "@/components/ShareShiftButton";
-import { CalendarIcon, MapPinIcon } from "@/components/icons";
+import { CalendarIcon, MapPinIcon, WalletIcon } from "@/components/icons";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
@@ -127,13 +127,25 @@ export default async function PublicShiftPage({
               hardcoded claro (`text-primary`/`text-white`), NO los tokens
               `-text` (pensados para superficies que SÍ invierten con el
               tema): acá la superficie nunca cambia, así que el texto
-              tampoco debe hacerlo. */}
+              tampoco debe hacerlo.
+              Adentro va con color, no en blancos y grises: ícono ámbar sólido,
+              moneda ámbar, monto en blanco y rótulo en crema — es la misma
+              combinación de la tarjeta de ganancias de `WorkerGameCard`, que
+              es la referencia de cómo se llena una tarjeta negra en toda la
+              app (Julieta, 2026-09: "si una tarjeta es todo negra necesita
+              que adentro los iconos, el texto y los datos estén con colores
+              para contrastar"). */}
           <div className="mt-5 rounded-2xl bg-night px-4 py-4 text-center">
+            <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-night">
+              <WalletIcon size={18} />
+            </span>
             <p className="font-display text-price font-extrabold tracking-tight text-white">
               <span className="text-lg text-primary">{shift.currency}</span>{" "}
               {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>
-            <p className="text-xs font-medium text-white/50">Pago ofrecido</p>
+            <p className="mt-1 text-[11px] font-bold font-mono uppercase tracking-wide text-manteca">
+              Pago ofrecido
+            </p>
           </div>
 
           {/* Quien llega por un link compartido casi siempre es un trabajador

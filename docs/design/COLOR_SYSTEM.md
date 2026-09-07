@@ -226,6 +226,7 @@ elegir que no se vea.
 5. **Ningún color nuevo sin ADR.** Cada color agregado divide el significado.
 6. **El contraste se mide, no se estima.** Este documento existe porque
    estimarlo salió mal.
+7. **Una tarjeta negra se llena con color, no con grises.** Ver §3.2.
 
 ### 3.1 Proporción
 
@@ -234,6 +235,47 @@ Neutros (fondo, superficie, línea)  ██████████████�
 Ink (texto)                         ████                  ~15%
 Naranja (acento)                    █                     ~5%
 ```
+
+### 3.2 La regla de la tarjeta negra
+
+> Ratificada por Julieta el 2026-09-07, señalando con círculos la tarjeta de
+> ganancias de `WorkerGameCard`: *"si una tarjeta es todo negra necesita que
+> adentro los iconos, el texto y los datos estén con colores para contrastar
+> como en este ejemplo... y más abajo el crema con el naranja ámbar, eso es lo
+> que hay que replicar en toda la app"*.
+
+La proporción de §3.1 se mide sobre la **superficie clara**, que es el 95% de
+la app. Adentro de un módulo de foco oscuro (`bg-night`, o el hero de
+`WorkerGameCard`) **se invierte**: ahí el gris es el que sobra y el acento es
+el que ordena. Una tarjeta negra con todo el contenido en blanco y opacidades
+de blanco no es Oído — es una tarjeta apagada.
+
+El reparto adentro de negro, en orden de jerarquía:
+
+| Rol | Color | Ejemplo |
+|---|---|---|
+| Ícono de la tarjeta | Chip `bg-primary` sólido, glifo `text-night` | La billetera de "Ganado este mes" |
+| Unidad / moneda | `text-primary` | El `ARS` antes del monto |
+| El dato | `text-white` | El monto |
+| Rótulo del dato | `font-mono uppercase text-white/60` | "GANADO ESTE MES" |
+| Dato secundario | `text-manteca` (crema) | El total acumulado a la derecha |
+
+El crema (`--color-manteca`, `#f1e7a0`) es el compañero del ámbar sobre negro:
+da un segundo nivel de información sin gastar otro acento ni caer en gris.
+Sobre `--color-night` mide 14.52:1 — pasa AA y AAA holgado.
+
+**Superficies que ya la aplican:** el hero y la tarjeta de ganancias de
+`WorkerGameCard` (la referencia), el pago en `/turno/[id]` y en la ficha del
+mapa, y el toast de éxito (tilde en `text-success`, 4.31:1 sobre night — pasa
+el 3:1 que pide un ícono, y es texto acompañado, no el mensaje en sí).
+
+Medido con el script de §5: manteca 14.52, blanco 18.28, `white/60` ≈ 6.42,
+ámbar `--color-primary` 5.74, verde `--color-success` 4.31.
+
+**Ojo con los tokens `-text`.** Adentro de una superficie que *nunca* invierte
+con el tema, el color va a la variante clara (`text-primary`, `text-white`),
+no a `text-primary-text`: ese token está pensado para superficies que sí
+cambian con el modo, y acá invertiría el contraste.
 
 ---
 

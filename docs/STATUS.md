@@ -5,9 +5,17 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-02 (**Expediente de registro de obra de
-software ante la DNDA — 31 documentos en `REGISTRO_OBRA_SOFTWARE/`, PR
-#310, draft.**)
+*Última actualización: 2026-09-07 (**el perfil del trabajador sube la foto
+desde arriba, y la "regla de la tarjeta negra" queda escrita — PR #323**).*
+
+Lo de esta sesión está detallado en **"En vuelo ahora"**, más abajo: ocho PRs
+mergeados (#315–#322: rebrand al ámbar, refinamiento del design system, la app
+que ya no se oscurece sola, el mapa con el pago en el pin, "va en camino"
+backend + frontend) y el #323 de arriba. Lo único bloqueado sigue siendo lo de
+Julieta: conectar `oido.com.ar` y sus variables de entorno, y el expediente
+DNDA que sigue acá abajo sin cambios.
+
+### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
 código fuente que ya tiene preparado (y aprobado) para su otro proyecto
@@ -3040,6 +3048,35 @@ roadmap).
     nueva quedó absurdo: el trabajador viajando al local y su turno figurando
     como terminado. El criterio de la familia es "¿queda algo por pasar?", no
     "¿está cerrado el trato?".
+  - **La foto se sube desde el hero + la regla de la tarjeta negra (PR #323)**:
+    Julieta mandó una captura de su perfil real con círculos sobre la tarjeta de
+    reputación: *"si una tarjeta es todo negra necesita que adentro los iconos,
+    el texto y los datos estén con colores para contrastar como en este
+    ejemplo... y más abajo el crema con el naranja ámbar, eso es lo que hay que
+    replicar en toda la app"*. Dos cosas salieron de ahí.
+    **(a) La redundancia del perfil.** La pantalla se titula "Perfil", y abajo
+    volvía a decir "Mi perfil" y "Subir foto" — el título de la pantalla escrito
+    dos veces, y la foto pedida en un lugar distinto de donde se ve. Ahora el
+    avatar del hero ES el control de subida (`ImageUpload avatar`), al lado del
+    nombre, y se persiste solo sin esperar a "Guardar cambios": tocar tu foto y
+    que quede es lo que cualquiera espera de un perfil. El rótulo "Mi perfil"
+    se fue; "Mi comercio" queda, porque nombra otra cosa que el título, no lo
+    repite.
+    **Trampa que esto destapó, anotada porque muerde de nuevo:**
+    `PUT /workers/me/profile` **reemplaza, no parchea** — todos los campos de
+    `WorkerProfileInput` tienen default, así que un PUT con sólo `photo_url`
+    borra skills, bio, CV y disponibilidad. El mapeo vive ahora en un solo
+    lugar, `frontend/lib/worker-profile.ts` (`toWorkerProfileInput`). Y como la
+    foto se guarda desde OTRO componente que el formulario, el formulario relee
+    el perfil justo antes de guardar: si mandara el `photo_url` que leyó al
+    montar, guardar el formulario después de cambiar la foto la revertiría.
+    **(b) La regla de la tarjeta negra**, ahora escrita en
+    `docs/design/COLOR_SYSTEM.md` §3.2 con la receta y los contrastes medidos.
+    El 5% de acento de §3.1 se mide sobre la superficie CLARA; adentro de un
+    módulo `bg-night` se invierte — ahí sobra el gris. Aplicada a las dos
+    tarjetas de pago que seguían en blancos y grises (`/turno/[id]` y la ficha
+    del mapa: chip ámbar, moneda ámbar, monto blanco, rótulo crema) y al toast
+    de éxito (tilde en verde, no en blanco).
   - **Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
     onboarding de comercio (`app/bienvenida/page.tsx`, paso "¿Cómo se llama tu
     comercio?") se veía marrón/óxido en una captura de Julieta en vez de naranja

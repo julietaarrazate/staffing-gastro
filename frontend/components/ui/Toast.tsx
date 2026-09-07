@@ -55,7 +55,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
               className={`pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
             >
-              {t.tone === "success" && <CheckCircleIcon size={18} />}
+              {/* Verde, no blanco: sobre la píldora negra el tilde en blanco
+                  era un adorno más del texto. En color dice "salió bien" antes
+                  de que se lea el mensaje, y es la misma regla del resto de las
+                  superficies oscuras de la app — adentro de negro, el ícono
+                  lleva su acento. */}
+              {t.tone === "success" && <CheckCircleIcon size={18} className="text-success" />}
               {t.message}
             </motion.div>
           ))}

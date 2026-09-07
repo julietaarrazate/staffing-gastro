@@ -133,7 +133,12 @@ export default function ProfilePage() {
               probando su propia cuenta). */}
           {user.role !== "admin" && (
             <div className="mt-7">
-              <SectionLabel>{user.role === "worker" ? "Mi perfil" : "Mi comercio"}</SectionLabel>
+              {/* El trabajador no lleva rótulo: la pantalla ya se titula
+                  "Perfil" arriba de todo y su tarjeta (`WorkerGameCard`) está
+                  justo encima — un "Mi perfil" acá repetía el título de la
+                  pantalla. El comercio sí lo lleva: "Mi comercio" nombra otra
+                  cosa que el título, no lo repite. */}
+              {user.role !== "worker" && <SectionLabel>Mi comercio</SectionLabel>}
               <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
                 {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
               </div>

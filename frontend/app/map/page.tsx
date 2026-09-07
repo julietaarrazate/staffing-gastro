@@ -13,7 +13,7 @@ import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_GRADIENT, SKILL_RAIL_BORDER } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
-import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon } from "@/components/icons";
+import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
 import MapSheet from "@/components/worker/MapSheet";
 
@@ -550,13 +550,21 @@ export default function MapPage() {
                     PR #288): el dinero es un módulo de foco en toda la app,
                     no una superficie más — acá quedaba con el tratamiento
                     viejo (`bg-surface`) mientras el resto ya cambió. Texto
-                    hardcoded claro: esta superficie no invierte con el tema. */}
+                    hardcoded claro: esta superficie no invierte con el tema.
+                    Ícono ámbar + moneda ámbar + monto blanco + rótulo crema:
+                    la misma receta de la tarjeta de ganancias de
+                    `WorkerGameCard`, que es la referencia de tarjeta negra
+                    de la app — una tarjeta negra con todo el contenido en
+                    blancos y grises no es el lenguaje de Oído. */}
                 <div className="mt-4 rounded-2xl bg-night px-4 py-4 text-center">
+                  <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-night">
+                    <WalletIcon size={18} />
+                  </span>
                   <p className="font-display text-price font-extrabold tracking-tight text-white">
                     <span className="text-lg text-primary">{shift.currency}</span>{" "}
                     {Number(shift.pay_amount).toLocaleString("es-AR")}
                   </p>
-                  <p className="text-xs font-medium text-white/50">
+                  <p className="mt-1 text-[11px] font-bold font-mono uppercase tracking-wide text-manteca">
                     Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
