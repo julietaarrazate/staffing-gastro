@@ -3148,6 +3148,31 @@ roadmap).
     dentro de una `.bg-card`/`.bg-night` o suelto directamente sobre el lienzo —
     son casos opuestos que necesitan tratamientos opuestos en modo oscuro (ver
     #303 vs. la regresión que #308 tuvo que corregir).
+  - **Íconos PNG al ámbar + mapa completo de las fases A–M (PR #325,
+    2026-09-08)**: pedido de Julieta, "mantené siempre actualizado así no
+    perdemos memoria" — el brief de las 13 fases (A–M) vivía sólo en el
+    tracker de tareas de la sesión, que se pierde entre sesiones; ahora tiene
+    su tabla de estado en "Qué sigue" arriba, verificada contra los PRs y no
+    de memoria. De paso se destrabó un pendiente real: `sharp` ya está
+    disponible en el entorno, así que `apple-icon.png`, `icon-192/512.png` e
+    `icon-maskable-512.png` se rasterizaron de nuevo desde los SVG que ya
+    estaban en ámbar desde el #316 (`logo-mark.svg`/`logo-maskable.svg`).
+    `favicon.ico` sigue con el naranja viejo — `sharp` no lee/escribe ICO,
+    hace falta otra herramienta. `badge-96.png` no necesitaba nada: es la
+    silueta monocroma del badge de notificaciones, sin color de marca.
+    **Hallazgo no pedido, encontrado revisando el resto de los assets
+    públicos**: `og-image.png` (la imagen de 1200×630 que arma la vista
+    previa al compartir un link — WhatsApp, Slack, Twitter) también tiene el
+    naranja viejo, en el tile del ícono y en el acento "ya." del tagline. A
+    diferencia de los íconos, éste no tiene SVG fuente ni script de
+    generación — es un PNG armado a mano y commiteado plano una sola vez.
+    Reconstruirlo a ciegas (tipografía, gradiente, kerning exactos, sin el
+    archivo de diseño original) podía introducir un desajuste peor que
+    dejarlo con el color viejo; queda documentado en "Qué sigue" sin tocar.
+    La salida limpia a futuro es `app/opengraph-image.tsx` (Next.js lo genera
+    nativo desde JSX/CSS) para que esto no vuelva a desincronizarse solo.
+    `tsc`/build verdes; sin cambios de código más allá de los PNG, no hizo
+    falta correr Playwright.
 - **`docs/planning/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
   por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
   **C3** (confianza y conversión): **SEO base hecho** (`app/robots.ts` +
@@ -3187,11 +3212,23 @@ roadmap).
    `CORS_ORIGINS` ya quedó hecho de antemano (PR #316); y
    `FRONTEND_URL=https://oido.com.ar` es de código pero **sólo después de que
    el DNS resuelva** — antes rompe los links de los mails en silencio.
-2. 🟠 **PNG del ícono con el naranja viejo** — trabajo de código, no de
-   Julieta. `favicon`, `apple-icon`, `icon-192/512`, `icon-maskable-512` y
-   `badge-96` siguen en `#F97316`; los SVG ya migraron al ámbar en el #316,
-   pero en esa sesión no había con qué rasterizar. Hace falta un rasterizador
-   (sharp/resvg) en el entorno.
+2. ✅ ~~PNG del ícono con el naranja viejo~~ — **resuelto (PR #325)**.
+   `apple-icon`, `icon-192/512` e `icon-maskable-512` rasterizados de nuevo
+   desde `logo-mark.svg`/`logo-maskable.svg` (ya ámbar desde el #316) ahora que
+   `sharp` está disponible en el entorno. `favicon.ico` no se tocó — es un
+   contenedor multi-resolución que `sharp` no puede leer ni escribir; falta un
+   conversor de ICO. `badge-96.png` tampoco — es la silueta monocroma blanca
+   del badge de notificaciones (`logo-badge.svg`, sin color de marca), no
+   tenía nada que migrar.
+   🟠 **Hallazgo nuevo en la misma revisión**: `og-image.png` (la imagen de
+   1200×630 para links compartidos — WhatsApp/Slack/Twitter) **también** tiene
+   el tile y el acento "ya." en el naranja viejo. A diferencia de los íconos,
+   este archivo **no tiene fuente vectorial ni script de generación** — es un
+   PNG armado a mano una sola vez y commiteado plano. Rehacerlo a ciegas
+   (tipografía exacta, gradiente, kerning) podía salir peor que dejarlo mal;
+   queda sin tocar hasta decidir si se reconstruye a mano o se arma un
+   `app/opengraph-image.tsx` generado (Next.js lo soporta nativo, sería la
+   forma de que esto no vuelva a desincronizarse).
 3. 🟠 **PR #310 (expediente DNDA) sigue en draft, a propósito** — incluye una
    declaración firmable con DNI de Julieta y un campo `[COMPLETAR]` legal.
    Pendiente enteramente de ella; el detalle está en `DNDA_CHECKLIST_FINAL.md`.
@@ -3200,7 +3237,32 @@ roadmap).
 4. 🟢 **Rediseño del mapa, fase 2** — el estado "match" del pin necesita un
    score de compatibilidad que el turno todavía no trae del backend. Es la
    continuación natural del #319.
-5. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
+5. 🟡 **Auditoría sistémica de consistencia visual, fases A–M — parcial.**
+   Brief original: AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR sobre 13 fases.
+   Estado real por fase, verificado contra los PRs (no de memoria):
+
+   | Fase | Qué es | Estado |
+   |---|---|---|
+   | A | Auditoría de repo | ✅ `docs/audits/2026-08-oido/` |
+   | B | Color | ✅ #302, #308, #315 (rebrand ámbar), #323 (tarjeta negra) |
+   | C | Tipografía | ⬜ nunca tuvo pasada propia — el contraste se corrigió varias veces (#300, #315) pero no la escala |
+   | D | Componentes base | ✅ #303 (contraste de formularios anidados), #317 (foco visible por sistema) |
+   | E | Cards | ✅ #317 (radios medidos contra `09-hibrido-app.html`), #323 |
+   | F | Botones/badges/estados | ✅ #302, #317 (glows tokenizados) |
+   | G | Íconos | 🟡 SVG ✅ (#316); PNG rasterizados ✅ hoy (#325) salvo `favicon.ico`; `og-image.png` ⬜ (hallazgo nuevo, ver ítem 2) |
+   | H | Navegación | ⬜ nunca tuvo pasada sistemática — sólo tocada de refilón en #318 (logo duplicado en el feed) |
+   | I | Pantallas | 🟡 comercio ✅ (#313) y trabajador ✅ (auditoría propia, ver "En vuelo ahora"); sin auditar tras el rebrand: `/bienvenida`, `/chats`, `/support`, `/admin` |
+   | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
+   | K | Responsive | ⬜ se hizo en el rediseño original, pero no se reverificó después del rebrand ni del cambio de radios (#317, que movió toda tarjeta 4-6px) |
+   | L | Regresión vs. mockups | 🟡 parcial — #317 midió radios y comparó colores; no hubo pasada completa pantalla por pantalla contra `docs/design/mockups/` |
+   | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
+
+   Si no hay otra instrucción y se retoma esta auditoría, el orden que más
+   rinde es **H → I (las 4 pantallas sin auditar) → K → L → C**, en ese orden:
+   H y las pantallas sueltas son gaps de cobertura lisos y llanos; K y L
+   dependen de que G/pantallas ya estén cerrados para no auditar dos veces;
+   C es la de menor riesgo visible hoy.
+6. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
    instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)
