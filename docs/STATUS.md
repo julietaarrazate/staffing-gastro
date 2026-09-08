@@ -3077,6 +3077,37 @@ roadmap).
     tarjetas de pago que seguían en blancos y grises (`/turno/[id]` y la ficha
     del mapa: chip ámbar, moneda ámbar, monto blanco, rótulo crema) y al toast
     de éxito (tilde en verde, no en blanco).
+  - **`CLAUDE.md` ahora sabe que este repo vive adentro de EKP (PR #324)**:
+    Julieta preguntó dónde le conviene abrir la sesión para trabajar en Oído,
+    si acá o en el repo andamio (`julietaarrazate/ekp`). Al revisarlo apareció
+    que el vínculo era **de una sola dirección**: el `CLAUDE.md` de EKP dice
+    explícitamente qué hacer cuando el trabajo real pasa en un repo de
+    producto clonado aparte, y el `CLAUDE.md` de acá —428 líneas— no
+    mencionaba EKP ni una vez. Quien abría la sesión en este repo no tenía
+    forma de enterarse de que hay una capa de conocimiento arriba.
+    La recomendación fue **trabajar acá**, no en EKP: es el repo cuyo
+    `CLAUDE.md` se carga solo, donde corren los tests y el CI y donde vive el
+    git. Con la sesión abierta en EKP y este repo clonado aparte, el
+    `CLAUDE.md` del producto NO se carga —el costo más caro, porque es
+    invisible— y el checkout vive en `/tmp`, que es efímero. EKP queda para
+    cuando el trabajo *es* EKP, o para procesar el INTAKE acumulado.
+    El bloque nuevo ("Este repo dentro de EKP") deja escrito qué implica: EKP
+    es de lectura durante el trabajo, `docs/STATUS.md` es la bitácora que EKP
+    espera de acá, y antes de cerrar sesión la fricción que se vaya a repetir
+    se archiva como un *cycle* en el `evolution/INTAKE.md` de EKP.
+    **En el mismo PR, dos datos del `CLAUDE.md` que ya eran falsos** y habrían
+    causado una regresión: decía que el acento de marca es `#F97316` (el
+    naranja rojizo previo al rebrand del PR #315 — hoy es el ámbar `#D97706`)
+    y que `COLOR_SYSTEM.md` iba por v2.0 (va por v3.0). También decía que el
+    isotipo era un placeholder rasterizado pendiente del SVG del diseñador,
+    cuando el SVG vectorial final ya está en `Logo.tsx`. Se sumó la regla de
+    la tarjeta negra (§3.2) a las convenciones de diseño, que es donde una
+    sesión la va a buscar. Y el encabezado entero seguía anunciando como
+    "frente abierto" el QA de los PRs #166–#170, de hace un mes: quedó
+    marcado como histórico, con el estado vigente apuntando acá. Es
+    exactamente el patrón ya fileado como P7-15 en EKP — un estado vigente
+    escrito en el medio de un archivo que sólo crece se vuelve mentira sin
+    que nadie lo note.
   - **Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
     onboarding de comercio (`app/bienvenida/page.tsx`, paso "¿Cómo se llama tu
     comercio?") se veía marrón/óxido en una captura de Julieta en vez de naranja
