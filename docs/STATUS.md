@@ -8,6 +8,11 @@
 *Última actualización: 2026-09-07 (**el perfil del trabajador sube la foto
 desde arriba, y la "regla de la tarjeta negra" queda escrita — PR #323**).*
 
+**¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
+sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
+archivo que se edita en el lugar; todo lo demás crece hacia abajo y es
+histórico.
+
 Lo de esta sesión está detallado en **"En vuelo ahora"**, más abajo: ocho PRs
 mergeados (#315–#322: rebrand al ámbar, refinamiento del design system, la app
 que ya no se oscurece sola, el mapa con el pago en el pin, "va en camino"
@@ -3108,6 +3113,27 @@ roadmap).
     exactamente el patrón ya fileado como P7-15 en EKP — un estado vigente
     escrito en el medio de un archivo que sólo crece se vuelve mentira sin
     que nadie lo note.
+    **Segunda pasada, mismo PR** (Julieta: *"dejá Oído 100% actualizado con lo
+    hecho y lo que falta para iniciar nuevas sesiones sin perder contexto"*).
+    Al verificar qué vería realmente una sesión nueva aparecieron tres huecos
+    más, todos del mismo tipo — documentación que se quedó atrás del código:
+    (a) **"Qué existe HOY" de `CLAUDE.md` no mencionaba nada de las últimas
+    semanas**: ni el asistente de IA, ni "va en camino" con su modelo de
+    privacidad, ni el mapa con el pago en el pin, ni el panel de admin con
+    métricas/MRR/cuentas de prueba, ni que la app dejó de oscurecerse sola.
+    Una sesión nueva podía reimplementar algo que ya existe. Agregados.
+    (b) **`ADMIN_EMAILS` seguía en rojo como "el más importante y el que
+    falta"** en dos archivos, semanas después de estar resuelto — habría
+    mandado a una sesión a perseguir un problema inexistente. Marcado como
+    resuelto en los dos, con la fecha de confirmación.
+    (c) **Quedaba un `#F97316` más** en `CLAUDE.md` (la descripción de la marca
+    en "Contexto en 30 segundos"), que la primera pasada no había visto:
+    arreglar una ocurrencia y no buscar el resto es exactamente el error que
+    hace que estas cosas sobrevivan.
+    Además se creó la sección **"Qué sigue (estado vigente)"** acá arriba, con
+    lo que hay que agarrar en orden si no hay otra instrucción, y se declaró
+    explícitamente cuáles secciones de este archivo se editan en el lugar y
+    cuáles crecen hacia abajo — que es la contramedida concreta a P7-15.
   - **Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
     onboarding de comercio (`app/bienvenida/page.tsx`, paso "¿Cómo se llama tu
     comercio?") se veía marrón/óxido en una captura de Julieta en vez de naranja
@@ -3145,12 +3171,47 @@ roadmap).
 > fixes #69/#70/#71) quedó cerrado: no quedan cargas sin skeleton, errores de
 > red sin mensaje/reintento ni acciones que fallen en silencio en las 16 rutas.
 
-## Bloqueado en Julieta (único trabajo pendiente)
+## Qué sigue (estado vigente al 2026-09-08 — editar acá, no apilar abajo)
+
+> Esta sección y la de abajo son **estado vigente**, no bitácora: se editan en
+> el lugar. El resto de este archivo crece hacia abajo y es histórico. La regla
+> nació de encontrar acá ítems resueltos hacía semanas todavía marcados en rojo
+> (fileado como P7-15 en EKP).
+
+**Si abrís una sesión nueva y no hay otra instrucción, esto es lo que sigue:**
+
+1. 🔴 **Conectar `oido.com.ar`** — es lo único abierto que destraba algo.
+   Julieta compró el dominio; falta migrarle la app. Cuatro pasos, con el
+   detalle exacto en `CLAUDE.md` → "Pendiente de la operadora": Vercel →
+   Domains y los orígenes autorizados de Google Cloud **necesitan su login**;
+   `CORS_ORIGINS` ya quedó hecho de antemano (PR #316); y
+   `FRONTEND_URL=https://oido.com.ar` es de código pero **sólo después de que
+   el DNS resuelva** — antes rompe los links de los mails en silencio.
+2. 🟠 **PNG del ícono con el naranja viejo** — trabajo de código, no de
+   Julieta. `favicon`, `apple-icon`, `icon-192/512`, `icon-maskable-512` y
+   `badge-96` siguen en `#F97316`; los SVG ya migraron al ámbar en el #316,
+   pero en esa sesión no había con qué rasterizar. Hace falta un rasterizador
+   (sharp/resvg) en el entorno.
+3. 🟠 **PR #310 (expediente DNDA) sigue en draft, a propósito** — incluye una
+   declaración firmable con DNI de Julieta y un campo `[COMPLETAR]` legal.
+   Pendiente enteramente de ella; el detalle está en `DNDA_CHECKLIST_FINAL.md`.
+   No mergear sin su revisión: acá el criterio de "mergear apenas verde" no
+   aplica.
+4. 🟢 **Rediseño del mapa, fase 2** — el estado "match" del pin necesita un
+   score de compatibilidad que el turno todavía no trae del backend. Es la
+   continuación natural del #319.
+5. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
+   instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
+
+## Bloqueado en Julieta (operativo, sin trabajo de código)
 
 1. ~~**Confirmar Render/Neon**~~ — resuelto: Neon y Sentry ya están cargados
    como variables de entorno (confirmado por Julieta, 2026-08-15). Deploy
    verde, `alembic upgrade head` corrido contra Neon.
 2. ~~**Encender Sentry**~~ — resuelto, mismo punto de arriba.
+2b. ~~**`ADMIN_EMAILS`**~~ — resuelto (confirmado por Julieta, 2026-09-07: su
+   mail ya está cargado y entra a `/admin`). Estuvo marcado como "el más
+   importante y el que falta" durante semanas después de estar resuelto.
 3. **R2.5** — imágenes propias en el seed: subir un set de fotos a la cuenta
    Cloudinary del proyecto (TECH_DEBT I2), manual, sin credenciales no se
    puede automatizar. No bloquea la beta (P2 de `LAUNCH_PLAN.md`).
