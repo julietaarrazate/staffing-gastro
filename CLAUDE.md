@@ -367,11 +367,13 @@ cuatro pasos, tres de ellos con su login:
    registro se rompe en silencio. Éste es de código/config, no de Julieta —
    pero depende del paso 1.
 
-Además, cuando el dominio esté vivo: los **PNG rasterizados** del ícono
-(`favicon`, `apple-icon`, `icon-192/512`, `icon-maskable-512`, `badge-96`)
-todavía llevan el naranja viejo — los SVG ya migraron al ámbar en el PR #316,
-pero no había con qué rasterizar en el entorno de esa sesión. Es trabajo de
-código, no de Julieta.
+Los **íconos PNG** (`apple-icon`, `icon-192/512`, `icon-maskable-512`) ya se
+rasterizaron al ámbar en el PR #325. Quedan dos pendientes chicos de código,
+sin relación con el dominio: **`favicon.ico`** sigue con el naranja viejo
+(`sharp` no lee/escribe ICO, hace falta otra herramienta), y **`og-image.png`**
+(la vista previa de 1200×630 al compartir un link) también — ver
+`docs/STATUS.md` → "Qué sigue" para el detalle de por qué éste no se
+rehizo a ciegas.
 
 **Ya configuradas — NO volver a pedirlas:**
 - **Vercel (frontend):** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
