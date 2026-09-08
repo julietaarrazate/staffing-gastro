@@ -4,11 +4,67 @@ Guía operativa para cualquier sesión (humana o IA) que modifique este repo. La
 **fuente de verdad del producto, el dominio y la arquitectura** vive en `docs/`.
 Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya.
 
-> Última actualización: **2026-08-09**. Si pasó mucho tiempo desde esta fecha,
-> desconfiá de los números/estados de abajo y releé
-> [docs/STATUS.md](./docs/STATUS.md) (la bitácora viva) antes de asumir nada.
+## Este repo dentro de EKP (leer antes de cerrar la sesión)
+
+Existe un segundo repo, **[`julietaarrazate/ekp`](https://github.com/julietaarrazate/ekp)**
+— *Engineering Knowledge Platform* —, que es el andamio de conocimiento de
+todos los proyectos de la operadora. **Este repo es su capa L5**: la instancia
+donde el conocimiento se aplica. La relación era de una sola dirección (EKP
+sabía de Staffya, Staffya no sabía de EKP), así que quien abría la sesión acá
+no tenía forma de enterarse. Este bloque cierra ese lazo.
+
+**Qué implica en la práctica, y sólo esto:**
+
+1. **Durante el trabajo, EKP es de lectura.** No hace falta clonarlo para
+   codear. Consultalo cuando la decisión sea grande y no puntual:
+   `engines/decision-engine.md` antes de una decisión técnica de fondo,
+   `domains/design/` o `domains/ux/` antes de un cambio sistémico de diseño,
+   `engines/review-engine.md` para una auditoría. Para un bug o una feature
+   normal, `docs/` de acá alcanza y sobra.
+2. **La bitácora de este repo es `docs/STATUS.md`.** Ése es el registro que
+   EKP espera de acá — no hace falta un `BACKLOG.md` ni un `INTAKE.md`
+   propios. Se actualiza **en el mismo PR** del cambio, como ya dice su regla
+   de mantenimiento.
+3. **Antes de cerrar la sesión, registrar la fricción en EKP.** Si algo salió
+   mal por una razón que se va a repetir —una regla que no estaba escrita, una
+   trampa de un endpoint, una interpretación equivocada de un pedido—, eso va
+   como un *cycle* nuevo al final de `evolution/INTAKE.md` de EKP (append,
+   nunca editar lo anterior), más la línea correspondiente en su
+   `tasks/BACKLOG.md`. Una observación sin archivar es conocimiento perdido.
+   Un bug arreglado y ya no es fricción: lo que se archiva es **por qué fue
+   posible**, no que pasó.
+
+**Cómo escribir en EKP desde una sesión abierta acá:** agregar el repo a la
+sesión (`add_repo` con `julietaarrazate/ekp`), clonarlo, commitear el registro
+y abrir su propio PR. Es un PR aparte del de código: no se mezclan.
+
+**Cuándo conviene abrir la sesión en EKP y no acá:** cuando el trabajo *es*
+EKP (tocar sus `engines/`, `domains/` o `blueprint/`), o cuando toca procesar
+el INTAKE acumulado y promover lecciones a reglas. Para trabajar en el
+producto, la sesión va acá: es el repo cuyo `CLAUDE.md` se carga solo, donde
+corren los tests y el CI, y donde vive el git.
+
+## Dónde está el estado del proyecto
+
+> Última actualización: **2026-09-07**.
 >
-> **Frente abierto: QA en vivo de Julieta probando la app real** (comercio,
+> **Estado al día de hoy: `docs/STATUS.md`, no este bloque.** Y dentro de ese
+> archivo, la sección **"Qué sigue (estado vigente)"** es la única lista que se
+> edita en el lugar: ahí está, en orden, qué agarrar si arrancás sin otra
+> instrucción.
+>
+> En una línea: el frente vigente fue el rediseño profundo pedido por brief
+> (rebrand al ámbar, refinamiento del design system, mapa con el pago en el
+> pin, "va en camino") sobre los PRs #315–#324. Lo único abierto que destraba
+> algo es **conectar `oido.com.ar`** — ver "Pendiente de la operadora" abajo.
+>
+> Todo lo que sigue en este bloque es **histórico** (hasta 2026-08-09, PRs
+> #166–#170): sirve para entender cómo se llegó acá, no para saber qué está
+> pasando. Un estado vigente escrito en el medio de un archivo que sólo crece
+> se vuelve mentira sin que nadie lo note; por eso el estado vive en
+> `docs/STATUS.md` y acá queda el rastro.
+>
+> **Frente abierto (histórico, 2026-08-09): QA en vivo de Julieta probando la app real** (comercio,
 > trabajador y admin, mobile). Mergeado hasta ahora: batch de bugs (PR #166),
 > fix de perfil admin, mapa/búsqueda de sólo lectura para admin + fotos en
 > `/admin` + wordmark del footer (PR #168), y la causa REAL de "la X del
@@ -70,7 +126,7 @@ Este archivo dice **cómo** trabajar acá; los `docs/` dicen **qué** es Staffya
 (estilo Uber + Tinder): conecta comercios con trabajadores eventuales para
 cubrir turnos. **Misión: cubrir una posición eventual en menos de 10 minutos.**
 Roles: `worker`, `employer`, `admin`. Producto en **español (AR/LATAM)**, marca
-"Oído" (mano ahuecada sobre la oreja, en trazo crema sobre tile naranja `#F97316`,
+"Oído" (mano ahuecada sobre la oreja, en trazo crema sobre tile ámbar `#D97706`,
 wordmark "oído" en serif Fraunces; tagline "Personal gastronómico, ya.").
 
 - **Backend:** FastAPI · SQLAlchemy async · monolito modular DDD/hexagonal ·
@@ -167,6 +223,31 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   insignias/niveles con otorgamiento automático), visible en perfil/búsqueda/
   postulantes — entra de verdad al ranking de matching (verificado
   end-to-end en el launch-gate, #88).
+- **Asistente de IA para el trabajador** (`/assistant`, pantalla propia, no un
+  sheet): busca turnos en lenguaje natural y responde por su estado de
+  verificación. Igual que "Describí el turno" del comercio, depende de
+  `GEMINI_API_KEY` y degrada con un mensaje claro si no está.
+- **"Va en camino"** (#320 backend + #321 frontend): el trabajador avisa que
+  está viajando a un turno confirmado y el comercio lo ve llegar en un mapa.
+  **Lo prende y lo apaga él**, nunca arranca solo. Modelo de privacidad
+  deliberado, no un detalle de implementación: se guarda **sólo la última
+  posición, nunca el recorrido**, la ventana es de 2h antes del turno, se
+  borra al marcar la llegada y en las cuatro transiciones que desasignan, y
+  los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
+  UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
+  en el mismo PR.
+- **Mapa con el pago en el pin** (#319): el marcador lleva el monto y el rubro
+  es un punto de color, como la maqueta aprobada. Pendiente de la fase: el
+  estado "match" necesita un score de compatibilidad que el turno todavía no
+  trae del backend.
+- **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
+  MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
+  cuentas sintéticas se excluyen de las métricas a propósito.
+- **Design system con tema explícito** (#317/#318): `lib/theme.tsx` es la
+  única fuente de verdad y siempre escribe `data-theme="dark"|"light"`. **La
+  app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de
+  identidad (el crema ES Oído). El oscuro es una elección explícita del
+  usuario. Sólo invierten las tarjetas; el lienzo crema nunca.
 
 ## Antes de modificar código — checklist
 
@@ -261,7 +342,36 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 
 ## Pendiente de la operadora (Julieta — no es trabajo de código)
 
-### Estado de env vars (verificado con Julieta el 2026-08-07)
+### Estado de env vars (verificado con Julieta el 2026-09-08)
+
+> **Lo único abierto hoy es el dominio propio.** Todo lo de más abajo está
+> resuelto salvo donde diga lo contrario; los ítems tachados se dejan para que
+> nadie los vuelva a pedir.
+
+#### 🔴 Conectar `oido.com.ar` (lo único que destraba algo hoy)
+
+Julieta compró el dominio y quiere migrar de la URL de Vercel a la propia. Son
+cuatro pasos, tres de ellos con su login:
+
+1. **Vercel → Settings → Domains**: agregar `oido.com.ar` y `www.oido.com.ar`,
+   y cargar los registros DNS en el registrador. *(Necesita su login.)*
+2. **Google Cloud Console → Credenciales → orígenes autorizados de JavaScript**:
+   sumar `https://oido.com.ar` y `https://www.oido.com.ar`, o **el login con
+   Google deja de funcionar en el dominio nuevo**. *(Necesita su login.)*
+3. **`CORS_ORIGINS` (Render)**: ✅ **ya hecho** — los dos dominios se
+   pre-agregaron en el PR #316, antes de que existiera el DNS, justamente para
+   que este paso no sea un bloqueante después.
+4. **`FRONTEND_URL=https://oido.com.ar` (Render)**: **sólo después de que el
+   DNS resuelva.** Si se setea antes, los links de los mails transaccionales
+   (confirmación, recuperación de contraseña) apuntan a un dominio muerto y el
+   registro se rompe en silencio. Éste es de código/config, no de Julieta —
+   pero depende del paso 1.
+
+Además, cuando el dominio esté vivo: los **PNG rasterizados** del ícono
+(`favicon`, `apple-icon`, `icon-192/512`, `icon-maskable-512`, `badge-96`)
+todavía llevan el naranja viejo — los SVG ya migraron al ámbar en el PR #316,
+pero no había con qué rasterizar en el entorno de esa sesión. Es trabajo de
+código, no de Julieta.
 
 **Ya configuradas — NO volver a pedirlas:**
 - **Vercel (frontend):** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
@@ -273,13 +383,12 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 - Efecto: **Cloudinary** (foto de perfil + subida de DNI/selfie), **Google
   login**, **push (VAPID)**, **Sentry**, **emails (Resend)** quedan operativos.
 
-**Faltan / a confirmar (esto sí destraba cosas):**
-1. 🔴 **`ADMIN_EMAILS`** (Render) — **el más importante y el que falta.** Sin
-   él **no existe ningún admin**: no se puede revisar la cola de "Identidad
-   verificada", ni moderar usuarios, ni entrar a `/admin`. Cargar el email de
-   Julieta ahí. Con esto + Cloudinary, la **verificación de identidad F1 queda
-   operativa de punta a punta**. (El bootstrap la promueve al arrancar — ver
-   `app/modules/admin/bootstrap.py`.)
+**Faltan / a confirmar:**
+1. ✅ ~~**`ADMIN_EMAILS`** (Render)~~ — **resuelto** (confirmado por Julieta,
+   2026-09-07: su mail ya está cargado y entra a `/admin`). Este ítem estuvo
+   marcado en rojo como "el más importante y el que falta" durante semanas
+   después de estar resuelto; si lo leés en rojo en algún lado, es una copia
+   vieja. La verificación de identidad F1 quedó operativa de punta a punta.
 2. 🟠 **`SEED_DEMO_DATA` = `false`** (Render): la var existe; confirmar que el
    **valor** sea `false` (el dashboard pisa `render.yaml`, donde ya está en
    `false`). Si sigue en `true`, re-siembra datos demo en cada arranque.
@@ -394,17 +503,23 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 
 - Todo en **español**, incluido el texto de cara al usuario.
 - Identidad **editorial cálida** ("cafetería de especialidad", style-guide del
-  diseñador, desde 2026-07-29): fondo **crema** `#FFF8F0` / superficies **arena**
-  `#F5ECDD`, tinta **carbón** cálida `#1F1F1C` (no negro puro), acento naranja
-  `#F97316` y verde éxito **bosque** `#2E8B57` (no el semáforo brillante). Tipografía
+  diseñador, desde 2026-07-29): lienzo **crema** `#FFF8F0` / superficies **arena**
+  `#F5ECDD`, tinta **carbón** cálida `#1F1F1C` (no negro puro), acento **ámbar**
+  `#D97706` (con `#B45309` para el fin del degradé y el texto sobre claro) y verde
+  éxito **bosque** `#2E8B57` (no el semáforo brillante). Tipografía
   **Inter** (UI) + **Fraunces** (`font-display`, serif de títulos, alternativa
   libre a Recoleta). Iconografía **Lucide**, sensación de app nativa. Un solo
-  acento naranja por pantalla, cero gradientes multicolor decorativos. Todos los
+  acento ámbar por pantalla, cero gradientes multicolor decorativos. Todos los
   fondos pasan por tokens de `globals.css` (no hay grises hardcodeados). Contrastes
-  verificados WCAG AA — **fuente de verdad: `docs/design/COLOR_SYSTEM.md` (v2.0)**. El
-  isotipo es la **mano ahuecada sobre la oreja** (placeholder rasterizado del
-  mockup, ver `frontend/components/Logo.tsx`, pendiente el SVG vectorial del
-  diseñador).
+  verificados WCAG AA — **fuente de verdad: `docs/design/COLOR_SYSTEM.md` (v3.0)**. El
+  isotipo es la **mano ahuecada sobre la oreja**, SVG vectorial final del
+  diseñador (ver `frontend/components/Logo.tsx`).
+- **Adentro de una tarjeta negra la proporción se invierte.** La regla del "un
+  solo acento" se mide sobre el lienzo crema, que es el 95% de la app; en un
+  módulo `bg-night` el contenido va con color (ícono en chip ámbar, moneda
+  ámbar, dato en blanco, dato secundario en crema `#F1E7A0`) porque una tarjeta
+  negra llena de blancos y grises se apaga. Receta y contrastes medidos:
+  `docs/design/COLOR_SYSTEM.md` §3.2.
 
 ## Para continuar en un chat nuevo
 
@@ -419,7 +534,10 @@ prompt de arranque:
 > feature, PR en draft, y reportá el resultado real de `pytest -q` / `tsc
 > --noEmit` / `npm run build` (y Playwright si tocaste frontend) — no el
 > esperado. Actualizá `docs/STATUS.md` en el mismo PR de cualquier cambio
-> relevante.
+> relevante. Este repo es la capa L5 de `julietaarrazate/ekp`: antes de
+> cerrar, si hubo fricción que se va a repetir, archivala como un *cycle*
+> nuevo en el `evolution/INTAKE.md` de ese repo (ver "Este repo dentro de
+> EKP" arriba).
 
 No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
 operadora" arriba. La auditoría de responsive/desktop pantalla por pantalla
