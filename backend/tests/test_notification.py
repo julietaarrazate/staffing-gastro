@@ -5,8 +5,6 @@ from httpx import AsyncClient
 
 from tests.conftest import auth_headers
 
-pytestmark = pytest.mark.asyncio
-
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
     headers = await auth_headers(client, "employer", email)
@@ -44,6 +42,7 @@ def _shift_payload(**overrides) -> dict:
     return payload
 
 
+@pytest.mark.asyncio
 async def test_no_notifications_initially(client: AsyncClient):
     headers = await auth_headers(client, "worker", "n1@staffya.com")
     response = await client.get("/api/v1/notifications", headers=headers)
@@ -51,6 +50,7 @@ async def test_no_notifications_initially(client: AsyncClient):
     assert response.json() == []
 
 
+@pytest.mark.asyncio
 async def test_mark_unknown_notification_as_read_returns_404(client: AsyncClient):
     headers = await auth_headers(client, "worker", "n2@staffya.com")
     response = await client.post(
@@ -60,6 +60,7 @@ async def test_mark_unknown_notification_as_read_returns_404(client: AsyncClient
     assert response.status_code == 404
 
 
+@pytest.mark.asyncio
 async def test_assign_notifies_worker(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "n_emp1@staffya.com")
     created = await client.post(
@@ -91,6 +92,7 @@ async def test_assign_notifies_worker(client: AsyncClient):
     assert mark_read.json()["read"] is True
 
 
+@pytest.mark.asyncio
 async def test_confirm_notifies_company(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "n_emp2@staffya.com")
     created = await client.post(
@@ -116,6 +118,7 @@ async def test_confirm_notifies_company(client: AsyncClient):
     assert body[0]["type"] == "shift_confirmed"
 
 
+@pytest.mark.asyncio
 async def test_reject_notifies_company(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "n_emp3@staffya.com")
     created = await client.post(
@@ -141,6 +144,7 @@ async def test_reject_notifies_company(client: AsyncClient):
     assert body[0]["type"] == "shift_rejected"
 
 
+@pytest.mark.asyncio
 async def test_notifications_pagination(client: AsyncClient):
     """R2.1: `/notifications` pagina con `limit`/`offset`."""
     employer_headers = await _employer_with_company(client, "n_pag_emp@staffya.com")
@@ -186,6 +190,7 @@ async def test_notifications_pagination(client: AsyncClient):
     }
 
 
+@pytest.mark.asyncio
 async def test_cannot_mark_someone_elses_notification_as_read(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "n_emp4@staffya.com")
     created = await client.post(

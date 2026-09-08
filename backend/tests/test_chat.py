@@ -10,8 +10,6 @@ from app.core.database import Base, get_session
 from app.main import app
 from tests.conftest import auth_headers
 
-pytestmark = pytest.mark.asyncio
-
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
     headers = await auth_headers(client, "employer", email, "Bar Palermo")
@@ -61,6 +59,7 @@ async def _assigned_shift(client: AsyncClient, emp_email: str, worker_email: str
     return shift_id, employer_headers, worker_headers
 
 
+@pytest.mark.asyncio
 async def test_send_and_read_messages(client: AsyncClient):
     shift_id, employer_headers, worker_headers = await _assigned_shift(
         client, "chat_emp1@staffya.com", "chat_w1@staffya.com"
@@ -89,6 +88,7 @@ async def test_send_and_read_messages(client: AsyncClient):
     assert bodies == ["Hola! ¿Confirmás que venís?", "Sí, ahí voy"]
 
 
+@pytest.mark.asyncio
 async def test_recipient_gets_notification(client: AsyncClient):
     shift_id, employer_headers, worker_headers = await _assigned_shift(
         client, "chat_emp2@staffya.com", "chat_w2@staffya.com"
@@ -102,6 +102,7 @@ async def test_recipient_gets_notification(client: AsyncClient):
     assert any(n["type"] == "chat_message" for n in notifications.json())
 
 
+@pytest.mark.asyncio
 async def test_inbox_lists_conversation_with_unread_count(client: AsyncClient):
     shift_id, employer_headers, worker_headers = await _assigned_shift(
         client, "chat_emp3@staffya.com", "chat_w3@staffya.com"
@@ -127,6 +128,7 @@ async def test_inbox_lists_conversation_with_unread_count(client: AsyncClient):
     assert inbox_after.json()[0]["unread_count"] == 0
 
 
+@pytest.mark.asyncio
 async def test_inbox_with_multiple_conversations_both_sides(client: AsyncClient):
     """Cubre la query agregada del inbox (P1) con más de una conversación: un
     comercio con turno propio y, por separado, un trabajador viendo su propio
@@ -171,6 +173,7 @@ async def test_inbox_with_multiple_conversations_both_sides(client: AsyncClient)
     assert convos_w2[0]["last_message"] == "Segundo mensaje, más reciente"
 
 
+@pytest.mark.asyncio
 async def test_outsider_cannot_access_conversation(client: AsyncClient):
     shift_id, _employer_headers, _worker_headers = await _assigned_shift(
         client, "chat_emp4@staffya.com", "chat_w4@staffya.com"
@@ -367,6 +370,7 @@ def test_chat_websocket_closes_after_too_many_frames():
         app.dependency_overrides.clear()
 
 
+@pytest.mark.asyncio
 async def test_no_chat_before_worker_assigned(client: AsyncClient):
     employer_headers = await _employer_with_company(client, "chat_emp5@staffya.com")
     created = await client.post(
@@ -390,6 +394,7 @@ async def test_no_chat_before_worker_assigned(client: AsyncClient):
     assert response.status_code == 404
 
 
+@pytest.mark.asyncio
 async def test_send_message_rate_limited(client: AsyncClient):
     """Antes sin ningún límite: un usuario no podía ser frenado de floodear
     una conversación (PRODUCTION_HARDENING.md). Se limita por usuario, no
