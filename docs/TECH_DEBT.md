@@ -846,18 +846,30 @@ fecha de esta auditoría (2026-07-02).
 > modo no-op por falta de esa env var (ver "Pendiente de la operadora" en
 > `CLAUDE.md`).
 
-### T4 — Warning de test cosmético 🟢 Baja
+### T4 — Warning de test cosmético ✅ Resuelto (2026-09-08, verificado contra el código, no contra este doc)
 
-- **Descripción:** `backend/tests/test_chat.py:150` —
-  `test_chat_websocket_pushes_new_messages` está marcada
-  `@pytest.mark.asyncio` pero no es una función `async def`; genera un
-  `PytestWarning` en cada corrida (visto en la ejecución real de esta
-  auditoría, 82 passed con este warning entre los no bloqueantes).
-- **Impacto:** ninguno funcional; ruido en la salida de test.
-- **Riesgo:** ninguno.
-- **Prioridad:** 🟢 Baja.
-- **Esfuerzo:** trivial — quitar el marcador o hacer la función `async`.
-- **Solución sugerida:** limpiar en el próximo PR que toque ese archivo.
+- **Descripción real** (esta entrada tenía el diagnóstico incompleto: no era
+  un `@pytest.mark.asyncio` en la función, sino un `pytestmark =
+  pytest.mark.asyncio` a nivel de MÓDULO en `test_chat.py`, que marcaba
+  también a los dos tests que usan `TestClient` sync —
+  `test_chat_websocket_pushes_new_messages` y
+  `test_chat_websocket_closes_after_too_many_frames`, no sólo el primero).
+- **El mismo bug, exacto, estaba también en `test_notification.py`**
+  (`test_notifications_websocket_closes_after_too_many_frames`) — mismo
+  patrón: `pytestmark` de módulo + un test sync de WebSocket colado.
+  Apareció corriendo la suite completa después de corregir `test_chat.py`,
+  no buscándolo a propósito. Se barrieron todos los archivos de test por la
+  misma combinación (`pytestmark = pytest.mark.asyncio` + algún `def test_`
+  suelto en el mismo archivo) para confirmar que no había un tercero — no
+  apareció ninguno más.
+- **Fix, en los dos archivos:** se sacó el `pytestmark` de módulo y se puso
+  `@pytest.mark.asyncio` en cada test que sí es `async def` (7 por archivo);
+  los sync quedan sin marcar. Suite completa: 435 passed, cero warnings de
+  este tipo.
+- **Encontrado mientras se auditaba qué le faltaba a la app** (pedido
+  directo de Julieta de tener un estado 100% verificado, no de memoria) —
+  no estaba buscando este ítem puntual, salió de confirmar el diagnóstico
+  de esta misma entrada antes de repetirlo en otro documento.
 
 ### T5 — `npm run lint` falla en ~15 archivos, pero `ci.yml` no lo corre ✅ Resuelto (2026-08-05)
 

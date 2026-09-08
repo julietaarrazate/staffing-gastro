@@ -5,9 +5,9 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-08 (**el dominio `oido.com.ar` queda
-conectado — operativo, sin código; PR #325 de íconos + auditoría A–M fue lo
-último de código, PR #323 antes de eso**).*
+*Última actualización: 2026-09-08 (**auditoría de gaps reales pedida por
+Julieta — "no puede ser que tenga que ir recordando yo" — PR #327: 4
+hallazgos nuevos + un bug de test duplicado, arreglado**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -21,8 +21,18 @@ backend + frontend), el #323 y el #324/#325 (documentación al día + íconos al
 ámbar). **2026-09-08, operativo (sin PR, trabajo de Julieta en los
 dashboards):** el dominio `oido.com.ar` quedó conectado (Vercel, Google Cloud
 y las env vars de Render) — ver el detalle en "Qué sigue" abajo, punto 1,
-marcado resuelto. Lo único que sigue bloqueado del lado de Julieta es el
-expediente DNDA, sin cambios.
+marcado resuelto.
+
+**Mismo día, PR #327**: Julieta pidió una auditoría real de qué falta en el
+código —no de memoria, no de la documentación existente— para no tener que
+ser ella quien recuerde entre sesiones. Salieron 4 hallazgos que no estaban
+en ningún lado (ver "Qué sigue" abajo, puntos 6–9): "va en camino" sin el
+nombre del trabajador, un sello "Comercio verificado" que nunca puede
+activarse, CVEs de Starlette/FastAPI sin resolver, y un bug de test
+(`pytestmark` de módulo marcando tests sync) duplicado en dos archivos —
+encontrado el segundo al correr la suite completa después de arreglar el
+primero, y ambos corregidos en el mismo PR. Lo único bloqueado del lado de
+Julieta sigue siendo el expediente DNDA, sin cambios.
 
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
@@ -3289,8 +3299,59 @@ roadmap).
    H y las pantallas sueltas son gaps de cobertura lisos y llanos; K y L
    dependen de que G/pantallas ya estén cerrados para no auditar dos veces;
    C es la de menor riesgo visible hoy.
-6. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
-   instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
+6. 🟡 **"Va en camino" sale sin el nombre del trabajador.** El comercio ve
+   el cartel genérico "Va en camino" en vez de "Juan va en camino" —
+   `EnRouteMap.tsx` acepta el prop `workerName`, pero `ShiftCard.tsx` (su
+   único llamador) nunca se lo pasa, porque el turno hoy sólo trae
+   `worker_profile_id`, no el nombre. Comentario propio del código, no un
+   olvido nuevo: *"queda el prop para cuando el turno lo exponga"* — pero no
+   estaba en ningún lado fuera del código, así que se habría perdido. Chico:
+   el backend ya tiene el `worker_profile_id`; falta que el endpoint del
+   turno traiga también el nombre (un join, no una decisión de diseño).
+7. 🟡 **`company_verified` da `false` para TODOS los comercios, siempre —
+   nunca puede dar `true`.** No es un bug de datos: es un sello que
+   `ShiftCard.tsx` ya renderiza condicionalmente, pero el flujo para que un
+   comercio *envíe* evidencia de identidad de negocio y alguien la revise
+   **no existe** (ADR-0011 lo declaró, `verification/domain/value_objects.py`
+   tiene el tipo `NEGOCIO_VERIFICADO` listo, pero nada lo escribe nunca en
+   `true`). Ojo con esto si se retoma: es un elemento de UI real, visible,
+   que hoy es efectivamente decorativo — nadie lo pidió apagar, quedó a
+   medio construir desde el ADR.
+8. 🟠 **Starlette/FastAPI con CVEs de seguridad conocidos, sin resolver a
+   propósito.** `docs/TECH_DEBT.md` §S3 lo tiene con detalle: Starlette
+   0.41.3 tiene 6 CVEs publicados (`PYSEC-2026-161/248/249/1942/1941/2281/
+   2280`) y el fix es subir a la serie 1.x, lo que **también** obliga a subir
+   FastAPI (0.115.6 → ~0.141, ~26 versiones menores) porque la versión
+   actual no es compatible con Starlette 1.x. Es un salto mayor que puede
+   cambiar comportamiento de middleware/DI/excepciones — necesita su propia
+   sesión con la suite completa corriendo en cada paso, no un bump al pasar.
+   No estaba en esta lista hasta ahora pese a ser el ítem de seguridad
+   🟠 Alta más viejo del catálogo.
+9. ✅ ~~T4 — warning cosmético de pytest~~ — **resuelto (PR #327)**. El
+   `pytestmark = pytest.mark.asyncio` de `test_chat.py` era a nivel de
+   archivo, así que marcaba también los DOS tests que usan `TestClient`
+   sync (no sólo el uno que decía `TECH_DEBT.md`). **Al corregirlo apareció
+   el mismo bug, exacto, en `test_notification.py`** — mismo patrón
+   (`pytestmark` de archivo + un test sync de WebSocket), encontrado
+   corriendo la suite completa después del primer fix, no buscándolo a
+   propósito. Se barrieron TODOS los archivos de test buscando la misma
+   combinación (`pytestmark = pytest.mark.asyncio` + algún `def test_`
+   suelto) para no dejar un tercero — no apareció ninguno más. Reemplazado
+   en los dos archivos por `@pytest.mark.asyncio` en cada test que sí es
+   async (7 en cada uno); los sync quedan sin marcar. Suite completa:
+   435 passed, cero warnings de este tipo.
+   **Nota sobre `docs/TECH_DEBT.md`**: no tuvo una pasada completa desde
+   **2026-08-02**, un mes antes de todo el rediseño (#280 en adelante). Si
+   se retoma ese documento, no asumir que sus ítems 🟢/🟡 restantes (F5 —
+   `<img>` sin `next/image`; I3 — Haversine duplicado backend/frontend, en
+   parte ya resuelto del lado frontend con la migración a MapLibre; I4/I5 —
+   PostGIS/Redis y bus de eventos, ambos "no construir todavía" a propósito)
+   siguen exactamente como dice sin re-verificar contra el código — T4
+   decía "pendiente" y ya estaba mal en los dos sentidos posibles (afectaba
+   a MÁS tests de los que documentaba, y el fix ya no era trivial de
+   ignorar una vez encontrado el segundo caso).
+10. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
+    instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)
 
