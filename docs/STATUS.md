@@ -3350,7 +3350,24 @@ roadmap).
    decía "pendiente" y ya estaba mal en los dos sentidos posibles (afectaba
    a MÁS tests de los que documentaba, y el fix ya no era trivial de
    ignorar una vez encontrado el segundo caso).
-10. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
+10. 🔴 **Dos CVEs críticos nuevos en dependencias del frontend (detectados
+    2026-09-08, no presentes una hora antes en el mismo commit — vulnerabilidad
+    recién publicada, no algo que este repo rompió).**
+    - **Next.js — RCE sin autenticar en servidores hosteados en Windows**
+      (`GHSA-p293-qw3h-jr36`). Vercel corre serverless en Linux, así que
+      probablemente no aplica — **confirmar esto antes de asumir que no
+      urge**, no descartarlo sin verificar.
+    - **maplibre-gl — bypass del sanitizador XSS** en `DOM.sanitize()`
+      (`GHSA-jrc7-96c5-q579`). Este sí aplica: el mapa usa `maplibre-gl` en
+      el cliente, expuesto a cualquier visitante.
+    - El fix de los dos necesita `npm audit fix --force`: `next` 16.3.2→16.3.4
+      (fuera del rango declarado) y `maplibre-gl` ≤6.4.0→6.8.0 (**breaking**,
+      según el propio `npm audit`). No es un bump de patch trivial — necesita
+      su propia sesión con `tsc`/build/Playwright completo antes de mergear,
+      no algo para hacer al pasar en otro PR.
+    - `docs/TECH_DEBT.md` §S3 (CVEs de backend) es el lugar natural para sumar
+      esto también del lado frontend cuando se resuelva.
+11. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
     instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)
