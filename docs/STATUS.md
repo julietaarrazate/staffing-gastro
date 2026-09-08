@@ -5,8 +5,9 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-07 (**el perfil del trabajador sube la foto
-desde arriba, y la "regla de la tarjeta negra" queda escrita — PR #323**).*
+*Última actualización: 2026-09-08 (**el dominio `oido.com.ar` queda
+conectado — operativo, sin código; PR #325 de íconos + auditoría A–M fue lo
+último de código, PR #323 antes de eso**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -16,9 +17,12 @@ histórico.
 Lo de esta sesión está detallado en **"En vuelo ahora"**, más abajo: ocho PRs
 mergeados (#315–#322: rebrand al ámbar, refinamiento del design system, la app
 que ya no se oscurece sola, el mapa con el pago en el pin, "va en camino"
-backend + frontend) y el #323 de arriba. Lo único bloqueado sigue siendo lo de
-Julieta: conectar `oido.com.ar` y sus variables de entorno, y el expediente
-DNDA que sigue acá abajo sin cambios.
+backend + frontend), el #323 y el #324/#325 (documentación al día + íconos al
+ámbar). **2026-09-08, operativo (sin PR, trabajo de Julieta en los
+dashboards):** el dominio `oido.com.ar` quedó conectado (Vercel, Google Cloud
+y las env vars de Render) — ver el detalle en "Qué sigue" abajo, punto 1,
+marcado resuelto. Lo único que sigue bloqueado del lado de Julieta es el
+expediente DNDA, sin cambios.
 
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
@@ -3173,6 +3177,25 @@ roadmap).
     nativo desde JSX/CSS) para que esto no vuelva a desincronizarse solo.
     `tsc`/build verdes; sin cambios de código más allá de los PNG, no hizo
     falta correr Playwright.
+  - **Dominio `oido.com.ar` conectado (2026-09-08, operativo, sin PR ni
+    cambio de código)**: Julieta hizo los tres pasos que necesitaban su login
+    (Vercel → Domains, orígenes autorizados de Google Cloud) y cargó en Render
+    las variables que quedaban: `CORS_ORIGINS` ya tenía los dos dominios desde
+    antes (PR #316); se sumaron `EMAIL_FROM=Oído <hola@oido.com.ar>` y
+    `FRONTEND_URL=https://oido.com.ar` (esta última, a propósito, recién
+    después de que el DNS resolviera — antes rompía en silencio los links de
+    los mails). De paso: **Resend** — se agregaron los 4 registros DNS del
+    dominio (`resend._domainkey` TXT/DKIM, `send` MX + TXT/SPF, `_dmarc`
+    TXT/DMARC) en Vercel; la verificación quedó en curso del lado de Resend
+    (puede tardar horas en propagar) — **falta confirmar que el status pase a
+    "Verified"** antes de dar el email transaccional por completamente
+    operativo con remitente propio. Se verificó además que **no** hace falta
+    cargar `NEXT_PUBLIC_API_URL` en Vercel: el código
+    (`frontend/next.config.ts`/`lib/api.ts`) ya cae solo al backend de Render
+    cuando la variable no existe — es el comportamiento de producción
+    esperado, no una var faltante. Y se confirmó que `SEED_DEMO_DATA` ya
+    estaba en `false` (sin cambios). Detalle completo del paso a paso en
+    `CLAUDE.md` → "Pendiente de la operadora".
 - **`docs/planning/PULIDO_ROADMAP.md` — C3 arrancado, C4 sin arrancar**: el orden fijado
   por el propio roadmap es C2 (hecho, #81) → C0+C1 (hecho, #83) → C3 → C4.
   **C3** (confianza y conversión): **SEO base hecho** (`app/robots.ts` +
@@ -3205,13 +3228,17 @@ roadmap).
 
 **Si abrís una sesión nueva y no hay otra instrucción, esto es lo que sigue:**
 
-1. 🔴 **Conectar `oido.com.ar`** — es lo único abierto que destraba algo.
-   Julieta compró el dominio; falta migrarle la app. Cuatro pasos, con el
-   detalle exacto en `CLAUDE.md` → "Pendiente de la operadora": Vercel →
-   Domains y los orígenes autorizados de Google Cloud **necesitan su login**;
-   `CORS_ORIGINS` ya quedó hecho de antemano (PR #316); y
-   `FRONTEND_URL=https://oido.com.ar` es de código pero **sólo después de que
-   el DNS resuelva** — antes rompe los links de los mails en silencio.
+1. ✅ ~~Conectar `oido.com.ar`~~ — **resuelto (2026-09-08, operativo)**. Los
+   cuatro pasos (Vercel → Domains, orígenes autorizados de Google Cloud,
+   `CORS_ORIGINS`, `FRONTEND_URL`) están hechos — ver el detalle completo en
+   "En vuelo ahora" arriba. 🟠 **Queda un solo hilo suelto de esto:** el envío
+   de mails con remitente propio (`hola@oido.com.ar` vía Resend) tiene los
+   registros DNS cargados pero la verificación en Resend seguía en
+   "Pending/Checking DNS" al cierre de esta sesión — confirmar que pasó a
+   "Verified" antes de asumir que "recuperar contraseña" ya llega con el
+   remitente nuevo (mientras tanto sigue funcionando con el remitente de
+   prueba `onboarding@resend.dev`, que sólo entrega a la casilla dueña de la
+   cuenta de Resend).
 2. ✅ ~~PNG del ícono con el naranja viejo~~ — **resuelto (PR #325)**.
    `apple-icon`, `icon-192/512` e `icon-maskable-512` rasterizados de nuevo
    desde `logo-mark.svg`/`logo-maskable.svg` (ya ámbar desde el #316) ahora que
