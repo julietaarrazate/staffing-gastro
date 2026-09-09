@@ -5,8 +5,9 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-09 (**"va en camino" ahora dice quién viene —
-PR #330; antes, los CVEs del frontend en el #329**).*
+*Última actualización: 2026-09-09 (**el ítem 8, "Starlette/FastAPI con CVEs",
+resultó estar resuelto desde el PR #274: se había promovido a pendiente sin
+verificarlo — PR #331. Antes: "va en camino" con nombre en el #330**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -3350,16 +3351,26 @@ roadmap).
    `true`). Ojo con esto si se retoma: es un elemento de UI real, visible,
    que hoy es efectivamente decorativo — nadie lo pidió apagar, quedó a
    medio construir desde el ADR.
-8. 🟠 **Starlette/FastAPI con CVEs de seguridad conocidos, sin resolver a
-   propósito.** `docs/TECH_DEBT.md` §S3 lo tiene con detalle: Starlette
-   0.41.3 tiene 6 CVEs publicados (`PYSEC-2026-161/248/249/1942/1941/2281/
-   2280`) y el fix es subir a la serie 1.x, lo que **también** obliga a subir
-   FastAPI (0.115.6 → ~0.141, ~26 versiones menores) porque la versión
-   actual no es compatible con Starlette 1.x. Es un salto mayor que puede
-   cambiar comportamiento de middleware/DI/excepciones — necesita su propia
-   sesión con la suite completa corriendo en cada paso, no un bump al pasar.
-   No estaba en esta lista hasta ahora pese a ser el ítem de seguridad
-   🟠 Alta más viejo del catálogo.
+8. ✅ ~~Starlette/FastAPI con CVEs de seguridad conocidos~~ — **no había nada
+   que hacer: ya estaba resuelto** (verificado 2026-09-09). Este ítem se
+   escribió el 2026-09-08 diciendo que Starlette estaba en 0.41.3 con 6 CVEs
+   y que había que cruzar a la serie 1.x subiendo FastAPI "0.115.6 → ~0.141".
+   La realidad: `requirements.txt` **ya decía `fastapi==0.141.1`** (línea 7),
+   con Starlette 1.6.0 y pytest 9.1.1 instalados — el salto se había hecho en
+   el PR #274, el 2026-09-01, una semana antes. `pip-audit` corrido de verdad
+   da **cero vulnerabilidades** en las dependencias de la app (los únicos
+   hallazgos son `pip`/`setuptools`, toolchain del venv que no se despliega y
+   que el propio job de CI actualiza antes de auditar).
+   **Lo que hay que aprender de esto, más que el ítem en sí:** el job
+   `Backend dependency audit (pip-audit)` corre sin umbral ni ignores y venía
+   **verde**. La señal existía. El ítem entró acá porque la auditoría del
+   #327 lo copió desde `TECH_DEBT.md` §S3 —donde estaba viejo— y lo promovió
+   como "el ítem de seguridad Alta más viejo del catálogo" sin abrir
+   `requirements.txt` ni mirar el gate que ya corría. Es el mismo patrón
+   P7-15 al que apunta el encabezado de esta sección, pero en su forma más
+   cara: no un ítem resuelto que quedó en rojo, sino uno que se PROMOVIÓ a
+   trabajo pendiente. Antes de mover un ítem de seguridad de un documento a
+   otro, verificarlo contra la versión instalada y contra CI.
 9. ✅ ~~T4 — warning cosmético de pytest~~ — **resuelto (PR #327)**. El
    `pytestmark = pytest.mark.asyncio` de `test_chat.py` era a nivel de
    archivo, así que marcaba también los DOS tests que usan `TestClient`

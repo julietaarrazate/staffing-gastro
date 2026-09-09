@@ -612,7 +612,7 @@ fecha de esta auditoría (2026-07-02).
   tests nuevos (uno por WS, `test_chat.py`/`test_notification.py`) que
   confirman que el cliente se corta pasado el límite.
 
-### S3 — Dependencias con CVEs conocidas 🟠 Alta (parcial — lo bajo riesgo ✅ resuelto)
+### S3 — Dependencias con CVEs conocidas ✅ Resuelto (backend y frontend; queda un moderate dev-only)
 
 - **Descripción:** auditoría real con `pip-audit`/`npm audit` (2026-08-02,
   a raíz de una pregunta directa de Julieta sobre el estado de seguridad
@@ -646,21 +646,6 @@ fecha de esta auditoría (2026-07-02).
 >   importa directo en el código, sólo lo usa FastAPI internamente). `pytest -q`
 >   sigue en verde con las mismas ~255 pruebas.
 >
-> **Sigue pendiente, deliberadamente no resuelto acá — necesita su propio
-> ciclo de pruebas, no es un bump seguro:**
-> - **Starlette 0.41.3 → 1.x** (múltiples CVEs, `PYSEC-2026-161/248/249/
->   1942/1941/2281/2280`): es un salto de versión **mayor**, y FastAPI
->   0.115.6 no es compatible con Starlette 1.x — requiere subir **FastAPI**
->   también (0.115.6 → ~0.141, ~26 versiones menores de diferencia). Cambios
->   de esa magnitud pueden alterar comportamiento de middleware, inyección
->   de dependencias o manejo de excepciones — necesita su propia sesión con
->   la suite completa corriendo contra cada paso, no un bump a ciegas en el
->   mismo PR que el resto.
-> - **pytest 8.3.4 → 9.x** (`PYSEC-2026-1845`, fix sólo en 9.0.3+, ningún
->   parche dentro de la serie 8.x): dependencia de **test únicamente** (nunca
->   corre en producción), pero es un salto de versión mayor que podría
->   romper compatibilidad con `pytest-asyncio` u otros plugins — mismo
->   criterio que Starlette, se difiere a un PR dedicado.
 > **Actualización 2026-09-08 — nueva tanda del lado FRONTEND (PR #329).**
 > `npm audit` volvió a dar rojo (6 vulnerabilidades: 2 critical, 2 high,
 > 2 moderate) por advisories publicados en el día. Resueltos 4:
@@ -692,11 +677,35 @@ fecha de esta auditoría (2026-07-02).
 >   `Cannot read properties of null (reading 'edgesOut')`) que dispara el
 >   peer set de `@vitest/browser-playwright@5.0.0`. Un `override` de
 >   `@vitest/mocker` crashea igual. No entra al bundle de producción.
+>
+> **Actualización 2026-09-09 — los dos saltos diferidos YA ESTÁN HECHOS; este
+> bloque llevaba semanas describiendo un trabajo que no existía:**
+> - ✅ **Starlette 0.41.3 → 1.6.0 y FastAPI 0.115.6 → 0.141.1** — hechos, y
+>   `requirements.txt` lo explica en sus propios comentarios ("pineados al
+>   mínimo que resuelve las 6 CVEs de starlette"). Se hicieron en el PR #274
+>   (2026-09-01), pero nadie actualizó este documento.
+> - ✅ **pytest 8.3.4 → 9.1.1** (`PYSEC-2026-1845`) — hecho en el mismo lugar.
+>
+> Verificado corriendo `pip-audit` de verdad (2026-09-09): **cero
+> vulnerabilidades en las dependencias de la app**. Los únicos hallazgos son
+> `pip` y `setuptools`, que son el toolchain del propio venv y no se
+> despliegan — el job de CI ya los actualiza antes de auditar justamente por
+> eso (ver el comentario en `.github/workflows/security.yml`).
+>
+> **Cómo sobrevivió el error, que es lo que importa:** el job
+> `Backend dependency audit (pip-audit)` corre sin umbral ni ignores (falla
+> con cualquier CVE) y venía **verde** todo este tiempo. La señal estaba; lo
+> que faltó fue mirarla. Peor: la auditoría del PR #327 levantó este ítem
+> desde acá y lo promovió a `STATUS.md` → "Qué sigue" como el ítem de
+> seguridad Alta "más viejo del catálogo", copiándolo en vez de verificarlo
+> contra `requirements.txt` — un archivo que decía `fastapi==0.141.1` en la
+> línea 7. **Antes de mover un ítem de seguridad de un documento a otro,
+> confirmarlo contra la versión instalada y contra el gate de CI que ya
+> corre.**
 
-- **Solución sugerida:** un PR dedicado para Starlette/FastAPI (subir de a
-  pasos, correr la suite completa en cada uno, prestar atención especial a
-  middleware/excepciones/DI) y otro, más chico, para pytest 9.x (correr toda
-  la suite y confirmar que `pytest-asyncio` sigue andando).
+- **Solución sugerida:** nada pendiente del lado backend — `pip-audit` da
+  limpio. Lo único abierto es `vitest` (moderate, dev-only) del lado
+  frontend, bloqueado por un bug de npm, detallado arriba.
 
 ---
 
