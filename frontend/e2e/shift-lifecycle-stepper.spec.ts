@@ -148,6 +148,9 @@ test("el comercio ve 'va en camino' sólo mientras el trabajador comparte", asyn
       en_route_latitude: -34.5955,
       en_route_longitude: -58.4257,
       en_route_at: new Date().toISOString(),
+      // Sólo `/shifts/me` trae este dato (el backend no lo manda en las
+      // vistas del trabajador).
+      worker_name: "Juana Pérez",
     }),
     // Mismo turno confirmado pero sin compartir: no debe mostrar el bloque.
     shift({
@@ -162,7 +165,9 @@ test("el comercio ve 'va en camino' sólo mientras el trabajador comparte", asyn
   await page.goto("/shifts");
 
   const enViaje = page.locator('[data-shift-id="shift-en-viaje"]');
-  await expect(enViaje.getByText("Va en camino")).toBeVisible({ timeout: 15_000 });
+  // Con el nombre, no el genérico: con varios turnos confirmados a la vez,
+  // "Va en camino" repetido no le dice al comercio cuál de ellos es.
+  await expect(enViaje.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 15_000 });
   // La distancia es el dato que responde "¿llega?", no un adorno.
   await expect(enViaje.getByText(/\d/).filter({ hasText: /km|m ·/ }).first()).toBeVisible();
 

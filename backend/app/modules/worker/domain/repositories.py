@@ -65,6 +65,15 @@ class WorkerProfileRepository(ABC):
         admin)."""
 
     @abstractmethod
+    async def names_by_profile_ids(self, profile_ids: list[UUID]) -> dict[UUID, str]:
+        """Nombre del trabajador por id de PERFIL, en una sola consulta (mismo
+        criterio batch que `photo_urls_by_user_ids`: quien anota un listado no
+        puede permitirse una consulta por fila). Va por id de perfil y no de
+        usuario porque es lo que guardan los turnos (`Shift.worker_profile_id`).
+        El nombre vive en `User.full_name`, así que la implementación hace el
+        join; quien llama no necesita saberlo."""
+
+    @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
 

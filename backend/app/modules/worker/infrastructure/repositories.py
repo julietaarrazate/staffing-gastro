@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.repositories import WorkerEngagementStats, WorkerProfileRepository
 from app.modules.worker.domain.rules import compute_badges, compute_level
@@ -103,6 +104,17 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
             return {}
         stmt = select(WorkerProfileModel.user_id, WorkerProfileModel.photo_url).where(
             WorkerProfileModel.user_id.in_(user_ids)
+        )
+        result = await self._session.execute(stmt)
+        return {row[0]: row[1] for row in result.all()}
+
+    async def names_by_profile_ids(self, profile_ids: list[UUID]) -> dict[UUID, str]:
+        if not profile_ids:
+            return {}
+        stmt = (
+            select(WorkerProfileModel.id, UserModel.full_name)
+            .join(UserModel, UserModel.id == WorkerProfileModel.user_id)
+            .where(WorkerProfileModel.id.in_(profile_ids))
         )
         result = await self._session.execute(stmt)
         return {row[0]: row[1] for row in result.all()}

@@ -275,6 +275,7 @@ export default function ShiftCard({
                 workerLatitude={shift.en_route_latitude}
                 workerLongitude={shift.en_route_longitude}
                 reportedAt={shift.en_route_at}
+                workerName={shift.worker_name}
               />
             </div>
           )}
