@@ -3403,9 +3403,9 @@ roadmap).
     los mails). De paso: **Resend** — se agregaron los 4 registros DNS del
     dominio (`resend._domainkey` TXT/DKIM, `send` MX + TXT/SPF, `_dmarc`
     TXT/DMARC) en Vercel; la verificación quedó en curso del lado de Resend
-    (puede tardar horas en propagar) — **falta confirmar que el status pase a
-    "Verified"** antes de dar el email transaccional por completamente
-    operativo con remitente propio. Se verificó además que **no** hace falta
+    (puede tardar horas en propagar). **Confirmado el 2026-09-09 contra la API
+    de Resend: el dominio está `verified` y el remitente propio ya opera** —
+    ver el punto 1 de "Qué sigue". Se verificó además que **no** hace falta
     cargar `NEXT_PUBLIC_API_URL` en Vercel: el código
     (`frontend/next.config.ts`/`lib/api.ts`) ya cae solo al backend de Render
     cuando la variable no existe — es el comportamiento de producción
@@ -3447,27 +3447,32 @@ roadmap).
 1. ✅ ~~Conectar `oido.com.ar`~~ — **resuelto (2026-09-08, operativo)**. Los
    cuatro pasos (Vercel → Domains, orígenes autorizados de Google Cloud,
    `CORS_ORIGINS`, `FRONTEND_URL`) están hechos — ver el detalle completo en
-   "En vuelo ahora" arriba. 🟠 **Queda un solo hilo suelto de esto:** el envío
-   de mails con remitente propio (`hola@oido.com.ar` vía Resend) tiene los
-   registros DNS cargados pero la verificación en Resend seguía en
-   "Pending/Checking DNS" al cierre de esta sesión — confirmar que pasó a
-   "Verified" antes de asumir que "recuperar contraseña" ya llega con el
-   remitente nuevo (mientras tanto sigue funcionando con el remitente de
-   prueba `onboarding@resend.dev`, que sólo entrega a la casilla dueña de la
-   cuenta de Resend).
+   "En vuelo ahora" arriba. ✅ **También el envío con remitente
+   propio, que era el último hilo suelto** — verificado el 2026-09-09 contra
+   la API de Resend (Julieta conectó su MCP), no por inferencia:
 
-   **Prueba en vivo, 2026-09-09 (Julieta):** pidió un reset real y el mail
-   llegó a `julietaarrazate@gmail.com` con el link apuntando a
-   `https://oido.com.ar/restablecer?token=...`. Eso confirma **dos** cosas:
-   la cadena Render → Resend → casilla funciona, y **`FRONTEND_URL` ya está
-   en el dominio propio** (si no, el link habría salido al `.vercel.app`).
-   **No confirma la tercera, y es importante no leerlo de más:** esa casilla
-   es justamente la dueña de la cuenta de Resend, que es la única a la que el
-   remitente sandbox entrega. O sea que este mismo mail, hoy, puede estar
-   fallando en silencio para cualquier otro usuario. Lo que despeja la duda
-   es el estado del dominio en Resend, no otra prueba desde su propia
-   casilla — o mirar el remitente real del mail recibido: si dice
-   `@resend.dev`, todavía es el sandbox.
+   | | |
+   |---|---|
+   | Dominio `oido.com.ar` en Resend | **`verified`**, región `sa-east-1`, sending habilitado |
+   | Remitente del reset que pidió Julieta | `Oído <hola@oido.com.ar>` — **no** el sandbox |
+   | Estado de entrega | `delivered` |
+
+   O sea que `EMAIL_FROM` en Render ya apunta al dominio propio y los mails
+   llegan a cualquier casilla, no sólo a la dueña de la cuenta.
+
+   **Corrección de una advertencia que quedó escrita acá y era falsa:** esta
+   misma sección decía que el mail "puede estar fallando en silencio para
+   cualquier otro usuario", porque el remitente sandbox de Resend
+   (`onboarding@resend.dev`) sólo entrega a la casilla dueña de la cuenta —
+   que es justo la de Julieta. El razonamiento era correcto y la conclusión
+   no: el remitente nunca fue el sandbox. **La lección de método es la de
+   siempre acá: con acceso a la fuente, se mira; sin acceso, se dice que no
+   se sabe — no se infiere del síntoma.**
+
+   **Dato de contexto para la beta:** en toda la cuenta de Resend hay **un
+   solo mail enviado**, el de esa prueba. Ni la bienvenida ni la confirmación
+   de email se dispararon nunca en producción — están construidas y testeadas
+   (#333), pero todavía no salieron a una casilla real.
 2. ✅ ~~PNG del ícono con el naranja viejo~~ — **resuelto (PR #325)**.
    `apple-icon`, `icon-192/512` e `icon-maskable-512` rasterizados de nuevo
    desde `logo-mark.svg`/`logo-maskable.svg` (ya ámbar desde el #316) ahora que
