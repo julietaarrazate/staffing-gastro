@@ -85,7 +85,7 @@ export default function SupportPage() {
   const showEmptyState = !loading && !error && tickets.length === 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-4xl">
+    <div className="app-container px-4 pb-10 pt-6">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Soporte</h1>

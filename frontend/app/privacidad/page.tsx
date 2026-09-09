@@ -27,7 +27,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function PrivacidadPage() {
   return (
     <div className="min-h-[calc(100vh-57px)] bg-paper px-4 py-10">
-      <div className="mx-auto max-w-2xl">
+      <div className="app-container-reading">
         {/* Nav mínima: volver + marca */}
         <div className="flex items-center justify-between">
           <Link

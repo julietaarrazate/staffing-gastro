@@ -468,9 +468,12 @@ rehizo a ciegas.
      `https://www.oido.com.ar` a "Authorized JavaScript origins" del Client
      ID de Google Sign-In — si no, el botón de Google deja de andar en el
      dominio nuevo.
-  Opcional, no bloquea nada: dominio propio para el backend
-  (`api.oido.com.ar` en vez de `staffya-backend.onrender.com`) y dominio de
-  envío propio en Resend (`@oido.com.ar` en vez del sandbox `resend.dev`).
+  El **dominio de envío propio en Resend ya está**: verificado contra su API
+  el 2026-09-09 — `oido.com.ar` en estado `verified` (región `sa-east-1`) y
+  los mails salen de `Oído <hola@oido.com.ar>`, no del sandbox `resend.dev`.
+  Si leés en algún lado que falta confirmarlo, es una copia vieja.
+  Opcional y sin bloquear nada: dominio propio para el backend
+  (`api.oido.com.ar` en vez de `staffya-backend.onrender.com`).
 - **Expediente de registro de obra ante la DNDA** (protección de autoría y
   código fuente de Oído): documentación completa y lista en
   `REGISTRO_OBRA_SOFTWARE/` (PR #310, en draft a propósito — no mergear sin

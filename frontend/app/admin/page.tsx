@@ -191,7 +191,7 @@ export default function AdminPage() {
     // mismo patrón que /shifts — la lista de usuarios pasa a grilla en
     // md+ en vez de una sola columna angosta con la pantalla vacía al
     // costado; las tarjetas de stat ya escalaban solas (sm:grid-cols-4).
-    <div className="mx-auto max-w-3xl px-4 py-8 md:max-w-6xl">
+    <div className="app-container px-4 py-8">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <ShieldIcon size={22} className="text-primary-text" />

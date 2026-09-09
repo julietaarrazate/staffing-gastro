@@ -35,6 +35,14 @@
    * `--radius-input` se deja en 18px: la maqueta no muestra un campo de
    * formulario del que sacar el número (18px es lo que usan `.id-card` y
    * `.biz-header`), y bajarlo por simetría sería inventar. */
+  /* Anchos de contenedor (fase K). `--app-frame` es el ancho del header, y
+   * por lo tanto EL MARCO de la app: ninguna pantalla lo excede, porque
+   * contenido más ancho que el chrome que lo enmarca se lee como roto.
+   * Coincide con `max-w-5xl` de Tailwind, que ya era el valor de hecho en la
+   * mitad de las pantallas. Ver `.app-container` más abajo. */
+  --app-frame: 64rem; /* 1024px — el marco: header y contenido comparten ancho */
+  --app-reading: 42rem; /* 672px — lectura larga (legales), medida de línea */
+
   --radius-card: 1.25rem; /* 20px */
   --radius-btn: 0.9375rem; /* 15px */
   --radius-input: 1.125rem; /* 18px */
@@ -449,6 +457,38 @@ textarea,
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Escala de contenedores (auditoría visual, fase K).
+ *
+ * El problema que resuelve: no había ninguna regla, y cada pantalla eligió su
+ * ancho a mano. Medido en un render a 1440px, el contenido arrancaba en cuatro
+ * columnas distintas — `/feed` en 1024, `/shifts` y `/chats` en 1152 (más
+ * ancho que el propio header, así que el contenido se escapaba del marco),
+ * `/support` en 896, los legales en 672. Con el header fijo en 1024, la mitad
+ * de las pantallas no alineaba con el logo que tienen arriba.
+ *
+ * La regla, en una línea: **el header es el marco y mide `--app-frame`
+ * (1024px); ninguna pantalla lo excede.** Más angosto sí es legítimo cuando el
+ * contenido es de lectura larga, y para eso está `--app-reading`.
+ *
+ * Se resolvió por token y no cambiando `max-w-6xl` por `max-w-5xl` en cada
+ * archivo porque el problema no era el valor sino que no hubiera regla: con
+ * seis pantallas eligiendo a mano, la séptima vuelve a elegir mal.
+ * Documentado en docs/design/DESIGN_TOKENS.md.
+ */
+.app-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--app-frame);
+}
+/* Lectura larga (legales, textos corridos): una medida de línea cómoda pesa
+ * más que alinear con el marco. */
+.app-container-reading {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--app-reading);
 }
 
 /* Respeta el área segura (notch / home indicator) en PWA. */

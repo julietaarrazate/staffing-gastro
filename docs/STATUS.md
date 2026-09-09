@@ -203,6 +203,38 @@ navegación del rol equivocado por eso, y casi se reporta como bug de la app;
 protege `null`, lo que faltaba era la clave. Las dos veces el falso positivo se
 descartó mirando el error real, no suponiendo.
 
+**Mismo día, PR #336 — fase K (primera mitad): la escala de contenedores.**
+El #335 había dejado el hallazgo anotado sin tocar, a propósito. Acá se cierra,
+y **no parcheando pantalla por pantalla**: el problema no era el valor de un
+`max-w-*` sino que **no existía ninguna regla de ancho** — ni en el CSS ni en
+`DESIGN_TOKENS.md`. Con seis pantallas eligiendo a mano, la séptima vuelve a
+elegir mal.
+
+Medido a 1440px, el contenido arrancaba en **cuatro columnas distintas**, y en
+cuatro pantallas (`/shifts`, `/my-shifts`, `/admin`, `/chats`) era **más ancho
+que el propio header**: el contenido se escapaba del marco que lo enmarca.
+
+La regla que queda escrita: **el header es el marco y mide `--app-frame`
+(1024px); ninguna pantalla lo excede.** Más angosto sí es legítimo con motivo
+(`--app-reading` de 672px para los legales; el asistente es una columna de
+chat). Se aplica por las clases `.app-container` / `.app-container-reading`,
+no escribiendo el `max-w-*` a mano. Documentado en `DESIGN_TOKENS.md` §3.bis,
+con la regla 0 nueva en su §4.
+
+Todas las pantallas de app miden ahora 1024 y alinean con el logo del header
+— verificado midiendo, antes y después. Y hay un test E2E
+(`e2e/anchos-de-contenedor.spec.ts`) que compara cada pantalla contra el ancho
+del **header real**, no contra un 1024 escrito a mano: si el marco cambia, el
+test sigue diciendo la verdad. **Verificado a mano que falla de verdad**:
+reintroduciendo `max-w-6xl` en `/shifts`, cae.
+
+**Tres correcciones de método del harness de auditoría, otra vez** (van cinco
+en dos PRs, todas del mismo tipo — el falso positivo se descarta mirando, no
+suponiendo): la splash de marca tapa la pantalla y hay que saltearla
+(`skipSplash`, que ya existía); sin un catch-all de la API algunas pantallas
+caen en estado de error y no tienen contenedor; y medir apenas carga da falsos
+negativos porque algunas montan primero un esqueleto.
+
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
@@ -3371,9 +3403,9 @@ roadmap).
     los mails). De paso: **Resend** — se agregaron los 4 registros DNS del
     dominio (`resend._domainkey` TXT/DKIM, `send` MX + TXT/SPF, `_dmarc`
     TXT/DMARC) en Vercel; la verificación quedó en curso del lado de Resend
-    (puede tardar horas en propagar) — **falta confirmar que el status pase a
-    "Verified"** antes de dar el email transaccional por completamente
-    operativo con remitente propio. Se verificó además que **no** hace falta
+    (puede tardar horas en propagar). **Confirmado el 2026-09-09 contra la API
+    de Resend: el dominio está `verified` y el remitente propio ya opera** —
+    ver el punto 1 de "Qué sigue". Se verificó además que **no** hace falta
     cargar `NEXT_PUBLIC_API_URL` en Vercel: el código
     (`frontend/next.config.ts`/`lib/api.ts`) ya cae solo al backend de Render
     cuando la variable no existe — es el comportamiento de producción
@@ -3415,27 +3447,32 @@ roadmap).
 1. ✅ ~~Conectar `oido.com.ar`~~ — **resuelto (2026-09-08, operativo)**. Los
    cuatro pasos (Vercel → Domains, orígenes autorizados de Google Cloud,
    `CORS_ORIGINS`, `FRONTEND_URL`) están hechos — ver el detalle completo en
-   "En vuelo ahora" arriba. 🟠 **Queda un solo hilo suelto de esto:** el envío
-   de mails con remitente propio (`hola@oido.com.ar` vía Resend) tiene los
-   registros DNS cargados pero la verificación en Resend seguía en
-   "Pending/Checking DNS" al cierre de esta sesión — confirmar que pasó a
-   "Verified" antes de asumir que "recuperar contraseña" ya llega con el
-   remitente nuevo (mientras tanto sigue funcionando con el remitente de
-   prueba `onboarding@resend.dev`, que sólo entrega a la casilla dueña de la
-   cuenta de Resend).
+   "En vuelo ahora" arriba. ✅ **También el envío con remitente
+   propio, que era el último hilo suelto** — verificado el 2026-09-09 contra
+   la API de Resend (Julieta conectó su MCP), no por inferencia:
 
-   **Prueba en vivo, 2026-09-09 (Julieta):** pidió un reset real y el mail
-   llegó a `julietaarrazate@gmail.com` con el link apuntando a
-   `https://oido.com.ar/restablecer?token=...`. Eso confirma **dos** cosas:
-   la cadena Render → Resend → casilla funciona, y **`FRONTEND_URL` ya está
-   en el dominio propio** (si no, el link habría salido al `.vercel.app`).
-   **No confirma la tercera, y es importante no leerlo de más:** esa casilla
-   es justamente la dueña de la cuenta de Resend, que es la única a la que el
-   remitente sandbox entrega. O sea que este mismo mail, hoy, puede estar
-   fallando en silencio para cualquier otro usuario. Lo que despeja la duda
-   es el estado del dominio en Resend, no otra prueba desde su propia
-   casilla — o mirar el remitente real del mail recibido: si dice
-   `@resend.dev`, todavía es el sandbox.
+   | | |
+   |---|---|
+   | Dominio `oido.com.ar` en Resend | **`verified`**, región `sa-east-1`, sending habilitado |
+   | Remitente del reset que pidió Julieta | `Oído <hola@oido.com.ar>` — **no** el sandbox |
+   | Estado de entrega | `delivered` |
+
+   O sea que `EMAIL_FROM` en Render ya apunta al dominio propio y los mails
+   llegan a cualquier casilla, no sólo a la dueña de la cuenta.
+
+   **Corrección de una advertencia que quedó escrita acá y era falsa:** esta
+   misma sección decía que el mail "puede estar fallando en silencio para
+   cualquier otro usuario", porque el remitente sandbox de Resend
+   (`onboarding@resend.dev`) sólo entrega a la casilla dueña de la cuenta —
+   que es justo la de Julieta. El razonamiento era correcto y la conclusión
+   no: el remitente nunca fue el sandbox. **La lección de método es la de
+   siempre acá: con acceso a la fuente, se mira; sin acceso, se dice que no
+   se sabe — no se infiere del síntoma.**
+
+   **Dato de contexto para la beta:** en toda la cuenta de Resend hay **un
+   solo mail enviado**, el de esa prueba. Ni la bienvenida ni la confirmación
+   de email se dispararon nunca en producción — están construidas y testeadas
+   (#333), pero todavía no salieron a una casilla real.
 2. ✅ ~~PNG del ícono con el naranja viejo~~ — **resuelto (PR #325)**.
    `apple-icon`, `icon-192/512` e `icon-maskable-512` rasterizados de nuevo
    desde `logo-mark.svg`/`logo-maskable.svg` (ya ámbar desde el #316) ahora que
@@ -3495,15 +3532,15 @@ roadmap).
    | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
-   | K | Responsive | ⬜ sin reverificar tras el rebrand ni el cambio de radios (#317). **Entra con una tarea concreta ya detectada en #335**: los contenedores no comparten escala (`max-w-5xl` / `md:max-w-4xl` / `max-w-6xl`), así que el contenido arranca en una columna distinta según la pantalla — decidir UNA escala, no parchear caso por caso |
+   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. Queda pendiente el resto de K: reverificar breakpoints intermedios tras el rebrand y el cambio de radios (#317) |
    | L | Regresión vs. mockups | 🟡 parcial — #317 midió radios y comparó colores; no hubo pasada completa pantalla por pantalla contra `docs/design/mockups/` |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
-   **H e I quedaron cerradas en el PR #335** (ver "En vuelo ahora"). Si se
-   retoma, sigue **K → L → C**, en ese orden: K arranca con una tarea ya
-   identificada (unificar la escala de contenedores); L depende de que K esté
-   cerrada para no medir dos veces contra los mockups; C es la de menor riesgo
-   visible hoy.
+   **H e I quedaron cerradas en el #335, y la mitad de K en el #336** (ver
+   "En vuelo ahora"). Si se retoma, sigue **el resto de K → L → C**: de K
+   falta reverificar los breakpoints intermedios (tablet) tras el rebrand y el
+   cambio de radios; L depende de que K esté cerrada para no medir dos veces
+   contra los mockups; C es la de menor riesgo visible hoy.
 
    **Y el método, que es lo que más rindió:** auditar *renderizando* las
    pantallas (Playwright headless, 390px y 1440px, sesión mockeada por rol) y

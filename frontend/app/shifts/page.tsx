@@ -283,7 +283,7 @@ function MyShiftsPanel() {
     tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
+    <div className="app-container px-4 pb-10 pt-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Panel</h1>

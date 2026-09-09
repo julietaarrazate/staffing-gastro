@@ -254,7 +254,7 @@ export default function MatchesPage() {
     .filter((s): s is Shift => s !== undefined);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
+    <div className="app-container px-4 pb-10 pt-6">
       <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Matches</h1>
       <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados, postulaciones y guardados.</p>
 
