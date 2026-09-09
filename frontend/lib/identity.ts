@@ -41,6 +41,9 @@ export interface PendingClaim {
   user_id: string;
   claim_type: string;
   full_name: string | null;
+  /** Sólo en claims de negocio (ADR-0013): el nombre que el comercio cargó en
+   * la app, para comparar contra la razón social de la constancia. */
+  company_name: string | null;
   submitted_at: string | null;
   evidences: PendingEvidence[];
 }
@@ -59,12 +62,35 @@ export const EVIDENCE_LABELS: Record<string, string> = {
   dni_dorso: "DNI (dorso)",
   selfie: "Selfie",
   liveness: "Prueba de vida",
+  constancia_cuit: "Constancia de AFIP",
 };
 
 /** El claim que construye la F1: documento (DNI + selfie) revisado por un admin. */
 export const DOCUMENT_CLAIM_TYPE = "documento_verificado";
 
+/**
+ * El claim del COMERCIO (ADR-0013): constancia de inscripción de AFIP.
+ *
+ * Ojo con el nombre — no es `cuit_verificado`, que queda reservado para la
+ * validación automática contra AFIP. Acá una persona mira un PDF.
+ */
+export const BUSINESS_CLAIM_TYPE = "negocio_verificado";
+
 /** Devuelve el claim de documento del resumen, si existe. */
 export function documentClaim(summary: IdentitySummary): ClaimSummary | undefined {
   return summary.claims.find((c) => c.claim_type === DOCUMENT_CLAIM_TYPE);
+}
+
+/** Devuelve el claim de negocio del resumen, si existe. */
+export function businessClaim(summary: IdentitySummary): ClaimSummary | undefined {
+  return summary.claims.find((c) => c.claim_type === BUSINESS_CLAIM_TYPE);
+}
+
+/**
+ * Una evidencia que NO es una imagen (hoy: la constancia de AFIP, que suele
+ * ser PDF). Importa en la cola del admin: renderizar un PDF con `<img>` da una
+ * imagen rota, no un documento.
+ */
+export function isDocumentEvidence(evidenceType: string): boolean {
+  return evidenceType === "constancia_cuit";
 }

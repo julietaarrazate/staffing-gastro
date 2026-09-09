@@ -5,7 +5,7 @@ Cubren: la máquina de estados del claim, la purga de evidencia tras la decisió
 worker→admin (incluyendo no-disclosure: el estado propio no expone evidencias).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -372,3 +372,229 @@ async def test_non_admin_cannot_send_reminder(client, session_factory):
         f"/api/v1/identity/claims/document/{user_id}/remind", headers=worker
     )
     assert resp.status_code == 403
+
+
+# --- Verificación del COMERCIO (ADR-0013) ----------------------------------
+#
+# El sello "Comercio verificado" existía en la UI desde el ADR-0011 pero
+# `company_verified` no podía dar `true` nunca: nada creaba el claim. Estos
+# tests recorren el flujo real de punta a punta — hasta ahora el único test
+# que cubría el sello insertaba el claim a mano con el repositorio, porque no
+# había flujo que ejercitar.
+
+
+@pytest.mark.asyncio
+async def test_flujo_completo_de_verificacion_de_comercio(client, session_factory):
+    """Comercio manda constancia → admin la ve con el nombre del local →
+    aprueba → el comercio queda verificado."""
+    employer = await auth_headers(client, "employer", "biz-flow@test.com")
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=employer,
+        json={"name": "Bar La Esquina", "city": "Palermo"},
+    )
+    admin = await _make_admin(client, session_factory, "admin-biz@test.com")
+
+    submit = await client.post(
+        "/api/v1/identity/me/business",
+        headers=employer,
+        json={"constancia_url": "https://x/constancia.pdf"},
+    )
+    assert submit.status_code == 200, submit.text
+    body = submit.json()
+    # No-disclosure, igual que del lado del trabajador.
+    assert "evidences" not in body
+    assert body["claims"][0]["claim_type"] == "negocio_verificado"
+    assert body["claims"][0]["status"] == "pendiente"
+
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    item = next(
+        i for i in pending.json() if i["claim_type"] == "negocio_verificado"
+    )
+    # Lo que hace revisable la constancia: poder comparar la razón social del
+    # PDF contra el nombre cargado en la app. Sin esto el admin aprueba a ciegas.
+    assert item["company_name"] == "Bar La Esquina"
+    assert item["evidences"][0]["evidence_type"] == "constancia_cuit"
+    assert item["evidences"][0]["data_url"] == "https://x/constancia.pdf"
+
+    approve = await client.post(
+        f"/api/v1/identity/claims/{item['claim_id']}/approve", headers=admin
+    )
+    assert approve.status_code == 200
+    assert approve.json()["status"] == "verificada"
+
+
+@pytest.mark.asyncio
+async def test_aprobar_el_claim_enciende_el_sello_en_el_feed(client, session_factory):
+    """La razón de ser de todo esto: que `company_verified` deje de ser
+    siempre `false`. Recorrido real (sin insertar claims a mano) desde que el
+    comercio manda la constancia hasta que el trabajador ve el sello."""
+    employer = await auth_headers(client, "employer", "biz-feed@test.com")
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=employer,
+        json={"name": "Bar Verificado", "city": "Palermo"},
+    )
+    start = datetime.now(timezone.utc) + timedelta(days=3)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": start.replace(tzinfo=None).isoformat(),
+            "end_at": (start + timedelta(hours=6)).replace(tzinfo=None).isoformat(),
+            "pay_amount": "60000",
+            "tips": True,
+            "city": "Palermo",
+        },
+    )
+    assert created.status_code == 201, created.text
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+
+    worker = await auth_headers(client, "worker", "w-sees-badge@test.com")
+    await client.post(
+        "/api/v1/workers/me/profile", headers=worker, json={"skills": ["mozo"]}
+    )
+
+    def _badge(feed_json: list[dict]) -> bool:
+        return next(s["company_verified"] for s in feed_json if s["id"] == shift_id)
+
+    antes = await client.get("/api/v1/shifts/feed", headers=worker, params={"limit": 100})
+    assert _badge(antes.json()) is False
+
+    await client.post(
+        "/api/v1/identity/me/business",
+        headers=employer,
+        json={"constancia_url": "https://x/constancia.pdf"},
+    )
+    # Pendiente todavía NO es verificado: el sello no se enciende al mandarlo.
+    mitad = await client.get("/api/v1/shifts/feed", headers=worker, params={"limit": 100})
+    assert _badge(mitad.json()) is False
+
+    admin = await _make_admin(client, session_factory, "admin-feed@test.com")
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    claim_id = next(
+        i["claim_id"] for i in pending.json() if i["claim_type"] == "negocio_verificado"
+    )
+    await client.post(f"/api/v1/identity/claims/{claim_id}/approve", headers=admin)
+
+    despues = await client.get(
+        "/api/v1/shifts/feed", headers=worker, params={"limit": 100}
+    )
+    assert _badge(despues.json()) is True
+
+
+@pytest.mark.asyncio
+async def test_la_constancia_se_purga_al_decidir(client, session_factory):
+    """Retención (ADR-0010 §4, ADR-0013 §3): del papel queda la constancia de
+    la decisión, no el papel. Un CUIT en un monotributista está atado a su
+    DNI — guardarlo después de decidir sería dato personal sin uso."""
+    employer = await auth_headers(client, "employer", "biz-purge@test.com")
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=employer,
+        json={"name": "Bar Purga", "city": "Palermo"},
+    )
+    admin = await _make_admin(client, session_factory, "admin-purge@test.com")
+    await client.post(
+        "/api/v1/identity/me/business",
+        headers=employer,
+        json={"constancia_url": "https://x/constancia.pdf"},
+    )
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    item = next(i for i in pending.json() if i["claim_type"] == "negocio_verificado")
+    await client.post(
+        f"/api/v1/identity/claims/{item['claim_id']}/reject",
+        headers=admin,
+        json={"reason": "Constancia vencida"},
+    )
+
+    # Rechazado: ya no está en la cola, y el comercio puede reenviar.
+    despues = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    assert all(i["claim_type"] != "negocio_verificado" for i in despues.json())
+
+    estado = await client.get("/api/v1/identity/me", headers=employer)
+    claim = next(
+        c for c in estado.json()["claims"] if c["claim_type"] == "negocio_verificado"
+    )
+    assert claim["status"] == "rechazada"
+    assert claim["rejection_reason"] == "Constancia vencida"
+
+    reenvio = await client.post(
+        "/api/v1/identity/me/business",
+        headers=employer,
+        json={"constancia_url": "https://x/constancia-2.pdf"},
+    )
+    assert reenvio.json()["claims"][0]["status"] == "pendiente"
+
+
+@pytest.mark.asyncio
+async def test_un_trabajador_no_puede_usar_el_flujo_de_negocio(client: AsyncClient):
+    """El claim de negocio afirma que hay un comercio registrado atrás: sólo
+    tiene sentido para quien tiene uno. Vale para el envío y para la firma de
+    subida del documento."""
+    worker = await auth_headers(client, "worker", "w-not-biz@test.com")
+
+    envio = await client.post(
+        "/api/v1/identity/me/business",
+        headers=worker,
+        json={"constancia_url": "https://x/constancia.pdf"},
+    )
+    assert envio.status_code == 403
+
+    firma = await client.post("/api/v1/uploads/sign-business-document", headers=worker)
+    assert firma.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_el_comercio_no_reenvia_una_verificacion_ya_aprobada(
+    client, session_factory
+):
+    employer = await auth_headers(client, "employer", "biz-dup@test.com")
+    await client.post(
+        "/api/v1/companies/me/profile",
+        headers=employer,
+        json={"name": "Bar Dup", "city": "Palermo"},
+    )
+    admin = await _make_admin(client, session_factory, "admin-dup@test.com")
+    await client.post(
+        "/api/v1/identity/me/business",
+        headers=employer,
+        json={"constancia_url": "https://x/constancia.pdf"},
+    )
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    item = next(i for i in pending.json() if i["claim_type"] == "negocio_verificado")
+    await client.post(
+        f"/api/v1/identity/claims/{item['claim_id']}/approve", headers=admin
+    )
+
+    otra_vez = await client.post(
+        "/api/v1/identity/me/business",
+        headers=employer,
+        json={"constancia_url": "https://x/otra.pdf"},
+    )
+    assert otra_vez.status_code == 409
+
+
+def test_el_claim_de_negocio_no_da_nivel_de_garantia_de_persona():
+    """Un comercio verificado NO es una persona con identidad verificada: son
+    preguntas distintas. Si el claim de negocio contara para el nivel de
+    garantía personal, el dueño de un bar aprobado aparecería como persona
+    verificada sin haber mostrado nunca su DNI."""
+    claim = Claim(user_id=uuid4(), claim_type=ClaimType.NEGOCIO_VERIFICADO)
+    claim.submit(
+        [
+            Evidence(
+                evidence_type=EvidenceType.CONSTANCIA_CUIT,
+                data_url="https://x/constancia.pdf",
+            )
+        ],
+        VerificationMethod.ADMIN_MANUAL,
+        _now(),
+    )
+    claim.approve(uuid4(), _now())
+
+    assert has_verified_identity([claim]) is False
+    assert compute_assurance_level([claim]) == AssuranceLevel.L0

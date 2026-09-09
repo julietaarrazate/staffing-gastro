@@ -16,25 +16,46 @@ from app.core.config import settings
 
 ALLOWED_CV_FORMATS = "pdf,doc,docx,jpg,jpeg,png"
 
+# Constancia de inscripción de AFIP (ADR-0013). Más angosto que el CV a
+# propósito: una constancia de AFIP nunca es un documento de Word, y en una
+# subida que respalda una decisión de confianza el default correcto es
+# aceptar lo mínimo que sirve.
+ALLOWED_BUSINESS_DOC_FORMATS = "pdf,jpg,jpeg,png"
+
 
 class CloudinaryNotConfiguredError(Exception):
     """`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` no están seteadas."""
 
 
-def sign_cv_upload() -> dict[str, str]:
-    """Parámetros que el cliente necesita para subir un CV directo a
-    Cloudinary con una subida firmada (sin `upload_preset`)."""
+def sign_upload(allowed_formats: str) -> dict[str, str]:
+    """Parámetros que el cliente necesita para subir un archivo directo a
+    Cloudinary con una subida firmada (sin `upload_preset`).
+
+    `allowed_formats` viaja **dentro de la firma**: el cliente no lo puede
+    ampliar sin invalidarla. Por eso cada caso de uso pasa su lista y no hay
+    una sola global — el que sube una constancia no puede subir un `.docx`
+    aunque el endpoint del CV sí lo permita."""
     if not settings.cloudinary_api_key or not settings.cloudinary_api_secret:
         raise CloudinaryNotConfiguredError()
 
     timestamp = str(int(time.time()))
-    params_to_sign = {"allowed_formats": ALLOWED_CV_FORMATS, "timestamp": timestamp}
+    params_to_sign = {"allowed_formats": allowed_formats, "timestamp": timestamp}
     return {
         "timestamp": timestamp,
         "signature": _sign(params_to_sign, settings.cloudinary_api_secret),
         "api_key": settings.cloudinary_api_key,
-        "allowed_formats": ALLOWED_CV_FORMATS,
+        "allowed_formats": allowed_formats,
     }
+
+
+def sign_cv_upload() -> dict[str, str]:
+    """Firma para el CV del trabajador."""
+    return sign_upload(ALLOWED_CV_FORMATS)
+
+
+def sign_business_document_upload() -> dict[str, str]:
+    """Firma para la constancia de AFIP del comercio (ADR-0013)."""
+    return sign_upload(ALLOWED_BUSINESS_DOC_FORMATS)
 
 
 def _sign(params: dict[str, str], api_secret: str) -> str:

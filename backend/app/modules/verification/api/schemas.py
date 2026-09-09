@@ -28,6 +28,17 @@ class SubmitIdentityDocumentInput(BaseModel):
     dni_dorso_url: str | None = Field(default=None, max_length=512)
 
 
+class SubmitBusinessDocumentInput(BaseModel):
+    """El comercio envía su constancia de inscripción de AFIP (ADR-0013).
+
+    Un solo campo, y a propósito: NO se pide el número de CUIT. No hay
+    ninguna funcionalidad que lo necesite, y en un monotributista está atado
+    a su DNI — o sea que sería dato personal guardado sin uso, sólo porque
+    pasó por delante (ADR-0013 §3)."""
+
+    constancia_url: str = Field(min_length=1, max_length=512)
+
+
 class RejectClaimInput(BaseModel):
     reason: str | None = Field(default=None, max_length=500)
 
@@ -65,5 +76,10 @@ class PendingClaimResponse(BaseModel):
     user_id: UUID
     claim_type: ClaimType
     full_name: str | None = None
+    # Sólo para claims de negocio (ADR-0013): el nombre que el comercio cargó
+    # en la app, para que el admin pueda compararlo contra la razón social de
+    # la constancia. Sin esto no puede hacer la única comprobación que importa
+    # — que el papel corresponda al comercio que lo mandó.
+    company_name: str | None = None
     submitted_at: datetime | None = None
     evidences: list[PendingEvidenceResponse]

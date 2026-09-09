@@ -20,6 +20,8 @@ from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_identity_verification_email_html,
 )
+from app.modules.company.api.dependencies import get_company_repository
+from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.api.schemas import (
     ClaimSummaryResponse,
@@ -28,6 +30,7 @@ from app.modules.verification.api.schemas import (
     PendingEvidenceResponse,
     ReminderSentResponse,
     RejectClaimInput,
+    SubmitBusinessDocumentInput,
     SubmitIdentityDocumentInput,
 )
 from app.modules.verification.application.dtos import IdentitySummary
@@ -38,6 +41,7 @@ from app.modules.verification.domain.exceptions import (
     ClaimNotPendingError,
     EvidenceRequiredError,
 )
+from app.modules.verification.domain.value_objects import ClaimType
 from app.modules.worker.api.dependencies import get_user_repository
 
 router = APIRouter(prefix="/identity", tags=["identity-verification"])
@@ -47,6 +51,10 @@ UsersDep = Annotated[UserRepository, Depends(get_user_repository)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
+EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
+# Cruce a otro módulo por su PUERTO inyectado, nunca importando sus entrañas
+# (PRINCIPLES.md) — mismo patrón que `WorkersDep` en las rutas de turno.
+CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 
 
 def _to_summary_response(summary: IdentitySummary) -> IdentitySummaryResponse:
@@ -108,15 +116,58 @@ async def submit_my_document(
     return _to_summary_response(summary)
 
 
+@router.post(
+    "/me/business",
+    response_model=IdentitySummaryResponse,
+    summary="Enviar la constancia de AFIP de mi comercio a verificación",
+)
+async def submit_my_business_document(
+    payload: SubmitBusinessDocumentInput,
+    current_user: EmployerDep,
+    service: ServiceDep,
+):
+    """Contraparte de `/me/document` para el comercio (ADR-0013).
+
+    Acotado al rol `employer`: el claim `negocio_verificado` afirma que hay un
+    negocio registrado atrás, así que sólo tiene sentido para quien tiene uno.
+    Un trabajador que llame acá recibe 403."""
+    try:
+        await service.submit_business_document(current_user.id, payload.constancia_url)
+    except ClaimAlreadyVerifiedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tu comercio ya está verificado",
+        ) from exc
+    except EvidenceRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Necesitás subir la constancia de inscripción",
+        ) from exc
+    summary = await service.get_identity_summary(current_user.id)
+    return _to_summary_response(summary)
+
+
 @router.get(
     "/claims/pending",
     response_model=list[PendingClaimResponse],
     summary="Cola de claims de identidad pendientes de revisión (admin)",
 )
 async def list_pending_claims(
-    _current_user: AdminDep, service: ServiceDep, users: UsersDep
+    _current_user: AdminDep,
+    service: ServiceDep,
+    users: UsersDep,
+    companies: CompaniesDep,
 ):
     items = await service.list_pending()
+    # Nombre del comercio SÓLO para los claims de negocio, y en una sola
+    # consulta para todos ellos (ADR-0013) — no una por fila, mismo criterio
+    # que `list_by_ids`/`verified_business_user_ids` en el feed.
+    business_user_ids = [
+        item.user_id
+        for item in items
+        if item.claim_type == ClaimType.NEGOCIO_VERIFICADO
+    ]
+    company_names = await companies.names_by_user_ids(business_user_ids)
     responses: list[PendingClaimResponse] = []
     for item in items:
         user = await users.get_by_id(item.user_id)
@@ -126,6 +177,7 @@ async def list_pending_claims(
                 user_id=item.user_id,
                 claim_type=item.claim_type,
                 full_name=user.full_name if user else None,
+                company_name=company_names.get(item.user_id),
                 submitted_at=item.submitted_at,
                 evidences=[
                     PendingEvidenceResponse(
