@@ -46,6 +46,8 @@ from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
+from app.modules.worker.api.dependencies import get_worker_repository
+from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 router = APIRouter(prefix="/shifts", tags=["shifts"])
@@ -56,6 +58,7 @@ WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 AuthUserDep = Annotated[User, Depends(get_current_user)]
 CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+WorkersDep = Annotated[WorkerProfileRepository, Depends(get_worker_repository)]
 # Paginación (R2.1, docs/reference/API.md#paginación): límite generoso por defecto para
 # no romper pantallas existentes, tope duro de 100 para no exponer tablas
 # completas cuando la plataforma crezca.
@@ -234,10 +237,26 @@ async def feed(
 async def my_shifts(
     company_id: CompanyIdDep,
     service: ServiceDep,
+    workers: WorkersDep,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
-    return await service.list_company_shifts(company_id, limit=limit, offset=offset)
+    """Anota el nombre del trabajador asignado, que el comercio necesita para
+    leer su propio panel ("Juan va en camino", no "Va en camino"). Va acá y no
+    en `_with_company_info` a propósito: esta ruta está acotada al
+    `company_id` del que pregunta, mientras que el feed y `/shifts/mine` los
+    leen trabajadores — ahí el nombre de quien tomó cada turno no corresponde.
+    Un solo `names_by_profile_ids` para toda la página, no uno por turno."""
+    shifts = await service.list_company_shifts(company_id, limit=limit, offset=offset)
+    assigned_ids = list({s.worker_profile_id for s in shifts if s.worker_profile_id})
+    names = await workers.names_by_profile_ids(assigned_ids)
+    responses = []
+    for shift in shifts:
+        response = ShiftResponse.model_validate(shift)
+        if shift.worker_profile_id:
+            response.worker_name = names.get(shift.worker_profile_id)
+        responses.append(response)
+    return responses
 
 
 @router.get(

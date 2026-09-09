@@ -98,6 +98,12 @@ class ShiftResponse(BaseModel):
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
+    # Nombre del trabajador asignado. Se completa SÓLO en `/shifts/me` (los
+    # turnos del propio comercio): es un dato de una persona, y el feed y
+    # `/shifts/mine` los leen otros trabajadores, que no tienen por qué ver
+    # quién tomó cada turno. Hoy lo usa "va en camino" para decir "Juan va en
+    # camino" en vez del genérico.
+    worker_name: str | None = None
     # ADR-0011: claim `negocio_verificado` del dueño del comercio
     # (`CompanyProfile.user_id`) — no hay flujo de envío/revisión de
     # evidencias de negocio todavía, así que hoy siempre da `False`; el

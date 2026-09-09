@@ -20,8 +20,10 @@ async def _employer_with_company(client: AsyncClient, email: str) -> dict:
     return headers
 
 
-async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, str]:
-    headers = await auth_headers(client, "worker", email)
+async def _worker_with_profile(
+    client: AsyncClient, email: str, full_name: str = "Test User"
+) -> tuple[dict, str]:
+    headers = await auth_headers(client, "worker", email, full_name)
     profile = await client.post(
         "/api/v1/workers/me/profile",
         headers=headers,
@@ -45,7 +47,11 @@ def _shift_payload(**overrides) -> dict:
 
 
 async def _confirmed_shift(
-    client: AsyncClient, emp_email: str, worker_email: str, **shift_overrides
+    client: AsyncClient,
+    emp_email: str,
+    worker_email: str,
+    worker_name: str = "Test User",
+    **shift_overrides,
 ):
     employer_headers = await _employer_with_company(client, emp_email)
     created = await client.post(
@@ -54,7 +60,9 @@ async def _confirmed_shift(
     shift_id = created.json()["id"]
     await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
 
-    worker_headers, worker_profile_id = await _worker_with_profile(client, worker_email)
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, worker_email, worker_name
+    )
     await client.post(
         f"/api/v1/shifts/{shift_id}/assign",
         headers=employer_headers,
@@ -555,3 +563,61 @@ async def test_another_worker_cannot_report_location(client: AsyncClient):
         json={"latitude": -34.60, "longitude": -58.40},
     )
     assert response.status_code == 404
+
+
+async def test_employer_panel_names_the_worker_on_the_way(client: AsyncClient):
+    """El comercio ve QUIÉN viene, no un "va en camino" anónimo: con un solo
+    turno da igual, pero con tres confirmados la misma tarjeta genérica
+    repetida no dice nada. El nombre llega por `/shifts/me`, que es la lista
+    que arma el panel."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp7@staffya.com",
+        "enroute_w7@staffya.com",
+        worker_name="Juana Pérez",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=worker_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+
+    mine = await client.get("/api/v1/shifts/me", headers=employer_headers)
+    assert mine.status_code == 200
+    shift = next(s for s in mine.json() if s["id"] == shift_id)
+    assert shift["worker_name"] == "Juana Pérez"
+
+
+async def test_worker_name_is_not_exposed_to_other_workers(client: AsyncClient):
+    """La otra mitad, y la que importa: el nombre es un dato de una persona.
+    Sale SÓLO en la lista del comercio dueño del turno — el feed y
+    `/shifts/mine` los lee cualquier trabajador, y quién tomó cada turno no
+    es asunto suyo."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, _employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp8@staffya.com",
+        "enroute_w8@staffya.com",
+        worker_name="Secreta Apellido",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+
+    # Ni siquiera al propio trabajador en su lista de turnos asignados.
+    mine = await client.get("/api/v1/shifts/mine", headers=worker_headers)
+    assert mine.status_code == 200
+    assigned = next(s for s in mine.json() if s["id"] == shift_id)
+    assert assigned["worker_name"] is None
+
+    # Ni en el detalle del turno, que también leen trabajadores.
+    detail = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker_headers)
+    assert detail.status_code == 200
+    assert detail.json()["worker_name"] is None
+
+    # Y el feed no filtra nombres de nadie.
+    feed = await client.get("/api/v1/shifts/feed", headers=worker_headers)
+    assert feed.status_code == 200
+    assert all(s["worker_name"] is None for s in feed.json())

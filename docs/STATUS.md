@@ -5,10 +5,8 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-09 (**CVEs del frontend: 5 de 6 cerrados,
-incluidos un RCE de Next que el #328 había dado por no aplicable y el XSS de
-maplibre, que resultó ser un bug NUESTRO de una línea, no un bloqueo
-upstream — PR #329**).*
+*Última actualización: 2026-09-09 (**"va en camino" ahora dice quién viene —
+PR #330; antes, los CVEs del frontend en el #329**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -53,6 +51,16 @@ perfecto — el wrapper no era el problema. La causa era nuestra: montar un
 nunca se calcula y el mapa queda vacío **sin un solo error en consola**. El
 fix es una línea en `MapView` (los hijos se montan después del `load`), con
 test de regresión. Detalle completo en "Qué sigue" abajo, punto 10.
+
+**Mismo día, PR #330 — "va en camino" ahora dice QUIÉN viene.** El comercio
+veía un cartel genérico "Va en camino"; con dos o tres turnos confirmados a la
+vez, la misma tarjeta repetida no le decía cuál era cuál. El prop ya existía en
+`EnRouteMap` desde el #321 esperando que el turno expusiera el nombre. Lo
+interesante del cambio no es el join sino **dónde** se expone: `worker_name`
+sale únicamente en `/shifts/me` (la lista del propio comercio), no en el feed
+ni en `/shifts/mine`, que los lee cualquier trabajador — el nombre de quien
+tomó un turno no es asunto de los demás. Con un test por cada mitad. Detalle en
+"Qué sigue" abajo, punto 6.
 
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
@@ -3319,15 +3327,20 @@ roadmap).
    H y las pantallas sueltas son gaps de cobertura lisos y llanos; K y L
    dependen de que G/pantallas ya estén cerrados para no auditar dos veces;
    C es la de menor riesgo visible hoy.
-6. 🟡 **"Va en camino" sale sin el nombre del trabajador.** El comercio ve
-   el cartel genérico "Va en camino" en vez de "Juan va en camino" —
-   `EnRouteMap.tsx` acepta el prop `workerName`, pero `ShiftCard.tsx` (su
-   único llamador) nunca se lo pasa, porque el turno hoy sólo trae
-   `worker_profile_id`, no el nombre. Comentario propio del código, no un
-   olvido nuevo: *"queda el prop para cuando el turno lo exponga"* — pero no
-   estaba en ningún lado fuera del código, así que se habría perdido. Chico:
-   el backend ya tiene el `worker_profile_id`; falta que el endpoint del
-   turno traiga también el nombre (un join, no una decisión de diseño).
+6. ✅ ~~"Va en camino" sale sin el nombre del trabajador~~ — **resuelto
+   (PR #330)**. Ahora dice "Juana Pérez va en camino" en vez del genérico.
+   `ShiftResponse` gana `worker_name`, que se completa **sólo en
+   `/shifts/me`** — la lista del propio comercio, acotada a su `company_id`.
+   Ésa fue la decisión de fondo, y no es un detalle de implementación: el
+   nombre es un dato de una persona, y `ShiftResponse` también la devuelven
+   el feed y `/shifts/mine`, que lee cualquier trabajador. Ponerlo en
+   `_with_company_info` (lo obvio) habría filtrado a todos los trabajadores
+   quién tomó cada turno. Hay un test por cada mitad: uno fija que el
+   comercio lo ve, otro que el feed, `/shifts/mine` y el detalle del turno
+   **no** lo traen.
+   El nombre sale de un `names_by_profile_ids` nuevo en el puerto
+   `WorkerProfileRepository` (join a `User.full_name`), batch por página como
+   el `list_by_ids` de comercios — no una consulta por turno.
 7. 🟡 **`company_verified` da `false` para TODOS los comercios, siempre —
    nunca puede dar `true`.** No es un bug de datos: es un sello que
    `ShiftCard.tsx` ya renderiza condicionalmente, pero el flujo para que un
