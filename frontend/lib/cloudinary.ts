@@ -77,6 +77,29 @@ export async function uploadImage(file: File): Promise<string> {
  * un error claro (503) en vez de fallar en silencio.
  */
 export async function uploadCv(file: File, token: string): Promise<string> {
+  return uploadSigned(file, token, "/uploads/sign-cv");
+}
+
+/**
+ * Sube la constancia de inscripción de AFIP del comercio (ADR-0013). Misma
+ * subida firmada que el CV y por el mismo motivo —la constancia es un PDF y
+ * Cloudinary no entrega PDF subido sin firma— pero contra su propio endpoint:
+ * la lista de formatos viaja DENTRO de la firma, y la de la constancia es más
+ * angosta (sin `doc`/`docx`). Reusar la firma del CV le daría al comercio
+ * permiso para subir formatos que este flujo no necesita.
+ */
+export async function uploadBusinessDocument(
+  file: File,
+  token: string
+): Promise<string> {
+  return uploadSigned(file, token, "/uploads/sign-business-document");
+}
+
+async function uploadSigned(
+  file: File,
+  token: string,
+  signEndpoint: string
+): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   if (!cloudName) {
     throw new Error("La subida de archivos no está configurada todavía.");
@@ -87,7 +110,7 @@ export async function uploadCv(file: File, token: string): Promise<string> {
     signature: string;
     api_key: string;
     allowed_formats: string;
-  }>("/uploads/sign-cv", undefined, token);
+  }>(signEndpoint, undefined, token);
 
   const formData = new FormData();
   formData.append("file", file);

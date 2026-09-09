@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
+import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
 import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
@@ -163,6 +164,20 @@ export default function ProfilePage() {
                 >
                   Trabajadores favoritos
                 </Row>
+              </div>
+            </div>
+          )}
+
+          {user.role === "employer" && (
+            <div className="mt-7">
+              <SectionLabel>Identidad</SectionLabel>
+              {/* Mismo tratamiento celeste que la tarjeta del trabajador, y
+                  por el mismo motivo: la verificación es una pieza de
+                  confianza, no una tarjeta de contenido más. Que las dos se
+                  vean igual es la idea — el comercio y el trabajador hacen
+                  el mismo gesto, uno hacia el otro (ADR-0013). */}
+              <div className="mt-2 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
+                <BusinessVerificationCard />
               </div>
             </div>
           )}

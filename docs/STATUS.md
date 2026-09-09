@@ -108,6 +108,47 @@ TTL es un parámetro de la plantilla que sale de la constante, con un test que
 avisa si el TTL deja de ser de horas enteras (con 30 minutos, el mail diría
 "vence en 0 horas" sin que nada más fallara).
 
+**Mismo día, PR #334 — el comercio ahora también se verifica (ADR-0013).**
+Cierra el punto 7: `company_verified` daba `false` para todos los comercios,
+siempre, y no era un bug de datos — **nada creaba nunca el claim**. Todo el
+camino de lectura estaba construido desde el ADR-0011 (el sello en
+`ShiftCard`, la consulta batcheada, hasta un test); faltaba el principio.
+
+Lo que lo volvía prioritario no es que el sello estuviera apagado, sino **de
+qué lado caía la asimetría**: el trabajador entrega DNI y selfie, y el
+comercio no entregaba nada. El que viaja a la dirección de un desconocido,
+trabaja un turno y después tiene que cobrar es el trabajador — la parte con
+más para perder y la que menos información tenía. `TRUST_SYSTEM.md` §11.3 ya
+había dejado el modelo Claim/Evidence bidireccional a propósito; sólo faltaba
+usarlo.
+
+**La prueba es la constancia de inscripción de AFIP** (decisión de Julieta).
+Se descartó la habilitación municipal, que probaría más: muchos locales chicos
+la tienen vencida o en trámite, y un requisito que la mayoría no puede cumplir
+deja el sello apagado igual, con un paso más de trabajo.
+
+Tres decisiones del ADR que no son de implementación:
+
+- **El claim es `negocio_verificado`, no `cuit_verificado`.** El segundo queda
+  reservado para la validación automática contra AFIP. Acá una persona mira un
+  PDF (`ADMIN_MANUAL`); usar el otro nombre dejaría al sistema afirmando que se
+  validó contra la fuente cuando no pasó.
+- **No se guarda el número de CUIT.** La constancia se purga al decidir, igual
+  que el DNI. Ninguna funcionalidad lo necesita, y en un monotributista está
+  atado a su DNI — sería dato personal guardado sin uso.
+- **Un comercio verificado no es una persona verificada.** Hay un test que fija
+  que el claim de negocio no suba el nivel de garantía personal: si contara, el
+  dueño de un bar aprobado aparecería como persona verificada sin haber
+  mostrado nunca su DNI.
+
+**Un bug real encontrado al construirlo, no cosmético:** la cola de revisión
+del admin renderizaba *toda* evidencia con `<img>`, porque asumía fotos de
+DNI. Una constancia en PDF habría salido como imagen rota. Ahora un documento
+se muestra como documento. En la misma pasada, la cola muestra el **nombre del
+comercio** (batcheado, `names_by_user_ids`): sin eso el admin no puede hacer la
+única comprobación que importa — que la razón social del papel se corresponda
+con el comercio que lo mandó.
+
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
@@ -3418,15 +3459,20 @@ roadmap).
    El nombre sale de un `names_by_profile_ids` nuevo en el puerto
    `WorkerProfileRepository` (join a `User.full_name`), batch por página como
    el `list_by_ids` de comercios — no una consulta por turno.
-7. 🟡 **`company_verified` da `false` para TODOS los comercios, siempre —
-   nunca puede dar `true`.** No es un bug de datos: es un sello que
-   `ShiftCard.tsx` ya renderiza condicionalmente, pero el flujo para que un
-   comercio *envíe* evidencia de identidad de negocio y alguien la revise
-   **no existe** (ADR-0011 lo declaró, `verification/domain/value_objects.py`
-   tiene el tipo `NEGOCIO_VERIFICADO` listo, pero nada lo escribe nunca en
-   `true`). Ojo con esto si se retoma: es un elemento de UI real, visible,
-   que hoy es efectivamente decorativo — nadie lo pidió apagar, quedó a
-   medio construir desde el ADR.
+7. ✅ ~~`company_verified` da `false` para TODOS los comercios, siempre~~ —
+   **resuelto (PR #334, ADR-0013)**. El comercio sube su constancia de
+   inscripción de AFIP desde su perfil, un admin la revisa en la misma cola
+   que los DNI, y al aprobarla el sello se enciende en el feed del
+   trabajador. El diagnóstico de abajo era correcto y se deja como registro
+   de por qué se priorizó, en pasado:
+
+   > No era un bug de datos: era un sello que `ShiftCard.tsx` ya renderizaba
+   > condicionalmente, pero el flujo para que un comercio *enviara* evidencia
+   > de identidad de negocio y alguien la revisara **no existía**. El ADR-0011
+   > lo declaró y `verification/domain/value_objects.py` tenía el tipo
+   > `NEGOCIO_VERIFICADO` listo, pero nada lo escribía nunca en `true`. Era un
+   > elemento de UI real, visible, efectivamente decorativo — nadie lo pidió
+   > apagar, quedó a medio construir desde el ADR.
 8. ✅ ~~Starlette/FastAPI con CVEs de seguridad conocidos~~ — **no había nada
    que hacer: ya estaba resuelto** (verificado 2026-09-09). Este ítem se
    escribió el 2026-09-08 diciendo que Starlette estaba en 0.41.3 con 6 CVEs

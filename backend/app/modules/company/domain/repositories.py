@@ -59,6 +59,16 @@ class CompanyProfileRepository(ABC):
         fila (panel de admin)."""
 
     @abstractmethod
+    async def names_by_user_ids(self, user_ids: list[UUID]) -> dict[UUID, str]:
+        """Nombre del comercio por id de usuario, en una sola consulta (mismo
+        patrón que `photo_urls_by_user_ids`).
+
+        Lo usa la cola de revisión del admin (ADR-0013): para decidir sobre
+        una constancia de AFIP hay que poder comparar la razón social del PDF
+        contra el nombre que el comercio cargó en la app. Sin eso el admin no
+        puede hacer la única comprobación que importa."""
+
+    @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
 

@@ -25,9 +25,16 @@ class ClaimType(str, Enum):
     MAYORIA_DE_EDAD = "mayoria_de_edad"
     # Identidad de NEGOCIO, no de persona (sujeto = CompanyProfile.user_id) —
     # el ejemplo que este mismo docstring ya anticipaba, TRUST_SYSTEM.md §11.
-    # Reusa el mecanismo de aprobación genérico (approve_claim/reject_claim);
-    # sin flujo de envío/revisión de evidencias de negocio todavía (ADR-0011)
-    # — el tipo queda listo para cuando exista, no se simula con datos falsos.
+    # Reusa el mecanismo de aprobación genérico (approve_claim/reject_claim).
+    # Desde ADR-0013 tiene flujo real: el comercio sube su constancia de AFIP
+    # (`EvidenceType.CONSTANCIA_CUIT`) y un admin la revisa.
+    #
+    # OJO — esto NO es `cuit_verificado`, que TRUST_SYSTEM.md §11.3 reserva
+    # para la validación AUTOMÁTICA contra AFIP (la contraparte de Renaper
+    # para personas). Acá una persona mira un PDF: el método es
+    # `ADMIN_MANUAL`. Usar el otro nombre dejaría al sistema afirmando que se
+    # validó contra la fuente cuando no pasó. Cuando exista la integración,
+    # entra como un claim y un método más — para eso el modelo es extensible.
     NEGOCIO_VERIFICADO = "negocio_verificado"
 
 
@@ -50,6 +57,12 @@ class EvidenceType(str, Enum):
     DNI_DORSO = "dni_dorso"
     SELFIE = "selfie"
     LIVENESS = "liveness"
+    # Prueba de NEGOCIO, no de persona (ADR-0013): la constancia de
+    # inscripción de AFIP que respalda el claim `negocio_verificado`. Se
+    # eligió sobre la habilitación municipal porque la baja gratis cualquiera
+    # que esté inscripto — un requisito que la mayoría no puede cumplir deja
+    # el sello apagado para siempre, que es justo el problema a resolver.
+    CONSTANCIA_CUIT = "constancia_cuit"
 
 
 class VerificationMethod(str, Enum):

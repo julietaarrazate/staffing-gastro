@@ -107,6 +107,15 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         result = await self._session.execute(stmt)
         return {row[0]: row[1] for row in result.all()}
 
+    async def names_by_user_ids(self, user_ids: list[UUID]) -> dict[UUID, str]:
+        if not user_ids:
+            return {}
+        stmt = select(CompanyProfileModel.user_id, CompanyProfileModel.name).where(
+            CompanyProfileModel.user_id.in_(user_ids)
+        )
+        result = await self._session.execute(stmt)
+        return {row[0]: row[1] for row in result.all()}
+
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         model = await self._session.get(CompanyProfileModel, profile_id)
         if model is None:

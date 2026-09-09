@@ -174,7 +174,9 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
   0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
   mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
-  (el "match" del mapa y el aviso de pago fuera de mercado al comercio).
+  (el "match" del mapa y el aviso de pago fuera de mercado al comercio) ·
+  0013 verificación del comercio (constancia de AFIP; por qué NO es
+  `cuit_verificado` y por qué no se guarda el número).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
@@ -249,6 +251,17 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   tocás esto, leé el ADR antes: explica por qué NO se usa el motor de matching
   (el 70% de sus factores no varía entre turnos, así que ordenaría por
   distancia disfrazada de compatibilidad).
+- **Verificación del comercio** (#334, ADR-0013): el comercio sube su
+  **constancia de inscripción de AFIP** desde su perfil, un admin la revisa en
+  la misma cola que los DNI de los trabajadores, y al aprobarla se enciende el
+  sello "Comercio verificado" en el feed. Cierra la asimetría que había: el
+  trabajador entregaba DNI y selfie, el comercio no entregaba nada — y el que
+  viaja a la dirección de un desconocido y después tiene que cobrar es el
+  trabajador. Tres cosas que **no** hay que cambiar sin leer el ADR: el claim
+  es `negocio_verificado` y **no** `cuit_verificado` (ese nombre queda para la
+  validación automática contra AFIP; acá mira una persona), **no se guarda el
+  número de CUIT** (la constancia se purga al decidir, como el DNI), y un
+  comercio verificado **no** sube el nivel de garantía personal de su dueño.
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito.

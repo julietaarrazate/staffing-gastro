@@ -83,6 +83,37 @@ class VerificationService:
         claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
         return await (self._claims.add(claim) if is_new else self._claims.update(claim))
 
+    async def submit_business_document(
+        self, user_id: UUID, constancia_url: str
+    ) -> Claim:
+        """El comercio presenta (o reenvía) su constancia de AFIP a revisión
+        (ADR-0013).
+
+        Es el mismo caso de uso que `submit_identity_document` con otro tipo
+        de claim y otra evidencia — el agregado `Claim` ya es genérico por
+        `claim_type`, así que no hay nada que redominar: el sujeto sigue
+        siendo un `User` (el dueño del comercio), y la máquina de estados,
+        la purga de evidencia y la cola del admin se reusan tal cual.
+
+        `user_id` es `CompanyProfile.user_id`, no el id del perfil: el claim
+        cuelga del usuario dueño. Es la parte que más fácil se hace mal (ver
+        ADR-0013 §4)."""
+        evidences = [
+            Evidence(
+                evidence_type=EvidenceType.CONSTANCIA_CUIT,
+                method=VerificationMethod.ADMIN_MANUAL,
+                data_url=constancia_url,
+            )
+        ]
+
+        claim = await self._claims.get_for_user(user_id, ClaimType.NEGOCIO_VERIFICADO)
+        is_new = claim is None
+        if claim is None:
+            claim = Claim(user_id=user_id, claim_type=ClaimType.NEGOCIO_VERIFICADO)
+
+        claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
+        return await (self._claims.add(claim) if is_new else self._claims.update(claim))
+
     async def approve_claim(self, claim_id: UUID, admin_id: UUID) -> Claim:
         """Un admin aprueba un claim pendiente (purga la evidencia sensible)."""
         claim = await self._claims.get_by_id(claim_id)

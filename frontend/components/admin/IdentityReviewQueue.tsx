@@ -4,9 +4,55 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import { EVIDENCE_LABELS, type PendingClaim } from "@/lib/identity";
+import {
+  BUSINESS_CLAIM_TYPE,
+  EVIDENCE_LABELS,
+  isDocumentEvidence,
+  type PendingClaim,
+  type PendingEvidence,
+} from "@/lib/identity";
 import { Avatar, Button, Card, EmptyState, ErrorBanner, Skeleton, TextField } from "@/components/ui";
-import { ShieldIcon } from "@/components/icons";
+import { FileTextIcon, ShieldIcon } from "@/components/icons";
+
+/**
+ * Una evidencia en la cola. La constancia de AFIP suele ser un **PDF**, y un
+ * PDF renderizado con `<img>` da una imagen rota — que es exactamente lo que
+ * pasaba antes del ADR-0013, cuando esta cola asumía que toda evidencia era
+ * una foto de DNI. Un documento se muestra como documento.
+ */
+function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
+  if (!evidence.data_url) return null;
+  const label = EVIDENCE_LABELS[evidence.evidence_type] ?? evidence.evidence_type;
+
+  return (
+    <a
+      href={evidence.data_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group"
+      title={`Ver ${label} en tamaño completo`}
+    >
+      {isDocumentEvidence(evidence.evidence_type) ? (
+        <span className="flex aspect-[3/2] w-32 flex-col items-center justify-center gap-1 rounded-xl bg-surface text-ink/60 ring-1 ring-line transition group-hover:ring-primary">
+          <FileTextIcon size={22} />
+          <span className="text-[11px] font-semibold">Abrir documento</span>
+        </span>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={evidence.data_url}
+          alt={label}
+          className="aspect-[3/2] w-32 rounded-xl object-cover ring-1 ring-line transition group-hover:ring-primary"
+        />
+      )}
+      <span className="mt-1 block text-center text-[11px] text-ink/50">{label}</span>
+    </a>
+  );
+}
+
+function isBusiness(claim: PendingClaim): boolean {
+  return claim.claim_type === BUSINESS_CLAIM_TYPE;
+}
 
 function ReviewCardSkeleton() {
   return (
@@ -84,7 +130,7 @@ export default function IdentityReviewQueue() {
         <EmptyState
           icon={<ShieldIcon size={24} />}
           title="No hay identidades por revisar"
-          subtitle="Cuando un trabajador envíe su DNI, aparece acá."
+          subtitle="Cuando un trabajador envíe su DNI o un comercio su constancia de AFIP, aparece acá."
         />
       </div>
     );
@@ -95,38 +141,33 @@ export default function IdentityReviewQueue() {
       {claims.map((claim) => (
         <Card key={claim.claim_id} className="p-5">
           <div className="flex items-center gap-3">
-            <Avatar name={claim.full_name ?? "?"} size="md" />
+            <Avatar
+              name={
+                (isBusiness(claim) ? claim.company_name : claim.full_name) ?? "?"
+              }
+              size="md"
+            />
             <div className="min-w-0">
               <p className="truncate font-semibold text-ink">
-                {claim.full_name ?? "Trabajador"}
+                {isBusiness(claim)
+                  ? (claim.company_name ?? "Comercio")
+                  : (claim.full_name ?? "Trabajador")}
               </p>
-              <p className="text-xs text-ink/50">Documento + selfie</p>
+              <p className="truncate text-xs text-ink/50">
+                {isBusiness(claim)
+                  ? // El nombre del titular, porque la comprobación que hace
+                    // revisable una constancia es que la razón social del PDF
+                    // se corresponda con el comercio que la mandó.
+                    `Constancia de AFIP · ${claim.full_name ?? "titular sin nombre"}`
+                  : "Documento + selfie"}
+              </p>
             </div>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {claim.evidences.map((ev) =>
-              ev.data_url ? (
-                <a
-                  key={ev.evidence_type}
-                  href={ev.data_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group"
-                  title={`Ver ${EVIDENCE_LABELS[ev.evidence_type] ?? ev.evidence_type} en tamaño completo`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={ev.data_url}
-                    alt={EVIDENCE_LABELS[ev.evidence_type] ?? ev.evidence_type}
-                    className="aspect-[3/2] w-32 rounded-xl object-cover ring-1 ring-line transition group-hover:ring-primary"
-                  />
-                  <span className="mt-1 block text-center text-[11px] text-ink/50">
-                    {EVIDENCE_LABELS[ev.evidence_type] ?? ev.evidence_type}
-                  </span>
-                </a>
-              ) : null
-            )}
+            {claim.evidences.map((ev) => (
+              <EvidenceThumb key={ev.evidence_type} evidence={ev} />
+            ))}
           </div>
 
           {rejecting === claim.claim_id ? (
