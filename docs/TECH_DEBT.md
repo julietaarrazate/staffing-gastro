@@ -661,6 +661,38 @@ fecha de esta auditoría (2026-07-02).
 >   corre en producción), pero es un salto de versión mayor que podría
 >   romper compatibilidad con `pytest-asyncio` u otros plugins — mismo
 >   criterio que Starlette, se difiere a un PR dedicado.
+> **Actualización 2026-09-08 — nueva tanda del lado FRONTEND (PR #329).**
+> `npm audit` volvió a dar rojo (6 vulnerabilidades: 2 critical, 2 high,
+> 2 moderate) por advisories publicados en el día. Resueltos 4:
+> - **`next` 16.3.0 → 16.3.4** — cerraba **dos** críticos, no uno:
+>   `GHSA-p293-qw3h-jr36` (RCE en servidores Windows; no aplicaba en el
+>   Linux serverless de Vercel) y **`GHSA-2xp9-vwfh-vxw4` (RCE sin
+>   autenticar en la Image Optimization API con archivos AVIF), que sí
+>   aplicaba en producción**. Bump de patch dentro de 16.3.x, no mayor.
+> - **`sharp` 0.35.3 → 0.35.4** (`GHSA-rgj7-g3m4-5g8c`, libheif) — se subió
+>   el `override` que ya existía de `^0.35.0` a `^0.35.4`.
+> - **`js-yaml` 4.3.1 → 4.3.2** (`GHSA-2883-xcg3-v3hh`) — transitiva de
+>   `eslint` → `@eslint/eslintrc`; `override` nuevo.
+>
+> - **`maplibre-gl` 5.24.0 → 6.8.0** (crítico, `GHSA-jrc7-96c5-q579`, XSS).
+>   No hay parche en 5.x (la serie muere en 5.24.0), así que exigía cruzar el
+>   mayor 5→6. Un primer intento se revirtió creyendo que era un bloqueo
+>   upstream del wrapper; **eso era falso** y se corrigió en el mismo PR: un
+>   mapa crudo de maplibre 6 carga perfecto. La causa era propia — montar un
+>   `Source`/`Layer` antes del `load` deja a maplibre 6 con `isStyleLoaded()`
+>   en `false` para siempre y el `load` no se dispara nunca, así que `/map`
+>   quedaba sin marcadores sin ningún error en consola. Fix de una línea en
+>   `components/map/MapView.tsx` (los hijos se montan después del `load`),
+>   con test de regresión en `MapView.children.test.tsx`. Detalle completo en
+>   `docs/STATUS.md` → "Qué sigue" §10.
+>
+> **Sigue pendiente del lado frontend, con motivo:**
+> - **`vitest` → 4.1.11 (`GHSA-82fw-gwwq-j7x9`, moderate, dev-only):**
+>   bloqueado por un bug de **npm 10.9.7** (`arborist/#loadPeerSet`,
+>   `Cannot read properties of null (reading 'edgesOut')`) que dispara el
+>   peer set de `@vitest/browser-playwright@5.0.0`. Un `override` de
+>   `@vitest/mocker` crashea igual. No entra al bundle de producción.
+
 - **Solución sugerida:** un PR dedicado para Starlette/FastAPI (subir de a
   pasos, correr la suite completa en cada uno, prestar atención especial a
   middleware/excepciones/DI) y otro, más chico, para pytest 9.x (correr toda
