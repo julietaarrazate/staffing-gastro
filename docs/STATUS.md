@@ -75,6 +75,39 @@ mínima y ventana de 60 días. Y la mitad que lo vuelve útil para las dos parte
 el mismo número le dice al comercio que su turno paga por debajo de lo habitual
 mientras todavía puede corregirlo. Detalle en "Qué sigue" abajo, punto 4.
 
+**Mismo día, PR #333 — el mail que nadie miraba.** Julieta pidió un reset de
+contraseña real para probar el dominio nuevo y le llegó un párrafo pelado, sin
+marca. Dos defectos distintos que se tapaban entre sí, los dos del mismo tipo:
+**cosas que sólo se ven en una bandeja de entrada, nunca en la app.**
+
+1. **La tanda de "prolijizá los mails" (2026-08-26) había dejado uno afuera.**
+   Se armaron plantillas de bienvenida (trabajador y comercio), confirmación de
+   email y verificación de identidad — y el de recuperar contraseña siguió
+   siendo el `<p>` de siempre. El docstring de `email_templates.py` incluso
+   nombraba "recuperar contraseña" entre los que reemplazaba: la doc decía que
+   estaba hecho y no lo estaba. Es el peor de los cinco para que se vea
+   genérico, porque es el único que le pide a alguien hacer clic para cambiar
+   una credencial — exactamente lo que imita un phishing.
+2. **El rebrand al ámbar (#315–#325) nunca llegó a los mails.** Los cinco
+   seguían saliendo con el naranja pre-rebrand `#f97316` y sus derivados
+   (`#ffb27a`, `#b23c08`), colores que ya no existen en `globals.css`. El tile
+   del isotipo en el mail era una copia inline del `logo-mark.svg` que sí se
+   había migrado a `#d97706`: mismo path, mismo trazo crema, distinto color.
+
+El fix de fondo no es el hex sino **dónde vivía**: cada color estaba escrito a
+mano adentro de estilos inline, así que un cambio de marca tenía que acordarse
+de un archivo que nadie abre. Ahora la paleta son cinco constantes arriba del
+módulo, y hay `tests/test_email_templates.py` (19 tests, antes **cero**) que
+falla si reaparece un color muerto, si un mail pierde la marca o el link, o si
+alguno deja de ser un documento HTML completo. Verificado a mano que el test
+falla de verdad: reintroduciendo `#f97316` caen las cinco plantillas.
+
+De paso, una mentira potencial cerrada: el `<p>` decía "vence en 1 hora"
+escrito a mano, sin ninguna relación con `PASSWORD_RESET_TOKEN_TTL`. Ahora el
+TTL es un parámetro de la plantilla que sale de la constante, con un test que
+avisa si el TTL deja de ser de horas enteras (con 30 minutos, el mail diría
+"vence en 0 horas" sin que nada más fallara).
+
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
@@ -3290,6 +3323,19 @@ roadmap).
    remitente nuevo (mientras tanto sigue funcionando con el remitente de
    prueba `onboarding@resend.dev`, que sólo entrega a la casilla dueña de la
    cuenta de Resend).
+
+   **Prueba en vivo, 2026-09-09 (Julieta):** pidió un reset real y el mail
+   llegó a `julietaarrazate@gmail.com` con el link apuntando a
+   `https://oido.com.ar/restablecer?token=...`. Eso confirma **dos** cosas:
+   la cadena Render → Resend → casilla funciona, y **`FRONTEND_URL` ya está
+   en el dominio propio** (si no, el link habría salido al `.vercel.app`).
+   **No confirma la tercera, y es importante no leerlo de más:** esa casilla
+   es justamente la dueña de la cuenta de Resend, que es la única a la que el
+   remitente sandbox entrega. O sea que este mismo mail, hoy, puede estar
+   fallando en silencio para cualquier otro usuario. Lo que despeja la duda
+   es el estado del dominio en Resend, no otra prueba desde su propia
+   casilla — o mirar el remitente real del mail recibido: si dice
+   `@resend.dev`, todavía es el sandbox.
 2. ✅ ~~PNG del ícono con el naranja viejo~~ — **resuelto (PR #325)**.
    `apple-icon`, `icon-192/512` e `icon-maskable-512` rasterizados de nuevo
    desde `logo-mark.svg`/`logo-maskable.svg` (ya ámbar desde el #316) ahora que

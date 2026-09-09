@@ -59,6 +59,7 @@ from app.modules.identity.domain.value_objects import UserRole
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
+    render_password_reset_email_html,
     render_welcome_employer_email_html,
     render_welcome_worker_email_html,
 )
@@ -317,12 +318,13 @@ class IdentityService:
         )
 
         link = f"{settings.frontend_url}/restablecer?token={raw_token}"
-        html = (
-            f"<p>Hola {user.full_name},</p>"
-            "<p>Recibimos un pedido para restablecer tu contraseña de Oído. "
-            f'Hacé clic en el siguiente enlace para elegir una nueva (vence en 1 hora): '
-            f'<a href="{link}">{link}</a></p>'
-            "<p>Si vos no lo pediste, podés ignorar este email.</p>"
+        # El TTL sale de la constante que de verdad vence el token, no de un
+        # "1 hora" escrito a mano en el copy (que era lo que había antes y
+        # habría quedado mintiendo al primer cambio de `PASSWORD_RESET_TOKEN_TTL`).
+        html = render_password_reset_email_html(
+            user.full_name,
+            link,
+            int(PASSWORD_RESET_TOKEN_TTL.total_seconds() // 3600),
         )
         try:
             await self._email_sender.send(
