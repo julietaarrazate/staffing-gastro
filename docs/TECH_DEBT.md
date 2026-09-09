@@ -674,18 +674,19 @@ fecha de esta auditoría (2026-07-02).
 > - **`js-yaml` 4.3.1 → 4.3.2** (`GHSA-2883-xcg3-v3hh`) — transitiva de
 >   `eslint` → `@eslint/eslintrc`; `override` nuevo.
 >
-> **Sigue pendiente del lado frontend, con motivo:**
-> - **`maplibre-gl` ≤6.4.0 (`GHSA-jrc7-96c5-q579`, XSS crítico):
->   BLOQUEADO UPSTREAM.** No hay parche en 5.x (la serie muere en 5.24.0),
->   así que exige cruzar el mayor 5→6, y **maplibre 6.8.0 rompe `/map`**:
->   el `load` del mapa no llega al `onLoad` de `@vis.gl/react-maplibre`,
->   `ShiftMap` nunca calcula su viewport y no se dibuja ningún marcador de
->   turno (sin error de JS). Verificado en las dos versiones — pasa en
->   5.24.0, falla en 6.8.0 — y probado también con el wrapper 8.1.3, el
->   último: igual. Mitigante real: la app **no usa `Popup`/`setHTML`/
->   `setDOMContent`**, así que nunca pasa HTML por el `DOM.sanitize()`
->   afectado. Detalle completo y los dos caminos de salida en
+> - **`maplibre-gl` 5.24.0 → 6.8.0** (crítico, `GHSA-jrc7-96c5-q579`, XSS).
+>   No hay parche en 5.x (la serie muere en 5.24.0), así que exigía cruzar el
+>   mayor 5→6. Un primer intento se revirtió creyendo que era un bloqueo
+>   upstream del wrapper; **eso era falso** y se corrigió en el mismo PR: un
+>   mapa crudo de maplibre 6 carga perfecto. La causa era propia — montar un
+>   `Source`/`Layer` antes del `load` deja a maplibre 6 con `isStyleLoaded()`
+>   en `false` para siempre y el `load` no se dispara nunca, así que `/map`
+>   quedaba sin marcadores sin ningún error en consola. Fix de una línea en
+>   `components/map/MapView.tsx` (los hijos se montan después del `load`),
+>   con test de regresión en `MapView.children.test.tsx`. Detalle completo en
 >   `docs/STATUS.md` → "Qué sigue" §10.
+>
+> **Sigue pendiente del lado frontend, con motivo:**
 > - **`vitest` → 4.1.11 (`GHSA-82fw-gwwq-j7x9`, moderate, dev-only):**
 >   bloqueado por un bug de **npm 10.9.7** (`arborist/#loadPeerSet`,
 >   `Cannot read properties of null (reading 'edgesOut')`) que dispara el
@@ -695,9 +696,7 @@ fecha de esta auditoría (2026-07-02).
 - **Solución sugerida:** un PR dedicado para Starlette/FastAPI (subir de a
   pasos, correr la suite completa en cada uno, prestar atención especial a
   middleware/excepciones/DI) y otro, más chico, para pytest 9.x (correr toda
-  la suite y confirmar que `pytest-asyncio` sigue andando). Para
-  `maplibre-gl`, no reintentar el bump sin verificar antes si
-  `@vis.gl/react-maplibre` ya soporta maplibre 6.x.
+  la suite y confirmar que `pytest-asyncio` sigue andando).
 
 ---
 

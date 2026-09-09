@@ -5,9 +5,10 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-08 (**CVEs del frontend: 4 de 6 cerrados
-—incluido un RCE de Next que el #328 había dado por no aplicable— y el de
-maplibre documentado como bloqueado upstream, con evidencia — PR #329**).*
+*Última actualización: 2026-09-09 (**CVEs del frontend: 5 de 6 cerrados,
+incluidos un RCE de Next que el #328 había dado por no aplicable y el XSS de
+maplibre, que resultó ser un bug NUESTRO de una línea, no un bloqueo
+upstream — PR #329**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -42,13 +43,16 @@ aplica, Vercel corre Linux" — cierto para ése, pero había un **segundo
 crítico de Next, `GHSA-2xp9-vwfh-vxw4` (RCE sin autenticar en la Image
 Optimization API con AVIF), que no depende del sistema operativo y sí
 aplicaba en producción**. Quedaron cerrados 4 de 6 (`next` 16.3.0→16.3.4,
-`sharp` 0.35.4, `js-yaml` 4.3.2). El de **maplibre-gl no se pudo subir**: se
-intentó, rompe `/map` dejándolo sin marcadores de turno, se confirmó
-corriendo el mismo spec en las dos versiones, y la causa es que
-`@vis.gl/react-maplibre` todavía no soporta maplibre 6.x (probado también
-con su versión más nueva). Se revirtió y quedó documentado con la evidencia
-y el mitigante real, en vez de dejar `/map` roto por cerrar un CVE de
-exposición baja. Detalle completo en "Qué sigue" abajo, punto 10.
+`sharp` 0.35.4, `js-yaml` 4.3.2). El de **maplibre-gl terminó resuelto, y la
+primera conclusión era falsa**: se había dado por "bloqueado upstream, el
+wrapper no soporta maplibre 6" a partir del síntoma (`/map` sin marcadores),
+sin aislar la causa. Un mapa crudo de maplibre 6 en la misma página carga
+perfecto — el wrapper no era el problema. La causa era nuestra: montar un
+`Source`/`Layer` antes del `load` deja a maplibre 6 con `isStyleLoaded()` en
+`false` para siempre y el `load` no llega nunca, así que el viewport inicial
+nunca se calcula y el mapa queda vacío **sin un solo error en consola**. El
+fix es una línea en `MapView` (los hijos se montan después del `load`), con
+test de regresión. Detalle completo en "Qué sigue" abajo, punto 10.
 
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
@@ -3366,11 +3370,11 @@ roadmap).
    decía "pendiente" y ya estaba mal en los dos sentidos posibles (afectaba
    a MÁS tests de los que documentaba, y el fix ya no era trivial de
    ignorar una vez encontrado el segundo caso).
-10. 🟠 **CVEs del frontend — 4 de 6 resueltos (PR #329). Queda uno, bloqueado
-    upstream.** El ítem original (escrito en el #328) decía "dos CVEs
-    críticos"; al correr el `npm audit` real eran **seis**, y la lectura del
-    de Next estaba equivocada en el sentido peligroso. Corregido acá con lo
-    verificado, no de memoria:
+10. ✅ **CVEs del frontend — 5 de 6 resueltos (PR #329), incluido el crítico de
+    maplibre. El único que queda es dev-only.** El ítem original (escrito en el
+    #328) decía "dos CVEs críticos"; al correr el `npm audit` real eran
+    **seis**, y la lectura del de Next estaba equivocada en el sentido
+    peligroso. `npm audit --audit-level=high` vuelve a pasar.
     - ✅ **Next.js 16.3.0 → 16.3.4 — eran DOS críticos, no uno.** Además del
       RCE en servidores Windows (`GHSA-p293-qw3h-jr36`, que efectivamente no
       aplica en el Linux serverless de Vercel) había un segundo:
@@ -3378,52 +3382,62 @@ roadmap).
       API cuando se usan archivos AVIF**, que **no depende del sistema
       operativo y sí aplicaba en producción**. La conclusión "probablemente
       no aplica" del #328 era cierta para el primero y falsa para el
-      conjunto: quedarse ahí habría dejado un RCE abierto. También: el fix
-      **no** era semver-major (`isSemVerMajor: false`), es un patch dentro
-      de 16.3.x; y la versión instalada era 16.3.0, no 16.3.2 (el #328 leyó
-      el `range` del advisory —`16.0.0 - 16.3.2`— como si fuera la versión
-      instalada).
-    - ✅ **sharp 0.35.3 → 0.35.4** (high, `GHSA-rgj7-g3m4-5g8c`,
-      vulnerabilidades de libheif) — vía el `override` que ya existía.
+      conjunto: quedarse ahí habría dejado un RCE abierto. Además: el fix
+      **no** era semver-major, es un patch dentro de 16.3.x; y la versión
+      instalada era 16.3.0, no 16.3.2 (el #328 leyó el `range` del advisory
+      —`16.0.0 - 16.3.2`— como si fuera la versión instalada).
+    - ✅ **sharp 0.35.3 → 0.35.4** (high, `GHSA-rgj7-g3m4-5g8c`, libheif) —
+      vía el `override` que ya existía.
     - ✅ **js-yaml 4.3.1 → 4.3.2** (high, `GHSA-2883-xcg3-v3hh`) — entra por
-      `eslint` → `@eslint/eslintrc`; se agregó un `override` nuevo.
-    - 🟠 **vitest / `@vitest/mocker` (moderate, `GHSA-82fw-gwwq-j7x9`) — sin
-      resolver por una limitación de la herramienta, no del código.** Subir
-      a 4.1.11 hace **crashear a npm 10.9.7**: `Cannot read properties of
-      null (reading 'edgesOut')` en `arborist/#loadPeerSet`, por el peer set
-      de `@vitest/browser-playwright@5.0.0`. Un `override` de
-      `@vitest/mocker` dispara exactamente el mismo crash. Es dev-only (no
-      entra al bundle de producción): queda esperando una npm que no tenga
-      ese bug.
-    - 🔴 **maplibre-gl (`GHSA-jrc7-96c5-q579`, XSS) — NO se puede subir hoy:
-      bloqueo upstream, verificado, no supuesto.** No existe fix en la serie
-      5.x (la línea termina en 5.24.0, abril 2026); el primer parche es
-      6.4.1, así que hay que cruzar el mayor 5→6. Se intentó 6.8.0 y
-      **rompe `/map`**: el mapa y el puck del usuario dibujan bien, pero
-      **no aparece ningún marcador de turno**. Causa encontrada con una
-      sonda al DOM real: el evento `load` del mapa nunca llega al `onLoad`
-      de `@vis.gl/react-maplibre`, así que `ShiftMap` nunca calcula su
-      viewport inicial y `clusters` queda en `[]` para siempre (sin ningún
-      error de JS — falla en silencio). Causalidad confirmada corriendo el
-      mismo spec en las dos versiones: **pasa en 5.24.0, falla en 6.8.0**.
-      No lo arregla actualizar el wrapper: se probó
-      `@vis.gl/react-maplibre` **8.1.3** (el último, 2026-09-02) y da igual
-      — sigue declarando `@maplibre/maplibre-gl-style-spec: ^19.2.1` cuando
-      maplibre 6.8 trae la 26.4.2. Los breaking de 6.0 que lo explican:
-      distribución **ESM-only**, `Map` pasa a *componer* `Camera` en vez de
-      heredarla (`map.transform` eliminado) y todos los eventos pasan a ser
-      clases reales.
-      **Exposición real acá: baja, pero no cero.** El bug es un bypass del
-      sanitizador `DOM.sanitize()`, que maplibre usa para el HTML que
-      renderiza él. Esta app **no le pasa HTML nunca**: no hay `Popup`,
-      `setHTML` ni `setDOMContent` en ningún lado (el contenido de los
-      marcadores lo renderiza React), y la única entrada externa es el JSON
-      de estilo de CARTO, fijo y en la allowlist de la CSP. Explotarlo
-      exigiría comprometer a CARTO.
-      **Cuando se retome hay dos caminos, ninguno chico:** esperar a que el
-      wrapper soporte maplibre 6, o sacarse el wrapper de encima (refactor
-      grande, toca ADR-0001). No volver a intentar el bump "a ver si ahora
-      anda" sin revisar antes si el wrapper ya lo soporta.
+      `eslint` → `@eslint/eslintrc`; `override` nuevo.
+    - ✅ **maplibre-gl 5.24.0 → 6.8.0** (crítico, `GHSA-jrc7-96c5-q579`, XSS).
+      **La primera conclusión —"bloqueado upstream, el wrapper no soporta
+      maplibre 6"— era FALSA**, y vale escribir por qué: se había inferido
+      del síntoma (con maplibre 6, `/map` quedaba sin marcadores y el `load`
+      nunca llegaba) sin aislar la causa. Al probarlo en serio, un mapa
+      **crudo** de maplibre 6 —sin el wrapper, instanciado en la misma
+      página— carga perfecto (`load`, `idle`, `isStyleLoaded: true`). El
+      wrapper no era el problema.
+      **Causa raíz real, nuestra:** montar un `Source`/`Layer` ANTES de que
+      el mapa dispare `load`. maplibre 6 queda entonces con
+      `isStyleLoaded()` en `false` de forma permanente y **el `load` no se
+      dispara nunca** (medido: tampoco a los 60s). Como el viewport inicial
+      de `ShiftMap` cuelga de ese evento, `/map` se dibujaba sin un solo
+      marcador de turno, **sin ningún error en consola**. maplibre 5 lo
+      toleraba. El culpable concreto era `RadiusRing` (el anillo de radio de
+      `/map`), y `EnRouteMap` tenía el mismo patrón latente.
+      **Fix (una línea, en `components/map/MapView.tsx`):** los hijos del
+      mapa se montan recién después del `load` (`{loaded && children}`).
+      Centralizado ahí a propósito y no en cada pantalla: el próximo que
+      agregue una capa no tiene forma de enterarse de la regla, y el fallo es
+      silencioso. Los `Marker` son overlays de DOM, no tocan el estilo, así
+      que retrasarlos ~600ms no cambia nada visible.
+      Con eso, maplibre 6.8.0 anda: `onLoad` a los ~600ms y marcadores
+      dibujándose. Hipótesis descartadas en el camino, por si vuelve a
+      aparecer algo parecido: no era el estilo mock vacío de los tests (da
+      igual con un estilo completo), no era WebGL2 (disponible), no era el
+      tamaño del contenedor (390×700 correcto) y no era la versión del
+      wrapper (8.1.2 y 8.1.3 se comportan igual).
+      **Regresión cubierta**: `components/map/MapView.children.test.tsx` fija
+      el invariante donde se rompería en silencio — verificado que el test
+      falla si se saca el gate.
+    - 🟠 **vitest / `@vitest/mocker` (moderate, `GHSA-82fw-gwwq-j7x9`) — lo
+      único que queda, sin resolver por una limitación de la herramienta.**
+      Subir a 4.1.11 hace **crashear a npm 10.9.7**: `Cannot read properties
+      of null (reading 'edgesOut')` en `arborist/#loadPeerSet`, por el peer
+      set de `@vitest/browser-playwright@5.0.0`. Un `override` de
+      `@vitest/mocker` dispara el mismo crash. Es dev-only (no entra al
+      bundle de producción) y no bloquea el gate de CI, que corta en `high`.
+    - **Superficie de explotación del XSS de maplibre, para el registro**
+      (analizada antes de saber que tenía arreglo): el sink real es
+      `DOM.sanitize()` → `innerHTML`, y en maplibre hay **uno solo**, el
+      **AttributionControl** — que sí renderizamos. O sea que la
+      vulnerabilidad **era alcanzable**, no "no aplica": el HTML de
+      atribución sale del JSON de estilo de CARTO. Lo que no existía era un
+      camino desde input de un usuario (no hay `Popup`, `setHTML` ni
+      `setDOMContent` en toda la app), así que explotarlo habría exigido
+      comprometer el CDN de CARTO. Riesgo de cadena de suministro, bajo pero
+      no nulo — y ahora cerrado.
     - Nota de entorno útil para la próxima sesión: **la suite E2E no corre
       en el entorno remoto con la config del repo** — `@playwright/test`
       1.62.1 pide el build de Chromium `1234` y ahí está el `1194`
@@ -3433,8 +3447,7 @@ roadmap).
       entera y da **79/79**. De paso, eso contradice la nota del 2026-08-31
       que daba `worker-apply.spec.ts` como "falla de forma reproducible":
       con el binario correcto pasa.
-    - `docs/TECH_DEBT.md` §S3 ahora tiene el detalle del lado frontend.
-11. 🟢 **Sin frente puntual abierto más allá de esto.** Si no hay otra
+    - `docs/TECH_DEBT.md` §S3 tiene el detalle del lado frontend.
     instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)

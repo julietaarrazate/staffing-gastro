@@ -4,7 +4,7 @@
 // contexto WebGL reutilizado... CSS de maplibre importado una vez").
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import { forwardRef, useImperativeHandle, useRef, type ReactNode } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import {
   AttributionControl,
   Map as MapGl,
@@ -151,6 +151,20 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   const mapRef = useRef<MapRef>(null);
   useImperativeHandle(forwardedRef, () => mapRef.current as MapRef, []);
 
+  // Los hijos se montan DESPUÉS del `load`, nunca antes. Un `Source`/`Layer`
+  // agregado mientras el estilo todavía está cargando deja a maplibre 6 con
+  // `isStyleLoaded()` en `false` PARA SIEMPRE: el evento `load` no llega a
+  // dispararse nunca (verificado: no llega ni a los 60s), y como todo lo que
+  // cuelga de él —el viewport inicial de `ShiftMap`, y con él los marcadores
+  // de turno— espera ese evento, el mapa queda dibujado pero vacío, sin un
+  // solo error en consola. maplibre 5 lo toleraba; el 6 no.
+  // Se resuelve acá y no en cada pantalla a propósito: `RadiusRing` (`/map`)
+  // y `EnRouteMap` ya montaban capas de entrada, y el próximo que agregue una
+  // no tiene forma de enterarse de la regla — el fallo es silencioso. Los
+  // `Marker` son overlays de DOM y no tocan el estilo, así que retrasarlos
+  // hasta el `load` (~600ms) no cambia nada visible.
+  const [loaded, setLoaded] = useState(false);
+
   return (
     <div className={className}>
       <MapGl
@@ -172,12 +186,13 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           syncInteractiveHandlers(e.target, interactive);
           syncCooperativeGestures(e.target, cooperativeGestures);
           syncCamera(e.target, center, zoom);
+          setLoaded(true);
           if (mapRef.current) onLoad?.(mapRef.current);
         }}
         onMoveEnd={onMoveEnd}
       >
         {attribution && <AttributionControl compact position="bottom-right" />}
-        {children}
+        {loaded && children}
       </MapGl>
     </div>
   );
