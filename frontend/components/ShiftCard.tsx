@@ -75,6 +75,12 @@ const PAST_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
 // falta" para siempre.
 const DIMMED_STATUSES = new Set(["cancelado", "pagado"]);
 
+// El aviso de pago fuera de mercado (ADR-0012) sólo aparece mientras el turno
+// TODAVÍA se puede corregir: en borrador, publicado o buscando personal. Una
+// vez que alguien lo tomó, el precio funcionó y decirle al comercio que pagaba
+// poco es ruido; en uno terminado o cancelado, es ruido sobre historia.
+const PAY_HINT_STATUSES = new Set(["borrador", "publicado", "buscando_personal"]);
+
 export default function ShiftCard({
   shift,
   perspective = "employer",
@@ -221,6 +227,21 @@ export default function ShiftCard({
             </p>
             {shift.tips && <p className="mt-1 text-xs font-medium text-white/75">+ propinas</p>}
             {shift.meal && <p className="text-xs font-medium text-white/75">+ comida</p>}
+            {/* La mitad de esto que le sirve al comercio (ADR-0012). Hasta
+                ahora, cuando un turno no se cubría, no tenía forma de saber
+                por qué; la causa más común es el precio. Va acá, pegado al
+                pago y en el momento en que todavía puede cambiarlo — no como
+                alerta ni bloqueando nada: es información, no un reto. En
+                manteca porque sobre el hero oscuro el dato va con color
+                (COLOR_SYSTEM §3.2), y el ámbar está reservado a la acción. */}
+            {perspective === "employer" &&
+              shift.pay_band === "por_debajo" &&
+              PAY_HINT_STATUSES.has(shift.status) && (
+                <p className="mt-2 text-xs font-semibold text-manteca">
+                  Paga por debajo de lo habitual para este puesto en la zona.
+                  Los turnos así suelen tardar más en cubrirse.
+                </p>
+              )}
           </div>
         </div>
       </div>

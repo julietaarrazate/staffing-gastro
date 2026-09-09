@@ -15,6 +15,8 @@ interface ShiftMarkerProps {
   payAmount: string | number;
   urgent: boolean;
   active: boolean;
+  /** Paga por encima de lo típico para su puesto y ciudad (ADR-0012). */
+  isMatch: boolean;
   /** Delay del scale-in de aparición, para el efecto stagger. */
   delayMs?: number;
   /** Recibe el `id` del turno: permite pasar un handler estable (useCallback
@@ -35,10 +37,16 @@ interface ShiftMarkerProps {
  * Estados (docs/reference/MAPS_REDESIGN.md §5, ampliado):
  *   - reposo  → carbón, se lee sin pedir atención.
  *   - urgente → punto rojo pulsante: hay actividad ahora.
+ *   - match   → el monto en manteca: paga por encima de lo típico para ese
+ *               puesto en esa ciudad (ADR-0012). NO usa el ámbar a propósito:
+ *               el ámbar significa "acá se toca" y ya es del estado activo
+ *               (ley de marca, ADR-0011). Manteca es el rol de color del DATO
+ *               (`globals.css`), y sobre la pastilla oscura es exactamente la
+ *               receta de la regla de la tarjeta negra (COLOR_SYSTEM §3.2:
+ *               "dato secundario en crema #F1E7A0").
  *   - activo  → pasa a naranja, escala y saca el "pico" hacia el punto exacto.
- *
- * Pendiente: el estado "match" (oportunidad especialmente compatible) necesita
- * un score de compatibilidad que hoy el turno no trae del backend.
+ *               Gana sobre match: cuál está seleccionado no puede quedar
+ *               ambiguo.
  */
 function ShiftMarker({
   id,
@@ -48,6 +56,7 @@ function ShiftMarker({
   payAmount,
   urgent,
   active,
+  isMatch,
   delayMs = 0,
   onClick,
 }: ShiftMarkerProps) {
@@ -75,7 +84,9 @@ function ShiftMarker({
       >
         <button
           type="button"
-          aria-label={`Turno de ${position}, ${formatArs(payAmount)}`}
+          aria-label={`Turno de ${position}, ${formatArs(payAmount)}${
+            isMatch ? ", paga por encima de lo habitual" : ""
+          }`}
           aria-pressed={active}
           onClick={(e) => {
             e.stopPropagation();
@@ -99,7 +110,9 @@ function ShiftMarker({
               active ? "bg-night" : fg.replace("text-", "bg-")
             }`}
           />
-          {formatArs(payAmount)}
+          <span className={!active && isMatch ? "text-manteca" : undefined}>
+            {formatArs(payAmount)}
+          </span>
           {urgent && (
             <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-danger [animation:urgentPulse_1.2s_infinite]" />
           )}

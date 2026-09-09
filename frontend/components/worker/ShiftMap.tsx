@@ -151,7 +151,7 @@ export default function ShiftMap({
             />
           );
         }
-        const { shiftId, position, urgent, payAmount } = feature.properties;
+        const { shiftId, position, urgent, payAmount, isMatch } = feature.properties;
         return (
           <ShiftMarker
             key={shiftId}
@@ -161,6 +161,7 @@ export default function ShiftMap({
             position={position}
             payAmount={payAmount}
             urgent={urgent}
+            isMatch={isMatch}
             active={shiftId === activeId}
             delayMs={index * 80}
             onClick={handleShiftSelect}
