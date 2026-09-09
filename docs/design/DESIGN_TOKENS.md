@@ -175,8 +175,46 @@ es de estructura, no de apilado.
 
 ---
 
+## 3.bis Anchos de contenedor (fase K de la auditoría visual)
+
+Faltaba: no había ninguna regla de ancho, y cada pantalla eligió el suyo a
+mano. Medido en un render a 1440px, el contenido arrancaba en **cuatro
+columnas distintas** — y en cuatro pantallas era **más ancho que el propio
+header**, así que el contenido se escapaba del marco que lo enmarca.
+
+| Ruta | Antes | Ahora |
+|---|---|---|
+| `/shifts`, `/my-shifts`, `/admin`, `/chats` | 1152 (más ancho que el header) | 1024 |
+| `/support`, `/favorites` | 896 | 1024 |
+| `/feed`, `/buscar`, `/shifts/new`, `/admin/support` | 1024 | 1024 |
+| `/terminos`, `/privacidad` | 672 | 672 (lectura) |
+
+**La regla, en una línea: el header es el marco y mide `--app-frame`
+(1024px); ninguna pantalla lo excede.**
+
+| Token | Valor | Cuándo |
+|---|---|---|
+| `--app-frame` | `64rem` (1024px) | Default de toda pantalla de app. Es el ancho del header, así que el contenido alinea con el logo |
+| `--app-reading` | `42rem` (672px) | Texto corrido largo (legales), donde la medida de línea pesa más que alinear |
+
+Se usan por las clases `.app-container` y `.app-container-reading`
+(`globals.css`), no escribiendo el `max-w-*` a mano.
+
+**Más angosto que el marco es legítimo** cuando hay un motivo (el asistente es
+una columna de chat; `/profile` y `/subscription` se angostan en tablet). Más
+ancho, no: eso es lo que se lee como roto.
+
+**Por qué por token y no cambiando `max-w-6xl` por `max-w-5xl` en cada
+archivo:** el problema no era el valor sino que no hubiera regla. Con seis
+pantallas eligiendo a mano, la séptima vuelve a elegir mal. Hay un test E2E
+(`e2e/anchos-de-contenedor.spec.ts`) que falla si una pantalla excede el marco.
+
+---
+
 ## 4. Reglas
 
+0. **Ninguna pantalla más ancha que `--app-frame`.** El header es el marco; el
+   contenido no se le escapa. Ver §3.bis.
 1. **Ningún valor visual repetido sin token.** Un color, radio, sombra o
    duración que aparece dos veces se nombra.
 2. **Un valor, un nombre.** Dos tokens con el mismo valor son un bug

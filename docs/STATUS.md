@@ -203,6 +203,38 @@ navegación del rol equivocado por eso, y casi se reporta como bug de la app;
 protege `null`, lo que faltaba era la clave. Las dos veces el falso positivo se
 descartó mirando el error real, no suponiendo.
 
+**Mismo día, PR #336 — fase K (primera mitad): la escala de contenedores.**
+El #335 había dejado el hallazgo anotado sin tocar, a propósito. Acá se cierra,
+y **no parcheando pantalla por pantalla**: el problema no era el valor de un
+`max-w-*` sino que **no existía ninguna regla de ancho** — ni en el CSS ni en
+`DESIGN_TOKENS.md`. Con seis pantallas eligiendo a mano, la séptima vuelve a
+elegir mal.
+
+Medido a 1440px, el contenido arrancaba en **cuatro columnas distintas**, y en
+cuatro pantallas (`/shifts`, `/my-shifts`, `/admin`, `/chats`) era **más ancho
+que el propio header**: el contenido se escapaba del marco que lo enmarca.
+
+La regla que queda escrita: **el header es el marco y mide `--app-frame`
+(1024px); ninguna pantalla lo excede.** Más angosto sí es legítimo con motivo
+(`--app-reading` de 672px para los legales; el asistente es una columna de
+chat). Se aplica por las clases `.app-container` / `.app-container-reading`,
+no escribiendo el `max-w-*` a mano. Documentado en `DESIGN_TOKENS.md` §3.bis,
+con la regla 0 nueva en su §4.
+
+Todas las pantallas de app miden ahora 1024 y alinean con el logo del header
+— verificado midiendo, antes y después. Y hay un test E2E
+(`e2e/anchos-de-contenedor.spec.ts`) que compara cada pantalla contra el ancho
+del **header real**, no contra un 1024 escrito a mano: si el marco cambia, el
+test sigue diciendo la verdad. **Verificado a mano que falla de verdad**:
+reintroduciendo `max-w-6xl` en `/shifts`, cae.
+
+**Tres correcciones de método del harness de auditoría, otra vez** (van cinco
+en dos PRs, todas del mismo tipo — el falso positivo se descarta mirando, no
+suponiendo): la splash de marca tapa la pantalla y hay que saltearla
+(`skipSplash`, que ya existía); sin un catch-all de la API algunas pantallas
+caen en estado de error y no tienen contenedor; y medir apenas carga da falsos
+negativos porque algunas montan primero un esqueleto.
+
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
@@ -3495,15 +3527,15 @@ roadmap).
    | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
-   | K | Responsive | ⬜ sin reverificar tras el rebrand ni el cambio de radios (#317). **Entra con una tarea concreta ya detectada en #335**: los contenedores no comparten escala (`max-w-5xl` / `md:max-w-4xl` / `max-w-6xl`), así que el contenido arranca en una columna distinta según la pantalla — decidir UNA escala, no parchear caso por caso |
+   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. Queda pendiente el resto de K: reverificar breakpoints intermedios tras el rebrand y el cambio de radios (#317) |
    | L | Regresión vs. mockups | 🟡 parcial — #317 midió radios y comparó colores; no hubo pasada completa pantalla por pantalla contra `docs/design/mockups/` |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
-   **H e I quedaron cerradas en el PR #335** (ver "En vuelo ahora"). Si se
-   retoma, sigue **K → L → C**, en ese orden: K arranca con una tarea ya
-   identificada (unificar la escala de contenedores); L depende de que K esté
-   cerrada para no medir dos veces contra los mockups; C es la de menor riesgo
-   visible hoy.
+   **H e I quedaron cerradas en el #335, y la mitad de K en el #336** (ver
+   "En vuelo ahora"). Si se retoma, sigue **el resto de K → L → C**: de K
+   falta reverificar los breakpoints intermedios (tablet) tras el rebrand y el
+   cambio de radios; L depende de que K esté cerrada para no medir dos veces
+   contra los mockups; C es la de menor riesgo visible hoy.
 
    **Y el método, que es lo que más rindió:** auditar *renderizando* las
    pantallas (Playwright headless, 390px y 1440px, sesión mockeada por rol) y

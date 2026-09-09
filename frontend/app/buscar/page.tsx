@@ -124,7 +124,7 @@ export default function BuscarPage() {
   const sortedShifts = sortByDistance(shifts, origin);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-10 pt-6">
+    <div className="app-container px-4 pb-10 pt-6">
       <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
         Buscar turnos
       </h1>
