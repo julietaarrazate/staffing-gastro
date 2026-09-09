@@ -87,7 +87,11 @@ test("el trabajador abre un ticket de soporte y lo ve en su lista", async ({ pag
   await page.goto("/support");
   await expect(page.getByText("Todavía no abriste ningún ticket")).toBeVisible();
 
-  await page.getByRole("button", { name: "Nuevo" }).click();
+  // Con la lista vacía el único CTA es el del estado vacío: el "+ Nuevo" del
+  // encabezado aparece recién cuando hay tickets (auditoría fase I — eran dos
+  // botones ámbar para la misma acción en la misma pantalla). Mismo flujo,
+  // mismas aserciones; sólo cambia por cuál de los dos se entra.
+  await page.getByRole("button", { name: "Abrir un ticket" }).click();
   await expect(page.getByRole("dialog", { name: "Nuevo ticket de soporte" })).toBeVisible();
 
   await page.getByLabel("Categoría").selectOption("cv_documentos");

@@ -55,7 +55,13 @@ export default function BottomNav() {
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome pb-[env(safe-area-inset-bottom)] md:hidden">
+    // `aria-label`: en la misma página vive también el `<nav>` del header, y
+    // sin nombre un lector de pantalla anuncia "navegación, navegación" sin
+    // forma de distinguirlas (auditoría de navegación, fase H).
+    <nav
+      aria-label="Secciones"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome pb-[env(safe-area-inset-bottom)] md:hidden"
+    >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
@@ -71,6 +77,10 @@ export default function BottomNav() {
             // candidatos, chat) sigue con push, así que ahí "atrás" funciona
             // como se espera.
             replace
+            // La pestaña activa se distinguía SÓLO por color: quien usa lector
+            // de pantalla no tenía forma de saber en qué sección está (fase H,
+            // mismo criterio que F4/jsx-a11y).
+            aria-current={active ? "page" : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
               active ? "text-primary-text" : "text-ink/40"
             }`}

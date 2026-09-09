@@ -6,6 +6,43 @@ import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
 
+/**
+ * Link del header de escritorio, con estado activo.
+ *
+ * Hasta la auditoría de navegación (fase H) los 14 links eran
+ * `hover:text-primary-text` a secas: en `md:` la barra inferior se oculta, así
+ * que ESTE es el único menú, y no marcaba de ninguna forma en qué sección
+ * estabas. En mobile "Inicio" se pinta de ámbar y en desktop los cinco links
+ * se veían idénticos — verificado en un render limpio a 1440px, no de memoria.
+ *
+ * `aria-current="page"` además de color: la marca no puede viajar sólo en el
+ * tinte (mismo criterio que F4/jsx-a11y en el resto de la app).
+ */
+function NavLink({
+  href,
+  children,
+  replace = true,
+}: {
+  href: string;
+  children: React.ReactNode;
+  replace?: boolean;
+}) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    <Link
+      href={href}
+      replace={replace}
+      aria-current={active ? "page" : undefined}
+      className={`hidden md:inline ${
+        active ? "font-semibold text-primary-text" : "hover:text-primary-text"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
   const pathname = usePathname();
@@ -24,59 +61,36 @@ export default function Navbar() {
         <Link href="/" aria-label="Inicio">
           <Logo />
         </Link>
-        <nav className="flex items-center gap-4 text-sm font-medium">
+        <nav aria-label="Principal" className="flex items-center gap-4 text-sm font-medium">
           {!loading && user?.role === "worker" && (
             <>
-              <Link href="/feed" replace className="hidden hover:text-primary-text md:inline">
-                Turnos
-              </Link>
-              <Link href="/map" replace className="hidden hover:text-primary-text md:inline">
-                Mapa
-              </Link>
-              <Link href="/my-shifts" replace className="hidden hover:text-primary-text md:inline">
-                Mis turnos
-              </Link>
-              <Link href="/chats" replace className="hidden hover:text-primary-text md:inline">
-                Mensajes
-              </Link>
-              <Link href="/profile" replace className="hidden hover:text-primary-text md:inline">
-                Mi perfil
-              </Link>
+              <NavLink href="/feed">Turnos</NavLink>
+              <NavLink href="/map">Mapa</NavLink>
+              <NavLink href="/my-shifts">Mis turnos</NavLink>
+              <NavLink href="/chats">Mensajes</NavLink>
+              <NavLink href="/profile">Mi perfil</NavLink>
             </>
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <Link href="/shifts" replace className="hidden hover:text-primary-text md:inline">
-                Mis turnos
-              </Link>
-              <Link href="/search" replace className="hidden hover:text-primary-text md:inline">
-                Buscar
-              </Link>
-              <Link href="/favorites" replace className="hidden hover:text-primary-text md:inline">
-                Favoritos
-              </Link>
-              <Link href="/chats" replace className="hidden hover:text-primary-text md:inline">
-                Mensajes
-              </Link>
-              <Link href="/subscription" replace className="hidden hover:text-primary-text md:inline">
-                Mi plan
-              </Link>
-              <Link href="/profile" replace className="hidden hover:text-primary-text md:inline">
-                Mi comercio
-              </Link>
+              <NavLink href="/shifts">Mis turnos</NavLink>
+              <NavLink href="/search">Buscar</NavLink>
+              <NavLink href="/favorites">Favoritos</NavLink>
+              <NavLink href="/chats">Mensajes</NavLink>
+              <NavLink href="/subscription">Mi plan</NavLink>
+              <NavLink href="/profile">Mi comercio</NavLink>
             </>
           )}
           {!loading && user?.role === "admin" && (
             <>
-              <Link href="/admin" className="hidden hover:text-primary-text md:inline">
-                Administración
-              </Link>
-              <Link href="/map" replace className="hidden hover:text-primary-text md:inline">
-                Mapa
-              </Link>
-              <Link href="/search" replace className="hidden hover:text-primary-text md:inline">
-                Buscar
-              </Link>
+              {/* `replace` como todos: era el ÚNICO link de sección sin él,
+                  aunque la barra inferior sí navega a `/admin` con replace.
+                  Con `push`, al admin el botón "atrás" le retrocedía pestaña
+                  por pestaña en vez de salir de la sección — el mismo síntoma
+                  que ya se había corregido en `BottomNav`. */}
+              <NavLink href="/admin">Administración</NavLink>
+              <NavLink href="/map">Mapa</NavLink>
+              <NavLink href="/search">Buscar</NavLink>
             </>
           )}
           {!loading && user && <NotificationBell />}

@@ -149,6 +149,60 @@ comercio** (batcheado, `names_by_user_ids`): sin eso el admin no puede hacer la
 única comprobación que importa — que la razón social del papel se corresponda
 con el comercio que lo mandó.
 
+**Mismo día, PR #335 — auditoría visual A–M, fases H e I (parcial).** Primera
+tanda del punto 5. El método cambió respecto de las pasadas anteriores y eso es
+lo que más rindió: en vez de auditar leyendo código, se **renderizaron las
+pantallas** (Playwright headless, 390px y 1440px, sesión mockeada por rol) y se
+miraron las capturas, con muestreo de píxel donde el color estaba en discusión.
+
+**Lo más importante que salió: el "marrón óxido" de Julieta era real.** Estaba
+anotado acá arriba como "sin confirmar, puede ser artefacto de la foto".
+Reproduce en headless. La causa no estaba en el gradiente —que es correcto—
+sino en un `bg-black/40` superpuesto que `ImageUpload` deja en `opacity-100`
+mientras no haya foto: el ámbar medido salía `rgb(125,66,3)`. Justo en el
+círculo de "Subir foto" del onboarding, que es el primer ámbar grande que ve
+alguien que recién entra. Ahora mide `rgb(198,101,8)` (el gradiente real). El
+velo negro se conserva sólo donde sirve —sobre una foto—, y el ícono blanco
+sobre el ámbar ya pasa AA de sobra para un glifo (3.19:1 y 5.05:1 contra el
+mínimo de 3:1).
+
+**Fase H (navegación), tres hallazgos:**
+- En `md:` la barra inferior se oculta, así que el header **es** el menú — y no
+  marcaba de ninguna forma en qué sección estabas. En mobile "Inicio" se pinta
+  de ámbar; en desktop los cinco links se veían idénticos. Ahora hay estado
+  activo con `aria-current`, no sólo color.
+- Los dos `<nav>` de la página no tenían nombre accesible: un lector anunciaba
+  "navegación, navegación". Ahora "Principal" y "Secciones".
+- `/admin` era el único link de sección sin `replace`, aunque la barra inferior
+  sí navega ahí con `replace` — al admin el botón "atrás" le retrocedía pestaña
+  por pestaña.
+
+**Fase I (pantallas sin auditar tras el rebrand), dos hallazgos:**
+- `/support` con la lista vacía mostraba **dos botones ámbar para la misma
+  acción** ("+ Nuevo" y "Abrir un ticket"), contra la ley de un solo acento por
+  pantalla. Queda el del estado vacío, que es el foco; el del encabezado
+  aparece cuando hay tickets.
+- `/chats` mostraba dos estados vacíos **contradictorios**: "Todavía no tenés
+  conversaciones" a la izquierda y "Elegí una conversación · Seleccioná un chat
+  de la lista" a la derecha — una instrucción imposible.
+
+**Queda abierto y anotado, no tocado:** los contenedores no usan una escala
+común (`/feed` cae en `max-w-5xl` alineado al header, `/support` en
+`md:max-w-4xl`, `/chats` en `max-w-6xl` a sangre), así que el contenido arranca
+en una columna distinta según la pantalla. Es real y visible, pero corregirlo
+ad hoc pantalla por pantalla es justamente lo que deja el problema; **eso es
+trabajo de la fase K**, que tiene que decidir una escala y aplicarla, no
+parchear tres casos.
+
+**Dos correcciones de método, para la próxima:** (1) las rutas de Playwright se
+resuelven en orden inverso, así que un `**/api/v1/**` catch-all registrado
+último pisa a `/auth/me` — la primera tanda de capturas salió con la barra de
+navegación del rol equivocado por eso, y casi se reporta como bug de la app;
+(2) un mock incompleto de `/admin/stats` tira la pantalla entera con
+`Cannot read properties of undefined (reading 'toFixed')` — el código sí
+protege `null`, lo que faltaba era la clave. Las dos veces el falso positivo se
+descartó mirando el error real, no suponiendo.
+
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
@@ -3263,14 +3317,19 @@ roadmap).
     lo que hay que agarrar en orden si no hay otra instrucción, y se declaró
     explícitamente cuáles secciones de este archivo se editan en el lugar y
     cuáles crecen hacia abajo — que es la contramedida concreta a P7-15.
-  - **Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
-    onboarding de comercio (`app/bienvenida/page.tsx`, paso "¿Cómo se llama tu
-    comercio?") se veía marrón/óxido en una captura de Julieta en vez de naranja
-    vivo — el código (`ImageUpload`, gradiente `from-primary to-primary-strong`) se
-    ve correcto en la lectura; puede ser un artefacto de la foto de la pantalla
-    (compresión/muaré), no confirmado con una segunda captura ni reproducido en
-    esta sesión. Pedirle a Julieta otra foto de ese paso específico antes de tocar
-    nada ahí.
+  - ~~**Sin confirmar, no tratar como bug**: el círculo de "Subir foto" en el
+    onboarding de comercio se veía marrón/óxido en una captura de Julieta~~ —
+    **CONFIRMADO Y RESUELTO (PR #335)**. No era un artefacto de la foto:
+    reproduce en un render headless limpio. Julieta tenía razón y la duda
+    costó dos semanas. Lo que estaba mal era mirar sólo el gradiente
+    (`from-primary to-primary-strong`, que efectivamente es correcto) sin
+    mirar lo que había ENCIMA: `ImageUpload` monta un `bg-black/40` a
+    `inset-0` que, sin foto cargada, queda en `opacity-100` permanente.
+    Medido en el render: el ámbar `#d97706` bajo ese velo sale
+    `rgb(125,66,3)`. **Lección de método, más que el bug**: leer el código no
+    alcanza para un problema de color — un elemento superpuesto no aparece
+    en la clase del elemento que uno está leyendo. Con una captura
+    automatizada y un muestreo de píxel se resolvía en minutos.
   - **Regla aprendida esta sesión, aplicar de acá en más**: antes de cambiar el
     relleno de un componente compartido (`bg-card`↔`bg-surface`), buscar TODOS sus
     usos (`grep -rn "<NombreComponente"`) y confirmar si cada uno vive anidado
@@ -3432,19 +3491,26 @@ roadmap).
    | D | Componentes base | ✅ #303 (contraste de formularios anidados), #317 (foco visible por sistema) |
    | E | Cards | ✅ #317 (radios medidos contra `09-hibrido-app.html`), #323 |
    | F | Botones/badges/estados | ✅ #302, #317 (glows tokenizados) |
-   | G | Íconos | 🟡 SVG ✅ (#316); PNG rasterizados ✅ hoy (#325) salvo `favicon.ico`; `og-image.png` ⬜ (hallazgo nuevo, ver ítem 2) |
-   | H | Navegación | ⬜ nunca tuvo pasada sistemática — sólo tocada de refilón en #318 (logo duplicado en el feed) |
-   | I | Pantallas | 🟡 comercio ✅ (#313) y trabajador ✅ (auditoría propia, ver "En vuelo ahora"); sin auditar tras el rebrand: `/bienvenida`, `/chats`, `/support`, `/admin` |
+   | G | Íconos | 🟡 SVG ✅ (#316); PNG rasterizados ✅ (#325) salvo `favicon.ico`; `og-image.png` ⬜ (ver ítem 2) |
+   | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
+   | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
-   | K | Responsive | ⬜ se hizo en el rediseño original, pero no se reverificó después del rebrand ni del cambio de radios (#317, que movió toda tarjeta 4-6px) |
+   | K | Responsive | ⬜ sin reverificar tras el rebrand ni el cambio de radios (#317). **Entra con una tarea concreta ya detectada en #335**: los contenedores no comparten escala (`max-w-5xl` / `md:max-w-4xl` / `max-w-6xl`), así que el contenido arranca en una columna distinta según la pantalla — decidir UNA escala, no parchear caso por caso |
    | L | Regresión vs. mockups | 🟡 parcial — #317 midió radios y comparó colores; no hubo pasada completa pantalla por pantalla contra `docs/design/mockups/` |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
-   Si no hay otra instrucción y se retoma esta auditoría, el orden que más
-   rinde es **H → I (las 4 pantallas sin auditar) → K → L → C**, en ese orden:
-   H y las pantallas sueltas son gaps de cobertura lisos y llanos; K y L
-   dependen de que G/pantallas ya estén cerrados para no auditar dos veces;
-   C es la de menor riesgo visible hoy.
+   **H e I quedaron cerradas en el PR #335** (ver "En vuelo ahora"). Si se
+   retoma, sigue **K → L → C**, en ese orden: K arranca con una tarea ya
+   identificada (unificar la escala de contenedores); L depende de que K esté
+   cerrada para no medir dos veces contra los mockups; C es la de menor riesgo
+   visible hoy.
+
+   **Y el método, que es lo que más rindió:** auditar *renderizando* las
+   pantallas (Playwright headless, 390px y 1440px, sesión mockeada por rol) y
+   mirando las capturas, con muestreo de píxel cuando el color está en
+   discusión. Leer el código no alcanza para un problema visual: el bug del
+   ámbar apagado vivía en un elemento SUPERPUESTO, invisible en la clase del
+   elemento que uno lee.
 6. ✅ ~~"Va en camino" sale sin el nombre del trabajador~~ — **resuelto
    (PR #330)**. Ahora dice "Juana Pérez va en camino" en vez del genérico.
    `ShiftResponse` gana `worker_name`, que se completa **sólo en

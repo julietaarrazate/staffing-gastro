@@ -150,8 +150,16 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
+      {/* Sin conversaciones el panel derecho queda VACÍO, no con su
+          placeholder. `page.tsx` dice "Elegí una conversación · Seleccioná un
+          chat de la lista", que al lado de un "Todavía no tenés
+          conversaciones" es una instrucción imposible: no hay lista de la cual
+          elegir. Eran dos estados vacíos contradictorios uno al lado del otro
+          — visible en el render a 1440px (auditoría fase I). El panel sólo
+          conoce su propia ruta, así que la decisión vive acá, que es donde se
+          sabe cuántas conversaciones hay. */}
       <div className={`min-w-0 flex-1 flex-col md:flex ${isIndex ? "hidden" : "flex"}`}>
-        {children}
+        {isIndex && !loading && !error && conversations.length === 0 ? null : children}
       </div>
     </div>
   );

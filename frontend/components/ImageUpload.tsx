@@ -81,11 +81,27 @@ export default function ImageUpload({
         {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100` el
             ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
             Con foto cargada se muestra una insignia de cámara permanente en la
-            esquina (patrón de perfil nativo); sin foto, el overlay va visible
-            de entrada porque ahí la acción es el punto de la pantalla. */}
+            esquina (patrón de perfil nativo); sin foto, el ícono va visible de
+            entrada porque ahí la acción es el punto de la pantalla.
+
+            SIN FOTO NO VA EL VELO NEGRO. El `bg-black/40` existe para que el
+            ícono blanco se lea sobre una foto cualquiera; sobre el gradiente
+            de marca no resuelve nada y arruina el color: medido en un render
+            limpio, el ámbar `#d97706` bajo 40% de negro sale `rgb(125,66,3)`
+            — un marrón óxido. Julieta lo reportó (2026-09-07) y quedó anotado
+            en STATUS.md como "sin confirmar, puede ser artefacto de la foto de
+            la pantalla": no lo era, reproduce en headless. Y pegaba justo
+            donde más importa, el círculo de "Subir foto" del onboarding, que
+            es el primer ámbar grande que ve alguien que recién entra.
+            El blanco sobre el gradiente ya pasa AA para un ícono: 3.19:1 en
+            el extremo `#d97706` y 5.05:1 en `#b45309` (el mínimo es 3:1). */}
         <span
-          className={`absolute inset-0 flex items-center justify-center bg-black/40 text-white transition ${
-            uploading || !value ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          className={`absolute inset-0 flex items-center justify-center text-white transition ${
+            uploading
+              ? "bg-black/40 opacity-100"
+              : value
+                ? "bg-black/40 opacity-0 group-hover:opacity-100"
+                : "opacity-100"
           }`}
         >
           {uploading ? (
