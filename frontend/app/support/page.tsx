@@ -82,6 +82,8 @@ export default function SupportPage() {
     }
   }
 
+  const showEmptyState = !loading && !error && tickets.length === 0;
+
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-4xl">
       <div className="flex items-center justify-between gap-2">
@@ -91,15 +93,24 @@ export default function SupportPage() {
             ¿Algún problema con la app? Contanos y te respondemos por acá.
           </p>
         </div>
-        <Button size="sm" onClick={() => setShowNew(true)}>
-          <PlusIcon size={16} /> Nuevo
-        </Button>
+        {/* Con la lista vacía este botón NO va: el estado vacío ya trae su
+            propio "Abrir un ticket", así que quedaban dos CTA ámbar para la
+            misma acción en la misma pantalla — contra la ley de marca de un
+            solo acento por pantalla (ADR-0011), y redundante para el usuario.
+            Se queda el del estado vacío, que es el foco de la pantalla; el del
+            encabezado aparece recién cuando hay tickets y el foco pasa a la
+            lista. Verificado en un render a 1440px (auditoría fase I). */}
+        {!showEmptyState && (
+          <Button size="sm" onClick={() => setShowNew(true)}>
+            <PlusIcon size={16} /> Nuevo
+          </Button>
+        )}
       </div>
 
       {loading && <div className="mt-5"><CardSkeletons /></div>}
       {error && <div className="mt-5"><ErrorBanner message={error} onRetry={load} /></div>}
 
-      {!loading && !error && tickets.length === 0 && (
+      {showEmptyState && (
         <div className="mt-5">
           <EmptyState
             icon={<MessageIcon size={28} />}
