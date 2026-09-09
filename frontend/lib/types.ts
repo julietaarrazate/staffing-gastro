@@ -126,6 +126,11 @@ export interface Shift {
   /** Sólo llega en `/shifts/me` (el panel del propio comercio): el backend no
    *  lo manda en el feed ni en `/shifts/mine`, que los leen trabajadores. */
   worker_name?: string | null;
+  /** Pago de referencia (ADR-0012): dónde cae el pago por hora de este turno
+   *  respecto de lo típico para ese puesto en esa ciudad. `null` cuando no
+   *  hay con qué comparar (muestra insuficiente, sin ciudad) — ahí no se
+   *  muestra nada, nunca se inventa una referencia. */
+  pay_band?: "por_encima" | "tipico" | "por_debajo" | null;
   // ADR-0011: claim `negocio_verificado` del dueño del comercio. Sin flujo
   // de envío/revisión de evidencias de negocio todavía, así que hoy es
   // `false` para todos — el campo ya está listo para cuando exista.

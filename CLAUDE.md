@@ -173,7 +173,8 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 - **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
   0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
-  mapa · 0007 no-show/cancelación tardía manual.
+  mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
+  (el "match" del mapa y el aviso de pago fuera de mercado al comercio).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
@@ -236,10 +237,18 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
-- **Mapa con el pago en el pin** (#319): el marcador lleva el monto y el rubro
-  es un punto de color, como la maqueta aprobada. Pendiente de la fase: el
-  estado "match" necesita un score de compatibilidad que el turno todavía no
-  trae del backend.
+- **Mapa con el pago en el pin** (#319) y **pago de referencia** (#332,
+  ADR-0012): el marcador lleva el monto, el rubro es un punto de color, y el
+  turno que **paga por encima de lo típico** para su puesto y ciudad se
+  distingue — ése es el estado "match", ya cerrado. El mismo cálculo tiene una
+  segunda cara: en el panel del comercio, un turno que paga por debajo de lo
+  habitual se lo dice mientras todavía puede corregirlo (la causa más común de
+  que un turno no se cubra). La referencia es la mediana del pago **por hora**
+  (los turnos duran distinto) de los turnos publicados en los últimos 60 días;
+  sin muestra suficiente no se muestra nada — nunca se inventa un número. Si
+  tocás esto, leé el ADR antes: explica por qué NO se usa el motor de matching
+  (el 70% de sus factores no varía entre turnos, así que ordenaría por
+  distancia disfrazada de compatibilidad).
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito.

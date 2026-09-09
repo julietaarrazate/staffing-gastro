@@ -19,6 +19,13 @@ from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.application.scheduler_signal import notify_scheduler
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.pay_benchmark import (
+    BENCHMARK_WINDOW_DAYS,
+    PayBand,
+    build_benchmark,
+    classify,
+    hourly_rate,
+)
 from app.modules.shift.domain.exceptions import (
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
@@ -912,6 +919,43 @@ class ShiftService:
             limit=limit,
             offset=offset,
         )
+
+    async def pay_bands(self, shifts: list[Shift]) -> dict[UUID, PayBand]:
+        """Banda de pago de cada turno contra la referencia del mercado
+        (ADR-0012): por encima / típico / por debajo de lo que se paga por
+        hora para ese puesto en esa ciudad.
+
+        Un turno queda FUERA del resultado cuando no hay con qué compararlo
+        —muestra insuficiente, sin ciudad, o duración inconsistente— y eso es
+        lo normal al arrancar, no un error: quien llama no muestra nada. Es
+        preferible a inventar una referencia, que engañaría a las dos partes.
+
+        UNA sola consulta para toda la página, sin importar cuántas
+        combinaciones de puesto/ciudad aparezcan: el costo no crece con la
+        variedad del feed (hay un test que lo fija).
+        """
+        pairs = {
+            (shift.position, shift.city.lower()) for shift in shifts if shift.city
+        }
+        if not pairs:
+            return {}
+
+        since = datetime.now(timezone.utc) - timedelta(days=BENCHMARK_WINDOW_DAYS)
+        samples = await self._shifts.hourly_pay_samples(sorted(pairs), since=_naive(since))
+        benchmarks = {key: build_benchmark(rates) for key, rates in samples.items()}
+
+        bands: dict[UUID, PayBand] = {}
+        for shift in shifts:
+            if not shift.city:
+                continue
+            benchmark = benchmarks.get((shift.position, shift.city.lower()))
+            if benchmark is None:
+                continue
+            rate = hourly_rate(shift.pay_amount, shift.start_at, shift.end_at)
+            if rate is None:
+                continue
+            bands[shift.id] = classify(rate, benchmark)
+        return bands
 
     async def _get_owned(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._shifts.get_by_id(shift_id)

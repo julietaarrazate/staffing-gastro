@@ -23,6 +23,10 @@ export interface ShiftPointProps {
    * hay cerca y cuánto paga: con el ícono solo, esa respuesta costaba un toque
    * por pin. Ver `ShiftMarker`. */
   payAmount: string | number;
+  /** `true` si el turno paga por encima de lo típico para su puesto y ciudad
+   *  (ADR-0012). Es el estado "match" del marcador, que quedó declarado y
+   *  vacío en el #319 esperando este dato. */
+  isMatch: boolean;
 }
 
 type ShiftWithCoords = Shift & { latitude: number; longitude: number };
@@ -51,6 +55,7 @@ export function buildShiftClusterIndex(
         urgent: s.urgent,
         position: s.position,
         payAmount: s.pay_amount,
+        isMatch: s.pay_band === "por_encima",
       },
       geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
     }));

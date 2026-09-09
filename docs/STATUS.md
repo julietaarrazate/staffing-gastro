@@ -5,9 +5,9 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-09 (**el ítem 8, "Starlette/FastAPI con CVEs",
-resultó estar resuelto desde el PR #274: se había promovido a pendiente sin
-verificarlo — PR #331. Antes: "va en camino" con nombre en el #330**).*
+*Última actualización: 2026-09-09 (**el mapa cierra su fase 2: el pin "match"
+ahora marca el turno que paga por encima de lo típico, y el mismo cálculo le
+dice al comercio por qué el suyo no se cubre — PR #332, ADR-0012**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -62,6 +62,18 @@ sale únicamente en `/shifts/me` (la lista del propio comercio), no en el feed
 ni en `/shifts/mine`, que los lee cualquier trabajador — el nombre de quien
 tomó un turno no es asunto de los demás. Con un test por cada mitad. Detalle en
 "Qué sigue" abajo, punto 6.
+
+**Mismo día, PR #332 — el pago de referencia (ADR-0012), un cálculo con dos
+caras.** Cierra el estado "match" del pin, que estaba declarado y vacío desde
+el #319. Lo importante no fue construirlo sino descartar el camino obvio: el
+motor de matching que ya existe responde *"¿qué tan bueno es este trabajador
+para este turno?"*, y el 70% de su peso son atributos del trabajador que no
+cambian entre un pin y otro — usarlo habría marcado *el turno más cercano* con
+cara de compatibilidad. Lo que sí varía y decide es el pago, normalizado **por
+hora** (los turnos duran distinto), con mediana en vez de promedio, muestra
+mínima y ventana de 60 días. Y la mitad que lo vuelve útil para las dos partes:
+el mismo número le dice al comercio que su turno paga por debajo de lo habitual
+mientras todavía puede corregirlo. Detalle en "Qué sigue" abajo, punto 4.
 
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
@@ -3300,9 +3312,27 @@ roadmap).
    Pendiente enteramente de ella; el detalle está en `DNDA_CHECKLIST_FINAL.md`.
    No mergear sin su revisión: acá el criterio de "mergear apenas verde" no
    aplica.
-4. 🟢 **Rediseño del mapa, fase 2** — el estado "match" del pin necesita un
-   score de compatibilidad que el turno todavía no trae del backend. Es la
-   continuación natural del #319.
+4. ✅ ~~Rediseño del mapa, fase 2 (estado "match" del pin)~~ — **resuelto
+   (PR #332, ADR-0012)**. El pin marca el turno que **paga por encima de lo
+   típico** para su puesto y ciudad, y el mismo cálculo le dice al comercio
+   que su turno paga por debajo — que es la causa más común de que no se
+   cubra y que hasta ahora no tenía forma de saber.
+   **Lo que se descartó, porque es la trampa de este ítem:** reusar el motor
+   de matching existente habría dado un badge que miente. Sus pesos son
+   distancia 0.30, reputación 0.25, experiencia 0.15, puntualidad 0.15,
+   desempeño 0.15 — y los últimos cuatro (el **70%**) son atributos del
+   trabajador, idénticos para todos los pines de su mapa. Sólo la distancia
+   varía por turno, así que "match" habría sido *el más cercano con disfraz
+   de compatibilidad*, y dos trabajadores de perfiles opuestos verían el
+   mismo orden. El skill tampoco servía: el feed ya filtra por los rubros
+   elegidos, así que en `/map` casi todo lo visible ya matchea.
+   Regla útil que queda de esto: **antes de construir un score, verificar que
+   sus factores varíen entre las opciones que el usuario compara**. Un factor
+   constante no ordena nada, sólo desplaza.
+   Quedó afuera la fiabilidad del comercio por el mismo criterio:
+   `payments_recorded` arranca en 0 y en la beta casi nadie tiene historial,
+   así que hoy sería constante para todos. Entra cuando haya datos, sin
+   cambiar la forma de la respuesta.
 5. 🟡 **Auditoría sistémica de consistencia visual, fases A–M — parcial.**
    Brief original: AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR sobre 13 fases.
    Estado real por fase, verificado contra los PRs (no de memoria):

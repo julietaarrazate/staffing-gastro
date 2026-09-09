@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from app.modules.shift.domain.entities import Shift
@@ -129,6 +131,31 @@ class ShiftRepository(ABC):
         decidir —comparando `published_at` en Python, mismo criterio que el
         resto de los chequeos del scheduler— si ya toca escalar la urgencia
         (`ShiftService.escalate_urgency`)."""
+
+    @abstractmethod
+    async def hourly_pay_samples(
+        self, pairs: Sequence[tuple[WorkerSkill, str]], *, since: datetime
+    ) -> dict[tuple[WorkerSkill, str], list[Decimal]]:
+        """Pagos POR HORA de los turnos ya publicados desde `since`, agrupados
+        por (puesto, ciudad) — la muestra del pago de referencia (ADR-0012).
+
+        Recibe TODAS las combinaciones de una página y devuelve todas juntas,
+        en UNA consulta: si fuera una por combinación, un feed con turnos de
+        seis barrios distintos dispararía seis consultas y el costo crecería
+        con la variedad de la página. Es la misma disciplina que `list_by_ids`
+        (P3, docs/audits/PERFORMANCE_REPORT.md), y hay un test que la fija.
+
+        Devuelve pagos por hora ya normalizados, no montos de turno: los
+        turnos duran distinto y comparar el pago de uno de 4 horas contra uno
+        de 8 no compara nada.
+
+        La ciudad se compara sin distinguir mayúsculas; las claves del
+        resultado vienen con la ciudad en minúsculas.
+
+        Se excluyen los BORRADOR a propósito: un borrador no es una oferta
+        del mercado, es una idea a medio escribir. Un turno cancelado sí
+        cuenta — se publicó a ese precio, y eso es lo que mide la referencia.
+        """
 
     @abstractmethod
     async def count_publication_stats(self) -> ShiftPublicationStats:
