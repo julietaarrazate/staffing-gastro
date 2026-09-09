@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.modules.shift.domain.pay_benchmark import PayBand
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -98,6 +99,12 @@ class ShiftResponse(BaseModel):
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
+    # Pago de referencia (ADR-0012): dónde cae el pago por hora de este turno
+    # respecto de lo que se paga para el mismo puesto en la misma ciudad.
+    # `None` cuando no hay con qué comparar (muestra insuficiente, sin ciudad)
+    # — que es lo normal al arrancar. La UI no muestra nada en ese caso: una
+    # referencia inventada engañaría al trabajador Y al comercio.
+    pay_band: PayBand | None = None
     # Nombre del trabajador asignado. Se completa SÓLO en `/shifts/me` (los
     # turnos del propio comercio): es un dato de una persona, y el feed y
     # `/shifts/mine` los leen otros trabajadores, que no tienen por qué ver

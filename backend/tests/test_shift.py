@@ -812,12 +812,18 @@ async def test_feed_resolves_company_info_in_constant_queries(
     # comercio distinto) además de la del propio feed y la de auth. Ahora:
     # 1 query de auth (`/auth/me` vía token) + 1 de feed + 1 de
     # `list_by_ids` + 1 de `verified_business_user_ids` (ADR-0011, batcheada
-    # igual que `list_by_ids` — no una por comercio) = 4, constante sin
-    # importar cuántos comercios distintos haya en la página. Se deja margen
-    # (<=5) para no acoplar el test a un detalle interno de la dependencia
-    # de auth.
-    assert counter["n"] <= 5, (
-        f"se esperaban <=5 queries (constante, no una por comercio distinto), "
+    # igual que `list_by_ids` — no una por comercio) + 1 de
+    # `hourly_pay_samples` (ADR-0012, el pago de referencia: también
+    # batcheada, UNA para todas las combinaciones de puesto/ciudad de la
+    # página) = 5, constante sin importar cuántos comercios distintos haya.
+    # Se deja margen (<=6) para no acoplar el test a un detalle interno de la
+    # dependencia de auth.
+    #
+    # Lo que este test protege NO es el número sino que sea CONSTANTE: acá
+    # hay 6 comercios en 6 ciudades distintas, así que cualquier resolución
+    # "una por comercio" o "una por combinación" daría >=11 y rompería.
+    assert counter["n"] <= 6, (
+        f"se esperaban <=6 queries (constante, no una por comercio distinto), "
         f"se hicieron {counter['n']}"
     )
 

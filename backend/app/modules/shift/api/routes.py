@@ -122,6 +122,21 @@ async def _with_company_info(
     return responses
 
 
+async def _with_pay_band(
+    shifts: list[Shift], responses: list[ShiftResponse], service: ShiftService
+) -> list[ShiftResponse]:
+    """Anota la banda de pago (ADR-0012) sobre respuestas ya armadas.
+
+    Va acá y no dentro de `_with_company_info` porque el panel del comercio
+    (`/shifts/me`) no pasa por ese helper y necesita la banda igual — es
+    justamente para quien publica el turno, que hoy no tiene forma de saber
+    que su pago está fuera de mercado."""
+    bands = await service.pay_bands(shifts)
+    for response in responses:
+        response.pay_band = bands.get(response.id)
+    return responses
+
+
 def _bad_request(detail: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
@@ -226,7 +241,8 @@ async def feed(
         limit=limit,
         offset=offset,
     )
-    return await _with_company_info(shifts, companies, verification)
+    responses = await _with_company_info(shifts, companies, verification)
+    return await _with_pay_band(shifts, responses, service)
 
 
 @router.get(
@@ -256,7 +272,7 @@ async def my_shifts(
         if shift.worker_profile_id:
             response.worker_name = names.get(shift.worker_profile_id)
         responses.append(response)
-    return responses
+    return await _with_pay_band(shifts, responses, service)
 
 
 @router.get(

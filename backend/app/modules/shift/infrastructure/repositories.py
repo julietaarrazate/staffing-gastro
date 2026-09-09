@@ -1,12 +1,15 @@
 """Adaptador SQLAlchemy del ShiftRepository."""
 
 from collections.abc import Sequence
+from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.pay_benchmark import hourly_rate
 from app.modules.shift.domain.repositories import ShiftPublicationStats, ShiftRepository
 from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
 from app.modules.shift.infrastructure.models import ShiftModel
@@ -208,6 +211,54 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def hourly_pay_samples(
+        self, pairs: Sequence[tuple[WorkerSkill, str]], *, since: datetime
+    ) -> dict[tuple[WorkerSkill, str], list[Decimal]]:
+        if not pairs:
+            return {}
+        # UNA consulta para todas las combinaciones de la página, con un OR de
+        # ANDs en vez de una consulta por par. Se usa esta forma y no un
+        # `tuple_(...).in_(...)` porque los row values no se comportan igual en
+        # todos los dialectos, y acá conviven SQLite (tests) y Postgres (prod).
+        conditions = [
+            (ShiftModel.position == position) & (func.lower(ShiftModel.city) == city)
+            for position, city in pairs
+        ]
+        stmt = (
+            select(
+                ShiftModel.position,
+                func.lower(ShiftModel.city),
+                ShiftModel.pay_amount,
+                ShiftModel.start_at,
+                ShiftModel.end_at,
+            )
+            .where(
+                or_(*conditions),
+                ShiftModel.status != ShiftStatus.BORRADOR,
+                ShiftModel.created_at >= since,
+            )
+            .order_by(ShiftModel.created_at.desc())
+            # Tope global, mismo criterio que `list_recently_filled`: una
+            # referencia de mercado no mejora por leer decenas de miles de
+            # filas. Con la ventana de 60 días y el filtro por puesto/ciudad
+            # esto sobra; si algún día una combinación sola superara el tope,
+            # habría que pasar a una consulta por grupo con ventana.
+            .limit(2000)
+        )
+        result = await self._session.execute(stmt)
+
+        samples: dict[tuple[WorkerSkill, str], list[Decimal]] = {}
+        for position, city, pay, start, end in result.all():
+            # La normalización a pago por hora vive en el dominio y se llama
+            # desde acá en vez de reescribirla en SQL: la resta de fechas es
+            # dialecto-específica y duplicarla dejaría la misma regla en dos
+            # lugares que pueden divergir.
+            rate = hourly_rate(pay, start, end)
+            if rate is None:
+                continue
+            samples.setdefault((position, city), []).append(rate)
+        return samples
 
     async def count_publication_stats(self) -> ShiftPublicationStats:
         # Una sola query con SUM/CASE (mismo patrón que
