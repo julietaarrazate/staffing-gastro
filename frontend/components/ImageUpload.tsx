@@ -78,39 +78,36 @@ export default function ImageUpload({
         ) : (
           fallbackLabel.charAt(0).toUpperCase()
         )}
-        {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100` el
-            ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
-            Con foto cargada se muestra una insignia de cámara permanente en la
-            esquina (patrón de perfil nativo); sin foto, el ícono va visible de
-            entrada porque ahí la acción es el punto de la pantalla.
+        {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100`
+            el ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
+            La solución es la INSIGNIA DE ESQUINA (más abajo), que va siempre
+            visible haya foto o no — patrón de perfil nativo.
 
-            SIN FOTO NO VA EL VELO NEGRO. El `bg-black/40` existe para que el
-            ícono blanco se lea sobre una foto cualquiera; sobre el gradiente
-            de marca no resuelve nada y arruina el color: medido en un render
-            limpio, el ámbar `#d97706` bajo 40% de negro sale `rgb(125,66,3)`
-            — un marrón óxido. Julieta lo reportó (2026-09-07) y quedó anotado
-            en STATUS.md como "sin confirmar, puede ser artefacto de la foto de
-            la pantalla": no lo era, reproduce en headless. Y pegaba justo
-            donde más importa, el círculo de "Subir foto" del onboarding, que
-            es el primer ámbar grande que ve alguien que recién entra.
-            El blanco sobre el gradiente ya pasa AA para un ícono: 3.19:1 en
-            el extremo `#d97706` y 5.05:1 en `#b45309` (el mínimo es 3:1). */}
-        <span
-          className={`absolute inset-0 flex items-center justify-center text-white transition ${
-            uploading
-              ? "bg-black/40 opacity-100"
-              : value
-                ? "bg-black/40 opacity-0 group-hover:opacity-100"
-                : "opacity-100"
-          }`}
-        >
-          {uploading ? (
+            Antes, sin foto, se dibujaba el ícono de cámara centrado a
+            `inset-0`... ENCIMA de la inicial. Los dos glifos se pisaban y el
+            resultado no se leía ni como inicial ni como cámara: en el perfil
+            del trabajador, el círculo ámbar mostraba una mancha blanca en vez
+            de la "J" de Julieta. Se vio comparando contra el mockup aprobado
+            (`docs/design/mockups/09-hibrido-app.html`), donde el avatar
+            muestra a la persona (fase L de la auditoría visual). Existía en
+            las cuatro pantallas que usan este componente.
+
+            El velo negro queda SÓLO mientras sube: ahí sí cumple su función
+            —que el spinner blanco se lea sobre una foto cualquiera— y no tapa
+            ninguna identidad, porque la acción está en curso. Sobre el
+            gradiente de marca no resuelve nada y arruina el color: medido en
+            un render limpio, el ámbar `#d97706` bajo 40% de negro sale
+            `rgb(125,66,3)`, un marrón óxido (corregido en el #335). */}
+        {uploading && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <CameraIcon size={avatar ? 18 : 22} />
-          )}
-        </span>
-        {value && !uploading && (
+          </span>
+        )}
+        {/* Siempre visible mientras no esté subiendo — con foto y sin foto.
+            Antes sólo aparecía CON foto, y el caso sin foto se resolvía con el
+            ícono centrado que pisaba la inicial. Una sola forma de decir "esto
+            se toca", en los dos estados. */}
+        {!uploading && (
           <span
             className={`absolute bottom-0 right-0 flex items-center justify-center rounded-full bg-night text-white ring-2 ring-white ${
               avatar ? "h-6 w-6" : "h-7 w-7"

@@ -235,6 +235,54 @@ suponiendo): la splash de marca tapa la pantalla y hay que saltearla
 caen en estado de error y no tienen contenedor; y medir apenas carga da falsos
 negativos porque algunas montan primero un esqueleto.
 
+**Mismo día, PR #337 — fase L: la pasada contra los mockups aprobados.**
+
+**Lo primero que hubo que establecer es el criterio, porque comparar de más
+habría generado hallazgos falsos en cada pantalla.** Los mockups
+(`docs/design/mockups/09-hibrido-app.html`, la referencia principal) son de
+ANTES del rebrand: su acento es `#F94E1B`, un naranja rojizo, y la app shipeó
+`#d97706` ámbar en el #315. Comparadas token por token, **10 de las 11
+familias coinciden exactamente** —arena `#f5ecdd`, tinta `#1f1f1c`, línea
+`#ebe2d4`, manteca `#f1e7a0` y su tinte, cielo `#cfe4ff`/`#e8f1ff`/`#1c4b87`,
+éxito `#2e8b57`, night `#191410`—; la única que divergió es el naranja, a
+propósito. Conclusión que queda escrita: **los mockups son referencia de
+estructura y de receta de color (dónde va manteca, dónde cielo, dónde el
+módulo oscuro), no de qué hex es el acento.** Para eso manda
+`COLOR_SYSTEM.md`, como ya decía `CLAUDE.md`.
+
+**El defecto que salió, y es de los que se ven todo el tiempo:** en el mockup
+el avatar muestra a la persona. Lo que shipeaba era una **mancha**: sin foto,
+el ícono de cámara se dibujaba centrado a `inset-0` **encima de la inicial**,
+y los dos glifos se pisaban. En el perfil del trabajador, el círculo ámbar
+mostraba algo ilegible en vez de la "J" de Julieta. Estaba en las **cuatro**
+pantallas que usan `ImageUpload` (perfil, onboarding de trabajador, onboarding
+de comercio, formulario del comercio).
+
+El arreglo no agrega un patrón nuevo: usa el que el componente **ya tenía**
+para el caso con foto —la insignia de cámara en la esquina— y lo aplica a los
+dos estados. El velo negro queda sólo mientras sube, que es donde de verdad
+sirve. Con test (`ImageUpload.test.tsx`), verificado a mano que falla si se
+reintroduce.
+
+**Nota honesta de proceso:** este defecto no lo creó el #335, pero el #335 lo
+hizo visible — al sacar el velo negro que apagaba el ámbar, los dos glifos
+quedaron nítidos y encimados en vez de hundidos en un marrón. Una corrección
+que destapa la siguiente es el resultado normal de auditar mirando.
+
+**Lo que NO se tocó, a propósito, y necesita el ojo de Julieta.** La tarjeta
+de turno pinta el encabezado con un gradiente por rubro
+(`lib/skill-style.tsx`), y eso **lo pidió ella** (2026-08-16, tras ver los tres
+colores de la landing): no es deriva y no se cambia solo. Pero el docstring de
+ese mismo mapa declara que *"toda la escala vive en la paleta cálida de la
+marca (naranja / terracota / ámbar / verde bosque / piedra)"*, y medido no es
+así: la familia cálida vive en **hue 12–38** (el ámbar de marca está en 32) y
+`bartender` usa `red-600 → red-900`, **hue 0** — un rojo puro que al lado del
+ámbar se lee como estado de error, no como rubro. Los verdes de `cajero` y
+`personal_eventos` son hue-adyacentes al verde bosque `#2e8b57` (146) pero más
+brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
+inconsistencia real entre el código y su propio comentario, **pero elegir el
+reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
+
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
@@ -3533,14 +3581,17 @@ roadmap).
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
    | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. Queda pendiente el resto de K: reverificar breakpoints intermedios tras el rebrand y el cambio de radios (#317) |
-   | L | Regresión vs. mockups | 🟡 parcial — #317 midió radios y comparó colores; no hubo pasada completa pantalla por pantalla contra `docs/design/mockups/` |
+   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). Falta la pasada de las pantallas de detalle |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
-   **H e I quedaron cerradas en el #335, y la mitad de K en el #336** (ver
-   "En vuelo ahora"). Si se retoma, sigue **el resto de K → L → C**: de K
-   falta reverificar los breakpoints intermedios (tablet) tras el rebrand y el
-   cambio de radios; L depende de que K esté cerrada para no medir dos veces
-   contra los mockups; C es la de menor riesgo visible hoy.
+   **H e I quedaron cerradas en el #335, la mitad de K en el #336 y la pasada
+   principal de L en el #337** (ver "En vuelo ahora"). Si se retoma, queda
+   **el resto de K** (breakpoints intermedios/tablet tras el rebrand y el
+   cambio de radios), **el resto de L** (las pantallas de detalle, que no
+   tienen maqueta propia) y **C**, la de menor riesgo visible hoy.
+
+   **Y una decisión pendiente de Julieta, del #337:** el color por rubro de la
+   tarjeta de turno (`lib/skill-style.tsx`) — ver el detalle abajo.
 
    **Y el método, que es lo que más rindió:** auditar *renderizando* las
    pantallas (Playwright headless, 390px y 1440px, sesión mockeada por rol) y
