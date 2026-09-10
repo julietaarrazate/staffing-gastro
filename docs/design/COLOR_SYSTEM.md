@@ -307,6 +307,26 @@ serio: un escalón chico de luminancia más una hairline, no una sombra.
 toasts, los botones oscuros y los marcadores del mapa, que sí deben verse
 iguales en los dos modos.
 
+### La escala de elevación en oscuro: cuatro escalones, no dos
+
+En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar): la da
+la **luminancia**. Hasta 2026-09-10 `--color-card` valía `#191410`,
+**exactamente el mismo color que el lienzo** — una tarjeta que tiene el color
+del fondo no es una tarjeta, se sostenía sólo con la hairline, y un formulario
+largo se leía como una única mancha negra (Julieta: *"el segundo bloque negro
+es todo muy negro"*). El primer bloque del perfil "se veía" nada más que porque
+tiene adentro un módulo de foco elevado.
+
+| Escalón | Oscuro | Qué es |
+|---|---|---|
+| lienzo | `#191410` | el fondo de la app |
+| `--color-card` | `#221d19` | la tarjeta, despegada del lienzo |
+| `--color-surface` | `#292420` | lo que va DENTRO de una tarjeta (inputs, chips) |
+| `--color-focus` | `#3d3630` | el módulo de foco (ganancias, pago del turno) |
+
+En claro esto no hace falta: la tarjeta es blanca sobre crema y la sombra suave
+alcanza.
+
 ### Corolario para cualquier color de estado
 
 Un color que sólo existe en la escala cruda de Tailwind **no tiene modo
@@ -317,6 +337,16 @@ es **crema al 50% sobre casi blanco**: texto invisible. Reemplazado por
 superficies del sistema (`bg-surface`, que sí voltea sus tokens) y por los
 pares auto-contenidos manteca/cielo, que están calculados para leerse en los
 dos modos.
+
+Lo mismo vale para un neutro definido como **ausencia** de color: funciona
+sobre un lienzo claro y se muere sobre uno oscuro. El chip "Cancelaciones" del
+perfil era `bg-surface text-ink/60` — en claro, arena cálida con identidad; en
+oscuro, `#292420` sobre `#221d19`, gris sobre gris, con el ícono lavado
+(Julieta: *"el ícono del medio pierde el color"*). Pasa a petróleo
+(`trust`), la tercera tinta que la paleta ya declara: es la única que encaja
+por significado —cancelaciones es un dato de **fiabilidad**, la familia de "lo
+que se puede constatar"— y su par tint/text sí está redefinido para oscuro.
+Los tres tiles quedan con tres acentos distintos: manteca, petróleo, celeste.
 
 ## 4. Fondo ink: cuándo sí
 

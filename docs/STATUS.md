@@ -3756,6 +3756,31 @@ roadmap).
    Verificado muestreando píxeles: los chips dan el mismo valor en claro y en
    oscuro, a propósito.
 
+   **Quinta pasada, sobre el render en oscuro que devolvió Julieta.** Dos
+   observaciones suyas, las dos correctas y las dos con causa estructural:
+
+   - *"El ícono del medio pierde el color."* El chip de "Cancelaciones" era
+     `bg-surface text-ink/60`. En claro, `bg-surface` es la arena cálida y el
+     ícono se leía sobre un chip con identidad; en oscuro es `#292420` sobre
+     una tarjeta oscura — gris sobre gris, ícono lavado. **Un neutro definido
+     como AUSENCIA de color funciona sobre un lienzo claro y se muere sobre
+     uno oscuro.** Pasa a petróleo (`trust`), la tercera tinta que la paleta
+     ya declara y la única que encaja por significado (cancelaciones es un
+     dato de **fiabilidad**, la familia de "lo que se puede constatar"), con
+     su par tint/text sí redefinido para oscuro. Los tres tiles quedan con
+     tres acentos distintos: manteca, petróleo, celeste.
+   - *"El segundo bloque negro es todo muy negro."* La causa no era la falta
+     de acentos: **`--color-card` valía `#191410`, exactamente el mismo color
+     que el lienzo.** Una tarjeta que tiene el color del fondo no es una
+     tarjeta — se sostenía sólo con la hairline, así que el formulario largo
+     del perfil se leía como una mancha negra única. El primer bloque "se
+     veía" nada más que porque tiene adentro un módulo de foco elevado.
+     En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar):
+     la da la **luminancia**. Queda una escala de cuatro escalones —lienzo
+     `#191410` → card `#221d19` → surface `#292420` → focus `#3d3630`—
+     documentada en `COLOR_SYSTEM.md`. En claro no se toca nada: ahí la
+     tarjeta es blanca sobre crema y la sombra suave alcanza.
+
    **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
    `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía
    el rojo (verde = éxito/confirmado en `STATUS_COLORS`); se dejan como están

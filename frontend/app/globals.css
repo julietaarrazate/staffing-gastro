@@ -368,11 +368,29 @@
  * funciona suelta sobre el lienzo, sin depender de dónde se use. */
 :root[data-theme="dark"] {
   color-scheme: dark;
+
+  /* ESCALA DE ELEVACIÓN EN OSCURO — cuatro escalones, no dos.
+     Julieta, mirando el perfil en oscuro: "el segundo bloque negro es todo
+     muy negro, puede [tener] el concepto del primer bloque donde están los
+     acentos". La causa medida no era la falta de acentos: era que
+     `--color-card` valía #191410, EXACTAMENTE el mismo color que el lienzo.
+     Una tarjeta que tiene el color del fondo no es una tarjeta — se sostenía
+     sólo con la hairline, así que un formulario largo se leía como una única
+     mancha negra. El primer bloque del perfil "se veía" nada más que porque
+     tiene adentro un módulo de foco elevado.
+
+     En oscuro la jerarquía no la da la sombra (no hay luz que proyectar): la
+     da la LUMINANCIA. Cada escalón sube:
+
+       lienzo   #191410   el fondo de la app
+       card     #221d19   la tarjeta, ahora sí despegada del lienzo
+       surface  #292420   lo que va DENTRO de una tarjeta (inputs, chips)
+       focus    #3d3630   el módulo de foco (ganancias, pago del turno)
+
+     En claro esto no hace falta y no se toca: ahí la tarjeta es blanca sobre
+     crema y la sombra suave alcanza. */
+  --color-card: #221d19;
   --color-surface: #292420;
-  --color-card: #191410;
-  /* Ver la nota de `--color-focus` arriba: en oscuro el foco ELEVA. Este tono
-     está un escalón por encima de `--color-surface` para que el módulo se
-     separe también de una tarjeta, no sólo del lienzo. */
   --color-focus: #3d3630;
   --color-focus-ink: #fff8f0;
 }

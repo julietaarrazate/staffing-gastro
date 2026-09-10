@@ -26,20 +26,33 @@ import {
   XCircleIcon,
 } from "@/components/icons";
 
-// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): manteca
-// para el dato operativo, celeste para lo que acumula confianza, y una queda
-// neutra a propósito — no todas las tiles llevan color. Ícono sobre `bg-card`
-// (blanco en claro, carbón en oscuro): antes usaban `bg-surface`, que en el
-// mockup "Híbrido"/"Contraste" es la tarjeta ELEVADA, no el tinte de fondo.
+// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): un color
+// por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
+// un color... otra tarjeta con ícono celeste... para que no todo parezca un
+// bloque beige").
+//
+// LA DEL MEDIO YA NO ES NEUTRA (2026-09-10). Era `bg-surface text-ink/60`, y
+// Julieta lo cazó mirando el modo oscuro: "el ícono del medio pierde el
+// color". Tenía razón y el motivo es estructural, no de gusto — en claro
+// `bg-surface` es la arena cálida y el ícono se leía sobre un chip con
+// identidad; en oscuro `bg-surface` es #292420 sobre una tarjeta #191410, o
+// sea gris sobre gris, y el ícono quedaba lavado. Un "neutro" definido como
+// AUSENCIA de color funciona sobre un lienzo claro y se muere sobre uno
+// oscuro.
+//
+// Petróleo (`trust`) es la tercera tinta que la paleta ya declara (ADR-0011) y
+// la única que encaja por significado: cancelaciones/no-shows es un dato de
+// FIABILIDAD, la misma familia de "lo que se puede constatar". Además su par
+// tint/text sí está redefinido para oscuro, así que sobrevive a los dos modos.
 const TILE_MANTECA = "bg-manteca-tint text-manteca-text";
 const TILE_CIELO = "bg-cielo-tint text-cielo-text";
-const TILE_NEUTRAL = "bg-surface text-ink/60";
+const TILE_TRUST = "bg-trust-tint text-trust-text";
 
 function StatTile({
   icon,
   value,
   label,
-  accent = TILE_NEUTRAL,
+  accent = TILE_TRUST,
 }: {
   icon: React.ReactNode;
   value: string;
@@ -181,10 +194,9 @@ export default function WorkerGameCard() {
         />
       </div>
 
-      {/* Stats: manteca en el dato operativo (turnos), celeste en lo que
-          acumula confianza (experiencia) — mismo criterio que StatsStrip/el
-          bento de la landing. Cancelaciones queda neutra a propósito: no es
-          un logro que destacar. */}
+      {/* Stats, un acento por tile y los tres distintos: manteca en el dato
+          operativo (turnos), petróleo en el de fiabilidad (cancelaciones),
+          celeste en lo que acumula confianza (experiencia). */}
       <div className="grid grid-cols-3 gap-2.5 p-4">
         <StatTile
           icon={<BriefcaseIcon size={16} />}
@@ -196,6 +208,7 @@ export default function WorkerGameCard() {
           icon={<XCircleIcon size={16} />}
           value={String(profile.cancellations)}
           label="Cancelaciones"
+          accent={TILE_TRUST}
         />
         <StatTile
           icon={<CheckCircleIcon size={16} />}
