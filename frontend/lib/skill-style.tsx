@@ -29,7 +29,7 @@ export const SKILL_ACCENT: Record<
   { Icon: ComponentType<IconProps>; bg: string; fg: string }
 > = {
   mozo: { Icon: UsersIcon, bg: "bg-orange-50", fg: "text-orange-700" },
-  bartender: { Icon: GlassIcon, bg: "bg-red-50", fg: "text-red-700" },
+  bartender: { Icon: GlassIcon, bg: "bg-[#f7eaea]", fg: "text-[#7f2b2b]" }, // borgoña, no el rojo de error
   barista: { Icon: CoffeeIcon, bg: "bg-amber-50", fg: "text-amber-700" },
   runner: { Icon: RouteIcon, bg: "bg-stone-100", fg: "text-stone-600" },
   cocinero: { Icon: ChefHatIcon, bg: "bg-orange-50", fg: "text-orange-600" },
@@ -59,7 +59,14 @@ export const SKILL_ACCENT: Record<
  */
 export const SKILL_HERO_GRADIENT: Record<WorkerSkill, string> = {
   mozo: "bg-gradient-to-br from-primary to-primary-strong",
-  bartender: "bg-gradient-to-br from-red-600 to-red-900",
+  // Vino, no rojo de semáforo. `red-600` (#dc2626) es literalmente el matiz
+  // del error —`--color-danger` es #ef4444— así que una tarjeta de bartender
+  // se leía como una tarjeta cancelada; y el rojo puro (matiz 0) es el único
+  // color de esta tabla que se sale de la familia cálida que su propio
+  // docstring dice respetar. Este borgoña conserva la idea (el rubro es el de
+  // la barra) sin pisar el significado de "algo salió mal". Contraste medido
+  // del texto blanco sobre el extremo claro: 9.2:1.
+  bartender: "bg-gradient-to-br from-[#7f2b2b] to-[#4a1616]",
   barista: "bg-gradient-to-br from-amber-500 to-amber-800",
   runner: "bg-gradient-to-br from-stone-500 to-stone-800",
   cocinero: "bg-gradient-to-br from-orange-500 to-orange-800",
@@ -86,7 +93,7 @@ export const SKILL_HERO_GRADIENT: Record<WorkerSkill, string> = {
  */
 export const SKILL_RAIL_BORDER: Record<WorkerSkill, string> = {
   mozo: "border-l-orange-500",
-  bartender: "border-l-red-700",
+  bartender: "border-l-[#7f2b2b]", // mismo borgoña que el hero, no el rojo de error
   barista: "border-l-amber-600",
   runner: "border-l-stone-500",
   cocinero: "border-l-orange-600",

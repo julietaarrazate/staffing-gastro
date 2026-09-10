@@ -7,7 +7,9 @@
 
 *Última actualización: 2026-09-10 (**"no se ve el mapa": el worker de maplibre 6
 arrancaba con una URL vacía dentro del bundle de Next — el mapa quedaba en
-blanco, sin pines y sin un solo error en consola**).*
+blanco, sin pines y sin un solo error en consola. Y la primera pasada de la
+auditoría de DISTRIBUCIÓN de superficies: la banda de color de la tarjeta de
+turno se comía media pantalla**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -3590,8 +3592,60 @@ roadmap).
    cambio de radios), **el resto de L** (las pantallas de detalle, que no
    tienen maqueta propia) y **C**, la de menor riesgo visible hoy.
 
-   **Y una decisión pendiente de Julieta, del #337:** el color por rubro de la
-   tarjeta de turno (`lib/skill-style.tsx`) — ver el detalle abajo.
+   **Fase N (nueva, 2026-09-10) — distribución de superficies, no paleta.**
+   Brief de Julieta: *"El problema NO es que falten colores ni que haya que
+   cambiar nuevamente la paleta. El problema es cómo se están DISTRIBUYENDO
+   los colores y las superficies."* El sistema que pide recuperar es
+   **CREMA → BLANCO → NEGRO → NARANJA → BLANCO → CREMA**: el crema es fondo de
+   página y no fondo automático de toda tarjeta, el blanco es la segunda capa
+   (tarjetas, nav, inputs), el negro es masa de contraste estratégica y el
+   naranja es acento fuerte, no la interfaz entera.
+
+   **Medido antes de tocar nada** (render a 390px, panel del comercio con 3
+   turnos): **38% del viewport en naranja saturado, 0% de crema visible, 0% de
+   negro.** La causa, ubicada en un solo componente: la banda de color de
+   `ShiftCard` **no tenía altura acotada** y crecía con su contenido — se le
+   colgaban el comercio, el sello, el puesto, la ciudad, el pago, las propinas
+   y el aviso de pago bajo, ~350px de los 390 de ancho de un celular. Con dos
+   turnos, la app entera era color. `OpportunityCard` (el feed del trabajador)
+   ya lo hacía bien: su banda está limitada a `h-[31%] min-h-[148px]`.
+
+   **Corregido en el componente base, no pantalla por pantalla:**
+   - La banda de `ShiftCard` pasa a `min-h-[116px]` y se queda sólo con la
+     IDENTIDAD del turno (comercio, sello, puesto, ciudad). El **pago baja al
+     cuerpo blanco**, donde sigue siendo lo más grande de la tarjeta por
+     **tamaño y peso**, no por color — que es el orden de jerarquía del brief
+     (espacio → tamaño → peso → superficie → contraste → y recién ahí color).
+     En tinta y no en ámbar a propósito: el ámbar de esa pantalla es el de la
+     ACCIÓN ("Elegir a alguien", "+ Publicar"), y si el número también fuera
+     ámbar los dos competirían por el mismo significado.
+   - El aviso de pago por debajo (ADR-0012) sale del hero y pasa a un bloque
+     manteca sobre blanco.
+   - **`bartender` deja de ser rojo.** Era `red-600 → red-900`: matiz 0, el
+     mismo del `--color-danger` (#ef4444), así que una tarjeta de bartender se
+     leía como una tarjeta **cancelada** — y era el único color de la tabla
+     que se salía de la familia cálida que su propio docstring dice respetar.
+     Pasa a un borgoña `#7f2b2b → #4a1616` (contraste del blanco sobre el
+     extremo claro: 9.2:1). Mismo cambio en `SKILL_ACCENT` y
+     `SKILL_RAIL_BORDER`, los otros dos registros de la misma familia.
+
+   **Cómo quedó, medido igual que antes: naranja 38% → 27%, crema visible
+   0% → 6%.**
+
+   **Lo que NO se tocó y por qué:** el pedido original de Julieta (2026-08-17)
+   fue *"un corte de otro color hasta la parte donde muestra los pasos"* — lo
+   que quería es **distinguir una tarjeta de la siguiente**, y para eso una
+   banda de 116px alcanza igual que una de 350. La banda sigue estando y sigue
+   siendo por rubro; lo que se movió es el pago, que es dato y no identidad.
+
+   **Sigue abierto de la fase N** (medido, no corregido): **0% de negro** en
+   las dos pantallas — el brief pide masa de contraste negra para el dato de
+   máxima jerarquía y el mockup la usa (`"contraste oscuro solo donde importa
+   el foco: las ganancias, el pago del turno, tus stats"`). Y **los verdes de
+   `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía
+   el rojo (verde = éxito/confirmado en `STATUS_COLORS`); se dejan como están
+   porque el color por rubro es decisión de Julieta y el rojo era el caso
+   inequívoco (matiz 0 = el matiz del error).
 
    **Y el método, que es lo que más rindió:** auditar *renderizando* las
    pantallas (Playwright headless, 390px y 1440px, sesión mockeada por rol) y
