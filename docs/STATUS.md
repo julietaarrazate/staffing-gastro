@@ -3708,6 +3708,54 @@ roadmap).
    compartido, se usa en toda la app) y la tarjeta "Garantía Oído" en manteca,
    que compite un poco con el negro de abajo pero es contenido de confianza.
 
+   **Cuarta pasada: el juego de color, y qué pasa en los 3 modos.** Julieta
+   mandó el mockup con la regla explícita: *"en una tarjeta negra hay un ícono
+   en un color, el número en blanco y otros datos en manteca; después una
+   tarjeta blanca con ícono manteca, otra con ícono celeste y números en
+   negro — ese es el juego para que no todo parezca un bloque beige"*. Y pidió
+   verificarlo **en los tres modos**.
+
+   Renderizando el perfil del trabajador en claro y en oscuro y muestreando
+   píxeles salieron **tres defectos reales**, ninguno de gusto:
+
+   1. **El módulo de foco desaparecía por completo en oscuro.** Medido: el
+      bloque de ganancias daba `#191410` sobre un lienzo `#191410` — contraste
+      **1.00 : 1**, literalmente el mismo color. En claro ese mismo bloque da
+      **18.28 : 1**. El usuario en oscuro veía un bloque de datos flotando sin
+      caja. Lo mismo el hero del perfil (1.12 : 1).
+      **La lección, y por eso va a `COLOR_SYSTEM.md` §3.bis:** el negro
+      funciona como foco porque está **lejos** del lienzo, no porque sea
+      negro. En un lienzo oscuro el foco no se consigue oscureciendo sino
+      **elevando**. Token nuevo `--color-focus`/`--color-focus-ink`: `#191410`
+      en claro, `#3d3630` en oscuro (**1.54 : 1**, un escalón de elevación más
+      la hairline). `--color-night` **no se toca**: sigue siendo el negro fijo
+      de toasts, botones y marcadores, que sí deben verse igual en los dos
+      modos.
+   2. **La tarjeta de nivel estaba fuera del sistema.** `LEVEL_META` usaba
+      `zinc-100`/`zinc-600`/`amber-50`/`yellow-50`: colores crudos de la escala
+      de Tailwind, contra la regla del repo de que todo fondo pasa por tokens.
+      Dos consecuencias: el `zinc` es un gris **frío** en una identidad toda
+      cálida, y —peor— **ninguno de esos colores existe para el modo oscuro**,
+      así que la tarjeta seguía siendo `zinc-100` clara sobre el lienzo
+      oscuro. Medido: `rgb(244,244,245)` idéntica en los dos modos.
+   3. **Texto invisible, consecuencia del anterior.** El subtítulo "Según tu
+      desempeño…" usaba `text-ink/50`, y en oscuro `--color-ink` es crema — o
+      sea crema al 50% sobre un fondo casi blanco. Se veía en la captura y no
+      en el código.
+
+   Corregido con el juego que pidió Julieta, y con una idea que el juego
+   habilita: **el acento se gana**. Bronce arranca neutro (arena del sistema),
+   plata suma celeste, oro suma manteca — que **es** el dorado de esta paleta,
+   así que "oro" no necesita un amarillo importado. El `dot` va aparte del
+   resto a propósito: vive en el hero oscuro, así que necesita el tono CLARO
+   del par mientras el texto necesita el oscuro. Mismo color, dos roles.
+
+   Los pares manteca/cielo se eligieron porque son **auto-contenidos**: no
+   cambian entre modos porque están calculados para leerse en los dos
+   (manteca-text sobre manteca-tint 6.08 · cielo-text sobre cielo-tint 7.67).
+   Verificado muestreando píxeles: los chips dan el mismo valor en claro y en
+   oscuro, a propósito.
+
    **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
    `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía
    el rojo (verde = éxito/confirmado en `STATUS_COLORS`); se dejan como están

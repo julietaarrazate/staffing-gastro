@@ -279,6 +279,45 @@ cambian con el modo, y acá invertiría el contraste.
 
 ---
 
+## 3.bis El módulo de foco: el negro no es un color, es una distancia
+
+*Agregado 2026-09-10, auditoría de distribución de superficies.*
+
+El bloque oscuro que lleva el dato de máxima jerarquía (las ganancias del
+perfil, el pago del turno) **no debe usar `--color-night`**: usa
+`--color-focus` / `--color-focus-ink`.
+
+La razón es medible, no estética. El negro funciona como foco porque está
+**lejos** del lienzo, no porque sea negro. Muestreando píxeles de un render
+real del perfil:
+
+| Modo | Bloque de foco | Lienzo | Contraste |
+|---|---|---|---|
+| Claro | `#191410` | `#ffffff` | **18.28 : 1** |
+| Oscuro (antes) | `#191410` | `#191410` | **1.00 : 1** |
+| Oscuro (ahora) | `#3d3630` | `#191410` | **1.54 : 1** |
+
+En oscuro el módulo tenía **exactamente el mismo color que el fondo**: el
+usuario veía un bloque de datos flotando sin caja. En un lienzo oscuro el foco
+no se consigue oscureciendo sino **elevando**, así que `--color-focus` sube en
+vez de bajar. Es la misma lógica de elevación de cualquier sistema oscuro
+serio: un escalón chico de luminancia más una hairline, no una sombra.
+
+`--color-night` **se queda como está**: sigue siendo el negro fijo de los
+toasts, los botones oscuros y los marcadores del mapa, que sí deben verse
+iguales en los dos modos.
+
+### Corolario para cualquier color de estado
+
+Un color que sólo existe en la escala cruda de Tailwind **no tiene modo
+oscuro**. `LEVEL_META` (niveles del trabajador) usaba `zinc-100`/`zinc-600`:
+gris FRÍO en una identidad toda cálida, y —peor— la tarjeta seguía siendo
+clara sobre el lienzo oscuro, con el subtítulo en `text-ink/50`, que en oscuro
+es **crema al 50% sobre casi blanco**: texto invisible. Reemplazado por
+superficies del sistema (`bg-surface`, que sí voltea sus tokens) y por los
+pares auto-contenidos manteca/cielo, que están calculados para leerse en los
+dos modos.
+
 ## 4. Fondo ink: cuándo sí
 
 El ink `#111111` como **fondo** se usa sólo en **momentos de marca**:
