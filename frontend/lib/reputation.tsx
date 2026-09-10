@@ -60,9 +60,33 @@ export const LEVEL_META: Record<
   string,
   { order: number; dot: string; text: string; bg: string; ring: string }
 > = {
-  bronce: { order: 1, dot: "bg-amber-600", text: "text-amber-700", bg: "bg-amber-50", ring: "ring-amber-200" },
-  plata: { order: 2, dot: "bg-zinc-400", text: "text-zinc-600", bg: "bg-zinc-100", ring: "ring-zinc-200" },
-  oro: { order: 3, dot: "bg-yellow-500", text: "text-yellow-700", bg: "bg-yellow-50", ring: "ring-yellow-200" },
+  // El acento se GANA: bronce arranca neutro (arena del sistema) y el color
+  // aparece al subir de nivel — celeste en plata, manteca en oro. Manteca ES
+  // el dorado de esta paleta, así que "oro" no necesita un amarillo importado.
+  //
+  // Antes esto era `zinc-100`/`zinc-600`/`amber-50`/`yellow-50`: colores
+  // crudos de la escala de Tailwind, contra la regla de "todos los fondos
+  // pasan por tokens de globals.css". Dos consecuencias medidas en un render
+  // real (auditoría 2026-09-10):
+  //   1. El `zinc` es un gris FRÍO en una identidad que es toda cálida — la
+  //      tarjeta de nivel se leía como de otra app.
+  //   2. Peor: ninguno de esos colores existe para el modo oscuro, así que la
+  //      tarjeta seguía siendo `zinc-100` CLARA sobre el lienzo oscuro, con el
+  //      subtítulo en `text-ink/50` — y en oscuro `--color-ink` es crema, así
+  //      que era crema al 50% sobre un fondo casi blanco: **texto invisible**.
+  //      Medido: la tarjeta daba `rgb(244,244,245)` idéntica en los dos modos.
+  //
+  // `bg-surface` sí está en la lista de superficies que voltean sus tokens en
+  // oscuro (ver globals.css), y los pares manteca/cielo son auto-contenidos:
+  // no cambian entre modos porque están calculados para leerse en los dos
+  // (manteca-text sobre manteca-tint 6.08 · cielo-text sobre cielo-tint 7.67).
+  //
+  // `dot` va aparte del resto a propósito: vive en el HERO OSCURO de
+  // `WorkerGameCard`, no en la tarjeta clara, así que necesita el tono CLARO
+  // del par mientras `text` necesita el oscuro. Mismo color, dos roles.
+  bronce: { order: 1, dot: "bg-white/60", text: "text-ink/70", bg: "bg-surface", ring: "ring-line" },
+  plata: { order: 2, dot: "bg-cielo", text: "text-cielo-text", bg: "bg-cielo-tint", ring: "ring-cielo" },
+  oro: { order: 3, dot: "bg-manteca", text: "text-manteca-text", bg: "bg-manteca-tint", ring: "ring-manteca" },
   platino: { order: 4, dot: "bg-slate-400", text: "text-slate-600", bg: "bg-slate-100", ring: "ring-slate-200" },
 };
 

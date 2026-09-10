@@ -135,11 +135,11 @@ export default async function PublicShiftPage({
               app (Julieta, 2026-09: "si una tarjeta es todo negra necesita
               que adentro los iconos, el texto y los datos estén con colores
               para contrastar"). */}
-          <div className="mt-5 rounded-2xl bg-night px-4 py-4 text-center">
+          <div className="mt-5 rounded-2xl bg-focus px-4 py-4 text-center">
             <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-night">
               <WalletIcon size={18} />
             </span>
-            <p className="font-display text-price font-extrabold tracking-tight text-white">
+            <p className="font-display text-price font-extrabold tracking-tight text-focus-ink">
               <span className="text-lg text-primary">{shift.currency}</span>{" "}
               {Number(shift.pay_amount).toLocaleString("es-AR")}
             </p>

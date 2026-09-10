@@ -501,7 +501,12 @@ test("buscar_turnos: el trabajador pide un turno por zona/radio/fecha y el asist
     .fill("búscame un turno en palermo a menos de 2 kilómetros para hoy tanto para mozo barista y cajero");
   await page.getByRole("button", { name: "Completar" }).click();
 
-  expect(requestBody).not.toBeNull();
+  // `expect.poll` y no un `expect` seco: `requestBody` lo escribe el handler
+  // de `page.route`, que corre de forma ASÍNCRONA cuando el pedido sale. Con
+  // la máquina cargada, la aserción llegaba antes que el handler y el test
+  // fallaba con el botón todavía en "Cargando…" — una carrera del test, no de
+  // la app. `poll` espera a que el pedido efectivamente haya salido.
+  await expect.poll(() => requestBody).not.toBeNull();
   await expect(page.getByText(/Mozo\/a, Barista, Cajero\/a en Palermo/)).toBeVisible();
   const verTurnos = page.getByRole("button", { name: "Ver turnos" });
   await expect(verTurnos).toBeVisible();

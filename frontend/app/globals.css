@@ -189,6 +189,25 @@
      integra pero conserva su borde. */
   --color-night: #191410;
 
+  /* MÓDULO DE FOCO — la masa de contraste que dice "esto es lo importante"
+     (las ganancias del perfil, el pago del turno). Es un token propio y no
+     `--color-night` por una razón medida, no estética (auditoría 2026-09-10):
+     el negro es un dispositivo de foco y su fuerza es RELATIVA al lienzo.
+     Muestreando píxeles de un render real del perfil:
+
+       modo claro:  bloque #191410 sobre lienzo #ffffff  ->  18.28:1
+       modo oscuro: bloque #191410 sobre lienzo #191410  ->   1.00:1
+
+     O sea: en oscuro el módulo de foco tenía EXACTAMENTE el mismo color que
+     el fondo y desaparecía por completo — el usuario veía un bloque de datos
+     flotando sin caja. En un lienzo oscuro el foco no se consigue oscureciendo
+     sino ELEVANDO, así que en oscuro este token sube en vez de bajar.
+     `--color-night` se queda como estaba: sigue siendo el negro fijo de los
+     toasts, botones y marcadores de mapa, que sí deben ser iguales en los dos
+     modos. */
+  --color-focus: #191410;
+  --color-focus-ink: #ffffff;
+
   /* Segunda y tercera tinta (ADR-0011) — roles que NO se solapan, ninguna
      reemplaza al naranja como acento interactivo (sigue siendo el único). */
   /* Estructura y momentos de marca (fondos de sección, heroes de onboarding).
@@ -349,14 +368,38 @@
  * funciona suelta sobre el lienzo, sin depender de dónde se use. */
 :root[data-theme="dark"] {
   color-scheme: dark;
+
+  /* ESCALA DE ELEVACIÓN EN OSCURO — cuatro escalones, no dos.
+     Julieta, mirando el perfil en oscuro: "el segundo bloque negro es todo
+     muy negro, puede [tener] el concepto del primer bloque donde están los
+     acentos". La causa medida no era la falta de acentos: era que
+     `--color-card` valía #191410, EXACTAMENTE el mismo color que el lienzo.
+     Una tarjeta que tiene el color del fondo no es una tarjeta — se sostenía
+     sólo con la hairline, así que un formulario largo se leía como una única
+     mancha negra. El primer bloque del perfil "se veía" nada más que porque
+     tiene adentro un módulo de foco elevado.
+
+     En oscuro la jerarquía no la da la sombra (no hay luz que proyectar): la
+     da la LUMINANCIA. Cada escalón sube:
+
+       lienzo   #191410   el fondo de la app
+       card     #221d19   la tarjeta, ahora sí despegada del lienzo
+       surface  #292420   lo que va DENTRO de una tarjeta (inputs, chips)
+       focus    #3d3630   el módulo de foco (ganancias, pago del turno)
+
+     En claro esto no hace falta y no se toca: ahí la tarjeta es blanca sobre
+     crema y la sombra suave alcanza. */
+  --color-card: #221d19;
   --color-surface: #292420;
-  --color-card: #191410;
+  --color-focus: #3d3630;
+  --color-focus-ink: #fff8f0;
 }
 
 /* Texto/borde/-text semánticos: sólo invierten DENTRO de una tarjeta (ver nota
    arriba) — nunca sueltos sobre el lienzo crema. */
 :root[data-theme="dark"] .bg-card,
 :root[data-theme="dark"] .bg-surface,
+:root[data-theme="dark"] .bg-focus,
 :root[data-theme="dark"] .bg-night {
   --color-ink: #fff8f0;
   --color-line: rgba(255, 248, 240, 0.1);

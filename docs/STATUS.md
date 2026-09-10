@@ -5,9 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-09 (**el mapa cierra su fase 2: el pin "match"
-ahora marca el turno que paga por encima de lo típico, y el mismo cálculo le
-dice al comercio por qué el suyo no se cubre — PR #332, ADR-0012**).*
+*Última actualización: 2026-09-10 (**"no se ve el mapa": el worker de maplibre 6
+arrancaba con una URL vacía dentro del bundle de Next — el mapa quedaba en
+blanco, sin pines y sin un solo error en consola. Y la primera pasada de la
+auditoría de DISTRIBUCIÓN de superficies: la banda de color de la tarjeta de
+turno se comía media pantalla**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -234,6 +236,54 @@ suponiendo): la splash de marca tapa la pantalla y hay que saltearla
 (`skipSplash`, que ya existía); sin un catch-all de la API algunas pantallas
 caen en estado de error y no tienen contenedor; y medir apenas carga da falsos
 negativos porque algunas montan primero un esqueleto.
+
+**Mismo día, PR #337 — fase L: la pasada contra los mockups aprobados.**
+
+**Lo primero que hubo que establecer es el criterio, porque comparar de más
+habría generado hallazgos falsos en cada pantalla.** Los mockups
+(`docs/design/mockups/09-hibrido-app.html`, la referencia principal) son de
+ANTES del rebrand: su acento es `#F94E1B`, un naranja rojizo, y la app shipeó
+`#d97706` ámbar en el #315. Comparadas token por token, **10 de las 11
+familias coinciden exactamente** —arena `#f5ecdd`, tinta `#1f1f1c`, línea
+`#ebe2d4`, manteca `#f1e7a0` y su tinte, cielo `#cfe4ff`/`#e8f1ff`/`#1c4b87`,
+éxito `#2e8b57`, night `#191410`—; la única que divergió es el naranja, a
+propósito. Conclusión que queda escrita: **los mockups son referencia de
+estructura y de receta de color (dónde va manteca, dónde cielo, dónde el
+módulo oscuro), no de qué hex es el acento.** Para eso manda
+`COLOR_SYSTEM.md`, como ya decía `CLAUDE.md`.
+
+**El defecto que salió, y es de los que se ven todo el tiempo:** en el mockup
+el avatar muestra a la persona. Lo que shipeaba era una **mancha**: sin foto,
+el ícono de cámara se dibujaba centrado a `inset-0` **encima de la inicial**,
+y los dos glifos se pisaban. En el perfil del trabajador, el círculo ámbar
+mostraba algo ilegible en vez de la "J" de Julieta. Estaba en las **cuatro**
+pantallas que usan `ImageUpload` (perfil, onboarding de trabajador, onboarding
+de comercio, formulario del comercio).
+
+El arreglo no agrega un patrón nuevo: usa el que el componente **ya tenía**
+para el caso con foto —la insignia de cámara en la esquina— y lo aplica a los
+dos estados. El velo negro queda sólo mientras sube, que es donde de verdad
+sirve. Con test (`ImageUpload.test.tsx`), verificado a mano que falla si se
+reintroduce.
+
+**Nota honesta de proceso:** este defecto no lo creó el #335, pero el #335 lo
+hizo visible — al sacar el velo negro que apagaba el ámbar, los dos glifos
+quedaron nítidos y encimados en vez de hundidos en un marrón. Una corrección
+que destapa la siguiente es el resultado normal de auditar mirando.
+
+**Lo que NO se tocó, a propósito, y necesita el ojo de Julieta.** La tarjeta
+de turno pinta el encabezado con un gradiente por rubro
+(`lib/skill-style.tsx`), y eso **lo pidió ella** (2026-08-16, tras ver los tres
+colores de la landing): no es deriva y no se cambia solo. Pero el docstring de
+ese mismo mapa declara que *"toda la escala vive en la paleta cálida de la
+marca (naranja / terracota / ámbar / verde bosque / piedra)"*, y medido no es
+así: la familia cálida vive en **hue 12–38** (el ámbar de marca está en 32) y
+`bartender` usa `red-600 → red-900`, **hue 0** — un rojo puro que al lado del
+ámbar se lee como estado de error, no como rubro. Los verdes de `cajero` y
+`personal_eventos` son hue-adyacentes al verde bosque `#2e8b57` (146) pero más
+brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
+inconsistencia real entre el código y su propio comentario, **pero elegir el
+reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
 ### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
 
@@ -3533,14 +3583,209 @@ roadmap).
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
    | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. Queda pendiente el resto de K: reverificar breakpoints intermedios tras el rebrand y el cambio de radios (#317) |
-   | L | Regresión vs. mockups | 🟡 parcial — #317 midió radios y comparó colores; no hubo pasada completa pantalla por pantalla contra `docs/design/mockups/` |
+   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). Falta la pasada de las pantallas de detalle |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
-   **H e I quedaron cerradas en el #335, y la mitad de K en el #336** (ver
-   "En vuelo ahora"). Si se retoma, sigue **el resto de K → L → C**: de K
-   falta reverificar los breakpoints intermedios (tablet) tras el rebrand y el
-   cambio de radios; L depende de que K esté cerrada para no medir dos veces
-   contra los mockups; C es la de menor riesgo visible hoy.
+   **H e I quedaron cerradas en el #335, la mitad de K en el #336 y la pasada
+   principal de L en el #337** (ver "En vuelo ahora"). Si se retoma, queda
+   **el resto de K** (breakpoints intermedios/tablet tras el rebrand y el
+   cambio de radios), **el resto de L** (las pantallas de detalle, que no
+   tienen maqueta propia) y **C**, la de menor riesgo visible hoy.
+
+   **Fase N (nueva, 2026-09-10) — distribución de superficies, no paleta.**
+   Brief de Julieta: *"El problema NO es que falten colores ni que haya que
+   cambiar nuevamente la paleta. El problema es cómo se están DISTRIBUYENDO
+   los colores y las superficies."* El sistema que pide recuperar es
+   **CREMA → BLANCO → NEGRO → NARANJA → BLANCO → CREMA**: el crema es fondo de
+   página y no fondo automático de toda tarjeta, el blanco es la segunda capa
+   (tarjetas, nav, inputs), el negro es masa de contraste estratégica y el
+   naranja es acento fuerte, no la interfaz entera.
+
+   **Medido antes de tocar nada** (render a 390px, panel del comercio con 3
+   turnos): **38% del viewport en naranja saturado, 0% de crema visible, 0% de
+   negro.** La causa, ubicada en un solo componente: la banda de color de
+   `ShiftCard` **no tenía altura acotada** y crecía con su contenido — se le
+   colgaban el comercio, el sello, el puesto, la ciudad, el pago, las propinas
+   y el aviso de pago bajo, ~350px de los 390 de ancho de un celular. Con dos
+   turnos, la app entera era color. `OpportunityCard` (el feed del trabajador)
+   ya lo hacía bien: su banda está limitada a `h-[31%] min-h-[148px]`.
+
+   **Corregido en el componente base, no pantalla por pantalla:**
+   - La banda de `ShiftCard` pasa a `min-h-[116px]` y se queda sólo con la
+     IDENTIDAD del turno (comercio, sello, puesto, ciudad). El **pago baja al
+     cuerpo blanco**, donde sigue siendo lo más grande de la tarjeta por
+     **tamaño y peso**, no por color — que es el orden de jerarquía del brief
+     (espacio → tamaño → peso → superficie → contraste → y recién ahí color).
+     En tinta y no en ámbar a propósito: el ámbar de esa pantalla es el de la
+     ACCIÓN ("Elegir a alguien", "+ Publicar"), y si el número también fuera
+     ámbar los dos competirían por el mismo significado.
+   - El aviso de pago por debajo (ADR-0012) sale del hero y pasa a un bloque
+     manteca sobre blanco.
+   - **`bartender` deja de ser rojo.** Era `red-600 → red-900`: matiz 0, el
+     mismo del `--color-danger` (#ef4444), así que una tarjeta de bartender se
+     leía como una tarjeta **cancelada** — y era el único color de la tabla
+     que se salía de la familia cálida que su propio docstring dice respetar.
+     Pasa a un borgoña `#7f2b2b → #4a1616` (contraste del blanco sobre el
+     extremo claro: 9.2:1). Mismo cambio en `SKILL_ACCENT` y
+     `SKILL_RAIL_BORDER`, los otros dos registros de la misma familia.
+
+   **Cómo quedó, medido igual que antes: naranja 38% → 27%, crema visible
+   0% → 6%.**
+
+   **Lo que NO se tocó y por qué:** el pedido original de Julieta (2026-08-17)
+   fue *"un corte de otro color hasta la parte donde muestra los pasos"* — lo
+   que quería es **distinguir una tarjeta de la siguiente**, y para eso una
+   banda de 116px alcanza igual que una de 350. La banda sigue estando y sigue
+   siendo por rubro; lo que se movió es el pago, que es dato y no identidad.
+
+   **Segunda pasada de la fase N: el feed del trabajador** (`OpportunityCard`).
+   La primera medición decía 40% de naranja acá también, y **era un artefacto
+   de la medición, no un hallazgo**: se había renderizado a 390×1400 (más alto
+   que cualquier celular) y además se contaban las dos tarjetas apiladas del
+   mazo. A **390×844**, que es un celular de verdad, la banda de la tarjeta de
+   arriba ocupa **17,5%** del viewport — una proporción sana para un hero. Acá
+   no había problema de superficie. Se deja escrito porque el error de método
+   es el interesante: *medir a un alto que no existe infla todo lo que se mide
+   como porcentaje del viewport*.
+
+   Lo que sí apareció mirando el render a alto real fueron **dos defectos, y
+   ninguno es de color**:
+   - **La marca de agua del rubro le caía encima al título.** El ícono de
+     relleno iba centrado a 120px y al **90%** de blanco: eso no es una marca
+     de agua, es un elemento que compite — y como el título del turno se apoya
+     abajo del hero, el glifo se cruzaba con "Mozo/a" y lo dejaba ilegible.
+     `ShiftCard` ya lo tenía bien resuelto (esquina, 132px, **15%**), así que
+     el fix es unificar con el tratamiento que ya existía. Es el mismo defecto
+     que la inicial y la cámara pisándose en el avatar (fase L): **dos cosas
+     dibujadas en el mismo lugar porque cada una se posicionó por su cuenta.**
+   - **~250px de blanco muerto en el medio de la tarjeta.** El cuerpo era
+     `justify-between` sobre TODO el contenido, así que el sobrante se abría
+     entre el pago y las fechas, con el pago arriba de todo y la fecha pegada
+     al botón. Pasa a `justify-start` con `mt-auto` sólo en la acción: el aire
+     queda **antes del botón**, donde se lee como respiro, y no partiendo al
+     medio el contenido, que es lo que lo hacía ver como un error de layout.
+
+   **Tercera pasada: dónde va la masa negra.** Julieta preguntó dónde
+   convenía, y la respuesta salió de mirar el código: **el negro NO faltaba en
+   la app**. `/turno/[id]` ya tiene el pago en bloque negro y el perfil del
+   trabajador (`WorkerGameCard`) las ganancias, los dos con la receta correcta
+   (chip ámbar, monto en blanco, secundario en manteca). El "0% de negro"
+   medido antes era de las DOS pantallas de lista, y ahí está bien que no
+   haya.
+
+   **La regla que queda escrita:** el negro es un dispositivo de foco y su
+   fuerza es puramente relativa. Un bloque negro sobre crema dice "esto es lo
+   importante"; tres en una lista que scrollea dicen "rayas", y el lienzo
+   crema vuelve a desaparecer — el mismo fracaso del naranja repetido en otro
+   color. Entonces: **negro donde la pantalla tiene UN sujeto, nunca donde es
+   una lista de pares.**
+
+   El único lugar que lo pedía y no lo tenía es **la tarjeta del candidato
+   recomendado** (`/shifts/[id]/candidates`), que el mockup prescribe en negro
+   (`.rankcard.top`). Medido en un render a 390px, esa pantalla tenía **siete
+   elementos ámbar**, y el problema de fondo no era la cantidad: **el ámbar
+   decía dos cosas a la vez** — "éste es el recomendado" (banda sólida +
+   `ring-2 ring-primary`) y "tocá acá" (los tres botones "Asignar", idénticos
+   entre sí y el elemento más fuerte de cada tarjeta). Con las tres tarjetas
+   empatadas en su CTA, el recomendado no ganaba nada.
+
+   Corregido: la tarjeta recomendada pasa a `bg-night` con la receta de la
+   tarjeta negra, y los "Asignar" de las otras dos bajan a `variant="surface"`.
+   La pantalla queda con **una** acción primaria en vez de tres. Es singular
+   por construcción (sólo `i === 0`), que es la condición que hace que el
+   negro funcione. `CandidateStatChips` y `RecommendationReasons` ganan una
+   prop `onDark` — va como prop y no como `dark:` porque no depende del modo
+   del usuario sino de la SUPERFICIE sobre la que están dibujados.
+
+   **Defecto encontrado en la propia propuesta, mirando el render:** el
+   número del rating quedaba invisible sobre el negro (la estrella se veía y
+   el "4.8" no). `Rating` trae `text-ink/70` por default y no declara en
+   ningún lado que asuma fondo claro. Corregido antes de mostrar nada. Es la
+   misma lección de todas las fases: leer el código no alcanza para un
+   problema visual.
+
+   **Sin tocar, a propósito:** los tres avatares ámbar (es el `Avatar`
+   compartido, se usa en toda la app) y la tarjeta "Garantía Oído" en manteca,
+   que compite un poco con el negro de abajo pero es contenido de confianza.
+
+   **Cuarta pasada: el juego de color, y qué pasa en los 3 modos.** Julieta
+   mandó el mockup con la regla explícita: *"en una tarjeta negra hay un ícono
+   en un color, el número en blanco y otros datos en manteca; después una
+   tarjeta blanca con ícono manteca, otra con ícono celeste y números en
+   negro — ese es el juego para que no todo parezca un bloque beige"*. Y pidió
+   verificarlo **en los tres modos**.
+
+   Renderizando el perfil del trabajador en claro y en oscuro y muestreando
+   píxeles salieron **tres defectos reales**, ninguno de gusto:
+
+   1. **El módulo de foco desaparecía por completo en oscuro.** Medido: el
+      bloque de ganancias daba `#191410` sobre un lienzo `#191410` — contraste
+      **1.00 : 1**, literalmente el mismo color. En claro ese mismo bloque da
+      **18.28 : 1**. El usuario en oscuro veía un bloque de datos flotando sin
+      caja. Lo mismo el hero del perfil (1.12 : 1).
+      **La lección, y por eso va a `COLOR_SYSTEM.md` §3.bis:** el negro
+      funciona como foco porque está **lejos** del lienzo, no porque sea
+      negro. En un lienzo oscuro el foco no se consigue oscureciendo sino
+      **elevando**. Token nuevo `--color-focus`/`--color-focus-ink`: `#191410`
+      en claro, `#3d3630` en oscuro (**1.54 : 1**, un escalón de elevación más
+      la hairline). `--color-night` **no se toca**: sigue siendo el negro fijo
+      de toasts, botones y marcadores, que sí deben verse igual en los dos
+      modos.
+   2. **La tarjeta de nivel estaba fuera del sistema.** `LEVEL_META` usaba
+      `zinc-100`/`zinc-600`/`amber-50`/`yellow-50`: colores crudos de la escala
+      de Tailwind, contra la regla del repo de que todo fondo pasa por tokens.
+      Dos consecuencias: el `zinc` es un gris **frío** en una identidad toda
+      cálida, y —peor— **ninguno de esos colores existe para el modo oscuro**,
+      así que la tarjeta seguía siendo `zinc-100` clara sobre el lienzo
+      oscuro. Medido: `rgb(244,244,245)` idéntica en los dos modos.
+   3. **Texto invisible, consecuencia del anterior.** El subtítulo "Según tu
+      desempeño…" usaba `text-ink/50`, y en oscuro `--color-ink` es crema — o
+      sea crema al 50% sobre un fondo casi blanco. Se veía en la captura y no
+      en el código.
+
+   Corregido con el juego que pidió Julieta, y con una idea que el juego
+   habilita: **el acento se gana**. Bronce arranca neutro (arena del sistema),
+   plata suma celeste, oro suma manteca — que **es** el dorado de esta paleta,
+   así que "oro" no necesita un amarillo importado. El `dot` va aparte del
+   resto a propósito: vive en el hero oscuro, así que necesita el tono CLARO
+   del par mientras el texto necesita el oscuro. Mismo color, dos roles.
+
+   Los pares manteca/cielo se eligieron porque son **auto-contenidos**: no
+   cambian entre modos porque están calculados para leerse en los dos
+   (manteca-text sobre manteca-tint 6.08 · cielo-text sobre cielo-tint 7.67).
+   Verificado muestreando píxeles: los chips dan el mismo valor en claro y en
+   oscuro, a propósito.
+
+   **Quinta pasada, sobre el render en oscuro que devolvió Julieta.** Dos
+   observaciones suyas, las dos correctas y las dos con causa estructural:
+
+   - *"El ícono del medio pierde el color."* El chip de "Cancelaciones" era
+     `bg-surface text-ink/60`. En claro, `bg-surface` es la arena cálida y el
+     ícono se leía sobre un chip con identidad; en oscuro es `#292420` sobre
+     una tarjeta oscura — gris sobre gris, ícono lavado. **Un neutro definido
+     como AUSENCIA de color funciona sobre un lienzo claro y se muere sobre
+     uno oscuro.** Pasa a petróleo (`trust`), la tercera tinta que la paleta
+     ya declara y la única que encaja por significado (cancelaciones es un
+     dato de **fiabilidad**, la familia de "lo que se puede constatar"), con
+     su par tint/text sí redefinido para oscuro. Los tres tiles quedan con
+     tres acentos distintos: manteca, petróleo, celeste.
+   - *"El segundo bloque negro es todo muy negro."* La causa no era la falta
+     de acentos: **`--color-card` valía `#191410`, exactamente el mismo color
+     que el lienzo.** Una tarjeta que tiene el color del fondo no es una
+     tarjeta — se sostenía sólo con la hairline, así que el formulario largo
+     del perfil se leía como una mancha negra única. El primer bloque "se
+     veía" nada más que porque tiene adentro un módulo de foco elevado.
+     En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar):
+     la da la **luminancia**. Queda una escala de cuatro escalones —lienzo
+     `#191410` → card `#221d19` → surface `#292420` → focus `#3d3630`—
+     documentada en `COLOR_SYSTEM.md`. En claro no se toca nada: ahí la
+     tarjeta es blanca sobre crema y la sombra suave alcanza.
+
+   **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
+   `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía
+   el rojo (verde = éxito/confirmado en `STATUS_COLORS`); se dejan como están
+   porque el color por rubro es decisión de Julieta y el rojo era el caso
+   inequívoco (matiz 0 = el matiz del error).
 
    **Y el método, que es lo que más rindió:** auditar *renderizando* las
    pantallas (Playwright headless, 390px y 1440px, sesión mockeada por rol) y
@@ -3663,10 +3908,17 @@ roadmap).
       que retrasarlos ~600ms no cambia nada visible.
       Con eso, maplibre 6.8.0 anda: `onLoad` a los ~600ms y marcadores
       dibujándose. Hipótesis descartadas en el camino, por si vuelve a
-      aparecer algo parecido: no era el estilo mock vacío de los tests (da
-      igual con un estilo completo), no era WebGL2 (disponible), no era el
-      tamaño del contenedor (390×700 correcto) y no era la versión del
-      wrapper (8.1.2 y 8.1.3 se comportan igual).
+      aparecer algo parecido: no era WebGL2 (disponible), no era el tamaño
+      del contenedor (390×700 correcto) y no era la versión del wrapper
+      (8.1.2 y 8.1.3 se comportan igual).
+      ⚠️ **CORRECCIÓN (2026-09-10, ver punto 11): este párrafo decía también
+      "no era el estilo mock vacío de los tests (da igual con un estilo
+      completo)". Eso era FALSO y era justo la pista.** El estilo mockeado
+      —`{sources:{}, layers:[]}`— es exactamente lo que hacía pasar la suite
+      con el mapa roto en producción. El fix del `{loaded && children}` es
+      correcto y se queda, pero **no era el bug que veía Julieta**: quedaba
+      un segundo, independiente, que este PR introdujo al subir a maplibre 6
+      y que ningún test podía ver.
       **Regresión cubierta**: `components/map/MapView.children.test.tsx` fija
       el invariante donde se rompería en silencio — verificado que el test
       falla si se saca el gate.
@@ -3697,7 +3949,79 @@ roadmap).
       que daba `worker-apply.spec.ts` como "falla de forma reproducible":
       con el binario correcto pasa.
     - `docs/TECH_DEBT.md` §S3 tiene el detalle del lado frontend.
-    instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
+11. ✅ ~~"No se ve el mapa ni en comercio ni en trabajador"~~ — **resuelto
+    (2026-09-10)**. Reporte de Julieta al día siguiente del #329. Era una
+    regresión de ese PR, la segunda y la que de verdad rompía la app.
+
+    **Causa raíz, en el código de maplibre-gl 6** (`dist/maplibre-gl.mjs`, la
+    función que arma la URL de su web worker):
+
+    ```js
+    let e = import.meta.url;
+    if (!/^https?:/.test(e)) return ``;   // <-- cadena VACÍA
+    return new URL(`./maplibre-gl-worker.mjs`, e).href;
+    ```
+
+    Dentro del bundle de Next, `import.meta.url` **no** es una URL http(s),
+    así que esa función devuelve `""` y maplibre termina haciendo
+    `new Worker("", { type: "module" })`. Medido en un render real: el
+    `Worker` se crea, dispara `error` **con `message` vacío** y se cierra. Sin
+    worker no se parsea ni un tile vectorial, el evento `load` **no se dispara
+    nunca**, el gate `{loaded && children}` no monta ningún hijo y el usuario
+    ve una caja perfectamente en blanco: sin fondo, sin pines, sin mensaje y
+    **sin un solo error en consola**. maplibre 5 no usaba worker de módulo y
+    por eso nunca pasó.
+
+    **Fix:** servir el worker desde nuestro propio origen y decírselo a
+    maplibre por `config.WORKER_URL`.
+    - `frontend/scripts/copy-maplibre-worker.mjs` copia
+      `maplibre-gl-worker.mjs` y su `maplibre-gl-shared.mjs` (que el worker
+      importa por ruta relativa) de `node_modules` a `public/maplibre/`. Corre
+      en `postinstall` y en `prebuild`, así que Vercel lo hace solo; el
+      directorio va al `.gitignore` porque es un artefacto generado. Si el
+      archivo de origen no está, el script **tira error**: si esto fallara en
+      silencio, el mapa vuelve a romperse en silencio.
+    - `frontend/lib/map/worker.ts` setea `config.WORKER_URL` y se importa
+      desde `MapView.tsx`, que es el único punto de la app que construye
+      mapas — así queda puesto antes del primer `new Map()`.
+    - Mismo origen a propósito: maplibre usa entonces el `Worker` directo, sin
+      envolverlo en un blob, y la CSP ya lo permite con `worker-src 'self'`.
+
+    **POR QUÉ NINGÚN TEST LO VIO — esto es lo que hay que llevarse.** El mock
+    de `e2e/mocks.ts` responde todo `style.json` con
+    `{version:8, sources:{}, layers:[]}`. **Sin una sola fuente, maplibre
+    nunca necesita el worker**, así que los 79 tests pasaban en verde con el
+    mapa completamente roto en producción. Está medido, no deducido: con ese
+    estilo el mapa carga; basta que **una** capa use una fuente vectorial
+    —como el estilo real de CARTO— para que no cargue nunca. El mock no era
+    "una simplificación": era el único trozo del sistema que hacía que el bug
+    fuera invisible. **Cuando un mock elimina la parte cara de una
+    dependencia, elimina también la parte que se rompe.**
+
+    **Regresión cubierta**: `frontend/e2e/mapa-worker.spec.ts` sirve un estilo
+    con la misma FORMA que el real (fuente vectorial + capa que la usa +
+    glyphs + sprite) y exige marcadores en el DOM, no que exista el canvas —
+    verificado que falla sin el fix.
+
+    **Y de yapa, el otro defecto que este reporte destapó:** el gate
+    `{loaded && children}` del #329 convierte **cualquier** falla de carga en
+    una caja en blanco sin explicación (CARTO caído, red del usuario
+    bloqueando el CDN, el worker no estando donde dice `WORKER_URL`). Ahora
+    `MapView` se da 15s y, si el `load` no llegó, muestra "No pudimos cargar
+    el mapa" con un botón **Reintentar** que construye un mapa nuevo. Un mapa
+    que no carga es un problema; uno que no carga **y no lo dice** es un bug
+    invisible que tarda semanas en llegar como reporte — que es exactamente lo
+    que acaba de pasar.
+
+    **Nota de método, la misma de siempre y van tres:** el #329 escribió
+    "no era el estilo mock vacío de los tests" como hipótesis descartada. No
+    se había descartado — se había probado el mapa crudo, no el mock. Una
+    hipótesis que se escribe como descartada sin el experimento que la
+    descarta es peor que no escribirla: la próxima sesión la lee y no la
+    vuelve a mirar.
+
+    Si no hay otra instrucción, seguir por prioridad desde
+    `docs/TECH_DEBT.md`.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)
 

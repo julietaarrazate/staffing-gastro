@@ -71,6 +71,77 @@ que no", p. ej. 401). Nunca asumir que un `await fetch` resuelve en un tiempo ra
 
 ---
 
+## Un mock que borra la parte cara de una dependencia borra también la que se rompe
+
+**Patrón:** el test mockea una dependencia externa con la versión *mínima* que hace pasar la
+pantalla, no con una que tenga la misma FORMA que la real. Cuando la diferencia entre las dos
+formas es justo el camino de código que falla, la suite queda verde con la app rota en
+producción — y peor: la suite verde se usa después como evidencia de que el problema está en
+otro lado.
+
+- **Encontrado (2026-09-10):** `e2e/mocks.ts` respondía todo pedido de `style.json` con
+  `{version: 8, sources: {}, layers: []}`. Un estilo sin fuentes no obliga a MapLibre a levantar
+  su web worker; el estilo real de CARTO sí. Cuando maplibre-gl 6 (PR #329) empezó a fallar al
+  crear el worker dentro del bundle de Next —`import.meta.url` no es una URL http(s), su propia
+  función devuelve `""` y termina en `new Worker("", {type:"module"})`—, **los 79 tests E2E
+  siguieron pasando** mientras `/map` quedaba en blanco para todos los usuarios, en los dos roles.
+  Y el PR anterior había escrito "no era el estilo mock vacío de los tests" como hipótesis
+  descartada, sin haberla probado nunca contra el mock.
+  Fix del bug: `frontend/lib/map/worker.ts` + `frontend/scripts/copy-maplibre-worker.mjs` sirven
+  el worker desde el propio origen y lo declaran en `config.WORKER_URL`. Fix del **agujero de
+  test**, que es lo que importa acá: `frontend/e2e/mapa-worker.spec.ts` sirve un estilo con
+  fuente vectorial, capa que la usa, glyphs y sprite, y exige **marcadores en el DOM** — no que
+  exista el `<canvas>`, que existía igual estando todo roto.
+
+**Cómo evitarlo:** al mockear una dependencia pesada, preguntarse *qué trabajo real le estoy
+ahorrando* — worker, parseo, WebGL, red — y si ese trabajo es justamente donde puede romperse.
+Si lo es, el mock tiene que conservar la forma aunque no el contenido (una fuente con 0 tiles,
+no cero fuentes). Y aserción sobre lo que **cuelga** de que la dependencia funcione, nunca sobre
+que el contenedor exista.
+
+**Corolario de método:** una hipótesis anotada como "descartada" sin el experimento que la
+descarta es peor que no anotarla — la próxima sesión la lee y no la vuelve a mirar.
+
+---
+
+## Una falla de carga que no se muestra es un bug invisible
+
+**Patrón:** un gate del tipo `{cargado && contenido}` es correcto para evitar montar cosas antes
+de tiempo, pero si nunca se agrega el camino de error, cualquier falla —red, CDN caído, un
+archivo que no está donde se lo espera— se ve como una caja perfectamente en blanco. El usuario
+no tiene nada que reportar más que "no se ve", y el equipo no tiene nada que buscar.
+
+- **Encontrado (2026-09-10):** `MapView` montaba sus hijos sólo tras el evento `load` (fix
+  correcto del #329). Con el worker de maplibre roto, `load` no llegaba nunca: sin fondo, sin
+  pines, sin mensaje y **sin un solo error en consola** (el `error` del worker llega con
+  `message` vacío y maplibre no lo re-emite). Tardó un día en llegar como reporte y otro tanto
+  en aislarse. Fix: pasados 15s sin `load`, `MapView` muestra "No pudimos cargar el mapa" con un
+  botón **Reintentar** que construye un mapa nuevo (`key`), y hay un spec que lo fija.
+
+**Cómo evitarlo:** todo gate de carga necesita su rama de fallo *antes* de mergearse. Si no hay
+forma barata de detectar el error puntual, alcanza un timeout generoso: tarde y con mensaje es
+infinitamente mejor que nunca y en blanco.
+
+---
+
+## Aserción sincrónica sobre algo que escribe un handler asíncrono (falso rojo de E2E)
+
+**Patrón:** en un spec de Playwright se guarda un dato desde un `page.route(...)` —el cuerpo de
+un pedido, un contador de llamadas— y después se lo asevera con un `expect(...)` seco, sin
+esperar. El handler corre cuando el pedido efectivamente sale, así que la aserción compite con
+la red: pasa siempre en una máquina descansada y falla sola cuando la máquina está cargada.
+Aparece como flake, pero tiene causa raíz y no es "el CI que anda mal".
+
+- **Encontrado (2026-09-10):** `e2e/ai-assistant-fab.spec.ts`, `buscar_turnos`, hacía
+  `expect(requestBody).not.toBeNull()` justo después del `click()`. Falló en una corrida con la
+  máquina saturada; la captura mostraba el botón todavía en "Cargando…", o sea el pedido en
+  vuelo. Fix: `await expect.poll(() => requestBody).not.toBeNull()`.
+
+**Cómo evitarlo:** todo lo que escribe un handler de `page.route` se lee con `expect.poll` (o se
+espera con `page.waitForRequest`), nunca con un `expect` inmediato.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de

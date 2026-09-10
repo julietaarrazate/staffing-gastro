@@ -26,20 +26,33 @@ import {
   XCircleIcon,
 } from "@/components/icons";
 
-// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): manteca
-// para el dato operativo, celeste para lo que acumula confianza, y una queda
-// neutra a propósito — no todas las tiles llevan color. Ícono sobre `bg-card`
-// (blanco en claro, carbón en oscuro): antes usaban `bg-surface`, que en el
-// mockup "Híbrido"/"Contraste" es la tarjeta ELEVADA, no el tinte de fondo.
+// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): un color
+// por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
+// un color... otra tarjeta con ícono celeste... para que no todo parezca un
+// bloque beige").
+//
+// LA DEL MEDIO YA NO ES NEUTRA (2026-09-10). Era `bg-surface text-ink/60`, y
+// Julieta lo cazó mirando el modo oscuro: "el ícono del medio pierde el
+// color". Tenía razón y el motivo es estructural, no de gusto — en claro
+// `bg-surface` es la arena cálida y el ícono se leía sobre un chip con
+// identidad; en oscuro `bg-surface` es #292420 sobre una tarjeta #191410, o
+// sea gris sobre gris, y el ícono quedaba lavado. Un "neutro" definido como
+// AUSENCIA de color funciona sobre un lienzo claro y se muere sobre uno
+// oscuro.
+//
+// Petróleo (`trust`) es la tercera tinta que la paleta ya declara (ADR-0011) y
+// la única que encaja por significado: cancelaciones/no-shows es un dato de
+// FIABILIDAD, la misma familia de "lo que se puede constatar". Además su par
+// tint/text sí está redefinido para oscuro, así que sobrevive a los dos modos.
 const TILE_MANTECA = "bg-manteca-tint text-manteca-text";
 const TILE_CIELO = "bg-cielo-tint text-cielo-text";
-const TILE_NEUTRAL = "bg-surface text-ink/60";
+const TILE_TRUST = "bg-trust-tint text-trust-text";
 
 function StatTile({
   icon,
   value,
   label,
-  accent = TILE_NEUTRAL,
+  accent = TILE_TRUST,
 }: {
   icon: React.ReactNode;
   value: string;
@@ -112,7 +125,7 @@ export default function WorkerGameCard() {
           y dentro de esta tarjeta (`bg-card`) se vuelve claro en modo
           oscuro, lo que invertía el gradiente a claro→oscuro en vez de
           quedarse oscuro (bug real con captura, auditoría 2026-09). */}
-      <div className="relative flex flex-col items-center bg-gradient-to-br from-[#1f1f1c] to-[#2f2f33] px-5 pb-5 pt-6 text-white">
+      <div className="relative flex flex-col items-center bg-focus px-5 pb-5 pt-6 text-focus-ink">
         {/* La foto se sube ACÁ, tocando el avatar (Julieta, 2026-09: "la foto
             se tiene que poder subir arriba con el nombre"). Antes se veía
             arriba pero el control para cambiarla vivía en el formulario de
@@ -147,7 +160,7 @@ export default function WorkerGameCard() {
           que el pago en ShiftCard/OpportunityCard); "Este mes" como dato
           secundario en manteca — es un NÚMERO, no una tarjeta de éxito. */}
       {earnings && (
-        <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-night px-4 py-4">
+        <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-focus px-4 py-4">
           <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-night">
             <WalletIcon size={21} />
           </span>
@@ -157,7 +170,7 @@ export default function WorkerGameCard() {
             </p>
             <p className="flex items-baseline gap-1 font-display leading-none">
               <span className="text-sm font-semibold text-primary">ARS</span>
-              <span className="text-2xl font-semibold text-white">
+              <span className="text-2xl font-semibold text-focus-ink">
                 {Number(earnings.this_month_earned).toLocaleString("es-AR")}
               </span>
             </p>
@@ -181,10 +194,9 @@ export default function WorkerGameCard() {
         />
       </div>
 
-      {/* Stats: manteca en el dato operativo (turnos), celeste en lo que
-          acumula confianza (experiencia) — mismo criterio que StatsStrip/el
-          bento de la landing. Cancelaciones queda neutra a propósito: no es
-          un logro que destacar. */}
+      {/* Stats, un acento por tile y los tres distintos: manteca en el dato
+          operativo (turnos), petróleo en el de fiabilidad (cancelaciones),
+          celeste en lo que acumula confianza (experiencia). */}
       <div className="grid grid-cols-3 gap-2.5 p-4">
         <StatTile
           icon={<BriefcaseIcon size={16} />}
@@ -196,6 +208,7 @@ export default function WorkerGameCard() {
           icon={<XCircleIcon size={16} />}
           value={String(profile.cancellations)}
           label="Cancelaciones"
+          accent={TILE_TRUST}
         />
         <StatTile
           icon={<CheckCircleIcon size={16} />}
@@ -211,7 +224,15 @@ export default function WorkerGameCard() {
           <MedalIcon size={20} className={meta.text} />
           <div className="min-w-0">
             <p className={`text-sm font-extrabold ${meta.text}`}>Nivel {levelLabel(level)}</p>
-            <p className="text-xs text-ink/50">Según tu desempeño en turnos completados</p>
+            {/* El subtítulo hereda el color DEL NIVEL, no `text-ink/50`. En
+                modo oscuro `--color-ink` es crema y esta tarjeta no es una de
+                las superficies que voltean sus tokens, así que `text-ink/50`
+                salía crema translúcida sobre un tinte claro: invisible.
+                Colgarlo del mismo par de color que el título lo hace legible
+                en los dos modos por construcción. */}
+            <p className={`text-xs ${meta.text} opacity-70`}>
+              Según tu desempeño en turnos completados
+            </p>
           </div>
         </div>
       </div>

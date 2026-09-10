@@ -97,8 +97,17 @@ export default function OpportunityCard({
           // las tarjetas iguales); ahora usa el gradiente del RUBRO
           // (SKILL_HERO_GRADIENT), así dos turnos seguidos no se sienten la
           // misma tarjeta repetida, manteniendo la paleta cálida.
-          <div className={`absolute inset-0 flex items-center justify-center ${heroFallback}`}>
-            <Icon size={120} className="text-white/90" />
+          <div className={`absolute inset-0 overflow-hidden ${heroFallback}`}>
+            {/* Marca de agua en la ESQUINA y al 15%, igual que `ShiftCard`
+                (auditoría de iconografía, 2026-09-10). Antes iba centrado a
+                120px y al 90% de blanco: eso no es una marca de agua, es un
+                elemento que compite — y como el título del turno se apoya
+                abajo del hero, el ícono le caía justo encima. Medido en un
+                render a 390×844: el glifo se cruzaba con "Mozo/a" y el título
+                quedaba ilegible. Es el mismo defecto que la inicial y la
+                cámara pisándose en el avatar (fase L): dos cosas dibujadas en
+                el mismo lugar porque cada una se posicionó por su cuenta. */}
+            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
           </div>
         )}
         {/* Velo para legibilidad del texto sobre la foto */}
@@ -171,7 +180,14 @@ export default function OpportunityCard({
       {/* Vuelve a `pb-5` parejo: el `pb-10` era el hueco que necesitaba la
           pista de scroll para no taparle "Cómo llegar", y esa pista ya no
           existe (ver abajo). */}
-      <div className="flex flex-1 flex-col justify-between gap-2.5 overflow-y-auto px-5 pb-5 pt-3 touch-pan-y md:overflow-visible">
+      {/* `justify-start` + `mt-auto` en la acción, NO `justify-between` en todo
+          el cuerpo (auditoría de espaciado, 2026-09-10). Con `justify-between`
+          el sobrante se abría ENTRE el pago y las fechas: medido a 390×844,
+          ~250px de blanco muerto en el medio de la tarjeta, con el pago
+          arriba de todo y la fecha pegada al botón. El aire tiene que estar
+          antes de la acción —ahí se lee como respiro— y no partiendo al medio
+          el contenido, que es lo que lo hace ver como un error de layout. */}
+      <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-5 pb-5 pt-3 touch-pan-y md:overflow-visible">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold font-mono uppercase tracking-wide text-ink/40">Pago</p>
@@ -193,8 +209,7 @@ export default function OpportunityCard({
           </span>
         </div>
 
-        <div className="space-y-3">
-          <div className="space-y-2 text-[15px] text-ink/80">
+        <div className="space-y-2 text-[15px] text-ink/80">
             <p className="inline-flex items-center gap-2">
               <CalendarIcon size={18} className="text-ink/35" />
               {formatShiftRange(shift.start_at, shift.end_at)}
@@ -203,9 +218,10 @@ export default function OpportunityCard({
               <UsersIcon size={18} className="text-ink/35" />
               {shift.quantity} {shift.quantity === 1 ? "persona" : "personas"}
             </p>
-            {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
-          </div>
+          {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
+        </div>
 
+        <div className="mt-auto space-y-3 pt-2">
           {/* "Cómo llegar" ACÁ, antes de decidir: quien ve la oferta necesita
               saber si le conviene ir ANTES de postularse, no recién cuando ya
               lo asignaron (antes sólo estaba en /my-shifts, con el turno ya

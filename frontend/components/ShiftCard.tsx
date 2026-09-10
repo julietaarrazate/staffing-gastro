@@ -136,8 +136,29 @@ export default function ShiftCard({
           tratamiento que `OpportunityCard`: foto real del local si el
           comercio la subió, y si no el gradiente del rubro
           (`SKILL_HERO_GRADIENT`) — así dos turnos seguidos se distinguen de
-          un vistazo. El corte va justo hasta el bloque de estado + pasos, que
-          quedan sobre blanco.
+          un vistazo.
+
+          BANDA ACOTADA, no medio tarjeta (auditoría de distribución de
+          superficies, 2026-09-10). Antes esta banda crecía con su contenido:
+          se le colgaban el comercio, el sello, el puesto, la ciudad, el pago,
+          las propinas y el aviso de pago bajo, así que ocupaba ~350px de los
+          390 de ancho de un celular. Con dos turnos en pantalla, la app entera
+          era color saturado y el lienzo crema —que es la marca— desaparecía.
+          Medido en un render a 390px: 38% del viewport en naranja, 0% en
+          crema visible.
+
+          El pedido original de Julieta (2026-08-17) fue "un corte de otro
+          color hasta la parte donde muestra los pasos": lo que ella quería es
+          DISTINGUIR una tarjeta de la siguiente, y para eso una banda de 120px
+          alcanza igual que una de 350. Lo que se movió abajo es el PAGO, que
+          es dato, no identidad — y sobre blanco se lee mejor y puede seguir
+          siendo lo más grande de la tarjeta por tamaño y peso, no por color.
+          Es el orden de jerarquía del brief: espacio → tamaño → peso →
+          superficie → contraste → y recién ahí color.
+
+          La banda queda con la IDENTIDAD del turno (de quién es, qué puesto,
+          dónde) y el cuerpo blanco con los DATOS (pago, estado, fechas) y la
+          acción.
 
           `overflow-hidden` va ACÁ y no en la raíz: la raíz lo tenía y
           recortaba el menú "Más" de `ShiftActions` (dropdown absolute) a una
@@ -165,7 +186,7 @@ export default function ShiftCard({
           </div>
         )}
 
-        <div className="relative px-5 pb-4 pt-3.5">
+        <div className="relative flex min-h-[116px] flex-col justify-between px-5 pb-4 pt-3.5">
           <div className="flex items-start justify-between gap-2">
             {/* El sello de verificación va COMO HERMANO de la pastilla del
                 comercio, no adentro: `Badge` ya es una pastilla con fondo
@@ -207,54 +228,76 @@ export default function ShiftCard({
             </p>
           )}
 
-          <h3 className="mt-3 text-2xl font-extrabold leading-tight text-white drop-shadow">
-            {SKILL_LABELS[shift.position]}
-          </h3>
-          <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/85">
-            <MapPinIcon size={13} />
-            {shift.city ?? "Ubicación a confirmar"}
-          </p>
-
-          {/* Jerarquía brutal (ART_DIRECTION.md §9.4, §6.2 punto 1): el pago
-              tiene que dominar la tarjeta, no empatar con el título del
-              puesto. Mismo patrón de label+número que `OpportunityCard`, para
-              que las dos tarjetas se lean de la misma app (criterio 4 de
-              aprobación, §17). */}
           <div className="mt-3">
-            <p className="text-[11px] font-bold font-mono uppercase tracking-wide text-white/70">Pago</p>
-            <p className="text-3xl font-extrabold leading-none tracking-tight text-white drop-shadow">
-              {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+            <h3 className="text-2xl font-extrabold leading-tight text-white drop-shadow">
+              {SKILL_LABELS[shift.position]}
+            </h3>
+            <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/85">
+              <MapPinIcon size={13} />
+              {shift.city ?? "Ubicación a confirmar"}
             </p>
-            {shift.tips && <p className="mt-1 text-xs font-medium text-white/75">+ propinas</p>}
-            {shift.meal && <p className="text-xs font-medium text-white/75">+ comida</p>}
-            {/* La mitad de esto que le sirve al comercio (ADR-0012). Hasta
-                ahora, cuando un turno no se cubría, no tenía forma de saber
-                por qué; la causa más común es el precio. Va acá, pegado al
-                pago y en el momento en que todavía puede cambiarlo — no como
-                alerta ni bloqueando nada: es información, no un reto. En
-                manteca porque sobre el hero oscuro el dato va con color
-                (COLOR_SYSTEM §3.2), y el ámbar está reservado a la acción. */}
-            {perspective === "employer" &&
-              shift.pay_band === "por_debajo" &&
-              PAY_HINT_STATUSES.has(shift.status) && (
-                <p className="mt-2 text-xs font-semibold text-manteca">
-                  Paga por debajo de lo habitual para este puesto en la zona.
-                  Los turnos así suelen tardar más en cubrirse.
-                </p>
-              )}
           </div>
         </div>
       </div>
 
       <div className="px-5 pb-5 pt-4">
-        <div className="flex items-center justify-between gap-2">
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-              STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
-            }`}
-          >
-            {STATUS_LABELS[shift.status]}
-          </span>
+        {/* El pago, sobre BLANCO. Sigue siendo lo más grande de la tarjeta
+            —jerarquía por tamaño y peso, no por color (ART_DIRECTION.md §9.4)—
+            pero ahora se lee como dato y no como parte del cartel de color.
+            En tinta, no en ámbar: el ámbar de esta pantalla es de la ACCIÓN
+            ("Elegir a alguien", "+ Publicar"), y si el número también es
+            ámbar los dos compiten por el mismo significado. */}
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-ink/45">
+              Pago
+            </p>
+            <p className="text-3xl font-extrabold leading-none tracking-tight text-ink">
+              <span className="text-base font-bold text-ink/55">{shift.currency} </span>
+              {Number(shift.pay_amount).toLocaleString("es-AR")}
+            </p>
+          </div>
+          {(shift.tips || shift.meal) && (
+            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+              {shift.tips && (
+                <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
+                  + propinas
+                </span>
+              )}
+              {shift.meal && (
+                <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
+                  + comida
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* La mitad de esto que le sirve al comercio (ADR-0012). Cuando un
+            turno no se cubre, la causa más común es el precio y hasta ahora no
+            tenía forma de saberlo. Va pegado al pago y mientras todavía puede
+            cambiarlo — información, no un reto, así que no usa el rojo de
+            error: manteca sobre blanco, que es el color de "ojo con esto" del
+            sistema (COLOR_SYSTEM). */}
+        {perspective === "employer" &&
+          shift.pay_band === "por_debajo" &&
+          PAY_HINT_STATUSES.has(shift.status) && (
+            <p className="mt-2.5 rounded-[var(--radius-chip)] bg-manteca-tint px-3 py-2 text-xs font-semibold text-manteca-text">
+              Paga por debajo de lo habitual para este puesto en la zona. Los turnos así
+              suelen tardar más en cubrirse.
+            </p>
+          )}
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
+              }`}
+            >
+              {STATUS_LABELS[shift.status]}
+            </span>
+          </div>
         </div>
 
         {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md, inspiración
