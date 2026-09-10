@@ -3,8 +3,20 @@
 // Único punto de importación del CSS de MapLibre (doc §4.6: "un solo
 // contexto WebGL reutilizado... CSS de maplibre importado una vez").
 import "maplibre-gl/dist/maplibre-gl.css";
+// Efecto de módulo, y por eso va acá: `MapView` es el ÚNICO punto de la app
+// que construye mapas, así que importarlo acá garantiza que `WORKER_URL` esté
+// puesto antes del primer `new Map()`. Sin esto el mapa queda en blanco, sin
+// marcadores y sin error en consola — ver lib/map/worker.ts.
+import "@/lib/map/worker";
 
-import { forwardRef, useImperativeHandle, useRef, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   AttributionControl,
   Map as MapGl,
@@ -134,6 +146,11 @@ export function syncCamera(raw: unknown, center: [number, number], zoom: number)
   map.jumpTo?.({ center: [center[1], center[0]], zoom });
 }
 
+// Margen antes de dar la carga por perdida. Un mapa vectorial sobre 3G en la
+// calle tarda; 15s es holgado para eso y sigue siendo mucho menos que el
+// "para siempre" que había antes.
+const TIMEOUT_CARGA_MS = 15_000;
+
 const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   {
     center,
@@ -165,35 +182,85 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   // hasta el `load` (~600ms) no cambia nada visible.
   const [loaded, setLoaded] = useState(false);
 
+  // Contrapeso del gate de arriba. El gate es correcto, pero convierte
+  // CUALQUIER falla de carga en una pantalla en blanco perfecta: sin fondo,
+  // sin pines y sin un solo mensaje. Le pasó a Julieta con el worker roto de
+  // maplibre 6 ("no se ve el mapa ni en comercio ni en trabajador") y volvería
+  // a pasar si mañana CARTO se cae, si la red del usuario bloquea el CDN o si
+  // el worker no llega a estar donde `WORKER_URL` dice.
+  //
+  // Un mapa que no carga es un problema; un mapa que no carga y no lo dice es
+  // un bug invisible que tarda semanas en llegar como reporte. Se le da un
+  // margen generoso (una conexión mala en la calle es el caso normal de esta
+  // app) y recién ahí se ofrece reintentar.
+  const [falloCarga, setFalloCarga] = useState(false);
+  // Cambiarlo fuerza a React a descartar el `Map` actual y construir uno nuevo:
+  // reintentar sobre la misma instancia no sirve, el estilo ya falló en ella.
+  const [intento, setIntento] = useState(0);
+
+  useEffect(() => {
+    if (loaded) return;
+    const id = setTimeout(() => setFalloCarga(true), TIMEOUT_CARGA_MS);
+    return () => clearTimeout(id);
+  }, [loaded, intento]);
+
   return (
     <div className={className}>
-      <MapGl
-        ref={mapRef}
-        reuseMaps
-        interactive={interactive}
-        cooperativeGestures={cooperativeGestures}
-        initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
-        mapStyle={MAP_STYLE_URL}
-        attributionControl={false}
-        style={{ width: "100%", height: "100%" }}
-        onLoad={(e: MapEvent) => {
-          // En un mapa reciclado (`reuseMaps`) este evento se dispara de forma
-          // SÍNCRONA dentro de `Maplibre.reuse()` (maplibre/maplibre.js) si el
-          // estilo ya estaba cargado de un montaje anterior — antes de que
-          // React actualice `mapRef.current` vía `useImperativeHandle`. Por
-          // eso usamos `e.target` (el `mapboxgl.Map` real, disponible ya) en
-          // vez de `mapRef.current` para sincronizar los handlers.
-          syncInteractiveHandlers(e.target, interactive);
-          syncCooperativeGestures(e.target, cooperativeGestures);
-          syncCamera(e.target, center, zoom);
-          setLoaded(true);
-          if (mapRef.current) onLoad?.(mapRef.current);
-        }}
-        onMoveEnd={onMoveEnd}
-      >
-        {attribution && <AttributionControl compact position="bottom-right" />}
-        {loaded && children}
-      </MapGl>
+      {/* Caja posicionada propia para el aviso de error de abajo. Va acá
+          adentro y no como `relative` en el div de arriba a propósito: varias
+          pantallas pasan `absolute inset-0` en `className` y `relative` es la
+          MISMA propiedad CSS — cuál gana lo decide el orden del CSS generado
+          por Tailwind, no el orden en el atributo, así que agregarlo ahí era
+          jugarse el posicionamiento del mapa a pantalla completa. */}
+      <div className="relative h-full w-full">
+        <MapGl
+          key={intento}
+          ref={mapRef}
+          reuseMaps
+          interactive={interactive}
+          cooperativeGestures={cooperativeGestures}
+          initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
+          mapStyle={MAP_STYLE_URL}
+          attributionControl={false}
+          style={{ width: "100%", height: "100%" }}
+          onLoad={(e: MapEvent) => {
+            // En un mapa reciclado (`reuseMaps`) este evento se dispara de forma
+            // SÍNCRONA dentro de `Maplibre.reuse()` (maplibre/maplibre.js) si el
+            // estilo ya estaba cargado de un montaje anterior — antes de que
+            // React actualice `mapRef.current` vía `useImperativeHandle`. Por
+            // eso usamos `e.target` (el `mapboxgl.Map` real, disponible ya) en
+            // vez de `mapRef.current` para sincronizar los handlers.
+            syncInteractiveHandlers(e.target, interactive);
+            syncCooperativeGestures(e.target, cooperativeGestures);
+            syncCamera(e.target, center, zoom);
+            setLoaded(true);
+            setFalloCarga(false);
+            if (mapRef.current) onLoad?.(mapRef.current);
+          }}
+          onMoveEnd={onMoveEnd}
+        >
+          {attribution && <AttributionControl compact position="bottom-right" />}
+          {loaded && children}
+        </MapGl>
+        {falloCarga && !loaded && (
+          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-surface p-6 text-center">
+            <p className="text-sm font-semibold text-ink">No pudimos cargar el mapa</p>
+            <p className="max-w-[28ch] text-sm text-ink/60">
+              Puede ser la conexión. Los turnos siguen disponibles en la lista.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFalloCarga(false);
+                setIntento((n) => n + 1);
+              }}
+              className="min-h-[44px] rounded-[var(--radius-input)] bg-ink px-5 text-sm font-semibold text-white active:scale-95"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 });

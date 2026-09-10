@@ -670,6 +670,19 @@ fecha de esta auditoría (2026-07-02).
 >   `components/map/MapView.tsx` (los hijos se montan después del `load`),
 >   con test de regresión en `MapView.children.test.tsx`. Detalle completo en
 >   `docs/STATUS.md` → "Qué sigue" §10.
+>   ⚠️ **El salto 5→6 trajo un SEGUNDO defecto, independiente del anterior y
+>   mucho peor, corregido el 2026-09-10** (`docs/STATUS.md` → "Qué sigue"
+>   §11): maplibre 6 arma la URL de su web worker con `import.meta.url` y,
+>   dentro del bundle de Next, eso devuelve **cadena vacía** →
+>   `new Worker("", {type:"module"})` → el worker no arranca, ningún tile se
+>   parsea, el `load` no llega nunca y **el mapa quedaba en blanco en
+>   producción para los dos roles**, sin un solo error en consola. Los 79
+>   tests E2E pasaban igual porque el estilo mockeado no tiene fuentes y por
+>   lo tanto nunca necesita el worker. Fix: `lib/map/worker.ts` +
+>   `scripts/copy-maplibre-worker.mjs` (`config.WORKER_URL` apuntando a
+>   `public/maplibre/`, servido desde el propio origen), con
+>   `e2e/mapa-worker.spec.ts` sirviendo un estilo con fuente vectorial real.
+>   **Si algún día se toca la versión de maplibre, verificar esto primero.**
 >
 > **Sigue pendiente del lado frontend, con motivo:**
 > - **`vitest` → 4.1.11 (`GHSA-82fw-gwwq-j7x9`, moderate, dev-only):**

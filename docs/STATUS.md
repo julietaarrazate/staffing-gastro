@@ -5,9 +5,9 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-09 (**el mapa cierra su fase 2: el pin "match"
-ahora marca el turno que paga por encima de lo típico, y el mismo cálculo le
-dice al comercio por qué el suyo no se cubre — PR #332, ADR-0012**).*
+*Última actualización: 2026-09-10 (**"no se ve el mapa": el worker de maplibre 6
+arrancaba con una URL vacía dentro del bundle de Next — el mapa quedaba en
+blanco, sin pines y sin un solo error en consola**).*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -3714,10 +3714,17 @@ roadmap).
       que retrasarlos ~600ms no cambia nada visible.
       Con eso, maplibre 6.8.0 anda: `onLoad` a los ~600ms y marcadores
       dibujándose. Hipótesis descartadas en el camino, por si vuelve a
-      aparecer algo parecido: no era el estilo mock vacío de los tests (da
-      igual con un estilo completo), no era WebGL2 (disponible), no era el
-      tamaño del contenedor (390×700 correcto) y no era la versión del
-      wrapper (8.1.2 y 8.1.3 se comportan igual).
+      aparecer algo parecido: no era WebGL2 (disponible), no era el tamaño
+      del contenedor (390×700 correcto) y no era la versión del wrapper
+      (8.1.2 y 8.1.3 se comportan igual).
+      ⚠️ **CORRECCIÓN (2026-09-10, ver punto 11): este párrafo decía también
+      "no era el estilo mock vacío de los tests (da igual con un estilo
+      completo)". Eso era FALSO y era justo la pista.** El estilo mockeado
+      —`{sources:{}, layers:[]}`— es exactamente lo que hacía pasar la suite
+      con el mapa roto en producción. El fix del `{loaded && children}` es
+      correcto y se queda, pero **no era el bug que veía Julieta**: quedaba
+      un segundo, independiente, que este PR introdujo al subir a maplibre 6
+      y que ningún test podía ver.
       **Regresión cubierta**: `components/map/MapView.children.test.tsx` fija
       el invariante donde se rompería en silencio — verificado que el test
       falla si se saca el gate.
@@ -3748,7 +3755,79 @@ roadmap).
       que daba `worker-apply.spec.ts` como "falla de forma reproducible":
       con el binario correcto pasa.
     - `docs/TECH_DEBT.md` §S3 tiene el detalle del lado frontend.
-    instrucción, seguir por prioridad desde `docs/TECH_DEBT.md`.
+11. ✅ ~~"No se ve el mapa ni en comercio ni en trabajador"~~ — **resuelto
+    (2026-09-10)**. Reporte de Julieta al día siguiente del #329. Era una
+    regresión de ese PR, la segunda y la que de verdad rompía la app.
+
+    **Causa raíz, en el código de maplibre-gl 6** (`dist/maplibre-gl.mjs`, la
+    función que arma la URL de su web worker):
+
+    ```js
+    let e = import.meta.url;
+    if (!/^https?:/.test(e)) return ``;   // <-- cadena VACÍA
+    return new URL(`./maplibre-gl-worker.mjs`, e).href;
+    ```
+
+    Dentro del bundle de Next, `import.meta.url` **no** es una URL http(s),
+    así que esa función devuelve `""` y maplibre termina haciendo
+    `new Worker("", { type: "module" })`. Medido en un render real: el
+    `Worker` se crea, dispara `error` **con `message` vacío** y se cierra. Sin
+    worker no se parsea ni un tile vectorial, el evento `load` **no se dispara
+    nunca**, el gate `{loaded && children}` no monta ningún hijo y el usuario
+    ve una caja perfectamente en blanco: sin fondo, sin pines, sin mensaje y
+    **sin un solo error en consola**. maplibre 5 no usaba worker de módulo y
+    por eso nunca pasó.
+
+    **Fix:** servir el worker desde nuestro propio origen y decírselo a
+    maplibre por `config.WORKER_URL`.
+    - `frontend/scripts/copy-maplibre-worker.mjs` copia
+      `maplibre-gl-worker.mjs` y su `maplibre-gl-shared.mjs` (que el worker
+      importa por ruta relativa) de `node_modules` a `public/maplibre/`. Corre
+      en `postinstall` y en `prebuild`, así que Vercel lo hace solo; el
+      directorio va al `.gitignore` porque es un artefacto generado. Si el
+      archivo de origen no está, el script **tira error**: si esto fallara en
+      silencio, el mapa vuelve a romperse en silencio.
+    - `frontend/lib/map/worker.ts` setea `config.WORKER_URL` y se importa
+      desde `MapView.tsx`, que es el único punto de la app que construye
+      mapas — así queda puesto antes del primer `new Map()`.
+    - Mismo origen a propósito: maplibre usa entonces el `Worker` directo, sin
+      envolverlo en un blob, y la CSP ya lo permite con `worker-src 'self'`.
+
+    **POR QUÉ NINGÚN TEST LO VIO — esto es lo que hay que llevarse.** El mock
+    de `e2e/mocks.ts` responde todo `style.json` con
+    `{version:8, sources:{}, layers:[]}`. **Sin una sola fuente, maplibre
+    nunca necesita el worker**, así que los 79 tests pasaban en verde con el
+    mapa completamente roto en producción. Está medido, no deducido: con ese
+    estilo el mapa carga; basta que **una** capa use una fuente vectorial
+    —como el estilo real de CARTO— para que no cargue nunca. El mock no era
+    "una simplificación": era el único trozo del sistema que hacía que el bug
+    fuera invisible. **Cuando un mock elimina la parte cara de una
+    dependencia, elimina también la parte que se rompe.**
+
+    **Regresión cubierta**: `frontend/e2e/mapa-worker.spec.ts` sirve un estilo
+    con la misma FORMA que el real (fuente vectorial + capa que la usa +
+    glyphs + sprite) y exige marcadores en el DOM, no que exista el canvas —
+    verificado que falla sin el fix.
+
+    **Y de yapa, el otro defecto que este reporte destapó:** el gate
+    `{loaded && children}` del #329 convierte **cualquier** falla de carga en
+    una caja en blanco sin explicación (CARTO caído, red del usuario
+    bloqueando el CDN, el worker no estando donde dice `WORKER_URL`). Ahora
+    `MapView` se da 15s y, si el `load` no llegó, muestra "No pudimos cargar
+    el mapa" con un botón **Reintentar** que construye un mapa nuevo. Un mapa
+    que no carga es un problema; uno que no carga **y no lo dice** es un bug
+    invisible que tarda semanas en llegar como reporte — que es exactamente lo
+    que acaba de pasar.
+
+    **Nota de método, la misma de siempre y van tres:** el #329 escribió
+    "no era el estilo mock vacío de los tests" como hipótesis descartada. No
+    se había descartado — se había probado el mapa crudo, no el mock. Una
+    hipótesis que se escribe como descartada sin el experimento que la
+    descarta es peor que no escribirla: la próxima sesión la lee y no la
+    vuelve a mirar.
+
+    Si no hay otra instrucción, seguir por prioridad desde
+    `docs/TECH_DEBT.md`.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)
 
