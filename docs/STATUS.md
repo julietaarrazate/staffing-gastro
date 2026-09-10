@@ -3665,10 +3665,50 @@ roadmap).
      queda **antes del botón**, donde se lee como respiro, y no partiendo al
      medio el contenido, que es lo que lo hacía ver como un error de layout.
 
-   **Sigue abierto de la fase N** (medido, no corregido): **0% de negro** en
-   las dos pantallas — el brief pide masa de contraste negra para el dato de
-   máxima jerarquía y el mockup la usa (`"contraste oscuro solo donde importa
-   el foco: las ganancias, el pago del turno, tus stats"`). Y **los verdes de
+   **Tercera pasada: dónde va la masa negra.** Julieta preguntó dónde
+   convenía, y la respuesta salió de mirar el código: **el negro NO faltaba en
+   la app**. `/turno/[id]` ya tiene el pago en bloque negro y el perfil del
+   trabajador (`WorkerGameCard`) las ganancias, los dos con la receta correcta
+   (chip ámbar, monto en blanco, secundario en manteca). El "0% de negro"
+   medido antes era de las DOS pantallas de lista, y ahí está bien que no
+   haya.
+
+   **La regla que queda escrita:** el negro es un dispositivo de foco y su
+   fuerza es puramente relativa. Un bloque negro sobre crema dice "esto es lo
+   importante"; tres en una lista que scrollea dicen "rayas", y el lienzo
+   crema vuelve a desaparecer — el mismo fracaso del naranja repetido en otro
+   color. Entonces: **negro donde la pantalla tiene UN sujeto, nunca donde es
+   una lista de pares.**
+
+   El único lugar que lo pedía y no lo tenía es **la tarjeta del candidato
+   recomendado** (`/shifts/[id]/candidates`), que el mockup prescribe en negro
+   (`.rankcard.top`). Medido en un render a 390px, esa pantalla tenía **siete
+   elementos ámbar**, y el problema de fondo no era la cantidad: **el ámbar
+   decía dos cosas a la vez** — "éste es el recomendado" (banda sólida +
+   `ring-2 ring-primary`) y "tocá acá" (los tres botones "Asignar", idénticos
+   entre sí y el elemento más fuerte de cada tarjeta). Con las tres tarjetas
+   empatadas en su CTA, el recomendado no ganaba nada.
+
+   Corregido: la tarjeta recomendada pasa a `bg-night` con la receta de la
+   tarjeta negra, y los "Asignar" de las otras dos bajan a `variant="surface"`.
+   La pantalla queda con **una** acción primaria en vez de tres. Es singular
+   por construcción (sólo `i === 0`), que es la condición que hace que el
+   negro funcione. `CandidateStatChips` y `RecommendationReasons` ganan una
+   prop `onDark` — va como prop y no como `dark:` porque no depende del modo
+   del usuario sino de la SUPERFICIE sobre la que están dibujados.
+
+   **Defecto encontrado en la propia propuesta, mirando el render:** el
+   número del rating quedaba invisible sobre el negro (la estrella se veía y
+   el "4.8" no). `Rating` trae `text-ink/70` por default y no declara en
+   ningún lado que asuma fondo claro. Corregido antes de mostrar nada. Es la
+   misma lección de todas las fases: leer el código no alcanza para un
+   problema visual.
+
+   **Sin tocar, a propósito:** los tres avatares ámbar (es el `Avatar`
+   compartido, se usa en toda la app) y la tarjeta "Garantía Oído" en manteca,
+   que compite un poco con el negro de abajo pero es contenido de confianza.
+
+   **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
    `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía
    el rojo (verde = éxito/confirmado en `STATUS_COLORS`); se dejan como están
    porque el color por rubro es decisión de Julieta y el rojo era el caso
