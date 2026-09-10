@@ -3638,6 +3638,33 @@ roadmap).
    banda de 116px alcanza igual que una de 350. La banda sigue estando y sigue
    siendo por rubro; lo que se movió es el pago, que es dato y no identidad.
 
+   **Segunda pasada de la fase N: el feed del trabajador** (`OpportunityCard`).
+   La primera medición decía 40% de naranja acá también, y **era un artefacto
+   de la medición, no un hallazgo**: se había renderizado a 390×1400 (más alto
+   que cualquier celular) y además se contaban las dos tarjetas apiladas del
+   mazo. A **390×844**, que es un celular de verdad, la banda de la tarjeta de
+   arriba ocupa **17,5%** del viewport — una proporción sana para un hero. Acá
+   no había problema de superficie. Se deja escrito porque el error de método
+   es el interesante: *medir a un alto que no existe infla todo lo que se mide
+   como porcentaje del viewport*.
+
+   Lo que sí apareció mirando el render a alto real fueron **dos defectos, y
+   ninguno es de color**:
+   - **La marca de agua del rubro le caía encima al título.** El ícono de
+     relleno iba centrado a 120px y al **90%** de blanco: eso no es una marca
+     de agua, es un elemento que compite — y como el título del turno se apoya
+     abajo del hero, el glifo se cruzaba con "Mozo/a" y lo dejaba ilegible.
+     `ShiftCard` ya lo tenía bien resuelto (esquina, 132px, **15%**), así que
+     el fix es unificar con el tratamiento que ya existía. Es el mismo defecto
+     que la inicial y la cámara pisándose en el avatar (fase L): **dos cosas
+     dibujadas en el mismo lugar porque cada una se posicionó por su cuenta.**
+   - **~250px de blanco muerto en el medio de la tarjeta.** El cuerpo era
+     `justify-between` sobre TODO el contenido, así que el sobrante se abría
+     entre el pago y las fechas, con el pago arriba de todo y la fecha pegada
+     al botón. Pasa a `justify-start` con `mt-auto` sólo en la acción: el aire
+     queda **antes del botón**, donde se lee como respiro, y no partiendo al
+     medio el contenido, que es lo que lo hacía ver como un error de layout.
+
    **Sigue abierto de la fase N** (medido, no corregido): **0% de negro** en
    las dos pantallas — el brief pide masa de contraste negra para el dato de
    máxima jerarquía y el mockup la usa (`"contraste oscuro solo donde importa

@@ -124,6 +124,24 @@ infinitamente mejor que nunca y en blanco.
 
 ---
 
+## Aserción sincrónica sobre algo que escribe un handler asíncrono (falso rojo de E2E)
+
+**Patrón:** en un spec de Playwright se guarda un dato desde un `page.route(...)` —el cuerpo de
+un pedido, un contador de llamadas— y después se lo asevera con un `expect(...)` seco, sin
+esperar. El handler corre cuando el pedido efectivamente sale, así que la aserción compite con
+la red: pasa siempre en una máquina descansada y falla sola cuando la máquina está cargada.
+Aparece como flake, pero tiene causa raíz y no es "el CI que anda mal".
+
+- **Encontrado (2026-09-10):** `e2e/ai-assistant-fab.spec.ts`, `buscar_turnos`, hacía
+  `expect(requestBody).not.toBeNull()` justo después del `click()`. Falló en una corrida con la
+  máquina saturada; la captura mostraba el botón todavía en "Cargando…", o sea el pedido en
+  vuelo. Fix: `await expect.poll(() => requestBody).not.toBeNull()`.
+
+**Cómo evitarlo:** todo lo que escribe un handler de `page.route` se lee con `expect.poll` (o se
+espera con `page.waitForRequest`), nunca con un `expect` inmediato.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de
