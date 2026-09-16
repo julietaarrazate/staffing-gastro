@@ -3128,6 +3128,33 @@ roadmap).
 
 ## En vuelo ahora
 
+- **El CI no se disparaba en los PRs que abro yo — arreglado y VERIFICADO
+  (2026-09-16).** Un PR abierto por API con el token de una GitHub App **no**
+  dispara workflows: GitHub lo evita a propósito para que un workflow no se
+  encadene a sí mismo. Hasta ahora no se había notado porque los PRs anteriores
+  los abría Julieta, y mis pushes generaban `synchronize` sobre un PR ya suyo.
+  En el #338 la consecuencia fue medible: dos pushes reales, **cero** workflow
+  runs, mientras Vercel y GitGuardian sí respondían a esos mismos commits — el
+  PR quedaba validado sólo por una corrida local que no queda registrada en
+  ningún lado. Fix en `ci.yml` y `security.yml`: `push` ahora incluye
+  `claude/**`, y se suma `workflow_dispatch` para poder relanzar a mano sin
+  inventar un commit vacío. Detalle que evita una **CI verde que miente**: a
+  `dorny/paths-filter` se le pasa `main` como base explícita en el primer push
+  de una rama nueva (no hay "commit anterior" contra el cual diffear) y en un
+  disparo manual se corren todos los jobs sin filtrar. Verificado, no supuesto:
+  `CI` #669 y `Security` #265 corrieron con `event: push` y cerraron en
+  **success**.
+
+- **Aclaración sobre "no veo cambios en la app" (2026-09-16).** El #337 **sí**
+  está en producción desde el 2026-09-10: `https://www.oido.com.ar/maplibre/
+  maplibre-gl-worker.mjs` responde 200 con `last-modified` del 10/09, y ese
+  archivo sólo existe por el fix del mapa. Tampoco es caché: `public/sw.js` no
+  tiene handler de `fetch`, no cachea el shell. Lo que falta ver es el **#338**,
+  que es el que trae el cambio visible (la fila de acciones rápidas) y sigue
+  en draft. Vale como patrón: después de un squash merge, `git diff A...B`
+  (tres puntos) sigue mostrando lo ya mergeado porque se pierde la ascendencia
+  — para saber qué falta de verdad hay que usar `git diff A..B` (dos puntos).
+
 - **Auditoría de consistencia visual post-rediseño (#302–#308) — EN CURSO, no cerrada.**
   Julieta la pidió con capturas reales del dispositivo (no simuladas) y sigue mandando
   más a medida que las reviso; el método es AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR,
@@ -3493,6 +3520,14 @@ roadmap).
 > (fileado como P7-15 en EKP).
 
 **Si abrís una sesión nueva y no hay otra instrucción, esto es lo que sigue:**
+
+> **Antes que nada: leé "Protocolo de sesión" en `CLAUDE.md`.** Se agregó el
+> 2026-09-16 porque las reglas de orden (worktree, mirar la UI renderizada en
+> los dos temas, dejar el estado escrito, cerrar con CI verde) vivían adentro
+> de un *prompt de ejemplo* en vez de ser reglas, así que sólo se cumplían si
+> Julieta se acordaba de pegarlo. Dos sesiones se las saltaron sin que nadie
+> lo notara.
+
 
 1. ✅ ~~Conectar `oido.com.ar`~~ — **resuelto (2026-09-08, operativo)**. Los
    cuatro pasos (Vercel → Domains, orígenes autorizados de Google Cloud,
