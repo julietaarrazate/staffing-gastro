@@ -38,14 +38,20 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      # En un disparo MANUAL se corre todo, sin filtrar: quien lo lanza quiere
-      # una validación completa, y un filtro que no encuentre cambios dejaría
-      # una CI verde que en realidad no ejecutó nada — el peor resultado
-      # posible, porque miente.
-      backend: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.backend == 'true' }}
-      frontend: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.frontend == 'true' }}
+      # Dos condiciones encadenadas, y el orden importa:
+      #   1. `duplicada` — si esta corrida repite a la del PR abierto, no se
+      #      corre NADA (ver .github/actions/corrida-duplicada).
+      #   2. el filtro por área — de lo que sí hay que correr, sólo lo tocado.
+      # En un disparo MANUAL se saltea el filtro y se corre todo: quien lo
+      # lanza quiere una validación completa, y un filtro que no encuentre
+      # cambios dejaría una CI verde que en realidad no ejecutó nada — el peor
+      # resultado posible, porque miente.
+      backend: ${{ steps.duplicada.outputs.correr == 'true' && (github.event_name == 'workflow_dispatch' || steps.filter.outputs.backend == 'true') }}
+      frontend: ${{ steps.duplicada.outputs.correr == 'true' && (github.event_name == 'workflow_dispatch' || steps.filter.outputs.frontend == 'true') }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/corrida-duplicada
+        id: duplicada
       - uses: dorny/paths-filter@v3
         id: filter
         with:
