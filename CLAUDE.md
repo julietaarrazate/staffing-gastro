@@ -224,10 +224,10 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
   (el "match" del mapa y el aviso de pago fuera de mercado al comercio) ·
   0013 verificación del comercio (constancia de AFIP; por qué NO es
-  `cuit_verificado` y por qué no se guarda el número) · 0014 ubicación en
-  tiempo real (**propuesto**, sin implementar: por qué el comercio mide la
-  distancia desde el domicilio del trabajador y no desde dónde está, más el
-  hallazgo de que hoy el mapa del comercio dibuja un pin sobre esa casa) ·
+  `cuit_verificado` y por qué no se guarda el número) · 0014 "Disponible
+  ahora" (el trabajador prende su posición real por 4h para que el comercio
+  mida la distancia desde ahí y no desde su domicilio; el pin en el mapa
+  siempre va desplazado — `fuzz_point`, TECH_DEBT.md S4) ·
   0015 turno "no cubierto" (estado nuevo para un turno asignado que nadie
   confirma, o publicado que nadie toma, cuyo horario ya pasó — sin impacto
   de reputación, ventana de gracia según `urgent`).
@@ -299,6 +299,14 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
+- **"Disponible ahora"** (ADR-0014): el trabajador prende su posición real
+  —una sola captura, no un seguimiento— para que el comercio (mapa y
+  matching de un turno) mida la distancia desde ahí y no desde su domicilio.
+  Dura 4h (`AVAILABLE_NOW_TTL`) o hasta apagarlo. El pin que ve el comercio
+  **nunca** es la coordenada exacta, esté o no "Disponible ahora" prendido:
+  `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
+  150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
+  trabajador, mismo punto en cada render), no aleatorio en cada carga.
 - **Mapa con el pago en el pin** (#319) y **pago de referencia** (#332,
   ADR-0012): el marcador lleva el monto, el rubro es un punto de color, y el
   turno que **paga por encima de lo típico** para su puesto y ciudad se

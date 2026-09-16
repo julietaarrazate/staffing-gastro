@@ -13,6 +13,8 @@ from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
 from app.modules.worker.api.dependencies import get_user_repository, get_worker_service
 from app.modules.worker.api.schemas import (
+    AvailableNowInput,
+    AvailableNowResponse,
     WorkerEarningsResponse,
     WorkerProfileInput,
     WorkerProfileResponse,
@@ -124,6 +126,58 @@ async def get_my_earnings(current_user: WorkerDep, service: ServiceDep):
         this_month_earned=summary.this_month_earned,
         shifts_completed=summary.shifts_completed,
     )
+
+
+def _available_now_response(profile: WorkerProfile) -> AvailableNowResponse:
+    return AvailableNowResponse(
+        active=profile.is_available_now,
+        until=profile.available_now_until if profile.is_available_now else None,
+    )
+
+
+@router.post(
+    "/me/available-now",
+    response_model=AvailableNowResponse,
+    summary='Prender "Disponible ahora" (ADR-0014)',
+)
+async def go_available_now(
+    payload: AvailableNowInput, current_user: WorkerDep, service: ServiceDep
+):
+    try:
+        profile = await service.go_available_now(
+            current_user.id, payload.latitude, payload.longitude
+        )
+    except WorkerProfileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Todavía no creaste tu perfil de trabajador",
+        ) from exc
+    return _available_now_response(profile)
+
+
+@router.get(
+    "/me/available-now",
+    response_model=AvailableNowResponse,
+    summary='Ver el estado de "Disponible ahora" del trabajador autenticado',
+)
+async def get_available_now(current_user: WorkerDep, service: ServiceDep):
+    try:
+        profile = await service.get_my_profile(current_user.id)
+    except WorkerProfileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Todavía no creaste tu perfil de trabajador",
+        ) from exc
+    return _available_now_response(profile)
+
+
+@router.delete(
+    "/me/available-now",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary='Apagar "Disponible ahora"',
+)
+async def stop_available_now(current_user: WorkerDep, service: ServiceDep) -> None:
+    await service.stop_available_now(current_user.id)
 
 
 @router.get(

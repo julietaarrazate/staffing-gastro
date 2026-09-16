@@ -12,6 +12,9 @@ interface WorkerMarkerProps {
   name: string;
   rating: number;
   active: boolean;
+  /** ADR-0014: "Disponible ahora" vigente — punto verde en la esquina
+   *  opuesta al rating, mismo criterio visual que un estado "en vivo". */
+  isLive?: boolean;
   /** Delay del scale-in de aparición, para el efecto stagger. */
   delayMs?: number;
   /** Recibe el `id` del trabajador: permite pasar un handler estable
@@ -37,6 +40,7 @@ function WorkerMarker({
   name,
   rating,
   active,
+  isLive = false,
   delayMs = 0,
   onClick,
 }: WorkerMarkerProps) {
@@ -74,6 +78,12 @@ function WorkerMarker({
         >
           {active && (
             <span className="absolute -inset-2 rounded-full border-2 border-primary [animation:markerHalo_1.6s_ease-out_infinite]" />
+          )}
+          {isLive && (
+            <span
+              aria-label="Disponible ahora"
+              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-success"
+            />
           )}
           {showPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element

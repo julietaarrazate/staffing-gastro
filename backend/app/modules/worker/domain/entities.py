@@ -5,15 +5,22 @@ Las métricas e insignias son gestionadas por el sistema, no editables por el us
 """
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from app.core.dt import naive as _naive
 from app.core.tz import hoy_art
 from app.modules.worker.domain.value_objects import (
     GamificationLevel,
     WorkerBadge,
     WorkerSkill,
 )
+
+# ADR-0014: cuánto dura "Disponible ahora" desde que se prende. Decisión de
+# Julieta: alcanza para una sesión de búsqueda real (no un trayecto puntual,
+# como el de "va en camino" — EN_ROUTE_WINDOW en shift/domain/entities.py) sin
+# acercarse a quedar prendido "todo el día" por olvido.
+AVAILABLE_NOW_TTL = timedelta(hours=4)
 
 
 @dataclass
@@ -41,6 +48,16 @@ class WorkerProfile:
     # archivo subido (no de un link pegado a mano).
     cv_filename: str | None = None
     is_available: bool = True
+
+    # --- "Disponible ahora" (ADR-0014) ---
+    # Una sola posición capturada al prenderlo, vigente por AVAILABLE_NOW_TTL
+    # o hasta que se apague — nunca un seguimiento continuo (alternativa
+    # descartada explícitamente en el ADR). Reemplaza a latitude/longitude
+    # para medir distancia mientras está vigente; fuera de esa ventana, el
+    # matching y el mapa vuelven solos a la zona del perfil.
+    available_now_latitude: float | None = None
+    available_now_longitude: float | None = None
+    available_now_until: datetime | None = None
 
     # --- Métricas (gestionadas por el sistema) ---
     rating: float = 0.0
@@ -76,3 +93,32 @@ class WorkerProfile:
             - self.birth_date.year
             - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
         )
+
+    @property
+    def is_available_now(self) -> bool:
+        """`True` mientras "Disponible ahora" sigue vigente (ADR-0014):
+        prendido y todavía no venció su ventana."""
+        if self.available_now_until is None:
+            return False
+        return _naive(datetime.now(timezone.utc)) < _naive(self.available_now_until)
+
+    def go_available_now(self, latitude: float, longitude: float) -> None:
+        """Prende "Disponible ahora": captura ESTA posición, vigente por
+        `AVAILABLE_NOW_TTL` o hasta apagarlo. No acumula historial — cada
+        activación pisa a la anterior, igual que `Shift.report_en_route_location`.
+
+        Sin guard sobre `is_available`: si está en `False`, `search_workers`
+        y el matching ya lo excluyen antes de llegar a usar esta posición
+        (filtro `is_available` en SQL) — prenderlo sin estar disponible es un
+        no-op inofensivo, no un estado inválido que haya que rechazar."""
+        self.available_now_latitude = latitude
+        self.available_now_longitude = longitude
+        self.available_now_until = datetime.now(timezone.utc) + AVAILABLE_NOW_TTL
+
+    def stop_available_now(self) -> None:
+        """Apaga "Disponible ahora" ya sea a mano, por vencimiento del TTL
+        (scheduler) o al cerrar sesión. Idempotente: no falla si ya estaba
+        apagado."""
+        self.available_now_latitude = None
+        self.available_now_longitude = None
+        self.available_now_until = None

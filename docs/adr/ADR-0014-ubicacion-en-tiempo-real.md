@@ -1,10 +1,13 @@
 # ADR-0014 — La distancia que ve el comercio: dónde está el trabajador, no dónde vive
 
-**Estado:** propuesto · **Fecha:** 2026-09-16
+**Estado:** aceptado e implementado · **Fecha:** 2026-09-16
 
-> Este ADR se escribe **antes** de tocar una línea de código, a pedido de
+> Este ADR se escribió **antes** de tocar una línea de código, a pedido de
 > Julieta. Decide un modelo de privacidad, y eso no se decide mientras se
-> programa.
+> programa. El fix de S4 (el pin exacto sobre el domicilio, `TECH_DEBT.md`)
+> se implementó primero y por separado, porque no dependía de que este ADR
+> se aprobara — "Disponible ahora" (abajo) construye arriba de ese mismo
+> mecanismo (`fuzz_point`).
 
 ## Contexto
 
@@ -179,15 +182,43 @@ parada una persona.
 - El desplazamiento del pin y el borrado al vencer necesitan test propio: son
   justamente lo que nadie va a mirar a ojo cuando se rompa.
 
-## Pendiente de decidir (Julieta)
+## Decidido (Julieta, 2026-09-16)
 
-1. **Cuánto dura "Disponible ahora".** Propuesta: **4 horas**, o hasta que lo
-   apague. Suficiente para un turno de noche, corto para no quedar prendido
-   solo. Alternativa más conservadora: 2 h, igual que "va en camino".
-2. **Si el pin desplazado va también para el admin.** El admin hoy ve el mapa
-   en sólo lectura (#168). Mi recomendación: sí, mismo desplazamiento — el
-   admin modera, no necesita domicilios.
-3. **Si "Disponible ahora" debería además subir al trabajador en el ranking**,
-   o sólo corregir la distancia. Recomiendo **sólo la distancia** en esta
-   etapa: mezclar disponibilidad con reputación dentro del mismo puntaje es lo
-   que el ADR-0012 ya advirtió que enturbia un ranking.
+1. **Cuánto dura "Disponible ahora": 4 horas** (`AVAILABLE_NOW_TTL`,
+   `worker/domain/entities.py`) desde que se prende, o hasta apagarlo a mano.
+   Razón: alcanza para una sesión de búsqueda real (el trabajador todavía no
+   tiene turno, no es un trayecto puntual como "va en camino") sin acercarse
+   a quedar prendido "todo el día" por olvido.
+2. **El pin desplazado va también para el admin: sí, sin excepción.** Mismo
+   endpoint (`/matching/search`) que usa el comercio — el admin no tiene
+   ningún vínculo operativo con el trabajador que justifique ver más.
+3. **"Disponible ahora" sólo corrige la distancia, nunca sube el ranking.**
+   `scoring.py` no se tocó: la posición vigente reemplaza a la del perfil
+   como INPUT del mismo cálculo de distancia que ya existía, con el mismo
+   peso (0.30) — no es una señal nueva en la fórmula.
+
+## Implementación (resumen — detalle completo en el PR)
+
+- **Dominio** (`worker/domain/entities.py`): `WorkerProfile.go_available_now`/
+  `stop_available_now`/`is_available_now`, tres columnas nuevas
+  (`available_now_latitude/longitude/until`, migración `0032`).
+- **Resolución de posición, un solo lugar**
+  (`matching/infrastructure/repositories.py::_resolve_position`): mientras
+  está vigente, la posición de "Disponible ahora" reemplaza a la del perfil
+  para TODO lo que mida distancia — el mapa (`search_workers`) y el matching
+  de un turno (`get_top_candidates`) comparten esta resolución, así que
+  ninguno de los dos tuvo que aprender que existen dos fuentes posibles.
+- **Scheduler:** cuarto chequeo (`run_available_now_cleanup`) que borra la
+  posición vencida — minimización de datos, no una regla de negocio (
+  `is_available_now` ya trata como apagado a quien venció).
+- **Frontend:** `AvailableNowToggle` (trabajador, en `/profile`) y la señal
+  "Disponible ahora · hace X min" en `/search` (lista + punto verde en el
+  marcador del mapa), sólo cuando está vigente — su ausencia ya es "zona del
+  perfil", no hace falta decirlo aparte.
+- **No implementado a propósito:** apagarlo al cerrar sesión (tercera vía de
+  borrado mencionada en la tabla del punto 2 de la Decisión). El TTL de 4h y
+  el apagado manual ya acotan la exposición; tocar `IdentityService.logout`
+  —módulo más sensible del repo— para un caso marginal (cerrar sesión sin
+  apagarlo a mano, dentro de esas 4h) no valía el riesgo. Si se retoma,
+  componer en la capa API de `identity/api/routes.py::logout` (mismo patrón
+  que `matching` compone con `verification`), nunca acoplar los dominios.

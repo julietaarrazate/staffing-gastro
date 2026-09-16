@@ -86,6 +86,15 @@ export default function PrivacidadPage() {
                 corta solo cuando marcás tu llegada, y guardamos únicamente tu
                 última posición — nunca el recorrido. Fuera de esas ventanas no
                 te seguimos, ni en segundo plano.
+                <br />
+                Si activás &quot;Disponible ahora&quot; para que el comercio
+                busque cerca de dónde estás en vez de tu domicilio, es el
+                mismo mecanismo: una sola posición (no un seguimiento), dura
+                hasta 4 horas o hasta que la apagués, y se borra sola al
+                vencer. Ni ahí ni en tu perfil el mapa muestra tu ubicación
+                exacta: siempre la vemos desplazada dentro de tu zona, con una
+                precisión que alcanza para decidir a quién contactar y no
+                para llegar a tu puerta.
               </li>
               <li>
                 <strong>Mensajes:</strong> el chat entre comercio y

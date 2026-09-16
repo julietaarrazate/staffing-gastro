@@ -4,18 +4,43 @@ Lee directamente de `worker_profiles` (módulo worker) y mapea a los DTOs
 livianos del dominio de matching, sin depender de sus entidades.
 """
 
+from datetime import datetime, timezone
+
 from sqlalchemy import String, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dt import naive as _naive
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.matching.domain.entities import CandidateProfile
 from app.modules.matching.domain.repositories import CandidateRepository
+from app.modules.worker.domain.entities import AVAILABLE_NOW_TTL
 from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge, WorkerSkill
 from app.modules.worker.infrastructure.models import WorkerProfileModel
 
 
+def _resolve_position(
+    model: WorkerProfileModel,
+) -> tuple[float | None, float | None, bool, datetime | None]:
+    """ADR-0014: mientras "Disponible ahora" está vigente, esa posición
+    reemplaza a la del perfil para TODO lo que mida distancia (matching y
+    mapa) — un solo punto de resolución para que el resto del dominio no
+    tenga que conocer las dos fuentes posibles.
+
+    `position_updated_at` (cuándo se prendió) se deriva de `available_now_until
+    - AVAILABLE_NOW_TTL` en vez de guardar un cuarto campo "since": el TTL es
+    una constante del sistema, no algo que el usuario elige, así que alcanza
+    con recalcularlo."""
+    if model.available_now_until is not None and _naive(
+        datetime.now(timezone.utc)
+    ) < _naive(model.available_now_until):
+        since = model.available_now_until - AVAILABLE_NOW_TTL
+        return model.available_now_latitude, model.available_now_longitude, True, since
+    return model.latitude, model.longitude, False, None
+
+
 def _to_candidate(model: WorkerProfileModel, full_name: str) -> CandidateProfile:
+    latitude, longitude, is_live, updated_at = _resolve_position(model)
     return CandidateProfile(
         profile_id=model.id,
         user_id=model.user_id,
@@ -29,8 +54,10 @@ def _to_candidate(model: WorkerProfileModel, full_name: str) -> CandidateProfile
         cancellations=model.cancellations,
         no_shows=model.no_shows,
         is_available=model.is_available,
-        latitude=model.latitude,
-        longitude=model.longitude,
+        latitude=latitude,
+        longitude=longitude,
+        is_live_position=is_live,
+        position_updated_at=updated_at,
         badges=tuple(WorkerBadge(b) for b in (model.badges or [])),
         level=GamificationLevel(model.level),
     )

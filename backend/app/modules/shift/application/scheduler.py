@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Tres chequeos independientes, un solo loop:
+Cuatro chequeos independientes, un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    manda un recordatorio push de "¿ya llegaste?" una sola vez, o marca
@@ -13,6 +13,12 @@ Tres chequeos independientes, un solo loop:
    pasó — se resuelven solos a NO_CUBIERTO. La ventana depende de `urgent`
    (30 min si el turno era urgente, 2 h si no) para que uno inmediato no
    quede colgado como si siguiera activo mucho después de su hora.
+4. **"Disponible ahora" (ADR-0014):** perfiles de trabajador con esa posición
+   prendida cuyo TTL ya venció — se apaga sola (`WorkerProfile.stop_available_now`).
+   No es una regla de negocio, es minimización de datos: `is_available_now`
+   ya la trata como vencida en cuanto pasa el TTL (el matching/mapa nunca la
+   usan de más), este chequeo sólo borra la posición de la base en vez de
+   dejarla ahí sin uso indefinidamente.
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo
@@ -224,11 +230,35 @@ async def run_coverage_check() -> datetime | None:
         return next_deadline
 
 
+async def run_available_now_cleanup() -> datetime | None:
+    """Una pasada de limpieza de "Disponible ahora" (ADR-0014). Público para
+    poder testearlo sin el loop.
+
+    Devuelve la próxima deadline de vencimiento FUTURA (el `available_now_until`
+    más temprano entre los perfiles todavía vigentes), o `None`. Minimización
+    de datos, no una regla de negocio: `WorkerProfile.is_available_now` ya
+    trata como apagado a quien venció, esto sólo borra la posición vieja de
+    la base en vez de dejarla ahí sin uso."""
+    async with AsyncSessionLocal() as session:
+        workers = SqlAlchemyWorkerProfileRepository(session)
+        now = _naive(datetime.now(timezone.utc))
+        profiles = await workers.list_with_available_now_set()
+        next_deadline: datetime | None = None
+        for profile in profiles:
+            deadline = _naive(profile.available_now_until)
+            if now >= deadline:
+                profile.stop_available_now()
+                await workers.update(profile)
+            else:
+                next_deadline = _earlier(next_deadline, deadline)
+        return next_deadline
+
+
 async def scheduler_loop() -> None:
-    """Loop infinito: corre los tres chequeos y duerme hasta la próxima deadline.
+    """Loop infinito: corre los cuatro chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
-    entre los tres chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
+    entre los cuatro chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
     MAX_SLEEP]), despertable antes por `notify_scheduler()` cuando entra
     trabajo nuevo.
 
@@ -254,6 +284,11 @@ async def scheduler_loop() -> None:
         except Exception:
             had_error = True
             logger.exception("Error en el chequeo de cobertura")
+        try:
+            next_deadline = _earlier(next_deadline, await run_available_now_cleanup())
+        except Exception:
+            had_error = True
+            logger.exception('Error en la limpieza de "Disponible ahora"')
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 
