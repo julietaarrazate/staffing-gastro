@@ -79,16 +79,24 @@ test.describe("acciones rápidas del panel", () => {
 
   test("ninguna acción repite un destino del nav de abajo", async ({ page }) => {
     const fila = page.getByRole("navigation", { name: "Acciones rápidas" });
-    const rapidas = await fila.getByRole("link").evaluateAll((els) =>
-      els.map((el) => new URL((el as HTMLAnchorElement).href).pathname)
-    );
     const nav = page.getByRole("navigation", { name: "Secciones" });
-    const abajo = await nav.getByRole("link").evaluateAll((els) =>
-      els.map((el) => new URL((el as HTMLAnchorElement).href).pathname)
-    );
+
+    // `evaluateAll` NO espera: si el nav todavía no se renderizó devuelve `[]`
+    // y el test falla con "Received length: 0" sin decir por qué. Pasó en CI el
+    // 2026-09-16 (2 workers compartiendo CPU) mientras en local siempre ganaba
+    // la carrera. Los `expect` de abajo sí reintentan, así que son los que
+    // esperan a que el DOM esté listo; recién después se leen los href.
+    await expect(fila.getByRole("link")).toHaveCount(4);
+    await expect(nav.getByRole("link").first()).toBeVisible();
+
+    const href = (loc: ReturnType<typeof page.getByRole>) =>
+      loc.evaluateAll((els) => els.map((el) => new URL((el as HTMLAnchorElement).href).pathname));
+
+    const rapidas = await href(fila.getByRole("link"));
+    const abajo = await href(nav.getByRole("link"));
 
     expect(rapidas).toHaveLength(4);
     expect(abajo.length).toBeGreaterThan(0);
-    expect(rapidas.filter((href) => abajo.includes(href))).toEqual([]);
+    expect(rapidas.filter((ruta) => abajo.includes(ruta))).toEqual([]);
   });
 });
