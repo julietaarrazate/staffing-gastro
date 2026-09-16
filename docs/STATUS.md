@@ -3128,6 +3128,32 @@ roadmap).
 
 ## En vuelo ahora
 
+- **Publicar turno/evento: la hora invisible en oscuro, y "sábado 20" en vez
+  de "20/09" (2026-09-16).** Julieta, probando la app real: *"en el modo
+  oscuro cuando pones la hora no se ve"* y *"colocar la fecha debería salir un
+  calendario, así te asegurás bien el día […] o alguna manera de aclarar para
+  que no haya confusión"*. Dos causas distintas en la misma pantalla:
+  - Los `<input type="datetime-local">` de `/shifts/new` y `/shifts/new-event`
+    (y el `<select>` de puesto del evento) no declaraban `text-ink`: heredaban
+    la tinta del lienzo —oscura en los DOS temas— y adentro de una tarjeta
+    oscura quedaban texto oscuro sobre fondo oscuro (contraste medido:
+    **1.08:1**, con el mínimo AA en 4.5:1). Es la deuda **F1** (inputs crudos
+    fuera del sistema de tokens); el `TextField` del Design System ya traía
+    `text-ink`, estos no.
+  - El selector nativo de fecha **ya se abre** al tocar el campo — lo que
+    faltaba no era el calendario sino la **confirmación**: vuelve mostrando
+    `19/09/2026` o `09/19/2026` según el locale del dispositivo (la ambigüedad
+    exacta que preocupaba), y nadie hace la cuenta mental de qué día de la
+    semana es eso. Fix: `ShiftDayHint`, un eco en palabras
+    ("sábado 19 de septiembre · 21:00") debajo de cada campo, en el momento y
+    lugar donde se comete el error — no en un resumen aparte al final, que es
+    donde vivía antes y que se sacó por redundante.
+  - `lib/datetime.ts::formatShiftDayLong` nuevo. Test de regresión
+    (`e2e/publicar-turno-fecha.spec.ts`) que mide **contraste real
+    computado** contra el DOM, no clases — confirmado que detecta el bug
+    original (1.08:1) revirtiendo el fix a propósito antes de escribir el
+    test, y que deja de detectarlo con el fix puesto.
+
 - **La CI corría dos veces por cada push — arreglado (2026-09-16).** Secuela
   directa del fix anterior: los workflows escuchan `pull_request` **y** `push`
   a `claude/**`, así que con el PR ya abierto disparaban los dos y se pagaba el

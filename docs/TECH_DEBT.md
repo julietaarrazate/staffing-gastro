@@ -365,6 +365,21 @@ fecha de esta auditoría (2026-07-02).
 > build`. Sin tests e2e que toquen estas 3 pantallas (verificado, cero
 > riesgo de regresión de test).
 
+> **Corrección puntual 2026-09-16 (no reabre la decisión de arriba):** los
+> datetime de `shifts/new`/`shifts/new-event` y el campo de mensaje de
+> `chats/[shiftId]/page.tsx` seguían **con criterio** en estilo propio — eso
+> no cambia, sigue siendo la decisión correcta. Lo que esa revisión no
+> verificó es que a esos inputs les faltaba `text-ink`: heredaban la tinta
+> del lienzo, oscura en los dos temas, y en `data-theme="dark"` quedaban
+> **ilegibles** (contraste medido 1.08:1 contra un mínimo AA de 4.5:1).
+> Julieta lo encontró probando la app real ("en el modo oscuro cuando pones
+> la hora no se ve"). Corregido agregando sólo la clase de color que
+> faltaba — el estilo propio de cada uno no se tocó. Detalle y test de
+> regresión (que mide contraste real, no clases) en `docs/STATUS.md`
+> "En vuelo ahora". La lección para la próxima vez que se audite algo así:
+> **decidir "sigue con estilo propio" no es lo mismo que verificar que ese
+> estilo propio anda en los dos temas** — son dos preguntas distintas.
+
 ### F2 — Landing sin migrar al DS v2 monocromático ✅ Resuelto
 
 - **Descripción:** `frontend/app/page.tsx` usa gradientes naranja→rojo en

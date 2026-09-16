@@ -196,7 +196,7 @@ export default function ConversationPage() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Escribí un mensaje..."
-          className="flex-1 rounded-full border border-line px-4 py-2 text-sm focus:border-primary focus:outline-none"
+          className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink focus:border-primary focus:outline-none"
         />
         <button
           type="submit"
