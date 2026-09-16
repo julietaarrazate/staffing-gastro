@@ -3128,6 +3128,41 @@ roadmap).
 
 ## En vuelo ahora
 
+- **ADR-0014 aceptado e implementado: "Disponible ahora" (2026-09-16).**
+  Julieta contestó las tres preguntas pendientes del ADR y pidió ir con
+  todo: 4 horas de ventana (`AVAILABLE_NOW_TTL`), el pin desplazado también
+  para el admin (mismo endpoint que el comercio, sin excepción), y sólo
+  corrige la distancia — nunca sube el ranking del matching.
+
+  El trabajador prende **una sola posición** (no un seguimiento — la
+  alternativa descartada explícitamente en el ADR) desde `/profile`
+  (`AvailableNowToggle`), vigente hasta apagarla o que venza el TTL. Mientras
+  está vigente, esa posición reemplaza a la del perfil para TODO lo que mida
+  distancia — un único punto de resolución
+  (`matching/infrastructure/repositories.py::_resolve_position`) que
+  alimenta tanto el mapa del comercio (`/search`, con el punto verde y
+  "Disponible ahora · hace X min") como el matching de un turno
+  (`get_top_candidates`) — el caso real del ADR ("el trabajador que se movió
+  perdía turnos cercanos que podía cubrir") queda cerrado en los dos lugares,
+  no sólo en el mapa. `scoring.py` no se tocó: la posición vigente es un
+  mejor INPUT al mismo cálculo de distancia, no una señal nueva en la
+  fórmula.
+
+  Cuarto chequeo en el scheduler (`run_available_now_cleanup`, mismo patrón
+  de "despertar por deadline" que los otros tres) borra la posición vencida
+  — minimización de datos, no una regla de negocio nueva.
+
+  **Deliberadamente no implementado:** apagarlo al cerrar sesión (la tercera
+  vía de borrado que mencionaba el ADR). El TTL de 4h y el apagado manual ya
+  acotan la exposición; tocar `IdentityService.logout` —el módulo más
+  sensible del repo— para un caso marginal no valía el riesgo. Documentado
+  como decisión, no como deuda, en el ADR.
+
+  `/privacidad` actualizado en el mismo PR. Validado: `pytest -q` 497/497
+  (7 tests nuevos en `test_available_now.py`), `tsc`, ESLint 0 problemas,
+  `npm run build`, Vitest 90/90 (4 nuevos para `formatAgo`, extraído de
+  `EnRouteMap.tsx` que lo duplicaba), Playwright 111/111 (2 nuevos).
+
 - **S4 resuelto: el mapa del comercio dejó de dibujar un pin sobre el
   domicilio del trabajador (2026-09-16).** Hallazgo propio (no reportado por
   Julieta) al escribir ADR-0014: `WorkerSearchMap.tsx` mostraba

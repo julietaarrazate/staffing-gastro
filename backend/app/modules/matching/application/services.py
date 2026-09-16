@@ -96,6 +96,8 @@ class MatchingService:
                     latitude=fuzzed_lat,
                     longitude=fuzzed_lng,
                     distance_km=distance_km,
+                    is_live=candidate.is_live_position,
+                    position_updated_at=candidate.position_updated_at,
                 )
             )
         ordered = sorted(

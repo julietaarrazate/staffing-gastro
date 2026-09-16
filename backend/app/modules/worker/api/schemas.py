@@ -65,6 +65,26 @@ class WorkerProfileResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class AvailableNowInput(BaseModel):
+    """Payload para prender "Disponible ahora" (ADR-0014): una sola posición
+    capturada al tocar el botón, no un seguimiento continuo."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+class AvailableNowResponse(BaseModel):
+    """Estado de "Disponible ahora" del trabajador autenticado. Deliberadamente
+    SIN latitude/longitude: a diferencia de `WorkerProfileResponse` (que
+    también sirve para el perfil PÚBLICO, `GET /workers/{id}`), esta respuesta
+    sólo la ve el propio trabajador — pero mantenerla sin coordenadas evita
+    que un cambio futuro que reutilice este schema en otro lado filtre la
+    posición exacta por descuido."""
+
+    active: bool
+    until: datetime | None = None
+
+
 class WorkerEarningsResponse(BaseModel):
     """Resumen de ganancias del trabajador (pedido de Julieta: "un resumen
     de ganancias acumuladas en el perfil"). Cuenta turnos FINALIZADO/PAGADO

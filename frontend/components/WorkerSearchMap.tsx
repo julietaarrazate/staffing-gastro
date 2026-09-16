@@ -88,6 +88,7 @@ export default function WorkerSearchMap({
               photoUrl={worker.photo_url}
               name={worker.full_name}
               rating={worker.rating}
+              isLive={worker.is_live}
               active={false}
               delayMs={index * 60}
               onClick={(id) => router.push(`/workers/${id}`)}

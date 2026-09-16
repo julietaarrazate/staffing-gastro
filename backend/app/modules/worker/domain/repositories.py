@@ -103,6 +103,15 @@ class WorkerProfileRepository(ABC):
         """
 
     @abstractmethod
+    async def list_with_available_now_set(self) -> list[WorkerProfile]:
+        """Perfiles con "Disponible ahora" (ADR-0014) alguna vez prendido y
+        todavía no limpiado — sea que siga vigente o que ya haya vencido su
+        TTL. Usado por el scheduler para borrar la posición de los que ya
+        vencieron (`WorkerProfile.is_available_now`/`stop_available_now`);
+        no filtra por vencimiento en SQL para no duplicar esa regla fuera del
+        dominio (mismo criterio que los chequeos de `shift/scheduler.py`)."""
+
+    @abstractmethod
     async def count_engagement_stats(self) -> WorkerEngagementStats:
         """Cuenta agregados de compromiso de trabajadores (`no_show_rate`,
         `worker_repeat_rate`, panel de admin) — agregado en SQL, no una

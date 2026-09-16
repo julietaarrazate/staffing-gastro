@@ -107,6 +107,21 @@ export function isTodayInArgentina(iso: string): boolean {
   return fmt.format(new Date(iso)) === fmt.format(new Date());
 }
 
+/**
+ * "hace 2 min" / "hace 1 h 10" / "recién". Antes vivía duplicada como
+ * `agoLabel` sólo en `EnRouteMap.tsx` ("va en camino"); ahora la usa también
+ * "Disponible ahora" (ADR-0014) — segundo uso real, deja de justificar la
+ * duplicación.
+ */
+export function formatAgo(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "recién";
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `hace ${hours} h` : `hace ${hours} h ${rest}`;
+}
+
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */
 export function formatShiftRange(startIso: string, endIso: string): string {
   const date = formatShiftDate(startIso);

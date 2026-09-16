@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
+import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
 import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
@@ -57,7 +58,7 @@ function Row({
 }
 
 export default function ProfilePage() {
-  const { user, loading, logout } = useAuth();
+  const { user, token, loading, logout } = useAuth();
   const router = useRouter();
 
   if (loading) {
@@ -184,6 +185,15 @@ export default function ProfilePage() {
 
           {user.role === "worker" && (
             <div className="mt-7 lg:mt-0">
+              <SectionLabel>Disponible ahora</SectionLabel>
+              <div className="mt-2">
+                <AvailableNowToggle token={token} />
+              </div>
+            </div>
+          )}
+
+          {user.role === "worker" && (
+            <div className="mt-7">
               <SectionLabel>Identidad</SectionLabel>
               {/* Trust card (rediseño 2026-09, Fase 5): celeste/cielo, NO
                   `bg-card` — la verificación es una pieza estratégica de

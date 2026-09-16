@@ -273,6 +273,17 @@ export interface WorkerMapResult {
   latitude: number | null;
   longitude: number | null;
   distance_km: number | null;
+  // ADR-0014: si esta posición es "Disponible ahora" (vigente) en vez de la
+  // del perfil, y desde cuándo — arma "actualizado hace X min" vs. "zona del
+  // perfil".
+  is_live: boolean;
+  position_updated_at: string | null;
+}
+
+/** Estado de "Disponible ahora" (ADR-0014) del trabajador autenticado. */
+export interface AvailableNowStatus {
+  active: boolean;
+  until: string | null;
 }
 
 export interface FavoriteWorker {

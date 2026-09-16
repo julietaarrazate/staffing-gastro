@@ -6,6 +6,7 @@ Esto mantiene el cálculo del score testeable de forma aislada.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge, WorkerSkill
@@ -31,6 +32,16 @@ class CandidateProfile:
     is_available: bool
     latitude: float | None
     longitude: float | None
+    # ADR-0014: "Disponible ahora" resuelto — `latitude`/`longitude` arriba
+    # YA son la posición vigente cuando `is_live_position` es True, no la del
+    # perfil. `position_updated_at` es cuándo se prendió (`None` si viene del
+    # perfil): lo que arma la frescura ("hace X min" vs. "zona del perfil").
+    # Se resuelve una sola vez, en el borde infraestructura→dominio
+    # (`matching/infrastructure/repositories.py::_to_candidate`), para que ni
+    # el scoring ni el armado del mapa tengan que saber que existen dos
+    # fuentes posibles de posición.
+    is_live_position: bool = False
+    position_updated_at: datetime | None = None
     # F1 (auditoría de producto 2026-08-10): señales de reputación ya
     # calculadas (ADR-0004) que el comercio no podía ver al elegir entre
     # candidatos — sólo se muestran, no alteran el score (`scoring.py` sigue
@@ -85,3 +96,8 @@ class WorkerMapResult:
     latitude: float | None
     longitude: float | None
     distance_km: float | None
+    # ADR-0014: si la posición usada es "Disponible ahora" (vigente) en vez
+    # de la del perfil, y desde cuándo — el frontend arma la frescura
+    # ("hace X min" / "zona del perfil") a partir de esto.
+    is_live: bool = False
+    position_updated_at: datetime | None = None

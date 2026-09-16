@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { formatAgo } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import Link from "next/link";
@@ -223,6 +224,20 @@ function SearchPageContent() {
                       </span>
                     )}
                   </div>
+                  {/* ADR-0014: "Disponible ahora" — sólo cuando está vigente,
+                      nunca "zona del perfil" a modo de badge (ésa es la
+                      ausencia de esto, no otro estado que mostrar). */}
+                  {worker.is_live && (
+                    <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-success-text">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
+                      Disponible ahora
+                      {worker.position_updated_at && (
+                        <span className="font-normal text-ink/40">
+                          · {formatAgo(worker.position_updated_at)}
+                        </span>
+                      )}
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {worker.skills.map((s) => {
                       const { Icon, bg, fg } = SKILL_ACCENT[s];
