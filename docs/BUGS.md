@@ -142,6 +142,31 @@ espera con `page.waitForRequest`), nunca con un `expect` inmediato.
 
 ---
 
+## `evaluateAll()` en un spec de E2E: la única API de Playwright que NO espera
+
+**Patrón:** es la hermana de la entrada de arriba, pero por otro motivo. Casi todo lo de
+Playwright reintenta solo (`expect(locator)`, `locator.click()`, `locator.evaluate()` — este
+último espera a que el elemento esté *attached*). **`locator.evaluateAll()` no.** Corre una vez
+sobre lo que haya en ese instante y, si todavía no se renderizó nada, devuelve `[]` sin error.
+El test falla mucho después, con un mensaje que no dice nada del origen:
+`Expected length: 4 / Received length: 0`.
+
+- **Encontrado (2026-09-16):** `e2e/acciones-rapidas.spec.ts`, "ninguna acción repite un destino
+  del nav de abajo", leía los `href` con `fila.getByRole("link").evaluateAll(...)` apenas
+  después del `goto`. Verde en local siempre; **rojo en CI** (run #670), con los otros dos tests
+  del MISMO archivo en verde — porque esos dos usan `expect(...)`, que reintenta. Fix: esperar
+  primero con `await expect(fila.getByRole("link")).toHaveCount(4)` y recién ahí leer los `href`.
+
+**Cómo evitarlo:** antes de un `evaluateAll`, poner el `expect` que espera por lo que se va a
+leer. Es una línea, y convierte un rojo mudo en una aserción que dice qué faltaba.
+
+**Nota honesta de método:** este caso NO se pudo reproducir en local (~35 corridas con 4 workers
+y la CPU cargada, servidor frío y caliente). El diagnóstico se sostiene en el log y en la
+semántica documentada de la API, no en una reproducción. Cuando pasa eso conviene decirlo: un
+arreglo justificado por lectura vale, pero no hay que venderlo como verificado.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de

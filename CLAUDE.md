@@ -44,6 +44,51 @@ el INTAKE acumulado y promover lecciones a reglas. Para trabajar en el
 producto, la sesión va acá: es el repo cuyo `CLAUDE.md` se carga solo, donde
 corren los tests y el CI, y donde vive el git.
 
+## Protocolo de sesión (obligatorio, no es una sugerencia)
+
+Estos cinco pasos no dependen de que Julieta los pida en el prompt. Estaban
+escritos más abajo, pero **adentro de un prompt de ejemplo** ("Para continuar
+en un chat nuevo"), así que sólo aplicaban si ella se acordaba de pegarlo. El
+2026-09-16 se comprobó el costo: una sesión trabajó sobre el directorio
+principal sin worktree, y otra abrió un PR que estuvo horas sin ninguna señal
+de CI sin que nadie lo notara. Una regla que depende de que el usuario la
+repita no es una regla.
+
+1. **Aislarse en worktree, siempre.**
+   `git worktree add ../staffya-<tema> -b claude/<tema> origin/main`.
+   Nunca trabajar sobre el directorio principal: si la sesión se corta a la
+   mitad, el checkout de Julieta queda en una rama ajena y con cambios sin
+   commitear. Verificable en un comando: `git worktree list` tiene que mostrar
+   más de una entrada antes del primer `git commit`.
+
+2. **Abrir el trabajo leyendo el estado, no el código.**
+   `docs/STATUS.md` → "Qué sigue (estado vigente)". Después `TECH_DEBT.md` y
+   `BUGS.md` si el tema los toca.
+
+3. **Buscar los bugs, no esperar a que los muestren.**
+   Julieta no es la suite de QA. Todo cambio de UI se **mira renderizado**
+   antes de darlo por hecho —levantar la app, sacar la captura, abrirla— y en
+   **los dos temas** (`data-theme="light"` y `"dark"`), porque la mitad de los
+   defectos de superficie sólo existen en uno. Leer el diff no alcanza: los
+   tres bugs de contraste de septiembre (el módulo de foco a 1.00:1, las
+   tarjetas del color del lienzo, el subtítulo del nivel invisible) pasaron
+   `tsc`, `build`, Vitest y Playwright en verde. Y cuando se mide algo de
+   diseño, **la medición declara su marco** (qué elemento, a qué viewport):
+   un ratio sin marco ya hizo escribir dos documentos mal.
+
+4. **Dejar el estado escrito antes de cerrar.**
+   `docs/STATUS.md` en el MISMO PR del cambio — más los `docs/` del área si el
+   cambio los contradice. La próxima sesión arranca sin memoria de ésta: lo
+   que no quedó escrito, no existe. Si hubo fricción que se va a repetir, va
+   como *cycle* al `evolution/INTAKE.md` de EKP (ver arriba).
+
+5. **Cerrar con CI verde, no con "me anduvo localmente".**
+   Empujar a `claude/**` dispara `CI` y `Security` solos (desde el
+   2026-09-16 escuchan `push`, no sólo el PR — un PR abierto con el token de
+   una GitHub App no dispara workflows). Antes de decir que algo está listo,
+   mirar la corrida real. Una corrida local no queda registrada en ningún
+   lado; el check verde queda pegado al commit para siempre.
+
 ## Dónde está el estado del proyecto
 
 > Última actualización: **2026-09-07**.
@@ -515,6 +560,24 @@ rehizo a ciegas.
 - **No `git add -A`**: stagear archivos puntuales.
 - Cambios de presentación no tocan la lógica de backend salvo necesidad.
 
+### Cómo se cierra un PR (acordado con Julieta el 2026-09-16)
+
+La secuencia es **verde → captura → sí de Julieta → merge**, y no hay que
+volver a preguntársela en cada PR: ya está decidida.
+
+1. **CI y Security en verde**, mirando la corrida real en GitHub (no una
+   corrida local). Si algo sale rojo, se para y se dice — nunca se mergea en
+   rojo ni se toca el pipeline para que dé verde.
+2. **Captura de lo que cambia visualmente**, en claro y en oscuro, antes de
+   pedir nada. Si el PR no toca UI, este paso no aplica y se pasa al 3.
+3. **Julieta dice que sí.** Ése es el único permiso que hace falta; con eso se
+   mergea con squash y se le avisa qué quedó en producción.
+
+El paso 2 existe porque el verde y lo que se ve son cosas distintas: los tres
+bugs de contraste de septiembre pasaron `tsc`, `build`, Vitest y Playwright sin
+una sola falla. Un check verde dice que nada se rompió, no que la pantalla se
+vea bien.
+
 ## No hacer
 
 - Duplicar componentes/lógica/entidades.
@@ -554,17 +617,12 @@ Si arrancás una sesión sin más contexto que este archivo, copiá/adaptá este
 prompt de arranque:
 
 > Estás en el repo de **Staffya** (marketplace de staffing gastronómico en
-> tiempo real). Leé `CLAUDE.md` y después `docs/STATUS.md` (bitácora viva,
-> qué está en vuelo y qué sigue) antes de tocar nada. Si tu tarea toca deuda
-> conocida, revisá también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Aislate en
-> worktree (`git worktree add ...` desde `origin/main`), trabajá en rama de
-> feature, PR en draft, y reportá el resultado real de `pytest -q` / `tsc
-> --noEmit` / `npm run build` (y Playwright si tocaste frontend) — no el
-> esperado. Actualizá `docs/STATUS.md` en el mismo PR de cualquier cambio
-> relevante. Este repo es la capa L5 de `julietaarrazate/ekp`: antes de
-> cerrar, si hubo fricción que se va a repetir, archivala como un *cycle*
-> nuevo en el `evolution/INTAKE.md` de ese repo (ver "Este repo dentro de
-> EKP" arriba).
+> tiempo real). Leé `CLAUDE.md` —empezando por **"Protocolo de sesión"**, que
+> es obligatorio— y después `docs/STATUS.md` (bitácora viva, qué está en vuelo
+> y qué sigue) antes de tocar nada. Si tu tarea toca deuda conocida, revisá
+> también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Reportá el resultado real de
+> `pytest -q` / `tsc --noEmit` / `npm run build` (y Playwright si tocaste
+> frontend) — no el esperado.
 
 No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
 operadora" arriba. La auditoría de responsive/desktop pantalla por pantalla

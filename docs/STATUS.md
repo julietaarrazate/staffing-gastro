@@ -5,11 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-10 (**"no se ve el mapa": el worker de maplibre 6
-arrancaba con una URL vacía dentro del bundle de Next — el mapa quedaba en
-blanco, sin pines y sin un solo error en consola. Y la primera pasada de la
-auditoría de DISTRIBUCIÓN de superficies: la banda de color de la tarjeta de
-turno se comía media pantalla**).*
+*Última actualización: 2026-09-16 (**fila de acciones rápidas en el panel del
+comercio, y la corrección de que el lienzo de Oído es crema en los DOS modos —
+sólo invierten las tarjetas**). El frente anterior (2026-09-10) fue el mapa en
+blanco por el worker de maplibre 6 y las primeras pasadas de la auditoría de
+DISTRIBUCIÓN de superficies.*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -3128,6 +3128,33 @@ roadmap).
 
 ## En vuelo ahora
 
+- **El CI no se disparaba en los PRs que abro yo — arreglado y VERIFICADO
+  (2026-09-16).** Un PR abierto por API con el token de una GitHub App **no**
+  dispara workflows: GitHub lo evita a propósito para que un workflow no se
+  encadene a sí mismo. Hasta ahora no se había notado porque los PRs anteriores
+  los abría Julieta, y mis pushes generaban `synchronize` sobre un PR ya suyo.
+  En el #338 la consecuencia fue medible: dos pushes reales, **cero** workflow
+  runs, mientras Vercel y GitGuardian sí respondían a esos mismos commits — el
+  PR quedaba validado sólo por una corrida local que no queda registrada en
+  ningún lado. Fix en `ci.yml` y `security.yml`: `push` ahora incluye
+  `claude/**`, y se suma `workflow_dispatch` para poder relanzar a mano sin
+  inventar un commit vacío. Detalle que evita una **CI verde que miente**: a
+  `dorny/paths-filter` se le pasa `main` como base explícita en el primer push
+  de una rama nueva (no hay "commit anterior" contra el cual diffear) y en un
+  disparo manual se corren todos los jobs sin filtrar. Verificado, no supuesto:
+  `CI` #669 y `Security` #265 corrieron con `event: push` y cerraron en
+  **success**.
+
+- **Aclaración sobre "no veo cambios en la app" (2026-09-16).** El #337 **sí**
+  está en producción desde el 2026-09-10: `https://www.oido.com.ar/maplibre/
+  maplibre-gl-worker.mjs` responde 200 con `last-modified` del 10/09, y ese
+  archivo sólo existe por el fix del mapa. Tampoco es caché: `public/sw.js` no
+  tiene handler de `fetch`, no cachea el shell. Lo que falta ver es el **#338**,
+  que es el que trae el cambio visible (la fila de acciones rápidas) y sigue
+  en draft. Vale como patrón: después de un squash merge, `git diff A...B`
+  (tres puntos) sigue mostrando lo ya mergeado porque se pierde la ascendencia
+  — para saber qué falta de verdad hay que usar `git diff A..B` (dos puntos).
+
 - **Auditoría de consistencia visual post-rediseño (#302–#308) — EN CURSO, no cerrada.**
   Julieta la pidió con capturas reales del dispositivo (no simuladas) y sigue mandando
   más a medida que las reviso; el método es AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR,
@@ -3494,6 +3521,14 @@ roadmap).
 
 **Si abrís una sesión nueva y no hay otra instrucción, esto es lo que sigue:**
 
+> **Antes que nada: leé "Protocolo de sesión" en `CLAUDE.md`.** Se agregó el
+> 2026-09-16 porque las reglas de orden (worktree, mirar la UI renderizada en
+> los dos temas, dejar el estado escrito, cerrar con CI verde) vivían adentro
+> de un *prompt de ejemplo* en vez de ser reglas, así que sólo se cumplían si
+> Julieta se acordaba de pegarlo. Dos sesiones se las saltaron sin que nadie
+> lo notara.
+
+
 1. ✅ ~~Conectar `oido.com.ar`~~ — **resuelto (2026-09-08, operativo)**. Los
    cuatro pasos (Vercel → Domains, orígenes autorizados de Google Cloud,
    `CORS_ORIGINS`, `FRONTEND_URL`) están hechos — ver el detalle completo en
@@ -3719,18 +3754,29 @@ roadmap).
    píxeles salieron **tres defectos reales**, ninguno de gusto:
 
    1. **El módulo de foco desaparecía por completo en oscuro.** Medido: el
-      bloque de ganancias daba `#191410` sobre un lienzo `#191410` — contraste
-      **1.00 : 1**, literalmente el mismo color. En claro ese mismo bloque da
-      **18.28 : 1**. El usuario en oscuro veía un bloque de datos flotando sin
-      caja. Lo mismo el hero del perfil (1.12 : 1).
+      bloque de ganancias daba `#191410` sobre una tarjeta `#191410` —
+      contraste **1.00 : 1**, literalmente el mismo color. En claro ese mismo
+      bloque da **18.28 : 1**. El usuario en oscuro veía un bloque de datos
+      flotando sin caja. Lo mismo el hero del perfil (1.12 : 1).
       **La lección, y por eso va a `COLOR_SYSTEM.md` §3.bis:** el negro
-      funciona como foco porque está **lejos** del lienzo, no porque sea
-      negro. En un lienzo oscuro el foco no se consigue oscureciendo sino
-      **elevando**. Token nuevo `--color-focus`/`--color-focus-ink`: `#191410`
-      en claro, `#3d3630` en oscuro (**1.54 : 1**, un escalón de elevación más
-      la hairline). `--color-night` **no se toca**: sigue siendo el negro fijo
-      de toasts, botones y marcadores, que sí deben verse igual en los dos
-      modos.
+      funciona como foco porque está **lejos de la superficie que lo
+      contiene**, no porque sea negro. Sobre una superficie oscura el foco no
+      se consigue oscureciendo sino **elevando**. Token nuevo
+      `--color-focus`/`--color-focus-ink`: `#191410` en claro, `#3d3630` en
+      oscuro (**1.54 : 1**, un escalón de elevación más la hairline).
+      `--color-night` **no se toca**: sigue siendo el negro fijo de toasts,
+      botones y marcadores, que sí deben verse igual en los dos modos.
+      ⚠️ **Corrección (2026-09-16):** esta entrada decía "sobre un lienzo
+      `#191410`". El lienzo de Oído es crema `#FFF8F0` **en los dos modos** —
+      sólo invierten las tarjetas (#317/#318); `#191410` era el valor viejo de
+      `--color-card`. El hallazgo y los números no cambian (el marco correcto
+      siempre fue *bloque vs. tarjeta que lo contiene*), pero la etiqueta
+      estaba mal. Se descubrió al renderizar `/shifts` en oscuro y ver el
+      lienzo crema: el píxel que se había tomado como "fondo" caía dentro de
+      la tarjeta. Verificado con `getComputedStyle` sobre la app corriendo.
+      **Es el mismo error que el propio cycle 54 de EKP archiva un commit
+      antes** ("toda medición declara su marco") — cometido por quien lo
+      escribió.
    2. **La tarjeta de nivel estaba fuera del sistema.** `LEVEL_META` usaba
       `zinc-100`/`zinc-600`/`amber-50`/`yellow-50`: colores crudos de la escala
       de Tailwind, contra la regla del repo de que todo fondo pasa por tokens.
@@ -3775,11 +3821,55 @@ roadmap).
      tarjeta — se sostenía sólo con la hairline, así que el formulario largo
      del perfil se leía como una mancha negra única. El primer bloque "se
      veía" nada más que porque tiene adentro un módulo de foco elevado.
-     En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar):
-     la da la **luminancia**. Queda una escala de cuatro escalones —lienzo
-     `#191410` → card `#221d19` → surface `#292420` → focus `#3d3630`—
-     documentada en `COLOR_SYSTEM.md`. En claro no se toca nada: ahí la
-     tarjeta es blanca sobre crema y la sombra suave alcanza.
+     Adentro de una tarjeta oscura la jerarquía **no la da la sombra** (no hay
+     luz que proyectar): la da la **luminancia**. Queda una escala documentada
+     en `COLOR_SYSTEM.md` — card `#221d19` → surface `#292420` → focus
+     `#3d3630`, con el lienzo crema afuera de la escala porque no cambia entre
+     modos. En claro no se toca nada: ahí la tarjeta es blanca sobre crema y la
+     sombra suave alcanza.
+
+   **Sexta pasada: la fila de acciones rápidas** (2026-09-16). Julieta pasó un
+   prompt de diseño de una diseñadora, con tres salidas (Claude/ChatGPT/Figma
+   Make) de una home de logística, para ver qué servía. La respuesta honesta
+   fue que **buena parte de ese prompt describe lo que Oído ya es** (radios
+   16–24, naranja cálido, carbón en vez de negro puro, sombras suaves, íconos
+   de línea, eyebrow en mono, campo grande primero, stepper con ✓) y que cuatro
+   de sus puntos serían una **regresión**: fondo blanco (borra el crema, que ES
+   la marca), Satoshi para títulos (Fraunces es la decisión editorial del
+   style-guide; Satoshi convierte a Oído en la fintech genérica que eligió no
+   ser), "sin gradientes" (mata el color por rubro que ella pidió) y "sin texto
+   azul" (el celeste es semántico, ADR-0011).
+
+   Lo único que valía y no teníamos: **la fila de acciones rápidas** — una
+   primaria con acento y tres pares en neutro. Resolvía un problema real del
+   panel: "+ Evento" y "+ Publicar" vivían apretados contra el título, no
+   escalaba (no había lugar para una tercera) y dejaba a **Favoritos** y **Mi
+   plan** enterradas a dos toques adentro del menú de Perfil. Ahora son cuatro
+   destinos al mismo nivel: Publicar (acento) · Evento · Favoritos · Mi plan.
+
+   **`Buscar` NO entra a propósito**: ya es una pestaña del nav de abajo, y
+   repetir un destino que está a un toque no es una acción rápida, es ruido.
+   Hay un spec que lo fija (`e2e/acciones-rapidas.spec.ts`), junto con "un solo
+   acento en la fila" — las dos reglas que es fácil romper al agregar la quinta.
+
+   **Las tres secundarias van neutras y no con el juego manteca/celeste** a
+   propósito: ese juego es para DATOS, donde cada color distingue un tipo de
+   dato. Acá son ACCIONES y entre ellas la única diferencia que importa es
+   jerárquica; pintarlas distinto diría que son de clases distintas, que es
+   falso. Neutro, eso sí, con `bg-card` + `ring-line` —superficies del sistema,
+   que suben un escalón en oscuro— y no con ausencia de color, que es el
+   defecto que Julieta cazó en el chip de "Cancelaciones".
+
+   **Nota de método, y es una corrección de esta misma fase:** al renderizar el
+   panel en oscuro se vio que **el lienzo es crema en los dos modos**. La
+   entrada de la cuarta pasada decía que el módulo de foco estaba "sobre un
+   lienzo `#191410`" — falso: `#191410` era el valor viejo de `--color-card`.
+   El hallazgo y los números seguían siendo correctos (el marco real siempre
+   fue *bloque vs. tarjeta que lo contiene*), pero la etiqueta hacía razonar
+   mal. Corregido acá y en `COLOR_SYSTEM.md` §3.bis. Es **exactamente** el
+   error que el cycle 54 de EKP archiva un commit antes ("toda medición declara
+   su marco"), cometido por quien lo escribió: la causa fue muestrear un píxel
+   de una captura en vez de leer el valor computado de la app corriendo.
 
    **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
    `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía

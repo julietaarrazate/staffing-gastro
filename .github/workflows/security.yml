@@ -8,10 +8,15 @@
 # venir de cualquier lado.
 name: Security
 
+# Mismo criterio que `ci.yml` (2026-09-16): se escucha también el `push` a las
+# ramas de trabajo, porque un PR abierto con el token de una GitHub App no
+# dispara workflows. Sin esto, el gate de seguridad quedaba sin correr
+# justamente en las ramas del asistente.
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
+  workflow_dispatch:
 
 jobs:
   secret-scan:
