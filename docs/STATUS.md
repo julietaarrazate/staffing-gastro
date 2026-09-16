@@ -5,11 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-10 (**"no se ve el mapa": el worker de maplibre 6
-arrancaba con una URL vacía dentro del bundle de Next — el mapa quedaba en
-blanco, sin pines y sin un solo error en consola. Y la primera pasada de la
-auditoría de DISTRIBUCIÓN de superficies: la banda de color de la tarjeta de
-turno se comía media pantalla**).*
+*Última actualización: 2026-09-16 (**fila de acciones rápidas en el panel del
+comercio, y la corrección de que el lienzo de Oído es crema en los DOS modos —
+sólo invierten las tarjetas**). El frente anterior (2026-09-10) fue el mapa en
+blanco por el worker de maplibre 6 y las primeras pasadas de la auditoría de
+DISTRIBUCIÓN de superficies.*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
