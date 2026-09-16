@@ -560,6 +560,24 @@ rehizo a ciegas.
 - **No `git add -A`**: stagear archivos puntuales.
 - Cambios de presentación no tocan la lógica de backend salvo necesidad.
 
+### Cómo se cierra un PR (acordado con Julieta el 2026-09-16)
+
+La secuencia es **verde → captura → sí de Julieta → merge**, y no hay que
+volver a preguntársela en cada PR: ya está decidida.
+
+1. **CI y Security en verde**, mirando la corrida real en GitHub (no una
+   corrida local). Si algo sale rojo, se para y se dice — nunca se mergea en
+   rojo ni se toca el pipeline para que dé verde.
+2. **Captura de lo que cambia visualmente**, en claro y en oscuro, antes de
+   pedir nada. Si el PR no toca UI, este paso no aplica y se pasa al 3.
+3. **Julieta dice que sí.** Ése es el único permiso que hace falta; con eso se
+   mergea con squash y se le avisa qué quedó en producción.
+
+El paso 2 existe porque el verde y lo que se ve son cosas distintas: los tres
+bugs de contraste de septiembre pasaron `tsc`, `build`, Vitest y Playwright sin
+una sola falla. Un check verde dice que nada se rompió, no que la pantalla se
+vea bien.
+
 ## No hacer
 
 - Duplicar componentes/lógica/entidades.
