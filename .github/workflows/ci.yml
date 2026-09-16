@@ -3,10 +3,23 @@
 # así que nada entra sin pasar por acá). Ver docs/reference/TESTING.md y ROADMAP R0.3.
 name: CI
 
+# `push` incluye las ramas de trabajo, no sólo `main` (2026-09-16). El motivo
+# es concreto: un PR abierto desde la API con el token de una GitHub App NO
+# dispara workflows —GitHub lo evita a propósito, para que un workflow no se
+# dispare a sí mismo en cadena—, así que un PR abierto por el asistente se
+# quedaba sin CI y la única señal era una corrida local que no queda
+# registrada en el PR. Escuchar el `push` saca ese problema de encima: el
+# push lleva la identidad de quien empuja, no la de la App, y no depende de
+# quién abrió el PR.
+#
+# `workflow_dispatch` es la otra mitad: permite relanzar CI a mano (o por API)
+# sin tener que inventar un commit vacío para "despertarla", que es
+# exactamente el atajo que no queremos.
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
+  workflow_dispatch:
 
 jobs:
   # Detecta qué área cambió para no correr los 3 jobs completos en cada push
@@ -25,13 +38,24 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
+      # En un disparo MANUAL se corre todo, sin filtrar: quien lo lanza quiere
+      # una validación completa, y un filtro que no encuentre cambios dejaría
+      # una CI verde que en realidad no ejecutó nada — el peor resultado
+      # posible, porque miente.
+      backend: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.backend == 'true' }}
+      frontend: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.frontend == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # Contra qué se compara para saber qué cambió:
+          #   · en un PR y en un push a `main`, el default de la acción
+          #     (la base del PR / el commit anterior) es el correcto;
+          #   · en un push a una rama de trabajo hay que decirle `main`
+          #     explícitamente, porque en el PRIMER push de una rama nueva no
+          #     existe un "commit anterior" contra el cual diffear.
+          base: ${{ (github.event_name == 'pull_request' || github.ref_name == 'main') && '' || 'main' }}
           filters: |
             backend:
               - 'backend/**'
