@@ -3719,18 +3719,29 @@ roadmap).
    píxeles salieron **tres defectos reales**, ninguno de gusto:
 
    1. **El módulo de foco desaparecía por completo en oscuro.** Medido: el
-      bloque de ganancias daba `#191410` sobre un lienzo `#191410` — contraste
-      **1.00 : 1**, literalmente el mismo color. En claro ese mismo bloque da
-      **18.28 : 1**. El usuario en oscuro veía un bloque de datos flotando sin
-      caja. Lo mismo el hero del perfil (1.12 : 1).
+      bloque de ganancias daba `#191410` sobre una tarjeta `#191410` —
+      contraste **1.00 : 1**, literalmente el mismo color. En claro ese mismo
+      bloque da **18.28 : 1**. El usuario en oscuro veía un bloque de datos
+      flotando sin caja. Lo mismo el hero del perfil (1.12 : 1).
       **La lección, y por eso va a `COLOR_SYSTEM.md` §3.bis:** el negro
-      funciona como foco porque está **lejos** del lienzo, no porque sea
-      negro. En un lienzo oscuro el foco no se consigue oscureciendo sino
-      **elevando**. Token nuevo `--color-focus`/`--color-focus-ink`: `#191410`
-      en claro, `#3d3630` en oscuro (**1.54 : 1**, un escalón de elevación más
-      la hairline). `--color-night` **no se toca**: sigue siendo el negro fijo
-      de toasts, botones y marcadores, que sí deben verse igual en los dos
-      modos.
+      funciona como foco porque está **lejos de la superficie que lo
+      contiene**, no porque sea negro. Sobre una superficie oscura el foco no
+      se consigue oscureciendo sino **elevando**. Token nuevo
+      `--color-focus`/`--color-focus-ink`: `#191410` en claro, `#3d3630` en
+      oscuro (**1.54 : 1**, un escalón de elevación más la hairline).
+      `--color-night` **no se toca**: sigue siendo el negro fijo de toasts,
+      botones y marcadores, que sí deben verse igual en los dos modos.
+      ⚠️ **Corrección (2026-09-16):** esta entrada decía "sobre un lienzo
+      `#191410`". El lienzo de Oído es crema `#FFF8F0` **en los dos modos** —
+      sólo invierten las tarjetas (#317/#318); `#191410` era el valor viejo de
+      `--color-card`. El hallazgo y los números no cambian (el marco correcto
+      siempre fue *bloque vs. tarjeta que lo contiene*), pero la etiqueta
+      estaba mal. Se descubrió al renderizar `/shifts` en oscuro y ver el
+      lienzo crema: el píxel que se había tomado como "fondo" caía dentro de
+      la tarjeta. Verificado con `getComputedStyle` sobre la app corriendo.
+      **Es el mismo error que el propio cycle 54 de EKP archiva un commit
+      antes** ("toda medición declara su marco") — cometido por quien lo
+      escribió.
    2. **La tarjeta de nivel estaba fuera del sistema.** `LEVEL_META` usaba
       `zinc-100`/`zinc-600`/`amber-50`/`yellow-50`: colores crudos de la escala
       de Tailwind, contra la regla del repo de que todo fondo pasa por tokens.
@@ -3775,11 +3786,55 @@ roadmap).
      tarjeta — se sostenía sólo con la hairline, así que el formulario largo
      del perfil se leía como una mancha negra única. El primer bloque "se
      veía" nada más que porque tiene adentro un módulo de foco elevado.
-     En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar):
-     la da la **luminancia**. Queda una escala de cuatro escalones —lienzo
-     `#191410` → card `#221d19` → surface `#292420` → focus `#3d3630`—
-     documentada en `COLOR_SYSTEM.md`. En claro no se toca nada: ahí la
-     tarjeta es blanca sobre crema y la sombra suave alcanza.
+     Adentro de una tarjeta oscura la jerarquía **no la da la sombra** (no hay
+     luz que proyectar): la da la **luminancia**. Queda una escala documentada
+     en `COLOR_SYSTEM.md` — card `#221d19` → surface `#292420` → focus
+     `#3d3630`, con el lienzo crema afuera de la escala porque no cambia entre
+     modos. En claro no se toca nada: ahí la tarjeta es blanca sobre crema y la
+     sombra suave alcanza.
+
+   **Sexta pasada: la fila de acciones rápidas** (2026-09-16). Julieta pasó un
+   prompt de diseño de una diseñadora, con tres salidas (Claude/ChatGPT/Figma
+   Make) de una home de logística, para ver qué servía. La respuesta honesta
+   fue que **buena parte de ese prompt describe lo que Oído ya es** (radios
+   16–24, naranja cálido, carbón en vez de negro puro, sombras suaves, íconos
+   de línea, eyebrow en mono, campo grande primero, stepper con ✓) y que cuatro
+   de sus puntos serían una **regresión**: fondo blanco (borra el crema, que ES
+   la marca), Satoshi para títulos (Fraunces es la decisión editorial del
+   style-guide; Satoshi convierte a Oído en la fintech genérica que eligió no
+   ser), "sin gradientes" (mata el color por rubro que ella pidió) y "sin texto
+   azul" (el celeste es semántico, ADR-0011).
+
+   Lo único que valía y no teníamos: **la fila de acciones rápidas** — una
+   primaria con acento y tres pares en neutro. Resolvía un problema real del
+   panel: "+ Evento" y "+ Publicar" vivían apretados contra el título, no
+   escalaba (no había lugar para una tercera) y dejaba a **Favoritos** y **Mi
+   plan** enterradas a dos toques adentro del menú de Perfil. Ahora son cuatro
+   destinos al mismo nivel: Publicar (acento) · Evento · Favoritos · Mi plan.
+
+   **`Buscar` NO entra a propósito**: ya es una pestaña del nav de abajo, y
+   repetir un destino que está a un toque no es una acción rápida, es ruido.
+   Hay un spec que lo fija (`e2e/acciones-rapidas.spec.ts`), junto con "un solo
+   acento en la fila" — las dos reglas que es fácil romper al agregar la quinta.
+
+   **Las tres secundarias van neutras y no con el juego manteca/celeste** a
+   propósito: ese juego es para DATOS, donde cada color distingue un tipo de
+   dato. Acá son ACCIONES y entre ellas la única diferencia que importa es
+   jerárquica; pintarlas distinto diría que son de clases distintas, que es
+   falso. Neutro, eso sí, con `bg-card` + `ring-line` —superficies del sistema,
+   que suben un escalón en oscuro— y no con ausencia de color, que es el
+   defecto que Julieta cazó en el chip de "Cancelaciones".
+
+   **Nota de método, y es una corrección de esta misma fase:** al renderizar el
+   panel en oscuro se vio que **el lienzo es crema en los dos modos**. La
+   entrada de la cuarta pasada decía que el módulo de foco estaba "sobre un
+   lienzo `#191410`" — falso: `#191410` era el valor viejo de `--color-card`.
+   El hallazgo y los números seguían siendo correctos (el marco real siempre
+   fue *bloque vs. tarjeta que lo contiene*), pero la etiqueta hacía razonar
+   mal. Corregido acá y en `COLOR_SYSTEM.md` §3.bis. Es **exactamente** el
+   error que el cycle 54 de EKP archiva un commit antes ("toda medición declara
+   su marco"), cometido por quien lo escribió: la causa fue muestrear un píxel
+   de una captura en vez de leer el valor computado de la app corriendo.
 
    **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
    `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía

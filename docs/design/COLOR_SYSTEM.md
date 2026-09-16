@@ -288,20 +288,33 @@ perfil, el pago del turno) **no debe usar `--color-night`**: usa
 `--color-focus` / `--color-focus-ink`.
 
 La razón es medible, no estética. El negro funciona como foco porque está
-**lejos** del lienzo, no porque sea negro. Muestreando píxeles de un render
-real del perfil:
+**lejos de la superficie que lo contiene**, no porque sea negro. Y el módulo de
+foco nunca se apoya en el lienzo: vive **adentro de una tarjeta**. Medido
+contra esa tarjeta:
 
-| Modo | Bloque de foco | Lienzo | Contraste |
+| Modo | Bloque de foco | Tarjeta que lo contiene | Contraste |
 |---|---|---|---|
 | Claro | `#191410` | `#ffffff` | **18.28 : 1** |
 | Oscuro (antes) | `#191410` | `#191410` | **1.00 : 1** |
-| Oscuro (ahora) | `#3d3630` | `#191410` | **1.54 : 1** |
+| Oscuro (ahora) | `#3d3630` | `#221d19` | **1.54 : 1** |
 
-En oscuro el módulo tenía **exactamente el mismo color que el fondo**: el
-usuario veía un bloque de datos flotando sin caja. En un lienzo oscuro el foco
-no se consigue oscureciendo sino **elevando**, así que `--color-focus` sube en
-vez de bajar. Es la misma lógica de elevación de cualquier sistema oscuro
-serio: un escalón chico de luminancia más una hairline, no una sombra.
+En oscuro el módulo tenía **exactamente el mismo color que la tarjeta sobre la
+que estaba dibujado**: el usuario veía un bloque de datos flotando sin caja.
+Sobre una superficie oscura el foco no se consigue oscureciendo sino
+**elevando**, así que `--color-focus` sube en vez de bajar. Es la misma lógica
+de elevación de cualquier sistema oscuro serio: un escalón chico de luminancia
+más una hairline, no una sombra.
+
+> ⚠️ **Corrección (2026-09-16).** La primera versión de esta sección decía
+> "lejos del **lienzo**" y daba `#191410` como color de fondo de la app. Eso es
+> **falso**: en Oído el lienzo es crema `#FFF8F0` **en los dos modos** — la app
+> no se oscurece sola y sólo invierten las tarjetas (#317/#318). `#191410` era
+> el valor viejo de `--color-card`. Las razones y los números de arriba no
+> cambian, porque el marco correcto siempre fue *bloque vs. tarjeta*; lo que
+> estaba mal era la etiqueta, y una etiqueta mal puesta en un doc de sistema
+> hace razonar mal a quien lo lee después. Verificado con `getComputedStyle`
+> sobre la app corriendo, no muestreando un píxel de una captura: el píxel que
+> se había tomado como "fondo" caía dentro de la tarjeta.
 
 `--color-night` **se queda como está**: sigue siendo el negro fijo de los
 toasts, los botones oscuros y los marcadores del mapa, que sí deben verse
@@ -309,23 +322,24 @@ iguales en los dos modos.
 
 ### La escala de elevación en oscuro: cuatro escalones, no dos
 
-En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar): la da
-la **luminancia**. Hasta 2026-09-10 `--color-card` valía `#191410`,
-**exactamente el mismo color que el lienzo** — una tarjeta que tiene el color
-del fondo no es una tarjeta, se sostenía sólo con la hairline, y un formulario
-largo se leía como una única mancha negra (Julieta: *"el segundo bloque negro
-es todo muy negro"*). El primer bloque del perfil "se veía" nada más que porque
-tiene adentro un módulo de foco elevado.
+Adentro de una tarjeta oscura la jerarquía **no la da la sombra** (no hay luz
+que proyectar): la da la **luminancia**. Hasta 2026-09-10 `--color-card` y
+`--color-night` valían **los dos** `#191410`, así que todo lo que se apoyaba
+sobre una tarjeta oscura tenía su mismo color: se sostenía sólo con la
+hairline, y un formulario largo se leía como una única mancha negra (Julieta:
+*"el segundo bloque negro es todo muy negro"*).
 
-| Escalón | Oscuro | Qué es |
-|---|---|---|
-| lienzo | `#191410` | el fondo de la app |
-| `--color-card` | `#221d19` | la tarjeta, despegada del lienzo |
-| `--color-surface` | `#292420` | lo que va DENTRO de una tarjeta (inputs, chips) |
-| `--color-focus` | `#3d3630` | el módulo de foco (ganancias, pago del turno) |
+| Escalón | Claro | Oscuro | Qué es |
+|---|---|---|---|
+| lienzo | `#fff8f0` | `#fff8f0` | el fondo de la app — **crema en los dos modos, nunca se oscurece** |
+| `--color-card` | `#ffffff` | `#221d19` | la tarjeta |
+| `--color-surface` | `#f5ecdd` | `#292420` | lo que va DENTRO de una tarjeta (inputs, chips) |
+| `--color-focus` | `#191410` | `#3d3630` | el módulo de foco (ganancias, pago del turno) |
 
-En claro esto no hace falta: la tarjeta es blanca sobre crema y la sombra suave
-alcanza.
+Leído en vertical: en claro la escala **baja** (blanco → arena → carbón) y en
+oscuro **sube** (carbón → arena oscura → gris cálido). El lienzo no participa:
+es el mismo crema siempre, y por eso la tarjeta es la referencia correcta para
+medir cualquier cosa dibujada adentro.
 
 ### Corolario para cualquier color de estado
 
