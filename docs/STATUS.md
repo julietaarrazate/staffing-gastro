@@ -3128,6 +3128,24 @@ roadmap).
 
 ## En vuelo ahora
 
+- **S4 resuelto: el mapa del comercio dejó de dibujar un pin sobre el
+  domicilio del trabajador (2026-09-16).** Hallazgo propio (no reportado por
+  Julieta) al escribir ADR-0014: `WorkerSearchMap.tsx` mostraba
+  `worker.latitude/longitude` **exactas** en el mapa de `/search` — la misma
+  pantalla que usa el admin en sólo lectura. Cualquier comercio con cuenta
+  activa veía la casa de trabajadores que nunca trabajaron para él. Arreglado
+  antes de esperar la aprobación de ADR-0014 porque no dependía de ella: nuevo
+  `app/core/geo.py::fuzz_point` desplaza cada coordenada a un punto
+  determinístico (mismo trabajador → mismo punto en cada render, no un salto
+  en cada recarga) dentro de un anillo de 150–350 m, aplicado en
+  `MatchingService.search_workers` — la distancia que ve el comercio sigue
+  siendo la real, calculada antes de desplazar. Un solo punto de cambio en el
+  backend; el frontend no se tocó. Detalle en `docs/TECH_DEBT.md` S4.
+  `pytest -q`: **490/490** (verificado con `--collect-only`; 9 tests nuevos:
+  8 en `test_geo.py` + 1 en `test_matching.py`). `tsc`/`build`/Vitest
+  (86/86)/Playwright (109/109) sin regresiones — sin cambio visual, no hace
+  falta captura.
+
 - **ADR-0015 + implementación: turno "no cubierto" (2026-09-16).** Julieta,
   probando la app real: *"veo que quedan puestos abiertos cuando ya pasó la
   fecha, debería pasar algo con eso"* — con una captura de un turno del 14/8

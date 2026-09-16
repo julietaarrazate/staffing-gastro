@@ -169,6 +169,29 @@ async def test_search_workers_without_filters_returns_all_available(client: Asyn
     assert len(response.json()) == 2
 
 
+async def test_search_map_never_returns_the_workers_exact_coordinates(
+    client: AsyncClient,
+):
+    """TECH_DEBT.md S4 / ADR-0014 §3: el mapa del comercio no puede dibujar un
+    pin sobre el domicilio real de nadie que no le haya dado ningún turno."""
+    employer_headers = await _employer_with_company(client, "emp_fuzz@staffya.com")
+    await _worker_profile(
+        client, "w_fuzz@staffya.com", skills=["mozo"], latitude=-34.58, longitude=-58.43
+    )
+
+    response = await client.get(
+        "/api/v1/matching/search",
+        headers=employer_headers,
+        params={"latitude": -34.6, "longitude": -58.45},
+    )
+    assert response.status_code == 200
+    worker = response.json()[0]
+    assert (worker["latitude"], worker["longitude"]) != (-34.58, -58.43)
+    # La distancia sigue siendo la real (calculada antes de desplazar el
+    # pin) — lo que se oculta es DÓNDE, no QUÉ TAN LEJOS.
+    assert worker["distance_km"] is not None
+
+
 async def test_worker_cannot_search_map(client: AsyncClient):
     worker_headers = await auth_headers(client, "worker", "w6@staffya.com")
     response = await client.get("/api/v1/matching/search", headers=worker_headers)

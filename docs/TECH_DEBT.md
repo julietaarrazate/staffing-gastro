@@ -514,33 +514,46 @@ fecha de esta auditoría (2026-07-02).
 
 ## Seguridad e identidad (nuevo, no capturado en v1)
 
-### S4 — 🔴 El mapa del comercio dibuja un pin sobre el DOMICILIO del trabajador
+### S4 — ✅ Resuelto (2026-09-16) — El mapa del comercio dibujaba un pin sobre el DOMICILIO del trabajador
 
 **Encontrado el 2026-09-16**, auditando otra cosa (la distancia que ve el
-comercio, ADR-0014). Nadie lo había reportado, y es el ítem más sensible de
+comercio, ADR-0014). Nadie lo había reportado, y fue el ítem más sensible de
 este archivo.
 
-`frontend/components/WorkerSearchMap.tsx` renderiza cada trabajador disponible
-en `worker.latitude` / `worker.longitude` **exactas** — sin desplazamiento, sin
-redondeo, sin agrupar. Esas coordenadas salen del perfil, y el perfil se carga
-en el onboarding con `MapAddressPicker` (ADR-0006), donde la persona marca
-dónde vive.
+`frontend/components/WorkerSearchMap.tsx` renderizaba cada trabajador
+disponible en `worker.latitude` / `worker.longitude` **exactas** — sin
+desplazamiento, sin redondeo, sin agrupar. Esas coordenadas salen del perfil,
+y el perfil se carga en el onboarding con `MapAddressPicker` (ADR-0006), donde
+la persona marca dónde vive.
 
 **Consecuencia:** cualquier comercio con cuenta activa —y el admin, que ve el
-mismo mapa en sólo lectura desde el #168— ve hoy un marcador sobre la casa de
+mismo mapa en sólo lectura desde el #168— veía un marcador sobre la casa de
 trabajadores que nunca trabajaron para él, que no aceptaron ningún turno suyo y
 que no consintieron nada parecido. En una app cuyo público son personas que
 además entregan DNI y selfie.
 
-No es una regresión de un cambio reciente: está así desde que existe la
-pantalla. Se listó acá, y no sólo en el ADR, porque **es un problema hoy y no
-depende de que el ADR-0014 se apruebe**. Si el ADR se rechaza entero, esto
-igual hay que arreglarlo.
+No fue una regresión de un cambio reciente: estaba así desde que existe la
+pantalla. Se arregló antes de aprobar ADR-0014 (independiente de sus tres
+decisiones pendientes) porque **el problema no dependía de esa aprobación**.
 
-**Arreglo:** desplazar el marcador dentro de la zona (precisión suficiente para
-decidir a quién contactar, insuficiente para ir a una puerta) y mostrar la
-distancia con su frescura. Detalle y alternativas en
-`docs/adr/ADR-0014-ubicacion-en-tiempo-real.md` §3.
+**Fix:** `app/core/geo.py::fuzz_point` desplaza cada coordenada a un punto
+pseudo-aleatorio pero **determinístico** (hash del `profile_id`, no
+`random`/`hash()` — ambos varían entre procesos) dentro de un anillo de
+150–350 m: alcanza para decidir a quién contactar, no para ir a golpear una
+puerta. Se aplica en `MatchingService.search_workers` (el único lugar que
+arma `WorkerMapResult`, usado tanto por el mapa del comercio como por el del
+admin, mismo endpoint) — la distancia mostrada sigue siendo la real, calculada
+**antes** de desplazar. `frontend/components/WorkerSearchMap.tsx` no cambió:
+sólo dibuja las coordenadas que le llegan, así que alcanzó con arreglarlo en
+un solo lugar del backend. Tests en `backend/tests/test_geo.py` (anillo,
+determinismo, nunca la coordenada exacta) y
+`backend/tests/test_matching.py::test_search_map_never_returns_the_workers_exact_coordinates`.
+
+**Lo que sigue, y no es parte de este fix:** ADR-0014 construye "Disponible
+ahora" arriba de este mismo mecanismo — cuando el trabajador prende su
+posición real, ésa (también desplazada) reemplaza a la del perfil para medir
+distancia, con una etiqueta de frescura ("hace X min" en vez de "zona del
+perfil"). Ver el ADR para el resto de la implementación.
 
 ---
 
