@@ -19,6 +19,7 @@ from app.modules.shift.domain.exceptions import (
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
     TERMINAL_STATUSES,
+    UNCOVERED_ELIGIBLE_STATUSES,
     ShiftStatus,
 )
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -264,6 +265,33 @@ class Shift:
         self.last_no_show_worker_profile_id = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
+        self._clear_en_route()
+
+    def mark_not_covered(self) -> None:
+        """PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO → NO_CUBIERTO (ADR-0015):
+        el sistema resuelve solo un turno cuyo período de gracia después de
+        `start_at` se agotó sin llegar a CONFIRMADO.
+
+        A diferencia de `cancel()` y `no_show()`, **nadie decide esto**: no
+        hay comercio ni trabajador detrás, así que no hay reputación que
+        tocar ni notificación de "te cancelaron" que mandar — el mensaje real
+        es "se acabó el tiempo", no "alguien hizo algo". Tampoco reabre como
+        `no_show()`/`worker_cancel()`: para cuando se dispara, `start_at` ya
+        quedó atrás y no hay más ventana en la que alguien pueda cubrirlo, así
+        que es terminal, no un regreso a `BUSCANDO_PERSONAL`.
+
+        Conserva quién estaba asignado (si lo había) en
+        `last_no_show_worker_profile_id`, mismo campo que usa `no_show()` para
+        dejar rastro de quién no llegó a confirmar — aunque acá, otra vez, sin
+        que eso cuente en contra de nadie."""
+        if self.status not in UNCOVERED_ELIGIBLE_STATUSES:
+            raise InvalidShiftTransitionError(
+                f"No se puede marcar como no cubierto desde el estado {self.status.value}"
+            )
+        if self.worker_profile_id is not None:
+            self.last_no_show_worker_profile_id = self.worker_profile_id
+        self.worker_profile_id = None
+        self.status = ShiftStatus.NO_CUBIERTO
         self._clear_en_route()
 
     def depart(self) -> None:

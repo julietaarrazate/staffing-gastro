@@ -19,6 +19,10 @@ class NotificationType(str, Enum):
     # tardía del comercio.
     SHIFT_NO_SHOW = "shift_no_show"
     SHIFT_CANCELLED_LATE = "shift_cancelled_late"
+    # ADR-0015: el sistema resolvió solo un turno cuyo período de gracia se
+    # agotó sin llegar a CONFIRMADO. Distinto de SHIFT_NO_SHOW/CANCELLED_LATE
+    # a propósito: ninguno de esos dos es la causa, no hay culpa que avisar.
+    SHIFT_NOT_COVERED = "shift_not_covered"
     # El aviso que cierra el circuito del marketplace: al publicarse un turno
     # se le avisa a los trabajadores mejor rankeados cerca. Sin esto el turno
     # sólo se cubría si alguien casualmente abría la app y scrolleaba el feed
@@ -59,6 +63,10 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_REJECTED: "/shifts",
     NotificationType.SHIFT_CHECKED_OUT: "/shifts",
     NotificationType.SHIFT_REOPENED: "/shifts",
+    # Sólo al comercio (ADR-0015): si había un trabajador asignado sin
+    # confirmar, no se lo penaliza ni se le avisa nada — no es una noticia
+    # accionable para él, el momento ya pasó.
+    NotificationType.SHIFT_NOT_COVERED: "/shifts",
     # Ambos roles
     NotificationType.CHAT_MESSAGE: "/chats",
     NotificationType.REVIEW_RECEIVED: "/profile",

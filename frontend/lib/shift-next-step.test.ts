@@ -28,9 +28,16 @@ describe("nextStepFor", () => {
     expect(nextStepFor(withStatus("finalizado")).action).toBe("markPaid");
   });
 
-  it("pagado y cancelado son estados terminales sin acción pendiente", () => {
+  it("pagado, cancelado y no_cubierto son estados terminales sin acción pendiente", () => {
     expect(nextStepFor(withStatus("pagado")).action).toBeNull();
     expect(nextStepFor(withStatus("cancelado")).action).toBeNull();
+    expect(nextStepFor(withStatus("no_cubierto")).action).toBeNull();
+  });
+
+  it("no_cubierto (ADR-0015) explica qué pasó sin sonar a que alguien lo canceló", () => {
+    const hint = nextStepFor(withStatus("no_cubierto")).hint;
+    expect(hint).not.toBe("");
+    expect(hint.toLowerCase()).not.toContain("cancel");
   });
 
   it("todo estado con acción trae también su actionLabel (no queda un botón sin texto)", () => {

@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Dos chequeos independientes, un solo loop:
+Tres chequeos independientes, un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    manda un recordatorio push de "¿ya llegaste?" una sola vez, o marca
@@ -8,6 +8,11 @@ Dos chequeos independientes, un solo loop:
 2. **Escalada de urgencia:** turnos abiertos (PUBLICADO/BUSCANDO_PERSONAL)
    que no se cubren rápido — los marca `urgent` y avisa a un círculo más
    amplio de candidatos (`ShiftService.escalate_urgency`).
+3. **Cobertura (ADR-0015):** turnos PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO
+   que nunca llegaron a CONFIRMADO y cuyo `start_at` + período de gracia ya
+   pasó — se resuelven solos a NO_CUBIERTO. La ventana depende de `urgent`
+   (30 min si el turno era urgente, 2 h si no) para que uno inmediato no
+   quede colgado como si siguiera activo mucho después de su hora.
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo
@@ -62,6 +67,8 @@ from app.modules.notification.infrastructure.repositories import (
 from app.modules.shift.application.services import (
     CHECKIN_REMINDER_DELAY,
     ESCALATION_DELAY,
+    NOT_COVERED_GRACE_NORMAL,
+    NOT_COVERED_GRACE_URGENT,
     NO_SHOW_GRACE_PERIOD,
     ShiftService,
 )
@@ -191,17 +198,44 @@ async def run_escalation_check() -> datetime | None:
         return next_deadline
 
 
+async def run_coverage_check() -> datetime | None:
+    """Una pasada del chequeo de cobertura (ADR-0015). Público para poder
+    testearlo sin el loop.
+
+    Devuelve la próxima deadline de cobertura FUTURA (el `start_at` + su
+    período de gracia más temprano entre los turnos todavía sin resolver), o
+    `None`. La ventana de gracia depende de `shift.urgent`: corta
+    (`NOT_COVERED_GRACE_URGENT`) si el turno era urgente —el comercio
+    necesita saber rápido si quedó sin cubrir—, normal
+    (`NOT_COVERED_GRACE_NORMAL`, mismo valor que `NO_SHOW_GRACE_PERIOD`) si
+    no."""
+    async with AsyncSessionLocal() as session:
+        service = _build_service(session)
+        now = _naive(datetime.now(timezone.utc))
+        shifts = await service.list_shifts_awaiting_coverage_check()
+        next_deadline: datetime | None = None
+        for shift in shifts:
+            grace = NOT_COVERED_GRACE_URGENT if shift.urgent else NOT_COVERED_GRACE_NORMAL
+            deadline = _naive(shift.start_at) + grace
+            if now >= deadline:
+                await service.mark_not_covered(shift.id)
+            else:
+                next_deadline = _earlier(next_deadline, deadline)
+        return next_deadline
+
+
 async def scheduler_loop() -> None:
-    """Loop infinito: corre ambos chequeos y duerme hasta la próxima deadline.
+    """Loop infinito: corre los tres chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
-    entre ambos chequeos y duerme hasta ahí (acotado a [MIN_SLEEP, MAX_SLEEP]),
-    despertable antes por `notify_scheduler()` cuando entra trabajo nuevo.
+    entre los tres chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
+    MAX_SLEEP]), despertable antes por `notify_scheduler()` cuando entra
+    trabajo nuevo.
 
     Los errores de una pasada no matan el loop (best-effort, mismo criterio
     que el resto de las tareas de fondo del repo, ej. el push best-effort de
     `SqlAlchemyNotificationRepository`) — se logean, se reintenta pronto
-    (`ERROR_RETRY`) y un chequeo que falla no bloquea al otro."""
+    (`ERROR_RETRY`) y un chequeo que falla no bloquea a los otros."""
     while True:
         next_deadline: datetime | None = None
         had_error = False
@@ -215,6 +249,11 @@ async def scheduler_loop() -> None:
         except Exception:
             had_error = True
             logger.exception("Error en el chequeo de escalada de urgencia")
+        try:
+            next_deadline = _earlier(next_deadline, await run_coverage_check())
+        except Exception:
+            had_error = True
+            logger.exception("Error en el chequeo de cobertura")
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 

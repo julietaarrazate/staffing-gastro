@@ -133,6 +133,16 @@ class ShiftRepository(ABC):
         (`ShiftService.escalate_urgency`)."""
 
     @abstractmethod
+    async def list_awaiting_coverage_check(self) -> list[Shift]:
+        """Turnos en `UNCOVERED_ELIGIBLE_STATUSES` (PUBLICADO/
+        BUSCANDO_PERSONAL/ASIGNADO), sin paginar.
+
+        Uso interno (no expuesto por API): el scheduler de "no cubierto"
+        (ADR-0015) los recorre para decidir —comparando `start_at` en Python,
+        mismo criterio que el resto de los chequeos del scheduler— si ya se
+        agotó el período de gracia sin llegar a CONFIRMADO."""
+
+    @abstractmethod
     async def hourly_pay_samples(
         self, pairs: Sequence[tuple[WorkerSkill, str]], *, since: datetime
     ) -> dict[tuple[WorkerSkill, str], list[Decimal]]:

@@ -3128,6 +3128,49 @@ roadmap).
 
 ## En vuelo ahora
 
+- **ADR-0015 + implementación: turno "no cubierto" (2026-09-16).** Julieta,
+  probando la app real: *"veo que quedan puestos abiertos cuando ya pasó la
+  fecha, debería pasar algo con eso"* — con una captura de un turno del 14/8
+  todavía mostrando "Paso 2 de 4: Aceptado" el 16/9. El diagnóstico encontró
+  dos huecos: (1) un turno `ASIGNADO` cuyo trabajador nunca confirma ni
+  rechaza queda invisible para los dos chequeos que ya tenía el scheduler
+  (asistencia sólo mira `CONFIRMADO`/`EN_CAMINO`, escalada sólo mira
+  `PUBLICADO`/`BUSCANDO_PERSONAL`) — el punto ciego exacto de la captura; (2)
+  `list_open()` (el feed del trabajador) nunca filtraba por `start_at`, así
+  que un turno de hace un mes seguía "disponible" para postularse.
+  
+  Estado nuevo `NO_CUBIERTO` (sugerencia de la propia Julieta — mejor que
+  "vencido": conecta con la misión "cubrir una posición eventual"),
+  alcanzable automáticamente desde `PUBLICADO`/`BUSCANDO_PERSONAL`/`ASIGNADO`
+  cuando se agota un período de gracia después de `start_at` sin llegar a
+  `CONFIRMADO`. **Sin impacto de reputación** (decisión explícita de
+  Julieta: nunca llegó a comprometerse) y **la ventana depende de `urgent`**
+  (30 min si el turno era urgente, 2 h si no — la señal que el sistema ya
+  tenía para "esto es inmediato" vs. "tiene margen"). Tercer job en el
+  scheduler (`run_coverage_check`), notifica sólo al comercio. Detalle
+  completo, alternativas descartadas y las decisiones pendientes de Julieta
+  en `docs/adr/ADR-0015-turno-no-cubierto.md`.
+
+  **Efecto colateral real, no cosmético:** el fix de `list_open` hizo
+  fallar 9 tests en 2 archivos que compartían una fecha fija ya vencida por
+  el paso del tiempo real (`docs/BUGS.md`, dos entradas nuevas sobre esto —
+  la segunda documenta que la primera corrección, con la fecha 30 días en
+  el futuro, rompió otros 2 tests por chocar con `EARLY_CHECKIN_WINDOW`).
+  Quedan 10 archivos más con la misma fecha fija, documentados en
+  `TECH_DEBT.md` (T-DATE) como deuda, no como bug activo.
+
+  Validado: **pytest backend 481/481** (7 tests nuevos en
+  `test_shift_not_covered.py` + toda la suite existente sin regresiones,
+  verificado con `--collect-only`), `tsc`, ESLint, `npm run build`, Vitest
+  86/86, Playwright 104/104 — incluidos 2 tests nuevos que **verifican en
+  los dos temas** y uno que encontró un bug real antes de mergear:
+  `ShiftLifecycleStepper.inferDeathStep()` sólo miraba `worker_profile_id`
+  para inferir "murió en Asignado", pero `mark_not_covered()` limpia ese
+  campo (mismo patrón que `no_show()`) y guarda el dato en
+  `last_no_show_worker_profile_id` — un turno no cubierto que sí había sido
+  asignado aparecía muriendo en "Publicado". Corregido antes de que llegara
+  a producción, encontrado por el propio E2E.
+
 - **Publicar turno/evento: la hora invisible en oscuro, y "sábado 20" en vez
   de "20/09" (2026-09-16).** Julieta, probando la app real: *"en el modo
   oscuro cuando pones la hora no se ve"* y *"colocar la fecha debería salir un

@@ -62,7 +62,11 @@ const FAMILY_STATUSES: Record<Family, ShiftStatus[]> = {
   // curso hacia su ejecución, igual que asignado o check_in.
   en_marcha: ["asignado", "confirmado", "en_camino", "check_in", "trabajando", "check_out"],
   terminado: ["finalizado", "pagado"],
-  cancelado: ["cancelado"],
+  // `no_cubierto` (ADR-0015) entra en esta familia, no en una propia: por el
+  // mismo criterio de arriba ("¿queda algo por pasar? No"), es tan terminal
+  // como cancelado. La tarjeta lo distingue igual (badge y stepper propios,
+  // ver ShiftCard/ShiftLifecycleStepper) — comparten pestaña, no etiqueta.
+  cancelado: ["cancelado", "no_cubierto"],
 };
 
 // Orden de despliegue en la pestaña "Todos": borradores primero (ni siquiera

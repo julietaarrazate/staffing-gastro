@@ -125,6 +125,72 @@ test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde
 });
 
 /**
+ * "No cubierto" (ADR-0015): el sistema resolvió solo un turno cuyo período
+ * de gracia se agotó sin llegar a CONFIRMADO. Dos cosas a probar: (1) se
+ * corta como "cancelado" —sin agregar un 5º paso— pero SIN el rojo, porque
+ * nadie decidió esto; (2) se ve bien en los dos temas, porque el bug de
+ * septiembre (contraste de tarjetas en oscuro) enseñó que "se ve bien en
+ * claro" no prueba nada sobre oscuro.
+ */
+test("turno no cubierto: se corta con un marcador neutro (no rojo), sin un 5º paso", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockEmployerShifts(page, [
+    // Nunca se asignó: murió en el paso 1 (Publicado).
+    shift({ id: "shift-no-cubierto-temprano", status: "no_cubierto" }),
+    // Asignado y nunca confirmado: murió en el paso 2 (Asignado).
+    shift({
+      id: "shift-no-cubierto-asignado",
+      status: "no_cubierto",
+      last_no_show_worker_profile_id: "wp-1",
+    }),
+  ]);
+
+  await page.goto("/shifts");
+
+  const early = page.locator('[data-shift-id="shift-no-cubierto-temprano"]');
+  await expect(early.getByText("No se cubrió en el paso 1 de 4 (Publicado)")).toBeVisible();
+  // Nunca un 5º paso.
+  await expect(early.getByRole("listitem")).toHaveCount(4);
+
+  const asignado = page.locator('[data-shift-id="shift-no-cubierto-asignado"]');
+  await expect(asignado.getByText("No se cubrió en el paso 2 de 4 (Asignado)")).toBeVisible();
+
+  // El caption NO usa el rojo de "cancelado" — sería decir que alguien
+  // decidió esto, y nadie lo hizo.
+  const caption = early.getByText("No se cubrió en el paso 1 de 4 (Publicado)");
+  await expect(caption).not.toHaveClass(/text-danger-text/);
+});
+
+test("turno no cubierto se lee igual en claro y en oscuro", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockEmployerShifts(page, [shift({ id: "shift-no-cubierto-tema", status: "no_cubierto" })]);
+
+  for (const tema of ["light", "dark"] as const) {
+    await page.goto("/shifts");
+    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
+
+    const card = page.locator('[data-shift-id="shift-no-cubierto-tema"]');
+    const chip = card.getByText("No cubierto");
+    await expect(chip).toBeVisible();
+
+    // Contraste real computado del chip de estado, no clases — mismo método
+    // que enseñó el bug de septiembre (tarjetas del color del lienzo).
+    const medida = await chip.evaluate((el) => {
+      const cs = getComputedStyle(el as HTMLElement);
+      return { color: cs.color, fondo: cs.backgroundColor };
+    });
+    expect(medida.color, `${tema}: color de texto vacío`).not.toBe("");
+    expect(medida.fondo, `${tema}: chip sin fondo`).not.toBe("rgba(0, 0, 0, 0)");
+  }
+});
+
+/**
  * "Va en camino" del lado del comercio: mientras el trabajador comparte su
  * posición, la tarjeta del turno la muestra con la distancia que falta. Y
  * cuando el backend la borra (al marcar llegada), la tarjeta vuelve sola a su

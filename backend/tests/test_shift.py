@@ -1,7 +1,7 @@
 """Tests de integración del módulo shift (publicación y ciclo de vida del turno)."""
 
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import pytest
@@ -62,11 +62,25 @@ async def _employer_with_company(client: AsyncClient, email: str) -> dict:
 
 
 def _shift_payload(**overrides) -> dict:
+    # Relativo a "ahora", no una fecha fija — mismo motivo y mismo hallazgo
+    # que en tests/test_no_show_and_late_cancellation.py (2026-09-16): un
+    # turno de este archivo se usa para probar `/feed`, que desde ADR-0015
+    # excluye lo que ya pasó (`list_open`); una fecha fija deja de servir en
+    # cuanto el reloj real la alcanza.
+        # 15 min, no más: varios tests de este archivo confirman y hacen
+    # check-in casi en el mismo instante, y `Shift.check_in()` rechaza
+    # un check-in más de `EARLY_CHECKIN_WINDOW` (30 min) ANTES de
+    # `start_at`. Con una fecha lejana (se probó con +30 días) esos tests
+    # rompían con "todavía no se puede marcar llegada" — 15 min deja el
+    # turno cómodamente dentro de esa ventana y sigue siendo "futuro"
+    # para el filtro de `list_open` (ADR-0015).
+    start = datetime.now(timezone.utc) + timedelta(minutes=15)
+    end = start + timedelta(hours=7)
     payload = {
         "position": "mozo",
         "quantity": 1,
-        "start_at": "2026-06-28T20:00:00",
-        "end_at": "2026-06-29T03:00:00",
+        "start_at": start.replace(tzinfo=None).isoformat(),
+        "end_at": end.replace(tzinfo=None).isoformat(),
         "pay_amount": "70000.00",
         "tips": True,
         "dress_code": "Camisa negra",

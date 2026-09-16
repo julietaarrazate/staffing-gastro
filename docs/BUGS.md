@@ -337,3 +337,41 @@ espera para algo que se ve del tamaño de una tarjeta.
   aplicarlo siempre. `next/image` no se usa (las fotos son de un host externo y
   el proyecto sirve `<img>` crudo, TECH_DEBT F5); `cldThumb` da el 80% del
   beneficio (formato/tamaño) sin ese cambio.
+
+---
+
+## Una fecha "futura" hardcodeada en un test, que deja de serlo con el tiempo real
+
+**Patrón:** un fixture de test escribe una fecha absoluta ("2026-06-28T20:00:00") en vez de
+calcularla relativa a "ahora", porque en el momento de escribirla estaba cómodamente en el
+futuro. El test pasa sin drama durante meses — hasta que el reloj real la alcanza, momento en el
+que empieza a fallar, casi siempre por un motivo que no tiene nada que ver con lo que ese test
+dice probar (un filtro nuevo que sí mira la fecha, o un chequeo del scheduler que antes no
+llegaba a tocarla). El mensaje de fallo no menciona la fecha para nada, así que el diagnóstico
+arranca de cero cada vez.
+
+- **Encontrado (2026-09-16):** 13 archivos de test (`grep -l '"2026-06-28T20:00:00"' tests/*.py`)
+  comparten el mismo `_shift_payload()` con esa fecha fija. El fix de ADR-0015 agregó un filtro
+  real (`list_open` excluye turnos cuyo `start_at` ya pasó) y **9 tests en 2 archivos** empezaron
+  a fallar de golpe — todos asumían que un turno publicado con esa fecha seguía viéndose en el
+  feed, sin importar cuándo corriera el test. Quedan 10 archivos más con la misma bomba, todavía
+  sin estallar porque nada más los mira por fecha (detalle y lista completa en `TECH_DEBT.md`,
+  T-DATE).
+
+**Cómo evitarlo:** cualquier fecha de un fixture que el dominio vaya a comparar contra "ahora"
+—turnos, vencimientos, cualquier `start_at`/`end_at`— se calcula relativa a
+`datetime.now(timezone.utc)` en el momento de construir el payload, nunca como string literal.
+Si dos tests necesitan la MISMA fecha para comparar entre sí, calculan la base una vez y suman
+`timedelta` desde ahí — el punto de partida es lo único que no puede ser fijo.
+
+**Segunda vuelta, mismo arreglo (2026-09-16):** el primer intento puso el `start_at` relativo
+30 días en el futuro — "bien lejos, no hay forma de que esto falle". Rompió DOS tests más:
+`Shift.check_in()` rechaza marcar llegada más de `EARLY_CHECKIN_WINDOW` (30 min) ANTES de
+`start_at`, y varios tests de este archivo confirman y hacen check-in casi en el mismo instante
+en que crean el turno. Con el `start_at` original hardcodeado (ya en el pasado por el paso del
+tiempo), ese guard nunca se disparaba —un `start_at` pasado siempre cumple "no es demasiado
+temprano"—, así que el problema estaba oculto. "Relativo al futuro" no alcanza: **la fecha tiene
+que respetar TODAS las ventanas de tiempo cercanas que el dominio vaya a chequear**, no sólo la
+que motivó el cambio. Se resolvió con 15 minutos — suficiente para seguir siendo "futuro" (el
+filtro de `list_open`) y cómodamente adentro de cualquier ventana de gracia de 30 minutos del
+dominio.
