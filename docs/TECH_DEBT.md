@@ -499,6 +499,36 @@ fecha de esta auditoría (2026-07-02).
 
 ## Seguridad e identidad (nuevo, no capturado en v1)
 
+### S4 — 🔴 El mapa del comercio dibuja un pin sobre el DOMICILIO del trabajador
+
+**Encontrado el 2026-09-16**, auditando otra cosa (la distancia que ve el
+comercio, ADR-0014). Nadie lo había reportado, y es el ítem más sensible de
+este archivo.
+
+`frontend/components/WorkerSearchMap.tsx` renderiza cada trabajador disponible
+en `worker.latitude` / `worker.longitude` **exactas** — sin desplazamiento, sin
+redondeo, sin agrupar. Esas coordenadas salen del perfil, y el perfil se carga
+en el onboarding con `MapAddressPicker` (ADR-0006), donde la persona marca
+dónde vive.
+
+**Consecuencia:** cualquier comercio con cuenta activa —y el admin, que ve el
+mismo mapa en sólo lectura desde el #168— ve hoy un marcador sobre la casa de
+trabajadores que nunca trabajaron para él, que no aceptaron ningún turno suyo y
+que no consintieron nada parecido. En una app cuyo público son personas que
+además entregan DNI y selfie.
+
+No es una regresión de un cambio reciente: está así desde que existe la
+pantalla. Se listó acá, y no sólo en el ADR, porque **es un problema hoy y no
+depende de que el ADR-0014 se apruebe**. Si el ADR se rechaza entero, esto
+igual hay que arreglarlo.
+
+**Arreglo:** desplazar el marcador dentro de la zona (precisión suficiente para
+decidir a quién contactar, insuficiente para ir a una puerta) y mostrar la
+distancia con su frescura. Detalle y alternativas en
+`docs/adr/ADR-0014-ubicacion-en-tiempo-real.md` §3.
+
+---
+
 ### S1 — Tokens en `localStorage` sin revocación de refresh ✅ Resuelto
 
 > **Actualización 2026-07-02 (R1.2, ADR-0002):** el backend ya implementa
