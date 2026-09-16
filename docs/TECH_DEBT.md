@@ -365,6 +365,21 @@ fecha de esta auditoría (2026-07-02).
 > build`. Sin tests e2e que toquen estas 3 pantallas (verificado, cero
 > riesgo de regresión de test).
 
+> **Corrección puntual 2026-09-16 (no reabre la decisión de arriba):** los
+> datetime de `shifts/new`/`shifts/new-event` y el campo de mensaje de
+> `chats/[shiftId]/page.tsx` seguían **con criterio** en estilo propio — eso
+> no cambia, sigue siendo la decisión correcta. Lo que esa revisión no
+> verificó es que a esos inputs les faltaba `text-ink`: heredaban la tinta
+> del lienzo, oscura en los dos temas, y en `data-theme="dark"` quedaban
+> **ilegibles** (contraste medido 1.08:1 contra un mínimo AA de 4.5:1).
+> Julieta lo encontró probando la app real ("en el modo oscuro cuando pones
+> la hora no se ve"). Corregido agregando sólo la clase de color que
+> faltaba — el estilo propio de cada uno no se tocó. Detalle y test de
+> regresión (que mide contraste real, no clases) en `docs/STATUS.md`
+> "En vuelo ahora". La lección para la próxima vez que se audite algo así:
+> **decidir "sigue con estilo propio" no es lo mismo que verificar que ese
+> estilo propio anda en los dos temas** — son dos preguntas distintas.
+
 ### F2 — Landing sin migrar al DS v2 monocromático ✅ Resuelto
 
 - **Descripción:** `frontend/app/page.tsx` usa gradientes naranja→rojo en
@@ -498,6 +513,36 @@ fecha de esta auditoría (2026-07-02).
 ---
 
 ## Seguridad e identidad (nuevo, no capturado en v1)
+
+### S4 — 🔴 El mapa del comercio dibuja un pin sobre el DOMICILIO del trabajador
+
+**Encontrado el 2026-09-16**, auditando otra cosa (la distancia que ve el
+comercio, ADR-0014). Nadie lo había reportado, y es el ítem más sensible de
+este archivo.
+
+`frontend/components/WorkerSearchMap.tsx` renderiza cada trabajador disponible
+en `worker.latitude` / `worker.longitude` **exactas** — sin desplazamiento, sin
+redondeo, sin agrupar. Esas coordenadas salen del perfil, y el perfil se carga
+en el onboarding con `MapAddressPicker` (ADR-0006), donde la persona marca
+dónde vive.
+
+**Consecuencia:** cualquier comercio con cuenta activa —y el admin, que ve el
+mismo mapa en sólo lectura desde el #168— ve hoy un marcador sobre la casa de
+trabajadores que nunca trabajaron para él, que no aceptaron ningún turno suyo y
+que no consintieron nada parecido. En una app cuyo público son personas que
+además entregan DNI y selfie.
+
+No es una regresión de un cambio reciente: está así desde que existe la
+pantalla. Se listó acá, y no sólo en el ADR, porque **es un problema hoy y no
+depende de que el ADR-0014 se apruebe**. Si el ADR se rechaza entero, esto
+igual hay que arreglarlo.
+
+**Arreglo:** desplazar el marcador dentro de la zona (precisión suficiente para
+decidir a quién contactar, insuficiente para ir a una puerta) y mostrar la
+distancia con su frescura. Detalle y alternativas en
+`docs/adr/ADR-0014-ubicacion-en-tiempo-real.md` §3.
+
+---
 
 ### S1 — Tokens en `localStorage` sin revocación de refresh ✅ Resuelto
 

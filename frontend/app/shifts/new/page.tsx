@@ -23,11 +23,13 @@ import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
+import ShiftDayHint from "@/components/ShiftDayHint";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { LogoGlyph } from "@/components/Logo";
 import {
   CalendarIcon,
   ChevronLeftIcon,
+  ClockIcon,
   FlameIcon,
   MapPinIcon,
   MicIcon,
@@ -239,14 +241,13 @@ function NewShiftWizard() {
     startAt !== "" && endAt !== ""
       ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
       : null;
-  // Un turno es UNA sola jornada de trabajo (no hay turnos de varios días).
-  // Mostramos el rango elegido en formato AR (dd/mm/yyyy, 24 h) para que la
-  // fecha no se malinterprete sin importar el locale del dispositivo. Un rango
-  // de más de un día es un error real (umbral 24 h): ahí sí conviene un evento.
-  const whenLabel =
-    durationMinutes != null
-      ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
-      : null;
+  // Un turno es UNA sola jornada de trabajo: un rango de más de un día es un
+  // error real (umbral 24 h), y ahí conviene publicar un evento.
+  //
+  // El rango en texto ya NO se arma acá: cada campo muestra su propio día en
+  // palabras (`ShiftDayHint`), que es donde se comete el error y donde hay que
+  // avisarlo. `formatShiftRange` sigue usándose más abajo, en la vista previa
+  // de escritorio, donde sí hace falta el rango completo en una línea.
   const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
   const payPerHour =
     durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
@@ -487,6 +488,13 @@ function NewShiftWizard() {
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Cuándo?</h1>
                 <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
+                {/* `text-ink` NO es decorativo: sin él, el input hereda la
+                    tinta del lienzo (oscura en los dos temas) y adentro de una
+                    tarjeta oscura queda texto oscuro sobre fondo oscuro —
+                    ILEGIBLE. Julieta lo reportó como "en el modo oscuro cuando
+                    ponés la hora no se ve" (2026-09-16). Es la deuda F1
+                    (inputs crudos fuera del sistema de tokens); el `TextField`
+                    del Design System ya lo trae, estos dos no lo tenían. */}
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-semibold text-ink/70">Inicio</span>
@@ -494,8 +502,9 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
+                    <ShiftDayHint value={startAt} />
                   </label>
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-semibold text-ink/70">Fin</span>
@@ -503,16 +512,20 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={endAt}
                       onChange={(e) => setEndAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
+                    <ShiftDayHint value={endAt} />
                   </label>
                 </div>
-                {durationMinutes != null && whenLabel && (
-                  <div className="mt-3 rounded-2xl bg-surface px-4 py-3 text-sm">
-                    <p className="font-semibold text-ink/80">{whenLabel}</p>
-                    <p className="mt-0.5 inline-flex items-center gap-1.5 text-ink/50">
-                      <CalendarIcon size={14} className="text-ink/40" /> Jornada de {formatDuration(durationMinutes)}
-                    </p>
+                {/* Antes este bloque repetía el rango completo en dd/mm. Ahora
+                    cada campo ya dice su día en palabras justo debajo, así que
+                    repetirlo acá era decir lo mismo dos veces con peor formato.
+                    Queda sólo el dato DERIVADO, que es el que no está en ningún
+                    otro lado: cuántas horas dura la jornada. */}
+                {durationMinutes != null && (
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-2xl bg-surface px-4 py-3 text-sm font-semibold text-ink/80">
+                    <ClockIcon size={15} className="text-ink/40" />
+                    Jornada de {formatDuration(durationMinutes)}
                   </div>
                 )}
                 {spansMultipleDays && (

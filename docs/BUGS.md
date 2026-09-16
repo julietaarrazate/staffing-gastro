@@ -167,6 +167,40 @@ arreglo justificado por lectura vale, pero no hay que venderlo como verificado.
 
 ---
 
+## Un `<input>` crudo sin `text-ink`: se ve bien en claro y desaparece en oscuro
+
+**Patrón:** en Oído el lienzo siempre es crema, pero la TINTA de body/html es oscura en los dos
+temas por defecto (`color: var(--foreground)` hereda del token de texto, que sólo cambia dentro
+de superficies invertidas como `.bg-card`). Un `<input>`/`<select>` que NO declara su propio
+`text-ink` no hereda "gris seguro": hereda esa tinta oscura fija. Sobre `bg-surface` en claro
+(un beige) igual se lee, así que el bug pasa desapercibido en el tema por defecto — y sólo se
+manifiesta cuando `bg-surface` se invierte a oscuro y el texto oscuro queda sobre fondo oscuro.
+
+Es una variante silenciosa del defecto de septiembre (tarjetas del color del lienzo, foco a
+1.00:1): ahí faltaba un TOKEN de fondo; acá falta una CLASE de texto en un elemento puntual, así
+que ni siquiera se ve en un review del sistema de tokens — hay que mirar el `<input>` mismo.
+
+- **Encontrado (2026-09-16):** los `<input type="datetime-local">` de `/shifts/new` y
+  `/shifts/new-event` (más un `<select>` de puesto en el evento y el input de mensaje de
+  `/chats/[shiftId]`). Contraste medido en oscuro: **1.08:1** contra un mínimo AA de 4.5:1 —
+  prácticamente el mismo color. Reportado por Julieta como "en el modo oscuro cuando pones la
+  hora no se ve". Lo notable: una auditoría previa de estos MISMOS inputs (F1,
+  `TECH_DEBT.md`, 2026-08-05) los revisó y decidió con motivo dejarlos con estilo propio en vez
+  de migrarlos al Design System — decisión correcta, pero esa revisión comprobó la elección de
+  componente, no el contraste en oscuro. Son dos preguntas distintas y conviene no confundirlas.
+
+**Cómo evitarlo:** todo `<input>`/`<select>` fuera de `TextField` (que ya trae `text-ink` de
+fábrica) declara su propio color de texto explícitamente. No alcanza con "se ve bien" en el tema
+por defecto — hay que tocar el toggle de tema antes de dar un input por terminado.
+
+**Detectarlo en bloque:** un elemento con texto crudo no se ve por `grep` de clases sueltas (el
+`className` puede venir de un `cn(...)` con lógica condicional). Sirve extraer el tag completo
+respetando llaves anidadas y revisar si su clase final matchea `text-(ink|white|night|focus-ink)`
+— así se encontraron los 8 casos reales de esta pasada, descartando 3 falsos positivos que
+resultaron estar dentro de comentarios.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de

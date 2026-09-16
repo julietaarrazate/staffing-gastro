@@ -52,6 +52,30 @@ export function formatShiftTime(iso: string): string {
 }
 
 /**
+ * El día EN PALABRAS, con nombre de día de la semana: "sábado 20 de septiembre".
+ *
+ * Existe por un pedido concreto de Julieta (2026-09-16, probando la app):
+ * *"colocar la fecha debería salir un calendario, así te asegurás bien el día
+ * […] o alguna manera de aclarar para que no haya confusión"*.
+ *
+ * `20/09/2026` no previene el error, porque para verificarlo hay que hacer una
+ * cuenta mental; **"sábado 20"** sí, porque el comercio no piensa en números de
+ * día — piensa "el sábado a la noche". Si puso el viernes por error, la palabra
+ * se lo grita y el número no.
+ *
+ * Deliberadamente NO lleva el año: un turno eventual se publica para los
+ * próximos días, y el año es ruido que compite con el dato que importa.
+ */
+export function formatShiftDayLong(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/**
  * Duración del turno en minutos a partir de dos ISO (con zona). Devuelve null
  * si falta un extremo, alguno es inválido, o el fin no es posterior al inicio
  * — así el llamador no muestra "0 min" ni duraciones negativas.
