@@ -3128,6 +3128,25 @@ roadmap).
 
 ## En vuelo ahora
 
+- **La CI corría dos veces por cada push — arreglado (2026-09-16).** Secuela
+  directa del fix anterior: los workflows escuchan `pull_request` **y** `push`
+  a `claude/**`, así que con el PR ya abierto disparaban los dos y se pagaba el
+  doble por la misma validación. Las dos escuchas hacen falta, pero no al mismo
+  tiempo, y **no son equivalentes**: `pull_request` corre un merge commit
+  efímero de la rama dentro de `main` (`refs/pull/N/merge`), o sea prueba lo
+  que va a quedar DESPUÉS del merge — es la única de las dos que agarra un
+  conflicto *semántico* (main cambió algo de lo que la rama depende, git
+  mergea limpio porque tocaron líneas distintas, y el resultado igual está
+  roto). `push` corre la rama aislada, y hace falta en `main` (que deploya
+  solo) y en una rama que todavía no tiene PR. Fix: acción compartida
+  `.github/actions/corrida-duplicada` que saltea la corrida de `push` cuando
+  ya hay un PR abierto para esa rama — **nunca la del PR**. Se descartó a
+  propósito el `concurrency` con `cancel-in-progress`, que cancela cualquiera
+  de las dos según cuál arranque última y puede tirar justo la que importa,
+  además de dejar un check cancelado que traba el merge. La guarda **falla
+  hacia correr**: si no puede consultar la API, corre igual — una corrida de
+  más cuesta minutos, una de menos deja un commit sin ninguna señal.
+
 - **El CI no se disparaba en los PRs que abro yo — arreglado y VERIFICADO
   (2026-09-16).** Un PR abierto por API con el token de una GitHub App **no**
   dispara workflows: GitHub lo evita a propósito para que un workflow no se

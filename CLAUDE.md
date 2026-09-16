@@ -85,7 +85,10 @@ repita no es una regla.
 5. **Cerrar con CI verde, no con "me anduvo localmente".**
    Empujar a `claude/**` dispara `CI` y `Security` solos (desde el
    2026-09-16 escuchan `push`, no sólo el PR — un PR abierto con el token de
-   una GitHub App no dispara workflows). Antes de decir que algo está listo,
+   una GitHub App no dispara workflows). Una vez que el PR existe, la corrida
+   de `push` se saltea sola para no duplicar a la del PR, que es la que vale
+   porque prueba el merge contra `main` y no la rama aislada (ver
+   `.github/actions/corrida-duplicada`). Antes de decir que algo está listo,
    mirar la corrida real. Una corrida local no queda registrada en ningún
    lado; el check verde queda pegado al commit para siempre.
 
