@@ -14,6 +14,10 @@ const BY_TYPE: Record<NotificationType, string> = {
   shift_rejected: "/shifts",
   shift_checked_out: "/shifts",
   shift_reopened: "/shifts",
+  // Sólo al comercio (ADR-0015): si había un trabajador asignado sin
+  // confirmar, no se le avisa nada — mismo criterio que el backend
+  // (`deep_link_for` en notification/domain/value_objects.py).
+  shift_not_covered: "/shifts",
   new_shift_nearby: "/feed",
   chat_message: "/chats",
   review_received: "/profile",

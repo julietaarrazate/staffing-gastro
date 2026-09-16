@@ -224,7 +224,13 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
   (el "match" del mapa y el aviso de pago fuera de mercado al comercio) ·
   0013 verificación del comercio (constancia de AFIP; por qué NO es
-  `cuit_verificado` y por qué no se guarda el número).
+  `cuit_verificado` y por qué no se guarda el número) · 0014 ubicación en
+  tiempo real (**propuesto**, sin implementar: por qué el comercio mide la
+  distancia desde el domicilio del trabajador y no desde dónde está, más el
+  hallazgo de que hoy el mapa del comercio dibuja un pin sobre esa casa) ·
+  0015 turno "no cubierto" (estado nuevo para un turno asignado que nadie
+  confirma, o publicado que nadie toma, cuyo horario ya pasó — sin impacto
+  de reputación, ventana de gracia según `urgent`).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
@@ -262,6 +268,12 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   presentó" (reabre el turno, penaliza al trabajador) y la cancelación con el
   trabajador ya comprometido avisa y penaliza al comercio
   (`late_cancellations`) — antes no hacía ninguna de las dos cosas.
+- **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
+  confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
+  cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación
+  (nunca llegó a comprometerse). La ventana de gracia depende de `urgent`
+  (30 min si el turno era urgente, 2 h si no). El feed (`list_open`) además
+  deja de ofrecer algo cuyo horario ya pasó, esté o no resuelto todavía.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
   (`backend/app/core/idempotency.py`).
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,

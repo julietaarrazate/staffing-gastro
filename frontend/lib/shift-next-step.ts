@@ -58,6 +58,10 @@ const NEXT_STEP: Record<ShiftStatus, NextStep> = {
   },
   pagado: { hint: "Listo: trabajado y pagado.", action: null },
   cancelado: { hint: "Este turno se canceló.", action: null },
+  // ADR-0015: nadie decidió esto (a diferencia de "cancelado"), así que el
+  // hint lo dice distinto — y sin acción, porque lo que sigue es publicar un
+  // turno NUEVO, no algo que se haga sobre éste.
+  no_cubierto: { hint: "No se cubrió a tiempo.", action: null },
 };
 
 export function nextStepFor(shift: Shift): NextStep {

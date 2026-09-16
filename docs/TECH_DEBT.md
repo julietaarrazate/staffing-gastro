@@ -838,6 +838,46 @@ fecha de esta auditoría (2026-07-02).
 
 ## Calidad / observabilidad
 
+### T-DATE — 🟡 12 archivos de test comparten una fecha fija que ya venció
+
+**Encontrado 2026-09-16**, como efecto colateral del fix de ADR-0015 (`list_open`
+ahora excluye turnos cuyo `start_at` ya pasó). Dos `_shift_payload()`
+(`tests/test_shift.py`, `tests/test_no_show_and_late_cancellation.py`)
+hardcodeaban `"start_at": "2026-06-28T20:00:00"` — una fecha que era futura
+cuando se escribió el test, y dejó de serlo por el simple paso del tiempo
+real. El filtro nuevo, correcto, empezó a excluir esos turnos del feed y 9
+tests que asumían verlos ahí rompieron.
+
+**Se corrigieron esos dos** (ahora calculan `datetime.now() + timedelta(minutes=15)`
+en cada llamada, no una fecha fija — el offset importa: se probó primero con
+30 días y rompió DOS tests más, `check_in()` rechaza un check-in más de
+`EARLY_CHECKIN_WINDOW` (30 min) antes de `start_at`; 15 min queda "futuro"
+para `list_open` y dentro de esa ventana para los tests que confirman y
+hacen check-in casi en el mismo instante). **Quedan 10 archivos más con el MISMO
+literal** (verificado: `grep -l '"2026-06-28T20:00:00"' tests/*.py`):
+`test_admin.py`, `test_application.py`, `test_assistant.py`,
+`test_attendance.py`, `test_business_events.py`, `test_chat.py`,
+`test_idempotency.py`, `test_matching.py`, `test_notification.py`,
+`test_subscription.py` (y `test_review.py`, sin confirmar si su uso pasa por
+`list_open`). No fallan HOY porque ninguno de sus tests ejercita `/feed`
+todavía — pero es la misma bomba de tiempo, y algún cambio futuro (otro
+filtro por fecha, o simplemente que el reloj real siga avanzando lo
+suficiente como para que otro chequeo del sistema empiece a mirar
+`start_at`) los va a hacer fallar sin aviso, con un mensaje que no dice nada
+del motivo real.
+
+- **Impacto:** bajo hoy (no rompen nada), pero crece solo con el tiempo — y
+  cuando rompan, el mensaje de pytest no va a mencionar la fecha para nada.
+- **Riesgo:** medio a mediano plazo, cero hoy.
+- **Esfuerzo:** bajo por archivo, pero son 10 — un PR aparte, no se hizo acá
+  para no ensanchar el de ADR-0015 con un cambio sin relación funcional.
+- **Solución sugerida:** una función compartida en `tests/conftest.py`
+  (`future_shift_window()` o similar) que las 12 factories usen, en vez de
+  que cada archivo calcule la fecha a mano — así el día que haga falta
+  ajustar el margen, es un solo lugar.
+
+---
+
 ### T1 — Sin CI ✅ Resuelto
 
 - **Descripción (histórica):** no había pipeline que corriera `pytest -q` /

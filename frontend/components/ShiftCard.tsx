@@ -37,8 +37,11 @@ const EnRouteMap = dynamic(() => import("@/components/employer/EnRouteMap"), {
 // Ley de marca (docs/planning/PULIDO_ROADMAP.md): un solo acento por pantalla. Naranja
 // para todo lo activo/publicado/en curso, verde sólo para éxito (confirmado
 // además de los terminales finalizado/pagado), rojo sólo para cancelado, gris
-// sólo para borrador. Nada de azul/amber sueltos (bug de la operadora: los
-// turnos cancelados/aceptados se veían iguales).
+// para borrador Y para `no_cubierto` (ADR-0015) — mismo tono a propósito:
+// ninguno de los dos es un juicio (uno todavía no arrancó, el otro no tuvo
+// culpable), así que ninguno se gana el rojo de una cancelación activa. Nada
+// de azul/amber sueltos (bug de la operadora: los turnos cancelados/
+// aceptados se veían iguales).
 const STATUS_COLORS: Record<string, string> = {
   borrador: "bg-surface text-ink/60",
   publicado: "bg-primary-tint text-primary-text",
@@ -52,12 +55,13 @@ const STATUS_COLORS: Record<string, string> = {
   finalizado: "bg-success-tint text-success-text",
   pagado: "bg-success-tint text-success-text",
   cancelado: "bg-danger-tint text-danger-text",
+  no_cubierto: "bg-surface text-ink/60",
 };
 
-// El turno ya pasó (finalizado/pagado/cancelado): no tiene sentido
-// ofrecerle al trabajador indicaciones para llegar a un turno que ya
+// El turno ya pasó (finalizado/pagado/cancelado/no_cubierto): no tiene
+// sentido ofrecerle al trabajador indicaciones para llegar a un turno que ya
 // terminó o que no va a pasar.
-const PAST_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
+const PAST_STATUSES = new Set(["cancelado", "finalizado", "pagado", "no_cubierto"]);
 
 // La tarjeta entera se atenúa (opacity) para que, en una lista mixta, se
 // note de un vistazo qué turno sigue vivo y cuál ya no. El color del chip
@@ -73,7 +77,11 @@ const PAST_STATUSES = new Set(["cancelado", "finalizado", "pagado"]);
 // opcional a propósito (no bloquea el pago ni el look de "terminado") —
 // forzarla dejaría turnos sin calificar atascados con el look de "algo
 // falta" para siempre.
-const DIMMED_STATUSES = new Set(["cancelado", "pagado"]);
+// `no_cubierto` (ADR-0015) se suma acá y no a `PAY_HINT_STATUSES` de abajo:
+// no queda NINGUNA acción pendiente sobre ESTE turno (a diferencia de
+// `borrador`/`publicado`/`buscando_personal`, donde el precio se puede
+// corregir) — se acabó, lo que sigue es publicar uno nuevo si hace falta.
+const DIMMED_STATUSES = new Set(["cancelado", "pagado", "no_cubierto"]);
 
 // El aviso de pago fuera de mercado (ADR-0012) sólo aparece mientras el turno
 // TODAVÍA se puede corregir: en borrador, publicado o buscando personal. Una
