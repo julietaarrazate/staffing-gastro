@@ -44,6 +44,54 @@ el INTAKE acumulado y promover lecciones a reglas. Para trabajar en el
 producto, la sesión va acá: es el repo cuyo `CLAUDE.md` se carga solo, donde
 corren los tests y el CI, y donde vive el git.
 
+## Protocolo de sesión (obligatorio, no es una sugerencia)
+
+Estos cinco pasos no dependen de que Julieta los pida en el prompt. Estaban
+escritos más abajo, pero **adentro de un prompt de ejemplo** ("Para continuar
+en un chat nuevo"), así que sólo aplicaban si ella se acordaba de pegarlo. El
+2026-09-16 se comprobó el costo: una sesión trabajó sobre el directorio
+principal sin worktree, y otra abrió un PR que estuvo horas sin ninguna señal
+de CI sin que nadie lo notara. Una regla que depende de que el usuario la
+repita no es una regla.
+
+1. **Aislarse en worktree, siempre.**
+   `git worktree add ../staffya-<tema> -b claude/<tema> origin/main`.
+   Nunca trabajar sobre el directorio principal: si la sesión se corta a la
+   mitad, el checkout de Julieta queda en una rama ajena y con cambios sin
+   commitear. Verificable en un comando: `git worktree list` tiene que mostrar
+   más de una entrada antes del primer `git commit`.
+
+2. **Abrir el trabajo leyendo el estado, no el código.**
+   `docs/STATUS.md` → "Qué sigue (estado vigente)". Después `TECH_DEBT.md` y
+   `BUGS.md` si el tema los toca.
+
+3. **Buscar los bugs, no esperar a que los muestren.**
+   Julieta no es la suite de QA. Todo cambio de UI se **mira renderizado**
+   antes de darlo por hecho —levantar la app, sacar la captura, abrirla— y en
+   **los dos temas** (`data-theme="light"` y `"dark"`), porque la mitad de los
+   defectos de superficie sólo existen en uno. Leer el diff no alcanza: los
+   tres bugs de contraste de septiembre (el módulo de foco a 1.00:1, las
+   tarjetas del color del lienzo, el subtítulo del nivel invisible) pasaron
+   `tsc`, `build`, Vitest y Playwright en verde. Y cuando se mide algo de
+   diseño, **la medición declara su marco** (qué elemento, a qué viewport):
+   un ratio sin marco ya hizo escribir dos documentos mal.
+
+4. **Dejar el estado escrito antes de cerrar.**
+   `docs/STATUS.md` en el MISMO PR del cambio — más los `docs/` del área si el
+   cambio los contradice. La próxima sesión arranca sin memoria de ésta: lo
+   que no quedó escrito, no existe. Si hubo fricción que se va a repetir, va
+   como *cycle* al `evolution/INTAKE.md` de EKP (ver arriba).
+
+5. **Cerrar con CI verde, no con "me anduvo localmente".**
+   Empujar a `claude/**` dispara `CI` y `Security` solos (desde el
+   2026-09-16 escuchan `push`, no sólo el PR — un PR abierto con el token de
+   una GitHub App no dispara workflows). Una vez que el PR existe, la corrida
+   de `push` se saltea sola para no duplicar a la del PR, que es la que vale
+   porque prueba el merge contra `main` y no la rama aislada (ver
+   `.github/actions/corrida-duplicada`). Antes de decir que algo está listo,
+   mirar la corrida real. Una corrida local no queda registrada en ningún
+   lado; el check verde queda pegado al commit para siempre.
+
 ## Dónde está el estado del proyecto
 
 > Última actualización: **2026-09-07**.
@@ -176,7 +224,13 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
   (el "match" del mapa y el aviso de pago fuera de mercado al comercio) ·
   0013 verificación del comercio (constancia de AFIP; por qué NO es
-  `cuit_verificado` y por qué no se guarda el número).
+  `cuit_verificado` y por qué no se guarda el número) · 0014 "Disponible
+  ahora" (el trabajador prende su posición real por 4h para que el comercio
+  mida la distancia desde ahí y no desde su domicilio; el pin en el mapa
+  siempre va desplazado — `fuzz_point`, TECH_DEBT.md S4) ·
+  0015 turno "no cubierto" (estado nuevo para un turno asignado que nadie
+  confirma, o publicado que nadie toma, cuyo horario ya pasó — sin impacto
+  de reputación, ventana de gracia según `urgent`).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
@@ -214,6 +268,12 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   presentó" (reabre el turno, penaliza al trabajador) y la cancelación con el
   trabajador ya comprometido avisa y penaliza al comercio
   (`late_cancellations`) — antes no hacía ninguna de las dos cosas.
+- **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
+  confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
+  cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación
+  (nunca llegó a comprometerse). La ventana de gracia depende de `urgent`
+  (30 min si el turno era urgente, 2 h si no). El feed (`list_open`) además
+  deja de ofrecer algo cuyo horario ya pasó, esté o no resuelto todavía.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
   (`backend/app/core/idempotency.py`).
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
@@ -239,6 +299,14 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
+- **"Disponible ahora"** (ADR-0014): el trabajador prende su posición real
+  —una sola captura, no un seguimiento— para que el comercio (mapa y
+  matching de un turno) mida la distancia desde ahí y no desde su domicilio.
+  Dura 4h (`AVAILABLE_NOW_TTL`) o hasta apagarlo. El pin que ve el comercio
+  **nunca** es la coordenada exacta, esté o no "Disponible ahora" prendido:
+  `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
+  150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
+  trabajador, mismo punto en cada render), no aleatorio en cada carga.
 - **Mapa con el pago en el pin** (#319) y **pago de referencia** (#332,
   ADR-0012): el marcador lleva el monto, el rubro es un punto de color, y el
   turno que **paga por encima de lo típico** para su puesto y ciudad se
@@ -515,6 +583,24 @@ rehizo a ciegas.
 - **No `git add -A`**: stagear archivos puntuales.
 - Cambios de presentación no tocan la lógica de backend salvo necesidad.
 
+### Cómo se cierra un PR (acordado con Julieta el 2026-09-16)
+
+La secuencia es **verde → captura → sí de Julieta → merge**, y no hay que
+volver a preguntársela en cada PR: ya está decidida.
+
+1. **CI y Security en verde**, mirando la corrida real en GitHub (no una
+   corrida local). Si algo sale rojo, se para y se dice — nunca se mergea en
+   rojo ni se toca el pipeline para que dé verde.
+2. **Captura de lo que cambia visualmente**, en claro y en oscuro, antes de
+   pedir nada. Si el PR no toca UI, este paso no aplica y se pasa al 3.
+3. **Julieta dice que sí.** Ése es el único permiso que hace falta; con eso se
+   mergea con squash y se le avisa qué quedó en producción.
+
+El paso 2 existe porque el verde y lo que se ve son cosas distintas: los tres
+bugs de contraste de septiembre pasaron `tsc`, `build`, Vitest y Playwright sin
+una sola falla. Un check verde dice que nada se rompió, no que la pantalla se
+vea bien.
+
 ## No hacer
 
 - Duplicar componentes/lógica/entidades.
@@ -554,17 +640,12 @@ Si arrancás una sesión sin más contexto que este archivo, copiá/adaptá este
 prompt de arranque:
 
 > Estás en el repo de **Staffya** (marketplace de staffing gastronómico en
-> tiempo real). Leé `CLAUDE.md` y después `docs/STATUS.md` (bitácora viva,
-> qué está en vuelo y qué sigue) antes de tocar nada. Si tu tarea toca deuda
-> conocida, revisá también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Aislate en
-> worktree (`git worktree add ...` desde `origin/main`), trabajá en rama de
-> feature, PR en draft, y reportá el resultado real de `pytest -q` / `tsc
-> --noEmit` / `npm run build` (y Playwright si tocaste frontend) — no el
-> esperado. Actualizá `docs/STATUS.md` en el mismo PR de cualquier cambio
-> relevante. Este repo es la capa L5 de `julietaarrazate/ekp`: antes de
-> cerrar, si hubo fricción que se va a repetir, archivala como un *cycle*
-> nuevo en el `evolution/INTAKE.md` de ese repo (ver "Este repo dentro de
-> EKP" arriba).
+> tiempo real). Leé `CLAUDE.md` —empezando por **"Protocolo de sesión"**, que
+> es obligatorio— y después `docs/STATUS.md` (bitácora viva, qué está en vuelo
+> y qué sigue) antes de tocar nada. Si tu tarea toca deuda conocida, revisá
+> también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Reportá el resultado real de
+> `pytest -q` / `tsc --noEmit` / `npm run build` (y Playwright si tocaste
+> frontend) — no el esperado.
 
 No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
 operadora" arriba. La auditoría de responsive/desktop pantalla por pantalla

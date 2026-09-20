@@ -52,6 +52,30 @@ export function formatShiftTime(iso: string): string {
 }
 
 /**
+ * El día EN PALABRAS, con nombre de día de la semana: "sábado 20 de septiembre".
+ *
+ * Existe por un pedido concreto de Julieta (2026-09-16, probando la app):
+ * *"colocar la fecha debería salir un calendario, así te asegurás bien el día
+ * […] o alguna manera de aclarar para que no haya confusión"*.
+ *
+ * `20/09/2026` no previene el error, porque para verificarlo hay que hacer una
+ * cuenta mental; **"sábado 20"** sí, porque el comercio no piensa en números de
+ * día — piensa "el sábado a la noche". Si puso el viernes por error, la palabra
+ * se lo grita y el número no.
+ *
+ * Deliberadamente NO lleva el año: un turno eventual se publica para los
+ * próximos días, y el año es ruido que compite con el dato que importa.
+ */
+export function formatShiftDayLong(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/**
  * Duración del turno en minutos a partir de dos ISO (con zona). Devuelve null
  * si falta un extremo, alguno es inválido, o el fin no es posterior al inicio
  * — así el llamador no muestra "0 min" ni duraciones negativas.
@@ -81,6 +105,21 @@ export function formatDuration(minutes: number): string {
 export function isTodayInArgentina(iso: string): boolean {
   const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIMEZONE });
   return fmt.format(new Date(iso)) === fmt.format(new Date());
+}
+
+/**
+ * "hace 2 min" / "hace 1 h 10" / "recién". Antes vivía duplicada como
+ * `agoLabel` sólo en `EnRouteMap.tsx` ("va en camino"); ahora la usa también
+ * "Disponible ahora" (ADR-0014) — segundo uso real, deja de justificar la
+ * duplicación.
+ */
+export function formatAgo(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "recién";
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `hace ${hours} h` : `hace ${hours} h ${rest}`;
 }
 
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */

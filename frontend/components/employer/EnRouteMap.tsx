@@ -18,19 +18,10 @@
 import { useMemo } from "react";
 import { Layer, Marker, Source } from "@vis.gl/react-maplibre";
 import MapView from "@/components/map/MapView";
+import { formatAgo } from "@/lib/datetime";
 import { haversineKm } from "@/lib/map/geo";
 
 const SOURCE_ID = "en-route-line";
-
-/** "hace 2 min" / "hace 1 h 10". Sin librería: es el único uso. */
-function agoLabel(iso: string): string {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
-  if (minutes < 1) return "recién";
-  if (minutes < 60) return `hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest === 0 ? `hace ${hours} h` : `hace ${hours} h ${rest}`;
-}
 
 export default function EnRouteMap({
   venueLatitude,
@@ -124,7 +115,7 @@ export default function EnRouteMap({
         <p className="text-xs text-ink/60">
           a {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
           {" · "}
-          {agoLabel(reportedAt)}
+          {formatAgo(reportedAt)}
         </p>
       </div>
     </div>

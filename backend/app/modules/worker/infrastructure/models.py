@@ -44,6 +44,13 @@ class WorkerProfileModel(Base):
     cv_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    # --- "Disponible ahora" (ADR-0014) ---
+    available_now_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    available_now_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    available_now_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # --- Métricas ---
     rating: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     events_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -71,6 +71,18 @@ NO_SHOW_GRACE_PERIOD = timedelta(hours=2)
 # incumplirla.
 ESCALATION_DELAY = timedelta(minutes=8)
 
+# "No cubierto" (ADR-0015): cuánto esperar después de `start_at` antes de
+# resolver solo un turno que nunca llegó a CONFIRMADO. Depende de `urgent`
+# —la misma señal que ya usa el comercio/la escalada para decir "esto es
+# inmediato"—, a pedido explícito de Julieta: un turno urgente no debe seguir
+# figurando como activo mucho después de su hora, uno con más margen puede
+# esperar un poco más por si hay una confirmación tardía real. NORMAL
+# reutiliza el mismo valor que NO_SHOW_GRACE_PERIOD, no es una coincidencia:
+# es el mismo margen que el resto del sistema ya considera razonable para un
+# check-in/confirmación demorados.
+NOT_COVERED_GRACE_URGENT = timedelta(minutes=30)
+NOT_COVERED_GRACE_NORMAL = NO_SHOW_GRACE_PERIOD
+
 
 class ShiftService:
     """Servicio de aplicación para gestionar turnos."""
@@ -489,6 +501,39 @@ class ShiftService:
         sistema)."""
         shift = await self.get_shift(shift_id)
         return await self.mark_no_show(shift.company_id, shift.id, _trigger="automatic")
+
+    async def list_shifts_awaiting_coverage_check(self) -> list[Shift]:
+        """Turnos PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO cuyo `start_at` ya
+        pasó (o está por pasar), para el scheduler de "no cubierto"
+        (ADR-0015). Sin scoping por comercio: lo recorre un proceso de
+        sistema, igual que `list_shifts_awaiting_checkin`."""
+        return await self._shifts.list_awaiting_coverage_check()
+
+    async def mark_not_covered(self, shift_id: UUID) -> Shift:
+        """Resuelve automáticamente un turno cuyo período de gracia después
+        de `start_at` se agotó sin llegar a CONFIRMADO (ADR-0015).
+
+        Dispara `Shift.mark_not_covered()` (sin reputación, sin reabrir —ver
+        su docstring) y avisa SÓLO al comercio: si había alguien asignado sin
+        confirmar, no se le manda nada — no hay nada que ese trabajador tenga
+        que hacer con esa noticia, el momento ya pasó."""
+        shift = await self.get_shift(shift_id)
+        shift.mark_not_covered()
+        updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.not_covered",
+            extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+        )
+        await self._notify_company(
+            updated.company_id,
+            NotificationType.SHIFT_NOT_COVERED,
+            "Un turno quedó sin cubrir",
+            (
+                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.value}\" "
+                "sin que nadie confirmara. Podés publicarlo de nuevo."
+            ),
+        )
+        return updated
 
     async def assign_worker(
         self, company_id: UUID, shift_id: UUID, worker_profile_id: UUID

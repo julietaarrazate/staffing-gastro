@@ -10,6 +10,7 @@ import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/typ
 import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
 import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import ShiftDayHint from "@/components/ShiftDayHint";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 
@@ -212,6 +213,11 @@ function NewEventForm() {
           maxLength={200}
         />
 
+        {/* Mismo eco que en /shifts/new (ShiftDayHint): el input nativo
+            devuelve el día en números y en el locale del dispositivo — a
+            veces dd/mm, a veces mm/dd —, y nadie piensa "el 19", piensa
+            "el sábado a la noche". Ver el comentario completo en el
+            componente. */}
         <div className="flex flex-col gap-4 lg:flex-row lg:gap-3">
           <label className="flex flex-1 flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink/70">Inicio</span>
@@ -219,8 +225,9 @@ function NewEventForm() {
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
+            <ShiftDayHint value={startAt} />
           </label>
           <label className="flex flex-1 flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink/70">Fin</span>
@@ -228,8 +235,9 @@ function NewEventForm() {
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
+            <ShiftDayHint value={endAt} />
           </label>
         </div>
 
@@ -279,7 +287,7 @@ function NewEventForm() {
                   <select
                     value={role.position}
                     onChange={(e) => updateRole(role.key, { position: e.target.value as WorkerSkill })}
-                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-[15px] text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     {WORKER_SKILLS.map((skill) => (
                       <option key={skill} value={skill}>
@@ -312,7 +320,7 @@ function NewEventForm() {
                       min={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-[15px] text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
@@ -324,7 +332,7 @@ function NewEventForm() {
                       placeholder="15000"
                       value={role.payAmount}
                       onChange={(e) => updateRole(role.key, { payAmount: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-[15px] ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-[15px] text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>
                 </div>

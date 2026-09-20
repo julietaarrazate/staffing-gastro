@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.core.geo import haversine_km
+from app.core.geo import fuzz_point, haversine_km
 from app.modules.matching.domain.entities import (
     MatchResult,
     ShiftRequirement,
@@ -78,6 +78,13 @@ class MatchingService:
             )
             if radius_km is not None and (distance_km is None or distance_km > radius_km):
                 continue
+            # TECH_DEBT.md S4 / ADR-0014 §3: el pin que ve el comercio (y el
+            # admin, mismo endpoint) nunca es el domicilio exacto del
+            # trabajador — la distancia sí es la real, calculada arriba antes
+            # de desplazar.
+            fuzzed_lat, fuzzed_lng = fuzz_point(
+                candidate.latitude, candidate.longitude, str(candidate.profile_id)
+            )
             results.append(
                 WorkerMapResult(
                     profile_id=candidate.profile_id,
@@ -86,9 +93,11 @@ class MatchingService:
                     photo_url=candidate.photo_url,
                     rating=candidate.rating,
                     skills=candidate.skills,
-                    latitude=candidate.latitude,
-                    longitude=candidate.longitude,
+                    latitude=fuzzed_lat,
+                    longitude=fuzzed_lng,
                     distance_km=distance_km,
+                    is_live=candidate.is_live_position,
+                    position_updated_at=candidate.position_updated_at,
                 )
             )
         ordered = sorted(

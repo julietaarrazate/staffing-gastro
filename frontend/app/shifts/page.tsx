@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
@@ -11,6 +10,7 @@ import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
+import QuickActions, { type QuickAction } from "@/components/QuickActions";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
@@ -26,10 +26,14 @@ import {
   useToast,
 } from "@/components/ui";
 import {
+  CalendarPlusIcon,
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
+  HeartIcon,
+  PlusIcon,
   SearchIcon,
+  WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
 
@@ -58,7 +62,11 @@ const FAMILY_STATUSES: Record<Family, ShiftStatus[]> = {
   // curso hacia su ejecución, igual que asignado o check_in.
   en_marcha: ["asignado", "confirmado", "en_camino", "check_in", "trabajando", "check_out"],
   terminado: ["finalizado", "pagado"],
-  cancelado: ["cancelado"],
+  // `no_cubierto` (ADR-0015) entra en esta familia, no en una propia: por el
+  // mismo criterio de arriba ("¿queda algo por pasar? No"), es tan terminal
+  // como cancelado. La tarjeta lo distingue igual (badge y stepper propios,
+  // ver ShiftCard/ShiftLifecycleStepper) — comparten pestaña, no etiqueta.
+  cancelado: ["cancelado", "no_cubierto"],
 };
 
 // Orden de despliegue en la pestaña "Todos": borradores primero (ni siquiera
@@ -120,6 +128,22 @@ const FAMILY_META: Record<
  * empleado"). Mismo componente (`GuidedTour`), apuntando a lo mínimo para
  * entender el panel: cómo publicar, las pestañas por familia de estado (si
  * ya hay turnos) y dónde buscar candidatos directo. */
+// Acciones rápidas del panel. Una sola primaria (ADR-0011: un acento por
+// pantalla) y las otras tres neutras. `Buscar` NO está acá a propósito: ya es
+// una pestaña del nav de abajo.
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    href: "/shifts/new",
+    label: "Publicar",
+    icon: <PlusIcon size={22} />,
+    primary: true,
+    tourId: "shifts-publish",
+  },
+  { href: "/shifts/new-event", label: "Evento", icon: <CalendarPlusIcon size={22} /> },
+  { href: "/favorites", label: "Favoritos", icon: <HeartIcon size={22} /> },
+  { href: "/subscription", label: "Mi plan", icon: <WalletIcon size={22} /> },
+];
+
 const EMPLOYER_PANEL_TOUR: TourStep[] = [
   {
     target: '[data-tour="shifts-publish"]',
@@ -284,31 +308,25 @@ function MyShiftsPanel() {
 
   return (
     <div className="app-container px-4 pb-10 pt-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Panel</h1>
-          <p className="mt-0.5 text-sm text-ink/50">Gestioná los turnos de tu comercio.</p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Link
-            href="/shifts/new-event"
-            className="rounded-[var(--radius-btn)] bg-card px-4 py-2.5 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
-          >
-            + Evento
-          </Link>
-          <Link
-            href="/shifts/new"
-            data-tour="shifts-publish"
-            className="rounded-[var(--radius-btn)] bg-primary px-4 py-2.5 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition active:scale-95"
-          >
-            + Publicar
-          </Link>
-        </div>
+      <div>
+        <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Panel</h1>
+        <p className="mt-0.5 text-sm text-ink/50">Gestioná los turnos de tu comercio.</p>
       </div>
 
       <div className="mt-4">
         <AIAssistantBar />
       </div>
+
+      {/* Acciones rápidas (2026-09-16). Antes "+ Evento" y "+ Publicar" vivían
+          apretados a la derecha del título: no escalaba —no había lugar para
+          una tercera— y dejaba a Favoritos y Mi plan enterradas a dos toques,
+          adentro del menú de Perfil. Acá las cuatro quedan al mismo nivel y el
+          ámbar dice cuál es LA acción.
+
+          Buscar no entra a propósito: ya es una pestaña del nav de abajo, y
+          repetir un destino que está a un toque no es una acción rápida, es
+          ruido. */}
+      <QuickActions className="mt-5" actions={QUICK_ACTIONS} />
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} onRetry={load} />}

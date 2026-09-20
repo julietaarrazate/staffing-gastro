@@ -34,6 +34,9 @@ def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
         cv_url=model.cv_url,
         cv_filename=model.cv_filename,
         is_available=model.is_available,
+        available_now_latitude=model.available_now_latitude,
+        available_now_longitude=model.available_now_longitude,
+        available_now_until=model.available_now_until,
         rating=model.rating,
         events_completed=model.events_completed,
         punctuality_rate=model.punctuality_rate,
@@ -61,6 +64,9 @@ def _apply_editable_fields(model: WorkerProfileModel, profile: WorkerProfile) ->
     model.cv_url = profile.cv_url
     model.cv_filename = profile.cv_filename
     model.is_available = profile.is_available
+    model.available_now_latitude = profile.available_now_latitude
+    model.available_now_longitude = profile.available_now_longitude
+    model.available_now_until = profile.available_now_until
 
 
 class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
@@ -158,6 +164,13 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         model.no_shows += 1
         self._recompute_badges_and_level(model)
         await self._session.commit()
+
+    async def list_with_available_now_set(self) -> list[WorkerProfile]:
+        stmt = select(WorkerProfileModel).where(
+            WorkerProfileModel.available_now_until.is_not(None)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(model) for model in result.scalars().all()]
 
     async def count_engagement_stats(self) -> WorkerEngagementStats:
         # Una sola query con SUM/CASE (mismo patrón que

@@ -50,7 +50,12 @@ export type ShiftStatus =
   | "check_out"
   | "finalizado"
   | "pagado"
-  | "cancelado";
+  | "cancelado"
+  // ADR-0015: el SISTEMA resuelve solo un turno cuyo período de gracia
+  // después de `start_at` se agotó sin llegar a `confirmado` — nunca una
+  // persona. Terminal, distinto de `cancelado` a propósito: no hay nadie a
+  // quien reclamarle, y la etiqueta no debe sugerir que sí lo hay.
+  | "no_cubierto";
 
 export const STATUS_LABELS: Record<ShiftStatus, string> = {
   borrador: "Borrador",
@@ -65,6 +70,7 @@ export const STATUS_LABELS: Record<ShiftStatus, string> = {
   finalizado: "Finalizado",
   pagado: "Pagado",
   cancelado: "Cancelado",
+  no_cubierto: "No cubierto",
 };
 
 export interface User {
@@ -267,6 +273,17 @@ export interface WorkerMapResult {
   latitude: number | null;
   longitude: number | null;
   distance_km: number | null;
+  // ADR-0014: si esta posición es "Disponible ahora" (vigente) en vez de la
+  // del perfil, y desde cuándo — arma "actualizado hace X min" vs. "zona del
+  // perfil".
+  is_live: boolean;
+  position_updated_at: string | null;
+}
+
+/** Estado de "Disponible ahora" (ADR-0014) del trabajador autenticado. */
+export interface AvailableNowStatus {
+  active: boolean;
+  until: string | null;
 }
 
 export interface FavoriteWorker {
@@ -332,6 +349,7 @@ export type NotificationType =
   | "new_applicant"
   | "shift_no_show"
   | "shift_cancelled_late"
+  | "shift_not_covered"
   | "new_shift_nearby"
   | "support_reply";
 

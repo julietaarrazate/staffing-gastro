@@ -1,0 +1,79 @@
+name: ¿Es esta corrida la duplicada de un PR abierto?
+description: >
+  Decide si los jobs de este workflow tienen que correr, para no pagar dos
+  veces lo mismo. Ver el porqué completo abajo.
+
+outputs:
+  correr:
+    description: >
+      'true' si hay que correr; 'false' si esta corrida duplica a la que ya
+      disparó el PR abierto de esta misma rama.
+    value: ${{ steps.decidir.outputs.correr }}
+
+# POR QUÉ EXISTE (si lo vas a borrar, leé esto primero)
+#
+# Los workflows escuchan `pull_request` Y `push` a `claude/**`. Las dos cosas
+# hacen falta, pero por motivos distintos:
+#
+#   · `pull_request` corre un merge commit EFÍMERO de la rama dentro de `main`
+#     (`refs/pull/N/merge`). O sea: prueba lo que va a quedar después del
+#     merge, no la rama aislada. Es la única de las dos que agarra un
+#     conflicto SEMÁNTICO —`main` cambió algo de lo que la rama depende, git
+#     mergea sin conflicto porque tocaron líneas distintas, y el resultado
+#     igual está roto—. Por eso es LA corrida que decide si se mergea.
+#
+#   · `push` corre la rama tal cual. Hace falta igual en dos casos: en `main`
+#     (que deploya solo a Render y Vercel, así que se verifica lo que quedó,
+#     no lo que se predijo) y en una rama de trabajo TODAVÍA SIN PR — porque
+#     un PR abierto con el token de una GitHub App no dispara `pull_request`
+#     (GitHub lo evita para que un workflow no se encadene a sí mismo).
+#
+# El problema aparece cuando el PR ya existe: ahí disparan las dos y se paga
+# el doble por la misma validación, con la de `push` aportando estrictamente
+# menos que la otra. Esta acción corta esa duplicación.
+#
+# DECISIÓN EXPLÍCITA: se saltea la de `push`, nunca la de `pull_request`.
+# La alternativa fácil —un `concurrency` con `cancel-in-progress`— cancela
+# cualquiera de las dos según cuál arranque última, y si cae la del PR se
+# pierde justo la corrida que importa; además un check cancelado puede trabar
+# el merge. Esto es determinista.
+#
+# FALLA HACIA CORRER, NUNCA HACIA SALTEAR: si la consulta a la API no se
+# puede hacer o devuelve algo raro, contesta 'true'. Una corrida de más
+# cuesta minutos; una de menos deja un commit sin ninguna señal, que es
+# exactamente el agujero que se cerró el 2026-09-16.
+runs:
+  using: composite
+  steps:
+    - id: decidir
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -u
+
+        # Todo lo que no sea un push a una rama de trabajo, corre siempre.
+        if [ "${{ github.event_name }}" != "push" ] || [ "${{ github.ref_name }}" = "main" ]; then
+          echo "correr=true" >> "$GITHUB_OUTPUT"
+          echo "Corre: no es un push a una rama de trabajo."
+          exit 0
+        fi
+
+        abiertos=$(gh api \
+          "repos/${{ github.repository }}/pulls?state=open&head=${{ github.repository_owner }}:${{ github.ref_name }}" \
+          --jq 'length' 2>/dev/null || echo "")
+
+        case "$abiertos" in
+          ''|*[!0-9]*)
+            echo "correr=true" >> "$GITHUB_OUTPUT"
+            echo "Corre: no se pudo consultar si hay un PR abierto; ante la duda, se corre."
+            ;;
+          0)
+            echo "correr=true" >> "$GITHUB_OUTPUT"
+            echo "Corre: la rama todavía no tiene PR abierto, así que ésta es la única señal."
+            ;;
+          *)
+            echo "correr=false" >> "$GITHUB_OUTPUT"
+            echo "NO corre: ya hay $abiertos PR abierto(s) para esta rama y su corrida de 'pull_request' cubre esto (y prueba el merge con main, que es más)."
+            ;;
+        esac

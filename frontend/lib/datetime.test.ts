@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   argentinaISOToLocalInput,
+  formatAgo,
   formatDuration,
   formatShiftDate,
   formatShiftRange,
@@ -107,5 +108,26 @@ describe("formatShiftRange", () => {
     const end = "2026-06-23T03:00:00-03:00";
     const expected = `${formatShiftDate(start)} ${formatShiftTime(start)} → ${formatShiftDate(end)} ${formatShiftTime(end)}`;
     expect(formatShiftRange(start, end)).toBe(expected);
+  });
+});
+
+describe("formatAgo", () => {
+  it("menos de un minuto: 'recién'", () => {
+    expect(formatAgo(new Date().toISOString())).toBe("recién");
+  });
+
+  it("minutos: 'hace N min'", () => {
+    const iso = new Date(Date.now() - 5 * 60_000).toISOString();
+    expect(formatAgo(iso)).toBe("hace 5 min");
+  });
+
+  it("horas exactas, sin minutos sueltos: 'hace N h'", () => {
+    const iso = new Date(Date.now() - 2 * 60 * 60_000).toISOString();
+    expect(formatAgo(iso)).toBe("hace 2 h");
+  });
+
+  it("horas con minutos sueltos: 'hace N h M'", () => {
+    const iso = new Date(Date.now() - (60 + 10) * 60_000).toISOString();
+    expect(formatAgo(iso)).toBe("hace 1 h 10");
   });
 });

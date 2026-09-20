@@ -5,11 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-10 (**"no se ve el mapa": el worker de maplibre 6
-arrancaba con una URL vacía dentro del bundle de Next — el mapa quedaba en
-blanco, sin pines y sin un solo error en consola. Y la primera pasada de la
-auditoría de DISTRIBUCIÓN de superficies: la banda de color de la tarjeta de
-turno se comía media pantalla**).*
+*Última actualización: 2026-09-16 (**fila de acciones rápidas en el panel del
+comercio, y la corrección de que el lienzo de Oído es crema en los DOS modos —
+sólo invierten las tarjetas**). El frente anterior (2026-09-10) fue el mapa en
+blanco por el worker de maplibre 6 y las primeras pasadas de la auditoría de
+DISTRIBUCIÓN de superficies.*
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este
@@ -3128,6 +3128,174 @@ roadmap).
 
 ## En vuelo ahora
 
+- **ADR-0014 aceptado e implementado: "Disponible ahora" (2026-09-16).**
+  Julieta contestó las tres preguntas pendientes del ADR y pidió ir con
+  todo: 4 horas de ventana (`AVAILABLE_NOW_TTL`), el pin desplazado también
+  para el admin (mismo endpoint que el comercio, sin excepción), y sólo
+  corrige la distancia — nunca sube el ranking del matching.
+
+  El trabajador prende **una sola posición** (no un seguimiento — la
+  alternativa descartada explícitamente en el ADR) desde `/profile`
+  (`AvailableNowToggle`), vigente hasta apagarla o que venza el TTL. Mientras
+  está vigente, esa posición reemplaza a la del perfil para TODO lo que mida
+  distancia — un único punto de resolución
+  (`matching/infrastructure/repositories.py::_resolve_position`) que
+  alimenta tanto el mapa del comercio (`/search`, con el punto verde y
+  "Disponible ahora · hace X min") como el matching de un turno
+  (`get_top_candidates`) — el caso real del ADR ("el trabajador que se movió
+  perdía turnos cercanos que podía cubrir") queda cerrado en los dos lugares,
+  no sólo en el mapa. `scoring.py` no se tocó: la posición vigente es un
+  mejor INPUT al mismo cálculo de distancia, no una señal nueva en la
+  fórmula.
+
+  Cuarto chequeo en el scheduler (`run_available_now_cleanup`, mismo patrón
+  de "despertar por deadline" que los otros tres) borra la posición vencida
+  — minimización de datos, no una regla de negocio nueva.
+
+  **Deliberadamente no implementado:** apagarlo al cerrar sesión (la tercera
+  vía de borrado que mencionaba el ADR). El TTL de 4h y el apagado manual ya
+  acotan la exposición; tocar `IdentityService.logout` —el módulo más
+  sensible del repo— para un caso marginal no valía el riesgo. Documentado
+  como decisión, no como deuda, en el ADR.
+
+  `/privacidad` actualizado en el mismo PR. Validado: `pytest -q` 497/497
+  (7 tests nuevos en `test_available_now.py`), `tsc`, ESLint 0 problemas,
+  `npm run build`, Vitest 90/90 (4 nuevos para `formatAgo`, extraído de
+  `EnRouteMap.tsx` que lo duplicaba), Playwright 111/111 (2 nuevos).
+
+- **S4 resuelto: el mapa del comercio dejó de dibujar un pin sobre el
+  domicilio del trabajador (2026-09-16).** Hallazgo propio (no reportado por
+  Julieta) al escribir ADR-0014: `WorkerSearchMap.tsx` mostraba
+  `worker.latitude/longitude` **exactas** en el mapa de `/search` — la misma
+  pantalla que usa el admin en sólo lectura. Cualquier comercio con cuenta
+  activa veía la casa de trabajadores que nunca trabajaron para él. Arreglado
+  antes de esperar la aprobación de ADR-0014 porque no dependía de ella: nuevo
+  `app/core/geo.py::fuzz_point` desplaza cada coordenada a un punto
+  determinístico (mismo trabajador → mismo punto en cada render, no un salto
+  en cada recarga) dentro de un anillo de 150–350 m, aplicado en
+  `MatchingService.search_workers` — la distancia que ve el comercio sigue
+  siendo la real, calculada antes de desplazar. Un solo punto de cambio en el
+  backend; el frontend no se tocó. Detalle en `docs/TECH_DEBT.md` S4.
+  `pytest -q`: **490/490** (verificado con `--collect-only`; 9 tests nuevos:
+  8 en `test_geo.py` + 1 en `test_matching.py`). `tsc`/`build`/Vitest
+  (86/86)/Playwright (109/109) sin regresiones — sin cambio visual, no hace
+  falta captura.
+
+- **ADR-0015 + implementación: turno "no cubierto" (2026-09-16).** Julieta,
+  probando la app real: *"veo que quedan puestos abiertos cuando ya pasó la
+  fecha, debería pasar algo con eso"* — con una captura de un turno del 14/8
+  todavía mostrando "Paso 2 de 4: Aceptado" el 16/9. El diagnóstico encontró
+  dos huecos: (1) un turno `ASIGNADO` cuyo trabajador nunca confirma ni
+  rechaza queda invisible para los dos chequeos que ya tenía el scheduler
+  (asistencia sólo mira `CONFIRMADO`/`EN_CAMINO`, escalada sólo mira
+  `PUBLICADO`/`BUSCANDO_PERSONAL`) — el punto ciego exacto de la captura; (2)
+  `list_open()` (el feed del trabajador) nunca filtraba por `start_at`, así
+  que un turno de hace un mes seguía "disponible" para postularse.
+  
+  Estado nuevo `NO_CUBIERTO` (sugerencia de la propia Julieta — mejor que
+  "vencido": conecta con la misión "cubrir una posición eventual"),
+  alcanzable automáticamente desde `PUBLICADO`/`BUSCANDO_PERSONAL`/`ASIGNADO`
+  cuando se agota un período de gracia después de `start_at` sin llegar a
+  `CONFIRMADO`. **Sin impacto de reputación** (decisión explícita de
+  Julieta: nunca llegó a comprometerse) y **la ventana depende de `urgent`**
+  (30 min si el turno era urgente, 2 h si no — la señal que el sistema ya
+  tenía para "esto es inmediato" vs. "tiene margen"). Tercer job en el
+  scheduler (`run_coverage_check`), notifica sólo al comercio. Detalle
+  completo, alternativas descartadas y las decisiones pendientes de Julieta
+  en `docs/adr/ADR-0015-turno-no-cubierto.md`.
+
+  **Efecto colateral real, no cosmético:** el fix de `list_open` hizo
+  fallar 9 tests en 2 archivos que compartían una fecha fija ya vencida por
+  el paso del tiempo real (`docs/BUGS.md`, dos entradas nuevas sobre esto —
+  la segunda documenta que la primera corrección, con la fecha 30 días en
+  el futuro, rompió otros 2 tests por chocar con `EARLY_CHECKIN_WINDOW`).
+  Quedan 10 archivos más con la misma fecha fija, documentados en
+  `TECH_DEBT.md` (T-DATE) como deuda, no como bug activo.
+
+  Validado: **pytest backend 481/481** (7 tests nuevos en
+  `test_shift_not_covered.py` + toda la suite existente sin regresiones,
+  verificado con `--collect-only`), `tsc`, ESLint, `npm run build`, Vitest
+  86/86, Playwright 104/104 — incluidos 2 tests nuevos que **verifican en
+  los dos temas** y uno que encontró un bug real antes de mergear:
+  `ShiftLifecycleStepper.inferDeathStep()` sólo miraba `worker_profile_id`
+  para inferir "murió en Asignado", pero `mark_not_covered()` limpia ese
+  campo (mismo patrón que `no_show()`) y guarda el dato en
+  `last_no_show_worker_profile_id` — un turno no cubierto que sí había sido
+  asignado aparecía muriendo en "Publicado". Corregido antes de que llegara
+  a producción, encontrado por el propio E2E.
+
+- **Publicar turno/evento: la hora invisible en oscuro, y "sábado 20" en vez
+  de "20/09" (2026-09-16).** Julieta, probando la app real: *"en el modo
+  oscuro cuando pones la hora no se ve"* y *"colocar la fecha debería salir un
+  calendario, así te asegurás bien el día […] o alguna manera de aclarar para
+  que no haya confusión"*. Dos causas distintas en la misma pantalla:
+  - Los `<input type="datetime-local">` de `/shifts/new` y `/shifts/new-event`
+    (y el `<select>` de puesto del evento) no declaraban `text-ink`: heredaban
+    la tinta del lienzo —oscura en los DOS temas— y adentro de una tarjeta
+    oscura quedaban texto oscuro sobre fondo oscuro (contraste medido:
+    **1.08:1**, con el mínimo AA en 4.5:1). Es la deuda **F1** (inputs crudos
+    fuera del sistema de tokens); el `TextField` del Design System ya traía
+    `text-ink`, estos no.
+  - El selector nativo de fecha **ya se abre** al tocar el campo — lo que
+    faltaba no era el calendario sino la **confirmación**: vuelve mostrando
+    `19/09/2026` o `09/19/2026` según el locale del dispositivo (la ambigüedad
+    exacta que preocupaba), y nadie hace la cuenta mental de qué día de la
+    semana es eso. Fix: `ShiftDayHint`, un eco en palabras
+    ("sábado 19 de septiembre · 21:00") debajo de cada campo, en el momento y
+    lugar donde se comete el error — no en un resumen aparte al final, que es
+    donde vivía antes y que se sacó por redundante.
+  - `lib/datetime.ts::formatShiftDayLong` nuevo. Test de regresión
+    (`e2e/publicar-turno-fecha.spec.ts`) que mide **contraste real
+    computado** contra el DOM, no clases — confirmado que detecta el bug
+    original (1.08:1) revirtiendo el fix a propósito antes de escribir el
+    test, y que deja de detectarlo con el fix puesto.
+
+- **La CI corría dos veces por cada push — arreglado (2026-09-16).** Secuela
+  directa del fix anterior: los workflows escuchan `pull_request` **y** `push`
+  a `claude/**`, así que con el PR ya abierto disparaban los dos y se pagaba el
+  doble por la misma validación. Las dos escuchas hacen falta, pero no al mismo
+  tiempo, y **no son equivalentes**: `pull_request` corre un merge commit
+  efímero de la rama dentro de `main` (`refs/pull/N/merge`), o sea prueba lo
+  que va a quedar DESPUÉS del merge — es la única de las dos que agarra un
+  conflicto *semántico* (main cambió algo de lo que la rama depende, git
+  mergea limpio porque tocaron líneas distintas, y el resultado igual está
+  roto). `push` corre la rama aislada, y hace falta en `main` (que deploya
+  solo) y en una rama que todavía no tiene PR. Fix: acción compartida
+  `.github/actions/corrida-duplicada` que saltea la corrida de `push` cuando
+  ya hay un PR abierto para esa rama — **nunca la del PR**. Se descartó a
+  propósito el `concurrency` con `cancel-in-progress`, que cancela cualquiera
+  de las dos según cuál arranque última y puede tirar justo la que importa,
+  además de dejar un check cancelado que traba el merge. La guarda **falla
+  hacia correr**: si no puede consultar la API, corre igual — una corrida de
+  más cuesta minutos, una de menos deja un commit sin ninguna señal.
+
+- **El CI no se disparaba en los PRs que abro yo — arreglado y VERIFICADO
+  (2026-09-16).** Un PR abierto por API con el token de una GitHub App **no**
+  dispara workflows: GitHub lo evita a propósito para que un workflow no se
+  encadene a sí mismo. Hasta ahora no se había notado porque los PRs anteriores
+  los abría Julieta, y mis pushes generaban `synchronize` sobre un PR ya suyo.
+  En el #338 la consecuencia fue medible: dos pushes reales, **cero** workflow
+  runs, mientras Vercel y GitGuardian sí respondían a esos mismos commits — el
+  PR quedaba validado sólo por una corrida local que no queda registrada en
+  ningún lado. Fix en `ci.yml` y `security.yml`: `push` ahora incluye
+  `claude/**`, y se suma `workflow_dispatch` para poder relanzar a mano sin
+  inventar un commit vacío. Detalle que evita una **CI verde que miente**: a
+  `dorny/paths-filter` se le pasa `main` como base explícita en el primer push
+  de una rama nueva (no hay "commit anterior" contra el cual diffear) y en un
+  disparo manual se corren todos los jobs sin filtrar. Verificado, no supuesto:
+  `CI` #669 y `Security` #265 corrieron con `event: push` y cerraron en
+  **success**.
+
+- **Aclaración sobre "no veo cambios en la app" (2026-09-16).** El #337 **sí**
+  está en producción desde el 2026-09-10: `https://www.oido.com.ar/maplibre/
+  maplibre-gl-worker.mjs` responde 200 con `last-modified` del 10/09, y ese
+  archivo sólo existe por el fix del mapa. Tampoco es caché: `public/sw.js` no
+  tiene handler de `fetch`, no cachea el shell. Lo que falta ver es el **#338**,
+  que es el que trae el cambio visible (la fila de acciones rápidas) y sigue
+  en draft. Vale como patrón: después de un squash merge, `git diff A...B`
+  (tres puntos) sigue mostrando lo ya mergeado porque se pierde la ascendencia
+  — para saber qué falta de verdad hay que usar `git diff A..B` (dos puntos).
+
 - **Auditoría de consistencia visual post-rediseño (#302–#308) — EN CURSO, no cerrada.**
   Julieta la pidió con capturas reales del dispositivo (no simuladas) y sigue mandando
   más a medida que las reviso; el método es AUDITAR→DETECTAR→CORREGIR→UNIFICAR→VALIDAR,
@@ -3494,6 +3662,14 @@ roadmap).
 
 **Si abrís una sesión nueva y no hay otra instrucción, esto es lo que sigue:**
 
+> **Antes que nada: leé "Protocolo de sesión" en `CLAUDE.md`.** Se agregó el
+> 2026-09-16 porque las reglas de orden (worktree, mirar la UI renderizada en
+> los dos temas, dejar el estado escrito, cerrar con CI verde) vivían adentro
+> de un *prompt de ejemplo* en vez de ser reglas, así que sólo se cumplían si
+> Julieta se acordaba de pegarlo. Dos sesiones se las saltaron sin que nadie
+> lo notara.
+
+
 1. ✅ ~~Conectar `oido.com.ar`~~ — **resuelto (2026-09-08, operativo)**. Los
    cuatro pasos (Vercel → Domains, orígenes autorizados de Google Cloud,
    `CORS_ORIGINS`, `FRONTEND_URL`) están hechos — ver el detalle completo en
@@ -3719,18 +3895,29 @@ roadmap).
    píxeles salieron **tres defectos reales**, ninguno de gusto:
 
    1. **El módulo de foco desaparecía por completo en oscuro.** Medido: el
-      bloque de ganancias daba `#191410` sobre un lienzo `#191410` — contraste
-      **1.00 : 1**, literalmente el mismo color. En claro ese mismo bloque da
-      **18.28 : 1**. El usuario en oscuro veía un bloque de datos flotando sin
-      caja. Lo mismo el hero del perfil (1.12 : 1).
+      bloque de ganancias daba `#191410` sobre una tarjeta `#191410` —
+      contraste **1.00 : 1**, literalmente el mismo color. En claro ese mismo
+      bloque da **18.28 : 1**. El usuario en oscuro veía un bloque de datos
+      flotando sin caja. Lo mismo el hero del perfil (1.12 : 1).
       **La lección, y por eso va a `COLOR_SYSTEM.md` §3.bis:** el negro
-      funciona como foco porque está **lejos** del lienzo, no porque sea
-      negro. En un lienzo oscuro el foco no se consigue oscureciendo sino
-      **elevando**. Token nuevo `--color-focus`/`--color-focus-ink`: `#191410`
-      en claro, `#3d3630` en oscuro (**1.54 : 1**, un escalón de elevación más
-      la hairline). `--color-night` **no se toca**: sigue siendo el negro fijo
-      de toasts, botones y marcadores, que sí deben verse igual en los dos
-      modos.
+      funciona como foco porque está **lejos de la superficie que lo
+      contiene**, no porque sea negro. Sobre una superficie oscura el foco no
+      se consigue oscureciendo sino **elevando**. Token nuevo
+      `--color-focus`/`--color-focus-ink`: `#191410` en claro, `#3d3630` en
+      oscuro (**1.54 : 1**, un escalón de elevación más la hairline).
+      `--color-night` **no se toca**: sigue siendo el negro fijo de toasts,
+      botones y marcadores, que sí deben verse igual en los dos modos.
+      ⚠️ **Corrección (2026-09-16):** esta entrada decía "sobre un lienzo
+      `#191410`". El lienzo de Oído es crema `#FFF8F0` **en los dos modos** —
+      sólo invierten las tarjetas (#317/#318); `#191410` era el valor viejo de
+      `--color-card`. El hallazgo y los números no cambian (el marco correcto
+      siempre fue *bloque vs. tarjeta que lo contiene*), pero la etiqueta
+      estaba mal. Se descubrió al renderizar `/shifts` en oscuro y ver el
+      lienzo crema: el píxel que se había tomado como "fondo" caía dentro de
+      la tarjeta. Verificado con `getComputedStyle` sobre la app corriendo.
+      **Es el mismo error que el propio cycle 54 de EKP archiva un commit
+      antes** ("toda medición declara su marco") — cometido por quien lo
+      escribió.
    2. **La tarjeta de nivel estaba fuera del sistema.** `LEVEL_META` usaba
       `zinc-100`/`zinc-600`/`amber-50`/`yellow-50`: colores crudos de la escala
       de Tailwind, contra la regla del repo de que todo fondo pasa por tokens.
@@ -3775,11 +3962,55 @@ roadmap).
      tarjeta — se sostenía sólo con la hairline, así que el formulario largo
      del perfil se leía como una mancha negra única. El primer bloque "se
      veía" nada más que porque tiene adentro un módulo de foco elevado.
-     En oscuro la jerarquía **no la da la sombra** (no hay luz que proyectar):
-     la da la **luminancia**. Queda una escala de cuatro escalones —lienzo
-     `#191410` → card `#221d19` → surface `#292420` → focus `#3d3630`—
-     documentada en `COLOR_SYSTEM.md`. En claro no se toca nada: ahí la
-     tarjeta es blanca sobre crema y la sombra suave alcanza.
+     Adentro de una tarjeta oscura la jerarquía **no la da la sombra** (no hay
+     luz que proyectar): la da la **luminancia**. Queda una escala documentada
+     en `COLOR_SYSTEM.md` — card `#221d19` → surface `#292420` → focus
+     `#3d3630`, con el lienzo crema afuera de la escala porque no cambia entre
+     modos. En claro no se toca nada: ahí la tarjeta es blanca sobre crema y la
+     sombra suave alcanza.
+
+   **Sexta pasada: la fila de acciones rápidas** (2026-09-16). Julieta pasó un
+   prompt de diseño de una diseñadora, con tres salidas (Claude/ChatGPT/Figma
+   Make) de una home de logística, para ver qué servía. La respuesta honesta
+   fue que **buena parte de ese prompt describe lo que Oído ya es** (radios
+   16–24, naranja cálido, carbón en vez de negro puro, sombras suaves, íconos
+   de línea, eyebrow en mono, campo grande primero, stepper con ✓) y que cuatro
+   de sus puntos serían una **regresión**: fondo blanco (borra el crema, que ES
+   la marca), Satoshi para títulos (Fraunces es la decisión editorial del
+   style-guide; Satoshi convierte a Oído en la fintech genérica que eligió no
+   ser), "sin gradientes" (mata el color por rubro que ella pidió) y "sin texto
+   azul" (el celeste es semántico, ADR-0011).
+
+   Lo único que valía y no teníamos: **la fila de acciones rápidas** — una
+   primaria con acento y tres pares en neutro. Resolvía un problema real del
+   panel: "+ Evento" y "+ Publicar" vivían apretados contra el título, no
+   escalaba (no había lugar para una tercera) y dejaba a **Favoritos** y **Mi
+   plan** enterradas a dos toques adentro del menú de Perfil. Ahora son cuatro
+   destinos al mismo nivel: Publicar (acento) · Evento · Favoritos · Mi plan.
+
+   **`Buscar` NO entra a propósito**: ya es una pestaña del nav de abajo, y
+   repetir un destino que está a un toque no es una acción rápida, es ruido.
+   Hay un spec que lo fija (`e2e/acciones-rapidas.spec.ts`), junto con "un solo
+   acento en la fila" — las dos reglas que es fácil romper al agregar la quinta.
+
+   **Las tres secundarias van neutras y no con el juego manteca/celeste** a
+   propósito: ese juego es para DATOS, donde cada color distingue un tipo de
+   dato. Acá son ACCIONES y entre ellas la única diferencia que importa es
+   jerárquica; pintarlas distinto diría que son de clases distintas, que es
+   falso. Neutro, eso sí, con `bg-card` + `ring-line` —superficies del sistema,
+   que suben un escalón en oscuro— y no con ausencia de color, que es el
+   defecto que Julieta cazó en el chip de "Cancelaciones".
+
+   **Nota de método, y es una corrección de esta misma fase:** al renderizar el
+   panel en oscuro se vio que **el lienzo es crema en los dos modos**. La
+   entrada de la cuarta pasada decía que el módulo de foco estaba "sobre un
+   lienzo `#191410`" — falso: `#191410` era el valor viejo de `--color-card`.
+   El hallazgo y los números seguían siendo correctos (el marco real siempre
+   fue *bloque vs. tarjeta que lo contiene*), pero la etiqueta hacía razonar
+   mal. Corregido acá y en `COLOR_SYSTEM.md` §3.bis. Es **exactamente** el
+   error que el cycle 54 de EKP archiva un commit antes ("toda medición declara
+   su marco"), cometido por quien lo escribió: la causa fue muestrear un píxel
+   de una captura en vez de leer el valor computado de la app corriendo.
 
    **Sigue abierto de la fase N** (medido, no corregido): **los verdes de
    `cajero`/`personal_eventos`** tienen la misma colisión semántica que tenía

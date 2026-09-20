@@ -365,6 +365,21 @@ fecha de esta auditoría (2026-07-02).
 > build`. Sin tests e2e que toquen estas 3 pantallas (verificado, cero
 > riesgo de regresión de test).
 
+> **Corrección puntual 2026-09-16 (no reabre la decisión de arriba):** los
+> datetime de `shifts/new`/`shifts/new-event` y el campo de mensaje de
+> `chats/[shiftId]/page.tsx` seguían **con criterio** en estilo propio — eso
+> no cambia, sigue siendo la decisión correcta. Lo que esa revisión no
+> verificó es que a esos inputs les faltaba `text-ink`: heredaban la tinta
+> del lienzo, oscura en los dos temas, y en `data-theme="dark"` quedaban
+> **ilegibles** (contraste medido 1.08:1 contra un mínimo AA de 4.5:1).
+> Julieta lo encontró probando la app real ("en el modo oscuro cuando pones
+> la hora no se ve"). Corregido agregando sólo la clase de color que
+> faltaba — el estilo propio de cada uno no se tocó. Detalle y test de
+> regresión (que mide contraste real, no clases) en `docs/STATUS.md`
+> "En vuelo ahora". La lección para la próxima vez que se audite algo así:
+> **decidir "sigue con estilo propio" no es lo mismo que verificar que ese
+> estilo propio anda en los dos temas** — son dos preguntas distintas.
+
 ### F2 — Landing sin migrar al DS v2 monocromático ✅ Resuelto
 
 - **Descripción:** `frontend/app/page.tsx` usa gradientes naranja→rojo en
@@ -498,6 +513,49 @@ fecha de esta auditoría (2026-07-02).
 ---
 
 ## Seguridad e identidad (nuevo, no capturado en v1)
+
+### S4 — ✅ Resuelto (2026-09-16) — El mapa del comercio dibujaba un pin sobre el DOMICILIO del trabajador
+
+**Encontrado el 2026-09-16**, auditando otra cosa (la distancia que ve el
+comercio, ADR-0014). Nadie lo había reportado, y fue el ítem más sensible de
+este archivo.
+
+`frontend/components/WorkerSearchMap.tsx` renderizaba cada trabajador
+disponible en `worker.latitude` / `worker.longitude` **exactas** — sin
+desplazamiento, sin redondeo, sin agrupar. Esas coordenadas salen del perfil,
+y el perfil se carga en el onboarding con `MapAddressPicker` (ADR-0006), donde
+la persona marca dónde vive.
+
+**Consecuencia:** cualquier comercio con cuenta activa —y el admin, que ve el
+mismo mapa en sólo lectura desde el #168— veía un marcador sobre la casa de
+trabajadores que nunca trabajaron para él, que no aceptaron ningún turno suyo y
+que no consintieron nada parecido. En una app cuyo público son personas que
+además entregan DNI y selfie.
+
+No fue una regresión de un cambio reciente: estaba así desde que existe la
+pantalla. Se arregló antes de aprobar ADR-0014 (independiente de sus tres
+decisiones pendientes) porque **el problema no dependía de esa aprobación**.
+
+**Fix:** `app/core/geo.py::fuzz_point` desplaza cada coordenada a un punto
+pseudo-aleatorio pero **determinístico** (hash del `profile_id`, no
+`random`/`hash()` — ambos varían entre procesos) dentro de un anillo de
+150–350 m: alcanza para decidir a quién contactar, no para ir a golpear una
+puerta. Se aplica en `MatchingService.search_workers` (el único lugar que
+arma `WorkerMapResult`, usado tanto por el mapa del comercio como por el del
+admin, mismo endpoint) — la distancia mostrada sigue siendo la real, calculada
+**antes** de desplazar. `frontend/components/WorkerSearchMap.tsx` no cambió:
+sólo dibuja las coordenadas que le llegan, así que alcanzó con arreglarlo en
+un solo lugar del backend. Tests en `backend/tests/test_geo.py` (anillo,
+determinismo, nunca la coordenada exacta) y
+`backend/tests/test_matching.py::test_search_map_never_returns_the_workers_exact_coordinates`.
+
+**Lo que sigue, y no es parte de este fix:** ADR-0014 construye "Disponible
+ahora" arriba de este mismo mecanismo — cuando el trabajador prende su
+posición real, ésa (también desplazada) reemplaza a la del perfil para medir
+distancia, con una etiqueta de frescura ("hace X min" en vez de "zona del
+perfil"). Ver el ADR para el resto de la implementación.
+
+---
 
 ### S1 — Tokens en `localStorage` sin revocación de refresh ✅ Resuelto
 
@@ -837,6 +895,46 @@ fecha de esta auditoría (2026-07-02).
 ---
 
 ## Calidad / observabilidad
+
+### T-DATE — 🟡 12 archivos de test comparten una fecha fija que ya venció
+
+**Encontrado 2026-09-16**, como efecto colateral del fix de ADR-0015 (`list_open`
+ahora excluye turnos cuyo `start_at` ya pasó). Dos `_shift_payload()`
+(`tests/test_shift.py`, `tests/test_no_show_and_late_cancellation.py`)
+hardcodeaban `"start_at": "2026-06-28T20:00:00"` — una fecha que era futura
+cuando se escribió el test, y dejó de serlo por el simple paso del tiempo
+real. El filtro nuevo, correcto, empezó a excluir esos turnos del feed y 9
+tests que asumían verlos ahí rompieron.
+
+**Se corrigieron esos dos** (ahora calculan `datetime.now() + timedelta(minutes=15)`
+en cada llamada, no una fecha fija — el offset importa: se probó primero con
+30 días y rompió DOS tests más, `check_in()` rechaza un check-in más de
+`EARLY_CHECKIN_WINDOW` (30 min) antes de `start_at`; 15 min queda "futuro"
+para `list_open` y dentro de esa ventana para los tests que confirman y
+hacen check-in casi en el mismo instante). **Quedan 10 archivos más con el MISMO
+literal** (verificado: `grep -l '"2026-06-28T20:00:00"' tests/*.py`):
+`test_admin.py`, `test_application.py`, `test_assistant.py`,
+`test_attendance.py`, `test_business_events.py`, `test_chat.py`,
+`test_idempotency.py`, `test_matching.py`, `test_notification.py`,
+`test_subscription.py` (y `test_review.py`, sin confirmar si su uso pasa por
+`list_open`). No fallan HOY porque ninguno de sus tests ejercita `/feed`
+todavía — pero es la misma bomba de tiempo, y algún cambio futuro (otro
+filtro por fecha, o simplemente que el reloj real siga avanzando lo
+suficiente como para que otro chequeo del sistema empiece a mirar
+`start_at`) los va a hacer fallar sin aviso, con un mensaje que no dice nada
+del motivo real.
+
+- **Impacto:** bajo hoy (no rompen nada), pero crece solo con el tiempo — y
+  cuando rompan, el mensaje de pytest no va a mencionar la fecha para nada.
+- **Riesgo:** medio a mediano plazo, cero hoy.
+- **Esfuerzo:** bajo por archivo, pero son 10 — un PR aparte, no se hizo acá
+  para no ensanchar el de ADR-0015 con un cambio sin relación funcional.
+- **Solución sugerida:** una función compartida en `tests/conftest.py`
+  (`future_shift_window()` o similar) que las 12 factories usen, en vez de
+  que cada archivo calcule la fecha a mano — así el día que haga falta
+  ajustar el margen, es un solo lugar.
+
+---
 
 ### T1 — Sin CI ✅ Resuelto
 

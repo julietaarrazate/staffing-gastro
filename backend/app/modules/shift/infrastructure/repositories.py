@@ -11,7 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.pay_benchmark import hourly_rate
 from app.modules.shift.domain.repositories import ShiftPublicationStats, ShiftRepository
-from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
+from app.modules.shift.domain.value_objects import (
+    OPEN_STATUSES,
+    UNCOVERED_ELIGIBLE_STATUSES,
+    ShiftStatus,
+)
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -212,6 +216,13 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_awaiting_coverage_check(self) -> list[Shift]:
+        stmt = select(ShiftModel).where(
+            ShiftModel.status.in_([s.value for s in UNCOVERED_ELIGIBLE_STATUSES])
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def hourly_pay_samples(
         self, pairs: Sequence[tuple[WorkerSkill, str]], *, since: datetime
     ) -> dict[tuple[WorkerSkill, str], list[Decimal]]:
@@ -313,7 +324,25 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         offset: int = 0,
     ) -> list[Shift]:
         stmt = select(ShiftModel).where(
-            ShiftModel.status.in_([s.value for s in OPEN_STATUSES])
+            ShiftModel.status.in_([s.value for s in OPEN_STATUSES]),
+            # Un turno cuya hora ya pasó no tiene sentido ofrecerlo para
+            # postularse (2026-09-16, Julieta probando la app real: "veo que
+            # quedan puestos abiertos cuando ya pasó la fecha"). El scheduler
+            # de "no cubierto" (ADR-0015) lo va a resolver a NO_CUBIERTO en
+            # algún momento, pero hasta entonces —está en su período de
+            # gracia— tampoco debería aparecer como disponible: nadie puede
+            # llegar a tiempo a algo que ya empezó.
+            #
+            # `func.now()` en vez de comparar contra un `datetime.now()` de
+            # Python a propósito: el resto del repo compara en Python
+            # (`_naive`, ver `domain/repositories.py`) porque esos chequeos
+            # del scheduler traen TODAS las filas sin paginar y deciden
+            # después. Acá no se puede: `list_open` pagina con LIMIT/OFFSET,
+            # así que el filtro tiene que ir en el WHERE para que la página
+            # sea correcta. Dejar que cada motor calcule su propio "ahora"
+            # evita el mismatch naive/aware entre SQLite (tests) y Postgres
+            # (producción) que la comparación en Python evita de otra forma.
+            ShiftModel.start_at > func.now(),
         )
         if city is not None:
             stmt = stmt.where(func.lower(ShiftModel.city) == city.lower())

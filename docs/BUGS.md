@@ -142,6 +142,65 @@ espera con `page.waitForRequest`), nunca con un `expect` inmediato.
 
 ---
 
+## `evaluateAll()` en un spec de E2E: la única API de Playwright que NO espera
+
+**Patrón:** es la hermana de la entrada de arriba, pero por otro motivo. Casi todo lo de
+Playwright reintenta solo (`expect(locator)`, `locator.click()`, `locator.evaluate()` — este
+último espera a que el elemento esté *attached*). **`locator.evaluateAll()` no.** Corre una vez
+sobre lo que haya en ese instante y, si todavía no se renderizó nada, devuelve `[]` sin error.
+El test falla mucho después, con un mensaje que no dice nada del origen:
+`Expected length: 4 / Received length: 0`.
+
+- **Encontrado (2026-09-16):** `e2e/acciones-rapidas.spec.ts`, "ninguna acción repite un destino
+  del nav de abajo", leía los `href` con `fila.getByRole("link").evaluateAll(...)` apenas
+  después del `goto`. Verde en local siempre; **rojo en CI** (run #670), con los otros dos tests
+  del MISMO archivo en verde — porque esos dos usan `expect(...)`, que reintenta. Fix: esperar
+  primero con `await expect(fila.getByRole("link")).toHaveCount(4)` y recién ahí leer los `href`.
+
+**Cómo evitarlo:** antes de un `evaluateAll`, poner el `expect` que espera por lo que se va a
+leer. Es una línea, y convierte un rojo mudo en una aserción que dice qué faltaba.
+
+**Nota honesta de método:** este caso NO se pudo reproducir en local (~35 corridas con 4 workers
+y la CPU cargada, servidor frío y caliente). El diagnóstico se sostiene en el log y en la
+semántica documentada de la API, no en una reproducción. Cuando pasa eso conviene decirlo: un
+arreglo justificado por lectura vale, pero no hay que venderlo como verificado.
+
+---
+
+## Un `<input>` crudo sin `text-ink`: se ve bien en claro y desaparece en oscuro
+
+**Patrón:** en Oído el lienzo siempre es crema, pero la TINTA de body/html es oscura en los dos
+temas por defecto (`color: var(--foreground)` hereda del token de texto, que sólo cambia dentro
+de superficies invertidas como `.bg-card`). Un `<input>`/`<select>` que NO declara su propio
+`text-ink` no hereda "gris seguro": hereda esa tinta oscura fija. Sobre `bg-surface` en claro
+(un beige) igual se lee, así que el bug pasa desapercibido en el tema por defecto — y sólo se
+manifiesta cuando `bg-surface` se invierte a oscuro y el texto oscuro queda sobre fondo oscuro.
+
+Es una variante silenciosa del defecto de septiembre (tarjetas del color del lienzo, foco a
+1.00:1): ahí faltaba un TOKEN de fondo; acá falta una CLASE de texto en un elemento puntual, así
+que ni siquiera se ve en un review del sistema de tokens — hay que mirar el `<input>` mismo.
+
+- **Encontrado (2026-09-16):** los `<input type="datetime-local">` de `/shifts/new` y
+  `/shifts/new-event` (más un `<select>` de puesto en el evento y el input de mensaje de
+  `/chats/[shiftId]`). Contraste medido en oscuro: **1.08:1** contra un mínimo AA de 4.5:1 —
+  prácticamente el mismo color. Reportado por Julieta como "en el modo oscuro cuando pones la
+  hora no se ve". Lo notable: una auditoría previa de estos MISMOS inputs (F1,
+  `TECH_DEBT.md`, 2026-08-05) los revisó y decidió con motivo dejarlos con estilo propio en vez
+  de migrarlos al Design System — decisión correcta, pero esa revisión comprobó la elección de
+  componente, no el contraste en oscuro. Son dos preguntas distintas y conviene no confundirlas.
+
+**Cómo evitarlo:** todo `<input>`/`<select>` fuera de `TextField` (que ya trae `text-ink` de
+fábrica) declara su propio color de texto explícitamente. No alcanza con "se ve bien" en el tema
+por defecto — hay que tocar el toggle de tema antes de dar un input por terminado.
+
+**Detectarlo en bloque:** un elemento con texto crudo no se ve por `grep` de clases sueltas (el
+`className` puede venir de un `cn(...)` con lógica condicional). Sirve extraer el tag completo
+respetando llaves anidadas y revisar si su clase final matchea `text-(ink|white|night|focus-ink)`
+— así se encontraron los 8 casos reales de esta pasada, descartando 3 falsos positivos que
+resultaron estar dentro de comentarios.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de
@@ -278,3 +337,41 @@ espera para algo que se ve del tamaño de una tarjeta.
   aplicarlo siempre. `next/image` no se usa (las fotos son de un host externo y
   el proyecto sirve `<img>` crudo, TECH_DEBT F5); `cldThumb` da el 80% del
   beneficio (formato/tamaño) sin ese cambio.
+
+---
+
+## Una fecha "futura" hardcodeada en un test, que deja de serlo con el tiempo real
+
+**Patrón:** un fixture de test escribe una fecha absoluta ("2026-06-28T20:00:00") en vez de
+calcularla relativa a "ahora", porque en el momento de escribirla estaba cómodamente en el
+futuro. El test pasa sin drama durante meses — hasta que el reloj real la alcanza, momento en el
+que empieza a fallar, casi siempre por un motivo que no tiene nada que ver con lo que ese test
+dice probar (un filtro nuevo que sí mira la fecha, o un chequeo del scheduler que antes no
+llegaba a tocarla). El mensaje de fallo no menciona la fecha para nada, así que el diagnóstico
+arranca de cero cada vez.
+
+- **Encontrado (2026-09-16):** 13 archivos de test (`grep -l '"2026-06-28T20:00:00"' tests/*.py`)
+  comparten el mismo `_shift_payload()` con esa fecha fija. El fix de ADR-0015 agregó un filtro
+  real (`list_open` excluye turnos cuyo `start_at` ya pasó) y **9 tests en 2 archivos** empezaron
+  a fallar de golpe — todos asumían que un turno publicado con esa fecha seguía viéndose en el
+  feed, sin importar cuándo corriera el test. Quedan 10 archivos más con la misma bomba, todavía
+  sin estallar porque nada más los mira por fecha (detalle y lista completa en `TECH_DEBT.md`,
+  T-DATE).
+
+**Cómo evitarlo:** cualquier fecha de un fixture que el dominio vaya a comparar contra "ahora"
+—turnos, vencimientos, cualquier `start_at`/`end_at`— se calcula relativa a
+`datetime.now(timezone.utc)` en el momento de construir el payload, nunca como string literal.
+Si dos tests necesitan la MISMA fecha para comparar entre sí, calculan la base una vez y suman
+`timedelta` desde ahí — el punto de partida es lo único que no puede ser fijo.
+
+**Segunda vuelta, mismo arreglo (2026-09-16):** el primer intento puso el `start_at` relativo
+30 días en el futuro — "bien lejos, no hay forma de que esto falle". Rompió DOS tests más:
+`Shift.check_in()` rechaza marcar llegada más de `EARLY_CHECKIN_WINDOW` (30 min) ANTES de
+`start_at`, y varios tests de este archivo confirman y hacen check-in casi en el mismo instante
+en que crean el turno. Con el `start_at` original hardcodeado (ya en el pasado por el paso del
+tiempo), ese guard nunca se disparaba —un `start_at` pasado siempre cumple "no es demasiado
+temprano"—, así que el problema estaba oculto. "Relativo al futuro" no alcanza: **la fecha tiene
+que respetar TODAS las ventanas de tiempo cercanas que el dominio vaya a chequear**, no sólo la
+que motivó el cambio. Se resolvió con 15 minutos — suficiente para seguir siendo "futuro" (el
+filtro de `list_open`) y cómodamente adentro de cualquier ventana de gracia de 30 minutos del
+dominio.

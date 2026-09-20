@@ -1,5 +1,6 @@
 """Esquemas HTTP (Pydantic) del módulo matching."""
 
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -39,3 +40,8 @@ class WorkerMapResponse(BaseModel):
     latitude: float | None
     longitude: float | None
     distance_km: float | None
+    # ADR-0014: si esta posición es "Disponible ahora" (vigente) y desde
+    # cuándo — el frontend arma "actualizado hace X min" vs. "zona del
+    # perfil" a partir de esto, nunca de la hora en que llegó la respuesta.
+    is_live: bool = False
+    position_updated_at: datetime | None = None

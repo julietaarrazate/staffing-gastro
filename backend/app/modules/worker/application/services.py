@@ -81,6 +81,26 @@ class WorkerProfileService:
             raise WorkerProfileNotFoundError(str(profile_id))
         return profile
 
+    async def go_available_now(
+        self, user_id: UUID, latitude: float, longitude: float
+    ) -> WorkerProfile:
+        """Prende "Disponible ahora" (ADR-0014): ver `WorkerProfile.go_available_now`."""
+        profile = await self._profiles.get_by_user_id(user_id)
+        if profile is None:
+            raise WorkerProfileNotFoundError(str(user_id))
+        profile.go_available_now(latitude, longitude)
+        return await self._profiles.update(profile)
+
+    async def stop_available_now(self, user_id: UUID) -> None:
+        """Apaga "Disponible ahora" a mano. Idempotente: no falla si ya
+        estaba apagado, ni si el perfil no existe (usado también best-effort
+        desde `logout`, donde cualquier usuario puede no ser trabajador)."""
+        profile = await self._profiles.get_by_user_id(user_id)
+        if profile is None:
+            return
+        profile.stop_available_now()
+        await self._profiles.update(profile)
+
     async def get_my_earnings_summary(self, user_id: UUID) -> WorkerEarningsSummary:
         profile = await self._profiles.get_by_user_id(user_id)
         if profile is None:
