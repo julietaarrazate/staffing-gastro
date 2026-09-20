@@ -2,20 +2,24 @@
 
 /*
  * Oído — Design System.
- * Estética editorial / "cafetería de especialidad" (style-guide del diseñador):
- * fondo CÁLIDO crema-arena en vez del gris frío anterior, tinta carbón cálida
- * (no negro puro), un único acento naranja (#FF6B00) y un verde éxito bosque y
- * sobrio (no el verde semáforo brillante). Nada de gradientes arcoíris.
- * Bordes amplios (cards 24 / botones 20 / inputs 18), sombras muy suaves que
- * hacen flotar las tarjetas blancas sobre el crema. Todos los fondos pasan por
- * estos tokens (no hay grises hardcodeados), así que la calidez es del sistema.
+ * Dirección "lienzo blanco" (pivot 2026-09-20, pedido de Julieta a partir de la
+ * referencia PASITO): lienzo BLANCO, tarjetas blancas que flotan por elevación
+ * (hairline + sombra suave), superficies neutras apenas cálidas y el COLOR
+ * reservado para el acento — ámbar de marca + el tono del rubro en chips y
+ * bordes finos. La identidad NO cambia: sigue el ámbar #D97706, la tinta
+ * carbón cálida (no negro puro), Fraunces + Inter y el isotipo mano-oreja; lo
+ * que cambia es el lienzo (antes crema #FFF8F0) y, con él, el juego de
+ * superficies — de "tarjeta blanca sobre crema" a "tarjeta blanca elevada
+ * sobre blanco, con jerarquía por sombra y color por acento".
+ * Bordes amplios (cards 20 / botones 15 / inputs 18), sombras suaves.
+ * Todos los fondos pasan por estos tokens (no hay grises hardcodeados).
  * Contrastes verificados WCAG AA — ver docs/design/COLOR_SYSTEM.md.
  */
 :root {
   color-scheme: light; /* claro por defecto; el bloque de modo oscuro lo vuelca a dark */
-  --background: #fff8f0; /* Crema — fondo cálido de la app (antes gris #f8f9fa) */
+  --background: #ffffff; /* Blanco — lienzo de la app (pivot 2026-09-20, antes crema #fff8f0) */
   --foreground: #1f1f1c; /* Carbón — tinta cálida de marca (antes negro puro #111) */
-  --line: #ebe2d4; /* bordes 1px, hairline cálido (antes gris #ececee) */
+  --line: #e9e7e2; /* bordes 1px, hairline neutro-cálido que se lee sobre blanco (antes beige #ebe2d4) */
 
   /* Radios — alineados a la maqueta aprobada (2026-09).
    *
@@ -49,9 +53,14 @@
   --radius-sheet: 1.375rem; /* 22px */
   --radius-chip: 0.75rem; /* 12px — miniaturas, íconos cuadrados, chips chicos */
 
-  /* Sombras suaves: las cards flotan, nunca sombras pesadas. */
-  --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
-  --shadow-float: 0 16px 40px rgba(17, 17, 17, 0.12);
+  /* Sombras suaves: las cards flotan, nunca sombras pesadas. Con el lienzo
+   * blanco (pivot 2026-09-20) la tarjeta ya no contrasta por color contra el
+   * crema, así que la elevación la sostienen la hairline + estas sombras. Dos
+   * capas: un contacto tight (1px) que dibuja el canto de la tarjeta y una
+   * ambiente suave que la levanta — el patrón de las apps "limpias" (Pasito),
+   * más definido que la sombra de una sola capa que alcanzaba sobre crema. */
+  --shadow-soft: 0 1px 2px rgba(31, 31, 28, 0.04), 0 6px 18px rgba(31, 31, 28, 0.07);
+  --shadow-float: 0 2px 6px rgba(31, 31, 28, 0.06), 0 16px 40px rgba(31, 31, 28, 0.12);
 
   /* Glows semánticos de acción (2026-09). Un botón de acción no proyecta una
    * sombra neutra: proyecta su PROPIO color, apenas, para despegarse del
@@ -163,9 +172,16 @@
   --color-warning: #f59e0b;
   --color-warning-tint: #fffbeb;
   --color-warning-text: #92660a;
-  --color-surface: #f5ecdd; /* Arena — relleno cálido (chips, tracks, inputs idle) */
-  --color-line: #ebe2d4; /* hairline cálido */
-  --color-paper: #fbf2e6; /* franja cálida algo más profunda que el fondo (landing) */
+  /* Superficie recesada (chips, tracks, inputs idle) — el escalón HACIA ABAJO
+   * respecto de la tarjeta blanca. Con el pivot a lienzo blanco (2026-09-20) el
+   * arena beige `#f5ecdd` dejaba chips amarillentos sobre blanco y peleaba con
+   * el look limpio; pasa a un gris muy claro APENAS cálido (no zinc frío), para
+   * que la recesión se lea por luminancia y el color quede para el acento. La
+   * escala clara queda: lienzo #ffffff → tarjeta #ffffff (elevada) → surface
+   * #f3f2f0 → focus #191410. */
+  --color-surface: #f3f2f0; /* Gris cálido muy claro — relleno recesado (antes arena #f5ecdd) */
+  --color-line: #e9e7e2; /* hairline neutro-cálido, legible sobre blanco */
+  --color-paper: #f8f7f5; /* franja apenas más profunda que el lienzo (landing) */
 
   /* Superficie de tarjeta (rediseño 2026-09: modo claro/oscuro). Antes las
      tarjetas usaban `bg-white` literal, que no puede voltearse en oscuro. Este
@@ -300,10 +316,18 @@
  * totalidad de la pantalla". La primera versión de este bloque volteaba
  * `--background`/`--foreground` (el lienzo de la página) a negro en modo
  * oscuro — la pantalla ENTERA se oscurecía, calcando la dirección
- * "Contraste" del comparativo. Pero la dirección aprobada es "Híbrido": el
- * fondo cálido crema NO CAMBIA NUNCA, en los tres modos — sólo cada
- * TARJETA (`bg-card`/`bg-surface`/`bg-night`, cualquier elemento que pinta
- * su PROPIO fondo) invierte su combinación de colores. Por eso:
+ * "Contraste" del comparativo. Pero la dirección es "Híbrido": el LIENZO
+ * NO CAMBIA NUNCA, en los tres modos — sólo cada TARJETA
+ * (`bg-card`/`bg-surface`/`bg-night`, cualquier elemento que pinta su PROPIO
+ * fondo) invierte su combinación de colores.
+ *
+ * PIVOT 2026-09-20: ese lienzo pasó de crema `#fff8f0` a BLANCO `#ffffff`
+ * (dirección "lienzo blanco", pedido de Julieta). El MECANISMO no cambia — el
+ * lienzo sigue sin invertir y sólo voltean las tarjetas —, sólo su color. En
+ * oscuro esto deja un lienzo blanco con tarjetas oscuras (el mismo híbrido que
+ * antes daba con crema); si se quiere un modo oscuro de lienzo realmente
+ * oscuro, es una decisión aparte, no un efecto colateral de este pivot. Por
+ * eso:
  *   - `--background`/`--foreground` (el lienzo, `body`) y las sombras
  *     (siempre proyectadas sobre ese mismo crema) NO se tocan acá: siguen
  *     siendo los valores claros de :root en los tres modos.

@@ -5,7 +5,55 @@
 > reales medidos**, no estimados.
 >
 > Preparado: 2026-07-28 · Versión 1.0 · Actualizado 2026-07-29 → v2.0 ·
-> **Actualizado 2026-09-02 → v3.0**
+> Actualizado 2026-09-02 → v3.0 · **Actualizado 2026-09-20 → v4.0**
+
+---
+
+## 🎨 -2. v4.0 — Pivot "lienzo blanco" (2026-09-20)
+
+Julieta pasó la identidad visual de **PASITO** como referencia ("se ve mucho
+más profesional") y pidió mover Oído hacia ese lenguaje: **fondo blanco y el
+color reservado para el acento**. Con eso decidido, el lienzo deja de ser crema.
+
+**Lo que NO cambia — la marca sigue igual:** el acento ámbar `#D97706`, la
+tinta carbón cálida (no negro puro), Fraunces + Inter, el isotipo mano-oreja y
+el par botón `bg-primary text-night`. El "momento de marca" (splash, heroes de
+onboarding) sigue en ámbar/ink. Esto es un cambio de **lienzo y de juego de
+superficies**, no de identidad.
+
+**Lo que cambia (tokens en `globals.css`):**
+
+| Token | v3.0 | v4.0 | Motivo |
+|---|---|---|---|
+| `--background` (lienzo) | `#fff8f0` crema | **`#ffffff`** blanco | La decisión de dirección. |
+| `--color-surface` | `#f5ecdd` arena | **`#f3f2f0`** gris cálido muy claro | El arena beige dejaba chips amarillentos sobre blanco; neutralizado para que el color quede sólo en el acento. |
+| `--color-line` / `--line` | `#ebe2d4` beige | **`#e9e7e2`** neutro-cálido | Hairline que se lee sobre blanco sin tirar a amarillo. |
+| `--color-paper` | `#fbf2e6` | **`#f8f7f5`** | Franja de landing, apenas por debajo del lienzo. |
+| `--shadow-soft` | 1 capa 0.06 | **2 capas** (contacto 1px + ambiente) | Sobre crema la tarjeta blanca contrastaba por color; sobre blanco la elevación la sostienen la hairline + una sombra más definida (patrón de las apps "limpias"). |
+
+**La escala de superficies clara, releída:** de "tarjeta blanca sobre crema"
+(la tarjeta se distinguía por COLOR) a "tarjeta blanca elevada sobre blanco"
+(se distingue por ELEVACIÓN — hairline + sombra). El escalón hacia abajo
+(`surface`) pasa de arena cálida a gris cálido muy claro. El color por rubro
+sigue el criterio ya vigente de `lib/skill-style.tsx`: **chip pálido + borde
+fino**, nunca una banda a toda la tarjeta (`SKILL_ACCENT` / `SKILL_RAIL_BORDER`;
+el `SKILL_HERO_GRADIENT` saturado sigue reservado a la tarjeta sin foto).
+
+**El modo oscuro:** el MECANISMO no cambia (dirección "Híbrido": el lienzo no
+invierte nunca, sólo las tarjetas). Sólo cambia el color de ese lienzo, de
+crema a blanco. En oscuro queda un lienzo blanco con tarjetas oscuras — el
+mismo híbrido que antes daba con crema. **Un modo oscuro de lienzo realmente
+oscuro es una decisión aparte**, no un efecto colateral de este pivot; queda
+anotada como posible siguiente paso.
+
+**La navegación inferior** (`BottomNav`) pasa la pestaña activa de sólo-color a
+un **pill ámbar suave** (`bg-primary/12`) detrás del ícono, al estilo de la
+referencia: sobre el cromo blanco el ícono suelto se leía poco. `aria-current`
+sigue siendo el indicador para lector de pantalla; el pill es refuerzo visual.
+
+Verificado renderizando `/feed` en claro y en oscuro a 390px (la tarjeta flota,
+el pill se lee, el híbrido oscuro no queda duro). `tsc`, `build` y los 90 tests
+unitarios en verde.
 
 ---
 
@@ -331,15 +379,18 @@ hairline, y un formulario largo se leía como una única mancha negra (Julieta:
 
 | Escalón | Claro | Oscuro | Qué es |
 |---|---|---|---|
-| lienzo | `#fff8f0` | `#fff8f0` | el fondo de la app — **crema en los dos modos, nunca se oscurece** |
+| lienzo | `#ffffff` | `#ffffff` | el fondo de la app — **blanco en los dos modos, nunca se oscurece** (pivot v4.0; antes crema `#fff8f0`) |
 | `--color-card` | `#ffffff` | `#221d19` | la tarjeta |
-| `--color-surface` | `#f5ecdd` | `#292420` | lo que va DENTRO de una tarjeta (inputs, chips) |
+| `--color-surface` | `#f3f2f0` | `#292420` | lo que va DENTRO de una tarjeta (inputs, chips) |
 | `--color-focus` | `#191410` | `#3d3630` | el módulo de foco (ganancias, pago del turno) |
 
-Leído en vertical: en claro la escala **baja** (blanco → arena → carbón) y en
-oscuro **sube** (carbón → arena oscura → gris cálido). El lienzo no participa:
-es el mismo crema siempre, y por eso la tarjeta es la referencia correcta para
-medir cualquier cosa dibujada adentro.
+Leído en vertical: en oscuro la escala **sube** por luminancia (carbón → gris
+cálido oscuro → gris cálido). En claro el escalón hacia abajo lo da `surface`
+(gris cálido muy claro); la tarjeta blanca ya no se distingue del lienzo por
+color —ahora los dos son blancos— sino por **elevación** (hairline + sombra).
+El lienzo no participa de la inversión: es el mismo blanco siempre, y por eso
+la tarjeta es la referencia correcta para medir cualquier cosa dibujada
+adentro.
 
 ### Corolario para cualquier color de estado
 

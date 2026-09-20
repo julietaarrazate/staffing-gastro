@@ -5,11 +5,28 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-16 (**fila de acciones rápidas en el panel del
-comercio, y la corrección de que el lienzo de Oído es crema en los DOS modos —
-sólo invierten las tarjetas**). El frente anterior (2026-09-10) fue el mapa en
-blanco por el worker de maplibre 6 y las primeras pasadas de la auditoría de
-DISTRIBUCIÓN de superficies.*
+*Última actualización: 2026-09-20 (**pivot de identidad "lienzo blanco": el
+lienzo de Oído pasa de crema `#FFF8F0` a blanco `#FFFFFF`, con tarjetas
+elevadas y color reservado al acento — pedido de Julieta a partir de la
+referencia PASITO**). El frente anterior (2026-09-16) fue la fila de acciones
+rápidas del panel y la corrección de que el lienzo era crema en los dos modos.*
+
+**Frente vigente (2026-09-20) — pivot "lienzo blanco".** Julieta pasó la
+identidad de PASITO ("se ve mucho más profesional") y eligió, sobre un mockup
+comparativo, la dirección **fondo blanco + color de acento** (con el acento por
+rubro en **chips y bordes finos**, no en bandas). Es un cambio de LIENZO y de
+juego de superficies, **no de identidad**: siguen el ámbar `#D97706`, Fraunces +
+Inter, el isotipo y el "momento de marca" en ámbar. Primer PR (foundation):
+tokens en `globals.css` (`--background` → blanco, `--color-surface`/`--line`/
+`--color-paper` neutralizados, `--shadow-soft` a dos capas para que la tarjeta
+blanca flote sobre blanco), pill ámbar en la pestaña activa de `BottomNav`, y
+`COLOR_SYSTEM.md` v4.0. El modo oscuro conserva el mecanismo híbrido (el lienzo
+no invierte, sólo las tarjetas) — un modo oscuro de lienzo realmente oscuro
+queda anotado como decisión aparte. Verificado en `/feed` claro y oscuro a
+390px; `tsc`/`build`/90 unit tests en verde. **Pendiente de rollout** (no
+bloqueante, siguiente slice): revisar pantalla por pantalla que ningún
+`bg-white`/`bg-surface` suelto quede raro sobre el lienzo nuevo, y decidir con
+Julieta si el modo oscuro pasa a lienzo oscuro real.
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este

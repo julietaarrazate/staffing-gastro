@@ -81,11 +81,24 @@ export default function BottomNav() {
             // de pantalla no tenía forma de saber en qué sección está (fase H,
             // mismo criterio que F4/jsx-a11y).
             aria-current={active ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
+            className={`flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
               active ? "text-primary-text" : "text-ink/40"
             }`}
           >
-            <Icon size={22} />
+            {/* Pestaña activa como PILL relleno, no sólo un cambio de color
+                (dirección "lienzo blanco", ref. Pasito): sobre el cromo blanco
+                el ícono suelto ámbar se leía poco; el pill ámbar suave le da
+                una masa que ancla la sección y sube la jerarquía de la barra.
+                El `aria-current` de arriba sigue siendo lo que anuncia el
+                lector de pantalla — el pill es refuerzo visual, no el único
+                indicador. */}
+            <span
+              className={`flex items-center justify-center rounded-full px-5 py-1 transition-colors ${
+                active ? "bg-primary/12" : "bg-transparent"
+              }`}
+            >
+              <Icon size={22} />
+            </span>
             {label}
           </Link>
         );
