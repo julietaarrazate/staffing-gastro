@@ -52,8 +52,10 @@ export default function Logo({
   return (
     <span className="inline-flex items-center gap-2">
       <LogoMark size={size} />
+      {/* Wordmark en serif (Fraunces): el logo del board v5.0 es serif; NO usa
+          font-display, que ahora es Saans (títulos de UI). */}
       {withWordmark && (
-        <span className="font-display text-xl font-semibold tracking-tight text-ink">
+        <span className="font-serif text-xl font-semibold tracking-tight text-ink">
           oído
         </span>
       )}

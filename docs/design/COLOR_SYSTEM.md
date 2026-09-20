@@ -5,11 +5,34 @@
 > reales medidos**, no estimados.
 >
 > Preparado: 2026-07-28 · Versión 1.0 · Actualizado 2026-07-29 → v2.0 ·
-> Actualizado 2026-09-02 → v3.0 · **Actualizado 2026-09-20 → v4.0**
+> Actualizado 2026-09-02 → v3.0 · 2026-09-20 → v4.0 · **2026-09-20 → v5.0**
 
 ---
 
-## 🎨 -2. v4.0 — Pivot "lienzo blanco" (2026-09-20)
+## 🎨 -3. v5.0 — Sistema de identidad: coral + off-white cálido (2026-09-20)
+
+**Supersede a v4.0 (lienzo blanco) y al rebrand ámbar.** Julieta pasó el board
+de diseño definitivo (dos tableros: style-guide + pantallas). La marca deja el
+ámbar y pasa a **coral `#FF5A3D`** sobre un lienzo **off-white cálido
+`#F8F6F1`**, con un acento **violeta `#A78BFA`** para lo nuevo, tipografía
+**Saans / Inter / DM Mono** (el wordmark sigue en serif Fraunces), formas
+card16/btn12/input12/badge99, y un **modo oscuro real** (el lienzo se oscurece,
+no sólo las tarjetas).
+
+**El mapa semántico completo de v5.0 vive ahora en
+[`docs/design-system/color-system.md`](../design-system/color-system.md)** y el
+reflejo en código en `frontend/app/globals.css`. Todo lo de abajo (v4.0 blanco,
+v3.0/v2.0/v1.0 ámbar y el método WCAG) queda como **registro histórico**: el
+método de medición de contraste sigue vigente, los hex de marca no.
+
+> ⚠️ Contrastes de v5.0 a re-verificar con el script de §Verificación al
+> ajustar los `-text`: coral-texto sobre off-white, éxito `#16A34A`, y los
+> valores del modo oscuro real. La foundation se validó por render en claro y
+> oscuro; la tabla numérica formal es trabajo de seguimiento.
+
+---
+
+## 🎨 -2. v4.0 — Pivot "lienzo blanco" (2026-09-20) — *superado por v5.0*
 
 Julieta pasó la identidad visual de **PASITO** como referencia ("se ve mucho
 más profesional") y pidió mover Oído hacia ese lenguaje: **fondo blanco y el

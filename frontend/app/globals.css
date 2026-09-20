@@ -1,25 +1,26 @@
 @import "tailwindcss";
 
 /*
- * Oído — Design System.
- * Dirección "lienzo blanco" (pivot 2026-09-20, pedido de Julieta a partir de la
- * referencia PASITO): lienzo BLANCO, tarjetas blancas que flotan por elevación
- * (hairline + sombra suave), superficies neutras apenas cálidas y el COLOR
- * reservado para el acento — ámbar de marca + el tono del rubro en chips y
- * bordes finos. La identidad NO cambia: sigue el ámbar #D97706, la tinta
- * carbón cálida (no negro puro), Fraunces + Inter y el isotipo mano-oreja; lo
- * que cambia es el lienzo (antes crema #FFF8F0) y, con él, el juego de
- * superficies — de "tarjeta blanca sobre crema" a "tarjeta blanca elevada
- * sobre blanco, con jerarquía por sombra y color por acento".
- * Bordes amplios (cards 20 / botones 15 / inputs 18), sombras suaves.
- * Todos los fondos pasan por estos tokens (no hay grises hardcodeados).
- * Contrastes verificados WCAG AA — ver docs/design/COLOR_SYSTEM.md.
+ * Oído — Design System · v5.0 "sistema de identidad" (2026-09-20).
+ *
+ * Reescritura de identidad a partir del board de diseño definitivo que pasó
+ * Julieta (dos tableros: style-guide + pantallas). Supersede tanto el rebrand
+ * ámbar (#315–#325) como el pivot "lienzo blanco" de horas antes: la marca pasa
+ * a CORAL (#FF5A3D) sobre un lienzo CÁLIDO off-white (#F8F6F1), con un acento
+ * VIOLETA (#A78BFA) para lo "nuevo", y el color al servicio de la jerarquía —
+ * no un acento por todos lados. Tipografía: Saans (títulos), Inter (texto),
+ * DM Mono (datos/precios); el wordmark sigue en serif (Fraunces). Formas:
+ * card 16 / botón 12 / input 12 / badge 99. Personalidad marketplace +
+ * hospitality editorial, no SaaS/fintech.
+ *
+ * Fuente de verdad de color y sus contrastes WCAG: docs/design/COLOR_SYSTEM.md
+ * y docs/design-system/. Los valores acá son el reflejo en código de ese board.
  */
 :root {
   color-scheme: light; /* claro por defecto; el bloque de modo oscuro lo vuelca a dark */
-  --background: #ffffff; /* Blanco — lienzo de la app (pivot 2026-09-20, antes crema #fff8f0) */
-  --foreground: #1f1f1c; /* Carbón — tinta cálida de marca (antes negro puro #111) */
-  --line: #e9e7e2; /* bordes 1px, hairline neutro-cálido que se lee sobre blanco (antes beige #ebe2d4) */
+  --background: #f8f6f1; /* Off-white cálido — lienzo de la app (board v5.0; antes #ffffff) */
+  --foreground: #111111; /* Tinta primaria (board: Text/Primary #111111) */
+  --line: #eae4dc; /* borde 1px, hairline cálido sobre el lienzo off-white */
 
   /* Radios — alineados a la maqueta aprobada (2026-09).
    *
@@ -47,10 +48,13 @@
   --app-frame: 64rem; /* 1024px — el marco: header y contenido comparten ancho */
   --app-reading: 42rem; /* 672px — lectura larga (legales), medida de línea */
 
-  --radius-card: 1.25rem; /* 20px */
-  --radius-btn: 0.9375rem; /* 15px */
-  --radius-input: 1.125rem; /* 18px */
-  --radius-sheet: 1.375rem; /* 22px */
+  /* Radios — board v5.0 (Formas y radios): card 16 / botón 12 / input 12 /
+   * badge 99 (pill). El sheet sube apenas sobre la card (18) y el chip toma el
+   * radio de botón (12). Antes card20/btn15/input18. */
+  --radius-card: 1rem; /* 16px */
+  --radius-btn: 0.75rem; /* 12px */
+  --radius-input: 0.75rem; /* 12px */
+  --radius-sheet: 1.125rem; /* 18px */
   --radius-chip: 0.75rem; /* 12px — miniaturas, íconos cuadrados, chips chicos */
 
   /* Sombras suaves: las cards flotan, nunca sombras pesadas. Con el lienzo
@@ -113,31 +117,29 @@
 /* Colores de marca: registrados como tokens de Tailwind v4 (generan
  * utilidades bg-primary, text-secondary, ring-danger, etc.). */
 @theme {
-  /* Naranja de marca v2 (2026-09): Julieta prefirió el ámbar que ya usaba
-     sin querer la insignia "Nivel Bronce" (Tailwind amber-600/700, nunca
-     tokenizado) sobre el naranja-rojizo anterior. Reemplaza a `#f94e1b`
-     (el que había corregido la auditoría WCAG de la maqueta híbrida,
-     docs/design/mockups/08-auditoria-contraste.html) — mismo criterio de
-     contraste, valores nuevos: `--color-night` (#191410) da 5.74 encima de
-     este tono (pasa AA; el anterior daba 5.34) — no hace falta un token de
-     botón aparte, la app ya usa ese mismo par (bg-primary text-night) en
-     todos lados. */
-  --color-primary: #d97706;
-  /* Naranja oscuro (fin del degradé, hover/pressed). `--color-night` da 3.64
-     encima (el anterior daba 3.89 — mismo orden de magnitud: es un estado
-     transitorio de hover, no el reposo, igual que ya era antes). */
-  --color-primary-strong: #b45309;
-  /* Naranja cuando es TEXTO sobre claro (el de superficie da sólo 3.02 como
-     texto — falla). #B45309 da 4.77 sobre crema, pasa AA (el anterior daba
-     4.54 con #d63606). */
-  --color-primary-text: #b45309;
-  /* Tinte pálido de acción/activo — actualizado a la familia ámbar
-     (Tailwind amber-50) para que combine con el naranja v2 de arriba; sigue
-     dando 4.84 de contraste con `--color-primary-text` encima (antes 4.73
-     con el tinte naranja-rojizo). Mismo rol que antes: la mitad de los
-     "chips de estado" del panel del comercio (ver STATUS_COLORS en
-     ShiftCard.tsx), que el brief pide reconocibles sin depender del texto. */
-  --color-primary-tint: #fffbeb;
+  /* CORAL de marca (board v5.0). Reemplaza el ámbar #d97706. Es el relleno del
+     botón principal, el pin activo del mapa, el badge "Urgente". Como relleno
+     va con texto BLANCO (board: "Botón principal" es coral con label claro):
+     #ffffff sobre #ff5a3d da 3.24 — AA para texto GRANDE/bold (≥18.66px o
+     ≥14px bold), que es el caso del botón; el body chico nunca va sobre coral
+     relleno. */
+  --color-primary: #ff5a3d;
+  /* Coral hover/pressed (board: Primary Hover #E64A2E). */
+  --color-primary-strong: #e64a2e;
+  /* Coral cuando es TEXTO sobre claro: #ff5a3d da sólo ~2.9 sobre el lienzo,
+     falla. Se oscurece a un coral profundo que pasa AA como texto sobre el
+     off-white (#f8f6f1) y sobre el tinte Primary Soft. Ronda 4.5:1 — verificar
+     con el script de COLOR_SYSTEM.md al ajustar. */
+  --color-primary-text: #c23214;
+  /* Primary Soft (board #FFE9E3): tinte pálido de acción/activo/badge coral,
+     y fondo del pill de la pestaña activa. */
+  --color-primary-tint: #ffe9e3;
+  /* ACENTO violeta (board: Accent #A78BFA) — NO es acción; marca lo "nuevo"
+     (badge "Nuevo") y momentos de descubrimiento. Un segundo acento controlado,
+     nunca compite con el coral por la acción principal. */
+  --color-accent: #a78bfa;
+  --color-accent-tint: #ede9fe; /* superficie pálida del acento */
+  --color-accent-text: #6d47d9; /* violeta como texto sobre claro (AA) */
   /* Estrella de calificación (auditoría de colores crudos, rediseño 2026-09):
      mismo `amber-400` de Tailwind que ya usaban por igual StarRating,
      Rating, WorkerGameCard y WorkerMarker — se formaliza como token en vez
@@ -146,15 +148,19 @@
      dorada" para una calificación, ninguna tinta de la paleta cálida la
      reemplaza sin perder legibilidad como rating. */
   --color-rating: #fbbf24;
-  --color-ink: #1f1f1c; /* Carbón cálido (antes negro puro #111) */
-  /* Verde Éxito del style-guide: bosque sobrio, no el semáforo brillante
-     anterior (#22c55e). Como relleno con texto blanco da 4.25 (antes 2.28). */
-  --color-success: #2e8b57;
-  /* Verde como TEXTO sobre claro. Cumple AA sobre blanco (4.89), crema (4.64)
-     y el tinte de los chips de estado green-50 (4.67). */
-  --color-success-text: #16823e;
-  /* Tinte pálido de éxito (mismo valor que `bg-green-50`) — mismo criterio
-     que `--color-primary-tint` arriba. */
+  --color-ink: #111111; /* Text/Primary (board v5.0) — genera text-ink, bg-ink, etc. */
+  /* Text/Secondary y Text/Muted del board (#4B5563 / #7C8A9A). Generan
+     text-ink-soft / text-ink-mute. Conviven con los usos existentes de
+     text-ink/60 (alpha del primario), que siguen funcionando. */
+  --color-ink-soft: #4b5563;
+  --color-ink-mute: #7c8a9a;
+  /* Éxito (board: Success #16A34A). Como relleno con texto blanco da 3.9 (AA
+     grande); como texto sobre claro usar la variante -text. */
+  --color-success: #16a34a;
+  /* Verde como TEXTO sobre claro: #16a34a falla como texto (≈3.0); se oscurece
+     a green-700 que pasa AA sobre el lienzo y el tinte. */
+  --color-success-text: #15803d;
+  /* Tinte pálido de éxito (green-50). */
   --color-success-tint: #f0fdf4;
   --color-danger: #ef4444;
   /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
@@ -172,16 +178,18 @@
   --color-warning: #f59e0b;
   --color-warning-tint: #fffbeb;
   --color-warning-text: #92660a;
-  /* Superficie recesada (chips, tracks, inputs idle) — el escalón HACIA ABAJO
-   * respecto de la tarjeta blanca. Con el pivot a lienzo blanco (2026-09-20) el
-   * arena beige `#f5ecdd` dejaba chips amarillentos sobre blanco y peleaba con
-   * el look limpio; pasa a un gris muy claro APENAS cálido (no zinc frío), para
-   * que la recesión se lea por luminancia y el color quede para el acento. La
-   * escala clara queda: lienzo #ffffff → tarjeta #ffffff (elevada) → surface
-   * #f3f2f0 → focus #191410. */
-  --color-surface: #f3f2f0; /* Gris cálido muy claro — relleno recesado (antes arena #f5ecdd) */
-  --color-line: #e9e7e2; /* hairline neutro-cálido, legible sobre blanco */
-  --color-paper: #f8f7f5; /* franja apenas más profunda que el lienzo (landing) */
+  /* Info (board: Info #3B82F6). Estado informativo/neutro-azul: banners de
+     ayuda, "va en camino", tips. Formaliza lo que antes cubría "cielo". */
+  --color-info: #3b82f6;
+  --color-info-tint: #dbeafe;
+  --color-info-text: #1d4ed8; /* azul como texto sobre claro (AA) */
+  /* Superficies (board v5.0): la tarjeta es blanca (#FFFFFF) y flota sobre el
+   * lienzo off-white; la superficie recesada (chips, tracks, inputs idle) es
+   * Surface Secondary #F1ECE6. Escala clara: lienzo #f8f6f1 → tarjeta #ffffff
+   * (elevada, hairline+sombra) → surface #f1ece6 → focus/ink #111111. */
+  --color-surface: #f1ece6; /* Surface Secondary — relleno recesado */
+  --color-line: #eae4dc; /* hairline cálido, legible sobre el off-white */
+  --color-paper: #f1ece6; /* franja algo más profunda que el lienzo (landing) */
 
   /* Superficie de tarjeta (rediseño 2026-09: modo claro/oscuro). Antes las
      tarjetas usaban `bg-white` literal, que no puede voltearse en oscuro. Este
@@ -297,9 +305,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Tipografía board v5.0: Inter (texto), Saans (títulos → utilidad
+     font-display), DM Mono (datos/precios → font-mono). El wordmark sigue en
+     serif (Fraunces) vía font-serif — el logo NO usa font-display. Saans es
+     una fuente PAGA (displaay); hasta licenciarla, --font-saans carga un
+     stand-in libre (ver layout.tsx). */
   --font-sans: var(--font-inter);
-  --font-display: var(--font-fraunces);
-  --font-mono: var(--font-space-mono);
+  --font-display: var(--font-saans);
+  --font-serif: var(--font-fraunces);
+  --font-mono: var(--font-dm-mono);
 }
 
 /* ===========================================================================
@@ -393,44 +407,41 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* ESCALA DE ELEVACIÓN EN OSCURO — cuatro escalones, no dos.
-     Julieta, mirando el perfil en oscuro: "el segundo bloque negro es todo
-     muy negro, puede [tener] el concepto del primer bloque donde están los
-     acentos". La causa medida no era la falta de acentos: era que
-     `--color-card` valía #191410, EXACTAMENTE el mismo color que el lienzo.
-     Una tarjeta que tiene el color del fondo no es una tarjeta — se sostenía
-     sólo con la hairline, así que un formulario largo se leía como una única
-     mancha negra. El primer bloque del perfil "se veía" nada más que porque
-     tiene adentro un módulo de foco elevado.
+  /* MODO OSCURO REAL (board v5.0). A diferencia del híbrido anterior (lienzo
+     claro que no invertía, sólo las tarjetas), acá el LIENZO también se
+     oscurece — es un modo oscuro de verdad, como el board. La jerarquía la da
+     la LUMINANCIA, no la sombra. Escala:
 
-     En oscuro la jerarquía no la da la sombra (no hay luz que proyectar): la
-     da la LUMINANCIA. Cada escalón sube:
-
-       lienzo   #191410   el fondo de la app
-       card     #221d19   la tarjeta, ahora sí despegada del lienzo
-       surface  #292420   lo que va DENTRO de una tarjeta (inputs, chips)
+       lienzo   #17130f   el fondo de la app (warm near-black)
+       card     #221d18   la tarjeta, despegada del lienzo
+       surface  #2b251f   lo recesado dentro de una tarjeta (inputs, chips)
        focus    #3d3630   el módulo de foco (ganancias, pago del turno)
 
-     En claro esto no hace falta y no se toca: ahí la tarjeta es blanca sobre
-     crema y la sombra suave alcanza. */
-  --color-card: #221d19;
-  --color-surface: #292420;
-  --color-focus: #3d3630;
-  --color-focus-ink: #fff8f0;
-}
+     El coral y el violeta se mantienen como acentos; texto y bordes van
+     claros. El cromo (nav/header) también se oscurece (ya no es blanco fijo). */
+  --background: #17130f;
+  --foreground: #f5f1ea;
+  --line: rgba(245, 241, 234, 0.12);
 
-/* Texto/borde/-text semánticos: sólo invierten DENTRO de una tarjeta (ver nota
-   arriba) — nunca sueltos sobre el lienzo crema. */
-:root[data-theme="dark"] .bg-card,
-:root[data-theme="dark"] .bg-surface,
-:root[data-theme="dark"] .bg-focus,
-:root[data-theme="dark"] .bg-night {
-  --color-ink: #fff8f0;
-  --color-line: rgba(255, 248, 240, 0.1);
-  --color-primary-text: #d97706; /* Naranja v2 en oscuro: 5.74 sobre tarjeta oscura (pasa AA) */
-  --color-success-text: #4bbd7a;
+  --color-card: #221d18;
+  --color-surface: #2b251f;
+  --color-focus: #3d3630;
+  --color-focus-ink: #f5f1ea;
+  --color-chrome: #1b1611; /* nav/header oscuros en modo oscuro */
+  --color-paper: #201a15;
+
+  /* Texto claro, page-wide (no sólo dentro de tarjetas). */
+  --color-ink: #f5f1ea;
+  --color-ink-soft: #b7afa2;
+  --color-ink-mute: #8b8276;
+
+  /* Acentos y estados sobre lienzo/tarjeta oscura (todos ≥ AA como texto). */
+  --color-primary-text: #ff7a61; /* coral aclarado para texto sobre oscuro */
+  --color-accent-text: #c4b5fd;
+  --color-success-text: #4ade80;
   --color-danger-text: #f4746f;
   --color-warning-text: #fbbf76;
+  --color-info-text: #93c5fd;
   --color-trust: #7fc9c0;
   --color-trust-text: #7fc9c0;
   --color-trust-tint: rgba(127, 201, 192, 0.14);

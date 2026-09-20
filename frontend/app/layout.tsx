@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, Space_Mono } from "next/font/google";
+import { Inter, Fraunces, Hanken_Grotesk, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -17,22 +17,32 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Fraunces: serif de display para títulos — el carácter "editorial" del
-// style-guide (alternativa libre OFL, cercana a Recoleta). Se expone como la
-// utilidad `font-display` de Tailwind y se aplica a los títulos de marca.
+// Fraunces: serif SÓLO para el wordmark "Oído" (el logo del board es serif).
+// Ya NO es la fuente de los títulos de UI — se expone como `font-serif` y la
+// consume el componente Logo. Los títulos pasan a Saans (abajo).
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-// Space Mono: labels/eyebrows/metadata en mayúscula (rediseño 2026-09,
-// maqueta híbrida — docs/design/mockups/09-hibrido-app.html). Reemplaza a
-// Geist Mono, que estaba cargada pero sin ningún uso real en la app.
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
+// Saans (board v5.0): tipografía de TÍTULOS/UI. Saans es una fuente PAGA
+// (displaay foundry) que no se puede cargar desde Google Fonts; hasta que
+// Julieta decida licenciarla, este es un STAND-IN LIBRE — Hanken Grotesk, un
+// grotesco humanista cercano en tono. Se expone como `--font-saans` →
+// utilidad `font-display`. Al licenciar Saans, se cambia sólo este import.
+const saans = Hanken_Grotesk({
+  variable: "--font-saans",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["500", "600", "700", "800"],
+});
+
+// DM Mono (board v5.0): datos y precios — el precio de un turno, horarios,
+// métricas. Reemplaza a Space Mono. Se expone como `font-mono`.
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 const TAGLINE = "Personal gastronómico, ya.";
@@ -101,7 +111,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${saans.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la
