@@ -26,11 +26,12 @@ const fraunces = Fraunces({
   weight: ["400", "500", "600", "700"],
 });
 
-// Saans (board v5.0): tipografía de TÍTULOS/UI. Saans es una fuente PAGA
-// (displaay foundry) que no se puede cargar desde Google Fonts; hasta que
-// Julieta decida licenciarla, este es un STAND-IN LIBRE — Hanken Grotesk, un
-// grotesco humanista cercano en tono. Se expone como `--font-saans` →
-// utilidad `font-display`. Al licenciar Saans, se cambia sólo este import.
+// Títulos/UI. El board mostraba Saans, pero Saans es una fuente PAGA (displaay)
+// y Julieta decidió NO licenciar una fuente de pago: usamos una fuente LIBRE
+// como definitiva — Hanken Grotesk, un grotesco humanista del mismo tono
+// (neo-grotesco limpio, cercano a Saans). Se expone como `--font-saans` →
+// utilidad `font-display`. La variable conserva el nombre "saans" sólo como
+// rol ("la tipografía de títulos"), no implica la fuente paga.
 const saans = Hanken_Grotesk({
   variable: "--font-saans",
   subsets: ["latin"],

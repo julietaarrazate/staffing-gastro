@@ -4,7 +4,7 @@
 
 | Familia | Rol | Token / utilidad | Estado |
 |---|---|---|---|
-| **Saans** | Títulos y UI (headings, labels de sección) | `--font-saans` → `font-display` | ⚠️ stand-in libre (ver abajo) |
+| **Títulos (Hanken Grotesk)** | Títulos y UI (headings, labels de sección) | `--font-saans` → `font-display` | ✅ fuente **libre** definitiva |
 | **Inter** | Texto e interfaz (body, botones, inputs) | `--font-inter` → `font-sans` | ✅ |
 | **DM Mono** | Datos y precios (pago, horarios, métricas) | `--font-dm-mono` → `font-mono` | ✅ cargada; falta aplicarla en los componentes de precio |
 | **Fraunces** (serif) | **Sólo el wordmark** "oído" | `--font-fraunces` → `font-serif` | ✅ |

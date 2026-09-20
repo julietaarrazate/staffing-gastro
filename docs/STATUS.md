@@ -30,14 +30,19 @@ a `font-serif`. Docs: `docs/design-system/` (README + brand-foundation, color,
 typography, shape, elevation) y `COLOR_SYSTEM.md` v5.0. Verificado en `/feed`
 claro y **oscuro** a 390px; `tsc`/`build`/90 unit tests en verde.
 
-**Pendiente (siguiente(s) PR, no este — "después componentes, después
-pantallas"):**
-- **Assets con ámbar horneado**: `logo-mark.svg` + favicon/icon-192/512/
-  apple-icon/og-image siguen en ámbar; regenerar a coral (los PNG necesitan el
-  pipeline raster). El wordmark tile se ve ámbar en toda pantalla hasta eso.
-- **Precios en DM Mono**: la fuente está cargada; falta aplicar `font-mono` en
-  los componentes de precio (OpportunityCard/ShiftCard/WorkerGameCard/detalle).
-- **Saans**: decidir con Julieta licenciarla o adoptar el stand-in libre.
+**Decidido por Julieta (2026-09-20):**
+- **Fuente de títulos LIBRE, definitiva** (Hanken Grotesk) — no se licencia
+  Saans (fuente paga). Los **precios NO se tocan** (siguen sin DM Mono).
+- **Botón principal coral con texto BLANCO** (board) — aplicado en el Button del
+  DS + CTAs sueltas prominentes (Navbar, turno, QuickActions, landing, enviar
+  chat). Los chips/badges chicos sobre coral quedan con texto oscuro (blanco
+  fallaría AA en texto chico).
+- **Logo a coral**: `logo-mark.svg`/`logo.svg`/`oido-isotipo.svg`/
+  `logo-maskable.svg` ya en coral. Faltan los **PNG rasterizados** (favicon.ico,
+  icon-192/512, apple-icon, og-image) — necesitan el pipeline raster.
+
+**Pendiente (siguiente(s) PR — "después componentes, después pantallas"):**
+- Regenerar los **PNG del ícono** a coral (pipeline raster / sharp).
 - **Variantes de card** (ShiftCard/VenueCard/WorkerCard/Recommendation/Urgent/
   Featured/Compact), **mapa** (pin con identidad + preview contextual), **feed
   con ritmo**, **brand moments**, **motion** — el pase de componentes/pantallas.

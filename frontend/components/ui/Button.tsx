@@ -8,12 +8,12 @@ type Variant = "primary" | "dark" | "secondary" | "danger" | "surface" | "ghost"
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  // Texto ink sobre el naranja de marca: 6.61 de contraste (AA), contra 2.86
-  // del blanco, que no llegaba ni al minimo de texto grande. La decision de
-  // que el boton siga siendo NARANJA (y no ink) sale de ART_DIRECTION §6.2:
-  // "el naranja marca la accion principal". Ver docs/design/COLOR_SYSTEM.md §2.3.
+  // Coral de marca con texto BLANCO (board v5.0: "Botón principal" es coral con
+  // label claro). Blanco sobre #ff5a3d da 3.03 — AA para texto grande/bold, que
+  // es el caso de un label de botón (≥14px bold). El body chico nunca va sobre
+  // coral relleno (ahí seguiría texto oscuro por legibilidad).
   primary:
-    "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04]",
+    "bg-primary text-white shadow-[var(--shadow-primary)] hover:brightness-[1.04]",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
   secondary:

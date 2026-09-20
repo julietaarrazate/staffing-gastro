@@ -165,7 +165,7 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/register?rol=comercio"
-                className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-ink shadow-[var(--shadow-primary)] transition active:scale-95 hover:brightness-[1.04]"
+                className="rounded-[var(--radius-btn)] bg-primary px-7 py-3.5 font-semibold text-white shadow-[var(--shadow-primary)] transition active:scale-95 hover:brightness-[1.04]"
               >
                 Necesito personal
               </Link>
