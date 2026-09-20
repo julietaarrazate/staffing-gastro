@@ -12,12 +12,18 @@ Todo lo demás son superficies neutras cálidas y tinta. Un acento por contexto.
 
 ## Brand
 
+Terracota (board 2, muestreo de píxeles). Reemplaza el coral `#FF5A3D`, que
+Julieta rechazó por "anaranjado fuerte": el board usa un burnt-orange más cálido
+y terroso. Suma verde bosque como secundario editorial.
+
 | Token | Valor (claro) | Uso |
 |---|---|---|
-| `--color-primary` | `#FF5A3D` | Coral. Relleno del botón principal, pin activo, badge Urgente. Con texto **blanco** (AA grande). |
-| `--color-primary-strong` | `#E64A2E` | Hover/pressed del coral. |
-| `--color-primary-text` | `#C23214` (claro) / `#FF7A61` (oscuro) | Coral como **texto** sobre lienzo/tarjeta (precio, links). Oscurecido en claro para pasar AA. |
-| `--color-primary-tint` | `#FFE9E3` | Primary Soft: fondo pálido de acción/activo, pill de nav activa, badge. |
+| `--color-primary` | `#E5531E` | Terracota. Relleno del botón principal, pin activo, badge Urgente. Con texto **blanco** (4.4 = AA grande). |
+| `--color-primary-strong` | `#C6440F` | Hover/pressed. |
+| `--color-primary-text` | `#AD420D` (claro) / `#F0774A` (oscuro) | Terracota como **texto** (precio, links). Oscurecido en claro para AA. |
+| `--color-primary-tint` | `#FBE8DA` | Peach cálido: fondo de acción/activo, pill de nav, badge. |
+| `--color-secondary` | `#1B3A31` | **Verde bosque** editorial (tarjeta "Turnos activos"). Superficie destacada con texto claro. Distinto de `success`. |
+| `--color-secondary-tint` / `-text` | `#E6EFE9` / `#1B3A31` | Superficie pálida y texto del verde bosque. |
 | `--color-accent` | `#A78BFA` | Violeta. **No es acción**: marca lo "nuevo"/descubrimiento. |
 | `--color-accent-tint` / `-text` | `#EDE9FE` / `#6D47D9` | Superficie y texto del acento. |
 

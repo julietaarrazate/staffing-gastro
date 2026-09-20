@@ -6,21 +6,23 @@
  * Reescritura de identidad a partir del board de diseño definitivo que pasó
  * Julieta (dos tableros: style-guide + pantallas). Supersede tanto el rebrand
  * ámbar (#315–#325) como el pivot "lienzo blanco" de horas antes: la marca pasa
- * a CORAL (#FF5A3D) sobre un lienzo CÁLIDO off-white (#F8F6F1), con un acento
- * VIOLETA (#A78BFA) para lo "nuevo", y el color al servicio de la jerarquía —
- * no un acento por todos lados. Tipografía: Saans (títulos), Inter (texto),
- * DM Mono (datos/precios); el wordmark sigue en serif (Fraunces). Formas:
- * card 16 / botón 12 / input 12 / badge 99. Personalidad marketplace +
- * hospitality editorial, no SaaS/fintech.
+ * a TERRACOTA (#E5531E — burnt orange cálido y terroso, muestreado del board;
+ * NO el coral neón #FF5A3D que Julieta rechazó por "anaranjado fuerte") sobre
+ * un lienzo BEIGE cálido (#F3EEE3), con VERDE BOSQUE (#1B3A31) como secundario
+ * editorial y VIOLETA (#A78BFA) para lo "nuevo". El color al servicio de la
+ * jerarquía, no un acento por todos lados. Tipografía: fuente libre de títulos
+ * (Hanken Grotesk, no se licencia Saans), Inter (texto), DM Mono (datos); el
+ * wordmark sigue en serif (Fraunces). Formas: card 16 / botón 12 / input 12 /
+ * badge 99. Personalidad marketplace + hospitality editorial, no SaaS/fintech.
  *
  * Fuente de verdad de color y sus contrastes WCAG: docs/design/COLOR_SYSTEM.md
  * y docs/design-system/. Los valores acá son el reflejo en código de ese board.
  */
 :root {
   color-scheme: light; /* claro por defecto; el bloque de modo oscuro lo vuelca a dark */
-  --background: #f8f6f1; /* Off-white cálido — lienzo de la app (board v5.0; antes #ffffff) */
+  --background: #f3eee3; /* Beige cálido — lienzo de la app (board 2, muestreo ~#EEE9DC) */
   --foreground: #111111; /* Tinta primaria (board: Text/Primary #111111) */
-  --line: #eae4dc; /* borde 1px, hairline cálido sobre el lienzo off-white */
+  --line: #e5decf; /* borde 1px, hairline cálido sobre el beige */
 
   /* Radios — alineados a la maqueta aprobada (2026-09).
    *
@@ -123,20 +125,33 @@
      #ffffff sobre #ff5a3d da 3.24 — AA para texto GRANDE/bold (≥18.66px o
      ≥14px bold), que es el caso del botón; el body chico nunca va sobre coral
      relleno. */
-  --color-primary: #ff5a3d;
-  /* Coral hover/pressed (board: Primary Hover #E64A2E). */
-  --color-primary-strong: #e64a2e;
-  /* Coral cuando es TEXTO sobre claro: #ff5a3d da sólo ~2.9 sobre el lienzo,
-     falla. Se oscurece a un coral profundo que pasa AA como texto sobre el
-     off-white (#f8f6f1) y sobre el tinte Primary Soft. Ronda 4.5:1 — verificar
-     con el script de COLOR_SYSTEM.md al ajustar. */
-  --color-primary-text: #c23214;
-  /* Primary Soft (board #FFE9E3): tinte pálido de acción/activo/badge coral,
-     y fondo del pill de la pestaña activa. */
-  --color-primary-tint: #ffe9e3;
-  /* ACENTO violeta (board: Accent #A78BFA) — NO es acción; marca lo "nuevo"
-     (badge "Nuevo") y momentos de descubrimiento. Un segundo acento controlado,
-     nunca compite con el coral por la acción principal. */
+  /* TERRACOTA de marca (board 2, muestreo de píxeles: botón "Postularme"
+     #E85325, dot de paleta #E65B2B). Reemplaza el coral #FF5A3D, que Julieta
+     marcó como "anaranjado fuerte" — este tono es más cálido, terroso y
+     apagado (menos rojo/rosa, menos neón), la cara real del board. Relleno con
+     texto BLANCO: blanco sobre #e5531e da 4.4 (AA texto grande/bold; el body
+     chico nunca va sobre terracota relleno). */
+  --color-primary: #e5531e;
+  /* Terracota hover/pressed (más oscuro). */
+  --color-primary-strong: #c6440f;
+  /* Terracota como TEXTO sobre claro: #e5531e da ~3.4, insuficiente para body.
+     Se oscurece a un terracota profundo que pasa AA sobre el lienzo cálido y
+     sobre el tinte. */
+  --color-primary-text: #ad420d;
+  /* Tinte pálido (peach cálido) de acción/activo/badge y fondo del pill de la
+     pestaña activa. */
+  --color-primary-tint: #fbe8da;
+  /* VERDE BOSQUE secundario (board 2, muestreo: tarjeta "Turnos activos"
+     #17312A, dot de paleta #132624). Es un color de MARCA/editorial —
+     superficies destacadas (la tarjeta de turnos activos), no un estado. Va
+     con texto claro encima. Distinto de --color-success (#16A34A), que es el
+     estado semántico "disponible/ok". */
+  --color-secondary: #1b3a31;
+  --color-secondary-strong: #142c25;
+  --color-secondary-tint: #e6efe9; /* superficie pálida del verde bosque */
+  --color-secondary-text: #1b3a31; /* verde bosque como texto sobre claro (AA) */
+  /* ACENTO violeta (board 1: Accent #A78BFA) — NO es acción; marca lo "nuevo"
+     y momentos de descubrimiento. Segundo acento controlado. */
   --color-accent: #a78bfa;
   --color-accent-tint: #ede9fe; /* superficie pálida del acento */
   --color-accent-text: #6d47d9; /* violeta como texto sobre claro (AA) */
@@ -187,9 +202,9 @@
    * lienzo off-white; la superficie recesada (chips, tracks, inputs idle) es
    * Surface Secondary #F1ECE6. Escala clara: lienzo #f8f6f1 → tarjeta #ffffff
    * (elevada, hairline+sombra) → surface #f1ece6 → focus/ink #111111. */
-  --color-surface: #f1ece6; /* Surface Secondary — relleno recesado */
-  --color-line: #eae4dc; /* hairline cálido, legible sobre el off-white */
-  --color-paper: #f1ece6; /* franja algo más profunda que el lienzo (landing) */
+  --color-surface: #ebe5d8; /* Surface Secondary — relleno recesado (board 2, beige) */
+  --color-line: #e5decf; /* hairline cálido, legible sobre el beige */
+  --color-paper: #ebe5d8; /* franja algo más profunda que el lienzo (landing) */
 
   /* Superficie de tarjeta (rediseño 2026-09: modo claro/oscuro). Antes las
      tarjetas usaban `bg-white` literal, que no puede voltearse en oscuro. Este
@@ -436,7 +451,8 @@
   --color-ink-mute: #8b8276;
 
   /* Acentos y estados sobre lienzo/tarjeta oscura (todos ≥ AA como texto). */
-  --color-primary-text: #ff7a61; /* coral aclarado para texto sobre oscuro */
+  --color-primary-text: #f0774a; /* terracota aclarado para texto sobre oscuro */
+  --color-secondary-text: #7fb8a3; /* verde bosque aclarado sobre oscuro */
   --color-accent-text: #c4b5fd;
   --color-success-text: #4ade80;
   --color-danger-text: #f4746f;
