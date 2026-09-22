@@ -454,6 +454,10 @@ async def get_shift_public(
         pay_amount=shift.pay_amount,
         currency=shift.currency,
         company_name=company.name if company else None,
+        tips=shift.tips,
+        meal=shift.meal,
+        dress_code=shift.dress_code,
+        urgent=shift.urgent,
     )
 
 

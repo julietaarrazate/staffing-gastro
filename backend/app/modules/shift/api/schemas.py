@@ -172,6 +172,14 @@ class ShiftPublicResponse(BaseModel):
     pay_amount: Decimal
     currency: str
     company_name: str | None = None
+    # Las condiciones del turno, que es con lo que alguien decide si le
+    # conviene registrarse (Julieta, 2026-09-22). Son del turno, no de una
+    # persona. Siguen FUERA: la dirección exacta, la descripción libre (la
+    # escribe el comercio y puede traer un teléfono) y el logo del comercio.
+    tips: bool = False
+    meal: bool = False
+    dress_code: str | None = None
+    urgent: bool = False
 
 
 class AssignWorkerRequest(BaseModel):

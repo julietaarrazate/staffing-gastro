@@ -241,14 +241,15 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           />
         </div>
 
-        {/* Condiciones (sólo con sesión: la vista pública no las trae). */}
-        {full && (full.meal || full.tips || full.dress_code) && (
+        {/* Condiciones: van también sin sesión — es con lo que alguien que
+            llega por WhatsApp decide si le conviene registrarse. */}
+        {(shift.meal || shift.tips || shift.dress_code) && (
           <section className="mt-7">
             <h2 className="text-[17px] font-semibold text-ink">Qué incluye</h2>
             <div className="mt-2.5 flex flex-wrap gap-2">
-              {full.tips && <Chip icon={<WalletIcon size={14} />}>Propinas</Chip>}
-              {full.meal && <Chip icon={<UtensilsIcon size={14} />}>Comida del personal</Chip>}
-              {full.dress_code && <Chip icon={<FileTextIcon size={14} />}>Vestimenta: {full.dress_code}</Chip>}
+              {shift.tips && <Chip icon={<WalletIcon size={14} />}>Propinas</Chip>}
+              {shift.meal && <Chip icon={<UtensilsIcon size={14} />}>Comida del personal</Chip>}
+              {shift.dress_code && <Chip icon={<FileTextIcon size={14} />}>Vestimenta: {shift.dress_code}</Chip>}
             </div>
           </section>
         )}
