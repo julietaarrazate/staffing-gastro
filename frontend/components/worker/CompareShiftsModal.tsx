@@ -2,19 +2,14 @@
 
 import { Modal } from "@/components/ui";
 import { SKILL_LABELS, Shift } from "@/lib/types";
-import { formatShiftRange, shiftDurationMinutes } from "@/lib/datetime";
+import { formatShiftRange } from "@/lib/datetime";
 import { distanceOf } from "@/lib/current-location";
+import { payPerHour } from "@/lib/pay";
 
 /** Distancia legible: bajo 1 km en metros redondeados, arriba con un
  * decimal — mismo formato que `OpportunityCard.formatDistance`. */
 function formatDistance(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-}
-
-function payPerHour(shift: Shift): number | null {
-  const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
-  if (minutes === null) return null;
-  return (Number(shift.pay_amount) / minutes) * 60;
 }
 
 /**

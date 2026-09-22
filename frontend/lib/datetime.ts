@@ -122,6 +122,46 @@ export function formatAgo(iso: string): string {
   return rest === 0 ? `hace ${hours} h` : `hace ${hours} h ${rest}`;
 }
 
+function arDateKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIMEZONE }).format(date);
+}
+
+function formatTime24(iso: string): string {
+  return new Date(iso).toLocaleTimeString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+}
+
+/**
+ * Versión compacta para tarjetas chicas (home del trabajador): "Hoy · 20:00 –
+ * 23:00", "Mañana · 21:00 – 02:00", "sáb 27/9 · 20:00 – 23:00". Horas en 24 h
+ * aunque el locale del runtime prefiera "p. m.": en una fila de miniaturas el
+ * "08:00 p. m. a 11:00 p. m." de `formatShiftRange` no entra.
+ */
+export function formatShiftWhen(startIso: string, endIso: string, now: Date = new Date()): string {
+  const key = arDateKey(new Date(startIso));
+  let day: string;
+  if (key === arDateKey(now)) {
+    day = "Hoy";
+  } else if (key === arDateKey(new Date(now.getTime() + 86_400_000))) {
+    day = "Mañana";
+  } else {
+    const weekday = new Date(startIso)
+      .toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, weekday: "short" })
+      .replace(".", "");
+    const dayMonth = new Date(startIso).toLocaleDateString("es-AR", {
+      timeZone: AR_TIMEZONE,
+      day: "numeric",
+      month: "numeric",
+    });
+    day = `${weekday} ${dayMonth}`;
+  }
+  return `${day} · ${formatTime24(startIso)} – ${formatTime24(endIso)}`;
+}
+
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */
 export function formatShiftRange(startIso: string, endIso: string): string {
   const date = formatShiftDate(startIso);

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, Space_Mono } from "next/font/google";
+import { Inter, Fraunces, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -17,22 +17,24 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Fraunces: serif de display para títulos — el carácter "editorial" del
-// style-guide (alternativa libre OFL, cercana a Recoleta). Se expone como la
-// utilidad `font-display` de Tailwind y se aplica a los títulos de marca.
+// Fraunces: serif de los títulos de pantalla y del wordmark. Las pantallas del
+// board de Julieta ponen en serif los títulos grandes ("Hola, Sofía",
+// "Camarero/a", el nombre en el perfil) y dejan en sans los encabezados de
+// sección; Fraunces es libre (OFL) y era la serif de Oído desde el principio.
+// Se expone como `font-display` (títulos) y `font-serif` (wordmark). Una
+// fuente de títulos paga (Saans) se descartó por decisión de Julieta.
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-// Space Mono: labels/eyebrows/metadata en mayúscula (rediseño 2026-09,
-// maqueta híbrida — docs/design/mockups/09-hibrido-app.html). Reemplaza a
-// Geist Mono, que estaba cargada pero sin ningún uso real en la app.
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
+// DM Mono (board v5.0): datos y precios — el precio de un turno, horarios,
+// métricas. Reemplaza a Space Mono. Se expone como `font-mono`.
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500"],
 });
 
 const TAGLINE = "Personal gastronómico, ya.";
@@ -101,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la

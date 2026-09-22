@@ -8,10 +8,8 @@ type Variant = "primary" | "dark" | "secondary" | "danger" | "surface" | "ghost"
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  // Texto ink sobre el naranja de marca: 6.61 de contraste (AA), contra 2.86
-  // del blanco, que no llegaba ni al minimo de texto grande. La decision de
-  // que el boton siga siendo NARANJA (y no ink) sale de ART_DIRECTION §6.2:
-  // "el naranja marca la accion principal". Ver docs/design/COLOR_SYSTEM.md §2.3.
+  // Ámbar de marca con texto OSCURO: ink sobre #d97706 da 6.61 (AA holgado); el
+  // blanco sobre ámbar da 2.86 y no llega ni al mínimo de texto grande.
   primary:
     "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04]",
   // "dark" / énfasis neutro de marca (#111).

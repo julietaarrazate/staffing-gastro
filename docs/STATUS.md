@@ -5,11 +5,78 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-16 (**fila de acciones rápidas en el panel del
-comercio, y la corrección de que el lienzo de Oído es crema en los DOS modos —
-sólo invierten las tarjetas**). El frente anterior (2026-09-10) fue el mapa en
-blanco por el worker de maplibre 6 y las primeras pasadas de la auditoría de
-DISTRIBUCIÓN de superficies.*
+*Última actualización: 2026-09-22 (**Design System v5.0 — lienzo blanco cálido,
+ámbar de Oído como único naranja, verde bosque como secundario, tipografía
+libre y modo oscuro real; en curso el pase de estética de pantallas según el
+board de Julieta**).*
+
+**Frente vigente — Design System v5.0 (PR #345, draft).** Julieta pasó dos
+boards de diseño (style-guide + pantallas) y una paleta de referencia. Después
+de iterar el naranja (coral `#FF5A3D` → terracota `#E5531E`, ambos rechazados
+por "anaranjado fuerte"), la dirección quedó fijada así:
+
+- **Naranja = el ámbar de Oído de siempre `#D97706`**, con texto OSCURO encima
+  (ink sobre ámbar 6.61; el blanco da 2.86 y falla — por eso los botones no van
+  en blanco). Logo SVG en ámbar, sin cambios respecto de antes.
+- **Lienzo más blanco**: `#FBFAF6` (blanco cálido). Superficie recesada
+  `#F3EFE6`. La tarjeta blanca flota por hairline + sombra de dos capas.
+- **Color para acentos y para "levantar", con criterio** (como las pantallas
+  del board): **verde bosque `#1B3A31`** (`--color-secondary`) para superficies
+  destacadas; manteca (buttercream) y cielo (baby blue), que Oído ya tenía,
+  como acentos suaves de datos.
+- **Tipografía libre**: Fraunces (serif) en títulos de pantalla y wordmark,
+  como en las pantallas del board; Inter en texto y encabezados de sección; DM
+  Mono cargada para datos. No se licencia Saans (paga). **Los precios NO se
+  tocan.**
+- **Formas** card 16 / botón 12 / input 12 / badge 99, y **modo oscuro real**
+  (el lienzo se oscurece; supersede el híbrido).
+- Docs: `docs/design-system/` (README, brand-foundation, color-system,
+  typography, shape-language, elevation) y `COLOR_SYSTEM.md` v5.0.
+
+**Pase de estética — hecho: home del trabajador (`/feed`).** Se compone como
+el board: saludo en serif, buscador, chips **Cerca tuyo / Urgentes / Mejores
+pagos** (este último ordena por pago por hora, `lib/pay.ts`), tarjeta
+**"Recomendado"** (`FeedHero`: foto del local si el comercio tiene imagen; si
+no, verde bosque con el ícono del rubro) y fila **"Cerca tuyo"**
+(`NearbyRow`, miniaturas en scroll horizontal, "Ver todos" → `/buscar`).
+**Decisión de producto de Julieta:** el mazo tipo Tinder NO se elimina — queda
+como **"Descubrir rápido"** (`DiscoverDeck`, overlay a pantalla completa
+portado a `document.body`, con el mismo `useFocusTrap` que Modal/Sheet y
+Escape para cerrar), para quien quiere decidir en segundos. Desktop
+mantiene la grilla con Postularme/No gracias. Guardar un turno sigue
+disponible desde la tarjeta Recomendado (link "estirado" + botón encima, sin
+anidar un botón en un link). Helper nuevo `formatShiftWhen` ("Hoy · 20:00 –
+23:00", 24 h). Specs E2E actualizadas a propósito: `worker-apply` entra por
+"Descubrir rápido", `current-location` mira la tarjeta Recomendado,
+`feed-urgent-filter`/`guided-tour` usan el chip "Urgentes". Aparte, un test
+de `guided-tour` que ya estaba en `main` tenía una carrera: su
+`addInitScript` borraba la marca de "tour visto" también en el `reload`, así
+que "no vuelve a aparecer" dependía de quién llegaba primero (falló una vez
+sin cambios en el tour). Ahora borra sólo en la primera carga
+(`resetTourOnce`).
+
+**Arreglo de modo oscuro encontrado al mirar el render** (ver BUGS.md): el
+bloque oscuro no definía `--color-line` (bordes blancos brillando) ni ningún
+`-tint` (chips con texto claro sobre fondo casi blanco, ~2.4:1). Ahora los
+tintes en oscuro son un velo del propio color.
+
+**Pendiente (siguiente trabajo — "después componentes, después pantallas"):**
+- **Pase de estética** del resto de pantallas según el board: detalle de
+  turno (foto de cabecera, meta con íconos, chips de atributos), perfil
+  (grilla de disponibilidad), home del comercio (tarjeta verde "Turnos
+  activos", candidatos destacados), mapa (preview al tocar un pin), y el
+  layout de escritorio del home (mapa + lista, como el board).
+- **Foto del local**: hoy la tarjeta usa `logo_url` del comercio como foto.
+  El board vive de fotos del lugar; un campo "foto del local" (portada) es
+  trabajo de backend aparte.
+- La tarjeta del mazo (`OpportunityCard`, la que se ve en "Descubrir
+  rápido") sigue con el gradiente saturado por rubro y fecha en 12 h
+  ("08:00 p. m."); y en oscuro su chip del ícono del rubro queda pálido sobre
+  la tarjeta oscura (la misma familia de bug del par tint/text). Revisarla en
+  el pase de componentes.
+- **Modo oscuro**: auditar `bg-night` (toast, botón dark) sobre el lienzo oscuro.
+- **Violeta `--color-accent`**: no está en la paleta final de Julieta; no usarlo
+  en pantallas nuevas (queda definido para no romper nada).
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este

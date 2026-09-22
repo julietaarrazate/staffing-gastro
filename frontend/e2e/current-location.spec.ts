@@ -125,15 +125,15 @@ test("el feed ordena por la zona del perfil, y por dónde estás si lo pedís", 
   // Por defecto mide desde la zona del perfil: arriba queda el de Palermo.
   await expect(page.getByText("Turnos cerca de")).toBeVisible();
   await expect(page.getByText("Palermo, CABA")).toBeVisible();
-  const deck = page.getByTestId("swipe-deck-card").first();
-  await expect(deck).toContainText("Palermo");
+  const hero = page.getByTestId("feed-hero-card");
+  await expect(hero).toContainText("Palermo");
 
   // Al compartir la ubicación actual, el orden se invierte: gana Retiro.
   await page.getByRole("button", { name: "Estoy acá" }).click();
   await expect(page.getByText("donde estás ahora")).toBeVisible();
-  await expect(page.getByTestId("swipe-deck-card").first()).toContainText("Retiro");
+  await expect(page.getByTestId("feed-hero-card")).toContainText("Retiro");
 
   // Y se puede volver a la zona del perfil.
   await page.getByRole("button", { name: "Volver a mi zona" }).click();
-  await expect(page.getByTestId("swipe-deck-card").first()).toContainText("Palermo");
+  await expect(page.getByTestId("feed-hero-card")).toContainText("Palermo");
 });
