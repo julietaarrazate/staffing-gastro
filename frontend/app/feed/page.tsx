@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -19,23 +19,26 @@ import {
 } from "@/lib/current-location";
 import LocationBar from "@/components/worker/LocationBar";
 import AIAssistantBar from "@/components/AIAssistantBar";
-import { Avatar, CardSkeleton, CardSkeletons, EmptyState, useToast } from "@/components/ui";
-import SwipeDeck from "@/components/worker/SwipeDeck";
+import { CardSkeletons, EmptyState, Skeleton, useToast } from "@/components/ui";
 import OpportunityCard from "@/components/worker/OpportunityCard";
+import FeedHero from "@/components/worker/FeedHero";
+import NearbyRow from "@/components/worker/NearbyRow";
+import DiscoverDeck from "@/components/worker/DiscoverDeck";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
-import { CloseIcon, FlameIcon } from "@/components/icons";
+import { ChevronRightIcon, CloseIcon, FlameIcon, MapPinIcon, SparklesIcon, StarIcon } from "@/components/icons";
 import { EmptyFeedIllustration, ErrorIllustration } from "@/components/illustrations";
+import { sortByBestPay } from "@/lib/pay";
 
 /** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
  * corto — al aterrizar en el feed no había nada que explicara cómo se usa.
  * Mini-tour de una sola vez (ver `GuidedTour`), apuntando a lo mínimo para
- * entender la pantalla: el mazo de turnos, el filtro de urgentes (si hay) y
- * dónde encontrar después las postulaciones. */
+ * entender la pantalla: los turnos, el filtro de urgentes y dónde encontrar
+ * después las postulaciones. */
 const WORKER_FEED_TOUR: TourStep[] = [
   {
     target: '[data-tour="feed-deck"]',
     title: "Así se ven los turnos",
-    body: "Deslizá o tocá una tarjeta para ver el detalle y postularte. Van apareciendo en tiempo real.",
+    body: "Tocá un turno para ver el detalle y postularte, o usá Descubrir rápido para deslizar. Van apareciendo en tiempo real.",
   },
   {
     target: '[data-tour="feed-urgent-filter"]',
@@ -133,6 +136,16 @@ function WorkerFeedPanel() {
   // tarjeta. Filtro client-side (el feed ya está cargado completo, sin
   // paginar) para no perder el orden por distancia ni disparar otro request.
   const [urgentOnly, setUrgentOnly] = useState(false);
+  // Chips del board: "Cerca tuyo" (por distancia, el orden de siempre) o
+  // "Mejores pagos" (por pago por hora, ADR-0012). "Urgentes" es un filtro
+  // aparte y se combina con cualquiera de los dos.
+  const [sort, setSort] = useState<"nearby" | "pay">("nearby");
+  // "Descubrir rápido": el mazo tipo Tinder a pantalla completa. Mientras está
+  // abierto se le pasa una foto fija de los turnos (si cambiara la lista bajo
+  // sus pies, SwipeDeck resetearía el mazo en medio de un gesto); lo decidido
+  // se saca del home recién al cerrar.
+  const [deckShifts, setDeckShifts] = useState<Shift[] | null>(null);
+  const decidedInDeck = useRef<Set<string>>(new Set());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -268,6 +281,23 @@ function WorkerFeedPanel() {
     setDecidingId(null);
   }
 
+  async function onDeckDecide(shift: Shift, decision: "like" | "pass"): Promise<boolean> {
+    const ok = await onDecide(shift, decision);
+    if (ok) decidedInDeck.current.add(shift.id);
+    return ok;
+  }
+
+  function openDiscover(list: Shift[]) {
+    decidedInDeck.current = new Set();
+    setDeckShifts(list);
+  }
+
+  const closeDiscover = useCallback(() => {
+    const decided = decidedInDeck.current;
+    if (decided.size > 0) setShifts((prev) => prev.filter((s) => !decided.has(s.id)));
+    setDeckShifts(null);
+  }, []);
+
   const firstName = user?.full_name?.split(" ")[0];
 
   // Búsqueda del asistente: origen fijo en la zona pedida (no "acá ahora"/
@@ -285,8 +315,9 @@ function WorkerFeedPanel() {
   if (assistantSearch?.todayOnly) {
     sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
   }
+  if (sort === "pay") sortedShifts = sortByBestPay(sortedShifts);
   const visibleShifts = urgentOnly ? sortedShifts.filter((s) => s.urgent) : sortedShifts;
-  const urgentCount = sortedShifts.filter((s) => s.urgent).length;
+  const [heroShift, ...restShifts] = visibleShifts;
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
     : urgentOnly
@@ -303,35 +334,40 @@ function WorkerFeedPanel() {
       ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
       : { label: "Actualizar", onClick: load };
 
+  // 13px y px-2.5: los tres chips del board entran enteros en 390px (con
+  // text-sm el tercero quedaba cortado).
+  const chipBase =
+    "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[13px] font-semibold ring-1 transition active:scale-95";
+  const chipOn = "bg-primary-tint text-primary-text ring-primary/30";
+  const chipOff = "bg-card text-ink/70 ring-line hover:bg-surface";
+
+  const emptyState = (
+    <EmptyState
+      icon={<EmptyFeedIllustration color="var(--color-primary)" />}
+      title={emptyTitle}
+      subtitle={emptySubtitle}
+      primaryAction={emptyStateAction}
+    />
+  );
+
   return (
-    <div className="mx-auto flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-3 pt-3 md:h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl">
-      {/* Header: saludo + disponibilidad. `mb-2` (no `mb-3`): en un
-          `flex flex-col` los márgenes entre hermanos no colapsan, así que
-          todo este bloque de cabecera (saludo, barra del asistente,
-          ubicación, filtro de urgentes) usa el mismo `mb-2` para un ritmo
-          parejo de 8px y recuperar alto real para el mazo — antes eran 12px
-          acá y hasta 24px más abajo por el doble margen entre la barra del
-          asistente y LocationBar (auditoría de espaciado, Julieta,
-          2026-08-16). */}
-      {/* Avatar "md" (44px), no "lg" (64px): un círculo grande de marca acá
-          arriba quedaba apilado muy cerca del círculo del ícono de
-          AIAssistantBar apenas debajo — dos "globos" naranjas del mismo
-          tamaño casi tocándose (Julieta, 2026-08-16: "el ícono de Oído en
-          qué necesitás se junta demasiado con otros globos"). De paso
-          devuelve unos px más de alto real para el mazo de abajo. */}
-      <header className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar src={profile?.photo_url} name={user?.full_name ?? "Vos"} size="md" />
-          <div>
-            <h1 className="font-display text-h1 font-semibold text-ink">
-              {firstName ? `Hola, ${firstName}` : "Hola"}
-            </h1>
-          </div>
+    // Home del trabajador con la composición del board de Julieta (pantalla
+    // 1): saludo en serif, buscador, chips de orden/filtro, la tarjeta
+    // "Recomendado" y la fila "Cerca tuyo". Ya no es un mazo de alto fijo: la
+    // pantalla scrollea como el board. El mazo tipo Tinder sigue existiendo
+    // como "Descubrir rápido" (decisión de Julieta, 2026-09-22).
+    <div className="mx-auto max-w-md px-4 pb-8 pt-4 md:max-w-5xl">
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-[30px] font-medium leading-tight text-ink">
+            {firstName ? `Hola, ${firstName}` : "Hola"}
+          </h1>
+          <p className="mt-0.5 text-sm text-ink/55">Encontrá tu próximo turno.</p>
         </div>
         <button
           type="button"
           onClick={toggleAvailable}
-          className="flex flex-col items-center gap-1"
+          className="mt-1 flex shrink-0 flex-col items-center gap-1"
           aria-label="Cambiar disponibilidad"
         >
           <span
@@ -351,11 +387,6 @@ function WorkerFeedPanel() {
         </button>
       </header>
 
-      {/* Mismo lugar y tratamiento que ya tiene el comercio en /shifts
-          (pedido de Julieta: "queda mejor como tiene comercio, un lugar
-          arriba... lo mismo tiene que tener para trabajador"); reemplaza a la
-          cápsula flotante, que se sacó de toda la app (Julieta, 2026-08-16:
-          "no quiero botones flotantes"). */}
       <div className="mb-2">
         <AIAssistantBar />
       </div>
@@ -364,7 +395,7 @@ function WorkerFeedPanel() {
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente
         // activa: el origen ya no es "acá ahora"/perfil, es la zona pedida
         // — mostrar los dos juntos confundiría cuál manda.
-        <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <p className="text-sm text-ink/70">
             Turnos que buscaste en <span className="font-semibold text-ink">{assistantSearch.zoneName}</span>
           </p>
@@ -378,108 +409,138 @@ function WorkerFeedPanel() {
           </button>
         </div>
       ) : (
-        <div className="mb-2">
+        <div className="mb-3">
           <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
         </div>
       )}
 
-      {(urgentCount > 0 || urgentOnly) && (
-        <div className="mb-2 flex">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={urgentOnly}
-            data-tour="feed-urgent-filter"
-            onClick={() => setUrgentOnly((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
-              urgentOnly
-                ? "bg-primary/10 text-primary-text ring-primary/30"
-                : "bg-card text-ink/60 ring-line hover:bg-surface"
-            }`}
-          >
-            <FlameIcon size={14} />
-            Sólo urgentes{urgentCount > 0 ? ` (${urgentCount})` : ""}
-          </button>
-        </div>
+      <div className="no-scrollbar -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4">
+        <button
+          type="button"
+          aria-pressed={sort === "nearby"}
+          onClick={() => setSort("nearby")}
+          className={`${chipBase} ${sort === "nearby" ? chipOn : chipOff}`}
+        >
+          <MapPinIcon size={13} /> Cerca tuyo
+        </button>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={urgentOnly}
+          data-tour="feed-urgent-filter"
+          onClick={() => setUrgentOnly((v) => !v)}
+          className={`${chipBase} ${urgentOnly ? chipOn : chipOff}`}
+        >
+          <FlameIcon size={13} className="text-primary-text" />
+          Urgentes
+        </button>
+        <button
+          type="button"
+          aria-pressed={sort === "pay"}
+          onClick={() => setSort((s) => (s === "pay" ? "nearby" : "pay"))}
+          className={`${chipBase} ${sort === "pay" ? chipOn : chipOff}`}
+        >
+          <StarIcon size={13} filled className="text-rating" /> Mejores pagos
+        </button>
+      </div>
+
+      {loading ? (
+        <>
+          <div className="space-y-5 md:hidden" aria-hidden>
+            <Skeleton className="h-[232px] w-full rounded-[var(--radius-card)]" />
+            <div className="flex gap-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[170px] w-[156px] shrink-0 rounded-[var(--radius-chip)]" />
+              ))}
+            </div>
+          </div>
+          <div className="hidden md:block">
+            <CardSkeletons count={6} />
+          </div>
+        </>
+      ) : error ? (
+        <EmptyState
+          icon={<ErrorIllustration color="var(--color-primary)" />}
+          title="No se pudo cargar"
+          subtitle={error}
+          primaryAction={{ label: "Reintentar", onClick: load }}
+        />
+      ) : (
+        <>
+          {/* Mobile: Recomendado + Descubrir rápido + Cerca tuyo. */}
+          <div className="md:hidden">
+            {heroShift ? (
+              <div className="space-y-6">
+                <div data-tour="feed-deck" className="space-y-3">
+                  <FeedHero shift={heroShift} />
+                  <button
+                    type="button"
+                    onClick={() => openDiscover(visibleShifts)}
+                    className="flex w-full items-center gap-3 rounded-[var(--radius-card)] bg-card px-4 py-3 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-primary-tint text-primary-text">
+                      <SparklesIcon size={20} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold text-ink">Descubrir rápido</span>
+                      <span className="block text-xs text-ink/55">
+                        Deslizá {visibleShifts.length === 1 ? "el turno" : `los ${visibleShifts.length} turnos`} y
+                        postulate en segundos
+                      </span>
+                    </span>
+                    <ChevronRightIcon size={18} className="shrink-0 text-ink/35" />
+                  </button>
+                </div>
+                <NearbyRow shifts={restShifts} distanceOf={(s) => distanceOf(s, origin)} />
+              </div>
+            ) : (
+              emptyState
+            )}
+          </div>
+
+          {/* Desktop (md+): el gesto de swipe no existe con mouse, así que
+              se ven todas las oportunidades a la vez en una grilla, con
+              Postularme/No gracias como botones directos en cada tarjeta. */}
+          <div className="hidden md:block">
+            {visibleShifts.length === 0 ? (
+              emptyState
+            ) : (
+              <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
+                {visibleShifts.map((shift) => (
+                  <div key={shift.id} data-testid="feed-grid-card" className="h-[620px]">
+                    <OpportunityCard
+                      shift={shift}
+                      distanceKm={distanceOf(shift, origin)}
+                      applying={decidingId === shift.id}
+                      onApply={() => handleGridDecide(shift, "like")}
+                      onPass={() => handleGridDecide(shift, "pass")}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
-      {/* Deck */}
-      <div className="min-h-0 flex-1 md:overflow-y-auto">
-        {loading ? (
-          <>
-            <div className="h-full md:hidden">
-              <CardSkeleton />
-            </div>
-            <div className="hidden md:block">
-              <CardSkeletons count={6} />
-            </div>
-          </>
-        ) : error ? (
-          <EmptyState
-            icon={<ErrorIllustration color="var(--color-primary)" />}
-            title="No se pudo cargar"
-            subtitle={error}
-            primaryAction={{ label: "Reintentar", onClick: load }}
-          />
-        ) : (
-          <>
-            {/* Mobile: mazo tipo Tinder, se decide con swipe. */}
-            <div className="h-full md:hidden" data-tour="feed-deck">
-              <SwipeDeck
-                shifts={visibleShifts}
-                onDecide={onDecide}
-                // Tocar la tarjeta abre el turno completo (`/turno/[id]`),
-                // que ya existe como página pública y trae el detalle y el
-                // link al comercio. Antes desde el mazo sólo se podía
-                // swipear: no había forma de mirar el turno antes de decidir
-                // (Julieta, 2026-08-17).
-                onOpen={(shift) => router.push(`/turno/${shift.id}`)}
-                renderCard={(shift) => (
-                  <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />
-                )}
-                empty={
-                  <EmptyState
-                    icon={<EmptyFeedIllustration color="var(--color-primary)" />}
-                    title={emptyTitle}
-                    subtitle={emptySubtitle}
-                    primaryAction={emptyStateAction}
-                  />
-                }
-              />
-            </div>
+      {deckShifts && (
+        <DiscoverDeck
+          shifts={deckShifts}
+          onDecide={onDeckDecide}
+          onClose={closeDiscover}
+          onOpen={(shift) => router.push(`/turno/${shift.id}`)}
+          renderCard={(shift) => <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />}
+          empty={
+            <EmptyState
+              icon={<EmptyFeedIllustration color="var(--color-primary)" />}
+              title="Viste todos los turnos"
+              subtitle="Cerrá para volver al inicio. Van apareciendo nuevos en tiempo real."
+              primaryAction={{ label: "Volver al inicio", onClick: closeDiscover }}
+            />
+          }
+        />
+      )}
 
-            {/* Desktop (md+): el gesto de swipe no existe con mouse, así que
-                se ven todas las oportunidades a la vez en una grilla, con
-                Postularme/No gracias como botones directos en cada tarjeta
-                (antes el mazo se estiraba solo, centrado en una pantalla
-                vacía — ver docs/STATUS.md, pedido de Julieta 2026-07-29). */}
-            <div className="hidden md:block">
-              {visibleShifts.length === 0 ? (
-                <EmptyState
-                  icon={<EmptyFeedIllustration color="var(--color-primary)" />}
-                  title={emptyTitle}
-                  subtitle={emptySubtitle}
-                  primaryAction={emptyStateAction}
-                />
-              ) : (
-                <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
-                  {visibleShifts.map((shift) => (
-                    <div key={shift.id} data-testid="feed-grid-card" className="h-[620px]">
-                      <OpportunityCard
-                        shift={shift}
-                        distanceKm={distanceOf(shift, origin)}
-                        applying={decidingId === shift.id}
-                        onApply={() => handleGridDecide(shift, "like")}
-                        onPass={() => handleGridDecide(shift, "pass")}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
       {!loading && <GuidedTour steps={WORKER_FEED_TOUR} storageKey="staffya_tour_worker_feed" />}
     </div>
   );

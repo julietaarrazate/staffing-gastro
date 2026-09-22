@@ -1,43 +1,33 @@
 # Typography — Oído v5.0
 
+Todas las fuentes son **libres** (Google Fonts / OFL). Una fuente de títulos
+paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
+
 ## Tres familias, tres roles
 
-| Familia | Rol | Token / utilidad | Estado |
-|---|---|---|---|
-| **Títulos (Hanken Grotesk)** | Títulos y UI (headings, labels de sección) | `--font-saans` → `font-display` | ✅ fuente **libre** definitiva |
-| **Inter** | Texto e interfaz (body, botones, inputs) | `--font-inter` → `font-sans` | ✅ |
-| **DM Mono** | Datos y precios (pago, horarios, métricas) | `--font-dm-mono` → `font-mono` | ✅ cargada; falta aplicarla en los componentes de precio |
-| **Fraunces** (serif) | **Sólo el wordmark** "oído" | `--font-fraunces` → `font-serif` | ✅ |
+| Familia | Rol | Token / utilidad |
+|---|---|---|
+| **Fraunces** (serif) | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y el wordmark "oído" | `--font-fraunces` → `font-display` y `font-serif` |
+| **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
+| **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 
-## Saans es una fuente PAGA
+## Por qué el título va en serif y la sección en sans
 
-Saans (foundry **displaay**) no se puede cargar desde Google Fonts. Hasta que
-se licencie, `--font-saans` carga un **stand-in libre** (Hanken Grotesk, un
-grotesco humanista cercano en tono) desde `next/font/google`. Al licenciar
-Saans se cambia **sólo el import** en `frontend/app/layout.tsx` — ningún
-componente se toca, porque todos consumen `font-display`.
+Así lo resuelven las pantallas del board de Julieta: el título grande de cada
+pantalla y los títulos de contenido (el puesto de un turno, el nombre de una
+persona) van en serif — es lo que le da el tono editorial/hospitality — y los
+encabezados de sección y la información operativa van en sans. Serif para lo
+que se *lee como titular*, sans para lo que se *escanea*.
 
-**Decisión pendiente de Julieta:** licenciar Saans, o adoptar el stand-in (u
-otro grotesco libre) como definitivo.
+Durante la iteración de v5.0 se probó un grotesco (Hanken Grotesk) en los
+títulos; se volvió a Fraunces al comparar contra el board.
 
-## El precio en mono es un gesto de marca
+## El precio
 
-El board pone precios y datos en **DM Mono**. Un turno se reconoce por su pago;
-en mono, con tabular figures, el número es protagonista y alineable. Los
-componentes de precio (`OpportunityCard`, `ShiftCard`, `WorkerGameCard`,
-detalle de turno) deben usar `font-mono` — **pendiente del pase de
-componentes** (v5.0 dejó la fuente cargada y el token listo).
-
-## Por qué el wordmark queda en serif
-
-El logo del board es serif. Separar el wordmark (Fraunces, `font-serif`) de los
-títulos de UI (Saans, `font-display`) permite que las pantallas se vean
-modernas/sans sin perder el carácter editorial de la marca en el logo. Antes
-ambos compartían `font-display`; el split se hizo en `components/Logo.tsx`.
+**No se toca** (decisión de Julieta): los componentes de precio conservan su
+tipografía actual; DM Mono no se aplica a los montos.
 
 ## Escala
 
 La escala tipográfica (`--text-display` … `--text-metadata`, con line-heights
-emparejados) vive en `globals.css` y no cambió en v5.0 — sólo cambiaron las
-FAMILIAS. Jerarquía: display/h1/h2/h3 (Saans) · body/body-strong/caption
-(Inter) · price/metric/data (DM Mono) · label/eyebrow (mono, uppercase).
+emparejados) vive en `globals.css`. v5.0 no la cambió.

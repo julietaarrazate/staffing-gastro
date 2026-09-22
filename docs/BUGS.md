@@ -201,6 +201,28 @@ resultaron estar dentro de comentarios.
 
 ---
 
+## Modo oscuro: redefinir un `-text` sin redefinir su `-tint` (y el hairline que se queda claro)
+
+**Patrón:** los tokens semánticos vienen en pares — `--color-X-tint` (fondo pálido del chip) y
+`--color-X-text` (su texto). En el modo oscuro real (v5.0, el lienzo se oscurece entero) el bloque
+`:root[data-theme="dark"]` aclara los `-text` en TODA la página. Si los `-tint` no se redefinen,
+siguen siendo los pálidos de `:root` y cada chip queda con texto claro sobre fondo casi blanco.
+Mismo mecanismo con `--color-line`: si el bloque oscuro no lo pisa, los bordes de tarjetas,
+inputs y header quedan con el hairline claro y brillan sobre el fondo oscuro.
+
+- **Encontrado (2026-09-22):** al renderizar el home nuevo del trabajador en oscuro. Chip activo
+  "Cerca tuyo" y chips de estado del panel: ámbar `#e8920f` sobre `#fffbeb` ≈ **2.4:1**. Los bordes
+  blancos venían de un `--color-line` que se perdió al corregir un typo en el mismo bloque (el
+  bloque tenía `--line` pero no `--color-line`, y los componentes usan `ring-line`/`border-line`,
+  que leen `--color-line`). `tsc`, build, Vitest y los 111 E2E pasaban.
+
+**Cómo evitarlo:** cuando un bloque de tema toca un `-text`, tocar en el mismo lugar su `-tint`
+(hoy: velo del propio color, `rgba(…, 0.14–0.18)`). Y no confundir `--line` (lo que lee `body`) con
+`--color-line` (lo que leen las utilidades `ring-line`/`border-line`): son dos tokens. La
+verificación que lo detecta es mirar una pantalla con chips y bordes en oscuro, no leer el CSS.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de

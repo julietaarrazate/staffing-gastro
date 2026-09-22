@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, Hanken_Grotesk, DM_Mono } from "next/font/google";
+import { Inter, Fraunces, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -17,25 +17,16 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Fraunces: serif SÓLO para el wordmark "Oído" (el logo del board es serif).
-// Ya NO es la fuente de los títulos de UI — se expone como `font-serif` y la
-// consume el componente Logo. Los títulos pasan a Saans (abajo).
+// Fraunces: serif de los títulos de pantalla y del wordmark. Las pantallas del
+// board de Julieta ponen en serif los títulos grandes ("Hola, Sofía",
+// "Camarero/a", el nombre en el perfil) y dejan en sans los encabezados de
+// sección; Fraunces es libre (OFL) y era la serif de Oído desde el principio.
+// Se expone como `font-display` (títulos) y `font-serif` (wordmark). Una
+// fuente de títulos paga (Saans) se descartó por decisión de Julieta.
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-});
-
-// Títulos/UI. El board mostraba Saans, pero Saans es una fuente PAGA (displaay)
-// y Julieta decidió NO licenciar una fuente de pago: usamos una fuente LIBRE
-// como definitiva — Hanken Grotesk, un grotesco humanista del mismo tono
-// (neo-grotesco limpio, cercano a Saans). Se expone como `--font-saans` →
-// utilidad `font-display`. La variable conserva el nombre "saans" sólo como
-// rol ("la tipografía de títulos"), no implica la fuente paga.
-const saans = Hanken_Grotesk({
-  variable: "--font-saans",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
 });
 
 // DM Mono (board v5.0): datos y precios — el precio de un turno, horarios,
@@ -112,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${saans.variable} ${dmMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la

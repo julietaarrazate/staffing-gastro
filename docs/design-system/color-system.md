@@ -72,6 +72,13 @@ verde bosque se mantienen como acentos (aclarados para AA como texto); texto y
 bordes van claros. Los `-text` se recalculan para el fondo oscuro en el bloque
 `:root[data-theme="dark"]` de `globals.css`.
 
+**Regla del par tint/text en oscuro:** todo token que tenga un `-text` que se
+aclara en oscuro necesita también su `-tint` oscuro (un velo del propio color,
+`rgba(…, 0.14–0.18)`), o el chip queda con texto claro sobre fondo pálido. Lo
+mismo `--color-line`: si no se redefine, los bordes quedan con el hairline
+claro de `:root`. Excepción: manteca y cielo son pares auto-contenidos (su
+texto no se aclara) y se quedan igual en los dos modos.
+
 ## Pendiente de auditoría en oscuro (pase de componentes)
 
 `--color-night`/`bg-night` (toasts, botón "dark", marcadores) es near-black en

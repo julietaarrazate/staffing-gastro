@@ -5,7 +5,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * F1 (auditoría de producto 2026-08-10): el backend ya soporta filtrar el
  * feed por `urgent` (GET /shifts/feed?urgent=true), pero no había ningún
  * control en `/feed` para usarlo — sólo se veía el badge "Urgente" en la
- * tarjeta. Este spec cubre el chip nuevo "Sólo urgentes".
+ * tarjeta. Este spec cubre el chip "Urgentes" (antes "Sólo urgentes").
  */
 
 const WORKER = {
@@ -98,7 +98,7 @@ async function mockFeed(page: Page) {
 
 test.use({ viewport: { width: 1280, height: 900 } });
 
-test("el chip 'Sólo urgentes' filtra el feed a los turnos urgentes y se puede sacar", async ({
+test("el chip 'Urgentes' filtra el feed a los turnos urgentes y se puede sacar", async ({
   page,
 }) => {
   await skipSplash(page);
@@ -109,7 +109,7 @@ test("el chip 'Sólo urgentes' filtra el feed a los turnos urgentes y se puede s
 
   await page.goto("/feed");
 
-  const chip = page.getByRole("switch", { name: /Sólo urgentes/ });
+  const chip = page.getByRole("switch", { name: /Urgentes/ });
   await expect(chip).toBeVisible();
   await expect(chip).toHaveAttribute("aria-checked", "false");
 

@@ -11,10 +11,11 @@
  * (#D97706), sobre un lienzo BLANCO cálido (#FBFAF6), con VERDE BOSQUE
  * (#1B3A31) como secundario editorial y manteca/cielo como acentos suaves.
  * "Más blanco, y los colores para acentos y para levantar, con criterio" — el
- * color al servicio de la jerarquía, no un acento por todos lados. Tipografía: fuente libre de títulos
- * (Hanken Grotesk, no se licencia Saans), Inter (texto), DM Mono (datos); el
- * wordmark sigue en serif (Fraunces). Formas: card 16 / botón 12 / input 12 /
- * badge 99. Personalidad marketplace + hospitality editorial, no SaaS/fintech.
+ * color al servicio de la jerarquía, no un acento por todos lados.
+ * Tipografía, todas libres: Fraunces (títulos de pantalla y wordmark, serif
+ * como en el board), Inter (texto y encabezados de sección), DM Mono (datos).
+ * Formas: card 16 / botón 12 / input 12 / badge 99. Personalidad marketplace
+ * + hospitality editorial, no SaaS/fintech.
  *
  * Fuente de verdad de color y sus contrastes WCAG: docs/design/COLOR_SYSTEM.md
  * y docs/design-system/. Los valores acá son el reflejo en código de ese board.
@@ -319,13 +320,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Tipografía board v5.0: Inter (texto), Saans (títulos → utilidad
-     font-display), DM Mono (datos/precios → font-mono). El wordmark sigue en
-     serif (Fraunces) vía font-serif — el logo NO usa font-display. Saans es
-     una fuente PAGA (displaay); hasta licenciarla, --font-saans carga un
-     stand-in libre (ver layout.tsx). */
+  /* Tipografía (todas libres): Fraunces serif para títulos de pantalla
+     (font-display) y el wordmark (font-serif), como en las pantallas del
+     board; Inter para texto y encabezados de sección; DM Mono cargada para
+     datos (los precios no la usan, decisión de Julieta). */
   --font-sans: var(--font-inter);
-  --font-display: var(--font-saans);
+  --font-display: var(--font-fraunces);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-dm-mono);
 }
@@ -460,6 +460,36 @@
   --color-trust: #7fc9c0;
   --color-trust-text: #7fc9c0;
   --color-trust-tint: rgba(127, 201, 192, 0.14);
+
+  /* Hairline oscura. Sin esto las tarjetas, inputs y el header quedaban con el
+     borde claro de :root (#ece7dd): una línea blanca que brilla sobre oscuro. */
+  --color-line: rgba(245, 241, 234, 0.12);
+
+  /* Tintes en oscuro. Con el modo oscuro real, los `-text` de arriba se
+     aclaran en TODA la página; si los `-tint` siguieran siendo los pálidos de
+     :root, cada chip quedaría con texto claro sobre fondo casi blanco (ámbar
+     #e8920f sobre #fffbeb ≈ 2.4:1, falla AA). Acá pasan a ser un velo del
+     propio color sobre la superficie oscura: ~5:1 o más con su `-text`.
+     manteca/cielo no se tocan: son pares auto-contenidos (su texto no se
+     aclara), calculados para leerse igual en los dos modos. */
+  --color-primary-tint: rgba(217, 119, 6, 0.18);
+  --color-secondary-tint: rgba(127, 184, 163, 0.16);
+  --color-accent-tint: rgba(196, 181, 253, 0.14);
+  --color-success-tint: rgba(74, 222, 128, 0.14);
+  --color-danger-tint: rgba(244, 116, 111, 0.14);
+  --color-warning-tint: rgba(251, 191, 118, 0.14);
+  --color-info-tint: rgba(147, 197, 253, 0.14);
+}
+
+/* Miniatura sin foto de "Cerca tuyo" (NearbyRow): en claro lleva el tinte
+   pálido del rubro, que son clases crudas de Tailwind (SKILL_ACCENT) y no
+   tienen modo oscuro — sobre el lienzo oscuro ese tile pálido encandila. En
+   oscuro pasa a la superficie del sistema con el ícono en tinta atenuada. */
+:root[data-theme="dark"] .rubro-tile {
+  background-color: var(--color-surface);
+}
+:root[data-theme="dark"] .rubro-tile-icon {
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
 }
 
 /* Forzado a claro: los tokens de :root ya son claros; sólo hay que asegurar

@@ -113,13 +113,19 @@ test("un worker ve un turno en el feed y se postula", async ({ page }) => {
 
   await page.goto("/feed");
 
-  // Se ve el turno mockeado (puesto + comercio). El viewport de test es
-  // mobile (390px, ver playwright.config.ts), pero el feed renderiza EN EL
-  // DOM tanto el mazo mobile como la grilla de escritorio (alternados por
-  // CSS md:hidden/hidden md:block, mismo patrón que /map) — por eso el texto
-  // aparece dos veces y hace falta `.first()` para no ambigüar.
-  await expect(page.getByText("Mozo/a").first()).toBeVisible();
-  await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
+  // Se ve el turno mockeado (puesto + comercio) en la tarjeta "Recomendado"
+  // del home. El viewport de test es mobile (390px, ver playwright.config.ts),
+  // pero el feed renderiza EN EL DOM tanto el home mobile como la grilla de
+  // escritorio (alternados por CSS md:hidden/hidden md:block) — por eso se
+  // escopea a la tarjeta.
+  const hero = page.getByTestId("feed-hero-card");
+  await expect(hero).toContainText("Mozo/a");
+  await expect(hero).toContainText("Bar Demo Palermo");
+
+  // Postularse desde el mazo: desde 2026-09-22 el mazo tipo Tinder vive
+  // detrás de "Descubrir rápido" (el home tomó la composición del board).
+  await page.getByRole("button", { name: /Descubrir rápido/ }).click();
+  await expect(page.getByRole("dialog", { name: "Descubrir rápido" })).toBeVisible();
 
   // waitForResponse (no waitForRequest): la respuesta sólo existe una vez
   // que el handler de route.fulfill() ya corrió, así que para cuando

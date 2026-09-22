@@ -13,6 +13,24 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * esa clave a propósito para ejercitar el flujo real.
  */
 
+/**
+ * Borra la marca de "tour visto" sólo en la PRIMERA carga de la pestaña.
+ * `addInitScript` corre en cada navegación, incluido `page.reload()`: si
+ * borrara siempre, el chequeo final ("después de recargar no vuelve a
+ * aparecer") mediría una carrera entre la aserción y el montaje del tour, no
+ * la persistencia — pasaba o fallaba según quién llegara primero (falló así
+ * el 2026-09-22 sin ningún cambio en el tour). `sessionStorage` sobrevive al
+ * reload de la misma pestaña. La persistencia en sí la prueba el `getItem`
+ * de antes del reload.
+ */
+async function resetTourOnce(page: import("@playwright/test").Page, key: string) {
+  await page.addInitScript((k) => {
+    if (sessionStorage.getItem("e2e_tour_reset")) return;
+    window.localStorage.removeItem(k);
+    sessionStorage.setItem("e2e_tour_reset", "1");
+  }, key);
+}
+
 const WORKER = {
   id: "user-1",
   email: "tour@staffya.com",
@@ -100,7 +118,7 @@ test("el tour del feed recorre mazo, filtro y nav, y no vuelve a aparecer", asyn
   await skipSplash(page);
   await injectSession(page);
   // Arranca desde cero: `injectSession` ya lo marcó como visto.
-  await page.addInitScript(() => window.localStorage.removeItem("staffya_tour_worker_feed"));
+  await resetTourOnce(page, "staffya_tour_worker_feed");
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await mockFeed(page);
@@ -120,7 +138,7 @@ test("el tour del feed recorre mazo, filtro y nav, y no vuelve a aparecer", asyn
   // El feed sigue siendo usable después de cerrar el tour (nada quedó
   // bloqueando clicks — el mismo síntoma que ya rompió `Sheet`/`Modal`
   // antes de portarlos a `document.body`).
-  const chip = page.getByRole("switch", { name: /Sólo urgentes/ });
+  const chip = page.getByRole("switch", { name: /Urgentes/ });
   await chip.click();
   await expect(chip).toHaveAttribute("aria-checked", "true");
 
@@ -133,7 +151,7 @@ test("el tour del feed recorre mazo, filtro y nav, y no vuelve a aparecer", asyn
 test("saltar el tour lo marca como visto sin terminar los pasos", async ({ page }) => {
   await skipSplash(page);
   await injectSession(page);
-  await page.addInitScript(() => window.localStorage.removeItem("staffya_tour_worker_feed"));
+  await resetTourOnce(page, "staffya_tour_worker_feed");
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await mockFeed(page);
@@ -216,7 +234,7 @@ async function mockEmployerPanel(page: import("@playwright/test").Page) {
 test("el tour del panel del comercio recorre publicar, pestañas y buscar", async ({ page }) => {
   await skipSplash(page);
   await injectSession(page);
-  await page.addInitScript(() => window.localStorage.removeItem("staffya_tour_employer_panel"));
+  await resetTourOnce(page, "staffya_tour_employer_panel");
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await mockEmployerPanel(page);

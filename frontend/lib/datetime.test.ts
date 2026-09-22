@@ -6,6 +6,7 @@ import {
   formatShiftDate,
   formatShiftRange,
   formatShiftTime,
+  formatShiftWhen,
   localInputToArgentinaISO,
   shiftDurationMinutes,
 } from "./datetime";
@@ -108,6 +109,36 @@ describe("formatShiftRange", () => {
     const end = "2026-06-23T03:00:00-03:00";
     const expected = `${formatShiftDate(start)} ${formatShiftTime(start)} → ${formatShiftDate(end)} ${formatShiftTime(end)}`;
     expect(formatShiftRange(start, end)).toBe(expected);
+  });
+});
+
+describe("formatShiftWhen", () => {
+  // "Ahora" = martes 22/9/2026 15:00 en Argentina (18:00 UTC).
+  const now = new Date("2026-09-22T18:00:00Z");
+
+  it("hoy en Argentina: 'Hoy' y horas en 24 h", () => {
+    expect(formatShiftWhen("2026-09-22T20:00:00-03:00", "2026-09-22T23:30:00-03:00", now)).toBe(
+      "Hoy · 20:00 – 23:30"
+    );
+  });
+
+  it("mañana, aunque cruce la medianoche", () => {
+    expect(formatShiftWhen("2026-09-23T21:00:00-03:00", "2026-09-24T02:00:00-03:00", now)).toBe(
+      "Mañana · 21:00 – 02:00"
+    );
+  });
+
+  it("un turno a las 22:30 de Argentina sigue siendo 'Hoy' aunque en UTC ya sea mañana", () => {
+    // 01:30 UTC del 23 = 22:30 del 22 en Argentina.
+    expect(formatShiftWhen("2026-09-23T01:30:00Z", "2026-09-23T04:00:00Z", now)).toBe(
+      "Hoy · 22:30 – 01:00"
+    );
+  });
+
+  it("más adelante: día de la semana abreviado + día/mes", () => {
+    expect(formatShiftWhen("2026-09-26T20:00:00-03:00", "2026-09-26T23:00:00-03:00", now)).toBe(
+      "sáb 26/9 · 20:00 – 23:00"
+    );
   });
 });
 
