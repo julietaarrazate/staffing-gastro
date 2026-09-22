@@ -5,12 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-22 (**Design System v5.0 — lienzo blanco cálido,
-ámbar de Oído como único naranja, verde bosque como secundario, tipografía
-libre y modo oscuro real; en curso el pase de estética de pantallas según el
-board de Julieta**).*
+*Última actualización: 2026-09-22 (**Design System v5.0 mergeado (#345); pase
+de estética: detalle de turno, más una fuga de privacidad cerrada en
+`GET /shifts/{id}`**).*
 
-**Frente vigente — Design System v5.0 (PR #345, draft).** Julieta pasó dos
+**Frente vigente — Design System v5.0 (PR #345, mergeado 2026-09-22).** Julieta pasó dos
 boards de diseño (style-guide + pantallas) y una paleta de referencia. Después
 de iterar el naranja (coral `#FF5A3D` → terracota `#E5531E`, ambos rechazados
 por "anaranjado fuerte"), la dirección quedó fijada así:
@@ -55,14 +54,41 @@ que "no vuelve a aparecer" dependía de quién llegaba primero (falló una vez
 sin cambios en el tour). Ahora borra sólo en la primera carga
 (`resetTourOnce`).
 
+**Pase de estética — hecho: detalle de turno (`/turno/[id]`).** Cabecera con
+la foto del local o verde bosque con el ícono del rubro (igual que la tarjeta
+"Recomendado"), señales antes del título (Urgente, "Paga por encima de lo
+típico" — la banda de ADR-0012 —, Comercio verificado), título en serif, datos
+con íconos (cuándo + duración, dónde), pago en un módulo verde bosque con el
+pago por hora, y abajo "Qué incluye", "Sobre el turno", mapa y "Cómo llegar".
+**La acción ahora depende de quién mira** (`components/ShiftDetail.tsx`): sin
+sesión, "Postulate en Oído" → registro (como siempre); **trabajador logueado,
+"Postularme" de verdad** (antes esta misma página le mandaba a registrarse a
+alguien ya logueado — y desde el home nuevo es a donde llega tocando un
+turno); ya postulado, "Ya te postulaste"; comercio dueño, "Ver postulantes".
+El servidor sigue armando sólo la vista pública (metadatos de WhatsApp
+intactos) y el cliente completa lo demás con sesión. `/turno/[id]` no tiene
+E2E (se arma en el servidor y Playwright sólo mockea el navegador): la
+acción está cubierta en Vitest (`ShiftDetail.test.tsx`).
+
+**Fuga de privacidad cerrada en `GET /shifts/{id}`** (encontrada al armar el
+detalle, ver BUGS.md): devolvía el turno completo a cualquier sesión — la
+posición en vivo de quien iba en camino (`en_route_*`), sus coordenadas de
+llegada/salida y quién lo tomó — y los ids de turno circulan públicamente.
+Ahora el turno completo lo ven sus partes (comercio dueño, trabajador
+asignado, admin); el resto, sólo turnos abiertos y sin datos del trabajador
+(404 si ya no está abierto). El feed tampoco muestra más quién faltó en un
+turno reabierto por no-show. Tests: `test_shift_detail_visibility.py`.
+**No se tocó** la vista pública sin sesión (`/public`): un test existente
+marca propinas/urgente/vestimenta/logo como campos que NO van ahí, y
+relajarlo es una decisión de producto, no de este pase.
+
 **Arreglo de modo oscuro encontrado al mirar el render** (ver BUGS.md): el
 bloque oscuro no definía `--color-line` (bordes blancos brillando) ni ningún
 `-tint` (chips con texto claro sobre fondo casi blanco, ~2.4:1). Ahora los
 tintes en oscuro son un velo del propio color.
 
 **Pendiente (siguiente trabajo — "después componentes, después pantallas"):**
-- **Pase de estética** del resto de pantallas según el board: detalle de
-  turno (foto de cabecera, meta con íconos, chips de atributos), perfil
+- **Pase de estética** del resto de pantallas según el board: perfil
   (grilla de disponibilidad), home del comercio (tarjeta verde "Turnos
   activos", candidatos destacados), mapa (preview al tocar un pin), y el
   layout de escritorio del home (mapa + lista, como el board).

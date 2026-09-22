@@ -223,6 +223,26 @@ verificación que lo detecta es mirar una pantalla con chips y bordes en oscuro,
 
 ---
 
+## Un endpoint de detalle que sólo pide "estar logueado" (`GET /shifts/{id}`)
+
+**Patrón:** la ruta pedía `AuthUserDep` y nada más (`_current_user`, ni siquiera se usaba), y
+devolvía el `ShiftResponse` entero. Ese schema lo arman las pantallas de las PARTES del turno, así
+que trae datos de una persona: la posición en vivo del trabajador que va en camino
+(`en_route_*`), dónde marcó llegada y salida, quién lo tomó, quién faltó. "Estar logueado" no es
+una autorización cuando cualquiera puede crearse una cuenta (o entrar como invitado) y los ids
+circulan públicamente (`/turno/{id}` se comparte por WhatsApp).
+
+- **Encontrado (2026-09-22):** al armar el detalle de turno con sesión, que iba a leer este
+  endpoint. Reproducido con tests antes del arreglo (otro trabajador leía `en_route_latitude`
+  de un turno ajeno).
+
+**Cómo evitarlo:** un endpoint que devuelve un recurso por id decide **quién es el que mira**
+(parte del recurso / cualquier otro) y recorta lo que es de una persona para el segundo caso
+(`_is_party_to` + `_without_worker_data` en `shift/api/routes.py`). Un parámetro
+`_current_user` sin usar en una ruta de lectura es la señal para revisar.
+
+---
+
 ## Mapa (MapLibre) que deja de responder al gesto tras navegar (pool `reuseMaps`)
 
 **Patrón:** `@vis.gl/react-maplibre` con `reuseMaps` recicla la misma instancia interna de

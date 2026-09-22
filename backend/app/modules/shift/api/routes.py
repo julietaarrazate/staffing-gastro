@@ -42,7 +42,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotEditableError,
     ShiftNotFoundError,
 )
-from app.modules.shift.domain.value_objects import ShiftStatus
+from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -120,6 +120,50 @@ async def _with_company_info(
             response.company_verified = company.user_id in verified_owner_ids
         responses.append(response)
     return responses
+
+
+async def _is_party_to(
+    shift: Shift,
+    user: User,
+    companies: CompanyProfileRepository,
+    workers: WorkerProfileRepository,
+) -> bool:
+    """¿Es `user` parte de este turno? El comercio que lo publicó, el
+    trabajador asignado, o admin."""
+    if user.role == UserRole.ADMIN:
+        return True
+    if user.role == UserRole.EMPLOYER:
+        company = await companies.get_by_id(shift.company_id)
+        return company is not None and company.user_id == user.id
+    if user.role == UserRole.WORKER and shift.worker_profile_id is not None:
+        profile = await workers.get_by_user_id(user.id)
+        return profile is not None and profile.id == shift.worker_profile_id
+    return False
+
+
+# Datos de una PERSONA (el trabajador del turno), no del turno: quién lo tomó,
+# dónde está viajando, dónde marcó llegada y salida, quién faltó.
+_WORKER_DATA_FIELDS = (
+    "worker_profile_id",
+    "worker_name",
+    "en_route_latitude",
+    "en_route_longitude",
+    "en_route_at",
+    "check_in_latitude",
+    "check_in_longitude",
+    "check_in_at",
+    "check_out_latitude",
+    "check_out_longitude",
+    "check_out_at",
+    "no_show_at",
+    "last_no_show_worker_profile_id",
+)
+
+
+def _without_worker_data(response: ShiftResponse) -> ShiftResponse:
+    """La vista de un turno para quien no es parte de él: todo lo del turno,
+    nada del trabajador."""
+    return response.model_copy(update={field: None for field in _WORKER_DATA_FIELDS})
 
 
 async def _with_pay_band(
@@ -242,7 +286,11 @@ async def feed(
         offset=offset,
     )
     responses = await _with_company_info(shifts, companies, verification)
-    return await _with_pay_band(shifts, responses, service)
+    responses = await _with_pay_band(shifts, responses, service)
+    # Un turno reabierto por un no-show vuelve al feed con la marca de quién
+    # faltó (`last_no_show_worker_profile_id`): otro trabajador no tiene por
+    # qué verla.
+    return [_without_worker_data(r) for r in responses]
 
 
 @router.get(
@@ -341,11 +389,40 @@ async def create_event(
     response_model=ShiftResponse,
     summary="Ver un turno",
 )
-async def get_shift(shift_id: UUID, service: ServiceDep, _current_user: AuthUserDep):
+async def get_shift(
+    shift_id: UUID,
+    service: ServiceDep,
+    current_user: AuthUserDep,
+    companies: CompaniesDep,
+    workers: WorkersDep,
+    verification: VerificationDep,
+):
+    """El detalle de un turno lo leen dos públicos distintos.
+
+    Las PARTES del turno (el comercio dueño, el trabajador asignado, admin)
+    lo ven completo: asistencia, "va en camino", quién lo tomó. Cualquier
+    otro usuario —otro trabajador mirando el detalle antes de postularse—
+    sólo ve turnos todavía abiertos, y sin ningún dato del trabajador.
+
+    Antes este endpoint devolvía el turno entero a cualquier sesión. Los ids
+    de turno circulan públicamente (links de WhatsApp, `/turno/{id}`), así
+    que cualquiera con una cuenta —o con el acceso invitado— podía leer la
+    posición en vivo de quien iba en camino (`en_route_*`) y las
+    coordenadas de su llegada y salida. Eso contradecía el modelo de
+    privacidad de "va en camino" (la posición la ve sólo el comercio)."""
     try:
-        return await service.get_shift(shift_id)
+        shift = await service.get_shift(shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
+    [response] = await _with_company_info([shift], companies, verification)
+    [response] = await _with_pay_band([shift], [response], service)
+    if await _is_party_to(shift, current_user, companies, workers):
+        return response
+    if shift.status not in OPEN_STATUSES:
+        # No-disclosure: un turno ajeno que ya no está abierto no existe
+        # para quien no es parte (mismo criterio que `/public`).
+        raise _not_found()
+    return _without_worker_data(response)
 
 
 @router.get(
