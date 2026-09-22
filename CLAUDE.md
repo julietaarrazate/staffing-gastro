@@ -481,9 +481,12 @@ rehizo a ciegas.
    marcado en rojo como "el más importante y el que falta" durante semanas
    después de estar resuelto; si lo leés en rojo en algún lado, es una copia
    vieja. La verificación de identidad F1 quedó operativa de punta a punta.
-2. 🟠 **`SEED_DEMO_DATA` = `false`** (Render): la var existe; confirmar que el
-   **valor** sea `false` (el dashboard pisa `render.yaml`, donde ya está en
-   `false`). Si sigue en `true`, re-siembra datos demo en cada arranque.
+2. 🟠 **`SEED_DEMO_DATA` = `true` a propósito, por ahora** (Render, decisión
+   de Julieta 2026-09-22): sin usuarios reales, la app se ve poblada con los
+   comercios/trabajadores demo, y cada arranque repone sus turnos vigentes.
+   **Antes de abrir la beta con gente real** va a `false` y se purgan las
+   cuentas demo (runbook en `docs/reference/DEPLOY.md`): tienen contraseña
+   pública y sus turnos entran en la referencia de pago.
 3. 🟢 **`MERCADOPAGO_ACCESS_TOKEN`** (Render): sólo para pagos reales; el
    enforcement está apagado, así que **no urge** para la beta.
 4. 🟠 **Confirmar** `ENVIRONMENT=production` (Render) y `NEXT_PUBLIC_API_URL`

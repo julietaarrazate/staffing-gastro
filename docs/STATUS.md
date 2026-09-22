@@ -82,6 +82,22 @@ turno reabierto por no-show. Tests: `test_shift_detail_visibility.py`.
 marca propinas/urgente/vestimenta/logo como campos que NO van ahí, y
 relajarlo es una decisión de producto, no de este pase.
 
+**Página pública con las condiciones del turno + datos demo que se renuevan
+(2026-09-22, decisión de Julieta).**
+- `GET /shifts/{id}/public` ahora trae propinas, comida, vestimenta y
+  urgente: es con lo que alguien que llega por WhatsApp decide si registrarse.
+  Siguen fuera la dirección exacta, la descripción libre (puede traer un
+  teléfono) y el logo. El detalle muestra "Qué incluye" también sin sesión.
+- **Modo demo**: Julieta quiere la app poblada mientras no hay usuarios
+  reales (en producción había 0 cuentas demo y 0 turnos abiertos). El seed
+  ahora **repone** turnos a los comercios demo que se quedaron sin turnos
+  vigentes en cada arranque, con pagos de 2026 (32.000–60.000 por 6 h, antes
+  12.000–23.000) y a la hora típica de cada puesto. **Falta que Julieta ponga
+  `SEED_DEMO_DATA=true` en Render** (el MCP de Render no conecta desde la
+  sesión). Antes de la beta con gente real: runbook "apagar el modo demo" en
+  `docs/reference/DEPLOY.md` (contraseñas públicas, y los turnos demo entran
+  en la referencia de pago).
+
 **Arreglo de modo oscuro encontrado al mirar el render** (ver BUGS.md): el
 bloque oscuro no definía `--color-line` (bordes blancos brillando) ni ningún
 `-tint` (chips con texto claro sobre fondo casi blanco, ~2.4:1). Ahora los

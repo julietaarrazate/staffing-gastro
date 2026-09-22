@@ -15,8 +15,9 @@ import asyncio
 import secrets
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -30,6 +31,7 @@ from app.modules.company.application.dtos import CompanyProfileData
 from app.modules.company.application.services import CompanyProfileService
 from app.modules.company.domain.exceptions import CompanyProfileAlreadyExistsError
 from app.modules.company.domain.value_objects import CompanyCategory
+from app.modules.company.infrastructure.models import CompanyProfileModel
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
@@ -53,6 +55,8 @@ from app.modules.notification.infrastructure.repositories import (
 )
 from app.modules.shift.application.dtos import ShiftData
 from app.modules.shift.application.services import ShiftService
+from app.modules.shift.domain.value_objects import OPEN_STATUSES
+from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
@@ -400,8 +404,9 @@ async def _existing_emails(session: AsyncSession, emails: list[str]) -> set[str]
 
 
 async def _seed_companies(session) -> set[str]:
-    """Crea comercios demo. Devuelve los emails recién creados (para que el
-    seed de turnos sólo siembre para comercios nuevos y sea idempotente)."""
+    """Crea comercios demo (idempotente). Devuelve los emails recién creados.
+    Los turnos ya no dependen de esto: `_seed_shifts` repone por su cuenta a
+    cualquier comercio demo que se haya quedado sin turnos vigentes."""
     users = SqlAlchemyUserRepository(session)
     companies = SqlAlchemyCompanyProfileRepository(session)
     identity_service = IdentityService(
@@ -510,30 +515,94 @@ async def _seed_workers(session) -> None:
 
 
 # Turnos demo publicados, para que el Inicio del trabajador tenga oportunidades
-# que deslizar. (email del comercio, puesto, cantidad, pago, urgente, dress code)
+# que mirar. (email del comercio, puesto, cantidad, pago, urgente, dress code)
 # `cantidad` queda fija en 1: un turno = una persona (R1.4), la API la capa.
+# Pagos por un turno de 6 h en pesos de 2026 (los de antes, 12.000–23.000,
+# habían quedado viejos: al lado de los ejemplos de la app se veían falsos).
 SHIFTS = [
-    ("demo.palermo@staffya.com", WorkerSkill.BARTENDER, 1, 18000, True, "Negro formal"),
-    ("demo.palermo@staffya.com", WorkerSkill.MOZO, 1, 15000, False, "Camisa blanca"),
-    ("demo.recoleta@staffya.com", WorkerSkill.MOZO, 1, 16000, False, "Elegante sport"),
-    ("demo.recoleta@staffya.com", WorkerSkill.COCINERO, 1, 22000, True, None),
-    ("demo.santelmo@staffya.com", WorkerSkill.BARISTA, 1, 14000, False, "Delantal del local"),
-    ("demo.belgrano@staffya.com", WorkerSkill.RUNNER, 1, 12000, False, None),
-    ("demo.caballito@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 1, 17000, True, "Uniforme provisto"),
-    ("demo.microcentro@staffya.com", WorkerSkill.CAJERO, 1, 15000, False, None),
-    ("demo.villacrespo@staffya.com", WorkerSkill.BARTENDER, 1, 19000, False, "Casual"),
-    ("demo.almagro@staffya.com", WorkerSkill.MOZO, 1, 15500, True, "Remera del local"),
-    ("demo.puertomadero@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 1, 20000, True, "Uniforme provisto"),
-    ("demo.nunez@staffya.com", WorkerSkill.BARISTA, 1, 14500, False, None),
-    ("demo.boedo@staffya.com", WorkerSkill.MOZO, 1, 15000, False, "Mandil del bodegón"),
-    ("demo.colegiales@staffya.com", WorkerSkill.COCINERO, 1, 23000, True, None),
+    ("demo.palermo@staffya.com", WorkerSkill.BARTENDER, 1, 52000, True, "Negro formal"),
+    ("demo.palermo@staffya.com", WorkerSkill.MOZO, 1, 42000, False, "Camisa blanca"),
+    ("demo.recoleta@staffya.com", WorkerSkill.MOZO, 1, 45000, False, "Elegante sport"),
+    ("demo.recoleta@staffya.com", WorkerSkill.COCINERO, 1, 58000, True, None),
+    ("demo.santelmo@staffya.com", WorkerSkill.BARISTA, 1, 36000, False, "Delantal del local"),
+    ("demo.belgrano@staffya.com", WorkerSkill.RUNNER, 1, 32000, False, None),
+    ("demo.caballito@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 1, 46000, True, "Uniforme provisto"),
+    ("demo.microcentro@staffya.com", WorkerSkill.CAJERO, 1, 38000, False, None),
+    ("demo.villacrespo@staffya.com", WorkerSkill.BARTENDER, 1, 48000, False, "Casual"),
+    ("demo.almagro@staffya.com", WorkerSkill.MOZO, 1, 40000, True, "Remera del local"),
+    ("demo.puertomadero@staffya.com", WorkerSkill.PERSONAL_EVENTOS, 1, 55000, True, "Uniforme provisto"),
+    ("demo.nunez@staffya.com", WorkerSkill.BARISTA, 1, 37000, False, None),
+    ("demo.boedo@staffya.com", WorkerSkill.MOZO, 1, 39000, False, "Mandil del bodegón"),
+    ("demo.colegiales@staffya.com", WorkerSkill.COCINERO, 1, 60000, True, None),
 ]
 
+# Hora de arranque típica de cada puesto, en hora de Argentina: un turno de
+# barista a las 3 de la mañana delata que es un dato de prueba.
+_TYPICAL_START_HOUR_ART = {
+    WorkerSkill.BARTENDER: 21,
+    WorkerSkill.MOZO: 19,
+    WorkerSkill.COCINERO: 18,
+    WorkerSkill.BARISTA: 8,
+    WorkerSkill.RUNNER: 12,
+    WorkerSkill.CAJERO: 10,
+    WorkerSkill.PERSONAL_EVENTOS: 20,
+}
+_ART_OFFSET = timedelta(hours=-3)  # Argentina no tiene horario de verano
 
-async def _seed_shifts(session, created_company_emails: set[str]) -> None:
-    """Publica turnos demo, sólo para los comercios recién creados (idempotente)."""
-    if not created_company_emails:
-        print("  [omitido] no hay comercios nuevos: no se siembran turnos")
+
+def _next_demo_start(position: WorkerSkill, index: int, now: datetime) -> datetime:
+    """Próximo arranque verosímil para un turno demo: a la hora típica del
+    puesto, repartido entre hoy y los próximos días (según `index`), y nunca
+    antes de 2 h desde ahora — un turno que arranca ya no deja probar nada."""
+    hour = _TYPICAL_START_HOUR_ART.get(position, 19)
+    now_art = now + _ART_OFFSET
+    day = now_art.replace(hour=hour, minute=0, second=0, microsecond=0)
+    candidate = day + timedelta(days=index % 3)
+    while candidate - now_art < timedelta(hours=2):
+        candidate += timedelta(days=1)
+    return candidate - _ART_OFFSET
+
+
+async def _demo_companies_without_open_shifts(session: AsyncSession) -> dict[str, UUID]:
+    """Comercios demo que hoy no tienen ningún turno abierto a futuro
+    (email → id de comercio). DOS consultas en lote, sin importar cuántos
+    comercios demo haya — esto corre en cada arranque (ver el test de costo
+    de la segunda corrida)."""
+    emails = sorted({email for email, *_ in SHIFTS})
+    rows = await session.execute(
+        select(UserModel.email, CompanyProfileModel.id)
+        .join(CompanyProfileModel, CompanyProfileModel.user_id == UserModel.id)
+        .where(UserModel.email.in_(emails))
+    )
+    company_by_email = {email: company_id for email, company_id in rows.all()}
+    if not company_by_email:
+        return {}
+    live = await session.execute(
+        select(ShiftModel.company_id)
+        .where(
+            ShiftModel.company_id.in_(list(company_by_email.values())),
+            ShiftModel.status.in_([status.value for status in OPEN_STATUSES]),
+            ShiftModel.start_at > func.now(),
+        )
+        .distinct()
+    )
+    with_open = {row[0] for row in live.all()}
+    return {email: cid for email, cid in company_by_email.items() if cid not in with_open}
+
+
+async def _seed_shifts(session) -> None:
+    """Publica turnos demo para los comercios demo que no tienen ninguno
+    abierto a futuro.
+
+    Antes sembraba una sola vez, al crear cada comercio: al día siguiente los
+    turnos ya habían pasado (quedaban "no cubiertos", ADR-0015) y la app
+    volvía a verse vacía aunque `SEED_DEMO_DATA` siguiera prendido. Ahora cada
+    arranque repone lo que haga falta, así la demo siempre tiene turnos
+    vigentes. Idempotente: un comercio con un turno abierto a futuro no
+    recibe otro."""
+    pending = await _demo_companies_without_open_shifts(session)
+    if not pending:
+        print("  [omitido] todos los comercios demo tienen turnos vigentes")
         return
 
     users = SqlAlchemyUserRepository(session)
@@ -549,20 +618,16 @@ async def _seed_shifts(session, created_company_emails: set[str]) -> None:
         email_sender=NullEmailSender(),
     )
     by_email = {c["email"]: c for c in COMPANIES}
-    start = datetime.now(UTC) + timedelta(hours=5)
+    now = datetime.now(UTC)
 
-    for email, position, qty, pay, urgent, dress in SHIFTS:
-        if email not in created_company_emails:
-            continue
-        user = await users.get_by_email(email)
-        if user is None:
-            continue
-        company = await companies.get_by_user_id(user.id)
-        if company is None:
+    for index, (email, position, qty, pay, urgent, dress) in enumerate(SHIFTS):
+        company_id = pending.get(email)
+        if company_id is None:
             continue
         meta = by_email[email]
+        start = _next_demo_start(position, index, now)
         shift = await service.create_shift(
-            company.id,
+            company_id,
             ShiftData(
                 position=position,
                 quantity=qty,
@@ -581,9 +646,8 @@ async def _seed_shifts(session, created_company_emails: set[str]) -> None:
                 description="Turno de demostración para probar la app.",
             ),
         )
-        await service.publish_shift(company.id, shift.id)
+        await service.publish_shift(company_id, shift.id)
         print(f"  [ok] turno {position.value} en {meta['city']}")
-        start += timedelta(hours=2)
 
 
 # Foto real para las cuentas compartidas invitado/prueba (Julieta, 2026-08-16:
@@ -738,11 +802,11 @@ async def seed_shared_account_photos() -> None:
 async def main() -> None:
     async with AsyncSessionLocal() as session:
         print("Comercios de prueba:")
-        created = await _seed_companies(session)
+        await _seed_companies(session)
         print("Trabajadores de prueba:")
         await _seed_workers(session)
         print("Turnos de prueba:")
-        await _seed_shifts(session, created)
+        await _seed_shifts(session)
         print("Fotos de cuentas invitado/prueba compartidas:")
         await _seed_shared_account_photos(session)
     print(f"\nListo. Contraseña de todas las cuentas demo: {DEMO_PASSWORD}")

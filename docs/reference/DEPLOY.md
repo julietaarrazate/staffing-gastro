@@ -153,6 +153,16 @@ Pasos:
 conocida** — correcto para la etapa de demostración, inaceptable con usuarios
 reales. Antes de abrir la beta:
 
+> **Mientras está prendido (2026-09-22):** Julieta lo prendió para ver la app
+> poblada sin usuarios reales. Cada arranque del backend **repone** los turnos
+> de los comercios demo que se quedaron sin turnos vigentes (antes se
+> sembraban una sola vez y al día siguiente la app volvía a verse vacía), con
+> pagos de 2026 y a la hora típica de cada puesto. Dos efectos a tener en
+> cuenta: los turnos demo **entran en la referencia de pago** (ADR-0012,
+> mediana de los últimos 60 días), así que purgarlos (paso 2) también limpia
+> esa referencia; y las cuentas demo tienen contraseña pública — no mezclar
+> con usuarios reales.
+
 1. **Apagar el seed:** en Render → Environment → `SEED_DEMO_DATA=false` (o
    borrar la variable). Redeploy automático; el arranque salta el seed (es
    idempotente pero ya no debe correr).
