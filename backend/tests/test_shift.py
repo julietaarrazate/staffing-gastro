@@ -922,20 +922,24 @@ async def test_public_shift_published_returns_only_safe_fields(client: AsyncClie
     assert body["company_name"] == "Bar Palermo"
     assert "start_at" in body
     assert "end_at" in body
+    # Las condiciones del turno sí van (Julieta, 2026-09-22): es con lo que
+    # alguien que llega por WhatsApp decide si registrarse.
+    assert body["dress_code"] == "Camisa negra"
+    assert body["tips"] is True
+    assert body["meal"] is False
+    assert body["urgent"] is True
 
-    # Campos sensibles/internos explícitamente ausentes.
+    # Campos sensibles/internos explícitamente ausentes. La descripción libre
+    # sigue afuera: la escribe el comercio y puede traer un teléfono.
     sensitive_fields = {
         "company_id",
         "worker_profile_id",
         "address",
         "latitude",
         "longitude",
-        "dress_code",
         "description",
         "title",
         "quantity",
-        "tips",
-        "urgent",
         "check_in_latitude",
         "check_in_longitude",
         "check_in_at",

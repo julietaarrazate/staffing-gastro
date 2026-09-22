@@ -90,3 +90,59 @@ async def test_second_seed_run_is_cheap_regardless_of_demo_size(session_factory,
         f"por cada una de las {n_demo_entries} entradas demo), se hicieron "
         f"{counter['n']}"
     )
+
+
+async def test_demo_always_has_open_future_shifts(session_factory, monkeypatch):
+    """La demo tiene que verse poblada SIEMPRE que `SEED_DEMO_DATA` esté
+    prendido, no sólo el día que se crearon los comercios: antes los turnos
+    se sembraban una única vez y al día siguiente ya habían pasado. Si un
+    comercio demo se queda sin turnos vigentes, el próximo arranque le repone;
+    si todavía tiene, no le duplica."""
+    from sqlalchemy import update
+
+    from app.modules.shift.infrastructure.models import ShiftModel
+
+    monkeypatch.setattr(seed_demo_data, "AsyncSessionLocal", session_factory)
+    await seed_demo_data.main()
+
+    async def open_count() -> int:
+        async with session_factory() as session:
+            result = await session.execute(
+                select(func.count())
+                .select_from(ShiftModel)
+                .where(ShiftModel.status.in_(["publicado", "buscando_personal"]))
+            )
+            return result.scalar_one()
+
+    first = await open_count()
+    assert first == len(seed_demo_data.SHIFTS)
+
+    # Segunda corrida con todo vigente: no duplica.
+    await seed_demo_data.main()
+    assert await open_count() == first
+
+    # Pasa el tiempo: los turnos se resuelven como no cubiertos (ADR-0015).
+    async with session_factory() as session:
+        await session.execute(update(ShiftModel).values(status="no_cubierto"))
+        await session.commit()
+    assert await open_count() == 0
+
+    await seed_demo_data.main()
+    assert await open_count() == len(seed_demo_data.SHIFTS)
+
+
+def test_demo_shift_starts_at_a_plausible_hour():
+    """Un turno demo arranca a la hora típica de su puesto (hora de
+    Argentina) y nunca en menos de 2 h."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.modules.worker.domain.value_objects import WorkerSkill
+
+    now = datetime(2026, 9, 22, 23, 30, tzinfo=UTC)  # 20:30 en Argentina
+    start = seed_demo_data._next_demo_start(WorkerSkill.BARISTA, 0, now)
+    assert (start - timedelta(hours=3)).hour == 8  # 8 de la mañana en AR
+    assert start - now >= timedelta(hours=2)
+
+    start = seed_demo_data._next_demo_start(WorkerSkill.BARTENDER, 0, now)
+    assert (start - timedelta(hours=3)).hour == 21
+    assert start - now >= timedelta(hours=2)

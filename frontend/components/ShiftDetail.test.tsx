@@ -45,6 +45,10 @@ const SHIFT: ShiftPublic = {
   pay_amount: "42000.00",
   currency: "ARS",
   company_name: "Tinto",
+  tips: false,
+  meal: false,
+  dress_code: null,
+  urgent: false,
 };
 
 function mockGets(applications: { shift_id: string }[]) {
@@ -93,12 +97,23 @@ describe("ShiftDetail", () => {
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
   });
 
-  it("con sesión suma lo que la vista pública no trae (las condiciones)", async () => {
+  it("sin sesión ya muestra las condiciones del turno", () => {
+    render(<ShiftDetail publicShift={{ ...SHIFT, tips: true, dress_code: "Remera negra" }} />);
+
+    expect(screen.getByText("Qué incluye")).toBeInTheDocument();
+    expect(screen.getByText("Propinas")).toBeInTheDocument();
+    expect(screen.getByText("Vestimenta: Remera negra")).toBeInTheDocument();
+  });
+
+  it("con sesión suma lo que la vista pública no trae (la descripción)", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
-    mockGets([]);
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) return Promise.resolve([]);
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT, description: "Traer delantal" });
+      return Promise.reject(new Error(path));
+    });
     render(<ShiftDetail publicShift={SHIFT} />);
 
-    await waitFor(() => expect(screen.getByText("Qué incluye")).toBeInTheDocument());
-    expect(screen.getByText("Propinas")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Traer delantal")).toBeInTheDocument());
   });
 });

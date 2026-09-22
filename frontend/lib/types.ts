@@ -245,6 +245,12 @@ export interface ShiftPublic {
   pay_amount: string;
   currency: string;
   company_name: string | null;
+  // Condiciones del turno (van también sin sesión desde 2026-09-22). La
+  // dirección exacta, la descripción y el logo siguen fuera.
+  tips: boolean;
+  meal: boolean;
+  dress_code: string | null;
+  urgent: boolean;
 }
 
 export interface CandidateMatch {
