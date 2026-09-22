@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
-import { formatShiftRange } from "@/lib/datetime";
 import { buildShiftSummary } from "@/lib/shift-share";
-import ShareShiftButton from "@/components/ShareShiftButton";
-import { CalendarIcon, MapPinIcon, WalletIcon } from "@/components/icons";
+import ShiftDetail from "@/components/ShiftDetail";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
  * por WhatsApp/redes. Consume `GET /shifts/{id}/public`, que sólo devuelve
  * turnos en estado PUBLICADO con campos seguros (ni contacto del comercio,
  * ni postulantes, ver `backend/app/modules/shift/api/routes.py`).
+ *
+ * El servidor arma sólo esa vista pública (metadatos para la vista previa de
+ * WhatsApp incluidos); si quien la abre tiene sesión, `ShiftDetail` completa
+ * el resto del lado del cliente — ver ahí el porqué.
  */
 
 async function getPublicShift(id: string): Promise<ShiftPublic | null> {
@@ -82,94 +82,5 @@ export default async function PublicShiftPage({
     notFound();
   }
 
-  const { Icon } = SKILL_ACCENT[shift.position];
-
-  return (
-    <div className="mx-auto max-w-md px-4 pb-10 pt-8">
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-        {/* Mismo banner-hero que ShiftCard/OpportunityCard (gradiente por
-            rubro + ícono watermark): esta es la primera pantalla de Oído que
-            ve mucha gente (llega por un link de WhatsApp) — tenía un header
-            chico y plano mientras el resto de la app ya usa este tratamiento
-            para turnos sin foto de local, y se leía como una pantalla de
-            otra app. */}
-        <div className="relative overflow-hidden">
-          <div className={`absolute inset-0 ${SKILL_HERO_GRADIENT[shift.position]}`}>
-            <div className="absolute inset-0 bg-black/15" />
-            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
-          </div>
-          <div className="relative px-5 pb-5 pt-6">
-            <h1 className="font-display text-h1 font-semibold text-white drop-shadow">
-              {SKILL_LABELS[shift.position]}
-            </h1>
-            {shift.company_name && (
-              <p className="mt-0.5 text-sm font-semibold text-white/85">{shift.company_name}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="px-5 pb-5 pt-5">
-          <div className="flex flex-col gap-2 text-sm text-ink/70">
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarIcon size={16} className="text-ink/35" />
-              {formatShiftRange(shift.start_at, shift.end_at)}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <MapPinIcon size={16} className="text-ink/35" />
-              {shift.city ?? "Zona a confirmar"}
-            </span>
-          </div>
-
-          {/* `bg-night` (siempre oscura, en los tres modos), no `bg-surface`:
-              mismo "módulo de foco" que ya usa el dinero en WorkerGameCard —
-              el brief pide que el precio tenga peso visual real en esta
-              pantalla, que es la de conversión. Por eso el texto es
-              hardcoded claro (`text-primary`/`text-white`), NO los tokens
-              `-text` (pensados para superficies que SÍ invierten con el
-              tema): acá la superficie nunca cambia, así que el texto
-              tampoco debe hacerlo.
-              Adentro va con color, no en blancos y grises: ícono ámbar sólido,
-              moneda ámbar, monto en blanco y rótulo en crema — es la misma
-              combinación de la tarjeta de ganancias de `WorkerGameCard`, que
-              es la referencia de cómo se llena una tarjeta negra en toda la
-              app (Julieta, 2026-09: "si una tarjeta es todo negra necesita
-              que adentro los iconos, el texto y los datos estén con colores
-              para contrastar"). */}
-          <div className="mt-5 rounded-2xl bg-focus px-4 py-4 text-center">
-            <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-night">
-              <WalletIcon size={18} />
-            </span>
-            <p className="font-display text-price font-extrabold tracking-tight text-focus-ink">
-              <span className="text-lg text-primary">{shift.currency}</span>{" "}
-              {Number(shift.pay_amount).toLocaleString("es-AR")}
-            </p>
-            <p className="mt-1 text-[11px] font-bold font-mono uppercase tracking-wide text-manteca">
-              Pago ofrecido
-            </p>
-          </div>
-
-          {/* Quien llega por un link compartido casi siempre es un trabajador
-              buscando el turno: preseleccionamos su rol en el registro
-              (`?rol=trabajador`, mismo patrón que los CTA de la landing) para
-              no hacerlo elegir de más y no perderlo en la pestaña equivocada. */}
-          <Link
-            href="/register?rol=trabajador"
-            className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-[var(--radius-btn)] bg-primary px-6 text-base font-bold text-night shadow-[var(--shadow-primary)] transition active:scale-[0.98]"
-          >
-            Postulate en Oído
-          </Link>
-          <p className="mt-3 text-center text-xs text-ink/40">
-            Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.
-          </p>
-
-          {/* Re-compartir: quien recibe el link puede pasarlo a otro colega
-              (loop de difusión). Reusa el mismo botón y la misma pieza de
-              share que el feed y el panel del comercio. */}
-          <div className="mt-4 flex justify-center border-t border-line pt-4">
-            <ShareShiftButton shift={shift} shiftId={shift.id} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <ShiftDetail publicShift={shift} />;
 }
