@@ -8,12 +8,10 @@ type Variant = "primary" | "dark" | "secondary" | "danger" | "surface" | "ghost"
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  // Coral de marca con texto BLANCO (board v5.0: "Botón principal" es coral con
-  // label claro). Blanco sobre #ff5a3d da 3.03 — AA para texto grande/bold, que
-  // es el caso de un label de botón (≥14px bold). El body chico nunca va sobre
-  // coral relleno (ahí seguiría texto oscuro por legibilidad).
+  // Ámbar de marca con texto OSCURO: ink sobre #d97706 da 6.61 (AA holgado); el
+  // blanco sobre ámbar da 2.86 y no llega ni al mínimo de texto grande.
   primary:
-    "bg-primary text-white shadow-[var(--shadow-primary)] hover:brightness-[1.04]",
+    "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04]",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
   secondary:

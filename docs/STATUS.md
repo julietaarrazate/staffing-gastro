@@ -5,49 +5,43 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-20 (**sistema de identidad v5.0: la marca pasa a
-CORAL `#FF5A3D` sobre off-white cálido `#F8F6F1`, acento violeta, Saans/Inter/
-DM Mono y modo oscuro real — a partir del board de diseño definitivo de
-Julieta**). Supersede el pivot "lienzo blanco" de horas antes y el rebrand
-ámbar.*
+*Última actualización: 2026-09-22 (**Design System v5.0 — lienzo blanco cálido,
+ámbar de Oído como único naranja, verde bosque como secundario, tipografía
+libre y modo oscuro real; en curso el pase de estética de pantallas según el
+board de Julieta**).*
 
-**Frente vigente (2026-09-20) — Design System v5.0 "sistema de identidad".**
-Julieta pasó un board de diseño completo (style-guide + pantallas) como spec
-definitiva. La marca deja el ámbar y pasa a **coral `#FF5A3D`** sobre lienzo
-**off-white cálido `#F8F6F1`**, con acento **violeta `#A78BFA`** (lo "nuevo"),
-tipografía **Saans (títulos) / Inter (texto) / DM Mono (precios)** —el wordmark
-sigue serif (Fraunces)—, formas card16/btn12/input12/badge99, y **modo oscuro
-real** (el lienzo se oscurece; supersede el híbrido). Esto reemplaza tanto el
-rebrand ámbar (#315–#325) como el pivot "lienzo blanco" del mismo día.
+**Frente vigente — Design System v5.0 (PR #345, draft).** Julieta pasó dos
+boards de diseño (style-guide + pantallas) y una paleta de referencia. Después
+de iterar el naranja (coral `#FF5A3D` → terracota `#E5531E`, ambos rechazados
+por "anaranjado fuerte"), la dirección quedó fijada así:
 
-**Primer PR = FOUNDATION (identidad + sistema; "primero sistema").** Todo por
-token en `globals.css`: color (coral + hover/soft, violeta, superficies
-off-white, texto #111/#4B5563/#7C8A9A, status con success #16A34A e info
-#3B82F6), radios, y la reescritura del bloque de modo oscuro a lienzo oscuro
-real. `layout.tsx`: fuentes (Hanken Grotesk como **stand-in libre de Saans**
-—Saans es paga—, DM Mono, Fraunces sólo para el wordmark). `Logo.tsx`: wordmark
-a `font-serif`. Docs: `docs/design-system/` (README + brand-foundation, color,
-typography, shape, elevation) y `COLOR_SYSTEM.md` v5.0. Verificado en `/feed`
-claro y **oscuro** a 390px; `tsc`/`build`/90 unit tests en verde.
+- **Naranja = el ámbar de Oído de siempre `#D97706`**, con texto OSCURO encima
+  (ink sobre ámbar 6.61; el blanco da 2.86 y falla — por eso los botones no van
+  en blanco). Logo SVG en ámbar, sin cambios respecto de antes.
+- **Lienzo más blanco**: `#FBFAF6` (blanco cálido). Superficie recesada
+  `#F3EFE6`. La tarjeta blanca flota por hairline + sombra de dos capas.
+- **Color para acentos y para "levantar", con criterio** (como las pantallas
+  del board): **verde bosque `#1B3A31`** (`--color-secondary`) para superficies
+  destacadas; manteca (buttercream) y cielo (baby blue), que Oído ya tenía,
+  como acentos suaves de datos.
+- **Tipografía libre**: Hanken Grotesk en títulos (no se licencia Saans, que es
+  paga), Inter en texto, DM Mono cargada para datos; **los precios NO se
+  tocan**. El wordmark sigue en serif (Fraunces).
+- **Formas** card 16 / botón 12 / input 12 / badge 99, y **modo oscuro real**
+  (el lienzo se oscurece; supersede el híbrido).
+- Docs: `docs/design-system/` (README, brand-foundation, color-system,
+  typography, shape-language, elevation) y `COLOR_SYSTEM.md` v5.0.
 
-**Decidido por Julieta (2026-09-20):**
-- **Fuente de títulos LIBRE, definitiva** (Hanken Grotesk) — no se licencia
-  Saans (fuente paga). Los **precios NO se tocan** (siguen sin DM Mono).
-- **Botón principal coral con texto BLANCO** (board) — aplicado en el Button del
-  DS + CTAs sueltas prominentes (Navbar, turno, QuickActions, landing, enviar
-  chat). Los chips/badges chicos sobre coral quedan con texto oscuro (blanco
-  fallaría AA en texto chico).
-- **Logo a coral**: `logo-mark.svg`/`logo.svg`/`oido-isotipo.svg`/
-  `logo-maskable.svg` ya en coral. Faltan los **PNG rasterizados** (favicon.ico,
-  icon-192/512, apple-icon, og-image) — necesitan el pipeline raster.
-
-**Pendiente (siguiente(s) PR — "después componentes, después pantallas"):**
-- Regenerar los **PNG del ícono** a coral (pipeline raster / sharp).
-- **Variantes de card** (ShiftCard/VenueCard/WorkerCard/Recommendation/Urgent/
-  Featured/Compact), **mapa** (pin con identidad + preview contextual), **feed
-  con ritmo**, **brand moments**, **motion** — el pase de componentes/pantallas.
+**Pendiente (siguiente trabajo — "después componentes, después pantallas"):**
+- **Pase de estética** para que las pantallas se compongan como el board:
+  home del trabajador (scroll con saludo, buscador, chips de filtro, hero
+  "Recomendado" y fila "Cerca tuyo"), detalle de turno (foto de cabecera, meta
+  con íconos, chips de atributos), perfil (grilla de disponibilidad), home del
+  comercio (tarjeta verde "Turnos activos", candidatos destacados), mapa
+  (preview al tocar un pin).
 - **Modo oscuro**: auditar `bg-night` (toast, botón dark) sobre el lienzo oscuro.
-- **manteca/cielo/trust**: reconciliar con accent(violeta)/info(azul) del board.
+- **Violeta `--color-accent`**: no está en la paleta final de Julieta; no usarlo
+  en pantallas nuevas (queda definido para no romper nada).
 
 **¿Arrancás una sesión nueva y querés saber qué sigue?** Andá directo a la
 sección **"Qué sigue (estado vigente)"**, más abajo. Es la única lista de este

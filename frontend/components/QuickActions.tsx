@@ -62,7 +62,7 @@ export default function QuickActions({
               <span
                 className={`flex h-14 w-14 items-center justify-center rounded-[var(--radius-input)] transition active:scale-95 ${
                   action.primary
-                    ? "bg-primary text-white shadow-[var(--shadow-primary-sm)]"
+                    ? "bg-primary text-night shadow-[var(--shadow-primary-sm)]"
                     : "bg-card text-ink/70 ring-1 ring-line"
                 }`}
               >

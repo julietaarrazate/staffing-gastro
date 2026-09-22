@@ -5,12 +5,13 @@
  *
  * Reescritura de identidad a partir del board de diseño definitivo que pasó
  * Julieta (dos tableros: style-guide + pantallas). Supersede tanto el rebrand
- * ámbar (#315–#325) como el pivot "lienzo blanco" de horas antes: la marca pasa
- * a TERRACOTA (#E5531E — burnt orange cálido y terroso, muestreado del board;
- * NO el coral neón #FF5A3D que Julieta rechazó por "anaranjado fuerte") sobre
- * un lienzo BEIGE cálido (#F3EEE3), con VERDE BOSQUE (#1B3A31) como secundario
- * editorial y VIOLETA (#A78BFA) para lo "nuevo". El color al servicio de la
- * jerarquía, no un acento por todos lados. Tipografía: fuente libre de títulos
+ * ámbar (#315–#325) como el pivot "lienzo blanco" de horas antes. Tras varias
+ * pruebas (coral #FF5A3D, terracota #E5531E — ambos rechazados por
+ * "anaranjado fuerte"), Julieta fijó: el naranja es el ÁMBAR de Oído de siempre
+ * (#D97706), sobre un lienzo BLANCO cálido (#FBFAF6), con VERDE BOSQUE
+ * (#1B3A31) como secundario editorial y manteca/cielo como acentos suaves.
+ * "Más blanco, y los colores para acentos y para levantar, con criterio" — el
+ * color al servicio de la jerarquía, no un acento por todos lados. Tipografía: fuente libre de títulos
  * (Hanken Grotesk, no se licencia Saans), Inter (texto), DM Mono (datos); el
  * wordmark sigue en serif (Fraunces). Formas: card 16 / botón 12 / input 12 /
  * badge 99. Personalidad marketplace + hospitality editorial, no SaaS/fintech.
@@ -20,9 +21,9 @@
  */
 :root {
   color-scheme: light; /* claro por defecto; el bloque de modo oscuro lo vuelca a dark */
-  --background: #f3eee3; /* Beige cálido — lienzo de la app (board 2, muestreo ~#EEE9DC) */
-  --foreground: #111111; /* Tinta primaria (board: Text/Primary #111111) */
-  --line: #e5decf; /* borde 1px, hairline cálido sobre el beige */
+  --background: #fbfaf6; /* Blanco cálido — lienzo de la app (Julieta: "que esté más blanco") */
+  --foreground: #111111; /* Tinta primaria */
+  --line: #ece7dd; /* borde 1px, hairline cálido que se lee sobre el blanco */
 
   /* Radios — alineados a la maqueta aprobada (2026-09).
    *
@@ -125,22 +126,20 @@
      #ffffff sobre #ff5a3d da 3.24 — AA para texto GRANDE/bold (≥18.66px o
      ≥14px bold), que es el caso del botón; el body chico nunca va sobre coral
      relleno. */
-  /* TERRACOTA de marca (board 2, muestreo de píxeles: botón "Postularme"
-     #E85325, dot de paleta #E65B2B). Reemplaza el coral #FF5A3D, que Julieta
-     marcó como "anaranjado fuerte" — este tono es más cálido, terroso y
-     apagado (menos rojo/rosa, menos neón), la cara real del board. Relleno con
-     texto BLANCO: blanco sobre #e5531e da 4.4 (AA texto grande/bold; el body
-     chico nunca va sobre terracota relleno). */
-  --color-primary: #e5531e;
-  /* Terracota hover/pressed (más oscuro). */
-  --color-primary-strong: #c6440f;
-  /* Terracota como TEXTO sobre claro: #e5531e da ~3.4, insuficiente para body.
-     Se oscurece a un terracota profundo que pasa AA sobre el lienzo cálido y
-     sobre el tinte. */
-  --color-primary-text: #ad420d;
-  /* Tinte pálido (peach cálido) de acción/activo/badge y fondo del pill de la
-     pestaña activa. */
-  --color-primary-tint: #fbe8da;
+  /* ÁMBAR de marca de Oído (#D97706) — el naranja que la app ya venía usando.
+     Julieta rechazó el coral #FF5A3D y el terracota #E5531E ("no ese
+     anaranjado fuerte, me gusta más el de Oído que ya veníamos usando"). Va con
+     texto OSCURO (text-night): ink sobre ámbar da 6.61 (AA holgado); el blanco
+     sobre ámbar da 2.86 y falla, por eso los botones NO usan texto blanco. */
+  --color-primary: #d97706;
+  /* Ámbar oscuro (hover/pressed, fin de degradé). */
+  --color-primary-strong: #b45309;
+  /* Ámbar como TEXTO sobre claro: la superficie da 3.02 (falla); #B45309 da
+     4.77 sobre el off-white, pasa AA. */
+  --color-primary-text: #b45309;
+  /* Tinte pálido ámbar (amber-50) de acción/activo/badge y fondo del pill de
+     la pestaña activa. */
+  --color-primary-tint: #fffbeb;
   /* VERDE BOSQUE secundario (board 2, muestreo: tarjeta "Turnos activos"
      #17312A, dot de paleta #132624). Es un color de MARCA/editorial —
      superficies destacadas (la tarjeta de turnos activos), no un estado. Va
@@ -202,9 +201,9 @@
    * lienzo off-white; la superficie recesada (chips, tracks, inputs idle) es
    * Surface Secondary #F1ECE6. Escala clara: lienzo #f8f6f1 → tarjeta #ffffff
    * (elevada, hairline+sombra) → surface #f1ece6 → focus/ink #111111. */
-  --color-surface: #ebe5d8; /* Surface Secondary — relleno recesado (board 2, beige) */
-  --color-line: #e5decf; /* hairline cálido, legible sobre el beige */
-  --color-paper: #ebe5d8; /* franja algo más profunda que el lienzo (landing) */
+  --color-surface: #f3efe6; /* relleno recesado (chips, inputs idle), apenas más hondo que el blanco */
+  --color-line: #ece7dd; /* hairline cálido, legible sobre el blanco */
+  --color-paper: #f3efe6; /* franja algo más profunda que el lienzo (landing) */
 
   /* Superficie de tarjeta (rediseño 2026-09: modo claro/oscuro). Antes las
      tarjetas usaban `bg-white` literal, que no puede voltearse en oscuro. Este
@@ -451,7 +450,7 @@
   --color-ink-mute: #8b8276;
 
   /* Acentos y estados sobre lienzo/tarjeta oscura (todos ≥ AA como texto). */
-  --color-primary-text: #f0774a; /* terracota aclarado para texto sobre oscuro */
+  --color-primary-text: #e8920f; /* ámbar aclarado para texto sobre oscuro (AA) */
   --color-secondary-text: #7fb8a3; /* verde bosque aclarado sobre oscuro */
   --color-accent-text: #c4b5fd;
   --color-success-text: #4ade80;
