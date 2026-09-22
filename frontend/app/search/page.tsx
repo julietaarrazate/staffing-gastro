@@ -11,7 +11,7 @@ import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { SearchIcon, UsersIcon } from "@/components/icons";
-import { SKILL_ACCENT, SKILL_HERO_GRADIENT, SKILL_RAIL_BORDER } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE, SKILL_RAIL_BORDER } from "@/lib/skill-style";
 import StarRating from "@/components/StarRating";
 import BottomSheet from "@/components/BottomSheet";
 
@@ -183,10 +183,10 @@ function SearchPageContent() {
                 // ponele colores — naranja no"). La lista era íntegramente
                 // blanca y todas las filas se leían iguales; el riel las
                 // diferencia de un vistazo sin cambiar el fondo blanco que
-                // hace legible el texto. Naranja sólo le toca a quien
-                // efectivamente es mozo/cocinero: el resto de los oficios
-                // trae su propio color de `SKILL_HERO_GRADIENT` (bartender
-                // terracota, barista ámbar, cajero verde...), la misma tabla
+                // hace legible el texto. El verde bosque sólo le toca a quien
+                // efectivamente es mozo: el resto de los oficios
+                // trae su propio color de `SKILL_HERO_TONE` (bartender
+                // vino, barista espresso, cajero azul noche...), la misma tabla
                 // que ya usan la landing, el mazo y las listas de turnos.
                 className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-surface p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
                   worker.skills.length > 0
@@ -206,7 +206,7 @@ function SearchPageContent() {
                   <div
                     className={`flex h-16 w-16 items-center justify-center rounded-[var(--radius-chip)] text-xl font-bold text-white ${
                       worker.skills.length > 0
-                        ? SKILL_HERO_GRADIENT[worker.skills[0]]
+                        ? SKILL_HERO_TONE[worker.skills[0]]
                         : "bg-gradient-to-br from-primary to-primary-strong"
                     }`}
                   >

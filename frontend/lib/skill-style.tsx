@@ -41,47 +41,40 @@ export const SKILL_ACCENT: Record<
 };
 
 /**
- * Gradiente SATURADO por rubro, para el banner de una tarjeta de turno cuando
- * el comercio no subió foto (`OpportunityCard`). Es el complemento oscuro de
- * `SKILL_ACCENT`, que arriba es deliberadamente pálido porque va detrás de un
- * ícono chico sobre superficie blanca; acá, en cambio, el color OCUPA el
- * banner y lleva texto blanco encima, así que necesita profundidad real.
+ * Tono PROFUNDO por rubro, para el banner de una tarjeta de turno cuando el
+ * comercio no subió foto (`OpportunityCard`, `ShiftCard`, mapa, búsqueda,
+ * landing). Lleva texto blanco encima, por eso es oscuro.
  *
- * Por qué existe (Julieta, 2026-08-16): el banner sin foto arrancó siendo el
- * tinte pálido de `SKILL_ACCENT` a toda la tarjeta ("muy beige, plano"), pasó
- * a un único gradiente naranja de marca (mejor, pero "todas iguales"), y al
- * ver los 3 colores distintos que quedaron en la landing pidió traerlos
- * adentro. Sigue siendo un color por tarjeta —no un arcoíris dentro de una
- * misma tarjeta— y toda la escala vive en la paleta cálida de la marca
- * (naranja / terracota / ámbar / verde bosque / piedra), la misma familia que
- * `SKILL_ACCENT`: el rubro se lee por la FORMA del ícono, el gradiente sólo
- * evita que dos turnos seguidos se sientan la misma tarjeta repetida.
+ * Historia: el banner sin foto fue tinte pálido ("muy beige, plano"), después
+ * un único naranja de marca ("todas iguales"), después un gradiente SATURADO
+ * por rubro (Julieta, 2026-08-16: que dos turnos seguidos no se sientan la
+ * misma tarjeta). Con el Design System v5.0 (lienzo blanco, el color para
+ * acentos y para "levantar" con criterio, 2026-09-22) el gradiente saturado
+ * quedó como la única superficie que gritaba: pasa a un tono PLANO, profundo
+ * y apagado por rubro — vino, espresso, pizarra, ciruela —, que sigue
+ * distinguiendo dos turnos seguidos sin competir con el ámbar. El mozo, el
+ * rubro más común, lleva el verde bosque de la marca (`--color-secondary`),
+ * el mismo de la tarjeta "Recomendado" del home. Todos dan más de 10:1 con
+ * blanco.
  */
-export const SKILL_HERO_GRADIENT: Record<WorkerSkill, string> = {
-  mozo: "bg-gradient-to-br from-primary to-primary-strong",
-  // Vino, no rojo de semáforo. `red-600` (#dc2626) es literalmente el matiz
-  // del error —`--color-danger` es #ef4444— así que una tarjeta de bartender
-  // se leía como una tarjeta cancelada; y el rojo puro (matiz 0) es el único
-  // color de esta tabla que se sale de la familia cálida que su propio
-  // docstring dice respetar. Este borgoña conserva la idea (el rubro es el de
-  // la barra) sin pisar el significado de "algo salió mal". Contraste medido
-  // del texto blanco sobre el extremo claro: 9.2:1.
-  bartender: "bg-gradient-to-br from-[#7f2b2b] to-[#4a1616]",
-  barista: "bg-gradient-to-br from-amber-500 to-amber-800",
-  runner: "bg-gradient-to-br from-stone-500 to-stone-800",
-  cocinero: "bg-gradient-to-br from-orange-500 to-orange-800",
-  cajero: "bg-gradient-to-br from-green-600 to-green-900",
-  recepcionista: "bg-gradient-to-br from-amber-600 to-amber-900",
-  personal_eventos: "bg-gradient-to-br from-emerald-600 to-emerald-900",
-  ayudante_cocina: "bg-gradient-to-br from-amber-500 to-orange-800",
-  personal_salon: "bg-gradient-to-br from-stone-600 to-stone-900",
+export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
+  mozo: "bg-secondary",
+  bartender: "bg-[#4a1d26]", // vino
+  barista: "bg-[#4a3222]", // espresso
+  runner: "bg-[#2e3a40]", // pizarra
+  cocinero: "bg-[#5a2a18]", // terracota tostada
+  cajero: "bg-[#23344a]", // azul noche
+  recepcionista: "bg-[#3e3a2a]", // oliva
+  personal_eventos: "bg-[#352642]", // ciruela
+  ayudante_cocina: "bg-[#5a3a12]", // ámbar tostado
+  personal_salon: "bg-[#34302b]", // piedra
 };
 
 /**
  * Color de RIEL (borde izquierdo grueso) por oficio, para filas de lista que
  * siguen siendo blancas — hoy los resultados de `/search`. Es el tercer
  * registro de la misma familia: `SKILL_ACCENT` (tinte pálido para chips
- * chicos), `SKILL_HERO_GRADIENT` (banner saturado con texto blanco encima) y
+ * chicos), `SKILL_HERO_TONE` (banner saturado con texto blanco encima) y
  * éste, para cuando el color tiene que identificar una fila sin invadirla.
  *
  * Nace del pedido de Julieta (2026-08-17) sobre la lista de trabajadores:

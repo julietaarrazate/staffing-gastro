@@ -130,7 +130,9 @@ test("las tarjetas de /shifts no son seleccionables como texto de página (chrom
   await mockEmployerShifts(page);
 
   await page.goto("/shifts");
-  await expect(page.getByText("2 persona(s)").first()).toBeVisible();
+  // Espera a que haya una tarjeta. (Antes esperaba el texto "2 persona(s)",
+  // que la tarjeta ya no muestra: un turno es siempre una persona, ADR-0003.)
+  await expect(page.locator(".no-select").first()).toBeVisible();
 
   const userSelect = await page.evaluate(() => {
     const el = document.querySelector(".no-select");
