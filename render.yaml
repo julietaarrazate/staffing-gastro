@@ -42,14 +42,18 @@ services:
       # cargue los registros DNS, sin depender de otro deploy después.
       - key: CORS_ORIGINS
         value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar
-      # Siembra cuentas/comercios/turnos demo en el arranque (idempotente).
+      # Siembra cuentas/comercios/turnos demo en el arranque (idempotente, y
+      # desde 2026-09-22 repone los turnos demo que ya pasaron).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
-      # APAGADO (2026-08-07): ya no se re-siembran datos demo en cada arranque.
-      # Los datos demo que ya están en Neon siguen ahí (esto sólo frena la
-      # re-siembra). Si además está seteada en el dashboard de Render, hay que
-      # ponerla en "false" también ahí (el dashboard pisa este valor).
+      # PRENDIDO (2026-09-23, decisión de Julieta): sin usuarios reales, la app
+      # se ve poblada. Se fija ACÁ y no sólo en el dashboard porque un valor
+      # declarado en este archivo pisa al del dashboard en cada deploy: Julieta
+      # lo puso en true en el panel y la siembra no corrió (0 cuentas demo en
+      # Neon después del deploy). ANTES DE LA BETA CON GENTE REAL: volver a
+      # "false" ACÁ y purgar las cuentas demo (runbook "apagar el modo demo" en
+      # docs/reference/DEPLOY.md) — tienen contraseña pública.
       - key: SEED_DEMO_DATA
-        value: "false"
+        value: "true"
       - key: SENTRY_DSN
         sync: false
       # --- Email transaccional (Resend) ---
