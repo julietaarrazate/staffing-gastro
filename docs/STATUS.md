@@ -5,9 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-22 (**Design System v5.0 mergeado (#345); pase
-de estética: detalle de turno, más una fuga de privacidad cerrada en
-`GET /shifts/{id}`**).*
+*Última actualización: 2026-09-23 (**expediente DNDA presentado** por Julieta:
+versión depositada `e1c44b6`, etiqueta `dnda-oido-2026-v1`. Antes, en el
+mismo día: datos demo que vuelven a sembrarse (#352), animaciones + imagen
+para compartir + favicon (#353), foto del local (#354) y documentación sin
+comparaciones con otras apps (#355).)*
 
 **Frente vigente — Design System v5.0 (PR #345, mergeado 2026-09-22).** Julieta pasó dos
 boards de diseño (style-guide + pantallas) y una paleta de referencia. Después
@@ -495,7 +497,15 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
-### Todavía vigente y pendiente de Julieta: expediente DNDA (PR #310, draft)
+### Expediente DNDA (PR #310, draft) — ✅ presentado el 2026-09-23
+
+> **Cierre.** Julieta lo presentó el 2026-09-23. Versión depositada: commit
+> `e1c44b6` (etiqueta `dnda-oido-2026-v1`). Autoría declarada: exclusiva de
+> ella; el uso de herramientas de desarrollo no implica coautoría. Las
+> capturas se tomaron sobre esa misma versión corriendo en local con datos
+> demo, porque desde el entorno de las sesiones no se llega a producción ni a
+> los servicios de mapas y fotos (detalle en `DNDA_CAPTURAS.md` de la rama).
+> Lo de abajo es el historial de cómo se armó.
 
 Julieta pidió armar para Oído el mismo trámite de protección de autoría y
 código fuente que ya tiene preparado (y aprobado) para su otro proyecto
@@ -3936,11 +3946,10 @@ roadmap).
    queda sin tocar hasta decidir si se reconstruye a mano o se arma un
    `app/opengraph-image.tsx` generado (Next.js lo soporta nativo, sería la
    forma de que esto no vuelva a desincronizarse).
-3. 🟠 **PR #310 (expediente DNDA) sigue en draft, a propósito** — incluye una
-   declaración firmable con DNI de Julieta y un campo `[COMPLETAR]` legal.
-   Pendiente enteramente de ella; el detalle está en `DNDA_CHECKLIST_FINAL.md`.
-   No mergear sin su revisión: acá el criterio de "mergear apenas verde" no
-   aplica.
+3. ✅ ~~**Expediente DNDA**~~ — **presentado por Julieta el 2026-09-23**
+   (versión `e1c44b6`, etiqueta `dnda-oido-2026-v1`). Queda esperar la
+   respuesta de la DNDA. El PR #310 sigue en draft y **no se mergea**: es el
+   registro del expediente y lleva su DNI.
 4. ✅ ~~Rediseño del mapa, fase 2 (estado "match" del pin)~~ — **resuelto
    (PR #332, ADR-0012)**. El pin marca el turno que **paga por encima de lo
    típico** para su puesto y ciudad, y el mismo cálculo le dice al comercio
