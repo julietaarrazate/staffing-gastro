@@ -8,6 +8,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
+import ActiveShiftsCard from "@/components/employer/ActiveShiftsCard";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
 import QuickActions, { type QuickAction } from "@/components/QuickActions";
@@ -182,8 +183,9 @@ export default function MyShiftsPage() {
 }
 
 function MyShiftsPanel() {
-  const { token } = useRequireAuth();
+  const { token, user } = useRequireAuth();
   const router = useRouter();
+  const firstName = user?.full_name?.split(" ")[0];
   const toast = useToast();
   const searchParams = useSearchParams();
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -309,9 +311,16 @@ function MyShiftsPanel() {
   return (
     <div className="app-container px-4 pb-10 pt-6">
       <div>
-        <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Panel</h1>
-        <p className="mt-0.5 text-sm text-ink/50">Gestioná los turnos de tu comercio.</p>
+        {/* Saludo en serif, igual que el home del trabajador (DS v5.0). */}
+        <h1 className="font-display text-[30px] font-medium leading-tight text-ink">
+          {firstName ? `Hola, ${firstName}` : "Hola"}
+        </h1>
+        <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>
       </div>
+
+      {!loading && !error && (
+        <ActiveShiftsCard className="mt-4" searching={families.buscando} inProgress={families.en_marcha} />
+      )}
 
       <div className="mt-4">
         <AIAssistantBar />

@@ -14,7 +14,11 @@ import {
  * Clickie) en vez de un score numérico opaco. El resto va en tarjeta sobria
  * con los mismos chips de confianza.
  *
- * EL RECOMENDADO VA EN NEGRO, no en ámbar (auditoría de distribución de
+ * EL RECOMENDADO VA EN VERDE BOSQUE (`bg-secondary`, DS v5.0; antes negro
+ * `bg-night`, que en el modo oscuro real casi no se distinguía del lienzo).
+ * El razonamiento de abajo sigue igual — lo que importa es que NO sea ámbar.
+ *
+ * (Historia) EL RECOMENDADO VA EN NEGRO, no en ámbar (auditoría de distribución de
  * superficies, 2026-09-10). Antes se destacaba con `ring-2 ring-primary` MÁS
  * una banda ámbar sólida a todo el ancho, y abajo un "Asignar" ámbar — tres
  * ámbares en la misma tarjeta. Peor: las otras dos tarjetas tenían el MISMO
@@ -56,7 +60,7 @@ export default function CandidateCard({
     <div
       className={`no-select overflow-hidden rounded-[var(--radius-card)] transition active:scale-[0.99] ${
         recommended
-          ? "bg-night shadow-[var(--shadow-float)]"
+          ? "bg-secondary shadow-[var(--shadow-float)]"
           : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
       }`}
     >

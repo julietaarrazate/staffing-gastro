@@ -115,6 +115,23 @@ Descubrir rápido → detalle → Matches ya hablan el mismo idioma:
   oscuro (el `bg-night` se perdía contra el lienzo oscuro). Sin usos del
   botón `dark`, no se tocó.
 
+**Punto 2 — el recorrido del comercio (2026-09-23).** La otra mitad de los
+10 minutos: ver quién se postuló y elegir rápido.
+- **Panel** (`/shifts`): saluda por nombre en serif (como el home del
+  trabajador) y arranca con la tarjeta verde **"Turnos activos"**
+  (`ActiveShiftsCard`, como en el board): cuántos hay, cuántos buscando
+  personal y cuántos en marcha, y cuál es el próximo.
+- **Postulantes** (`/shifts/[id]/candidates`): se ordenan para decidir
+  rápido (`lib/applicants.ts`: primero quien tiene turnos hechos, después
+  calificación y puntualidad). El mejor, si tiene historial, va en verde
+  bosque con "Mejor valorado" y el único "Asignar" primario; el resto,
+  secundario. Un trabajador sin turnos ya no muestra "★ 0.0" (se leía como
+  mala nota): dice "Nuevo en Oído". La Garantía Oído pasa abajo de la
+  lista (ocupaba la mitad de la pantalla antes del primer postulante). El
+  resumen del turno usa 24 h, "$52.000" y el tono del rubro.
+- **Recomendado por Oído** (pestaña Recomendados): de `bg-night` a verde
+  bosque — el negro se perdía en el modo oscuro.
+
 **Arreglo de modo oscuro encontrado al mirar el render** (ver BUGS.md): el
 bloque oscuro no definía `--color-line` (bordes blancos brillando) ni ningún
 `-tint` (chips con texto claro sobre fondo casi blanco, ~2.4:1). Ahora los
@@ -122,9 +139,8 @@ tintes en oscuro son un velo del propio color.
 
 **Pendiente (siguiente trabajo — "después componentes, después pantallas"):**
 - **Pase de estética** del resto de pantallas según el board: perfil
-  (grilla de disponibilidad), home del comercio (tarjeta verde "Turnos
-  activos", candidatos destacados), mapa (preview al tocar un pin), y el
-  layout de escritorio del home (mapa + lista, como el board).
+  (grilla de disponibilidad), mapa (preview al tocar un pin) y el layout de
+  escritorio del home (mapa + lista, como el board).
 - **Foto del local**: hoy la tarjeta usa `logo_url` del comercio como foto.
   El board vive de fotos del lugar; un campo "foto del local" (portada) es
   trabajo de backend aparte.
