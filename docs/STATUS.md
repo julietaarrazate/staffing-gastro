@@ -132,15 +132,27 @@ Descubrir rápido → detalle → Matches ya hablan el mismo idioma:
 - **Recomendado por Oído** (pestaña Recomendados): de `bg-night` a verde
   bosque — el negro se perdía en el modo oscuro.
 
+**Perfil del trabajador (2026-09-23).** El bloque de arriba (foto, nombre,
+nivel, calificación) pasa del carbón `bg-focus` al verde bosque, la misma
+superficie destacada que "Recomendado" y "Turnos activos". Las ganancias
+pasan a una superficie clara (`bg-surface`) con el monto en tinta y "$" en
+ámbar: antes eran un segundo bloque oscuro apilado debajo del primero. En
+oscuro, **manteca y cielo** dejan de ser iguales en los dos modos y pasan a
+velo + texto claro (la tarjeta "Nivel Plata" y los íconos de estadísticas
+eran bloques pálidos que brillaban). **Grilla de disponibilidad** (la del
+board): no existe el dato — hace falta backend (días × franjas) y decidir si
+entra al matching; queda como propuesta aparte, no como decoración.
+
 **Arreglo de modo oscuro encontrado al mirar el render** (ver BUGS.md): el
 bloque oscuro no definía `--color-line` (bordes blancos brillando) ni ningún
 `-tint` (chips con texto claro sobre fondo casi blanco, ~2.4:1). Ahora los
 tintes en oscuro son un velo del propio color.
 
 **Pendiente (siguiente trabajo — "después componentes, después pantallas"):**
-- **Pase de estética** del resto de pantallas según el board: perfil
-  (grilla de disponibilidad), mapa (preview al tocar un pin) y el layout de
-  escritorio del home (mapa + lista, como el board).
+- **Pase de estética** del resto de pantallas según el board: mapa (preview
+  al tocar un pin) y el layout de escritorio del home (mapa + lista).
+- **Grilla de disponibilidad** del perfil (board): feature, no estética —
+  modelo días × franjas en el backend y definir si ordena el feed/matching.
 - **Foto del local**: hoy la tarjeta usa `logo_url` del comercio como foto.
   El board vive de fotos del lugar; un campo "foto del local" (portada) es
   trabajo de backend aparte.

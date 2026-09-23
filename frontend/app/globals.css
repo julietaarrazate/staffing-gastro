@@ -477,8 +477,16 @@
      :root, cada chip quedaría con texto claro sobre fondo casi blanco (ámbar
      #e8920f sobre #fffbeb ≈ 2.4:1, falla AA). Acá pasan a ser un velo del
      propio color sobre la superficie oscura: ~5:1 o más con su `-text`.
-     manteca/cielo no se tocan: son pares auto-contenidos (su texto no se
-     aclara), calculados para leerse igual en los dos modos. */
+     manteca y cielo también (2026-09-23): antes quedaban iguales en los dos
+     modos ("pares auto-contenidos") y se leían, pero en el modo oscuro real
+     eran bloques pálidos que brillaban sobre la tarjeta oscura (la tarjeta
+     "Nivel Plata" del perfil, los íconos de las estadísticas). Mismo velo que
+     el resto, con el color base como texto: manteca #f1e7a0 y cielo #cfe4ff
+     sobre la tarjeta oscura dan más de 10:1. */
+  --color-manteca-tint: rgba(241, 231, 160, 0.14);
+  --color-manteca-text: #f1e7a0;
+  --color-cielo-tint: rgba(207, 228, 255, 0.14);
+  --color-cielo-text: #cfe4ff;
   --color-primary-tint: rgba(217, 119, 6, 0.18);
   --color-secondary-tint: rgba(127, 184, 163, 0.16);
   --color-accent-tint: rgba(196, 181, 253, 0.14);

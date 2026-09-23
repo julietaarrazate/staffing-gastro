@@ -85,8 +85,8 @@ export const LEVEL_META: Record<
   // `WorkerGameCard`, no en la tarjeta clara, así que necesita el tono CLARO
   // del par mientras `text` necesita el oscuro. Mismo color, dos roles.
   bronce: { order: 1, dot: "bg-white/60", text: "text-ink/70", bg: "bg-surface", ring: "ring-line" },
-  plata: { order: 2, dot: "bg-cielo", text: "text-cielo-text", bg: "bg-cielo-tint", ring: "ring-cielo" },
-  oro: { order: 3, dot: "bg-manteca", text: "text-manteca-text", bg: "bg-manteca-tint", ring: "ring-manteca" },
+  plata: { order: 2, dot: "bg-cielo", text: "text-cielo-text", bg: "bg-cielo-tint", ring: "ring-cielo/50" },
+  oro: { order: 3, dot: "bg-manteca", text: "text-manteca-text", bg: "bg-manteca-tint", ring: "ring-manteca/60" },
   platino: { order: 4, dot: "bg-slate-400", text: "text-slate-600", bg: "bg-slate-100", ring: "ring-slate-200" },
 };
 
