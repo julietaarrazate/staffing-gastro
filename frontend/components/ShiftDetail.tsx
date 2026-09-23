@@ -19,6 +19,7 @@ import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { Skeleton, useToast } from "@/components/ui";
 import DrawnCheck from "@/components/ui/DrawnCheck";
+import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
   ClockIcon,
@@ -104,7 +105,8 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const shift: Detail = { ...publicShift, ...(full ?? {}) };
   const { Icon } = SKILL_ACCENT[shift.position];
   const label = SKILL_LABELS[shift.position];
-  const photo = shift.company_logo_url && !photoBroken ? shift.company_logo_url : null;
+  const heroPhoto = shiftHeroPhoto(shift);
+  const photo = heroPhoto && !photoBroken ? heroPhoto : null;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
   const isOwner = Boolean(full && myCompanyId && full.company_id === myCompanyId);

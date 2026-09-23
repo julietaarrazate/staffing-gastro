@@ -9,6 +9,7 @@ import { formatShiftWhen } from "@/lib/datetime";
 import { formatPayShort } from "@/lib/pay";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { ChevronRightIcon, ClockIcon, FlameIcon, StarIcon, WalletIcon } from "@/components/icons";
+import { shiftHeroPhoto } from "@/lib/company-photo";
 
 /**
  * Tarjeta "Recomendado" del home del trabajador (board de Julieta, pantalla 1):
@@ -23,7 +24,8 @@ import { ChevronRightIcon, ClockIcon, FlameIcon, StarIcon, WalletIcon } from "@/
  */
 export default function FeedHero({ shift }: { shift: Shift }) {
   const [broken, setBroken] = useState(false);
-  const hasPhoto = Boolean(shift.company_logo_url) && !broken;
+  const heroPhoto = shiftHeroPhoto(shift);
+  const hasPhoto = Boolean(heroPhoto) && !broken;
   const { Icon } = SKILL_ACCENT[shift.position];
   const label = SKILL_LABELS[shift.position];
   const where = [shift.company_name, shift.city].filter(Boolean).join(" · ");
@@ -37,7 +39,7 @@ export default function FeedHero({ shift }: { shift: Shift }) {
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard */}
           <img
-            src={cldThumb(shift.company_logo_url, 800)}
+            src={cldThumb(heroPhoto, 800)}
             alt=""
             onError={() => setBroken(true)}
             loading="eager"

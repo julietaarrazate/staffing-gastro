@@ -129,6 +129,8 @@ export interface Shift {
   created_at: string | null;
   company_name: string | null;
   company_logo_url: string | null;
+  /** Foto del local (fachada/salón). Opcional: mocks y respuestas viejas no la traen. */
+  company_cover_url?: string | null;
   /** Sólo llega en `/shifts/me` (el panel del propio comercio): el backend no
    *  lo manda en el feed ni en `/shifts/mine`, que los leen trabajadores. */
   worker_name?: string | null;
@@ -524,6 +526,7 @@ export interface CompanyProfile {
   owner_full_name?: string | null;
   name: string;
   logo_url: string | null;
+  cover_photo_url?: string | null;
   category: string | null;
   description: string | null;
   address: string | null;

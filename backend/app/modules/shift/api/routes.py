@@ -117,6 +117,7 @@ async def _with_company_info(
         if company:
             response.company_name = company.name
             response.company_logo_url = company.logo_url
+            response.company_cover_url = company.cover_photo_url
             response.company_verified = company.user_id in verified_owner_ids
         responses.append(response)
     return responses

@@ -8,6 +8,7 @@ import { cldThumb } from "@/lib/cloudinary";
 import { formatShiftWhen } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
 import { ChevronRightIcon, FlameIcon } from "@/components/icons";
+import { shiftHeroPhoto } from "@/lib/company-photo";
 
 function formatDistance(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
@@ -15,7 +16,8 @@ function formatDistance(km: number): string {
 
 function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | null }) {
   const [broken, setBroken] = useState(false);
-  const hasPhoto = Boolean(shift.company_logo_url) && !broken;
+  const heroPhoto = shiftHeroPhoto(shift);
+  const hasPhoto = Boolean(heroPhoto) && !broken;
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
   const where = [shift.company_name, distanceKm != null ? formatDistance(distanceKm) : null]
     .filter(Boolean)
@@ -36,7 +38,7 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard */}
             <img
-              src={cldThumb(shift.company_logo_url, 360)}
+              src={cldThumb(heroPhoto, 360)}
               alt=""
               onError={() => setBroken(true)}
               loading="lazy"

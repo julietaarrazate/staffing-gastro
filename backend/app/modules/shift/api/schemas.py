@@ -99,6 +99,7 @@ class ShiftResponse(BaseModel):
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
+    company_cover_url: str | None = None
     # Pago de referencia (ADR-0012): dónde cae el pago por hora de este turno
     # respecto de lo que se paga para el mismo puesto en la misma ciudad.
     # `None` cuando no hay con qué comparar (muestra insuficiente, sin ciudad)

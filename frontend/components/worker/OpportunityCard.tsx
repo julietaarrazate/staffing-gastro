@@ -11,6 +11,7 @@ import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/dat
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
+import { shiftHeroPhoto } from "@/lib/company-photo";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first estilo Airbnb): foto real
@@ -42,7 +43,8 @@ export default function OpportunityCard({
   const { Icon } = SKILL_ACCENT[shift.position];
   const heroFallback = SKILL_HERO_TONE[shift.position];
   const [broken, setBroken] = useState(false);
-  const hasPhoto = Boolean(shift.company_logo_url) && !broken;
+  const heroPhoto = shiftHeroPhoto(shift);
+  const hasPhoto = Boolean(heroPhoto) && !broken;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
 
@@ -81,7 +83,7 @@ export default function OpportunityCard({
       <div className="relative flex h-[42%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
         {hasPhoto ? (
           <img
-            src={cldThumb(shift.company_logo_url, 800)}
+            src={cldThumb(heroPhoto, 800)}
             alt={shift.company_name ?? "Local"}
             onError={() => setBroken(true)}
             loading="lazy"

@@ -13,7 +13,7 @@ from app.modules.company.api.schemas import (
     CompanyProfileInput,
     CompanyProfileResponse,
 )
-from app.modules.company.application.dtos import CompanyProfileData
+from app.modules.company.application.dtos import UNSET, CompanyProfileData
 from app.modules.company.application.services import CompanyProfileService
 from app.modules.company.domain.entities import CompanyProfile
 from app.modules.company.domain.exceptions import (
@@ -33,7 +33,11 @@ EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 
 
 def _to_data(payload: CompanyProfileInput) -> CompanyProfileData:
-    return CompanyProfileData(**payload.model_dump())
+    fields = payload.model_dump()
+    # "No vino" y "vino en null" no son lo mismo para la foto del local.
+    if "cover_photo_url" not in payload.model_fields_set:
+        fields["cover_photo_url"] = UNSET
+    return CompanyProfileData(**fields)
 
 
 async def _to_response(profile: CompanyProfile, users: UserRepository) -> CompanyProfileResponse:

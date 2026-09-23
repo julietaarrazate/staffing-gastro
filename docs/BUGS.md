@@ -71,6 +71,26 @@ que no", p. ej. 401). Nunca asumir que un `await fetch` resuelve en un tiempo ra
 
 ---
 
+## Encuadre de foto que sube el espejo de lo que se ve (`ImageCropModal`)
+
+**Patrón:** la vista previa corre la imagen con `translate(offset)` y el
+lienzo de salida la dibujaba en `centro - offset·k`, con el signo al revés.
+Una foto centrada se ve igual en la vista previa y en el recorte subido, así
+que el error sólo aparece si el usuario mueve la foto, y nadie lo mueve en
+un test. Estuvo desde 2026-07-30 (fotos de perfil) hasta 2026-09-23.
+
+- **Encontrado (2026-09-23):** al adaptar el recorte a 16:9 para la foto del
+  local, releyendo la cuenta. Confirmado midiendo el JPEG subido en el
+  navegador: 43,8% de rojo con el signo viejo contra 56,3% con el corregido,
+  sobre una imagen mitad roja y mitad azul arrastrada a la derecha.
+
+**Cómo evitarlo:** si algo se dibuja dos veces (una vista previa y un
+render final), la geometría va en **una** función pura
+(`cropDrawRect`), con un test que **mueve** la imagen. Un caso centrado no
+prueba nada, porque el signo no cambia el resultado.
+
+---
+
 ## Un mock que borra la parte cara de una dependencia borra también la que se rompe
 
 **Patrón:** el test mockea una dependencia externa con la versión *mínima* que hace pasar la

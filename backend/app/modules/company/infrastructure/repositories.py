@@ -20,6 +20,7 @@ def _to_entity(model: CompanyProfileModel) -> CompanyProfile:
         user_id=model.user_id,
         name=model.name,
         logo_url=model.logo_url,
+        cover_photo_url=model.cover_photo_url,
         category=CompanyCategory(model.category) if model.category else None,
         description=model.description,
         address=model.address,
@@ -42,6 +43,7 @@ def _apply_editable_fields(model: CompanyProfileModel, profile: CompanyProfile) 
     """Copia los campos editables del perfil al modelo (no toca métricas)."""
     model.name = profile.name
     model.logo_url = profile.logo_url
+    model.cover_photo_url = profile.cover_photo_url
     model.category = profile.category.value if profile.category else None
     model.description = profile.description
     model.address = profile.address

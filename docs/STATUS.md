@@ -147,6 +147,33 @@ Descubrir rápido → detalle → Matches ya hablan el mismo idioma:
 - **Recomendado por Oído** (pestaña Recomendados): de `bg-night` a verde
   bosque — el negro se perdía en el modo oscuro.
 
+**Foto del local (2026-09-23, pedido de Julieta).** El comercio sube una
+foto del salón, la barra o la fachada (16:9) desde su perfil, y pasa a ser
+la imagen grande de las tarjetas del feed, de Matches, del detalle del turno
+y de su perfil público. Antes esa imagen era el **logo estirado a 800px**.
+Si no hay foto, se usa el logo como antes, y si tampoco hay logo, el tono
+del rubro (`lib/company-photo.ts::shiftHeroPhoto`). Los avatares siguen
+usando el logo.
+- Backend: `company_profiles.cover_photo_url` (migración `0033`, probada
+  subiendo y bajando contra Postgres 16) y `company_cover_url` en las
+  respuestas de turnos (feed, `/shifts/{id}` y guardados).
+- **Trampa evitada:** la edición del perfil es de **reemplazo total**, y hay
+  escritores que no conocen el campo nuevo (`/bienvenida`, la siembra de
+  fotos, una PWA vieja cacheada en un celular). Si lo reemplazaran con
+  `None`, borrarían la foto en silencio. Por eso sólo se toca cuando el
+  pedido lo trae (`UNSET` en `CompanyProfileData`); un `null` explícito sí
+  la saca. Tests: `test_company_cover_photo.py`.
+- **La página pública `/turno/[id]` no la muestra**, igual que el logo: esa
+  vista la decidió Julieta sin logo, y sumar la foto es la misma decisión
+  de producto. Queda para preguntarle.
+- **Bug viejo encontrado de paso: el encuadre de fotos subía el espejo de
+  lo que se veía.** Pasaba desde 2026-07-30 con las fotos de perfil
+  (`ImageCropModal`): si movías la foto a la derecha, se subía corrida a la
+  izquierda. Lo medí en el navegador con una imagen mitad roja y mitad azul
+  arrastrada 40px a la derecha. Con el signo viejo salió 43,8% de rojo y con
+  el corregido 56,3%, que es lo esperado (56%). La cuenta quedó en
+  `cropDrawRect`, con test. Patrón en `docs/BUGS.md`.
+
 **Animaciones — primer pase (2026-09-23, pedido de Julieta).** Cinco
 momentos, con la regla "confirma una acción o muestra un cambio, nunca
 decora" escrita en `docs/design-system/motion.md`: postularse (el botón se

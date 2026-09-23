@@ -16,6 +16,10 @@ class CompanyProfile:
 
     # --- Datos del perfil (editables por el comercio) ---
     logo_url: str | None = None
+    # Foto del local (fachada, salón, barra): la imagen grande de las
+    # tarjetas del feed y del detalle del turno. El logo queda para los
+    # avatares; estirar un logo a 800px de ancho es lo que se hacía antes.
+    cover_photo_url: str | None = None
     category: CompanyCategory | None = None
     description: str | None = None
     address: str | None = None

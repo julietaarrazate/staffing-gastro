@@ -8,6 +8,7 @@ import { CompanyProfile } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import MapAddressPicker, { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
+import CoverPhotoUpload from "@/components/CoverPhotoUpload";
 import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
 
@@ -16,6 +17,7 @@ export default function CompanyProfileForm() {
   const [exists, setExists] = useState(false);
   const [name, setName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -40,6 +42,7 @@ export default function CompanyProfileForm() {
         setExists(true);
         setName(p.name);
         setLogoUrl(p.logo_url);
+        setCoverUrl(p.cover_photo_url ?? null);
         setAddress(p.address ?? "");
         setCity(p.city ?? "");
         setLatitude(p.latitude ?? null);
@@ -69,6 +72,7 @@ export default function CompanyProfileForm() {
     const payload = {
       name,
       logo_url: logoUrl,
+      cover_photo_url: coverUrl,
       address: address || null,
       city: city || null,
       latitude,
@@ -115,6 +119,7 @@ export default function CompanyProfileForm() {
         required
         maxLength={255}
       />
+      <CoverPhotoUpload value={coverUrl} onChange={setCoverUrl} />
       <div>
         {/* No es un `<label>`: no hay un único control al que asociar (el
             selector de ubicación de abajo es un widget compuesto, mapa o
