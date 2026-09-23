@@ -37,7 +37,7 @@ un **modo oscuro real** (el lienzo se oscurece, ya no es el híbrido anterior).
 | `spacing.md` | ⏳ pendiente (escala 4px ya en uso vía Tailwind) |
 | `iconography.md` | ⏳ pendiente (Lucide; auditoría en el pase de componentes) |
 | `components.md` | ⏳ pendiente (pase de componentes: ShiftCard/VenueCard/WorkerCard…) |
-| `motion.md` | ⏳ pendiente (tokens `--motion-*` ya en globals) |
+| [`motion.md`](./motion.md) | ✅ reglas + piezas (2026-09-23) |
 | `accessibility.md` | ⏳ pendiente |
 | `ux-principles.md` | ⏳ pendiente |
 

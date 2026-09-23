@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { formatShiftWhen } from "@/lib/datetime";
 import { ClockIcon } from "@/components/icons";
+import CountUp from "@/components/ui/CountUp";
 
 /**
  * Resumen "Turnos activos" arriba del panel del comercio (board de Julieta,
@@ -49,7 +50,7 @@ export default function ActiveShiftsCard({
     >
       <p className="text-xs font-bold uppercase tracking-wide text-white/65">Turnos activos</p>
       <div className="mt-1 flex items-baseline gap-2">
-        <span className="font-display text-[40px] font-medium leading-none text-white">{active.length}</span>
+        <CountUp value={active.length} duration={600} className="font-display text-[40px] font-medium leading-none text-white" />
         <span className="text-sm text-white/80">{parts.join(" · ")}</span>
       </div>
       {next && (

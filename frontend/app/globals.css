@@ -705,6 +705,28 @@ textarea,
   }
 }
 
+/* Loader de marca (components/ui/OidoLoader.tsx): ondas que salen de la
+ * mano como sonido, y la mano que se ladea apenas, como quien escucha. */
+@keyframes oidoWave {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+@keyframes oidoTilt {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
 /* Punto rojo de turno urgente. */
 @keyframes urgentPulse {
   0%,

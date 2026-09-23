@@ -147,6 +147,21 @@ Descubrir rápido → detalle → Matches ya hablan el mismo idioma:
 - **Recomendado por Oído** (pestaña Recomendados): de `bg-night` a verde
   bosque — el negro se perdía en el modo oscuro.
 
+**Animaciones — primer pase (2026-09-23, pedido de Julieta).** Cinco
+momentos, con la regla "confirma una acción o muestra un cambio, nunca
+decora" escrita en `docs/design-system/motion.md`: postularse (el botón se
+convierte en el panel verde con un check que se dibuja — `DrawnCheck`),
+postularse desde el mapa (la tarjeta se tapa con la confirmación antes de
+salir — `ConfirmOverlay`), asignar (el elegido sube con "Asignado" + nombre y
+el resto se atenúa antes de volver al panel), el pin elegido del mapa (onda
+ámbar una vez + rebote), números que cuentan (`CountUp`: "Turnos activos",
+"Ganado este mes"; reemplaza el contador propio de la landing) y la mano de
+Oído como loader de las esperas de IA y del admin (`OidoLoader`). Hallazgo
+al mirarlo renderizado: la invitación a notificaciones salía en el mismo
+instante que la confirmación y la tapaba — ahora espera a que se vea. Todo
+respeta "reducir movimiento". Julieta va a mandar un video de un pin de
+Pinterest con más referencias (el link no abre desde la sesión).
+
 **Perfil del trabajador (2026-09-23).** El bloque de arriba (foto, nombre,
 nivel, calificación) pasa del carbón `bg-focus` al verde bosque, la misma
 superficie destacada que "Recomendado" y "Turnos activos". Las ganancias

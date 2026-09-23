@@ -25,6 +25,7 @@ import {
   WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
+import CountUp from "@/components/ui/CountUp";
 
 // `accent` sigue el mismo criterio que la landing (StatsStrip/bento): un color
 // por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
@@ -175,9 +176,10 @@ export default function WorkerGameCard() {
             <p className="text-[10px] font-bold uppercase tracking-wide text-ink/50">Ganado este mes</p>
             <p className="flex items-baseline gap-1 leading-none">
               <span className="text-sm font-semibold text-primary-text">$</span>
-              <span className="text-2xl font-extrabold text-ink">
-                {Number(earnings.this_month_earned).toLocaleString("es-AR")}
-              </span>
+              <CountUp
+                value={Number(earnings.this_month_earned)}
+                className="text-2xl font-extrabold tabular-nums text-ink"
+              />
             </p>
           </div>
           <p className="shrink-0 text-right text-xs font-bold text-ink/70">
