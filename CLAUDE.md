@@ -170,9 +170,8 @@ repita no es una regla.
 
 ## Contexto en 30 segundos
 
-**Staffya** es un marketplace de **staffing gastronómico en tiempo real**
-(estilo Uber + Tinder): conecta comercios con trabajadores eventuales para
-cubrir turnos. **Misión: cubrir una posición eventual en menos de 10 minutos.**
+**Staffya** es un marketplace de **staffing gastronómico en tiempo real**:
+conecta comercios con trabajadores eventuales para cubrir turnos. **Misión: cubrir una posición eventual en menos de 10 minutos.**
 Roles: `worker`, `employer`, `admin`. Producto en **español (AR/LATAM)**, marca
 "Oído" (mano ahuecada sobre la oreja, en trazo crema sobre tile ámbar `#D97706`,
 wordmark "oído" en serif Fraunces; tagline "Personal gastronómico, ya.").

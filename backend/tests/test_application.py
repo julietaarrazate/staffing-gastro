@@ -393,7 +393,7 @@ async def test_applying_notifies_company(client: AsyncClient):
     notif = next(n for n in notifications.json() if n["type"] == "new_applicant")
     # Copy personalizada (no el genérico "Un trabajador se postuló..."): nombre
     # del postulante, puesto y conteo — mismo espíritu que el push de
-    # "presupuestos listos" de referencia (Clickie), en el tono ya establecido
+    # "presupuestos listos", en el tono ya establecido
     # de la app (voseo, sin emoji).
     assert notif["title"] == "1 postulante para mozo"
     assert "Test User" in notif["message"]

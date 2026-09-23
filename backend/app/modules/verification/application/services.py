@@ -30,8 +30,7 @@ from app.modules.verification.domain.value_objects import (
 
 
 def _now() -> datetime:
-    """Timestamp de auditoría en UTC (constancia de la decisión, ver CLAUDE.md:
-    las fechas de auditoría van en UTC a propósito, distinto de las de negocio)."""
+    """Timestamp de auditoría en UTC (constancia de la decisión: las fechas de auditoría van en UTC a propósito, distinto de las de negocio)."""
     return datetime.now(timezone.utc)
 
 

@@ -2,8 +2,8 @@ import { ShieldIcon, CheckIcon } from "@/components/icons";
 
 /**
  * "Garantía Oído": le pone palabras a mecanismos que ya existen (no-show
- * reabre el turno, reputación real, chat previo) para dar la misma tranquilidad
- * que transmite Clickie con su "Garantía". Es sólo copy de confianza — no hay
+ * reabre el turno, reputación real, chat previo) para dar tranquilidad al
+ * comercio. Es sólo copy de confianza — no hay
  * lógica nueva detrás.
  */
 const POINTS = [

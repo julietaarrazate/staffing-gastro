@@ -122,7 +122,7 @@ test("un worker ve un turno en el feed y se postula", async ({ page }) => {
   await expect(hero).toContainText("Mozo/a");
   await expect(hero).toContainText("Bar Demo Palermo");
 
-  // Postularse desde el mazo: desde 2026-09-22 el mazo tipo Tinder vive
+  // Postularse desde el mazo: desde 2026-09-22 el mazo para deslizar vive
   // detrás de "Descubrir rápido" (el home tomó la composición del board).
   await page.getByRole("button", { name: /Descubrir rápido/ }).click();
   await expect(page.getByRole("dialog", { name: "Descubrir rápido" })).toBeVisible();

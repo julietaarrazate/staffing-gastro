@@ -38,7 +38,7 @@ export default function AIAssistantBar() {
           navbar de la misma pantalla, así que la marca aparecía DOS veces; y su
           tile naranja competía con el avatar y con el círculo del comercio —
           cuatro círculos, dos de ellos del mismo naranja, contra la regla de
-          CLAUDE.md de "un solo acento naranja por pantalla".
+          "un solo acento naranja por pantalla".
           El logo identifica a la app, no a una función dentro de la app: acá va
           el ícono convencional de asistente, en tinta, sin fondo propio. */}
       <SparklesIcon size={18} className="shrink-0 text-ink/45" />

@@ -91,7 +91,7 @@ vigentes en el código:
 
 ## Cómo agregar un módulo
 
-Ver el flujo canónico en [CLAUDE.md](../../CLAUDE.md#implementar-una-funcionalidad-nueva):
+Flujo canónico:
 modelar en `domain/` → caso de uso en `application/` → adaptadores en
 `infrastructure/` + **migración Alembic** + registrar el modelo en
 `tests/conftest.py` → exponer en `api/` → tests → actualizar `docs/`.

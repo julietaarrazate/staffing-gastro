@@ -8,7 +8,7 @@ import { CloseIcon } from "@/components/icons";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
- * "Descubrir rápido": el mazo tipo Tinder, ahora como modo a pantalla completa
+ * "Descubrir rápido": el mazo de tarjetas para deslizar, ahora como modo a pantalla completa
  * detrás de un botón del home (decisión de Julieta, 2026-09-22 — el home pasó a
  * la composición del board y el swipe se conserva para quien quiere decidir en
  * segundos).

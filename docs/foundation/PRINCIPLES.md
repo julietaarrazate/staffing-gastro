@@ -2,7 +2,7 @@
 
 > Principios de diseño y trabajo que **no cambian** sin un ADR (Fase 10). Son la
 > vara para revisar cualquier cambio. Complementan [ARCHITECTURE.md](./ARCHITECTURE.md)
-> (el cómo) y guían a [../CLAUDE.md](../../CLAUDE.md) (cómo trabaja el asistente).
+> (el cómo) y guían el trabajo sobre el repositorio.
 
 ## Producto
 

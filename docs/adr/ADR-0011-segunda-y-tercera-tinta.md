@@ -6,8 +6,7 @@
 
 `ART_DIRECTION.md §12` fija el naranja como único acento, deliberadamente al
 ~5% de la superficie ("si ocupa más, deja de significar 'acá se toca'") —
-una decisión estratégica para diferenciarse de Rappi/Glovo por disciplina, no
-por paleta. Julieta reportó que el resultado se percibe "plano/apagado":
+una decisión estratégica para diferenciarse por disciplina, no por paleta. Julieta reportó que el resultado se percibe "plano/apagado":
 lectura válida y directa de quien usa el producto todos los días, no un error
 de ejecución — es la consecuencia esperada de un sistema con sólo neutros +
 un acento al 5%, sin el escalón intermedio que un 60-30-10 real tendría.
@@ -65,8 +64,8 @@ pero no implementado en el backend todavía).
   reputación/éxito genérico) sin escribir ningún dominio nuevo.
 - ✅ Responde al feedback de producto ("plano/apagado") con una decisión
   acotada — dos colores con trabajos que no se pisan, no una repaleta.
-- ✅ El naranja sigue siendo el 5% — la estrategia de diferenciación vs.
-  Rappi/Glovo (`§12.1`) no se toca.
+- ✅ El naranja sigue siendo el 5% — la estrategia de diferenciación
+  (`§12.1`) no se toca.
 - ⚠️ `--color-structure` queda definido y documentado pero **sin rollout
   amplio todavía** — aplicarlo a onboarding/heroes es tarea aparte, con
   verificación visual pantalla por pantalla antes de mergear.

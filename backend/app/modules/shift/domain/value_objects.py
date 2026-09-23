@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class ShiftStatus(str, Enum):
-    """Estados del turno — la línea de tiempo del "Modo Uber" del spec.
+    """Estados del turno — la línea de tiempo del ciclo de vida del turno.
 
     El flujo nominal (ADR-0008, 2 pasos de asistencia en vez de 4) es:
         BORRADOR → PUBLICADO → BUSCANDO_PERSONAL → ASIGNADO → CONFIRMADO →

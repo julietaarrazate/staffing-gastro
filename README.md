@@ -1,17 +1,17 @@
 # Staffya (marca de cara al usuario: "Oído")
 
-**Staffya** — de cara al usuario, marca **"Oído"** — es una plataforma estilo
-**Uber + Tinder** que conecta comercios gastronómicos y organizadores de
+**Staffya** — de cara al usuario, marca **"Oído"** — es una plataforma de staffing gastronómico
+en tiempo real que conecta comercios gastronómicos y organizadores de
 eventos con trabajadores eventuales en tiempo real. El repositorio, la base
 de datos y la infraestructura siguen con el nombre técnico `staffya`
-(intencional — ver [`CLAUDE.md`](./CLAUDE.md)); el producto que ve el
+(intencional); el producto que ve el
 usuario se llama **Oído** desde el rebrand.
 
 > Misión: **cubrir una posición eventual en menos de 10 minutos.**
 
 No es una bolsa de empleo: es un sistema operativo de staffing en tiempo real,
 enfocado en velocidad, confianza, reputación y resolución inmediata de necesidades
-operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md).
+operativas. La visión completa del producto está en [`docs/foundation/PRODUCT.md`](./docs/foundation/PRODUCT.md).
 
 ## Estructura del repositorio
 
@@ -19,8 +19,8 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 .
 ├── backend/          # API FastAPI (monolito modular, DDD / hexagonal)
 ├── frontend/         # App web Next.js (login, perfiles, turnos, candidatos)
-├── docker-compose.yml
-└── CLAUDE.md         # Especificación del producto
+├── docs/             # Producto, dominio, arquitectura y decisiones (ADRs)
+└── docker-compose.yml
 ```
 
 > La app mobile (React Native) se incorporará en una fase posterior del roadmap.
@@ -30,7 +30,7 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
 **Fase 1 — Completa** ✅:
 - ✅ `identity`: registro, login, JWT + refresh tokens, roles.
 - ✅ `worker` / `company`: Perfiles de Trabajador y Comercio.
-- ✅ `shift`: Publicación de turnos (estados del "Modo Uber" + feed).
+- ✅ `shift`: Publicación de turnos (ciclo de vida del turno + feed).
 
 **Fase 2 — En progreso** 🚧:
 - ✅ `matching`: motor de scoring (distancia, experiencia, reputación, puntualidad,
@@ -54,7 +54,7 @@ operativas. La visión completa del producto está en [`CLAUDE.md`](./CLAUDE.md)
   Pago para la suscripción mensual, Fase 1 de ADR-0005).
 - ✅ Despliegue (Render + Vercel + Neon), con CI en GitHub Actions.
 
-Ver el roadmap completo en [`CLAUDE.md`](./CLAUDE.md).
+Ver el estado completo en [`docs/`](./docs/).
 
 ## Arranque rápido
 

@@ -10,8 +10,8 @@ import {
 
 /**
  * Tarjeta de candidato recomendado por el matching. El primero del ranking se
- * muestra `recommended`, con un "por qué te lo recomendamos" (inspiración
- * Clickie) en vez de un score numérico opaco. El resto va en tarjeta sobria
+ * muestra `recommended`, con un "por qué te lo recomendamos" en vez de un
+ * score numérico opaco. El resto va en tarjeta sobria
  * con los mismos chips de confianza.
  *
  * EL RECOMENDADO VA EN VERDE BOSQUE (`bg-secondary`, DS v5.0; antes negro

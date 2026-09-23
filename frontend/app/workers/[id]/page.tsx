@@ -277,8 +277,7 @@ export default function PublicWorkerProfilePage() {
         </div>
       </div>
 
-      {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar
-          (inspiración "Reseñas recientes" de Clickie). */}
+      {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar. */}
       <div className="mt-7 lg:mt-0">
         <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
           Reseñas
