@@ -46,11 +46,12 @@ services:
       # desde 2026-09-22 repone los turnos demo que ya pasaron).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
       # PRENDIDO (2026-09-23, decisión de Julieta): sin usuarios reales, la app
-      # se ve poblada. Se fija ACÁ y no sólo en el dashboard porque un valor
-      # declarado en este archivo pisa al del dashboard en cada deploy: Julieta
-      # lo puso en true en el panel y la siembra no corrió (0 cuentas demo en
-      # Neon después del deploy). ANTES DE LA BETA CON GENTE REAL: volver a
-      # "false" ACÁ y purgar las cuentas demo (runbook "apagar el modo demo" en
+      # se ve poblada. Fijado acá Y en el panel, para que no se contradigan
+      # (si la siembra no corre, mirar la línea `[seed]` del log de arranque
+      # antes de culpar a este archivo: la vez que "no corría" era un bug de
+      # event loop en scripts/startup_seed.py, ver docs/BUGS.md). ANTES DE LA
+      # BETA CON GENTE REAL: volver a "false" ACÁ y en el panel, y purgar las
+      # cuentas demo (runbook "apagar el modo demo" en
       # docs/reference/DEPLOY.md) — tienen contraseña pública.
       - key: SEED_DEMO_DATA
         value: "true"

@@ -163,11 +163,10 @@ reales. Antes de abrir la beta:
 > esa referencia; y las cuentas demo tienen contraseña pública — no mezclar
 > con usuarios reales.
 
-1. **Apagar el seed:** `SEED_DEMO_DATA: "false"` en `render.yaml` (el valor
-   de ese archivo pisa al del panel en cada deploy — con sólo cambiar el panel
-   no alcanza, se comprobó al revés el 2026-09-23) y también en Render →
-   Environment → `SEED_DEMO_DATA=false` (o
-   borrar la variable). Redeploy automático; el arranque salta el seed (es
+1. **Apagar el seed:** `SEED_DEMO_DATA: "false"` en `render.yaml` **y** en
+   Render → Environment → `SEED_DEMO_DATA=false` (o borrar la variable) — los
+   dos, para que no se contradigan: un valor declarado en el blueprint puede
+   volver a pisar el del panel en una sincronización. Redeploy automático; el arranque salta el seed (es
    idempotente pero ya no debe correr).
 2. **Purgar las cuentas demo:** todas usan emails `demo.*@staffya.com` /
    `*.demo@staffya.com` (ver `scripts/seed_demo_data.py`). Borrarlas en cascada

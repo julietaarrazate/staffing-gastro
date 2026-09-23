@@ -82,6 +82,21 @@ turno reabierto por no-show. Tests: `test_shift_detail_visibility.py`.
 marca propinas/urgente/vestimenta/logo como campos que NO van ahí, y
 relajarlo es una decisión de producto, no de este pase.
 
+**La siembra demo nunca corría en producción (2026-09-23).** Con
+`SEED_DEMO_DATA=true` en el panel y en `render.yaml`, y dos deploys después,
+Neon seguía con 0 cuentas `demo.*@staffya.com`. No era la variable:
+`scripts/startup_seed.py` hacía un `asyncio.run` por tarea (fotos de las
+cuentas compartidas, después datos demo) sobre el motor global, y la segunda
+reusaba una conexión de asyncpg atada al loop anterior → "attached to a
+different loop", tragado por el `except` como `[seed] omitido por error`.
+Roto desde 2026-08-16 (cuando las fotos se separaron en su propia tarea);
+los tests no lo veían porque corren sobre SQLite. Reproducido contra un
+Postgres 16 local con las migraciones reales; con un solo event loop siembra
+26 cuentas y 14 turnos, y la segunda corrida no duplica nada. Test nuevo:
+`tests/test_startup_seed.py` (falla con el código viejo). Patrón en
+`docs/BUGS.md`. **Verificar en Neon después del deploy** que aparezcan las
+cuentas demo.
+
 **Página pública con las condiciones del turno + datos demo que se renuevan
 (2026-09-22, decisión de Julieta).**
 - `GET /shifts/{id}/public` ahora trae propinas, comida, vestimenta y
@@ -92,9 +107,9 @@ relajarlo es una decisión de producto, no de este pase.
   reales (en producción había 0 cuentas demo y 0 turnos abiertos). El seed
   ahora **repone** turnos a los comercios demo que se quedaron sin turnos
   vigentes en cada arranque, con pagos de 2026 (32.000–60.000 por 6 h, antes
-  12.000–23.000) y a la hora típica de cada puesto. **Falta que Julieta ponga
-  `SEED_DEMO_DATA=true` en Render** (el MCP de Render no conecta desde la
-  sesión). Antes de la beta con gente real: runbook "apagar el modo demo" en
+  12.000–23.000) y a la hora típica de cada puesto. `SEED_DEMO_DATA=true`
+  quedó en el panel de Render y en `render.yaml`; la siembra igual no corría
+  por un bug de event loop, ver la entrada siguiente. Antes de la beta con gente real: runbook "apagar el modo demo" en
   `docs/reference/DEPLOY.md` (contraseñas públicas, y los turnos demo entran
   en la referencia de pago).
 
