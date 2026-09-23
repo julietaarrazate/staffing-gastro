@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShiftDetail from "@/components/ShiftDetail";
+import { SITE_HOST } from "@/lib/site";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
@@ -28,7 +29,7 @@ async function getPublicShift(id: string): Promise<ShiftPublic | null> {
 
 async function getPublicUrl(id: string): Promise<string> {
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "staffya.com.ar";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? SITE_HOST;
   const proto = h.get("x-forwarded-proto") ?? "https";
   return `${proto}://${host}/turno/${id}`;
 }

@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // Next.js sirve esto en /robots.txt. Base alineada con `metadataBase` del
 // layout raíz (app/layout.tsx) y con `getPublicUrl` de la página pública del
 // turno (app/turno/[id]/page.tsx).
-const BASE_URL = "https://staffya.com.ar";
+const BASE_URL = SITE_URL;
 
 /**
  * Le dice a los buscadores qué indexar. Permitimos las páginas públicas (la
