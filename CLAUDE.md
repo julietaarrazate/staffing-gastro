@@ -548,16 +548,17 @@ toda vista previa y el sitemap apuntaban ahí.
   Si leés en algún lado que falta confirmarlo, es una copia vieja.
   Opcional y sin bloquear nada: dominio propio para el backend
   (`api.oido.com.ar` en vez de `staffya-backend.onrender.com`).
-- **Expediente de registro de obra ante la DNDA** (protección de autoría y
-  código fuente de Oído): documentación completa y lista en
-  `REGISTRO_OBRA_SOFTWARE/` (PR #310, en draft a propósito — no mergear sin
-  que Julieta lo revise, lleva su DNI en una declaración firmable). Checklist
-  operativo completo, con tiempos estimados, en
-  `REGISTRO_OBRA_SOFTWARE/DNDA_CHECKLIST_FINAL.md`: completar el campo
-  laboral/contractual de `EVIDENCIA_AUTORIA.md` §7, tomar las capturas
-  reales (`DNDA_CAPTURAS.md`), armar los diagramas
-  (`MATERIAL_COMPLEMENTARIO.md`), pagar arancel ($3.800) + tasa (0,2% del
-  valor declarado) y completar el formulario del portal de la DNDA.
+- ✅ ~~**Expediente de registro de obra ante la DNDA**~~ — **presentado por
+  Julieta el 2026-09-23** (arancel, tasa y constancia de CUIL ya cargados en
+  el trámite). Versión depositada: commit `e1c44b6`, marcada con la etiqueta
+  `dnda-oido-2026-v1` (release de GitHub creado por ella). El ZIP entregado
+  tiene el código fuente, el frontend compilado y 9 PDFs (los 8 documentos +
+  capturas de pantalla). Lo que queda es esperar la respuesta de la DNDA. La
+  rama `registro-obra-software-dnda` (PR #310) **sigue en draft y no se
+  mergea**: es el registro del expediente y lleva el DNI de Julieta. Si la
+  DNDA pide algo, partir de `REGISTRO_OBRA_SOFTWARE/DNDA_VERSION_REGISTRADA.md`
+  en esa rama; la obra se describe siempre como de **autoría exclusiva de
+  Julieta**, y el expediente no nombra otras apps.
 - **Ensayo de restore de Neon**: confirmar que el backup/restore funciona de
   verdad antes de depender de él con usuarios reales.
 - Confirmar en el dashboard de Render que el deploy quedó verde contra Neon
