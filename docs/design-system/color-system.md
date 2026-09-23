@@ -76,8 +76,11 @@ bordes van claros. Los `-text` se recalculan para el fondo oscuro en el bloque
 aclara en oscuro necesita también su `-tint` oscuro (un velo del propio color,
 `rgba(…, 0.14–0.18)`), o el chip queda con texto claro sobre fondo pálido. Lo
 mismo `--color-line`: si no se redefine, los bordes quedan con el hairline
-claro de `:root`. Excepción: manteca y cielo son pares auto-contenidos (su
-texto no se aclara) y se quedan igual en los dos modos.
+claro de `:root`. Manteca y cielo también siguen la regla desde el
+2026-09-23: antes eran "pares auto-contenidos" iguales en los dos modos, y se
+leían, pero en el oscuro real eran bloques pálidos que brillaban sobre la
+tarjeta oscura (la tarjeta de nivel del perfil, los íconos de estadísticas).
+Ahora en oscuro son un velo del color con el color base como texto.
 
 ## Toast y `night` en oscuro
 

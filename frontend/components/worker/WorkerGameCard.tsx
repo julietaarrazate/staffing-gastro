@@ -125,7 +125,11 @@ export default function WorkerGameCard() {
           y dentro de esta tarjeta (`bg-card`) se vuelve claro en modo
           oscuro, lo que invertía el gradiente a claro→oscuro en vez de
           quedarse oscuro (bug real con captura, auditoría 2026-09). */}
-      <div className="relative flex flex-col items-center bg-focus px-5 pb-5 pt-6 text-focus-ink">
+      {/* DS v5.0 (2026-09-23): verde bosque en vez del carbón `bg-focus`, la
+          misma superficie destacada que la tarjeta "Recomendado" del home y
+          "Turnos activos" del comercio. En claro el bloque negro pesaba más
+          que todo el resto de la pantalla junta. */}
+      <div className="relative flex flex-col items-center bg-secondary px-5 pb-5 pt-6 text-white">
         {/* La foto se sube ACÁ, tocando el avatar (Julieta, 2026-09: "la foto
             se tiene que poder subir arriba con el nombre"). Antes se veía
             arriba pero el control para cambiarla vivía en el formulario de
@@ -159,25 +163,26 @@ export default function WorkerGameCard() {
           sólido + monto grande en blanco (jerarquía brutal, mismo criterio
           que el pago en ShiftCard/OpportunityCard); "Este mes" como dato
           secundario en manteca — es un NÚMERO, no una tarjeta de éxito. */}
+      {/* DS v5.0: sobre superficie clara (`bg-surface`), no otro bloque oscuro
+          debajo del hero verde — dos masas de color apiladas competían. El
+          monto en tinta grande, "ARS" y el ícono en ámbar como único acento. */}
       {earnings && (
-        <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-focus px-4 py-4">
+        <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-surface px-4 py-4">
           <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-night">
             <WalletIcon size={21} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold font-mono uppercase tracking-wide text-white/60">
-              Ganado este mes
-            </p>
-            <p className="flex items-baseline gap-1 font-display leading-none">
-              <span className="text-sm font-semibold text-primary">ARS</span>
-              <span className="text-2xl font-semibold text-focus-ink">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-ink/50">Ganado este mes</p>
+            <p className="flex items-baseline gap-1 leading-none">
+              <span className="text-sm font-semibold text-primary-text">$</span>
+              <span className="text-2xl font-extrabold text-ink">
                 {Number(earnings.this_month_earned).toLocaleString("es-AR")}
               </span>
             </p>
           </div>
-          <p className="shrink-0 text-right text-xs font-bold text-manteca">
-            ARS {Number(earnings.total_earned).toLocaleString("es-AR")}
-            <span className="block text-[10px] font-medium text-white/50">total</span>
+          <p className="shrink-0 text-right text-xs font-bold text-ink/70">
+            ${Number(earnings.total_earned).toLocaleString("es-AR")}
+            <span className="block text-[10px] font-medium text-ink/45">total</span>
           </p>
         </div>
       )}
