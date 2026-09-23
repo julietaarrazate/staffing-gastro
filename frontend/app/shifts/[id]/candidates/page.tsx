@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -8,8 +8,10 @@ import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch, SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT } from "@/lib/skill-style";
-import { formatShiftRange } from "@/lib/datetime";
+import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { formatPayAmount } from "@/lib/pay";
+import { rankApplicants, standoutApplicant } from "@/lib/applicants";
 import CandidateCard from "@/components/CandidateCard";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
@@ -23,7 +25,7 @@ import {
   SegmentedControl,
   useToast,
 } from "@/components/ui";
-import { CalendarIcon, UsersIcon } from "@/components/icons";
+import { ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
@@ -47,6 +49,8 @@ function ShiftCandidatesContent() {
   }
   const [shift, setShift] = useState<Shift | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
+  const standout = standoutApplicant(rankedApplicants);
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,23 +122,30 @@ function ShiftCandidatesContent() {
       {shift && (
         <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line">
           {(() => {
-            const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+            // Mismo tono por rubro que el banner de las tarjetas de turno
+            // (SKILL_HERO_TONE) — el tinte pálido de antes quedaba como un
+            // cuadro claro en el modo oscuro.
+            const { Icon } = SKILL_ACCENT[shift.position];
             return (
-              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg} ${fg}`}>
+              <span
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white ${SKILL_HERO_TONE[shift.position]}`}
+              >
                 <Icon size={20} />
               </span>
             );
           })()}
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-ink">{SKILL_LABELS[shift.position]}</p>
-            <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-ink/50">
-              <CalendarIcon size={13} className="shrink-0 text-ink/35" />
-              {formatShiftRange(shift.start_at, shift.end_at)}
+            <p className="truncate font-display text-lg font-medium text-ink">{SKILL_LABELS[shift.position]}</p>
+            <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-ink/55">
+              <ClockIcon size={13} className="shrink-0 text-ink/35" />
+              {formatShiftWhen(shift.start_at, shift.end_at)}
+              {(() => {
+                const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
+                return minutes != null ? ` · ${formatDuration(minutes)}` : "";
+              })()}
             </p>
           </div>
-          <p className="shrink-0 text-right font-display text-lg font-extrabold text-ink">
-            {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
-          </p>
+          <p className="shrink-0 text-right text-lg font-extrabold text-ink">{formatPayAmount(shift)}</p>
         </div>
       )}
 
@@ -162,41 +173,65 @@ function ShiftCandidatesContent() {
             />
           ) : (
             <>
-              <GuaranteeCard />
-              {/* Grilla en md+ (mismo criterio que /shifts y /my-shifts,
-                  docs/STATUS.md): la Garantía queda afuera, no como un ítem
-                  más — si no, se aplasta en una sola celda junto a las
-                  tarjetas de postulante. */}
-              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {applicants.map((a) => (
-                  <div
-                    key={a.application_id}
-                    // `.no-select`: fila de chrome (rating, chips), mismo criterio
-                    // C0 #2 que ShiftCard/CandidateCard.
-                    className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
-                  >
-                    <Link href={`/workers/${a.worker_profile_id}`}>
-                      <Avatar src={a.photo_url} name={a.full_name} size="lg" />
-                    </Link>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <Link href={`/workers/${a.worker_profile_id}`} className="truncate font-semibold text-ink">
-                          {a.full_name}
-                        </Link>
-                        {a.is_available && <Badge tone="secondary">Disponible</Badge>}
-                      </div>
-                      <CandidateStatChips signals={a} className="mt-1" />
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => assign(a.worker_profile_id)}
-                      loading={assigning === a.worker_profile_id}
-                      disabled={assigning !== null}
+              {/* Ordenados para decidir rápido (`rankApplicants`): primero
+                  quien ya tiene turnos hechos, después por calificación y
+                  puntualidad. El mejor, si tiene historial que lo respalde, va
+                  destacado en verde bosque con el único "Asignar" primario de
+                  la pantalla — mismo criterio que la tarjeta "Recomendado por
+                  Oído" de la otra pestaña: UNA acción principal, no tres
+                  empatadas. La Garantía va DESPUÉS de la lista: antes ocupaba
+                  la mitad de la pantalla antes del primer postulante. */}
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {rankedApplicants.map((a) => {
+                  const top = standout?.application_id === a.application_id;
+                  return (
+                    <div
+                      key={a.application_id}
+                      // `.no-select`: fila de chrome (rating, chips), mismo criterio
+                      // C0 #2 que ShiftCard/CandidateCard.
+                      className={`no-select rounded-[var(--radius-card)] p-4 ${
+                        top
+                          ? "bg-secondary shadow-[var(--shadow-float)]"
+                          : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
+                      }`}
                     >
-                      Asignar
-                    </Button>
-                  </div>
-                ))}
+                      {top && (
+                        <p className="mb-3 inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-primary">
+                          <StarIcon size={13} filled /> Mejor valorado
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <Link href={`/workers/${a.worker_profile_id}`}>
+                          <Avatar src={a.photo_url} name={a.full_name} size="lg" />
+                        </Link>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <Link
+                              href={`/workers/${a.worker_profile_id}`}
+                              className={`truncate font-semibold ${top ? "text-white" : "text-ink"}`}
+                            >
+                              {a.full_name}
+                            </Link>
+                            {a.is_available && !top && <Badge tone="secondary">Disponible</Badge>}
+                          </div>
+                          <CandidateStatChips signals={a} className="mt-1" onDark={top} />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={top || !standout ? "primary" : "surface"}
+                          onClick={() => assign(a.worker_profile_id)}
+                          loading={assigning === a.worker_profile_id}
+                          disabled={assigning !== null}
+                        >
+                          Asignar
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4">
+                <GuaranteeCard />
               </div>
             </>
           )}
@@ -213,8 +248,7 @@ function ShiftCandidatesContent() {
             />
           ) : (
             <>
-              <GuaranteeCard />
-              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {candidates.map((candidate, i) => (
                   <CandidateCard
                     key={candidate.profile_id}
@@ -224,6 +258,9 @@ function ShiftCandidatesContent() {
                     onAssign={() => assign(candidate.profile_id)}
                   />
                 ))}
+              </div>
+              <div className="mt-4">
+                <GuaranteeCard />
               </div>
             </>
           )}

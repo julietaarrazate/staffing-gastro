@@ -84,7 +84,14 @@ export function CandidateStatChips({
           `text-ink/70`, que sobre la tarjeta negra desaparece — la estrella se
           veía y el número no. Encontrado mirando el render, no leyendo el
           código: el componente no dice en ningún lado que asuma fondo claro. */}
-      <Rating value={signals.rating} className={onDark ? "text-white/85" : undefined} />
+      {/* Sin turnos hechos en Oído no hay calificación: "★ 0.0" se leía como
+          una MALA nota, cuando es alguien que todavía no tuvo su primer
+          turno. Se dice lo que es. */}
+      {hasHistory || signals.rating > 0 ? (
+        <Rating value={signals.rating} className={onDark ? "text-white/85" : undefined} />
+      ) : (
+        <StatChip onDark={onDark}>Nuevo en Oído</StatChip>
+      )}
       {signals.distance_km != null && (
         <StatChip onDark={onDark}>{signals.distance_km.toFixed(1)} km</StatChip>
       )}

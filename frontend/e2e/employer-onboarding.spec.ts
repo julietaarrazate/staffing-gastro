@@ -104,7 +104,8 @@ test("un comercio nuevo carga nombre y ubicación, y termina en su panel", async
 
   // Termina en el panel, no empujado directo a publicar un turno.
   await page.waitForURL("**/shifts");
-  await expect(page.getByRole("heading", { name: "Panel" })).toBeVisible();
+  // El panel saluda por nombre desde el DS v5.0 (antes el título era "Panel").
+  await expect(page.getByRole("heading", { name: /^Hola/ })).toBeVisible();
 
   expect(postedBody).not.toBeNull();
   const saved = postedBody as unknown as Record<string, unknown>;
