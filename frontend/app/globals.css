@@ -228,6 +228,13 @@
      integra pero conserva su borde. */
   --color-night: #191410;
 
+  /* TOAST — confirmaciones ("¡Te postulaste!"). En claro, el negro de
+     siempre. En oscuro se INVIERTE (ver el bloque de abajo): el `night` fijo
+     sobre el lienzo oscuro del v5.0 quedaba casi del mismo color que el
+     fondo y el aviso se perdía — es el patrón estándar (Material, iOS). */
+  --color-toast: #191410;
+  --color-toast-ink: #ffffff;
+
   /* MÓDULO DE FOCO — la masa de contraste que dice "esto es lo importante"
      (las ganancias del perfil, el pago del turno). Es un token propio y no
      `--color-night` por una razón medida, no estética (auditoría 2026-09-10):
@@ -479,6 +486,8 @@
   --color-danger-tint: rgba(244, 116, 111, 0.14);
   --color-warning-tint: rgba(251, 191, 118, 0.14);
   --color-info-tint: rgba(147, 197, 253, 0.14);
+  --color-toast: #f5f1ea;
+  --color-toast-ink: #17130f;
 }
 
 /* Miniatura sin foto de "Cerca tuyo" (NearbyRow): en claro lleva el tinte

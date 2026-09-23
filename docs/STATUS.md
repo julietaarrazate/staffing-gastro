@@ -98,6 +98,23 @@ relajarlo es una decisión de producto, no de este pase.
   `docs/reference/DEPLOY.md` (contraseñas públicas, y los turnos demo entran
   en la referencia de pago).
 
+**Punto 1 — cerrar el recorrido del trabajador (2026-09-22).** Home →
+Descubrir rápido → detalle → Matches ya hablan el mismo idioma:
+- **Tarjetas de turno** (`OpportunityCard` del mazo y `ShiftCard` de Matches
+  y del panel): título en serif, pago como "$42.000" con el pago por hora
+  al lado, horario en 24 h con duración ("Hoy · 19:00 – 01:00 · 6 h") en vez
+  de "22/9/2026 08:00 p. m. → …", chips "Qué incluye", y sin la fila "1
+  persona(s)" (un turno es siempre una persona, ADR-0003). El mazo recupera
+  alto de banner (31% → 42%): con el cuerpo más corto quedaba un hueco de
+  ~300px.
+- **Banner sin foto**: `SKILL_HERO_GRADIENT` (gradiente saturado por rubro)
+  pasa a `SKILL_HERO_TONE`, un tono profundo y plano por rubro (vino,
+  espresso, pizarra…; mozo = verde bosque de la marca). Se mantiene "un
+  color por rubro", que pidió Julieta el 16/8, sin gritar.
+- **Toast en oscuro**: token propio `--color-toast` que se invierte en
+  oscuro (el `bg-night` se perdía contra el lienzo oscuro). Sin usos del
+  botón `dark`, no se tocó.
+
 **Arreglo de modo oscuro encontrado al mirar el render** (ver BUGS.md): el
 bloque oscuro no definía `--color-line` (bordes blancos brillando) ni ningún
 `-tint` (chips con texto claro sobre fondo casi blanco, ~2.4:1). Ahora los
@@ -111,12 +128,6 @@ tintes en oscuro son un velo del propio color.
 - **Foto del local**: hoy la tarjeta usa `logo_url` del comercio como foto.
   El board vive de fotos del lugar; un campo "foto del local" (portada) es
   trabajo de backend aparte.
-- La tarjeta del mazo (`OpportunityCard`, la que se ve en "Descubrir
-  rápido") sigue con el gradiente saturado por rubro y fecha en 12 h
-  ("08:00 p. m."); y en oscuro su chip del ícono del rubro queda pálido sobre
-  la tarjeta oscura (la misma familia de bug del par tint/text). Revisarla en
-  el pase de componentes.
-- **Modo oscuro**: auditar `bg-night` (toast, botón dark) sobre el lienzo oscuro.
 - **Violeta `--color-accent`**: no está en la paleta final de Julieta; no usarlo
   en pantallas nuevas (queda definido para no romper nada).
 

@@ -4,18 +4,18 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
 import { Avatar, Badge, Button } from "@/components/ui";
 import {
-  CalendarIcon,
   CalendarPlusIcon,
+  ClockIcon,
   FlameIcon,
   MapPinIcon,
   RouteIcon,
   ShieldIcon,
-  UsersIcon,
 } from "@/components/icons";
-import { formatShiftRange } from "@/lib/datetime";
+import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { formatPayAmount } from "@/lib/pay";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
@@ -111,8 +111,9 @@ export default function ShiftCard({
   const isPast = PAST_STATUSES.has(shift.status);
   const isDimmed = DIMMED_STATUSES.has(shift.status);
   // Igual que en `OpportunityCard`: si la foto del comercio falla al cargar,
-  // se cae al gradiente del rubro en vez de dejar un banner roto.
+  // se cae al tono del rubro en vez de dejar un banner roto.
   const [broken, setBroken] = useState(false);
+  const durationMin = shiftDurationMinutes(shift.start_at, shift.end_at);
   const hasPhoto = Boolean(shift.company_logo_url) && !broken;
 
   return (
@@ -142,8 +143,8 @@ export default function ShiftCard({
           era íntegramente blanca con un chip chico de color por rubro: en una
           lista de varias, todas se leían iguales. Ahora arranca con el mismo
           tratamiento que `OpportunityCard`: foto real del local si el
-          comercio la subió, y si no el gradiente del rubro
-          (`SKILL_HERO_GRADIENT`) — así dos turnos seguidos se distinguen de
+          comercio la subió, y si no el tono del rubro
+          (`SKILL_HERO_TONE`) — así dos turnos seguidos se distinguen de
           un vistazo.
 
           BANDA ACOTADA, no medio tarjeta (auditoría de distribución de
@@ -186,7 +187,7 @@ export default function ShiftCard({
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/35" />
           </>
         ) : (
-          <div className={`absolute inset-0 ${SKILL_HERO_GRADIENT[shift.position]}`}>
+          <div className={`absolute inset-0 ${SKILL_HERO_TONE[shift.position]}`}>
             {/* Velo: los extremos claros de algunos gradientes (ámbar, naranja)
                 no dan contraste suficiente para el texto blanco por sí solos. */}
             <div className="absolute inset-0 bg-black/15" />
@@ -237,7 +238,7 @@ export default function ShiftCard({
           )}
 
           <div className="mt-3">
-            <h3 className="text-2xl font-extrabold leading-tight text-white drop-shadow">
+            <h3 className="font-display text-[26px] font-medium leading-tight text-white drop-shadow">
               {SKILL_LABELS[shift.position]}
             </h3>
             <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/85">
@@ -261,8 +262,7 @@ export default function ShiftCard({
               Pago
             </p>
             <p className="text-3xl font-extrabold leading-none tracking-tight text-ink">
-              <span className="text-base font-bold text-ink/55">{shift.currency} </span>
-              {Number(shift.pay_amount).toLocaleString("es-AR")}
+              {formatPayAmount(shift)}
             </p>
           </div>
           {(shift.tips || shift.meal) && (
@@ -314,19 +314,19 @@ export default function ShiftCard({
           <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
         )}
 
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink/80">
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarIcon size={15} className="text-ink/50" />
-            {formatShiftRange(shift.start_at, shift.end_at)}
+        {/* Horario en 24 h y con la duración ("Hoy · 20:00 – 02:00 · 6 h"),
+            igual que el home y el detalle (DS v5.0). Sin la fila "1
+            persona(s)": un turno es siempre una persona (ADR-0003). */}
+        <p className="mt-3 flex items-center gap-1.5 text-sm text-ink/80">
+          <ClockIcon size={15} className="shrink-0 text-ink/50" />
+          <span>
+            {formatShiftWhen(shift.start_at, shift.end_at)}
+            {durationMin != null && <span className="text-ink/45"> · {formatDuration(durationMin)}</span>}
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <UsersIcon size={15} className="text-ink/50" />
-            {shift.quantity} persona(s)
-          </span>
-        </div>
+        </p>
 
         {shift.dress_code && (
-          <p className="mt-2 text-xs text-ink/65">Dress code: {shift.dress_code}</p>
+          <p className="mt-2 text-xs text-ink/65">Vestimenta: {shift.dress_code}</p>
         )}
 
         {/* "Va en camino": sólo del lado del comercio, y sólo mientras el

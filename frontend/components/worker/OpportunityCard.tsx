@@ -3,17 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_GRADIENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar } from "@/components/ui";
-import {
-  CalendarIcon,
-  CloseIcon,
-  FlameIcon,
-  MapPinIcon,
-  RouteIcon,
-  UsersIcon,
-} from "@/components/icons";
-import { formatShiftRange } from "@/lib/datetime";
+import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon } from "@/components/icons";
+import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
@@ -45,10 +39,12 @@ export default function OpportunityCard({
   onPass?: () => void;
   applying?: boolean;
 }) {
-  const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
-  const heroFallback = SKILL_HERO_GRADIENT[shift.position];
+  const { Icon } = SKILL_ACCENT[shift.position];
+  const heroFallback = SKILL_HERO_TONE[shift.position];
   const [broken, setBroken] = useState(false);
   const hasPhoto = Boolean(shift.company_logo_url) && !broken;
+  const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
+  const perHour = payPerHour(shift);
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
@@ -78,7 +74,11 @@ export default function OpportunityCard({
           ubicación + aire), así que superponerse es imposible por
           construcción, no por haber elegido bien un número. Sólo el fondo
           (foto/gradiente/velo) sigue absolute, que es lo que corresponde. */}
-      <div className="relative flex h-[31%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
+      {/* 31% → 42% (DS v5.0): el cuerpo se achicó (sin el chip del rubro ni
+          la fila "1 persona") y a 31% quedaba un hueco blanco de ~300px entre
+          el horario y "Cómo llegar". El `min-h` y el flex en flujo de abajo
+          siguen evitando que los bloques del banner se pisen. */}
+      <div className="relative flex h-[42%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
         {hasPhoto ? (
           <img
             src={cldThumb(shift.company_logo_url, 800)}
@@ -94,9 +94,10 @@ export default function OpportunityCard({
           // ("muy beige, plano" — y además contra el propio comentario de
           // skill-style.tsx: "nunca como banda de color a toda la tarjeta");
           // pasó a un único gradiente naranja de marca (mejor, pero todas
-          // las tarjetas iguales); ahora usa el gradiente del RUBRO
-          // (SKILL_HERO_GRADIENT), así dos turnos seguidos no se sienten la
-          // misma tarjeta repetida, manteniendo la paleta cálida.
+          // las tarjetas iguales); después a un gradiente saturado por
+          // rubro; desde el DS v5.0 es un tono profundo y plano por rubro
+          // (SKILL_HERO_TONE): dos turnos seguidos siguen distinguiéndose,
+          // sin que el banner compita con el ámbar.
           <div className={`absolute inset-0 overflow-hidden ${heroFallback}`}>
             {/* Marca de agua en la ESQUINA y al 15%, igual que `ShiftCard`
                 (auditoría de iconografía, 2026-09-10). Antes iba centrado a
@@ -146,7 +147,7 @@ export default function OpportunityCard({
           {/* Blanco siempre, con o sin foto: el fallback ahora es un gradiente
               saturado (no la banda pálida de antes), así que necesita el
               mismo contraste que la foto+velo. */}
-          <h2 className="line-clamp-2 text-3xl font-extrabold leading-tight text-white drop-shadow">
+          <h2 className="line-clamp-2 font-display text-[30px] font-medium leading-tight text-white drop-shadow">
             {SKILL_LABELS[shift.position]}
           </h2>
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
@@ -188,38 +189,45 @@ export default function OpportunityCard({
           antes de la acción —ahí se lee como respiro— y no partiendo al medio
           el contenido, que es lo que lo hace ver como un error de layout. */}
       <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-5 pb-5 pt-3 touch-pan-y md:overflow-visible">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold font-mono uppercase tracking-wide text-ink/40">Pago</p>
-            <p className="flex items-baseline gap-1 font-extrabold text-primary-text">
-              <span className="text-lg">{shift.currency}</span>
-              {/* `text-price` (39px, rediseño 2026-09): este número era el
-                  origen del token — "el dinero tiene que tener un
-                  tratamiento visual premium" (brief), ahora formalizado y
-                  reusable en vez de un tamaño mágico local. */}
-              <span className="text-price tracking-tight">
-                {Number(shift.pay_amount).toLocaleString("es-AR")}
-              </span>
+        {/* Pago y horario (DS v5.0): el monto en el mismo formato que el
+            home y el detalle ("$38.000"), con el pago por hora al lado —
+            los turnos duran distinto, y el total solo engaña (ADR-0012) —; y
+            el horario en 24 h ("Hoy · 20:00 – 02:00"), no "08:00 p. m.".
+            Sin el chip del ícono del rubro que iba a la derecha: repetía el
+            ícono del banner y en oscuro quedaba como un cuadro pálido. Sin la
+            fila "1 persona": un turno es siempre una persona (ADR-0003). */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
+          <p className="text-price font-extrabold tracking-tight text-primary-text">{formatPayAmount(shift)}</p>
+          {perHour && (
+            <p className="text-xs font-medium text-ink/50">
+              ≈ {formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora
             </p>
-            {shift.tips && <p className="text-xs font-medium text-ink/40">+ propinas</p>}
-            {shift.meal && <p className="text-xs font-medium text-ink/40">+ comida</p>}
-          </div>
-          <span className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-chip)] ${bg} ${fg}`}>
-            <Icon size={24} />
-          </span>
+          )}
         </div>
 
-        <div className="space-y-2 text-[15px] text-ink/80">
-            <p className="inline-flex items-center gap-2">
-              <CalendarIcon size={18} className="text-ink/35" />
-              {formatShiftRange(shift.start_at, shift.end_at)}
-            </p>
-            <p className="inline-flex items-center gap-2">
-              <UsersIcon size={18} className="text-ink/35" />
-              {shift.quantity} {shift.quantity === 1 ? "persona" : "personas"}
-            </p>
-          {shift.dress_code && <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>}
+        <div className="space-y-1.5 text-[15px] text-ink/80">
+          <p className="flex items-center gap-2">
+            <ClockIcon size={18} className="shrink-0 text-ink/35" />
+            <span>
+              {formatShiftWhen(shift.start_at, shift.end_at)}
+              {minutes != null && <span className="text-ink/45"> · {formatDuration(minutes)}</span>}
+            </span>
+          </p>
         </div>
+
+        {/* Qué incluye: los mismos chips que el detalle del turno. */}
+        {(shift.tips || shift.meal || shift.dress_code) && (
+          <div className="flex flex-wrap gap-1.5">
+            {shift.tips && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">Propinas</span>}
+            {shift.meal && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">Comida del personal</span>}
+            {shift.dress_code && (
+              <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
+                Vestimenta: {shift.dress_code}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="mt-auto space-y-3 pt-2">
           {/* "Cómo llegar" ACÁ, antes de decidir: quien ve la oferta necesita

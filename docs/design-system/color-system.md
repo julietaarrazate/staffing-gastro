@@ -79,8 +79,17 @@ mismo `--color-line`: si no se redefine, los bordes quedan con el hairline
 claro de `:root`. Excepción: manteca y cielo son pares auto-contenidos (su
 texto no se aclara) y se quedan igual en los dos modos.
 
-## Pendiente de auditoría en oscuro (pase de componentes)
+## Toast y `night` en oscuro
 
-`--color-night`/`bg-night` (toasts, botón "dark", marcadores) es near-black en
-los dos modos por diseño; sobre el lienzo oscuro nuevo queda con poco contraste
-— revisar toast y variante `dark` del botón en el pase de componentes.
+`--color-night`/`bg-night` es near-black en los dos modos por diseño (burbujas
+propias del chat, badges sobre foto). El **toast** ya no lo usa: tiene su par
+`--color-toast`/`--color-toast-ink`, que en claro es el mismo negro y en
+oscuro se **invierte** (crema `#F5F1EA` con tinta `#17130F`), porque un toast
+casi negro sobre el lienzo oscuro no se distinguía del fondo.
+
+## Tono de banner por rubro
+
+`SKILL_HERO_TONE` (`lib/skill-style.tsx`): el banner de una tarjeta de turno
+sin foto es un tono **profundo y plano** por rubro (vino, espresso, pizarra,
+ciruela…; el mozo lleva el verde bosque de la marca). Reemplaza al gradiente
+saturado: sigue distinguiendo dos turnos seguidos sin competir con el ámbar.

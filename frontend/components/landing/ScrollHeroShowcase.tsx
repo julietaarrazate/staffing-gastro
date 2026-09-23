@@ -104,8 +104,8 @@ const EXAMPLE_SHIFTS: Shift[] = [
 
 // Ninguna tiene foto (`company_logo_url: null` arriba), así que las 3 caen al
 // banner de color de `OpportunityCard` — y como los rubros elegidos son
-// distintos (mozo / bartender / barista), `SKILL_HERO_GRADIENT` les da tres
-// colores distintos solo (naranja / terracota / ámbar). Eso es justamente lo
+// distintos (mozo / bartender / barista), `SKILL_HERO_TONE` les da tres
+// tonos distintos solos (verde bosque / vino / espresso). Eso es justamente lo
 // que Julieta pidió ver acá primero ("ponele un color que combine y
 // contraste, uno para cada una", 2026-08-16) y después adentro de la app
 // ("algo de esos colores quedarían bien adentro también") — por eso el color
