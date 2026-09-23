@@ -18,7 +18,7 @@ type SnapIndex = 0 | 1 | 2;
 const MAX_SNAP: SnapIndex = 2;
 
 /**
- * Sheet inferior arrastrable a tres alturas (estilo Uber Eats/Airbnb) para el
+ * Sheet inferior arrastrable a tres alturas para el
  * layout 40/60 de `/map`. El panel tiene altura fija (la del snap más alto) y
  * se desplaza en `y`; así el drag es un simple `translateY`, con `motion`
  * (spring) para el asentado. Ver docs/reference/MAPS_REDESIGN.md §5/§6.

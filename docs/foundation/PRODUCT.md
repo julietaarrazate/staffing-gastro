@@ -2,7 +2,7 @@
 
 > Fuente de verdad del **producto**. Para el dominio ver [DOMAIN.md](./DOMAIN.md);
 > para la arquitectura [ARCHITECTURE.md](./ARCHITECTURE.md); para las reglas de
-> trabajo [PRINCIPLES.md](./PRINCIPLES.md) y [../CLAUDE.md](../../CLAUDE.md).
+> trabajo [PRINCIPLES.md](./PRINCIPLES.md).
 
 ## Qué es Staffya
 
@@ -11,12 +11,12 @@ comercios gastronómicos y organizadores de eventos (**comercios / employers**)
 con trabajadores eventuales (**trabajadores / workers**) para cubrir turnos de
 trabajo puntuales.
 
-La experiencia es **mobile-first** (PWA instalable) y combina patrones de:
-- **Uber** — oportunidades cerca tuyo, en tiempo real.
-- **Tinder** — el trabajador desliza turnos; el comercio elige entre postulantes (match).
-- **WhatsApp** — chat simple trabajador↔comercio por turno.
-- **Airbnb** — tarjetas grandes con foto real del local.
-- **PedidosYa / Uber Driver** — seguimiento del estado del turno.
+La experiencia es **mobile-first** (PWA instalable) y se apoya en cinco ideas:
+- **Cercanía en tiempo real** — oportunidades cerca tuyo, en un feed y en un mapa.
+- **Match** — el trabajador desliza turnos; el comercio elige entre postulantes.
+- **Chat por turno** — conversación simple trabajador↔comercio.
+- **Foto del lugar** — tarjetas grandes con la foto real del local.
+- **Seguimiento del turno** — en qué punto de su ciclo está cada turno.
 
 ## Qué problema resuelve
 
@@ -70,7 +70,7 @@ gastronómico consigue trabajo hoy.
 - **Para el comercio:** publicás un turno en segundos, recibís postulantes y
   candidatos recomendados por cercanía/reputación, asignás y coordinás por chat;
   asistencia con check-in/out geolocalizado.
-- **Para el trabajador:** ves oportunidades cerca en un feed tipo Tinder o en un
+- **Para el trabajador:** ves oportunidades cerca en un feed para deslizar o en un
   mapa, te postulás con un swipe, y construís reputación turno a turno.
 
 ## Fuera de alcance (hoy)
@@ -90,7 +90,7 @@ en [ARCHITECTURE.md](./ARCHITECTURE.md#estado-de-los-módulos)):
 
 ## Ciclo de vida del turno (resumen)
 
-El corazón del producto es el turno y su ciclo ("Modo Uber"):
+El corazón del producto es el turno y su ciclo:
 
 ```
 BORRADOR → PUBLICADO → BUSCANDO_PERSONAL → ASIGNADO → CONFIRMADO →

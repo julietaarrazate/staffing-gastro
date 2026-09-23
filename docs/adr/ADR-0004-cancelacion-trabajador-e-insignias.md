@@ -82,7 +82,7 @@ en `WorkerProfile`. Incorporarlo a `compute_badges` — una función pura de
 dominio del módulo `worker`, sin acceso a DB — forzaría acoplar ese cálculo a
 otro módulo (leer `User` desde dentro de `worker/domain` o encadenar una
 consulta a `identity` en cada `finish`/`worker_cancel`), violando la regla de
-capas de `CLAUDE.md` ("cruces entre módulos: por puerto/repositorio
+capas del proyecto ("cruces entre módulos: por puerto/repositorio
 inyectado, nunca acoplando dominios") por una insignia que hoy es sólo
 presentacional. Se deja explícitamente sin otorgamiento automático: el
 catálogo la sigue exponiendo, pero ningún caso de uso la asigna. Si se

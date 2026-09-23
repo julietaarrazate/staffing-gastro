@@ -5,7 +5,7 @@ import { useState } from "react";
 const PEEK_HEIGHT = 140;
 
 /**
- * Bandeja deslizable estilo app (Uber/Morfi) que se superpone a un mapa a
+ * Bandeja deslizable que se superpone a un mapa a
  * pantalla completa. Se puede arrastrar el handle (o tocarlo) para expandir
  * entre un estado "peek" (asoma el resultado) y uno expandido (lista completa).
  */

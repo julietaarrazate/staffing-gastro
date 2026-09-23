@@ -14,7 +14,7 @@ import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 
 /**
- * Tarjeta grande de oportunidad (DS v2, foto-first estilo Airbnb): foto real
+ * Tarjeta grande de oportunidad (DS v2, foto-first): foto real
  * del local como hero, cuerpo blanco con los datos y un chip de ícono con
  * acento sobrio por rubro. Si no hay foto, hero limpio con el tinte del rubro.
  */

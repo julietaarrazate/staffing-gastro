@@ -7,7 +7,7 @@ from uuid import UUID
 
 @dataclass(frozen=True)
 class ConversationSummary:
-    """Resumen de una conversación para el inbox tipo Rappi.
+    """Resumen de una conversación para la bandeja de conversaciones.
 
     Reúne datos del turno y del otro participante (su nombre y foto) junto al
     último mensaje y la cantidad de no leídos, para pintar cada tarjeta sin

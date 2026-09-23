@@ -140,7 +140,7 @@ function WorkerFeedPanel() {
   // "Mejores pagos" (por pago por hora, ADR-0012). "Urgentes" es un filtro
   // aparte y se combina con cualquiera de los dos.
   const [sort, setSort] = useState<"nearby" | "pay">("nearby");
-  // "Descubrir rápido": el mazo tipo Tinder a pantalla completa. Mientras está
+  // "Descubrir rápido": el mazo para deslizar a pantalla completa. Mientras está
   // abierto se le pasa una foto fija de los turnos (si cambiara la lista bajo
   // sus pies, SwipeDeck resetearía el mazo en medio de un gesto); lo decidido
   // se saca del home recién al cerrar.
@@ -354,7 +354,7 @@ function WorkerFeedPanel() {
     // Home del trabajador con la composición del board de Julieta (pantalla
     // 1): saludo en serif, buscador, chips de orden/filtro, la tarjeta
     // "Recomendado" y la fila "Cerca tuyo". Ya no es un mazo de alto fijo: la
-    // pantalla scrollea como el board. El mazo tipo Tinder sigue existiendo
+    // pantalla scrollea como el board. El mazo para deslizar sigue existiendo
     // como "Descubrir rápido" (decisión de Julieta, 2026-09-22).
     <div className="mx-auto max-w-md px-4 pb-8 pt-4 md:max-w-5xl">
       <header className="mb-3 flex items-start justify-between gap-3">

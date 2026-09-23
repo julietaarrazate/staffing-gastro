@@ -1,7 +1,7 @@
 """Entidad de dominio Turno (Shift).
 
 Encapsula los datos del turno y las reglas de transición de estado del
-"Modo Uber". La validación de horario y las transiciones viven en el dominio.
+ciclo de vida del turno. La validación de horario y las transiciones viven en el dominio.
 """
 
 from dataclasses import dataclass, field
@@ -36,8 +36,8 @@ EARLY_CHECKIN_WINDOW = timedelta(minutes=30)
 
 # "Va en camino" (2026-09): cuánto antes del turno el trabajador puede empezar
 # a compartir dónde está, para que el comercio vea que está llegando (pedido de
-# Julieta: "que muestre la ruta del trabajador yendo al local, como hace Rappi,
-# eso genera tranquilidad al comercio").
+# Julieta: "que muestre la ruta del trabajador yendo al local, eso genera
+# tranquilidad al comercio").
 #
 # Dos horas y no más: la ventana ES la protección. La ubicación de una persona
 # es dato personal (Ley 25.326), así que sólo se acepta mientras responde la

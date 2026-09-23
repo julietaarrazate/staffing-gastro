@@ -31,8 +31,7 @@ CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 # Idempotencia (product/IDEMPOTENCIA_SPEC.md): sólo la ruta, nunca la lógica
-# de conteo mensual (esa vive en ShiftService/SubscriptionService — frontera
-# del ejecutor paralelo en `claude/robustez-tz-bugs`).
+# de conteo mensual (esa vive en ShiftService/SubscriptionService).
 RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
 

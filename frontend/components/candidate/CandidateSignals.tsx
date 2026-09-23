@@ -12,8 +12,7 @@ import { BADGE_ICONS, badgeLabel, formatPunctuality, levelLabel } from "@/lib/re
 
 /**
  * Señales legibles de un candidato/postulante, para que el comercio vea *por
- * qué* conviene alguien en vez de un score opaco (inspiración: la pantalla de
- * presupuestos de Clickie, "¿Por qué lo elige?"). Todos los datos ya vienen
+ * qué* conviene alguien en vez de un score opaco ("¿Por qué lo elige?"). Todos los datos ya vienen
  * del backend sin consulta extra (matching y JOIN de postulantes).
  */
 export interface CandidateSignals {

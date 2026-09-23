@@ -26,7 +26,7 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
   experiencia, geolocalización), métricas e insignias.
 - **company** ✅ — PerfilComercio: datos (logo, rubro, ubicación, capacidad, horarios)
   y métricas.
-- **shift** ✅ — Publicación de turnos: entidad Turno con los estados del "Modo Uber",
+- **shift** ✅ — Publicación de turnos: entidad Turno con los estados del ciclo de vida del turno,
   feed público con filtros y ciclo de vida completo (borrador → publicado →
   asignado → confirmado/rechazado → en_camino → check_in → trabajando →
   check_out → finalizado → pagado, o cancelado en cualquier punto no terminal).
@@ -48,7 +48,7 @@ El núcleo compartido vive en `app/core/` (configuración, base de datos, seguri
   plataforma y moderación de usuarios (listar, suspender, reactivar, verificar,
   promover a admin). Reutiliza el repositorio de identidad. El primer admin se
   da de alta vía `ADMIN_EMAILS` (no hay auto-registro como admin).
-- payment, ai — _pendientes (ver roadmap en [`../CLAUDE.md`](../CLAUDE.md)).
+- payment, ai — _pendientes (ver roadmap en `docs/`).
   El check-in/check-out geolocalizado (asistencia) ya vive dentro de `shift`;
   `payment` falta para procesar el cobro real, hoy `mark-paid` sólo registra que
   el comercio pagó._

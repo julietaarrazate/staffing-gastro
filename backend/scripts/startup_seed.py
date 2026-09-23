@@ -48,7 +48,7 @@ async def _run_demo_data() -> None:
         print("[seed] SEED_DEMO_DATA != true: no se siembran datos demo")
         return
     # PRODUCTION_HARDENING.md: no apaga el seed (esa sigue siendo decisión de
-    # Julieta, ver CLAUDE.md "Pendiente de la operadora") — sólo deja un
+    # Julieta, ver "Pendiente de la operadora" en la guía del repositorio) — sólo deja un
     # rastro imposible de pasar por alto en los logs de cada cold start, para
     # que "quedó prendido sin que nadie se diera cuenta" deje de ser posible.
     if os.getenv("ENVIRONMENT", "").lower() == "production":

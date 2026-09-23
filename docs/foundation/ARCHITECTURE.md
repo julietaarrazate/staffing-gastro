@@ -9,8 +9,7 @@
 >
 > **Revisado y verificado contra el código real el 2026-08-31** (versiones
 > exactas, módulos, integraciones e infraestructura). Si pasó mucho tiempo
-> desde esta fecha, reverificar antes de citar una versión o un número —
-> mismo criterio que `CLAUDE.md`.
+> desde esta fecha, reverificar antes de citar una versión o un número.
 
 ## Stack
 

@@ -2,7 +2,7 @@
 
 // Botón "Continuar con Google" (Google Identity Services) + el paso de
 // selección de rol para cuentas nuevas. Un solo componente reutilizado por
-// /login y /register (CLAUDE.md: "no dupliques lógica"): el flujo de Google
+// /login y /register (regla: "no dupliques lógica"): el flujo de Google
 // es el mismo desde ambas pantallas, sólo cambia adónde navega al terminar.
 //
 // Flag por ausencia (mismo patrón que el resto del proyecto, ver

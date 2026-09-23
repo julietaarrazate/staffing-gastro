@@ -11,7 +11,7 @@ import { formatShiftDate } from "@/lib/datetime";
 
 /**
  * Reseñas públicas de un trabajador, para que el comercio lo vetee antes de
- * asignar (inspiración: "Reseñas recientes" de Clickie). Consume
+ * asignar. Consume
  * `GET /reviews/workers/{id}` (reseñas recibidas, más nuevas primero).
  */
 function ReviewSkeleton() {

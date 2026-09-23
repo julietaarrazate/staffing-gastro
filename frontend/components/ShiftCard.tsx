@@ -310,8 +310,8 @@ export default function ShiftCard({
           </div>
         </div>
 
-        {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md, inspiración
-            Clickie): de un vistazo, en qué punto del viaje está el turno. */}
+        {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md): de un
+            vistazo, en qué punto del viaje está el turno. */}
         {showLifecycle && (
           <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
         )}

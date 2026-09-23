@@ -108,7 +108,7 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 
 ## Match — `ShiftApplication` + asignación
 
-- **Propósito:** el "match" estilo Tinder tiene **dos lados**:
+- **Propósito:** el "match" tiene **dos lados**:
   - **Lado trabajador:** `ShiftApplication` — el worker se **postula** a un turno
     abierto (swipe derecha). Estados `ApplicationStatus`: `pendiente`, `aceptada`,
     `rechazada`, `retirada`. Único por (turno, trabajador).

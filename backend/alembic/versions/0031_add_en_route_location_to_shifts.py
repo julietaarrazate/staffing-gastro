@@ -2,8 +2,7 @@
 
 Última posición conocida del trabajador mientras viaja a un turno confirmado,
 para que el comercio vea que está llegando (pedido de Julieta: "que muestre la
-ruta del trabajador yendo al local, como hace Rappi, eso genera tranquilidad al
-comercio").
+ruta del trabajador yendo al local, eso genera tranquilidad al comercio").
 
 Tres columnas en `shifts` y no una tabla de posiciones a propósito: el dato se
 PISA en cada reporte y se borra al llegar, así que nunca hay más de una fila
