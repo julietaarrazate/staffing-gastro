@@ -116,7 +116,7 @@ Cualquier recurso ajeno o inexistente responde siempre `404`, nunca `403`, en to
 
 ### 3.4 Degradación elegante por ausencia de credenciales
 
-Cada integración externa (Cloudinary, Resend, Google, Web Push, Sentry, Gemini, Mercado Pago) se activa únicamente si su variable de entorno está presente; en su ausencia, la funcionalidad se desactiva sola (modo no-op o `503` explícito) sin romper el resto del sistema. El sistema completo funciona en cualquier subconjunto de sus capacidades opcionales, sin configuración adicional.
+Cada integración externa (almacenamiento de imágenes, email transaccional, inicio de sesión social, notificaciones push, monitoreo de errores, modelo de IA y pasarela de pagos) se activa únicamente si su variable de entorno está presente; en su ausencia, la funcionalidad se desactiva sola (modo no-op o `503` explícito) sin romper el resto del sistema. El sistema completo funciona en cualquier subconjunto de sus capacidades opcionales, sin configuración adicional.
 
 ---
 

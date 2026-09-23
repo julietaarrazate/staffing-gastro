@@ -31,6 +31,24 @@
 git show df12362
 ```
 
+### 2.1 bis Commit del código fuente depositado
+
+Es la versión exacta del software que se entrega en el ZIP (la que estaba en
+producción al armar el expediente).
+
+| Campo | Valor |
+|---|---|
+| **Hash SHA-1 completo** | `e1c44b6b033a85750838db679210a7531710d104` |
+| **Hash corto** | `e1c44b6` |
+| **Rama** | `main` |
+| **Fecha** | 23 de septiembre de 2026 |
+| **Último cambio incluido** | Documentación sin comparaciones con otras apps (PR #355) |
+
+**Verificación:**
+```bash
+git show e1c44b6
+```
+
 ### 2.2 Rama para presentación
 
 | Parámetro | Valor |
@@ -55,17 +73,17 @@ Ver `TAG_REGISTRO.md` para el procedimiento completo.
 - 17 módulos de dominio, cada uno con `domain/`/`application/`/`infrastructure/`/`api/`.
 - 17 routers HTTP/WebSocket.
 - 14 modelos ORM con tabla propia.
-- 30 migraciones Alembic.
-- 429 tests automatizados.
+- 33 migraciones Alembic.
+- 512 tests automatizados.
 
 ### Frontend (Next.js, PWA)
 - 31 páginas (App Router).
-- 87 componentes.
-- 45 módulos de utilidades y cliente HTTP/WebSocket.
-- 31 specs E2E (75 tests, Playwright).
+- 107 componentes.
+- 56 módulos de utilidades y cliente HTTP/WebSocket.
+- 39 specs E2E (111 tests, Playwright).
 
 ### Base de datos
-- 30 migraciones (Alembic) sobre PostgreSQL (Neon en producción, SQLite en tests).
+- 33 migraciones (Alembic) sobre PostgreSQL (proveedor de PostgreSQL gestionado en producción, SQLite en tests).
 
 ## 4. ESTADO DEL SISTEMA
 
@@ -80,8 +98,8 @@ Ver `TAG_REGISTRO.md` para el procedimiento completo.
 
 | Suite | Total | Estado |
 |---|---|---|
-| Backend (pytest) | 429 | Verde en CI |
-| Frontend E2E (Playwright) | 75 (31 specs) | Verde en CI |
+| Backend (pytest) | 512 | Verde en CI |
+| Frontend E2E (Playwright) | 111 (39 specs) | Verde en CI |
 | Frontend unitarios (Vitest) | 14 archivos | Verde en CI |
 
 ### 4.3 Funcionalidad demostrada
@@ -110,8 +128,8 @@ Ver `TAG_REGISTRO.md` para el procedimiento completo.
 | Tiempo real | Junio–Julio 2026 | Chat y notificaciones por WebSocket, asistencia geolocalizada |
 | Confianza y reputación | Julio 2026 | No-show/cancelación tardía, insignias/niveles, verificación de identidad |
 | Monetización | Julio 2026 | Suscripción mensual del comercio |
-| Hardening de producción | Julio–Agosto 2026 | Migración a Neon, seguridad de sesión, accesibilidad, tests unitarios |
-| Inteligencia artificial | Agosto 2026 | Asistente con Gemini |
+| Hardening de producción | Julio–Agosto 2026 | Migración a proveedor de PostgreSQL gestionado, seguridad de sesión, accesibilidad, tests unitarios |
+| Inteligencia artificial | Agosto 2026 | Asistente de IA |
 | Escalada y eficiencia | Agosto 2026 | Escalada automática de urgencia, scheduler por deadline dinámico |
 | Identidad visual | Agosto–Septiembre 2026 | Rediseño de marca y auditoría de consistencia visual |
 
@@ -130,7 +148,7 @@ git diff-tree --no-commit-id --name-only -r df12362 | wc -l
 **Historial de commits:**
 ```bash
 git log --oneline | wc -l
-# → 303 commits (al momento de este relevamiento) + los del presente expediente
+# → 347 commits (al momento de este relevamiento) + los del presente expediente
 ```
 
 ## 7. DOCUMENTACIÓN INCLUIDA EN LA VERSIÓN
@@ -139,7 +157,7 @@ git log --oneline | wc -l
 - `README.md`, `LICENSE`, `NOTICE` (raíz).
 - `backend/README.md`, `frontend/README.md`.
 - `docs/foundation/` (PRODUCT.md, DOMAIN.md, ARCHITECTURE.md, PRINCIPLES.md).
-- `docs/adr/` (11 Architecture Decision Records).
+- `docs/adr/` (15 Architecture Decision Records).
 
 ### 7.2 Documentación de registro (en `REGISTRO_OBRA_SOFTWARE/`)
 - 30-31 archivos `.md` (expediente completo).
@@ -153,7 +171,7 @@ git log --oneline | wc -l
 - [x] Autora identificada: Julieta Arrazate
 - [x] Fecha de la versión: Septiembre 2026
 - [x] Código fuente completo: backend + frontend
-- [x] Tests automatizados: 429 + 75, verdes
+- [x] Tests automatizados: 512 + 111, verdes
 - [x] Documentación integral: 30-31 `.md`
 - [x] Sincronizado con producción: Vercel + Render
 

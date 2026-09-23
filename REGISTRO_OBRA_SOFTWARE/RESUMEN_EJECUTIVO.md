@@ -46,7 +46,7 @@ Un comercio gastronómico que necesita cubrir una ausencia de último momento (u
 
 | Área | Capacidades |
 |---|---|
-| Identidad y sesión | Registro, login con email o Google, JWT + refresh rotativo seguro, roles |
+| Identidad y sesión | Registro, login con email o cuenta de Google, JWT + refresh rotativo seguro, roles |
 | Perfiles | Trabajador (habilidades, experiencia, reputación) y comercio (categoría, ubicación, capacidad) |
 | Turnos | Publicación (manual o por IA), feed, ciclo de vida completo con asistencia geolocalizada |
 | Matching | Ranking de candidatos por scoring multi-factor, búsqueda por mapa |
@@ -82,26 +82,26 @@ Cada integración externa (imágenes, email, login social, push, IA, pagos) se a
 | Capacidad | Tecnología |
 |---|---|
 | API asíncrona | FastAPI (Python 3.11) |
-| Base de datos relacional | PostgreSQL (Neon, serverless) |
+| Base de datos relacional | PostgreSQL (gestionado, serverless) |
 | Interfaz web reactiva e instalable | Next.js + React + TypeScript, PWA |
 | Tiempo real | WebSocket (chat y notificaciones) |
 | Mapas | MapLibre GL vectorial + clustering, sin API de pago |
-| Inteligencia artificial | Google Gemini (asistente de publicación de turnos) |
-| Tests automatizados | 429 (backend) + 75 E2E (frontend) + tests unitarios de frontend |
-| Observabilidad | Sentry (opt-in) + logging estructurado |
+| Inteligencia artificial | Modelo de lenguaje de IA de terceros (asistente de publicación de turnos) |
+| Tests automatizados | 512 (backend) + 111 E2E (frontend) + tests unitarios de frontend |
+| Observabilidad | Monitoreo de errores (opt-in) + logging estructurado |
 | Autenticación segura | JWT + refresh token rotativo en cookie `httpOnly` |
-| Almacenamiento de imágenes/archivos | Cloudinary (opt-in) |
+| Almacenamiento de imágenes/archivos | Servicio externo de almacenamiento (opt-in) |
 
 ## 7. ARQUITECTURA DE DESPLIEGUE
 
 ```
-Usuarios → Frontend (Vercel)
+Usuarios → Frontend (hosting web)
               ↓ HTTPS + WebSocket
-         API + WebSocket (Render — backend Python)
+         API + WebSocket (servidor en la nube — backend Python)
               ↓ SQL asíncrono
-         PostgreSQL (Neon — cloud serverless)
+         PostgreSQL (gestionado en la nube, serverless)
               ↓ opcionales
-   [Gemini IA] [Cloudinary] [Resend] [Sentry] [Mercado Pago] [Google Identity Services]
+   [Modelo de IA] [Almacenamiento de imágenes] [Email transaccional] [Monitoreo de errores] [Pasarela de pagos] [Inicio de sesión social]
 ```
 
 - **Disponibilidad:** despliegue automático desde `main`, con gates de CI obligatorios (tests, tipado, build, E2E, escaneo de secretos, auditoría de dependencias) antes de cualquier despliegue a producción.
@@ -112,8 +112,8 @@ Usuarios → Frontend (Vercel)
 | Dimensión | Estado |
 |---|---|
 | Funcionalidades | Completas para la fase de beta cerrada |
-| Tests automatizados | 429 backend + 75 E2E + suite unitaria de frontend, todos verdes en CI |
-| Documentación técnica | Exhaustiva y viva (`docs/`), con 11 decisiones de arquitectura registradas |
+| Tests automatizados | 512 backend + 111 E2E + suite unitaria de frontend, todos verdes en CI |
+| Documentación técnica | Exhaustiva y viva (`docs/`), con 15 decisiones de arquitectura registradas |
 | Producción | Activa, con usuarios reales en beta cerrada |
 | Historial de desarrollo | Más de 300 commits desde junio de 2026 |
 

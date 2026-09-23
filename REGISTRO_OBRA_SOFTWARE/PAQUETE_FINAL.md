@@ -19,8 +19,8 @@ backend/
 ├── alembic/
 │   ├── env.py
 │   ├── script.py.mako
-│   └── versions/          ← 30 migraciones
-├── tests/                 ← 429 tests
+│   └── versions/          ← 33 migraciones
+├── tests/                 ← 512 tests
 ├── scripts/                ← seed de datos demo
 ├── requirements.txt
 ├── pyproject.toml
@@ -33,9 +33,9 @@ backend/
 ```
 frontend/
 ├── app/                   ← 31 páginas
-├── components/            ← 87 componentes
-├── lib/                   ← 45 módulos de utilidades/cliente
-├── e2e/                   ← 31 specs Playwright
+├── components/            ← 107 componentes
+├── lib/                   ← 56 módulos de utilidades/cliente
+├── e2e/                   ← 39 specs Playwright
 ├── public/
 ├── package.json
 ├── package-lock.json
@@ -50,7 +50,7 @@ frontend/
 ```
 docs/
 ├── foundation/            ← PRODUCT.md, DOMAIN.md, ARCHITECTURE.md, PRINCIPLES.md
-└── adr/                   ← 11 Architecture Decision Records
+└── adr/                   ← 15 Architecture Decision Records
 ```
 
 ### 1.4 Documentación de registro
@@ -121,7 +121,7 @@ docs/BUGS.md
 docs/INCIDENTE_2026-07-23_BACKEND_CAIDO.md
 docs/design/                (sistema de diseño visual — no imprescindible para el registro de software)
 docs/reference/              (documentación de referencia detallada, opcional)
-CLAUDE.md                    (guía operativa interna de cómo trabajar en el repositorio)
+Guía operativa interna        (cómo trabajar en el repositorio)
 CLEANUP_REPORT.md, DUE_DILIGENCE_REPORT.md, INFRASTRUCTURE_REPORT.md,
 MIGRATION_LOG.md, NEXT_IMAGE_ANALYSIS.md, PERFORMANCE_REPORT.md,
 PRODUCTION_HARDENING.md, REPOSITORY_CLEANUP.md, REPOSITORY_STRUCTURE.md,

@@ -33,7 +33,7 @@ Cliente (Next.js) ──HTTP/JSON──▶ api/ (router FastAPI + schema Pydanti
                               application/ (caso de uso)
                                    │ (usa los puertos del domain/)
                                    ▼
-                         infrastructure/ (repositorio SQLAlchemy) ──▶ PostgreSQL (Neon)
+                         infrastructure/ (repositorio SQLAlchemy) ──▶ PostgreSQL
 ```
 
 La respuesta vuelve como schema Pydantic; las excepciones de dominio se mapean a códigos HTTP en la capa `api/`.
@@ -65,7 +65,7 @@ El loop **despierta por deadline, no por reloj fijo**: en cada pasada calcula cu
 - **Headers de seguridad:** HSTS, Content-Security-Policy, X-Frame-Options, Referrer-Policy, Permissions-Policy.
 - **Idempotencia** (`Idempotency-Key`) en las mutaciones críticas del ciclo de vida del turno, para tolerar reintentos de red sin duplicar efectos.
 - **No auto-registro como admin:** el primer administrador se promueve exclusivamente por la variable de entorno `ADMIN_EMAILS` al arrancar el sistema (`app/modules/admin/bootstrap.py`).
-- **Secret scanning** en CI (gitleaks + GitGuardian) y auditoría de dependencias (`pip-audit`, `npm audit`) en cada PR.
+- **Secret scanning** en CI (escaneo automático de secretos) y auditoría de dependencias (`pip-audit`, `npm audit`) en cada PR.
 
 ## 6. MODELO DE PERMISOS
 
@@ -89,7 +89,7 @@ Ver detalle algorítmico completo en `ACTIVOS_PI.md`. En síntesis: combina dist
 
 ## 9. ASISTENTE DE INTELIGENCIA ARTIFICIAL
 
-Integración con Google Gemini (modelo configurable por variable de entorno, nunca fijado a un alias `-latest`, para evitar un hot-swap de modelo sin control del despliegue). Dos capacidades:
+Integración con un modelo de lenguaje de IA de terceros (modelo configurable por variable de entorno, nunca fijado a un alias `-latest`, para evitar un hot-swap de modelo sin control del despliegue). Dos capacidades:
 
 - **Publicación de turnos por texto libre:** el comercio describe el turno en lenguaje natural ("necesito un mozo el sábado a la noche, se paga 45000") y el asistente prellena puesto/horario/pago — nunca publica sin que el comercio revise y confirme.
 - **Consultas en lenguaje natural sobre los propios turnos:** resumen de turnos de hoy/urgentes/sin cubrir, búsqueda del turno relevante para ver sus postulantes, búsqueda de un postulante por nombre.
@@ -100,36 +100,36 @@ Sin `GEMINI_API_KEY`, los endpoints de IA responden `503` explícito (nunca fall
 
 | Servicio | Uso | Comportamiento sin credencial |
 |---|---|---|
-| Cloudinary | Foto de perfil/logo, subida firmada de CV | Deshabilitado |
-| Resend | Email transaccional (plantillas HTML de marca) | `NullEmailSender`: sólo loguea, no falla |
-| Google Identity Services | Login con Google (ID token, sin client secret) | Botón de Google no disponible |
+| Almacenamiento de imágenes | Foto de perfil/logo, subida firmada de CV | Deshabilitado |
+| Email transaccional | Email transaccional (plantillas HTML de marca) | `NullEmailSender`: sólo loguea, no falla |
+| Inicio de sesión social | Ingreso con cuenta de Google (token de identidad, sin secreto de cliente) | Opción no disponible |
 | Web Push / VAPID | Notificaciones push | Deshabilitado |
-| Sentry | Error tracking backend + frontend | Deshabilitado |
-| Google Gemini | Asistente de IA para publicar turnos | `503` explícito en los endpoints de IA |
-| Mercado Pago | Suscripción recurrente del comercio | Gateway simulado (`fake_billing_gateway`), enforcement apagado |
-| Nominatim / OpenStreetMap | Geocoding para alta de local con pin arrastrable | Sin key, siempre disponible |
+| Monitoreo de errores | Error tracking backend + frontend | Deshabilitado |
+| Modelo de lenguaje de IA | Asistente de IA para publicar turnos | `503` explícito en los endpoints de IA |
+| Pasarela de pagos | Suscripción recurrente del comercio | Gateway simulado (`fake_billing_gateway`), enforcement apagado |
+| Geocodificador de datos abiertos | Geocoding para alta de local con pin arrastrable | Sin key, siempre disponible |
 
 ## 11. BASE DE DATOS Y POOL DE CONEXIONES
 
-Connection string **directa** a Neon (sin sufijo `-pooler`, porque el pooler en modo transacción exige `statement_cache_size=0` con asyncpg, no configurado). `pool_size=1`, `max_overflow=10`, `pool_pre_ping=True`, `pool_recycle=280` — dimensionado deliberadamente bajo porque el plan free de Neon suspende el cómputo (y deja de consumir cuota) sólo con cero conexiones activas.
+Connection string **directa** a la base de datos (sin sufijo `-pooler`, porque el pooler en modo transacción exige `statement_cache_size=0` con asyncpg, no configurado). `pool_size=1`, `max_overflow=10`, `pool_pre_ping=True`, `pool_recycle=280` — dimensionado deliberadamente bajo porque el plan free de proveedor de PostgreSQL gestionado suspende el cómputo (y deja de consumir cuota) sólo con cero conexiones activas.
 
 ## 12. DEPLOY
 
-- **Backend:** contenedor Docker en Render. El comando de arranque corre `alembic upgrade head` → seed demo idempotente (si está habilitado) → `uvicorn`. Auto-deploy desde `main`, sin entorno de staging.
-- **Frontend:** Vercel, auto-deploy desde `main`, previews por PR.
-- **Base de datos:** Neon (Postgres serverless, `aws-us-east-2`).
+- **Backend:** contenedor Docker en un proveedor de nube. El comando de arranque corre `alembic upgrade head` → seed demo idempotente (si está habilitado) → `uvicorn`. Auto-deploy desde `main`, sin entorno de staging.
+- **Frontend:** hosting web, auto-deploy desde `main`, previews por PR.
+- **Base de datos:** PostgreSQL gestionado en la nube (serverless).
 
 ## 13. CI/CD Y CALIDAD
 
-GitHub Actions, con detección de cambios por área (backend/frontend no corren si esa carpeta no cambió). Gates obligatorios en cada PR y push a `main`:
+Integración continua, con detección de cambios por área (backend/frontend no corren si esa carpeta no cambió). Gates obligatorios en cada PR y push a `main`:
 
-- `pytest -q` (backend): 429 tests.
+- `pytest -q` (backend): 512 tests.
 - `tsc --noEmit` + `npm run build` (frontend).
-- Playwright (E2E, API mockeada): 31 specs, 75 tests.
-- Secret scanning (gitleaks + GitGuardian).
+- Playwright (E2E, API mockeada): 39 specs, 111 tests.
+- Secret scanning (escaneo automático de secretos).
 - Auditoría de dependencias (`pip-audit`, `npm audit`).
 
-Nada entra a `main` — que despliega automáticamente a Render/Vercel — sin pasar por estos gates.
+Nada entra a `main` — que despliega automáticamente a los servidores de producción — sin pasar por estos gates.
 
 ## 14. ESCALABILIDAD — LÍMITE CONOCIDO Y DECLARADO
 

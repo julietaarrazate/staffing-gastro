@@ -16,12 +16,12 @@ La totalidad del código fuente de la obra fue desarrollada por **Julieta Arraza
 
 | Métrica | Valor |
 |---|---|
-| Total de commits | 303 |
+| Total de commits | 347 |
 | Rama principal | `main` |
-| Repositorio | Privado (`github.com/julietaarrazate/staffing-gastro`) |
+| Repositorio | Privado |
 | Primer commit | 21 de junio de 2026 |
-| Commit más reciente relevado | 2 de septiembre de 2026 |
-| Período de desarrollo activo | Más de 70 días continuos, sin interrupción |
+| Commit más reciente relevado | 23 de septiembre de 2026 |
+| Período de desarrollo activo | Más de 90 días continuos, sin interrupción |
 
 ## 3. CRONOLOGÍA DE DESARROLLO
 
@@ -31,11 +31,12 @@ La totalidad del código fuente de la obra fue desarrollada por **Julieta Arraza
 | Motor de matching | Junio 2026 | Scoring multi-factor, asignación y confirmación de turnos |
 | Tiempo real | Junio–Julio 2026 | Chat y notificaciones por WebSocket, asistencia geolocalizada |
 | Confianza y reputación | Julio 2026 | No-show y cancelación tardía (ADR-0007), insignias y niveles (ADR-0004), verificación de identidad por niveles de garantía |
-| Monetización | Julio 2026 | Suscripción mensual del comercio (ADR-0005), integración Mercado Pago |
-| Hardening de producción | Julio–Agosto 2026 | Migración de base de datos a Neon, cookie `httpOnly` para el refresh token, accesibilidad (`jsx-a11y`), tests unitarios de frontend |
-| Inteligencia artificial | Agosto 2026 | Asistente con Gemini para publicar turnos por texto libre y responder consultas |
+| Monetización | Julio 2026 | Suscripción mensual del comercio (ADR-0005), integración con pasarela de pagos |
+| Hardening de producción | Julio–Agosto 2026 | Migración de base de datos a PostgreSQL gestionado, cookie `httpOnly` para el refresh token, accesibilidad (`jsx-a11y`), tests unitarios de frontend |
+| Inteligencia artificial | Agosto 2026 | Asistente de IA para publicar turnos por texto libre y responder consultas |
 | Escalada y eficiencia | Agosto 2026 | Escalada automática de urgencia (ADR-0009), scheduler por deadline dinámico para reducir consumo de cómputo |
 | Identidad visual y consistencia | Agosto–Septiembre 2026 | Rediseño integral de marca ("Oído"), sistema de diseño y auditoría sistémica de consistencia visual |
+| Confianza bilateral y operación en tiempo real | Septiembre 2026 | "Va en camino" (el comercio ve llegar al trabajador), pago de referencia por puesto y ciudad (ADR-0012), verificación del comercio con constancia de AFIP (ADR-0013), "Disponible ahora" con ubicación desplazada por privacidad (ADR-0014), turno "no cubierto" (ADR-0015), sistema de diseño v5.0, foto del local y animaciones de confirmación |
 
 ## 4. NATURALEZA ORIGINAL DE LA OBRA
 
@@ -60,11 +61,11 @@ Las librerías utilizadas (FastAPI, SQLAlchemy, Alembic, Next.js, React, Tailwin
 | Evidencia | Descripción |
 |---|---|
 | Repositorio privado | El código fuente reside en un repositorio privado de propiedad de la autora |
-| 303 commits | Historial de desarrollo continuo, con mensajes descriptivos por cambio |
-| 429 tests automatizados (backend) + 75 tests E2E (frontend) | Demuestran dominio completo del sistema y de sus reglas de negocio |
-| 11 Architecture Decision Records | Registran y justifican cada decisión técnica no trivial, con fecha y motivo |
+| 347 commits | Historial de desarrollo continuo, con mensajes descriptivos por cambio |
+| 512 tests automatizados (backend) + 111 tests E2E (frontend) | Demuestran dominio completo del sistema y de sus reglas de negocio |
+| 15 Architecture Decision Records | Registran y justifican cada decisión técnica no trivial, con fecha y motivo |
 | Documentación viva (`docs/`) | Especificación de producto, dominio, arquitectura, seguridad y sistema de diseño, mantenida al día con cada cambio relevante |
-| Configuración de despliegue propia | `render.yaml`, configuración de Vercel, migraciones Alembic versionadas |
+| Configuración de despliegue propia | configuración de despliegue, migraciones Alembic versionadas |
 
 ## 6. DECLARACIÓN DE ORIGINALIDAD
 
@@ -78,11 +79,11 @@ La autora declara que:
 
 ## 7. INFORMACIÓN ADICIONAL — COMPLETADO POR LA AUTORA
 
-**Fecha de inicio del desarrollo:** [COMPLETAR — indicar si hay evidencia de trabajo previo al primer commit del 21 de junio de 2026]
+**Fecha de inicio del desarrollo:** 21 de junio de 2026, fecha del primer commit del repositorio. La idea del producto es anterior; se toma esta fecha como inicio porque es la primera evidencia documental verificable del desarrollo.
 
-**Evidencia de desarrollo previo:** [COMPLETAR — si existen bocetos, prototipos o especificaciones anteriores al repositorio git]
+**Evidencia de desarrollo previo:** no se presenta. La evidencia documental del desarrollo comienza con el primer commit del repositorio y continúa, sin interrupciones, en el historial de cambios del repositorio, disponible para su verificación.
 
-**Contexto laboral y contractual:** [COMPLETAR — declarar si la obra fue desarrollada de forma independiente, con equipos propios, sin relación de dependencia laboral ni contrato de cesión de derechos con terceros]
+**Contexto laboral y contractual:** la obra fue desarrollada de forma independiente por la autora, con recursos propios, sin relación de dependencia laboral y sin contrato de cesión de derechos con terceros. Las herramientas de desarrollo utilizadas (editores de código, frameworks y librerías de código abierto, servicios en la nube y herramientas de asistencia de programación) fueron instrumentos de trabajo bajo su exclusiva dirección. La concepción de la obra, su diseño, las decisiones de producto y de arquitectura, y la validación final de cada componente corresponden a la autora.
 
 ---
 

@@ -12,7 +12,7 @@
 
 - Resolución mínima: 1280×720 px.
 - Formato: PNG (preferido) o JPG de alta calidad.
-- Tomar desde el sistema real en producción (https://staffing-gastro.vercel.app) o desde una cuenta de demostración, nunca con datos de un comercio o trabajador real ajeno al proyecto.
+- Tomar desde el sistema real en producción (https://oido.com.ar) o desde una cuenta de demostración, nunca con datos de un comercio o trabajador real ajeno al proyecto.
 - Si aparece nombre de comercio o trabajador en la captura, usar cuentas propias o de demostración — nunca datos de un tercero real.
 - Incluir modo claro y, si es relevante, modo oscuro.
 - Guardar en la carpeta `CAPTURAS/` con la nomenclatura de la columna "Archivo sugerido".

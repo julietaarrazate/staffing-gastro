@@ -28,7 +28,7 @@
 | `backend/.pytest_cache/`, `backend/.ruff_cache/` | Caché de herramientas de test/lint | EXCLUIR |
 | `frontend/.next/` | Build compilado de Next.js (se regenera) | EXCLUIR |
 | `.git/` | Historial Git completo (voluminoso, no requerido por la DNDA) | EXCLUIR (se acompaña export del log) |
-| `.github/` | Configuración de GitHub Actions | EXCLUIR |
+| `.github/` | Configuración de integración continua | EXCLUIR |
 
 ## 3. ARCHIVOS DE DOCUMENTACIÓN INTERNA/OPERATIVA
 
@@ -41,7 +41,7 @@
 | `docs/BUGS.md` | Catálogo de bugs ya resueltos | EXCLUIR |
 | `docs/INCIDENTE_2026-07-23_BACKEND_CAIDO.md` | Postmortem de un incidente operativo | EXCLUIR |
 | `CLEANUP_REPORT.md`, `DUE_DILIGENCE_REPORT.md`, `INFRASTRUCTURE_REPORT.md`, `MIGRATION_LOG.md`, `NEXT_IMAGE_ANALYSIS.md`, `PERFORMANCE_REPORT.md`, `PRODUCTION_HARDENING.md`, `REPOSITORY_CLEANUP.md`, `REPOSITORY_STRUCTURE.md`, `SECURITY_CHANGES.md` | Informes internos de auditoría/limpieza técnica | EXCLUIR |
-| `CLAUDE.md` (raíz) | Guía operativa interna de cómo trabajar en el repositorio | EXCLUIR — es una guía de proceso, no documentación de la obra en sí |
+| Guía operativa interna (raíz) | Guía de cómo trabajar en el repositorio | EXCLUIR — es una guía de proceso, no documentación de la obra en sí |
 
 **Incluir en cambio** (documentación técnica de la obra propiamente dicha): `docs/foundation/` y `docs/adr/`.
 
@@ -51,7 +51,7 @@
 
 **NO incluir:** dumps de PostgreSQL, archivos `.sqlite3`/`.db`, cualquier exportación de datos de producción.
 
-**Verificación:** no existen en el repositorio — la base de datos vive en Neon (servidor externo), nunca en archivos versionados. ✓
+**Verificación:** no existen en el repositorio — la base de datos vive en proveedor de PostgreSQL gestionado (servidor externo), nunca en archivos versionados. ✓
 
 ### 4.2 Datos de usuarios reales de la beta
 
@@ -70,8 +70,8 @@
 
 **Resultado:**
 - ✓ No se encontraron tokens, claves de API ni contraseñas hardcodeadas en el código.
-- ✓ Todos los secretos se leen de variables de entorno (`ADMIN_EMAILS`, `JWT_SECRET_KEY`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `RESEND_API_KEY`, `SENTRY_DSN`, `VAPID_*`, `CLOUDINARY_*`, `GEMINI_API_KEY`, `MERCADOPAGO_ACCESS_TOKEN`), configuradas únicamente en los paneles de Render/Vercel — nunca en el repositorio.
-- ✓ El repositorio tiene además escaneo de secretos automático en CI (gitleaks + GitGuardian) en cada PR y push a `main`.
+- ✓ Todos los secretos se leen de variables de entorno (`ADMIN_EMAILS`, `JWT_SECRET_KEY`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `RESEND_API_KEY`, `SENTRY_DSN`, `VAPID_*`, `CLOUDINARY_*`, `GEMINI_API_KEY`, `MERCADOPAGO_ACCESS_TOKEN`), configuradas únicamente en los paneles de los servidores de producción — nunca en el repositorio.
+- ✓ El repositorio tiene además escaneo de secretos automático en CI (escaneo automático de secretos) en cada PR y push a `main`.
 
 ## 6. ARCHIVOS DE TERCEROS O DEPENDENCIAS
 
@@ -90,7 +90,7 @@
 - [ ] NO incluir `frontend/.next/`
 - [ ] NO incluir `render.yaml`, `docker-compose.yml`
 - [ ] NO incluir los informes internos de auditoría/limpieza técnica listados en la sección 3
-- [ ] NO incluir `docs/STATUS.md`, `docs/TECH_DEBT.md`, `docs/BUGS.md`, el postmortem de incidente, ni `CLAUDE.md` raíz
+- [ ] NO incluir `docs/STATUS.md`, `docs/TECH_DEBT.md`, `docs/BUGS.md`, el postmortem de incidente, ni la guía operativa interna de la raíz
 - [ ] NO incluir ningún dato real de usuarios de la beta
 - [ ] INCLUIR `backend/scripts/`, `backend/tests/` (datos ficticios/genéricos, seguro)
 - [ ] INCLUIR `REGISTRO_OBRA_SOFTWARE/` completo

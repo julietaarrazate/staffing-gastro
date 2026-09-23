@@ -41,7 +41,7 @@ Oído es un marketplace web que conecta comercios gastronómicos con trabajadore
 **Componentes:**
 - Backend API + WebSocket (FastAPI + Python, arquitectura DDD/hexagonal en 17 módulos)
 - Frontend web (Next.js + TypeScript, PWA instalable)
-- Base de datos relacional (PostgreSQL — Neon) con migraciones versionadas
+- Base de datos relacional (PostgreSQL gestionado) con migraciones versionadas
 
 ---
 

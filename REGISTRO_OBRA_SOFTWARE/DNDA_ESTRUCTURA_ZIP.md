@@ -31,10 +31,10 @@ EXPEDIENTE_DNDA_OIDO_2026_09.zip
 │   │   │   ├── modules/                   # 17 módulos (domain/application/infrastructure/api)
 │   │   │   └── main.py
 │   │   ├── alembic/
-│   │   │   ├── versions/                  # 30 migraciones
+│   │   │   ├── versions/                  # 33 migraciones
 │   │   │   ├── env.py
 │   │   │   └── script.py.mako
-│   │   ├── tests/                         # 429 tests automatizados
+│   │   ├── tests/                         # 512 tests automatizados
 │   │   ├── scripts/                       # seed de datos demo
 │   │   ├── requirements.txt
 │   │   ├── pyproject.toml
@@ -43,9 +43,9 @@ EXPEDIENTE_DNDA_OIDO_2026_09.zip
 │   │
 │   ├── frontend/                          # Código Next.js + TypeScript (PWA)
 │   │   ├── app/                           # 31 páginas
-│   │   ├── components/                    # 87 componentes
-│   │   ├── lib/                           # 45 módulos de utilidades/cliente
-│   │   ├── e2e/                           # 31 specs Playwright
+│   │   ├── components/                    # 107 componentes
+│   │   ├── lib/                           # 56 módulos de utilidades/cliente
+│   │   ├── e2e/                           # 39 specs Playwright
 │   │   ├── public/
 │   │   ├── package.json
 │   │   ├── package-lock.json
@@ -56,7 +56,7 @@ EXPEDIENTE_DNDA_OIDO_2026_09.zip
 │   │
 │   ├── docs/
 │   │   ├── foundation/                    # PRODUCT.md, DOMAIN.md, ARCHITECTURE.md, PRINCIPLES.md
-│   │   └── adr/                           # 11 Architecture Decision Records
+│   │   └── adr/                           # 15 Architecture Decision Records
 │   │
 │   ├── REGISTRO_OBRA_SOFTWARE/            # Documentación de registro (30-31 .md)
 │   │
@@ -123,8 +123,8 @@ CONTENIDO DEL PAQUETE:
 
 1. SOFTWARE/
    - Código fuente íntegro (backend, frontend)
-   - Base de datos: 30 migraciones Alembic
-   - Tests: 429 (backend) + 75 (E2E)
+   - Base de datos: 33 migraciones Alembic
+   - Tests: 512 (backend) + 111 (E2E)
    - Documentación técnica: docs/foundation + docs/adr
    - Documentación de registro: REGISTRO_OBRA_SOFTWARE (30-31 .md)
 

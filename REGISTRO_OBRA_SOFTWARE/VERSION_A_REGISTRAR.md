@@ -63,10 +63,10 @@ git push origin dnda-oido-2026-v1
 
 El commit `df12362` incluye:
 
-- Todo el código funcional del sistema hasta esa fecha (17 módulos de dominio, 17 routers, 30 migraciones).
-- 429 tests automatizados de backend + 75 tests E2E de frontend.
+- Todo el código funcional del sistema hasta esa fecha (17 módulos de dominio, 17 routers, 33 migraciones).
+- 512 tests automatizados de backend + 111 tests E2E de frontend.
 - La carpeta `REGISTRO_OBRA_SOFTWARE/` con la documentación de registro (30-31 archivos).
-- 303 commits de historial de desarrollo hasta ese punto.
+- 347 commits de historial de desarrollo hasta ese punto.
 
 ## 6. INSTRUCCIÓN FINAL
 

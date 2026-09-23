@@ -24,7 +24,7 @@
 | 12 | Verification | Verificación de identidad | `VerificationClaim` |
 | 13 | Favorite | Comercios/trabajadores favoritos | `Favorite` |
 | 14 | Saved shift | Turnos guardados por el trabajador | `SavedShift` |
-| 15 | Upload | Subida firmada de archivos a Cloudinary | (sin persistencia propia) |
+| 15 | Upload | Subida firmada de archivos al servicio de almacenamiento de archivos | (sin persistencia propia) |
 | 16 | Assistant | Asistente de IA para publicar turnos | `AssistantQueryLog` |
 | 17 | Support | Canal de soporte/contacto | `SupportTicket` |
 
@@ -39,14 +39,14 @@
 **Funcionalidades:**
 - Registro con email + contraseña, con checkbox de consentimiento legal obligatorio.
 - Login con emisión de JWT de acceso (15 min) + refresh token (30 días) en cookie `httpOnly` con rotación y detección de reuso.
-- Login con Google (Google Identity Services, ID token sin client secret).
-- Recuperación de contraseña por email transaccional (Resend), con link de un solo uso.
+- Inicio de sesión con cuenta de Google (token de identidad, sin secreto de cliente).
+- Recuperación de contraseña por email transaccional, con link de un solo uso.
 - Verificación de email.
 - Logout server-side (revoca la sesión en base de datos).
 - Acceso de invitado (cuentas demo `invitado.trabajador@oido.beta` / `invitado.comercio@oido.beta`, filtradas de las búsquedas reales de un comercio).
 - Un `User` tiene rol (`worker` | `employer` | `admin`); el primer admin se promueve exclusivamente vía `ADMIN_EMAILS` al arrancar — no existe auto-registro como admin.
 
-**Dependencias:** Resend (email), Google Identity Services.
+**Dependencias:** servicio de email transaccional, inicio de sesión social.
 
 ---
 
@@ -60,7 +60,7 @@
 - Motor de insignias (`nunca_falto`, `top_mozo`, `top_bartender`, `eventos_premium`) y niveles de gamificación (bronce/plata/oro/platino), recalculados sin histéresis ante cada evento relevante.
 - Disponibilidad (`is_available`) para aparecer en búsquedas y matching.
 
-**Dependencias:** Cloudinary (foto/CV).
+**Dependencias:** almacenamiento de imágenes (foto/CV).
 
 ---
 
@@ -70,11 +70,11 @@
 
 **Funcionalidades:**
 - Datos: nombre, logo, categoría (restaurante, bar, cafetería, salón de eventos, catering, empresa gastronómica), descripción, dirección, ciudad, geolocalización, capacidad, horarios.
-- Alta de local desde el mapa: geocoder Nominatim/OpenStreetMap gratuito + pin arrastrable como fuente de verdad de latitud/longitud (ADR-0006).
+- Alta de local desde el mapa: geocodificador de datos abiertos gratuito + pin arrastrable como fuente de verdad de latitud/longitud (ADR-0006).
 - Reputación derivada: `rating`, `events_published`, `on_time_payment_rate`.
 - Onboarding post-registro (`/bienvenida`) para completar nombre, logo y ubicación antes de operar.
 
-**Dependencias:** Cloudinary (logo), Nominatim/OSM.
+**Dependencias:** almacenamiento de imágenes (logo), geocodificador de datos abiertos.
 
 ---
 
@@ -89,7 +89,7 @@
 - Asistencia geolocalizada real en check-in y check-out.
 - No-show automático (el comercio marca "no se presentó": reabre el turno y penaliza al trabajador) y cancelación tardía con penalización al comercio si el trabajador ya estaba confirmado (ADR-0007).
 - Escalada automática de urgencia para turnos abiertos que no se cubren rápido (ADR-0009).
-- Compartir turno por WhatsApp (deep-link `wa.me`, Web Share API con fallback) y duplicar turno, desde el panel del comercio y desde la tarjeta del feed del trabajador.
+- Compartir turno por mensajería (link directo, Web Share API con fallback) y duplicar turno, desde el panel del comercio y desde la tarjeta del feed del trabajador.
 - Página pública del turno, sin autenticación, para compartir.
 - Idempotencia (`Idempotency-Key`) en las mutaciones críticas del ciclo.
 - Scheduler propio (asistencia + escalada) por deadline dinámico, sin sondeo fijo.
@@ -188,9 +188,9 @@
 - Planes: gratis / básico / pro.
 - Pantalla "Mi plan" con estado de uso frente al tope mensual.
 - Gating de capacidad de publicación de turnos por plan — construido completo, con el enforcement **apagado por decisión de producto** durante la beta (`subscriptions_enforced=false`: se cuenta el uso, no se bloquea a nadie).
-- Integración con Mercado Pago para pagos reales, detrás de feature-flag.
+- Integración con una pasarela de pagos para pagos reales, detrás de feature-flag.
 
-**Dependencias:** Mercado Pago (opcional), shift (gating).
+**Dependencias:** pasarela de pagos (opcional), shift (gating).
 
 ---
 
@@ -204,7 +204,7 @@
 - Cola de revisión manual para el admin.
 - Resultado visible simplificado ("Identidad verificada") a partir de L2 o superior; nunca se exponen las evidencias subyacentes a terceros.
 
-**Dependencias:** Cloudinary (DNI/selfie), admin (cola de revisión).
+**Dependencias:** almacenamiento de imágenes (DNI/selfie), admin (cola de revisión).
 
 ---
 
@@ -226,11 +226,11 @@
 
 ### MÓDULO 15 — UPLOAD (subida de archivos)
 
-**Objetivo:** centralizar la subida firmada de archivos a Cloudinary desde el backend.
+**Objetivo:** centralizar la subida firmada de archivos al servicio de almacenamiento de archivos desde el backend.
 
-**Funcionalidades:** firma de subida de CV (`POST /uploads/sign-cv`) — evita que cualquiera suba archivos a la cuenta de Cloudinary sin pasar por el backend.
+**Funcionalidades:** firma de subida de CV (`POST /uploads/sign-cv`) — evita que cualquiera suba archivos a la cuenta de almacenamiento sin pasar por el backend.
 
-**Dependencias:** Cloudinary.
+**Dependencias:** almacenamiento de imágenes.
 
 ---
 
@@ -245,7 +245,7 @@
 - Registro de cada consulta (`AssistantQueryLog`) como señal de uso, sin fines de entrenamiento de modelo.
 - Sin `GEMINI_API_KEY`, responde `503` explícito.
 
-**Dependencias:** Google Gemini, shift, application (vía puertos).
+**Dependencias:** modelo de lenguaje de IA de terceros, shift, application (vía puertos).
 
 ---
 

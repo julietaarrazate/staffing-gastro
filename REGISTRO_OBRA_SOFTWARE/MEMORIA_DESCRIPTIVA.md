@@ -35,7 +35,7 @@ FRONTEND WEB (Next.js, PWA instalable)
               ↓ HTTPS + WebSocket
     API REST + WebSocket (FastAPI, monolito modular DDD/hexagonal)
               ↓ SQL asíncrono (asyncpg)
-    Base de datos relacional (PostgreSQL — Neon serverless)
+    Base de datos relacional (PostgreSQL gestionado, serverless)
 ```
 
 ### Componentes de la obra
@@ -44,27 +44,27 @@ FRONTEND WEB (Next.js, PWA instalable)
 - **Ubicación:** `/backend`
 - **Responsabilidad:** lógica de negocio completa: identidad y sesiones, perfiles, ciclo de vida del turno, motor de matching, verificación de identidad, chat en tiempo real, notificaciones, reseñas, suscripción del comercio, asistente de IA, administración.
 - **Arquitectura interna:** monolito modular con **17 módulos de dominio independientes**, cada uno organizado en 4 capas (DDD + hexagonal): `domain/` (entidades, value objects, puertos de repositorio, sin dependencias de framework), `application/` (casos de uso sobre los puertos), `infrastructure/` (adaptadores SQLAlchemy) y `api/` (rutas HTTP/WebSocket, schemas Pydantic).
-- **Contenido:** 17 routers, 14 modelos de datos persistentes, 30 migraciones de base de datos, 429 tests automatizados.
+- **Contenido:** 17 routers, 14 modelos de datos persistentes, 33 migraciones de base de datos, 512 tests automatizados.
 - **Tecnología:** FastAPI 0.141, SQLAlchemy 2.0 (async, asyncpg), Alembic, Pydantic 2.10, Python 3.11.
-- **Tamaño:** ~17.800 líneas de código Python (sin entornos virtuales ni caché).
+- **Tamaño:** ~19.100 líneas de código Python (sin entornos virtuales ni caché).
 
 #### 2. Frontend (aplicación web — Next.js + TypeScript, PWA)
 - **Ubicación:** `/frontend`
 - **Responsabilidad:** interfaz web instalable como Progressive Web App, con las experiencias diferenciadas de trabajador, comercio y administrador.
-- **Contenido:** 31 páginas (App Router), 87 componentes, 45 módulos de utilidades/clientes en `lib/`, 14 archivos de tests unitarios, 31 specs E2E (75 tests).
+- **Contenido:** 31 páginas (App Router), 107 componentes, 56 módulos de utilidades/clientes en `lib/`, 22 archivos de tests unitarios, 39 specs E2E (111 tests).
 - **Tecnología:** Next.js 16.3 (App Router), React 19.2, TypeScript, TailwindCSS, `framer-motion`, MapLibre GL + `supercluster` (mapas vectoriales con clustering), Lucide (iconografía).
-- **Tamaño:** ~21.900 líneas de código TypeScript/TSX.
-- **Despliegue real:** Vercel, con auto-deploy desde `main` y previews por PR (https://staffing-gastro.vercel.app).
+- **Tamaño:** ~25.700 líneas de código TypeScript/TSX.
+- **Despliegue real:** hosting web, con auto-deploy desde `main` y previews por PR (https://oido.com.ar).
 
 #### 3. Base de datos (migraciones — Alembic)
 - **Ubicación:** `/backend/alembic/versions`
 - **Responsabilidad:** schema de base de datos relacional versionado.
-- **Contenido:** 30 migraciones que definen 14 tablas principales.
-- **Tecnología:** Alembic sobre SQLAlchemy declarativo; PostgreSQL (Neon, serverless) en producción, SQLite en memoria para tests.
+- **Contenido:** 33 migraciones que definen 14 tablas principales.
+- **Tecnología:** Alembic sobre SQLAlchemy declarativo; PostgreSQL (gestionado, serverless) en producción, SQLite en memoria para tests.
 
 #### 4. Documentación de arquitectura y decisiones (ADRs)
 - **Ubicación:** `/docs`
-- **Contenido:** 11 Architecture Decision Records que registran y justifican cada decisión técnica no trivial (motor de mapas, sesiones revocables, cancelación con insignias, pagos y antidesintermediación, alta de local desde el mapa, no-show y cancelación tardía, asistencia simplificada, escalada automática de urgencia, modelo de confianza en 4 dominios, sistema tipográfico/cromático), más la documentación viva de producto, dominio, arquitectura y seguridad.
+- **Contenido:** 15 Architecture Decision Records que registran y justifican cada decisión técnica no trivial (motor de mapas, sesiones revocables, cancelación con insignias, pagos y antidesintermediación, alta de local desde el mapa, no-show y cancelación tardía, asistencia simplificada, escalada automática de urgencia, modelo de confianza en 4 dominios, sistema tipográfico/cromático), más la documentación viva de producto, dominio, arquitectura y seguridad.
 
 ---
 
@@ -73,7 +73,7 @@ FRONTEND WEB (Next.js, PWA instalable)
 1. El comercio o el trabajador acceden a la aplicación web (instalable como PWA).
 2. El frontend se comunica con el backend por API REST (HTTPS) y, para chat y notificaciones, por WebSocket.
 3. El backend resuelve el caso de uso en la capa `application/` de cada módulo, apoyado en los puertos de dominio.
-4. El backend persiste y consulta datos en PostgreSQL (Neon) a través de los repositorios concretos de `infrastructure/`.
+4. El backend persiste y consulta datos en PostgreSQL a través de los repositorios concretos de `infrastructure/`.
 5. Un proceso de fondo (`asyncio`, dentro del mismo proceso FastAPI, sin cola ni worker separado) recalcula deadlines de asistencia y escalada de urgencia y despierta exactamente cuando hace falta actuar, no por sondeo fijo.
 6. El frontend renderiza la respuesta y refleja en tiempo real los eventos de chat y notificaciones recibidos por WebSocket.
 
@@ -88,7 +88,9 @@ FRONTEND WEB (Next.js, PWA instalable)
 3. **Motor de insignias y niveles de gamificación** — reglas puras que recalculan desde cero, ante cada evento relevante, las insignias (`nunca_falto`, `top_mozo`, `top_bartender`, `eventos_premium`) y el nivel (bronce/plata/oro/platino) de cada trabajador, sin histéresis: las métricas actuales son siempre la única fuente de verdad.
 4. **Asistente de IA con contexto acotado por comercio** — interpreta texto libre para prellenar la publicación de un turno y resuelve consultas en lenguaje natural sobre los turnos propios de cada comercio, construyendo un resumen de "lo habitual" a partir del propio historial de turnos publicados, sin memoria persistente añadida ni contradecir lo que el texto del usuario indica explícitamente.
 5. **Scheduler de asistencia y escalada por deadline dinámico** — en vez de sondear la base de datos a intervalo fijo, calcula la próxima acción real posible (recordatorio de check-in, no-show automático, escalada de urgencia) y duerme exactamente hasta ese instante, con un evento (`asyncio.Event`) que lo despierta antes si se crea una deadline más próxima.
-6. **Modelo de permisos por rol + capa `api/` de no-disclosure** — un recurso ajeno o inexistente responde siempre 404 (nunca 403), para no confirmar por el código de estado que el recurso existe.
+6. **Pago de referencia por puesto y ciudad** (ADR-0012) — calcula la mediana del pago **por hora** de los turnos publicados en los últimos 60 días para el mismo puesto y ciudad, con muestra mínima, y ubica cada turno por encima, en línea o por debajo de lo habitual. El mismo cálculo tiene dos usos: marca en el mapa del trabajador los turnos que pagan por encima, y le avisa al comercio que su turno paga por debajo mientras todavía puede corregirlo. Sin muestra suficiente no muestra nada: nunca inventa una referencia.
+7. **Ubicación con privacidad por diseño** (ADR-0014 y "Va en camino") — el trabajador comparte su posición sólo cuando lo decide y por un tiempo acotado; el pin que ve el comercio se desplaza de forma determinística dentro de un anillo de 150 a 350 metros, y durante el viaje al turno se guarda únicamente la última posición, nunca el recorrido, que se borra al llegar.
+8. **Modelo de permisos por rol + capa `api/` de no-disclosure** — un recurso ajeno o inexistente responde siempre 404 (nunca 403), para no confirmar por el código de estado que el recurso existe.
 
 ### Características diferenciales
 
@@ -97,9 +99,12 @@ FRONTEND WEB (Next.js, PWA instalable)
 - Refresh token en cookie `httpOnly` con rotación y detección de reuso (nunca en `localStorage` ni en el cuerpo de la respuesta).
 - Idempotencia explícita (`Idempotency-Key`) en las mutaciones críticas del ciclo del turno.
 - Suscripción mensual del comercio con gating de capacidad de publicación, construida completa mas con el enforcement apagado por decisión de producto durante la beta.
-- Asistente de IA (Gemini) para completar la publicación de un turno a partir de una descripción en lenguaje natural, sin publicar nunca sin confirmación explícita del comercio.
-- Todas las integraciones externas (Cloudinary, Resend, Google Identity Services, Web Push/VAPID, Sentry, Gemini, Mercado Pago) se autodesactivan sin romper el resto del sistema si falta su credencial.
+- Asistente de IA para completar la publicación de un turno a partir de una descripción en lenguaje natural, sin publicar nunca sin confirmación explícita del comercio.
+- Todas las integraciones externas (almacenamiento de imágenes, email transaccional, inicio de sesión social, notificaciones push, monitoreo de errores, modelo de IA y pasarela de pagos) se autodesactivan sin romper el resto del sistema si falta su credencial.
 - PWA instalable con soporte de "safe area" para dispositivos con notch.
+- Verificación del comercio (constancia de AFIP revisada por un administrador, ADR-0013): el sello "Comercio verificado" equilibra la confianza que antes sólo se le pedía al trabajador. La constancia se purga al decidir y no se guarda el número de CUIT.
+- Resolución automática de turnos "no cubiertos" (ADR-0015): un turno cuyo horario pasó sin que nadie lo confirme se cierra solo, sin penalizar la reputación de nadie.
+- Sistema de diseño propio con tema claro y oscuro explícitos, y animaciones que confirman cada acción importante (postularse, asignar) respetando la preferencia de "reducir movimiento" del dispositivo.
 
 ---
 

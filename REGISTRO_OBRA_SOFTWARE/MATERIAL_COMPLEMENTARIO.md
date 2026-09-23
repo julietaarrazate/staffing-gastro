@@ -22,9 +22,9 @@ Frontend Web (Next.js, PWA)
         ↓ HTTPS + WebSocket
 API + WebSocket (FastAPI, monolito modular DDD/hexagonal — 17 módulos)
         ↓ SQL asíncrono
-PostgreSQL (Neon, serverless)
+PostgreSQL (gestionado, serverless)
         ↓ opcionales
-[Gemini IA] [Cloudinary] [Resend] [Sentry] [Mercado Pago] [Google Identity Services]
+[Modelo de IA] [Almacenamiento de imágenes] [Email transaccional] [Monitoreo de errores] [Pasarela de pagos] [Inicio de sesión social]
 ```
 
 **Herramienta sugerida:** Excalidraw, draw.io (app.diagrams.net), Figma.

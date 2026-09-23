@@ -76,10 +76,10 @@ Esta carpeta contiene el expediente completo para inscribir **Oído** como obra 
 | Repositorio técnico | staffing-gastro (privado) |
 | Autora | Julieta Arrazate |
 | Tipo de obra | Programa de computación (Ley 11.723, Art. 1) |
-| Commits en el repositorio | 303 |
-| Backend | 17 routers, 14 modelos, 30 migraciones, 429 tests |
-| Frontend | 31 páginas, 87 componentes, 75 tests E2E |
-| Decisiones de arquitectura documentadas | 11 ADRs |
+| Commits en el repositorio | 347 |
+| Backend | 17 routers, 14 modelos, 33 migraciones, 512 tests |
+| Frontend | 31 páginas, 107 componentes, 111 tests E2E |
+| Decisiones de arquitectura documentadas | 15 ADRs |
 | Estado | Producción, beta cerrada con usuarios reales |
 
 ---

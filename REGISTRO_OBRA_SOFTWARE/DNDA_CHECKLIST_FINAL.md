@@ -33,7 +33,7 @@
 
 ## FASE 1: CAPTURAS DE PANTALLA (30-60 minutos)
 
-Tomar las capturas listadas en `DNDA_CAPTURAS.md`, en orden de prioridad Alta primero, desde el sistema real en producción (https://staffing-gastro.vercel.app).
+Tomar las capturas listadas en `DNDA_CAPTURAS.md`, en orden de prioridad Alta primero, desde el sistema real en producción (https://oido.com.ar).
 
 - [ ] Grupo A (autenticación/onboarding) — 4 capturas
 - [ ] Grupo B (experiencia del trabajador) — 9 capturas

@@ -13,7 +13,7 @@
 | Email de usuario | Alta | Tabla `User` | Necesario para autenticación, permitido por Ley 25.326 |
 | Nombre de trabajador/comercio | Media | `WorkerProfile`/`CompanyProfile` | Dato funcional necesario del marketplace |
 | Contraseña (hasheada) | Crítica | `User` | Hasheada, nunca en texto plano |
-| DNI / selfie (verificación de identidad) | Crítica | Cloudinary (externo) + referencia en `VerificationClaim` | Sólo se almacena la referencia/URL firmada; el resultado visible a terceros es un nivel de garantía agregado, nunca la imagen |
+| DNI / selfie (verificación de identidad) | Crítica | almacenamiento de imágenes (externo) + referencia en `VerificationClaim` | Sólo se almacena la referencia/URL firmada; el resultado visible a terceros es un nivel de garantía agregado, nunca la imagen |
 | Geolocalización (check-in/check-out, ubicación de perfil) | Alta | `Shift`, `WorkerProfile`, `CompanyProfile` | Necesaria para el matching y la asistencia geolocalizada |
 | Refresh token | Crítica | Cookie `httpOnly` + tabla de sesiones revocables | Nunca en `localStorage` ni en el cuerpo de la respuesta |
 
@@ -56,11 +56,11 @@
 
 - Arquitectura del sistema (monolito modular DDD/hexagonal, FastAPI + Next.js, PostgreSQL).
 - Tecnologías y versiones utilizadas.
-- URL pública de producción del frontend (https://staffing-gastro.vercel.app).
+- URL pública de producción del frontend (https://oido.com.ar).
 
 ### 4.2 Datos que se excluyen del expediente por prudencia operativa
 
-- Nombre del proyecto de base de datos en Neon y su región exacta de infraestructura.
+- Nombre del proyecto de base de datos en proveedor de PostgreSQL gestionado y su región exacta de infraestructura.
 - Configuración de despliegue (`render.yaml`) y valores de dimensionamiento de pool de conexiones.
 - Bitácora operativa interna (`docs/STATUS.md`, `docs/TECH_DEBT.md`), que documenta incidentes y decisiones de proceso, no la obra en sí.
 
@@ -70,7 +70,7 @@ Ver el detalle completo de exclusiones en `DNDA_EXCLUSIONES.md`.
 
 El código fuente presentado es **solo el código**, no incluye la base de datos con datos personales de los usuarios reales de la beta. La base de datos:
 
-- Reside en Neon (servidor externo), no en el repositorio.
+- Reside en proveedor de PostgreSQL gestionado (servidor externo), no en el repositorio.
 - No se incluye en el ZIP de registro.
 - Está protegida por credenciales configuradas exclusivamente en Render, nunca compartidas ni versionadas.
 
@@ -80,8 +80,8 @@ El código fuente presentado es **solo el código**, no incluye la base de datos
 |---|---|
 | `password =` / `secret =` / `token =` hardcodeado | No encontrado (sólo lectura de variables de entorno) |
 | Claves de API en texto plano | No encontrado |
-| Datos de tarjetas de pago | No encontrado (la integración de pagos delega en Mercado Pago, sin almacenar datos de tarjeta) |
-| Números de documento reales | No encontrado en código; las verificaciones de identidad reales de la beta viven fuera del repositorio (Cloudinary + base de datos de producción) |
+| Datos de tarjetas de pago | No encontrado (la integración de pagos delega en pasarela de pagos, sin almacenar datos de tarjeta) |
+| Números de documento reales | No encontrado en código; las verificaciones de identidad reales de la beta viven fuera del repositorio (almacenamiento de imágenes + base de datos de producción) |
 | Rutas de usuario local | No encontrado |
 
 ## 7. CHECKLIST FINAL DE PRIVACIDAD

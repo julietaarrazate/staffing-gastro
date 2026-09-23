@@ -32,14 +32,14 @@ Sólo en `EVIDENCIA_AUTORIA.md`, sección 7. Tres campos que nadie puede complet
 
 | Servicio | Documentos que lo mencionan | Evaluación |
 |---|---|---|
-| Google (login, Gemini) | `INVENTARIO_TECNICO`, `DOCUMENTACION_TECNICA`, `RESUMEN_EJECUTIVO` | Correcto: dependencias técnicas reales del sistema |
+| Google (login, modelo de IA) | `INVENTARIO_TECNICO`, `DOCUMENTACION_TECNICA`, `RESUMEN_EJECUTIVO` | Correcto: dependencias técnicas reales del sistema |
 | Vercel | `INVENTARIO_TECNICO`, `RESUMEN_EJECUTIVO` | Correcto: plataforma de deploy del frontend |
 | Render | `INVENTARIO_TECNICO`, `RESUMEN_EJECUTIVO` | Correcto: plataforma de deploy del backend |
-| Neon | `INVENTARIO_TECNICO`, `DOCUMENTACION_TECNICA` | Correcto: proveedor de base de datos |
-| Cloudinary | `DOCUMENTACION_TECNICA`, `MODULOS_DEL_SISTEMA` | Correcto: almacenamiento de imágenes/archivos |
-| Resend | `DOCUMENTACION_TECNICA` | Correcto: email transaccional |
-| Sentry | `DOCUMENTACION_TECNICA` | Correcto: monitoreo de errores, opt-in |
-| Mercado Pago | `MODULOS_DEL_SISTEMA`, `DOCUMENTACION_TECNICA` | Correcto: pasarela de pagos, construida y no activada |
+| proveedor de PostgreSQL gestionado | `INVENTARIO_TECNICO`, `DOCUMENTACION_TECNICA` | Correcto: proveedor de base de datos |
+| Almacenamiento de imágenes | `DOCUMENTACION_TECNICA`, `MODULOS_DEL_SISTEMA` | Correcto: almacenamiento de imágenes/archivos |
+| Email transaccional | `DOCUMENTACION_TECNICA` | Correcto: email transaccional |
+| Monitoreo de errores | `DOCUMENTACION_TECNICA` | Correcto: monitoreo de errores, opt-in |
+| Pasarela de pagos | `MODULOS_DEL_SISTEMA`, `DOCUMENTACION_TECNICA` | Correcto: pasarela de pagos, construida y no activada |
 | MapLibre / Nominatim-OpenStreetMap | `INVENTARIO_TECNICO`, `MODULOS_DEL_SISTEMA` | Correcto: mapas y geocoding, sin costo |
 
 **Veredicto:** estas menciones son técnicamente apropiadas y necesarias para describir la arquitectura del sistema. No revelan secretos comerciales ni implican coautoría.
@@ -58,7 +58,7 @@ La documentación menciona, a título de ejemplo, la convención de nombres gen�
 |---|---|
 | Tabla de 17 módulos | `MEMORIA_DESCRIPTIVA` + `MODULOS_DEL_SISTEMA` (versión extendida) |
 | Stack tecnológico | `INVENTARIO_TECNICO` + `RESUMEN_EJECUTIVO` + `DOCUMENTACION_TECNICA` |
-| Estadísticas del repositorio (303 commits) | `EVIDENCIA_AUTORIA` + `README_REGISTRO` |
+| Estadísticas del repositorio (347 commits) | `EVIDENCIA_AUTORIA` + `README_REGISTRO` |
 | Motor de matching | `MEMORIA_DESCRIPTIVA` + `ACTIVOS_PI` + `DOCUMENTACION_TECNICA` |
 
 **Veredicto:** la redundancia es intencional y apropiada para un expediente: cada documento debe poder presentarse por separado. No es un defecto.

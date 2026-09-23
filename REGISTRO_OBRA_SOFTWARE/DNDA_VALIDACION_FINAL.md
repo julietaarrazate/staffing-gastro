@@ -31,10 +31,10 @@
 
 | Requisito | Cumple | Evidencia |
 |---|---|---|
-| Código fuente completo | ✓ | Backend (17 routers, 17 módulos), Frontend (31 páginas, 87 componentes) |
-| Migraciones de BD | ✓ | 30 migraciones Alembic |
+| Código fuente completo | ✓ | Backend (17 routers, 17 módulos), Frontend (31 páginas, 107 componentes) |
+| Migraciones de BD | ✓ | 33 migraciones Alembic |
 | Configuración | ✓ | `main.py`, `config.py`, `requirements.txt`, `package.json` |
-| Tests automatizados | ✓ | 429 backend + 75 E2E |
+| Tests automatizados | ✓ | 512 backend + 111 E2E |
 | Compilable/ejecutable | ✓ | Backend: `pip install` + `uvicorn`; Frontend: `npm install` + `npm run build` |
 
 **Subtotal:** 5/5 ✓
@@ -47,7 +47,7 @@
 | Descripción de funcionalidades | ✓ | `MANUAL_FUNCIONAL.md`, `MODULOS_DEL_SISTEMA.md` |
 | Arquitectura del sistema | ✓ | `DOCUMENTACION_TECNICA.md`, `DIAGRAMAS/` |
 | Originalidad acreditada | ✓ | `ACTIVOS_PI.md` (5 algoritmos/sistemas, 4 reglas de negocio) |
-| Evidencia de desarrollo | ✓ | `EVIDENCIA_AUTORIA.md` (303 commits) |
+| Evidencia de desarrollo | ✓ | `EVIDENCIA_AUTORIA.md` (347 commits) |
 
 **Subtotal:** 5/5 ✓
 
@@ -94,17 +94,17 @@
 ✓ 17 routers funcionantes (uno por módulo de dominio)
 ✓ 17 módulos con arquitectura DDD/hexagonal en 4 capas
 ✓ 14 modelos SQLAlchemy ORM con tabla propia
-✓ 30 migraciones Alembic
-✓ 429 tests automatizados (pytest -q, verde)
+✓ 33 migraciones Alembic
+✓ 512 tests automatizados (pytest -q, verde)
 ✓ requirements.txt / pyproject.toml con todas las dependencias
 ```
 
 **Frontend (Next.js + TypeScript):**
 ```
 ✓ 31 páginas (App Router)
-✓ 87 componentes
-✓ 45 módulos en lib/ (cliente HTTP/WebSocket, utilidades)
-✓ 31 specs E2E (75 tests, Playwright)
+✓ 107 componentes
+✓ 56 módulos en lib/ (cliente HTTP/WebSocket, utilidades)
+✓ 39 specs E2E (111 tests, Playwright)
 ✓ TypeScript, tsc --noEmit sin errores
 ✓ npm run build exitoso
 ```
@@ -121,7 +121,7 @@
 | Chat en tiempo real por turno | ✓ Implementado |
 | Notificaciones in-app y push (VAPID) | ✓ Implementado |
 | Suscripción del comercio (planes, gating) | ✓ Implementado (enforcement apagado por decisión de producto) |
-| Asistente de IA (Gemini) | ✓ Implementado |
+| Asistente de IA | ✓ Implementado |
 | No-show y cancelación tardía con penalización | ✓ Implementado |
 | Reseñas bidireccionales | ✓ Implementado |
 | Panel de administración | ✓ Implementado |
@@ -152,7 +152,7 @@ npm run build   # build de producción
 | Componente | Completitud | Detalles |
 |---|---|---|
 | Código fuente | 100% | Backend y frontend íntegros |
-| Tests | 100% | 429 + 75, todos verdes en CI |
+| Tests | 100% | 512 + 111, todos verdes en CI |
 | Documentación .md | 100% | 30-31 archivos de registro |
 | Documentación .pdf | 0% | Pendiente de generación por la autora |
 | Capturas | 0% | Guía lista (`DNDA_CAPTURAS.md`); pendiente de tomarlas por la autora |

@@ -28,7 +28,7 @@ EXPEDIENTE_DNDA_2026_09/
 **Incluir:**
 - `/backend/app/` — código fuente completo: `core/` (config, DB, seguridad), `modules/` (17 módulos con sus 4 capas cada uno), `main.py`.
 - `/backend/alembic/` — sistema de migraciones (30 archivos en `versions/`).
-- `/backend/tests/` — suite de 429 tests automatizados.
+- `/backend/tests/` — suite de 512 tests automatizados.
 - `/backend/scripts/` — utilidades operativas (seed de datos demo idempotente).
 - `/backend/requirements.txt` y `pyproject.toml` — dependencias.
 - `/backend/.env.example` — plantilla de variables de entorno, sin valores reales.
@@ -44,9 +44,9 @@ EXPEDIENTE_DNDA_2026_09/
 
 **Incluir:**
 - `/frontend/app/` — 31 páginas (App Router).
-- `/frontend/components/` — 87 componentes.
-- `/frontend/lib/` — 45 módulos de utilidades y cliente HTTP/WebSocket.
-- `/frontend/e2e/` — 31 specs de Playwright.
+- `/frontend/components/` — 107 componentes.
+- `/frontend/lib/` — 56 módulos de utilidades y cliente HTTP/WebSocket.
+- `/frontend/e2e/` — 39 specs de Playwright.
 - `/frontend/public/` — manifest PWA, íconos.
 - `/frontend/package.json`, `package-lock.json`, `tsconfig.json`, `next.config.*`.
 - `/frontend/.env.production` — sólo contiene una variable pública (`NEXT_PUBLIC_API_URL`), sin secretos.
@@ -71,7 +71,7 @@ EXPEDIENTE_DNDA_2026_09/
 
 **NO incluir:**
 - `.git/` — historial completo de Git (voluminoso, no requerido por la DNDA; se acompaña un export del log en `HISTORIAL_GIT.txt`, ver `PAQUETE_FINAL.md`).
-- `.github/` — configuración de GitHub Actions (no necesaria para la DNDA).
+- `.github/` — configuración de integración continua (no necesaria para la DNDA).
 - `render.yaml` — configuración de despliegue (no contiene secretos, pero es información operativa interna; se excluye por prudencia).
 - `docker-compose.yml` — configuración de entorno local de desarrollo.
 - Reportes internos de auditoría técnica y limpieza del repositorio (`CLEANUP_REPORT.md`, `DUE_DILIGENCE_REPORT.md`, `INFRASTRUCTURE_REPORT.md`, `MIGRATION_LOG.md`, `NEXT_IMAGE_ANALYSIS.md`, `PERFORMANCE_REPORT.md`, `PRODUCTION_HARDENING.md`, `REPOSITORY_CLEANUP.md`, `REPOSITORY_STRUCTURE.md`, `SECURITY_CHANGES.md`) — documentación interna de proceso, no oficial del expediente.
@@ -80,7 +80,7 @@ EXPEDIENTE_DNDA_2026_09/
 
 **Incluir** (refuerza la evidencia técnica, opcional pero recomendado):
 - `docs/foundation/` (PRODUCT.md, DOMAIN.md, ARCHITECTURE.md, PRINCIPLES.md).
-- `docs/adr/` (11 Architecture Decision Records).
+- `docs/adr/` (15 Architecture Decision Records).
 
 **NO incluir:**
 - `docs/STATUS.md`, `docs/TECH_DEBT.md`, `docs/BUGS.md` — bitácora operativa interna, con detalle de incidentes y estado del día a día que no aporta al registro y podría exponer información operativa innecesaria.
@@ -106,11 +106,11 @@ EXPEDIENTE_DNDA_2026_09/
 |---|---|---|
 | Código fuente completo | ✓ | Backend (17 routers, 17 módulos), Frontend (31 páginas) |
 | Software compilado/ejecutable | ✓ | Backend con `uvicorn`, Frontend con `npm run build` |
-| Software terminado | ✓ | En producción, 429 + 75 tests pasando, 303 commits históricos |
+| Software terminado | ✓ | En producción, 512 + 111 tests pasando, 347 commits históricos |
 | Documentación de autoría | ✓ | `EVIDENCIA_AUTORIA.md` |
 | Originalidad acreditada | ✓ | `ACTIVOS_PI.md` (5 algoritmos/sistemas propios, 4 reglas de negocio) |
-| Migraciones de base de datos | ✓ | 30 migraciones Alembic |
-| Tests automatizados | ✓ | 429 (backend) + 75 (E2E) |
+| Migraciones de base de datos | ✓ | 33 migraciones Alembic |
+| Tests automatizados | ✓ | 512 (backend) + 111 (E2E) |
 | Tecnologías documentadas | ✓ | `INVENTARIO_TECNICO.md` y `DOCUMENTACION_TECNICA.md` |
 
 ---

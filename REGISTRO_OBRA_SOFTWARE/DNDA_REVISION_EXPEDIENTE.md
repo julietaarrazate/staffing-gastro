@@ -42,8 +42,8 @@
 **Coherencia verificada:**
 - ✓ Backend: FastAPI + Python 3.11 + SQLAlchemy async, en todos los documentos.
 - ✓ Frontend: Next.js + TypeScript + PWA, en todos los documentos.
-- ✓ Base de datos: PostgreSQL (Neon), en todos los documentos.
-- ✓ Números consistentes: 17 módulos, 17 routers, 14 modelos, 30 migraciones, 429 + 75 tests, 31 páginas, 87 componentes.
+- ✓ Base de datos: PostgreSQL, en todos los documentos.
+- ✓ Números consistentes: 17 módulos, 17 routers, 14 modelos, 33 migraciones, 512 + 111 tests, 31 páginas, 107 componentes.
 
 **Hallazgo:** COHERENTE.
 
@@ -52,7 +52,7 @@
 **Documentos:** `EVIDENCIA_AUTORIA.md`, `REVISION_AUTORIA_FINAL.md`, `ACTIVOS_PI.md`.
 
 **Coherencia verificada:**
-- ✓ 303 commits, período junio–septiembre 2026, en todos los documentos.
+- ✓ 347 commits, período junio–septiembre 2026, en todos los documentos.
 - ✓ Autoría atribuida exclusivamente a Julieta Arrazate.
 - ✓ Originales: motor de matching, sistema de verificación por niveles, motor de insignias/niveles, asistente de IA con contexto acotado, scheduler por deadline dinámico.
 - ✓ Sin cesión de derechos a terceros.
@@ -86,9 +86,9 @@
 ### 3.2 Código fuente (obligatorio)
 
 - [x] Backend — `/backend/app` (17 routers, 17 módulos)
-- [x] Frontend — `/frontend` (31 páginas, 87 componentes)
-- [x] Base de datos — `/backend/alembic` (30 migraciones)
-- [x] Tests automatizados — 429 + 75
+- [x] Frontend — `/frontend` (31 páginas, 107 componentes)
+- [x] Base de datos — `/backend/alembic` (33 migraciones)
+- [x] Tests automatizados — 512 + 111
 
 **Resultado:** ✓ COMPLETO Y TESTADO.
 
@@ -118,10 +118,10 @@
 | Tercero | Mención | Tipo | Riesgo |
 |---|---|---|---|
 | FastAPI, SQLAlchemy, Next.js, React | `INVENTARIO_TECNICO` | Frameworks open-source | OK, licencias permisivas |
-| PostgreSQL / Neon | `DOCUMENTACION_TECNICA` | Base de datos | OK |
-| Google Gemini | `DOCUMENTACION_TECNICA` | API externa opcional | OK, mencionado como feature |
-| Cloudinary, Resend, Sentry | `DOCUMENTACION_TECNICA` | Servicios opcionales | OK |
-| Mercado Pago | `MODULOS_DEL_SISTEMA` | Pasarela de pago, no activada | OK |
+| PostgreSQL / proveedor de PostgreSQL gestionado | `DOCUMENTACION_TECNICA` | Base de datos | OK |
+| modelo de lenguaje de IA de terceros | `DOCUMENTACION_TECNICA` | API externa opcional | OK, mencionado como feature |
+| almacenamiento de imágenes, servicio de email transaccional, monitoreo de errores | `DOCUMENTACION_TECNICA` | Servicios opcionales | OK |
+| Pasarela de pagos | `MODULOS_DEL_SISTEMA` | Pasarela de pago, no activada | OK |
 | Render, Vercel | `INVENTARIO_TECNICO` | Hosting | OK, mencionado para deploy |
 
 **Hallazgo:** ✓ todas las menciones son técnicamente apropiadas; ninguna implica coautoría.
