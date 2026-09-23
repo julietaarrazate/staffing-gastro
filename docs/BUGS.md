@@ -223,6 +223,27 @@ verificación que lo detecta es mirar una pantalla con chips y bordes en oscuro,
 
 ---
 
+## Dos `asyncio.run` sobre el mismo motor async (la siembra demo que nunca corrió)
+
+**Patrón:** `scripts/startup_seed.py` corría cada tarea con su propio `asyncio.run(...)`. El
+motor de `app.core.database` es un global, y el pool de asyncpg ata cada conexión al event loop
+que la abrió. La primera tarea terminaba y su loop se cerraba, pero la conexión volvía al pool;
+la segunda la reusaba desde un loop nuevo → `got Future ... attached to a different loop`. Un
+`except Exception` que imprime y sigue (correcto para no tumbar el arranque) lo convertía en una
+línea de log que nadie leía, y en SQLite (los tests) no pasa.
+
+- **Encontrado (2026-09-23):** con `SEED_DEMO_DATA=true` y dos deploys, Neon seguía con 0
+  cuentas demo. Primero se culpó a `render.yaml` (que el blueprint pisaba al panel) y se cambió
+  eso — sin efecto. La causa apareció al correr el `CMD` del contenedor contra un Postgres local.
+  Roto desde 2026-08-16.
+
+**Cómo evitarlo:** un script que usa el motor global corre **todo en un solo `asyncio.run`** y
+cierra el pool (`await engine.dispose()`) dentro de ese loop. Y antes de tocar configuración
+por un "no corre", reproducir el comando real contra la base real (Postgres, no SQLite): un
+error tragado se parece a un flag apagado.
+
+---
+
 ## Un endpoint de detalle que sólo pide "estar logueado" (`GET /shifts/{id}`)
 
 **Patrón:** la ruta pedía `AuthUserDep` y nada más (`_current_user`, ni siquiera se usaba), y

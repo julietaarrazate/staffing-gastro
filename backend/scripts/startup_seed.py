@@ -7,16 +7,27 @@ Son DOS cosas distintas, con reglas distintas a propósito:
 1. **Fotos de las 4 cuentas compartidas** (invitado + prueba): corren
    SIEMPRE. No dependen de ningún flag — ver `seed_shared_account_photos`.
 2. **Datos demo** (~26 cuentas con contraseña pública + turnos): sólo con
-   `SEED_DEMO_DATA=true`, que en `render.yaml` está en `"false"`.
+   `SEED_DEMO_DATA=true` (ver `render.yaml`).
+
+Las dos corren en UN SOLO event loop (`asyncio.run` una vez). El motor de
+`app.core.database` es global y su pool guarda las conexiones de asyncpg
+atadas al loop que las abrió: con un `asyncio.run` por tarea (como estaba
+hasta 2026-09-23), la segunda reusaba la conexión del primer loop, ya
+cerrado, y fallaba siempre con "attached to a different loop". El error se
+tragaba en el `except` y el log decía `[seed] omitido por error`, así que
+los datos demo NUNCA se sembraron en Postgres desde que las fotos se
+separaron en su propia tarea (2026-08-16) — en los tests no se ve porque
+usan SQLite. Ver docs/BUGS.md.
 """
 
 import asyncio
 import os
 
+from app.core.database import engine
 from scripts.seed_demo_data import main, seed_shared_account_photos
 
 
-def _run_shared_account_photos() -> None:
+async def _run_shared_account_photos() -> None:
     """Le da foto a las cuentas invitado/prueba que no tengan.
 
     Separado del seed demo a propósito (Julieta, 2026-08-16: las
@@ -27,12 +38,12 @@ def _run_shared_account_photos() -> None:
     detrás del flag que protege a las OTRAS 26 cuentas demo.
     """
     try:
-        asyncio.run(seed_shared_account_photos())
+        await seed_shared_account_photos()
     except Exception as exc:  # noqa: BLE001 - no queremos tumbar el servidor
         print(f"[seed] fotos de cuentas compartidas omitidas por error: {exc}")
 
 
-def _run_demo_data() -> None:
+async def _run_demo_data() -> None:
     if os.getenv("SEED_DEMO_DATA", "").lower() != "true":
         print("[seed] SEED_DEMO_DATA != true: no se siembran datos demo")
         return
@@ -48,14 +59,23 @@ def _run_demo_data() -> None:
             "docs/reference/DEPLOY.md antes de onboardear comercios reales."
         )
     try:
-        asyncio.run(main())
+        await main()
     except Exception as exc:  # noqa: BLE001 - no queremos tumbar el servidor
         print(f"[seed] omitido por error: {exc}")
 
 
+async def _run_all() -> None:
+    try:
+        await _run_shared_account_photos()
+        await _run_demo_data()
+    finally:
+        # Cierra el pool dentro del mismo loop: si no, asyncpg intenta
+        # cerrar las conexiones cuando el loop ya no existe.
+        await engine.dispose()
+
+
 def run() -> None:
-    _run_shared_account_photos()
-    _run_demo_data()
+    asyncio.run(_run_all())
 
 
 if __name__ == "__main__":

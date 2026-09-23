@@ -484,8 +484,10 @@ rehizo a ciegas.
 2. 🟠 **`SEED_DEMO_DATA` = `true` a propósito, por ahora** (Render, decisión
    de Julieta 2026-09-22): sin usuarios reales, la app se ve poblada con los
    comercios/trabajadores demo, y cada arranque repone sus turnos vigentes.
-   Se fija en `render.yaml` (no alcanza el panel: el valor del archivo lo
-   pisa en cada deploy, comprobado el 2026-09-23).
+   Queda fijado también en `render.yaml`, para que el archivo y el panel no
+   se contradigan. (El 2026-09-23 se culpó a `render.yaml` de pisar el panel;
+   la causa real de que no se sembrara nada era un bug de event loop en
+   `scripts/startup_seed.py` — ver `docs/BUGS.md`.)
    **Antes de abrir la beta con gente real** va a `false` y se purgan las
    cuentas demo (runbook en `docs/reference/DEPLOY.md`): tienen contraseña
    pública y sus turnos entran en la referencia de pago.
