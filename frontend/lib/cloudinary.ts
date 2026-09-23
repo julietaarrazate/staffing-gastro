@@ -26,6 +26,20 @@ export function cldThumb(url: string | null | undefined, width: number): string 
 }
 
 /**
+ * Variante de una foto de Cloudinary para la vista previa de un link
+ * compartido (Open Graph): 1200×630 recortada al centro, en JPEG explícito.
+ * No `f_auto` como `cldThumb`: los que arman la vista previa (WhatsApp,
+ * Slack) no siempre aceptan WebP/AVIF, y `f_auto` elige según quién pide.
+ * URLs que no son de Cloudinary se devuelven tal cual.
+ */
+export function cldOgImage(url: string): string {
+  const marker = "/image/upload/";
+  const at = url.indexOf(marker);
+  if (!url.includes("res.cloudinary.com") || at === -1) return url;
+  return `${url.slice(0, at + marker.length)}f_jpg,q_auto,c_fill,g_auto,w_1200,h_630/${url.slice(at + marker.length)}`;
+}
+
+/**
  * Fuerza la descarga (en vez de mostrarla en el navegador) de un archivo
  * subido a Cloudinary agregando la transformación `fl_attachment`, que hace
  * que Cloudinary responda con `Content-Disposition: attachment` — el

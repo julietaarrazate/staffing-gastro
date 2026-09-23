@@ -57,6 +57,33 @@ async def test_mandarla_en_null_la_saca(client: AsyncClient):
     assert updated.json()["cover_photo_url"] is None
 
 
+async def test_la_pagina_publica_muestra_la_foto_pero_no_el_logo(client: AsyncClient):
+    """La vista sin sesión (links de WhatsApp) muestra el lugar, no el logo."""
+    headers = await _comercio(
+        client, "cover5@staffya.com", cover_photo_url=FOTO, logo_url="https://x.test/logo.png"
+    )
+    start = datetime.now(timezone.utc) + timedelta(hours=3)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=headers,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": start.replace(tzinfo=None).isoformat(),
+            "end_at": (start + timedelta(hours=6)).replace(tzinfo=None).isoformat(),
+            "pay_amount": "45000.00",
+            "city": "Palermo",
+        },
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+
+    public = await client.get(f"/api/v1/shifts/{shift_id}/public")
+    assert public.status_code == 200
+    assert public.json()["company_cover_url"] == FOTO
+    assert "company_logo_url" not in public.json()
+
+
 async def test_el_trabajador_la_ve_en_el_feed(client: AsyncClient):
     headers = await _comercio(client, "cover4@staffya.com", cover_photo_url=FOTO)
     start = datetime.now(timezone.utc) + timedelta(hours=3)

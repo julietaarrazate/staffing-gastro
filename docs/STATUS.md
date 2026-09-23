@@ -163,9 +163,14 @@ usando el logo.
   `None`, borrarían la foto en silencio. Por eso sólo se toca cuando el
   pedido lo trae (`UNSET` en `CompanyProfileData`); un `null` explícito sí
   la saca. Tests: `test_company_cover_photo.py`.
-- **La página pública `/turno/[id]` no la muestra**, igual que el logo: esa
-  vista la decidió Julieta sin logo, y sumar la foto es la misma decisión
-  de producto. Queda para preguntarle.
+- **La página pública `/turno/[id]` también la muestra** (Julieta dijo
+  que sí, 2026-09-23). El logo sigue afuera. Además, si el turno tiene foto,
+  **esa foto es la vista previa del link** en WhatsApp (`cldOgImage`, JPEG
+  1200×630). **Hallazgo:** sin foto, el link de un turno salía **sin ninguna
+  imagen**, y pasaba desde siempre: el `openGraph` de la página reemplaza
+  entero al del layout. Ahora sale la imagen de marca. Verificado sirviendo
+  la página con una API falsa: con foto, `og:image` apunta a Cloudinary;
+  sin foto, a `https://oido.com.ar/opengraph-image`.
 - **Bug viejo encontrado de paso: el encuadre de fotos subía el espejo de
   lo que se veía.** Pasaba desde 2026-07-30 con las fotos de perfil
   (`ImageCropModal`): si movías la foto a la derecha, se subía corrida a la
