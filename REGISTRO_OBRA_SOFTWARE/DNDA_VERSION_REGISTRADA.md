@@ -64,8 +64,9 @@ Ver `TAG_REGISTRO.md` para el procedimiento completo.
 | Parámetro | Valor |
 |---|---|
 | **Tag** | `dnda-oido-2026-v1` |
-| **Tipo** | Anotado |
-| **Rama recomendada** | `main` (post-merge) |
+| **Commit** | `e1c44b6b033a85750838db679210a7531710d104` (la versión depositada, §2.1 bis) |
+| **Creado** | 23/09/2026, como release de GitHub publicado por la autora |
+| **Enlace** | https://github.com/julietaarrazate/staffing-gastro/releases/tag/dnda-oido-2026-v1 |
 
 ## 3. CÓDIGO FUENTE INCLUIDO
 
@@ -166,7 +167,7 @@ git log --oneline | wc -l
 
 - [x] Obra identificada: Oído
 - [x] Commit del expediente identificable: `df12362`
-- [ ] Tag permanente: `dnda-oido-2026-v1` (a crear post-merge)
+- [x] Tag permanente: `dnda-oido-2026-v1` sobre `e1c44b6` (creado el 23/09/2026)
 - [x] Rama de registro final: `main`
 - [x] Autora identificada: Julieta Arrazate
 - [x] Fecha de la versión: Septiembre 2026

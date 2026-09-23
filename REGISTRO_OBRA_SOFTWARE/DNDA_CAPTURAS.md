@@ -4,7 +4,19 @@
 **Autora:** Julieta Arrazate
 **Fecha:** Septiembre 2026
 **Obra:** Oído
-**Estado:** Guía de captura — las imágenes deben tomarse desde una cuenta real en producción; no se generaron capturas simuladas para este expediente.
+**Estado:** Tomadas el 23/09/2026 — entregadas en `DOCUMENTACION/CAPTURAS_DE_PANTALLA.pdf` del ZIP del expediente.
+
+> **Cómo se tomaron (reemplaza el criterio original de §1).** No desde producción:
+> la app se compiló desde la versión depositada (`e1c44b6`) y se ejecutó completa
+> —frontend, backend y base de datos— con los datos de demostración ficticios del
+> seed, más actividad generada por la propia API (postulaciones, una asignación
+> confirmada y un chat). Así la captura muestra exactamente la versión registrada
+> y no la que esté en producción ese día. 20 pantallas, cada una en tema claro y
+> oscuro. Los mapas y las fotos dependen de servicios externos no disponibles en
+> ese entorno: las vistas de mapa quedaron afuera y donde va una foto la app
+> muestra su reemplazo propio. El PDF lo aclara en su portada.
+>
+> La tabla de abajo queda como el inventario original de referencia.
 
 ---
 
