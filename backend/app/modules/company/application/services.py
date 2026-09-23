@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.modules.company.application.dtos import CompanyProfileData
+from app.modules.company.application.dtos import UNSET, CompanyProfileData
 from app.modules.company.domain.entities import CompanyProfile
 from app.modules.company.domain.exceptions import (
     CompanyProfileAlreadyExistsError,
@@ -62,3 +62,5 @@ def _apply(profile: CompanyProfile, data: CompanyProfileData) -> None:
     profile.longitude = data.longitude
     profile.capacity = data.capacity
     profile.opening_hours = data.opening_hours
+    if data.cover_photo_url is not UNSET:
+        profile.cover_photo_url = data.cover_photo_url

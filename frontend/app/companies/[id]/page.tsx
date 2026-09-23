@@ -98,9 +98,10 @@ export default function PublicCompanyProfilePage() {
         className={`overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line ${hasCoords ? "lg:col-span-2" : ""}`}
       >
         <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
-          {profile.logo_url ? (
+          {/* Foto del local primero; el logo estirado queda de respaldo. */}
+          {profile.cover_photo_url || profile.logo_url ? (
             <img
-              src={cldThumb(profile.logo_url, 800)}
+              src={cldThumb(profile.cover_photo_url || profile.logo_url, 800)}
               alt={profile.name}
               loading="lazy"
               decoding="async"

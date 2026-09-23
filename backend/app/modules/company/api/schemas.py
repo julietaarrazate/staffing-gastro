@@ -13,6 +13,9 @@ class CompanyProfileInput(BaseModel):
 
     name: str = Field(min_length=1, max_length=255)
     logo_url: str | None = Field(default=None, max_length=512)
+    # Opcional y "sólo si viene": omitirlo NO borra la foto (ver
+    # `CompanyProfileData.cover_photo_url`); mandar null sí la saca.
+    cover_photo_url: str | None = Field(default=None, max_length=512)
     category: CompanyCategory | None = None
     description: str | None = Field(default=None, max_length=1000)
     address: str | None = Field(default=None, max_length=255)
@@ -31,6 +34,7 @@ class CompanyProfileResponse(BaseModel):
     owner_full_name: str | None = None
     name: str
     logo_url: str | None
+    cover_photo_url: str | None = None
     category: CompanyCategory | None
     description: str | None
     address: str | None

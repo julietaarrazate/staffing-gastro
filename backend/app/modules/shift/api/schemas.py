@@ -99,6 +99,7 @@ class ShiftResponse(BaseModel):
     created_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
+    company_cover_url: str | None = None
     # Pago de referencia (ADR-0012): dónde cae el pago por hora de este turno
     # respecto de lo que se paga para el mismo puesto en la misma ciudad.
     # `None` cuando no hay con qué comparar (muestra insuficiente, sin ciudad)
@@ -180,6 +181,10 @@ class ShiftPublicResponse(BaseModel):
     meal: bool = False
     dress_code: str | None = None
     urgent: bool = False
+    # La foto del local SÍ va (Julieta, 2026-09-23): es del lugar, no de una
+    # persona, y ver dónde se trabaja es lo que convence a quien llega por un
+    # link de registrarse. El logo sigue afuera, como se decidió el 2026-09-22.
+    company_cover_url: str | None = None
 
 
 class AssignWorkerRequest(BaseModel):

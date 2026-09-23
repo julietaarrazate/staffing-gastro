@@ -28,6 +28,7 @@ class CompanyProfileModel(Base):
     # --- Datos del perfil ---
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     logo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    cover_photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     category: Mapped[str | None] = mapped_column(String(40), nullable=True)
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)

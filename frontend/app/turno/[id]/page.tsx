@@ -6,6 +6,7 @@ import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShiftDetail from "@/components/ShiftDetail";
 import { SITE_HOST } from "@/lib/site";
+import { cldOgImage } from "@/lib/cloudinary";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
@@ -51,6 +52,13 @@ export async function generateMetadata({
   } — Oído`;
   const description = buildShiftSummary(shift);
   const url = await getPublicUrl(id);
+  // Con foto del local, la vista previa del link muestra el LUGAR (lo que
+  // hace que alguien toque el link); sin foto, la imagen de marca de
+  // `app/opengraph-image.tsx`. Hay que nombrarla acá: el `openGraph` de esta
+  // página reemplaza entero al del layout, y sin `images` el link de un
+  // turno salía SIN imagen (pasaba desde siempre, visto el 2026-09-23).
+  const cover = shift.company_cover_url ? cldOgImage(shift.company_cover_url) : "/opengraph-image";
+  const images = [{ url: cover, width: 1200, height: 630, alt: title }];
 
   return {
     title,
@@ -62,11 +70,13 @@ export async function generateMetadata({
       siteName: "Oído",
       locale: "es_AR",
       type: "website",
+      images,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: images.map((i) => i.url),
     },
   };
 }

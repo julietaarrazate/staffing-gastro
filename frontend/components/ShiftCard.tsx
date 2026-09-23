@@ -19,6 +19,7 @@ import { formatPayAmount } from "@/lib/pay";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
+import { shiftHeroPhoto } from "@/lib/company-photo";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
@@ -114,7 +115,8 @@ export default function ShiftCard({
   // se cae al tono del rubro en vez de dejar un banner roto.
   const [broken, setBroken] = useState(false);
   const durationMin = shiftDurationMinutes(shift.start_at, shift.end_at);
-  const hasPhoto = Boolean(shift.company_logo_url) && !broken;
+  const heroPhoto = shiftHeroPhoto(shift);
+  const hasPhoto = Boolean(heroPhoto) && !broken;
 
   return (
     // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
@@ -177,7 +179,7 @@ export default function ShiftCard({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={cldThumb(shift.company_logo_url, 800)}
+              src={cldThumb(heroPhoto, 800)}
               alt={shift.company_name ?? "Local"}
               onError={() => setBroken(true)}
               loading="lazy"

@@ -3,13 +3,56 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 
-// Tamaño del visor (px en pantalla) y de la imagen final que se sube: 640 es
-// de sobra para un avatar (nunca se pinta a más de ~170px, ver OpportunityCard),
-// sin subir el archivo original de la cámara (puede pesar varios MB).
-const VIEWPORT = 260;
-const OUTPUT_SIZE = 640;
+// Tamaño del visor (px en pantalla) y de la imagen final que se sube, por
+// forma. 640 es de sobra para un avatar (nunca se pinta a más de ~170px, ver
+// OpportunityCard). "wide" es la foto del local: 16:9, y 1280 de ancho porque
+// es la imagen grande del feed y del detalle (se pinta hasta ~800px, 2x en
+// pantallas retina). Nunca se sube el archivo original de la cámara (puede
+// pesar varios MB).
+type Shape = "circle" | "square" | "wide";
+const FRAMES: Record<Shape, { vw: number; vh: number; ow: number; oh: number }> = {
+  circle: { vw: 260, vh: 260, ow: 640, oh: 640 },
+  square: { vw: 260, vh: 260, ow: 640, oh: 640 },
+  wide: { vw: 320, vh: 180, ow: 1280, oh: 720 },
+};
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
+
+/**
+ * Dónde dibujar la imagen en el lienzo de salida para que lo que se sube sea
+ * EXACTAMENTE lo que se veía en el visor. En el visor la imagen se corre
+ * `offset` px desde el centro (`translate(offset)`), así que en la salida su
+ * centro va en `centro + offset·k` — con el mismo signo.
+ *
+ * Hasta 2026-09-23 el signo estaba invertido: el recorte subido era el espejo
+ * del encuadre (arrastrar la foto a la derecha subía la parte derecha, no la
+ * izquierda que se veía). Medido con una imagen mitad roja/mitad azul: 43,8%
+ * de rojo con el signo viejo contra 56,3% con el correcto (lo esperado: 56%).
+ */
+export function cropDrawRect({
+  natural,
+  scale,
+  offset,
+  viewportWidth,
+  outputWidth,
+  outputHeight,
+}: {
+  natural: { width: number; height: number };
+  scale: number;
+  offset: { x: number; y: number };
+  viewportWidth: number;
+  outputWidth: number;
+  outputHeight: number;
+}) {
+  // Mismo factor en los dos ejes: el visor y la salida tienen la misma
+  // proporción.
+  const k = outputWidth / viewportWidth;
+  const width = natural.width * scale * k;
+  const height = natural.height * scale * k;
+  const cx = outputWidth / 2 + offset.x * k;
+  const cy = outputHeight / 2 + offset.y * k;
+  return { x: cx - width / 2, y: cy - height / 2, width, height };
+}
 
 /**
  * Modal de encuadre de foto de perfil: antes se subía la foto tal cual y
@@ -25,7 +68,7 @@ export default function ImageCropModal({
   onConfirm,
 }: {
   file: File | null;
-  shape?: "circle" | "square";
+  shape?: Shape;
   onCancel: () => void;
   onConfirm: (file: File) => void;
 }) {
@@ -47,15 +90,16 @@ export default function ImageCropModal({
 
   if (!file || !imgUrl) return null;
 
-  // Escala "cover" a zoom=1: el lado más chico de la imagen llena el visor.
+  const { vw, vh, ow, oh } = FRAMES[shape];
+  // Escala "cover" a zoom=1: la imagen llena el visor sin dejar bordes.
   const baseScale =
-    natural.width > 0 ? VIEWPORT / Math.min(natural.width, natural.height) : 0;
+    natural.width > 0 ? Math.max(vw / natural.width, vh / natural.height) : 0;
   const scale = baseScale * zoom;
   const displayWidth = natural.width * scale;
   const displayHeight = natural.height * scale;
   // Cuánto se puede mover sin dejar un borde vacío dentro del visor.
-  const maxOffsetX = Math.max(0, (displayWidth - VIEWPORT) / 2);
-  const maxOffsetY = Math.max(0, (displayHeight - VIEWPORT) / 2);
+  const maxOffsetX = Math.max(0, (displayWidth - vw) / 2);
+  const maxOffsetY = Math.max(0, (displayHeight - vh) / 2);
 
   function clamp(value: number, max: number) {
     return Math.min(max, Math.max(-max, value));
@@ -85,8 +129,8 @@ export default function ImageCropModal({
     setSaving(true);
     try {
       const canvas = document.createElement("canvas");
-      canvas.width = OUTPUT_SIZE;
-      canvas.height = OUTPUT_SIZE;
+      canvas.width = ow;
+      canvas.height = oh;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("canvas no soportado");
 
@@ -94,16 +138,8 @@ export default function ImageCropModal({
       img.src = imgUrl;
       await img.decode();
 
-      const outScale = (OUTPUT_SIZE / VIEWPORT) * scale;
-      const cx = OUTPUT_SIZE / 2 - offset.x * (OUTPUT_SIZE / VIEWPORT);
-      const cy = OUTPUT_SIZE / 2 - offset.y * (OUTPUT_SIZE / VIEWPORT);
-      ctx.drawImage(
-        img,
-        cx - (natural.width * outScale) / 2,
-        cy - (natural.height * outScale) / 2,
-        natural.width * outScale,
-        natural.height * outScale
-      );
+      const r = cropDrawRect({ natural, scale, offset, viewportWidth: vw, outputWidth: ow, outputHeight: oh });
+      ctx.drawImage(img, r.x, r.y, r.width, r.height);
 
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/jpeg", 0.92)
@@ -116,14 +152,14 @@ export default function ImageCropModal({
   }
 
   return (
-    <Modal open title="Encuadrá tu foto" onClose={onCancel}>
+    <Modal open title={shape === "wide" ? "Encuadrá la foto del local" : "Encuadrá tu foto"} onClose={onCancel}>
       <div className="flex flex-col items-center gap-4">
         <div
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          style={{ width: VIEWPORT, height: VIEWPORT }}
+          style={{ width: vw, height: vh }}
           className={`relative touch-none overflow-hidden bg-surface ring-1 ring-line ${
             shape === "circle" ? "rounded-full" : "rounded-2xl"
           }`}
