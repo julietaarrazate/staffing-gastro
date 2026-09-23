@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useAIAssistant } from "@/lib/use-ai-assistant";
 import { useWorkerAIAssistant } from "@/lib/use-worker-ai-assistant";
-import { Button, Skeleton } from "@/components/ui";
+import { Button, OidoLoader, Skeleton } from "@/components/ui";
 import { LogoGlyph } from "@/components/Logo";
 import { ChevronLeftIcon, MicIcon, MicOffIcon } from "@/components/icons";
 
@@ -173,6 +173,11 @@ function AssistantChatShell({
               </div>
             </div>
           ))
+        )}
+        {loading && (
+          <div className="mr-auto w-fit rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5">
+            <OidoLoader size="sm" label="Oído está escuchando…" />
+          </div>
         )}
         <div ref={historyEndRef} />
       </div>

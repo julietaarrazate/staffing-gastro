@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -16,6 +17,7 @@ import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
 import MapSheet from "@/components/worker/MapSheet";
+import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   ssr: false,
@@ -60,6 +62,9 @@ function MapCardSkeleton({ wide = false }: { wide?: boolean }) {
   );
 }
 
+/** Cómo sale una tarjeta de la lista después de postularse. */
+const CARD_EXIT = { opacity: 0, scale: 0.92, transition: { duration: 0.2 } };
+
 /**
  * Fila de turno del panel lateral (desktop, md+): misma información que la
  * tarjeta del carrusel mobile, en formato de lista vertical de ancho
@@ -73,6 +78,7 @@ function ShiftRow({
   center,
   active,
   applying,
+  justApplied,
   disabled,
   onSelect,
   onOpenDetail,
@@ -82,6 +88,7 @@ function ShiftRow({
   center: [number, number];
   active: boolean;
   applying: boolean;
+  justApplied: boolean;
   disabled: boolean;
   onSelect: () => void;
   onOpenDetail: () => void;
@@ -105,7 +112,7 @@ function ShiftRow({
       // 2026-08-17: "en mapa, donde se ven los turnos en blanco, también que
       // las tarjetas tengan colores"). El estado activo sigue marcándose con
       // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
-      className={`w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
+      className={`relative w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
         active ? "border-primary/40 bg-primary-tint/60" : "border-line bg-card hover:bg-surface"
       }`}
     >
@@ -145,6 +152,7 @@ function ShiftRow({
           Postularme
         </Button>
       </div>
+      {justApplied && <ConfirmOverlay label="Te postulaste" />}
     </div>
   );
 }
@@ -165,6 +173,14 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  // Turno recién postulado: su tarjeta muestra la confirmación un instante
+  // (ConfirmOverlay) y recién después sale de la lista.
+  const [justAppliedId, setJustAppliedId] = useState<string | null>(null);
+  const removeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useReducedMotion();
+  useEffect(() => () => {
+    if (removeTimer.current) clearTimeout(removeTimer.current);
+  }, []);
   // Turno abierto en el sheet de detalle (revisar antes de decidir — no
   // confundir con `activeIndex`, que es la tarjeta que el mapa sigue).
   const [previewShift, setPreviewShift] = useState<Shift | null>(null);
@@ -251,10 +267,19 @@ export default function MapPage() {
       );
       clearIdempotencyKey(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
-      setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
-      // Primera acción significativa, no al aterrizar (ver docs/reference/ACCESO_MODERNO.md).
-      requestOptIn();
+      setJustAppliedId(shift.id);
+      removeTimer.current = setTimeout(
+        () => {
+          setShifts((prev) => prev.filter((s) => s.id !== shift.id));
+          setJustAppliedId((prev) => (prev === shift.id ? null : prev));
+          // Primera acción significativa, no al aterrizar (ver
+          // docs/reference/ACCESO_MODERNO.md). DESPUÉS de la confirmación:
+          // si sale junto con ella, su hoja tapa el check.
+          requestOptIn();
+        },
+        reducedMotion ? 0 : 900
+      );
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         clearIdempotencyKey(shift.id);
@@ -314,19 +339,23 @@ export default function MapPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {shifts.map((shift) => (
-                <ShiftRow
-                  key={shift.id}
-                  shift={shift}
-                  center={center}
-                  active={shift.id === activeId}
-                  applying={applyingId === shift.id}
-                  disabled={applyingId !== null}
-                  onSelect={() => selectById(shift.id)}
-                  onOpenDetail={() => setPreviewShift(shift)}
-                  onApply={() => apply(shift)}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {shifts.map((shift) => (
+                  <motion.div key={shift.id} layout={!reducedMotion} exit={CARD_EXIT}>
+                    <ShiftRow
+                      shift={shift}
+                      center={center}
+                      active={shift.id === activeId}
+                      applying={applyingId === shift.id}
+                      justApplied={justAppliedId === shift.id}
+                      disabled={applyingId !== null || justAppliedId !== null}
+                      onSelect={() => selectById(shift.id)}
+                      onOpenDetail={() => setPreviewShift(shift)}
+                      onApply={() => apply(shift)}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
@@ -382,7 +411,7 @@ export default function MapPage() {
           <div
             ref={carouselRef}
             onScroll={onCarouselScroll}
-            className="no-scrollbar flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
+            className="no-scrollbar relative flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
           >
           {loading ? (
             <>
@@ -391,7 +420,8 @@ export default function MapPage() {
               <MapCardSkeleton />
             </>
           ) : (
-          shifts.map((shift) => {
+          <AnimatePresence initial={false} mode="popLayout">
+          {shifts.map((shift) => {
             const { Icon } = SKILL_ACCENT[shift.position];
             const heroTone = SKILL_HERO_TONE[shift.position];
             const rail = SKILL_RAIL_BORDER[shift.position];
@@ -400,8 +430,10 @@ export default function MapPage() {
                 ? haversineKm(center, [shift.latitude, shift.longitude])
                 : null;
             return (
-              <div
+              <motion.div
                 key={shift.id}
+                layout={!reducedMotion}
+                exit={CARD_EXIT}
                 role="button"
                 tabIndex={0}
                 // Tocar la tarjeta ABRE el detalle para revisar — NO postula
@@ -415,7 +447,7 @@ export default function MapPage() {
                 // navegar a su perfil.
                 onClick={() => setPreviewShift(shift)}
                 onKeyDown={(e) => handleCardActivate(e, () => setPreviewShift(shift))}
-                className={`flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-card p-4 pl-3.5 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98] ${rail}`}
+                className={`relative flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-card p-4 pl-3.5 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98] ${rail}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -483,15 +515,17 @@ export default function MapPage() {
                     fullWidth
                     size="sm"
                     loading={applyingId === shift.id}
-                    disabled={applyingId !== null}
+                    disabled={applyingId !== null || justAppliedId !== null}
                     onClick={() => apply(shift)}
                   >
                     Postularme
                   </Button>
                 </div>
-              </div>
+                {justAppliedId === shift.id && <ConfirmOverlay label="Te postulaste" />}
+              </motion.div>
             );
-          })
+          })}
+          </AnimatePresence>
           )}
           </div>
         </MapSheet>

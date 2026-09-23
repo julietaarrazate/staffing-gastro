@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -13,6 +14,7 @@ import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/dat
 import { formatPayAmount } from "@/lib/pay";
 import { rankApplicants, standoutApplicant } from "@/lib/applicants";
 import CandidateCard from "@/components/CandidateCard";
+import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
 import {
@@ -55,6 +57,30 @@ function ShiftCandidatesContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState<string | null>(null);
+  // Recién asignado: su tarjeta sube arriba con la confirmación y el resto
+  // se atenúa, un instante antes de volver al panel. La decisión se VE, en
+  // vez de sólo un toast sobre una pantalla que ya se fue.
+  const [assignedId, setAssignedId] = useState<string | null>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useReducedMotion();
+  useEffect(() => () => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+  }, []);
+  const shownApplicants = useMemo(() => {
+    if (!assignedId) return rankedApplicants;
+    const chosen = rankedApplicants.filter((a) => a.worker_profile_id === assignedId);
+    return [...chosen, ...rankedApplicants.filter((a) => a.worker_profile_id !== assignedId)];
+  }, [rankedApplicants, assignedId]);
+  const shownCandidates = useMemo(() => {
+    if (!assignedId) return candidates;
+    const chosen = candidates.filter((c) => c.profile_id === assignedId);
+    return [...chosen, ...candidates.filter((c) => c.profile_id !== assignedId)];
+  }, [candidates, assignedId]);
+  /** Atenuado de los que no fueron elegidos, una vez asignado alguien. */
+  function settle(profileId: string) {
+    const dimmed = assignedId !== null && assignedId !== profileId;
+    return { opacity: dimmed ? 0.35 : 1, scale: dimmed && !reducedMotion ? 0.97 : 1 };
+  }
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -99,7 +125,8 @@ function ShiftCandidatesContent() {
       );
       clearIdempotencyKey(attemptKey);
       toast("Turno asignado. El trabajador tiene que confirmar");
-      router.push("/shifts");
+      setAssignedId(profileId);
+      leaveTimer.current = setTimeout(() => router.push("/shifts"), reducedMotion ? 0 : 1100);
     } catch (err) {
       toast(getErrorMessage(err, "No se pudo asignar"), "error");
       setAssigning(null);
@@ -182,14 +209,17 @@ function ShiftCandidatesContent() {
                   empatadas. La Garantía va DESPUÉS de la lista: antes ocupaba
                   la mitad de la pantalla antes del primer postulante. */}
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {rankedApplicants.map((a) => {
+                {shownApplicants.map((a) => {
                   const top = standout?.application_id === a.application_id;
                   return (
-                    <div
+                    <motion.div
                       key={a.application_id}
+                      layout={!reducedMotion}
+                      animate={settle(a.worker_profile_id)}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
                       // `.no-select`: fila de chrome (rating, chips), mismo criterio
                       // C0 #2 que ShiftCard/CandidateCard.
-                      className={`no-select rounded-[var(--radius-card)] p-4 ${
+                      className={`no-select relative rounded-[var(--radius-card)] p-4 ${
                         top
                           ? "bg-secondary shadow-[var(--shadow-float)]"
                           : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
@@ -226,7 +256,8 @@ function ShiftCandidatesContent() {
                           Asignar
                         </Button>
                       </div>
-                    </div>
+                      {assignedId === a.worker_profile_id && <ConfirmOverlay label="Asignado" detail={a.full_name} />}
+                    </motion.div>
                   );
                 })}
               </div>
@@ -249,14 +280,24 @@ function ShiftCandidatesContent() {
           ) : (
             <>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {candidates.map((candidate, i) => (
-                  <CandidateCard
+                {shownCandidates.map((candidate) => (
+                  <motion.div
                     key={candidate.profile_id}
-                    candidate={candidate}
-                    recommended={i === 0}
-                    disabled={assigning !== null}
-                    onAssign={() => assign(candidate.profile_id)}
-                  />
+                    layout={!reducedMotion}
+                    animate={settle(candidate.profile_id)}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="relative rounded-[var(--radius-card)]"
+                  >
+                    <CandidateCard
+                      candidate={candidate}
+                      recommended={candidate.profile_id === candidates[0]?.profile_id}
+                      disabled={assigning !== null}
+                      onAssign={() => assign(candidate.profile_id)}
+                    />
+                    {assignedId === candidate.profile_id && (
+                      <ConfirmOverlay label="Asignado" detail={candidate.full_name} />
+                    )}
+                  </motion.div>
                 ))}
               </div>
               <div className="mt-4">

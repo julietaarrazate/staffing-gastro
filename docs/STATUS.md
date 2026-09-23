@@ -147,6 +147,21 @@ Descubrir rápido → detalle → Matches ya hablan el mismo idioma:
 - **Recomendado por Oído** (pestaña Recomendados): de `bg-night` a verde
   bosque — el negro se perdía en el modo oscuro.
 
+**Animaciones — primer pase (2026-09-23, pedido de Julieta).** Cinco
+momentos, con la regla "confirma una acción o muestra un cambio, nunca
+decora" escrita en `docs/design-system/motion.md`: postularse (el botón se
+convierte en el panel verde con un check que se dibuja — `DrawnCheck`),
+postularse desde el mapa (la tarjeta se tapa con la confirmación antes de
+salir — `ConfirmOverlay`), asignar (el elegido sube con "Asignado" + nombre y
+el resto se atenúa antes de volver al panel), el pin elegido del mapa (onda
+ámbar una vez + rebote), números que cuentan (`CountUp`: "Turnos activos",
+"Ganado este mes"; reemplaza el contador propio de la landing) y la mano de
+Oído como loader de las esperas de IA y del admin (`OidoLoader`). Hallazgo
+al mirarlo renderizado: la invitación a notificaciones salía en el mismo
+instante que la confirmación y la tapaba — ahora espera a que se vea. Todo
+respeta "reducir movimiento". Julieta va a mandar un video de un pin de
+Pinterest con más referencias (el link no abre desde la sesión).
+
 **Perfil del trabajador (2026-09-23).** El bloque de arriba (foto, nombre,
 nivel, calificación) pasa del carbón `bg-focus` al verde bosque, la misma
 superficie destacada que "Recomendado" y "Turnos activos". Las ganancias
@@ -3863,6 +3878,16 @@ roadmap).
    de email se dispararon nunca en producción — están construidas y testeadas
    (#333), pero todavía no salieron a una casilla real.
 2. ✅ ~~PNG del ícono con el naranja viejo~~ — **resuelto (PR #325)**.
+   ✅ **`favicon.ico` y `og-image` también, 2026-09-23**: el `.ico` se arma
+   desde `logo-mark.svg` con `frontend/scripts/build-icons.mjs` (16/32/48,
+   PNG dentro del contenedor ICO, sin herramienta extra), y la vista previa
+   ahora es `app/opengraph-image.tsx` (+ `twitter-image.tsx`), generada con
+   Fraunces/Inter vendorizadas en `frontend/assets/og/` — ya no puede
+   desincronizarse de la marca. **Hallazgo al verificarla:** `metadataBase`,
+   el sitemap, el robots y el fallback del link de turno decían
+   `staffya.com.ar`, que **no resuelve en DNS** — toda vista previa de un
+   link compartido pedía la imagen a un dominio muerto. Ahora salen de
+   `lib/site.ts` (`oido.com.ar`). Lo de abajo queda como historia.
    `apple-icon`, `icon-192/512` e `icon-maskable-512` rasterizados de nuevo
    desde `logo-mark.svg`/`logo-maskable.svg` (ya ámbar desde el #316) ahora que
    `sharp` está disponible en el entorno. `favicon.ico` no se tocó — es un
@@ -3917,7 +3942,7 @@ roadmap).
    | D | Componentes base | ✅ #303 (contraste de formularios anidados), #317 (foco visible por sistema) |
    | E | Cards | ✅ #317 (radios medidos contra `09-hibrido-app.html`), #323 |
    | F | Botones/badges/estados | ✅ #302, #317 (glows tokenizados) |
-   | G | Íconos | 🟡 SVG ✅ (#316); PNG rasterizados ✅ (#325) salvo `favicon.ico`; `og-image.png` ⬜ (ver ítem 2) |
+   | G | Íconos | ✅ SVG (#316); PNG (#325); `favicon.ico` y `og-image` generados (2026-09-23, ver ítem 2) |
    | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
-const BASE_URL = "https://staffya.com.ar";
+const BASE_URL = SITE_URL;
 
 /**
  * Sitemap de las páginas públicas indexables. Sólo las estáticas de entrada y

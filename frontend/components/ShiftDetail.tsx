@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -17,8 +18,8 @@ import MiniMap from "@/components/MiniMap";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { Skeleton, useToast } from "@/components/ui";
+import DrawnCheck from "@/components/ui/DrawnCheck";
 import {
-  CheckCircleIcon,
   ChevronLeftIcon,
   ClockIcon,
   FileTextIcon,
@@ -61,6 +62,10 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const { keyFor, clear } = useIdempotencyKeys();
   const [full, setFull] = useState<Shift | null>(null);
   const [apply, setApply] = useState<ApplyState>("unknown");
+  // Sólo se festeja la postulación que pasa en esta pantalla, no la que ya
+  // estaba hecha al cargar (ver DrawnCheck).
+  const [justApplied, setJustApplied] = useState(false);
+  const reducedMotion = useReducedMotion();
   const [photoBroken, setPhotoBroken] = useState(false);
   const [myCompanyId, setMyCompanyId] = useState<string | null>(null);
 
@@ -112,9 +117,12 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     try {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token, undefined, keyFor(shift.id));
       clear(shift.id);
+      setJustApplied(true);
       setApply("applied");
       toast("¡Te postulaste! El comercio ya te puede ver");
-      requestOptIn();
+      // La invitación a notificaciones espera a que se vea la confirmación
+      // (el check se dibuja en ~0,5 s): si sale junto, su hoja la tapa.
+      window.setTimeout(requestOptIn, reducedMotion ? 0 : 1200);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         clear(shift.id);
@@ -237,6 +245,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             isOwner={isOwner}
             shiftId={shift.id}
             apply={apply}
+            justApplied={justApplied}
             onApply={onApply}
           />
         </div>
@@ -317,6 +326,7 @@ function PrimaryAction({
   isOwner,
   shiftId,
   apply,
+  justApplied,
   onApply,
 }: {
   loading: boolean;
@@ -325,8 +335,10 @@ function PrimaryAction({
   isOwner: boolean;
   shiftId: string;
   apply: ApplyState;
+  justApplied: boolean;
   onApply: () => void;
 }) {
+  const reducedMotion = useReducedMotion();
   if (loading) return <Skeleton className="h-14 w-full rounded-[var(--radius-btn)]" />;
 
   if (!loggedIn) {
@@ -345,24 +357,48 @@ function PrimaryAction({
   }
 
   if (isWorker) {
-    if (apply === "applied") {
-      return (
-        <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-success-tint px-4 py-3.5">
-          <CheckCircleIcon size={22} className="shrink-0 text-success-text" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold text-ink">Ya te postulaste</p>
-            <p className="text-sm text-ink/60">Te avisamos cuando el comercio responda.</p>
-          </div>
-          <Link href="/my-shifts" className="shrink-0 text-sm font-semibold text-primary-text">
-            Ver
-          </Link>
-        </div>
-      );
-    }
+    // El botón se convierte en la confirmación: sale achicándose y entra el
+    // panel verde con el check que se dibuja. `initial={false}`: si al cargar
+    // ya estaba postulado, el panel aparece quieto.
+    const swap = reducedMotion
+      ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+      : {
+          initial: { opacity: 0, scale: 0.96 },
+          animate: { opacity: 1, scale: 1 },
+          exit: { opacity: 0, scale: 0.96 },
+        };
     return (
-      <button type="button" onClick={onApply} disabled={apply === "applying"} className={PRIMARY_BUTTON}>
-        {apply === "applying" ? "Enviando…" : "Postularme"}
-      </button>
+      <AnimatePresence mode="wait" initial={false}>
+        {apply === "applied" ? (
+          <motion.div
+            key="applied"
+            {...swap}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="flex items-center gap-3 rounded-[var(--radius-card)] bg-success-tint px-4 py-3.5"
+          >
+            <DrawnCheck size={24} animate={justApplied} className="shrink-0 text-success-text" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold text-ink">Ya te postulaste</p>
+              <p className="text-sm text-ink/60">Te avisamos cuando el comercio responda.</p>
+            </div>
+            <Link href="/my-shifts" className="shrink-0 text-sm font-semibold text-primary-text">
+              Ver
+            </Link>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="apply"
+            {...swap}
+            transition={{ duration: 0.15, ease: "easeIn" }}
+            type="button"
+            onClick={onApply}
+            disabled={apply === "applying"}
+            className={PRIMARY_BUTTON}
+          >
+            {apply === "applying" ? "Enviando…" : "Postularme"}
+          </motion.button>
+        )}
+      </AnimatePresence>
     );
   }
 

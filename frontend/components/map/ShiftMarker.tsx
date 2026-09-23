@@ -79,9 +79,20 @@ function ShiftMarker({
           `scale-0` (en Tailwind v4 setea la propiedad `scale`, que se compone
           con el transform de la animación y deja el marcador invisible). */}
       <div
-        className="origin-bottom [animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_both]"
+        className="relative origin-bottom [animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_both]"
         style={{ animationDelay: `${delayMs}ms` }}
       >
+        {/* Al tocarlo, una onda ámbar sale del pin UNA vez (se monta con
+            `active`, así que se repite en cada selección y no queda
+            latiendo): confirma "este es el que elegiste" sin quedarse
+            como ruido en el mapa. El rebote del escalado (curva con
+            overshoot) es el mismo del pop de aparición. */}
+        {active && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -inset-1.5 rounded-full bg-primary/40 [animation:markerHalo_0.6s_ease-out_1_both]"
+          />
+        )}
         <button
           type="button"
           aria-label={`Turno de ${position}, ${formatArs(payAmount)}${
@@ -92,7 +103,7 @@ function ShiftMarker({
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex items-center gap-1.5 rounded-full border-2 border-white px-2.5 py-1.5 text-xs font-bold tabular-nums transition-transform duration-300 ease-out ${
+          className={`relative flex items-center gap-1.5 rounded-full border-2 border-white px-2.5 py-1.5 text-xs font-bold tabular-nums transition-transform duration-300 ease-[cubic-bezier(0.3,1.4,0.5,1)] ${
             active
               ? "scale-[1.14] bg-primary text-night shadow-[var(--shadow-primary)]"
               : "scale-100 bg-night text-white shadow-[0_4px_10px_rgba(17,17,20,0.22)]"

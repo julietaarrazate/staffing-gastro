@@ -457,13 +457,13 @@ cuatro pasos, tres de ellos con su login:
    registro se rompe en silencio. Éste es de código/config, no de Julieta —
    pero depende del paso 1.
 
-Los **íconos PNG** (`apple-icon`, `icon-192/512`, `icon-maskable-512`) ya se
-rasterizaron al ámbar en el PR #325. Quedan dos pendientes chicos de código,
-sin relación con el dominio: **`favicon.ico`** sigue con el naranja viejo
-(`sharp` no lee/escribe ICO, hace falta otra herramienta), y **`og-image.png`**
-(la vista previa de 1200×630 al compartir un link) también — ver
-`docs/STATUS.md` → "Qué sigue" para el detalle de por qué éste no se
-rehizo a ciegas.
+Los **íconos** están todos en ámbar (2026-09-23): los PNG y el `favicon.ico`
+se regeneran desde los SVG con `node scripts/build-icons.mjs` (en
+`frontend/`), y la vista previa al compartir un link ya no es un PNG
+commiteado sino `app/opengraph-image.tsx`, generada desde el código. **Las
+URLs absolutas salen de `frontend/lib/site.ts`** (`oido.com.ar`): antes
+estaban escritas a mano como `staffya.com.ar`, un dominio que no existe, y
+toda vista previa y el sitemap apuntaban ahí.
 
 **Ya configuradas — NO volver a pedirlas:**
 - **Vercel (frontend):** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,

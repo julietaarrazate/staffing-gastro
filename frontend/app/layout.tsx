@@ -9,6 +9,7 @@ import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import { SITE_URL } from "@/lib/site";
 
 // Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
 // por defecto de toda la app.
@@ -42,7 +43,7 @@ const DESCRIPTION =
   "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://staffya.com.ar"),
+  metadataBase: new URL(SITE_URL),
   title: { default: `oído — ${TAGLINE}`, template: "%s — Oído" },
   description: DESCRIPTION,
   applicationName: "Oído",
@@ -65,13 +66,11 @@ export const metadata: Metadata = {
     siteName: "Oído",
     locale: "es_AR",
     type: "website",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: TAGLINE }],
   },
   twitter: {
     card: "summary_large_image",
     title: `oído — ${TAGLINE}`,
     description: DESCRIPTION,
-    images: ["/og-image.png"],
   },
 };
 

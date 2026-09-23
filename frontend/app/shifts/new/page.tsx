@@ -24,7 +24,7 @@ import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import ShiftDayHint from "@/components/ShiftDayHint";
-import { Button, TextField, Toggle, useToast } from "@/components/ui";
+import { Button, OidoLoader, TextField, Toggle, useToast } from "@/components/ui";
 import { LogoGlyph } from "@/components/Logo";
 import {
   CalendarIcon,
@@ -406,6 +406,8 @@ function NewShiftWizard() {
                   <div className="mt-2 flex items-center justify-between gap-2">
                     {listening ? (
                       <p className="text-xs font-semibold text-primary-text">Escuchando…</p>
+                    ) : parsingText ? (
+                      <OidoLoader size="sm" label="Leyendo tu pedido…" />
                     ) : parseError ? (
                       <p className="text-xs text-danger-text">{parseError}</p>
                     ) : (

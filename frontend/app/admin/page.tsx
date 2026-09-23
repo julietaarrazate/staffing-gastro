@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminUser, PlatformStats, SubscriptionStats, TestAccount } from "@/lib/types";
-import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, Skeleton, Spinner } from "@/components/ui";
+import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, OidoLoader, Skeleton } from "@/components/ui";
 import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
   CheckCircleIcon,
@@ -169,7 +169,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="flex justify-center px-4 py-16">
-        <Spinner size={28} className="text-ink/40" />
+        <OidoLoader label="Cargando el panel…" />
       </div>
     );
   }
