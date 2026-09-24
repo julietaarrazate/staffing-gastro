@@ -29,5 +29,5 @@ pywebpush==2.3.0
 pytest==9.1.1
 pytest-asyncio==1.4.0
 httpx==0.28.1
-aiosqlite==0.20.0
+aiosqlite==0.22.1
 sentry-sdk[fastapi]==2.19.2
