@@ -11,6 +11,12 @@
 
 ## 🎨 -3. v5.0 — Sistema de identidad: coral + off-white cálido (2026-09-20)
 
+> ⚠️ **Corrección (2026-09-24):** el párrafo de abajo dice que la marca "pasa
+> a coral `#FF5A3D`". **No es así**: el coral se probó y Julieta lo rechazó;
+> la marca sigue en **ámbar `#D97706`** (ver `docs/design-system/color-system.md`
+> y `--color-primary` en `globals.css`). Tampoco se usa Saans: los títulos van
+> en Fraunces. Se deja el texto original como registro de lo que se probó.
+
 **Supersede a v4.0 (lienzo blanco) y al rebrand ámbar.** Julieta pasó el board
 de diseño definitivo (dos tableros: style-guide + pantallas). La marca deja el
 ámbar y pasa a **coral `#FF5A3D`** sobre un lienzo **off-white cálido

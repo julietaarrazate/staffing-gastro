@@ -497,6 +497,58 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
+**2026-09-24 — pasada visual de fases C, K y L (tipografía, tablet, detalle).**
+Diez pantallas renderizadas a **768×1024 y 1024×768**, en claro y en oscuro
+(40 capturas), con la API mockeada y `getComputedStyle` sobre cada texto
+visible. Salieron 16 hallazgos; se corrigieron los cuatro que más rendían:
+
+- **El header del comercio se partía en tablet.** El botón decía
+  "Salir (<nombre del comercio>)": con "Bar La Esquina" los links pasaban a
+  dos líneas a 768px, y con un nombre real largo hasta los ~1000px (el header
+  crecía de 61 a 77px). Ahora dice "Salir" (el nombre queda en el
+  `aria-label` y el tooltip) y los links llevan `whitespace-nowrap`.
+  Test nuevo `e2e/header-tablet.spec.ts`, **verificado que falla** con el
+  código anterior.
+- **El detalle del turno perdía el color del rubro.** El hero de
+  `ShiftDetail` era verde bosque para todos los puestos: un bartender se veía
+  vino en la tarjeta y verde al abrirlo. Ahora usa `SKILL_HERO_TONE`, el mismo
+  mapa que la tarjeta. El pago sigue en verde (la superficie destacada de v5.0).
+- **La pestaña activa se hundía en oscuro.** `SegmentedControl` pintaba la
+  opción elegida con `--color-card` (#221d18), que en oscuro es **más oscuro**
+  que el riel `--color-surface` (#2b251f). Token nuevo `--color-raised`
+  (#fff en claro, #3a332c en oscuro). Afecta a las 5 pantallas que lo usan.
+- **Docs que contradecían al código.** `CLAUDE.md` describía el crema
+  `#FFF8F0` de v3.0 y decía "el lienzo crema nunca" se oscurece (v5.0 tiene
+  modo oscuro real); `COLOR_SYSTEM.md` v5.0 decía que la marca pasó a coral
+  (Julieta lo rechazó, sigue ámbar); `TYPOGRAPHY_SYSTEM.md` recomendaba
+  Archivo/Geist, que nunca se aplicó. Corregidos con nota, sin borrar lo
+  histórico; la fuente de verdad vigente es `docs/design-system/`.
+
+**Quedan abiertos, con el arreglo propuesto** (detalle completo en
+`/mnt/project-files/auditoria-visual-2026-09-24/HALLAZGOS.md`, fuera del repo):
+1. **Tipografía (fase C), el más grande.** La escala `--text-*` casi no se usa;
+   el cuerpo real es 14px y la escala dice 15. Títulos de pantalla en 20/28/30/
+   32px; 14 usos de `text-[10px]`/`text-[9px]`, debajo del piso de 11.
+   **Necesita que Julieta decida si el cuerpo es 14 o 15** antes del codemod.
+2. Las pantallas de detalle (`/companies/[id]`, `/workers/[id]`,
+   `/support/[id]`, `ShiftDetail`) escriben su `max-w-*` a mano en vez de
+   `.app-container`; sumarlas a `anchos-de-contenedor.spec.ts`.
+3. El pago cambia de color y tamaño según la pantalla (ámbar 39px en el feed,
+   tinta 30px en el panel, 18px en candidatos). La fase N lo pasó a tinta sólo
+   en `ShiftCard`.
+4. Chat y ticket de soporte usan dos diseños de burbuja distintos.
+5. El chat abierto no tiene encabezado (con quién, qué turno).
+6. A 768 el panel del comercio deja media pantalla vacía cuando cada familia
+   tiene un solo turno.
+
+**Nota de método:** cuatro "hallazgos" eran artefactos del mock y se
+descartaron mirando la causa: "$NaN" en ganancias (el catch-all devolvía `[]`
+en `/workers/me/earnings`), una insignia inventada que salía cruda, el
+"Reconectando…" del chat sin WebSocket y la bandeja vacía al lado de un chat
+abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
+lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
+mock local.
+
 ### Expediente DNDA (PR #310, draft) — ✅ presentado el 2026-09-23
 
 > **Cierre.** Julieta lo presentó el 2026-09-23. Versión depositada: commit
@@ -3979,7 +4031,7 @@ roadmap).
    |---|---|---|
    | A | Auditoría de repo | ✅ `docs/audits/2026-08-oido/` |
    | B | Color | ✅ #302, #308, #315 (rebrand ámbar), #323 (tarjeta negra) |
-   | C | Tipografía | ⬜ nunca tuvo pasada propia — el contraste se corrigió varias veces (#300, #315) pero no la escala |
+   | C | Tipografía | 🟡 **medida el 2026-09-24, sin corregir**: la escala `--text-*` existe pero casi no se usa (~63 usos contra ~480 de tamaños de Tailwind y 78 arbitrarios); el tamaño más visto es 14px y no está en la escala; el título de pantalla sale en 4 tamaños. Necesita una decisión de Julieta (¿cuerpo 14 o 15?) antes del codemod — ver "En vuelo ahora", pasada visual del 2026-09-24 |
    | D | Componentes base | ✅ #303 (contraste de formularios anidados), #317 (foco visible por sistema) |
    | E | Cards | ✅ #317 (radios medidos contra `09-hibrido-app.html`), #323 |
    | F | Botones/badges/estados | ✅ #302, #317 (glows tokenizados) |
@@ -3987,8 +4039,8 @@ roadmap).
    | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
-   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. Queda pendiente el resto de K: reverificar breakpoints intermedios tras el rebrand y el cambio de radios (#317) |
-   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). Falta la pasada de las pantallas de detalle |
+   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Queda: las pantallas de detalle no usan `.app-container` (A2 de la pasada) |
+   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); quedan abiertos el pago con 4 colores/tamaños distintos, dos diseños de burbuja (chat vs. soporte) y el chat sin encabezado |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
    **H e I quedaron cerradas en el #335, la mitad de K en el #336 y la pasada
@@ -4073,6 +4125,8 @@ roadmap).
    **Tercera pasada: dónde va la masa negra.** Julieta preguntó dónde
    convenía, y la respuesta salió de mirar el código: **el negro NO faltaba en
    la app**. `/turno/[id]` ya tiene el pago en bloque negro y el perfil del
+   *(⚠️ 2026-09-24: desde v5.0, #345, esos dos bloques son verde bosque
+   `bg-secondary`, no negros — la regla de "una masa por pantalla" sigue igual.)*
    trabajador (`WorkerGameCard`) las ganancias, los dos con la receta correcta
    (chip ámbar, monto en blanco, secundario en manteca). El "0% de negro"
    medido antes era de las DOS pantallas de lista, y ahí está bien que no

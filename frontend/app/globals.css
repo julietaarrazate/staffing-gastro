@@ -254,6 +254,14 @@
   --color-focus: #191410;
   --color-focus-ink: #ffffff;
 
+  /* Lo ELEGIDO dentro de un riel recesado (la píldora activa de
+     `SegmentedControl`). En claro es la tarjeta blanca sobre el riel arena.
+     En oscuro NO puede ser `--color-card`: ahí la tarjeta (#221d18) es más
+     oscura que el riel `--color-surface` (#2b251f), así que la opción elegida
+     se veía como un agujero en vez de levantarse. Sube un escalón por arriba
+     del riel (auditoría visual 2026-09-24). */
+  --color-raised: #ffffff;
+
   /* Segunda y tercera tinta (ADR-0011) — roles que NO se solapan, ninguna
      reemplaza al naranja como acento interactivo (sigue siendo el único). */
   /* Estructura y momentos de marca (fondos de sección, heroes de onboarding).
@@ -448,6 +456,7 @@
   --color-surface: #2b251f;
   --color-focus: #3d3630;
   --color-focus-ink: #f5f1ea;
+  --color-raised: #3a332c; /* un escalón sobre surface #2b251f */
   --color-chrome: #1b1611; /* nav/header oscuros en modo oscuro */
   --color-paper: #201a15;
 

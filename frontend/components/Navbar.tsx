@@ -34,7 +34,7 @@ function NavLink({
       href={href}
       replace={replace}
       aria-current={active ? "page" : undefined}
-      className={`hidden md:inline ${
+      className={`hidden whitespace-nowrap md:inline ${
         active ? "font-semibold text-primary-text" : "hover:text-primary-text"
       }`}
     >
@@ -61,7 +61,7 @@ export default function Navbar() {
         <Link href="/" aria-label="Inicio">
           <Logo />
         </Link>
-        <nav aria-label="Principal" className="flex items-center gap-4 text-sm font-medium">
+        <nav aria-label="Principal" className="flex items-center gap-3 text-sm font-medium lg:gap-4">
           {!loading && user?.role === "worker" && (
             <>
               <NavLink href="/feed">Turnos</NavLink>
@@ -94,12 +94,19 @@ export default function Navbar() {
             </>
           )}
           {!loading && user && <NotificationBell />}
+          {/* Sólo "Salir", sin el nombre: con el nombre completo del comercio
+              ("Salir (Parrilla y Vermutería Don Julián)") el header no entraba
+              en una tablet y los links pasaban a dos líneas hasta los ~1000px.
+              El nombre sigue en el nombre accesible y en el tooltip, y la
+              cuenta ya se ve en "Mi comercio"/"Mi perfil". */}
           {!loading && user && (
             <button
               onClick={logout}
-              className="hidden rounded-full bg-surface px-3 py-1.5 hover:bg-line md:inline"
+              aria-label={`Salir (${user.full_name})`}
+              title={`Salir (${user.full_name})`}
+              className="hidden whitespace-nowrap rounded-full bg-surface px-3 py-1.5 hover:bg-line md:inline"
             >
-              Salir ({user.full_name})
+              Salir
             </button>
           )}
           {!loading && !user && (
