@@ -1,5 +1,12 @@
 # TYPOGRAPHY_SYSTEM.md — Sistema tipográfico de Staffya
 
+> ⚠️ **Documento histórico (nota del 2026-09-24).** Su recomendación
+> (Archivo para títulos, Geist para texto) **nunca se aplicó**. La tipografía
+> vigente es Fraunces + Inter + DM Mono, y vive en
+> [`docs/design-system/typography.md`](../design-system/typography.md). La
+> escala de tamaños (`--text-*`) está en `frontend/app/globals.css`.
+
+
 > Fase 3.2 del roadmap de [ART_DIRECTION.md](./ART_DIRECTION.md).
 > Define qué tipografías usa Staffya, por qué, y cómo se aplican.
 >

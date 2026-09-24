@@ -211,8 +211,12 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   [ARCHITECTURE.md](./docs/foundation/ARCHITECTURE.md) · [PRINCIPLES.md](./docs/foundation/PRINCIPLES.md)
 - **Identidad visual / diseño** — [ART_DIRECTION.md](./docs/design/ART_DIRECTION.md)
   (dirección de marca, territorio, benchmark — punto de partida) ·
-  [COLOR_SYSTEM.md](./docs/design/COLOR_SYSTEM.md) (paleta + contraste WCAG medido) ·
-  [TYPOGRAPHY_SYSTEM.md](./docs/design/TYPOGRAPHY_SYSTEM.md) (Inter/Fraunces) ·
+  **sistema vigente (v5.0): [`docs/design-system/`](./docs/design-system/)**
+  (`color-system.md`, `typography.md`, `elevation.md`…) ·
+  [COLOR_SYSTEM.md](./docs/design/COLOR_SYSTEM.md) (histórico v1–v4 + el
+  método de medición de contraste, que sigue vigente) ·
+  [TYPOGRAPHY_SYSTEM.md](./docs/design/TYPOGRAPHY_SYSTEM.md) (histórico: su
+  recomendación Archivo/Geist nunca se aplicó) ·
   [ICONOGRAPHY_SYSTEM.md](./docs/design/ICONOGRAPHY_SYSTEM.md) ·
   [DESIGN_TOKENS.md](./docs/design/DESIGN_TOKENS.md) (radios, sombras, espaciados) ·
   [BRIEF_IDENTIDAD_VISUAL.md](./docs/design/BRIEF_IDENTIDAD_VISUAL.md) (spec técnica
@@ -335,8 +339,10 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 - **Design system con tema explícito** (#317/#318): `lib/theme.tsx` es la
   única fuente de verdad y siempre escribe `data-theme="dark"|"light"`. **La
   app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de
-  identidad (el crema ES Oído). El oscuro es una elección explícita del
-  usuario. Sólo invierten las tarjetas; el lienzo crema nunca.
+  identidad. El oscuro es una elección explícita del usuario, y desde v5.0
+  (#345) es un **modo oscuro real**: el lienzo también se oscurece
+  (`#17130f`), no sólo las tarjetas. (Hasta el 2026-09-24 esta línea decía
+  "el lienzo crema nunca" — era del sistema anterior.)
 
 ## Antes de modificar código — checklist
 
@@ -622,20 +628,21 @@ vea bien.
 ## Convenciones de producto/diseño
 
 - Todo en **español**, incluido el texto de cara al usuario.
-- Identidad **editorial cálida** ("cafetería de especialidad", style-guide del
-  diseñador, desde 2026-07-29): lienzo **crema** `#FFF8F0` / superficies **arena**
-  `#F5ECDD`, tinta **carbón** cálida `#1F1F1C` (no negro puro), acento **ámbar**
-  `#D97706` (con `#B45309` para el fin del degradé y el texto sobre claro) y verde
-  éxito **bosque** `#2E8B57` (no el semáforo brillante). Tipografía
-  **Inter** (UI) + **Fraunces** (`font-display`, serif de títulos, alternativa
-  libre a Recoleta). Iconografía **Lucide**, sensación de app nativa. Un solo
-  acento ámbar por pantalla, cero gradientes multicolor decorativos. Todos los
-  fondos pasan por tokens de `globals.css` (no hay grises hardcodeados). Contrastes
-  verificados WCAG AA — **fuente de verdad: `docs/design/COLOR_SYSTEM.md` (v3.0)**. El
+- Identidad **Design System v5.0** (#345, 2026-09-22): lienzo **off-white
+  cálido** `#FBFAF6` / relleno recesado `#F3EFE6`, tarjetas blancas, tinta
+  `#111111`, acento **ámbar** `#D97706` (texto sobre claro `#B45309`) y **verde
+  bosque** `#1B3A31` como superficie destacada (pago, "Recomendado", "Turnos
+  activos"). Tipografía **Fraunces** (títulos de pantalla y de contenido) +
+  **Inter** (texto y encabezados de sección) + **DM Mono** (eyebrows y datos).
+  Iconografía **Lucide**, sensación de app nativa. Un solo acento ámbar por
+  pantalla. Todos los fondos pasan por tokens de `globals.css` (no hay grises
+  hardcodeados). **Fuente de verdad: `docs/design-system/color-system.md` y
+  `typography.md`**; `docs/design/COLOR_SYSTEM.md` es el registro histórico
+  (hasta el 2026-09-24 este párrafo describía el crema `#FFF8F0` de v3.0). El
   isotipo es la **mano ahuecada sobre la oreja**, SVG vectorial final del
   diseñador (ver `frontend/components/Logo.tsx`).
 - **Adentro de una tarjeta negra la proporción se invierte.** La regla del "un
-  solo acento" se mide sobre el lienzo crema, que es el 95% de la app; en un
+  solo acento" se mide sobre el lienzo, que es el 95% de la app; en un
   módulo `bg-night` el contenido va con color (ícono en chip ámbar, moneda
   ámbar, dato en blanco, dato secundario en crema `#F1E7A0`) porque una tarjeta
   negra llena de blancos y grises se apaga. Receta y contrastes medidos:

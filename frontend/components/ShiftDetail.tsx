@@ -10,7 +10,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, Shift, ShiftPublic } from "@/lib/types";
-import { SKILL_ACCENT } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
@@ -138,8 +138,15 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   return (
     <div className="mx-auto max-w-md pb-10 md:max-w-2xl md:px-4 md:pt-6">
-      {/* Cabecera: foto del local o verde bosque. */}
-      <header className="relative h-[240px] overflow-hidden bg-secondary md:rounded-[var(--radius-card)]">
+      {/* Cabecera: foto del local o el tono del rubro — el MISMO de la tarjeta
+          del feed y del panel (`SKILL_HERO_TONE`). Antes era verde bosque para
+          todos los puestos: el bartender se veía vino en la tarjeta y verde al
+          abrirlo, así que la identidad que arma la tarjeta se perdía justo en
+          el paso siguiente. El verde queda para el bloque del pago, que es la
+          superficie destacada de la pantalla (v5.0). */}
+      <header
+        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${SKILL_HERO_TONE[shift.position]}`}
+      >
         {photo ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb) */}
