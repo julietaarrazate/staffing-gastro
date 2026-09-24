@@ -129,3 +129,141 @@ test.describe("ninguna pantalla se escapa del marco del header", () => {
     });
   }
 });
+
+/**
+ * Pantallas de detalle (auditoría visual 2026-09-24, fase L). El test de
+ * arriba sólo mira que nada se escape del marco, y un detalle angosto lo pasa
+ * igual: `/companies/[id]` medía 576px a 768 y 896 a 1440, con otra
+ * alineación que el header y que la lista de la que venías. Acá la regla es
+ * más estricta: el contenedor de un detalle mide **exactamente** uno de los
+ * dos anchos del sistema (`--app-frame` o `--app-reading`), nunca uno escrito
+ * a mano.
+ */
+const COMPANY = {
+  id: "c1",
+  user_id: "u-c1",
+  name: "Parrilla y Vermutería Don Julián",
+  logo_url: null,
+  cover_photo_url: null,
+  category: "parrilla",
+  description: "Parrilla de barrio.",
+  address: "Honduras 5000",
+  city: "Palermo",
+  latitude: -34.58,
+  longitude: -58.43,
+  capacity: 60,
+  opening_hours: null,
+  rating: 4.6,
+  events_published: 12,
+  on_time_payment_rate: 1,
+  late_cancellations: 0,
+};
+
+const WORKER = {
+  id: "w1",
+  user_id: "u-w1",
+  full_name: "Juana Pérez",
+  photo_url: null,
+  birth_date: null,
+  age: 27,
+  city: "Palermo",
+  bio: "Bartender.",
+  latitude: null,
+  longitude: null,
+  skills: [],
+  years_experience: 3,
+  languages: [],
+  certifications: [],
+  cv_url: null,
+  cv_filename: null,
+  is_available: true,
+  rating: 4.8,
+  events_completed: 10,
+  punctuality_rate: 1,
+  cancellations: 0,
+  no_shows: 0,
+  badges: [],
+  level: "bronce",
+  identidad_verificada: true,
+};
+
+const TICKET = {
+  id: "t1",
+  user_id: "u-w",
+  category: "general",
+  subject: "No me llega el mail",
+  status: "abierto",
+  created_at: "2026-09-20T12:00:00Z",
+  updated_at: "2026-09-20T12:00:00Z",
+  messages: [
+    {
+      id: "m1",
+      ticket_id: "t1",
+      sender_user_id: "u-w",
+      body: "Hola, no me llega el mail de confirmación.",
+      created_at: "2026-09-20T12:00:00Z",
+    },
+  ],
+};
+
+const DETALLES: Array<{
+  role: keyof typeof SESSIONS;
+  ruta: string;
+  api: string;
+  body: unknown;
+  ancho: "--app-frame" | "--app-reading";
+}> = [
+  { role: "worker", ruta: "/companies/c1", api: "**/api/v1/companies/c1", body: COMPANY, ancho: "--app-frame" },
+  { role: "employer", ruta: "/workers/w1", api: "**/api/v1/workers/w1", body: WORKER, ancho: "--app-frame" },
+  { role: "worker", ruta: "/support/t1", api: "**/api/v1/support/tickets/t1", body: TICKET, ancho: "--app-reading" },
+];
+
+test.describe("las pantallas de detalle usan los anchos del sistema", () => {
+  for (const viewport of [
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    for (const d of DETALLES) {
+      test(`${d.ruta} mide ${d.ancho} a ${viewport.width}px`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await setup(page, d.role);
+        await page.route(d.api, (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(d.body),
+          })
+        );
+        await page.goto(d.ruta);
+        // El `h1` sólo existe cuando la pantalla cargó de verdad: el esqueleto
+        // y el estado de error no lo tienen, y medir sobre ellos no dice nada.
+        await page.locator("main h1").first().waitFor({ timeout: 15_000 });
+
+        const medida = await page.evaluate((token) => {
+          const main = document.querySelector("main");
+          let contenedor: Element | null = null;
+          const walk = (el: Element | null, depth: number) => {
+            if (!el || depth > 4 || contenedor) return;
+            const cs = getComputedStyle(el);
+            if (cs.maxWidth !== "none" && parseFloat(cs.maxWidth) > 200) {
+              contenedor = el;
+              return;
+            }
+            for (const c of Array.from(el.children)) walk(c, depth + 1);
+          };
+          walk(main, 0);
+          const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+          const esperado =
+            parseFloat(getComputedStyle(document.documentElement).getPropertyValue(token)) * rem;
+          return {
+            esperado,
+            maxWidth: contenedor ? parseFloat(getComputedStyle(contenedor).maxWidth) : null,
+          };
+        }, d.ancho);
+
+        expect(medida.maxWidth, `no se encontró el contenedor de ${d.ruta}`).not.toBeNull();
+        expect(medida.maxWidth).toBe(medida.esperado);
+      });
+    }
+  }
+});

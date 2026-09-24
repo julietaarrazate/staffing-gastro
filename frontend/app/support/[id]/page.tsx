@@ -92,7 +92,7 @@ export default function SupportTicketPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+      <div className="app-container-reading px-4 pb-10 pt-6">
         <CardSkeletons />
       </div>
     );
@@ -100,7 +100,7 @@ export default function SupportTicketPage() {
 
   if (error || !ticket) {
     return (
-      <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+      <div className="app-container-reading px-4 pb-10 pt-6">
         <ErrorBanner message={error ?? "Ticket no encontrado"} onRetry={load} />
       </div>
     );
@@ -110,7 +110,7 @@ export default function SupportTicketPage() {
   const isClosed = ticket.status === "cerrado";
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+    <div className="app-container-reading px-4 pb-10 pt-6">
       <button
         type="button"
         onClick={() => router.push(isAdmin ? "/admin/support" : "/support")}
