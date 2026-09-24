@@ -17,3 +17,4 @@ export { default as OidoLoader } from "./OidoLoader";
 export { default as CountUp } from "./CountUp";
 export { default as DrawnCheck } from "./DrawnCheck";
 export { default as ConfirmOverlay } from "./ConfirmOverlay";
+export { default as MessageBubble } from "./MessageBubble";

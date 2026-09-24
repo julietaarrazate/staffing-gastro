@@ -503,6 +503,27 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
+**2026-09-24 — el monto en tinta en todos lados, y una sola burbuja de chat.**
+Julieta delegó la decisión ("lo que quede mejor según el criterio de
+diseño"); se resolvió con la regla de oro de `color-system.md` ("el ámbar
+marca la acción principal y lo urgente, un acento por contexto"):
+
+- **Monto:** `OpportunityCard` y `NearbyRow` pasan el pago de ámbar a tinta.
+  Cada tarjeta del feed tenía dos ámbares (pago y "Postularme"); ahora queda
+  uno, el de la acción, igual que `ShiftCard` desde la fase N. `ShiftCard`
+  sube de 30px a `text-price` (39), el mismo tamaño del feed y del detalle.
+  El detalle del turno sigue en blanco sobre verde (la superficie destacada).
+- **Burbuja:** `components/ui/MessageBubble` reemplaza los dos diseños que
+  había (chat con lo propio en ámbar sólido; ticket con tinte translúcido,
+  otro radio y otro padding). Lo propio va en tinte ámbar (`bg-primary/15`),
+  no sólido: el ámbar sólido es del botón "Enviar".
+- **Encabezado del chat:** la conversación abierta ahora dice con quién y de
+  qué turno (avatar, nombre, título del turno). Sale de la lista que ya
+  cargó `app/chats/layout.tsx`, por `ConversationsContext`, sin otra request.
+
+Capturas a 390 y 1024 en claro y oscuro en
+`/mnt/project-files/auditoria-visual-2026-09-24/monto-y-chat/`.
+
 **2026-09-24 — las pantallas de detalle usan los anchos del sistema (fase K).**
 `/companies/[id]` y `/workers/[id]` pasaron de `max-w-xl` (576px, y 896/1024
 recién en `lg`) a `.app-container`: a 768 el detalle del comercio era una
@@ -570,11 +591,10 @@ visible. Salieron 16 hallazgos; se corrigieron los cuatro que más rendían:
 1. ~~Tipografía (fase C)~~ — resuelta el mismo día, ver la entrada de arriba.
 2. ~~Las pantallas de detalle escriben su `max-w-*` a mano~~ — resuelto el
    mismo día, ver la entrada de arriba.
-3. El pago cambia de color y tamaño según la pantalla (ámbar 39px en el feed,
-   tinta 30px en el panel, 18px en candidatos). La fase N lo pasó a tinta sólo
-   en `ShiftCard`.
-4. Chat y ticket de soporte usan dos diseños de burbuja distintos.
-5. El chat abierto no tiene encabezado (con quién, qué turno).
+3. ~~El pago cambia de color y tamaño según la pantalla~~ — resuelto.
+4. ~~Chat y ticket de soporte usan dos diseños de burbuja distintos~~ — resuelto.
+5. ~~El chat abierto no tiene encabezado~~ — resuelto (ver la entrada de
+   arriba).
 6. A 768 el panel del comercio deja media pantalla vacía cuando cada familia
    tiene un solo turno.
 
@@ -4111,7 +4131,7 @@ roadmap).
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
    | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Las pantallas de detalle también pasaron a `.app-container`/`.app-container-reading`, con test que exige el ancho exacto. Queda: a 768 el panel del comercio deja media pantalla vacía con un turno por familia |
-   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); quedan abiertos el pago con 4 colores/tamaños distintos, dos diseños de burbuja (chat vs. soporte) y el chat sin encabezado |
+   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); el pago con 4 colores/tamaños distintos, las dos burbujas (chat vs. soporte) y el chat sin encabezado quedaron resueltos el mismo día |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
    **H e I quedaron cerradas en el #335, la mitad de K en el #336 y la pasada

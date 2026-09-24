@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { Conversation } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MessageIcon } from "@/components/icons";
+import { ConversationsContext } from "./ConversationsContext";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -159,7 +160,9 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
           conoce su propia ruta, así que la decisión vive acá, que es donde se
           sabe cuántas conversaciones hay. */}
       <div className={`min-w-0 flex-1 flex-col md:flex ${isIndex ? "hidden" : "flex"}`}>
-        {isIndex && !loading && !error && conversations.length === 0 ? null : children}
+        <ConversationsContext.Provider value={conversations}>
+          {isIndex && !loading && !error && conversations.length === 0 ? null : children}
+        </ConversationsContext.Provider>
       </div>
     </div>
   );

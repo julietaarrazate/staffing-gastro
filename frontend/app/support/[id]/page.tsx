@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { SupportTicketDetail, TicketSuggestion, TICKET_CATEGORY_LABELS } from "@/lib/types";
-import { Badge, Button, CardSkeletons, ErrorBanner, useToast } from "@/components/ui";
+import { Badge, Button, CardSkeletons, ErrorBanner, MessageBubble, useToast } from "@/components/ui";
 import { ChevronLeftIcon, SparklesIcon } from "@/components/icons";
 
 export default function SupportTicketPage() {
@@ -135,19 +135,9 @@ export default function SupportTicketPage() {
         {ticket.messages.map((m) => {
           const isMine = m.sender_user_id === user?.id;
           return (
-            <div
-              key={m.id}
-              className={`max-w-[85%] rounded-[var(--radius-card)] px-4 py-2.5 text-sm ${
-                isMine
-                  ? "ml-auto bg-primary/10 text-ink"
-                  : "bg-card text-ink ring-1 ring-line"
-              }`}
-            >
-              <p className="mb-0.5 text-xs font-semibold text-ink/40">
-                {isMine ? "Vos" : isAdmin ? "Usuario" : "Soporte"}
-              </p>
-              <p className="whitespace-pre-wrap">{m.body}</p>
-            </div>
+            <MessageBubble key={m.id} mine={isMine} author={isMine ? "Vos" : isAdmin ? "Usuario" : "Soporte"}>
+              {m.body}
+            </MessageBubble>
           );
         })}
       </div>
