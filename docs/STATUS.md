@@ -503,6 +503,20 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
+**2026-09-24 — las pantallas de detalle usan los anchos del sistema (fase K).**
+`/companies/[id]` y `/workers/[id]` pasaron de `max-w-xl` (576px, y 896/1024
+recién en `lg`) a `.app-container`: a 768 el detalle del comercio era una
+columna angosta centrada, con otra alineación que el header y que la lista
+de la que venías, y ahora ocupa el mismo marco. `/support/[id]` y
+`ShiftDetail` pasaron de `max-w-2xl` a `.app-container-reading` (el mismo
+672px, ahora por token). `e2e/anchos-de-contenedor.spec.ts` suma un bloque
+más estricto para los detalles: el contenedor tiene que medir **exactamente**
+`--app-frame` o `--app-reading`, a 768 y a 1440 (el test de "no exceder el
+marco" lo pasaba igual un detalle angosto). `/turno/[id]` no está en ese
+test porque se renderiza en el servidor y `page.route` no lo intercepta.
+Capturas a 768 y 1440 en claro y oscuro en
+`/mnt/project-files/auditoria-visual-2026-09-24/anchos-detalle/`.
+
 **2026-09-24 — escala tipográfica (fase C), con el cuerpo en 14px.**
 Julieta eligió 14 (el tamaño que ya se veía en toda la app) sobre 15 (el que
 decía la escala). Cambios:
@@ -554,9 +568,8 @@ visible. Salieron 16 hallazgos; se corrigieron los cuatro que más rendían:
 **Quedan abiertos, con el arreglo propuesto** (detalle completo en
 `/mnt/project-files/auditoria-visual-2026-09-24/HALLAZGOS.md`, fuera del repo):
 1. ~~Tipografía (fase C)~~ — resuelta el mismo día, ver la entrada de arriba.
-2. Las pantallas de detalle (`/companies/[id]`, `/workers/[id]`,
-   `/support/[id]`, `ShiftDetail`) escriben su `max-w-*` a mano en vez de
-   `.app-container`; sumarlas a `anchos-de-contenedor.spec.ts`.
+2. ~~Las pantallas de detalle escriben su `max-w-*` a mano~~ — resuelto el
+   mismo día, ver la entrada de arriba.
 3. El pago cambia de color y tamaño según la pantalla (ámbar 39px en el feed,
    tinta 30px en el panel, 18px en candidatos). La fase N lo pasó a tinta sólo
    en `ShiftCard`.
@@ -4097,7 +4110,7 @@ roadmap).
    | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
-   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Queda: las pantallas de detalle no usan `.app-container` (A2 de la pasada) |
+   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Las pantallas de detalle también pasaron a `.app-container`/`.app-container-reading`, con test que exige el ancho exacto. Queda: a 768 el panel del comercio deja media pantalla vacía con un turno por familia |
    | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); quedan abiertos el pago con 4 colores/tamaños distintos, dos diseños de burbuja (chat vs. soporte) y el chat sin encabezado |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 

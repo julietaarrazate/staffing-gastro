@@ -80,7 +80,7 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
 
 function ProfilePageSkeleton() {
   return (
-    <div className="mx-auto max-w-xl px-4 py-8" aria-hidden>
+    <div className="app-container px-4 py-8" aria-hidden>
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
         <Skeleton className="h-56 w-full rounded-none" />
         <div className="space-y-4 px-5 py-5">
@@ -124,7 +124,7 @@ export default function PublicWorkerProfilePage() {
   if (loading) return <ProfilePageSkeleton />;
   if (error) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-8">
+      <div className="app-container px-4 py-8">
         <ErrorBanner message={error} onRetry={load} />
         <button
           type="button"
@@ -141,7 +141,7 @@ export default function PublicWorkerProfilePage() {
   const name = profile.full_name ?? "Trabajador/a";
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl">
+    <div className="app-container px-4 py-8">
       {/* En lg+ las reseñas pasan a una columna secundaria al lado (mismo
           criterio que /profile, docs/STATUS.md): es contenido de largo
           variable que antes quedaba apilado debajo de la tarjeta principal,

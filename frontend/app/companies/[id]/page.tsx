@@ -15,7 +15,7 @@ import { MapPinIcon, RouteIcon } from "@/components/icons";
 
 function ProfilePageSkeleton() {
   return (
-    <div className="mx-auto max-w-xl px-4 py-8" aria-hidden>
+    <div className="app-container px-4 py-8" aria-hidden>
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
         <Skeleton className="h-56 w-full rounded-none" />
         <div className="space-y-4 px-5 py-5">
@@ -68,7 +68,7 @@ export default function PublicCompanyProfilePage() {
   if (loading) return <ProfilePageSkeleton />;
   if (error) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-8">
+      <div className="app-container px-4 py-8">
         <ErrorBanner message={error} onRetry={load} />
         <button
           type="button"
@@ -85,7 +85,7 @@ export default function PublicCompanyProfilePage() {
   const hasCoords = profile.latitude != null && profile.longitude != null;
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-4xl">
+    <div className="app-container px-4 py-8">
       {/* En lg+, si hay coordenadas, la ubicación (mapa + dirección + "cómo
           llegar") pasa a una columna secundaria al lado (mismo criterio que
           /profile y /workers/[id], docs/STATUS.md) — sin eso, la tarjeta

@@ -137,7 +137,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   }
 
   return (
-    <div className="mx-auto max-w-md pb-10 md:max-w-2xl md:px-4 md:pt-6">
+    <div className="app-container-reading pb-10 md:px-4 md:pt-6">
       {/* Cabecera: foto del local o el tono del rubro — el MISMO de la tarjeta
           del feed y del panel (`SKILL_HERO_TONE`). Antes era verde bosque para
           todos los puestos: el bartender se veía vino en la tarjeta y verde al
