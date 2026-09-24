@@ -5,7 +5,9 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-23 (**expediente DNDA presentado** por Julieta:
+*Última actualización: 2026-09-24 (**dependencias al día**: los 15 PRs de
+Dependabot agrupados en uno solo, ver "Dependencias al día" más abajo).
+Anterior: 2026-09-23 (**expediente DNDA presentado** por Julieta:
 versión depositada `e1c44b6`, etiqueta `dnda-oido-2026-v1`. Antes, en el
 mismo día: datos demo que vuelven a sembrarse (#352), animaciones + imagen
 para compartir + favicon (#353), foto del local (#354) y documentación sin
@@ -496,6 +498,34 @@ así: la familia cálida vive en **hue 12–38** (el ámbar de marca está en 32
 brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
+
+### Dependencias al día (2026-09-24) — los 15 PRs de Dependabot en uno
+
+Había 15 PRs de Dependabot abiertos desde agosto (#217–#230, #268, #269) con
+un CI viejo de hasta seis semanas. Se probaron **todos juntos sobre el main
+del 2026-09-24** y se agruparon en un solo PR, a pedido de Julieta. Probados
+así: pytest 512/512, más tsc, unit tests, build y E2E. Qué entra:
+
+- **Backend:** pydantic 2.10.4 → 2.13.4, pydantic-settings 2.7.1 → 2.15.0,
+  uvicorn 0.34.0 → 0.52.1, asyncpg 0.30.0 → 0.31.0, email-validator 2.2.0 →
+  2.3.0. El changelog de pydantic no trae nada que toque al repo y no
+  aparecieron warnings nuevos en la suite.
+- **Frontend:** motion 12 → 13.2, react y react-dom 19.2.4 → 19.2.8,
+  @sentry/nextjs 10.70, eslint-config-next 16.3.1 (alineado con next 16.3.x).
+- **CI:** checkout, setup-node, setup-python y upload-artifact a v7, y
+  dorny/paths-filter a v4. Las versiones viejas ya corrían forzadas en Node 24
+  y el runner lo advertía en cada job.
+
+Dos trampas que conviene no repetir:
+
+1. **react y react-dom van siempre en el mismo PR.** React exige que las dos
+   versiones sean idénticas. Dependabot los abre por separado, y el de `react`
+   solo (#268) rompía los 15 archivos de unit tests con "Incompatible React
+   versions".
+2. **motion 13 sacó `@emotion/is-prop-valid`** (ahora se pasa por
+   `<MotionConfig isValidProp>`). El repo no lo usa. Aun así el bump toca
+   Sheet, Modal y todas las transiciones con `AnimatePresence`, así que se
+   miró renderizado en claro y en oscuro antes de mergear.
 
 ### Expediente DNDA (PR #310, draft) — ✅ presentado el 2026-09-23
 
