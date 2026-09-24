@@ -49,10 +49,10 @@ jobs:
       backend: ${{ steps.duplicada.outputs.correr == 'true' && (github.event_name == 'workflow_dispatch' || steps.filter.outputs.backend == 'true') }}
       frontend: ${{ steps.duplicada.outputs.correr == 'true' && (github.event_name == 'workflow_dispatch' || steps.filter.outputs.frontend == 'true') }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/corrida-duplicada
         id: duplicada
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           # Contra qué se compara para saber qué cambió:
@@ -79,8 +79,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -99,8 +99,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           # jsdom 30 (Vitest, T2) exige Node ^22.22.2 || ^24.15.0 || >=26 —
           # Node 20 rompe en runtime ("webidl.util.markAsUncloneable is not
@@ -128,8 +128,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22" # misma versión que el job frontend (jsdom 30)
           cache: npm
@@ -146,7 +146,7 @@ jobs:
         run: npm run test:e2e
       - name: Subir reporte de Playwright
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/

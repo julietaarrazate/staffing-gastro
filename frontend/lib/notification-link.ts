@@ -19,6 +19,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   // (`deep_link_for` en notification/domain/value_objects.py).
   shift_not_covered: "/shifts",
   new_shift_nearby: "/feed",
+  // Escalada automática de urgencia (ADR-0009): mismo destino que el aviso
+  // común, el turno todavía no es suyo.
+  urgent_shift_nearby: "/feed",
   chat_message: "/chats",
   review_received: "/profile",
   support_reply: "/support",

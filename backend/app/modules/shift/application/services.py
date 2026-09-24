@@ -257,7 +257,7 @@ class ShiftService:
         max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
         limit: int = NEARBY_NOTIFICATION_LIMIT,
         notification_type: NotificationType = NotificationType.NEW_SHIFT_NEARBY,
-        urgent_copy: bool = False,
+        escalation: bool = False,
     ) -> None:
         """Avisa del turno a los trabajadores mejor rankeados cerca (mismo
         ranking que ve el comercio en "candidatos": cercanía, reputación,
@@ -268,7 +268,13 @@ class ShiftService:
         casualmente abría la app y scrolleaba el feed, con lo cual la misión
         del producto ("cubrir en menos de 10 minutos") dependía del azar.
         Reutilizado por `escalate_urgency` con un radio/tope más amplios
-        cuando el turno tarda en cubrirse.
+        cuando el turno tarda en cubrirse (`escalation=True`).
+
+        El texto sigue a `shift.urgent`: un turno que el comercio publica ya
+        marcado como urgente avisa como urgente desde la primera tanda, no
+        recién a los `ESCALATION_DELAY`. El tipo sigue siendo
+        `NEW_SHIFT_NEARBY` (primera tanda); `URGENT_SHIFT_NEARBY` queda para
+        la escalada, que es lo que la distingue.
 
         Best-effort a propósito: un fallo acá nunca debe impedir que un turno
         quede publicado (mismo contrato que el push en `NotificationRepository`).
@@ -293,11 +299,17 @@ class ShiftService:
             company = await self._companies.get_by_id(shift.company_id)
             lugar = company.name if company is not None else "Un comercio cerca tuyo"
             puesto = shift.title or shift.position.value
-            if urgent_copy:
+            if escalation:
                 title = f"¡Urgente! Turno de {puesto} cerca tuyo"
                 message = (
                     f"{lugar} todavía necesita cubrir {puesto} y no encuentra a nadie. "
                     "Postulate ahora."
+                )
+            elif shift.urgent:
+                title = f"¡Urgente! Turno de {puesto} cerca tuyo"
+                message = (
+                    f"{lugar} necesita cubrir {puesto} ya. "
+                    "Postulate ahora, antes de que lo tomen."
                 )
             else:
                 title = f"Turno de {puesto} cerca tuyo"
@@ -345,7 +357,7 @@ class ShiftService:
             max_radius_km=self.ESCALATION_RADIUS_KM,
             limit=self.ESCALATION_NOTIFICATION_LIMIT,
             notification_type=NotificationType.URGENT_SHIFT_NEARBY,
-            urgent_copy=True,
+            escalation=True,
         )
         return updated
 

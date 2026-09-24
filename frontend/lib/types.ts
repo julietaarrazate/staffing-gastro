@@ -361,6 +361,7 @@ export type NotificationType =
   | "shift_cancelled_late"
   | "shift_not_covered"
   | "new_shift_nearby"
+  | "urgent_shift_nearby"
   | "support_reply";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";

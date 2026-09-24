@@ -5,7 +5,13 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-23 (**expediente DNDA presentado** por Julieta:
+*Última actualización: 2026-09-24 (**aviso urgente desde la primera tanda**:
+un turno publicado ya urgente avisa "¡Urgente!" a los trabajadores cercanos
+sin esperar a la escalada de los 8 minutos; el frontend declara el tipo
+`urgent_shift_nearby`. Cierra lo que había quedado del PR #72. Antes, el
+mismo día: **dependencias al día**, los 15 PRs de Dependabot agrupados en uno
+solo, ver "Dependencias al día" más abajo.)*
+Anterior: 2026-09-23 (**expediente DNDA presentado** por Julieta:
 versión depositada `e1c44b6`, etiqueta `dnda-oido-2026-v1`. Antes, en el
 mismo día: datos demo que vuelven a sembrarse (#352), animaciones + imagen
 para compartir + favicon (#353), foto del local (#354) y documentación sin
@@ -548,6 +554,34 @@ en `/workers/me/earnings`), una insignia inventada que salía cruda, el
 abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
+
+### Dependencias al día (2026-09-24) — los 15 PRs de Dependabot en uno
+
+Había 15 PRs de Dependabot abiertos desde agosto (#217–#230, #268, #269) con
+un CI viejo de hasta seis semanas. Se probaron **todos juntos sobre el main
+del 2026-09-24** y se agruparon en un solo PR, a pedido de Julieta. Probados
+así: pytest 512/512, más tsc, unit tests, build y E2E. Qué entra:
+
+- **Backend:** pydantic 2.10.4 → 2.13.4, pydantic-settings 2.7.1 → 2.15.0,
+  uvicorn 0.34.0 → 0.52.1, asyncpg 0.30.0 → 0.31.0, email-validator 2.2.0 →
+  2.3.0. El changelog de pydantic no trae nada que toque al repo y no
+  aparecieron warnings nuevos en la suite.
+- **Frontend:** motion 12 → 13.2, react y react-dom 19.2.4 → 19.2.8,
+  @sentry/nextjs 10.70, eslint-config-next 16.3.1 (alineado con next 16.3.x).
+- **CI:** checkout, setup-node, setup-python y upload-artifact a v7, y
+  dorny/paths-filter a v4. Las versiones viejas ya corrían forzadas en Node 24
+  y el runner lo advertía en cada job.
+
+Dos trampas que conviene no repetir:
+
+1. **react y react-dom van siempre en el mismo PR.** React exige que las dos
+   versiones sean idénticas. Dependabot los abre por separado, y el de `react`
+   solo (#268) rompía los 15 archivos de unit tests con "Incompatible React
+   versions".
+2. **motion 13 sacó `@emotion/is-prop-valid`** (ahora se pasa por
+   `<MotionConfig isValidProp>`). El repo no lo usa. Aun así el bump toca
+   Sheet, Modal y todas las transiciones con `AnimatePresence`, así que se
+   miró renderizado en claro y en oscuro antes de mergear.
 
 ### Expediente DNDA (PR #310, draft) — ✅ presentado el 2026-09-23
 
@@ -3911,10 +3945,16 @@ roadmap).
   (primera experiencia post-registro: onboarding por rol — el flujo exacto lo
   tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) sin
   arrancar.
-- **Feature de enganche #1: ping en tiempo real de turnos urgentes**
-  (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
-  N trabajadores disponibles más cercanos con la skill. Materializa la promesa
-  "<10 minutos". Sin código todavía.
+- ✅ ~~**Feature de enganche #1: ping en tiempo real de turnos urgentes**~~
+  — **resuelto por otro camino** (verificado 2026-09-24). El PR #72 que lo
+  implementaba se cerró sin mergear; lo que quedó en `main` es más amplio:
+  publicar **cualquier** turno avisa a los 10 mejor rankeados cerca
+  (`ShiftService._notify_nearby_workers`, notificación + WS + push), y a los 8
+  minutos sin cubrir escala a 20 en un radio mayor (ADR-0009). Lo último que
+  faltaba —que un turno publicado **ya** urgente se anuncie como urgente desde
+  la primera tanda, no recién en la escalada— se cerró el 2026-09-24 (ver
+  "Última actualización" arriba). Ojo: el "ADR-0005" que citaba esta línea es hoy
+  el de pagos; el ping nunca tuvo ADR propio en `main`.
 - En cola (aprobadas por delegación): #3 progreso de gamificación, #4 panel de
   ganancias, #5 onboarding (probablemente se resuelve como parte de C4). #2
   **WhatsApp Business API** sigue bloqueado en cuenta/API de Julieta — distinto
