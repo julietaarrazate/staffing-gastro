@@ -5,8 +5,12 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-24 (**dependencias al día**: los 15 PRs de
-Dependabot agrupados en uno solo, ver "Dependencias al día" más abajo).
+*Última actualización: 2026-09-24 (**aviso urgente desde la primera tanda**:
+un turno publicado ya urgente avisa "¡Urgente!" a los trabajadores cercanos
+sin esperar a la escalada de los 8 minutos; el frontend declara el tipo
+`urgent_shift_nearby`. Cierra lo que había quedado del PR #72. Antes, el
+mismo día: **dependencias al día**, los 15 PRs de Dependabot agrupados en uno
+solo, ver "Dependencias al día" más abajo.)*
 Anterior: 2026-09-23 (**expediente DNDA presentado** por Julieta:
 versión depositada `e1c44b6`, etiqueta `dnda-oido-2026-v1`. Antes, en el
 mismo día: datos demo que vuelven a sembrarse (#352), animaciones + imagen
@@ -3889,10 +3893,16 @@ roadmap).
   (primera experiencia post-registro: onboarding por rol — el flujo exacto lo
   tiene que cerrar T1 antes de ejecutar, no arrancar sin ese spec) sin
   arrancar.
-- **Feature de enganche #1: ping en tiempo real de turnos urgentes**
-  (ADR-0005) — al publicar un turno urgente, avisar por notificación+WS a los
-  N trabajadores disponibles más cercanos con la skill. Materializa la promesa
-  "<10 minutos". Sin código todavía.
+- ✅ ~~**Feature de enganche #1: ping en tiempo real de turnos urgentes**~~
+  — **resuelto por otro camino** (verificado 2026-09-24). El PR #72 que lo
+  implementaba se cerró sin mergear; lo que quedó en `main` es más amplio:
+  publicar **cualquier** turno avisa a los 10 mejor rankeados cerca
+  (`ShiftService._notify_nearby_workers`, notificación + WS + push), y a los 8
+  minutos sin cubrir escala a 20 en un radio mayor (ADR-0009). Lo último que
+  faltaba —que un turno publicado **ya** urgente se anuncie como urgente desde
+  la primera tanda, no recién en la escalada— se cerró el 2026-09-24 (ver
+  "Última actualización" arriba). Ojo: el "ADR-0005" que citaba esta línea es hoy
+  el de pagos; el ping nunca tuvo ADR propio en `main`.
 - En cola (aprobadas por delegación): #3 progreso de gamificación, #4 panel de
   ganancias, #5 onboarding (probablemente se resuelve como parte de C4). #2
   **WhatsApp Business API** sigue bloqueado en cuenta/API de Julieta — distinto
