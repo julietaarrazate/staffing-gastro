@@ -30,4 +30,22 @@ tipografía actual; DM Mono no se aplica a los montos.
 ## Escala
 
 La escala tipográfica (`--text-display` … `--text-metadata`, con line-heights
-emparejados) vive en `globals.css`. v5.0 no la cambió.
+emparejados) vive en `globals.css`, y es la **única** fuente de tamaños: un
+tamaño nuevo se agrega como token, no como `text-[Npx]` suelto
+(`lib/type-scale.test.ts` falla si aparece uno fuera de las excepciones
+listadas ahí).
+
+| Token | Tamaño | Para qué |
+|---|---|---|
+| `text-h1` | 28px | Título de pantalla ("Hola, Juana", "Candidatos") **y** título de contenido (el puesto en una tarjeta o en el detalle). Fraunces. |
+| `text-h3` | 18px | Encabezado de sección ("Qué incluye", "Cerca tuyo"). Inter. |
+| `text-price` | 39px | El monto del pago. |
+| `text-body` | **14px** | Cuerpo. Es el mismo tamaño que `text-sm`; lo nuevo usa `text-body`. |
+| `text-caption` | 13px | Texto secundario. |
+| `text-metadata` | 12px | Horas, letra chica. |
+| `text-label` | 11px | Eyebrows y chips. **Piso**: debajo no va texto. |
+
+**Cuerpo en 14, no en 15** (decisión de Julieta, 2026-09-24): medido
+renderizado, 14px era el tamaño de 199 textos contra 13 en 15px. La escala
+decía 15 y describía una app que no era la que se veía; pasar todo a 15 habría
+movido todos los layouts.

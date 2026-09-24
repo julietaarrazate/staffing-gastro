@@ -320,9 +320,16 @@
   --text-price--line-height: 1;
   --text-metric: 1.5rem; /* 24px — números de estadística (turnos, rating) */
   --text-metric--line-height: 1.1;
-  --text-body-strong: 0.9375rem; /* 15px */
+  /* Cuerpo = 14px (decisión de Julieta, 2026-09-24). Antes decía 15, pero
+     medido renderizado el texto más común de la app era 14px (`text-sm`,
+     199 textos contra 13 en 15px): la escala describía una app que no era
+     la que se veía. `text-sm` y `text-body` ahora son el mismo tamaño; lo
+     nuevo usa `text-body`. Debajo de `text-label` (11px) no va texto — las
+     únicas excepciones son contadores dentro de un círculo o badge de alto
+     fijo (campana, marcador del mapa, stepper). */
+  --text-body-strong: 0.875rem; /* 14px */
   --text-body-strong--line-height: 1.4;
-  --text-body: 0.9375rem; /* 15px */
+  --text-body: 0.875rem; /* 14px */
   --text-body--line-height: 1.5;
   --text-caption: 0.8125rem; /* 13px — texto secundario */
   --text-caption--line-height: 1.4;

@@ -201,9 +201,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           </div>
         )}
 
-        <h1 className="font-display text-[32px] font-medium leading-tight text-ink">{label}</h1>
+        <h1 className="font-display text-h1 font-medium text-ink">{label}</h1>
         {(shift.company_name || shift.city) && (
-          <p className="mt-0.5 text-[15px] text-ink/60">
+          <p className="mt-0.5 text-body text-ink/60">
             {[shift.company_name, shift.city].filter(Boolean).join(" · ")}
           </p>
         )}
@@ -263,7 +263,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             llega por WhatsApp decide si le conviene registrarse. */}
         {(shift.meal || shift.tips || shift.dress_code) && (
           <section className="mt-7">
-            <h2 className="text-[17px] font-semibold text-ink">Qué incluye</h2>
+            <h2 className="text-h3 font-semibold text-ink">Qué incluye</h2>
             <div className="mt-2.5 flex flex-wrap gap-2">
               {shift.tips && <Chip icon={<WalletIcon size={14} />}>Propinas</Chip>}
               {shift.meal && <Chip icon={<UtensilsIcon size={14} />}>Comida del personal</Chip>}
@@ -274,14 +274,14 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
         {full?.description && (
           <section className="mt-7">
-            <h2 className="text-[17px] font-semibold text-ink">Sobre el turno</h2>
-            <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink/75">{full.description}</p>
+            <h2 className="text-h3 font-semibold text-ink">Sobre el turno</h2>
+            <p className="mt-2 whitespace-pre-line text-body leading-relaxed text-ink/75">{full.description}</p>
           </section>
         )}
 
         {hasCoords && (
           <section className="mt-7">
-            <h2 className="text-[17px] font-semibold text-ink">Ubicación</h2>
+            <h2 className="text-h3 font-semibold text-ink">Ubicación</h2>
             <div className="mt-2.5 overflow-hidden rounded-2xl ring-1 ring-line">
               <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" />
             </div>
@@ -310,7 +310,7 @@ function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: stri
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-ink/70">{icon}</span>
       <div className="min-w-0">
         <dt className="text-xs text-ink/50">{label}</dt>
-        <dd className="text-[15px] font-medium text-ink">{children}</dd>
+        <dd className="text-body font-medium text-ink">{children}</dd>
       </div>
     </div>
   );
@@ -387,7 +387,7 @@ function PrimaryAction({
           >
             <DrawnCheck size={24} animate={justApplied} className="shrink-0 text-success-text" />
             <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-semibold text-ink">Ya te postulaste</p>
+              <p className="text-body font-semibold text-ink">Ya te postulaste</p>
               <p className="text-sm text-ink/60">Te avisamos cuando el comercio responda.</p>
             </div>
             <Link href="/my-shifts" className="shrink-0 text-sm font-semibold text-primary-text">

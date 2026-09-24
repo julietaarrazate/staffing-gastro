@@ -26,7 +26,7 @@ export default function ConfirmOverlay({ label, detail }: { label: string; detai
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-success-tint">
         <DrawnCheck size={40} animate className="text-success-text" />
-        <p className="text-[15px] font-semibold text-ink">{label}</p>
+        <p className="text-body font-semibold text-ink">{label}</p>
         {detail && <p className="-mt-1.5 max-w-[90%] truncate text-sm text-ink/60">{detail}</p>}
       </div>
     </motion.div>

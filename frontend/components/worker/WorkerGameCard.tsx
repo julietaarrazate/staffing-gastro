@@ -68,7 +68,7 @@ function StatTile({
           es texto, es un DATO (brief: "los números... deben tener presencia
           visual"), necesita su propio peso. */}
       <span className="text-metric font-extrabold text-ink">{value}</span>
-      <span className="text-[11px] font-medium text-ink/50">{label}</span>
+      <span className="text-label font-medium text-ink/50">{label}</span>
     </div>
   );
 }
@@ -173,7 +173,7 @@ export default function WorkerGameCard() {
             <WalletIcon size={21} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-ink/50">Ganado este mes</p>
+            <p className="text-label font-bold uppercase tracking-wide text-ink/50">Ganado este mes</p>
             <p className="flex items-baseline gap-1 leading-none">
               <span className="text-sm font-semibold text-primary-text">$</span>
               <CountUp
@@ -184,7 +184,7 @@ export default function WorkerGameCard() {
           </div>
           <p className="shrink-0 text-right text-xs font-bold text-ink/70">
             ${Number(earnings.total_earned).toLocaleString("es-AR")}
-            <span className="block text-[10px] font-medium text-ink/45">total</span>
+            <span className="block text-label font-medium text-ink/45">total</span>
           </p>
         </div>
       )}

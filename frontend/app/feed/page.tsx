@@ -337,7 +337,7 @@ function WorkerFeedPanel() {
   // 13px y px-2.5: los tres chips del board entran enteros en 390px (con
   // text-sm el tercero quedaba cortado).
   const chipBase =
-    "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[13px] font-semibold ring-1 transition active:scale-95";
+    "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-caption font-semibold ring-1 transition active:scale-95";
   const chipOn = "bg-primary-tint text-primary-text ring-primary/30";
   const chipOff = "bg-card text-ink/70 ring-line hover:bg-surface";
 
@@ -359,7 +359,7 @@ function WorkerFeedPanel() {
     <div className="mx-auto max-w-md px-4 pb-8 pt-4 md:max-w-5xl">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-[30px] font-medium leading-tight text-ink">
+          <h1 className="font-display text-h1 font-semibold text-ink">
             {firstName ? `Hola, ${firstName}` : "Hola"}
           </h1>
           <p className="mt-0.5 text-sm text-ink/55">Encontrá tu próximo turno.</p>
@@ -381,7 +381,7 @@ function WorkerFeedPanel() {
               }`}
             />
           </span>
-          <span className={`text-[11px] font-semibold ${available ? "text-success-text" : "text-ink/40"}`}>
+          <span className={`text-label font-semibold ${available ? "text-success-text" : "text-ink/40"}`}>
             {available ? "Disponible" : "No disp."}
           </span>
         </button>
@@ -482,7 +482,7 @@ function WorkerFeedPanel() {
                       <SparklesIcon size={20} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold text-ink">Descubrir rápido</span>
+                      <span className="block text-body font-semibold text-ink">Descubrir rápido</span>
                       <span className="block text-xs text-ink/55">
                         Deslizá {visibleShifts.length === 1 ? "el turno" : `los ${visibleShifts.length} turnos`} y
                         postulate en segundos

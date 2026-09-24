@@ -35,7 +35,7 @@ function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
       {isDocumentEvidence(evidence.evidence_type) ? (
         <span className="flex aspect-[3/2] w-32 flex-col items-center justify-center gap-1 rounded-xl bg-surface text-ink/60 ring-1 ring-line transition group-hover:ring-primary">
           <FileTextIcon size={22} />
-          <span className="text-[11px] font-semibold">Abrir documento</span>
+          <span className="text-label font-semibold">Abrir documento</span>
         </span>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -45,7 +45,7 @@ function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
           className="aspect-[3/2] w-32 rounded-xl object-cover ring-1 ring-line transition group-hover:ring-primary"
         />
       )}
-      <span className="mt-1 block text-center text-[11px] text-ink/50">{label}</span>
+      <span className="mt-1 block text-center text-label text-ink/50">{label}</span>
     </a>
   );
 }

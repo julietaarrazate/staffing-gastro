@@ -152,7 +152,7 @@ export default function ConversationPage() {
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <p
-                  className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-night/50" : "text-ink/40"}`}
+                  className={`mt-1 flex items-center justify-end gap-1 text-label ${mine ? "text-night/50" : "text-ink/40"}`}
                 >
                   {formatShiftTime(m.created_at)}
                   {mine &&

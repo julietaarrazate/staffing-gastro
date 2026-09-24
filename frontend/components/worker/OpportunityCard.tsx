@@ -149,7 +149,7 @@ export default function OpportunityCard({
           {/* Blanco siempre, con o sin foto: el fallback ahora es un gradiente
               saturado (no la banda pálida de antes), así que necesita el
               mismo contraste que la foto+velo. */}
-          <h2 className="line-clamp-2 font-display text-[30px] font-medium leading-tight text-white drop-shadow">
+          <h2 className="line-clamp-2 font-display text-h1 font-medium text-white drop-shadow">
             {SKILL_LABELS[shift.position]}
           </h2>
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
@@ -199,7 +199,7 @@ export default function OpportunityCard({
             ícono del banner y en oscuro quedaba como un cuadro pálido. Sin la
             fila "1 persona": un turno es siempre una persona (ADR-0003). */}
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-ink/40">Pago</p>
+          <p className="text-label font-bold uppercase tracking-wide text-ink/40">Pago</p>
           <p className="text-price font-extrabold tracking-tight text-primary-text">{formatPayAmount(shift)}</p>
           {perHour && (
             <p className="text-xs font-medium text-ink/50">
@@ -208,7 +208,7 @@ export default function OpportunityCard({
           )}
         </div>
 
-        <div className="space-y-1.5 text-[15px] text-ink/80">
+        <div className="space-y-1.5 text-body text-ink/80">
           <p className="flex items-center gap-2">
             <ClockIcon size={18} className="shrink-0 text-ink/35" />
             <span>

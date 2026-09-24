@@ -24,7 +24,7 @@ const VARIANTS: Record<Variant, string> = {
 // Touch targets >= 44px (accesibilidad móvil).
 const SIZES: Record<Size, string> = {
   sm: "min-h-[40px] px-4 text-sm gap-1.5",
-  md: "min-h-[48px] px-5 text-[15px] gap-2",
+  md: "min-h-[48px] px-5 text-body gap-2",
   lg: "min-h-[56px] px-6 text-base gap-2.5",
 };
 
