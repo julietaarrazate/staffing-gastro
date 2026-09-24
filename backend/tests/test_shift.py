@@ -1080,6 +1080,40 @@ async def test_publicar_avisa_a_los_trabajadores_cercanos(client: AsyncClient):
     assert len(avisos) == 1
     assert avisos[0]["link"] == "/feed"
     assert "Bar Palermo" in avisos[0]["message"]
+    # El turno de `_shift_payload` es urgente: el aviso lo dice desde la
+    # primera tanda, sin esperar a la escalada automática (ADR-0009).
+    assert avisos[0]["title"].startswith("¡Urgente!")
+
+
+async def test_publicar_turno_no_urgente_avisa_sin_decir_urgente(client: AsyncClient):
+    """Contracara del anterior: un turno común no se anuncia como urgente
+    (si todo dice "¡Urgente!", nada lo es)."""
+    worker_headers = await auth_headers(client, "worker", "cercano2@staffya.com")
+    await client.post(
+        "/api/v1/workers/me/profile",
+        headers=worker_headers,
+        json={
+            "city": "Palermo",
+            "skills": ["mozo"],
+            "years_experience": 3,
+            "is_available": True,
+        },
+    )
+
+    employer_headers = await _employer_with_company(client, "avisa3@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer_headers,
+        json=_shift_payload(urgent=False),
+    )
+    await client.post(
+        f"/api/v1/shifts/{created.json()['id']}/publish", headers=employer_headers
+    )
+
+    recibidas = await client.get("/api/v1/notifications", headers=worker_headers)
+    avisos = [n for n in recibidas.json() if n["type"] == "new_shift_nearby"]
+    assert len(avisos) == 1
+    assert "Urgente" not in avisos[0]["title"]
 
 
 async def test_publicar_no_avisa_a_trabajadores_de_otro_oficio(client: AsyncClient):
