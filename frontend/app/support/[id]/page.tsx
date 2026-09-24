@@ -121,7 +121,7 @@ export default function SupportTicketPage() {
 
       <div className="mt-3 flex items-start justify-between gap-2">
         <div>
-          <h1 className="font-display text-xl font-semibold tracking-tight text-ink">
+          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
             {ticket.subject}
           </h1>
           <p className="mt-0.5 text-sm text-ink/50">{TICKET_CATEGORY_LABELS[ticket.category]}</p>
@@ -185,7 +185,7 @@ export default function SupportTicketPage() {
             placeholder="Escribí tu respuesta..."
             maxLength={2000}
             rows={3}
-            className="w-full rounded-[var(--radius-input)] bg-card px-4 py-3 text-[15px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-[var(--radius-input)] bg-card px-4 py-3 text-body text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
           />
           <div className="flex gap-2">
             <Button type="submit" loading={sending} disabled={!reply.trim()}>

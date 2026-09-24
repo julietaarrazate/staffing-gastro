@@ -17,7 +17,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-8 first:mt-0">
       <h2 className="text-lg font-bold text-ink">{title}</h2>
-      <div className="mt-2 space-y-3 text-[15px] leading-relaxed text-ink/60">
+      <div className="mt-2 space-y-3 text-body leading-relaxed text-ink/60">
         {children}
       </div>
     </section>
@@ -151,7 +151,7 @@ export default function PrivacidadPage() {
 
           <Section title="Dónde guardamos tu sesión">
             <p>
-              Usamos <code className="rounded bg-surface px-1.5 py-0.5 text-[13px]">localStorage</code> en
+              Usamos <code className="rounded bg-surface px-1.5 py-0.5 text-caption">localStorage</code> en
               tu navegador para mantener tu sesión iniciada. No usamos
               cookies de terceros ni trackers publicitarios.
             </p>

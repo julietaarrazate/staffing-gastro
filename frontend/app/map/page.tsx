@@ -129,7 +129,7 @@ function ShiftRow({
           </div>
         </div>
         {shift.urgent && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[10px] font-bold text-danger-text">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-label font-bold text-danger-text">
             <FlameIcon size={10} /> Urgente
           </span>
         )}
@@ -468,7 +468,7 @@ export default function MapPage() {
                     </div>
                   </div>
                   {shift.urgent && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[11px] font-bold text-danger-text">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-label font-bold text-danger-text">
                       <FlameIcon size={11} /> Urgente
                     </span>
                   )}
@@ -574,7 +574,7 @@ export default function MapPage() {
                     </p>
                   </div>
                   {shift.urgent && (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[11px] font-bold text-danger-text">
+                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-label font-bold text-danger-text">
                       <FlameIcon size={11} /> Urgente
                     </span>
                   )}
@@ -598,12 +598,12 @@ export default function MapPage() {
                     <span className="text-lg text-primary">{shift.currency}</span>{" "}
                     {Number(shift.pay_amount).toLocaleString("es-AR")}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold font-mono uppercase tracking-wide text-manteca">
+                  <p className="mt-1 text-label font-bold font-mono uppercase tracking-wide text-manteca">
                     Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
 
-                <div className="mt-4 space-y-2.5 text-[15px] text-ink/80">
+                <div className="mt-4 space-y-2.5 text-body text-ink/80">
                   <p className="inline-flex items-center gap-2">
                     <CalendarIcon size={18} className="text-ink/35" />
                     {formatShiftRange(shift.start_at, shift.end_at)}

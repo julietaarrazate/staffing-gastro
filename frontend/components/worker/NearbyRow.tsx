@@ -52,7 +52,7 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
           </span>
         )}
         {shift.urgent && (
-          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 text-[10px] font-bold text-danger-text shadow-sm">
+          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 text-label font-bold text-danger-text shadow-sm">
             <FlameIcon size={10} /> Urgente
           </span>
         )}
@@ -81,7 +81,7 @@ export default function NearbyRow({
   return (
     <section aria-label={title}>
       <div className="mb-2.5 flex items-baseline justify-between">
-        <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+        <h2 className="text-h3 font-semibold text-ink">{title}</h2>
         <Link
           href="/buscar"
           className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary-text"

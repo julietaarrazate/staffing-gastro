@@ -166,7 +166,7 @@ export default function ShiftLifecycleStepper({
       </div>
       <p
         aria-hidden="true"
-        className={cn("text-[11px] font-semibold", isCancelled ? "text-danger-text" : "text-ink/55")}
+        className={cn("text-label font-semibold", isCancelled ? "text-danger-text" : "text-ink/55")}
       >
         {caption}
       </p>

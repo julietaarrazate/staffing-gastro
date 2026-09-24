@@ -59,12 +59,12 @@ export default function FeedHero({ shift }: { shift: Shift }) {
       />
 
       <div className="pointer-events-none relative z-[2] flex items-start justify-between gap-2 p-3.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-night">
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-label font-bold text-night">
           <StarIcon size={11} /> Recomendado
         </span>
         <div className="flex items-center gap-2">
           {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-[11px] font-bold text-danger-text">
+            <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-label font-bold text-danger-text">
               <FlameIcon size={12} /> Urgente
             </span>
           )}
@@ -76,9 +76,9 @@ export default function FeedHero({ shift }: { shift: Shift }) {
 
       <div className="pointer-events-none relative z-[2] flex items-end justify-between gap-3 px-4 pb-4">
         <div className="min-w-0">
-          <h2 className="truncate font-display text-[28px] font-medium leading-tight text-white">{label}</h2>
+          <h2 className="truncate font-display text-h1 font-medium text-white">{label}</h2>
           {where && <p className="mt-0.5 truncate text-sm text-white/85">{where}</p>}
-          <div className="mt-2 space-y-1 text-[13px] text-white/90">
+          <div className="mt-2 space-y-1 text-caption text-white/90">
             <p className="flex items-center gap-1.5">
               <ClockIcon size={14} className="shrink-0 text-white/70" />
               {formatShiftWhen(shift.start_at, shift.end_at)}

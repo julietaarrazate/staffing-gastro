@@ -81,7 +81,7 @@ function DocSlot({
           </span>
         )}
       </button>
-      <p className="mt-1 text-center text-[11px] text-ink/45">{hint}</p>
+      <p className="mt-1 text-center text-label text-ink/45">{hint}</p>
       <input
         ref={inputRef}
         type="file"
@@ -224,7 +224,7 @@ export default function IdentityVerificationCard() {
               onChange={setSelfie}
             />
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-ink/45">
+          <p className="mt-3 text-label leading-relaxed text-ink/45">
             Usamos estas imágenes sólo para verificar tu identidad y las
             eliminamos una vez revisadas (Ley 25.326).
           </p>

@@ -215,7 +215,7 @@ export default function BusinessVerificationCard() {
             className="hidden"
           />
 
-          <p className="mt-3 text-[11px] leading-relaxed text-ink/45">
+          <p className="mt-3 text-label leading-relaxed text-ink/45">
             La bajás gratis del sitio de AFIP con tu CUIT. La revisa una
             persona de nuestro equipo y la eliminamos una vez revisada
             (Ley 25.326).

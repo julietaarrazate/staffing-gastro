@@ -312,7 +312,7 @@ function MyShiftsPanel() {
     <div className="app-container px-4 pb-10 pt-6">
       <div>
         {/* Saludo en serif, igual que el home del trabajador (DS v5.0). */}
-        <h1 className="font-display text-[30px] font-medium leading-tight text-ink">
+        <h1 className="font-display text-h1 font-semibold text-ink">
           {firstName ? `Hola, ${firstName}` : "Hola"}
         </h1>
         <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>

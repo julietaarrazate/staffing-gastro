@@ -213,7 +213,7 @@ function WorkerOnboarding() {
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Dónde querés trabajar?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink/60">
             Te mostramos primero los turnos más cerca tuyo. Podés cambiarlo cuando
             quieras desde tu perfil.
           </p>
@@ -251,7 +251,7 @@ function WorkerOnboarding() {
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Qué sabés hacer?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink/60">
             Elegí todo lo que puedas cubrir. Cuantos más elijas, más turnos vas a ver.
           </p>
 
@@ -295,7 +295,7 @@ function WorkerOnboarding() {
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             Contanos más de vos
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink/60">
             Opcional, pero un perfil completo consigue turnos más rápido. Lo podés
             cargar después si preferís arrancar ya.
           </p>
@@ -439,7 +439,7 @@ function EmployerOnboarding() {
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Cómo se llama tu comercio?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink/60">
             Es lo primero que ven los candidatos cuando les llega tu turno.
           </p>
 
@@ -483,7 +483,7 @@ function EmployerOnboarding() {
           <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
             ¿Dónde está?
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink/60">
             Los turnos que publiques van a mostrar esta dirección, y les ordena
             la cercanía a los trabajadores.
           </p>

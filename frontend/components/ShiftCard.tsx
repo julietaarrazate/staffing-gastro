@@ -240,7 +240,7 @@ export default function ShiftCard({
           )}
 
           <div className="mt-3">
-            <h3 className="font-display text-[26px] font-medium leading-tight text-white drop-shadow">
+            <h3 className="font-display text-h1 font-medium text-white drop-shadow">
               {SKILL_LABELS[shift.position]}
             </h3>
             <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/85">
@@ -260,7 +260,7 @@ export default function ShiftCard({
             ámbar los dos compiten por el mismo significado. */}
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-ink/45">
+            <p className="font-mono text-label font-bold uppercase tracking-wide text-ink/45">
               Pago
             </p>
             <p className="text-3xl font-extrabold leading-none tracking-tight text-ink">

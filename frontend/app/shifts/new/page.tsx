@@ -504,7 +504,7 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                     <ShiftDayHint value={startAt} />
                   </label>
@@ -514,7 +514,7 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={endAt}
                       onChange={(e) => setEndAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-[15px] text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                     <ShiftDayHint value={endAt} />
                   </label>

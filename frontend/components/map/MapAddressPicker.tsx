@@ -192,7 +192,7 @@ export default function MapAddressPicker({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscá la dirección de tu local"
             aria-label="Buscar dirección"
-            className="min-h-[48px] w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink/40"
+            className="min-h-[48px] w-full bg-transparent text-body text-ink outline-none placeholder:text-ink/40"
           />
           {status === "loading" && (
             <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />

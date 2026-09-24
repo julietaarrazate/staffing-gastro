@@ -69,7 +69,7 @@ function RateCard({ label, pct, caption }: { label: string; pct: number | null; 
     <Card className="p-5">
       <p className="text-2xl font-extrabold text-ink">{pct === null ? "—" : `${pct.toFixed(0)}%`}</p>
       <p className="text-xs font-medium text-ink/50">{label}</p>
-      <p className="mt-1.5 text-[11px] text-ink/40">{caption}</p>
+      <p className="mt-1.5 text-label text-ink/40">{caption}</p>
     </Card>
   );
 }

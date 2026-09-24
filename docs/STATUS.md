@@ -503,6 +503,27 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
+**2026-09-24 — escala tipográfica (fase C), con el cuerpo en 14px.**
+Julieta eligió 14 (el tamaño que ya se veía en toda la app) sobre 15 (el que
+decía la escala). Cambios:
+
+- `--text-body`/`--text-body-strong` de 15 a **14px**. Los 29 `text-[15px]`
+  pasan a `text-body`, así que esos textos bajan 1px (detalle del turno,
+  perfil, formularios).
+- **Un solo tamaño de título** (`text-h1`, 28px): los títulos de pantalla
+  salían en 20, 28, 30 y 32px, y el puesto de una tarjeta en 26, 28, 30 y 32.
+  Encabezados de sección de 17px a `text-h3` (18).
+- **Nada debajo de 11px**: 10 textos de 10px (hora del chat, chips de
+  "Urgente", "Ganado este mes", el comparador de turnos) suben a
+  `text-label`. Quedan en 9–10px sólo los contadores dentro de un círculo o
+  badge de alto fijo.
+- Tamaños escritos a mano: **78 → 5**, todos con motivo, listados en
+  `lib/type-scale.test.ts`, que falla si aparece uno nuevo (verificado
+  reintroduciendo un `text-[15px]`).
+
+Verificado renderizado a 390px en claro y oscuro (feed, panel, detalle del
+turno, candidatos): sin desborde horizontal ni títulos cortados.
+
 **2026-09-24 — pasada visual de fases C, K y L (tipografía, tablet, detalle).**
 Diez pantallas renderizadas a **768×1024 y 1024×768**, en claro y en oscuro
 (40 capturas), con la API mockeada y `getComputedStyle` sobre cada texto
@@ -532,10 +553,7 @@ visible. Salieron 16 hallazgos; se corrigieron los cuatro que más rendían:
 
 **Quedan abiertos, con el arreglo propuesto** (detalle completo en
 `/mnt/project-files/auditoria-visual-2026-09-24/HALLAZGOS.md`, fuera del repo):
-1. **Tipografía (fase C), el más grande.** La escala `--text-*` casi no se usa;
-   el cuerpo real es 14px y la escala dice 15. Títulos de pantalla en 20/28/30/
-   32px; 14 usos de `text-[10px]`/`text-[9px]`, debajo del piso de 11.
-   **Necesita que Julieta decida si el cuerpo es 14 o 15** antes del codemod.
+1. ~~Tipografía (fase C)~~ — resuelta el mismo día, ver la entrada de arriba.
 2. Las pantallas de detalle (`/companies/[id]`, `/workers/[id]`,
    `/support/[id]`, `ShiftDetail`) escriben su `max-w-*` a mano en vez de
    `.app-container`; sumarlas a `anchos-de-contenedor.spec.ts`.
@@ -4071,7 +4089,7 @@ roadmap).
    |---|---|---|
    | A | Auditoría de repo | ✅ `docs/audits/2026-08-oido/` |
    | B | Color | ✅ #302, #308, #315 (rebrand ámbar), #323 (tarjeta negra) |
-   | C | Tipografía | 🟡 **medida el 2026-09-24, sin corregir**: la escala `--text-*` existe pero casi no se usa (~63 usos contra ~480 de tamaños de Tailwind y 78 arbitrarios); el tamaño más visto es 14px y no está en la escala; el título de pantalla sale en 4 tamaños. Necesita una decisión de Julieta (¿cuerpo 14 o 15?) antes del codemod — ver "En vuelo ahora", pasada visual del 2026-09-24 |
+   | C | Tipografía | ✅ **2026-09-24**: cuerpo en 14px (decisión de Julieta), títulos de pantalla y de contenido en `text-h1`, secciones en `text-h3`, nada debajo de 11px; los tamaños a mano bajaron de 78 a 5 excepciones con motivo, y `lib/type-scale.test.ts` impide que vuelvan. Queda migrar `text-sm`/`text-xs` a tokens de nombre (mismo tamaño, sin cambio visual) |
    | D | Componentes base | ✅ #303 (contraste de formularios anidados), #317 (foco visible por sistema) |
    | E | Cards | ✅ #317 (radios medidos contra `09-hibrido-app.html`), #323 |
    | F | Botones/badges/estados | ✅ #302, #317 (glows tokenizados) |
