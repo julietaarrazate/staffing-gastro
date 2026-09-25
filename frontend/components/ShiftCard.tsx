@@ -257,13 +257,16 @@ export default function ShiftCard({
             pero ahora se lee como dato y no como parte del cartel de color.
             En tinta, no en ámbar: el ámbar de esta pantalla es de la ACCIÓN
             ("Elegir a alguien", "+ Publicar"), y si el número también es
-            ámbar los dos compiten por el mismo significado. */}
+            ámbar los dos compiten por el mismo significado. El tamaño es
+            `text-price` (39px), el mismo del feed y del detalle: antes era
+            30px acá, así que el mismo monto cambiaba de tamaño según la
+            pantalla. */}
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="font-mono text-label font-bold uppercase tracking-wide text-ink/45">
               Pago
             </p>
-            <p className="text-3xl font-extrabold leading-none tracking-tight text-ink">
+            <p className="text-price font-extrabold tracking-tight text-ink">
               {formatPayAmount(shift)}
             </p>
           </div>

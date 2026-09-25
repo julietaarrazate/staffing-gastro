@@ -60,7 +60,7 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
       <p className="mt-2 truncate text-sm font-semibold text-ink">{SKILL_LABELS[shift.position]}</p>
       {where && <p className="truncate text-xs text-ink/55">{where}</p>}
       <p className="mt-0.5 truncate text-xs text-ink/55">{formatShiftWhen(shift.start_at, shift.end_at)}</p>
-      <p className="mt-0.5 text-sm font-bold text-primary-text">{formatPayAmount(shift)}</p>
+      <p className="mt-0.5 text-sm font-bold text-ink">{formatPayAmount(shift)}</p>
     </Link>
   );
 }

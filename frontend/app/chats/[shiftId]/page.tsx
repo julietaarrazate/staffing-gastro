@@ -10,7 +10,8 @@ import { useWebSocket } from "@/lib/useWebSocket";
 import { ChatMessage } from "@/lib/types";
 import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
-import { ErrorBanner, Skeleton } from "@/components/ui";
+import { Avatar, ErrorBanner, MessageBubble, Skeleton } from "@/components/ui";
+import { useConversation } from "../ConversationsContext";
 
 /** Eventos que llegan por el socket de la conversación: un mensaje nuevo, o
  *  el aviso de que la otra parte ya leyó lo que le mandamos (confirmación de
@@ -36,6 +37,7 @@ export default function ConversationPage() {
   const { token, user } = useRequireAuth();
   const params = useParams<{ shiftId: string }>();
   const shiftId = params.shiftId;
+  const conversation = useConversation(shiftId);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -121,15 +123,28 @@ export default function ConversationPage() {
 
   return (
     <div className="flex h-full flex-1 flex-col px-4 py-4">
-      {/* En md+ la lista de conversaciones ya queda fija al costado (ver
-          layout.tsx) — este link "volver" sólo hace falta en mobile, donde
-          la conversación ocupa toda la pantalla. */}
-      <Link
-        href="/chats"
-        className="inline-flex items-center gap-1 text-sm text-primary-text hover:underline md:hidden"
-      >
-        <ChevronLeftIcon size={16} /> Volver a mensajes
-      </Link>
+      {/* Encabezado: con quién y de qué turno (auditoría visual 2026-09-24).
+          Antes el hilo arrancaba sin decirlo, y en md+ la única pista era el
+          ítem marcado en la lista de al lado. El "volver" sólo hace falta en
+          mobile: en md+ la lista ya queda fija al costado (ver layout.tsx). */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/chats"
+          aria-label="Volver a mensajes"
+          className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink/60 hover:bg-surface md:hidden"
+        >
+          <ChevronLeftIcon size={20} />
+        </Link>
+        {conversation && (
+          <>
+            <Avatar src={conversation.other_party_photo} name={conversation.other_party_name} size="sm" />
+            <div className="min-w-0">
+              <p className="truncate text-body font-semibold text-ink">{conversation.other_party_name}</p>
+              <p className="truncate text-caption text-ink/50">{conversation.shift_title}</p>
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-2xl bg-surface p-4 ring-1 ring-line">
         {loading && <ChatBubblesSkeleton />}
@@ -142,18 +157,11 @@ export default function ConversationPage() {
         {messages.map((m) => {
           const mine = m.sender_user_id === user?.id;
           return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
-                  mine
-                    ? "rounded-br-sm bg-primary text-night"
-                    : "rounded-bl-sm bg-card text-ink/80 ring-1 ring-line"
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                <p
-                  className={`mt-1 flex items-center justify-end gap-1 text-label ${mine ? "text-night/50" : "text-ink/40"}`}
-                >
+            <MessageBubble
+              key={m.id}
+              mine={mine}
+              meta={
+                <>
                   {formatShiftTime(m.created_at)}
                   {mine &&
                     (m.read ? (
@@ -161,9 +169,11 @@ export default function ConversationPage() {
                     ) : (
                       <CheckIcon size={13} aria-label="Enviado" />
                     ))}
-                </p>
-              </div>
-            </div>
+                </>
+              }
+            >
+              {m.body}
+            </MessageBubble>
           );
         })}
         <div ref={bottomRef} />

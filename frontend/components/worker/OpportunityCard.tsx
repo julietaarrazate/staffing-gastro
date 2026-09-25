@@ -197,10 +197,14 @@ export default function OpportunityCard({
             el horario en 24 h ("Hoy · 20:00 – 02:00"), no "08:00 p. m.".
             Sin el chip del ícono del rubro que iba a la derecha: repetía el
             ícono del banner y en oscuro quedaba como un cuadro pálido. Sin la
-            fila "1 persona": un turno es siempre una persona (ADR-0003). */}
+            fila "1 persona": un turno es siempre una persona (ADR-0003).
+            El monto en TINTA, no en ámbar (2026-09-24): el ámbar es de la
+            acción ("Postularme"), y con el pago también en ámbar cada tarjeta
+            tenía dos ámbares compitiendo. Mismo criterio que `ShiftCard` desde
+            la fase N; el tamaño (`text-price`) es lo que lo hace dominar. */}
         <div>
           <p className="text-label font-bold uppercase tracking-wide text-ink/40">Pago</p>
-          <p className="text-price font-extrabold tracking-tight text-primary-text">{formatPayAmount(shift)}</p>
+          <p className="text-price font-extrabold tracking-tight text-ink">{formatPayAmount(shift)}</p>
           {perHour && (
             <p className="text-xs font-medium text-ink/50">
               ≈ {formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora
