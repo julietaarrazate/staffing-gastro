@@ -398,12 +398,27 @@ function MyShiftsPanel() {
             />
           </div>
 
-          <div className="mt-2" data-testid="shifts-panel-list">
+          {/* Las familias se acomodan en la MISMA grilla que las tarjetas, y
+              cada una ocupa tantas columnas como tarjetas tiene (hasta el
+              ancho completo). Antes cada familia abría su propia grilla en
+              una fila nueva: con un turno por familia, a 768px quedaba una
+              tarjeta de 360px y media pantalla vacía, grupo tras grupo
+              (auditoría visual 2026-09-24, A3). Ahora dos familias de un
+              turno cada una comparten fila, cada una con su encabezado. */}
+          <div
+            className="mt-6 grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3"
+            data-testid="shifts-panel-list"
+          >
             {visibleFamilies.map((family) => {
               const list = families[family];
               const meta = FAMILY_META[family];
+              // Con una sola familia a la vista (una pestaña puntual) ocupa el
+              // ancho entero, como antes: no hay otra con quién compartir fila.
+              const full = tab !== "todos" || list.length >= 3;
+              const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
+              const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
               return (
-                <section key={family} className="mt-6 first:mt-4" data-family={family}>
+                <section key={family} className={`min-w-0 ${span}`} data-family={family}>
                   <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-ink/40">
                     {meta.icon}
                     {meta.title}
@@ -413,7 +428,7 @@ function MyShiftsPanel() {
                   {list.length === 0 ? (
                     <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className={`grid gap-4 ${cols}`}>
                       {list.map((shift) => (
                         <ShiftCard key={shift.id} shift={shift}>
                           <ShiftActions

@@ -261,7 +261,10 @@ export default function ShiftCard({
             `text-price` (39px), el mismo del feed y del detalle: antes era
             30px acá, así que el mismo monto cambiaba de tamaño según la
             pantalla. */}
-        <div className="flex items-end justify-between gap-3">
+        {/* `flex-wrap`: a 39px el monto ya no deja lugar a los chips en una
+            tarjeta de ~320px (grilla de 3 columnas), y con `shrink-0` se
+            salían por el borde. Ahora bajan a la línea siguiente. */}
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div>
             <p className="font-mono text-label font-bold uppercase tracking-wide text-ink/45">
               Pago
@@ -271,7 +274,7 @@ export default function ShiftCard({
             </p>
           </div>
           {(shift.tips || shift.meal) && (
-            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {shift.tips && (
                 <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
                   + propinas

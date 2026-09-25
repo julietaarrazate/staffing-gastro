@@ -503,6 +503,24 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
+**2026-09-25 — panel del comercio en tablet, y los chips del pago.**
+- **Panel:** las familias de estado comparten la grilla de las tarjetas y
+  cada una ocupa tantas columnas como turnos tiene (hasta el ancho entero).
+  Antes cada familia abría una fila nueva: con un turno por familia, a 768px
+  quedaba media pantalla vacía grupo tras grupo. Con una pestaña puntual
+  elegida, la familia sigue ocupando el ancho entero.
+- **Bug del PR anterior (#362):** con el monto a 39px, los chips
+  "+ propinas"/"+ comida" de `ShiftCard` no entraban en una tarjeta de
+  ~320–360px y, por el `shrink-0`, se salían por el borde (medido: 14px a
+  768 y 54px a 1440). Ahora bajan de línea.
+- Test nuevo `e2e/panel-tablet.spec.ts` para las dos cosas, **verificado que
+  falla** contra el build sin el arreglo de los chips.
+- **Decisión: no se migran `text-sm`/`text-xs` a tokens de nombre.** Son el
+  mismo tamaño (14/12px) pero otro interlineado (20px contra 21px de
+  `text-body`), así que migrar los ~420 usos movería un píxel por línea en
+  toda la app sin ninguna ganancia visible. Lo nuevo usa los tokens; lo
+  existente queda.
+
 **2026-09-24 — el monto en tinta en todos lados, y una sola burbuja de chat.**
 Julieta delegó la decisión ("lo que quede mejor según el criterio de
 diseño"); se resolvió con la regla de oro de `color-system.md` ("el ámbar
@@ -595,8 +613,8 @@ visible. Salieron 16 hallazgos; se corrigieron los cuatro que más rendían:
 4. ~~Chat y ticket de soporte usan dos diseños de burbuja distintos~~ — resuelto.
 5. ~~El chat abierto no tiene encabezado~~ — resuelto (ver la entrada de
    arriba).
-6. A 768 el panel del comercio deja media pantalla vacía cuando cada familia
-   tiene un solo turno.
+6. ~~A 768 el panel del comercio deja media pantalla vacía~~ — resuelto
+   el 2026-09-25.
 
 **Nota de método:** cuatro "hallazgos" eran artefactos del mock y se
 descartaron mirando la causa: "$NaN" en ganancias (el catch-all devolvía `[]`
@@ -4122,7 +4140,7 @@ roadmap).
    |---|---|---|
    | A | Auditoría de repo | ✅ `docs/audits/2026-08-oido/` |
    | B | Color | ✅ #302, #308, #315 (rebrand ámbar), #323 (tarjeta negra) |
-   | C | Tipografía | ✅ **2026-09-24**: cuerpo en 14px (decisión de Julieta), títulos de pantalla y de contenido en `text-h1`, secciones en `text-h3`, nada debajo de 11px; los tamaños a mano bajaron de 78 a 5 excepciones con motivo, y `lib/type-scale.test.ts` impide que vuelvan. Queda migrar `text-sm`/`text-xs` a tokens de nombre (mismo tamaño, sin cambio visual) |
+   | C | Tipografía | ✅ **2026-09-24**: cuerpo en 14px (decisión de Julieta), títulos de pantalla y de contenido en `text-h1`, secciones en `text-h3`, nada debajo de 11px; los tamaños a mano bajaron de 78 a 5 excepciones con motivo, y `lib/type-scale.test.ts` impide que vuelvan. `text-sm`/`text-xs` quedan como están a propósito (mismo tamaño, otro interlineado; ver 2026-09-25) |
    | D | Componentes base | ✅ #303 (contraste de formularios anidados), #317 (foco visible por sistema) |
    | E | Cards | ✅ #317 (radios medidos contra `09-hibrido-app.html`), #323 |
    | F | Botones/badges/estados | ✅ #302, #317 (glows tokenizados) |
@@ -4130,7 +4148,7 @@ roadmap).
    | H | Navegación | ✅ #335 — estado activo en el header de escritorio (no existía), `aria-current` en las dos barras, nombre accesible por `<nav>`, `replace` consistente en `/admin` |
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
-   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Las pantallas de detalle también pasaron a `.app-container`/`.app-container-reading`, con test que exige el ancho exacto. Queda: a 768 el panel del comercio deja media pantalla vacía con un turno por familia |
+   | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Las pantallas de detalle también pasaron a `.app-container`/`.app-container-reading`, con test que exige el ancho exacto. El panel del comercio a 768 (media pantalla vacía con un turno por familia) quedó resuelto el 2026-09-25 |
    | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); el pago con 4 colores/tamaños distintos, las dos burbujas (chat vs. soporte) y el chat sin encabezado quedaron resueltos el mismo día |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
