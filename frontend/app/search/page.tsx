@@ -186,7 +186,7 @@ function SearchPageContent() {
                 // hace legible el texto. El verde bosque sólo le toca a quien
                 // efectivamente es mozo: el resto de los oficios
                 // trae su propio color de `SKILL_HERO_TONE` (bartender
-                // vino, barista espresso, cajero azul noche...), la misma tabla
+                // petróleo, barista espresso, cajero azul noche...), la misma tabla
                 // que ya usan la landing, el mazo y las listas de turnos.
                 className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-surface p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
                   worker.skills.length > 0

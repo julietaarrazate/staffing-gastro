@@ -93,6 +93,9 @@ casi negro sobre el lienzo oscuro no se distinguía del fondo.
 ## Tono de banner por rubro
 
 `SKILL_HERO_TONE` (`lib/skill-style.tsx`): el banner de una tarjeta de turno
-sin foto es un tono **profundo y plano** por rubro (vino, espresso, pizarra,
+sin foto es un tono **profundo y plano** por rubro (petróleo, espresso, pizarra,
 ciruela…; el mozo lleva el verde bosque de la marca). Reemplaza al gradiente
 saturado: sigue distinguiendo dos turnos seguidos sin competir con el ámbar.
+Ningún rubro usa un matiz rojo: el bartender pasó de rojo a borgoña y de
+borgoña a petróleo (`#173f4c`, 2026-09-25) porque cualquier rojo se lee como
+el color de error.
