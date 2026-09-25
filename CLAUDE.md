@@ -344,8 +344,7 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de
   identidad. El oscuro es una elección explícita del usuario, y desde v5.0
   (#345) es un **modo oscuro real**: el lienzo también se oscurece
-  (`#17130f`), no sólo las tarjetas. (Hasta el 2026-09-24 esta línea decía
-  "el lienzo crema nunca" — era del sistema anterior.)
+  (`#17130f`), no sólo las tarjetas.
 
 ## Antes de modificar código — checklist
 
@@ -593,8 +592,7 @@ vea bien.
   Iconografía **Lucide**, sensación de app nativa. Un solo acento ámbar por
   pantalla. Todos los fondos pasan por tokens de `globals.css` (no hay grises
   hardcodeados). **Fuente de verdad: `docs/design-system/color-system.md` y
-  `typography.md`**; `docs/design/COLOR_SYSTEM.md` es el registro histórico
-  (hasta el 2026-09-24 este párrafo describía el crema `#FFF8F0` de v3.0). El
+  `typography.md`**; `docs/design/COLOR_SYSTEM.md` es el registro histórico. El
   isotipo es la **mano ahuecada sobre la oreja**, SVG vectorial final del
   diseñador (ver `frontend/components/Logo.tsx`).
 - **Adentro de una tarjeta negra la proporción se invierte.** La regla del "un
