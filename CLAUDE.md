@@ -94,79 +94,12 @@ repita no es una regla.
 
 ## Dónde está el estado del proyecto
 
-> Última actualización: **2026-09-07**.
->
-> **Estado al día de hoy: `docs/STATUS.md`, no este bloque.** Y dentro de ese
-> archivo, la sección **"Qué sigue (estado vigente)"** es la única lista que se
-> edita en el lugar: ahí está, en orden, qué agarrar si arrancás sin otra
-> instrucción.
->
-> En una línea: el frente vigente fue el rediseño profundo pedido por brief
-> (rebrand al ámbar, refinamiento del design system, mapa con el pago en el
-> pin, "va en camino") sobre los PRs #315–#324. Lo único abierto que destraba
-> algo es **conectar `oido.com.ar`** — ver "Pendiente de la operadora" abajo.
->
-> Todo lo que sigue en este bloque es **histórico** (hasta 2026-08-09, PRs
-> #166–#170): sirve para entender cómo se llegó acá, no para saber qué está
-> pasando. Un estado vigente escrito en el medio de un archivo que sólo crece
-> se vuelve mentira sin que nadie lo note; por eso el estado vive en
-> `docs/STATUS.md` y acá queda el rastro.
->
-> **Frente abierto (histórico, 2026-08-09): QA en vivo de Julieta probando la app real** (comercio,
-> trabajador y admin, mobile). Mergeado hasta ahora: batch de bugs (PR #166),
-> fix de perfil admin, mapa/búsqueda de sólo lectura para admin + fotos en
-> `/admin` + wordmark del footer (PR #168), y la causa REAL de "la X del
-> Sheet no cierra" (PR #169) — dos fixes previos al `drag` de Framer Motion
-> no alcanzaban porque el problema nunca fue el drag: `Sheet`/`Modal` no
-> portaban a `document.body`, así que un `Card` ancestro con `whileTap` les
-> rompía el *containing block* al `position: fixed`. Fix real: `createPortal`
-> en ambos — ver el detalle completo (incluida la nota de proceso sobre cómo
-> se perdieron horas antes de encontrar la causa de fondo) en
-> [docs/STATUS.md](./docs/STATUS.md). Mismo PR: el mapa panéaba entero al
-> arrastrar el pin de ubicación (fix: deshabilitar `dragPan` durante el
-> arrastre del marker) y el CV del trabajador ahora acepta subir un archivo
-> (PDF/Word/foto) además de pegar un link. Y las cuentas invitado
-> compartidas (`invitado.trabajador@oido.beta`/`invitado.comercio@oido.beta`)
-> ya no aparecen en `/matching/search` (usado por `/search` y `/map` de un
-> comercio/admin real) — se filtran por email en
-> `SqlAlchemyCandidateRepository.list_available` (PR #170); la exploración
-> propia de un invitado no se toca. Julieta también pidió explícitamente una
-> auditoría de QA/performance/UX/UI/diseño más sistemática ("la app está a un
-> 40%, llevarla a 90%") — es una línea de trabajo continua, no una tarea
-> puntual; seguir por prioridad desde `docs/TECH_DEBT.md`.
->
-> **Deuda técnica por prioridad (en curso, 2026-08-09):** con el frente de QA
-> de Julieta al día, se retomó `docs/TECH_DEBT.md` por prioridad. **S1
-> (tokens de sesión) resuelto**: el refresh token dejó de viajar por
-> `localStorage`/body de respuesta — ahora es una cookie `httpOnly`
-> (`identity/api/routes.py::_set_refresh_cookie`), así que un XSS ya no puede
-> robarlo. Detalle completo y un punto operativo que ahora importa más
-> (`ENVIRONMENT=production` en Render) en `docs/TECH_DEBT.md` S1 y
-> "Pendiente de la operadora" más abajo. **F4 (accesibilidad) resuelto**:
-> `eslint-config-next` ya traía `jsx-a11y` pero sólo con 6 de ~30 reglas
-> activas; se prendió el set `recommended` completo en `eslint.config.mjs` y
-> salieron 16 errores reales (labels de formulario sin asociar a su control,
-> tarjetas de turno en `/map` sin soporte de teclado) — corregidos con el
-> mismo criterio que T5 (arreglar lo genuino, documentar lo que se descarta
-> con motivo). Detalle en `docs/TECH_DEBT.md` F4. **T2 (tests unitarios de
-> frontend) resuelto**: Vitest + Testing Library (`npm run test:unit`, ahora
-> en CI), 48 tests apuntando a lógica con valor real de romperse en silencio
-> (zona horaria Argentina, tabla de "única acción" del panel del comercio,
-> Haversine/tiempos de viaje) y un componente con estado real
-> (`EditableName`). Detalle en `docs/TECH_DEBT.md` T2.
->
-> **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
-> pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
-> quedaban "precarias" — mobile-first sin adaptar a pantallas anchas).
-> Las 12 pantallas quedaron resueltas: `/map` y `/search` (panel lateral +
-> mapa), `/feed`, `/shifts`, `/my-shifts`, `/shifts/[id]/candidates` y
-> `/admin` (listas de tarjetas → grilla 2-3 columnas), `/chats` (layout de
-> inbox), `/profile` y `/workers/[id]` (dos columnas tipo dashboard),
-> `/shifts/new` (panel de vista previa fijo al lado del wizard),
-> `/companies/[id]` (mapa + "cómo llegar" a un costado cuando hay
-> coordenadas) y `/subscription` (la grilla ya estaba lista, sólo faltaba
-> ensanchar el contenedor). Detalle completo y el patrón del problema en
-> [docs/STATUS.md](./docs/STATUS.md).
+El estado vive en `docs/STATUS.md`, no en este archivo. Dentro de ese
+archivo, la sección **"Qué sigue (estado vigente)"** es la única lista que se
+edita en el lugar: ahí está, en orden, qué agarrar si arrancás sin otra
+instrucción. Lo pendiente de la operadora está más abajo, en "Pendiente de la
+operadora". Un estado escrito acá, en el medio de un archivo que sólo crece,
+se vuelve mentira sin que nadie lo note.
 
 ## Contexto en 30 segundos
 
