@@ -606,6 +606,22 @@ abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
 
+### Auditoría de CLAUDE.md contra el repo (2026-09-25)
+
+Julieta pidió una auditoría de las instrucciones que lee Claude
+(`/claude-api prompt-audit`). `CLAUDE.md` tenía afirmaciones que el propio
+repo desmiente, y como se carga en cada sesión, cada una empujaba al modelo
+en la dirección equivocada: decía que `npm run lint` no corre en CI (corre
+desde el cierre de T5), omitía `npm run test:unit`, citaba conteos de tests
+de agosto, listaba como abierta deuda ya resuelta (F1, P5, C3), le faltaban
+los ADR 0008–0011, tenía dos listas de pasos para `oido.com.ar` que se
+contradecían en `CORS_ORIGINS`, y cerraba mandando a `TECH_DEBT.md` cuando
+el resto del archivo manda a "Qué sigue" de este archivo. Se corrigió cada
+una en su propio commit y el bloque histórico de estado quedó reducido al
+puntero a `STATUS.md` (el detalle ya estaba acá y en `TECH_DEBT.md`).
+Quedaron como propuesta, sin tocar, el paso 1 del protocolo (worktree) en
+sesiones en la nube y los prompts a Gemini: ver el PR.
+
 ### Dependencias al día (2026-09-24) — los 15 PRs de Dependabot en uno
 
 Había 15 PRs de Dependabot abiertos desde agosto (#217–#230, #268, #269) con
