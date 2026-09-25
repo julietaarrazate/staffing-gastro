@@ -614,11 +614,8 @@ prompt de arranque:
 > es obligatorio— y después `docs/STATUS.md` (bitácora viva, qué está en vuelo
 > y qué sigue) antes de tocar nada. Si tu tarea toca deuda conocida, revisá
 > también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Reportá el resultado real de
-> `pytest -q` / `tsc --noEmit` / `npm run build` (y Playwright si tocaste
-> frontend) — no el esperado.
+> lo que corre CI (ver "Calidad — antes de commitear") — no el
+> esperado.
 
-No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
-operadora" arriba. La auditoría de responsive/desktop pantalla por pantalla
-(ver arriba) ya se cerró — no hay un frente puntual abierto ahora mismo; si
-no hay otra instrucción, mirá `docs/TECH_DEBT.md` por prioridad antes de
-arrancar algo nuevo.
+Si no hay otra instrucción, qué agarrar está en `docs/STATUS.md` → "Qué
+sigue (estado vigente)".
