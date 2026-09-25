@@ -224,7 +224,10 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 - **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
   0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
-  mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
+  mapa · 0007 no-show/cancelación tardía manual · 0008 asistencia
+  simplificada y no-show automático · 0009 escalada automática de urgencia ·
+  0010 modelo de confianza en cuatro dominios · 0011 segunda y tercera tinta ·
+  0012 pago de referencia
   (el "match" del mapa y el aviso de pago fuera de mercado al comercio) ·
   0013 verificación del comercio (constancia de AFIP; por qué NO es
   `cuit_verificado` y por qué no se guarda el número) · 0014 "Disponible
