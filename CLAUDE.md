@@ -375,18 +375,16 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Calidad — antes de commitear
 
-- Backend: `pytest -q` (verde). Suite de referencia: **270 tests**
-  (verificado con `pytest -q --collect-only` el 2026-08-04, tras el
-  endurecimiento de producción; cambia con cada feature — no memorizarlo
-  como constante, reverificar antes de citarlo).
-- Frontend: `npx tsc --noEmit` **y** `npm run build`.
-- E2E: `npx playwright test` (Playwright, API mockeada, sin backend real).
-  Suite de referencia: **25 tests** en 14 specs (`frontend/e2e/`, verificado
-  con `npx playwright test --list` el 2026-08-04), corre en CI en cada
-  PR/push a `main` junto con `pytest`/`tsc`/`build`
-  (`.github/workflows/ci.yml`).
-- `npm run lint` **no** corre en CI (deuda conocida, ver `docs/TECH_DEBT.md`
-  T5) — no lo asumas como gate aunque el checklist de sesión lo mencione.
+Lo mismo que corre CI (`.github/workflows/ci.yml`), y en verde:
+
+- Backend: `pytest -q`.
+- Frontend: `npx tsc --noEmit`, `npm run lint`, `npm run test:unit` (Vitest)
+  y `npm run build`.
+- E2E: `npm run test:e2e` (Playwright, API mockeada, sin backend real,
+  `frontend/e2e/`).
+- Si vas a citar cuántos tests hay, contalos en el momento
+  (`pytest -q --collect-only`, `npx playwright test --list`): el número
+  cambia con cada feature.
 - Reportá el resultado **real**, no el esperado. Si algo falla, se dice.
 
 ## Deuda conocida viva (no reabrir sin necesidad)
