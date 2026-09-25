@@ -393,45 +393,11 @@ Catálogo completo y priorizado en [docs/TECH_DEBT.md](./docs/TECH_DEBT.md);
 patrones de bugs ya resueltos (para no reintroducirlos) en
 [docs/BUGS.md](./docs/BUGS.md). Lo más relevante para no sorprenderse:
 
-- ~~**Postulaciones de los no-elegidos quedan "pendiente" para siempre**~~
-  (TECH_DEBT P5): **resuelto 2026-07-23** — al asignar (o cancelar el turno)
-  los no elegidos pasan a RECHAZADA de forma silenciosa, y si el turno se
-  reabre (rechazo/cancelación/no-show del asignado) vuelven a PENDIENTE. Ver
-  `ShiftService._reject_pending_applicants`/`_restore_rejected_applicants`.
 - **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
   `docs/reference/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
   arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).
-- ~~**`docs/planning/PULIDO_ROADMAP.md` batch C3 (confianza/conversión: SEO,
-  skeletons, a11y) sin arrancar.**~~ **Resuelto 2026-08-11** — esta línea
-  estaba desactualizada: al auditar de nuevo, SEO (sitemap/robots/metadata),
-  estados de error (`EmptyState` con retry) y a11y (F4, `jsx-a11y`) ya
-  estaban hechos por trabajo de otras sesiones; sólo faltaba el skeleton de
-  `/profile` (mostraba un spinner centrado en vez del mismo estilo de
-  skeleton que `/feed`/`/shifts`), ya corregido. Detalle en
-  `docs/planning/PULIDO_ROADMAP.md` §C3. **C4 (onboarding post-registro) resuelto
-  para el comercio 2026-08-10** (auditoría de producto, a partir de una
-  referencia real que pasó Julieta de otra app del rubro): `/bienvenida`
-  ahora también atiende al rol `employer` (antes sólo al `worker`) — 2
-  pasos, nombre+logo (logo opcional, misma regla de fricción que la foto
-  del trabajador) y ubicación (reusa `MapAddressPicker`, ADR-0006). Antes,
-  el comercio caía directo en `/shifts` sin haber cargado nada — los
-  candidatos veían "Un comercio cerca tuyo" en vez del nombre real. Ver
-  `frontend/app/bienvenida/page.tsx`. **Corregido 2026-08-11** (Julieta,
-  prueba en vivo con cuenta invitada): terminaba en `/shifts/new` directo
-  ("Publicar mi primer turno"), empujando a publicar sin pensar si hacía
-  falta, y "Volver" sólo daba vueltas entre los 2 pasos sin salida real a
-  la app. Ahora termina en `/shifts` (el panel, con "+ Publicar"/
-  "+ Evento" visibles) y el paso de ubicación suma "Cargar la ubicación
-  después" (sólo `name` es obligatorio en el backend).
-- Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: `npm run lint` fuera de CI
-  (~20 errores/10 warnings baseline), formularios con `<input>` crudo en 4
-  pantallas (F1). (Corregido 2026-08-09: las dos líneas que decían "no-show
-  automático por cron, hoy sólo manual" y "`on_time_payment_rate`/
-  `events_published` del comercio nunca se actualizan" estaban
-  desactualizadas — ambas ya están implementadas, ver
-  `backend/app/modules/shift/application/scheduler.py` [ADR-0008] y
-  `backend/app/modules/company/infrastructure/repositories.py:121-139`
-  respectivamente. Hallazgo de la auditoría de producto/UI 2026-08-09.)
+- **Pagos reales (TECH_DEBT P4)**: la mensualidad al comercio sigue siendo un
+  placeholder sin cobro real, con el enforcement apagado para la beta.
 
 ## Pendiente de la operadora (Julieta — no es trabajo de código)
 
