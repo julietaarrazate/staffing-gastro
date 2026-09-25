@@ -500,21 +500,10 @@ toda vista previa y el sitemap apuntaban ahí.
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
 
 **Otros pendientes operativos (no env vars):**
-- **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02, aún sin
-  conectar): 3 pasos, ninguno de código.
-  1. En Vercel → proyecto `staffing-gastro` → Settings → Domains → agregar
-     `oido.com.ar` y `www.oido.com.ar`. Vercel da los registros DNS exactos
-     (normalmente A `oido.com.ar` → `76.76.21.21`, CNAME `www` →
-     `cname.vercel-dns.com`); cargarlos en el panel de DNS de NIC.ar. SSL lo
-     emite Vercel solo una vez que el DNS propaga.
-  2. En Render (backend) agregar el dominio nuevo a `CORS_ORIGINS` (sin sacar
-     el `.vercel.app` todavía) y setear `FRONTEND_URL=https://oido.com.ar`
-     (arma los links de los mails transaccionales, hoy cae al default de
-     `core/config.py`).
-  3. En Google Cloud Console, agregar `https://oido.com.ar` y
-     `https://www.oido.com.ar` a "Authorized JavaScript origins" del Client
-     ID de Google Sign-In — si no, el botón de Google deja de andar en el
-     dominio nuevo.
+- **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02): los
+  pasos para conectarlo están arriba, en "Conectar `oido.com.ar`". Dato útil
+  para el paso de Vercel: normalmente pide A `oido.com.ar` → `76.76.21.21` y
+  CNAME `www` → `cname.vercel-dns.com`, que se cargan en el DNS de NIC.ar.
   El **dominio de envío propio en Resend ya está**: verificado contra su API
   el 2026-09-09 — `oido.com.ar` en estado `verified` (región `sa-east-1`) y
   los mails salen de `Oído <hola@oido.com.ar>`, no del sandbox `resend.dev`.
