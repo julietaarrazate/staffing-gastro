@@ -503,6 +503,14 @@ brillantes que el "no el semáforo brillante" de `CLAUDE.md`. Es una
 inconsistencia real entre el código y su propio comentario, **pero elegir el
 reemplazo es una decisión de ojo, no de regla** — queda planteada, no aplicada.
 
+**2026-09-25 — el bartender deja el borgoña por un azul petróleo.** Julieta
+lo miró y confirmó el hallazgo de la fase L: el borgoña (`#7f2b2b`/`#4a1d26`)
+seguía leyéndose como el rojo de error. Ahora el chip, el banner sin foto y el
+riel de `/search` son petróleo (`#1e5566` sobre `#e3eef1`; banner `#173f4c`,
+11.3:1 con blanco; riel 8.3:1 contra la tarjeta blanca). Se distingue del
+verde bosque del mozo y del azul noche del cajero. Regla que queda en
+`docs/design-system/color-system.md`: ningún rubro usa un matiz rojo.
+
 **2026-09-25 — panel del comercio en tablet, y los chips del pago.**
 - **Panel:** las familias de estado comparten la grilla de las tarjetas y
   cada una ocupa tantas columnas como turnos tiene (hasta el ancho entero).
@@ -4149,7 +4157,7 @@ roadmap).
    | I | Pantallas | 🟡 comercio ✅ (#313), trabajador ✅; **#335 auditó las 4 que faltaban**: `/bienvenida` (el ámbar apagado por un velo negro — el bug que Julieta reportó), `/chats` (dos vacíos contradictorios), `/support` (dos CTA ámbar), `/admin` (sin hallazgos). Quedan las pantallas de detalle sin pasada propia |
    | J | Claro/oscuro/sistema | ✅ cerrada por decisión de Julieta en #318: la app no se oscurece sola |
    | K | Responsive | 🟡 **#336 cerró la escala de contenedores**: `--app-frame` (1024px, el ancho del header) + `--app-reading` (672px), con la regla "ninguna pantalla excede el marco" y un test E2E que la fija. **2026-09-24:** pasada a 768 y 1024 en claro y oscuro — el header del comercio se partía en dos líneas hasta ~1000px con un nombre largo, corregido con test. Las pantallas de detalle también pasaron a `.app-container`/`.app-container-reading`, con test que exige el ancho exacto. El panel del comercio a 768 (media pantalla vacía con un turno por familia) quedó resuelto el 2026-09-25 |
-   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesita el ojo de Julieta (el rojo de `bartender`). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); el pago con 4 colores/tamaños distintos, las dos burbujas (chat vs. soporte) y el chat sin encabezado quedaron resueltos el mismo día |
+   | L | Regresión vs. mockups | 🟡 **#337 hizo la pasada de las 7 pantallas de `09-hibrido-app.html`** y estableció el criterio (los mockups son referencia de ESTRUCTURA, no de color: el ámbar del #315 los superó). Salió un defecto real —la inicial y la cámara pisándose en el avatar, en 4 pantallas— ya corregido, y un hallazgo que necesitaba el ojo de Julieta (el rojo de `bartender`; resuelto el 2026-09-25: pasa a petróleo). **2026-09-24:** pasada de las 6 pantallas de detalle — el detalle del turno perdía el color del rubro (corregido); el pago con 4 colores/tamaños distintos, las dos burbujas (chat vs. soporte) y el chat sin encabezado quedaron resueltos el mismo día |
    | M | Build/lint/TS | ✅ verde en cada PR de esta lista |
 
    **H e I quedaron cerradas en el #335, la mitad de K en el #336 y la pasada

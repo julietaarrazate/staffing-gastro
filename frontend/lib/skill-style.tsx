@@ -29,7 +29,7 @@ export const SKILL_ACCENT: Record<
   { Icon: ComponentType<IconProps>; bg: string; fg: string }
 > = {
   mozo: { Icon: UsersIcon, bg: "bg-orange-50", fg: "text-orange-700" },
-  bartender: { Icon: GlassIcon, bg: "bg-[#f7eaea]", fg: "text-[#7f2b2b]" }, // borgoña, no el rojo de error
+  bartender: { Icon: GlassIcon, bg: "bg-[#e3eef1]", fg: "text-[#1e5566]" }, // petróleo: el borgoña se leía como error
   barista: { Icon: CoffeeIcon, bg: "bg-amber-50", fg: "text-amber-700" },
   runner: { Icon: RouteIcon, bg: "bg-stone-100", fg: "text-stone-600" },
   cocinero: { Icon: ChefHatIcon, bg: "bg-orange-50", fg: "text-orange-600" },
@@ -51,7 +51,7 @@ export const SKILL_ACCENT: Record<
  * misma tarjeta). Con el Design System v5.0 (lienzo blanco, el color para
  * acentos y para "levantar" con criterio, 2026-09-22) el gradiente saturado
  * quedó como la única superficie que gritaba: pasa a un tono PLANO, profundo
- * y apagado por rubro — vino, espresso, pizarra, ciruela —, que sigue
+ * y apagado por rubro — petróleo, espresso, pizarra, ciruela —, que sigue
  * distinguiendo dos turnos seguidos sin competir con el ámbar. El mozo, el
  * rubro más común, lleva el verde bosque de la marca (`--color-secondary`),
  * el mismo de la tarjeta "Recomendado" del home. Todos dan más de 10:1 con
@@ -59,7 +59,7 @@ export const SKILL_ACCENT: Record<
  */
 export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
   mozo: "bg-secondary",
-  bartender: "bg-[#4a1d26]", // vino
+  bartender: "bg-[#173f4c]", // petróleo (antes vino: se leía como error)
   barista: "bg-[#4a3222]", // espresso
   runner: "bg-[#2e3a40]", // pizarra
   cocinero: "bg-[#5a2a18]", // terracota tostada
@@ -86,7 +86,7 @@ export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
  */
 export const SKILL_RAIL_BORDER: Record<WorkerSkill, string> = {
   mozo: "border-l-orange-500",
-  bartender: "border-l-[#7f2b2b]", // mismo borgoña que el hero, no el rojo de error
+  bartender: "border-l-[#1e5566]", // mismo petróleo que el chip
   barista: "border-l-amber-600",
   runner: "border-l-stone-500",
   cocinero: "border-l-orange-600",
