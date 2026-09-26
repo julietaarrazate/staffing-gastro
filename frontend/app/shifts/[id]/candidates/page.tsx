@@ -196,7 +196,7 @@ function ShiftCandidatesContent() {
             <EmptyState
               icon={<UsersIcon size={28} />}
               title="Todavía nadie se postuló"
-              subtitle="Cuando un trabajador deslice tu turno a la derecha, aparece acá. Mientras tanto, mirá los recomendados."
+              subtitle="Cuando un trabajador se postule a tu turno, aparece acá. Mientras tanto, mirá los recomendados."
             />
           ) : (
             <>
