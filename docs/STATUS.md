@@ -4695,6 +4695,15 @@ roadmap).
 
     Si no hay otra instrucción, seguir por prioridad desde
     `docs/TECH_DEBT.md`.
+12. 🟢 **Subir Node de 22 a 24 — sin apuro (anotado 2026-09-26).** Node 22
+    tiene soporte hasta abril de 2027, así que hoy no hay nada que lo pida.
+    Cuando se haga, conviene ir a **24** (LTS) y no a 26, que recién pasa a
+    LTS en octubre de 2026. Son tres cambios juntos: la versión de Node en
+    Vercel (Settings → Node.js Version), `node-version` en
+    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
+    Render no participa, porque el backend es Python. Dependabot tiene
+    ignoradas las subas mayores de `@types/node` (#375) justamente para que
+    los tipos no se adelanten a la versión que corre.
 
 ## Bloqueado en Julieta (operativo, sin trabajo de código)
 
