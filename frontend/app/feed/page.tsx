@@ -38,7 +38,7 @@ const WORKER_FEED_TOUR: TourStep[] = [
   {
     target: '[data-tour="feed-deck"]',
     title: "Así se ven los turnos",
-    body: "Tocá un turno para ver el detalle y postularte, o usá Descubrir rápido para deslizar. Van apareciendo en tiempo real.",
+    body: "Tocá un turno para ver el detalle y postularte, o usá Descubrir rápido para recorrerlos de a uno. Van apareciendo en tiempo real.",
   },
   {
     target: '[data-tour="feed-urgent-filter"]',
@@ -281,8 +281,8 @@ function WorkerFeedPanel() {
     setDecidingId(null);
   }
 
-  async function onDeckDecide(shift: Shift, decision: "like" | "pass"): Promise<boolean> {
-    const ok = await onDecide(shift, decision);
+  async function onDeckApply(shift: Shift): Promise<boolean> {
+    const ok = await onDecide(shift, "like");
     if (ok) decidedInDeck.current.add(shift.id);
     return ok;
   }
@@ -484,8 +484,8 @@ function WorkerFeedPanel() {
                     <span className="min-w-0 flex-1">
                       <span className="block text-body font-semibold text-ink">Descubrir rápido</span>
                       <span className="block text-xs text-ink/55">
-                        Deslizá {visibleShifts.length === 1 ? "el turno" : `los ${visibleShifts.length} turnos`} y
-                        postulate en segundos
+                        Recorré {visibleShifts.length === 1 ? "el turno" : `los ${visibleShifts.length} turnos`} y
+                        postulate al que elijas
                       </span>
                     </span>
                     <ChevronRightIcon size={18} className="shrink-0 text-ink/35" />
@@ -526,7 +526,7 @@ function WorkerFeedPanel() {
       {deckShifts && (
         <DiscoverDeck
           shifts={deckShifts}
-          onDecide={onDeckDecide}
+          onApply={onDeckApply}
           onClose={closeDiscover}
           onOpen={(shift) => router.push(`/turno/${shift.id}`)}
           renderCard={(shift) => <OpportunityCard shift={shift} distanceKm={distanceOf(shift, origin)} />}
