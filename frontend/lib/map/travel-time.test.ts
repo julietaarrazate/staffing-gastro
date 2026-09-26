@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateTravelTimes } from "./travel-time";
+import { estimateArrivalMin, estimateTravelTimes } from "./travel-time";
 
 describe("estimateTravelTimes", () => {
   it("aplica el factor de red vial (1.3x) antes de calcular minutos por modo", () => {
@@ -29,5 +29,15 @@ describe("estimateTravelTimes", () => {
     const times = estimateTravelTimes(5);
     expect(times.walkMin).toBeGreaterThan(times.bikeMin);
     expect(times.bikeMin).toBeGreaterThan(times.carMin);
+  });
+});
+
+describe("estimateArrivalMin", () => {
+  it("a ~1 km en línea recta, unos 5 minutos en colectivo", () => {
+    expect(estimateArrivalMin(1)).toBe(5);
+  });
+
+  it("a menos de 200 m no inventa minutos: ya está llegando", () => {
+    expect(estimateArrivalMin(0.1)).toBeNull();
   });
 });
