@@ -57,9 +57,15 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   await page
     .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
     .fill("necesito un mozo el sábado a la noche, se paga 45000");
-  await page.getByRole("button", { name: "Completar" }).click();
+  // Esperar el request en vez de leer la variable justo después del click:
+  // el click resuelve antes de que el fetch salga, y leerla en el acto era
+  // una carrera que a veces daba null.
+  await Promise.all([
+    page.waitForRequest("**/api/v1/shifts/parse-text"),
+    page.getByRole("button", { name: "Completar" }).click(),
+  ]);
 
-  expect(parseRequestBody).not.toBeNull();
+  await expect.poll(() => parseRequestBody).not.toBeNull();
   expect((parseRequestBody as unknown as { text: string }).text).toContain("mozo");
 
   // El draft vino completo (puesto, horario y pago) — el wizard salta
