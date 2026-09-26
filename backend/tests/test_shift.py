@@ -10,6 +10,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.core.config import settings
+from app.core.tz import to_art
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
@@ -1011,7 +1012,16 @@ async def test_assign_worker_sends_acceptance_email(
     sent = fake_email_sender.sent[-1]
     assert sent.to == "w_email@staffya.com"
     assert "aceptaron" in sent.subject.lower()
+    # El puesto como lo lee una persona, no el identificador ("mozo").
+    assert "Mozo/a" in sent.subject
     assert "Bar Palermo" in sent.html
+    # La hora sale en hora argentina: la base guarda UTC y el mail decía la
+    # hora UTC (un turno de las 20:00 llegaba como "23:00").
+    shift = created.json()
+    start_art = to_art(datetime.fromisoformat(shift["start_at"]))
+    assert f"{start_art:%H:%M}" in sent.html
+    # Con la marca de Oído, no un `<p>` suelto.
+    assert sent.html.lstrip().startswith("<!doctype html>")
 
 
 async def test_assign_worker_does_not_fail_if_email_sender_explodes(

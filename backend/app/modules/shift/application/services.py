@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
+from app.core.tz import format_turno_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
@@ -13,6 +14,7 @@ from app.modules.matching.domain.entities import ShiftRequirement
 from app.modules.matching.domain.repositories import CandidateRepository
 from app.modules.matching.domain.scoring import DEFAULT_MAX_RADIUS_KM, rank_candidates
 from app.modules.notification.domain.email_sender import EmailSender
+from app.modules.notification.domain.email_templates import render_shift_accepted_email_html
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
@@ -298,7 +300,7 @@ class ShiftService:
 
             company = await self._companies.get_by_id(shift.company_id)
             lugar = company.name if company is not None else "Un comercio cerca tuyo"
-            puesto = shift.title or shift.position.value
+            puesto = shift.title or shift.position.label
             if escalation:
                 title = f"¡Urgente! Turno de {puesto} cerca tuyo"
                 message = (
@@ -424,7 +426,7 @@ class ShiftService:
                 NotificationType.SHIFT_CANCELLED_LATE,
                 "El comercio canceló tu turno",
                 (
-                    f"\"{updated.title or updated.position.value}\" fue cancelado por "
+                    f"\"{updated.title or updated.position.label}\" fue cancelado por "
                     "el comercio después de que confirmaste tu asistencia."
                 ),
             )
@@ -473,7 +475,7 @@ class ShiftService:
                 "Te marcaron como no presentado",
                 (
                     f"El comercio marcó que no te presentaste al turno "
-                    f"\"{updated.title or updated.position.value}\". "
+                    f"\"{updated.title or updated.position.label}\". "
                     "Esto impacta tu reputación."
                 ),
             )
@@ -499,7 +501,7 @@ class ShiftService:
                 NotificationType.CHECKIN_REMINDER,
                 "¿Ya llegaste a tu turno?",
                 (
-                    f"Marcá tu llegada en \"{updated.title or updated.position.value}\" "
+                    f"Marcá tu llegada en \"{updated.title or updated.position.label}\" "
                     "para confirmar que estás en el lugar."
                 ),
             )
@@ -541,7 +543,7 @@ class ShiftService:
             NotificationType.SHIFT_NOT_COVERED,
             "Un turno quedó sin cubrir",
             (
-                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.value}\" "
+                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
                 "sin que nadie confirmara. Podés publicarlo de nuevo."
             ),
         )
@@ -582,7 +584,7 @@ class ShiftService:
             worker_profile_id,
             NotificationType.SHIFT_ASSIGNED,
             "Te asignaron un turno",
-            f"Te asignaron el turno \"{updated.title or updated.position.value}\". Confirmá tu asistencia.",
+            f"Te asignaron el turno \"{updated.title or updated.position.label}\". Confirmá tu asistencia.",
         )
         await self._send_acceptance_email(worker_profile_id, updated)
         return updated
@@ -657,15 +659,15 @@ class ShiftService:
             if user is None:
                 return
             company = await self._companies.get_by_id(shift.company_id)
-            company_name = company.name if company is not None else "un comercio"
-            position_label = shift.position.value
-            when = shift.start_at.strftime("%d/%m/%Y a las %H:%M")
-            subject = f"¡Te aceptaron para el turno de {position_label}!"
-            html = (
-                f"<p>Hola {user.full_name},</p>"
-                f"<p>¡Te aceptaron para el turno de {position_label}!</p>"
-                f"<p><strong>{company_name}</strong> te asignó el turno del "
-                f"{when} hs. Entrá a Oído para confirmar tu asistencia.</p>"
+            company_name = (company.name if company is not None else None) or "Un comercio"
+            position_label = shift.position.label
+            subject = f"Te aceptaron: {position_label} en {company_name}"
+            html = render_shift_accepted_email_html(
+                user.full_name,
+                position_label,
+                company_name,
+                format_turno_art(shift.start_at, shift.end_at),
+                f"{settings.frontend_url}/my-shifts",
             )
             await self._email_sender.send(to=user.email, subject=subject, html=html)
         except Exception:
@@ -698,7 +700,7 @@ class ShiftService:
             updated.company_id,
             NotificationType.SHIFT_CONFIRMED,
             "Confirmaron un turno",
-            f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.value}\".",
+            f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.label}\".",
         )
         await self._withdraw_overlapping_applications(worker_profile_id, updated)
         # Nuevas deadlines: recordatorio de check-in / no-show alrededor del
@@ -734,7 +736,7 @@ class ShiftService:
             updated.company_id,
             NotificationType.SHIFT_REJECTED,
             "Rechazaron un turno",
-            f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.value}\". Volvió a buscar personal.",
+            f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.label}\". Volvió a buscar personal.",
             # El turno quedó sin cubrir: lo que el comercio necesita es elegir
             # a otro, así que el aviso abre los candidatos de ESE turno.
             link=f"/shifts/{updated.id}/candidates",
@@ -764,7 +766,7 @@ class ShiftService:
             "El trabajador canceló su asignación",
             (
                 f"El trabajador canceló su asignación al turno "
-                f"\"{updated.title or updated.position.value}\" luego de "
+                f"\"{updated.title or updated.position.label}\" luego de "
                 "confirmarla. Volvió a buscar personal."
             ),
             link=f"/shifts/{updated.id}/candidates",
@@ -821,7 +823,7 @@ class ShiftService:
             updated.company_id,
             NotificationType.SHIFT_CHECKED_OUT,
             "Terminó un turno",
-            f"El trabajador terminó el turno \"{updated.title or updated.position.value}\".",
+            f"El trabajador terminó el turno \"{updated.title or updated.position.label}\".",
         )
         return updated
 
@@ -888,7 +890,7 @@ class ShiftService:
                 updated.worker_profile_id,
                 NotificationType.SHIFT_PAID,
                 "Te pagaron un turno",
-                f"Te pagaron el turno \"{updated.title or updated.position.value}\".",
+                f"Te pagaron el turno \"{updated.title or updated.position.label}\".",
             )
         return updated
 

@@ -9,6 +9,7 @@ from app.core.config import settings as app_settings
 from app.core.database import get_session
 from app.modules.notification.application.services import NotificationService, PushService
 from app.modules.notification.domain.email_sender import EmailSender
+from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.infrastructure.null_email_sender import NullEmailSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
@@ -24,6 +25,14 @@ def get_notification_service(
 ) -> NotificationService:
     repository = SqlAlchemyNotificationRepository(session)
     return NotificationService(repository)
+
+
+def get_notification_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> NotificationRepository:
+    """El puerto, para módulos que avisan algo sin pasar por un servicio
+    propio (ver las decisiones de verificación)."""
+    return SqlAlchemyNotificationRepository(session)
 
 
 def get_push_service(

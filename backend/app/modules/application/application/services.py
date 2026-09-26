@@ -81,7 +81,7 @@ class ApplicationService:
         aviso de 'llegaron presupuestos' en apps de oficios: nombre de quien
         se postuló + cuántos postulantes hay en total + a qué turno, no un
         genérico 'un trabajador se postuló'."""
-        position_label = shift.title or shift.position.value
+        position_label = shift.title or shift.position.label
         total = len(await self._applications.list_by_shift(shift.id))
         worker_name = await self._worker_full_name(worker_profile_id)
         title = f"{total} postulante{'s' if total != 1 else ''} para {position_label}"

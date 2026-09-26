@@ -20,10 +20,19 @@ gramática visual combina:
 
 ## El pivot de v5.0 (qué cambió y por qué)
 
-v5.0 supersede el rebrand ámbar (#315–#325) y el pivot "lienzo blanco" del
-mismo día. La marca pasa a **coral** sobre un **lienzo cálido off-white**, con
-un **acento violeta** para lo nuevo, tipografía **Saans / Inter / DM Mono**, y
-un **modo oscuro real** (el lienzo se oscurece, ya no es el híbrido anterior).
+v5.0 (#345) mantiene el **ámbar de Oído `#D97706`** como único acento de
+acción, sobre un **lienzo cálido off-white** `#FBFAF6`, con **verde bosque**
+`#1B3A31` como superficie destacada, tipografía **Fraunces / Inter / DM Mono**
+y un **modo oscuro real** (el lienzo se oscurece, ya no es el híbrido
+anterior).
+
+> **Corrección 2026-09-26.** Este párrafo decía que la marca "pasa a coral",
+> con un acento violeta y tipografía Saans. Era el borrador del board, no lo
+> que se aprobó: el coral y el terracota se probaron y Julieta los rechazó,
+> Saans es paga y no se licenció, y el violeta quedó fuera de la paleta final
+> (el token `--color-accent` existe para no romper nada, pero no se usa en
+> pantallas nuevas). La fuente de verdad es `color-system.md` y
+> `typography.md`.
 
 ## Índice
 

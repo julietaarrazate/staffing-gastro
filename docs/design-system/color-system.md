@@ -28,7 +28,7 @@ pantallas del board. Suma verde bosque como secundario editorial; manteca
 | `--color-primary-tint` | `#FFFBEB` | Tinte ámbar: fondo de acción/activo, pill de nav, badge. |
 | `--color-secondary` | `#1B3A31` | **Verde bosque** editorial (tarjeta "Turnos activos"). Superficie destacada con texto claro. Distinto de `success`. |
 | `--color-secondary-tint` / `-text` | `#E6EFE9` / `#1B3A31` | Superficie pálida y texto del verde bosque. |
-| `--color-accent` | `#A78BFA` | Violeta. **No es acción**: marca lo "nuevo"/descubrimiento. |
+| `--color-accent` | `#A78BFA` | Violeta. **Fuera de la paleta final**: queda definido para no romper nada, no usar en pantallas nuevas. |
 | `--color-accent-tint` / `-text` | `#EDE9FE` / `#6D47D9` | Superficie y texto del acento. |
 
 ## Surfaces (jerarquía, no "todo card blanca")

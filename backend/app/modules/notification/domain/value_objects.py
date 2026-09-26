@@ -39,6 +39,10 @@ class NotificationType(str, Enum):
     # C.1 (auditoría de producto 2026-08-10): un admin respondió un ticket de
     # soporte del usuario.
     SUPPORT_REPLY = "support_reply"
+    # Un admin aprobó o rechazó una verificación (DNI + selfie del trabajador
+    # o constancia de AFIP del comercio). Antes la decisión no le llegaba a
+    # nadie: la persona se enteraba sólo si volvía a mirar su perfil.
+    VERIFICATION_DECIDED = "verification_decided"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -71,6 +75,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.CHAT_MESSAGE: "/chats",
     NotificationType.REVIEW_RECEIVED: "/profile",
     NotificationType.SUPPORT_REPLY: "/support",
+    NotificationType.VERIFICATION_DECIDED: "/profile",
 }
 
 

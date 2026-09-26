@@ -5,7 +5,15 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-26 (**"Descubrir rápido" ya no decide con el
+*Última actualización: 2026-09-26 (**alta y avisos sin agujeros**, del
+diagnóstico de diseño/UX del mismo día: el mail de "te aceptaron" salía con la
+hora en UTC —un turno de las 20:00 decía 23:00—, el puesto crudo y sin marca;
+crear cuenta con Google no pedía aceptar términos y privacidad; aprobar o
+rechazar una verificación no le avisaba a nadie; la bienvenida no les llegaba
+a las cuentas de Google y a las demás les pedía pasos ya hechos; y el README
+del design system seguía hablando de coral, Saans y violeta. Detalle en
+"Alta y avisos sin agujeros (2026-09-26)" más abajo.)*
+Anterior: 2026-09-26 (**"Descubrir rápido" ya no decide con el
 gesto**: deslizar recorre el mazo como un carrusel —izquierda al siguiente,
 derecha al anterior— y postularse es el botón "Postularme" debajo de la
 tarjeta, con flechas, contador "2 de 5" y ← → del teclado. No hay descarte: el
@@ -645,6 +653,42 @@ en `/workers/me/earnings`), una insignia inventada que salía cruda, el
 abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
+
+### Alta y avisos sin agujeros (2026-09-26)
+
+Primer paso del diagnóstico de diseño, UX y alta que pidió Julieta (capturas y
+mails renderizados en la carpeta del proyecto, `diagnostico-ux-2026-09-26/`).
+Son errores que ya afectaban a la beta, no mejoras:
+
+- **Mail "te aceptaron"**: pasa a la plantilla con marca
+  (`render_shift_accepted_email_html`), con el puesto legible
+  (`WorkerSkill.label`, espejo de `SKILL_LABELS`) y el horario en hora
+  argentina (`core/tz.format_turno_art`). Antes decía la hora UTC. El botón
+  lleva a `/my-shifts` a confirmar. Patrón en `docs/BUGS.md`.
+- **Consentimiento con Google**: el paso "¿Buscás trabajo o buscás personal?"
+  (sólo lo ven las cuentas nuevas) ahora tiene el mismo checkbox de términos y
+  privacidad que el formulario de email, y sin marcarlo no se crea la cuenta.
+  Test en `GoogleAuthButton.test.tsx`. **Sigue igual:** el backend no guarda
+  ni el consentimiento de email ni el de Google (quién, cuándo, qué versión);
+  si la revisión legal lo pide como constancia, es un cambio aparte.
+- **Decisión de verificación**: aprobar o rechazar un DNI o una constancia de
+  AFIP crea una notificación `verification_decided` (con push, si lo tiene
+  activado) y manda un mail con el resultado y, si se rechazó, el motivo. El
+  mail de invitación prometía "te avisamos por acá" y nadie avisaba.
+- **Bienvenida**: sale también al crear una cuenta con Google (antes sólo al
+  confirmar el email, que Google no necesita). El contenido ya no repite el
+  onboarding (zona, oficio, nombre del local): habla de avisos, verificación y
+  el primer turno, y el botón lleva al feed o a publicar. Saca "cadete", que
+  no es un rubro.
+- **Docs del design system**: `README.md` y `brand-foundation.md` describían
+  el borrador del board (coral, Saans, violeta) como si fuera lo aprobado.
+
+**Quedó para los pasos siguientes del diagnóstico** (Julieta elige el orden):
+rediseño del recorrido de alta (con capturas antes de codear), recordatorio
+antes del turno con "Voy / No puedo" (partir del push de 90 min del #388),
+transición tarjeta → detalle y fotos reales, "primero mis favoritos" y turno
+que se repite. Tampoco se tocó que en `/register` Google vuelva a preguntar el
+rol ya elegido arriba.
 
 ### Auditoría de CLAUDE.md contra el repo (2026-09-25)
 

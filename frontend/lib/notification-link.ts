@@ -25,6 +25,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   chat_message: "/chats",
   review_received: "/profile",
   support_reply: "/support",
+  // Un admin aprobó o rechazó una verificación: el resultado y el motivo se
+  // ven en el perfil, donde se vuelve a mandar si hizo falta.
+  verification_decided: "/profile",
 };
 
 /** Pantalla que debe abrir una notificación al tocarla. */

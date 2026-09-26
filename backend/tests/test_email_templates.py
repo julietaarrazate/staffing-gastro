@@ -24,6 +24,8 @@ from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
     render_identity_verification_email_html,
     render_password_reset_email_html,
+    render_shift_accepted_email_html,
+    render_verification_decision_email_html,
     render_welcome_employer_email_html,
     render_welcome_worker_email_html,
 )
@@ -45,6 +47,15 @@ _PLANTILLAS = {
     "confirmar_email": lambda: render_confirm_email_html("Ana", _LINK),
     "verificar_identidad": lambda: render_identity_verification_email_html("Ana", _LINK),
     "recuperar_contraseña": lambda: render_password_reset_email_html("Ana", _LINK, 1),
+    "turno_aceptado": lambda: render_shift_accepted_email_html(
+        "Ana", "Mozo/a", "Bar Pepe", "sábado 26/09, de 20:00 a 02:00", _LINK
+    ),
+    "verificacion_aprobada": lambda: render_verification_decision_email_html(
+        "Ana", approved=True, what="identidad", reason=None, link=_LINK
+    ),
+    "verificacion_rechazada": lambda: render_verification_decision_email_html(
+        "Ana", approved=False, what="identidad", reason="DNI borroso", link=_LINK
+    ),
 }
 
 todas = pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
@@ -119,3 +130,36 @@ def test_el_ttl_de_reset_sigue_siendo_de_horas_enteras():
     copy a minutos, no una comprobación decorativa del valor actual."""
     assert PASSWORD_RESET_TOKEN_TTL >= timedelta(hours=1)
     assert PASSWORD_RESET_TOKEN_TTL.total_seconds() % 3600 == 0
+
+
+def test_lo_que_escribe_otra_persona_no_se_inyecta_en_el_mail():
+    """El nombre del comercio lo escribe el comercio y el motivo de rechazo el
+    admin: los dos llegan a la bandeja de otra persona."""
+    html = render_shift_accepted_email_html(
+        "Ana", "Mozo/a", '<a href="https://x">Bar</a>', "hoy", _LINK
+    )
+    assert '<a href="https://x">' not in html
+    assert "&lt;a href=" in html
+    rechazo = render_verification_decision_email_html(
+        "Ana", approved=False, what="identidad", reason="<script>x</script>", link=_LINK
+    )
+    assert "<script>" not in rechazo
+
+
+def test_el_rechazo_dice_el_motivo():
+    html = render_verification_decision_email_html(
+        "Ana", approved=False, what="identidad", reason="DNI borroso", link=_LINK
+    )
+    assert "DNI borroso" in html
+
+
+@pytest.mark.parametrize("nombre", ["bienvenida_trabajador", "bienvenida_comercio"])
+def test_la_bienvenida_no_pide_lo_que_ya_se_cargo_en_el_onboarding(nombre: str):
+    """El registro lleva directo a `/bienvenida` (zona y oficio, o nombre y
+    ubicación del local). La bienvenida llega después, al activarse la
+    cuenta: hasta el 2026-09-26 volvía a pedir esos mismos pasos."""
+    html = _PLANTILLAS[nombre]()
+    for ya_hecho in ("Tu zona", "Tu oficio", "Nombre de tu local", "Completar mi perfil"):
+        assert ya_hecho not in html
+    # "cadete" no es un rubro de la app (ver WorkerSkill).
+    assert "cadete" not in html
