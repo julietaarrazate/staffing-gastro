@@ -31,6 +31,25 @@ function minutesFor(distanceKm: number, speedKmh: number): number {
 }
 
 /**
+ * Velocidad puerta a puerta de quien viaja en colectivo/subte por CABA,
+ * esperas incluidas. Es el modo más común de quien va a cubrir un turno, y el
+ * más lento de los motorizados: para "¿cuánto le falta?" conviene pecar de
+ * largo — un comercio al que le dijimos 10 minutos y pasan 20 se preocupa;
+ * al revés, no.
+ */
+const TRANSIT_SPEED_KMH = 15;
+
+/**
+ * Minutos que le faltan a alguien que viene en camino, desde su última
+ * posición (línea recta) hasta el local. `null` si ya está prácticamente
+ * ahí: mostrar "~1 min" a 100 m sugeriría una precisión que no tenemos.
+ */
+export function estimateArrivalMin(distanceKm: number): number | null {
+  if (distanceKm < 0.2) return null;
+  return minutesFor(distanceKm * ROAD_NETWORK_FACTOR, TRANSIT_SPEED_KMH);
+}
+
+/**
  * Estima los tiempos de viaje por modo a partir de la distancia en línea
  * recta (Haversine) entre origen y destino, ver `lib/map/geo.ts`.
  */

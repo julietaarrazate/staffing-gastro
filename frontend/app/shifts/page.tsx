@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
@@ -182,6 +182,24 @@ export default function MyShiftsPage() {
   );
 }
 
+/** Cada cuánto se refresca el panel mientras alguien puede venir en camino. */
+const EN_ROUTE_REFRESH_MS = 30_000;
+const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * ¿Puede este turno tener a alguien viajando ahora? Confirmado y dentro de la
+ * ventana del "va en camino": desde 2h antes del inicio (`EN_ROUTE_WINDOW` del
+ * backend) hasta 2h después, cuando el no-show automático ya lo resolvió.
+ * Se evalúa en cada tick, no al renderizar: un turno de esta noche entra en la
+ * ventana sin que la lista cambie.
+ */
+function mayBeOnTheWay(shift: Shift, now: number): boolean {
+  if (shift.status !== "confirmado" && shift.status !== "en_camino") return false;
+  if (shift.en_route_at != null) return true;
+  const start = new Date(shift.start_at).getTime();
+  return now >= start - 2 * HOUR_MS && now <= start + 2 * HOUR_MS;
+}
+
 function MyShiftsPanel() {
   const { token, user } = useRequireAuth();
   const router = useRouter();
@@ -211,23 +229,53 @@ function MyShiftsPanel() {
   // `ShiftPublishedNextSteps` para la justificación completa).
   const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  // `silent`: el refresco de fondo del "va en camino" no vuelve a mostrar el
+  // esqueleto de carga ni pisa la lista con un error pasajero de red.
+  const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await api.get<Shift[]>("/shifts/me", token);
       setShifts(data);
       setError(null);
     } catch (err) {
-      setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      if (!silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // "Va en camino": mientras algún turno pueda tener a alguien viajando, el
+  // panel se refresca solo — si no, el mapa es una foto y el comercio tiene
+  // que recargar para ver si se movió. Sólo en ese caso: un panel sin turnos
+  // por empezar no le pega al backend (la base es Neon con cuota: cada
+  // request la despierta). Y sólo con la pestaña a la vista; al volver a
+  // ella, refresca de una.
+  const shiftsRef = useRef(shifts);
+  useEffect(() => {
+    shiftsRef.current = shifts;
+  }, [shifts]);
+  const hasConfirmed = shifts.some(
+    (s) => s.status === "confirmado" || s.status === "en_camino"
+  );
+  useEffect(() => {
+    if (!hasConfirmed) return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (shiftsRef.current.some((s) => mayBeOnTheWay(s, now))) void load({ silent: true });
+    };
+    const timer = setInterval(refresh, EN_ROUTE_REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [hasConfirmed, load]);
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para loading/disabled), atrapa errores del POST (antes se
@@ -338,7 +386,7 @@ function MyShiftsPanel() {
       <QuickActions className="mt-5" actions={QUICK_ACTIONS} />
 
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {error && <ErrorBanner message={error} onRetry={() => load()} />}
 
       {/* Primera experiencia (Parte B): CTA imposible de errar + qué va a
           pasar en 3 pasos concretos. Reusa el `EmptyState` de marca (mismo

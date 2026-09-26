@@ -5,6 +5,8 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
+from app.core.geo import haversine_km
+from app.core.tz import ARG_TZ
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
@@ -62,6 +64,13 @@ PAYMENT_TOLERANCE = timedelta(hours=48)
 # recordatorio ya haya surtido efecto — pasado eso, asumir no-show.
 CHECKIN_REMINDER_DELAY = timedelta(minutes=20)
 NO_SHOW_GRACE_PERIOD = timedelta(hours=2)
+
+# "Va en camino": cuánto antes del inicio se le recuerda al trabajador que
+# avise al salir. Una hora y media cubre el viaje típico en AMBA (colectivo +
+# subte) sin llegar tan temprano que el aviso se olvide. Tiene que ser menor
+# que `EN_ROUTE_WINDOW` (2h): si no, el botón al que lleva el push todavía
+# estaría rechazando el reporte.
+DEPARTURE_REMINDER_LEAD = timedelta(minutes=90)
 
 # Escalada automática de urgencia: cuánto tiempo desde `published_at` sin
 # cubrirse antes de subirle la prioridad al turno y avisar a un círculo más
@@ -505,6 +514,31 @@ class ShiftService:
             )
         return updated
 
+    async def send_departure_reminder(self, shift_id: UUID) -> Shift:
+        """Push al trabajador para que avise al comercio cuando sale ("va en
+        camino"). Lo dispara el scheduler `DEPARTURE_REMINDER_LEAD` antes del
+        inicio de un turno CONFIRMADO. No prende nada solo: compartir la
+        ubicación sigue siendo un toque del trabajador, esto sólo le recuerda
+        que existe. Idempotente vía `departure_reminder_sent_at`."""
+        shift = await self.get_shift(shift_id)
+        shift.departure_reminder_sent_at = datetime.now(timezone.utc)
+        updated = await self._shifts.update(shift)
+        if updated.worker_profile_id is not None:
+            start_utc = updated.start_at
+            if start_utc.tzinfo is None:  # SQLite (tests) devuelve naive, en UTC
+                start_utc = start_utc.replace(tzinfo=timezone.utc)
+            start = start_utc.astimezone(ARG_TZ)
+            await self._notify_worker(
+                updated.worker_profile_id,
+                NotificationType.DEPARTURE_REMINDER,
+                f"Tu turno arranca a las {start:%H:%M}",
+                (
+                    "Cuando salgas, tocá \"Va en camino\" para que el comercio "
+                    "sepa que estás llegando."
+                ),
+            )
+        return updated
+
     async def auto_mark_no_show(self, shift_id: UUID) -> Shift:
         """Marca no-show automático (ADR-0008): lo dispara el scheduler
         cuando pasó `NO_SHOW_GRACE_PERIOD` desde `start_at` sin check-in.
@@ -701,8 +735,8 @@ class ShiftService:
             f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.value}\".",
         )
         await self._withdraw_overlapping_applications(worker_profile_id, updated)
-        # Nuevas deadlines: recordatorio de check-in / no-show alrededor del
-        # `start_at` del turno recién confirmado. Despierta al scheduler para
+        # Nuevas deadlines: recordatorio de salida, de check-in y no-show
+        # alrededor del `start_at` del turno recién confirmado. Despierta al scheduler para
         # que las agende (ver `scheduler_signal.py`).
         notify_scheduler()
         return updated
@@ -788,13 +822,46 @@ class ShiftService:
         acepta el reporte y cuándo se borra el dato son reglas de la entidad,
         no de acá.
 
-        No notifica al comercio a propósito: son reportes periódicos mientras
-        viaja, y un push por cada uno sería inusable. El comercio lo ve cuando
-        mira el turno.
+        Avisa al comercio UNA sola vez, en el primer reporte del viaje ("salió
+        para tu local"): los siguientes son periódicos mientras viaja, y un
+        push por cada uno sería inusable. Después lo ve en el mapa del panel,
+        que se refresca solo. Si el trabajador apaga y vuelve a prender, no se
+        repite: `en_route_at` sigue puesto hasta que llega o se lo desasigna.
         """
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        first_report = shift.en_route_at is None
         shift.report_en_route_location(latitude, longitude)
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        if first_report:
+            await self._notify_company_worker_left(updated, worker_profile_id)
+        return updated
+
+    async def _notify_company_worker_left(
+        self, shift: Shift, worker_profile_id: UUID
+    ) -> None:
+        name = "Tu trabajador"
+        worker = await self._workers.get_by_id(worker_profile_id)
+        if worker is not None:
+            user = await self._users.get_by_id(worker.user_id)
+            if user is not None and user.full_name:
+                name = user.full_name
+        distance = haversine_km(
+            shift.en_route_latitude, shift.en_route_longitude, shift.latitude, shift.longitude
+        )
+        # La distancia es en línea recta, igual que en el mapa: se redondea
+        # para no fingir una precisión que no tiene.
+        if distance is None:
+            where = "Ya está en viaje"
+        elif distance < 1:
+            where = "Está a menos de 1 km"
+        else:
+            where = f"Está a {distance:.1f} km".replace(".", ",")
+        await self._notify_company(
+            shift.company_id,
+            NotificationType.WORKER_EN_ROUTE,
+            f"{name} salió para tu local",
+            f"{where}. Seguilo en el turno \"{shift.title or shift.position.value}\".",
+        )
 
     async def check_in(
         self, worker_profile_id: UUID, shift_id: UUID, latitude: float, longitude: float

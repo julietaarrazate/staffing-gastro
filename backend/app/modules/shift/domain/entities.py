@@ -107,6 +107,11 @@ class Shift:
     # entidad no tiene shift_id, ver notification/domain/entities.py).
     checkin_reminder_sent_at: datetime | None = None
 
+    # "Va en camino": cuándo se le recordó al trabajador que avise al salir
+    # (`DEPARTURE_REMINDER_LEAD` antes del inicio). Mismo motivo que el campo
+    # de arriba: sin él, el scheduler lo reenviaría en cada pasada.
+    departure_reminder_sent_at: datetime | None = None
+
     # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
     # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
     # (ADR-0003 no se toca), pero comparten `event_id` para poder agruparlos
@@ -340,10 +345,14 @@ class Shift:
         Se llama en cada salida del "va en camino": al llegar y en toda
         transición que desasigne al trabajador. El dato deja de existir apenas
         deja de tener propósito — no queda esperando a que algo lo limpie
-        después."""
+        después.
+
+        El recordatorio de salida va con el viaje: si el turno se reabre y lo
+        toma otra persona, a ella también le toca que se lo recuerden."""
         self.en_route_latitude = None
         self.en_route_longitude = None
         self.en_route_at = None
+        self.departure_reminder_sent_at = None
 
     def check_in(self, latitude: float, longitude: float) -> None:
         """CONFIRMADO/EN_CAMINO → CHECK_IN: el trabajador llega y marca su

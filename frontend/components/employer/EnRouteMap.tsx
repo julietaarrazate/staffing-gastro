@@ -13,6 +13,10 @@
  *
  * `en_route_at` se muestra siempre: un punto sin "hace cuánto" es peor que no
  * tenerlo, porque una posición vieja se lee como actual.
+ *
+ * El tiempo estimado es el dato grande porque es la pregunta real ("¿llega a
+ * las 20?"), y lleva "~" porque sale de la línea recta y una velocidad de
+ * colectivo, no de un ruteo (ver `estimateArrivalMin`).
  */
 
 import { useMemo } from "react";
@@ -20,6 +24,7 @@ import { Layer, Marker, Source } from "@vis.gl/react-maplibre";
 import MapView from "@/components/map/MapView";
 import { formatAgo } from "@/lib/datetime";
 import { haversineKm } from "@/lib/map/geo";
+import { estimateArrivalMin } from "@/lib/map/travel-time";
 
 const SOURCE_ID = "en-route-line";
 
@@ -45,6 +50,7 @@ export default function EnRouteMap({
     [workerLatitude, workerLongitude],
     [venueLatitude, venueLongitude]
   );
+  const arrivalMin = estimateArrivalMin(distanceKm);
 
   // Encuadre: el punto medio entre los dos, para que ninguno quede fuera.
   const center: [number, number] = [
@@ -108,14 +114,19 @@ export default function EnRouteMap({
         </Marker>
       </MapView>
 
-      <div className="flex items-baseline justify-between gap-2 bg-card px-3 py-2">
-        <p className="text-sm font-semibold text-ink">
-          {workerName ? `${workerName} va en camino` : "Va en camino"}
-        </p>
-        <p className="text-xs text-ink/60">
-          a {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
-          {" · "}
-          {formatAgo(reportedAt)}
+      <div className="flex items-center justify-between gap-3 bg-card px-3 py-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-ink">
+            {workerName ? `${workerName} va en camino` : "Va en camino"}
+          </p>
+          <p className="text-xs text-ink/60">
+            a {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
+            {" · "}
+            {formatAgo(reportedAt)}
+          </p>
+        </div>
+        <p className="shrink-0 text-right text-sm font-bold tabular-nums text-ink">
+          {arrivalMin === null ? "Llegando" : `~${arrivalMin} min`}
         </p>
       </div>
     </div>
