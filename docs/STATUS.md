@@ -5,7 +5,10 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-24 (**aviso urgente desde la primera tanda**:
+*Última actualización: 2026-09-26 (**segunda tanda de Dependabot**: los 10
+PRs #363–#372 probados juntos y agrupados en uno, con `@types/node` en 22 y no
+en 26; ver "Dependencias al día (2026-09-26)" más abajo.)*
+Anterior: 2026-09-24 (**aviso urgente desde la primera tanda**:
 un turno publicado ya urgente avisa "¡Urgente!" a los trabajadores cercanos
 sin esperar a la escalada de los 8 minutos; el frontend declara el tipo
 `urgent_shift_nearby`. Cierra lo que había quedado del PR #72. Antes, el
@@ -675,6 +678,29 @@ Dos trampas que conviene no repetir:
    `<MotionConfig isValidProp>`). El repo no lo usa. Aun así el bump toca
    Sheet, Modal y todas las transiciones con `AnimatePresence`, así que se
    miró renderizado en claro y en oscuro antes de mergear.
+
+### Dependencias al día (2026-09-26) — segunda tanda de Dependabot
+
+Dependabot abrió 10 PRs nuevos el 2026-09-24 (#363–#372). Se probaron todos
+juntos sobre el `main` del 2026-09-26 y se agruparon en uno, igual que la
+primera tanda. Probados así: pytest 513/513, tsc, Vitest 125/125, build y
+Playwright 121/121.
+
+- **Backend:** sqlalchemy 2.0.36 → 2.0.54, aiosqlite 0.20.0 → 0.22.1,
+  alembic 1.14.0 → 1.20.0, sentry-sdk 2.19.2 → 2.69.2, uvicorn 0.52.1 →
+  0.53.0.
+- **Frontend:** vitest 4 → 5, @sentry/nextjs 10.70 → 10.75, @playwright/test
+  1.63, @vis.gl/react-maplibre 8.1.3.
+- **`@types/node` va a 22, no a 26 (#371).** Los tipos tienen que seguir a la
+  versión de Node que corre de verdad, que es 22. Con 26, TypeScript aceptaría
+  APIs que en producción no existen. Vitest 5 pide `@types/node` 22 o más, así
+  que el 20 que había tampoco servía. `.github/dependabot.yml` ahora ignora
+  las subas mayores de `@types/node`: se sube a mano cuando se sube Node.
+
+Una trampa del entorno de las sesiones: el Chromium preinstalado es de una
+versión anterior de Playwright, así que con 1.63 los E2E locales fallan con
+"Executable doesn't exist" sin que haya nada roto. En CI no pasa, porque ahí
+se instala el navegador que corresponde.
 
 ### Expediente DNDA (PR #310, draft) — ✅ presentado el 2026-09-23
 
