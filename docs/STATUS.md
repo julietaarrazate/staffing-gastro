@@ -5,7 +5,17 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-26 (**segunda tanda de Dependabot**: los 10
+*Última actualización: 2026-09-26 (**"Descubrir rápido" ya no decide con el
+gesto**: deslizar recorre el mazo como un carrusel —izquierda al siguiente,
+derecha al anterior— y postularse es el botón "Postularme" debajo de la
+tarjeta, con flechas, contador "2 de 5" y ← → del teclado. No hay descarte: el
+que no sirve se pasa de largo. Pedido de Julieta: antes un swipe te postulaba
+o te sacaba el turno y no se podía comparar. Vuelve una fila de botones bajo
+la tarjeta, que el 2026-08-16 se había sacado por el estilo OkCupid: sin ella
+no hay forma de postularse sin gesto. Ojo si se toca `SwipeDeck`: la carta
+animada **no** lleva `key` por turno; con `key` se remontaba en medio de la
+animación y el mazo quedaba trabado — lo cubre `e2e/descubrir-rapido.spec.ts`.
+Antes, el mismo día: **segunda tanda de Dependabot**: los 10
 PRs #363–#372 probados juntos y agrupados en uno, con `@types/node` en 22 y no
 en 26; ver "Dependencias al día (2026-09-26)" más abajo.)*
 Anterior: 2026-09-24 (**aviso urgente desde la primera tanda**:
@@ -52,7 +62,8 @@ no, verde bosque con el ícono del rubro) y fila **"Cerca tuyo"**
 **Decisión de producto de Julieta:** el mazo tipo Tinder NO se elimina — queda
 como **"Descubrir rápido"** (`DiscoverDeck`, overlay a pantalla completa
 portado a `document.body`, con el mismo `useFocusTrap` que Modal/Sheet y
-Escape para cerrar), para quien quiere decidir en segundos. Desktop
+Escape para cerrar), para quien quiere decidir en segundos (desde
+2026-09-26 deslizar sólo recorre y postularse es un botón, ver arriba). Desktop
 mantiene la grilla con Postularme/No gracias. Guardar un turno sigue
 disponible desde la tarjeta Recomendado (link "estirado" + botón encima, sin
 anidar un botón en un link). Helper nuevo `formatShiftWhen` ("Hoy · 20:00 –
