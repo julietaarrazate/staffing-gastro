@@ -16,7 +16,7 @@ asyncpg==0.31.0
 alembic==1.20.0
 
 # --- Seguridad / Auth ---
-pyjwt==2.13.0
+pyjwt==2.14.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
 python-multipart==0.0.32
