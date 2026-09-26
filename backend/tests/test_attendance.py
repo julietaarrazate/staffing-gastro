@@ -621,3 +621,31 @@ async def test_worker_name_is_not_exposed_to_other_workers(client: AsyncClient):
     feed = await client.get("/api/v1/shifts/feed", headers=worker_headers)
     assert feed.status_code == 200
     assert all(s["worker_name"] is None for s in feed.json())
+
+
+async def test_first_location_report_notifies_employer_once(client: AsyncClient):
+    """El comercio se entera de que el trabajador salió sin tener que estar
+    mirando el panel — pero una sola vez: los reportes siguientes son
+    periódicos y un push por cada uno sería inusable."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp_notif@staffya.com",
+        "enroute_w_notif@staffya.com",
+        worker_name="Juana Pérez",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    for lat in (-34.60, -34.59, -34.58):
+        await client.post(
+            f"/api/v1/shifts/{shift_id}/en-route",
+            headers=worker_headers,
+            json={"latitude": lat, "longitude": -58.40},
+        )
+    notifications = await client.get("/api/v1/notifications", headers=employer_headers)
+    en_route = [n for n in notifications.json() if n["type"] == "worker_en_route"]
+    assert len(en_route) == 1
+    assert en_route[0]["title"] == "Juana Pérez salió para tu local"
+    # El aviso es para el comercio: al trabajador no le llega nada.
+    mine = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "worker_en_route" for n in mine.json())

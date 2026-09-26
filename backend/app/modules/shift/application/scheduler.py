@@ -3,8 +3,10 @@
 Cuatro chequeos independientes, un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
-   manda un recordatorio push de "¿ya llegaste?" una sola vez, o marca
-   no-show automático si ya pasó el período de gracia.
+   antes del inicio, le recuerda al trabajador que avise al salir ("va en
+   camino", `DEPARTURE_REMINDER_LEAD`); después, manda un recordatorio push
+   de "¿ya llegaste?" una sola vez, o marca no-show automático si ya pasó el
+   período de gracia.
 2. **Escalada de urgencia:** turnos abiertos (PUBLICADO/BUSCANDO_PERSONAL)
    que no se cubren rápido — los marca `urgent` y avisa a un círculo más
    amplio de candidatos (`ShiftService.escalate_urgency`).
@@ -72,6 +74,7 @@ from app.modules.notification.infrastructure.repositories import (
 )
 from app.modules.shift.application.services import (
     CHECKIN_REMINDER_DELAY,
+    DEPARTURE_REMINDER_LEAD,
     ESCALATION_DELAY,
     NOT_COVERED_GRACE_NORMAL,
     NOT_COVERED_GRACE_URGENT,
@@ -166,6 +169,20 @@ async def run_attendance_check() -> datetime | None:
             reminder_at = start + CHECKIN_REMINDER_DELAY
             no_show_at = start + NO_SHOW_GRACE_PERIOD
             elapsed = now - start
+            if elapsed < timedelta(0):
+                # Todavía no empezó: lo único que puede tocarle es el
+                # recordatorio de salida ("va en camino"), y sólo si no lo
+                # recibió y no salió ya (si ya comparte ubicación, recordarle
+                # que avise sería ruido).
+                if shift.departure_reminder_sent_at is None and shift.en_route_at is None:
+                    departure_at = start - DEPARTURE_REMINDER_LEAD
+                    if now >= departure_at:
+                        await service.send_departure_reminder(shift.id)
+                    else:
+                        next_deadline = _earlier(next_deadline, departure_at)
+                        continue
+                next_deadline = _earlier(next_deadline, reminder_at)
+                continue
             if elapsed >= NO_SHOW_GRACE_PERIOD:
                 await service.auto_mark_no_show(shift.id)
                 # Se resolvió (salió de CONFIRMADO/EN_CAMINO): no aporta deadline.
