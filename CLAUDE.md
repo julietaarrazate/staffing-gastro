@@ -94,79 +94,12 @@ repita no es una regla.
 
 ## Dónde está el estado del proyecto
 
-> Última actualización: **2026-09-07**.
->
-> **Estado al día de hoy: `docs/STATUS.md`, no este bloque.** Y dentro de ese
-> archivo, la sección **"Qué sigue (estado vigente)"** es la única lista que se
-> edita en el lugar: ahí está, en orden, qué agarrar si arrancás sin otra
-> instrucción.
->
-> En una línea: el frente vigente fue el rediseño profundo pedido por brief
-> (rebrand al ámbar, refinamiento del design system, mapa con el pago en el
-> pin, "va en camino") sobre los PRs #315–#324. Lo único abierto que destraba
-> algo es **conectar `oido.com.ar`** — ver "Pendiente de la operadora" abajo.
->
-> Todo lo que sigue en este bloque es **histórico** (hasta 2026-08-09, PRs
-> #166–#170): sirve para entender cómo se llegó acá, no para saber qué está
-> pasando. Un estado vigente escrito en el medio de un archivo que sólo crece
-> se vuelve mentira sin que nadie lo note; por eso el estado vive en
-> `docs/STATUS.md` y acá queda el rastro.
->
-> **Frente abierto (histórico, 2026-08-09): QA en vivo de Julieta probando la app real** (comercio,
-> trabajador y admin, mobile). Mergeado hasta ahora: batch de bugs (PR #166),
-> fix de perfil admin, mapa/búsqueda de sólo lectura para admin + fotos en
-> `/admin` + wordmark del footer (PR #168), y la causa REAL de "la X del
-> Sheet no cierra" (PR #169) — dos fixes previos al `drag` de Framer Motion
-> no alcanzaban porque el problema nunca fue el drag: `Sheet`/`Modal` no
-> portaban a `document.body`, así que un `Card` ancestro con `whileTap` les
-> rompía el *containing block* al `position: fixed`. Fix real: `createPortal`
-> en ambos — ver el detalle completo (incluida la nota de proceso sobre cómo
-> se perdieron horas antes de encontrar la causa de fondo) en
-> [docs/STATUS.md](./docs/STATUS.md). Mismo PR: el mapa panéaba entero al
-> arrastrar el pin de ubicación (fix: deshabilitar `dragPan` durante el
-> arrastre del marker) y el CV del trabajador ahora acepta subir un archivo
-> (PDF/Word/foto) además de pegar un link. Y las cuentas invitado
-> compartidas (`invitado.trabajador@oido.beta`/`invitado.comercio@oido.beta`)
-> ya no aparecen en `/matching/search` (usado por `/search` y `/map` de un
-> comercio/admin real) — se filtran por email en
-> `SqlAlchemyCandidateRepository.list_available` (PR #170); la exploración
-> propia de un invitado no se toca. Julieta también pidió explícitamente una
-> auditoría de QA/performance/UX/UI/diseño más sistemática ("la app está a un
-> 40%, llevarla a 90%") — es una línea de trabajo continua, no una tarea
-> puntual; seguir por prioridad desde `docs/TECH_DEBT.md`.
->
-> **Deuda técnica por prioridad (en curso, 2026-08-09):** con el frente de QA
-> de Julieta al día, se retomó `docs/TECH_DEBT.md` por prioridad. **S1
-> (tokens de sesión) resuelto**: el refresh token dejó de viajar por
-> `localStorage`/body de respuesta — ahora es una cookie `httpOnly`
-> (`identity/api/routes.py::_set_refresh_cookie`), así que un XSS ya no puede
-> robarlo. Detalle completo y un punto operativo que ahora importa más
-> (`ENVIRONMENT=production` en Render) en `docs/TECH_DEBT.md` S1 y
-> "Pendiente de la operadora" más abajo. **F4 (accesibilidad) resuelto**:
-> `eslint-config-next` ya traía `jsx-a11y` pero sólo con 6 de ~30 reglas
-> activas; se prendió el set `recommended` completo en `eslint.config.mjs` y
-> salieron 16 errores reales (labels de formulario sin asociar a su control,
-> tarjetas de turno en `/map` sin soporte de teclado) — corregidos con el
-> mismo criterio que T5 (arreglar lo genuino, documentar lo que se descarta
-> con motivo). Detalle en `docs/TECH_DEBT.md` F4. **T2 (tests unitarios de
-> frontend) resuelto**: Vitest + Testing Library (`npm run test:unit`, ahora
-> en CI), 48 tests apuntando a lógica con valor real de romperse en silencio
-> (zona horaria Argentina, tabla de "única acción" del panel del comercio,
-> Haversine/tiempos de viaje) y un componente con estado real
-> (`EditableName`). Detalle en `docs/TECH_DEBT.md` T2.
->
-> **Cerrada (2026-08-05):** auditoría de responsive/desktop pantalla por
-> pantalla (Julieta usa la app en la web, no sólo mobile, y varias pantallas
-> quedaban "precarias" — mobile-first sin adaptar a pantallas anchas).
-> Las 12 pantallas quedaron resueltas: `/map` y `/search` (panel lateral +
-> mapa), `/feed`, `/shifts`, `/my-shifts`, `/shifts/[id]/candidates` y
-> `/admin` (listas de tarjetas → grilla 2-3 columnas), `/chats` (layout de
-> inbox), `/profile` y `/workers/[id]` (dos columnas tipo dashboard),
-> `/shifts/new` (panel de vista previa fijo al lado del wizard),
-> `/companies/[id]` (mapa + "cómo llegar" a un costado cuando hay
-> coordenadas) y `/subscription` (la grilla ya estaba lista, sólo faltaba
-> ensanchar el contenedor). Detalle completo y el patrón del problema en
-> [docs/STATUS.md](./docs/STATUS.md).
+El estado vive en `docs/STATUS.md`, no en este archivo. Dentro de ese
+archivo, la sección **"Qué sigue (estado vigente)"** es la única lista que se
+edita en el lugar: ahí está, en orden, qué agarrar si arrancás sin otra
+instrucción. Lo pendiente de la operadora está más abajo, en "Pendiente de la
+operadora". Un estado escrito acá, en el medio de un archivo que sólo crece,
+se vuelve mentira sin que nadie lo note.
 
 ## Contexto en 30 segundos
 
@@ -224,7 +157,10 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
 - **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
   0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
-  mapa · 0007 no-show/cancelación tardía manual · 0012 pago de referencia
+  mapa · 0007 no-show/cancelación tardía manual · 0008 asistencia
+  simplificada y no-show automático · 0009 escalada automática de urgencia ·
+  0010 modelo de confianza en cuatro dominios · 0011 segunda y tercera tinta ·
+  0012 pago de referencia
   (el "match" del mapa y el aviso de pago fuera de mercado al comercio) ·
   0013 verificación del comercio (constancia de AFIP; por qué NO es
   `cuit_verificado` y por qué no se guarda el número) · 0014 "Disponible
@@ -341,8 +277,7 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de
   identidad. El oscuro es una elección explícita del usuario, y desde v5.0
   (#345) es un **modo oscuro real**: el lienzo también se oscurece
-  (`#17130f`), no sólo las tarjetas. (Hasta el 2026-09-24 esta línea decía
-  "el lienzo crema nunca" — era del sistema anterior.)
+  (`#17130f`), no sólo las tarjetas.
 
 ## Antes de modificar código — checklist
 
@@ -375,18 +310,16 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
 
 ## Calidad — antes de commitear
 
-- Backend: `pytest -q` (verde). Suite de referencia: **270 tests**
-  (verificado con `pytest -q --collect-only` el 2026-08-04, tras el
-  endurecimiento de producción; cambia con cada feature — no memorizarlo
-  como constante, reverificar antes de citarlo).
-- Frontend: `npx tsc --noEmit` **y** `npm run build`.
-- E2E: `npx playwright test` (Playwright, API mockeada, sin backend real).
-  Suite de referencia: **25 tests** en 14 specs (`frontend/e2e/`, verificado
-  con `npx playwright test --list` el 2026-08-04), corre en CI en cada
-  PR/push a `main` junto con `pytest`/`tsc`/`build`
-  (`.github/workflows/ci.yml`).
-- `npm run lint` **no** corre en CI (deuda conocida, ver `docs/TECH_DEBT.md`
-  T5) — no lo asumas como gate aunque el checklist de sesión lo mencione.
+Lo mismo que corre CI (`.github/workflows/ci.yml`), y en verde:
+
+- Backend: `pytest -q`.
+- Frontend: `npx tsc --noEmit`, `npm run lint`, `npm run test:unit` (Vitest)
+  y `npm run build`.
+- E2E: `npm run test:e2e` (Playwright, API mockeada, sin backend real,
+  `frontend/e2e/`).
+- Si vas a citar cuántos tests hay, contalos en el momento
+  (`pytest -q --collect-only`, `npx playwright test --list`): el número
+  cambia con cada feature.
 - Reportá el resultado **real**, no el esperado. Si algo falla, se dice.
 
 ## Deuda conocida viva (no reabrir sin necesidad)
@@ -395,45 +328,11 @@ Catálogo completo y priorizado en [docs/TECH_DEBT.md](./docs/TECH_DEBT.md);
 patrones de bugs ya resueltos (para no reintroducirlos) en
 [docs/BUGS.md](./docs/BUGS.md). Lo más relevante para no sorprenderse:
 
-- ~~**Postulaciones de los no-elegidos quedan "pendiente" para siempre**~~
-  (TECH_DEBT P5): **resuelto 2026-07-23** — al asignar (o cancelar el turno)
-  los no elegidos pasan a RECHAZADA de forma silenciosa, y si el turno se
-  reabre (rechazo/cancelación/no-show del asignado) vuelven a PENDIENTE. Ver
-  `ShiftService._reject_pending_applicants`/`_restore_rejected_applicants`.
 - **Passkeys (WebAuthn) diseñado, no construido** — ver arriba y
   `docs/reference/ACCESO_MODERNO.md` Feature 3 para el diseño completo antes de
   arrancar (entidad, endpoints, migración, tests con Virtual Authenticator).
-- ~~**`docs/planning/PULIDO_ROADMAP.md` batch C3 (confianza/conversión: SEO,
-  skeletons, a11y) sin arrancar.**~~ **Resuelto 2026-08-11** — esta línea
-  estaba desactualizada: al auditar de nuevo, SEO (sitemap/robots/metadata),
-  estados de error (`EmptyState` con retry) y a11y (F4, `jsx-a11y`) ya
-  estaban hechos por trabajo de otras sesiones; sólo faltaba el skeleton de
-  `/profile` (mostraba un spinner centrado en vez del mismo estilo de
-  skeleton que `/feed`/`/shifts`), ya corregido. Detalle en
-  `docs/planning/PULIDO_ROADMAP.md` §C3. **C4 (onboarding post-registro) resuelto
-  para el comercio 2026-08-10** (auditoría de producto, a partir de una
-  referencia real que pasó Julieta de otra app del rubro): `/bienvenida`
-  ahora también atiende al rol `employer` (antes sólo al `worker`) — 2
-  pasos, nombre+logo (logo opcional, misma regla de fricción que la foto
-  del trabajador) y ubicación (reusa `MapAddressPicker`, ADR-0006). Antes,
-  el comercio caía directo en `/shifts` sin haber cargado nada — los
-  candidatos veían "Un comercio cerca tuyo" en vez del nombre real. Ver
-  `frontend/app/bienvenida/page.tsx`. **Corregido 2026-08-11** (Julieta,
-  prueba en vivo con cuenta invitada): terminaba en `/shifts/new` directo
-  ("Publicar mi primer turno"), empujando a publicar sin pensar si hacía
-  falta, y "Volver" sólo daba vueltas entre los 2 pasos sin salida real a
-  la app. Ahora termina en `/shifts` (el panel, con "+ Publicar"/
-  "+ Evento" visibles) y el paso de ubicación suma "Cargar la ubicación
-  después" (sólo `name` es obligatorio en el backend).
-- Otros ítems 🔴/🟠 abiertos en `TECH_DEBT.md`: `npm run lint` fuera de CI
-  (~20 errores/10 warnings baseline), formularios con `<input>` crudo en 4
-  pantallas (F1). (Corregido 2026-08-09: las dos líneas que decían "no-show
-  automático por cron, hoy sólo manual" y "`on_time_payment_rate`/
-  `events_published` del comercio nunca se actualizan" estaban
-  desactualizadas — ambas ya están implementadas, ver
-  `backend/app/modules/shift/application/scheduler.py` [ADR-0008] y
-  `backend/app/modules/company/infrastructure/repositories.py:121-139`
-  respectivamente. Hallazgo de la auditoría de producto/UI 2026-08-09.)
+- **Pagos reales (TECH_DEBT P4)**: la mensualidad al comercio sigue siendo un
+  placeholder sin cobro real, con el enforcement apagado para la beta.
 
 ## Pendiente de la operadora (Julieta — no es trabajo de código)
 
@@ -533,21 +432,10 @@ toda vista previa y el sitemap apuntaban ahí.
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
 
 **Otros pendientes operativos (no env vars):**
-- **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02, aún sin
-  conectar): 3 pasos, ninguno de código.
-  1. En Vercel → proyecto `staffing-gastro` → Settings → Domains → agregar
-     `oido.com.ar` y `www.oido.com.ar`. Vercel da los registros DNS exactos
-     (normalmente A `oido.com.ar` → `76.76.21.21`, CNAME `www` →
-     `cname.vercel-dns.com`); cargarlos en el panel de DNS de NIC.ar. SSL lo
-     emite Vercel solo una vez que el DNS propaga.
-  2. En Render (backend) agregar el dominio nuevo a `CORS_ORIGINS` (sin sacar
-     el `.vercel.app` todavía) y setear `FRONTEND_URL=https://oido.com.ar`
-     (arma los links de los mails transaccionales, hoy cae al default de
-     `core/config.py`).
-  3. En Google Cloud Console, agregar `https://oido.com.ar` y
-     `https://www.oido.com.ar` a "Authorized JavaScript origins" del Client
-     ID de Google Sign-In — si no, el botón de Google deja de andar en el
-     dominio nuevo.
+- **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02): los
+  pasos para conectarlo están arriba, en "Conectar `oido.com.ar`". Dato útil
+  para el paso de Vercel: normalmente pide A `oido.com.ar` → `76.76.21.21` y
+  CNAME `www` → `cname.vercel-dns.com`, que se cargan en el DNS de NIC.ar.
   El **dominio de envío propio en Resend ya está**: verificado contra su API
   el 2026-09-09 — `oido.com.ar` en estado `verified` (región `sa-east-1`) y
   los mails salen de `Oído <hola@oido.com.ar>`, no del sandbox `resend.dev`.
@@ -637,8 +525,7 @@ vea bien.
   Iconografía **Lucide**, sensación de app nativa. Un solo acento ámbar por
   pantalla. Todos los fondos pasan por tokens de `globals.css` (no hay grises
   hardcodeados). **Fuente de verdad: `docs/design-system/color-system.md` y
-  `typography.md`**; `docs/design/COLOR_SYSTEM.md` es el registro histórico
-  (hasta el 2026-09-24 este párrafo describía el crema `#FFF8F0` de v3.0). El
+  `typography.md`**; `docs/design/COLOR_SYSTEM.md` es el registro histórico. El
   isotipo es la **mano ahuecada sobre la oreja**, SVG vectorial final del
   diseñador (ver `frontend/components/Logo.tsx`).
 - **Adentro de una tarjeta negra la proporción se invierte.** La regla del "un
@@ -658,11 +545,8 @@ prompt de arranque:
 > es obligatorio— y después `docs/STATUS.md` (bitácora viva, qué está en vuelo
 > y qué sigue) antes de tocar nada. Si tu tarea toca deuda conocida, revisá
 > también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Reportá el resultado real de
-> `pytest -q` / `tsc --noEmit` / `npm run build` (y Playwright si tocaste
-> frontend) — no el esperado.
+> lo que corre CI (ver "Calidad — antes de commitear") — no el
+> esperado.
 
-No hay trabajo de producto bloqueado salvo lo listado en "Pendiente de la
-operadora" arriba. La auditoría de responsive/desktop pantalla por pantalla
-(ver arriba) ya se cerró — no hay un frente puntual abierto ahora mismo; si
-no hay otra instrucción, mirá `docs/TECH_DEBT.md` por prioridad antes de
-arrancar algo nuevo.
+Si no hay otra instrucción, qué agarrar está en `docs/STATUS.md` → "Qué
+sigue (estado vigente)".
