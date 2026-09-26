@@ -28,6 +28,7 @@ from app.modules.identity.infrastructure.repositories import (
     SqlAlchemyEmailVerificationTokenRepository,
     SqlAlchemyPasswordResetTokenRepository,
     SqlAlchemyRefreshSessionRepository,
+    SqlAlchemyTermsAcceptanceRepository,
     SqlAlchemyUserRepository,
 )
 from app.modules.notification.api.dependencies import get_email_sender
@@ -57,6 +58,7 @@ def get_identity_service(
         email_sender,
         google_verifier,
         email_verification_tokens,
+        SqlAlchemyTermsAcceptanceRepository(session),
     )
 
 

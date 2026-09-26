@@ -15,6 +15,10 @@ class RegisterCommand:
     password: str
     full_name: str
     role: UserRole
+    # Si la persona aceptó términos y privacidad en el formulario. La API
+    # exige que sea True; los scripts internos (seed de demo) no lo pasan, y
+    # entonces no queda constancia, porque nadie aceptó nada.
+    accepted_terms: bool = False
 
 
 @dataclass(frozen=True)
@@ -42,6 +46,8 @@ class GoogleLoginCommand:
 
     id_token: str
     role: UserRole | None = None
+    # Igual que en `RegisterCommand`: sólo cuenta si se crea una cuenta nueva.
+    accepted_terms: bool = False
 
 
 @dataclass(frozen=True)

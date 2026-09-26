@@ -3,14 +3,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Logo from "@/components/Logo";
 import { ChevronLeftIcon } from "@/components/icons";
+import { LEGAL_LAST_UPDATED } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Términos y Condiciones",
   description:
     "Términos y Condiciones de uso de Oído: qué es la plataforma, cuentas, publicación y postulación a turnos, reputación, suscripciones y más.",
 };
-
-const LAST_UPDATED = "Última actualización: julio 2026";
 
 /** Bloque de sección: título + párrafos cortos, sin juridiqués. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -44,7 +43,7 @@ export default function TerminosPage() {
           <h1 className="font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
             Términos y Condiciones
           </h1>
-          <p className="mt-1 text-sm text-ink/40">{LAST_UPDATED}</p>
+          <p className="mt-1 text-sm text-ink/40">{LEGAL_LAST_UPDATED}</p>
 
           <Section title="Qué es Oído">
             <p>

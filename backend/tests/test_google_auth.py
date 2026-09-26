@@ -76,7 +76,7 @@ async def test_google_login_new_user_with_role_creates_account(client: AsyncClie
         )
     )
     response = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker"}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True}
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -108,7 +108,7 @@ async def test_google_login_existing_user_logs_in(client: AsyncClient):
     )
     # Se manda `role` para probar que se ignora cuando el email ya existe.
     response = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "employer"}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "employer", "accepted_terms": True}
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -159,7 +159,7 @@ async def test_google_account_has_no_usable_local_password(client: AsyncClient):
         )
     )
     created = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker"}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True}
     )
     assert created.status_code == 200
 
@@ -181,7 +181,7 @@ async def test_la_cuenta_nueva_con_google_recibe_la_bienvenida(client: AsyncClie
                 GoogleIdentity(email="bienve@gmail.com", email_verified=True, full_name="Bien Venida")
             )
         )
-        await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker"})
+        await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True})
         assert [e.to for e in fake.sent] == ["bienve@gmail.com"]
         assert "Bienvenido" in fake.sent[0].subject
 
