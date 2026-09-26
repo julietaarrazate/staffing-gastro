@@ -79,6 +79,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         no_show_at=model.no_show_at,
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
+        departure_reminder_sent_at=model.departure_reminder_sent_at,
         event_id=model.event_id,
         event_name=model.event_name,
         published_at=model.published_at,
@@ -110,6 +111,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
+    model.departure_reminder_sent_at = shift.departure_reminder_sent_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
     model.escalated_at = shift.escalated_at

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.modules.shift.application import scheduler
 from app.modules.shift.application.services import (
     CHECKIN_REMINDER_DELAY,
+    DEPARTURE_REMINDER_LEAD,
     ESCALATION_DELAY,
     NO_SHOW_GRACE_PERIOD,
 )
@@ -408,3 +409,69 @@ async def test_notify_scheduler_wakes_a_sleeping_loop():
     # Si la señal funciona, el task termina ya; si no, este wait_for expira.
     await asyncio.wait_for(task, timeout=2.0)
     assert task.done()
+
+
+# --- Recordatorio de salida ("va en camino") ---------------------------------
+
+
+async def _confirmed_shift_starting_in(
+    client: AsyncClient, emp_email: str, worker_email: str, *, within: timedelta
+) -> tuple[str, dict, dict]:
+    """Turno CONFIRMADO cuyo `start_at` es dentro de `within`."""
+    return await _confirmed_shift_starting_ago(client, emp_email, worker_email, ago=-within)
+
+
+async def test_sends_departure_reminder_before_shift(client, session_factory, monkeypatch):
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    _shift_id, _emp, worker_headers = await _confirmed_shift_starting_in(
+        client,
+        "dep_emp1@staffya.com",
+        "dep_w1@staffya.com",
+        within=DEPARTURE_REMINDER_LEAD - timedelta(minutes=5),
+    )
+
+    await scheduler.run_attendance_check()
+    await scheduler.run_attendance_check()
+
+    notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    reminders = [n for n in notifications.json() if n["type"] == "departure_reminder"]
+    # Una sola vez, aunque el scheduler pase dos veces.
+    assert len(reminders) == 1
+
+
+async def test_departure_reminder_waits_until_lead_time(client, session_factory, monkeypatch):
+    """Tres horas antes todavía no: el push se olvidaría antes de salir. La
+    deadline que devuelve es justo el momento de mandarlo."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, _emp, worker_headers = await _confirmed_shift_starting_in(
+        client, "dep_emp2@staffya.com", "dep_w2@staffya.com", within=timedelta(hours=3)
+    )
+
+    next_deadline = await scheduler.run_attendance_check()
+
+    notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "departure_reminder" for n in notifications.json())
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker_headers)
+    start = datetime.fromisoformat(shift.json()["start_at"]).replace(tzinfo=None)
+    assert next_deadline == start - DEPARTURE_REMINDER_LEAD
+
+
+async def test_no_departure_reminder_if_already_on_the_way(client, session_factory, monkeypatch):
+    """Si ya prendió "va en camino" por su cuenta, recordárselo es ruido."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, _emp, worker_headers = await _confirmed_shift_starting_in(
+        client,
+        "dep_emp3@staffya.com",
+        "dep_w3@staffya.com",
+        within=DEPARTURE_REMINDER_LEAD - timedelta(minutes=5),
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/en-route",
+        headers=worker_headers,
+        json={"latitude": -34.60, "longitude": -58.40},
+    )
+
+    await scheduler.run_attendance_check()
+
+    notifications = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "departure_reminder" for n in notifications.json())
