@@ -224,6 +224,10 @@ class IdentityService:
             is_verified=True,
         )
         user = await self._users.add(user)
+        # La bienvenida se manda cuando la cuenta queda activa. Con email eso
+        # pasa al confirmarlo (`verify_email`); con Google la cuenta ya nace
+        # confirmada, así que es acá. Antes estas cuentas no la recibían nunca.
+        await self._send_welcome_email(user)
         return await self._issue_tokens(user)
 
     async def refresh(self, refresh_token: str) -> TokenPair:
@@ -392,16 +396,20 @@ class IdentityService:
             )
 
     async def _send_welcome_email(self, user: User) -> None:
-        """Bienvenida con próximos pasos — se manda una sola vez, al
-        confirmar el email por primera vez (ver `verify_email`), no al
-        registrarse: mandar dos emails (confirmación + bienvenida) en el
-        mismo instante del registro se siente a spam, y recién ahí la cuenta
-        queda activa de verdad. Best-effort, mismo contrato que el resto."""
-        profile_link = f"{settings.frontend_url}/bienvenida"
+        """Bienvenida con próximos pasos — se manda una sola vez, cuando la
+        cuenta queda activa: al confirmar el email por primera vez (ver
+        `verify_email`) o al crearla con Google (ver `authenticate_google`).
+        No al registrarse con email: dos mails (confirmación + bienvenida) en
+        el mismo instante se sienten a spam. Best-effort, mismo contrato que
+        el resto."""
         if user.role == UserRole.EMPLOYER:
-            html = render_welcome_employer_email_html(user.full_name, profile_link)
+            html = render_welcome_employer_email_html(
+                user.full_name, f"{settings.frontend_url}/shifts/new"
+            )
         else:
-            html = render_welcome_worker_email_html(user.full_name, profile_link)
+            html = render_welcome_worker_email_html(
+                user.full_name, f"{settings.frontend_url}/feed"
+            )
         try:
             await self._email_sender.send(
                 to=user.email,

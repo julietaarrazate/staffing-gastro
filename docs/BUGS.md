@@ -38,6 +38,12 @@ Staffya no tenía hasta este fix.
   resultados fuera de `node_modules`). El único uso de UTC en fechas (`app/shifts/new/page.tsx`,
   duplicar turno +7 días con `setUTCDate`) es correcto a propósito: Argentina no tiene horario de
   verano, así que +7 días en UTC preserva la hora de pared ART sin ambigüedad.
+- **Encontrado (2026-09-26): una hora que ve el usuario, formateada en UTC.** El mail de "te
+  aceptaron" (`shift/application/services.py::_send_acceptance_email`) hacía
+  `shift.start_at.strftime("%d/%m/%Y a las %H:%M")` sobre el datetime de la base (UTC): un turno
+  de las 20:00 llegaba como "a las 23:00". No es un corte de día sino la hora misma, y pasaba
+  siempre, no sólo de noche. Nadie lo vio porque en producción salió un solo mail en toda la
+  historia. Fix: `core/tz.py::format_turno_art`/`to_art`, con test en `tests/test_tz.py`.
 - **Excepción a propósito (no tocar):** timestamps de auditoría/creación/expiración de tokens
   siguen en UTC — `created_at`/`updated_at` (`func.now()` en todos los modelos ORM),
   `revoked_at`/`used_at` (sesiones y tokens de reset, `identity/infrastructure/repositories.py`),
@@ -46,7 +52,9 @@ Staffya no tenía hasta este fix.
   de negocio con corte de día — deben quedar comparables sin importar en qué zona corre el
   servidor.
 
-**Cómo evitarlo:** nunca `date.today()`/`datetime.now()` sin tz para una decisión que dependa del
+**Cómo evitarlo:** nunca `strftime` directo sobre un datetime de la base para un texto que lee una
+persona (mail, push, notificación): pasarlo antes por `to_art()`/`format_turno_art()`. Y nunca
+`date.today()`/`datetime.now()` sin tz para una decisión que dependa del
 día calendario en Argentina — usar `hoy_art()`/`now_art()` (`backend/app/core/tz.py`) o, en el
 frontend, `lib/datetime.ts`. Sólo dejar UTC en timestamps de auditoría/expiración que no
 representan un "día de negocio".

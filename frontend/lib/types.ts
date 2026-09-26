@@ -365,7 +365,8 @@ export type NotificationType =
   | "worker_en_route"
   | "new_shift_nearby"
   | "urgent_shift_nearby"
-  | "support_reply";
+  | "support_reply"
+  | "verification_decided";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 

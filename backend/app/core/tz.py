@@ -17,10 +17,34 @@ Las marcas de tiempo internas/auditoría (`created_at`/`updated_at` vía
 UTC a propósito — eso es correcto y consistente, NO usar `hoy_art()`/
 `now_art()` ahí.
 """
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 ARG_TZ = ZoneInfo("America/Argentina/Buenos_Aires")
+
+_DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+
+
+def to_art(value: datetime) -> datetime:
+    """Pasa un instante a hora argentina. Un datetime sin zona se toma como
+    UTC, que es como lo guarda la base (SQLite en los tests lo devuelve sin
+    zona)."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(ARG_TZ)
+
+
+def format_turno_art(start_at: datetime, end_at: datetime) -> str:
+    """Horario de un turno para que lo lea una persona: "sábado 27/09, de
+    20:00 a 02:00", siempre en hora argentina.
+
+    Existe porque el mail de "te aceptaron" hacía `start_at.strftime(...)`
+    sobre el datetime de la base, que está en UTC: un turno de las 20:00
+    llegaba como "a las 23:00". Toda hora que vea un usuario pasa por acá
+    o por `to_art`, nunca por un `strftime` directo."""
+    inicio = to_art(start_at)
+    fin = to_art(end_at)
+    return f"{_DIAS[inicio.weekday()]} {inicio:%d/%m}, de {inicio:%H:%M} a {fin:%H:%M}"
 
 
 def now_art() -> datetime:

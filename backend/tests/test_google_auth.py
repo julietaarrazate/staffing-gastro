@@ -15,6 +15,8 @@ from app.modules.identity.domain.exceptions import (
     GoogleTokenInvalidError,
 )
 from app.modules.identity.domain.google_verifier import GoogleIdentity, GoogleTokenVerifier
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
 from tests.conftest import register_user
 
 pytestmark = pytest.mark.asyncio
@@ -166,3 +168,25 @@ async def test_google_account_has_no_usable_local_password(client: AsyncClient):
         json={"email": "sologoogle@gmail.com", "password": "cualquier-cosa-123"},
     )
     assert login_response.status_code == 401
+
+
+async def test_la_cuenta_nueva_con_google_recibe_la_bienvenida(client: AsyncClient):
+    """La bienvenida salía sólo al confirmar el email. Las cuentas de Google
+    nacen confirmadas, así que no la recibían nunca."""
+    fake = FakeEmailSender()
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    try:
+        _override_verifier(
+            _FakeGoogleVerifier(
+                GoogleIdentity(email="bienve@gmail.com", email_verified=True, full_name="Bien Venida")
+            )
+        )
+        await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker"})
+        assert [e.to for e in fake.sent] == ["bienve@gmail.com"]
+        assert "Bienvenido" in fake.sent[0].subject
+
+        # Volver a entrar no la repite.
+        await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+        assert len(fake.sent) == 1
+    finally:
+        app.dependency_overrides.pop(get_email_sender, None)
