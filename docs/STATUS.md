@@ -5,7 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-26 (**segunda tanda de Dependabot**: los 10
+*Última actualización: 2026-09-26 (**"va en camino" que se siente en vivo**:
+el panel del comercio se refresca solo, el comercio recibe un aviso cuando el
+trabajador sale, el trabajador un recordatorio 90 min antes y el mapa suma un
+tiempo estimado; ver "Va en camino, segunda vuelta" más abajo.)*
+Anterior: 2026-09-26 (**segunda tanda de Dependabot**: los 10
 PRs #363–#372 probados juntos y agrupados en uno, con `@types/node` en 22 y no
 en 26; ver "Dependencias al día (2026-09-26)" más abajo.)*
 Anterior: 2026-09-24 (**aviso urgente desde la primera tanda**:
@@ -634,6 +638,47 @@ en `/workers/me/earnings`), una insignia inventada que salía cruda, el
 abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
+
+### Va en camino, segunda vuelta (2026-09-26)
+
+Julieta preguntó qué había pasado con "el mapa de avisar que está yendo un
+trabajador, como en Rappi". Estaba construido desde #320/#321/#330, pero no
+se sentía en vivo por tres razones que se vieron en el código: el panel del
+comercio cargaba una sola vez (el mapa era una foto), nadie se enteraba de
+que había empezado (ni el comercio al salir el trabajador, ni el trabajador
+de que tenía que prenderlo) y el mapa decía la distancia pero no cuánto
+faltaba. Eligió las cuatro mejoras propuestas:
+
+- **Refresco solo** (`app/shifts/page.tsx`): cada 30 s, con la pestaña a la
+  vista y **sólo** si algún turno confirmado está dentro de la ventana del
+  viaje (2 h antes a 2 h después del inicio) o ya tiene posición. Se evalúa
+  en cada tick, no al renderizar, porque un turno de esta noche entra en la
+  ventana sin que la lista cambie. El resto del tiempo no pega al backend:
+  cada request despierta a Neon (ver el incidente de cuota del 2026-08-26).
+- **Aviso al comercio, una sola vez** (`WORKER_EN_ROUTE`): en el primer
+  reporte del viaje, "Juana Pérez salió para tu local — está a 3,2 km". Los
+  reportes siguientes no avisan (un push por minuto sería inusable), y
+  apagar/prender no lo repite: `en_route_at` sigue puesto hasta la llegada.
+- **Recordatorio al trabajador** (`DEPARTURE_REMINDER`, migración `0034`,
+  `departure_reminder_sent_at`): el scheduler de asistencia lo manda
+  `DEPARTURE_REMINDER_LEAD` (90 min) antes del inicio, una sola vez, y no lo
+  manda si ya está compartiendo. **No prende nada solo**: compartir ubicación
+  sigue siendo un toque del trabajador. Se resetea con el viaje
+  (`_clear_en_route`), así que si el turno se reabre, el nuevo asignado
+  también lo recibe.
+- **Tiempo estimado** (`estimateArrivalMin` en `lib/map/travel-time.ts`):
+  línea recta × 1,3 a 15 km/h (colectivo con esperas), con "~" y "Llegando"
+  debajo de 200 m. Peca de largo a propósito: que llegue antes de lo dicho
+  no preocupa a nadie.
+
+**El modelo de privacidad no cambió** (última posición sola, ventana de 2 h,
+se borra al llegar), así que `/privacidad` no se toca. **Límite que queda**:
+como es una web app, si el trabajador bloquea el celular o cambia de app,
+deja de reportar. Resolverlo es empaquetarla como app nativa, una decisión
+aparte. También se sumaron al frontend los tipos `checkin_reminder` (que
+faltaba) y los dos nuevos. Capturas en claro y oscuro:
+`/mnt/project-files/capturas/en-camino/` (sin tiles de mapa: el entorno de
+captura no llega a OSM).
 
 ### Auditoría de CLAUDE.md contra el repo (2026-09-25)
 
