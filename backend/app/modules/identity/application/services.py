@@ -34,6 +34,7 @@ from app.modules.identity.domain.entities import (
     EmailVerificationToken,
     PasswordResetToken,
     RefreshSession,
+    TermsAcceptance,
     User,
 )
 from app.modules.identity.domain.exceptions import (
@@ -53,9 +54,14 @@ from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
+    TermsAcceptanceRepository,
     UserRepository,
 )
-from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.domain.value_objects import (
+    LEGAL_TERMS_VERSION,
+    TermsAcceptanceChannel,
+    UserRole,
+)
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
@@ -126,6 +132,7 @@ class IdentityService:
         email_sender: EmailSender,
         google_verifier: GoogleTokenVerifier,
         email_verification_tokens: EmailVerificationTokenRepository | None = None,
+        terms_acceptances: TermsAcceptanceRepository | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
@@ -133,6 +140,7 @@ class IdentityService:
         self._email_sender = email_sender
         self._google_verifier = google_verifier
         self._verification_tokens = email_verification_tokens
+        self._terms_acceptances = terms_acceptances
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe.
@@ -150,6 +158,8 @@ class IdentityService:
             role=command.role,
         )
         created = await self._users.add(user)
+        if command.accepted_terms:
+            await self._record_terms_acceptance(created, TermsAcceptanceChannel.EMAIL)
         if self._verification_tokens is not None:
             await self._send_verification_email(created)
         return created
@@ -224,11 +234,25 @@ class IdentityService:
             is_verified=True,
         )
         user = await self._users.add(user)
+        if command.accepted_terms:
+            await self._record_terms_acceptance(user, TermsAcceptanceChannel.GOOGLE)
         # La bienvenida se manda cuando la cuenta queda activa. Con email eso
         # pasa al confirmarlo (`verify_email`); con Google la cuenta ya nace
         # confirmada, así que es acá. Antes estas cuentas no la recibían nunca.
         await self._send_welcome_email(user)
         return await self._issue_tokens(user)
+
+    async def _record_terms_acceptance(
+        self, user: User, channel: TermsAcceptanceChannel
+    ) -> None:
+        """Deja constancia de que `user` aceptó la versión vigente de términos
+        y privacidad. La versión la pone el servidor, no el cliente: es la que
+        se estaba publicando cuando se creó la cuenta."""
+        if self._terms_acceptances is None:
+            return
+        await self._terms_acceptances.add(
+            TermsAcceptance(user_id=user.id, version=LEGAL_TERMS_VERSION, channel=channel)
+        )
 
     async def refresh(self, refresh_token: str) -> TokenPair:
         """Emite un nuevo par de tokens a partir de un refresh token válido.

@@ -5,7 +5,12 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-26 (**alta y avisos sin agujeros**, del
+*Última actualización: 2026-09-26 (**constancia de aceptación de términos**:
+crear una cuenta, con email o con Google, exige aceptar términos y privacidad
+también en el backend, y queda guardado quién, qué versión, desde dónde y
+cuándo (`terms_acceptances`, migración `0035`). Ver "Constancia de términos
+(2026-09-26)" más abajo.)*
+Anterior: 2026-09-26 (**alta y avisos sin agujeros**, del
 diagnóstico de diseño/UX del mismo día: el mail de "te aceptaron" salía con la
 hora en UTC —un turno de las 20:00 decía 23:00—, el puesto crudo y sin marca;
 crear cuenta con Google no pedía aceptar términos y privacidad; aprobar o
@@ -658,6 +663,31 @@ abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
 
+### Constancia de términos (2026-09-26)
+
+Pedido de Julieta al mergear #389. Hasta acá el checkbox de términos era sólo
+del frontend: el backend creaba la cuenta aunque no llegara, y no quedaba nada
+guardado.
+
+- **Tabla `terms_acceptances`** (migración `0035`): una fila por aceptación,
+  con `user_id`, `version`, `channel` (`email` o `google`) y `accepted_at`.
+  Sólo se agregan filas; cuando cambie la versión, la nueva aceptación es otra
+  fila y la anterior queda. No guarda IP ni navegador.
+- **El backend exige la aceptación**: `POST /auth/register` sin
+  `accepted_terms: true` responde 422, y `POST /auth/google` también cuando
+  trae `role` (o sea, cuando crea la cuenta). Entrar con Google a una cuenta
+  existente no la pide.
+- **La versión la pone el servidor**: `LEGAL_TERMS_VERSION` en
+  `identity/domain/value_objects.py`, espejada en `frontend/lib/legal.ts`, de
+  donde sale la "Última actualización" de `/terminos` y `/privacidad`. Un test
+  de Vitest (`lib/legal.test.ts`) falla si las dos no coinciden. **Si se edita
+  el texto de cualquiera de las dos páginas, se sube la versión en el mismo
+  PR.** Arranca en `2026-09`, porque `/privacidad` suma el párrafo que cuenta
+  que se guarda esta constancia.
+- **Sin constancia a propósito**: las cuentas creadas antes de esta migración
+  (no hay forma honesta de reconstruir cuándo aceptaron), las demo del seed y
+  las de invitado.
+
 ### Alta y avisos sin agujeros (2026-09-26)
 
 Primer paso del diagnóstico de diseño, UX y alta que pidió Julieta (capturas y
@@ -672,9 +702,8 @@ Son errores que ya afectaban a la beta, no mejoras:
 - **Consentimiento con Google**: el paso "¿Buscás trabajo o buscás personal?"
   (sólo lo ven las cuentas nuevas) ahora tiene el mismo checkbox de términos y
   privacidad que el formulario de email, y sin marcarlo no se crea la cuenta.
-  Test en `GoogleAuthButton.test.tsx`. **Sigue igual:** el backend no guarda
-  ni el consentimiento de email ni el de Google (quién, cuándo, qué versión);
-  si la revisión legal lo pide como constancia, es un cambio aparte.
+  Test en `GoogleAuthButton.test.tsx`. (El backend todavía no guardaba el
+  consentimiento; se resolvió el mismo día, ver "Constancia de términos".)
 - **Decisión de verificación**: aprobar o rechazar un DNI o una constancia de
   AFIP crea una notificación `verification_decided` (con push, si lo tiene
   activado) y manda un mail con el resultado y, si se rechazó, el motivo. El

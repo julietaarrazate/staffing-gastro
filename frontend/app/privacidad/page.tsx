@@ -3,14 +3,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Logo from "@/components/Logo";
 import { ChevronLeftIcon } from "@/components/icons";
+import { LEGAL_LAST_UPDATED } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
   description:
     "Política de Privacidad de Oído: qué datos recopilamos, para qué los usamos y con quién los compartimos. No vendemos tus datos, nunca.",
 };
-
-const LAST_UPDATED = "Última actualización: julio 2026";
 
 /** Bloque de sección: título + párrafos cortos, sin juridiqués. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -44,7 +43,7 @@ export default function PrivacidadPage() {
           <h1 className="font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
             Política de Privacidad
           </h1>
-          <p className="mt-1 text-sm text-ink/40">{LAST_UPDATED}</p>
+          <p className="mt-1 text-sm text-ink/40">{LEGAL_LAST_UPDATED}</p>
 
           {/* Destacado: principio no-negociable, un solo acento naranja */}
           <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3.5 ring-1 ring-primary/20">
@@ -71,7 +70,10 @@ export default function PrivacidadPage() {
           <Section title="Qué datos recopilamos">
             <ul className="ml-5 list-disc space-y-1.5">
               <li>
-                <strong>Cuenta:</strong> email y nombre.
+                <strong>Cuenta:</strong> email y nombre. También guardamos
+                cuándo aceptaste estos términos y esta política, qué versión
+                y si fue con tu email o con Google, para poder mostrarlo si
+                alguna vez hace falta.
               </li>
               <li>
                 <strong>Perfil:</strong> foto, zona donde te movés,

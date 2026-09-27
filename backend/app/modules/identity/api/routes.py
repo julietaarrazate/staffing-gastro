@@ -128,6 +128,13 @@ def _clear_refresh_cookie(response: Response) -> None:
     )
 
 
+def _terms_not_accepted() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail="Para crear la cuenta tenés que aceptar los términos y la política de privacidad",
+    )
+
+
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -136,6 +143,8 @@ def _clear_refresh_cookie(response: Response) -> None:
     dependencies=[Depends(_register_rate_limit)],
 )
 async def register(payload: RegisterRequest, service: ServiceDep) -> User:
+    if not payload.accepted_terms:
+        raise _terms_not_accepted()
     try:
         return await service.register(
             RegisterCommand(
@@ -143,6 +152,7 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
                 password=payload.password,
                 full_name=payload.full_name,
                 role=UserRole(payload.role.value),
+                accepted_terms=True,
             )
         )
     except EmailAlreadyExistsError as exc:
@@ -223,11 +233,16 @@ async def google_auth(
     que `/auth/login`) si el email ya tiene cuenta o si se indicó `role` para
     crear una; devuelve `GoogleRoleRequiredResponse` si el email es nuevo y
     todavía no se eligió rol — el frontend debe preguntar y reintentar."""
+    # `role` sólo viaja cuando se crea la cuenta, y crearla pide lo mismo que
+    # el registro con email. Si la cuenta ya existe no se mira.
+    if payload.role is not None and not payload.accepted_terms:
+        raise _terms_not_accepted()
     try:
         result = await service.authenticate_google(
             GoogleLoginCommand(
                 id_token=payload.id_token,
                 role=UserRole(payload.role.value) if payload.role else None,
+                accepted_terms=payload.accepted_terms,
             )
         )
     except GoogleAuthNotConfiguredError as exc:

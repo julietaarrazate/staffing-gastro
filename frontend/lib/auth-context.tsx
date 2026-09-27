@@ -213,7 +213,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     full_name: string,
     role: "worker" | "employer"
   ) {
-    await api.post<User>("/auth/register", { email, password, full_name, role });
+    // La pantalla de registro sólo llega acá con el checkbox de términos
+    // marcado, y el backend guarda la constancia (versión, medio y fecha).
+    await api.post<User>("/auth/register", {
+      email,
+      password,
+      full_name,
+      role,
+      accepted_terms: true,
+    });
     await login(email, password);
   }
 
@@ -224,7 +232,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await api.post<
       | { requires_role: true; email: string; full_name: string }
       | { requires_role?: false; access_token: string; user?: User }
-    >("/auth/google", { id_token: idToken, role });
+    >("/auth/google", {
+      id_token: idToken,
+      role,
+      // El rol sólo viaja cuando se crea la cuenta, y `GoogleAuthButton` no
+      // deja elegirlo sin marcar términos y privacidad.
+      accepted_terms: role !== undefined,
+    });
 
     if ("requires_role" in data && data.requires_role) {
       return { requiresRole: true, email: data.email, fullName: data.full_name };

@@ -91,6 +91,7 @@ async def register_user(
         "password": password,
         "full_name": full_name,
         "role": role,
+        "accepted_terms": True,
     }
     payload.update(overrides)
     return await client.post("/api/v1/auth/register", json=payload)

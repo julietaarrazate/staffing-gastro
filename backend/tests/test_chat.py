@@ -233,6 +233,7 @@ def _setup_assigned_shift_sync(client: TestClient, emp_email: str, worker_email:
             "password": "supersecreta123",
             "full_name": "Bar WS",
             "role": "employer",
+            "accepted_terms": True,
         },
     )
     assert employer.status_code == 201
@@ -255,6 +256,7 @@ def _setup_assigned_shift_sync(client: TestClient, emp_email: str, worker_email:
             "password": "supersecreta123",
             "full_name": "Worker WS",
             "role": "worker",
+            "accepted_terms": True,
         },
     )
     assert worker_register.status_code == 201

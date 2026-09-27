@@ -220,7 +220,10 @@ Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
   hoy", cortes de período); los timestamps de auditoría siguen en UTC a
   propósito. Ver el patrón completo en [docs/BUGS.md](./docs/BUGS.md).
 - **Legales**: `/terminos` y `/privacidad`, checkbox de consentimiento
-  obligatorio en `/register`.
+  obligatorio en `/register` y en el alta con Google, exigido también por el
+  backend, que guarda la constancia (versión, medio y fecha) en
+  `terms_acceptances`. Si cambia el texto de cualquiera de las dos páginas, se
+  sube `LEGAL_TERMS_VERSION` (backend) y `frontend/lib/legal.ts` en el mismo PR.
 - Reputación real derivada del ciclo del turno (puntualidad, `events_completed`,
   insignias/niveles con otorgamiento automático), visible en perfil/búsqueda/
   postulantes — entra de verdad al ranking de matching (verificado

@@ -29,6 +29,9 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=255)
     role: RegisterableRole = RegisterableRole.WORKER
+    # El checkbox de términos y privacidad. Tiene que llegar en True: la ruta
+    # rechaza el alta sin él y guarda la constancia (`TermsAcceptance`).
+    accepted_terms: bool = False
 
 
 class UpdateMeRequest(BaseModel):
@@ -109,6 +112,8 @@ class GoogleAuthRequest(BaseModel):
 
     id_token: str
     role: RegisterableRole | None = None
+    # Obligatorio en True cuando viene `role`, o sea cuando se crea la cuenta.
+    accepted_terms: bool = False
 
 
 class GoogleRoleRequiredResponse(BaseModel):
