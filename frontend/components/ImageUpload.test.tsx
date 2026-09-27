@@ -41,11 +41,24 @@ describe("ImageUpload sin foto", () => {
     expect(container.querySelector(".absolute.bottom-0.right-0")).not.toBeNull();
   });
 
-  it("con foto cargada mantiene la misma insignia, no otro patrón", () => {
+  it("con foto cargada no dibuja la cámara encima", () => {
+    // Julieta, 2026-09-27: con la foto ya subida, la insignia de cámara
+    // quedaba mordida por el círculo y se leía como una mancha sobre la cara.
+    // Cambiarla sigue siendo tocar la foto (lo dice el `aria-label`).
     const { container } = render(
       <ImageUpload value="https://x/foto.jpg" onChange={() => {}} fallbackLabel="Julieta A." />
     );
     expect(container.querySelector("img")).not.toBeNull();
-    expect(container.querySelector(".absolute.bottom-0.right-0")).not.toBeNull();
+    expect(container.querySelector(".absolute.bottom-0.right-0")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cambiar foto de perfil" })).toBeInTheDocument();
+  });
+
+  it("la insignia no queda adentro del círculo que recorta", () => {
+    const { container } = render(
+      <ImageUpload value={null} onChange={() => {}} fallbackLabel="Julieta A." avatar />
+    );
+    const badge = container.querySelector(".absolute.bottom-0.right-0");
+    expect(badge).not.toBeNull();
+    expect(badge!.closest(".overflow-hidden")).toBeNull();
   });
 });

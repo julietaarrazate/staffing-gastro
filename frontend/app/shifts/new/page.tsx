@@ -38,6 +38,7 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
 const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
 
@@ -697,18 +698,18 @@ function NewShiftWizard() {
  * paso correspondiente todavía no se completó. */
 function PreviewRow({
   icon,
+  tone,
   label,
   value,
 }: {
   icon: React.ReactNode;
+  tone: IconChipTone;
   label: string;
   value: string | null;
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card text-ink/50 ring-1 ring-line">
-        {icon}
-      </span>
+      <IconChip tone={tone}>{icon}</IconChip>
       <div className="min-w-0">
         <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">{label}</p>
         <p className={`text-sm font-semibold ${value ? "text-ink" : "text-ink/35"}`}>
@@ -765,17 +766,19 @@ function WizardPreview({
           <PreviewRow
             icon={
               positionAccent ? (
-                <positionAccent.Icon size={18} className={positionAccent.fg} />
+                <positionAccent.Icon size={18} />
               ) : (
                 <UsersIcon size={18} />
               )
             }
+            tone="manteca"
             label="Puesto"
             value={position ? `${SKILL_LABELS[position]} · ${quantity} persona` : null}
           />
-          <PreviewRow icon={<CalendarIcon size={18} />} label="Cuándo" value={when} />
+          <PreviewRow icon={<CalendarIcon size={18} />} tone="cielo" label="Cuándo" value={when} />
           <PreviewRow
             icon={<WalletIcon size={18} />}
+            tone="secondary"
             label="Pago"
             value={
               pay
@@ -783,7 +786,7 @@ function WizardPreview({
                 : null
             }
           />
-          <PreviewRow icon={<MapPinIcon size={18} />} label="Dónde" value={city || null} />
+          <PreviewRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde" value={city || null} />
         </div>
 
         {dressCode && (

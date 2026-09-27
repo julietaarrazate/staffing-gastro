@@ -12,6 +12,7 @@ import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import PushToggle from "@/components/PushToggle";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import AppearanceControl from "@/components/AppearanceControl";
 import { Skeleton } from "@/components/ui";
 import {
@@ -32,10 +33,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Row({
   icon,
+  tone,
   children,
   onClick,
 }: {
   icon: React.ReactNode;
+  tone: IconChipTone;
   children: React.ReactNode;
   onClick?: () => void;
 }) {
@@ -46,9 +49,7 @@ function Row({
       className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition first:rounded-t-[var(--radius-card)] last:rounded-b-[var(--radius-card)] hover:bg-surface active:bg-surface disabled:hover:bg-transparent"
       disabled={!onClick}
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface text-ink/50">
-        {icon}
-      </span>
+      <IconChip tone={tone}>{icon}</IconChip>
       <span className="flex-1 text-sm font-medium text-ink">{children}</span>
       {/* Affordance de fila tocable (sensación de app nativa): sin esto las
           filas parecían texto suelto y no se leía que llevaban a otro lado. */}
@@ -155,12 +156,14 @@ export default function ProfilePage() {
               <div className="mt-2 rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
                 <Row
                   icon={<CreditCardIcon size={18} />}
+                  tone="secondary"
                   onClick={() => router.push("/subscription")}
                 >
                   Mi plan
                 </Row>
                 <Row
                   icon={<HeartIcon size={18} />}
+                  tone="danger"
                   onClick={() => router.push("/favorites")}
                 >
                   Trabajadores favoritos
@@ -245,13 +248,14 @@ export default function ProfilePage() {
                   vez de al inbox real (/admin/support, GET /support/tickets). */}
               <Row
                 icon={<MessageIcon size={18} />}
+                tone="cielo"
                 onClick={() =>
                   router.push(user.role === "admin" ? "/admin/support" : "/support")
                 }
               >
                 Soporte
               </Row>
-              <Row icon={<LogOutIcon size={18} />} onClick={logout}>
+              <Row icon={<LogOutIcon size={18} />} tone="neutral" onClick={logout}>
                 Cerrar sesión
               </Row>
             </div>

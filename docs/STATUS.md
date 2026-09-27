@@ -5,7 +5,16 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-26 (**constancia de aceptación de términos**:
+*Última actualización: 2026-09-27 (**chip de ícono en toda la app y la
+cámara fuera de la foto**, pedido de Julieta con captura del perfil: la
+insignia de cámara quedaba mordida por el círculo del avatar y se veía encima
+de la foto; ahora sólo aparece mientras no hay foto, y fuera del recorte. Los
+íconos sobre chip de color de las estadísticas del perfil pasan a ser
+`components/ui/IconChip`, con un tono por significado, y se usan en el menú
+del perfil, las notificaciones, el detalle del turno, la vista previa de
+publicar, los encabezados de ubicación y la constancia de AFIP. Tabla de
+tonos en `docs/design-system/color-system.md`.)*
+Anterior: 2026-09-26 (**constancia de aceptación de términos**:
 crear una cuenta, con email o con Google, exige aceptar términos y privacidad
 también en el backend, y queda guardado quién, qué versión, desde dónde y
 cuándo (`terms_acceptances`, migración `0035`). Ver "Constancia de términos

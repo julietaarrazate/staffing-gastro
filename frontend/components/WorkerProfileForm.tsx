@@ -10,6 +10,7 @@ import CvUpload from "@/components/CvUpload";
 import { toWorkerProfileInput, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
 /**
  * Encabezado de sección con ícono de acento (mismo patrón que los
@@ -24,18 +25,18 @@ import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
  */
 function FieldHeading({
   icon,
-  accent,
+  tone,
   children,
 }: {
   icon: React.ReactNode;
-  accent: string;
+  tone: IconChipTone;
   children: React.ReactNode;
 }) {
   return (
     <p className="flex items-center gap-2 text-sm font-medium text-ink/70">
-      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${accent}`}>
+      <IconChip tone={tone} size="xs">
         {icon}
-      </span>
+      </IconChip>
       {children}
     </p>
   );
@@ -188,7 +189,7 @@ export default function WorkerProfileForm() {
         {/* No es un `<label>`: el selector de abajo es un widget compuesto
             (cascada provincia/localidad), no un único control asociable —
             jsx-a11y/label-has-associated-control, TECH_DEBT.md F4. */}
-        <FieldHeading icon={<MapPinIcon size={13} />} accent="bg-primary-tint text-primary-text">
+        <FieldHeading icon={<MapPinIcon size={13} />} tone="trust">
           Ubicación
         </FieldHeading>
         <p className="mt-0.5 text-xs text-ink/50">
@@ -211,7 +212,7 @@ export default function WorkerProfileForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <FieldHeading icon={<CheckCircleIcon size={13} />} accent="bg-cielo-tint text-cielo-text">
+        <FieldHeading icon={<CheckCircleIcon size={13} />} tone="cielo">
           Años de experiencia
         </FieldHeading>
         <TextField
