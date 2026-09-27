@@ -82,6 +82,29 @@ leían, pero en el oscuro real eran bloques pálidos que brillaban sobre la
 tarjeta oscura (la tarjeta de nivel del perfil, los íconos de estadísticas).
 Ahora en oscuro son un velo del color con el color base como texto.
 
+## Chip de ícono (`IconChip`)
+
+Un ícono de contenido (una fila de menú, un dato de un turno, un encabezado
+de campo) va sobre un chip de color suave: `components/ui/IconChip.tsx`. Nació
+en las estadísticas del perfil y desde el 2026-09-27 es uno solo para toda la
+app, porque Julieta vio que en el resto de las pantallas el mismo tipo de
+ícono iba en gris sobre gris. El tono dice qué es el dato y se repite igual en
+todas las pantallas:
+
+| Tono | Significa | Ejemplos |
+|---|---|---|
+| `cielo` | Tiempo y comunicación | Cuándo, notificaciones, soporte, años de experiencia |
+| `trust` | Lugar y fiabilidad | Dónde, ubicación, verificación, cancelaciones |
+| `manteca` | Personas y trabajo | Puesto, turnos, cantidad de personas |
+| `secondary` | Plata | Pago, mi plan |
+| `danger` | Sólo favoritos | El corazón |
+| `primary` | El acento de la pantalla | Usar poco: sigue la regla de un solo ámbar |
+| `neutral` | Acciones que no son contenido | Cerrar sesión |
+
+Los botones de control (atrás, cerrar, flechas del mazo) no llevan chip de
+color: son herramientas, no datos. Todos los tonos usan pares tint/text que
+`globals.css` redefine para oscuro (ver la regla de arriba).
+
 ## Toast y `night` en oscuro
 
 `--color-night`/`bg-night` es near-black en los dos modos por diseño (burbujas

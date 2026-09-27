@@ -57,66 +57,72 @@ export default function ImageUpload({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        style={avatar ? { width: size, height: size } : undefined}
-        aria-label={value ? "Cambiar foto de perfil" : "Subir foto de perfil"}
-        className={`group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-primary to-primary-strong font-bold text-white transition active:scale-95 disabled:opacity-70 ${
-          avatar ? "text-3xl ring-4 ring-white/20" : "h-24 w-24 text-2xl shadow-md"
-        }`}
-      >
-        {value ? (
-          <img
-            src={value}
-            alt={fallbackLabel}
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          fallbackLabel.charAt(0).toUpperCase()
-        )}
-        {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100`
-            el ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
-            La solución es la INSIGNIA DE ESQUINA (más abajo), que va siempre
-            visible haya foto o no — patrón de perfil nativo.
+      {/* El contenedor relativo existe para la insignia de cámara: dentro del
+          botón, que recorta en círculo (`overflow-hidden`), la insignia de la
+          esquina quedaba mordida por el borde y se veía como una mancha
+          oscura arriba de la foto. */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          style={avatar ? { width: size, height: size } : undefined}
+          aria-label={value ? "Cambiar foto de perfil" : "Subir foto de perfil"}
+          className={`group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-primary to-primary-strong font-bold text-white transition active:scale-95 disabled:opacity-70 ${
+            avatar ? "text-3xl ring-4 ring-white/20" : "h-24 w-24 text-2xl shadow-md"
+          }`}
+        >
+          {value ? (
+            <img
+              src={value}
+              alt={fallbackLabel}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            fallbackLabel.charAt(0).toUpperCase()
+          )}
+          {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100`
+              el ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
+              La solución es la INSIGNIA DE ESQUINA (más abajo), que va siempre
+              visible haya foto o no — patrón de perfil nativo.
 
-            Antes, sin foto, se dibujaba el ícono de cámara centrado a
-            `inset-0`... ENCIMA de la inicial. Los dos glifos se pisaban y el
-            resultado no se leía ni como inicial ni como cámara: en el perfil
-            del trabajador, el círculo ámbar mostraba una mancha blanca en vez
-            de la "J" de Julieta. Se vio comparando contra el mockup aprobado
-            (`docs/design/mockups/09-hibrido-app.html`), donde el avatar
-            muestra a la persona (fase L de la auditoría visual). Existía en
-            las cuatro pantallas que usan este componente.
+              Antes, sin foto, se dibujaba el ícono de cámara centrado a
+              `inset-0`... ENCIMA de la inicial. Los dos glifos se pisaban y el
+              resultado no se leía ni como inicial ni como cámara: en el perfil
+              del trabajador, el círculo ámbar mostraba una mancha blanca en vez
+              de la "J" de Julieta. Se vio comparando contra el mockup aprobado
+              (`docs/design/mockups/09-hibrido-app.html`), donde el avatar
+              muestra a la persona (fase L de la auditoría visual). Existía en
+              las cuatro pantallas que usan este componente.
 
-            El velo negro queda SÓLO mientras sube: ahí sí cumple su función
-            —que el spinner blanco se lea sobre una foto cualquiera— y no tapa
-            ninguna identidad, porque la acción está en curso. Sobre el
-            gradiente de marca no resuelve nada y arruina el color: medido en
-            un render limpio, el ámbar `#d97706` bajo 40% de negro sale
-            `rgb(125,66,3)`, un marrón óxido (corregido en el #335). */}
-        {uploading && (
-          <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          </span>
-        )}
-        {/* Siempre visible mientras no esté subiendo — con foto y sin foto.
-            Antes sólo aparecía CON foto, y el caso sin foto se resolvía con el
-            ícono centrado que pisaba la inicial. Una sola forma de decir "esto
-            se toca", en los dos estados. */}
-        {!uploading && (
+              El velo negro queda SÓLO mientras sube: ahí sí cumple su función
+              —que el spinner blanco se lea sobre una foto cualquiera— y no tapa
+              ninguna identidad, porque la acción está en curso. Sobre el
+              gradiente de marca no resuelve nada y arruina el color: medido en
+              un render limpio, el ámbar `#d97706` bajo 40% de negro sale
+              `rgb(125,66,3)`, un marrón óxido (corregido en el #335). */}
+          {uploading && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            </span>
+          )}
+        </button>
+        {/* La cámara aparece sólo cuando todavía NO hay foto: ahí invita a
+            subirla. Con foto ya no suma (Julieta, 2026-09-27: "se ve el ícono de
+            cámara que no debería estar"); cambiarla sigue siendo tocar la foto,
+            que lo dice su `aria-label`, y fuera del hero está el "Cambiar foto"
+            de texto. Antes iba siempre, con foto y sin foto. */}
+        {!uploading && !value && (
           <span
-            className={`absolute bottom-0 right-0 flex items-center justify-center rounded-full bg-night text-white ring-2 ring-white ${
-              avatar ? "h-6 w-6" : "h-7 w-7"
-            }`}
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-night text-white ring-2 ring-white"
           >
-            <CameraIcon size={avatar ? 12 : 14} />
+            <CameraIcon size={avatar ? 13 : 14} />
           </span>
         )}
-      </button>
+      </div>
       <input
         ref={inputRef}
         type="file"

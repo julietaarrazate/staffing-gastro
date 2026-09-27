@@ -33,6 +33,7 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
 /** Lo que sabemos del turno: siempre la vista pública (la trae el servidor,
  *  sin sesión) y, si hay sesión, el turno completo encima. */
@@ -210,15 +211,15 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
         {/* Datos con íconos: cuándo, cuánto dura, dónde. */}
         <dl className="mt-5 space-y-3">
-          <InfoRow icon={<ClockIcon size={18} />} label="Cuándo">
+          <InfoRow icon={<ClockIcon size={18} />} tone="cielo" label="Cuándo">
             {formatShiftWhen(shift.start_at, shift.end_at)}
             {minutes != null && <span className="text-ink/50"> · {formatDuration(minutes)}</span>}
           </InfoRow>
-          <InfoRow icon={<MapPinIcon size={18} />} label="Dónde">
+          <InfoRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde">
             {where ?? "Zona a confirmar"}
           </InfoRow>
           {shift.quantity != null && shift.quantity > 1 && (
-            <InfoRow icon={<UsersIcon size={18} />} label="Personas">
+            <InfoRow icon={<UsersIcon size={18} />} tone="manteca" label="Personas">
               {shift.quantity}
             </InfoRow>
           )}
@@ -304,10 +305,22 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   );
 }
 
-function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function InfoRow({
+  icon,
+  tone,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  tone: IconChipTone;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-ink/70">{icon}</span>
+      <IconChip tone={tone} size="lg">
+        {icon}
+      </IconChip>
       <div className="min-w-0">
         <dt className="text-xs text-ink/50">{label}</dt>
         <dd className="text-body font-medium text-ink">{children}</dd>

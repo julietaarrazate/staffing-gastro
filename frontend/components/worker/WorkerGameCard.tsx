@@ -26,6 +26,7 @@ import {
   XCircleIcon,
 } from "@/components/icons";
 import CountUp from "@/components/ui/CountUp";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
 // `accent` sigue el mismo criterio que la landing (StatsStrip/bento): un color
 // por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
@@ -45,24 +46,26 @@ import CountUp from "@/components/ui/CountUp";
 // la única que encaja por significado: cancelaciones/no-shows es un dato de
 // FIABILIDAD, la misma familia de "lo que se puede constatar". Además su par
 // tint/text sí está redefinido para oscuro, así que sobrevive a los dos modos.
-const TILE_MANTECA = "bg-manteca-tint text-manteca-text";
-const TILE_CIELO = "bg-cielo-tint text-cielo-text";
-const TILE_TRUST = "bg-trust-tint text-trust-text";
+//
+// Desde 2026-09-27 el chip es `IconChip`, el mismo del resto de la app: estos
+// tres tonos fijaron qué color significa qué (ver su comentario).
 
 function StatTile({
   icon,
   value,
   label,
-  accent = TILE_TRUST,
+  tone,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
-  accent?: string;
+  tone: IconChipTone;
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card px-2 py-3.5 text-center ring-1 ring-line">
-      <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accent}`}>{icon}</span>
+      <IconChip tone={tone} size="sm">
+        {icon}
+      </IconChip>
       {/* `text-metric` (rediseño 2026-09): antes `text-lg` (18px), la misma
           escala que cualquier título de card — un número de estadística no
           es texto, es un DATO (brief: "los números... deben tener presencia
@@ -209,19 +212,19 @@ export default function WorkerGameCard() {
           icon={<BriefcaseIcon size={16} />}
           value={String(profile.events_completed)}
           label="Turnos"
-          accent={TILE_MANTECA}
+          tone="manteca"
         />
         <StatTile
           icon={<XCircleIcon size={16} />}
           value={String(profile.cancellations)}
           label="Cancelaciones"
-          accent={TILE_TRUST}
+          tone="trust"
         />
         <StatTile
           icon={<CheckCircleIcon size={16} />}
           value={String(profile.years_experience)}
           label="Años exp."
-          accent={TILE_CIELO}
+          tone="cielo"
         />
       </div>
 
