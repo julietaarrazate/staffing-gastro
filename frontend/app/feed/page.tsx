@@ -25,9 +25,8 @@ import FeedHero from "@/components/worker/FeedHero";
 import NearbyRow from "@/components/worker/NearbyRow";
 import DiscoverDeck from "@/components/worker/DiscoverDeck";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
-import { ChevronRightIcon, CloseIcon, FlameIcon, MapPinIcon, SparklesIcon, StarIcon } from "@/components/icons";
+import { ChevronRightIcon, CloseIcon, SparklesIcon } from "@/components/icons";
 import { EmptyFeedIllustration, ErrorIllustration } from "@/components/illustrations";
-import { sortByBestPay } from "@/lib/pay";
 
 /** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
  * corto — al aterrizar en el feed no había nada que explicara cómo se usa.
@@ -41,9 +40,9 @@ const WORKER_FEED_TOUR: TourStep[] = [
     body: "Tocá un turno para ver el detalle y postularte, o usá Descubrir rápido para recorrerlos de a uno. Van apareciendo en tiempo real.",
   },
   {
-    target: '[data-tour="feed-urgent-filter"]',
+    target: '[data-tour="nav-buscar"]',
     title: "Los urgentes se cubren rápido",
-    body: "Activá este filtro para ver primero los turnos que el comercio necesita cubrir ya.",
+    body: "En Buscar ves todo el mercado y podés quedarte sólo con los urgentes u ordenar por lo que pagan.",
   },
   {
     target: '[data-tour="nav-my-shifts"]',
@@ -130,16 +129,11 @@ function WorkerFeedPanel() {
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
   const [here, setHere] = useState<CurrentLocation | null>(null);
   useEffect(() => setHere(getStoredLocation()), []);
-  // F1 (auditoría de producto 2026-08-10): el backend ya soporta filtrar por
-  // `urgent` (GET /shifts/feed?urgent=true), pero no había ningún control en
-  // esta pantalla para usarlo — sólo se veía el badge "Urgente" en la
-  // tarjeta. Filtro client-side (el feed ya está cargado completo, sin
-  // paginar) para no perder el orden por distancia ni disparar otro request.
-  const [urgentOnly, setUrgentOnly] = useState(false);
-  // Chips del board: "Cerca tuyo" (por distancia, el orden de siempre) o
-  // "Mejores pagos" (por pago por hora, ADR-0012). "Urgentes" es un filtro
-  // aparte y se combina con cualquiera de los dos.
-  const [sort, setSort] = useState<"nearby" | "pay">("nearby");
+  // Los chips "Urgentes" y "Mejores pagos" vivían acá y se mudaron a /buscar
+  // (2026-09-28, diagnóstico de sobrecarga): arriba del primer turno había
+  // tres maneras de filtrar o de decir dónde estás. El Inicio responde una
+  // sola pregunta, "¿qué turno tomo?", ordenado por cercanía; filtrar es lo
+  // que se hace en Buscar.
   // "Descubrir rápido": el mazo para deslizar a pantalla completa. Mientras está
   // abierto se le pasa una foto fija de los turnos (si cambiara la lista bajo
   // sus pies, SwipeDeck resetearía el mazo en medio de un gesto); lo decidido
@@ -315,31 +309,17 @@ function WorkerFeedPanel() {
   if (assistantSearch?.todayOnly) {
     sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
   }
-  if (sort === "pay") sortedShifts = sortByBestPay(sortedShifts);
-  const visibleShifts = urgentOnly ? sortedShifts.filter((s) => s.urgent) : sortedShifts;
+  const visibleShifts = sortedShifts;
   const [heroShift, ...restShifts] = visibleShifts;
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
-    : urgentOnly
-      ? "No hay turnos urgentes ahora"
-      : "No hay más turnos cerca";
+    : "No hay más turnos cerca";
   const emptySubtitle = assistantSearch
     ? "Probá un radio más amplio o menos puestos a la vez."
-    : urgentOnly
-      ? "Sacá el filtro para ver el resto de las oportunidades disponibles."
-      : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+    : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
   const emptyStateAction = assistantSearch
     ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
-    : urgentOnly
-      ? { label: "Ver todos", onClick: () => setUrgentOnly(false) }
-      : { label: "Actualizar", onClick: load };
-
-  // 13px y px-2.5: los tres chips del board entran enteros en 390px (con
-  // text-sm el tercero quedaba cortado).
-  const chipBase =
-    "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-caption font-semibold ring-1 transition active:scale-95";
-  const chipOn = "bg-primary-tint text-primary-text ring-primary/30";
-  const chipOff = "bg-card text-ink/70 ring-line hover:bg-surface";
+    : { label: "Actualizar", onClick: load };
 
   const emptyState = (
     <EmptyState
@@ -352,7 +332,7 @@ function WorkerFeedPanel() {
 
   return (
     // Home del trabajador con la composición del board de Julieta (pantalla
-    // 1): saludo en serif, buscador, chips de orden/filtro, la tarjeta
+    // 1): saludo en serif con la zona, buscador, la tarjeta
     // "Recomendado" y la fila "Cerca tuyo". Ya no es un mazo de alto fijo: la
     // pantalla scrollea como el board. El mazo para deslizar sigue existiendo
     // como "Descubrir rápido" (decisión de Julieta, 2026-09-22).
@@ -362,7 +342,14 @@ function WorkerFeedPanel() {
           <h1 className="font-display text-h1 font-semibold text-ink">
             {firstName ? `Hola, ${firstName}` : "Hola"}
           </h1>
-          <p className="mt-0.5 text-sm text-ink/55">Encontrá tu próximo turno.</p>
+          {/* Desde dónde se mide el feed, en el renglón del saludo: antes era
+              una barra propia entre el buscador y los chips. Mientras hay una
+              búsqueda del asistente, manda la zona pedida (cartel de abajo). */}
+          {assistantSearch ? (
+            <p className="mt-0.5 text-sm text-ink/55">Encontrá tu próximo turno.</p>
+          ) : (
+            <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
+          )}
         </div>
         <button
           type="button"
@@ -387,11 +374,11 @@ function WorkerFeedPanel() {
         </button>
       </header>
 
-      <div className="mb-2">
+      <div className="mb-4">
         <AIAssistantBar />
       </div>
 
-      {assistantSearch ? (
+      {assistantSearch && (
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente
         // activa: el origen ya no es "acá ahora"/perfil, es la zona pedida
         // — mostrar los dos juntos confundiría cuál manda.
@@ -408,41 +395,7 @@ function WorkerFeedPanel() {
             <CloseIcon size={14} />
           </button>
         </div>
-      ) : (
-        <div className="mb-3">
-          <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
-        </div>
       )}
-
-      <div className="no-scrollbar -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4">
-        <button
-          type="button"
-          aria-pressed={sort === "nearby"}
-          onClick={() => setSort("nearby")}
-          className={`${chipBase} ${sort === "nearby" ? chipOn : chipOff}`}
-        >
-          <MapPinIcon size={13} /> Cerca tuyo
-        </button>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={urgentOnly}
-          data-tour="feed-urgent-filter"
-          onClick={() => setUrgentOnly((v) => !v)}
-          className={`${chipBase} ${urgentOnly ? chipOn : chipOff}`}
-        >
-          <FlameIcon size={13} className="text-primary-text" />
-          Urgentes
-        </button>
-        <button
-          type="button"
-          aria-pressed={sort === "pay"}
-          onClick={() => setSort((s) => (s === "pay" ? "nearby" : "pay"))}
-          className={`${chipBase} ${sort === "pay" ? chipOn : chipOff}`}
-        >
-          <StarIcon size={13} filled className="text-rating" /> Mejores pagos
-        </button>
-      </div>
 
       {loading ? (
         <>

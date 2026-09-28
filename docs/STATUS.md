@@ -5,7 +5,12 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-27 (**chip de ícono en toda la app y la
+*Última actualización: 2026-09-28 (**Inicio del trabajador más liviano**,
+primer recorte del diagnóstico de sobrecarga: arriba del primer turno quedan
+el saludo y el buscador; la zona pasa a un renglón debajo del saludo,
+"Urgentes" y "Mejores pagos" se mudan a Buscar y la tarjeta recomendada lleva
+una sola insignia. Ver "Sobrecarga visual (2026-09-28)" más abajo.)*
+Anterior: 2026-09-27 (**chip de ícono en toda la app y la
 cámara fuera de la foto**, pedido de Julieta con captura del perfil: la
 insignia de cámara quedaba mordida por el círculo del avatar y se veía encima
 de la foto; ahora sólo aparece mientras no hay foto, y fuera del recorte. Los
@@ -671,6 +676,33 @@ en `/workers/me/earnings`), una insignia inventada que salía cruda, el
 abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
+
+### Sobrecarga visual (2026-09-28)
+
+Julieta: los videos promo se ven más pulidos que la app, que "está muy
+sobrecargada en algunos sectores". Diagnóstico con capturas reales (backend
+local con el seed demo, 390px, claro y oscuro) en
+`/mnt/project-files/sobrecarga-2026-09-28/OPINION.md` (carpeta compartida del
+proyecto). El detalle del turno y Buscar ya están bien. Lo cargado son tres
+pantallas. La regla propuesta es **una pantalla, una pregunta**.
+
+- **Inicio del trabajador — hecho en este PR.** Antes, arriba del primer turno
+  estaban el buscador, una barra de ubicación y tres chips ("Cerca tuyo",
+  "Urgentes", "Mejores pagos"). Ahora la zona es un renglón debajo del saludo
+  (`LocationBar`, mismo "Estoy acá" / "Volver a mi zona"). "Urgentes" y
+  "Mejores pagos" viven en `/buscar`, en una fila chica debajo de los rubros.
+  "Cerca tuyo" se sacó porque el Inicio ya ordena por cercanía. `FeedHero` muestra "Urgente" o
+  "Recomendado", nunca las dos. El spec del filtro pasó a
+  `e2e/buscar-filtros.spec.ts` y el globo 2 del tour señala Buscar.
+- **Panel del comercio — propuesto, sin hacer.** Hay cinco capas antes del
+  primer turno y cada tarjeta dice el estado cuatro veces (familia, chip,
+  stepper, texto). Propuesta: una tarjeta compacta con un solo estado, el
+  stepper sólo en el detalle y "Publicar" como única acción arriba.
+- **Perfil (los dos roles) — propuesto, sin hacer.** El del trabajador mide
+  4,2 pantallas y el del comercio 3,2, porque el formulario de edición está
+  adentro. Propuesta: el perfil pasa a ser una vista y la edición va a una
+  pantalla propia. Las métricas se muestran recién con el primer turno. Los
+  ajustes van juntos.
 
 ### Constancia de términos (2026-09-26)
 
