@@ -5,7 +5,14 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-27 (**chip de ícono en toda la app y la
+*Última actualización: 2026-09-28 (**videos promocionales**, pedido de
+Julieta: `marketing/videos/` tiene dos clips verticales 1080×1920 para
+redes —una animación de lanzamiento de 22 s con efectos de sonido
+sintetizados y una grabación de la app del lado del trabajador— y el código
+para regenerar la animación (README ahí). De paso, `CLAUDE.md` todavía daba
+`oido.com.ar` como pendiente cuando está conectado desde el 2026-09-08: se
+corrige.)*
+Anterior: 2026-09-27 (**chip de ícono en toda la app y la
 cámara fuera de la foto**, pedido de Julieta con captura del perfil: la
 insignia de cámara quedaba mordida por el círculo del avatar y se veía encima
 de la foto; ahora sólo aparece mientras no hay foto, y fuera del recorte. Los
