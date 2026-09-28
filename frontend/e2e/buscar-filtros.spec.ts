@@ -4,8 +4,10 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
 /**
  * F1 (auditoría de producto 2026-08-10): el backend ya soporta filtrar el
  * feed por `urgent` (GET /shifts/feed?urgent=true), pero no había ningún
- * control en `/feed` para usarlo — sólo se veía el badge "Urgente" en la
- * tarjeta. Este spec cubre el chip "Urgentes" (antes "Sólo urgentes").
+ * control para usarlo — sólo se veía el badge "Urgente" en la tarjeta. Este
+ * spec cubre el chip "Urgentes" (antes "Sólo urgentes"), que desde el
+ * 2026-09-28 vive en `/buscar` y ya no en el Inicio (diagnóstico de
+ * sobrecarga: el Inicio no filtra, Buscar sí).
  */
 
 const WORKER = {
@@ -81,7 +83,7 @@ async function mockFeed(page: Page) {
       }),
     })
   );
-  await page.route("**/api/v1/shifts/feed", (r) =>
+  await page.route("**/api/v1/shifts/feed*", (r) =>
     r.fulfill({
       status: 200,
       contentType: "application/json",
@@ -98,7 +100,7 @@ async function mockFeed(page: Page) {
 
 test.use({ viewport: { width: 1280, height: 900 } });
 
-test("el chip 'Urgentes' filtra el feed a los turnos urgentes y se puede sacar", async ({
+test("el chip 'Urgentes' de Buscar filtra a los turnos urgentes y se puede sacar", async ({
   page,
 }) => {
   await skipSplash(page);
@@ -107,16 +109,13 @@ test("el chip 'Urgentes' filtra el feed a los turnos urgentes y se puede sacar",
   await mockEmptyNotifications(page);
   await mockFeed(page);
 
-  await page.goto("/feed");
+  await page.goto("/buscar");
 
   const chip = page.getByRole("switch", { name: /Urgentes/ });
   await expect(chip).toBeVisible();
   await expect(chip).toHaveAttribute("aria-checked", "false");
 
-  // Ambos turnos visibles en la grilla de escritorio antes de filtrar (el
-  // mazo mobile también está en el DOM, sólo oculto por CSS — se escopea a
-  // la grilla para no chocar con esos duplicados).
-  const grid = page.getByTestId("feed-grid-card");
+  const grid = page.getByTestId("buscar-card");
   await expect(grid).toHaveCount(2);
   await expect(grid.filter({ hasText: "Bar Palermo" })).toBeVisible();
   await expect(grid.filter({ hasText: "Bar Recoleta" })).toBeVisible();
@@ -129,4 +128,17 @@ test("el chip 'Urgentes' filtra el feed a los turnos urgentes y se puede sacar",
   await chip.click();
   await expect(chip).toHaveAttribute("aria-checked", "false");
   await expect(grid).toHaveCount(2);
+});
+
+test("el Inicio ya no tiene chips de filtro", async ({ page }) => {
+  await skipSplash(page);
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockFeed(page);
+
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-grid-card")).toHaveCount(2);
+  await expect(page.getByRole("switch", { name: /Urgentes/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Mejores pagos/ })).toHaveCount(0);
 });
