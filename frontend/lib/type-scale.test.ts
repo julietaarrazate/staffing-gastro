@@ -12,15 +12,13 @@ import { describe, expect, it } from "vitest";
  * Excepciones permitidas, con motivo:
  * - contadores dentro de un círculo o badge de alto fijo (campana, marcador
  *   del mapa, stepper), donde el piso de 11px no entra;
- * - el onboarding (`/bienvenida`), pantalla de marca con su propio título;
- * - el número grande de "Turnos activos", que es una cifra de hero.
+ * - el onboarding (`/bienvenida`), pantalla de marca con su propio título.
  */
 const PERMITIDOS: Record<string, string[]> = {
   "components/NotificationBell.tsx": ["text-[10px]"],
   "components/ShiftLifecycleStepper.tsx": ["text-[10px]"],
   "components/map/WorkerMarker.tsx": ["text-[9px]"],
   "app/bienvenida/page.tsx": ["text-[2rem]"],
-  "components/employer/ActiveShiftsCard.tsx": ["text-[40px]"],
 };
 
 const ROOT = join(__dirname, "..");
