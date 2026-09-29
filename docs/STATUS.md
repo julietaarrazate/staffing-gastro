@@ -11,7 +11,9 @@ redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para
 comercios y otra para trabajadores, y una grabación de la app— y el código
 para regenerar las animaciones (README ahí). De paso, `CLAUDE.md` todavía
 daba `oido.com.ar` como pendiente cuando está conectado desde el
-2026-09-08: se corrige.)*
+2026-09-08: se corrige. Y `pyjwt` pasa de 2.13.0 a 2.14.0: pip-audit
+empezó a marcar seis CVEs nuevos de 2.13.0 y dejaba rojo el CI de cualquier
+PR; es el mismo cambio que el Dependabot #376.)*
 Anterior: 2026-09-28 (**Inicio del trabajador más liviano**,
 primer recorte del diagnóstico de sobrecarga: arriba del primer turno quedan
 el saludo y el buscador; la zona pasa a un renglón debajo del saludo,
