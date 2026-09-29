@@ -13,7 +13,9 @@ para regenerar las animaciones (README ahí). De paso, `CLAUDE.md` todavía
 daba `oido.com.ar` como pendiente cuando está conectado desde el
 2026-09-08: se corrige. Y `pyjwt` pasa de 2.13.0 a 2.14.0: pip-audit
 empezó a marcar seis CVEs nuevos de 2.13.0 y dejaba rojo el CI de cualquier
-PR; es el mismo cambio que el Dependabot #376.)*
+PR; es el mismo cambio que el Dependabot #376. Por la misma razón `undici`
+(dependencia de jsdom, sólo de tests) pasa de 8.10.0 a 8.11.2 con `npm audit
+fix`.)*
 Anterior: 2026-09-28 (**Inicio del trabajador más liviano**,
 primer recorte del diagnóstico de sobrecarga: arriba del primer turno quedan
 el saludo y el buscador; la zona pasa a un renglón debajo del saludo,
