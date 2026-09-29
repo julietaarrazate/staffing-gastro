@@ -21,6 +21,8 @@ import {
   sortByDistance,
 } from "@/lib/current-location";
 import { SKILL_ACCENT } from "@/lib/skill-style";
+import { sortByBestPay } from "@/lib/pay";
+import { FlameIcon, StarIcon } from "@/components/icons";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import { CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import { EmptyFeedIllustration } from "@/components/illustrations";
@@ -44,6 +46,14 @@ function pillClass(active: boolean): string {
   }`;
 }
 
+/** Filtros secundarios (urgentes, orden por pago): más chicos y en tinte, para
+ *  que no compitan con los rubros de arriba, que son la decisión principal. */
+function filterChipClass(active: boolean): string {
+  return `inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-caption font-semibold ring-1 transition active:scale-95 ${
+    active ? "bg-primary-tint text-primary-text ring-primary/30" : "bg-card text-ink/70 ring-line hover:bg-surface"
+  }`;
+}
+
 export default function BuscarPage() {
   const { token } = useRequireAuth();
   const { requestOptIn } = usePushPrompt();
@@ -54,6 +64,13 @@ export default function BuscarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  // "Urgentes" y "Mejores pagos" vivían en el Inicio y se mudaron acá
+  // (2026-09-28, diagnóstico de sobrecarga): el Inicio muestra qué tomar,
+  // Buscar es donde se filtra. Filtro y orden client-side, sobre lo ya
+  // cargado (el feed no pagina): "Urgentes" se combina con cualquier orden;
+  // "Mejores pagos" ordena por pago por hora (ADR-0012).
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [sort, setSort] = useState<"nearby" | "pay">("nearby");
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -121,7 +138,9 @@ export default function BuscarPage() {
   }
 
   const origin = originFor(getStoredLocation(), profile);
-  const sortedShifts = sortByDistance(shifts, origin);
+  const byDistance = sortByDistance(shifts, origin);
+  const sorted = sort === "pay" ? sortByBestPay(byDistance) : byDistance;
+  const sortedShifts = urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
 
   return (
     <div className="app-container px-4 pb-10 pt-6">
@@ -151,6 +170,26 @@ export default function BuscarPage() {
         })}
       </div>
 
+      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={urgentOnly}
+          onClick={() => setUrgentOnly((v) => !v)}
+          className={filterChipClass(urgentOnly)}
+        >
+          <FlameIcon size={13} className="text-primary-text" /> Urgentes
+        </button>
+        <button
+          type="button"
+          aria-pressed={sort === "pay"}
+          onClick={() => setSort((v) => (v === "pay" ? "nearby" : "pay"))}
+          className={filterChipClass(sort === "pay")}
+        >
+          <StarIcon size={13} filled className="text-rating" /> Mejores pagos
+        </button>
+      </div>
+
       {error && (
         <div className="mt-4">
           <ErrorBanner message={error} onRetry={load} />
@@ -163,13 +202,17 @@ export default function BuscarPage() {
         ) : sortedShifts.length === 0 ? (
           <EmptyState
             icon={<EmptyFeedIllustration color="var(--color-primary)" />}
-            title="No hay turnos en este rubro"
-            subtitle="Probá con otra categoría o volvé más tarde."
+            title={urgentOnly ? "No hay turnos urgentes ahora" : "No hay turnos en este rubro"}
+            subtitle={
+              urgentOnly
+                ? "Sacá el filtro para ver el resto de las oportunidades."
+                : "Probá con otra categoría o volvé más tarde."
+            }
           />
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {sortedShifts.map((shift) => (
-              <div key={shift.id} className="h-[620px]">
+              <div key={shift.id} data-testid="buscar-card" className="h-[620px]">
                 <OpportunityCard
                   shift={shift}
                   distanceKm={distanceOf(shift, origin)}

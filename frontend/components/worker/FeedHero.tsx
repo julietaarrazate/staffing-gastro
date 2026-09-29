@@ -59,19 +59,21 @@ export default function FeedHero({ shift }: { shift: Shift }) {
       />
 
       <div className="pointer-events-none relative z-[2] flex items-start justify-between gap-2 p-3.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-label font-bold text-night">
-          <StarIcon size={11} /> Recomendado
-        </span>
-        <div className="flex items-center gap-2">
-          {shift.urgent && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-label font-bold text-danger-text">
-              <FlameIcon size={12} /> Urgente
-            </span>
-          )}
-          <span className="pointer-events-auto">
-            <SaveShiftButton shiftId={shift.id} />
+        {/* Una sola insignia (2026-09-28, diagnóstico de sobrecarga): antes
+            iban "Recomendado" y "Urgente" juntas, más el guardar. Si el turno
+            es urgente, eso es lo que decide y va solo; si no, "Recomendado". */}
+        {shift.urgent ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-label font-bold text-danger-text">
+            <FlameIcon size={12} /> Urgente
           </span>
-        </div>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-label font-bold text-night">
+            <StarIcon size={11} /> Recomendado
+          </span>
+        )}
+        <span className="pointer-events-auto">
+          <SaveShiftButton shiftId={shift.id} />
+        </span>
       </div>
 
       <div className="pointer-events-none relative z-[2] flex items-end justify-between gap-3 px-4 pb-4">
