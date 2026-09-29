@@ -5,7 +5,13 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-28 (**Inicio del trabajador más liviano**,
+*Última actualización: 2026-09-29 (**términos y privacidad contra la Ley
+25.326**: las dos páginas nombran a la responsable (persona humana, con CUIL
+y mail), declaran todo lo que la app guarda de verdad, los proveedores y
+dónde están, la transferencia internacional, los plazos de conservación y de
+respuesta, y la leyenda de la AAIP. Versión legal `2026-09-29`. Ver "Términos
+y privacidad (2026-09-29)" más abajo.)*
+Anterior: 2026-09-28 (**Inicio del trabajador más liviano**,
 primer recorte del diagnóstico de sobrecarga: arriba del primer turno quedan
 el saludo y el buscador; la zona pasa a un renglón debajo del saludo,
 "Urgentes" y "Mejores pagos" se mudan a Buscar y la tarjeta recomendada lleva
@@ -676,6 +682,47 @@ en `/workers/me/earnings`), una insignia inventada que salía cruda, el
 abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
+
+### Términos y privacidad (2026-09-29)
+
+Revisión de `/privacidad` y `/terminos` contra la Ley 25.326, pedida por
+Julieta. La revisión completa, la comparación con PedidosYa, Workana y Tegu
+(un marketplace de oficios de Córdoba, la referencia más parecida) y el texto
+base están en `/mnt/project-files/legales/revision-privacidad-terminos-2026-09-24.md`
+(carpeta compartida del proyecto).
+
+- **Responsable:** Oído no es una sociedad. Responde María Julieta Arrazate
+  como persona humana. Nombre, CUIL, domicilio y mail viven en
+  `LEGAL_OWNER` (`frontend/lib/legal.ts`) y los usan las dos páginas.
+- **Lo que la política no decía y la app sí guarda:** fecha de nacimiento,
+  CV, DNI y selfie, constancia de AFIP, domicilio con coordenadas,
+  reputación, lo que se le escribe a la IA y el identificador de push. Ahora
+  está todo, con qué es obligatorio y qué no.
+- **Proveedores con país:** Vercel, Render, Neon (proyecto `staffya-us-east`,
+  `aws-us-east-2`), Cloudinary, Resend (Brasil), Sentry, Google (login y
+  Gemini), Nominatim, push del navegador y Mercado Pago. Consentimiento
+  expreso para la transferencia a EE.UU. y Brasil.
+- **Gemini:** la página dice que, según las condiciones de Google, el texto
+  que se le manda puede usarse para mejorar sus productos. Es lo que aplica
+  al plan gratis de la API. Si algún día se pasa a un plan pago, se puede
+  cambiar por "no se usa para entrenar".
+- **Conservación y derechos:** plazos concretos (DNI al decidir, 30 días
+  tras la baja, 10 años lo fiscal, 5 los reclamos), 10 días corridos para el
+  acceso y 5 hábiles para rectificar, y la leyenda de la AAIP textual.
+- **Sesión:** decía `localStorage`. Desde S1 la sesión va en una cookie
+  `httpOnly` propia; ahora lo dice.
+- **Términos:** quién presta el servicio, verificación como "obligación de
+  medios", qué ve la otra parte, arrepentimiento de 10 días en la
+  suscripción, jurisdicción del domicilio del consumidor y aviso de cambios
+  con 15 días.
+- **La baja de la suscripción es por mail o soporte**, porque `/subscription`
+  no tiene botón de baja. Cuando se active el cobro real hacen falta el
+  botón de baja y el de arrepentimiento.
+
+**Pendiente de Julieta:** el domicilio legal (hoy dice "[domicilio
+pendiente]"; el PR no se mergea sin eso), crear `privacidad@oido.com.ar` o
+decidir que queda `hola@oido.com.ar` (ImprovMX, pasos en el hilo), e
+inscribir la base en el Registro Nacional de Bases de Datos de la AAIP.
 
 ### Sobrecarga visual (2026-09-28)
 
