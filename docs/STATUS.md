@@ -5,11 +5,16 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-28 (**Inicio del trabajador más liviano**,
+*Última actualización: 2026-09-29 (**Panel del comercio más liviano**,
+segundo recorte del diagnóstico de sobrecarga: arriba quedan el saludo,
+"Publicar turno" y "Evento"; se van la tarjeta "Turnos activos" y los accesos
+rápidos, y cada tarjeta de turno dice su estado una sola vez. Ver "Sobrecarga
+visual (2026-09-28)" más abajo.)*
+Anterior: 2026-09-28 (**Inicio del trabajador más liviano**,
 primer recorte del diagnóstico de sobrecarga: arriba del primer turno quedan
 el saludo y el buscador; la zona pasa a un renglón debajo del saludo,
 "Urgentes" y "Mejores pagos" se mudan a Buscar y la tarjeta recomendada lleva
-una sola insignia. Ver "Sobrecarga visual (2026-09-28)" más abajo.)*
+una sola insignia.)
 Anterior: 2026-09-27 (**chip de ícono en toda la app y la
 cámara fuera de la foto**, pedido de Julieta con captura del perfil: la
 insignia de cámara quedaba mordida por el círculo del avatar y se veía encima
@@ -686,7 +691,7 @@ local con el seed demo, 390px, claro y oscuro) en
 proyecto). El detalle del turno y Buscar ya están bien. Lo cargado son tres
 pantallas. La regla propuesta es **una pantalla, una pregunta**.
 
-- **Inicio del trabajador — hecho en este PR.** Antes, arriba del primer turno
+- **Inicio del trabajador — hecho (#393).** Antes, arriba del primer turno
   estaban el buscador, una barra de ubicación y tres chips ("Cerca tuyo",
   "Urgentes", "Mejores pagos"). Ahora la zona es un renglón debajo del saludo
   (`LocationBar`, mismo "Estoy acá" / "Volver a mi zona"). "Urgentes" y
@@ -694,10 +699,18 @@ pantallas. La regla propuesta es **una pantalla, una pregunta**.
   "Cerca tuyo" se sacó porque el Inicio ya ordena por cercanía. `FeedHero` muestra "Urgente" o
   "Recomendado", nunca las dos. El spec del filtro pasó a
   `e2e/buscar-filtros.spec.ts` y el globo 2 del tour señala Buscar.
-- **Panel del comercio — propuesto, sin hacer.** Hay cinco capas antes del
-  primer turno y cada tarjeta dice el estado cuatro veces (familia, chip,
-  stepper, texto). Propuesta: una tarjeta compacta con un solo estado, el
-  stepper sólo en el detalle y "Publicar" como única acción arriba.
+- **Panel del comercio — hecho en este PR.** Arriba del primer turno quedan
+  el saludo, "Publicar turno" (el único botón ámbar) y "Evento" al lado, y
+  después el asistente. Se borraron la tarjeta "Turnos activos" (repetía las
+  pestañas) y `QuickActions` (Favoritos y Mi plan siguen en Perfil; esto
+  revierte los accesos rápidos del 16/9, con el ok de Julieta). En cada
+  tarjeta, el chip y el stepper comparten renglón y el stepper ya no escribe
+  "Paso N de 4" salvo cuando el turno se cortó (`caption="cutShort"`; el
+  `aria-label` sigue). El texto de "próximo paso" se calla cuando repite el
+  estado (publicado, buscando, cancelado) y la vestimenta sólo la ve el
+  trabajador. Con cuatro turnos el panel pasó de 2557 a 1986px y el primer
+  turno subió unos 200px. De paso: `ImageUpload` vuelve a la inicial si la
+  foto no carga, en vez de mostrar el nombre en letra gigante.
 - **Perfil (los dos roles) — propuesto, sin hacer.** El del trabajador mide
   4,2 pantallas y el del comercio 3,2, porque el formulario de edición está
   adentro. Propuesta: el perfil pasa a ser una vista y la edición va a una
