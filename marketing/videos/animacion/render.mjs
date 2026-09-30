@@ -37,7 +37,38 @@ await page.evaluate(async () => {
   await document.fonts.ready;
   await Promise.all([...document.images].map((i) => (i.complete ? 0 : new Promise((r) => (i.onload = i.onerror = r)))));
 });
-await page.evaluate((g) => (window.GUION = g), guion);
+await page.evaluate((g) => {
+  window.GUION = g;
+  if (!g) return;
+  // Cada texto con data-v="<id de línea>" se parte en palabras, y cada palabra
+  // entra en el momento en que la voz la dice (interpolado por letras dentro
+  // de la línea del guion). "|" corta renglón y *palabra* la pinta (clase
+  // "acc" sobre fondo oscuro o ámbar —dentro de .oscuro—, "acc2" sobre claro).
+  const lineas = Object.fromEntries(g.lineas.map((l) => [l.id, l]));
+  const norm = (w) => w.toLowerCase().normalize("NFD").replace(/[^a-z0-9ñ]/g, "");
+  const ADELANTO = 0.08; // la palabra aparece apenas antes de oírse: se lee a la par
+  for (const el of document.querySelectorAll("#stage [data-v]")) {
+    const ln = lineas[el.dataset.v];
+    const dichas = ln.texto.split(/\s+/);
+    const inicio = [];
+    let acc = 0;
+    for (const w of dichas) { inicio.push(acc); acc += w.length + 1; }
+    const tokens = el.textContent.trim().replace(/\|/g, " | ").split(/\s+/);
+    const primera = tokens.find((t) => t !== "|").replace(/\*/g, "");
+    let j = dichas.findIndex((w) => norm(w) === norm(primera));
+    if (j < 0) j = 0;
+    el.textContent = "";
+    for (const t of tokens) {
+      if (t === "|") { el.appendChild(document.createElement("br")); continue; }
+      const k = Math.min(j++, dichas.length - 1);
+      const sp = document.createElement("span");
+      sp.className = t.startsWith("*") ? "w " + (el.closest(".oscuro") ? "acc" : "acc2") : "w";
+      sp.textContent = t.replace(/\*/g, "");
+      sp.style.animationDelay = `${(ln.at + (ln.dur * inicio[k]) / acc - ADELANTO).toFixed(3)}s`;
+      el.append(sp, " ");
+    }
+  }
+}, guion);
 await page.waitForTimeout(400);
 
 await page.evaluate((src) => {

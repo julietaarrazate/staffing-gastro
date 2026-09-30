@@ -1,6 +1,7 @@
-"""Voz guía del video "historia", con TTS libre y local. Una toma por línea
-del guion (historia.guion.json) → voz/<id>.wav, sin silencio al principio ni
-al final: las pausas las pone mezcla.py según el `at` de cada línea.
+"""Voz guía de un video con guion, con TTS libre y local. Una toma por línea
+del guion (<video>.guion.json) → voz/<id>.wav, sin silencio al principio ni
+al final: las pausas las pone mezcla.py según el `at` de cada línea. Los ids
+no se repiten entre videos (v01… en historia, a01… en anuncio).
 
 Es una VOZ GUÍA. La versión para publicar conviene grabarla con una persona
 (ver historia-de-marca.md, "Grabar la voz"): mismo nombre de archivo en
@@ -17,7 +18,7 @@ Dos motores, los dos gratis y locales:
   github.com/thewh1teagle/kokoro-onnx).
 
 Requiere: pip install piper-tts kokoro-onnx soundfile numpy
-Uso: python3 voz.py [id...]      (sin ids, todas; MOTOR=kokoro fuerza Kokoro)"""
+Uso: python3 voz.py <video> [id...]   (sin ids, todas; MOTOR=kokoro fuerza Kokoro)"""
 import json, os, sys, wave
 import numpy as np
 import soundfile as sf
@@ -51,9 +52,11 @@ def piper(texto):
     return a, sr
 
 
-guion = json.load(open("historia.guion.json"))
+if len(sys.argv) < 2 or not os.path.exists(f"{sys.argv[1]}.guion.json"):
+    sys.exit("uso: python3 voz.py <video> [id...]")
+guion = json.load(open(f"{sys.argv[1]}.guion.json"))
 os.makedirs("voz", exist_ok=True)
-solo = set(sys.argv[1:])
+solo = set(sys.argv[2:])
 print(f"motor: {MOTOR}")
 for ln in guion["lineas"]:
     if solo and ln["id"] not in solo:

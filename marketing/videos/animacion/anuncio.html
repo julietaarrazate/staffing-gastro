@@ -1,0 +1,153 @@
+<!-- Anuncio de 15 s para comercios (9:16), cortado de la historia de marca.
+     Cinco compases de 3 s a 80 BPM. Los tiempos (animation-delay) son segundos
+     del video y siguen a anuncio.guion.json: los textos con data-v entran
+     palabra por palabra al ritmo de esa línea (con voz o sin ella). -->
+<style>
+#stage{position:fixed;left:0;top:0;width:540px;height:960px;overflow:hidden;z-index:2147483647;background:#0f0d0b;font-family:var(--font-inter),Inter,sans-serif;color:#111;-webkit-font-smoothing:antialiased}
+#stage *{box-sizing:border-box}
+#stage .abs{position:absolute}
+#stage .scene{position:absolute;inset:0}
+#stage .serif{font-family:var(--font-fraunces),Georgia,serif;font-weight:600;letter-spacing:-.02em}
+#stage .mono{font-family:var(--font-dm-mono),ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase}
+#stage svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#stage .c{left:0;right:0;text-align:center}
+#stage .w{display:inline-block;animation:wordin .55s cubic-bezier(.2,.8,.2,1) both}
+#stage .acc{color:#F59E0B}
+#stage .acc2{color:#B45309}
+
+@keyframes wordin{from{opacity:0;transform:translateY(.32em);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.07)}100%{opacity:1;transform:scale(1)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes outfade{to{opacity:0}}
+@keyframes dim{to{opacity:.35}}
+@keyframes rise{to{transform:translateY(-70px)}}
+@keyframes drift{from{transform:scale(1)}to{transform:scale(1.05)}}
+@keyframes circ{from{clip-path:circle(0% at var(--x) var(--y))}to{clip-path:circle(150% at var(--x) var(--y))}}
+@keyframes wipeup{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes wave{0%{transform:translate(-50%,-50%) scale(.15);opacity:0}8%{opacity:.95}100%{transform:translate(-50%,-50%) scale(6);opacity:0}}
+@keyframes ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}8%{opacity:.7}100%{transform:translate(-50%,-50%) scale(4.2);opacity:0}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes pinpop{0%{opacity:0;transform:translate(-50%,-100%) scale(.2)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.12)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes bubble{0%{opacity:0;transform:translate(-50%,-100%) scale(.3) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.1) rotate(2deg)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes phonein{from{opacity:0;transform:translateY(420px) rotateX(30deg) scale(.92)}to{opacity:1;transform:none}}
+@keyframes press{0%,100%{transform:scale(1)}40%{transform:scale(.93)}}
+@keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes cardup{from{opacity:0;transform:translateY(90px)}to{opacity:1;transform:none}}
+
+.A{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+#stage .wave{width:180px;height:180px;border-radius:99px;border:3px solid var(--wc);animation:wave 1s cubic-bezier(.2,.7,.3,1) both}
+#stage .pin{transform:translate(-50%,-100%)}
+#stage .pin .av{width:44px;height:44px;border-radius:99px;border:3px solid #fff;box-shadow:0 8px 18px rgba(40,30,10,.22);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+</style>
+
+<div id="stage">
+
+  <!-- 1 · GANCHO (0–3 s): el mensaje ya está en pantalla en el primer cuarto de segundo -->
+  <div class="scene oscuro" id="s1" style="background:radial-gradient(120% 70% at 50% 105%,#3a2410 0%,#0f0d0b 62%)">
+    <div class="scene" style="animation:drift 3.2s linear 0s both">
+      <div class="abs c mono A" style="top:140px;font-size:14px;color:#F1E7A0;animation-name:fade;animation-duration:.25s;animation-delay:0s">Viernes · 20:47</div>
+      <div class="abs A" style="left:66px;right:66px;top:190px;background:#26211b;border-radius:22px 22px 22px 6px;padding:17px 20px;transform-origin:0 100%;animation-name:pop;animation-duration:.4s;animation-delay:0s">
+        <div class="mono" style="font-size:11px;color:#b3a999">Martín · mozo</div>
+        <div style="font-size:25px;color:#fff;margin-top:6px">Perdón, hoy no llego.</div>
+        <div class="mono" style="font-size:10px;color:#7d7468;text-align:right;margin-top:4px;letter-spacing:.05em">20:46</div>
+      </div>
+      <div class="abs c serif" style="top:390px;font-size:54px;line-height:1.06;color:#fff" data-v="a01">¿Y ahora|a quién *llamás?*</div>
+    </div>
+  </div>
+
+  <!-- ondas del oído → ámbar -->
+  <div class="abs wave" style="--wc:#F59E0B;left:270px;top:330px;animation-delay:2.6s"></div>
+  <div class="abs wave" style="--wc:#F1E7A0;left:270px;top:330px;animation-delay:2.72s"></div>
+  <div class="abs wave" style="--wc:#D97706;left:270px;top:330px;animation-delay:2.84s"></div>
+  <div class="scene A" style="--x:50%;--y:34%;background:#D97706;animation-name:circ;animation-duration:.55s;animation-delay:2.8s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+
+  <!-- 2 · LA MARCA (3–6 s) -->
+  <div class="scene oscuro" id="s2" style="animation:fade .01s linear 3s both, outfade .01s linear 6.3s forwards">
+    <div class="abs A" style="left:200px;top:250px;width:140px;height:140px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat;animation-name:pop;animation-duration:.7s;animation-delay:3.1s"></div>
+    <div class="abs c serif A" style="top:408px;font-size:108px;line-height:1;color:#fff;animation-name:up;animation-duration:.55s;animation-delay:3.35s">oído</div>
+    <div class="abs c" style="top:560px;font-size:30px;color:#fff;font-weight:500" data-v="a03">Personal gastronómico, *ya.*</div>
+  </div>
+
+  <!-- 3 · PEDILO EN UNA FRASE (6–9 s) -->
+  <div class="scene A" style="background:#FBFAF6;animation-name:wipeup;animation-duration:.5s;animation-delay:5.85s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s3" style="animation:fade .01s linear 6.1s both, outfade .01s linear 9.4s forwards">
+    <div class="abs c mono A" style="top:64px;font-size:14px;color:#B45309;animation-name:up;animation-duration:.45s;animation-delay:6.2s">Para tu local</div>
+    <div class="abs c serif" style="top:92px;font-size:44px;line-height:1.08;color:#111" data-v="a04">Pedilo|en una *frase.*</div>
+    <div class="abs" style="left:0;right:0;top:250px;height:560px;perspective:1200px">
+      <div class="abs A" style="left:100px;width:340px;height:470px;background:#111;border-radius:50px;padding:11px;box-shadow:0 40px 80px rgba(60,40,10,.28);animation:phonein .7s cubic-bezier(.2,.8,.2,1) 6.25s both">
+        <div style="position:relative;width:100%;height:100%;background:#FBFAF6;border-radius:40px;overflow:hidden;padding:44px 20px 20px">
+          <div class="abs" style="left:50%;top:12px;width:96px;height:26px;border-radius:20px;background:#111;transform:translateX(-50%)"></div>
+          <div class="abs mono" style="left:26px;top:16px;font-size:12px;letter-spacing:0;color:#111">20:48</div>
+          <div class="serif" style="font-size:27px;margin-top:6px">Nuevo turno</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;color:#55504a">
+            <span style="display:flex;width:26px;height:26px;border-radius:9px;background:#FDEBD0;color:#B45309;align-items:center;justify-content:center"><svg class="i" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></svg></span>
+            Describí el turno
+          </div>
+          <div style="margin-top:10px;background:#fff;border:1.5px solid #e7e1d4;border-radius:18px;padding:14px 15px;min-height:118px;font-size:19px;line-height:1.4;color:#111"><span id="typed"></span><span id="caret" style="display:inline-block;width:2px;height:22px;background:#D97706;vertical-align:-3px;margin-left:1px"></span></div>
+          <div class="A" style="position:absolute;left:20px;right:20px;top:300px;animation-name:up;animation-duration:.4s;animation-delay:7.9s">
+            <div class="A" style="background:#D97706;color:#fff;border-radius:18px;padding:16px;text-align:center;font-size:17px;font-weight:600;animation-name:press;animation-duration:.3s;animation-delay:8.25s">Publicar turno</div>
+          </div>
+          <div class="abs A" style="left:30px;right:30px;top:52px;background:#1B3A31;color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);animation-name:pop;animation-duration:.45s;animation-delay:8.45s">
+            <span style="display:flex;width:26px;height:26px;border-radius:99px;background:#F1E7A0;color:#1B3A31;align-items:center;justify-content:center"><svg class="i" style="width:15px;height:15px;stroke-width:3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+            Turno publicado
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 · LE AVISAMOS A QUIEN ESTÁ CERCA · ¡OÍDO! (9–12 s) -->
+  <div class="scene A" style="--x:50%;--y:62%;background:#EFEADF;animation-name:circ;animation-duration:.55s;animation-delay:8.8s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s4" style="animation:fade .01s linear 9s both, outfade .01s linear 12.5s forwards">
+    <svg viewBox="0 0 540 960" width="540" height="960" class="abs" style="left:0;top:0">
+      <path d="M470 120 L600 90 L600 300 L520 330 Z" fill="#DCE6D2"/>
+      <g fill="none" stroke="#fff" stroke-linecap="round">
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="15" d="M-20 370 L560 370" style="animation-name:draw;animation-duration:.8s;animation-delay:9s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="15" d="M225 110 L225 760" style="animation-name:draw;animation-duration:.8s;animation-delay:9.05s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="12" d="M-40 640 L600 150" style="animation-name:draw;animation-duration:.9s;animation-delay:9.1s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="8" d="M-20 190 L560 190 M-20 280 L560 280 M-20 460 L560 460 M-20 550 L560 550 M-20 640 L560 640 M-20 730 L560 730" style="animation-name:draw;animation-duration:.8s;animation-delay:9.1s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="8" d="M45 110 L45 780 M135 110 L135 780 M315 110 L315 780 M405 110 L405 780 M495 110 L495 780" style="animation-name:draw;animation-duration:.8s;animation-delay:9.15s"/>
+      </g>
+      <path class="A" d="M135 280 L135 370 L315 370 L315 460" fill="none" stroke="#D97706" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" style="animation-name:draw;animation-duration:.8s;animation-delay:11.45s;animation-timing-function:cubic-bezier(.45,0,.3,1)"/>
+    </svg>
+    <div class="abs" style="left:0;right:0;top:0;height:220px;background:linear-gradient(#EFEADF 55%,rgba(239,234,223,0))"></div>
+    <div class="abs A" style="left:315px;top:460px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.4s ease-out 9.45s infinite both"></div>
+    <div class="abs A" style="left:315px;top:460px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.4s ease-out 9.92s infinite both"></div>
+    <div class="abs A" style="left:289px;top:434px;width:52px;height:52px;border-radius:17px;background:#D97706;box-shadow:0 10px 24px rgba(217,119,6,.45);display:flex;align-items:center;justify-content:center;animation-name:pop;animation-duration:.45s;animation-delay:9.3s">
+      <div style="width:34px;height:34px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat"></div>
+    </div>
+    <div class="abs A pin" style="left:135px;top:280px;animation-name:pinpop;animation-duration:.45s;animation-delay:9.7s"><div class="av" style="background:#FBEFC4;color:#7A5A00">LM</div></div>
+    <div class="abs A pin" style="left:405px;top:560px;animation-name:pinpop;animation-duration:.45s;animation-delay:9.85s"><div class="av" style="background:#DCEAF4;color:#1F5B85">DR</div></div>
+    <div class="abs A pin" style="left:495px;top:280px;animation-name:pinpop;animation-duration:.45s;animation-delay:10s"><div class="av" style="background:#E3EFE8;color:#1B3A31">CP</div></div>
+    <div class="abs A pin" style="left:45px;top:470px;animation-name:pinpop;animation-duration:.45s;animation-delay:10.15s"><div class="av" style="background:#F6DDD6;color:#8A2E1B">JT</div></div>
+    <div class="abs A" style="left:135px;top:226px;transform-origin:30% 100%;animation-name:bubble;animation-duration:.5s;animation-delay:11.2s">
+      <div class="serif" style="background:#111;color:#fff;font-size:32px;padding:10px 18px 12px;border-radius:18px 18px 18px 5px;white-space:nowrap;box-shadow:0 12px 26px rgba(0,0,0,.25)">¡Oído!</div>
+    </div>
+    <div class="abs A" style="left:0;top:0;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:99px;background:#F59E0B;box-shadow:0 0 0 6px rgba(245,158,11,.3);offset-path:path('M135 280 L135 370 L315 370 L315 460');offset-rotate:0deg;animation:fade .15s ease 11.45s both, travel .8s cubic-bezier(.45,0,.3,1) 11.45s both"></div>
+    <div class="abs A" style="left:0;right:0;top:0;animation:outfade .3s ease 11.05s forwards">
+      <div class="abs c mono A" style="top:64px;font-size:14px;color:#B45309;animation-name:up;animation-duration:.45s;animation-delay:9.1s">En segundos</div>
+      <div class="abs c serif" style="top:92px;font-size:40px;line-height:1.08;color:#111" data-v="a05">Le avisamos a quien|está *cerca.*</div>
+    </div>
+  </div>
+
+  <!-- 5 · CIERRE (12–15 s): ondas del oído → logo, llamado a la acción -->
+  <div class="abs wave" style="--wc:#D97706;left:315px;top:460px;animation-delay:11.85s"></div>
+  <div class="abs wave" style="--wc:#F59E0B;left:315px;top:460px;animation-delay:11.97s"></div>
+  <div class="abs wave" style="--wc:#B45309;left:315px;top:460px;animation-delay:12.09s"></div>
+  <div class="scene A" style="--x:58%;--y:48%;background:#FBFAF6;animation-name:circ;animation-duration:.55s;animation-delay:12.05s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s5" style="animation:fade .01s linear 12.2s both">
+    <img class="abs A" src="/logo-mark.svg" style="left:210px;top:220px;width:120px;height:120px;animation-name:pop;animation-duration:.6s;animation-delay:12.3s">
+    <div class="abs c serif A" style="top:358px;font-size:88px;line-height:1;color:#111;animation-name:up;animation-duration:.5s;animation-delay:12.5s">oído</div>
+    <div class="abs c serif" style="top:492px;font-size:42px;line-height:1.08;color:#111" data-v="a07">Empezá *gratis.*</div>
+    <div class="abs c mono A" style="top:568px;font-size:24px;letter-spacing:.06em;text-transform:none;color:#B45309;font-weight:500;animation-name:up;animation-duration:.5s;animation-delay:13.55s">oido.com.ar</div>
+    <div class="abs c mono A" style="top:626px;font-size:12px;color:#8a8175;animation-name:fade;animation-duration:.6s;animation-delay:13.9s">Beta en Palermo</div>
+  </div>
+
+  <!-- tratamiento de color común a todo: viñeta cálida + grano -->
+  <div class="scene" style="pointer-events:none;background:radial-gradient(130% 90% at 50% 45%,rgba(0,0,0,0) 60%,rgba(40,22,6,.22) 100%)"></div>
+  <svg class="abs" width="540" height="960" style="left:0;top:0;pointer-events:none;opacity:.07;mix-blend-mode:overlay">
+    <filter id="grain"><feTurbulence id="grainT" type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter>
+    <rect width="540" height="960" filter="url(#grain)"/>
+  </svg>
+</div>

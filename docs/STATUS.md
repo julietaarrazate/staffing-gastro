@@ -15,7 +15,11 @@ se graba con una persona. El prompt pedía datos que Oído no tiene (hito,
 medios, lugares), así que cada acto se reemplazó por su equivalente
 verdadero. Quedan **tres afirmaciones para que confirme Julieta** antes de
 publicar: "este año en Palermo", "nace en Buenos Aires" y el "¡oído!" de
-cocina como origen del nombre. Todo en `marketing/videos/historia-de-marca.md`.)*
+cocina como origen del nombre. Todo en `marketing/videos/historia-de-marca.md`.
+Mismo PR: el **corte de 15 s para anuncios** a comercios
+(`oido-anuncio-15s.mp4`), sin voz a propósito, con el guion listo para
+agregarla. `voz.py` usa la voz argentina de Piper si está su modelo, que
+hay que bajar a mano porque la sesión cloud no llega a HuggingFace.)*
 Anterior: 2026-09-30 (**videos promocionales**, pedido de
 Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
 redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para

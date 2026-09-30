@@ -10,6 +10,7 @@ file** (el ícono de descarga arriba a la derecha).
 | `oido-trabajador-animado.mp4` | Animación "¿Querés trabajar esta noche?": llega el aviso de un turno, elegís en el feed, te aceptan, avisás que vas en camino y cobrás. Cierra con `oido.com.ar`. | 22 s | Efectos sutiles, sin música |
 | `oido-trabajador.mp4` | Grabación de la app: feed del trabajador, detalle del turno, postularse. Datos del seed demo. | 18 s | Sin audio |
 | `oido-historia.mp4` | Historia de marca en 5 actos: el mensaje "hoy no llego", quiénes somos, por qué existimos (mapa de Buenos Aires), cómo funciona, la misión y Palermo. Guion, decisiones y cómo grabar la voz en [`historia-de-marca.md`](./historia-de-marca.md). | 48 s | Voz **guía** (TTS libre), música y efectos sintetizados. La voz para publicar se graba (ver el doc). |
+| `oido-anuncio-15s.mp4` | Corte de 15 s para anuncios a comercios: el mensaje "hoy no llego", la marca, pedirlo en una frase, el aviso a quien está cerca, "Empezá gratis". Ver [`historia-de-marca.md`](./historia-de-marca.md). | 15 s | Música y efectos sintetizados, **sin voz** (el guion ya la tiene prevista) |
 
 Los tres primeros no llevan música a propósito: se suma en Instagram o CapCut, que tienen
 temas con licencia. Los nombres de personas y comercios, y el 07:42 del reloj,
@@ -20,8 +21,9 @@ real sin su permiso).
 
 Cada animación es un par en `animacion/`: `<video>.html`, una escena HTML/CSS
 de 540 × 960, y `<video>.js`, lo poco que no es CSS (un texto que se tipea,
-un contador). Los videos son `lanzamiento`, `trabajador` e `historia` (éste
-además tiene guion con voz: ver `historia-de-marca.md`). Las animaciones se
+un contador). Los videos son `lanzamiento`, `trabajador`, `historia` y
+`anuncio` (estos dos tienen guion, `<video>.guion.json`: ver
+`historia-de-marca.md`). Las animaciones se
 congelan y se posicionan cuadro por cuadro, así el render sale fluido aunque
 la máquina sea lenta. Textos, colores y tiempos (`animation-delay`, en
 segundos del video) se cambian ahí.

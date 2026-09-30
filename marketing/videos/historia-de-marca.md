@@ -149,8 +149,8 @@ pip install piper-tts kokoro-onnx soundfile numpy imageio-ffmpeg
 #   github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0
 #   → kokoro-v1.0.onnx y voices-v1.0.bin
 cd marketing/videos/animacion
-python3 voz.py                # → voz/v01.wav … (sólo si no hay voz grabada)
-python3 mezcla.py             # → historia.wav (música + efectos + voz)
+python3 voz.py historia       # → voz/v01.wav … (sólo si no hay voz grabada)
+python3 mezcla.py historia    # → historia.wav (música + efectos + voz)
 node render.mjs historia      # → frames/historia/ (48 s, la duración sale del guion)
 FF=$(python3 -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())")
 $FF -framerate 30 -i frames/historia/%04d.jpg -i historia.wav -c:v libx264 -pix_fmt yuv420p \
@@ -164,3 +164,25 @@ TikTok normalizan: más fuerte no suena más fuerte, sólo peor.
 Para cambiar un tiempo: el `at` de la línea en el guion, y los
 `animation-delay` de `historia.html` y los `put(…, segundo, …)` de
 `mezcla.py` que caen alrededor. Están ordenados por escena y comentados.
+
+## Corte de 15 s para anuncios
+
+`oido-anuncio-15s.mp4`, para comercios. Son cinco compases de 3 s:
+
+1. El mensaje "Perdón, hoy no llego" está en pantalla desde el primer cuadro,
+   que es el que se ve como miniatura, y enseguida la pregunta
+   *"¿Y ahora a quién llamás?"*.
+2. Las ondas del oído llevan a la marca: "oído · Personal gastronómico, ya."
+3. "Pedilo en una frase": el pedido se tipea y se publica.
+4. "Le avisamos a quien está cerca", el "¡Oído!" y la ruta al local.
+5. "Empezá gratis", `oido.com.ar` y "Beta en Palermo".
+
+Sale **sin voz**, con música y efectos: los anuncios se miran casi siempre
+sin sonido, y todo lo que dice la voz ya está escrito en pantalla. El guion
+(`animacion/anuncio.guion.json`, líneas `a01`–`a07`) marca igual el ritmo de
+los textos, así que la voz se agrega después sin tocar la animación: tomas
+grabadas en `voz-grabada/a01.wav`…, o `python3 voz.py anuncio`, y después
+`python3 mezcla.py anuncio` y el mismo `ffmpeg` con `anuncio`.
+
+"Empezá gratis" se apoya en el plan gratis de ADR-0005. Si el plan cambia,
+esa línea cambia con él.

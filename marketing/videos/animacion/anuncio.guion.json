@@ -1,0 +1,13 @@
+{
+  "duracion": 15.0,
+  "bpm": 80,
+  "lineas": [
+    {"id": "a01", "voz": "ef_dora", "at": 1.0, "texto": "¿Y ahora a quién llamás?", "dur": 1.55},
+    {"id": "a02", "voz": "ef_dora", "at": 3.4, "texto": "Oído.", "dur": 0.68},
+    {"id": "a03", "voz": "ef_dora", "at": 4.2, "texto": "Personal gastronómico, ya.", "dur": 1.85},
+    {"id": "a04", "voz": "ef_dora", "at": 6.4, "texto": "Pedilo en una frase.", "dur": 1.52},
+    {"id": "a05", "voz": "ef_dora", "at": 9.0, "texto": "Le avisamos a quien está cerca.", "dur": 2.02},
+    {"id": "a06", "voz": "em_alex", "at": 11.25, "texto": "¡Oído!", "dur": 0.67},
+    {"id": "a07", "voz": "ef_dora", "at": 12.8, "texto": "Empezá gratis.", "dur": 1.2}
+  ]
+}
