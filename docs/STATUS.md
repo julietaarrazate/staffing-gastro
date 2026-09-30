@@ -23,7 +23,11 @@ hay que bajar a mano porque la sesión cloud no llega a HuggingFace. Y las
 dos **bienvenidas por rol** de 30 s (`oido-bienvenida-comercio.mp4` y
 `oido-bienvenida-trabajador.mp4`), 5 pasos cada una con los textos reales de
 los botones de la app. Si la app cambia uno de esos textos, se regenera con
-`animacion/bienvenida.py`.)*
+`animacion/bienvenida.py`. Y **cómo instalar Oído y activar los avisos**,
+un video para Android y otro para iPhone (`oido-instalar-*.mp4`, sin
+tecnicismos). Hallazgo de ese trabajo: en iPhone, los avisos sólo funcionan
+con Oído abierto desde el ícono, y la app no se lo dice en ningún lado a
+quien entra desde Safari. Queda como mejora posible de producto.)*
 Anterior: 2026-09-30 (**videos promocionales**, pedido de
 Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
 redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para

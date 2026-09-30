@@ -15,8 +15,8 @@ import soundfile as sf
 
 SR = 48000
 NOMBRE = sys.argv[1] if len(sys.argv) > 1 else ""
-if NOMBRE not in ("historia", "anuncio", "bienvenida-comercio", "bienvenida-trabajador"):
-    sys.exit("uso: python3 mezcla.py historia|anuncio|bienvenida-comercio|bienvenida-trabajador")
+if not os.path.exists(f"{NOMBRE}.guion.json"):
+    sys.exit("uso: python3 mezcla.py <video con guion> (historia, anuncio, bienvenida-*, instalar-*)")
 guion = json.load(open(f"{NOMBRE}.guion.json"))
 DUR = guion["duracion"]
 N = int(SR * DUR)
@@ -378,7 +378,63 @@ def bienvenida():
             pop(s5 + 2.0 + i * 0.12, 1046.5 + i * 130, 0.06)
 
 
-VIDEOS = {"historia": historia, "anuncio": anuncio, "bienvenida-comercio": bienvenida, "bienvenida-trabajador": bienvenida}
+def instalar():
+    """30 s: intro, 4 pasos para instalar, 2 para los avisos, cierre. Tiempos
+    de instalar.py (iguales en Android y en iPhone)."""
+    pasos = [3.0, 6.75, 10.5, 14.25, 18.0, 23.25]
+    cierre = 27.0
+    put(musica, 0.0, pad(Fmaj9, 3.4, att=0.5, rel=0.8), 1.0)
+    for t, m in ((0.05, 72), (0.25, 76), (0.45, 79), (1.5, 81), (2.25, 79)):
+        put(musica, t, keys(hz(m), 2.2, 0.6), 1.0, pan=0.15)
+    for t0, t1, ch in zip(pasos, pasos[1:] + [cierre], (Fmaj7, C, Am7, G6, Fmaj7, C)):
+        largo = t1 - t0
+        put(musica, t0, pad(ch, largo + 0.5, att=0.3, rel=0.8), 1.0)
+        put(musica, t0, bass(hz(ch[0]), 1.4), 1.0)
+        put(musica, t0 + 2.25, bass(hz(ch[0]), 1.2), 0.8)
+        for k in range(int(round(largo / (BEAT / 2)))):
+            put(musica, t0 + k * BEAT / 2, keys(hz(ch[1 + (k * 3) % 4] + 12), 1.2, 0.3 + 0.15 * (k % 4 == 0)), 1.0, pan=(-0.3, 0.3)[k % 2])
+    b = pasos[0]
+    while b < cierre:
+        if round((b - pasos[0]) / BEAT) % 4 in (0, 2):
+            put(musica, b, kick(0.75), 1.0)
+        put(musica, b + BEAT / 2, hat(0.7), 1.0, pan=-0.2)
+        b += BEAT
+    put(musica, cierre, kick(1.2), 1.0)
+    put(musica, cierre, pad([48, 55, 59, 62, 64, 71], 3.0, att=0.2, rel=2.2), 1.3)
+    put(musica, cierre, bass(hz(36), 2.8), 1.0)
+    for k, m in enumerate((72, 76, 79, 83)):
+        put(musica, cierre + 0.4 + k * BEAT / 2, keys(hz(m), 2.4, 0.5), 1.0, pan=(-0.3, 0.3)[k % 2])
+
+    s1, s2, s3, s4, s5, s6 = pasos
+
+    def toque(t, g=0.26):                       # el dedo que toca la pantalla
+        put(sfx, t + 0.18, click(0.02), g)
+
+    put(sfx, 0.05, thud(90, 0.5), 0.3)
+    for t0 in pasos:
+        put(sfx, t0 - 0.2, whoosh(0.5, 2500, 400, 0.4), 0.13)
+    for k in range(11):                                                     # se tipea la dirección
+        put(sfx, s1 + 0.6 + k * 1.0 / 11 + rng.uniform(-0.006, 0.006), click(0.01), 0.1 + rng.uniform(0, 0.05))
+    toque(s2 + 1.6)
+    put(sfx, s2 + 1.85, whoosh(0.3, 1500, 4000, 0.3), 0.06)                 # se abre el menú
+    toque(s3 + 1.3)
+    toque(s3 + 2.6)
+    put(sfx, s4 + 0.6, tone(1046.5, 0.45, 8), 0.1)                          # aparece el ícono
+    put(sfx, s4 + 0.68, tone(1567.98, 0.6, 7), 0.07)
+    toque(s5 + 0.35)
+    put(sfx, s5 + 1.2, whoosh(0.4, 600, 2500, 0.4), 0.06)                   # sube la hoja
+    toque(s5 + 2.6)
+    toque(s5 + 3.9)
+    put(sfx, s5 + 4.1, tone(880, 0.18, 22, 1320), 0.14)                     # el primer aviso
+    put(sfx, s5 + 4.19, tone(1320, 0.3, 14), 0.07)
+    toque(s6 + 1.5)
+    put(sfx, s6 + 1.8, tone(1174.66, 0.3, 12), 0.08)
+    put(sfx, cierre - 0.35, whoosh(0.45, 400, 5000, 0.8), 0.25)
+    put(sfx, cierre, thud(80, 0.6), 0.35)
+
+
+VIDEOS = {"historia": historia, "anuncio": anuncio, "bienvenida-comercio": bienvenida, "bienvenida-trabajador": bienvenida,
+          "instalar-android": instalar, "instalar-iphone": instalar}
 VIDEOS[NOMBRE]()
 
 # ── voz ────────────────────────────────────────────────────────────────────

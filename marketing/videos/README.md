@@ -13,6 +13,8 @@ file** (el ícono de descarga arriba a la derecha).
 | `oido-anuncio-15s.mp4` | Corte de 15 s para anuncios a comercios: el mensaje "hoy no llego", la marca, pedirlo en una frase, el aviso a quien está cerca, "Empezá gratis". Ver [`historia-de-marca.md`](./historia-de-marca.md). | 15 s | Música y efectos sintetizados, **sin voz** (el guion ya la tiene prevista) |
 | `oido-bienvenida-comercio.mp4` | Bienvenida para comercios, en 5 pasos: publicar en una frase, el aviso a quien está cerca, elegir viendo la reputación, verlo llegar, cerrar, pagar y calificar. | 30 s | Música y efectos, **sin voz** (guion previsto) |
 | `oido-bienvenida-trabajador.mp4` | Bienvenida para trabajadores, en 5 pasos: zona y oficios, turnos cerca con el pago a la vista, confirmar, "Llegué" y "Me fui", cobrar y sumar reputación. | 30 s | Música y efectos, **sin voz** (guion previsto) |
+| `oido-instalar-android.mp4` | Cómo tener Oído en un Android sin tienda de apps (Chrome → tres puntitos → "Instalar app") y activar los avisos. Sin tecnicismos. | 30 s | Música y efectos, **sin voz** (guion previsto) |
+| `oido-instalar-iphone.mp4` | Lo mismo en iPhone (Safari → compartir → "Agregar a pantalla de inicio"), con el aviso de que en iPhone las notificaciones sólo llegan abriendo Oído desde el ícono. | 30 s | Música y efectos, **sin voz** (guion previsto) |
 
 Los tres primeros no llevan música a propósito: se suma en Instagram o CapCut, que tienen
 temas con licencia. Los nombres de personas y comercios, y el 07:42 del reloj,
@@ -24,9 +26,10 @@ real sin su permiso).
 Cada animación es un par en `animacion/`: `<video>.html`, una escena HTML/CSS
 de 540 × 960, y `<video>.js`, lo poco que no es CSS (un texto que se tipea,
 un contador). Los videos son `lanzamiento`, `trabajador`, `historia`,
-`anuncio`, `bienvenida-comercio` y `bienvenida-trabajador` (los cuatro
-últimos tienen guion, `<video>.guion.json`: ver `historia-de-marca.md`; los
-dos de bienvenida se generan con `bienvenida.py`). Las animaciones se
+`anuncio`, `bienvenida-comercio`, `bienvenida-trabajador`,
+`instalar-android` e `instalar-iphone` (todos menos los dos primeros tienen
+guion, `<video>.guion.json`: ver `historia-de-marca.md`; los de bienvenida
+se generan con `bienvenida.py` y los de instalación con `instalar.py`). Las animaciones se
 congelan y se posicionan cuadro por cuadro, así el render sale fluido aunque
 la máquina sea lenta. Textos, colores y tiempos (`animation-delay`, en
 segundos del video) se cambian ahí.

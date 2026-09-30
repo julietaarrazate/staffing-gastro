@@ -211,3 +211,32 @@ va.
 
 Salen sin voz, igual que el anuncio. Las líneas `c01`–`c07` y `t01`–`t07`
 de los guiones ya marcan el ritmo de los textos.
+
+## Instalar Oído y activar los avisos (30 s cada uno)
+
+`oido-instalar-android.mp4` y `oido-instalar-iphone.mp4`: uno por sistema,
+así nadie tiene que elegir a mitad del video. En los dos hay 4 pasos para
+instalar y 2 para los avisos, con un celular en pantalla donde se ve cada
+toque:
+
+| | Android | iPhone |
+|---|---|---|
+| 1 | Abrí oido.com.ar en Chrome | Abrí oido.com.ar en Safari |
+| 2 | Tocá los tres puntitos, arriba a la derecha | Tocá el botón de compartir, abajo |
+| 3 | Tocá «Instalar app» → «Instalar» | «Agregar a pantalla de inicio» → «Agregar» |
+| 4 | Listo: el ícono en la pantalla | igual |
+| Avisos | Abrila desde el ícono → «Activar» → «Permitir» | igual, y aclara que en iPhone sólo funciona desde el ícono |
+| Si dijiste «Ahora no» | Perfil → «Notificaciones push» | igual |
+
+**Sin tecnicismos a propósito**: nada de "PWA", "navegador" ni "permisos".
+La hoja «Activá las notificaciones», con «Ahora no» y «Activar», y la fila
+«Notificaciones push» del perfil son las de la app. Esa hoja aparece después
+de publicar el primer turno o de la primera postulación, no al entrar. Los
+menús de Chrome y Safari están simplificados, con los nombres de sus
+opciones en español. Si el sistema los cambia, se corrigen en `instalar.py`.
+
+**Lo de iPhone es una restricción real, no un detalle del video.** En Safari
+común la app ni ofrece los avisos: `isPushSupported()` da falso y la fila
+del perfil no aparece. Sólo funcionan con Oído instalado y abierto desde el
+ícono. Hoy la app no le explica esto en ningún lado a quien entra desde un
+iPhone.
