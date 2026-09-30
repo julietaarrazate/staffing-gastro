@@ -8,6 +8,7 @@ import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
 import { Skeleton } from "@/components/ui";
 import { formatShiftDate } from "@/lib/datetime";
+import { SectionLabel } from "@/components/profile/ProfileParts";
 
 function ReviewSkeleton() {
   return (
@@ -16,6 +17,22 @@ function ReviewSkeleton() {
       <Skeleton className="mt-2 h-3.5 w-full" />
       <Skeleton className="mt-1.5 h-3.5 w-2/3" />
     </div>
+  );
+}
+
+/**
+ * Sección "Reseñas recibidas" del perfil, con su rótulo y su tarjeta. Sin
+ * reseñas no dibuja nada (sobrecarga visual, 2026-09-30): "Todavía no tenés
+ * reseñas" era una sección más diciéndole a la persona nueva lo que no tiene.
+ */
+function Frame({ children }: { children: React.ReactNode }) {
+  return (
+    <section>
+      <SectionLabel>Reseñas recibidas</SectionLabel>
+      <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -42,10 +59,12 @@ export default function ReceivedReviews() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-3" aria-hidden>
-        <ReviewSkeleton />
-        <ReviewSkeleton />
-      </div>
+      <Frame>
+        <div className="flex flex-col gap-3" aria-hidden>
+          <ReviewSkeleton />
+          <ReviewSkeleton />
+        </div>
+      </Frame>
     );
   }
 
@@ -53,36 +72,36 @@ export default function ReceivedReviews() {
   // falla se interpretaba como "no hay reseñas".
   if (error) {
     return (
-      <p className="text-sm text-danger-text">
-        {error}{" "}
-        <button
-          type="button"
-          onClick={load}
-          className="font-semibold underline decoration-danger/40 underline-offset-2 hover:opacity-80"
-        >
-          Reintentar
-        </button>
-      </p>
+      <Frame>
+        <p className="text-sm text-danger-text">
+          {error}{" "}
+          <button
+            type="button"
+            onClick={load}
+            className="font-semibold underline decoration-danger/40 underline-offset-2 hover:opacity-80"
+          >
+            Reintentar
+          </button>
+        </p>
+      </Frame>
     );
   }
 
-  if (reviews.length === 0) {
-    return <p className="text-sm text-ink/50">Todavía no tenés reseñas.</p>;
-  }
+  if (reviews.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-3">
-      {reviews.map((review) => (
-        <div key={review.id} className="rounded-xl bg-surface px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <StarRating value={review.rating} size={16} />
-            <span className="text-xs text-ink/40">
-              {formatShiftDate(review.created_at)}
-            </span>
+    <Frame>
+      <div className="flex flex-col gap-3">
+        {reviews.map((review) => (
+          <div key={review.id} className="rounded-xl bg-surface px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <StarRating value={review.rating} size={16} />
+              <span className="text-xs text-ink/40">{formatShiftDate(review.created_at)}</span>
+            </div>
+            {review.comment && <p className="mt-1 text-sm text-ink/60">{review.comment}</p>}
           </div>
-          {review.comment && <p className="mt-1 text-sm text-ink/60">{review.comment}</p>}
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </Frame>
   );
 }
