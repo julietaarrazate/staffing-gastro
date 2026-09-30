@@ -19,7 +19,11 @@ cocina como origen del nombre. Todo en `marketing/videos/historia-de-marca.md`.
 Mismo PR: el **corte de 15 s para anuncios** a comercios
 (`oido-anuncio-15s.mp4`), sin voz a propósito, con el guion listo para
 agregarla. `voz.py` usa la voz argentina de Piper si está su modelo, que
-hay que bajar a mano porque la sesión cloud no llega a HuggingFace.)*
+hay que bajar a mano porque la sesión cloud no llega a HuggingFace. Y las
+dos **bienvenidas por rol** de 30 s (`oido-bienvenida-comercio.mp4` y
+`oido-bienvenida-trabajador.mp4`), 5 pasos cada una con los textos reales de
+los botones de la app. Si la app cambia uno de esos textos, se regenera con
+`animacion/bienvenida.py`.)*
 Anterior: 2026-09-30 (**videos promocionales**, pedido de
 Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
 redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para

@@ -15,8 +15,8 @@ import soundfile as sf
 
 SR = 48000
 NOMBRE = sys.argv[1] if len(sys.argv) > 1 else ""
-if NOMBRE not in ("historia", "anuncio"):
-    sys.exit("uso: python3 mezcla.py historia|anuncio")
+if NOMBRE not in ("historia", "anuncio", "bienvenida-comercio", "bienvenida-trabajador"):
+    sys.exit("uso: python3 mezcla.py historia|anuncio|bienvenida-comercio|bienvenida-trabajador")
 guion = json.load(open(f"{NOMBRE}.guion.json"))
 DUR = guion["duracion"]
 N = int(SR * DUR)
@@ -293,7 +293,92 @@ def anuncio():
     put(sfx, 13.6, tone(1174.66, 0.3, 12), 0.07)                        # la dirección
 
 
-VIDEOS = {"historia": historia, "anuncio": anuncio}
+def bienvenida():
+    """30 s: intro, 5 pasos de 4,5 s (6 golpes), cierre. Más tranquila que el
+    anuncio: sin aro, el bombo sólo en 1 y 3. Tiempos de bienvenida-*.html."""
+    pasos = [3.75 + 4.5 * k for k in range(5)]
+    cierre = 26.25
+    # intro: acorde abierto y un motivo de piano con la marca
+    put(musica, 0.0, pad(Fmaj9, 4.2, att=0.8, rel=0.8), 1.0)
+    for t, m in ((0.1, 72), (0.3, 76), (0.5, 79), (1.5, 81), (2.25, 79), (3.0, 76)):
+        put(musica, t, keys(hz(m), 2.2, 0.6), 1.0, pan=0.15)
+    put(musica, 3.0, whoosh(0.8, 200, 3000, 0.9), 0.07)
+    # pasos: un acorde por paso, groove liviano
+    for t0, ch in zip(pasos, (Fmaj7, C, Am7, G6, Fmaj7)):
+        put(musica, t0, pad(ch, 5.0, att=0.3, rel=0.8), 1.0)
+        put(musica, t0, bass(hz(ch[0]), 1.4), 1.0)
+        put(musica, t0 + 2.25, bass(hz(ch[0]), 1.4), 0.8)
+        for k in range(12):
+            put(musica, t0 + k * BEAT / 2, keys(hz(ch[1 + (k * 3) % 4] + 12), 1.2, 0.3 + 0.15 * (k % 4 == 0)), 1.0, pan=(-0.3, 0.3)[k % 2])
+    b = pasos[0]
+    while b < cierre:
+        fase = round((b - pasos[0]) / BEAT) % 4
+        if fase in (0, 2):
+            put(musica, b, kick(0.8), 1.0)
+        put(musica, b + BEAT / 2, hat(0.8), 1.0, pan=-0.2)
+        b += BEAT
+    # cierre
+    put(musica, cierre, kick(1.2), 1.0)
+    put(musica, cierre, pad([48, 55, 59, 62, 64, 71], 3.8, att=0.2, rel=2.6), 1.3)
+    put(musica, cierre, bass(hz(36), 3.4), 1.0)
+    for k, m in enumerate((72, 76, 79, 83, 84)):
+        put(musica, cierre + 0.4 + k * BEAT / 2, keys(hz(m), 2.6, 0.5), 1.0, pan=(-0.3, 0.3)[k % 2])
+
+    # efectos comunes: cortina entre pasos, ondas del cierre
+    put(sfx, 0.1, thud(90, 0.5), 0.3)
+    for t0 in pasos:
+        put(sfx, t0 - 0.2, whoosh(0.5, 2500, 400, 0.4), 0.14)
+    put(sfx, cierre - 0.35, whoosh(0.45, 400, 5000, 0.8), 0.25)
+    put(sfx, cierre, thud(80, 0.6), 0.35)
+
+    def boton(t, ding=True):                        # un toque y, si sale bien, su confirmación
+        put(sfx, t, click(0.02), 0.28)
+        if ding:
+            put(sfx, t + 0.2, tone(1046.5, 0.45, 8), 0.1)
+            put(sfx, t + 0.28, tone(1567.98, 0.6, 7), 0.07)
+
+    def pop(t, f=987.77, g=0.08):
+        put(sfx, t, tone(f, 0.18, 16), g)
+
+    s1, s2, s3, s4, s5 = pasos
+    if NOMBRE == "bienvenida-comercio":
+        for k in range(40):                                               # tipeo
+            put(sfx, s1 + 0.9 + k * 1.3 / 40 + rng.uniform(-0.006, 0.006), click(0.01), 0.1 + rng.uniform(0, 0.05), pan=rng.uniform(-0.2, 0.2))
+        for k in range(3):
+            pop(s1 + 2.35 + k * 0.15, 659.25 + k * 120, 0.06)
+        boton(s1 + 3.4)
+        pop(s2 + 0.5, 523.25, 0.1)
+        for k in range(4):
+            put(sfx, s2 + 1.4 + k * 0.27, tone(1200, 0.08, 40, 1600), 0.07, pan=(-0.4, 0.4)[k % 2])
+        pop(s2 + 2.5)
+        pop(s2 + 2.8)
+        pop(s2 + 3.1)
+        boton(s3 + 3.0)
+        put(sfx, s4 + 0.8, whoosh(2.4, 300, 1400, 0.6, q=1.1), 0.06)
+        pop(s4 + 3.3, 1318.5, 0.09)
+        boton(s5 + 1.0, ding=False)
+        boton(s5 + 2.0)
+        for i in range(5):
+            pop(s5 + 2.6 + i * 0.12, 1046.5 + i * 130, 0.06)
+    else:
+        pop(s1 + 0.8, 880, 0.08)
+        pop(s1 + 2.3, 1046.5, 0.08)
+        pop(s1 + 2.75, 1174.66, 0.08)
+        pop(s2 + 1.2, 659.25, 0.08)
+        boton(s2 + 3.0)
+        put(sfx, s3 + 0.3, tone(880, 0.18, 22, 1320), 0.16)                  # llega el aviso
+        put(sfx, s3 + 0.39, tone(1320, 0.3, 14), 0.08)
+        boton(s3 + 2.6)
+        boton(s4 + 1.7)
+        boton(s4 + 3.2)
+        for k in range(10):                                                  # sube el monto
+            put(sfx, s5 + 0.6 + k * 0.09, tone(2093 + k * 40, 0.08, 35), 0.05)
+        pop(s5 + 1.6, 1318.5, 0.09)
+        for i in range(5):
+            pop(s5 + 2.0 + i * 0.12, 1046.5 + i * 130, 0.06)
+
+
+VIDEOS = {"historia": historia, "anuncio": anuncio, "bienvenida-comercio": bienvenida, "bienvenida-trabajador": bienvenida}
 VIDEOS[NOMBRE]()
 
 # ── voz ────────────────────────────────────────────────────────────────────

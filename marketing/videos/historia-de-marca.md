@@ -186,3 +186,28 @@ grabadas en `voz-grabada/a01.wav`…, o `python3 voz.py anuncio`, y después
 
 "Empezá gratis" se apoya en el plan gratis de ADR-0005. Si el plan cambia,
 esa línea cambia con él.
+
+## Bienvenida por rol (30 s cada una)
+
+`oido-bienvenida-comercio.mp4` y `oido-bienvenida-trabajador.mp4`, para
+mandar después del alta o tener en la página de ayuda. Tienen la misma forma:
+la marca y el rol, **5 pasos de 4,5 s** con una barra de progreso arriba, y
+un cierre con el primer paso a dar ("Publicá tu primer turno" o "Elegí tu
+zona y empezá") y `oido.com.ar`.
+
+| Paso | Comercio | Trabajador |
+|---|---|---|
+| 1 | Publicar el turno en una frase ("Describí el turno") | Zona y oficios, igual que en `/bienvenida` |
+| 2 | "Le avisamos a quien está cerca", con los postulantes | Un turno cerca, con el pago a la vista → "Postularme" |
+| 3 | Candidatos con su reputación → "Asignar" | "Te asignó el turno" → "Confirmar" |
+| 4 | "Va en camino" en el mapa → "Llegó al local" | "Llegué" y "Me fui" (asistencia en 2 pasos, ADR-0008) |
+| 5 | "Cerrar turno" → "Marcar como pagado" → calificar | Pagado, calificación y puntualidad |
+
+Cada pantalla es la de la app en su versión mínima, con **los textos reales
+de los botones**. Si la app cambia un texto, se cambia en `bienvenida.py` y
+se regeneran los dos HTML. El paso 5 dice que el pago se arregla fuera de la
+app **durante la beta**: cuando haya cobro real (TECH_DEBT P4), esa línea se
+va.
+
+Salen sin voz, igual que el anuncio. Las líneas `c01`–`c07` y `t01`–`t07`
+de los guiones ya marcan el ritmo de los textos.

@@ -11,6 +11,8 @@ file** (el ícono de descarga arriba a la derecha).
 | `oido-trabajador.mp4` | Grabación de la app: feed del trabajador, detalle del turno, postularse. Datos del seed demo. | 18 s | Sin audio |
 | `oido-historia.mp4` | Historia de marca en 5 actos: el mensaje "hoy no llego", quiénes somos, por qué existimos (mapa de Buenos Aires), cómo funciona, la misión y Palermo. Guion, decisiones y cómo grabar la voz en [`historia-de-marca.md`](./historia-de-marca.md). | 48 s | Voz **guía** (TTS libre), música y efectos sintetizados. La voz para publicar se graba (ver el doc). |
 | `oido-anuncio-15s.mp4` | Corte de 15 s para anuncios a comercios: el mensaje "hoy no llego", la marca, pedirlo en una frase, el aviso a quien está cerca, "Empezá gratis". Ver [`historia-de-marca.md`](./historia-de-marca.md). | 15 s | Música y efectos sintetizados, **sin voz** (el guion ya la tiene prevista) |
+| `oido-bienvenida-comercio.mp4` | Bienvenida para comercios, en 5 pasos: publicar en una frase, el aviso a quien está cerca, elegir viendo la reputación, verlo llegar, cerrar, pagar y calificar. | 30 s | Música y efectos, **sin voz** (guion previsto) |
+| `oido-bienvenida-trabajador.mp4` | Bienvenida para trabajadores, en 5 pasos: zona y oficios, turnos cerca con el pago a la vista, confirmar, "Llegué" y "Me fui", cobrar y sumar reputación. | 30 s | Música y efectos, **sin voz** (guion previsto) |
 
 Los tres primeros no llevan música a propósito: se suma en Instagram o CapCut, que tienen
 temas con licencia. Los nombres de personas y comercios, y el 07:42 del reloj,
@@ -21,9 +23,10 @@ real sin su permiso).
 
 Cada animación es un par en `animacion/`: `<video>.html`, una escena HTML/CSS
 de 540 × 960, y `<video>.js`, lo poco que no es CSS (un texto que se tipea,
-un contador). Los videos son `lanzamiento`, `trabajador`, `historia` y
-`anuncio` (estos dos tienen guion, `<video>.guion.json`: ver
-`historia-de-marca.md`). Las animaciones se
+un contador). Los videos son `lanzamiento`, `trabajador`, `historia`,
+`anuncio`, `bienvenida-comercio` y `bienvenida-trabajador` (los cuatro
+últimos tienen guion, `<video>.guion.json`: ver `historia-de-marca.md`; los
+dos de bienvenida se generan con `bienvenida.py`). Las animaciones se
 congelan y se posicionan cuadro por cuadro, así el render sale fluido aunque
 la máquina sea lenta. Textos, colores y tiempos (`animation-delay`, en
 segundos del video) se cambian ahí.
@@ -37,7 +40,8 @@ segundos del video) se cambian ahí.
    sólo esos instantes a `shots/<video>/`, para revisar antes del render
    completo, y `node render.mjs <video> 30 34 36` rehace sólo ese tramo
    (los cuadros se numeran por su instante, no desde el primero que se saca).
-3. `python3 sfx.py <video>` → `<video>.wav`. Los efectos están sintetizados con la
+3. `python3 sfx.py <video>` → `<video>.wav` (los videos con guion usan
+   `python3 mezcla.py <video>`, que suma música y voz). Los efectos están sintetizados con la
    biblioteca estándar (sin samples de terceros); cada uno se agenda con
    `add(segundo, sonido, volumen)`.
 4. Unir:
