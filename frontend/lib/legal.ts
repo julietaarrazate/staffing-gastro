@@ -19,7 +19,6 @@ export const LEGAL_LAST_UPDATED = "Última actualización: septiembre 2026";
 export const LEGAL_OWNER = {
   name: "María Julieta Arrazate",
   cuil: "27-36316081-1",
-  // TODO(Julieta): domicilio legal. El PR no se mergea sin esto.
-  address: "[domicilio pendiente]",
+  address: "Av. General Las Heras 3515, Ciudad Autónoma de Buenos Aires",
   email: "hola@oido.com.ar",
 };

@@ -719,10 +719,13 @@ base están en `/mnt/project-files/legales/revision-privacidad-terminos-2026-09-
   no tiene botón de baja. Cuando se active el cobro real hacen falta el
   botón de baja y el de arrepentimiento.
 
-**Pendiente de Julieta:** el domicilio legal (hoy dice "[domicilio
-pendiente]"; el PR no se mergea sin eso), crear `privacidad@oido.com.ar` o
-decidir que queda `hola@oido.com.ar` (ImprovMX, pasos en el hilo), e
-inscribir la base en el Registro Nacional de Bases de Datos de la AAIP.
+El domicilio que figura es el que dio Julieta el 2026-09-30 (calle y
+número, sin piso ni departamento): la ley pide un lugar donde se la pueda
+notificar, un barrio no alcanza.
+
+**Pendiente de Julieta:** crear la casilla `hola@oido.com.ar` (ImprovMX,
+pasos en el hilo; hoy el mail figura pero todavía no recibe), e inscribir la
+base en el Registro Nacional de Bases de Datos de la AAIP.
 
 ### Sobrecarga visual (2026-09-28)
 
