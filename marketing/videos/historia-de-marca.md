@@ -122,13 +122,29 @@ que hizo el producto contando por qué existe.
 Leé más lento de lo que te parece natural. En video, lo que al grabarlo se
 siente lento suena tranquilo, y lo que se siente normal suena apurado.
 
+### Si no se graba: una voz sintética argentina
+
+Hay una sola voz libre con acento argentino: **Piper `es_AR-daniela-high`**
+(femenina). Es gratis y corre local, pero su modelo sólo se publica en
+HuggingFace, y la sesión cloud de Claude no llega ahí. Se baja en una
+computadora común desde `huggingface.co/rhasspy/piper-voices`, carpeta
+`es/es_AR/daniela/high`. Son dos archivos: `es_AR-daniela-high.onnx` y
+`es_AR-daniela-high.onnx.json`. Van en `animacion/piper/`. Si están ahí,
+`voz.py` usa esa voz sola para todas las líneas femeninas. Antes de publicar
+hay que revisar la licencia en su ficha (`MODEL_CARD`).
+
+Las voces "Elena" y "Tomás" de Microsoft (`es-AR`, vía `edge-tts`) suenan
+mejor y también son gratis, pero no tienen licencia clara para uso comercial,
+y la sesión cloud tampoco llega a ese servicio. No se usan acá.
+
 ## Cómo se regenera
 
 Mismo circuito que las otras animaciones (ver `README.md`), con dos pasos más
 para la voz y la mezcla:
 
 ```sh
-pip install kokoro-onnx soundfile numpy imageio-ffmpeg
+pip install piper-tts kokoro-onnx soundfile numpy imageio-ffmpeg
+# voz argentina (opcional, ver arriba): los dos archivos de Piper en animacion/piper/
 # modelo de la voz guía (Apache 2.0), ~350 MB, a animacion/kokoro/:
 #   github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0
 #   → kokoro-v1.0.onnx y voices-v1.0.bin
