@@ -1,0 +1,198 @@
+<!-- Video "historia de marca" (9:16, 48 s). Los tiempos (animation-delay) son
+     segundos del video y siguen al guion: historia.guion.json. Los textos con
+     data-v="<id de línea>" entran palabra por palabra al ritmo de esa línea de
+     la voz (lo arma historia.js); "|" corta renglón y *palabra* la pinta. -->
+<style>
+#stage{position:fixed;left:0;top:0;width:540px;height:960px;overflow:hidden;z-index:2147483647;background:#0f0d0b;font-family:var(--font-inter),Inter,sans-serif;color:#111;-webkit-font-smoothing:antialiased}
+#stage *{box-sizing:border-box}
+#stage .abs{position:absolute}
+#stage .scene{position:absolute;inset:0}
+#stage .serif{font-family:var(--font-fraunces),Georgia,serif;font-weight:600;letter-spacing:-.02em}
+#stage .mono{font-family:var(--font-dm-mono),ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase}
+#stage svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#stage .c{left:0;right:0;text-align:center}
+#stage .w{display:inline-block;animation:wordin .55s cubic-bezier(.2,.8,.2,1) both}
+#stage .acc{color:#F59E0B}
+#stage .acc2{color:#B45309}
+
+@keyframes wordin{from{opacity:0;transform:translateY(.32em);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.07)}100%{opacity:1;transform:scale(1)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes outfade{to{opacity:0}}
+@keyframes dim{to{opacity:.35}}
+@keyframes rise{to{transform:translateY(-70px)}}
+@keyframes drift{from{transform:scale(1)}to{transform:scale(1.05)}}
+@keyframes circ{from{clip-path:circle(0% at var(--x) var(--y))}to{clip-path:circle(150% at var(--x) var(--y))}}
+@keyframes wipeup{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes wave{0%{transform:translate(-50%,-50%) scale(.15);opacity:0}8%{opacity:.95}100%{transform:translate(-50%,-50%) scale(6);opacity:0}}
+@keyframes ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}8%{opacity:.7}100%{transform:translate(-50%,-50%) scale(4.2);opacity:0}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes zoomba{from{transform:none}to{transform:translate(-84.1px,-50.6px) scale(5)}}
+@keyframes pinpop{0%{opacity:0;transform:translate(-50%,-100%) scale(.2)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.12)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes bubble{0%{opacity:0;transform:translate(-50%,-100%) scale(.3) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.1) rotate(2deg)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes phonein{from{opacity:0;transform:translateY(420px) rotateX(30deg) scale(.92)}to{opacity:1;transform:none}}
+@keyframes press{0%,100%{transform:scale(1)}40%{transform:scale(.93)}}
+@keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes cardup{from{opacity:0;transform:translateY(90px)}to{opacity:1;transform:none}}
+
+.A{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+#stage .wave{width:180px;height:180px;border-radius:99px;border:3px solid var(--wc);animation:wave 1s cubic-bezier(.2,.7,.3,1) both}
+#stage .pin{transform:translate(-50%,-100%)}
+#stage .pin .av{width:44px;height:44px;border-radius:99px;border:3px solid #fff;box-shadow:0 8px 18px rgba(40,30,10,.22);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+</style>
+
+<div id="stage">
+
+  <!-- 1 · GANCHO: el mensaje que todos conocen -->
+  <div class="scene" id="s1" style="background:radial-gradient(120% 70% at 50% 105%,#3a2410 0%,#0f0d0b 62%)">
+    <div class="scene" style="animation:drift 11.3s linear 0s both">
+      <div class="abs c mono A" style="top:150px;font-size:14px;color:#F1E7A0;animation:fade 1.2s ease .2s both, outfade .5s ease 3.9s forwards">Viernes · 20:47</div>
+      <div class="abs A" style="left:0;right:0;top:190px;animation:rise .9s cubic-bezier(.6,0,.2,1) 4.05s both">
+        <div class="c serif" style="font-size:56px;line-height:1.05;color:#fff" data-v="v01">Viernes a la noche.</div>
+        <div class="c serif" style="font-size:56px;line-height:1.05;margin-top:6px" data-v="v02">*Salón* *lleno.*</div>
+      </div>
+      <div class="abs c A" style="top:360px;font-size:19px;color:#b3a999" data-v="v03">Y te escribe el mozo.</div>
+      <div class="abs A" style="left:66px;right:66px;top:410px;background:#26211b;border-radius:22px 22px 22px 6px;padding:17px 20px;transform-origin:0 100%;animation-name:pop;animation-duration:.6s;animation-delay:5.65s">
+        <div class="mono" style="font-size:11px;color:#b3a999">Martín · mozo</div>
+        <div style="font-size:24px;color:#fff;margin-top:6px">Perdón, hoy no llego.</div>
+        <div class="mono" style="font-size:10px;color:#7d7468;text-align:right;margin-top:4px;letter-spacing:.05em">20:46</div>
+      </div>
+      <div class="abs c" style="top:590px;font-size:22px;color:#F1E7A0;opacity:.9" data-v="v04">Si trabajás en gastronomía,</div>
+      <div class="abs c serif" style="top:626px;font-size:46px;line-height:1.05;color:#fff" data-v="v04">conocés ese mensaje.</div>
+    </div>
+  </div>
+
+  <!-- transición firma: las ondas del oído -->
+  <div class="abs wave" style="--wc:#F59E0B;left:270px;top:320px;animation-delay:10.7s"></div>
+  <div class="abs wave" style="--wc:#F1E7A0;left:270px;top:320px;animation-delay:10.84s"></div>
+  <div class="abs wave" style="--wc:#D97706;left:270px;top:320px;animation-delay:10.98s"></div>
+  <div class="scene A" style="--x:50%;--y:33%;background:#D97706;animation-name:circ;animation-duration:.6s;animation-delay:10.95s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+
+  <!-- 2 · QUIÉNES SOMOS Y QUÉ VIENE -->
+  <div class="scene" id="s2" style="animation:fade .01s linear 11.2s both, outfade .01s linear 16.75s forwards">
+    <div class="abs A" style="left:200px;top:220px;width:140px;height:140px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat;animation-name:pop;animation-duration:.8s;animation-delay:11.45s"></div>
+    <div class="abs c" style="top:170px;font-size:22px;color:#fff;opacity:.92" data-v="v05">Somos</div>
+    <div class="abs c serif A" style="top:378px;font-size:108px;line-height:1;color:#fff;animation-name:up;animation-duration:.6s;animation-delay:12.3s">oído</div>
+    <div class="abs c mono A" style="top:548px;font-size:14px;color:#FFF4D6;animation-name:fade;animation-duration:.6s;animation-delay:13.55s">Este año</div>
+    <div class="abs c serif" style="top:578px;font-size:38px;line-height:1.1;color:#fff" data-v="v06">nos vas a ver|en Palermo.</div>
+  </div>
+
+  <!-- 3 · EL GIRO: una pausa -->
+  <div class="scene A" style="background:#FBFAF6;animation-name:wipeup;animation-duration:.6s;animation-delay:16.3s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s3" style="animation:fade .01s linear 16.5s both, outfade .45s ease 20.75s forwards">
+    <div class="scene" style="animation:drift 4.5s linear 16.5s both">
+      <div class="abs c serif" style="top:330px;font-size:46px;line-height:1.12;color:#111" data-v="v07">Pero antes,|te queremos contar|por qué *existimos.*</div>
+    </div>
+  </div>
+
+  <!-- 4 · ORIGEN: Buenos Aires y la idea -->
+  <div class="scene A" id="s4" style="background:#F3EFE6;animation-name:fade;animation-duration:.5s;animation-delay:20.75s;animation-fill-mode:both;animation-timing-function:ease">
+    <svg viewBox="0 0 540 960" width="540" height="960" class="abs" style="left:0;top:0">
+      <g class="A" style="transform-origin:354.1px 450.6px;animation-name:zoomba;animation-duration:2s;animation-delay:22.5s;animation-timing-function:cubic-bezier(.65,0,.25,1)">
+        <path d="M435.9,434.1L435.2,434.8L434.3,436.2L433.3,439.5L429.9,444.0L429.2,446.6L425.6,449.3L423.1,452.3L421.4,452.2L419.8,453.5L411.2,457.5L408.0,456.7L405.7,456.7L403.6,455.0L398.7,454.4L395.6,455.1L391.5,457.0L390.2,457.0L389.4,456.9L387.1,456.1L385.9,454.4L379.6,452.4L374.4,448.0L368.4,447.9L363.8,448.5L363.1,447.9L362.6,446.8L361.6,445.1L357.6,441.3L354.5,437.4L353.9,433.7L354.3,429.6L355.2,424.7L355.1,423.3L356.2,422.4L357.4,422.2L358.5,421.0L359.5,419.1L359.7,417.7L358.9,415.0L358.3,411.4L357.8,409.5L359.0,406.7L359.0,405.3L358.3,404.1L358.1,402.8L358.5,401.5L358.4,400.3L357.9,399.1L358.3,398.1L359.4,397.3L360.3,396.1L360.9,394.5L361.2,393.3L361.2,392.4L360.8,391.6L360.1,390.9L360.4,389.4L361.8,387.2L362.7,385.2L363.1,383.5L363.1,382.1L362.6,381.0L362.8,380.3L363.7,380.0L364.0,378.9L363.9,376.1L363.1,373.8L363.7,372.0L365.6,369.9L366.7,368.2L366.7,367.0L367.3,366.3L368.2,367.6L371.0,368.0L373.7,368.0L374.1,367.7L375.2,365.4L376.6,364.8L378.2,364.6L379.9,364.7L381.7,366.2L386.8,371.1L390.5,374.5L391.7,376.1L392.7,377.3L393.4,378.5L393.1,381.4L393.1,382.7L393.3,383.0L394.1,383.1L395.4,382.9L396.5,382.2L397.3,381.3L398.2,380.5L398.8,380.1L399.0,379.5L399.4,378.9L399.8,378.7L400.5,379.2L402.3,380.9L403.6,382.4L404.0,383.3L404.5,384.2L405.0,385.0L405.4,385.8L406.8,386.8L408.1,387.5L409.0,386.8L411.3,388.9L416.2,390.7L417.2,391.8L418.0,393.3L419.8,395.7L422.2,397.8L424.2,398.6L426.0,399.1L427.1,399.6L427.8,400.4L428.9,401.3L429.6,401.6L429.9,402.4L430.6,404.1L431.4,406.2L432.2,408.2L434.0,410.1L436.1,411.6L438.2,412.5L439.4,413.5L440.0,414.6L438.5,416.3L436.9,418.3L435.6,419.9L434.1,421.0L433.7,421.8L433.4,423.0L433.4,429.4L433.3,431.8L433.4,432.4L433.5,432.9L434.5,433.5L435.5,434.0Z" fill="#E9E2D3" stroke="#d6ccb9" stroke-width="1" vector-effect="non-scaling-stroke"/>
+        <path class="A" d="M367.3,366.3L366.7,367.0L366.7,368.2L365.6,369.9L363.7,372.0L363.1,373.8L363.9,376.1L364.0,378.9L363.7,380.0L362.8,380.3L362.6,381.0L363.1,382.1L363.1,383.5L362.7,385.2L361.8,387.2L360.4,389.4L360.1,390.9L360.8,391.6L361.2,392.4L361.2,393.3L360.9,394.5L360.3,396.1L359.4,397.3L358.3,398.1L357.9,399.1L358.4,400.3L358.5,401.5L358.1,402.8L358.3,404.1L359.0,405.3L359.0,406.7L357.8,409.5L357.4,411.3L358.2,418.9L357.8,420.0L356.9,421.2L356.0,421.3L354.9,421.1L354.1,421.9L353.6,425.2L352.2,432.6L352.4,434.3L353.6,437.2L354.0,439.0L354.4,440.3L354.7,442.9L354.0,444.1L353.3,444.3L352.5,444.9L353.4,448.1L354.2,449.6L356.4,452.5L364.8,456.7L368.3,459.2L372.3,462.5L374.4,466.0L374.6,468.8L371.5,473.1L371.1,476.7L371.7,479.2L372.9,481.6L375.9,484.7L378.2,485.8L381.2,485.6L381.8,486.5L382.1,487.2L382.5,493.5L382.5,495.8L381.6,498.0L375.8,507.9L370.8,514.0L368.9,517.4L368.3,521.0L366.7,522.7L358.1,528.2L344.7,533.2L333.8,535.7L331.4,536.6L314.0,539.4L310.6,539.8L306.2,539.6L302.7,539.9L298.7,539.2L295.1,538.3L293.2,536.0L290.8,535.8L290.1,536.9L291.3,539.7L290.8,543.1L291.4,545.0L292.8,545.4L294.1,546.4L295.4,547.7L293.3,547.9L294.1,548.9L295.0,549.6L294.8,551.8L294.1,557.2L292.1,558.4L291.6,558.7L290.9,559.9L289.7,565.1L289.3,568.5L289.8,570.7L292.2,575.2L291.3,578.3L289.8,579.9L283.3,583.2L280.7,584.6L276.6,585.5L270,585.7L267.5,585.4L261.8,582.4L257.6,580.6L253.7,579.1L250.0,578.3L250.5,577.8L250.8,577.0L249.7,576.6L249.0,576.5L246.5,578.1L245.5,579.7L245.2,581.1L245.1,584.5L245.6,587.3L247.3,594.4L247.5,598.3L246.7,603.2L247.9,606.1L249.3,607.4L252.5,608.7L253.7,609.5L255.1,609.4L255.6,609.8L255.3,610.4L254.5,611.6L254.6,613.0L257.0,613.3L259.5,613.1L262.2,612.5L262.8,611.6L262.8,609.7L259.7,609.3L260.1,608.6L262.5,607.8L265.6,606.6L267.2,606.3L268.2,607.2L268.9,608.0L269.8,610.0L270.4,612.7L270.4,616.0L270.0,619.1L269.6,620.2L268.8,621.5L263.2,623.2L261.7,622.7L260.3,620.4L259.8,618.0L258.6,616.4L255.9,615.1L253.3,615.5L250.7,617.7L248.1,618.5L247.2,620.5L253.6,623.8L256.7,624.7L257.6,624.7L258.6,625.1L257.8,626.4L256.8,627.1L252.2,628.8L250.2,630.0L247.9,632.3L244.5,637.4L243.5,638.5L243.0,639.8L242.7,643.4L243.8,649.2L242.6,651.7L243.3,654.5L243.0,656.3L241.8,658.9L237.1,663.1L236.3,666.2L237.9,668.0L237.8,669.6L237.3,671.0L235.4,671.0L228.4,670.1L225.8,671.6L223.4,673.6L222.8,674.5L222.0,675.0L217.1,676.1L216.2,676.7L211.1,684.1L208.9,688.7L206.2,693.3L205.5,695.2L205.4,697.8L205.8,700.2L206.1,702.0L207.0,704.3L209.0,706.9L218.9,717.6L220.9,718.6L231.5,719.7L233.8,721.2L235.1,723.6L235.7,725.7L235.1,731.0L234.4,732.7L233.3,734.2L230.8,736.2L227.8,737.3L228.6,738.0L229.8,737.9L232.5,737.3L233.6,737.9L234.5,740.0L232.9,740.9L232.3,741.9L231.2,743.5L225.1,749.8L221.8,751.7L218.8,754.2L214.7,756.8L213.1,758.2L210.9,761.3L207.7,764.7L204.1,772.0L204.0,773.4L204.5,774.4L202.6,787.3L201.9,788.8L200.5,790.4L196.7,793.1L194.9,793.5L192.5,791.9L191.1,790.3L189.8,787.5L188.2,784.6L188.2,785.6L188.7,787.4L188.3,789.2L184.2,790.0L183.2,790.9L186.9,790.5L189.4,791.1L190.4,791.7L191.4,793.1L192.2,794.8L191.5,795.7L189.5,796.5L186.9,797.9L183.8,800.5L182.1,803.5L181.4,805.6L180.6,810.0L180.3,812.8L179.1,815.0L177.0,817.0L177.1,817.5L178.5,816.5L179.6,816.2L180.5,818.8L181.8,824.1L182.4,827.8L182.3,829.0L181.9,830.4L179.3,830.8L177.0,830.8L175.3,831.4L176.2,832.1L177.8,831.8L179.9,833.5L182.3,832.8L183.4,833.8L184.2,834.8L187.9,842.7L191.1,847.5L192.6,850.4L191.9,851.7L191.6,850.0L189.5,849.5L187.5,849.0L184.1,847.8L179.5,845.9L174.9,845.9L171.3,844.3L167.3,842.5L158.8,842.4L151.4,842.3L143.7,842.2L138.8,842.1L135.6,842.0L134.7,841.4L135.0,839.2L133.8,837.6L132.1,835.6L129.9,834.2L128.9,832.4L127.6,830.3L128.3,828.5L129.3,824.0L129.4,822.1L128.5,820.7L128.2,818.7L128.5,817.9L129.3,817.1L129.8,814.0L129.4,810.9L128.7,808.1L127.9,806.9L126.8,806.4L126.0,806.2L124.2,807.3L121.2,807.0L120.2,807.4L118.8,808.5L116.7,810.1L115.6,809.6L115.2,807.8L114.5,806.3L114.0,805.0L113.6,802.8L113.0,800.0L111.8,796.7L110.0,794.0L109.9,791.6L109.5,788.6L110.4,785.7L109.9,783.2L108.7,780.4L109.1,777.4L110.3,775.7L110.6,773.7L115.9,773.3L115.7,770.5L116.6,768.3L117.6,766.2L118.4,765.3L120.2,764.5L122.4,763.3L123.7,762.0L124.3,760.8L124.7,759.2L124.8,757.6L124.4,754.1L124.8,753.0L126.2,751.6L128.5,750.4L129.5,747.0L129.0,744.1L127.6,741.8L126.0,740.8L125.9,738.5L126.6,736.3L127.6,733.9L128.7,731.2L128.7,729.2L129.7,728.1L132.6,725.6L133.6,723.2L134.6,722.6L135.8,722.3L135.9,720.9L135.0,719.5L134.9,717.9L135.0,716.0L135.2,713.5L136.6,712.5L138.6,710.5L139.1,709.2L139.2,707.5L138.6,704L138.1,701.4L137.8,700.5L137.0,698.8L136.3,697.7L137.4,696.3L139.4,694.9L140.2,692.9L139.5,691.1L138.3,690.2L138.0,687.5L138.4,684.2L139.2,683.2L142.2,682.6L142.5,680.9L144.8,678.5L144.7,676.2L143.3,674.7L141.9,672.4L140.8,670.4L137.3,669.3L133.6,668.7L133.1,666.8L133.2,665.7L135.0,666.1L137.8,665.7L139.9,665.6L141.4,665.4L143.1,665.1L144.7,665.9L146.2,665.4L146.9,662.4L147.9,660.8L148.0,659.3L147.0,658.1L145.2,657.8L137.2,656.8L137.0,655.6L137.0,653.6L137.3,651.6L137.3,650.5L138.0,649.6L138.9,647.8L139.5,646.5L138.9,644.9L137.6,642.6L138.5,641.5L138.6,640.2L138.3,639.0L137.0,637.6L135.8,635.6L135.8,633.5L137.2,633.0L138.1,632.4L138.3,631.1L137.8,629.5L135.9,629.1L133.4,628.1L132.6,627.3L131.9,625.6L132.4,620.9L132.2,618.0L132,616.5L132.5,615.3L133.4,614.2L133.0,611.7L132.2,610.4L132.5,609.4L133.2,608.3L133.8,607.1L134.4,606.8L135.2,607.5L136.5,607.1L138.1,606.1L138.3,604.9L138.0,603.2L136.8,598.9L135.7,596.2L135.9,595.3L136.3,594.3L136.0,590.7L136.1,588.5L136.2,582.1L136.3,579.9L135.2,577.7L135.4,575.6L136.1,574.1L136.9,572.1L137.4,570.3L138.0,569.4L139.0,569.0L139.2,568.0L138.8,567.3L137.5,566.1L137.2,564.7L137.5,563.6L138.1,562.9L139.1,562.9L139.8,561.4L140.0,559.4L140.1,558.6L139.6,557.4L139.2,554.7L138.8,553.2L139.2,552.6L139.9,552.4L140.9,552.7L141.7,552.6L141.9,551.8L141.9,550.9L142.2,550.3L142.9,548.4L143.7,545.9L143.8,544.2L143.6,539.6L144.0,538.6L144.7,537.6L145.8,536.7L147.3,536.0L149.0,534.9L151.2,534.5L152.1,533.3L152.8,531.7L152.9,530.4L152.1,529.5L151.0,528.5L150.4,525.7L150.1,523.2L150.0,520.1L148.9,517.4L147.8,514.4L147.5,511.7L147.8,510.2L148.3,507.9L147.8,506.8L147.2,504.9L147.8,503.5L148.6,501.2L148.5,500.0L147.9,497.2L147.3,495.7L147.9,494.0L148.7,492.5L149.4,491.6L149.3,490.3L149.6,489.2L150.8,488.5L152.0,487.1L152.8,487.0L153.9,487.0L154.5,486.6L154.8,485.5L155.0,484.4L156.6,482.9L157.5,481.6L159.2,481.3L160.1,479.9L160.1,478.1L159.9,476.3L160.5,474.1L159.9,470.9L159.9,469.2L159.2,467.8L159.4,466.2L159.1,465.2L158.0,464.9L157.7,463.7L158.1,463.1L159.1,462.6L160.3,461.7L161.2,457.3L161.6,455.9L162.0,454.4L162.0,453.5L162.6,452.3L163.3,450.5L164.4,448.8L165.0,447.6L165.6,446.0L165.8,445.0L166.6,444.6L167.5,444.4L168.6,444.1L169.0,443.5L169.0,442.7L168.9,440.8L168.6,437.8L168.4,433.9L168.6,431.4L169.3,428.8L169.9,427.4L169.7,426.4L169.6,425.2L168.3,424.6L167.2,425.1L166.3,425.0L165.3,423.6L164.9,422.2L165.1,420.2L166.0,419.0L166.3,417.5L165.8,417.0L164.8,416.0L163.8,412.5L163.9,409.5L162.9,408.8L162.5,406.4L161.5,405.6L161.1,403.9L160.8,402.1L160.9,401.3L161.9,401.1L162.6,399.7L162.1,398.9L161.3,398.2L160.3,398.3L159.4,397.5L158.1,394.1L157.2,392.3L157.5,389.6L157.7,387.5L158.1,385.7L158.2,384.3L159.0,383.6L159.7,384.0L160.3,383.8L161.0,382.7L161.6,382.0L161.6,381.4L161.2,380.8L161.0,379.7L161.5,378.4L162.3,375.5L163.5,372.2L164.0,371.0L163.9,370.0L164.2,369.5L165.0,370.0L167.3,369.4L168.2,368.0L168.4,366.7L169.2,366.0L168.9,365.0L167.9,364.7L167.3,364.2L167.5,363.0L167.9,360.4L167.8,358.4L166.9,354.3L166.2,350.1L166.7,348.7L168.3,346.9L169.4,346.0L169.7,345.0L170.8,340.1L171.0,337.5L171.7,336.0L172.2,333.3L174.3,330.9L174.9,329.4L175.8,329.2L176.2,328.7L177.3,327.0L178.8,325.2L180.0,324.3L180.3,322.9L180.9,321.0L182.1,317.8L182.8,315.6L183.8,314.8L184.9,311.9L185.4,310.2L186.6,309.5L187.6,309.4L188.5,310.1L189.4,310.0L190.4,309.0L192.5,308.3L193.5,307.9L193.9,307.0L193.9,305.2L193.0,303.9L191.2,301.4L189.6,298.7L189.4,297.8L189.4,296.9L189.7,295.7L190.5,294.3L192.4,292.1L192.1,290.5L190.8,284.7L190.3,283.1L189.3,280.1L189.4,278.9L190.3,275.6L191.0,274.3L192.1,274.1L192.6,273.6L192.8,273.0L192.1,272.3L191.8,271.4L191.5,270.1L190.5,269.6L190.0,268.5L190.0,266.9L190.8,264.8L191.8,264.2L192.2,263.3L193.2,262.4L194.2,261.8L195.0,260.6L198.3,259.1L200.9,257.9L206.0,255.7L209.5,254.2L209.8,253.2L210.1,252.5L211.7,247.1L213.8,240.2L215.1,236.0L212.1,232.8L212.6,232.0L214.3,229.8L214.7,228.1L215.4,227.3L218.5,225.6L219.0,224.4L219.3,223.1L219.9,222.2L221.1,222.0L223.3,221.2L225.5,220.4L226.2,219.3L226.9,217.5L227.4,215.4L227.9,215L228.6,215.0L229.8,215.5L230.5,216.3L233.7,218.8L235.1,220.2L236.5,220.3L239.2,220.1L239.8,220.1L246.7,220.2L247.7,220.3L250.2,220.9L251.5,221.4L252.5,221.7L254.0,222.4L255.3,224.9L256.1,226.9L256.6,228.6L257.8,231.8L258.6,232.9L258.8,232.3L259.5,229.0L260.4,227.0L261.7,224.8L264.2,219.7L265.1,218.9L266.1,218.5L266.7,218.5L267.4,218.9L268.4,218.9L269.1,218.5L275.7,218.4L282.5,218.4L282.7,218.4L283.0,219.3L284.2,221.2L285.5,222.2L285.7,222.5L286.1,223.0L286.1,223.5L287.4,224.5L290.2,226.1L292.7,229.1L295.1,233.6L297.4,237.0L299.5,239.1L301.4,240.7L303.2,241.6L304.1,242.3L304.2,242.8L305.9,244.0L309.0,245.8L311.1,247.5L311.9,249.3L315.0,251.1L320.4,252.9L324.3,253.8L326.8,253.8L330.4,255.3L335.0,258.3L337.8,260.5L338.7,261.7L341.8,263.6L349.2,267.6L352.6,268.6L354.1,269.5L355.1,270.7L356.0,271.0L356.9,270.6L358.8,271.0L361.7,272.3L363.9,273.8L366.7,277.3L367.7,278.7L368.1,279.9L368.0,281.0L367.0,282.1L365.4,283.4L365.0,283.9L364.9,284.4L364.5,285.5L363.2,287.7L362.8,288.7L362.8,289.5L361.9,290.3L359.7,291.8L359.2,292.6L359.1,293.4L358.8,293.9L358.5,294.1L358.0,294.9L357.7,296.2L357.7,297.9L357.9,300.1L357.9,300.7L357.4,301.1L357.1,301.6L357.0,302.5L356.6,303.3L355.8,303.7L355.6,304.2L355.8,304.8L355.2,305.4L353.9,306.0L353.1,306.9L352.9,308.0L352.1,309.0L351.0,309.8L350.6,311.0L351.2,313.1L358.3,312.4L364.0,313.2L370.9,315.3L375.4,316.0L377.6,315.4L379.3,315.5L380.3,316.3L381.8,316.4L383.6,316.0L385.1,316.3L386.3,317.5L387.4,317.2L388.4,315.4L389.5,314.1L390.8,313.3L392.3,313.0L394.2,313.4L395.6,314.0L396.8,315.0L398.0,315.0L399.3,313.9L400.0,312.7L399.9,311.2L400.4,310.2L401.5,309.5L402.3,308.7L402.6,307.6L404.0,307.0L406.2,306.7L407.4,306.2L407.5,305.4L408.1,304.6L409.3,303.9L410.2,303.1L410.6,302.0L411.4,301.4L412.4,301.1L413.5,299.0L414.8,294.9L415.5,289.5L415.8,281.7L417.0,281.7L417.6,282.3L418.6,282.6L419.6,281.9L420.4,281.6L421.7,281.6L422.4,280.9L423.3,280.8L423.9,281.2L424.4,281.6L425.6,281.7L426.5,283.0L427.5,283.4L427.9,284.8L428.6,288.6L429.9,290.8L431.1,293.4L431.2,294.5L430.5,295.7L430.3,297.4L429.9,301.4L429.8,302.9L430.2,303.9L430.3,305.3L429.7,307.0L428.4,309.6L427.1,310.3L426.8,310.4L425.1,311.9L423.9,312.4L423.2,312.1L422.5,312.7L421.5,314.4L420.5,315.1L418.5,315.6L417.9,315.8L416.8,315.7L415.8,316.1L415.0,317.0L414.1,317.4L413.2,317.1L412.3,317.5L411.6,318.3L411.2,319.3L411.0,320.4L410.3,321.1L408.9,321.5L408.5,322.0L408.5,322.7L408,323.3L405.6,323.8L404.0,324.9L402.9,326.4L401.8,327.3L400.1,327.9L397.8,329.4L397.5,330.4L398.4,331.3L398.7,332.0L398.4,332.7L397.7,332.8L396.5,332.3L395.6,332.2L395.2,332.5L394.9,333.1L394.9,333.8L394.5,334.4L393.6,334.7L393.1,335.4L392.9,336.4L391.7,337.7L389.7,339.3L388.2,341.4L387.0,344.1L385.7,345.8L384.2,346.7L383.1,347.9L382.5,349.5L380.9,351.9L378.2,355.2L375.8,357.4L373.6,358.7L372.3,360.1L372.0,361.6L370.6,363.4L368.1,365.3ZM188.4,919.9L188.6,913.6L188.7,905.1L188.7,897.6L188.7,890.4L188.7,882.9L188.8,875.5L188.8,867.6L188.9,859.6L189.8,860.8L193.6,866.2L194.6,868.5L195.1,871.1L193.6,869.5L192.1,870.4L191.3,872.0L190.6,873.7L190.6,874.9L191.1,876.0L192.7,876.9L196.4,877.2L196.7,877.5L198.9,884.2L200.0,885.7L201.3,886.9L204.2,890.3L207.1,894.0L210.5,897.5L214.1,900.3L217.4,902.3L220.6,904.8L224,908.3L227.6,911.0L231.5,912.8L235.6,914.3L241.7,913.7L243.5,913.9L244.7,915.0L243.5,918.1L242.0,920.6L240.0,921.6L237.9,922.0L235.9,922.0L234.0,921.5L232.2,921.8L230.5,922.8L228.7,923.3L226.8,923.4L225.0,924.3L223.1,925L221.3,924.4L216.4,921.9L213.2,921.3L202.4,920.3L198.9,919.8L195.5,918.9L193.7,918.9L191.1,919.4L189.0,919.4ZM254.9,916.1L256.7,916.7L260.3,916.2L262.1,916.2L263.0,916.4L263.3,916.8L265.8,916.3L266.8,916.3L266.5,917.5L264.3,918.7L263.4,918.2L258.6,918.3L256.5,919.5L255.6,919.5L253.5,921.3L252.0,920.2L251.6,919.1L252.6,917.7L253.7,917.7L254.4,917.1ZM298.2,543.5L298.4,544.8L297.5,544.7L295.5,543.4L294.8,542.2L294.7,541.7L296.8,542.3L297.7,542.8Z" fill="#fff" stroke="#B45309" stroke-width="1.6" vector-effect="non-scaling-stroke" pathLength="1" stroke-dasharray="1" style="animation-name:draw;animation-duration:1.6s;animation-delay:20.9s;animation-timing-function:cubic-bezier(.5,0,.3,1)"/>
+      </g>
+    </svg>
+    <div class="abs A" style="left:0;right:0;top:0;height:250px;background:linear-gradient(#F3EFE6 60%,rgba(243,239,230,0));animation-name:fade;animation-duration:.8s;animation-delay:22.6s"></div>
+    <div class="abs A" style="left:270px;top:400px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.8s ease-out 24.1s infinite both"></div>
+    <div class="abs A" style="left:270px;top:400px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.8s ease-out 24.7s infinite both"></div>
+    <div class="abs A" style="left:258px;top:388px;width:24px;height:24px;border-radius:99px;background:#D97706;border:4px solid #fff;box-shadow:0 6px 16px rgba(180,83,9,.45);animation-name:pop;animation-duration:.5s;animation-delay:23.9s"></div>
+    <div class="abs mono A" style="left:292px;top:392px;font-size:12px;color:#111;background:#fff;padding:5px 9px;border-radius:8px;box-shadow:0 4px 12px rgba(60,40,10,.1);animation-name:up;animation-duration:.5s;animation-delay:24.1s">Buenos Aires</div>
+    <div class="abs c serif" style="top:96px;left:40px;right:40px;font-size:32px;line-height:1.12;color:#111" data-v="v08">Oído nace en *Buenos* *Aires,*|con una idea simple:</div>
+    <div class="abs A" style="left:34px;right:34px;top:560px;background:#fff;border-radius:26px;padding:26px 24px;box-shadow:0 16px 40px rgba(60,40,10,.12);animation-name:cardup;animation-duration:.6s;animation-delay:24.55s">
+      <div class="serif" style="font-size:33px;line-height:1.15;color:#111;text-align:center" data-v="v09">que ningún turno se caiga|por no encontrar|a quién llamar.</div>
+    </div>
+  </div>
+
+  <!-- 5 · CÓMO FUNCIONA: el comercio lo pide en una frase -->
+  <div class="scene A" style="background:#FBFAF6;animation-name:wipeup;animation-duration:.55s;animation-delay:28.6s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s5" style="animation:fade .01s linear 28.9s both, outfade .01s linear 32.6s forwards">
+    <div class="abs c mono A" style="top:64px;font-size:14px;color:#B45309;animation-name:up;animation-duration:.5s;animation-delay:29.05s">El comercio</div>
+    <div class="abs c serif" style="top:92px;font-size:42px;line-height:1.08;color:#111" data-v="v10">lo pide|en una frase.</div>
+    <div class="abs" style="left:0;right:0;top:240px;height:560px;perspective:1200px">
+      <div class="abs A" style="left:100px;width:340px;height:470px;background:#111;border-radius:50px;padding:11px;box-shadow:0 40px 80px rgba(60,40,10,.28);animation:phonein .8s cubic-bezier(.2,.8,.2,1) 29.25s both">
+        <div style="position:relative;width:100%;height:100%;background:#FBFAF6;border-radius:40px;overflow:hidden;padding:44px 20px 20px">
+          <div class="abs" style="left:50%;top:12px;width:96px;height:26px;border-radius:20px;background:#111;transform:translateX(-50%)"></div>
+          <div class="abs mono" style="left:26px;top:16px;font-size:12px;letter-spacing:0;color:#111">20:48</div>
+          <div class="serif" style="font-size:27px;margin-top:6px">Nuevo turno</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;color:#55504a">
+            <span style="display:flex;width:26px;height:26px;border-radius:9px;background:#FDEBD0;color:#B45309;align-items:center;justify-content:center"><svg class="i" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></svg></span>
+            Describí el turno
+          </div>
+          <div style="margin-top:10px;background:#fff;border:1.5px solid #e7e1d4;border-radius:18px;padding:14px 15px;min-height:118px;font-size:18px;line-height:1.4;color:#111"><span id="typed"></span><span id="caret" style="display:inline-block;width:2px;height:21px;background:#D97706;vertical-align:-3px;margin-left:1px"></span></div>
+          <div class="A" style="position:absolute;left:20px;right:20px;top:300px;animation-name:up;animation-duration:.45s;animation-delay:31.1s">
+            <div class="A" style="background:#D97706;color:#fff;border-radius:18px;padding:16px;text-align:center;font-size:17px;font-weight:600;animation-name:press;animation-duration:.3s;animation-delay:31.6s">Publicar turno</div>
+          </div>
+          <div class="abs A" style="left:30px;right:30px;top:52px;background:#1B3A31;color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);animation-name:pop;animation-duration:.45s;animation-delay:31.85s">
+            <span style="display:flex;width:26px;height:26px;border-radius:99px;background:#F1E7A0;color:#1B3A31;align-items:center;justify-content:center"><svg class="i" style="width:15px;height:15px;stroke-width:3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+            Turno publicado
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 · LE AVISAMOS A QUIEN ESTÁ CERCA · ¡OÍDO! · LA MISIÓN -->
+  <div class="scene A" style="--x:50%;--y:57%;background:#EFEADF;animation-name:circ;animation-duration:.6s;animation-delay:32.1s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s6" style="animation:fade .01s linear 32.3s both, outfade .01s linear 43s forwards">
+    <svg viewBox="0 0 540 960" width="540" height="960" class="abs" style="left:0;top:0">
+      <path d="M470 120 L600 90 L600 300 L520 330 Z" fill="#DCE6D2"/>
+      <g fill="none" stroke="#fff" stroke-linecap="round">
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="15" d="M-20 370 L560 370" style="animation-name:draw;animation-duration:1s;animation-delay:32.3s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="15" d="M225 110 L225 760" style="animation-name:draw;animation-duration:1s;animation-delay:32.35s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="12" d="M-40 640 L600 150" style="animation-name:draw;animation-duration:1.1s;animation-delay:32.4s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="8" d="M-20 190 L560 190 M-20 280 L560 280 M-20 460 L560 460 M-20 550 L560 550 M-20 640 L560 640 M-20 730 L560 730" style="animation-name:draw;animation-duration:1s;animation-delay:32.45s"/>
+        <path class="A" pathLength="1" stroke-dasharray="1" stroke-width="8" d="M45 110 L45 780 M135 110 L135 780 M315 110 L315 780 M405 110 L405 780 M495 110 L495 780" style="animation-name:draw;animation-duration:1s;animation-delay:32.5s"/>
+      </g>
+      <path class="A" d="M135 280 L135 370 L315 370 L315 460" fill="none" stroke="#D97706" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" style="animation-name:draw;animation-duration:2.2s;animation-delay:37.4s;animation-timing-function:cubic-bezier(.45,0,.3,1)"/>
+    </svg>
+    <div class="abs" style="left:0;right:0;top:0;height:220px;background:linear-gradient(#EFEADF 55%,rgba(239,234,223,0))"></div>
+    <div class="abs A" style="left:315px;top:460px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.6s ease-out 32.9s infinite both"></div>
+    <div class="abs A" style="left:315px;top:460px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.6s ease-out 33.43s infinite both"></div>
+    <div class="abs A" style="left:315px;top:460px;width:90px;height:90px;border-radius:99px;border:2px solid #D97706;animation:ring 1.6s ease-out 33.96s infinite both"></div>
+    <div class="abs A" style="left:289px;top:434px;width:52px;height:52px;border-radius:17px;background:#D97706;box-shadow:0 10px 24px rgba(217,119,6,.45);display:flex;align-items:center;justify-content:center;animation-name:pop;animation-duration:.5s;animation-delay:32.7s">
+      <div style="width:34px;height:34px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat"></div>
+    </div>
+    <div class="abs A pin" style="left:135px;top:280px;animation-name:pinpop;animation-duration:.5s;animation-delay:33.5s"><div class="av" style="background:#FBEFC4;color:#7A5A00">LM</div></div>
+    <div class="abs A pin" style="left:405px;top:560px;animation-name:pinpop;animation-duration:.5s;animation-delay:33.75s"><div class="av" style="background:#DCEAF4;color:#1F5B85">DR</div></div>
+    <div class="abs A pin" style="left:495px;top:280px;animation-name:pinpop;animation-duration:.5s;animation-delay:33.95s"><div class="av" style="background:#E3EFE8;color:#1B3A31">CP</div></div>
+    <div class="abs A pin" style="left:45px;top:470px;animation-name:pinpop;animation-duration:.5s;animation-delay:34.15s"><div class="av" style="background:#F6DDD6;color:#8A2E1B">JT</div></div>
+    <div class="abs A pin" style="left:495px;top:460px;animation-name:pinpop;animation-duration:.5s;animation-delay:34.3s"><div class="av" style="background:#E9E2F3;color:#4B3380">MA</div></div>
+    <div class="abs A" style="left:135px;top:226px;transform-origin:30% 100%;animation-name:bubble;animation-duration:.55s;animation-delay:36.85s">
+      <div class="serif" style="background:#111;color:#fff;font-size:30px;padding:10px 18px 12px;border-radius:18px 18px 18px 5px;white-space:nowrap;box-shadow:0 12px 26px rgba(0,0,0,.25)">¡Oído!</div>
+    </div>
+    <div class="abs A" style="left:0;top:0;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:99px;background:#F59E0B;box-shadow:0 0 0 6px rgba(245,158,11,.3);offset-path:path('M135 280 L135 370 L315 370 L315 460');offset-rotate:0deg;animation:fade .2s ease 37.4s both, travel 2.2s cubic-bezier(.45,0,.3,1) 37.4s both"></div>
+    <div class="abs A" style="left:0;right:0;top:0;animation:outfade .35s ease 34.8s forwards">
+      <div class="abs c mono A" style="top:64px;font-size:14px;color:#B45309;animation-name:up;animation-duration:.5s;animation-delay:32.5s">En segundos</div>
+      <div class="abs c serif" style="top:92px;font-size:40px;line-height:1.08;color:#111" data-v="v11">Le avisamos a quien|está cerca.</div>
+    </div>
+    <div class="abs A" style="left:0;right:0;top:0;animation:outfade .35s ease 37.7s forwards">
+      <div class="abs c serif" style="top:110px;font-size:40px;line-height:1.08;color:#111" data-v="v12">Y alguien contesta:</div>
+    </div>
+    <div class="abs mono A" style="left:238px;top:500px;font-size:12px;color:#fff;background:#1B3A31;padding:6px 10px;border-radius:8px;letter-spacing:.1em;animation-name:pop;animation-duration:.5s;animation-delay:41.7s">Palermo · empezamos acá</div>
+    <div class="abs A" style="left:30px;right:30px;top:600px;background:#1B3A31;border-radius:26px;padding:22px 24px 24px;box-shadow:0 18px 40px rgba(20,40,30,.3);animation-name:cardup;animation-duration:.6s;animation-delay:37.95s">
+      <div class="mono" style="font-size:13px;color:#F1E7A0">Nuestra misión</div>
+      <div class="serif" style="font-size:31px;line-height:1.15;color:#fff;margin-top:10px" data-v="v14">cubrir un turno|en menos de *diez* *minutos.*</div>
+    </div>
+  </div>
+
+  <!-- 7 · CIERRE: ondas del oído → logo -->
+  <div class="abs wave" style="--wc:#D97706;left:315px;top:460px;animation-delay:42.45s"></div>
+  <div class="abs wave" style="--wc:#F59E0B;left:315px;top:460px;animation-delay:42.59s"></div>
+  <div class="abs wave" style="--wc:#B45309;left:315px;top:460px;animation-delay:42.73s"></div>
+  <div class="scene A" style="--x:58%;--y:48%;background:#FBFAF6;animation-name:circ;animation-duration:.6s;animation-delay:42.7s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s7" style="animation:fade .01s linear 42.9s both">
+    <img class="abs A" src="/logo-mark.svg" style="left:205px;top:250px;width:130px;height:130px;animation-name:pop;animation-duration:.7s;animation-delay:43.1s">
+    <div class="abs c serif A" style="top:398px;font-size:92px;line-height:1;color:#111;animation-name:up;animation-duration:.55s;animation-delay:43.4s">oído</div>
+    <div class="abs c" style="top:512px;font-size:26px;color:#55504a" data-v="v16">Personal gastronómico, *ya.*</div>
+    <div class="abs c mono A" style="top:600px;font-size:20px;letter-spacing:.08em;text-transform:none;color:#B45309;font-weight:500;animation-name:up;animation-duration:.6s;animation-delay:46.3s">oido.com.ar</div>
+  </div>
+
+  <!-- tratamiento de color común a todo: viñeta cálida + grano -->
+  <div class="scene" style="pointer-events:none;background:radial-gradient(130% 90% at 50% 45%,rgba(0,0,0,0) 60%,rgba(40,22,6,.22) 100%)"></div>
+  <svg class="abs" width="540" height="960" style="left:0;top:0;pointer-events:none;opacity:.07;mix-blend-mode:overlay">
+    <filter id="grain"><feTurbulence id="grainT" type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter>
+    <rect width="540" height="960" filter="url(#grain)"/>
+  </svg>
+</div>

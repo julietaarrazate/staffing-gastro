@@ -5,7 +5,18 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-30 (**videos promocionales**, pedido de
+*Última actualización: 2026-09-30 (**video "historia de marca"**, pedido de
+Julieta a partir de un prompt de motion graphics en 5 actos:
+`marketing/videos/oido-historia.mp4`, 48 s, con voz, música y efectos, todo
+sin herramientas pagas. La música y los efectos se sintetizan
+(`animacion/mezcla.py`, con ducking bajo la voz). La voz es una **guía**
+hecha con un TTS libre que corre local (Kokoro), y la versión para publicar
+se graba con una persona. El prompt pedía datos que Oído no tiene (hito,
+medios, lugares), así que cada acto se reemplazó por su equivalente
+verdadero. Quedan **tres afirmaciones para que confirme Julieta** antes de
+publicar: "este año en Palermo", "nace en Buenos Aires" y el "¡oído!" de
+cocina como origen del nombre. Todo en `marketing/videos/historia-de-marca.md`.)*
+Anterior: 2026-09-30 (**videos promocionales**, pedido de
 Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
 redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para
 comercios y otra para trabajadores, y una grabación de la app— y el código
