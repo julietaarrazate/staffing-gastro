@@ -62,7 +62,7 @@ test("un employer da de alta su local buscando la dirección en el mapa", async 
     })
   );
 
-  await page.goto("/profile");
+  await page.goto("/profile/edit");
 
   await expect(page.getByText("Nombre del comercio")).toBeVisible();
 
@@ -188,7 +188,7 @@ test("si el geocoder falla, el employer puede pasar al selector manual", async (
   // Geocoder caído: la búsqueda debe mostrar el aviso y ofrecer el fallback.
   await page.route(/nominatim\.openstreetmap\.org\/search/, (route) => route.abort());
 
-  await page.goto("/profile");
+  await page.goto("/profile/edit");
   await expect(page.getByText("Nombre del comercio")).toBeVisible();
 
   await page.getByPlaceholder("Buscá la dirección de tu local").fill("Av. Corrientes 1234");

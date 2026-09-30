@@ -5,7 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-30 (**video "historia de marca"**, pedido de
+*Última actualización: 2026-09-30 (**Perfil más liviano**, tercer y último
+recorte del diagnóstico de sobrecarga: `/profile` pasa a ser una vista, la
+edición va a `/profile/edit` y los ajustes a `/profile/settings`. Ver
+"Sobrecarga visual (2026-09-28)" más abajo.)*
+Anterior: 2026-09-30 (**video "historia de marca"**, pedido de
 Julieta a partir de un prompt de motion graphics en 5 actos:
 `marketing/videos/oido-historia.mp4`, 48 s, con voz, música y efectos, todo
 sin herramientas pagas. La música y los efectos se sintetizan
@@ -27,7 +31,7 @@ los botones de la app. Si la app cambia uno de esos textos, se regenera con
 un video para Android y otro para iPhone (`oido-instalar-*.mp4`, sin
 tecnicismos). Hallazgo de ese trabajo: en iPhone, los avisos sólo funcionan
 con Oído abierto desde el ícono, y la app no se lo dice en ningún lado a
-quien entra desde Safari. Queda como mejora posible de producto.)*
+quien entra desde Safari. Queda como mejora posible de producto.)
 Anterior: 2026-09-30 (**videos promocionales**, pedido de
 Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
 redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para
@@ -729,7 +733,7 @@ pantallas. La regla propuesta es **una pantalla, una pregunta**.
   "Cerca tuyo" se sacó porque el Inicio ya ordena por cercanía. `FeedHero` muestra "Urgente" o
   "Recomendado", nunca las dos. El spec del filtro pasó a
   `e2e/buscar-filtros.spec.ts` y el globo 2 del tour señala Buscar.
-- **Panel del comercio — hecho en este PR.** Arriba del primer turno quedan
+- **Panel del comercio — hecho (#395).** Arriba del primer turno quedan
   el saludo, "Publicar turno" (el único botón ámbar) y "Evento" al lado, y
   después el asistente. Se borraron la tarjeta "Turnos activos" (repetía las
   pestañas) y `QuickActions` (Favoritos y Mi plan siguen en Perfil; esto
@@ -741,11 +745,27 @@ pantallas. La regla propuesta es **una pantalla, una pregunta**.
   trabajador. Con cuatro turnos el panel pasó de 2557 a 1986px y el primer
   turno subió unos 200px. De paso: `ImageUpload` vuelve a la inicial si la
   foto no carga, en vez de mostrar el nombre en letra gigante.
-- **Perfil (los dos roles) — propuesto, sin hacer.** El del trabajador mide
-  4,2 pantallas y el del comercio 3,2, porque el formulario de edición está
-  adentro. Propuesta: el perfil pasa a ser una vista y la edición va a una
-  pantalla propia. Las métricas se muestran recién con el primer turno. Los
-  ajustes van juntos.
+- **Perfil (los dos roles) — hecho en este PR.** `/profile` responde "cómo me
+  ven": la tarjeta, la verificación (arriba, porque es lo que destraba todo),
+  "Disponible ahora" en el trabajador y un menú corto. El formulario pasó a
+  `/profile/edit` ("Editar perfil" / "Datos del comercio") y apariencia,
+  notificaciones, soporte y cerrar sesión a `/profile/settings` ("Ajustes").
+  En `WorkerGameCard`, las métricas (ganancias, puntualidad, turnos,
+  insignias) aparecen recién con el primer turno completado; antes hay un
+  renglón: "Tu reputación arranca con tu primer turno". Se sacó la tarjeta
+  "Nivel" que repetía el chip del encabezado, y las ganancias no se muestran
+  en $0. "Reseñas recibidas" no aparece si no hay reseñas. Alto a 390px:
+  trabajador de 3549 a 1357px, comercio de 2732 a 1060px. Piezas compartidas
+  en `components/profile/ProfileParts.tsx`. Ojo: `/profile/settings` y
+  `/profile/edit` esperan a la sesión antes de pintar; pintar
+  `AppearanceControl` en el servidor rompía la hidratación (React #418) y el
+  modo oscuro se perdía (test en `e2e/perfil-vista.spec.ts`). Queda para
+  otra vez: en "Datos del comercio" la dirección sigue apareciendo en el
+  buscador, el campo Dirección y "Ubicación".
+  Y los videos de instalación (#397) muestran "Notificaciones push" suelto en
+  el Perfil; ahora está en Perfil → Ajustes. La voz ("activalas en tu
+  perfil") sigue siendo cierta, pero la pantalla dibujada en
+  `marketing/videos/animacion/instalar-*.html` quedó vieja.
 
 ### Constancia de términos (2026-09-26)
 

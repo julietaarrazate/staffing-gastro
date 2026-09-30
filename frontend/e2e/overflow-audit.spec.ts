@@ -124,6 +124,8 @@ const SCREENS = [
   "/shifts/new-event",
   "/my-shifts",
   "/profile",
+  "/profile/edit",
+  "/profile/settings",
   "/search",
   "/chats",
   "/subscription",
