@@ -341,28 +341,19 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 
 ### Estado de env vars (verificado con Julieta el 2026-09-08)
 
-> **Lo único abierto hoy es el dominio propio.** Todo lo de más abajo está
+> **No queda ninguna env var bloqueante.** Todo lo de más abajo está
 > resuelto salvo donde diga lo contrario; los ítems tachados se dejan para que
 > nadie los vuelva a pedir.
 
-#### 🔴 Conectar `oido.com.ar` (lo único que destraba algo hoy)
+#### ✅ ~~Conectar `oido.com.ar`~~ — resuelto el 2026-09-08
 
-Julieta compró el dominio y quiere migrar de la URL de Vercel a la propia. Son
-cuatro pasos, tres de ellos con su login:
-
-1. **Vercel → Settings → Domains**: agregar `oido.com.ar` y `www.oido.com.ar`,
-   y cargar los registros DNS en el registrador. *(Necesita su login.)*
-2. **Google Cloud Console → Credenciales → orígenes autorizados de JavaScript**:
-   sumar `https://oido.com.ar` y `https://www.oido.com.ar`, o **el login con
-   Google deja de funcionar en el dominio nuevo**. *(Necesita su login.)*
-3. **`CORS_ORIGINS` (Render)**: ✅ **ya hecho** — los dos dominios se
-   pre-agregaron en el PR #316, antes de que existiera el DNS, justamente para
-   que este paso no sea un bloqueante después.
-4. **`FRONTEND_URL=https://oido.com.ar` (Render)**: **sólo después de que el
-   DNS resuelva.** Si se setea antes, los links de los mails transaccionales
-   (confirmación, recuperación de contraseña) apuntan a un dominio muerto y el
-   registro se rompe en silencio. Éste es de código/config, no de Julieta —
-   pero depende del paso 1.
+`oido.com.ar` (redirige con 308 a `www.oido.com.ar`) y `www.oido.com.ar`
+están en el proyecto de Vercel, **verificados** (consultado contra la API de
+Vercel el 2026-09-28). Google Cloud, `CORS_ORIGINS`, `EMAIL_FROM` y
+`FRONTEND_URL=https://oido.com.ar` quedaron cargados ese mismo día (detalle
+en `docs/STATUS.md`, "Qué sigue", punto 1). Este bloque estuvo en rojo tres
+semanas después de resuelto y una sesión le dijo a Julieta que el dominio
+"no estaba conectado": si lo ves pendiente en otro lado, es una copia vieja.
 
 Los **íconos** están todos en ámbar (2026-09-23): los PNG y el `favicon.ico`
 se regeneran desde los SVG con `node scripts/build-icons.mjs` (en
@@ -435,10 +426,8 @@ toda vista previa y el sitemap apuntaban ahí.
 > configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
 
 **Otros pendientes operativos (no env vars):**
-- **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02): los
-  pasos para conectarlo están arriba, en "Conectar `oido.com.ar`". Dato útil
-  para el paso de Vercel: normalmente pide A `oido.com.ar` → `76.76.21.21` y
-  CNAME `www` → `cname.vercel-dns.com`, que se cargan en el DNS de NIC.ar.
+- ✅ **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02,
+  conectado el 2026-09-08; ver arriba).
   El **dominio de envío propio en Resend ya está**: verificado contra su API
   el 2026-09-09 — `oido.com.ar` en estado `verified` (región `sa-east-1`) y
   los mails salen de `Oído <hola@oido.com.ar>`, no del sandbox `resend.dev`.

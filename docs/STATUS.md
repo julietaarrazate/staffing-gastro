@@ -5,7 +5,14 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-29 (**Panel del comercio más liviano**,
+*Última actualización: 2026-09-30 (**videos promocionales**, pedido de
+Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
+redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para
+comercios y otra para trabajadores, y una grabación de la app— y el código
+para regenerar las animaciones (README ahí). De paso, `CLAUDE.md` todavía
+daba `oido.com.ar` como pendiente cuando está conectado desde el
+2026-09-08: se corrige.)*
+Anterior: 2026-09-29 (**Panel del comercio más liviano**,
 segundo recorte del diagnóstico de sobrecarga: arriba quedan el saludo,
 "Publicar turno" y "Evento"; se van la tarjeta "Turnos activos" y los accesos
 rápidos, y cada tarjeta de turno dice su estado una sola vez. Ver "Sobrecarga
