@@ -304,23 +304,29 @@ export default function ShiftCard({
             </p>
           )}
 
-        <div className="mt-4">
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
-              }`}
-            >
-              {STATUS_LABELS[shift.status]}
-            </span>
-          </div>
+        {/* Estado y stepper en UNA fila (2026-09-28, diagnóstico de
+            sobrecarga): antes el chip iba en su renglón y abajo el stepper con
+            su propio texto ("Publicado" y "Paso 1 de 4: Publicado"), y la
+            tarjeta decía el estado dos veces seguidas. El chip nombra el
+            estado; los puntos dicen cuánto falta. El texto del stepper sólo
+            vuelve cuando el turno se cortó, porque ahí agrega en qué paso. */}
+        <div className="mt-4 flex items-start gap-3">
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+              STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
+            }`}
+          >
+            {STATUS_LABELS[shift.status]}
+          </span>
+          {showLifecycle && (
+            <ShiftLifecycleStepper
+              shift={shift}
+              perspective={perspective}
+              caption="cutShort"
+              className="min-w-0 flex-1 pt-0.5"
+            />
+          )}
         </div>
-
-        {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md): de un
-            vistazo, en qué punto del viaje está el turno. */}
-        {showLifecycle && (
-          <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
-        )}
 
         {/* Horario en 24 h y con la duración ("Hoy · 20:00 – 02:00 · 6 h"),
             igual que el home y el detalle (DS v5.0). Sin la fila "1
@@ -333,7 +339,9 @@ export default function ShiftCard({
           </span>
         </p>
 
-        {shift.dress_code && (
+        {/* La vestimenta es para quien va a trabajar: en el panel del
+            comercio le repetía lo que él mismo escribió al publicar. */}
+        {perspective === "worker" && shift.dress_code && (
           <p className="mt-2 text-xs text-ink/65">Vestimenta: {shift.dress_code}</p>
         )}
 

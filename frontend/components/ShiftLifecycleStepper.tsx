@@ -76,10 +76,17 @@ export default function ShiftLifecycleStepper({
   shift,
   perspective = "employer",
   className,
+  caption: captionMode = "always",
 }: {
   shift: ShiftForStepper;
   perspective?: ShiftStepperPerspective;
   className?: string;
+  /** "cutShort": el texto de abajo sólo aparece cuando el turno se cortó
+   *  (cancelado / no cubierto), que es cuando dice algo que el chip de estado
+   *  no dice: EN QUÉ paso murió. En el resto repetía el chip ("Publicado" /
+   *  "Paso 1 de 4: Publicado"), así que queda sólo para lectores de
+   *  pantalla, en el `aria-label` de la lista. */
+  caption?: "always" | "cutShort";
 }) {
   // Un borrador todavía no entró al ciclo de vida (ni siquiera se publicó):
   // no hay ningún hito que resaltar todavía.
@@ -164,12 +171,14 @@ export default function ShiftLifecycleStepper({
           );
         })}
       </div>
-      <p
-        aria-hidden="true"
-        className={cn("text-label font-semibold", isCancelled ? "text-danger-text" : "text-ink/55")}
-      >
-        {caption}
-      </p>
+      {(captionMode === "always" || isCutShort) && (
+        <p
+          aria-hidden="true"
+          className={cn("text-label font-semibold", isCancelled ? "text-danger-text" : "text-ink/55")}
+        >
+          {caption}
+        </p>
+      )}
     </div>
   );
 }
