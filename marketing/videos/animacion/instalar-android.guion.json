@@ -1,0 +1,14 @@
+{
+  "duracion": 30.0,
+  "bpm": 80,
+  "lineas": [
+    {"id": "d01", "voz": "ef_dora", "at": 0.4, "texto": "Oído en tu celular, como una app más.", "dur": 2.38},
+    {"id": "d02", "voz": "ef_dora", "at": 3.3, "texto": "Uno: abrí oido.com.ar en Chrome.", "dur": 2.13},
+    {"id": "d03", "voz": "ef_dora", "at": 7.05, "texto": "Dos: tocá los tres puntitos, arriba a la derecha.", "dur": 3.0},
+    {"id": "d04", "voz": "ef_dora", "at": 10.8, "texto": "Tres: tocá Instalar app.", "dur": 1.64},
+    {"id": "d05", "voz": "ef_dora", "at": 14.55, "texto": "Listo: ya está en tu pantalla, como cualquier app.", "dur": 3.13},
+    {"id": "d06", "voz": "ef_dora", "at": 18.3, "texto": "Abrila desde el ícono y tocá Activar, para que te lleguen los avisos.", "dur": 3.77},
+    {"id": "d07", "voz": "ef_dora", "at": 23.55, "texto": "¿Dijiste Ahora no? Activalas en tu perfil.", "dur": 2.64},
+    {"id": "d08", "voz": "ef_dora", "at": 27.3, "texto": "Listo: cuando pase algo, te avisamos.", "dur": 2.4}
+  ]
+}

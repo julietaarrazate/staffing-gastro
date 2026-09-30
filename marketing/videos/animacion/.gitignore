@@ -1,3 +1,8 @@
 frames/
 shots/
 *.wav
+# voz guía (se regenera con voz.py), tomas grabadas y el modelo de TTS
+voz/
+voz-grabada/
+kokoro
+piper

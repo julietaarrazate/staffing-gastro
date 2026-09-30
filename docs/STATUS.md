@@ -5,7 +5,30 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-30 (**videos promocionales**, pedido de
+*Última actualización: 2026-09-30 (**video "historia de marca"**, pedido de
+Julieta a partir de un prompt de motion graphics en 5 actos:
+`marketing/videos/oido-historia.mp4`, 48 s, con voz, música y efectos, todo
+sin herramientas pagas. La música y los efectos se sintetizan
+(`animacion/mezcla.py`, con ducking bajo la voz). La voz es una **guía**
+hecha con un TTS libre que corre local (Kokoro), y la versión para publicar
+se graba con una persona. El prompt pedía datos que Oído no tiene (hito,
+medios, lugares), así que cada acto se reemplazó por su equivalente
+verdadero. Quedan **tres afirmaciones para que confirme Julieta** antes de
+publicar: "este año en Palermo", "nace en Buenos Aires" y el "¡oído!" de
+cocina como origen del nombre. Todo en `marketing/videos/historia-de-marca.md`.
+Mismo PR: el **corte de 15 s para anuncios** a comercios
+(`oido-anuncio-15s.mp4`), sin voz a propósito, con el guion listo para
+agregarla. `voz.py` usa la voz argentina de Piper si está su modelo, que
+hay que bajar a mano porque la sesión cloud no llega a HuggingFace. Y las
+dos **bienvenidas por rol** de 30 s (`oido-bienvenida-comercio.mp4` y
+`oido-bienvenida-trabajador.mp4`), 5 pasos cada una con los textos reales de
+los botones de la app. Si la app cambia uno de esos textos, se regenera con
+`animacion/bienvenida.py`. Y **cómo instalar Oído y activar los avisos**,
+un video para Android y otro para iPhone (`oido-instalar-*.mp4`, sin
+tecnicismos). Hallazgo de ese trabajo: en iPhone, los avisos sólo funcionan
+con Oído abierto desde el ícono, y la app no se lo dice en ningún lado a
+quien entra desde Safari. Queda como mejora posible de producto.)*
+Anterior: 2026-09-30 (**videos promocionales**, pedido de
 Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
 redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para
 comercios y otra para trabajadores, y una grabación de la app— y el código

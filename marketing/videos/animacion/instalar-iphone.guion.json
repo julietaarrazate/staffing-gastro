@@ -1,0 +1,14 @@
+{
+  "duracion": 30.0,
+  "bpm": 80,
+  "lineas": [
+    {"id": "i01", "voz": "ef_dora", "at": 0.4, "texto": "Oído en tu iPhone, como una app más.", "dur": 2.21},
+    {"id": "i02", "voz": "ef_dora", "at": 3.3, "texto": "Uno: abrí oido.com.ar en Safari.", "dur": 2.28},
+    {"id": "i03", "voz": "ef_dora", "at": 7.05, "texto": "Dos: tocá el botón de compartir, abajo.", "dur": 2.36},
+    {"id": "i04", "voz": "ef_dora", "at": 10.8, "texto": "Tres: tocá Agregar a pantalla de inicio, y después Agregar.", "dur": 3.54},
+    {"id": "i05", "voz": "ef_dora", "at": 14.55, "texto": "Listo: ya está en tu pantalla, como cualquier app.", "dur": 3.13},
+    {"id": "i06", "voz": "ef_dora", "at": 18.3, "texto": "Abrila desde el ícono y tocá Activar: en iPhone, los avisos llegan solo así.", "dur": 4.82},
+    {"id": "i07", "voz": "ef_dora", "at": 23.55, "texto": "¿Dijiste Ahora no? Activalas en tu perfil.", "dur": 2.64},
+    {"id": "i08", "voz": "ef_dora", "at": 27.3, "texto": "Listo: cuando pase algo, te avisamos.", "dur": 2.4}
+  ]
+}
