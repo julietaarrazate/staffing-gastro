@@ -8,10 +8,9 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
-import ActiveShiftsCard from "@/components/employer/ActiveShiftsCard";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
-import QuickActions, { type QuickAction } from "@/components/QuickActions";
+import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
@@ -31,10 +30,8 @@ import {
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
-  HeartIcon,
   PlusIcon,
   SearchIcon,
-  WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
 
@@ -129,22 +126,6 @@ const FAMILY_META: Record<
  * empleado"). Mismo componente (`GuidedTour`), apuntando a lo mínimo para
  * entender el panel: cómo publicar, las pestañas por familia de estado (si
  * ya hay turnos) y dónde buscar candidatos directo. */
-// Acciones rápidas del panel. Una sola primaria (ADR-0011: un acento por
-// pantalla) y las otras tres neutras. `Buscar` NO está acá a propósito: ya es
-// una pestaña del nav de abajo.
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    href: "/shifts/new",
-    label: "Publicar",
-    icon: <PlusIcon size={22} />,
-    primary: true,
-    tourId: "shifts-publish",
-  },
-  { href: "/shifts/new-event", label: "Evento", icon: <CalendarPlusIcon size={22} /> },
-  { href: "/favorites", label: "Favoritos", icon: <HeartIcon size={22} /> },
-  { href: "/subscription", label: "Mi plan", icon: <WalletIcon size={22} /> },
-];
-
 const EMPLOYER_PANEL_TOUR: TourStep[] = [
   {
     target: '[data-tour="shifts-publish"]',
@@ -366,24 +347,32 @@ function MyShiftsPanel() {
         <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>
       </div>
 
-      {!loading && !error && (
-        <ActiveShiftsCard className="mt-4" searching={families.buscando} inProgress={families.en_marcha} />
-      )}
-
-      <div className="mt-4">
-        <AIAssistantBar />
+      {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
+          sobrecarga). Antes había cinco capas antes del primer turno: saludo,
+          la tarjeta verde "Turnos activos", el buscador, cuatro accesos
+          rápidos y las pestañas. "Turnos activos" repetía los conteos de las
+          pestañas; Favoritos y Mi plan siguen a un toque desde Perfil. Queda
+          Publicar como la acción, Evento al lado como variante, y el
+          asistente. */}
+      <div className="mt-4 flex gap-2">
+        <Link
+          href="/shifts/new"
+          data-tour="shifts-publish"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-primary px-4 py-3 text-sm font-bold text-night shadow-[var(--shadow-primary-sm)] transition active:scale-95"
+        >
+          <PlusIcon size={18} /> Publicar turno
+        </Link>
+        <Link
+          href="/shifts/new-event"
+          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+        >
+          <CalendarPlusIcon size={17} /> Evento
+        </Link>
       </div>
 
-      {/* Acciones rápidas (2026-09-16). Antes "+ Evento" y "+ Publicar" vivían
-          apretados a la derecha del título: no escalaba —no había lugar para
-          una tercera— y dejaba a Favoritos y Mi plan enterradas a dos toques,
-          adentro del menú de Perfil. Acá las cuatro quedan al mismo nivel y el
-          ámbar dice cuál es LA acción.
-
-          Buscar no entra a propósito: ya es una pestaña del nav de abajo, y
-          repetir un destino que está a un toque no es una acción rápida, es
-          ruido. */}
-      <QuickActions className="mt-5" actions={QUICK_ACTIONS} />
+      <div className="mt-3">
+        <AIAssistantBar />
+      </div>
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} onRetry={() => load()} />}

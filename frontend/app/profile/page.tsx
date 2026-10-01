@@ -1,66 +1,33 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import WorkerProfileForm from "@/components/WorkerProfileForm";
 import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
 import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
-import CompanyProfileForm from "@/components/CompanyProfileForm";
 import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ReceivedReviews from "@/components/ReceivedReviews";
-import PushToggle from "@/components/PushToggle";
-import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
-import AppearanceControl from "@/components/AppearanceControl";
+import { Row, RowGroup } from "@/components/profile/ProfileParts";
 import { Skeleton } from "@/components/ui";
 import {
-  ChevronRightIcon,
+  BuildingIcon,
   CreditCardIcon,
   HeartIcon,
-  LogOutIcon,
-  MessageIcon,
+  PencilIcon,
+  SettingsIcon,
 } from "@/components/icons";
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-      {children}
-    </p>
-  );
-}
-
-function Row({
-  icon,
-  tone,
-  children,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  tone: IconChipTone;
-  children: React.ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition first:rounded-t-[var(--radius-card)] last:rounded-b-[var(--radius-card)] hover:bg-surface active:bg-surface disabled:hover:bg-transparent"
-      disabled={!onClick}
-    >
-      <IconChip tone={tone}>{icon}</IconChip>
-      <span className="flex-1 text-sm font-medium text-ink">{children}</span>
-      {/* Affordance de fila tocable (sensación de app nativa): sin esto las
-          filas parecían texto suelto y no se leía que llevaban a otro lado. */}
-      {onClick && <ChevronRightIcon size={17} className="shrink-0 text-ink/25" />}
-    </button>
-  );
-}
-
+/**
+ * Perfil = cómo te ven (sobrecarga visual, 2026-09-30). Antes esta pantalla
+ * era también el formulario de edición entero y los ajustes de la app: 4,2
+ * pantallas de alto para el trabajador y 3,2 para el comercio, con datos
+ * repetidos (el nivel dos veces, los años de experiencia como dato y como
+ * campo, la dirección cuatro veces). La edición vive en `/profile/edit` y
+ * apariencia, notificaciones, soporte y cerrar sesión en `/profile/settings`.
+ */
 export default function ProfilePage() {
-  const { user, token, loading, logout } = useAuth();
-  const router = useRouter();
+  const { user, token, loading } = useAuth();
 
   if (loading) {
     // Mismo estilo de skeleton que el resto de la app (batch C3,
@@ -92,16 +59,11 @@ export default function ProfilePage() {
       {/* F2 (auditoría de producto/UI 2026-08-09): la pantalla no tenía
           ningún <h1> — rompía la navegación por headings (tecla H en
           lectores de pantalla) en una de las pantallas más usadas de la
-          app. Mismo patrón visual que el resto de las pantallas (`/shifts`,
-          `/feed`, etc.). */}
+          app. */}
       <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Perfil</h1>
-      {/* En lg+ el formulario principal queda en una columna angosta y
-          legible (ensanchar los inputs a todo el ancho se ve mal, mismo
-          criterio que /my-shifts al no forzar una altura pareja en
-          ShiftCard) mientras las secciones secundarias pasan a una columna
-          al lado, en vez de apilarse debajo con media pantalla vacía a los
-          costados. Sin `lg:grid`, en mobile/tablet sigue siendo un único
-          stack en el mismo orden de siempre. */}
+      {/* En lg+ la tarjeta principal ocupa dos columnas y lo demás va al
+          costado, en vez de apilarse debajo con media pantalla vacía a los
+          costados. En mobile/tablet es un único stack. */}
       <div className="mt-4 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
         <div className="lg:col-span-2">
           {user.role === "worker" ? (
@@ -118,148 +80,65 @@ export default function ProfilePage() {
                   <span className="inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
                     {user.role === "admin" ? "Administrador" : "Comercio"}
                   </span>
-                  {/* Mismo sello que ve el trabajador en la tarjeta de un
-                      turno de este comercio (`ShiftCard`, `company_verified`)
-                      — acá el comercio ve su PROPIO estado, no un dato de
-                      terceros; brief: la verificación no puede ser metadata
-                      escondida. */}
                   <IdentityVerifiedBadge verified={user.is_verified} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Un admin no tiene perfil de trabajador ni comercio propio — antes
-              caía en la rama "no worker" y renderizaba `CompanyProfileForm`
-              (que pega a /companies/me, 403 para un admin sin comercio:
-              "Permisos insuficientes" en pantalla, reporte real de Julieta
-              probando su propia cuenta). */}
+          {/* La verificación va arriba: mientras no está aprobada es lo que
+              destraba todo, y una vez aprobada la tarjeta se achica sola a
+              un sello (ver `IdentityVerificationCard` y
+              `BusinessVerificationCard`). Celeste y no `bg-card`: es una
+              pieza de confianza, no una tarjeta de contenido más. */}
           {user.role !== "admin" && (
-            <div className="mt-7">
-              {/* El trabajador no lleva rótulo: la pantalla ya se titula
-                  "Perfil" arriba de todo y su tarjeta (`WorkerGameCard`) está
-                  justo encima — un "Mi perfil" acá repetía el título de la
-                  pantalla. El comercio sí lo lleva: "Mi comercio" nombra otra
-                  cosa que el título, no lo repite. */}
-              {user.role !== "worker" && <SectionLabel>Mi comercio</SectionLabel>}
-              <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-                {user.role === "worker" ? <WorkerProfileForm /> : <CompanyProfileForm />}
-              </div>
+            <div className="mt-4 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
+              {user.role === "worker" ? <IdentityVerificationCard /> : <BusinessVerificationCard />}
+            </div>
+          )}
+
+          {user.role === "worker" && (
+            <div className="mt-4">
+              <AvailableNowToggle token={token} />
             </div>
           )}
         </div>
 
         <div>
-          {user.role === "employer" && (
-            <div className="mt-7 lg:mt-0">
-              <SectionLabel>Suscripción</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-                <Row
-                  icon={<CreditCardIcon size={18} />}
-                  tone="secondary"
-                  onClick={() => router.push("/subscription")}
-                >
-                  Mi plan
+          <div className="mt-7 lg:mt-0">
+            <RowGroup>
+              {user.role === "worker" && (
+                <Row icon={<PencilIcon size={18} />} tone="manteca" href="/profile/edit">
+                  Editar perfil
                 </Row>
-                <Row
-                  icon={<HeartIcon size={18} />}
-                  tone="danger"
-                  onClick={() => router.push("/favorites")}
-                >
-                  Trabajadores favoritos
-                </Row>
-              </div>
-            </div>
-          )}
+              )}
+              {user.role === "employer" && (
+                <>
+                  <Row icon={<BuildingIcon size={18} />} tone="manteca" href="/profile/edit">
+                    Datos del comercio
+                  </Row>
+                  <Row icon={<CreditCardIcon size={18} />} tone="secondary" href="/subscription">
+                    Mi plan
+                  </Row>
+                  <Row icon={<HeartIcon size={18} />} tone="danger" href="/favorites">
+                    Trabajadores favoritos
+                  </Row>
+                </>
+              )}
+              <Row icon={<SettingsIcon size={18} />} tone="neutral" href="/profile/settings">
+                Ajustes
+              </Row>
+            </RowGroup>
+          </div>
 
-          {user.role === "employer" && (
-            <div className="mt-7">
-              <SectionLabel>Identidad</SectionLabel>
-              {/* Mismo tratamiento celeste que la tarjeta del trabajador, y
-                  por el mismo motivo: la verificación es una pieza de
-                  confianza, no una tarjeta de contenido más. Que las dos se
-                  vean igual es la idea — el comercio y el trabajador hacen
-                  el mismo gesto, uno hacia el otro (ADR-0013). */}
-              <div className="mt-2 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
-                <BusinessVerificationCard />
-              </div>
-            </div>
-          )}
-
-          {user.role === "worker" && (
-            <div className="mt-7 lg:mt-0">
-              <SectionLabel>Disponible ahora</SectionLabel>
-              <div className="mt-2">
-                <AvailableNowToggle token={token} />
-              </div>
-            </div>
-          )}
-
-          {user.role === "worker" && (
-            <div className="mt-7">
-              <SectionLabel>Identidad</SectionLabel>
-              {/* Trust card (rediseño 2026-09, Fase 5): celeste/cielo, NO
-                  `bg-card` — la verificación es una pieza estratégica de
-                  confianza, no una tarjeta de contenido más (brief: "no
-                  limitarlo a un pequeño badge azul genérico"). El tinte es
-                  constante en los tres modos, igual que cualquier chip
-                  manteca/cielo — no es una superficie que "voltea". */}
-              <div className="mt-2 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
-                <IdentityVerificationCard />
-              </div>
-            </div>
-          )}
-
+          {/* Sin reseñas no se muestra nada: una sección que dice
+              "Todavía no tenés reseñas" es otra cosa que le cuenta a la
+              persona nueva lo que no tiene. */}
           {user.role !== "admin" && (
             <div className="mt-7">
-              <SectionLabel>Reseñas recibidas</SectionLabel>
-              <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-                <ReceivedReviews />
-              </div>
+              <ReceivedReviews />
             </div>
           )}
-
-          <div className="mt-7">
-            <SectionLabel>Apariencia</SectionLabel>
-            <div className="mt-2">
-              <AppearanceControl />
-            </div>
-          </div>
-
-          <div className="mt-7">
-            <SectionLabel>Otros</SectionLabel>
-            {/* El ítem "Verificación" que estaba acá (batch C0 #4) sólo mostraba
-                `user.is_verified` sin ninguna acción: no existe un flujo de
-                verificación de identidad iniciado por el usuario, `is_verified`
-                se marca desde el panel de admin (`POST /admin/users/{id}/verify`,
-                ver backend/app/modules/admin) y no hay endpoint para que el
-                propio usuario la solicite. Era UI muerta (un ítem de menú junto
-                a "Cerrar sesión" que no hacía nada al tocarlo) así que se oculta
-                acá; el estado de verificación del trabajador ya es visible como
-                insignia "Perfil Verificado" en `WorkerGameCard` (ver
-                `lib/reputation.tsx`) cuando corresponde. */}
-            <div className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-              <PushToggle />
-              {/* `/support` es "mis tickets" (GET /support/tickets/mine) — para un
-                  admin eso es casi siempre una lista vacía, porque los tickets que
-                  importa ver son los que abren OTROS usuarios. Confusión real de
-                  Julieta: abrió un ticket de prueba como trabajador y no lo veía
-                  "en su perfil de admin" porque este ítem la mandaba a /support en
-                  vez de al inbox real (/admin/support, GET /support/tickets). */}
-              <Row
-                icon={<MessageIcon size={18} />}
-                tone="cielo"
-                onClick={() =>
-                  router.push(user.role === "admin" ? "/admin/support" : "/support")
-                }
-              >
-                Soporte
-              </Row>
-              <Row icon={<LogOutIcon size={18} />} tone="neutral" onClick={logout}>
-                Cerrar sesión
-              </Row>
-            </div>
-          </div>
         </div>
       </div>
     </div>

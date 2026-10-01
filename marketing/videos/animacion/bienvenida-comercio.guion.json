@@ -1,0 +1,13 @@
+{
+  "duracion": 30.0,
+  "bpm": 80,
+  "lineas": [
+    {"id": "c01", "voz": "ef_dora", "at": 0.6, "texto": "Te damos la bienvenida a Oído.", "dur": 2.0},
+    {"id": "c02", "voz": "ef_dora", "at": 4.1, "texto": "Uno: publicá el turno en una frase.", "dur": 2.2},
+    {"id": "c03", "voz": "ef_dora", "at": 8.6, "texto": "Dos: le avisamos a quien está cerca.", "dur": 2.3},
+    {"id": "c04", "voz": "ef_dora", "at": 13.1, "texto": "Tres: elegís a quién, viendo su reputación.", "dur": 2.7},
+    {"id": "c05", "voz": "ef_dora", "at": 17.6, "texto": "Cuatro: lo ves llegar en el mapa.", "dur": 2.1},
+    {"id": "c06", "voz": "ef_dora", "at": 22.1, "texto": "Cinco: cerrás el turno, lo pagás y lo calificás.", "dur": 3.3},
+    {"id": "c07", "voz": "ef_dora", "at": 26.6, "texto": "Publicá tu primer turno.", "dur": 1.7}
+  ]
+}

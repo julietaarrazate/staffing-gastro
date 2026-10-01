@@ -31,6 +31,12 @@ export default function ImageUpload({
   const [error, setError] = useState<string | null>(null);
   // Foto elegida, pendiente de encuadrar antes de subirse (ver ImageCropModal).
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  // URL que falló al cargar (link roto, Cloudinary caído, red cortada). Sin
+  // esto el navegador dibuja el `alt` —el nombre completo— en letra de
+  // 30px adentro del círculo; igual que `Avatar`, se vuelve a la inicial.
+  // Se guarda la URL y no un booleano para que una foto nueva vuelva a probar.
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
+  const showPhoto = Boolean(value) && value !== brokenSrc;
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -72,10 +78,11 @@ export default function ImageUpload({
             avatar ? "text-3xl ring-4 ring-white/20" : "h-24 w-24 text-2xl shadow-md"
           }`}
         >
-          {value ? (
+          {showPhoto && value ? (
             <img
               src={value}
               alt={fallbackLabel}
+              onError={() => setBrokenSrc(value)}
               loading="lazy"
               decoding="async"
               className="h-full w-full object-cover"

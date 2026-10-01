@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ImageUpload from "./ImageUpload";
 
@@ -60,5 +60,18 @@ describe("ImageUpload sin foto", () => {
     const badge = container.querySelector(".absolute.bottom-0.right-0");
     expect(badge).not.toBeNull();
     expect(badge!.closest(".overflow-hidden")).toBeNull();
+  });
+});
+
+describe("ImageUpload con una foto que no carga", () => {
+  it("vuelve a la inicial en vez de dibujar el nombre en letra gigante", () => {
+    const { container } = render(
+      <ImageUpload value="https://ejemplo.invalid/rota.jpg" onChange={() => {}} fallbackLabel="Lucas Fernández" />
+    );
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+    fireEvent.error(img!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cambiar foto de perfil" })).toHaveTextContent("L");
   });
 });

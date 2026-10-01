@@ -81,15 +81,18 @@ test("el stepper resalta el hito real (asignado→paso2, en curso→paso3, final
 
   await page.goto("/shifts");
 
+  // Desde 2026-09-28 el texto "Paso N de 4" ya no se ve en el camino normal
+  // (repetía el chip de estado); sigue siendo el nombre accesible del stepper.
   const asignadoCard = page.locator('[data-shift-id="shift-asignado"]');
   await expect(asignadoCard).toBeVisible();
-  await expect(asignadoCard.getByText("Paso 2 de 4: Asignado")).toBeVisible();
+  await expect(asignadoCard.getByText("Paso 2 de 4: Asignado")).toHaveCount(0);
+  await expect(asignadoCard.getByRole("list", { name: "Paso 2 de 4: Asignado" })).toBeVisible();
 
   const enCaminoCard = page.locator('[data-shift-id="shift-en-camino"]');
-  await expect(enCaminoCard.getByText("Paso 3 de 4: En curso")).toBeVisible();
+  await expect(enCaminoCard.getByRole("list", { name: "Paso 3 de 4: En curso" })).toBeVisible();
 
   const finalizadoCard = page.locator('[data-shift-id="shift-finalizado"]');
-  await expect(finalizadoCard.getByText("Paso 4 de 4: Finalizado")).toBeVisible();
+  await expect(finalizadoCard.getByRole("list", { name: "Paso 4 de 4: Finalizado" })).toBeVisible();
 });
 
 test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde murió, sin un 5º paso", async ({

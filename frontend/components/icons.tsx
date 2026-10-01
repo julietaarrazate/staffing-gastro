@@ -46,6 +46,7 @@ import {
   Mic,
   MicOff,
   Pencil,
+  Settings,
   Plus,
   Route,
   Scale,
@@ -143,3 +144,4 @@ export const UploadIcon = make(Upload);
 export const DownloadIcon = make(Download);
 export const PencilIcon = make(Pencil);
 export const HeartIcon = make(Heart);
+export const SettingsIcon = make(Settings);

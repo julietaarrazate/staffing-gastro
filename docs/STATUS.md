@@ -5,17 +5,56 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-29 (**términos y privacidad contra la Ley
-25.326**: las dos páginas nombran a la responsable (persona humana, con CUIL
-y mail), declaran todo lo que la app guarda de verdad, los proveedores y
+*Última actualización: 2026-10-01 (**términos y privacidad contra la Ley
+25.326**: las dos páginas nombran a la responsable (persona humana, con CUIL,
+domicilio y mail), declaran todo lo que la app guarda de verdad, los proveedores y
 dónde están, la transferencia internacional, los plazos de conservación y de
 respuesta, y la leyenda de la AAIP. Versión legal `2026-09-29`. Ver "Términos
 y privacidad (2026-09-29)" más abajo.)*
+Anterior: 2026-09-30 (**Perfil más liviano**, tercer y último
+recorte del diagnóstico de sobrecarga: `/profile` pasa a ser una vista, la
+edición va a `/profile/edit` y los ajustes a `/profile/settings`. Ver
+"Sobrecarga visual (2026-09-28)" más abajo.)*
+Anterior: 2026-09-30 (**video "historia de marca"**, pedido de
+Julieta a partir de un prompt de motion graphics en 5 actos:
+`marketing/videos/oido-historia.mp4`, 48 s, con voz, música y efectos, todo
+sin herramientas pagas. La música y los efectos se sintetizan
+(`animacion/mezcla.py`, con ducking bajo la voz). La voz es una **guía**
+hecha con un TTS libre que corre local (Kokoro), y la versión para publicar
+se graba con una persona. El prompt pedía datos que Oído no tiene (hito,
+medios, lugares), así que cada acto se reemplazó por su equivalente
+verdadero. Quedan **tres afirmaciones para que confirme Julieta** antes de
+publicar: "este año en Palermo", "nace en Buenos Aires" y el "¡oído!" de
+cocina como origen del nombre. Todo en `marketing/videos/historia-de-marca.md`.
+Mismo PR: el **corte de 15 s para anuncios** a comercios
+(`oido-anuncio-15s.mp4`), sin voz a propósito, con el guion listo para
+agregarla. `voz.py` usa la voz argentina de Piper si está su modelo, que
+hay que bajar a mano porque la sesión cloud no llega a HuggingFace. Y las
+dos **bienvenidas por rol** de 30 s (`oido-bienvenida-comercio.mp4` y
+`oido-bienvenida-trabajador.mp4`), 5 pasos cada una con los textos reales de
+los botones de la app. Si la app cambia uno de esos textos, se regenera con
+`animacion/bienvenida.py`. Y **cómo instalar Oído y activar los avisos**,
+un video para Android y otro para iPhone (`oido-instalar-*.mp4`, sin
+tecnicismos). Hallazgo de ese trabajo: en iPhone, los avisos sólo funcionan
+con Oído abierto desde el ícono, y la app no se lo dice en ningún lado a
+quien entra desde Safari. Queda como mejora posible de producto.)
+Anterior: 2026-09-30 (**videos promocionales**, pedido de
+Julieta: `marketing/videos/` tiene tres clips verticales 1080×1920 para
+redes —dos animaciones de 22 s con efectos de sonido sintetizados, una para
+comercios y otra para trabajadores, y una grabación de la app— y el código
+para regenerar las animaciones (README ahí). De paso, `CLAUDE.md` todavía
+daba `oido.com.ar` como pendiente cuando está conectado desde el
+2026-09-08: se corrige.)*
+Anterior: 2026-09-29 (**Panel del comercio más liviano**,
+segundo recorte del diagnóstico de sobrecarga: arriba quedan el saludo,
+"Publicar turno" y "Evento"; se van la tarjeta "Turnos activos" y los accesos
+rápidos, y cada tarjeta de turno dice su estado una sola vez. Ver "Sobrecarga
+visual (2026-09-28)" más abajo.)*
 Anterior: 2026-09-28 (**Inicio del trabajador más liviano**,
 primer recorte del diagnóstico de sobrecarga: arriba del primer turno quedan
 el saludo y el buscador; la zona pasa a un renglón debajo del saludo,
 "Urgentes" y "Mejores pagos" se mudan a Buscar y la tarjeta recomendada lleva
-una sola insignia. Ver "Sobrecarga visual (2026-09-28)" más abajo.)*
+una sola insignia.)
 Anterior: 2026-09-27 (**chip de ícono en toda la app y la
 cámara fuera de la foto**, pedido de Julieta con captura del perfil: la
 insignia de cámara quedaba mordida por el círculo del avatar y se veía encima
@@ -736,7 +775,7 @@ local con el seed demo, 390px, claro y oscuro) en
 proyecto). El detalle del turno y Buscar ya están bien. Lo cargado son tres
 pantallas. La regla propuesta es **una pantalla, una pregunta**.
 
-- **Inicio del trabajador — hecho en este PR.** Antes, arriba del primer turno
+- **Inicio del trabajador — hecho (#393).** Antes, arriba del primer turno
   estaban el buscador, una barra de ubicación y tres chips ("Cerca tuyo",
   "Urgentes", "Mejores pagos"). Ahora la zona es un renglón debajo del saludo
   (`LocationBar`, mismo "Estoy acá" / "Volver a mi zona"). "Urgentes" y
@@ -744,15 +783,39 @@ pantallas. La regla propuesta es **una pantalla, una pregunta**.
   "Cerca tuyo" se sacó porque el Inicio ya ordena por cercanía. `FeedHero` muestra "Urgente" o
   "Recomendado", nunca las dos. El spec del filtro pasó a
   `e2e/buscar-filtros.spec.ts` y el globo 2 del tour señala Buscar.
-- **Panel del comercio — propuesto, sin hacer.** Hay cinco capas antes del
-  primer turno y cada tarjeta dice el estado cuatro veces (familia, chip,
-  stepper, texto). Propuesta: una tarjeta compacta con un solo estado, el
-  stepper sólo en el detalle y "Publicar" como única acción arriba.
-- **Perfil (los dos roles) — propuesto, sin hacer.** El del trabajador mide
-  4,2 pantallas y el del comercio 3,2, porque el formulario de edición está
-  adentro. Propuesta: el perfil pasa a ser una vista y la edición va a una
-  pantalla propia. Las métricas se muestran recién con el primer turno. Los
-  ajustes van juntos.
+- **Panel del comercio — hecho (#395).** Arriba del primer turno quedan
+  el saludo, "Publicar turno" (el único botón ámbar) y "Evento" al lado, y
+  después el asistente. Se borraron la tarjeta "Turnos activos" (repetía las
+  pestañas) y `QuickActions` (Favoritos y Mi plan siguen en Perfil; esto
+  revierte los accesos rápidos del 16/9, con el ok de Julieta). En cada
+  tarjeta, el chip y el stepper comparten renglón y el stepper ya no escribe
+  "Paso N de 4" salvo cuando el turno se cortó (`caption="cutShort"`; el
+  `aria-label` sigue). El texto de "próximo paso" se calla cuando repite el
+  estado (publicado, buscando, cancelado) y la vestimenta sólo la ve el
+  trabajador. Con cuatro turnos el panel pasó de 2557 a 1986px y el primer
+  turno subió unos 200px. De paso: `ImageUpload` vuelve a la inicial si la
+  foto no carga, en vez de mostrar el nombre en letra gigante.
+- **Perfil (los dos roles) — hecho en este PR.** `/profile` responde "cómo me
+  ven": la tarjeta, la verificación (arriba, porque es lo que destraba todo),
+  "Disponible ahora" en el trabajador y un menú corto. El formulario pasó a
+  `/profile/edit` ("Editar perfil" / "Datos del comercio") y apariencia,
+  notificaciones, soporte y cerrar sesión a `/profile/settings` ("Ajustes").
+  En `WorkerGameCard`, las métricas (ganancias, puntualidad, turnos,
+  insignias) aparecen recién con el primer turno completado; antes hay un
+  renglón: "Tu reputación arranca con tu primer turno". Se sacó la tarjeta
+  "Nivel" que repetía el chip del encabezado, y las ganancias no se muestran
+  en $0. "Reseñas recibidas" no aparece si no hay reseñas. Alto a 390px:
+  trabajador de 3549 a 1357px, comercio de 2732 a 1060px. Piezas compartidas
+  en `components/profile/ProfileParts.tsx`. Ojo: `/profile/settings` y
+  `/profile/edit` esperan a la sesión antes de pintar; pintar
+  `AppearanceControl` en el servidor rompía la hidratación (React #418) y el
+  modo oscuro se perdía (test en `e2e/perfil-vista.spec.ts`). Queda para
+  otra vez: en "Datos del comercio" la dirección sigue apareciendo en el
+  buscador, el campo Dirección y "Ubicación".
+  Y los videos de instalación (#397) muestran "Notificaciones push" suelto en
+  el Perfil; ahora está en Perfil → Ajustes. La voz ("activalas en tu
+  perfil") sigue siendo cierta, pero la pantalla dibujada en
+  `marketing/videos/animacion/instalar-*.html` quedó vieja.
 
 ### Constancia de términos (2026-09-26)
 

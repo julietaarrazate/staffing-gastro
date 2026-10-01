@@ -1,0 +1,183 @@
+<!-- Instalar Oído en iPhone y activar los avisos (9:16, 30 s). Generado por
+     instalar.py: se edita ahí, no acá. Tiempos de instalar-iphone.guion.json. -->
+<style>
+#stage{position:fixed;left:0;top:0;width:540px;height:960px;overflow:hidden;z-index:2147483647;background:#0f0d0b;font-family:var(--font-inter),Inter,sans-serif;color:#111;-webkit-font-smoothing:antialiased}
+#stage *{box-sizing:border-box}
+#stage .abs{position:absolute}
+#stage .scene{position:absolute;inset:0}
+#stage .serif{font-family:var(--font-fraunces),Georgia,serif;font-weight:600;letter-spacing:-.02em}
+#stage .mono{font-family:var(--font-dm-mono),ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase}
+#stage svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#stage .c{left:0;right:0;text-align:center}
+#stage .w{display:inline-block;animation:wordin .55s cubic-bezier(.2,.8,.2,1) both}
+#stage .acc{color:#F59E0B}
+#stage .acc2{color:#B45309}
+
+@keyframes wordin{from{opacity:0;transform:translateY(.32em);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.07)}100%{opacity:1;transform:scale(1)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes outfade{to{opacity:0}}
+@keyframes dim{to{opacity:.35}}
+@keyframes rise{to{transform:translateY(-70px)}}
+@keyframes drift{from{transform:scale(1)}to{transform:scale(1.05)}}
+@keyframes circ{from{clip-path:circle(0% at var(--x) var(--y))}to{clip-path:circle(150% at var(--x) var(--y))}}
+@keyframes wipeup{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes wave{0%{transform:translate(-50%,-50%) scale(.15);opacity:0}8%{opacity:.95}100%{transform:translate(-50%,-50%) scale(6);opacity:0}}
+@keyframes ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}8%{opacity:.7}100%{transform:translate(-50%,-50%) scale(4.2);opacity:0}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes pinpop{0%{opacity:0;transform:translate(-50%,-100%) scale(.2)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.12)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes bubble{0%{opacity:0;transform:translate(-50%,-100%) scale(.3) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.1) rotate(2deg)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes phonein{from{opacity:0;transform:translateY(420px) rotateX(30deg) scale(.92)}to{opacity:1;transform:none}}
+@keyframes press{0%,100%{transform:scale(1)}40%{transform:scale(.93)}}
+@keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes cardup{from{opacity:0;transform:translateY(90px)}to{opacity:1;transform:none}}
+
+.A{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+#stage .wave{width:180px;height:180px;border-radius:99px;border:3px solid var(--wc);animation:wave 1s cubic-bezier(.2,.7,.3,1) both}
+#stage .pin{transform:translate(-50%,-100%)}
+#stage .pin .av{width:44px;height:44px;border-radius:99px;border:3px solid #fff;box-shadow:0 8px 18px rgba(40,30,10,.22);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+
+@keyframes fromright{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+@keyframes slidein{from{opacity:0;transform:translateX(70px)}to{opacity:1;transform:none}}
+@keyframes slideout{to{opacity:0;transform:translateX(-70px)}}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes sheetup{from{transform:translateY(105%)}to{transform:none}}
+@keyframes drop{from{opacity:0;transform:scale(.85);transform-origin:100% 0}to{opacity:1;transform:none}}
+@keyframes tap{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}25%{opacity:.9;transform:translate(-50%,-50%) scale(1)}70%{opacity:.9;transform:translate(-50%,-50%) scale(.85)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}}
+@keyframes glowrow{0%,100%{background:#fff}50%{background:#FDEBD0}}
+#stage .tap{position:absolute;width:44px;height:44px;border-radius:99px;background:rgba(217,119,6,.35);border:3px solid #D97706;animation:tap .75s ease both}
+#stage .scr{position:absolute;inset:0}
+#stage .ico{width:44px;height:44px;border-radius:12px}
+</style>
+<div id="stage" style="background:#FBFAF6">
+
+  <!-- intro (0–3 s) -->
+  <div class="scene oscuro" style="background:#D97706;animation:outfade .01s linear 3.25s forwards">
+    <div class="abs A" style="left:210px;top:220px;width:120px;height:120px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat;animation-name:pop;animation-duration:0.55s;animation-delay:0.05s;"></div>
+    <div class="abs c serif" style="top:370px;font-size:44px;line-height:1.1;color:#fff" data-v="i01">Oído en tu iPhone,|como una *app* *más.*</div>
+    <div class="abs c A" style="top:500px;font-size:18px;color:#fff;opacity:.92;animation-name:up;animation-duration:0.5s;animation-delay:1.90s;">Sin tienda de apps. Con Safari.</div>
+  </div>
+  <div class="scene A" style="background:#FBFAF6;animation-name:wipeup;animation-duration:0.5s;animation-delay:2.80s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+
+  <!-- barra de progreso: 4 pasos para instalar + los avisos -->
+  <div class="abs" style="left:40px;right:40px;top:58px;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;animation:fade .4s ease 3.10s both, outfade .3s ease 26.70s forwards">
+    <div style="height:5px;border-radius:9px;background:#E7E1D4;overflow:hidden"><div class="A" style="height:100%;background:#D97706;transform-origin:0 50%;animation-name:fill;animation-duration:0.5s;animation-delay:3.10s;"></div></div><div style="height:5px;border-radius:9px;background:#E7E1D4;overflow:hidden"><div class="A" style="height:100%;background:#D97706;transform-origin:0 50%;animation-name:fill;animation-duration:0.5s;animation-delay:6.85s;"></div></div><div style="height:5px;border-radius:9px;background:#E7E1D4;overflow:hidden"><div class="A" style="height:100%;background:#D97706;transform-origin:0 50%;animation-name:fill;animation-duration:0.5s;animation-delay:10.60s;"></div></div><div style="height:5px;border-radius:9px;background:#E7E1D4;overflow:hidden"><div class="A" style="height:100%;background:#D97706;transform-origin:0 50%;animation-name:fill;animation-duration:0.5s;animation-delay:14.35s;"></div></div><div style="height:5px;border-radius:9px;background:#E7E1D4;overflow:hidden"><div class="A" style="height:100%;background:#D97706;transform-origin:0 50%;animation-name:fill;animation-duration:0.5s;animation-delay:18.10s;"></div></div><div style="height:5px;border-radius:9px;background:#E7E1D4;overflow:hidden"><div class="A" style="height:100%;background:#D97706;transform-origin:0 50%;animation-name:fill;animation-duration:0.5s;animation-delay:23.35s;"></div></div>
+  </div>
+
+  <div class="scene A" style="animation:slidein .45s cubic-bezier(.2,.8,.2,1) 3.00s both, slideout .3s cubic-bezier(.6,0,.4,1) 6.47s forwards">
+    <div class="abs mono" style="left:40px;top:84px;font-size:13px;color:#B45309">Paso 1 de 4</div>
+    <div class="abs serif" style="left:40px;right:30px;top:108px;font-size:34px;line-height:1.1;color:#111" data-v="i02">Abrí oido.com.ar|en *Safari.*</div>
+  </div>
+  <div class="scene A" style="animation:slidein .45s cubic-bezier(.2,.8,.2,1) 6.75s both, slideout .3s cubic-bezier(.6,0,.4,1) 10.22s forwards">
+    <div class="abs mono" style="left:40px;top:84px;font-size:13px;color:#B45309">Paso 2 de 4</div>
+    <div class="abs serif" style="left:40px;right:30px;top:108px;font-size:34px;line-height:1.1;color:#111" data-v="i03">Tocá el botón|de *compartir,* abajo.</div>
+  </div>
+  <div class="scene A" style="animation:slidein .45s cubic-bezier(.2,.8,.2,1) 10.50s both, slideout .3s cubic-bezier(.6,0,.4,1) 13.97s forwards">
+    <div class="abs mono" style="left:40px;top:84px;font-size:13px;color:#B45309">Paso 3 de 4</div>
+    <div class="abs serif" style="left:40px;right:30px;top:108px;font-size:34px;line-height:1.1;color:#111" data-v="i04">Tocá «Agregar a pantalla|de inicio» y *«Agregar».*</div>
+  </div>
+  <div class="scene A" style="animation:slidein .45s cubic-bezier(.2,.8,.2,1) 14.25s both, slideout .3s cubic-bezier(.6,0,.4,1) 17.72s forwards">
+    <div class="abs mono" style="left:40px;top:84px;font-size:13px;color:#B45309">Paso 4 de 4</div>
+    <div class="abs serif" style="left:40px;right:30px;top:108px;font-size:34px;line-height:1.1;color:#111" data-v="i05">Listo: ya está|en tu *pantalla.*</div>
+  </div>
+  <div class="scene A" style="animation:slidein .45s cubic-bezier(.2,.8,.2,1) 18.00s both, slideout .3s cubic-bezier(.6,0,.4,1) 22.97s forwards">
+    <div class="abs mono" style="left:40px;top:84px;font-size:13px;color:#B45309">Los avisos</div>
+    <div class="abs serif" style="left:40px;right:30px;top:108px;font-size:34px;line-height:1.1;color:#111" data-v="i06">Abrila desde el ícono|y tocá *«Activar».*</div><div class="abs mono A" style="left:40px;right:30px;top:205px;font-size:11px;letter-spacing:.06em;color:#8a8175;text-transform:none;animation-name:fade;animation-duration:0.5s;animation-delay:20.20s;">En iPhone, los avisos llegan sólo si abrís Oído desde el ícono</div>
+  </div>
+  <div class="scene A" style="animation:slidein .45s cubic-bezier(.2,.8,.2,1) 23.25s both, slideout .3s cubic-bezier(.6,0,.4,1) 26.72s forwards">
+    <div class="abs mono" style="left:40px;top:84px;font-size:13px;color:#B45309">Los avisos</div>
+    <div class="abs serif" style="left:40px;right:30px;top:108px;font-size:34px;line-height:1.1;color:#111" data-v="i07">¿Dijiste «Ahora no»?|Activalas en tu *perfil.*</div>
+  </div>
+
+  <!-- el celular: una sola pantalla que va cambiando -->
+  <div class="abs" style="left:120px;top:262px;width:300px;height:600px;background:#111;border-radius:46px;padding:9px;box-shadow:0 30px 70px rgba(60,40,10,.28);animation:phonein .7s cubic-bezier(.2,.8,.2,1) 3.10s both, outfade .3s ease 26.70s forwards">
+    <div style="position:relative;width:100%;height:100%;border-radius:38px;overflow:hidden;background:#fff">
+      <div class="scr A" style="background:#fff;animation:fade .2s ease 3.00s both, outfade .2s ease 14.15s forwards;">
+          <div style="position:absolute;left:0;right:0;top:92px;text-align:center">
+          <div style="margin:0 auto;width:62px;height:62px;border-radius:18px;background:#D97706;display:flex;align-items:center;justify-content:center"><div style="width:42px;height:42px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat"></div></div>
+          <div class="serif" style="font-size:38px;margin-top:10px">oído</div>
+          <div style="font-size:14px;color:#55504a;margin-top:4px">Personal gastronómico, ya.</div>
+          <div style="margin:22px 30px 0;background:#D97706;color:#fff;border-radius:14px;padding:12px;font-size:14px;font-weight:600">Entrar</div>
+        </div>
+          <div class="abs" style="left:0;right:0;bottom:0;background:rgba(246,246,246,.97);border-top:1px solid #e3e3e3;padding:10px 12px 22px">
+            <div style="background:#e9e9ec;border-radius:12px;padding:9px;text-align:center;font-size:14px;color:#111"><span id="url"></span><span id="caret" style="display:inline-block;width:2px;height:16px;background:#1a73e8;vertical-align:-3px"></span></div>
+            <div style="display:flex;justify-content:space-around;align-items:center;margin-top:10px;color:#1a73e8;font-size:20px"><span>‹</span><span style="opacity:.4">›</span><svg class="i" style="width:22px;height:22px;color:#1a73e8" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg><span>□</span><span>⧉</span></div>
+          </div>
+          <div class="tap" style="left:144px;top:552px;animation-delay:8.35s"></div>
+        </div><div class="scr A" style="animation:fade .2s ease 8.60s both, outfade .2s ease 11.85s forwards;">
+          <div class="abs" style="inset:0;background:rgba(0,0,0,.25)"></div>
+          <div class="abs A" style="left:0;right:0;bottom:0;background:#f2f2f7;border-radius:18px 18px 0 0;padding:14px 12px 26px;animation-name:sheetup;animation-duration:0.4s;animation-delay:8.60s;">
+            <div style="display:flex;align-items:center;gap:10px;padding:0 4px 12px"><div style="width:34px;height:34px;border-radius:9px;background:#D97706;display:flex;align-items:center;justify-content:center"><div style="width:22px;height:22px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat"></div></div><div><div style="font-size:14px;font-weight:600">Oído</div><div style="font-size:12px;color:#8e8e93">oido.com.ar</div></div></div>
+            <div style="background:#fff;border-radius:12px;overflow:hidden;font-size:14px">
+              <div style="padding:12px 14px;border-bottom:1px solid #e5e5ea">Copiar</div>
+              <div style="padding:12px 14px;border-bottom:1px solid #e5e5ea">Agregar a favoritos</div>
+              <div class="A" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:600;animation-name:glowrow;animation-duration:1.2s;animation-delay:10.90s;">Agregar a pantalla de inicio <svg class="i" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8M12 8v8"/></svg></div>
+              <div style="padding:12px 14px;border-top:1px solid #e5e5ea">Buscar en la página</div>
+            </div>
+            <div class="tap" style="left:140px;top:196px;animation-delay:11.80s"></div>
+          </div>
+        </div><div class="scr A" style="background:#f2f2f7;animation:fade .2s ease 12.05s both, outfade .2s ease 14.15s forwards;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:44px 14px 12px;font-size:14px"><span style="color:#1a73e8">Cancelar</span><span style="font-weight:600">Agregar a inicio</span><span style="color:#1a73e8;font-weight:600">Agregar</span></div>
+          <div style="margin:10px 12px;background:#fff;border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center"><div style="width:52px;height:52px;border-radius:13px;background:#D97706;display:flex;align-items:center;justify-content:center"><div style="width:34px;height:34px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat"></div></div><div><div style="font-size:15px">Oído</div><div style="font-size:12px;color:#8e8e93">oido.com.ar</div></div></div>
+          <div class="tap" style="left:252px;top:58px;animation-delay:13.10s"></div>
+        </div><div class="scr A" style="animation:fade .2s ease 14.25s both, outfade .2s ease 18.60s forwards;"><div class="scr" style="background:linear-gradient(160deg,#e9dcc8,#d9c7ae 55%,#c8b394)">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px 0;padding:70px 14px 0"><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#c9bfae"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#b8c4c9"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#d4c3b5"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#bfc9b8"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#cbbfd0"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#c4cbd4"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#d6ccbd"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#b9c2bb"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#cfc6b8"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#c2bcc9"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="ico" style="background:#bcc7c4"></div><div style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55)"></div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div class="A" style="width:44px;height:44px;border-radius:12px;background:#D97706;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(120,60,0,.35);animation-name:pop;animation-duration:0.6s;animation-delay:14.85s;"><div style="width:30px;height:30px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat"></div></div>
+              <div class="A" style="font-size:10px;color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.3);animation-name:fade;animation-duration:0.3s;animation-delay:15.15s;">Oído</div>
+            </div>
+          </div>
+        </div>
+          <div class="tap" style="left:240px;top:212px;animation-delay:18.35s"></div>
+        </div><div class="scr A" style="background:#FBFAF6;animation:fade .2s ease 18.60s both, outfade .2s ease 23.15s forwards;">
+          <div style="padding:48px 18px 0"><div class="serif" style="font-size:24px">Hola</div>
+            <div style="margin-top:14px;height:84px;border-radius:16px;background:#fff;box-shadow:0 6px 16px rgba(60,40,10,.08)"></div>
+            <div style="margin-top:10px;height:84px;border-radius:16px;background:#fff;box-shadow:0 6px 16px rgba(60,40,10,.08)"></div></div>
+          <div class="abs" style="inset:0;background:rgba(17,17,17,.35);animation:fade .3s ease 19.20s both, outfade .3s ease 22.30s forwards"></div>
+          <div class="abs A" style="left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:20px 18px 26px;text-align:center;animation:sheetup .45s cubic-bezier(.2,.8,.2,1) 19.20s both, outfade .3s ease 22.30s forwards">
+            <div style="margin:0 auto;width:44px;height:44px;border-radius:99px;background:#FDEBD0;color:#B45309;display:flex;align-items:center;justify-content:center"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+            <div style="font-size:16px;font-weight:700;margin-top:10px">Activá las notificaciones</div>
+            <div style="font-size:12.5px;color:#6b6358;margin-top:4px;line-height:1.35">Enterate al instante cuando te asignen un turno, te escriban o cambie el estado de tu postulación.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;font-size:14px;font-weight:600"><div style="background:#F3EFE6;border-radius:12px;padding:11px;color:#55504a">Ahora no</div><div style="background:#D97706;border-radius:12px;padding:11px;color:#fff">Activar</div></div>
+            <div class="tap" style="left:212px;top:156px;animation-delay:20.60s"></div>
+          </div>
+          <div class="abs" style="inset:0;animation:fade .01s linear 20.90s both, outfade .2s ease 22.15s forwards"><div class="abs A" style="left:30px;right:30px;top:190px;background:rgba(245,245,245,.97);border-radius:16px;text-align:center;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);animation-name:pop;animation-duration:0.35s;animation-delay:20.90s;">
+            <div style="padding:16px 14px 12px;font-size:14px;font-weight:600;color:#111">“Oído” quiere enviarte notificaciones</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #d8d8d8;font-size:15px;color:#1a73e8"><div style="padding:11px;border-right:1px solid #d8d8d8">No permitir</div><div style="padding:11px;font-weight:600">Permitir</div></div></div>
+          <div class="tap" style="left:206px;top:262px;animation-delay:21.90s"></div></div>
+        </div><div class="scr A" style="background:#FBFAF6;animation:fade .2s ease 23.25s both, outfade .2s ease 27.00s forwards;">
+          <div style="padding:48px 18px 0"><div class="serif" style="font-size:26px">Perfil</div>
+            <div style="margin-top:16px;background:#fff;border-radius:16px;box-shadow:0 6px 16px rgba(60,40,10,.08);overflow:hidden">
+              <div style="padding:14px;border-bottom:1px solid #f0ebe0;font-size:14px;color:#8a8175">Mis datos</div>
+              <div class="A" style="position:relative;display:flex;align-items:center;gap:10px;padding:14px;animation-name:glowrow;animation-duration:1.2s;animation-delay:24.05s;">
+                <span style="display:flex;width:32px;height:32px;border-radius:10px;background:#DCEAF4;color:#1F5B85;align-items:center;justify-content:center"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+                <span style="flex:1;font-size:14px;font-weight:500">Notificaciones push</span>
+                <span style="position:relative;font-size:11px;font-weight:600"><span class="A" style="display:inline-block;background:#F3EFE6;color:#8a8175;border-radius:99px;padding:3px 9px;animation:outfade .15s ease 25.00s forwards">Desactivadas</span>
+                  <span class="abs A" style="right:0;top:0;background:#E3EFE8;color:#1B3A31;border-radius:99px;padding:3px 9px;white-space:nowrap;animation-name:pop;animation-duration:0.35s;animation-delay:25.05s;">Activadas</span></span>
+                <div class="tap" style="left:150px;top:30px;animation-delay:24.75s"></div>
+              </div>
+              <div style="padding:14px;font-size:14px;color:#8a8175">Cerrar sesión</div>
+            </div></div>
+        </div>
+      <div class="abs" style="left:50%;top:9px;width:86px;height:24px;border-radius:20px;background:#111;transform:translateX(-50%)"></div>
+    </div>
+  </div>
+
+  <!-- cierre (27–30 s) -->
+  <div class="abs wave" style="--wc:#D97706;left:270px;top:480px;animation-delay:26.65s"></div>
+  <div class="abs wave" style="--wc:#F59E0B;left:270px;top:480px;animation-delay:26.77s"></div>
+  <div class="scene A" style="--x:50%;--y:50%;background:#1B3A31;animation-name:circ;animation-duration:0.55s;animation-delay:26.85s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene oscuro" style="animation:fade .01s linear 27.00s both">
+    <img class="abs A" src="/logo-mark.svg" style="left:215px;top:250px;width:110px;height:110px;animation-name:pop;animation-duration:0.55s;animation-delay:27.10s;">
+    <div class="abs c serif" style="top:400px;font-size:40px;line-height:1.12;color:#fff" data-v="i08">Listo: cuando pase algo,|te *avisamos.*</div>
+    <div class="abs A" style="left:140px;right:140px;top:530px;background:#D97706;color:#fff;border-radius:99px;padding:13px;text-align:center;font-family:var(--font-dm-mono),monospace;font-size:19px;animation-name:up;animation-duration:0.5s;animation-delay:28.40s;">oido.com.ar</div>
+  </div>
+
+  <!-- tratamiento de color común: viñeta cálida + grano -->
+  <div class="scene" style="pointer-events:none;background:radial-gradient(130% 90% at 50% 45%,rgba(0,0,0,0) 60%,rgba(40,22,6,.18) 100%)"></div>
+  <svg class="abs" width="540" height="960" style="left:0;top:0;pointer-events:none;opacity:.07;mix-blend-mode:overlay">
+    <filter id="grain"><feTurbulence id="grainT" type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter>
+    <rect width="540" height="960" filter="url(#grain)"/>
+  </svg>
+</div>
