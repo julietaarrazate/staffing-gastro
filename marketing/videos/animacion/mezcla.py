@@ -427,8 +427,9 @@ def instalar():
     toque(s5 + 3.9)
     put(sfx, s5 + 4.1, tone(880, 0.18, 22, 1320), 0.14)                     # el primer aviso
     put(sfx, s5 + 4.19, tone(1320, 0.3, 14), 0.07)
-    toque(s6 + 1.5)
-    put(sfx, s6 + 1.8, tone(1174.66, 0.3, 12), 0.08)
+    toque(s6 + 0.55)                                                        # Perfil → Ajustes
+    toque(s6 + 2.2)
+    put(sfx, s6 + 2.5, tone(1174.66, 0.3, 12), 0.08)
     put(sfx, cierre - 0.35, whoosh(0.45, 400, 5000, 0.8), 0.25)
     put(sfx, cierre, thud(80, 0.6), 0.35)
 

@@ -8,7 +8,8 @@ Sin tecnicismos a propósito: nada de "PWA", "navegador" ni "permisos". Los
 textos de la app son los reales: la hoja "Activá las notificaciones" con
 "Ahora no" / "Activar" (lib/push-prompt-context.tsx), que aparece después de
 publicar el primer turno o de la primera postulación, y la fila
-"Notificaciones push" del perfil (components/PushToggle.tsx). En iPhone los
+"Notificaciones push" de Perfil → Ajustes (components/PushToggle.tsx, en
+/profile/settings desde el #396). En iPhone los
 avisos sólo funcionan con Oído abierto desde el ícono (en Safari común la app
 ni los ofrece: isPushSupported da falso), por eso ahí se insiste en el ícono.
 
@@ -112,17 +113,30 @@ def app_con_hoja(desde, hasta, s5, iphone):
 
 
 def perfil(desde, hasta, s6):
-    return f'''<div class="scr A" style="background:#FBFAF6;{ventana(desde, hasta)}">
+    """Perfil → Ajustes → la fila "Notificaciones push" (desde el #396 los
+    ajustes viven en /profile/settings, sección "Cuenta")."""
+    fila = "padding:14px;border-bottom:1px solid #f0ebe0;font-size:14px"
+    return f'''<div class="scr A" style="background:#FBFAF6;{ventana(desde, s6 + 1.1)}">
           <div style="padding:48px 18px 0"><div class="serif" style="font-size:26px">Perfil</div>
             <div style="margin-top:16px;background:#fff;border-radius:16px;box-shadow:0 6px 16px rgba(60,40,10,.08);overflow:hidden">
-              <div style="padding:14px;border-bottom:1px solid #f0ebe0;font-size:14px;color:#8a8175">Mis datos</div>
-              <div class="A" style="position:relative;display:flex;align-items:center;gap:10px;padding:14px;{a("glowrow", 1.2, s6 + .8)}">
+              <div style="{fila};color:#8a8175">Editar perfil</div>
+              <div class="A" style="position:relative;display:flex;justify-content:space-between;padding:14px;font-size:14px;font-weight:500;{a("glowrow", .8, s6 + .3)}">Ajustes <span style="color:#8a8175">›</span>{tap(140, 24, s6 + .55)}</div>
+            </div></div>
+        </div>
+        <div class="scr A" style="background:#FBFAF6;{ventana(s6 + 1.0, hasta)}">
+          <div style="padding:48px 18px 0"><div class="serif" style="font-size:26px"><span style="color:#8a8175">‹</span> Ajustes</div>
+            <div class="mono" style="font-size:10px;color:#8a8175;margin:16px 0 6px 4px">Apariencia</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-radius:14px;padding:4px;font-size:12px;text-align:center;box-shadow:0 6px 16px rgba(60,40,10,.06)"><div style="padding:8px;border-radius:10px;background:#F3EFE6;font-weight:600">Sistema</div><div style="padding:8px;color:#8a8175">Claro</div><div style="padding:8px;color:#8a8175">Oscuro</div></div>
+            <div class="mono" style="font-size:10px;color:#8a8175;margin:16px 0 6px 4px">Cuenta</div>
+            <div style="background:#fff;border-radius:16px;box-shadow:0 6px 16px rgba(60,40,10,.08);overflow:hidden">
+              <div class="A" style="position:relative;display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid #f0ebe0;{a("glowrow", 1.0, s6 + 1.5)}">
                 <span style="display:flex;width:32px;height:32px;border-radius:10px;background:#DCEAF4;color:#1F5B85;align-items:center;justify-content:center">{BELL}</span>
                 <span style="flex:1;font-size:14px;font-weight:500">Notificaciones push</span>
-                <span style="position:relative;font-size:11px;font-weight:600"><span class="A" style="display:inline-block;background:#F3EFE6;color:#8a8175;border-radius:99px;padding:3px 9px;animation:outfade .15s ease {s6 + 1.75:.2f}s forwards">Desactivadas</span>
-                  <span class="abs A" style="right:0;top:0;background:#E3EFE8;color:#1B3A31;border-radius:99px;padding:3px 9px;white-space:nowrap;{a("pop", .35, s6 + 1.8)}">Activadas</span></span>
-                {tap(150, 30, s6 + 1.5)}
+                <span style="position:relative;font-size:11px;font-weight:600"><span class="A" style="display:inline-block;background:#F3EFE6;color:#8a8175;border-radius:99px;padding:3px 9px;animation:outfade .15s ease {s6 + 2.45:.2f}s forwards">Desactivadas</span>
+                  <span class="abs A" style="right:0;top:0;background:#E3EFE8;color:#1B3A31;border-radius:99px;padding:3px 9px;white-space:nowrap;{a("pop", .35, s6 + 2.5)}">Activadas</span></span>
+                {tap(150, 30, s6 + 2.2)}
               </div>
+              <div style="{fila};color:#8a8175">Soporte</div>
               <div style="padding:14px;font-size:14px;color:#8a8175">Cerrar sesión</div>
             </div></div>
         </div>'''
@@ -257,7 +271,7 @@ build("instalar-android", "Android", "d", [
     ("d04", "Tocá *«Instalar* *app».*"),
     ("d05", "Listo: ya está|en tu *pantalla.*"),
     ("d06", "Abrila desde el ícono|y tocá *«Activar».*"),
-    ("d07", "¿Dijiste «Ahora no»?|Activalas en tu *perfil.*"),
+    ("d07", "¿Dijiste «Ahora no»?|Activalas en Perfil › *Ajustes.*"),
 ], "")
 build("instalar-iphone", "iPhone", "i", [
     ("i02", "Abrí oido.com.ar|en *Safari.*"),
@@ -265,6 +279,6 @@ build("instalar-iphone", "iPhone", "i", [
     ("i04", "Tocá «Agregar a pantalla|de inicio» y *«Agregar».*"),
     ("i05", "Listo: ya está|en tu *pantalla.*"),
     ("i06", "Abrila desde el ícono|y tocá *«Activar».*"),
-    ("i07", "¿Dijiste «Ahora no»?|Activalas en tu *perfil.*"),
+    ("i07", "¿Dijiste «Ahora no»?|Activalas en Perfil › *Ajustes.*"),
 ], "En iPhone, los avisos llegan sólo si abrís Oído desde el ícono")
 print("instalar-android.html e instalar-iphone.html · pasos en", PASOS, "· cierre en", CIERRE)

@@ -8,7 +8,7 @@
     {"id": "i04", "voz": "ef_dora", "at": 10.8, "texto": "Tres: tocá Agregar a pantalla de inicio, y después Agregar.", "dur": 3.54},
     {"id": "i05", "voz": "ef_dora", "at": 14.55, "texto": "Listo: ya está en tu pantalla, como cualquier app.", "dur": 3.13},
     {"id": "i06", "voz": "ef_dora", "at": 18.3, "texto": "Abrila desde el ícono y tocá Activar: en iPhone, los avisos llegan solo así.", "dur": 4.82},
-    {"id": "i07", "voz": "ef_dora", "at": 23.55, "texto": "¿Dijiste Ahora no? Activalas en tu perfil.", "dur": 2.64},
+    {"id": "i07", "voz": "ef_dora", "at": 23.55, "texto": "¿Dijiste Ahora no? Activalas en Perfil, Ajustes.", "dur": 3.07},
     {"id": "i08", "voz": "ef_dora", "at": 27.3, "texto": "Listo: cuando pase algo, te avisamos.", "dur": 2.4}
   ]
 }

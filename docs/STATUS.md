@@ -5,7 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-09-30 (**Perfil más liviano**, tercer y último
+*Última actualización: 2026-10-01 (**videos de instalación al día con el
+#396**: el interruptor de notificaciones se mudó de Perfil a Perfil →
+Ajustes, y los dos videos de instalación todavía mostraban el lugar viejo.
+Ahora muestran Perfil → «Ajustes» → «Notificaciones push».)*
+Anterior: 2026-09-30 (**Perfil más liviano**, tercer y último
 recorte del diagnóstico de sobrecarga: `/profile` pasa a ser una vista, la
 edición va a `/profile/edit` y los ajustes a `/profile/settings`. Ver
 "Sobrecarga visual (2026-09-28)" más abajo.)*
