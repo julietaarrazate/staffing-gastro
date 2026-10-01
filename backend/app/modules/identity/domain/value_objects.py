@@ -30,7 +30,7 @@ class UserStatus(str, Enum):
 # registro diría que la persona aceptó una versión que no fue la que leyó.
 # Formato año-mes, igual que la "Última actualización" que muestran las
 # páginas (`frontend/lib/legal.ts`).
-LEGAL_TERMS_VERSION = "2026-09"
+LEGAL_TERMS_VERSION = "2026-09-29"
 
 
 class TermsAcceptanceChannel(str, Enum):
