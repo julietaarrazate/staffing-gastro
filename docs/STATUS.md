@@ -5,7 +5,11 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-10-01 (**términos y privacidad contra la Ley
+*Última actualización: 2026-10-01 (**videos de instalación al día con el
+#396**: el interruptor de notificaciones se mudó de Perfil a Perfil →
+Ajustes, y los dos videos de instalación todavía mostraban el lugar viejo.
+Ahora muestran Perfil → «Ajustes» → «Notificaciones push».)*
+Anterior: 2026-10-01 (**términos y privacidad contra la Ley
 25.326**: las dos páginas nombran a la responsable (persona humana, con CUIL,
 domicilio y mail), declaran todo lo que la app guarda de verdad, los proveedores y
 dónde están, la transferencia internacional, los plazos de conservación y de

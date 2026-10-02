@@ -8,7 +8,7 @@
     {"id": "d04", "voz": "ef_dora", "at": 10.8, "texto": "Tres: tocá Instalar app.", "dur": 1.64},
     {"id": "d05", "voz": "ef_dora", "at": 14.55, "texto": "Listo: ya está en tu pantalla, como cualquier app.", "dur": 3.13},
     {"id": "d06", "voz": "ef_dora", "at": 18.3, "texto": "Abrila desde el ícono y tocá Activar, para que te lleguen los avisos.", "dur": 3.77},
-    {"id": "d07", "voz": "ef_dora", "at": 23.55, "texto": "¿Dijiste Ahora no? Activalas en tu perfil.", "dur": 2.64},
+    {"id": "d07", "voz": "ef_dora", "at": 23.55, "texto": "¿Dijiste Ahora no? Activalas en Perfil, Ajustes.", "dur": 3.07},
     {"id": "d08", "voz": "ef_dora", "at": 27.3, "texto": "Listo: cuando pase algo, te avisamos.", "dur": 2.4}
   ]
 }

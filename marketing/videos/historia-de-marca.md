@@ -226,11 +226,12 @@ toque:
 | 3 | Tocá «Instalar app» → «Instalar» | «Agregar a pantalla de inicio» → «Agregar» |
 | 4 | Listo: el ícono en la pantalla | igual |
 | Avisos | Abrila desde el ícono → «Activar» → «Permitir» | igual, y aclara que en iPhone sólo funciona desde el ícono |
-| Si dijiste «Ahora no» | Perfil → «Notificaciones push» | igual |
+| Si dijiste «Ahora no» | Perfil → Ajustes → «Notificaciones push» | igual |
 
 **Sin tecnicismos a propósito**: nada de "PWA", "navegador" ni "permisos".
 La hoja «Activá las notificaciones», con «Ahora no» y «Activar», y la fila
-«Notificaciones push» del perfil son las de la app. Esa hoja aparece después
+«Notificaciones push» de Perfil → Ajustes (sección «Cuenta», desde el #396)
+son las de la app. Esa hoja aparece después
 de publicar el primer turno o de la primera postulación, no al entrar. Los
 menús de Chrome y Safari están simplificados, con los nombres de sus
 opciones en español. Si el sistema los cambia, se corrigen en `instalar.py`.
