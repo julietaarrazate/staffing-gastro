@@ -116,3 +116,27 @@ test("Ajustes respeta el modo oscuro (la pantalla no rompe la hidratación)", as
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   expect(errors).toEqual([]);
 });
+
+test("'Invitá a tu comercio' comparte el alta de comercio", async ({ page }) => {
+  await mockWorker(page);
+  // El share sheet nativo no existe en el navegador de test: se lo reemplaza
+  // por uno que guarda lo que se le pasó.
+  await page.addInitScript(() => {
+    (window as unknown as { __shared: unknown[] }).__shared = [];
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: (data: unknown) => {
+        (window as unknown as { __shared: unknown[] }).__shared.push(data);
+        return Promise.resolve();
+      },
+    });
+  });
+  await page.goto("/profile");
+
+  await page.getByRole("button", { name: "Invitá a tu comercio" }).click();
+  const shared = await page.evaluate(
+    () => (window as unknown as { __shared: { text: string }[] }).__shared
+  );
+  expect(shared).toHaveLength(1);
+  expect(shared[0].text).toContain("https://oido.com.ar/register?rol=comercio");
+});

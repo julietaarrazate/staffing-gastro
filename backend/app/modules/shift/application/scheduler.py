@@ -65,6 +65,7 @@ from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.favorite.infrastructure.repositories import SqlAlchemyFavoriteRepository
 from app.modules.matching.infrastructure.repositories import (
     SqlAlchemyCandidateRepository,
 )
@@ -146,6 +147,7 @@ def _build_service(session) -> ShiftService:
         # Sin esto `escalate_urgency` no podría avisar a nadie (mismo puerto
         # que habilita el aviso al publicar, ver `get_shift_service`).
         candidates=SqlAlchemyCandidateRepository(session),
+        favorites=SqlAlchemyFavoriteRepository(session),
     )
 
 
