@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Logo from "@/components/Logo";
 import { ChevronLeftIcon } from "@/components/icons";
-import { LEGAL_LAST_UPDATED } from "@/lib/legal";
+import { LEGAL_LAST_UPDATED, LEGAL_OWNER } from "@/lib/legal";
+
+const LINK = "font-semibold text-primary-text underline underline-offset-2";
 
 export const metadata: Metadata = {
   title: "Términos y Condiciones",
@@ -45,6 +47,26 @@ export default function TerminosPage() {
           </h1>
           <p className="mt-1 text-sm text-ink/40">{LEGAL_LAST_UPDATED}</p>
 
+          <Section title="Quién presta el servicio">
+            <p>
+              Oído es un servicio de <strong>{LEGAL_OWNER.name}</strong>, CUIL{" "}
+              <span className="whitespace-nowrap">{LEGAL_OWNER.cuil}</span>, con domicilio en {LEGAL_OWNER.address},
+              República Argentina. Contacto:{" "}
+              <a href={`mailto:${LEGAL_OWNER.email}`} className={LINK}>
+                {LEGAL_OWNER.email}
+              </a>
+              .
+            </p>
+            <p>
+              Al crear tu cuenta, con tu email o con Google, aceptás estos
+              Términos y la{" "}
+              <Link href="/privacidad" className={LINK}>
+                Política de Privacidad
+              </Link>
+              , que explica qué datos usamos y cómo.
+            </p>
+          </Section>
+
           <Section title="Qué es Oído">
             <p>
               Oído es una plataforma de intermediación: conecta comercios
@@ -67,7 +89,37 @@ export default function TerminosPage() {
               reales tuyos o de tu comercio: nombre, contacto y lo que te
               pidamos en el perfil. Nada de datos inventados.
             </p>
-            <p>Cada persona tiene una sola cuenta. Nada de cuentas duplicadas.</p>
+            <p>
+              Cada persona tiene una sola cuenta, y sos responsable de lo que
+              se haga con ella: no compartas tu contraseña.
+            </p>
+          </Section>
+
+          <Section title="Verificación">
+            <p>
+              Podés verificar tu identidad (con tu DNI y una selfie) o tu
+              comercio (con tu constancia de AFIP). Una persona del equipo la
+              revisa y, si se aprueba, la otra parte ve un sello de
+              &quot;verificado&quot;. Los documentos se borran apenas se
+              decide.
+            </p>
+            <p>
+              La verificación es una obligación de medios, no de resultado: el
+              sello dice que revisamos esos documentos, no que garantizamos
+              la conducta de nadie.
+            </p>
+          </Section>
+
+          <Section title="Qué ve la otra parte">
+            <p>
+              Tu perfil, tu reputación y tus reseñas los ven los usuarios con
+              los que podés cruzarte en un turno. Tu ubicación exacta, nunca:
+              el detalle está en la{" "}
+              <Link href="/privacidad" className={LINK}>
+                Política de Privacidad
+              </Link>
+              .
+            </p>
           </Section>
 
           <Section title="Publicar y postularse a turnos">
@@ -110,8 +162,14 @@ export default function TerminosPage() {
               dentro de la app. Se renuevan mes a mes de forma automática.
             </p>
             <p>
-              Podés dar de baja tu suscripción cuando quieras; sigue activa
+              Podés dar de baja tu suscripción cuando quieras, escribiéndonos
+              a {LEGAL_OWNER.email} o por el soporte de la app; sigue activa
               hasta el final del período ya pagado, sin renovarse después.
+            </p>
+            <p>
+              Si contrataste un plan por primera vez, tenés 10 días corridos
+              para arrepentirte y que te devolvamos lo pagado, como establece
+              la Ley 24.240 de Defensa del Consumidor.
             </p>
           </Section>
 
@@ -149,17 +207,22 @@ export default function TerminosPage() {
           <Section title="Cambios en estos términos">
             <p>
               Podemos actualizar estos Términos con el tiempo. Si hacemos un
-              cambio importante, te avisamos dentro de la app. Seguir usando
-              Oído después de un aviso implica que aceptás la versión
-              nueva.
+              cambio importante, te avisamos dentro de la app con al menos 15
+              días corridos de anticipación. Seguir usando Oído después de
+              que entre en vigencia implica que aceptás la versión nueva.
             </p>
           </Section>
 
           <Section title="Ley aplicable y jurisdicción">
             <p>
               Estos Términos se rigen por las leyes de la República
-              Argentina. Ante cualquier conflicto, son competentes los
-              tribunales ordinarios argentinos.
+              Argentina. Si usás Oído como consumidor, son competentes los
+              tribunales de tu domicilio, como establece la Ley 24.240 de
+              Defensa del Consumidor.
+            </p>
+            <p>
+              Ante cualquier consulta o reclamo, escribinos primero a{" "}
+              {LEGAL_OWNER.email}.
             </p>
           </Section>
         </div>
