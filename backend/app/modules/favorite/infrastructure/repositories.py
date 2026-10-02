@@ -69,6 +69,13 @@ class SqlAlchemyFavoriteRepository(FavoriteRepository):
         model = result.scalar_one_or_none()
         return _to_entity(model) if model else None
 
+    async def list_worker_ids_by_company(self, company_id: UUID) -> set[UUID]:
+        stmt = select(FavoriteModel.worker_profile_id).where(
+            FavoriteModel.company_id == company_id
+        )
+        result = await self._session.execute(stmt)
+        return set(result.scalars().all())
+
     async def list_by_company(
         self, company_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[EnrichedFavorite]:

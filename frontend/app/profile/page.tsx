@@ -10,12 +10,14 @@ import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import { Row, RowGroup } from "@/components/profile/ProfileParts";
 import { Skeleton } from "@/components/ui";
+import { shareBusinessInvite } from "@/lib/business-invite";
 import {
   BuildingIcon,
   CreditCardIcon,
   HeartIcon,
   PencilIcon,
   SettingsIcon,
+  ShareIcon,
 } from "@/components/icons";
 
 /**
@@ -108,9 +110,17 @@ export default function ProfilePage() {
           <div className="mt-7 lg:mt-0">
             <RowGroup>
               {user.role === "worker" && (
-                <Row icon={<PencilIcon size={18} />} tone="manteca" href="/profile/edit">
-                  Editar perfil
-                </Row>
+                <>
+                  <Row icon={<PencilIcon size={18} />} tone="manteca" href="/profile/edit">
+                    Editar perfil
+                  </Row>
+                  {/* Una fila más del menú y no una tarjeta: es una acción
+                      que se usa de vez en cuando, no algo que el perfil
+                      tenga que gritar (regla "una pantalla, una pregunta"). */}
+                  <Row icon={<ShareIcon size={18} />} tone="trust" onClick={shareBusinessInvite}>
+                    Invitá a tu comercio
+                  </Row>
+                </>
               )}
               {user.role === "employer" && (
                 <>

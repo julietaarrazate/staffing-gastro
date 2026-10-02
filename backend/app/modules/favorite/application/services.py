@@ -13,7 +13,9 @@ class FavoriteService:
 
     Es un bookmark privado del comercio, sin ningún efecto sobre reputación,
     matching ni otras métricas del trabajador (ver auditoría de producto,
-    docs/STATUS.md 2026-08-10).
+    docs/STATUS.md 2026-08-10). Lo único que cambia fuera de esta lista: los
+    favoritos disponibles siempre reciben el aviso de turno nuevo del
+    comercio (`ShiftService._notify_nearby_workers`, 2026-10-02).
     """
 
     def __init__(

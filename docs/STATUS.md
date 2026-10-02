@@ -5,7 +5,10 @@
 > **Regla de mantenimiento:** actualizar esta bitácora en el mismo PR cada vez
 > que se mergea un cambio relevante (o inmediatamente después).
 
-*Última actualización: 2026-10-01 (**videos de instalación al día con el
+*Última actualización: 2026-10-02 (**favoritos en el primer aviso e
+"Invitá a tu comercio"**, salidos de comparar Oído con TitoFree, Bachero,
+Brigad e Instawork. Ver "Ideas de la competencia (2026-10-02)" más abajo.)*
+Anterior: 2026-10-01 (**videos de instalación al día con el
 #396**: el interruptor de notificaciones se mudó de Perfil a Perfil →
 Ajustes, y los dos videos de instalación todavía mostraban el lugar viejo.
 Ahora muestran Perfil → «Ajustes» → «Notificaciones push».)*
@@ -725,6 +728,31 @@ en `/workers/me/earnings`), una insignia inventada que salía cruda, el
 abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
+
+### Ideas de la competencia (2026-10-02)
+
+Julieta encontró TitoFree y Bachero, y se sumaron Brigad (Francia),
+Instawork y Qwick (EE.UU.) y Meseros Online (Chile, 2019, que ya se presenta
+como "pionera"). De cinco ideas evaluadas contra el código, entraron dos:
+
+- **Favoritos en el primer aviso.** Al publicar (y al escalar), los
+  favoritos del comercio que estén disponibles y tengan el puesto reciben el
+  aviso siempre, además de los 10 mejor rankeados
+  (`ShiftService._notify_nearby_workers`, puerto nuevo
+  `FavoriteRepository.list_worker_ids_by_company`). Sin ventana exclusiva
+  para ellos, a propósito: demoraría al resto y va contra los 10 minutos. Es
+  lo único que hace el favorito fuera de la lista del comercio: ranking y
+  reputación siguen sin leerlo.
+- **"Invitá a tu comercio"** en el Perfil del trabajador: comparte por
+  WhatsApp un mensaje con el alta ya en "Comercio"
+  (`/register?rol=comercio`, `frontend/lib/business-invite.ts`).
+
+Descartadas, con el motivo: invitar a una persona puntual (ya existe:
+asignar directo desde búsqueda o mapa, y el trabajador confirma), check-in
+con QR (la llegada ya se marca con la ubicación, con ventana de 30 min y
+no-show automático; el QR suma fricción al encargado), y perfil al X% (vuelve
+a cargar el Perfil recién simplificado). Lo que tienen todos los grandes y
+Oído no: pago al trabajador y facturación dentro de la app (post-beta).
 
 ### Términos y privacidad (2026-09-29)
 
