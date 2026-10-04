@@ -6,7 +6,8 @@ import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar } from "@/components/ui";
-import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon } from "@/components/icons";
+import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon } from "@/components/icons";
+import { shareShift } from "@/lib/shift-share";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
@@ -29,6 +30,7 @@ export default function OpportunityCard({
   onApply,
   onPass,
   applying = false,
+  shareable = false,
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
@@ -39,6 +41,12 @@ export default function OpportunityCard({
   onApply?: () => void;
   onPass?: () => void;
   applying?: boolean;
+  /** Botón "Compartir" al lado de "Cómo llegar", para pasarle el turno a un
+   *  colega (Web Share nativo en el celu, `wa.me` de respaldo). Sólo en las
+   *  grillas (`/buscar`, feed de escritorio), donde la tarjeta tiene alto
+   *  fijo y sobra lugar; en el mazo mobile no, porque ahí cada píxel del
+   *  cuerpo compite con "Cómo llegar" (ver más abajo). */
+  shareable?: boolean;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
   const heroFallback = SKILL_HERO_TONE[shift.position];
@@ -47,6 +55,7 @@ export default function OpportunityCard({
   const hasPhoto = Boolean(heroPhoto) && !broken;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const hasDirections = shift.latitude != null && shift.longitude != null;
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
@@ -241,23 +250,48 @@ export default function OpportunityCard({
               lo asignaron (antes sólo estaba en /my-shifts, con el turno ya
               aceptado — al revés de lo que hace falta; Julieta, 2026-07-29).
               stopPropagation para no interferir con el swipe/drag del mazo. */}
-          {shift.latitude != null && shift.longitude != null && (
-            <button
-              type="button"
-              aria-label="Cómo llegar"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(
-                  `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                );
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
-            >
-              <RouteIcon size={16} /> Cómo llegar
-            </button>
+          {/* Compartir (2026-10-04, pedido de Julieta: en Buscar la tarjeta
+              tenía un hueco grande entre los datos y "Cómo llegar"). Va AL
+              LADO de "Cómo llegar", no en una fila propia: son las dos
+              acciones secundarias (sirven antes de decidir y no comprometen
+              nada), así que se leen como un par, y no suman alto — el motivo
+              por el que el "Compartir por WhatsApp" de 2026-08-16 se había
+              sacado de esta tarjeta era justamente que empujaba "Cómo llegar"
+              fuera de vista. */}
+          {(hasDirections || shareable) && (
+            <div className="flex gap-2">
+              {hasDirections && (
+                <button
+                  type="button"
+                  aria-label="Cómo llegar"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+                >
+                  <RouteIcon size={16} /> Cómo llegar
+                </button>
+              )}
+              {shareable && (
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+                >
+                  <ShareIcon size={16} /> Compartir
+                </button>
+              )}
+            </div>
           )}
 
           {/* Decidir sin swipe (grilla de escritorio): mismo par de acciones
