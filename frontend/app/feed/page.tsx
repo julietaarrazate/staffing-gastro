@@ -467,6 +467,7 @@ function WorkerFeedPanel() {
                       applying={decidingId === shift.id}
                       onApply={() => handleGridDecide(shift, "like")}
                       onPass={() => handleGridDecide(shift, "pass")}
+                      shareable
                     />
                   </div>
                 ))}

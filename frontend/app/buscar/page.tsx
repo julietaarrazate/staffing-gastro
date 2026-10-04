@@ -39,17 +39,20 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
  */
 
 function pillClass(active: boolean): string {
-  return `inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold ring-1 transition active:scale-95 ${
+  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
     active
       ? "bg-primary text-night ring-primary"
       : "bg-card text-ink/60 ring-line hover:bg-surface"
   }`;
 }
 
-/** Filtros secundarios (urgentes, orden por pago): más chicos y en tinte, para
- *  que no compitan con los rubros de arriba, que son la decisión principal. */
+/** Filtros secundarios (urgentes, orden por pago): en tinte cuando están
+ *  prendidos, para que no compitan con el rubro elegido, que es la decisión
+ *  principal. Mismo alto y cuerpo de letra que los rubros (2026-10-04): eran
+ *  más chicos (`text-caption`, `py-1.5`) y con la letra agrandada del celular
+ *  las dos filas se veían de tamaños distintos, como si no entraran. */
 function filterChipClass(active: boolean): string {
-  return `inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-caption font-semibold ring-1 transition active:scale-95 ${
+  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
     active ? "bg-primary-tint text-primary-text ring-primary/30" : "bg-card text-ink/70 ring-line hover:bg-surface"
   }`;
 }
@@ -151,7 +154,15 @@ export default function BuscarPage() {
         Explorá oportunidades de cualquier rubro, no sólo el tuyo.
       </p>
 
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      {/* Las filas de chips sangran hasta el borde de la pantalla (`-mx-4
+          px-4`) y tienen aire arriba y abajo (`py-1`). Antes el scroll
+          horizontal cortaba en seco contra el margen de 16px ("Ba|" partido
+          al costado) y, como `overflow-x-auto` también recorta en vertical,
+          se comía el borde (`ring-1`) del primer chip de cada fila: "Todos" y
+          "Urgentes" se veían mordidos (captura de Julieta, 2026-10-04). Ahora
+          el chip que no entra se va por debajo del borde de la pantalla, que
+          es como se lee "hay más para deslizar". */}
+      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 py-1">
         <button type="button" onClick={() => setSkill("")} className={pillClass(skill === "")}>
           Todos
         </button>
@@ -170,7 +181,7 @@ export default function BuscarPage() {
         })}
       </div>
 
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+      <div className="no-scrollbar -mx-4 mt-1 flex gap-2 overflow-x-auto px-4 py-1">
         <button
           type="button"
           role="switch"
@@ -178,7 +189,7 @@ export default function BuscarPage() {
           onClick={() => setUrgentOnly((v) => !v)}
           className={filterChipClass(urgentOnly)}
         >
-          <FlameIcon size={13} className="text-primary-text" /> Urgentes
+          <FlameIcon size={14} className="text-primary-text" /> Urgentes
         </button>
         <button
           type="button"
@@ -186,7 +197,7 @@ export default function BuscarPage() {
           onClick={() => setSort((v) => (v === "pay" ? "nearby" : "pay"))}
           className={filterChipClass(sort === "pay")}
         >
-          <StarIcon size={13} filled className="text-rating" /> Mejores pagos
+          <StarIcon size={14} filled className="text-rating" /> Mejores pagos
         </button>
       </div>
 
@@ -212,13 +223,20 @@ export default function BuscarPage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {sortedShifts.map((shift) => (
-              <div key={shift.id} data-testid="buscar-card" className="h-[620px]">
+              // 560px en el celu, 620px desde `sm` (2026-10-04): en una sola
+              // columna no hay otra tarjeta con la que alinear el alto, y con
+              // 620px quedaba un hueco de ~100px entre los datos y las
+              // acciones (captura de Julieta). En la grilla sí hace falta el
+              // alto parejo. El cuerpo de la tarjeta igual scrollea si algún
+              // dress code largo no entra.
+              <div key={shift.id} data-testid="buscar-card" className="h-[560px] sm:h-[620px]">
                 <OpportunityCard
                   shift={shift}
                   distanceKm={distanceOf(shift, origin)}
                   applying={decidingId === shift.id}
                   onApply={() => handleDecide(shift, "like")}
                   onPass={() => handleDecide(shift, "pass")}
+                  shareable
                 />
               </div>
             ))}
