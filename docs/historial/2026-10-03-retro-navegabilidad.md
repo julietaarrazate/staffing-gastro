@@ -60,3 +60,18 @@ marcan en `CLAUDE.md` como fotos de un momento.
 **Queda abierto:** las referencias "ver `docs/STATUS.md` <fecha>" en
 comentarios de código apuntan ahora al archivo congelado. `STATUS.md` lo
 aclara y no se tocó código por eso.
+
+**Agregado en el mismo PR (2026-10-04): alerta de `braces`.** Security se
+puso rojo por [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
+que afecta a todas las versiones de `braces` y todavía no tiene parche.
+Entraba sólo por el lint: `eslint-config-next → @next/eslint-plugin-next →
+fast-glob → micromatch → braces`. El plugin usa una sola función de
+`fast-glob` (`globSync(patrón, { onlyDirectories: true })`, en
+`dist/utils/get-root-dirs.js`), y sólo cuando se configura
+`settings.next.rootDir`, que acá no está. Por eso el override de
+`package.json` reemplaza `fast-glob` por `tinyglobby` sólo para ese plugin.
+`tinyglobby` tiene la misma función, ya estaba en el árbol (vite y
+typescript-eslint) y no depende de `braces`. `npm audit` queda en 0, el lint
+en 0 errores y Vitest en verde. **Cuando `@next/eslint-plugin-next` deje de
+pinear `fast-glob@3.3.1`, o salga un `braces` parcheado, el override se
+puede sacar.**
