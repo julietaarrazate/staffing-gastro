@@ -21,10 +21,10 @@ no tenía forma de enterarse. Este bloque cierra ese lazo.
    `domains/design/` o `domains/ux/` antes de un cambio sistémico de diseño,
    `engines/review-engine.md` para una auditoría. Para un bug o una feature
    normal, `docs/` de acá alcanza y sobra.
-2. **La bitácora de este repo es `docs/STATUS.md`.** Ése es el registro que
-   EKP espera de acá — no hace falta un `BACKLOG.md` ni un `INTAKE.md`
-   propios. Se actualiza **en el mismo PR** del cambio, como ya dice su regla
-   de mantenimiento.
+2. **El registro de este repo es `docs/STATUS.md` (estado vigente) más
+   `docs/historial/` (bitácora, un archivo por cambio).** Es lo que EKP
+   espera de acá — no hace falta un `BACKLOG.md` ni un `INTAKE.md` propios.
+   Se actualiza **en el mismo PR** del cambio.
 3. **Antes de cerrar la sesión, registrar la fricción en EKP.** Si algo salió
    mal por una razón que se va a repetir —una regla que no estaba escrita, una
    trampa de un endpoint, una interpretación equivocada de un pedido—, eso va
@@ -54,16 +54,28 @@ principal sin worktree, y otra abrió un PR que estuvo horas sin ninguna señal
 de CI sin que nadie lo notara. Una regla que depende de que el usuario la
 repita no es una regla.
 
-1. **Aislarse en worktree, siempre.**
+1. **Aislarse en worktree, siempre, desde el primer comando** (también para
+   leer o para un diagnóstico sin código: varias sesiones hicieron la primera
+   mitad en el directorio principal).
    `git worktree add ../staffya-<tema> -b claude/<tema> origin/main`.
+   **En la nube la rama de la sesión ya existe y está checkouteada en el
+   directorio principal**, así que ese comando falla; ahí va
+   `git checkout -q --detach && git worktree add ../staffya-<tema> <rama>`
+   (receta completa en
+   [`docs/reference/SESION_CLOUD.md`](./docs/reference/SESION_CLOUD.md)).
+   Cada worktree necesita su propio `npm ci`.
    Nunca trabajar sobre el directorio principal: si la sesión se corta a la
    mitad, el checkout de Julieta queda en una rama ajena y con cambios sin
    commitear. Verificable en un comando: `git worktree list` tiene que mostrar
    más de una entrada antes del primer `git commit`.
 
 2. **Abrir el trabajo leyendo el estado, no el código.**
-   `docs/STATUS.md` → "Qué sigue (estado vigente)". Después `TECH_DEBT.md` y
-   `BUGS.md` si el tema los toca.
+   `docs/STATUS.md` (es corto: leelo entero). Para ubicar una pantalla o una
+   pieza de código, [`docs/reference/MAPA_DEL_CODIGO.md`](./docs/reference/MAPA_DEL_CODIGO.md)
+   antes de `grep`; y antes de **proponer** una función, confirmá ahí que no
+   exista ya. Después `TECH_DEBT.md` y `BUGS.md` si el tema los toca. Si
+   retomás un hilo después de horas, volvé a leer el estado y los PRs antes
+   de contestar: la memoria de la sesión ya quedó vieja.
 
 3. **Buscar los bugs, no esperar a que los muestren.**
    Julieta no es la suite de QA. Todo cambio de UI se **mira renderizado**
@@ -77,8 +89,10 @@ repita no es una regla.
    un ratio sin marco ya hizo escribir dos documentos mal.
 
 4. **Dejar el estado escrito antes de cerrar.**
-   `docs/STATUS.md` en el MISMO PR del cambio — más los `docs/` del área si el
-   cambio los contradice. La próxima sesión arranca sin memoria de ésta: lo
+   En el MISMO PR del cambio: una entrada nueva en `docs/historial/` y, si
+   el cambio abre o cierra algo, el ítem de `docs/STATUS.md` — más los
+   `docs/` del área si el cambio los contradice (y la fila de
+   `MAPA_DEL_CODIGO.md` si agregaste una pantalla o una pieza que se busca). La próxima sesión arranca sin memoria de ésta: lo
    que no quedó escrito, no existe. Si hubo fricción que se va a repetir, va
    como *cycle* al `evolution/INTAKE.md` de EKP (ver arriba).
 
@@ -90,16 +104,20 @@ repita no es una regla.
    porque prueba el merge contra `main` y no la rama aislada (ver
    `.github/actions/corrida-duplicada`). Antes de decir que algo está listo,
    mirar la corrida real. Una corrida local no queda registrada en ningún
-   lado; el check verde queda pegado al commit para siempre.
+   lado; el check verde queda pegado al commit para siempre. **Si después del
+   push no aparece ninguna corrida, mirá si el PR tiene conflicto:** un PR en
+   conflicto no dispara la corrida del PR y la de `push` se saltea, así que
+   queda sin señal y sin error.
 
 ## Dónde está el estado del proyecto
 
-El estado vive en `docs/STATUS.md`, no en este archivo. Dentro de ese
-archivo, la sección **"Qué sigue (estado vigente)"** es la única lista que se
-edita en el lugar: ahí está, en orden, qué agarrar si arrancás sin otra
-instrucción. Lo pendiente de la operadora está más abajo, en "Pendiente de la
-operadora". Un estado escrito acá, en el medio de un archivo que sólo crece,
-se vuelve mentira sin que nadie lo note.
+El estado vive en `docs/STATUS.md`, no en este archivo. Es corto y se edita
+en el lugar: "Qué sigue (estado vigente)" dice, en orden, qué agarrar si
+arrancás sin otra instrucción, y "Pendiente de Julieta" lo operativo. Lo que
+ya pasó va en `docs/historial/`, un archivo por cambio (cómo, en
+[`docs/historial/README.md`](./docs/historial/README.md)). Hasta el
+2026-10-03 todo eso era un único archivo de 5.000 líneas que todos los PRs
+editaban en el mismo lugar; quedó congelado en `docs/historial/ARCHIVO-…`.
 
 ## Contexto en 30 segundos
 
@@ -132,9 +150,12 @@ listados más abajo.
 
 ## Mapa de la documentación (`docs/`)
 
-**Al arrancar una sesión, leé primero [docs/STATUS.md](./docs/STATUS.md)**: es la
-bitácora viva (qué se hizo, qué está en vuelo, qué sigue). Actualizala en cada
-merge relevante. También conviene mirar [docs/BUGS.md](./docs/BUGS.md) (bugs
+**Al arrancar una sesión, leé primero [docs/STATUS.md](./docs/STATUS.md)**
+(qué está abierto hoy) y, para ubicarte en el código,
+[docs/reference/MAPA_DEL_CODIGO.md](./docs/reference/MAPA_DEL_CODIGO.md)
+(qué pantalla hace qué y dónde vive cada pieza). Para correr tests,
+Playwright y capturas en una sesión cloud:
+[docs/reference/SESION_CLOUD.md](./docs/reference/SESION_CLOUD.md). También conviene mirar [docs/BUGS.md](./docs/BUGS.md) (bugs
 recurrentes ya resueltos, para no reintroducirlos) y
 [docs/TECH_DEBT.md](./docs/TECH_DEBT.md) (deuda vigente por prioridad).
 
@@ -153,8 +174,12 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   [ICONOGRAPHY_SYSTEM.md](./docs/design/ICONOGRAPHY_SYSTEM.md) ·
   [DESIGN_TOKENS.md](./docs/design/DESIGN_TOKENS.md) (radios, sombras, espaciados) ·
   [BRIEF_IDENTIDAD_VISUAL.md](./docs/design/BRIEF_IDENTIDAD_VISUAL.md) (spec técnica
-  para el diseñador externo). No hay doc de performance todavía.
-- **ADRs vigentes** (`docs/adr/`): 0001 MapLibre · 0002 sesiones revocables ·
+  para el diseñador externo).
+- **Auditorías y reportes** — fotos de un momento, **no estado vigente**:
+  `docs/audits/` y los `*_REPORT.md`/`*_LOG.md`/`PRODUCTION_HARDENING.md`/
+  `SECURITY_CHANGES.md` de la raíz (agosto y septiembre de 2026). El código
+  los cita como fuente de decisiones puntuales, por eso no se movieron.
+- **ADRs vigentes** (`docs/adr/ADR-00NN-*.md`): 0001 MapLibre · 0002 sesiones revocables ·
   0003 `quantity`=1 permanente · 0004 cancelación del trabajador + insignias ·
   0005 mensualidad al comercio (pagos, Fase 1) · 0006 alta de local desde el
   mapa · 0007 no-show/cancelación tardía manual · 0008 asistencia
@@ -351,7 +376,7 @@ patrones de bugs ya resueltos (para no reintroducirlos) en
 están en el proyecto de Vercel, **verificados** (consultado contra la API de
 Vercel el 2026-09-28). Google Cloud, `CORS_ORIGINS`, `EMAIL_FROM` y
 `FRONTEND_URL=https://oido.com.ar` quedaron cargados ese mismo día (detalle
-en `docs/STATUS.md`, "Qué sigue", punto 1). Este bloque estuvo en rojo tres
+en `docs/historial/ARCHIVO-2026-07-a-2026-10-03.md`, "Qué sigue", punto 1). Este bloque estuvo en rojo tres
 semanas después de resuelto y una sesión le dijo a Julieta que el dominio
 "no estaba conectado": si lo ves pendiente en otro lado, es una copia vieja.
 
@@ -385,7 +410,7 @@ toda vista previa y el sitemap apuntaban ahí.
    Queda fijado también en `render.yaml`, para que el archivo y el panel no
    se contradigan. (El 2026-09-23 se culpó a `render.yaml` de pisar el panel;
    la causa real de que no se sembrara nada era un bug de event loop en
-   `scripts/startup_seed.py` — ver `docs/BUGS.md`.)
+   `backend/scripts/startup_seed.py` — ver `docs/BUGS.md`.)
    **Antes de abrir la beta con gente real** va a `false` y se purgan las
    cuentas demo (runbook en `docs/reference/DEPLOY.md`): tienen contraseña
    pública y sus turnos entran en la referencia de pago.
@@ -416,7 +441,7 @@ toda vista previa y el sitemap apuntaban ahí.
    (cuenta de Google, plan free — alcanza de sobra: 250 requests/día con
    `gemini-3.5-flash`, la versión GA estable fijada en `core/gemini.py`
    — `gemini-2.5-flash` dejó de estar disponible para cuentas nuevas, ver
-   `docs/STATUS.md` 2026-08-11; **no** se usa el alias `-latest` a
+   `docs/historial/ARCHIVO-…` 2026-08-11; **no** se usa el alias `-latest` a
    propósito, Google documenta que puede hot-swapear a un preview/
    experimental sin deploy propio). Sin esta var, `POST /shifts/parse-text`
    responde 503 (flag por ausencia) y el botón "Completar" muestra un
@@ -534,8 +559,8 @@ prompt de arranque:
 
 > Estás en el repo de **Staffya** (marketplace de staffing gastronómico en
 > tiempo real). Leé `CLAUDE.md` —empezando por **"Protocolo de sesión"**, que
-> es obligatorio— y después `docs/STATUS.md` (bitácora viva, qué está en vuelo
-> y qué sigue) antes de tocar nada. Si tu tarea toca deuda conocida, revisá
+> es obligatorio— y después `docs/STATUS.md` (estado vigente: qué está
+> abierto y qué sigue) antes de tocar nada. Si tu tarea toca deuda conocida, revisá
 > también `docs/TECH_DEBT.md` y `docs/BUGS.md`. Reportá el resultado real de
 > lo que corre CI (ver "Calidad — antes de commitear") — no el
 > esperado.
