@@ -24,6 +24,20 @@
    comparte entre módulos se hace por **puertos/repositorios inyectados** (en el
    servicio o en la capa `api/`), no acoplando dominios. Ver
    [ARCHITECTURE.md](./ARCHITECTURE.md#reglas-de-dependencia).
+
+   **Las capas tienen candado en CI** (`backend/tests/test_arquitectura_capas.py`,
+   2026-10-04). Falla el `pytest` si `domain/` importa un framework (SQLAlchemy,
+   FastAPI, Pydantic, httpx, JWT…) o infraestructura, si `application/`
+   importa `*.infrastructure`, `*.api`, la sesión de base, JWT o websockets, o
+   si algo fuera de `infrastructure/` llama al cliente de Gemini. Cuando el
+   test frena un cambio, la salida es un **puerto** en `domain/` con su
+   adaptador en `infrastructure/`, inyectado desde `api/dependencies.py`;
+   **nunca** sumar una entrada a `EXCEPCIONES`. Esa lista guarda las fugas
+   que ya estaban (el scheduler armando sus repos, `ws_manager` en chat, JWT y
+   bcrypt en identity/admin, Gemini en las rutas) y sólo puede achicarse: el
+   test también falla si una excepción ya no hace falta. Lo que el test no
+   ve, y también vale: las reglas de negocio (quién puede ver qué de un turno,
+   transiciones de estado) van en el dominio, no en las rutas.
 7. **Una sola fuente de verdad por concepto.** No duplicar lógica ni entidades.
    Si dos lugares necesitan lo mismo, se extrae y se reutiliza.
 8. **Reutilizar antes de crear.** Antes de un componente/servicio/utilidad nuevo,

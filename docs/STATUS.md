@@ -729,6 +729,25 @@ abierto. `/turno/[id]` se renderiza en el servidor, así que `page.route` no
 lo intercepta: hizo falta un build con `NEXT_PUBLIC_API_URL` apuntando a un
 mock local.
 
+### Candado de capas en el backend (2026-10-04)
+
+Julieta propuso implementar Oído con arquitectura hexagonal. El diagnóstico:
+el backend **ya lo es** (15 de 17 módulos con `domain/ application/
+infrastructure/ api/`, dominio sin ningún import de framework, repos como
+puertos `abc` con adaptadores SQLAlchemy). Se descartó reimplementar y se
+eligió un candado: `backend/tests/test_arquitectura_capas.py` lee los imports
+con `ast` y hace fallar el CI si una capa cruza para afuera. Regla escrita en
+`docs/foundation/PRINCIPLES.md` §6.
+
+Fugas que ya estaban y quedan listadas como excepción (sólo se borran, nunca
+se agregan): `shift/application/scheduler.py` abre sesiones y arma repos
+SQLAlchemy de 9 módulos; `chat` empuja por `ws_manager` desde el caso de uso;
+`identity` y `admin` usan JWT/bcrypt sin puerto; las rutas de `shift`,
+`support` y `assistant` llaman a Gemini directo. Lo que el test no puede ver:
+las reglas de visibilidad de un turno viven en `shift/api/routes.py` y
+corresponden al dominio. En el frontend, ~75 llamadas `api.get/post("/ruta")`
+están repartidas en 32 pantallas y componentes; queda como idea, sin candado.
+
 ### Ideas de la competencia (2026-10-02)
 
 Julieta encontró TitoFree y Bachero, y se sumaron Brigad (Francia),

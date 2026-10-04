@@ -70,7 +70,10 @@ rate limiting, WS manager, zona horaria, tipos). El punto de entrada es
      (ej. las rutas de `shift` suman nombre/logo del comercio vía
      `CompanyProfileRepository`; se resuelve `full_name`/`owner_full_name` vía
      `UserRepository`).
-3. **No-disclosure** como regla de API: recurso ajeno o inexistente → **404**
+3. **Candado automático:** las reglas 1 y 2 las verifica
+   `backend/tests/test_arquitectura_capas.py` en cada `pytest`. Detalle y
+   fugas preexistentes en [PRINCIPLES.md](./PRINCIPLES.md) §6.
+4. **No-disclosure** como regla de API: recurso ajeno o inexistente → **404**
    (nunca 403, para no confirmar que el recurso existe).
 
 ### Estado de los módulos (17)
