@@ -7,6 +7,7 @@ import { buildShiftSummary } from "@/lib/shift-share";
 import ShiftDetail from "@/components/ShiftDetail";
 import { SITE_HOST } from "@/lib/site";
 import { cldOgImage } from "@/lib/cloudinary";
+import { OG_IMAGE_URL } from "@/lib/og";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
@@ -54,7 +55,7 @@ export async function generateMetadata({
   const url = await getPublicUrl(id);
   // Con foto del local, la vista previa del link muestra el LUGAR (lo que
   // hace que alguien toque el link); sin foto, la imagen de marca de
-  // `app/opengraph-image.tsx`. Hay que nombrarla acá: el `openGraph` de esta
+  // `app/og/oido.jpg/route.ts`. Hay que nombrarla acá: el `openGraph` de esta
   // página reemplaza entero al del layout, y sin `images` el link de un
   // turno salía SIN imagen (pasaba desde siempre, visto el 2026-09-23).
   // Cuadrada para `og:image` (WhatsApp la muestra grande) y apaisada para X,
@@ -62,7 +63,7 @@ export async function generateMetadata({
   const cover = shift.company_cover_url;
   const ogImage = cover
     ? { url: cldOgImage(cover, 1200, 1200), width: 1200, height: 1200, alt: title }
-    : { url: "/opengraph-image", width: 1200, height: 1200, alt: title };
+    : { url: OG_IMAGE_URL, width: 1200, height: 1200, alt: title };
   const twitterImage = cover ? cldOgImage(cover, 1200, 630) : "/twitter-image";
 
   return {

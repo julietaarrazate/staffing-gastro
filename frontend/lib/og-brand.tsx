@@ -15,8 +15,8 @@ import { ImageResponse } from "next/og";
  * dejaba afuera el logo. Centrada, cualquier recorte cuadrado la conserva.
  *
  * Dos formatos: cuadrado para `og:image` (lo que WhatsApp, Facebook e
- * iMessage leen; WhatsApp muestra grande una imagen cuadrada, como la de
- * TitoFree) y apaisado para `twitter:image` (X recorta a 2:1).
+ * iMessage leen), servido como JPEG en `app/og/oido.jpg/route.ts`, y
+ * apaisado para `twitter:image` (X recorta a 2:1).
  */
 const LIENZO = "#fbfaf6";
 const TINTA = "#111111";
@@ -25,9 +25,7 @@ const WORDMARK = "oído";
 const TAGLINE = "Personal gastronómico,";
 const TAGLINE_ACENTO = "ya.";
 
-export const OG_ALT = `${WORDMARK} — ${TAGLINE} ${TAGLINE_ACENTO}`;
-export const OG_SQUARE = { width: 1200, height: 1200 };
-export const OG_WIDE = { width: 1200, height: 630 };
+export { OG_ALT, OG_SQUARE, OG_WIDE } from "./og";
 
 export async function renderBrandImage(size: { width: number; height: number }) {
   const root = process.cwd();
