@@ -73,7 +73,8 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Logo | `frontend/components/Logo.tsx` |
 | Claves de `localStorage`/`sessionStorage` (`staffya_*`) y mocks E2E | `frontend/e2e/mocks.ts` |
 | Cliente de la API (por defecto apunta a **producción**) | `frontend/lib/api.ts` |
-| URL pública del sitio (`oido.com.ar`) | `frontend/lib/site.ts` |
+| URL pública del sitio (`www.oido.com.ar`) | `frontend/lib/site.ts` |
+| Imagen de vista previa al compartir un link (WhatsApp, X) | `frontend/lib/og-brand.tsx` (la usan `app/opengraph-image.tsx` y `app/twitter-image.tsx`) |
 | Versión de términos y privacidad (**las dos juntas**) | `backend/app/modules/identity/domain/value_objects.py` y `frontend/lib/legal.ts` |
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |

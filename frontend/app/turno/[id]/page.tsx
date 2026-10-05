@@ -57,8 +57,13 @@ export async function generateMetadata({
   // `app/opengraph-image.tsx`. Hay que nombrarla acá: el `openGraph` de esta
   // página reemplaza entero al del layout, y sin `images` el link de un
   // turno salía SIN imagen (pasaba desde siempre, visto el 2026-09-23).
-  const cover = shift.company_cover_url ? cldOgImage(shift.company_cover_url) : "/opengraph-image";
-  const images = [{ url: cover, width: 1200, height: 630, alt: title }];
+  // Cuadrada para `og:image` (WhatsApp la muestra grande) y apaisada para X,
+  // igual que la de marca — ver `lib/og-brand.tsx`.
+  const cover = shift.company_cover_url;
+  const ogImage = cover
+    ? { url: cldOgImage(cover, 1200, 1200), width: 1200, height: 1200, alt: title }
+    : { url: "/opengraph-image", width: 1200, height: 1200, alt: title };
+  const twitterImage = cover ? cldOgImage(cover, 1200, 630) : "/twitter-image";
 
   return {
     title,
@@ -70,13 +75,13 @@ export async function generateMetadata({
       siteName: "Oído",
       locale: "es_AR",
       type: "website",
-      images,
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: images.map((i) => i.url),
+      images: [twitterImage],
     },
   };
 }
