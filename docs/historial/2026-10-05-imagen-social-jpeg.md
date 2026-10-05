@@ -10,7 +10,7 @@ título), no grande como la de TitoFree.
 en el build, convertido a JPEG sin canal alfa (~58 KB) y servido en
 `/og/oido.jpg`, sin query. El layout y `/turno/[id]` la nombran explícita
 (constantes en `lib/og.ts`). `sharp` pasa a dependencia declarada del
-frontend (ya venía con Next y lo usa `scripts/build-icons.mjs`). La de X
+frontend (ya venía con Next y lo usa `scripts/build-icons.mjs`; el override de `package.json` pasa a `$sharp` para no chocar con la dependencia directa). La de X
 (`twitter-image.tsx`) no cambia.
 
 **Por qué así:** no se pudo leer qué sirve TitoFree (el proxy de la sesión
