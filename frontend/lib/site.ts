@@ -6,6 +6,11 @@
  * que no existe (no resuelve en DNS): toda vista previa de un link compartido
  * pedía su imagen a ese host y el sitemap le anunciaba a Google URLs
  * muertas. El dominio real es `oido.com.ar` (conectado el 2026-09-08).
+ *
+ * Va con `www.` porque en Vercel `oido.com.ar` redirige (308) a
+ * `www.oido.com.ar`: con el host sin `www`, la imagen de la vista previa se
+ * pedía a una URL que primero redirigía, y no todos los lectores de links
+ * (WhatsApp entre ellos) siguen ese salto igual de bien.
  */
-export const SITE_HOST = "oido.com.ar";
+export const SITE_HOST = "www.oido.com.ar";
 export const SITE_URL = `https://${SITE_HOST}`;

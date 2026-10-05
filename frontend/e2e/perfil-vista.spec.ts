@@ -138,5 +138,5 @@ test("'Invitá a tu comercio' comparte el alta de comercio", async ({ page }) =>
     () => (window as unknown as { __shared: { text: string }[] }).__shared
   );
   expect(shared).toHaveLength(1);
-  expect(shared[0].text).toContain("https://oido.com.ar/register?rol=comercio");
+  expect(shared[0].text).toContain("https://www.oido.com.ar/register?rol=comercio");
 });

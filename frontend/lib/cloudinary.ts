@@ -27,16 +27,17 @@ export function cldThumb(url: string | null | undefined, width: number): string 
 
 /**
  * Variante de una foto de Cloudinary para la vista previa de un link
- * compartido (Open Graph): 1200×630 recortada al centro, en JPEG explícito.
+ * compartido (Open Graph): recortada al tamaño pedido (1200×630 por defecto;
+ * cuadrada para `og:image`, que WhatsApp muestra grande), en JPEG explícito.
  * No `f_auto` como `cldThumb`: los que arman la vista previa (WhatsApp,
  * Slack) no siempre aceptan WebP/AVIF, y `f_auto` elige según quién pide.
  * URLs que no son de Cloudinary se devuelven tal cual.
  */
-export function cldOgImage(url: string): string {
+export function cldOgImage(url: string, width = 1200, height = 630): string {
   const marker = "/image/upload/";
   const at = url.indexOf(marker);
   if (!url.includes("res.cloudinary.com") || at === -1) return url;
-  return `${url.slice(0, at + marker.length)}f_jpg,q_auto,c_fill,g_auto,w_1200,h_630/${url.slice(at + marker.length)}`;
+  return `${url.slice(0, at + marker.length)}f_jpg,q_auto,c_fill,g_auto,w_${width},h_${height}/${url.slice(at + marker.length)}`;
 }
 
 /**

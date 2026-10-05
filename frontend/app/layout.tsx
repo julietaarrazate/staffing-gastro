@@ -63,6 +63,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `oído — ${TAGLINE}`,
     description: DESCRIPTION,
+    url: "/",
     siteName: "Oído",
     locale: "es_AR",
     type: "website",

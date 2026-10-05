@@ -384,7 +384,7 @@ Los **íconos** están todos en ámbar (2026-09-23): los PNG y el `favicon.ico`
 se regeneran desde los SVG con `node scripts/build-icons.mjs` (en
 `frontend/`), y la vista previa al compartir un link ya no es un PNG
 commiteado sino `app/opengraph-image.tsx`, generada desde el código. **Las
-URLs absolutas salen de `frontend/lib/site.ts`** (`oido.com.ar`): antes
+URLs absolutas salen de `frontend/lib/site.ts`** (`www.oido.com.ar`, porque el dominio sin `www` redirige ahí): antes
 estaban escritas a mano como `staffya.com.ar`, un dominio que no existe, y
 toda vista previa y el sitemap apuntaban ahí.
 
