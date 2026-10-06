@@ -1,4 +1,4 @@
-# La landing pasa a ser la historia de un turno (#PR)
+# La landing pasa a ser la historia de un turno (#405)
 
 **Pedido:** Julieta, 2026-10-06, en el hilo "Identidad de marca de Oído".
 Rechazó las tres direcciones de marca ("no me gusta ninguna") y pidió

@@ -27,7 +27,7 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 Revisado contra el código y los PRs el 2026-10-03.
 
-1. 🟠 **Landing nueva, "la historia de un turno"** (#PR, draft): espera el
+1. 🟠 **Landing nueva, "la historia de un turno"** (#405, draft): espera el
    sí de Julieta y que confirme "Beta en Palermo", "Tu bar" y "Para trabajar
    no se paga nada". Detalle en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md).
