@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { SITE_URL } from "@/lib/site";
+import { OG_ALT, OG_IMAGE_URL, OG_SQUARE } from "@/lib/og";
 
 // Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
 // por defecto de toda la app.
@@ -67,6 +68,8 @@ export const metadata: Metadata = {
     siteName: "Oído",
     locale: "es_AR",
     type: "website",
+    // Diseño en `lib/og-brand.tsx`; ver `app/og/oido.jpg/route.ts`.
+    images: [{ url: OG_IMAGE_URL, width: OG_SQUARE.width, height: OG_SQUARE.height, alt: OG_ALT, type: "image/jpeg" }],
   },
   twitter: {
     card: "summary_large_image",
