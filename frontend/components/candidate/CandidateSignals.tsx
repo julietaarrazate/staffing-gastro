@@ -9,6 +9,7 @@ import {
   type IconProps,
 } from "@/components/icons";
 import { BADGE_ICONS, badgeLabel, formatPunctuality, levelLabel } from "@/lib/reputation";
+import { formatKm } from "@/lib/format";
 
 /**
  * Señales legibles de un candidato/postulante, para que el comercio vea *por
@@ -41,7 +42,7 @@ interface Reason {
 export function topReasons(s: CandidateSignals, max = 3): Reason[] {
   const reasons: Reason[] = [];
   if (s.distance_km != null && s.distance_km <= 3) {
-    reasons.push({ Icon: MapPinIcon, label: `A ${s.distance_km.toFixed(1)} km del local` });
+    reasons.push({ Icon: MapPinIcon, label: `A ${formatKm(s.distance_km)} del local` });
   }
   if (s.events_completed >= 3 && s.punctuality_rate >= 0.9) {
     reasons.push({ Icon: ClockIcon, label: `Muy puntual (${formatPunctuality(s.punctuality_rate)})` });
@@ -92,7 +93,7 @@ export function CandidateStatChips({
         <StatChip onDark={onDark}>Nuevo en Oído</StatChip>
       )}
       {signals.distance_km != null && (
-        <StatChip onDark={onDark}>{signals.distance_km.toFixed(1)} km</StatChip>
+        <StatChip onDark={onDark}>{formatKm(signals.distance_km)}</StatChip>
       )}
       {hasHistory && <StatChip onDark={onDark}>{signals.events_completed} turnos</StatChip>}
       {hasHistory && signals.punctuality_rate > 0 && (

@@ -13,6 +13,7 @@ import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { shiftHeroPhoto } from "@/lib/company-photo";
+import { formatKm } from "@/lib/format";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first): foto real
@@ -21,7 +22,7 @@ import { shiftHeroPhoto } from "@/lib/company-photo";
  */
 /** Distancia legible: bajo 1 km en metros redondeados, arriba con un decimal. */
 function formatDistance(km: number): string {
-  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${km.toFixed(1)} km`;
+  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${formatKm(km)}`;
 }
 
 export default function OpportunityCard({
@@ -37,7 +38,8 @@ export default function OpportunityCard({
   distanceKm?: number | null;
   /** Grilla de escritorio (feed/page.tsx, md+): decidir sin el gesto de
    *  swipe, que no tiene sentido con mouse. En el mazo mobile (SwipeDeck) y
-   *  en la landing (ScrollHeroShowcase) se omiten y la fila no se renderiza. */
+   *  en la historia de la landing (components/landing/story) se omiten y la
+   *  fila no se renderiza. */
   onApply?: () => void;
   onPass?: () => void;
   applying?: boolean;

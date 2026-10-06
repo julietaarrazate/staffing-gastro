@@ -34,6 +34,11 @@ export default function SplashScreen() {
 
   useEffect(() => {
     if (sessionStorage.getItem("staffya_splash_seen")) return;
+    // Un visitante sin sesión en la landing no ve el splash: tapaba durante
+    // más de un segundo la entrada de la historia, que ya es la apertura de
+    // marca. Quien tiene sesión (la PWA instalada abre en "/") sí lo ve,
+    // porque ahí cubre la redirección a su home.
+    if (window.location.pathname === "/" && !localStorage.getItem("staffya_has_session")) return;
     sessionStorage.setItem("staffya_splash_seen", "1");
 
     let minTimer: ReturnType<typeof setTimeout> | undefined;

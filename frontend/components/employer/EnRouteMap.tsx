@@ -25,6 +25,7 @@ import MapView from "@/components/map/MapView";
 import { formatAgo } from "@/lib/datetime";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateArrivalMin } from "@/lib/map/travel-time";
+import { formatKm } from "@/lib/format";
 
 const SOURCE_ID = "en-route-line";
 
@@ -120,7 +121,7 @@ export default function EnRouteMap({
             {workerName ? `${workerName} va en camino` : "Va en camino"}
           </p>
           <p className="text-xs text-ink/60">
-            a {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
+            a {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : formatKm(distanceKm)}
             {" · "}
             {formatAgo(reportedAt)}
           </p>

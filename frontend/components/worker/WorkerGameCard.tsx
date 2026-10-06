@@ -27,7 +27,7 @@ import {
 import CountUp from "@/components/ui/CountUp";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
-// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): un color
+// `accent` sigue el criterio que tenía la landing anterior (StatsStrip/bento): un color
 // por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
 // un color... otra tarjeta con ícono celeste... para que no todo parezca un
 // bloque beige").

@@ -337,6 +337,16 @@
   --text-label--line-height: 1.3;
   --text-metadata: 0.75rem; /* 12px — timestamps, fine print */
   --text-metadata--line-height: 1.4;
+
+  /* Tamaños cartel de la landing (la historia del turno, 2026-10-06). Sólo
+     para la landing: la app no usa nada más grande que text-display. Fluidos
+     con clamp para que "gastronómico," entre en 358px sin cortar. */
+  --text-poster: clamp(2.75rem, 12vw, 4.5rem); /* titulares de escena */
+  --text-poster--line-height: 0.95;
+  --text-hero: clamp(3rem, 7.4vw, 7rem); /* H1 del hero en escritorio */
+  --text-hero--line-height: 0.92;
+  --text-shout: clamp(5.5rem, 26vw, 17rem); /* el cartel "¡Oído!" */
+  --text-shout--line-height: 0.9;
 }
 
 @theme inline {
@@ -531,6 +541,54 @@
   color-scheme: light;
 }
 
+/* Claro forzado en un SUBÁRBOL (la landing). Los tokens oscuros viven en
+   `:root[data-theme="dark"]`, así que un `data-theme="light"` en un div no
+   alcanzaba: quien había elegido oscuro en la app y cerraba sesión veía la
+   landing oscura, aunque el comentario de app/page.tsx decía que los tokens
+   "cascadean". Acá se redeclaran los valores claros de cada token que el
+   bloque oscuro pisa (los mismos de :root y @theme). Si se agrega un token al
+   bloque oscuro, va también acá. */
+:root[data-theme="dark"] [data-theme="light"] {
+  color-scheme: light;
+  --background: #fbfaf6;
+  --foreground: #111111;
+  --line: #ece7dd;
+  --color-card: #ffffff;
+  --color-surface: #f3efe6;
+  --color-focus: #191410;
+  --color-focus-ink: #ffffff;
+  --color-raised: #ffffff;
+  --color-chrome: #ffffff;
+  --color-paper: #f3efe6;
+  --color-ink: #111111;
+  --color-ink-soft: #4b5563;
+  --color-ink-mute: #7c8a9a;
+  --color-primary-text: #b45309;
+  --color-secondary-text: #1b3a31;
+  --color-accent-text: #6d47d9;
+  --color-success-text: #15803d;
+  --color-danger-text: #d73d3d;
+  --color-warning-text: #92660a;
+  --color-info-text: #1d4ed8;
+  --color-trust: #1e4a47;
+  --color-trust-text: #1e4a47;
+  --color-trust-tint: #e8f1f0;
+  --color-line: #ece7dd;
+  --color-manteca-tint: #fbf3c9;
+  --color-manteca-text: #6a5a12;
+  --color-cielo-tint: #e8f1ff;
+  --color-cielo-text: #1c4b87;
+  --color-primary-tint: #fffbeb;
+  --color-secondary-tint: #e6efe9;
+  --color-accent-tint: #ede9fe;
+  --color-success-tint: #f0fdf4;
+  --color-danger-tint: #fef2f2;
+  --color-warning-tint: #fffbeb;
+  --color-info-tint: #dbeafe;
+  --color-toast: #191410;
+  --color-toast-ink: #ffffff;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -668,22 +726,6 @@ textarea,
   }
 }
 
-/* ---- Landing: marquee de posiciones/barrios (app/page.tsx) ----
- * Puro CSS (sin JS/motion): más liviano y ya queda pausado por la regla
- * @media (prefers-reduced-motion: reduce) de arriba, que fuerza
- * animation-duration a 0.01ms en toda la página. */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.animate-marquee {
-  animation: marquee 34s linear infinite;
-}
-
 /* ---- Mapa vectorial (MapLibre) — components/map/, ver ADR-0001 ---- */
 
 /* Puck de ubicación: halo azul pulsante. */
@@ -760,3 +802,104 @@ textarea,
   display: none !important;
 }
 
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Landing: la historia de un turno (components/landing/story/, 2026-10-06).
+ * Sólo lo que tiene que correr sin hidratar (CSS puro) o que no se puede
+ * expresar con utilidades. Las escenas animadas usan motion/react.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* La landing no tiene BottomNav (es para visitantes sin sesión), así que el
+   padding inferior que el <main> del layout reserva para esa barra dejaba una
+   franja de lienzo de 80px debajo del footer oscuro. */
+body:has([data-landing]) main {
+  padding-bottom: 0;
+}
+
+/* El ritmo de toda la historia sale de un número: cuánto scroll mide cada
+   estado de una escena fijada (ver components/landing/story/Stage.tsx). Si la
+   recorrida se siente larga, se baja éste y no se cortan escenas. `--lh` es
+   el alto del encabezado propio de la landing y `--lht` le suma el notch. */
+[data-landing] {
+  --svh-estado: 70svh;
+  --lh: 3.5rem;
+  --lht: calc(var(--lh) + env(safe-area-inset-top));
+}
+@media (min-width: 1024px) {
+  [data-landing] {
+    --svh-estado: 85svh;
+    --lh: 4rem;
+  }
+}
+
+/* La burbuja de Martín aparece sola al abrir la página, antes de que React
+   hidrate: por eso es CSS y no motion. */
+@keyframes storyBubbleIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* "escribiendo…": la única espera en bucle de la página (motion.md regla 3). */
+@keyframes storyTyping {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+/* Los dos puntos de la hora del reloj del turno laten mientras el turno
+   está sin cubrir; se quedan quietos cuando se cubre. */
+@keyframes storyColon {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+/* Onda que sale de un elemento (el pin publicado, la burbuja "¡Oído!"). */
+@keyframes storyRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+.story-typing span {
+  animation: storyTyping 1.2s ease-in-out infinite;
+}
+.story-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.story-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.story-colon {
+  animation: storyColon 1s steps(2, jump-none) infinite;
+}
+/* El cursor del cuadro "Describilo": titila mientras espera que escribas. */
+.story-caret {
+  animation: storyColon 1.05s steps(2, jump-none) infinite;
+}
+/* Puntos guía de la carta de precios y del registro del turno. */
+.story-leader {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  border-bottom: 2px dotted currentColor;
+  opacity: 0.35;
+  transform: translateY(-0.3em);
+}
