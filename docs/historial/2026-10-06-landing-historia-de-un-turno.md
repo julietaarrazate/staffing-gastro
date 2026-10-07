@@ -90,8 +90,12 @@ Descartado: un video embebido (no se puede tocar, pesa y no usa el producto
 real), mockups de celular flotando con inclinación, la grilla de features y
 los contadores de la landing anterior (cifras sin fuente).
 
-**Queda abierto:** el sí de Julieta, con cuatro cosas para confirmar:
-"Beta en Palermo" en el hero, "Tu bar" como nombre del local de ejemplo,
-"Para trabajar no se paga nada" en precios, y que "Oído arma el turno"
-depende de `GEMINI_API_KEY` en Render. Si se mergea, el paso siguiente que
-pidió es llevar este nivel de movimiento a la interfaz de la app.
+**Textos confirmados por Julieta** (2026-10-07, "Ok a todo, beta en caba"):
+"Tu bar" como local de ejemplo, "Para trabajar no se paga nada" en precios
+y "Oído arma el turno" (que depende de `GEMINI_API_KEY` en Render). El hero
+dice **"Beta en CABA"** y no "Beta en Palermo": la beta es para toda la
+ciudad. La historia sigue pasando en un bar de Palermo porque es el ejemplo,
+no la zona de la beta.
+
+**Queda abierto:** el paso siguiente que pidió, llevar este nivel de
+movimiento a la interfaz de la app.

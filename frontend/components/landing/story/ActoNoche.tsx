@@ -35,7 +35,7 @@ export function HeroCopy({ className }: { className?: string }) {
   return (
     <div className={cn("no-select", className)}>
       <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">
-        Beta en Palermo
+        Beta en CABA
       </p>
       <h1 className="mt-3 font-display text-poster tracking-[-0.03em] text-ink [text-wrap:balance] lg:text-hero">
         <span className="font-medium">Personal gastronómico,</span>{" "}

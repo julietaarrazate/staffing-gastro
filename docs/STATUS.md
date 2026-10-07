@@ -27,12 +27,13 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 Revisado contra el código y los PRs el 2026-10-03.
 
-1. 🟠 **Landing nueva, "la historia de un turno"** (#405, draft): espera el
-   sí de Julieta y que confirme "Beta en Palermo", "Tu bar" y "Para trabajar
-   no se paga nada". Detalle en
-   [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md).
-   Lo que pidió después: llevar ese nivel de movimiento a la interfaz de la
-   app.
+1. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
+   (pedido de Julieta, 2026-10-06; sin arrancar). La referencia es la
+   landing nueva, "la historia de un turno" (#405): motor de escena en
+   `frontend/components/landing/story/useStage.ts`, la trampa de motion 13
+   con `sticky` y por qué la landing no se oscurece, en
+   [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
+   y [`design-system/motion.md`](./design-system/motion.md).
 2. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
    direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
    que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
