@@ -35,7 +35,7 @@ se mueve sin motivo, cansa a la tercera vez.
 |---|---|---|
 | `DrawnCheck` | Círculo + tilde que se dibujan. `animate` sólo si la acción acaba de pasar. | Detalle de turno ("Ya te postulaste"), `ConfirmOverlay` |
 | `ConfirmOverlay` | Tapa una tarjeta con el check + una palabra (+ un detalle opcional) antes de que la pantalla siga. Padre `relative` con radio propio. | Mapa ("Te postulaste"), postulantes ("Asignado" + nombre) |
-| `CountUp` | Número que cuenta de 0 al valor al entrar en pantalla, una vez. Si el valor cambia, sigue desde el anterior. | "Turnos activos" del comercio, "Ganado este mes", cifras de la landing |
+| `CountUp` | Número que cuenta de 0 al valor al entrar en pantalla, una vez. Si el valor cambia, sigue desde el anterior. | "Turnos activos" del comercio, "Ganado este mes" |
 | `OidoLoader` | La mano de Oído en su tile ámbar, con ondas y un ladeo de "escuchar". Para esperas **largas**; lo corto sigue con el spinner del botón. | Asistente de IA, "Describí el turno", carga del panel de admin |
 
 ## Los momentos (2026-09-23)
@@ -52,3 +52,26 @@ se mueve sin motivo, cansa a la tercera vez.
 - **Números**: cuentan al entrar ("Turnos activos", lo ganado en el mes).
 - **Esperas de IA**: `OidoLoader` con "Oído está escuchando…" / "Leyendo tu
   pedido…".
+
+## La landing: la excepción (2026-10-06)
+
+La landing no es una herramienta que se abre diez veces por turno: se ve
+una vez y tiene que contar Oído. Por eso ahí el movimiento **es** el
+contenido, con reglas propias (`frontend/components/landing/story/`):
+
+- **El scroll manda.** Cada escena fijada avanza con la posición de la
+  página (`useStage`); lo que cambia de estado (una push que cae, un botón
+  que se aprieta) pasa al cruzar un umbral, con histéresis. Nunca se
+  secuestra el scroll: los botones de la historia lo mueven hasta el paso.
+- **Nada aparece de la nada.** Cada elemento sale del anterior (frase →
+  tarjeta → pin → celular → "¡Oído!"). Es la diferencia con una animación
+  de entrada.
+- **Pausas a propósito.** Después de un pico viene un tramo quieto
+  (el "¿Y ahora a quién llamás?", el corte "Mientras tanto"). Un solo
+  estallido de color en toda la página: el "¡Oído!".
+- **Siguen valiendo** la regla 5 (con "reducir movimiento" cada escena es un
+  cuadro quieto con la misma información, sin `sticky`) y la 3 (el único
+  bucle es el "escribiendo…" de la primera burbuja, una espera).
+- **Trampa de motion 13:** `useTransform(progresoDeUnUseScroll, [..], [..])`
+  se "acelera" a una animación nativa que dentro de un `sticky` no sigue al
+  scroll. En las escenas se usa `useRange` (forma con función).

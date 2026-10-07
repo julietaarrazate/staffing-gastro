@@ -48,7 +48,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 
 | Ruta | Qué es |
 |---|---|
-| `/` | Landing (`landing/`) |
+| `/` | Landing sin sesión: la historia de un turno, escena por escena (`landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Con sesión redirige a la home del rol |
 | `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register` |
 | `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
 | `/profile` | Cómo te ven: vista, no formulario (#396) |

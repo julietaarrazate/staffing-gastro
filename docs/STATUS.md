@@ -27,26 +27,33 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 Revisado contra el código y los PRs el 2026-10-03.
 
-1. 🟠 **Identidad de marca.** Julieta quiere trabajarla a fondo (2026-10-02).
-   Riesgo detectado al comparar con Bachero: Oído también usa serif + mono +
-   crema y un componente "ticket". La metáfora propuesta como propia es el
-   "¡oído!" de la cocina. Sin arrancar. Contexto:
+1. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
+   (pedido de Julieta, 2026-10-06; sin arrancar). La referencia es la
+   landing nueva, "la historia de un turno" (#405): motor de escena en
+   `frontend/components/landing/story/useStage.ts`, la trampa de motion 13
+   con `sticky` y por qué la landing no se oscurece, en
+   [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
+   y [`design-system/motion.md`](./design-system/motion.md).
+2. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
+   direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
+   que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
+   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Contexto:
    [`historial/ARCHIVO…`](./historial/ARCHIVO-2026-07-a-2026-10-03.md), sección
    "Ideas de la competencia (2026-10-02)", y
    [`design-system/brand-foundation.md`](./design-system/brand-foundation.md).
-2. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
+3. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
-3. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
+4. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
    abril de 2027). Son tres cambios juntos: la versión de Node en Vercel
    (Settings → Node.js Version), `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-4. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
+5. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
    ADR-0005): `/subscription` necesita botón de baja y de arrepentimiento,
    que los términos ya prometen por mail o soporte.
-5. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
+6. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
