@@ -50,6 +50,10 @@ De paso, **coma decimal en toda la app**: `formatDecimal1`/`formatKm` en
 `CandidateSignals`, `EnRouteMap` y `OpportunityCard`. La misma pantalla
 mezclaba "0.6 km" en la tarjeta con "0,6 km" en la push.
 
+También `override` de `source-map-js` a `^1.2.2` en `frontend/package.json`:
+un advisory nuevo (`GHSA-68fv-2mgg-jv7q`) ponía rojo `npm audit` en
+cualquier PR (detalle en `TECH_DEBT.md` S3).
+
 Tests: `e2e/landing.spec.ts` (hero y destinos de los botones, recorrido
 completo sin errores ni scroll horizontal a 390px, precios desde la API y
 con la API caída, tema oscuro, reducir movimiento), `lib/format.test.ts` y

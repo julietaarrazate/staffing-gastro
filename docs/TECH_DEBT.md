@@ -773,6 +773,14 @@ perfil"). Ver el ADR para el resto de la implementación.
 > línea 7. **Antes de mover un ítem de seguridad de un documento a otro,
 > confirmarlo contra la versión instalada y contra el gate de CI que ya
 > corre.**
+>
+> **Actualización 2026-10-06 — `source-map-js` 1.2.1 → 1.2.2 (PR #405).**
+> `GHSA-68fv-2mgg-jv7q` (high, denegación de servicio con offsets de
+> secciones de un source map) puso rojo `npm audit` en todos los PRs. Es
+> transitiva de `postcss`, `@tailwindcss/node` y `jsdom` (build y tests, no
+> llega al navegador). `npm audit fix` y `npm update` no la movían aunque
+> todos los rangos aceptan `^1.2.1`, así que va como `override` nuevo, igual
+> que `nanoid` y `js-yaml`.
 
 - **Solución sugerida:** nada pendiente del lado backend — `pip-audit` da
   limpio. Lo único abierto es `vitest` (moderate, dev-only) del lado
