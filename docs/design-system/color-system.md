@@ -177,7 +177,26 @@ En oscuro (`:root[data-theme="dark"]`, sobre el lienzo `#17130F`, la tarjeta
 | los `-tint` | el color al 14–16% | |
 | `--focus-ring` | `#E8920F` | El azul hondo no se ve sobre oscuro. |
 
-La superficie de marca sigue celeste en oscuro, con la letra en tinta.
+Desde el 2026-10-09 (vidrio esmerilado, #412) la superficie de marca **ya no
+es celeste lleno en oscuro**: `--color-secondary` es el celeste al 12%
+(vidrio sobre la tarjeta) y la letra pasa a clara (`--color-on-brand`
+`#F5F1EA`, rótulo e ícono `#9AC9E7`; sobre el compuesto ≈`#35352F`, 11 y 8).
+
+### Vidrio y brillo (desde 2026-10-09)
+
+Pedido de Julieta con referencias (degradés, vidrio esmerilado, menos
+celeste). Tres tokens y una utilidad, nada más:
+
+| Pieza | Claro | Oscuro | Dónde |
+|---|---|---|---|
+| `--color-chrome` | blanco al 72% | `#1B1611` al 72% | Encabezado y barra de abajo, con `backdrop-blur-xl`. |
+| `--wash` | velo ámbar → durazno arriba al centro | resplandor ámbar en la esquina superior izquierda | Fondo de `body`, debajo de todo. |
+| `--glow-image` + `bg-glow` | blanco con brillo celeste arriba a la derecha y ámbar suave abajo | tarjeta oscura con los mismos brillos tenues | Tarjeta destacada de Inicio, cabecera del turno sin foto (mozo), encabezado del Perfil, plan Básico de la landing. |
+
+El **celeste lleno** queda sólo donde decide algo: el bloque de pago del
+turno y "Mejor valorado" en Candidatos. Lo demás que era celeste lleno pasó a
+`bg-glow`. No sumar vidrio ni degradé en otros lugares sin pasar por acá: con
+dos superficies translúcidas y un brillo por pantalla alcanza.
 
 Reglas que salieron de medir:
 

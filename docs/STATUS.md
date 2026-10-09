@@ -32,7 +32,9 @@ Revisado contra el código y los PRs el 2026-10-03.
    era violeta, con el lienzo `#f3f3f3` de la versión del diseñador, y
    volvió al ámbar de siempre `#d97706`, el del logo). Primero en la
    landing; ahora rige en `:root` de `globals.css`, con su versión oscura.
-   Falta rehacer el PDF y el paquete del diseñador, que siguen en violeta. Detalle en
+   Desde #412 lleva vidrio esmerilado (cromo translúcido, velo ámbar,
+   `bg-glow`) y menos celeste lleno. Falta rehacer el PDF y el paquete del
+   diseñador, que siguen en violeta. Detalle en
    [`historial/2026-10-09-paleta-celeste-app.md`](./historial/2026-10-09-paleta-celeste-app.md)
    y [`design-system/color-system.md`](./design-system/color-system.md),
    "Propuesta v6".
