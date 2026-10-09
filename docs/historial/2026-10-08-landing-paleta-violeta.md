@@ -74,6 +74,11 @@ probada primero en la landing. Pidió además un PDF del design system.
     del workflow Security quedó en rojo para cualquier PR. No es parte del
     pedido: entró acá porque sin eso este PR no se puede mergear. tsc, lint,
     Vitest, build y los 137 e2e pasaron con la versión nueva.
+11. **Carrera en `e2e/shift-ai-parse.spec.ts`.** Leía el cuerpo del POST de
+    "Publicar turno" en el mismo instante del click, que resuelve antes de
+    que salga el request: a veces daba null (falló en CI y una vez en local,
+    sin relación con la landing). Ahora espera el request, como ya hacía el
+    mismo test con "Completar". 30 de 30 corridas seguidas en verde.
 
 **Por qué así:**
 

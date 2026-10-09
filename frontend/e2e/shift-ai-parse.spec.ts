@@ -95,11 +95,19 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
     route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   );
 
-  await page.getByRole("button", { name: "Publicar turno" }).click();
+  // La misma carrera que con "Completar": el click resuelve antes de que
+  // salga el POST, y leer `publishedBody` en el acto a veces daba null (pasó
+  // en CI el 2026-10-09 y una vez en local). Se espera el request.
+  await Promise.all([
+    page.waitForRequest(
+      (req) => req.method() === "POST" && new URL(req.url()).pathname.endsWith("/api/v1/shifts")
+    ),
+    page.getByRole("button", { name: "Publicar turno" }).click(),
+  ]);
 
   // El turno publicado lleva el horario y el pago que vinieron del texto,
   // sin que el comercio los haya tenido que revisar paso por paso.
-  expect(publishedBody).not.toBeNull();
+  await expect.poll(() => publishedBody).not.toBeNull();
   const body = publishedBody as unknown as {
     start_at: string;
     end_at: string;
