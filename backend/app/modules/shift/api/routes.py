@@ -6,7 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.dt import parse_iso_datetime
-from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, parse_shift_text
+from app.core.gemini import (
+    GeminiNotConfiguredError,
+    GeminiRequestError,
+    GeminiUnavailableError,
+    parse_shift_text,
+)
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
@@ -230,6 +235,11 @@ async def parse_text(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="La interpretación por IA no está configurada en este servidor",
+        ) from exc
+    except GeminiUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La IA no está disponible en este momento. Completá los datos a mano.",
         ) from exc
     except GeminiRequestError as exc:
         raise HTTPException(
