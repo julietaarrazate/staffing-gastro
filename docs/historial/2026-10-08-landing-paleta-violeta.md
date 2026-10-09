@@ -63,6 +63,12 @@ probada primero en la landing. Pidió además un PDF del design system.
 9. Al final de la página, en escritorio, el encabezado quedaba violeta
    encima de los precios: el resultado terminaba 8px debajo del encabezado.
    Ahora el tono se lee 24px más abajo (`LandingHeader.tsx`).
+10. **Next.js de 16.3.6 a 16.4.0.** El 2026-10-09 salieron avisos de
+    seguridad nuevos para Next 16.0.0–16.3.7 (envenenamiento de caché en
+    SSG/ISR, SSRF en la optimización de imágenes, entre otros), y `npm audit`
+    del workflow Security quedó en rojo para cualquier PR. No es parte del
+    pedido: entró acá porque sin eso este PR no se puede mergear. tsc, lint,
+    Vitest, build y los 137 e2e pasaron con la versión nueva.
 
 **Por qué así:**
 
