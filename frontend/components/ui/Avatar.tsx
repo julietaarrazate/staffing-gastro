@@ -34,8 +34,7 @@ export default function Avatar({
       className={cn(
         // Inicial en tinta, como el botón principal. Medido en el centro del
         // degradé, donde cae la letra: con el ámbar de v5.0 la tinta da 4,74
-        // y el blanco 3,99 (no llega); con el ámbar #ffab25 de la paleta
-        // celeste, 9,10 contra 2,06.
+        // y el blanco 3,99 (no llega).
         "flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong font-bold text-night ring-1 ring-black/5",
         radius,
         className
