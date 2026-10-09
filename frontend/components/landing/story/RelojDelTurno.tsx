@@ -16,7 +16,7 @@ import { useReloj } from "./relojStore";
  * - La hora avanza un minuto sólo cuando alguien actúa.
  * - Mientras el turno está sin cubrir, los dos puntos de la hora laten; cuando
  *   se cubre, la píldora pasa al color de marca (`secondary`: verde bosque, o
- *   azul hondo con la paleta celeste) y la hora se queda quieta. Así se
+ *   celeste claro con la paleta celeste) y la hora se queda quieta. Así se
  *   siente el objetivo de los 10 minutos sin afirmarlo como dato.
  */
 export default function RelojDelTurno({
@@ -33,13 +33,16 @@ export default function RelojDelTurno({
   const { hora, estado } = RELOJ[at];
   const covered = at === "cubierto" || at === "enCamino" || at === "llego";
   const shown = useRetype(estado.toUpperCase());
+  // Separadores: blancos sobre la píldora oscura; cubierto, la píldora es la
+  // marca (celeste claro con esta paleta) y van en `on-brand`.
+  const sep = covered ? "text-on-brand/45" : "text-white/45";
   const [hh, mm] = hora.split(":");
 
   return (
     <div
       className={cn(
         "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-667",
-        covered ? "bg-secondary text-white" : "bg-night text-white",
+        covered ? "bg-secondary text-on-brand" : "bg-night text-white",
         surface === "dark" && "ring-1 ring-white/12",
         className
       )}
@@ -52,7 +55,7 @@ export default function RelojDelTurno({
         aria-hidden
         className={cn(
           "h-1.5 w-1.5 shrink-0 rounded-full",
-          covered ? "bg-manteca" : at === "sinCubrir" || at === "pidiendo" ? "bg-danger" : "bg-manteca"
+          covered ? "bg-on-brand-label" : at === "sinCubrir" || at === "pidiendo" ? "bg-danger" : "bg-manteca"
         )}
       />
       <span aria-hidden className="tabular-nums">
@@ -60,12 +63,12 @@ export default function RelojDelTurno({
         <span className={covered ? undefined : "story-colon"}>:</span>
         {mm}
       </span>
-      <span aria-hidden className="text-white/45">·</span>
+      <span aria-hidden className={sep}>·</span>
       <span aria-hidden className="max-sm:hidden">Mozo · Palermo</span>
-      <span aria-hidden className="text-white/45 max-sm:hidden">·</span>
+      <span aria-hidden className={cn(sep, "max-sm:hidden")}>·</span>
       <span aria-hidden className="sm:hidden">Mozo</span>
-      <span aria-hidden className="text-white/45 sm:hidden">·</span>
-      <span aria-hidden className="text-manteca">{shown}</span>
+      <span aria-hidden className={cn(sep, "sm:hidden")}>·</span>
+      <span aria-hidden className={covered ? "text-on-brand-label" : "text-manteca"}>{shown}</span>
     </div>
   );
 }
@@ -78,9 +81,9 @@ const STRIP: Record<"light" | "paper" | "night" | "amber" | "forest", { bg: stri
   night: { bg: "bg-night border-transparent", label: "text-manteca/70" },
   // Tinta llena: sobre el naranja, al 70% daría 3,40.
   amber: { bg: "bg-primary border-transparent", label: "text-ink" },
-  // Blanco al 75%: 5.36 sobre el azul hondo (sobre el violeta que se probó
-  // antes, manteca al 70% daba 3.28).
-  forest: { bg: "bg-secondary border-transparent", label: "text-white/75" },
+  // `on-brand` al 75%: tinta sobre el celeste (7.15); blanco sobre el verde
+  // bosque de la paleta de siempre.
+  forest: { bg: "bg-secondary border-transparent", label: "text-on-brand/75" },
 };
 
 /**
@@ -108,7 +111,7 @@ export function RelojFijo({ tone }: { tone: keyof typeof STRIP }) {
           )}
         >
           <div className="flex h-10 items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
-            <RelojDelTurno at={at} surface={tone === "night" || tone === "forest" ? "dark" : "light"} />
+            <RelojDelTurno at={at} surface={tone === "night" ? "dark" : "light"} />
             <span
               className={cn(
                 "hidden whitespace-nowrap font-mono text-label font-medium uppercase tracking-[0.14em] min-[400px]:inline",

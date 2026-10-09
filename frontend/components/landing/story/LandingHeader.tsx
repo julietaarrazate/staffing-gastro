@@ -36,8 +36,8 @@ const TONES: Record<Tone, { bar: string; word: string; link: string; cta: string
   },
   forest: {
     bar: "bg-secondary border-transparent",
-    word: "text-white",
-    link: "text-manteca hover:text-white",
+    word: "text-on-brand",
+    link: "text-on-brand-label hover:text-on-brand",
     cta: "bg-primary text-night",
   },
 };

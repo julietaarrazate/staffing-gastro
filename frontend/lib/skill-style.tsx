@@ -58,7 +58,7 @@ export const SKILL_ACCENT: Record<
  * blanco.
  */
 export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
-  mozo: "bg-brand", // el color de marca (verde bosque, o el azul hondo de la paleta celeste)
+  mozo: "bg-brand", // el color de marca (verde bosque, o el celeste claro de la paleta celeste)
   bartender: "bg-[#173f4c]", // petróleo (antes vino: se leía como error)
   barista: "bg-[#4a3222]", // espresso
   runner: "bg-[#2e3a40]", // pizarra
@@ -69,6 +69,35 @@ export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
   ayudante_cocina: "bg-[#5a3a12]", // ámbar tostado
   personal_salon: "bg-[#34302b]", // piedra
 };
+
+const HERO_INK_WHITE = {
+  strong: "text-white drop-shadow",
+  soft: "text-white/90",
+  softer: "text-white/85",
+  mark: "text-white/15",
+  veil: "bg-black/15",
+  chip: "bg-white/20 text-white",
+} as const;
+
+const HERO_INK_ON_BRAND = {
+  strong: "text-on-brand",
+  soft: "text-on-brand/90",
+  softer: "text-on-brand/85",
+  mark: "text-on-brand/15",
+  veil: "bg-brand-veil",
+  chip: "bg-on-brand/20 text-on-brand",
+} as const;
+
+/**
+ * Tinta del texto del banner. Los rubros llevan tonos profundos con texto
+ * blanco, y la foto lleva un velo negro. El mozo sin foto va sobre el color
+ * de marca: con la paleta de siempre es verde bosque y `on-brand` es blanco,
+ * pero con la paleta celeste de la landing (2026-10-09) la marca es clara y
+ * `on-brand` es tinta (13,99 sobre el celeste; el blanco daría 1,35).
+ */
+export function heroInk(position: WorkerSkill, hasPhoto: boolean) {
+  return !hasPhoto && SKILL_HERO_TONE[position] === "bg-brand" ? HERO_INK_ON_BRAND : HERO_INK_WHITE;
+}
 
 /**
  * Color de RIEL (borde izquierdo grueso) por oficio, para filas de lista que

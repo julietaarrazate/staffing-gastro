@@ -36,10 +36,9 @@ export default function LandingStory() {
   return (
     <StoryContext.Provider value={{ enhanced }}>
       {/* `data-theme="light"`: la landing es siempre clara (la noche, el ámbar
-          y el azul hondo son tramos de la historia, no un tema). globals.css
+          y el celeste son tramos de la historia, no un tema). globals.css
           redeclara los tokens claros para este subárbol. `data-palette`
-          prende la paleta celeste y naranja en previsualización (Julieta,
-          2026-10-09);
+          prende la paleta celeste en previsualización (Julieta, 2026-10-09);
           cuando se apruebe pasa a `:root` y este atributo se va.
           `overflow-x-clip` y no `hidden`: `hidden` rompería los escenarios
           `sticky`. */}

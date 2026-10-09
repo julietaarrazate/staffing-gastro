@@ -291,6 +291,15 @@
        manteca-text sobre manteca-tint 6.08 · sobre manteca 5.41
        cielo-text   sobre cielo-tint   7.67 · sobre cielo   6.73 */
   --color-manteca: #f1e7a0;
+  /* Sobre la superficie de marca (`bg-brand`, `bg-secondary`): la letra, el
+     dato destacado, sus íconos y el velo del banner. Con la paleta de
+     siempre la marca es oscura (verde bosque) y van blanco, manteca, ámbar y
+     un velo negro; la
+     paleta celeste de la landing los redeclara porque su marca es clara. */
+  --color-on-brand: #ffffff;
+  --color-on-brand-label: #f1e7a0;
+  --color-on-brand-icon: #d97706;
+  --color-brand-veil: rgb(0 0 0 / 0.15);
   --color-manteca-tint: #fbf3c9;
   --color-manteca-text: #6a5a12;
   --color-cielo: #cfe4ff;
@@ -596,93 +605,96 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * PALETA CELESTE Y NARANJA, en previsualización (Julieta, 2026-10-09).
+ * PALETA CELESTE, en previsualización (Julieta, 2026-10-09).
  *
  * Historia: el 2026-10-08 Julieta pidió pasar el verde bosque a un degradé
  * violeta, el ámbar #d97706 a #ffab25 y la crema a #f3f3f3, y eligió que sea
- * la paleta de TODA la app, probándola primero en la landing. El 2026-10-09
- * cambió el violeta por el celeste claro y el naranja de una referencia suya
- * (un sitio de pasta con paneles celestes y letra naranja): eligió el celeste
- * claro #c4e3ed y, en la tarjeta de decisión, el naranja #e64c1e para los
- * botones. Sigue siendo un bloque de tokens que se prende con
+ * la paleta de TODA la app, probándola primero en la landing. El 2026-10-09,
+ * comparando, decidió: todo lo que era violeta pasa al celeste claro
+ * #c4e3ed, y el resto queda como en la versión violeta (ámbar #ffab25 con
+ * tinta, lienzo #f3f3f3). Ese mismo día se había probado celeste con botones
+ * naranja #e64c1e; quedó descartado. Es un bloque de tokens que se prende con
  * `data-palette="celeste"`; para llevarla a la app pasa a `:root` (y se arma
  * su versión oscura).
  *
- * Decisiones medidas (WCAG):
- * - El celeste claro es el LIENZO: es el color que domina, como en la
- *   referencia. Tinta sobre el celeste 13.99; tarjetas blancas encima.
- * - El naranja #e64c1e lleva SIEMPRE texto en tinta: 4.87 (blanco 3.88, no
- *   llega). Nunca va como letra: sobre el celeste da 2.87.
- * - El texto destacado sobre claro (`primary-text`) y el anillo de foco van
- *   en azul hondo #1c5478, el mismo tono del celeste oscurecido: 6.01 sobre
- *   el celeste, 8.11 sobre blanco.
- * - Las superficies que llevan letra blanca (el banner del mozo, la tarjeta
- *   "Recomendado", el resultado) no pueden ser el celeste: van en azul hondo
- *   liso (blanco 8.11). Sin el brillo del degradé violeta: un brillo celeste
- *   tendría la misma luminancia que el naranja (1.04) y el botón vibraría.
- * - Recesado #b5daeb (el celeste con 35% de #9ac9e7): tinta 12.76. El gris
- *   de texto secundario baja a #4f5960 para llegar ahí (4.84; 5.31 sobre el
- *   celeste, 7.17 sobre blanco).
- * - Dato sobre oscuro (`manteca`): el mismo celeste, 6.01 sobre el azul hondo
- *   y 13.48 sobre la noche.
- * - La noche pasa a un negro frío (#121619); el naranja sobre ella da 4.69.
- * - El naranja queda a 14° del rojo de error (#d73d3d): se distinguen, pero
- *   un error tiene que ir siempre con ícono y texto, nunca sólo con color.
+ * Decisiones medidas (WCAG, sobre el lienzo #f3f3f3 salvo que diga otra cosa):
+ * - #ffab25 lleva SIEMPRE texto oscuro: tinta 9.98, blanco 1.89 (falla).
+ * - El celeste es claro: la letra que iba en blanco sobre el violeta va en
+ *   tinta sobre el celeste (13.99). Por eso existe `--color-on-brand`: blanco
+ *   en la paleta de siempre (verde bosque), tinta en ésta. Lo mismo el dato
+ *   destacado sobre la marca (`--color-on-brand-label`): manteca en la de
+ *   siempre, azul hondo #1c5478 acá (6.01 sobre el celeste).
+ * - El celeste como letra no se lee sobre claro: el texto destacado
+ *   (`primary-text`) y el anillo de foco van en azul hondo #1c5478, el mismo
+ *   tono oscurecido (7.31 sobre el lienzo, 8.11 sobre blanco).
+ * - Superficie de marca lisa (`--gradient-brand: none`), sin el velo negro
+ *   del banner (`--color-brand-veil`): sobre un color claro, el velo sólo lo
+ *   ensucia.
+ * - El ámbar sobre el celeste se distingue poco (1.40, el botón no tiene un
+ *   borde que lo separe), pero su texto en tinta sigue en 9.98. Es lo que
+ *   eligió Julieta; queda anotado.
+ * - Rellenos: el celeste mezclado con el lienzo (sRGB), 30% #e5eef1
+ *   (recesado y mapa; tinta apagada 4.83) y 45% #deecf0 (bordes y tintes).
+ *   Dato sobre la noche (`manteca`): el celeste, 13.85.
  * ────────────────────────────────────────────────────────────────────────── */
 [data-palette="celeste"],
 :root[data-theme="dark"] [data-palette="celeste"][data-theme="light"] {
-  --background: #c4e3ed;
+  --background: #f3f3f3;
   --foreground: #111111;
-  --line: #9cc8db;
-  --color-line: #9cc8db;
-  --color-surface: #b5daeb;
-  --color-paper: #b5daeb;
+  --line: #deecf0;
+  --color-line: #deecf0;
+  --color-surface: #e5eef1;
+  --color-paper: #e5eef1;
   --color-card: #ffffff;
   --color-raised: #ffffff;
-  --color-ink-mute: #4f5960;
-  --color-primary: #e64c1e;
-  --color-primary-strong: #d9461b;
+  --color-ink-mute: #686572;
+  --color-primary: #ffab25;
+  --color-primary-strong: #eb9d21;
   --color-primary-text: #1c5478;
-  --color-primary-tint: #ddeef4;
+  --color-primary-tint: #deecf0;
   /* Se redeclaran porque :root ya las resolvió con el ámbar anterior. */
-  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 32%, transparent);
-  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 32%, transparent);
-  --color-secondary: #1c5478;
-  --color-secondary-strong: #16435f;
-  --color-secondary-tint: #ddeef4;
+  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --color-secondary: #c4e3ed;
+  --color-secondary-strong: #9ac9e7;
+  --color-secondary-tint: #deecf0;
   --color-secondary-text: #1c5478;
   --gradient-brand: none;
+  --color-on-brand: #111111;
+  --color-on-brand-label: #1c5478;
+  --color-on-brand-icon: #1c5478;
+  --color-brand-veil: transparent;
   --color-accent: #9ac9e7;
-  --color-accent-tint: #ddeef4;
+  --color-accent-tint: #deecf0;
   --color-accent-text: #1c5478;
   --color-manteca: #c4e3ed;
-  --color-manteca-tint: #ddeef4;
+  --color-manteca-tint: #deecf0;
   --color-manteca-text: #1c5478;
-  --color-night: #121619;
-  --color-structure: #121619;
-  --color-focus: #121619;
-  --color-toast: #121619;
-  /* El anillo de foco naranja daría 2.87 sobre el celeste: azul hondo (6.01). */
+  --color-night: #141118;
+  --color-structure: #141118;
+  --color-focus: #141118;
+  --color-toast: #141118;
+  /* El anillo de foco ámbar daría 1.70 sobre claro: azul hondo (7.31). */
   --focus-ring: #1c5478;
 }
-/* Sobre la noche el anillo va en naranja (4.69); sobre el azul hondo, en
-   blanco (8.11); sobre la banda naranja, en tinta. */
+/* Sobre la noche el anillo vuelve al ámbar (9.89); sobre el celeste y sobre
+   la banda ámbar, tinta. */
 [data-palette="celeste"] [data-tone="night"] {
-  --focus-ring: #e64c1e;
+  --focus-ring: #ffab25;
 }
 [data-palette="celeste"] [data-tone="forest"] {
-  --focus-ring: #ffffff;
+  --focus-ring: #111111;
 }
 [data-palette="celeste"] [data-tone="amber"] {
   --focus-ring: #111111;
 }
-/* El fondo que asoma al estirar la página (iOS) también es el celeste. */
+/* El fondo que asoma al estirar la página (iOS) también es el gris. */
 body:has([data-palette="celeste"]) {
-  --background: #c4e3ed;
+  --background: #f3f3f3;
 }
 
 /* Superficie de marca: el verde bosque liso hoy; con la paleta celeste, el
-   azul hondo, también liso (`--gradient-brand: none`). Queda como utilidad
+   celeste claro, también liso (`--gradient-brand: none`). Queda como utilidad
    aparte para las superficies grandes (secciones, el frente de las
    tarjetas), por si la paleta vuelve a llevar un degradé: las píldoras
    chicas van en `bg-secondary`. */
@@ -937,10 +949,10 @@ body:has([data-landing]) main {
   --burbuja-tenue: #7d7468;
 }
 [data-landing][data-palette="celeste"] {
-  --mapa: #b5daeb;
-  --burbuja: #1f2428;
-  --burbuja-tinta: #a9b2b8;
-  --burbuja-tenue: #8d979e;
+  --mapa: #e5eef1;
+  --burbuja: #24202b;
+  --burbuja-tinta: #aaa6b3;
+  --burbuja-tenue: #9a96a3;
 }
 @media (min-width: 1024px) {
   [data-landing] {

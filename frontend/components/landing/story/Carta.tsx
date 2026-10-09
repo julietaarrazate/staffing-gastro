@@ -87,7 +87,7 @@ export default function Carta() {
               </div>
               <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-ink-soft">
                 {p.code === "basico" && (
-                  <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-label font-medium uppercase tracking-[0.1em] text-on-brand">
                     Recomendado
                   </span>
                 )}

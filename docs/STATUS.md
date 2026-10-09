@@ -27,15 +27,16 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 Revisado contra el código y los PRs el 2026-10-03.
 
-1. 🟡 **Paleta celeste y naranja (propuesta v6), en prueba en la landing**
-   (pedido de Julieta, 2026-10-08, con violeta; el 2026-10-09 cambió el
-   violeta por celeste claro y naranja; eligió que sea la paleta de toda la
+1. 🟡 **Paleta celeste (propuesta v6), en la landing en producción**
+   (pedido de Julieta, 2026-10-08, con violeta; el 2026-10-09 pasó a celeste
+   claro sólo lo que era violeta, con el ámbar `#ffab25` y el lienzo
+   `#f3f3f3` de la versión del diseñador; eligió que sea la paleta de toda la
    app). Hoy vive en el bloque `[data-palette="celeste"]` de `globals.css`,
    prendido sólo en la landing. Cuando Julieta la apruebe: pasar el bloque a
    `:root`, armar su versión oscura y revisar el texto blanco sobre ámbar que
    queda en la app. Falta decidir el logo, que sigue en el ámbar `#d97706`.
    Detalle en
-   [`historial/2026-10-09-paleta-celeste-naranja.md`](./historial/2026-10-09-paleta-celeste-naranja.md)
+   [`historial/2026-10-09-paleta-celeste.md`](./historial/2026-10-09-paleta-celeste.md)
    y [`design-system/color-system.md`](./design-system/color-system.md),
    "Propuesta v6".
 2. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
@@ -103,7 +104,7 @@ El detalle de cada env var, y cuáles ya están cargadas, está en `CLAUDE.md`,
   la que se recortaron Inicio (#393), el Panel del comercio (#395) y el
   Perfil (#396); lo que sobra va a una pantalla propia, no a un acordeón.
 - **Design system v5.0** (#345): ámbar `#D97706`, verde bosque, Fraunces +
-  Inter + DM Mono. Sigue vigente en la app mientras la paleta celeste y naranja (v6)
+  Inter + DM Mono. Sigue vigente en la app mientras la paleta celeste (v6)
   esté en prueba en la landing. La fuente de verdad es
   [`design-system/`](./design-system/README.md); `design/COLOR_SYSTEM.md` y
   `design/TYPOGRAPHY_SYSTEM.md` son históricos.
