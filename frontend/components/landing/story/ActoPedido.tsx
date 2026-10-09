@@ -10,7 +10,7 @@ import { DescribeBox, PhoneFrame, PricePin, PushNotice, StreetGrid, ToastLine, W
 import { setReloj } from "./relojStore";
 import { Narration, SceneLabel, Stage, type NarrationItem } from "./Stage";
 import { scrollToProgress, seg, useRange, useStage } from "./useStage";
-import { easeInOut, lerp, mapPoint, phoneRect, stageBox, useStageLayout, type StageBox } from "./layout";
+import { easeInOut, lerp, mapPoint, narrHeights, phoneRect, stageBox, useStageLayout, type StageBox } from "./layout";
 import { useStoryShift } from "./useStoryShift";
 
 /* ACTO 2 · DESCUBRIMIENTO.
@@ -103,8 +103,14 @@ type Layout = StageBox & {
   phone: { x: number; y: number; s: number };
 };
 
-function computeLayout(w: number, h: number, boxH: number): Layout {
-  const b = stageBox(w, h);
+/** `narr`: alto de cada estado de la narración. El cuadro y la tarjeta se
+ *  componen con el primero (dos líneas), el mapa con el segundo (tres: "Le
+ *  avisamos a quien está cerca.") y el celular con el tercero. */
+function computeLayout(w: number, h: number, boxH: number, narr: number[]): Layout {
+  const max = narr.length ? Math.max(...narr) : undefined;
+  const b = stageBox(w, h, narr[0] ?? max);
+  const bMap = stageBox(w, h, narr[1] ?? max);
+  const bPhone = stageBox(w, h, narr[2] ?? max);
   const avail = b.visBottom - b.visTop;
   const boxW = Math.min(b.visW, 440);
   const sA = Math.min(b.desktop ? 1.1 : 1, (avail - boxH - 14) / CARD_H, b.visW / CARD_W);
@@ -112,7 +118,7 @@ function computeLayout(w: number, h: number, boxH: number): Layout {
   const topA = b.visTop + Math.max(0, (avail - (boxH + 14 + CARD_H * sA)) / 2);
   const topB = b.visTop + Math.max(0, (avail - (CARD_H * sB + 62)) / 2);
   const top0 = b.visTop + Math.max(0, (avail - boxH) / 2);
-  return { ...b, boxW, boxH, sA, sB, topA, topB, top0, phone: phoneRect(b) };
+  return { ...b, map: bMap.map, boxW, boxH, sA, sB, topA, topB, top0, phone: phoneRect(bPhone) };
 }
 
 /* ── Versión animada ────────────────────────────────────────────────────── */
@@ -125,11 +131,12 @@ export function ActoPedido() {
   const stageRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const narrRef = useRef<HTMLDivElement>(null);
   const { progress, step, jumped } = useStage(sectionRef, STOPS);
   const { layout: L, ref: Lr } = useStageLayout(
     stageRef,
-    (w, h) => computeLayout(w, h, boxRef.current?.offsetHeight ?? 150),
-    [boxRef]
+    (w, h) => computeLayout(w, h, boxRef.current?.offsetHeight ?? 150, narrHeights(narrRef.current)),
+    [boxRef, narrRef]
   );
   const shift = useStoryShift("publicado");
 
@@ -178,7 +185,7 @@ export function ActoPedido() {
         fy: a.top - s.top,
         tx: b.left - s.left,
         ty: b.top - s.top + (b.height - a.height) / 2,
-        delay: i * 0.08,
+        delay: i * 0.1067,
       });
       nextGlows.push({
         key: `g${i}`,
@@ -186,7 +193,7 @@ export function ActoPedido() {
         y: b.top - s.top - 2,
         w: b.width + 8,
         h: b.height + 4,
-        delay: 0.36 + i * 0.08,
+        delay: 0.48 + i * 0.1067,
       });
     });
     setFlights(next);
@@ -201,12 +208,12 @@ export function ActoPedido() {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const press = (which: NonNullable<typeof pressed>) => {
       setPressed(which);
-      timers.push(setTimeout(() => setPressed(null), 160));
+      timers.push(setTimeout(() => setPressed(null), 213));
     };
     if (step === 2 && forward) {
       press("completar");
       setLoading(true);
-      timers.push(setTimeout(() => setLoading(false), 650));
+      timers.push(setTimeout(() => setLoading(false), 867));
     } else if (step !== 2) {
       setLoading(false);
     }
@@ -311,7 +318,7 @@ export function ActoPedido() {
           className={cn("absolute", !L.map.bleed && "overflow-hidden rounded-[1.75rem]")}
           aria-hidden
         >
-          <motion.div style={{ clipPath: reveal }} className="absolute inset-0 bg-[#ece6da]">
+          <motion.div style={{ clipPath: reveal }} className="absolute inset-0 bg-[var(--mapa)]">
             <StreetGrid />
           </motion.div>
           <p className="absolute bottom-3 right-4 font-mono text-label uppercase tracking-[0.14em] text-ink-mute">
@@ -344,7 +351,7 @@ export function ActoPedido() {
               <motion.div
                 initial={false}
                 animate={on ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-                transition={jumped ? { duration: 0 } : { duration: 0.42, ease: [0.3, 1.4, 0.5, 1] }}
+                transition={jumped ? { duration: 0 } : { duration: 0.56, ease: [0.3, 1.4, 0.5, 1] }}
               >
                 <WorkerPin inicial={w.inicial} variant="avisado" />
               </motion.div>
@@ -403,7 +410,7 @@ export function ActoPedido() {
             type="button"
             onClick={() => scrollToProgress(sectionRef.current, T.publish + 0.02)}
             className={cn(
-              "flex h-12 w-full items-center justify-center rounded-[var(--radius-btn)] bg-night text-body font-semibold text-white transition-transform duration-150",
+              "flex h-12 w-full items-center justify-center rounded-[var(--radius-btn)] bg-primary text-body font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-200",
               pressed === "publicar" ? "scale-[0.96]" : "scale-100"
             )}
           >
@@ -416,10 +423,10 @@ export function ActoPedido() {
           <motion.span
             key={f.key}
             aria-hidden
-            className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-[4px] bg-manteca px-0.5 text-sm font-semibold text-ink shadow-[0_6px_16px_rgba(106,90,18,0.25)]"
+            className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-[4px] bg-manteca px-0.5 text-sm font-semibold text-ink shadow-[0_6px_16px_rgba(17,17,17,0.18)]"
             initial={{ x: f.fx, y: f.fy, opacity: 1, scale: 1 }}
             animate={{ x: f.tx, y: f.ty, opacity: [1, 1, 0], scale: [1, 1.08, 1] }}
-            transition={{ duration: 0.46, delay: f.delay, ease: [0.2, 0.8, 0.2, 1], opacity: { times: [0, 0.8, 1], duration: 0.5, delay: f.delay } }}
+            transition={{ duration: 0.6133, delay: f.delay, ease: [0.2, 0.8, 0.2, 1], opacity: { times: [0, 0.8, 1], duration: 0.6667, delay: f.delay } }}
           >
             {f.text}
           </motion.span>
@@ -432,7 +439,7 @@ export function ActoPedido() {
             style={{ left: g.x, top: g.y, width: g.w, height: g.h }}
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 1, delay: g.delay, times: [0, 0.2, 1] }}
+            transition={{ duration: 1.3333, delay: g.delay, times: [0, 0.2, 1] }}
           />
         ))}
 
@@ -453,6 +460,7 @@ export function ActoPedido() {
         <Narration
           items={NARRACION}
           index={narrIndex}
+          measureRef={narrRef}
           className={cn(
             "absolute z-50",
             L.desktop
@@ -493,7 +501,7 @@ function Wave({ progress, i, layout: L }: { progress: MotionValue<number>; i: nu
       aria-hidden
       className={cn(
         "pointer-events-none absolute z-[5] rounded-full border-2",
-        i === 1 ? "border-manteca" : "border-primary"
+        i === 1 ? "border-accent" : "border-primary"
       )}
       style={{
         left: mapPoint(L.map, MAP_LOCAL.x, MAP_LOCAL.y).x - size / 2,
@@ -521,7 +529,7 @@ function LuciaScreen({
   sectionRef: RefObject<HTMLElement | null>;
 }) {
   const shift = useStoryShift("publicado");
-  const t = jumped ? { duration: 0 } : { duration: 0.34, ease: [0.2, 0.8, 0.2, 1] as const };
+  const t = jumped ? { duration: 0 } : { duration: 0.4533, ease: [0.2, 0.8, 0.2, 1] as const };
   return (
     <div className="relative h-[504px] px-2.5">
       <AnimatePresence initial={false}>
@@ -556,7 +564,7 @@ function LuciaScreen({
               type="button"
               onClick={() => scrollToProgress(sectionRef.current, T.applied + 0.02)}
               className={cn(
-                "mt-2.5 flex h-11 w-full items-center justify-center rounded-[var(--radius-btn)] bg-primary text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-150",
+                "mt-2.5 flex h-11 w-full items-center justify-center rounded-[var(--radius-btn)] bg-primary text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-200",
                 pressed ? "scale-[0.96]" : "scale-100"
               )}
             >
@@ -610,7 +618,7 @@ export function ActoPedidoStatic() {
           </div>
         </StaticFrame>
         <StaticFrame reloj="avisado" item={NARRACION[1]} label="Lo que ve tu bar">
-          <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-[1.75rem] bg-[#ece6da]" aria-hidden>
+          <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-[1.75rem] bg-[var(--mapa)]" aria-hidden>
             <StreetGrid />
             {[0.32, 0.52, 0.72].map((r) => (
               <span
@@ -657,9 +665,9 @@ export function StaticFrame({
     <div className="grid gap-6 lg:grid-cols-12 lg:items-center lg:gap-12">
       <div className="lg:col-span-5">
         <RelojDelTurno at={reloj} />
-        <SceneLabel className="mt-3">Historia ilustrativa · {label}</SceneLabel>
-        <p className="mt-5 font-display text-h1 font-semibold tracking-[-0.02em] text-ink lg:text-display">{item.title}</p>
-        <p className="mt-2 max-w-[38ch] text-body text-ink-soft lg:text-lg">{item.line}</p>
+        <SceneLabel className="mt-4">Historia ilustrativa · {label}</SceneLabel>
+        <p className="mt-3 font-display text-headline font-semibold tracking-[-0.025em] text-ink [text-wrap:balance]">{item.title}</p>
+        <p className="mt-3 max-w-[38ch] text-body text-ink-soft lg:mt-4 lg:text-lg">{item.line}</p>
       </div>
       <div className="lg:col-span-7">{children}</div>
     </div>

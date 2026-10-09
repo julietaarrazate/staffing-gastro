@@ -24,7 +24,7 @@ export default function BandaOido() {
           <Link
             href="/register?rol=comercio"
             data-cta="post-oido"
-            className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-night px-7 text-base font-semibold text-white transition active:scale-[0.96] hover:brightness-150"
+            className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-night px-7 text-base font-semibold text-white transition duration-200 active:scale-[0.96] hover:brightness-150"
           >
             Necesito personal
           </Link>

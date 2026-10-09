@@ -129,7 +129,7 @@ function StatChip({ children, onDark = false }: { children: React.ReactNode; onD
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-        onDark ? "bg-white/10 text-white/75" : "bg-surface text-ink/60"
+        onDark ? "bg-white/10 text-white/90" : "bg-surface text-ink/60"
       }`}
     >
       {children}
@@ -154,7 +154,7 @@ export function RecommendationReasons({
         <p
           key={label}
           className={`flex items-center gap-1.5 text-sm font-medium ${
-            onDark ? "text-white/85" : "text-ink/75"
+            onDark ? "text-white/90" : "text-ink/75"
           }`}
         >
           <Icon size={15} className={`shrink-0 ${onDark ? "text-primary" : "text-primary-text"}`} />

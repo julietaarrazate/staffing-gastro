@@ -15,7 +15,8 @@ import { useReloj } from "./relojStore";
  *   algo de verdad (se publica, alguien se postula, Lucía confirma).
  * - La hora avanza un minuto sólo cuando alguien actúa.
  * - Mientras el turno está sin cubrir, los dos puntos de la hora laten; cuando
- *   se cubre, la píldora pasa a verde bosque y la hora se queda quieta. Así se
+ *   se cubre, la píldora pasa al color de marca (`secondary`: verde bosque, o
+ *   violeta con la paleta nueva) y la hora se queda quieta. Así se
  *   siente el objetivo de los 10 minutos sin afirmarlo como dato.
  */
 export default function RelojDelTurno({
@@ -37,7 +38,7 @@ export default function RelojDelTurno({
   return (
     <div
       className={cn(
-        "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-500",
+        "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-667",
         covered ? "bg-secondary text-white" : "bg-night text-white",
         surface === "dark" && "ring-1 ring-white/12",
         className
@@ -74,9 +75,10 @@ export default function RelojDelTurno({
 const STRIP: Record<"light" | "paper" | "night" | "amber" | "forest", { bg: string; label: string }> = {
   light: { bg: "bg-background/95 border-line", label: "text-ink-mute" },
   paper: { bg: "bg-paper border-transparent", label: "text-ink-mute" },
-  night: { bg: "bg-night border-transparent", label: "text-[#F1E7A0]/70" },
+  night: { bg: "bg-night border-transparent", label: "text-manteca/70" },
   amber: { bg: "bg-primary border-transparent", label: "text-ink/70" },
-  forest: { bg: "bg-secondary border-transparent", label: "text-[#F1E7A0]/70" },
+  // Sobre el violeta, manteca al 70% daría 3.28: blanco al 75% (5.19).
+  forest: { bg: "bg-secondary border-transparent", label: "text-white/75" },
 };
 
 /**
@@ -97,9 +99,9 @@ export function RelojFijo({ tone }: { tone: keyof typeof STRIP }) {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+          transition={{ duration: 0.2933, ease: [0.2, 0.8, 0.2, 1] }}
           className={cn(
-            "pointer-events-none absolute inset-x-0 top-full border-b transition-colors duration-300",
+            "pointer-events-none absolute inset-x-0 top-full border-b transition-colors duration-400",
             t.bg
           )}
         >
@@ -120,8 +122,8 @@ export function RelojFijo({ tone }: { tone: keyof typeof STRIP }) {
   );
 }
 
-/** Reescribe el texto letra por letra cuando cambia (18 ms por letra, tope de
- *  300 ms). Con reducir movimiento, el cambio es directo. */
+/** Reescribe el texto letra por letra cuando cambia (24 ms por letra, tope de
+ *  400 ms). Con reducir movimiento, el cambio es directo. */
 function useRetype(target: string): string {
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(target);
@@ -134,7 +136,7 @@ function useRetype(target: string): string {
       setShown(target);
       return;
     }
-    const step = Math.max(10, Math.min(18, 300 / Math.max(1, target.length)));
+    const step = Math.max(13.33, Math.min(24, 400 / Math.max(1, target.length)));
     let i = 0;
     setShown("");
     const id = setInterval(() => {

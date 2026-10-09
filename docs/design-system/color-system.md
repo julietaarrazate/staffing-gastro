@@ -122,3 +122,55 @@ saturado: sigue distinguiendo dos turnos seguidos sin competir con el ámbar.
 Ningún rubro usa un matiz rojo: el bartender pasó de rojo a borgoña y de
 borgoña a petróleo (`#173f4c`, 2026-09-25) porque cualquier rojo se lee como
 el color de error.
+
+## Propuesta v6: paleta violeta (en prueba, 2026-10-08)
+
+Pedido de Julieta: el verde bosque pasa a un degradé `#5c22cf` → `#8e69d8`,
+el ámbar de acción `#d97706` pasa a `#ffab25`, la crema y la manteca pasan a
+`#f3f3f3` y parecidos, y los niveles nuevos salen de la gama entre `#f3f3f3`
+y `#8e69d8`. Eligió que sea la paleta de **toda la app**, probándola primero
+en la landing. Por eso es un bloque de tokens (`[data-palette="violeta"]` en
+`globals.css`, prendido sólo en la raíz de la landing) y no colores sueltos:
+para llevarla a la app, ese bloque pasa a `:root` y se arma su versión
+oscura. **Hasta que Julieta lo apruebe, las tablas de arriba (v5.0) siguen
+siendo las vigentes en la app.** El documento completo, con cada par medido,
+es el PDF del design system (`/mnt/project-files/design-system/`).
+
+| Token | v5.0 | v6 | Nota |
+|---|---|---|---|
+| `--color-primary` | `#D97706` | `#FFAB25` | Siempre con tinta encima (9,98). Blanco da 1,89: prohibido. |
+| `--color-primary-text` | `#B45309` | `#5C22CF` | El ámbar como texto sobre claro da 1,70; el texto destacado va en violeta (7,32). |
+| `--color-secondary` | `#1B3A31` | `#5C22CF` | Liso en lo chico (píldoras, el reloj cubierto). |
+| `--gradient-brand` | — | radial, ver abajo | Superficies grandes, con la utilidad `bg-brand`. |
+| `--background` | `#FBFAF6` | `#F3F3F3` | |
+| `--color-surface` / `--color-paper` | `#F3EFE6` | `#E9E5F0` | 10% de la gama. |
+| `--color-line` y los `-tint` | varios | `#E4DEEF` | 15% de la gama. |
+| `--color-manteca` | `#F1E7A0` | `#D5CAEB` | 30% de la gama: datos sobre violeta (5,21) u oscuro (12,0). |
+| `--color-ink-mute` | `#7C8A9A` | `#686572` | 5,12 sobre el lienzo; el anterior daba 3,18. |
+| `--color-night` | `#191410` | `#141118` | Neutro con un toque violeta. |
+
+La gama es una mezcla **sRGB** de `#f3f3f3` hacia `#8e69d8`; así salen
+exactos los tres tokens.
+
+**El degradé es un brillo en la esquina, no una diagonal:**
+`radial-gradient(110% 80% at 100% 100%, #8e69d8 0%, #6c3bd1 50%, #5c22cf 100%)`.
+El blanco da 8,12 sobre `#5c22cf`, 6,60 sobre `#6c3bd1` y 4,07 sobre
+`#8e69d8`. En estas superficies el texto arranca arriba a la izquierda y el
+botón o el ícono suelen ir abajo a la derecha, donde está el brillo. Con una
+diagonal de 155° la letra chica blanca caía en la punta clara (3,4 a 4,0).
+Medido texto por texto (las cuatro esquinas y el centro de cada caja de
+texto, con las capas semitransparentes compuestas), ningún texto sobre el
+degradé baja de 4,5 a 390×844 ni a 1440×900. `bg-brand` sin la paleta
+violeta es el verde bosque liso de siempre, así que la app no cambia.
+
+Reglas que salieron de medir:
+
+- El botón secundario sobre el degradé lleva borde blanco al **80%** (3,2 en
+  el brillo); al 60% daba 2,48. Sobre la noche, 60% alcanza (7,19).
+- El anillo de foco es violeta `#5c22cf` sobre claro (7,32), `#ffab25` sobre
+  la noche y el violeta, y tinta sobre la banda ámbar (`--focus-ring`).
+- La inicial de los avatares sin foto (`Avatar`, `WorkerMarker`) va en
+  tinta y no en blanco. En el centro del degradé del avatar, con el ámbar
+  nuevo, el blanco da 2,06 y la tinta 9,19. Este cambio ya vale en toda la
+  app, y también mejora el ámbar de v5.0: ahí el blanco daba 3,99 (no
+  llegaba) y la tinta da 4,74.

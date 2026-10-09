@@ -32,7 +32,11 @@ export default function Avatar({
     <div
       style={{ width: px, height: px, fontSize: px * 0.4 }}
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong font-bold text-white ring-1 ring-black/5",
+        // Inicial en tinta, como el botón principal. Medido en el centro del
+        // degradé, donde cae la letra: con el ámbar de v5.0 la tinta da 4,74
+        // y el blanco 3,99 (no llega); con el #ffab25 de la paleta violeta,
+        // 9,19 contra 2,06.
+        "flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong font-bold text-night ring-1 ring-black/5",
         radius,
         className
       )}

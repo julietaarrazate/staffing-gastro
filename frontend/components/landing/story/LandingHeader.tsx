@@ -14,19 +14,19 @@ const TONES: Record<Tone, { bar: string; word: string; link: string; cta: string
     bar: "bg-background border-line",
     word: "text-ink",
     link: "text-ink hover:text-primary-text",
-    cta: "bg-night text-white",
+    cta: "bg-primary text-night",
   },
   paper: {
     bar: "bg-paper border-transparent",
     word: "text-ink",
     link: "text-ink hover:text-primary-text",
-    cta: "bg-night text-white",
+    cta: "bg-primary text-night",
   },
   night: {
     bar: "bg-night border-transparent",
     word: "text-white",
-    link: "text-[#F1E7A0] hover:text-white",
-    cta: "bg-[#F1E7A0] text-night",
+    link: "text-manteca hover:text-white",
+    cta: "bg-primary text-night",
   },
   amber: {
     bar: "bg-primary border-transparent",
@@ -37,8 +37,8 @@ const TONES: Record<Tone, { bar: string; word: string; link: string; cta: string
   forest: {
     bar: "bg-secondary border-transparent",
     word: "text-white",
-    link: "text-[#F1E7A0] hover:text-white",
-    cta: "bg-[#F1E7A0] text-night",
+    link: "text-manteca hover:text-white",
+    cta: "bg-primary text-night",
   },
 };
 
@@ -49,8 +49,10 @@ const TONES: Record<Tone, { bar: string; word: string; link: string; cta: string
  *
  * El botón "Necesito personal" aparece recién cuando los del hero salieron de
  * la pantalla, y se esconde en los tramos que ya tienen su propio botón
- * (`data-hide-cta`). Va en tinta, no en ámbar: el ámbar de la página es de la
- * acción que está pasando en la historia.
+ * (`data-hide-cta`). Es el mismo botón principal de toda la página (ámbar con
+ * texto en tinta) sobre cualquier fondo; sólo sobre la banda ámbar se invierte
+ * a tinta. Hasta el 2026-10-08 iba en tinta o en crema según el tramo: tres
+ * rellenos para el mismo botón.
  */
 export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId: string; reloj?: boolean }) {
   const [tone, setTone] = useState<Tone>("light");
@@ -63,7 +65,10 @@ export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId:
       frame = 0;
       const bar = barRef.current;
       if (!bar) return;
-      const y = bar.getBoundingClientRect().bottom + 1;
+      // Se mira 24px debajo del encabezado y no el primer píxel: al final de
+      // la página, en escritorio, el resultado terminaba 8px debajo del
+      // encabezado y lo dejaba violeta encima de los precios.
+      const y = bar.getBoundingClientRect().bottom + 24;
       const sections = document.querySelectorAll<HTMLElement>("[data-landing] [data-tone]");
       let found: HTMLElement | null = null;
       // La sección más interna que cubre la línea de abajo del encabezado:
@@ -107,7 +112,7 @@ export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId:
     <header
       ref={barRef}
       className={cn(
-        "safe-top sticky top-0 z-40 border-b transition-colors duration-300",
+        "safe-top sticky top-0 z-40 border-b transition-colors duration-400",
         t.bar,
         strip && "border-transparent"
       )}
@@ -115,14 +120,14 @@ export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId:
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
         <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center gap-2">
           <LogoMark size={28} />
-          <span className={cn("font-display text-xl font-semibold tracking-tight transition-colors duration-300", t.word)}>
+          <span className={cn("font-display text-xl font-semibold tracking-tight transition-colors duration-400", t.word)}>
             oído
           </span>
         </Link>
         <nav aria-label="Cuenta" className="flex items-center gap-1 text-sm font-semibold">
           <Link
             href="/login"
-            className={cn("inline-flex h-11 items-center px-3 transition-colors duration-300", t.link)}
+            className={cn("inline-flex h-11 items-center px-3 transition-colors duration-400", t.link)}
           >
             Ingresar
           </Link>
@@ -134,7 +139,7 @@ export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId:
             // Escondido no ocupa lugar (max-w-0): si no, "Ingresar" quedaba
             // flotando en el medio del encabezado.
             className={cn(
-              "inline-flex h-9 items-center overflow-hidden whitespace-nowrap rounded-[var(--radius-btn)] transition-[max-width,opacity,padding,background-color,color] duration-300 active:scale-95",
+              "inline-flex h-10 items-center overflow-hidden whitespace-nowrap rounded-[var(--radius-btn)] transition-[max-width,opacity,padding,background-color,color] duration-400 active:scale-95",
               t.cta,
               ctaVisible ? "max-w-[12rem] px-3.5 opacity-100" : "pointer-events-none max-w-0 px-0 opacity-0"
             )}

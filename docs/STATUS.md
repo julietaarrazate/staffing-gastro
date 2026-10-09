@@ -27,33 +27,42 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 Revisado contra el código y los PRs el 2026-10-03.
 
-1. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
+1. 🟡 **Paleta violeta (propuesta v6), en prueba en la landing** (pedido de
+   Julieta, 2026-10-08; eligió que sea la paleta de toda la app). Hoy vive
+   en el bloque `[data-palette="violeta"]` de `globals.css`, prendido sólo
+   en la landing. Cuando Julieta la apruebe: pasar el bloque a `:root`,
+   armar su versión oscura y revisar el texto blanco sobre ámbar que queda
+   en la app. Falta decidir el color del logo. Detalle en
+   [`historial/2026-10-08-landing-paleta-violeta.md`](./historial/2026-10-08-landing-paleta-violeta.md)
+   y [`design-system/color-system.md`](./design-system/color-system.md),
+   "Propuesta v6".
+2. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
    (pedido de Julieta, 2026-10-06; sin arrancar). La referencia es la
    landing nueva, "la historia de un turno" (#405): motor de escena en
    `frontend/components/landing/story/useStage.ts`, la trampa de motion 13
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
-2. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
+3. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
    direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
    que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
    como Bachero; la metáfora propia es el "¡oído!" de la cocina. Contexto:
    [`historial/ARCHIVO…`](./historial/ARCHIVO-2026-07-a-2026-10-03.md), sección
    "Ideas de la competencia (2026-10-02)", y
    [`design-system/brand-foundation.md`](./design-system/brand-foundation.md).
-3. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
+4. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
-4. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
+5. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
    abril de 2027). Son tres cambios juntos: la versión de Node en Vercel
    (Settings → Node.js Version), `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-5. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
+6. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
    ADR-0005): `/subscription` necesita botón de baja y de arrepentimiento,
    que los términos ya prometen por mail o soporte.
-6. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
+7. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
@@ -64,8 +73,6 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
-- **Crear la casilla `hola@oido.com.ar`.** Ya figura en `/privacidad` y
-  `/terminos`, pero todavía no recibe.
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
   Render y purgar las cuentas demo (runbook en
@@ -94,7 +101,8 @@ El detalle de cada env var, y cuáles ya están cargadas, está en `CLAUDE.md`,
   la que se recortaron Inicio (#393), el Panel del comercio (#395) y el
   Perfil (#396); lo que sobra va a una pantalla propia, no a un acordeón.
 - **Design system v5.0** (#345): ámbar `#D97706`, verde bosque, Fraunces +
-  Inter + DM Mono. La fuente de verdad es
+  Inter + DM Mono. Sigue vigente en la app mientras la paleta violeta (v6)
+  esté en prueba en la landing. La fuente de verdad es
   [`design-system/`](./design-system/README.md); `design/COLOR_SYSTEM.md` y
   `design/TYPOGRAPHY_SYSTEM.md` son históricos.
 - **La app no se oscurece sola.** "Sistema" resuelve a claro; el oscuro es

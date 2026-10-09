@@ -341,12 +341,18 @@
   /* Tamaños cartel de la landing (la historia del turno, 2026-10-06). Sólo
      para la landing: la app no usa nada más grande que text-display. Fluidos
      con clamp para que "gastronómico," entre en 358px sin cortar. */
-  --text-poster: clamp(2.75rem, 12vw, 4.5rem); /* titulares de escena */
+  --text-poster: clamp(3rem, 12vw, 4.5rem); /* titulares de escena: 48px como piso en el celular */
   --text-poster--line-height: 0.95;
   --text-hero: clamp(3rem, 7.4vw, 7rem); /* H1 del hero en escritorio */
   --text-hero--line-height: 0.92;
   --text-shout: clamp(5.5rem, 26vw, 17rem); /* el cartel "¡Oído!" */
   --text-shout--line-height: 0.9;
+  /* Titular de narración e intertítulo (Julieta, 2026-10-08: "todos los
+     header fraunces pasen de 32px a 48px"; medían 28px de cuerpo y 32px de
+     línea, que era `text-h1`). No se cambia `--text-h1` porque lo usan 40
+     pantallas de la app y los títulos de las tarjetas reales. */
+  --text-headline: 3rem;
+  --text-headline--line-height: 1.04;
 }
 
 @theme inline {
@@ -589,6 +595,94 @@
   --color-toast-ink: #ffffff;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * PALETA VIOLETA, en previsualización (Julieta, 2026-10-08).
+ *
+ * Pedido: el verde bosque (#17312A y parecidos) pasa a un degradé #5c22cf →
+ * #8e69d8; los botones y destacados ámbar #d97706 pasan a #ffab25; los
+ * rellenos crema/manteca pasan a #f3f3f3 y parecidos; los niveles nuevos
+ * salen de la gama entre #f3f3f3 y #8e69d8. Eligió que sea la paleta de TODA
+ * la app, probándola primero en la landing: por eso es un bloque de tokens
+ * que se prende con `data-palette="violeta"` y no colores sueltos en los
+ * componentes. Para llevarla a la app, este bloque pasa a `:root` (y se arma
+ * su versión oscura).
+ *
+ * Decisiones medidas (WCAG, sobre el lienzo #f3f3f3 salvo que diga otra cosa):
+ * - #ffab25 lleva SIEMPRE texto oscuro: tinta 9.98, blanco 1.89 (falla).
+ * - #ffab25 como texto sobre claro da 1.70: los textos destacados sobre claro
+ *   (`primary-text`) van en violeta #5c22cf (7.32). Sobre oscuro, #ffab25.
+ * - Blanco sobre el degradé: 8.12 en #5c22cf, 6.60 en #6c3bd1, 4.07 en
+ *   #8e69d8. Por eso el degradé es un brillo en la esquina de abajo a la
+ *   derecha (radial) y no una diagonal: casi todo el texto de estas
+ *   superficies arranca arriba a la izquierda, y abajo a la derecha suele
+ *   haber un botón o un ícono. Con la diagonal, la letra chica blanca de las
+ *   tarjetas y del resultado caía en la punta clara (3.4–4.0); medido texto
+ *   por texto con la regla de las esquinas, ahora no baja de 4.5 a 390 ni a
+ *   1440px. Las píldoras chicas usan el violeta liso.
+ * - Gris de texto secundario #686572 (5.12; el #7c8a9a anterior daba 3.18).
+ * - Gama #f3f3f3 → #8e69d8 (mezcla sRGB): 10% #e9e5f0 (recesado), 15%
+ *   #e4deef (bordes y tintes), 30% #d5caeb (marcas y datos sobre oscuro).
+ * - El negro de los tramos oscuros pasa de cálido (#191410) a uno neutro con
+ *   un toque violeta (#141118), para no pelearse con el gris y el violeta.
+ * ────────────────────────────────────────────────────────────────────────── */
+[data-palette="violeta"],
+:root[data-theme="dark"] [data-palette="violeta"][data-theme="light"] {
+  --background: #f3f3f3;
+  --foreground: #111111;
+  --line: #e4deef;
+  --color-line: #e4deef;
+  --color-surface: #e9e5f0;
+  --color-paper: #e9e5f0;
+  --color-card: #ffffff;
+  --color-raised: #ffffff;
+  --color-ink-mute: #686572;
+  --color-primary: #ffab25;
+  --color-primary-strong: #eb9d21;
+  --color-primary-text: #5c22cf;
+  --color-primary-tint: #e4deef;
+  /* Se redeclaran porque :root ya las resolvió con el ámbar anterior. */
+  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --color-secondary: #5c22cf;
+  --color-secondary-strong: #4a1aa8;
+  --color-secondary-tint: #e4deef;
+  --color-secondary-text: #5c22cf;
+  --gradient-brand: radial-gradient(110% 80% at 100% 100%, #8e69d8 0%, #6c3bd1 50%, #5c22cf 100%);
+  --color-accent: #8e69d8;
+  --color-accent-tint: #e4deef;
+  --color-accent-text: #5c22cf;
+  --color-manteca: #d5caeb;
+  --color-manteca-tint: #e4deef;
+  --color-manteca-text: #4a1aa8;
+  --color-night: #141118;
+  --color-structure: #141118;
+  --color-focus: #141118;
+  --color-toast: #141118;
+  /* El anillo de foco ámbar daría 1.70 sobre claro: violeta (7.32). */
+  --focus-ring: #5c22cf;
+}
+/* Sobre los tramos oscuros y el violeta el anillo vuelve al ámbar (9.89 sobre
+   la noche); sobre la banda ámbar, tinta. */
+[data-palette="violeta"] :is([data-tone="night"], [data-tone="forest"]) {
+  --focus-ring: #ffab25;
+}
+[data-palette="violeta"] [data-tone="amber"] {
+  --focus-ring: #111111;
+}
+/* El fondo que asoma al estirar la página (iOS) también es el gris. */
+body:has([data-palette="violeta"]) {
+  --background: #f3f3f3;
+}
+
+/* Superficie de marca: el verde bosque liso hoy; con la paleta violeta, el
+   degradé. Sólo en superficies grandes (secciones, el frente de las tarjetas):
+   las píldoras chicas siguen en `bg-secondary`, liso, porque la letra de 11px
+   no se lee en la punta clara del degradé. */
+@utility bg-brand {
+  background-color: var(--color-secondary);
+  background-image: var(--gradient-brand, none);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -661,7 +755,7 @@ textarea,
  * Los componentes que ya definen su propio anillo lo siguen ganando por
  * especificidad; esto es el piso, no un techo. */
 :where(a, button, [role="button"], [tabindex]:not([tabindex="-1"]), input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--focus-ring, var(--color-primary));
   outline-offset: 2px;
 }
 
@@ -819,15 +913,30 @@ body:has([data-landing]) main {
 /* El ritmo de toda la historia sale de un número: cuánto scroll mide cada
    estado de una escena fijada (ver components/landing/story/Stage.tsx). Si la
    recorrida se siente larga, se baja éste y no se cortan escenas. `--lh` es
-   el alto del encabezado propio de la landing y `--lht` le suma el notch. */
+   el alto del encabezado propio de la landing y `--lht` le suma el notch.
+   2026-10-08 (Julieta: "baja la velocidad de scroll un 25%"): 70→93.333svh y
+   85→113.333svh, con el asiento de Stage en 6.667svh, así el recorrido fijado
+   de cada escena es exactamente 4/3 del anterior en celular y en escritorio. */
 [data-landing] {
-  --svh-estado: 70svh;
+  --svh-estado: 93.333svh;
   --lh: 3.5rem;
   --lht: calc(var(--lh) + env(safe-area-inset-top));
+  /* Colores propios de la historia que no son tokens de la app: el papel del
+     mapa y la burbuja del chat de Martín. La paleta los redeclara. */
+  --mapa: #ece6da;
+  --burbuja: #26211b;
+  --burbuja-tinta: #b3a999;
+  --burbuja-tenue: #7d7468;
+}
+[data-landing][data-palette="violeta"] {
+  --mapa: #e9e5f0;
+  --burbuja: #24202b;
+  --burbuja-tinta: #aaa6b3;
+  --burbuja-tenue: #9a96a3;
 }
 @media (min-width: 1024px) {
   [data-landing] {
-    --svh-estado: 85svh;
+    --svh-estado: 113.333svh;
     --lh: 4rem;
   }
 }
@@ -880,20 +989,20 @@ body:has([data-landing]) main {
   }
 }
 .story-typing span {
-  animation: storyTyping 1.2s ease-in-out infinite;
+  animation: storyTyping 1.6s ease-in-out infinite;
 }
 .story-typing span:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: 0.2s;
 }
 .story-typing span:nth-child(3) {
-  animation-delay: 0.3s;
+  animation-delay: 0.4s;
 }
 .story-colon {
-  animation: storyColon 1s steps(2, jump-none) infinite;
+  animation: storyColon 1.333s steps(2, jump-none) infinite;
 }
 /* El cursor del cuadro "Describilo": titila mientras espera que escribas. */
 .story-caret {
-  animation: storyColon 1.05s steps(2, jump-none) infinite;
+  animation: storyColon 1.4s steps(2, jump-none) infinite;
 }
 /* Puntos guía de la carta de precios y del registro del turno. */
 .story-leader {
