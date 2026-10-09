@@ -490,6 +490,15 @@
   --color-focus-ink: #f5f1ea;
   --color-raised: #3a332c; /* un escalón sobre surface #2b251f */
   --color-chrome: #1b1611; /* nav/header oscuros en modo oscuro */
+  /* PROTOTIPO esmerilado (2026-10-09): cromo de vidrio, resplandor ámbar en
+     la esquina y los bloques de marca como vidrio celeste, no celeste lleno. */
+  --color-chrome: rgba(27, 22, 17, 0.72);
+  --wash: radial-gradient(90% 560px at 0% 0%, rgba(232, 146, 15, 0.22), rgba(232, 146, 15, 0.06) 50%, transparent 75%);
+  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(154, 201, 231, 0.20), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(232, 146, 15, 0.16), transparent 70%);
+  --color-secondary: rgba(196, 227, 237, 0.12);
+  --color-on-brand: #f5f1ea;
+  --color-on-brand-label: #9ac9e7;
+  --color-on-brand-icon: #9ac9e7;
   --color-paper: #201a15;
 
   /* Texto claro, page-wide (no sólo dentro de tarjetas). */
@@ -670,6 +679,10 @@
   --color-on-brand-icon: #1c5478;
   --color-brand-veil: transparent;
   --color-accent: #9ac9e7;
+  /* PROTOTIPO esmerilado (2026-10-09). */
+  --color-chrome: rgba(255, 255, 255, 0.72);
+  --wash: radial-gradient(130% 460px at 50% -140px, rgba(217, 119, 6, 0.22), rgba(251, 191, 136, 0.14) 45%, transparent 78%);
+  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(196, 227, 237, 0.95), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(217, 119, 6, 0.10), transparent 70%);
   --color-accent-tint: #deecf0;
   --color-accent-text: #1c5478;
   --color-manteca: #c4e3ed;
@@ -704,8 +717,13 @@
   background-image: var(--gradient-brand, none);
 }
 
+@utility bg-glow {
+  background-color: var(--color-card);
+  background-image: var(--glow-image, none);
+}
+
 body {
-  background: var(--background);
+  background: var(--wash, none) no-repeat, var(--background);
   color: var(--foreground);
   overscroll-behavior-y: contain;
 }

@@ -60,7 +60,7 @@ export default function Navbar() {
     // real de la pantalla, así que en PWA instalada el header arrancaría
     // DEBAJO de la barra de estado / notch. El padding del inset lo baja a la
     // zona visible, como cualquier app nativa.
-    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome">
+    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />

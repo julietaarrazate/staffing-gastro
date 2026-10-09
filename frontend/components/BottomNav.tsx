@@ -60,7 +60,7 @@ export default function BottomNav() {
     // forma de distinguirlas (auditoría de navegación, fase H).
     <nav
       aria-label="Secciones"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
