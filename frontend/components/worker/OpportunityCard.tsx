@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar } from "@/components/ui";
 import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon } from "@/components/icons";
@@ -55,6 +55,7 @@ export default function OpportunityCard({
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
+  const ink = heroInk(shift.position, hasPhoto);
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
   const hasDirections = shift.latitude != null && shift.longitude != null;
@@ -121,7 +122,7 @@ export default function OpportunityCard({
                 quedaba ilegible. Es el mismo defecto que la inicial y la
                 cámara pisándose en el avatar (fase L): dos cosas dibujadas en
                 el mismo lugar porque cada una se posicionó por su cuenta. */}
-            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
+            <Icon size={132} className={`absolute -right-5 -top-6 ${ink.mark}`} />
           </div>
         )}
         {/* Velo para legibilidad del texto sobre la foto */}
@@ -157,16 +158,18 @@ export default function OpportunityCard({
             líneas en columnas angostas) para que nunca crezca más de lo que
             el hero tiene reservado. */}
         <div className="relative px-5 pb-4">
-          {/* Blanco siempre, con o sin foto: el fallback ahora es un gradiente
-              saturado (no la banda pálida de antes), así que necesita el
-              mismo contraste que la foto+velo. */}
-          <h2 className="line-clamp-2 font-display text-h1 font-medium text-white drop-shadow">
+          {/* Blanco sobre la foto con velo y sobre los tonos profundos; sobre
+              el color de marca, `on-brand` (ver `heroInk`). */}
+          <h2 className={`line-clamp-2 font-display text-h1 font-medium ${ink.strong}`}>
             {SKILL_LABELS[shift.position]}
           </h2>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
+          <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${ink.soft}`}>
             <MapPinIcon size={15} />
             {shift.city ?? "Ubicación a confirmar"}
-            {distanceKm != null && <span className="text-white/70">· {formatDistance(distanceKm)}</span>}
+            {/* Al 85% y no al 70%: sobre el degradé violeta que probó la landing
+                el 70% daba 3,98:1 (medido con píxeles a 390 y 1440px); al
+                85%, 5,1. */}
+            {distanceKm != null && <span className={ink.softer}>· {formatDistance(distanceKm)}</span>}
           </p>
         </div>
       </div>

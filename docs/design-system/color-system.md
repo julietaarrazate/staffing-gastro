@@ -122,3 +122,58 @@ saturado: sigue distinguiendo dos turnos seguidos sin competir con el ámbar.
 Ningún rubro usa un matiz rojo: el bartender pasó de rojo a borgoña y de
 borgoña a petróleo (`#173f4c`, 2026-09-25) porque cualquier rojo se lee como
 el color de error.
+
+## Propuesta v6: celeste claro (en prueba, 2026-10-09)
+
+Historia corta: el 2026-10-08 Julieta pidió pasar el verde bosque a un
+degradé violeta (`#5c22cf` → `#8e69d8`), el ámbar `#d97706` a `#ffab25` y la
+crema a `#f3f3f3`, y eligió que sea la paleta de **toda la app**, probándola
+primero en la landing. El 2026-10-09 decidió que **todo lo que era violeta
+pasa al celeste claro `#c4e3ed`** y el resto queda como en la versión violeta.
+Se probaron y descartaron el petróleo y una versión con lienzo celeste y
+botones naranja `#e64c1e`.
+
+Es un bloque de tokens (`[data-palette="celeste"]` en `globals.css`,
+prendido sólo en la raíz de la landing) y no colores sueltos: para llevarla
+a la app, ese bloque pasa a `:root` y se arma su versión oscura. **Hasta que
+Julieta lo apruebe, las tablas de arriba (v5.0) siguen siendo las vigentes
+en la app.** El PDF del design system de `/mnt/project-files/design-system/`
+documenta la versión violeta; no se rehízo.
+
+| Token | v5.0 | v6 | Nota |
+|---|---|---|---|
+| `--background` | `#FBFAF6` | `#F3F3F3` | Lienzo neutro, como en la versión violeta. |
+| `--color-primary` | `#D97706` | `#FFAB25` | Siempre con tinta encima (9,98). Blanco da 1,89: no. |
+| `--color-primary-text` | `#B45309` | `#1C5478` | Azul hondo, el celeste oscurecido: 7,31 sobre el lienzo, 8,11 sobre blanco. |
+| `--color-secondary` | `#1B3A31` | `#C4E3ED` | Celeste claro, la superficie de marca. Lleva **tinta** (13,99), no blanco (1,35). |
+| `--gradient-brand` | — | `none` | `bg-brand` queda liso. |
+| `--color-surface` / `--color-paper` | `#F3EFE6` | `#E5EEF1` | 30% del celeste sobre el lienzo. También el mapa. |
+| `--color-line` y los `-tint` | varios | `#DEECF0` | 45% del celeste. |
+| `--color-accent` | `#A78BFA` | `#9AC9E7` | |
+| `--color-manteca` | `#F1E7A0` | `#C4E3ED` | Dato sobre la noche: 13,85. |
+| `--color-ink-mute` | `#7C8A9A` | `#686572` | El de la versión violeta: 4,83 sobre el recesado. Nunca sobre el celeste lleno (4,21). |
+| `--color-night` | `#191410` | `#141118` | El de la versión violeta. |
+
+Letra sobre la superficie de marca (`@theme`, con su valor en la paleta):
+
+| Token | De siempre | Celeste | Uso |
+|---|---|---|---|
+| `--color-on-brand` | blanco | `#111111` | Letra sobre `bg-brand`/`bg-secondary`. Con alfa: al 60% da 4,46 sobre el celeste. |
+| `--color-on-brand-label` | `#F1E7A0` | `#1C5478` | Dato destacado (horas del registro, rótulos). 6,01. |
+| `--color-on-brand-icon` | `#D97706` | `#1C5478` | Ícono sobre la marca. |
+| `--color-brand-veil` | negro 15% | transparente | Velo del banner sin foto. |
+
+Reglas que salieron de medir:
+
+- **La letra sobre la marca va en `on-brand`, nunca en `text-white`.** Así
+  la misma tarjeta da blanco sobre el verde bosque y tinta sobre el celeste.
+  El banner por rubro lo resuelve `heroInk()` (`lib/skill-style.tsx`): con
+  foto, siempre blanco.
+- **Ninguna sección pasa de la noche a la marca con la letra ya escrita**:
+  la tinta no se lee sobre la noche (por eso el resultado ya entra celeste).
+- El botón ámbar sobre el celeste se separa poco (1,40:1); su letra en tinta
+  sí se lee (9,98). Aceptado por Julieta.
+- El anillo de foco es azul hondo sobre claro, ámbar sobre la noche y tinta
+  sobre el verde bosque y la banda ámbar (`--focus-ring`).
+- La inicial de los avatares sin foto va en tinta: sobre el degradé ámbar da
+  9,10 contra 2,06 del blanco.

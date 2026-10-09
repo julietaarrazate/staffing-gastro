@@ -41,7 +41,7 @@ export function HeroCopy({ className }: { className?: string }) {
         <span className="font-medium">Personal gastronómico,</span>{" "}
         <span className="block font-bold">ya.</span>
       </h1>
-      <p className="mt-5 max-w-[34ch] text-lg leading-[1.45] text-ink-soft lg:text-xl">
+      <p className="mt-4 max-w-[34ch] text-lg leading-[1.45] text-ink-soft lg:mt-5 lg:text-xl">
         Pedís el turno en una frase y le avisamos a la gente de gastronomía que está cerca. Vos
         elegís a quién.
       </p>
@@ -49,14 +49,16 @@ export function HeroCopy({ className }: { className?: string }) {
         <Link
           href="/register?rol=comercio"
           data-cta="hero"
-          className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-7 text-base font-semibold text-night shadow-[var(--shadow-primary)] transition active:scale-[0.96] hover:brightness-[1.04] lg:h-14"
+          className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-7 text-base font-semibold text-night shadow-[var(--shadow-primary)] transition duration-200 active:scale-[0.96] hover:brightness-[1.04] lg:h-14"
         >
           Necesito personal
         </Link>
         <Link
           href="/register?rol=trabajador"
           data-cta="hero"
-          className="inline-flex h-12 items-center justify-center rounded-[var(--radius-btn)] px-7 text-base font-semibold text-ink ring-1 ring-ink/20 transition active:scale-[0.96] hover:bg-surface lg:h-14"
+          // Secundario: mismo alto que el principal y un borde que se ve (el
+          // de 1px al 20% casi no se leía como botón).
+          className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] px-7 text-base font-semibold text-ink ring-[1.5px] ring-ink/60 ring-inset transition duration-200 active:scale-[0.96] hover:bg-surface lg:h-14"
         >
           Quiero trabajar
         </Link>
@@ -74,11 +76,11 @@ export function MartinBubble({ typing, className }: { typing: boolean; className
   return (
     <div
       className={cn(
-        "w-[min(300px,calc(100vw-32px))] rounded-[22px_22px_22px_6px] bg-[#26211b] px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
+        "w-[min(300px,calc(100vw-32px))] rounded-[22px_22px_22px_6px] bg-[var(--burbuja)] px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
         className
       )}
     >
-      <p className="font-mono text-label uppercase tracking-[0.14em] text-[#b3a999]">Martín · mozo</p>
+      <p className="font-mono text-label uppercase tracking-[0.14em] text-[var(--burbuja-tinta)]">Martín · mozo</p>
       {typing ? (
         <p className="story-typing mt-2 flex h-[30px] items-center gap-1.5" aria-label="escribiendo">
           <span className="h-2 w-2 rounded-full bg-white/80" />
@@ -88,7 +90,7 @@ export function MartinBubble({ typing, className }: { typing: boolean; className
       ) : (
         <p className="mt-1.5 text-2xl leading-tight text-white">Perdón, hoy no llego.</p>
       )}
-      <p className="mt-1 text-right font-mono text-metadata tracking-[0.05em] text-[#7d7468]">20:46</p>
+      <p className="mt-1 text-right font-mono text-metadata tracking-[0.05em] text-[var(--burbuja-tenue)]">20:46</p>
     </div>
   );
 }
@@ -110,8 +112,8 @@ export function ActoNocheStatic() {
           data-tone="night"
           className="flex flex-1 flex-col gap-4 bg-night px-4 pb-8 pt-6 sm:px-6 lg:col-span-5 lg:items-center lg:justify-center lg:px-10"
         >
-          <p className="font-mono text-label uppercase tracking-[0.14em] text-[#F1E7A0]">Viernes · 20:46</p>
-          <MartinBubble typing className="[animation:storyBubbleIn_.45s_cubic-bezier(.2,.8,.2,1)_.4s_both]" />
+          <p className="font-mono text-label uppercase tracking-[0.14em] text-manteca">Viernes · 20:46</p>
+          <MartinBubble typing className="[animation:storyBubbleIn_.6s_cubic-bezier(.2,.8,.2,1)_.5333s_both]" />
         </div>
       </section>
       <section
@@ -119,10 +121,10 @@ export function ActoNocheStatic() {
         data-tone="night"
         className="flex flex-col items-start gap-8 bg-night px-4 py-20 sm:px-6 lg:items-center lg:py-28"
       >
-        <p className="font-mono text-label uppercase tracking-[0.14em] text-[#F1E7A0]">Viernes · salón lleno</p>
+        <p className="font-mono text-label uppercase tracking-[0.14em] text-manteca">Viernes · salón lleno</p>
         <p className="font-display text-poster font-normal tracking-[-0.03em] text-white">20:46</p>
         <MartinBubble typing={false} />
-        <p className="max-w-[22ch] font-display text-h1 font-medium text-white lg:text-center">
+        <p className="max-w-[16ch] font-display text-headline font-medium tracking-[-0.025em] text-white [text-wrap:balance] lg:text-center">
           Arrancás a las 21. Y te escribe el mozo.
         </p>
       </section>
@@ -183,10 +185,18 @@ export function ActoNoche() {
     setTone((t) => (t === next ? t : next));
   });
 
-  // El reloj aparece cuando la burbuja termina de condensarse en él.
-  useMotionValueEvent(progress, "change", (p) => setReloj(p >= T.reloj ? "sinCubrir" : null));
+  // El reloj aparece cuando la burbuja termina de condensarse en él. Si se
+  // llega directo al final (el link "Precios" del pie, recargar abajo), la
+  // noche también pasa a 1, pero la historia ya terminó: ahí no hay reloj.
+  const relojNoche = (p: number) => {
+    if (p < T.reloj) return setReloj(null);
+    const fin = document.querySelector<HTMLElement>("[data-fin-historia]");
+    if (p >= 1 && fin && fin.getBoundingClientRect().top < window.innerHeight * 0.15) return;
+    setReloj("sinCubrir");
+  };
+  useMotionValueEvent(progress, "change", relojNoche);
   useEffect(() => {
-    setReloj(progress.get() >= T.reloj ? "sinCubrir" : null);
+    relojNoche(progress.get());
   }, [progress]);
 
   const expand = useTransform(progress, (p) => easeInOut(seg(p, 0.01, T.covered)));
@@ -246,7 +256,7 @@ export function ActoNoche() {
   const shake = useMotionValue(0);
   useEffect(() => {
     if (step === 1 && !jumped) {
-      animate(shake, [0, -6, 6, -4, 4, 0], { duration: 0.3, ease: "easeInOut" });
+      animate(shake, [0, -6, 6, -4, 4, 0], { duration: 0.4, ease: "easeInOut" });
     }
   }, [step, jumped, shake]);
 
@@ -270,7 +280,7 @@ export function ActoNoche() {
         >
           <motion.p
             style={{ opacity: smallOpacity, top: box.current.desktop ? undefined : box.current.bandTop + 22 }}
-            className="absolute left-4 font-mono text-label uppercase tracking-[0.14em] text-[#F1E7A0] sm:left-6 lg:left-[calc(58.333%+2.5rem)] lg:top-10"
+            className="absolute left-4 font-mono text-label uppercase tracking-[0.14em] text-manteca sm:left-6 lg:left-[calc(58.333%+2.5rem)] lg:top-10"
           >
             Viernes · 20:46
           </motion.p>
@@ -278,7 +288,7 @@ export function ActoNoche() {
             style={{ opacity: bigOpacity, y: bigY }}
             className="absolute inset-x-0 top-[9%] flex flex-col items-center gap-2 text-center"
           >
-            <p className="font-mono text-label uppercase tracking-[0.14em] text-[#F1E7A0]">
+            <p className="font-mono text-label uppercase tracking-[0.14em] text-manteca">
               Viernes · salón lleno
             </p>
             <p className="font-display text-[length:var(--text-poster)] font-normal leading-none tracking-[-0.03em] text-white lg:text-[length:var(--text-hero)]">
@@ -287,7 +297,7 @@ export function ActoNoche() {
           </motion.div>
           <motion.p
             style={{ opacity: narrOpacity, y: narrY }}
-            className="absolute inset-x-4 bottom-[max(2rem,env(safe-area-inset-bottom))] text-center font-display text-h1 font-medium text-white sm:bottom-12 lg:text-4xl lg:leading-tight"
+            className="absolute inset-x-4 bottom-[max(2rem,env(safe-area-inset-bottom))] text-center font-display text-headline font-medium tracking-[-0.025em] text-white [text-wrap:balance] sm:bottom-12"
           >
             Arrancás a las 21. Y te escribe el mozo.
           </motion.p>
@@ -300,7 +310,7 @@ export function ActoNoche() {
           className="absolute left-0 top-0 origin-center will-change-transform"
         >
           <motion.div style={{ x: shake }}>
-            <MartinBubble typing={typing} className="[animation:storyBubbleIn_.45s_cubic-bezier(.2,.8,.2,1)_.4s_both]" />
+            <MartinBubble typing={typing} className="[animation:storyBubbleIn_.6s_cubic-bezier(.2,.8,.2,1)_.5333s_both]" />
           </motion.div>
         </motion.div>
       </div>
@@ -311,7 +321,10 @@ export function ActoNoche() {
 function bubbleCenter(b: Box, phase: 0 | 1) {
   if (phase === 1) return { x: b.w / 2, y: b.h * 0.47 };
   if (b.desktop) return { x: b.bandLeft + (b.w - b.bandLeft) / 2, y: b.h * 0.52 };
-  return { x: 16 + b.bw / 2, y: b.bandTop + 58 + b.bh / 2 };
+  // Debajo de "Viernes · 20:46" (que va a 22px del borde de la noche), y más
+  // pegada si la pantalla es baja, para que la burbuja no quede cortada.
+  const off = Math.max(44, Math.min(58, b.h - b.bandTop - b.bh - 12));
+  return { x: 16 + b.bw / 2, y: b.bandTop + off + b.bh / 2 };
 }
 
 /** Centro del reloj fijo, en coordenadas del escenario (que arranca debajo

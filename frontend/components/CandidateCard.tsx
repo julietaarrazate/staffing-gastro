@@ -60,7 +60,7 @@ export default function CandidateCard({
     <div
       className={`no-select overflow-hidden rounded-[var(--radius-card)] transition active:scale-[0.99] ${
         recommended
-          ? "bg-secondary shadow-[var(--shadow-float)]"
+          ? "bg-brand shadow-[var(--shadow-float)]"
           : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
       }`}
     >
@@ -69,7 +69,7 @@ export default function CandidateCard({
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary text-night">
             <BoltIcon size={14} />
           </span>
-          <span className="text-xs font-extrabold font-mono uppercase tracking-wide text-primary">
+          <span className="text-xs font-extrabold font-mono uppercase tracking-wide text-on-brand-label">
             Recomendado por Oído
           </span>
         </div>
@@ -83,7 +83,7 @@ export default function CandidateCard({
           <div className="min-w-0 flex-1">
             <Link
               href={`/workers/${candidate.profile_id}`}
-              className={`block truncate text-lg font-bold ${recommended ? "text-white" : "text-ink"}`}
+              className={`block truncate text-lg font-bold ${recommended ? "text-on-brand" : "text-ink"}`}
             >
               {candidate.full_name}
             </Link>

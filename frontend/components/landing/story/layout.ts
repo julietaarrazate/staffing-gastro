@@ -8,8 +8,9 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
  * salte entre escenas es parte de que se lea como una sola historia.
  *
  * Zonas (coordenadas del escenario, que arranca debajo del encabezado):
- * - celular: el producto arriba (desde `visTop`), la narración en los ~176px
- *   de abajo;
+ * - celular: el producto arriba (desde `visTop`), la narración abajo, con el
+ *   alto que mide (`narrH`; ver `Narration`): con el titular a 48px ocupa de
+ *   dos a cuatro líneas según el estado y un número fijo ya no alcanzaba;
  * - escritorio: la narración en la columna izquierda (5/12) y el producto en
  *   la derecha (7/12).
  * Arriba a la izquierda quedan siempre el reloj y la etiqueta de la escena.
@@ -30,10 +31,15 @@ export type StageBox = {
  *  cuadrado queda centrado adentro. */
 export type MapRect = { x: number; y: number; w: number; h: number; size: number; fx: number; fy: number; bleed: boolean };
 
-export function stageBox(w: number, h: number): StageBox {
+/** Margen de la narración contra el borde de abajo (`bottom-7` en las escenas)
+ *  y aire entre el producto y el titular, en el celular. */
+export const NARR_BOTTOM = 28;
+const NARR_GAP = 20;
+
+export function stageBox(w: number, h: number, narrH = 148): StageBox {
   const desktop = w >= 1024;
   const visTop = desktop ? 96 : 76;
-  const visBottom = desktop ? h - 48 : h - 176;
+  const visBottom = desktop ? h - 48 : h - (narrH + NARR_BOTTOM + NARR_GAP);
   const visX = desktop ? Math.round(w * (5 / 12)) : 16;
   const visW = desktop ? w - visX - 48 : w - 32;
   const avail = visBottom - visTop;
@@ -44,7 +50,9 @@ export function stageBox(w: number, h: number): StageBox {
     const y = visTop - 12 + (avail + 24 - size) / 2;
     map = { x, y, w: size, h: size, size, fx: x, fy: y, bleed: false };
   } else {
-    const mh = avail + 40;
+    // Termina 16px arriba del titular (antes lo tocaba: "Ubicaciones
+    // aproximadas" quedaba pegado al texto de 48px).
+    const mh = avail + 24;
     const size = Math.min(w, mh);
     map = { x: 0, y: visTop - 20, w, h: mh, size, fx: (w - size) / 2, fy: visTop - 20 + (mh - size) / 2, bleed: true };
   }
@@ -56,14 +64,26 @@ export function mapPoint(m: MapRect, u: number, v: number) {
   return { x: m.fx + (u / 100) * m.size, y: m.fy + (v / 100) * m.size };
 }
 
-/** Celular centrado en la zona del producto (o en `x` si se pasa). */
+/** Celular centrado en la zona del producto (o en `x` si se pasa). En el
+ *  celular arranca debajo de la etiqueta de la escena ("Lo que ve Lucía"),
+ *  que si no quedaba tapada por el marco cuando el celular se achica. */
 export const PHONE_W = 274;
 export const PHONE_H = 554;
 export function phoneRect(b: StageBox, align: "center" | "right" = "center") {
-  const avail = b.visBottom - b.visTop;
-  const s = Math.min(b.desktop ? 1.08 : 1, (avail + 40) / PHONE_H, b.visW / PHONE_W);
+  const top = b.desktop ? b.visTop - 20 : b.visTop - 6;
+  const room = (b.desktop ? b.visBottom + 20 : b.visBottom + 8) - top;
+  const s = Math.min(b.desktop ? 1.08 : 1, room / PHONE_H, b.visW / PHONE_W);
   const x = align === "right" ? b.visX + b.visW - PHONE_W * s : b.visX + (b.visW - PHONE_W * s) / 2;
-  return { x, y: b.visTop - 20 + (avail + 40 - PHONE_H * s) / 2, s };
+  return { x, y: top + (room - PHONE_H * s) / 2, s };
+}
+
+/** Alto de cada estado de la narración (ver `Narration`), en orden. Sirve
+ *  para que una escena le dé al producto el lugar que deja el texto de ESE
+ *  momento: con el titular a 48px, un estado de tres líneas no tiene por qué
+ *  achicar los cuadros de los estados de dos. */
+export function narrHeights(el: HTMLElement | null): number[] {
+  if (!el) return [];
+  return Array.from(el.querySelectorAll<HTMLElement>("[data-narr-item]")).map((n) => n.offsetHeight);
 }
 
 /**

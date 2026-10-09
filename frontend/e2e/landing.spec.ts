@@ -106,12 +106,14 @@ test("con el tema oscuro elegido, la landing mantiene su paleta propia", async (
   await sinSesion(page);
   await page.goto("/");
   // La app sí se oscurece (data-theme="dark" en <html>); la landing fija la
-  // suya, porque su contraste de tramos (noche, ámbar, bosque) ya es el diseño.
+  // suya, porque su contraste de tramos (noche, ámbar, marca) ya es el diseño.
+  // La paleta celeste en previsualización cambia sólo lo que era violeta:
+  // el lienzo sigue en #f3f3f3.
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const fondo = await page
     .locator("[data-landing]")
     .evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(fondo).toBe("rgb(251, 250, 246)");
+  expect(fondo).toBe("rgb(243, 243, 243)");
 });
 
 test.describe("con reducir movimiento", () => {

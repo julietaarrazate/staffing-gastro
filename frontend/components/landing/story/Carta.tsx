@@ -65,7 +65,7 @@ export default function Carta() {
     >
       <div className="lg:col-span-5">
         <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">Precios · Para comercios</p>
-        <h2 className="mt-4 font-display text-poster font-semibold tracking-[-0.03em] text-ink [text-wrap:balance]">
+        <h2 className="mt-3 font-display text-poster font-semibold tracking-[-0.03em] text-ink [text-wrap:balance]">
           Sin comisión por turno.
         </h2>
         <p className="mt-4 max-w-[34ch] text-lg text-ink-soft">
@@ -87,7 +87,7 @@ export default function Carta() {
               </div>
               <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-ink-soft">
                 {p.code === "basico" && (
-                  <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-label font-medium uppercase tracking-[0.1em] text-on-brand">
                     Recomendado
                   </span>
                 )}
@@ -100,7 +100,7 @@ export default function Carta() {
           <Link
             href="/register?rol=comercio"
             data-cta="precios"
-            className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-7 text-base font-semibold text-night shadow-[var(--shadow-primary)] transition active:scale-[0.96] hover:brightness-[1.04]"
+            className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-7 text-base font-semibold text-night shadow-[var(--shadow-primary)] transition duration-200 active:scale-[0.96] hover:brightness-[1.04]"
           >
             Creá tu comercio gratis
           </Link>
@@ -109,7 +109,7 @@ export default function Carta() {
             <Link
               href="/register?rol=trabajador"
               data-cta="precios-trabajo"
-              className="font-semibold text-ink underline decoration-ink/30 decoration-2 underline-offset-4 hover:decoration-primary"
+              className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-secondary"
             >
               Quiero trabajar →
             </Link>

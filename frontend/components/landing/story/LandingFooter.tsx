@@ -13,7 +13,7 @@ export default function LandingFooter() {
             <LogoMark size={28} />
             <span className="font-display text-xl font-semibold tracking-tight text-white">oído</span>
           </span>
-          <p className="mt-3 font-display text-h2 font-medium text-[#F1E7A0]">Personal gastronómico, ya.</p>
+          <p className="mt-3 font-display text-h2 font-medium text-manteca">Personal gastronómico, ya.</p>
         </div>
         <nav aria-label="Pie" className="grid grid-cols-2 gap-x-10 gap-y-3 text-body text-white/75 sm:grid-cols-3">
           <Link href="/login" className="hover:text-white">Ingresar</Link>

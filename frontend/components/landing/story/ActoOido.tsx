@@ -90,8 +90,8 @@ type Layout = StageBox & {
   phone: { x: number; y: number; s: number };
 };
 
-function computeLayout(w: number, h: number, cardH: number): Layout {
-  const b = stageBox(w, h);
+function computeLayout(w: number, h: number, cardH: number, narrH?: number): Layout {
+  const b = stageBox(w, h, narrH);
   const avail = b.visBottom - b.visTop;
   const colW = b.desktop ? Math.min(400, b.visW - PHONE_W - 48) : b.visW;
   // Encabezado + tarjeta + dos filas + el aviso de abajo.
@@ -133,11 +133,12 @@ export function ActoOido() {
   const stageRef = useRef<HTMLDivElement>(null);
   const luciaRef = useRef<HTMLDivElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const narrRef = useRef<HTMLDivElement>(null);
   const { progress, step, jumped } = useStage(sectionRef, STOPS);
   const { layout: L, ref: Lr } = useStageLayout(
     stageRef,
-    (w, h) => computeLayout(w, h, luciaRef.current?.offsetHeight ?? 300),
-    [luciaRef]
+    (w, h) => computeLayout(w, h, luciaRef.current?.offsetHeight ?? 300, narrRef.current?.offsetHeight),
+    [luciaRef, narrRef]
   );
 
   useEffect(() => {
@@ -189,7 +190,7 @@ export function ActoOido() {
           y: r.top - s.top - 3,
           w: r.width + 8,
           h: r.height + 6,
-          delay: i * 0.38,
+          delay: i * 0.5067,
         });
       });
     });
@@ -203,16 +204,18 @@ export function ActoOido() {
     const forward = step === from + 1 && !jumped;
     const timers: ReturnType<typeof setTimeout>[] = [];
     if (step === 2 && forward) highlightReasons();
-    if (step < 2) setRings([]);
+    // Los anillos son del paso de las razones: si se sigue de largo antes de
+    // que terminen, no quedan dibujados encima de "Asignado".
+    if (step !== 2) setRings([]);
     if (step === 3 && forward) {
       setPressed("asignar");
-      timers.push(setTimeout(() => setPressed(null), 180));
+      timers.push(setTimeout(() => setPressed(null), 240));
     }
     if (step >= 5) {
       measureOrigin();
       if (step === 5 && forward) {
         setPressed("confirmar");
-        timers.push(setTimeout(() => setPressed(null), 180));
+        timers.push(setTimeout(() => setPressed(null), 240));
         setBurst((b) => b + 1);
       }
     }
@@ -286,7 +289,7 @@ export function ActoOido() {
         {/* El mismo mapa del pedido, con los tres postulantes en ámbar */}
         <motion.div style={{ opacity: mapOpacity }} className="absolute inset-0" aria-hidden>
           <div
-            className={cn("absolute overflow-hidden bg-[#ece6da]", !L.map.bleed && "rounded-[1.75rem]")}
+            className={cn("absolute overflow-hidden bg-[var(--mapa)]", !L.map.bleed && "rounded-[1.75rem]")}
             style={{ left: L.map.x, top: L.map.y, width: L.map.w, height: L.map.h }}
           >
             <StreetGrid />
@@ -317,7 +320,7 @@ export function ActoOido() {
               initial={jumped ? false : { y: -40, opacity: 0, scale: 0.96 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.34, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{ duration: 0.4533, ease: [0.2, 0.8, 0.2, 1] }}
               className="absolute z-30"
               style={{ left: L.visX + (L.visW - Math.min(L.visW, 360)) / 2, top: L.visTop, width: Math.min(L.visW, 360) }}
             >
@@ -341,7 +344,7 @@ export function ActoOido() {
               {i === 0 ? (
                 <motion.div
                   animate={{ scale: pressed === "asignar" ? 0.985 : 1 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.2 }}
                   className="relative rounded-[var(--radius-card)]"
                 >
                   <div ref={luciaRef} inert>
@@ -366,11 +369,11 @@ export function ActoOido() {
             <motion.span
               key={r.key}
               aria-hidden
-              className="pointer-events-none absolute z-30 rounded-full ring-2 ring-manteca"
+              className="pointer-events-none absolute z-30 rounded-full ring-2 ring-accent"
               style={{ left: r.x, top: r.y, width: r.w, height: r.h }}
               initial={{ opacity: 0, scale: 1.15 }}
               animate={{ opacity: [0, 1, 1, 0], scale: [1.15, 1, 1, 1] }}
-              transition={{ duration: 1.1, delay: r.delay, times: [0, 0.2, 0.75, 1] }}
+              transition={{ duration: 1.4667, delay: r.delay, times: [0, 0.2, 0.75, 1] }}
             />
           ))}
           <AnimatePresence>
@@ -380,9 +383,10 @@ export function ActoOido() {
                 initial={jumped ? false : { y: 12, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, delay: jumped ? 0 : 0.45 }}
+                transition={{ duration: 0.4, delay: jumped ? 0 : 0.6 }}
                 className="absolute z-30 flex justify-center"
-                style={{ left: L.colX, width: L.colW, top: slot(L, 2).y + (ROW_H + 14) * L.cs }}
+                // Debajo de la última fila, pero nunca encima de la narración.
+                style={{ left: L.colX, width: L.colW, top: Math.min(slot(L, 2).y + (ROW_H + 14) * L.cs, L.visBottom - 40) }}
               >
                 <ToastLine className="text-xs">Turno asignado. El trabajador tiene que confirmar</ToastLine>
               </motion.div>
@@ -422,22 +426,24 @@ export function ActoOido() {
               key="oido-burst"
               className="pointer-events-none absolute z-[45]"
               style={{ left: origin.x, top: origin.y }}
-              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
             >
               <span key={`r${burst}`} aria-hidden>
-                {["border-primary", "border-manteca", "border-primary-strong"].map((c, i) => (
+                {["border-primary", "border-accent", "border-primary-strong"].map((c, i) => (
                   <span
                     key={c}
                     className={cn("absolute left-0 top-0 h-64 w-64 rounded-full border-[3px]", c)}
-                    style={{ animation: `storyRing 0.9s cubic-bezier(.2,.8,.2,1) ${i * 0.12}s both` }}
+                    style={{ animation: `storyRing 1.2s cubic-bezier(.2,.8,.2,1) ${i * 0.16}s both` }}
                   />
                 ))}
               </span>
               <motion.span
                 initial={jumped ? false : { scale: 0.3, rotate: -6, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 520, damping: 20 }}
-                className="absolute bottom-6 left-0 block -translate-x-1/2 whitespace-nowrap rounded-[18px_18px_18px_5px] bg-night px-4 py-2 font-display text-2xl font-semibold text-white shadow-[0_14px_30px_rgba(25,20,16,0.35)]"
+                // Mismo rebote, 4/3 más lento: la rigidez baja con el cuadrado
+                // (520 × 0,5625) y la amortiguación con la raíz (20 × 0,75).
+                transition={{ type: "spring", stiffness: 292.5, damping: 15 }}
+                className="absolute bottom-6 left-0 block -translate-x-1/2 whitespace-nowrap rounded-[18px_18px_18px_5px] bg-night px-4 py-2 font-display text-2xl font-semibold text-white shadow-[0_14px_30px_rgba(20,17,24,0.35)]"
               >
                 ¡Oído!
               </motion.span>
@@ -464,7 +470,7 @@ export function ActoOido() {
                 className="block"
                 initial={{ scale: 1 }}
                 animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 0.35 }}
+                transition={{ duration: 0.4667 }}
               >
                 ¡Oído!
               </motion.span>
@@ -473,19 +479,23 @@ export function ActoOido() {
               <p className="text-lg font-medium text-ink lg:text-2xl">
                 Lucía confirmó. Tu turno de las 21 está cubierto.
               </p>
-              <p className="mt-4 font-mono text-label font-medium uppercase tracking-[0.14em] text-ink/70">
+              {/* Tinta llena: sobre el naranja, al 70% daba 3,40; al 100%, 4,87. */}
+              <p className="mt-4 font-mono text-label font-medium uppercase tracking-[0.14em] text-ink">
                 Historia ilustrativa · El objetivo de Oído es cubrir un turno en menos de 10 minutos
               </p>
             </motion.div>
           </div>
         </motion.div>
 
-        <motion.div style={{ opacity: narrOpacity }} className="contents">
+        {/* Una caja de verdad y no `contents`: con `display: contents` la
+            opacidad no se aplica y la narración no se apagaba al confirmar. */}
+        <motion.div style={{ opacity: narrOpacity }} className="pointer-events-none absolute inset-0 z-40">
           <Narration
             items={NARRACION}
             index={narrIndex}
+            measureRef={narrRef}
             className={cn(
-              "absolute z-40",
+              "absolute",
               L.desktop
                 ? "left-12 top-1/2 w-[calc(41.666%-6rem)] -translate-y-1/2"
                 : "inset-x-4 bottom-[max(1.75rem,env(safe-area-inset-bottom))] sm:inset-x-6"
@@ -584,7 +594,7 @@ function AsignadoScreen({
   confirmRef?: RefObject<HTMLButtonElement | null>;
   sectionRef: RefObject<HTMLElement | null>;
 }) {
-  const t = jumped ? { duration: 0 } : { duration: 0.34, ease: [0.2, 0.8, 0.2, 1] as const };
+  const t = jumped ? { duration: 0 } : { duration: 0.4533, ease: [0.2, 0.8, 0.2, 1] as const };
   const confirmed = step >= 5;
   return (
     <div className="relative h-[504px] px-2.5">
@@ -610,9 +620,11 @@ function AsignadoScreen({
                 ref={confirmRef}
                 type="button"
                 onClick={() => scrollToProgress(sectionRef.current, T.confirm + 0.02)}
+                // El color de acción, como todo botón principal: el verde con
+                // texto blanco daba 3,30:1. Y del botón ámbar nace el "¡Oído!".
                 className={cn(
-                  "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] px-4 text-sm font-semibold transition-[transform,background-color] duration-150",
-                  confirmed ? "bg-success/80 text-white" : "bg-success text-white shadow-[var(--shadow-success)]",
+                  "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night transition-[transform,box-shadow] duration-200",
+                  !confirmed && "shadow-[var(--shadow-primary)]",
                   pressed ? "scale-[0.96]" : "scale-100"
                 )}
               >
@@ -699,7 +711,7 @@ export function ActoOidoStatic() {
         <p className="mt-4 max-w-[30ch] text-lg font-medium text-ink lg:text-2xl">
           Lucía confirmó. Tu turno de las 21 está cubierto.
         </p>
-        <p className="mt-4 max-w-[40ch] font-mono text-label font-medium uppercase tracking-[0.14em] text-ink/70">
+        <p className="mt-4 max-w-[40ch] font-mono text-label font-medium uppercase tracking-[0.14em] text-ink">
           Historia ilustrativa · El objetivo de Oído es cubrir un turno en menos de 10 minutos
         </p>
       </section>

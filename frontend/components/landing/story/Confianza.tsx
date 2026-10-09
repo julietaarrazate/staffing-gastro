@@ -37,8 +37,10 @@ const TRABAJO = [
 export default function Confianza() {
   const ref = useRef<HTMLElement>(null);
   const { enhanced } = useStory();
-  // La historia terminó: de acá para abajo no hay reloj.
-  const inView = useInView(ref, { margin: "0px 0px -85% 0px" });
+  // La historia terminó: de acá para abajo no hay reloj. El margen de arriba
+  // enorme hace que cuente también estar más abajo (la sección ya pasó):
+  // si se llega de un salto, nunca estuvo "a la vista".
+  const inView = useInView(ref, { margin: "100000px 0px -85% 0px" });
   useEffect(() => {
     if (enhanced && inView) setReloj(null);
   }, [enhanced, inView]);
@@ -47,6 +49,7 @@ export default function Confianza() {
     <section
       ref={ref}
       aria-label="Confianza"
+      data-fin-historia
       data-tone="paper"
       className="bg-paper px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-12 lg:px-12 lg:py-28"
     >

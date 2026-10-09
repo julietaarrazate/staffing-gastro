@@ -291,6 +291,15 @@
        manteca-text sobre manteca-tint 6.08 · sobre manteca 5.41
        cielo-text   sobre cielo-tint   7.67 · sobre cielo   6.73 */
   --color-manteca: #f1e7a0;
+  /* Sobre la superficie de marca (`bg-brand`, `bg-secondary`): la letra, el
+     dato destacado, sus íconos y el velo del banner. Con la paleta de
+     siempre la marca es oscura (verde bosque) y van blanco, manteca, ámbar y
+     un velo negro; la
+     paleta celeste de la landing los redeclara porque su marca es clara. */
+  --color-on-brand: #ffffff;
+  --color-on-brand-label: #f1e7a0;
+  --color-on-brand-icon: #d97706;
+  --color-brand-veil: rgb(0 0 0 / 0.15);
   --color-manteca-tint: #fbf3c9;
   --color-manteca-text: #6a5a12;
   --color-cielo: #cfe4ff;
@@ -341,12 +350,18 @@
   /* Tamaños cartel de la landing (la historia del turno, 2026-10-06). Sólo
      para la landing: la app no usa nada más grande que text-display. Fluidos
      con clamp para que "gastronómico," entre en 358px sin cortar. */
-  --text-poster: clamp(2.75rem, 12vw, 4.5rem); /* titulares de escena */
+  --text-poster: clamp(3rem, 12vw, 4.5rem); /* titulares de escena: 48px como piso en el celular */
   --text-poster--line-height: 0.95;
   --text-hero: clamp(3rem, 7.4vw, 7rem); /* H1 del hero en escritorio */
   --text-hero--line-height: 0.92;
   --text-shout: clamp(5.5rem, 26vw, 17rem); /* el cartel "¡Oído!" */
   --text-shout--line-height: 0.9;
+  /* Titular de narración e intertítulo (Julieta, 2026-10-08: "todos los
+     header fraunces pasen de 32px a 48px"; medían 28px de cuerpo y 32px de
+     línea, que era `text-h1`). No se cambia `--text-h1` porque lo usan 40
+     pantallas de la app y los títulos de las tarjetas reales. */
+  --text-headline: 3rem;
+  --text-headline--line-height: 1.04;
 }
 
 @theme inline {
@@ -589,6 +604,105 @@
   --color-toast-ink: #ffffff;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * PALETA CELESTE, en previsualización (Julieta, 2026-10-09).
+ *
+ * Historia: el 2026-10-08 Julieta pidió pasar el verde bosque a un degradé
+ * violeta, el ámbar #d97706 a #ffab25 y la crema a #f3f3f3, y eligió que sea
+ * la paleta de TODA la app, probándola primero en la landing. El 2026-10-09,
+ * comparando, decidió: todo lo que era violeta pasa al celeste claro
+ * #c4e3ed, y el resto queda como en la versión violeta (ámbar #ffab25 con
+ * tinta, lienzo #f3f3f3). Ese mismo día se había probado celeste con botones
+ * naranja #e64c1e; quedó descartado. Es un bloque de tokens que se prende con
+ * `data-palette="celeste"`; para llevarla a la app pasa a `:root` (y se arma
+ * su versión oscura).
+ *
+ * Decisiones medidas (WCAG, sobre el lienzo #f3f3f3 salvo que diga otra cosa):
+ * - #ffab25 lleva SIEMPRE texto oscuro: tinta 9.98, blanco 1.89 (falla).
+ * - El celeste es claro: la letra que iba en blanco sobre el violeta va en
+ *   tinta sobre el celeste (13.99). Por eso existe `--color-on-brand`: blanco
+ *   en la paleta de siempre (verde bosque), tinta en ésta. Lo mismo el dato
+ *   destacado sobre la marca (`--color-on-brand-label`): manteca en la de
+ *   siempre, azul hondo #1c5478 acá (6.01 sobre el celeste).
+ * - El celeste como letra no se lee sobre claro: el texto destacado
+ *   (`primary-text`) y el anillo de foco van en azul hondo #1c5478, el mismo
+ *   tono oscurecido (7.31 sobre el lienzo, 8.11 sobre blanco).
+ * - Superficie de marca lisa (`--gradient-brand: none`), sin el velo negro
+ *   del banner (`--color-brand-veil`): sobre un color claro, el velo sólo lo
+ *   ensucia.
+ * - El ámbar sobre el celeste se distingue poco (1.40, el botón no tiene un
+ *   borde que lo separe), pero su texto en tinta sigue en 9.98. Es lo que
+ *   eligió Julieta; queda anotado.
+ * - Rellenos: el celeste mezclado con el lienzo (sRGB), 30% #e5eef1
+ *   (recesado y mapa; tinta apagada 4.83) y 45% #deecf0 (bordes y tintes).
+ *   Dato sobre la noche (`manteca`): el celeste, 13.85.
+ * ────────────────────────────────────────────────────────────────────────── */
+[data-palette="celeste"],
+:root[data-theme="dark"] [data-palette="celeste"][data-theme="light"] {
+  --background: #f3f3f3;
+  --foreground: #111111;
+  --line: #deecf0;
+  --color-line: #deecf0;
+  --color-surface: #e5eef1;
+  --color-paper: #e5eef1;
+  --color-card: #ffffff;
+  --color-raised: #ffffff;
+  --color-ink-mute: #686572;
+  --color-primary: #ffab25;
+  --color-primary-strong: #eb9d21;
+  --color-primary-text: #1c5478;
+  --color-primary-tint: #deecf0;
+  /* Se redeclaran porque :root ya las resolvió con el ámbar anterior. */
+  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --color-secondary: #c4e3ed;
+  --color-secondary-strong: #9ac9e7;
+  --color-secondary-tint: #deecf0;
+  --color-secondary-text: #1c5478;
+  --gradient-brand: none;
+  --color-on-brand: #111111;
+  --color-on-brand-label: #1c5478;
+  --color-on-brand-icon: #1c5478;
+  --color-brand-veil: transparent;
+  --color-accent: #9ac9e7;
+  --color-accent-tint: #deecf0;
+  --color-accent-text: #1c5478;
+  --color-manteca: #c4e3ed;
+  --color-manteca-tint: #deecf0;
+  --color-manteca-text: #1c5478;
+  --color-night: #141118;
+  --color-structure: #141118;
+  --color-focus: #141118;
+  --color-toast: #141118;
+  /* El anillo de foco ámbar daría 1.70 sobre claro: azul hondo (7.31). */
+  --focus-ring: #1c5478;
+}
+/* Sobre la noche el anillo vuelve al ámbar (9.89); sobre el celeste y sobre
+   la banda ámbar, tinta. */
+[data-palette="celeste"] [data-tone="night"] {
+  --focus-ring: #ffab25;
+}
+[data-palette="celeste"] [data-tone="forest"] {
+  --focus-ring: #111111;
+}
+[data-palette="celeste"] [data-tone="amber"] {
+  --focus-ring: #111111;
+}
+/* El fondo que asoma al estirar la página (iOS) también es el gris. */
+body:has([data-palette="celeste"]) {
+  --background: #f3f3f3;
+}
+
+/* Superficie de marca: el verde bosque liso hoy; con la paleta celeste, el
+   celeste claro, también liso (`--gradient-brand: none`). Queda como utilidad
+   aparte para las superficies grandes (secciones, el frente de las
+   tarjetas), por si la paleta vuelve a llevar un degradé: las píldoras
+   chicas van en `bg-secondary`. */
+@utility bg-brand {
+  background-color: var(--color-secondary);
+  background-image: var(--gradient-brand, none);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -661,7 +775,7 @@ textarea,
  * Los componentes que ya definen su propio anillo lo siguen ganando por
  * especificidad; esto es el piso, no un techo. */
 :where(a, button, [role="button"], [tabindex]:not([tabindex="-1"]), input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--focus-ring, var(--color-primary));
   outline-offset: 2px;
 }
 
@@ -819,15 +933,30 @@ body:has([data-landing]) main {
 /* El ritmo de toda la historia sale de un número: cuánto scroll mide cada
    estado de una escena fijada (ver components/landing/story/Stage.tsx). Si la
    recorrida se siente larga, se baja éste y no se cortan escenas. `--lh` es
-   el alto del encabezado propio de la landing y `--lht` le suma el notch. */
+   el alto del encabezado propio de la landing y `--lht` le suma el notch.
+   2026-10-08 (Julieta: "baja la velocidad de scroll un 25%"): 70→93.333svh y
+   85→113.333svh, con el asiento de Stage en 6.667svh, así el recorrido fijado
+   de cada escena es exactamente 4/3 del anterior en celular y en escritorio. */
 [data-landing] {
-  --svh-estado: 70svh;
+  --svh-estado: 93.333svh;
   --lh: 3.5rem;
   --lht: calc(var(--lh) + env(safe-area-inset-top));
+  /* Colores propios de la historia que no son tokens de la app: el papel del
+     mapa y la burbuja del chat de Martín. La paleta los redeclara. */
+  --mapa: #ece6da;
+  --burbuja: #26211b;
+  --burbuja-tinta: #b3a999;
+  --burbuja-tenue: #7d7468;
+}
+[data-landing][data-palette="celeste"] {
+  --mapa: #e5eef1;
+  --burbuja: #24202b;
+  --burbuja-tinta: #aaa6b3;
+  --burbuja-tenue: #9a96a3;
 }
 @media (min-width: 1024px) {
   [data-landing] {
-    --svh-estado: 85svh;
+    --svh-estado: 113.333svh;
     --lh: 4rem;
   }
 }
@@ -880,20 +1009,20 @@ body:has([data-landing]) main {
   }
 }
 .story-typing span {
-  animation: storyTyping 1.2s ease-in-out infinite;
+  animation: storyTyping 1.6s ease-in-out infinite;
 }
 .story-typing span:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: 0.2s;
 }
 .story-typing span:nth-child(3) {
-  animation-delay: 0.3s;
+  animation-delay: 0.4s;
 }
 .story-colon {
-  animation: storyColon 1s steps(2, jump-none) infinite;
+  animation: storyColon 1.333s steps(2, jump-none) infinite;
 }
 /* El cursor del cuadro "Describilo": titila mientras espera que escribas. */
 .story-caret {
-  animation: storyColon 1.05s steps(2, jump-none) infinite;
+  animation: storyColon 1.4s steps(2, jump-none) infinite;
 }
 /* Puntos guía de la carta de precios y del registro del turno. */
 .story-leader {

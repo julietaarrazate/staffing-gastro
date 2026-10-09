@@ -73,8 +73,8 @@ type Layout = StageBox & {
 const CARD_FULL_MOBILE = 500;
 const PANEL_MOBILE = 132;
 
-function computeLayout(w: number, h: number): Layout {
-  const b = stageBox(w, h);
+function computeLayout(w: number, h: number, narrH?: number): Layout {
+  const b = stageBox(w, h, narrH);
   const avail = b.visBottom - b.visTop;
   if (b.desktop) {
     // En escritorio la tarjeta va un poco más grande que en la app: es la
@@ -112,7 +112,8 @@ export function ActoLlegada() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const { progress, step, jumped } = useStage(sectionRef, STOPS);
-  const { layout: L } = useStageLayout(stageRef, computeLayout);
+  const narrRef = useRef<HTMLDivElement>(null);
+  const { layout: L } = useStageLayout(stageRef, (w, h) => computeLayout(w, h, narrRef.current?.offsetHeight), [narrRef]);
 
   // En el celular, el panel de Lucía va pegado abajo de la tarjeta: cuando el
   // mapa se abre la empuja, y cuando se borra (al llegar) sube con ella.
@@ -147,7 +148,7 @@ export function ActoLlegada() {
     prevStep.current = step;
     if (step === 5 && step === from + 1 && !jumped) {
       setPressed(true);
-      const id = setTimeout(() => setPressed(false), 180);
+      const id = setTimeout(() => setPressed(false), 240);
       return () => clearTimeout(id);
     }
     if (step <= 1) setSharingChoice(true);
@@ -160,10 +161,11 @@ export function ActoLlegada() {
   // Apertura: un círculo de lienzo que se abre desde donde estaba el
   // "¡Oído!" (el centro) y tapa el ámbar. Se abre mientras la escena sube,
   // antes de fijarse: así no queda una pantalla de ámbar vacío entre la banda
-  // y la tarjeta.
+  // y la tarjeta. Usa toda la subida (antes arrancaba al 25%): es la misma
+  // apertura, un 25% más lenta.
   const { scrollYProgress: entering } = useScroll({ target: sectionRef, offset: ["start end", "start start"] });
   const openClip = useTransform(entering, (e) => {
-    const r = easeInOut(seg(e, 0.25, 1)) * 75;
+    const r = easeInOut(seg(e, 0, 1)) * 75;
     return `circle(${r.toFixed(2)}% at 50% 50%)`;
   });
   const [lit, setLit] = useState(false);
@@ -173,7 +175,7 @@ export function ActoLlegada() {
   });
 
   const narrIndex = step >= 5 ? 1 : 0;
-  const t = jumped ? { duration: 0 } : { duration: 0.34, ease: [0.2, 0.8, 0.2, 1] as const };
+  const t = jumped ? { duration: 0 } : { duration: 0.4533, ease: [0.2, 0.8, 0.2, 1] as const };
 
   return (
     <Stage ref={sectionRef} states={2.4} tone={lit ? "light" : "amber"} label="La ves llegar" stageClassName="bg-primary">
@@ -199,7 +201,7 @@ export function ActoLlegada() {
                       initial={jumped ? false : { height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: jumped ? 0 : 0.42, ease: [0.2, 0.8, 0.2, 1] }}
+                      transition={{ duration: jumped ? 0 : 0.56, ease: [0.2, 0.8, 0.2, 1] }}
                       className="overflow-hidden"
                     >
                       <div className="pt-3">
@@ -250,7 +252,7 @@ export function ActoLlegada() {
                 disabled={arrived}
                 onClick={() => scrollToProgress(sectionRef.current, T.arrived + 0.02)}
                 className={cn(
-                  "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-[var(--radius-btn)] px-4 text-sm font-semibold transition-[transform,background-color,color] duration-200",
+                  "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-[var(--radius-btn)] px-4 text-sm font-semibold transition-[transform,background-color,color] duration-267",
                   arrived
                     ? "bg-success-tint text-success-text"
                     : "bg-primary text-night shadow-[var(--shadow-primary)]",
@@ -267,8 +269,9 @@ export function ActoLlegada() {
         <Narration
           items={NARRACION}
           index={narrIndex}
+          measureRef={narrRef}
           className={cn(
-            "absolute z-40 transition-opacity duration-300",
+            "absolute z-40 transition-opacity duration-400",
             lit ? "opacity-100" : "opacity-0",
             L.desktop
               ? "left-12 top-1/2 w-[calc(41.666%-6rem)] -translate-y-1/2"
@@ -301,10 +304,10 @@ function EnRouteMapReplica({
   const pos = { x: DESDE.x + (LOCAL.x - DESDE.x) * k, y: DESDE.y + (LOCAL.y - DESDE.y) * k };
   const km = DISTANCIAS[jump];
   const eta = estimateArrivalMin(km);
-  const t = jumped ? { duration: 0 } : { duration: 0.25, ease: [0.2, 0, 0, 1] as const };
+  const t = jumped ? { duration: 0 } : { duration: 0.3333, ease: [0.2, 0, 0, 1] as const };
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] ring-1 ring-line">
-      <div className={cn("relative w-full bg-[#ece6da]", compact ? "h-28" : "h-36")}>
+      <div className={cn("relative w-full bg-[var(--mapa)]", compact ? "h-28" : "h-36")}>
         <StreetGrid />
         <svg className="absolute inset-0 h-full w-full" aria-hidden>
           <motion.line
@@ -313,7 +316,7 @@ function EnRouteMapReplica({
             initial={false}
             animate={{ x2: `${pos.x * 100}%`, y2: `${pos.y * 100}%`, opacity: arrived ? 0 : 0.7 }}
             transition={t}
-            stroke="#d97706"
+            className="stroke-primary"
             strokeWidth={2}
             strokeDasharray="4 4"
           />
@@ -328,7 +331,7 @@ function EnRouteMapReplica({
           animate={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%`, scale: arrived ? 0 : 1 }}
           transition={t}
         >
-          <span className="absolute -inset-2 rounded-full bg-primary/25 [animation:puckHalo_2s_ease-out_infinite]" />
+          <span className="absolute -inset-2 rounded-full bg-primary/25 [animation:puckHalo_2.667s_ease-out_infinite]" />
           <span className="h-4 w-4 rounded-full border-[3px] border-white bg-primary shadow-[0_2px_6px_rgba(0,0,0,0.3)]" />
         </motion.span>
         {arrived && (
@@ -374,7 +377,7 @@ function ToggleReplica({
         <span
           aria-hidden
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors",
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
             compact ? "" : "mt-0.5",
             sharing ? "bg-primary text-night" : "bg-card text-ink/45"
           )}
@@ -409,10 +412,10 @@ function ToggleReplica({
           type="button"
           disabled={disabled}
           onClick={onToggle}
-          className={cn(
-            "mt-3 inline-flex min-h-[40px] w-full items-center justify-center rounded-[var(--radius-btn)] px-4 text-sm font-semibold",
-            sharing ? "bg-card text-ink ring-1 ring-line" : "bg-primary text-night shadow-[var(--shadow-primary)]"
-          )}
+          // Neutro también en escritorio, como en el celular: en la app es
+          // primario, pero acá "Llegué" ya va en ámbar justo debajo y el
+          // panel quedaba con dos botones del color de acción.
+          className="mt-3 inline-flex min-h-[40px] w-full items-center justify-center rounded-[var(--radius-btn)] bg-card px-4 text-sm font-semibold text-ink ring-1 ring-line"
         >
           {sharing ? "Dejar de compartir" : "Voy en camino"}
         </button>
