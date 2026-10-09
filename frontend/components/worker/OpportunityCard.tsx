@@ -166,7 +166,9 @@ export default function OpportunityCard({
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
             <MapPinIcon size={15} />
             {shift.city ?? "Ubicación a confirmar"}
-            {distanceKm != null && <span className="text-white/70">· {formatDistance(distanceKm)}</span>}
+            {/* Al 85% y no al 70%: sobre el degradé violeta de la landing el 70%
+                daba 3,98:1 (medido con píxeles a 390 y 1440px); al 85%, 5,1. */}
+            {distanceKm != null && <span className="text-white/85">· {formatDistance(distanceKm)}</span>}
           </p>
         </div>
       </div>

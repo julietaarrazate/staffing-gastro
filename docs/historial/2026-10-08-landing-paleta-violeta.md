@@ -54,7 +54,12 @@ probada primero en la landing. Pidió además un PDF del design system.
    salieron de ahí: rótulo de la franja del reloj sobre violeta (3,28 → 5,19),
    "Ubicaciones aproximadas" sobre el mapa (4,49 → 4,58, el mapa pasa a
    `#e9e5f0`), borde del secundario sobre el degradé (60% → 80%), textos del
-   resultado al 85–90% de blanco.
+   resultado al 85–90% de blanco. Las tarjetas que pintan el degradé en una
+   capa al lado del texto (`OpportunityCard`, `ShiftCard`) no las veía ese
+   script; medidas aparte con píxeles, la distancia de la tarjeta del turno
+   pasó del 70% al 85% de blanco (3,98 → 5,09, cambio que vale en toda la
+   app) y el anillo de foco sobre el violeta pasó a blanco (el ámbar daba
+   2,15 en el brillo del degradé). Las dos las marcó la revisión del PDF.
 8. **Dos arreglos que valen ya en toda la app**, también con la paleta de
    v5.0: la inicial de los avatares sin foto va en tinta (`ui/Avatar`,
    `map/WorkerMarker`; en el centro del avatar el blanco daba 3,99 y la
@@ -83,7 +88,7 @@ probada primero en la landing. Pidió además un PDF del design system.
   baja de 4,5 a 390 ni a 1440px.
 - **`#ffab25` nunca como texto sobre claro** (1,70:1): el texto destacado
   pasa a violeta `#5c22cf` (7,32). Por la misma razón el anillo de foco es
-  violeta sobre claro y ámbar sobre oscuro.
+  violeta sobre claro, ámbar sobre la noche y blanco sobre el violeta.
 - **La landing sigue sin oscurecerse** con el tema oscuro (se verificó con
   `theme=dark`): fija `data-theme="light"`.
 

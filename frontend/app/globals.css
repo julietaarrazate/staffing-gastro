@@ -661,10 +661,15 @@
   /* El anillo de foco ámbar daría 1.70 sobre claro: violeta (7.32). */
   --focus-ring: #5c22cf;
 }
-/* Sobre los tramos oscuros y el violeta el anillo vuelve al ámbar (9.89 sobre
-   la noche); sobre la banda ámbar, tinta. */
-[data-palette="violeta"] :is([data-tone="night"], [data-tone="forest"]) {
+/* Sobre la noche el anillo vuelve al ámbar (9.89). Sobre el violeta va en
+   blanco: el ámbar daba 4.30 en #5c22cf pero 2.15 en el brillo #8e69d8 del
+   degradé, donde caen los botones del resultado en el celular; el blanco
+   no baja de 4.07. Sobre la banda ámbar, tinta. */
+[data-palette="violeta"] [data-tone="night"] {
   --focus-ring: #ffab25;
+}
+[data-palette="violeta"] [data-tone="forest"] {
+  --focus-ring: #ffffff;
 }
 [data-palette="violeta"] [data-tone="amber"] {
   --focus-ring: #111111;

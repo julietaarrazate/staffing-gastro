@@ -160,7 +160,10 @@ botón o el ícono suelen ir abajo a la derecha, donde está el brillo. Con una
 diagonal de 155° la letra chica blanca caía en la punta clara (3,4 a 4,0).
 Medido texto por texto (las cuatro esquinas y el centro de cada caja de
 texto, con las capas semitransparentes compuestas), ningún texto sobre el
-degradé baja de 4,5 a 390×844 ni a 1440×900. `bg-brand` sin la paleta
+degradé baja de 4,5 a 390×844 ni a 1440×900. Eso incluye las tarjetas que
+pintan el degradé en una capa al lado del texto y no detrás (`OpportunityCard`,
+`ShiftCard`), que se midieron aparte con píxeles reales: ahí la distancia de
+la tarjeta del turno, en blanco al 70%, daba 3,98 y pasó al 85% (5,09). `bg-brand` sin la paleta
 violeta es el verde bosque liso de siempre, así que la app no cambia.
 
 Reglas que salieron de medir:
@@ -168,7 +171,10 @@ Reglas que salieron de medir:
 - El botón secundario sobre el degradé lleva borde blanco al **80%** (3,2 en
   el brillo); al 60% daba 2,48. Sobre la noche, 60% alcanza (7,19).
 - El anillo de foco es violeta `#5c22cf` sobre claro (7,32), `#ffab25` sobre
-  la noche y el violeta, y tinta sobre la banda ámbar (`--focus-ring`).
+  la noche (9,89), blanco sobre el violeta y tinta sobre la banda ámbar
+  (`--focus-ring`). Sobre el violeta el ámbar daba 4,30 en `#5c22cf` pero
+  2,15 en el brillo `#8e69d8`, donde caen los botones del resultado en el
+  celular; el blanco no baja de 4,07.
 - La inicial de los avatares sin foto (`Avatar`, `WorkerMarker`) va en
   tinta y no en blanco. En el centro del degradé del avatar, con el ámbar
   nuevo, el blanco da 2,06 y la tinta 9,19. Este cambio ya vale en toda la
