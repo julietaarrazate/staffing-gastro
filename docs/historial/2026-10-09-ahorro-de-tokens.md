@@ -7,3 +7,5 @@
 **Medición (carga al arrancar: CLAUDE.md + STATUS + MAPA_DEL_CODIGO):** antes 805 líneas / 51.451 bytes; después 301 líneas / 22.763 bytes (−56%). Solo `CLAUDE.md`: −88% de líneas, −81% de bytes. Tokens ≈ bytes/3,5 (estimación).
 
 **Por qué así:** `CLAUDE.md` se carga entero en cada sesión; el detalle de producto y los pendientes de Julieta solo importan en tareas puntuales.
+
+**Next.js 16.3.6 → 16.4.0:** el 2026-10-09 salieron avisos de seguridad nuevos y `npm audit` (workflow Security) quedó en rojo para cualquier PR. Se trae el mismo bump de #408 (`package.json` y lockfile idénticos) para que este PR pueda pasar; no es parte del pedido.
