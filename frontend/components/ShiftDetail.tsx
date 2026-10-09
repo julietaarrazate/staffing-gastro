@@ -146,7 +146,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           el paso siguiente. El color de marca queda para el bloque del pago, que es la
           superficie destacada de la pantalla (v5.0). */}
       <header
-        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${SKILL_HERO_TONE[shift.position]}`}
+        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${!photo && SKILL_HERO_TONE[shift.position] === "bg-brand" ? "bg-glow" : SKILL_HERO_TONE[shift.position]}`}
       >
         {photo ? (
           <>

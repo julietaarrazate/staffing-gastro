@@ -38,7 +38,7 @@ export default function FeedHero({ shift }: { shift: Shift }) {
   return (
     <article
       data-testid="feed-hero-card"
-      className="relative flex h-[232px] flex-col justify-between overflow-hidden rounded-[var(--radius-card)] bg-secondary shadow-[var(--shadow-float)] transition active:scale-[0.99]"
+      className="relative flex h-[232px] flex-col justify-between overflow-hidden rounded-[var(--radius-card)] bg-glow shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.99]"
     >
       {hasPhoto ? (
         <>

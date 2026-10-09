@@ -137,7 +137,7 @@ export default function WorkerGameCard() {
           misma superficie destacada que la tarjeta "Recomendado" del home y
           "Turnos activos" del comercio. En claro el bloque negro pesaba más
           que todo el resto de la pantalla junta. */}
-      <div className="relative flex flex-col items-center bg-secondary px-5 pb-5 pt-6 text-on-brand">
+      <div className="relative flex flex-col items-center bg-glow px-5 pb-5 pt-6 text-on-brand">
         {/* La foto se sube ACÁ, tocando el avatar (Julieta, 2026-09: "la foto
             se tiene que poder subir arriba con el nombre"). Antes se veía
             arriba pero el control para cambiarla vivía en el formulario de
