@@ -58,7 +58,7 @@ export const SKILL_ACCENT: Record<
  * blanco.
  */
 export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
-  mozo: "bg-brand", // el color de marca (verde bosque, o el celeste claro de la paleta celeste)
+  mozo: "bg-brand", // el color de marca: el celeste claro (v6, 2026-10-09)
   bartender: "bg-[#173f4c]", // petróleo (antes vino: se leía como error)
   barista: "bg-[#4a3222]", // espresso
   runner: "bg-[#2e3a40]", // pizarra
@@ -91,12 +91,17 @@ const HERO_INK_ON_BRAND = {
 /**
  * Tinta del texto del banner. Los rubros llevan tonos profundos con texto
  * blanco, y la foto lleva un velo negro. El mozo sin foto va sobre el color
- * de marca: con la paleta de siempre es verde bosque y `on-brand` es blanco,
- * pero con la paleta celeste de la landing (2026-10-09) la marca es clara y
- * `on-brand` es tinta (13,99 sobre el celeste; el blanco daría 1,35).
+ * de marca, que desde la paleta celeste (2026-10-09) es clara: `on-brand` es
+ * tinta (13,99 sobre el celeste; el blanco daría 1,35).
  */
 export function heroInk(position: WorkerSkill, hasPhoto: boolean) {
   return !hasPhoto && SKILL_HERO_TONE[position] === "bg-brand" ? HERO_INK_ON_BRAND : HERO_INK_WHITE;
+}
+
+/** Cuadradito del rubro (ícono o inicial): el tono del banner con su tinta. */
+export function heroTile(position: WorkerSkill) {
+  const tone = SKILL_HERO_TONE[position];
+  return `${tone} ${tone === "bg-brand" ? "text-on-brand" : "text-white"}`;
 }
 
 /**

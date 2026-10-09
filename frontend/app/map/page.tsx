@@ -12,7 +12,7 @@ import { getCurrentPosition } from "@/lib/geolocation";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE, SKILL_RAIL_BORDER } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
@@ -95,7 +95,6 @@ function ShiftRow({
   onApply: () => void;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
-  const heroTone = SKILL_HERO_TONE[shift.position];
   const rail = SKILL_RAIL_BORDER[shift.position];
   const distance =
     shift.latitude != null && shift.longitude != null ? haversineKm(center, [shift.latitude, shift.longitude]) : null;
@@ -118,7 +117,7 @@ function ShiftRow({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroTone}`}>
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
             <Icon size={20} />
           </span>
           <div className="min-w-0">
@@ -423,7 +422,6 @@ export default function MapPage() {
           <AnimatePresence initial={false} mode="popLayout">
           {shifts.map((shift) => {
             const { Icon } = SKILL_ACCENT[shift.position];
-            const heroTone = SKILL_HERO_TONE[shift.position];
             const rail = SKILL_RAIL_BORDER[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
@@ -451,7 +449,7 @@ export default function MapPage() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroTone}`}>
+                    <span className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
                       <Icon size={22} />
                     </span>
                     <div>
@@ -549,7 +547,6 @@ export default function MapPage() {
             // lista: esto es la hoja de detalle de UN turno, y el riel existe
             // para diferenciar filas entre sí. Sobre un único elemento a
             // pantalla completa sería decoración sin información.
-            const heroTone = SKILL_HERO_TONE[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
                 ? haversineKm(center, [shift.latitude, shift.longitude])
@@ -557,7 +554,7 @@ export default function MapPage() {
             return (
               <div className="pb-2 pt-1">
                 <div className="flex items-center gap-3">
-                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroTone}`}>
+                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
                     <Icon size={26} />
                   </span>
                   <div className="min-w-0">

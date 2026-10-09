@@ -11,7 +11,7 @@ import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { SearchIcon, UsersIcon } from "@/components/icons";
-import { SKILL_ACCENT, SKILL_HERO_TONE, SKILL_RAIL_BORDER } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import StarRating from "@/components/StarRating";
 import BottomSheet from "@/components/BottomSheet";
 
@@ -143,7 +143,7 @@ function SearchPageContent() {
         onClick={search}
         disabled={loading}
         aria-label="Buscar"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-white shadow-[var(--shadow-primary)] transition active:scale-95 disabled:opacity-60"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-night shadow-[var(--shadow-primary)] transition active:scale-95 disabled:opacity-60"
       >
         <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
       </button>
@@ -204,10 +204,10 @@ function SearchPageContent() {
                   />
                 ) : (
                   <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-[var(--radius-chip)] text-xl font-bold text-white ${
+                    className={`flex h-16 w-16 items-center justify-center rounded-[var(--radius-chip)] text-xl font-bold ${
                       worker.skills.length > 0
-                        ? SKILL_HERO_TONE[worker.skills[0]]
-                        : "bg-gradient-to-br from-primary to-primary-strong"
+                        ? heroTile(worker.skills[0])
+                        : "bg-gradient-to-br from-primary to-primary-strong text-night"
                     }`}
                   >
                     {worker.full_name.charAt(0).toUpperCase()}

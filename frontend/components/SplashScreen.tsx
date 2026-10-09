@@ -90,7 +90,7 @@ export default function SplashScreen() {
                 initial={{ scale: 0.6, opacity: 0.5 }}
                 animate={{ scale: 2.6, opacity: 0 }}
                 transition={{ duration: 1.8, delay, repeat: Infinity, ease: "easeOut" }}
-                className="absolute h-32 w-32 rounded-full border-2 border-white/40"
+                className="absolute h-32 w-32 rounded-full border-2 border-night/25"
               />
             ))}
 
@@ -109,7 +109,7 @@ export default function SplashScreen() {
             initial={reducedMotion ? false : { y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={reducedMotion ? { duration: 0 } : { ...MOTION_BRAND, delay: 0.35 }}
-            className="relative mt-6 font-display text-5xl font-semibold tracking-tight text-white"
+            className="relative mt-6 font-display text-5xl font-semibold tracking-tight text-night"
           >
             oído
           </motion.h1>
@@ -117,7 +117,7 @@ export default function SplashScreen() {
             initial={reducedMotion ? false : { y: 12, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={reducedMotion ? { duration: 0 } : { ...MOTION_BRAND, delay: 0.55 }}
-            className="relative mt-1 text-sm font-medium text-white"
+            className="relative mt-1 text-sm font-medium text-night"
           >
             Personal gastronómico, ya
           </motion.p>
@@ -130,7 +130,7 @@ export default function SplashScreen() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ ...MOTION_UI, delay: 0.2 }}
-              className="relative mt-8 flex items-center gap-2 text-sm font-medium text-white"
+              className="relative mt-8 flex items-center gap-2 text-sm font-medium text-night"
             >
               <Spinner size={16} />
               Verificando tu sesión…
