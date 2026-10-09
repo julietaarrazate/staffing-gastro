@@ -97,10 +97,15 @@ probada primero en la landing. Pidió además un PDF del design system.
 - **La landing sigue sin oscurecerse** con el tema oscuro (se verificó con
   `theme=dark`): fija `data-theme="light"`.
 
-**Medido y no tocado (anterior a este cambio):** la etiqueta "Pago" de
-`OpportunityCard` va en tinta al 40% (2,62:1 sobre blanco) y los pasos
-futuros del `ShiftLifecycleStepper` en tinta al 35% (2,21:1). Quedan para
-la pasada de la app.
+**Medido y no tocado (anterior a este cambio):** unos grises chicos de las
+tarjetas que salen en la landing. En `OpportunityCard`, el rótulo "Pago" en
+tinta al 40% (2,61:1 sobre blanco, línea 219) y el pago por hora al 50%
+(3,54:1, línea 222). La duración ("· 5 h") va al 45% (3,03:1), en
+`OpportunityCard` (línea 233) y en `ShiftCard` (línea 338), y también el
+rótulo "PAGO" de `ShiftCard` (línea 269). Los pasos futuros del
+`ShiftLifecycleStepper` van al 35% sobre `#e9e5f0` (2,21:1, línea 147). La
+primera lista que quedó acá tenía sólo dos; los demás los encontró la
+revisión del paquete para el diseñador. Quedan para la pasada de la app.
 
 **Queda abierto:** que Julieta apruebe la paleta. Después: pasar el bloque
 a `:root`, armar la versión oscura y revisar los lugares de la app que
