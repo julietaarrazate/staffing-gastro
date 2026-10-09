@@ -31,10 +31,11 @@ probada primero en la landing. Pidió además un PDF del design system.
 3. **CTAs.** Relevados uno por uno (encabezado, hero, "Publicar turno",
    "Confirmar", banda del "¡Oído!", resultado, precios): todos los
    primarios son `#ffab25` con texto en tinta (9,98:1; el blanco daba
-   1,89). El encabezado tenía tres rellenos distintos para el mismo botón
-   según el tramo; ahora es uno solo, salvo sobre la banda ámbar, donde va
-   en tinta. Los secundarios son transparentes con borde (tinta 60% sobre
-   claro, blanco 80% sobre el degradé). "Voy en camino" en el celular de
+   1,89). El mismo "Necesito personal" salía en tres rellenos: en el
+   encabezado, noche o manteca según el tramo, y ámbar en el inicio. Ahora
+   es uno solo, salvo sobre la banda ámbar, donde va en tinta. Los
+   secundarios son transparentes con borde (tinta 60% sobre claro, blanco
+   80% sobre el degradé). "Voy en camino" en el celular de
    Lucía queda neutro también en escritorio, para no tener dos botones
    ámbar en el mismo panel.
 4. **Titulares de narración a 48px** (`--text-headline`, nuevo, línea
@@ -107,7 +108,9 @@ rótulo "PAGO" de `ShiftCard` (línea 269). Los pasos futuros del
 primera lista que quedó acá tenía sólo dos; los demás los encontró la
 revisión del paquete para el diseñador. Quedan para la pasada de la app.
 
-**Queda abierto:** que Julieta apruebe la paleta. Después: pasar el bloque
+**Queda abierto:** que Julieta apruebe la paleta y el borde del botón
+secundario sobre el violeta (el pedido decía blanco al 60%, que en el
+brillo del degradé da 2,48:1 y un borde pide 3:1; quedó en 80%). Después: pasar el bloque
 a `:root`, armar la versión oscura y revisar los lugares de la app que
 todavía llevan texto blanco sobre ámbar (`ImageUpload.tsx`,
 `app/search/page.tsx`, la splash y los encabezados de comercio y
