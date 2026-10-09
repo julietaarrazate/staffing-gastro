@@ -45,7 +45,7 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 
 - Fechas de negocio con `hoy_art()`/`now_art()` (`backend/app/core/tz.py`); auditoría en UTC.
 - Si cambia el texto de `/terminos` o `/privacidad`, subir `LEGAL_TERMS_VERSION` (backend) y `frontend/lib/legal.ts` en el mismo PR. "Va en camino" y "Disponible ahora" tienen modelo de privacidad deliberado: leer su ADR / `docs/reference/QUE_EXISTE_HOY.md` antes de tocarlos.
-- Diseño v5.0: fuente de verdad en `docs/design-system/` (`color-system.md`, `typography.md`); todos los fondos por tokens de `globals.css`, un solo acento ámbar por pantalla, tema explícito (`lib/theme.tsx`).
+- Diseño: tipografía v5.0 y paleta celeste v6 (2026-10-09); fuente de verdad en `docs/design-system/` (`color-system.md`, `typography.md`); todos los fondos por tokens de `globals.css`, un solo acento ámbar por pantalla, letra sobre la marca con `on-brand` (nunca `text-white`), tema explícito (`lib/theme.tsx`).
 
 ## Dónde está cada cosa
 

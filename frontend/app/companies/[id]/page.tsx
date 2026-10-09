@@ -108,7 +108,7 @@ export default function PublicCompanyProfilePage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-white/90">
+            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-night/85">
               {profile.name.charAt(0).toUpperCase()}
             </div>
           )}

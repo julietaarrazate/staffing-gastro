@@ -123,7 +123,7 @@ Ningún rubro usa un matiz rojo: el bartender pasó de rojo a borgoña y de
 borgoña a petróleo (`#173f4c`, 2026-09-25) porque cualquier rojo se lee como
 el color de error.
 
-## Propuesta v6: celeste claro (en prueba, 2026-10-09)
+## v6: celeste claro (vigente desde 2026-10-09)
 
 Historia corta: el 2026-10-08 Julieta pidió pasar el verde bosque a un
 degradé violeta (`#5c22cf` → `#8e69d8`), el ámbar `#d97706` a `#ffab25` y la
@@ -133,12 +133,13 @@ pasa al celeste claro `#c4e3ed`** y el resto queda como en la versión violeta.
 Se probaron y descartaron el petróleo y una versión con lienzo celeste y
 botones naranja `#e64c1e`.
 
-Es un bloque de tokens (`[data-palette="celeste"]` en `globals.css`,
-prendido sólo en la raíz de la landing) y no colores sueltos: para llevarla
-a la app, ese bloque pasa a `:root` y se arma su versión oscura. **Hasta que
-Julieta lo apruebe, las tablas de arriba (v5.0) siguen siendo las vigentes
-en la app.** El PDF del design system de `/mnt/project-files/design-system/`
-documenta la versión violeta; no se rehízo.
+Es un bloque de tokens en `globals.css` ("PALETA CELESTE") que primero se
+prendió sólo en la landing y desde el 2026-10-09 rige en `:root`: **en toda
+la app pisa los colores de las tablas de arriba (v5.0)**, que quedan como
+historia. El modo oscuro toma el ámbar, el celeste y la noche, y aclara sus
+`-text` y `-tint` (tabla de abajo). El PDF del design system de
+`/mnt/project-files/design-system/` documenta la versión violeta; no se
+rehízo.
 
 | Token | v5.0 | v6 | Nota |
 |---|---|---|---|
@@ -163,6 +164,19 @@ Letra sobre la superficie de marca (`@theme`, con su valor en la paleta):
 | `--color-on-brand-icon` | `#D97706` | `#1C5478` | Ícono sobre la marca. |
 | `--color-brand-veil` | negro 15% | transparente | Velo del banner sin foto. |
 
+En oscuro (`:root[data-theme="dark"]`, sobre el lienzo `#17130F`, la tarjeta
+`#221D18` y el recesado `#2B251F`):
+
+| Token | Oscuro | Contraste |
+|---|---|---|
+| `--color-primary-text` | `#FFAB25` | 9,77 · 8,83 · 8,00 |
+| `--color-secondary-text`, `--color-manteca-text` | `#C4E3ED` | 13,69 · 12,38 · 11,22 |
+| `--color-accent-text` | `#9AC9E7` | 10,46 · 9,45 · 8,57 |
+| los `-tint` | el color al 14–16% | |
+| `--focus-ring` | `#FFAB25` | El azul hondo no se ve sobre oscuro. |
+
+La superficie de marca sigue celeste en oscuro, con la letra en tinta.
+
 Reglas que salieron de medir:
 
 - **La letra sobre la marca va en `on-brand`, nunca en `text-white`.** Así
@@ -173,6 +187,11 @@ Reglas que salieron de medir:
   la tinta no se lee sobre la noche (por eso el resultado ya entra celeste).
 - El botón ámbar sobre el celeste se separa poco (1,40:1); su letra en tinta
   sí se lee (9,98). Aceptado por Julieta.
+- Ningún relleno ámbar lleva letra blanca (1,89): la splash, la inicial de
+  los perfiles sin foto y el botón de ubicación de Buscar van en tinta.
+- Los chips `IconChip` de tono `manteca`, `secondary` y `primary` quedaron
+  los tres en celeste con azul hondo: se distinguen por el ícono, ya no por
+  el color.
 - El anillo de foco es azul hondo sobre claro, ámbar sobre la noche y tinta
   sobre el verde bosque y la banda ámbar (`--focus-ring`).
 - La inicial de los avatares sin foto va en tinta: sobre el degradé ámbar da

@@ -137,7 +137,7 @@ export default function WorkerGameCard() {
           misma superficie destacada que la tarjeta "Recomendado" del home y
           "Turnos activos" del comercio. En claro el bloque negro pesaba más
           que todo el resto de la pantalla junta. */}
-      <div className="relative flex flex-col items-center bg-secondary px-5 pb-5 pt-6 text-white">
+      <div className="relative flex flex-col items-center bg-secondary px-5 pb-5 pt-6 text-on-brand">
         {/* La foto se sube ACÁ, tocando el avatar (Julieta, 2026-09: "la foto
             se tiene que poder subir arriba con el nombre"). Antes se veía
             arriba pero el control para cambiarla vivía en el formulario de
@@ -154,7 +154,7 @@ export default function WorkerGameCard() {
           fallbackLabel={user?.full_name ?? "Vos"}
         />
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
-        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
+        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-on-brand/10 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">

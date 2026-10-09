@@ -153,7 +153,7 @@ export default function PublicWorkerProfilePage() {
           {profile.photo_url ? (
             <img src={cldThumb(profile.photo_url, 800)} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-white/90">
+            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-night/85">
               {name.charAt(0).toUpperCase()}
             </div>
           )}
