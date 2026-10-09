@@ -498,9 +498,9 @@
   --color-ink-mute: #8b8276;
 
   /* Acentos y estados sobre lienzo/tarjeta oscura (todos ≥ AA como texto). */
-  /* Paleta celeste (2026-10-09): el ámbar #ffab25 y el celeste ya son
-     claros, así que sobre oscuro van tal cual como texto. */
-  --color-primary-text: #ffab25;
+  /* Paleta celeste (2026-10-09): el celeste ya es claro y va tal cual como
+     texto sobre oscuro; el ámbar, aclarado como en v5.0. */
+  --color-primary-text: #e8920f;
   --color-secondary-text: #c4e3ed;
   --color-accent-text: #9ac9e7;
   --color-success-text: #4ade80;
@@ -530,7 +530,7 @@
   --color-manteca-text: #c4e3ed;
   --color-cielo-tint: rgba(207, 228, 255, 0.14);
   --color-cielo-text: #cfe4ff;
-  --color-primary-tint: rgba(255, 171, 37, 0.16);
+  --color-primary-tint: rgba(217, 119, 6, 0.18);
   --color-secondary-tint: rgba(196, 227, 237, 0.14);
   --color-accent-tint: rgba(154, 201, 231, 0.14);
   --color-success-tint: rgba(74, 222, 128, 0.14);
@@ -540,7 +540,7 @@
   --color-toast: #f5f1ea;
   --color-toast-ink: #17130f;
   /* El azul hondo del foco en claro no se ve sobre el lienzo oscuro. */
-  --focus-ring: #ffab25;
+  --focus-ring: #e8920f;
 }
 
 /* Miniatura sin foto de "Cerca tuyo" (NearbyRow): en claro lleva el tinte
@@ -616,7 +616,9 @@
  * la paleta de TODA la app, probándola primero en la landing. El 2026-10-09,
  * comparando, decidió: todo lo que era violeta pasa al celeste claro
  * #c4e3ed, y el resto queda como en la versión violeta (ámbar #ffab25 con
- * tinta, lienzo #f3f3f3). Ese mismo día se había probado celeste con botones
+ * tinta, lienzo #f3f3f3). Esa misma noche, comparando, volvió al ámbar de
+ * siempre #d97706: con el celeste se despega más (2.36 contra 1.40) y es
+ * el color del logo. Ese mismo día se había probado celeste con botones
  * naranja #e64c1e; quedó descartado. Primero vivió sólo en la landing
  * (`data-palette="celeste"`); desde el 2026-10-09 rige en `:root`, o sea en
  * toda la app en claro y en cualquier subárbol forzado a claro. El modo
@@ -625,7 +627,7 @@
  * más arriba quedan como la paleta v5.0 que estos pisan.
  *
  * Decisiones medidas (WCAG, sobre el lienzo #f3f3f3 salvo que diga otra cosa):
- * - #ffab25 lleva SIEMPRE texto oscuro: tinta 9.98, blanco 1.89 (falla).
+ * - El ámbar #d97706 lleva SIEMPRE texto oscuro: tinta 5.93, blanco 3.19 (falla).
  * - El celeste es claro: la letra que iba en blanco sobre el violeta va en
  *   tinta sobre el celeste (13.99). Por eso existe `--color-on-brand`: blanco
  *   en la paleta de siempre (verde bosque), tinta en ésta. Lo mismo el dato
@@ -637,9 +639,8 @@
  * - Superficie de marca lisa (`--gradient-brand: none`), sin el velo negro
  *   del banner (`--color-brand-veil`): sobre un color claro, el velo sólo lo
  *   ensucia.
- * - El ámbar sobre el celeste se distingue poco (1.40, el botón no tiene un
- *   borde que lo separe), pero su texto en tinta sigue en 9.98. Es lo que
- *   eligió Julieta; queda anotado.
+ * - El ámbar sobre el celeste: 2.36 (con el #ffab25 daba 1.40 y el botón se
+ *   perdía encima).
  * - Rellenos: el celeste mezclado con el lienzo (sRGB), 30% #e5eef1
  *   (recesado y mapa; tinta apagada 4.83) y 45% #deecf0 (bordes y tintes).
  *   Dato sobre la noche (`manteca`): el celeste, 13.85.
@@ -655,13 +656,10 @@
   --color-card: #ffffff;
   --color-raised: #ffffff;
   --color-ink-mute: #686572;
-  --color-primary: #ffab25;
-  --color-primary-strong: #eb9d21;
+  --color-primary: #d97706;
+  --color-primary-strong: #b45309;
   --color-primary-text: #1c5478;
   --color-primary-tint: #deecf0;
-  /* Se redeclaran porque :root ya las resolvió con el ámbar anterior. */
-  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 38%, transparent);
-  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 38%, transparent);
   --color-secondary: #c4e3ed;
   --color-secondary-strong: #9ac9e7;
   --color-secondary-tint: #deecf0;
@@ -684,10 +682,10 @@
   /* El anillo de foco ámbar daría 1.70 sobre claro: azul hondo (7.31). */
   --focus-ring: #1c5478;
 }
-/* Sobre la noche el anillo vuelve al ámbar (9.89); sobre el celeste y sobre
-   la banda ámbar, tinta. */
+/* Sobre la noche el anillo vuelve al ámbar aclarado; sobre el celeste y
+   sobre la banda ámbar, tinta. */
 [data-palette="celeste"] [data-tone="night"] {
-  --focus-ring: #ffab25;
+  --focus-ring: #e8920f;
 }
 [data-palette="celeste"] [data-tone="forest"] {
   --focus-ring: #111111;

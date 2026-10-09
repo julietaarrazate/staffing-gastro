@@ -131,7 +131,9 @@ crema a `#f3f3f3`, y eligió que sea la paleta de **toda la app**, probándola
 primero en la landing. El 2026-10-09 decidió que **todo lo que era violeta
 pasa al celeste claro `#c4e3ed`** y el resto queda como en la versión violeta.
 Se probaron y descartaron el petróleo y una versión con lienzo celeste y
-botones naranja `#e64c1e`.
+botones naranja `#e64c1e`. Esa misma noche, comparando lado a lado, volvió
+al **ámbar de siempre `#d97706`** en lugar del `#ffab25`: con el celeste se
+despega más y es el color del logo.
 
 Es un bloque de tokens en `globals.css` ("PALETA CELESTE") que primero se
 prendió sólo en la landing y desde el 2026-10-09 rige en `:root`: **en toda
@@ -144,7 +146,7 @@ rehízo.
 | Token | v5.0 | v6 | Nota |
 |---|---|---|---|
 | `--background` | `#FBFAF6` | `#F3F3F3` | Lienzo neutro, como en la versión violeta. |
-| `--color-primary` | `#D97706` | `#FFAB25` | Siempre con tinta encima (9,98). Blanco da 1,89: no. |
+| `--color-primary` | `#D97706` | `#D97706` | El ámbar de siempre. Siempre con tinta encima (5,93); blanco da 3,19: no. Sobre el celeste, 2,36 (el `#ffab25` daba 1,40). |
 | `--color-primary-text` | `#B45309` | `#1C5478` | Azul hondo, el celeste oscurecido: 7,31 sobre el lienzo, 8,11 sobre blanco. |
 | `--color-secondary` | `#1B3A31` | `#C4E3ED` | Celeste claro, la superficie de marca. Lleva **tinta** (13,99), no blanco (1,35). |
 | `--gradient-brand` | — | `none` | `bg-brand` queda liso. |
@@ -169,11 +171,11 @@ En oscuro (`:root[data-theme="dark"]`, sobre el lienzo `#17130F`, la tarjeta
 
 | Token | Oscuro | Contraste |
 |---|---|---|
-| `--color-primary-text` | `#FFAB25` | 9,77 · 8,83 · 8,00 |
+| `--color-primary-text` | `#E8920F` | 7,52 · 6,80 |
 | `--color-secondary-text`, `--color-manteca-text` | `#C4E3ED` | 13,69 · 12,38 · 11,22 |
 | `--color-accent-text` | `#9AC9E7` | 10,46 · 9,45 · 8,57 |
 | los `-tint` | el color al 14–16% | |
-| `--focus-ring` | `#FFAB25` | El azul hondo no se ve sobre oscuro. |
+| `--focus-ring` | `#E8920F` | El azul hondo no se ve sobre oscuro. |
 
 La superficie de marca sigue celeste en oscuro, con la letra en tinta.
 
@@ -185,9 +187,7 @@ Reglas que salieron de medir:
   foto, siempre blanco.
 - **Ninguna sección pasa de la noche a la marca con la letra ya escrita**:
   la tinta no se lee sobre la noche (por eso el resultado ya entra celeste).
-- El botón ámbar sobre el celeste se separa poco (1,40:1); su letra en tinta
-  sí se lee (9,98). Aceptado por Julieta.
-- Ningún relleno ámbar lleva letra blanca (1,89): la splash, la inicial de
+- Ningún relleno ámbar lleva letra blanca (3,19): la splash, la inicial de
   los perfiles sin foto y el botón de ubicación de Buscar van en tinta.
 - Los chips `IconChip` de tono `manteca`, `secondary` y `primary` quedaron
   los tres en celeste con azul hondo: se distinguen por el ícono, ya no por
