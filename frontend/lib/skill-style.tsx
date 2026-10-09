@@ -58,7 +58,7 @@ export const SKILL_ACCENT: Record<
  * blanco.
  */
 export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
-  mozo: "bg-brand", // el color de marca (verde bosque, o el degradé violeta)
+  mozo: "bg-brand", // el color de marca (verde bosque, o el azul hondo de la paleta celeste)
   bartender: "bg-[#173f4c]", // petróleo (antes vino: se leía como error)
   barista: "bg-[#4a3222]", // espresso
   runner: "bg-[#2e3a40]", // pizarra

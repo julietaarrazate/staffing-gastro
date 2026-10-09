@@ -67,7 +67,7 @@ export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId:
       if (!bar) return;
       // Se mira 24px debajo del encabezado y no el primer píxel: al final de
       // la página, en escritorio, el resultado terminaba 8px debajo del
-      // encabezado y lo dejaba violeta encima de los precios.
+      // encabezado y lo dejaba del color de marca encima de los precios.
       const y = bar.getBoundingClientRect().bottom + 24;
       const sections = document.querySelectorAll<HTMLElement>("[data-landing] [data-tone]");
       let found: HTMLElement | null = null;

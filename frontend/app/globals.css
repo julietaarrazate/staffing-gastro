@@ -596,93 +596,96 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * PALETA VIOLETA, en previsualización (Julieta, 2026-10-08).
+ * PALETA CELESTE Y NARANJA, en previsualización (Julieta, 2026-10-09).
  *
- * Pedido: el verde bosque (#17312A y parecidos) pasa a un degradé #5c22cf →
- * #8e69d8; los botones y destacados ámbar #d97706 pasan a #ffab25; los
- * rellenos crema/manteca pasan a #f3f3f3 y parecidos; los niveles nuevos
- * salen de la gama entre #f3f3f3 y #8e69d8. Eligió que sea la paleta de TODA
- * la app, probándola primero en la landing: por eso es un bloque de tokens
- * que se prende con `data-palette="violeta"` y no colores sueltos en los
- * componentes. Para llevarla a la app, este bloque pasa a `:root` (y se arma
+ * Historia: el 2026-10-08 Julieta pidió pasar el verde bosque a un degradé
+ * violeta, el ámbar #d97706 a #ffab25 y la crema a #f3f3f3, y eligió que sea
+ * la paleta de TODA la app, probándola primero en la landing. El 2026-10-09
+ * cambió el violeta por el celeste claro y el naranja de una referencia suya
+ * (un sitio de pasta con paneles celestes y letra naranja): eligió el celeste
+ * claro #c4e3ed y, en la tarjeta de decisión, el naranja #e64c1e para los
+ * botones. Sigue siendo un bloque de tokens que se prende con
+ * `data-palette="celeste"`; para llevarla a la app pasa a `:root` (y se arma
  * su versión oscura).
  *
- * Decisiones medidas (WCAG, sobre el lienzo #f3f3f3 salvo que diga otra cosa):
- * - #ffab25 lleva SIEMPRE texto oscuro: tinta 9.98, blanco 1.89 (falla).
- * - #ffab25 como texto sobre claro da 1.70: los textos destacados sobre claro
- *   (`primary-text`) van en violeta #5c22cf (7.32). Sobre oscuro, #ffab25.
- * - Blanco sobre el degradé: 8.12 en #5c22cf, 6.60 en #6c3bd1, 4.07 en
- *   #8e69d8. Por eso el degradé es un brillo en la esquina de abajo a la
- *   derecha (radial) y no una diagonal: casi todo el texto de estas
- *   superficies arranca arriba a la izquierda, y abajo a la derecha suele
- *   haber un botón o un ícono. Con la diagonal, la letra chica blanca de las
- *   tarjetas y del resultado caía en la punta clara (3.4–4.0); medido texto
- *   por texto con la regla de las esquinas, ahora no baja de 4.5 a 390 ni a
- *   1440px. Las píldoras chicas usan el violeta liso.
- * - Gris de texto secundario #686572 (5.12; el #7c8a9a anterior daba 3.18).
- * - Gama #f3f3f3 → #8e69d8 (mezcla sRGB): 10% #e9e5f0 (recesado), 15%
- *   #e4deef (bordes y tintes), 30% #d5caeb (marcas y datos sobre oscuro).
- * - El negro de los tramos oscuros pasa de cálido (#191410) a uno neutro con
- *   un toque violeta (#141118), para no pelearse con el gris y el violeta.
+ * Decisiones medidas (WCAG):
+ * - El celeste claro es el LIENZO: es el color que domina, como en la
+ *   referencia. Tinta sobre el celeste 13.99; tarjetas blancas encima.
+ * - El naranja #e64c1e lleva SIEMPRE texto en tinta: 4.87 (blanco 3.88, no
+ *   llega). Nunca va como letra: sobre el celeste da 2.87.
+ * - El texto destacado sobre claro (`primary-text`) y el anillo de foco van
+ *   en azul hondo #1c5478, el mismo tono del celeste oscurecido: 6.01 sobre
+ *   el celeste, 8.11 sobre blanco.
+ * - Las superficies que llevan letra blanca (el banner del mozo, la tarjeta
+ *   "Recomendado", el resultado) no pueden ser el celeste: van en azul hondo
+ *   liso (blanco 8.11). Sin el brillo del degradé violeta: un brillo celeste
+ *   tendría la misma luminancia que el naranja (1.04) y el botón vibraría.
+ * - Recesado #b5daeb (el celeste con 35% de #9ac9e7): tinta 12.76. El gris
+ *   de texto secundario baja a #4f5960 para llegar ahí (4.84; 5.31 sobre el
+ *   celeste, 7.17 sobre blanco).
+ * - Dato sobre oscuro (`manteca`): el mismo celeste, 6.01 sobre el azul hondo
+ *   y 13.48 sobre la noche.
+ * - La noche pasa a un negro frío (#121619); el naranja sobre ella da 4.69.
+ * - El naranja queda a 14° del rojo de error (#d73d3d): se distinguen, pero
+ *   un error tiene que ir siempre con ícono y texto, nunca sólo con color.
  * ────────────────────────────────────────────────────────────────────────── */
-[data-palette="violeta"],
-:root[data-theme="dark"] [data-palette="violeta"][data-theme="light"] {
-  --background: #f3f3f3;
+[data-palette="celeste"],
+:root[data-theme="dark"] [data-palette="celeste"][data-theme="light"] {
+  --background: #c4e3ed;
   --foreground: #111111;
-  --line: #e4deef;
-  --color-line: #e4deef;
-  --color-surface: #e9e5f0;
-  --color-paper: #e9e5f0;
+  --line: #9cc8db;
+  --color-line: #9cc8db;
+  --color-surface: #b5daeb;
+  --color-paper: #b5daeb;
   --color-card: #ffffff;
   --color-raised: #ffffff;
-  --color-ink-mute: #686572;
-  --color-primary: #ffab25;
-  --color-primary-strong: #eb9d21;
-  --color-primary-text: #5c22cf;
-  --color-primary-tint: #e4deef;
+  --color-ink-mute: #4f5960;
+  --color-primary: #e64c1e;
+  --color-primary-strong: #d9461b;
+  --color-primary-text: #1c5478;
+  --color-primary-tint: #ddeef4;
   /* Se redeclaran porque :root ya las resolvió con el ámbar anterior. */
-  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 38%, transparent);
-  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 38%, transparent);
-  --color-secondary: #5c22cf;
-  --color-secondary-strong: #4a1aa8;
-  --color-secondary-tint: #e4deef;
-  --color-secondary-text: #5c22cf;
-  --gradient-brand: radial-gradient(110% 80% at 100% 100%, #8e69d8 0%, #6c3bd1 50%, #5c22cf 100%);
-  --color-accent: #8e69d8;
-  --color-accent-tint: #e4deef;
-  --color-accent-text: #5c22cf;
-  --color-manteca: #d5caeb;
-  --color-manteca-tint: #e4deef;
-  --color-manteca-text: #4a1aa8;
-  --color-night: #141118;
-  --color-structure: #141118;
-  --color-focus: #141118;
-  --color-toast: #141118;
-  /* El anillo de foco ámbar daría 1.70 sobre claro: violeta (7.32). */
-  --focus-ring: #5c22cf;
+  --shadow-primary: 0 8px 20px color-mix(in srgb, var(--color-primary) 32%, transparent);
+  --shadow-primary-sm: 0 4px 12px color-mix(in srgb, var(--color-primary) 32%, transparent);
+  --color-secondary: #1c5478;
+  --color-secondary-strong: #16435f;
+  --color-secondary-tint: #ddeef4;
+  --color-secondary-text: #1c5478;
+  --gradient-brand: none;
+  --color-accent: #9ac9e7;
+  --color-accent-tint: #ddeef4;
+  --color-accent-text: #1c5478;
+  --color-manteca: #c4e3ed;
+  --color-manteca-tint: #ddeef4;
+  --color-manteca-text: #1c5478;
+  --color-night: #121619;
+  --color-structure: #121619;
+  --color-focus: #121619;
+  --color-toast: #121619;
+  /* El anillo de foco naranja daría 2.87 sobre el celeste: azul hondo (6.01). */
+  --focus-ring: #1c5478;
 }
-/* Sobre la noche el anillo vuelve al ámbar (9.89). Sobre el violeta va en
-   blanco: el ámbar daba 4.30 en #5c22cf pero 2.15 en el brillo #8e69d8 del
-   degradé, donde caen los botones del resultado en el celular; el blanco
-   no baja de 4.07. Sobre la banda ámbar, tinta. */
-[data-palette="violeta"] [data-tone="night"] {
-  --focus-ring: #ffab25;
+/* Sobre la noche el anillo va en naranja (4.69); sobre el azul hondo, en
+   blanco (8.11); sobre la banda naranja, en tinta. */
+[data-palette="celeste"] [data-tone="night"] {
+  --focus-ring: #e64c1e;
 }
-[data-palette="violeta"] [data-tone="forest"] {
+[data-palette="celeste"] [data-tone="forest"] {
   --focus-ring: #ffffff;
 }
-[data-palette="violeta"] [data-tone="amber"] {
+[data-palette="celeste"] [data-tone="amber"] {
   --focus-ring: #111111;
 }
-/* El fondo que asoma al estirar la página (iOS) también es el gris. */
-body:has([data-palette="violeta"]) {
-  --background: #f3f3f3;
+/* El fondo que asoma al estirar la página (iOS) también es el celeste. */
+body:has([data-palette="celeste"]) {
+  --background: #c4e3ed;
 }
 
-/* Superficie de marca: el verde bosque liso hoy; con la paleta violeta, el
-   degradé. Sólo en superficies grandes (secciones, el frente de las tarjetas):
-   las píldoras chicas siguen en `bg-secondary`, liso, porque la letra de 11px
-   no se lee en la punta clara del degradé. */
+/* Superficie de marca: el verde bosque liso hoy; con la paleta celeste, el
+   azul hondo, también liso (`--gradient-brand: none`). Queda como utilidad
+   aparte para las superficies grandes (secciones, el frente de las
+   tarjetas), por si la paleta vuelve a llevar un degradé: las píldoras
+   chicas van en `bg-secondary`. */
 @utility bg-brand {
   background-color: var(--color-secondary);
   background-image: var(--gradient-brand, none);
@@ -933,11 +936,11 @@ body:has([data-landing]) main {
   --burbuja-tinta: #b3a999;
   --burbuja-tenue: #7d7468;
 }
-[data-landing][data-palette="violeta"] {
-  --mapa: #e9e5f0;
-  --burbuja: #24202b;
-  --burbuja-tinta: #aaa6b3;
-  --burbuja-tenue: #9a96a3;
+[data-landing][data-palette="celeste"] {
+  --mapa: #b5daeb;
+  --burbuja: #1f2428;
+  --burbuja-tinta: #a9b2b8;
+  --burbuja-tenue: #8d979e;
 }
 @media (min-width: 1024px) {
   [data-landing] {

@@ -9,7 +9,7 @@ import { useStory } from "./Stage";
 
 /**
  * RESULTADO. El hueco del principio quedó cubierto. Sobre la superficie de
- * marca (`bg-brand`: verde bosque, o el degradé violeta con la paleta nueva),
+ * marca (`bg-brand`: verde bosque, o el azul hondo con la paleta celeste),
  * el registro del turno: cada cosa que
  * mostró el reloj, en orden, con su hora. Arranca con Martín cayéndose y
  * pasa por Lucía llegando. No es un ticket de papel a propósito (esa metáfora
@@ -88,10 +88,11 @@ export default function Resultado() {
               href="/register?rol=trabajador"
               data-cta="resultado-trabajo"
               // Secundario sobre color: transparente con borde blanco. Antes
-              // era blanco lleno y pesaba más que el principal. Al 80% porque
-              // en el brillo del degradé (#8e69d8) el 60% daba 2.48 y el
-              // borde de un botón pide 3:1 (al 80%, 3.2).
-              className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] px-7 text-base font-semibold text-white ring-[1.5px] ring-white/80 ring-inset transition duration-200 active:scale-[0.96] hover:bg-white/10"
+              // era blanco lleno y pesaba más que el principal. Al 60%, como
+              // lo pidió Julieta: sobre el azul hondo liso da 4,07 (el borde
+              // de un botón pide 3:1). Con el brillo del degradé violeta que
+              // se probó antes daba 2,48 y había quedado en 80%.
+              className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] px-7 text-base font-semibold text-white ring-[1.5px] ring-white/60 ring-inset transition duration-200 active:scale-[0.96] hover:bg-white/10"
             >
               Quiero trabajar
             </Link>

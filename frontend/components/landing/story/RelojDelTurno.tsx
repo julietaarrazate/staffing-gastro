@@ -16,7 +16,7 @@ import { useReloj } from "./relojStore";
  * - La hora avanza un minuto sólo cuando alguien actúa.
  * - Mientras el turno está sin cubrir, los dos puntos de la hora laten; cuando
  *   se cubre, la píldora pasa al color de marca (`secondary`: verde bosque, o
- *   violeta con la paleta nueva) y la hora se queda quieta. Así se
+ *   azul hondo con la paleta celeste) y la hora se queda quieta. Así se
  *   siente el objetivo de los 10 minutos sin afirmarlo como dato.
  */
 export default function RelojDelTurno({
@@ -76,8 +76,10 @@ const STRIP: Record<"light" | "paper" | "night" | "amber" | "forest", { bg: stri
   light: { bg: "bg-background/95 border-line", label: "text-ink-mute" },
   paper: { bg: "bg-paper border-transparent", label: "text-ink-mute" },
   night: { bg: "bg-night border-transparent", label: "text-manteca/70" },
-  amber: { bg: "bg-primary border-transparent", label: "text-ink/70" },
-  // Sobre el violeta, manteca al 70% daría 3.28: blanco al 75% (5.19).
+  // Tinta llena: sobre el naranja, al 70% daría 3,40.
+  amber: { bg: "bg-primary border-transparent", label: "text-ink" },
+  // Blanco al 75%: 5.36 sobre el azul hondo (sobre el violeta que se probó
+  // antes, manteca al 70% daba 3.28).
   forest: { bg: "bg-secondary border-transparent", label: "text-white/75" },
 };
 

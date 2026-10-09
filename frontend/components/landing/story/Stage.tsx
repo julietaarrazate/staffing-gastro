@@ -7,8 +7,8 @@ import { cn } from "@/lib/cn";
 /** Fondo de cada tramo de la historia. El encabezado lo lee (data-tone) para
  *  pintarse igual que lo que tiene debajo. Cada color fuerte se gasta una
  *  sola vez: noche en la urgencia, ámbar en el "¡Oído!", bosque en el
- *  resultado ("forest" es el tono de marca: con la paleta violeta, el
- *  degradé). */
+ *  resultado ("forest" es el tono de marca: con la paleta celeste, el
+ *  azul hondo). */
 export type Tone = "light" | "night" | "amber" | "forest" | "paper";
 
 export const StoryContext = createContext<{ enhanced: boolean }>({ enhanced: false });

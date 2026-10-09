@@ -116,3 +116,8 @@ todavía llevan texto blanco sobre ámbar (`ImageUpload.tsx`,
 `app/search/page.tsx`, la splash y los encabezados de comercio y
 trabajador). El logo sigue en el ámbar `#d97706`: falta decidir si pasa al
 `#ffab25` (con la mano en tinta) o a un cuadrado violeta.
+
+**Después (2026-10-09):** Julieta cambió el violeta por celeste claro y
+naranja. Lo que cambió y por qué, en
+[`2026-10-09-paleta-celeste-naranja.md`](./2026-10-09-paleta-celeste-naranja.md).
+El resto de esta entrada (titulares, ritmo, espacios, Next.js) sigue igual.

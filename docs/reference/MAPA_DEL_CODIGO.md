@@ -66,7 +66,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 |---|---|
 | Color de cada rubro (mozo, bartender, cocina…) | `frontend/lib/skill-style.tsx` |
 | Tokens de color, sombras, anchos (`.app-container`, `.app-container-reading`) | `frontend/app/globals.css` |
-| Paleta violeta en prueba (propuesta v6) y el degradé de marca `bg-brand` | `frontend/app/globals.css`, bloque `[data-palette="violeta"]` y `@utility bg-brand`; se prende en `LandingStory.tsx` |
+| Paleta celeste y naranja en prueba (propuesta v6) y la superficie de marca `bg-brand` | `frontend/app/globals.css`, bloque `[data-palette="celeste"]` y `@utility bg-brand`; se prende en `LandingStory.tsx` |
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |

@@ -479,7 +479,8 @@ export function ActoOido() {
               <p className="text-lg font-medium text-ink lg:text-2xl">
                 Lucía confirmó. Tu turno de las 21 está cubierto.
               </p>
-              <p className="mt-4 font-mono text-label font-medium uppercase tracking-[0.14em] text-ink/70">
+              {/* Tinta llena: sobre el naranja, al 70% daba 3,40; al 100%, 4,87. */}
+              <p className="mt-4 font-mono text-label font-medium uppercase tracking-[0.14em] text-ink">
                 Historia ilustrativa · El objetivo de Oído es cubrir un turno en menos de 10 minutos
               </p>
             </motion.div>
@@ -710,7 +711,7 @@ export function ActoOidoStatic() {
         <p className="mt-4 max-w-[30ch] text-lg font-medium text-ink lg:text-2xl">
           Lucía confirmó. Tu turno de las 21 está cubierto.
         </p>
-        <p className="mt-4 max-w-[40ch] font-mono text-label font-medium uppercase tracking-[0.14em] text-ink/70">
+        <p className="mt-4 max-w-[40ch] font-mono text-label font-medium uppercase tracking-[0.14em] text-ink">
           Historia ilustrativa · El objetivo de Oído es cubrir un turno en menos de 10 minutos
         </p>
       </section>
