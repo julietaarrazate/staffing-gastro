@@ -979,6 +979,53 @@ async def test_public_shift_cancelled_returns_404(client: AsyncClient):
     assert response.status_code == 404
 
 
+async def test_public_shift_searching_again_is_still_shareable(client: AsyncClient):
+    """Un turno que vuelve a buscar gente (el asignado lo rechazó) sigue
+    abierto: está en el feed y se puede compartir, así que el link tiene que
+    abrir. Antes daba 404 ("Turno no encontrado")."""
+    headers = await _employer_with_company(client, "emp_pub4@staffya.com")
+    created = await client.post("/api/v1/shifts", headers=headers, json=_shift_payload())
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    worker = await auth_headers(client, "worker", "w_pub4@staffya.com")
+    profile = await client.post(
+        "/api/v1/workers/me/profile", headers=worker, json={"skills": ["mozo"]}
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=headers,
+        json={"worker_profile_id": profile.json()["id"]},
+    )
+    rejected = await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=worker)
+    assert rejected.json()["status"] == "buscando_personal"
+
+    response = await client.get(f"/api/v1/shifts/{shift_id}/public")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == shift_id
+
+
+async def test_public_shift_assigned_returns_404(client: AsyncClient):
+    """Asignado ya no está abierto: para quien llega por un link, no existe."""
+    headers = await _employer_with_company(client, "emp_pub5@staffya.com")
+    created = await client.post("/api/v1/shifts", headers=headers, json=_shift_payload())
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    worker = await auth_headers(client, "worker", "w_pub5@staffya.com")
+    profile = await client.post(
+        "/api/v1/workers/me/profile", headers=worker, json={"skills": ["mozo"]}
+    )
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=headers,
+        json={"worker_profile_id": profile.json()["id"]},
+    )
+
+    response = await client.get(f"/api/v1/shifts/{shift_id}/public")
+
+    assert response.status_code == 404
+
+
 async def test_public_shift_nonexistent_id_returns_404(client: AsyncClient):
     response = await client.get(f"/api/v1/shifts/{uuid4()}/public")
     assert response.status_code == 404

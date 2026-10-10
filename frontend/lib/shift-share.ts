@@ -6,7 +6,7 @@
  * comercio) como `ShiftPublic` (vista pública) cumplen, así que sirve para
  * ambos sin acoplar este helper a uno de los dos tipos.
  */
-import { SKILL_LABELS, WorkerSkill } from "@/lib/types";
+import { SKILL_LABELS, ShiftStatus, WorkerSkill } from "@/lib/types";
 import { formatShiftDate, formatShiftTime } from "@/lib/datetime";
 
 export interface ShareableShift {
@@ -16,6 +16,20 @@ export interface ShareableShift {
   city: string | null;
   pay_amount: string | number;
   company_name?: string | null;
+  /** Lo trae `Shift`; `ShiftPublic` no (la vista pública sólo existe para
+   * turnos abiertos, así que no hace falta). */
+  status?: ShiftStatus;
+}
+
+/** Los estados en los que la vista pública (`/turno/{id}`) abre: los mismos
+ * `OPEN_STATUSES` del backend. Compartir un turno en cualquier otro estado
+ * manda un link que abre en "Turno no encontrado". */
+const SHAREABLE_STATUSES: ReadonlySet<ShiftStatus> = new Set(["publicado", "buscando_personal"]);
+
+/** ¿El link de este turno va a abrir para quien lo reciba? Sin `status`
+ * (vista pública) se asume que sí. */
+export function isShareable(shift: ShareableShift): boolean {
+  return shift.status === undefined || SHAREABLE_STATUSES.has(shift.status);
 }
 
 /** Resumen del turno sin link: "Buscamos {puesto} para el {fecha} de {hora}
