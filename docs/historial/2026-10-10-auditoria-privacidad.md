@@ -1,4 +1,4 @@
-# Auditoría del proyecto y primer arreglo: datos del trabajador por puertas laterales
+# Auditoría del proyecto y primer arreglo: datos del trabajador por puertas laterales (#416)
 
 **Pedido:** Julieta pidió auditar el proyecto y después arreglar lo
 encontrado "con buenas prácticas", empezando por lo más grave.
