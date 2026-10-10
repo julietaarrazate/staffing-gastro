@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { api, NetworkError } from "@/lib/api";
+import {
+  api,
+  bindSessionToken,
+  hasBoundSession,
+  NetworkError,
+  renewSessionToken,
+  setUnauthorizedHandler,
+} from "@/lib/api";
 import { clearAllCached } from "@/lib/screen-cache";
 import { User } from "@/lib/types";
 
@@ -83,7 +90,7 @@ function clearSession() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   // Snapshot de la sesión admin real mientras se está impersonando otro
@@ -91,6 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [impersonating, setImpersonating] = useState<
     { adminToken: string; adminUser: User } | null
   >(null);
+  // Lo lee el manejador de 401 (registrado una sola vez), que no ve el estado.
+  const impersonatingRef = useRef(false);
+
+  /** Cambia de SESIÓN (login, logout, impersonar): el `token` del contexto
+   * sólo cambia acá. Renovar el access token no pasa por acá (ver
+   * `tryRefresh` y `lib/api.ts`), así que no recarga las pantallas. */
+  function setToken(next: string | null) {
+    bindSessionToken(next);
+    setTokenState(next);
+  }
 
   async function tryRefresh(timeoutMs?: number): Promise<string | null> {
     // Sin esta marca no hay (o ya no hay) sesión que renovar — el refresh
@@ -104,7 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         timeoutMs
       );
       persistAccessToken(tokens.access_token);
-      setToken(tokens.access_token);
+      // Con una sesión en curso, sólo se renueva el token vigente; el del
+      // contexto queda igual. Sin sesión (restaurando al abrir la app), la
+      // renovación ES el arranque de la sesión.
+      if (hasBoundSession()) renewSessionToken(tokens.access_token);
+      else setToken(tokens.access_token);
       return tokens.access_token;
     } catch (err) {
       // Un fallo de red (backend caído/dormido) NO es un refresh inválido:
@@ -115,6 +136,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   }
+
+  // Ante un 401 con el token de la sesión, `lib/api.ts` renueva y reintenta
+  // una vez. Va antes de `restoreSession` para cubrir también el access token
+  // guardado que ya venció. Impersonando no se renueva: el refresh traería un
+  // token de la admin real, no del usuario que se está viendo.
+  useEffect(() => {
+    setUnauthorizedHandler(() =>
+      impersonatingRef.current ? Promise.resolve(null) : tryRefresh()
+    );
+    return () => setUnauthorizedHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `tryRefresh` sólo usa setters estables y localStorage
+  }, []);
 
   useEffect(() => {
     async function restoreSession() {
@@ -271,12 +304,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token
     );
     setImpersonating({ adminToken: token, adminUser: user });
+    impersonatingRef.current = true;
+    // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
+    // el feed o el perfil de la admin como si fueran del usuario impersonado.
+    clearAllCached();
     setToken(data.access_token);
     setUser(data.user);
   }
 
   function stopImpersonating() {
     if (!impersonating) return;
+    impersonatingRef.current = false;
+    clearAllCached();
+    // El token de la admin pudo haber vencido durante la impersonación (el
+    // auto-refresh estaba apagado): la primera request da 401 y se renueva.
     setToken(impersonating.adminToken);
     setUser(impersonating.adminUser);
     setImpersonating(null);

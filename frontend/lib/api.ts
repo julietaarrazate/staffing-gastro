@@ -17,15 +17,80 @@ export class ApiError extends Error {
  * token sea inválido. */
 export class NetworkError extends Error {}
 
+// --- Token de la sesión: el que ven las pantallas y el que se manda --------
+//
+// El access token vence a los 15 minutos y `AuthProvider` lo renueva cada 10.
+// Antes, cada renovación cambiaba el `token` del contexto, y como unas 30
+// pantallas cargan sus datos en un efecto que depende de `[token]`, todas se
+// recargaban cada 10 minutos: los formularios de perfil pisaban lo que la
+// persona estaba escribiendo, el chat se reconectaba, y "Va en camino" seguía
+// mandando con el token viejo (su intervalo lo había capturado) hasta dar 401
+// en silencio.
+//
+// Ahora son dos valores: `sessionToken` identifica la sesión (es el que
+// expone el contexto y no cambia al renovar) y `liveToken` es el vigente.
+// Una request que trae el token de la sesión sale con el vigente; una que
+// trae cualquier otro token (el de una respuesta de login todavía no
+// adoptada, el de la admin al empezar a impersonar) sale tal cual.
+let sessionToken: string | null = null;
+let liveToken: string | null = null;
+let renewOnUnauthorized: (() => Promise<string | null>) | null = null;
+let renewing: Promise<string | null> | null = null;
+
+/** Arranca (o termina, con `null`) una sesión: login, logout, impersonar. */
+export function bindSessionToken(token: string | null) {
+  sessionToken = token;
+  liveToken = token;
+}
+
+/** Renovación del access token de la sesión en curso: no cambia su identidad. */
+export function renewSessionToken(token: string) {
+  liveToken = token;
+}
+
+export function hasBoundSession(): boolean {
+  return sessionToken !== null;
+}
+
+/** El token con el que hay que salir de verdad (para quien no pasa por
+ * `request`, como el WebSocket). */
+export function resolveToken(token: string | null | undefined): string | null {
+  if (!token) return null;
+  return token === sessionToken && liveToken ? liveToken : token;
+}
+
+/** Cómo renovar ante un 401 (lo registra `AuthProvider`). Devuelve el token
+ * nuevo, o `null` si no se puede (refresh vencido, o impersonando). */
+export function setUnauthorizedHandler(handler: (() => Promise<string | null>) | null) {
+  renewOnUnauthorized = handler;
+}
+
+/** Una sola renovación a la vez: diez requests que reciben 401 juntas (la
+ * PWA que vuelve de estar suspendida) comparten el mismo refresh. */
+function renewOnce(): Promise<string | null> {
+  if (!renewOnUnauthorized) return Promise.resolve(null);
+  if (!renewing) {
+    renewing = renewOnUnauthorized()
+      .catch(() => null)
+      .finally(() => {
+        renewing = null;
+      });
+  }
+  return renewing;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit & {
     token?: string | null;
     timeoutMs?: number;
     idempotencyKey?: string;
+    /** Interno: ya se reintentó una vez tras un 401. */
+    retried?: boolean;
   } = {}
 ): Promise<T> {
-  const { token, headers, timeoutMs, idempotencyKey, ...rest } = options;
+  const { token: requested, headers, timeoutMs, idempotencyKey, retried, ...rest } = options;
+  const token = resolveToken(requested);
 
   // Timeout opcional vía AbortController: sin esto, un backend dormido
   // (cold start de Render) cuelga el fetch indefinidamente. Sólo se aplica
@@ -62,6 +127,17 @@ async function request<T>(
     );
   } finally {
     if (timer != null) clearTimeout(timer);
+  }
+
+  // El access token venció (la app estuvo suspendida más de 15 minutos, o
+  // el timer de renovación no llegó a correr): se renueva una vez y se
+  // reintenta, en vez de mostrar "Not authenticated" hasta el próximo tick.
+  // Sólo para el token de la sesión: uno ajeno no se renueva desde acá.
+  if (res.status === 401 && !retried && requested && requested === sessionToken) {
+    const fresh = await renewOnce();
+    if (fresh) {
+      return request<T>(path, { ...options, retried: true });
+    }
   }
 
   if (!res.ok) {

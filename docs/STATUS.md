@@ -71,11 +71,13 @@ Revisado contra el código y los PRs el 2026-10-03.
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
    tráfico real.
 8. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
-   (#416) y las carreras sobre el turno más la idempotencia (ver
-   [`historial/2026-10-10-auditoria-privacidad.md`](./historial/2026-10-10-auditoria-privacidad.md),
-   que tiene la lista completa). Sigue, en orden: en el frontend, "Va en
-   camino" que deja de enviar al vencer el token y formularios que se
-   recargan con cada refresh; después, los ajustes de autenticación.
+   (#416), las carreras sobre el turno más la idempotencia (#417) y el token
+   de sesión del frontend ("Va en camino", formularios que se recargaban,
+   401 sin reintento). La lista completa está en
+   [`historial/2026-10-10-auditoria-privacidad.md`](./historial/2026-10-10-auditoria-privacidad.md).
+   Sigue: los ajustes de autenticación (Google sobre cuenta sin verificar,
+   rate limit detrás del proxy, `ADMIN_EMAILS` sin verificación); después,
+   los de dominio y los menores.
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
