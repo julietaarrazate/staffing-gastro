@@ -119,6 +119,35 @@ class ShiftResponse(BaseModel):
     company_verified: bool = False
 
 
+# Datos de una PERSONA (el trabajador del turno), no del turno: quién lo tomó,
+# dónde está viajando, dónde marcó llegada y salida, quién faltó.
+WORKER_DATA_FIELDS = (
+    "worker_profile_id",
+    "worker_name",
+    "en_route_latitude",
+    "en_route_longitude",
+    "en_route_at",
+    "check_in_latitude",
+    "check_in_longitude",
+    "check_in_at",
+    "check_out_latitude",
+    "check_out_longitude",
+    "check_out_at",
+    "no_show_at",
+    "last_no_show_worker_profile_id",
+)
+
+
+def without_worker_data(response: ShiftResponse) -> ShiftResponse:
+    """La vista de un turno para quien no es parte de él: todo lo del turno,
+    nada del trabajador.
+
+    Vive acá (y no en `routes.py`) porque no es sólo del detalle del turno:
+    cualquier endpoint que embeba un `ShiftResponse` para alguien que no es
+    parte —turnos guardados, "mis postulaciones"— tiene que pasar por acá."""
+    return response.model_copy(update={field: None for field in WORKER_DATA_FIELDS})
+
+
 class EventRoleInput(BaseModel):
     """Un rol dentro de una publicación masiva: "necesito 3 mozos a $50000"."""
 

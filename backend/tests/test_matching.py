@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
-from tests.conftest import auth_headers, login
+from tests.conftest import TEST_GUEST_PIN, auth_headers, login
 
 pytestmark = pytest.mark.asyncio
 
@@ -226,7 +226,7 @@ async def test_guest_worker_excluded_from_search_results(client: AsyncClient):
     comercio/admin real buscando a quién contratar (pedido de Julieta, salía
     mezclada con trabajadores reales en QA)."""
     guest_login = await client.post(
-        "/api/v1/auth/guest", json={"pin": "3526", "role": "worker"}
+        "/api/v1/auth/guest", json={"pin": TEST_GUEST_PIN, "role": "worker"}
     )
     assert guest_login.status_code == 200
     guest_headers = {

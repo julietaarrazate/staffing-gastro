@@ -168,6 +168,13 @@ class Settings(BaseSettings):
     # Permite dar de alta al primer administrador sin endpoint de auto-registro.
     admin_emails: str = ""
 
+    # --- Acceso invitado (beta, "Explorar sin cuenta") ---
+    # PIN que habilita `POST /auth/guest`. Vacío = acceso invitado APAGADO
+    # (404). Antes era una constante en el código y el repo es público:
+    # cualquiera entraba como comercio. Ese valor quedó en la historia de git
+    # y no se reusa. Ver docs/reference/PENDIENTE_OPERATIVO.md.
+    guest_access_pin: str = ""
+
     @property
     def admin_emails_list(self) -> list[str]:
         return [

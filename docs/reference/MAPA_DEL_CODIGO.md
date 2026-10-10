@@ -91,7 +91,8 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
 | Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `frontend/lib/push.ts` |
 | Gemini (modelo fijado) | `backend/app/core/gemini.py` |
-| PIN del acceso invitado | `GUEST_ACCESS_PIN` en `backend/app/modules/identity/application/services.py` |
+| PIN del acceso invitado | env var `GUEST_ACCESS_PIN` (`settings.guest_access_pin`, `backend/app/core/config.py`); vacía = apagado |
+| Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 

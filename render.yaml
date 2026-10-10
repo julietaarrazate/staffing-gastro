@@ -99,4 +99,9 @@ services:
       # blueprint no pise lo que el operador puso en medio de un incidente.
       - key: GEMINI_MODEL
         sync: false
+      # PIN del acceso invitado ("Explorar sin cuenta"). Vacío = apagado
+      # (`POST /auth/guest` responde 404). Hasta 2026-10-10 estaba fijo en el
+      # código y el repo es público: el valor viejo no se reusa. 8+ caracteres.
+      - key: GUEST_ACCESS_PIN
+        sync: false
     autoDeploy: true

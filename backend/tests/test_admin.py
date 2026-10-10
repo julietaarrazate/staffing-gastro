@@ -13,6 +13,7 @@ from app.main import app
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.subscription.api.dependencies import get_billing_gateway
+from tests.conftest import TEST_GUEST_PIN
 from app.modules.subscription.infrastructure.fake_billing_gateway import (
     FakeBillingGateway,
 )
@@ -124,7 +125,7 @@ async def test_admin_stats_exclude_synthetic_accounts(client, session_factory):
     await client.get("/api/v1/admin/test-accounts", headers=admin)
     # Crea 1 cuenta de invitado (get-or-create, mismo patrón).
     guest = await client.post(
-        "/api/v1/auth/guest", json={"pin": "3526", "role": "worker"}
+        "/api/v1/auth/guest", json={"pin": TEST_GUEST_PIN, "role": "worker"}
     )
     assert guest.status_code == 200
 

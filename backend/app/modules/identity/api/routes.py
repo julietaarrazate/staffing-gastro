@@ -41,6 +41,7 @@ from app.modules.identity.domain.exceptions import (
     GoogleAuthNotConfiguredError,
     GoogleEmailNotVerifiedError,
     GoogleTokenInvalidError,
+    GuestAccessDisabledError,
     InactiveUserError,
     InvalidCredentialsError,
     InvalidGuestPinError,
@@ -202,11 +203,16 @@ async def guest_login(
 ) -> TokenResponse:
     """Acceso para testers de la beta: con el PIN correcto entra en una cuenta
     invitada compartida del rol elegido (trabajador o comercio), sin registro.
-    El PIN se configura en el código (`IdentityService.GUEST_ACCESS_PIN`)."""
+    El PIN se configura con la env var `GUEST_ACCESS_PIN`; sin ella, 404."""
     try:
         tokens = await service.guest_login(
             payload.pin, UserRole(payload.role.value)
         )
+    except GuestAccessDisabledError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="El acceso de invitado no está disponible",
+        ) from exc
     except InvalidGuestPinError as exc:
         logger.warning("guest login: PIN inválido ip=%s", _client_ip(request))
         raise HTTPException(

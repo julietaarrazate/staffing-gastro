@@ -287,8 +287,21 @@ circulan públicamente (`/turno/{id}` se comparte por WhatsApp).
 
 **Cómo evitarlo:** un endpoint que devuelve un recurso por id decide **quién es el que mira**
 (parte del recurso / cualquier otro) y recorta lo que es de una persona para el segundo caso
-(`_is_party_to` + `_without_worker_data` en `shift/api/routes.py`). Un parámetro
+(`_is_party_to` + `without_worker_data` en `shift/api/schemas.py`). Un parámetro
 `_current_user` sin usar en una ruta de lectura es la señal para revisar.
+
+- **Se repitió (2026-10-10, auditoría):** el arreglo cerró una puerta y quedaron tres:
+  `GET /workers/{id}` devolvía el domicilio exacto del trabajador (`latitude`/`longitude`, que el
+  mapa ya desplazaba, TECH_DEBT S4) y su fecha de nacimiento a cualquier sesión;
+  `GET /saved-shifts` y `GET /applications/mine` embebían el `ShiftResponse` entero, así que
+  guardar un turno ajeno (se aceptaba cualquier id, en cualquier estado) o haber sido el
+  postulante rechazado daba la posición en vivo de quien lo tomó. Arreglo: los tres recortan
+  para quien no es parte, y `save` sólo acepta turnos abiertos o propios. Tests en
+  `backend/tests/test_privacidad_datos_trabajador.py`.
+
+**Cómo evitarlo, segunda parte:** el recorte va donde se **embebe** el schema, no sólo en su
+endpoint propio. Antes de devolver un `ShiftResponse` o un `WorkerProfileResponse` desde otro
+módulo, preguntate quién mira; `without_worker_data` es público para eso.
 
 ---
 
