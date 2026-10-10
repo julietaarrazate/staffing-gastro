@@ -83,7 +83,8 @@ logger = logging.getLogger(__name__)
 # el PIN estaba a la vista de cualquiera, y con él se entraba como comercio
 # al mapa de trabajadores. Ese valor quedó en la historia de git y no se
 # reusa. El rate-limit por IP del endpoint (ver api/routes.py) frena la
-# fuerza bruta; aun así conviene un PIN de 8+ caracteres.
+# fuerza bruta; aun así conviene un PIN de 8+ dígitos (sólo dígitos: el
+# campo del login abre el teclado numérico).
 
 # Cuentas invitadas compartidas (una por rol), creadas on-demand la primera vez
 # que alguien entra con el PIN. Son sandboxes COMPARTIDOS: todos los testers de

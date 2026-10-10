@@ -56,8 +56,9 @@ Revisado contra el código y los PRs el 2026-10-03.
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
 5. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
-   abril de 2027). Son tres cambios juntos: la versión de Node en Vercel
-   (Settings → Node.js Version), `node-version` en
+   abril de 2027). **Vercel ya corre 24.x** (visto en la config del
+   proyecto el 2026-10-10), así que hoy CI prueba con una versión distinta
+   de la que corre en producción. Faltan `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
@@ -82,7 +83,8 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 ## Pendiente de Julieta (operativo, no es código)
 
 - **Cargar `GUEST_ACCESS_PIN` en Render** con un PIN nuevo de 8 o más
-  caracteres. Mientras no esté, "Explorar sin cuenta" está apagado (ver
+  **dígitos** (el campo del login abre el teclado numérico: con letras no se
+  puede tipear en el celular). Mientras no esté, "Explorar sin cuenta" está apagado (ver
   [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md)).
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
