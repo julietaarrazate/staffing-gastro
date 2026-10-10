@@ -92,8 +92,9 @@ class SqlAlchemyUserRepository(UserRepository):
         model.status = user.status.value
         model.is_verified = user.is_verified
         model.full_name = user.full_name
-        # hashed_password: sólo lo cambia el flujo de reset de contraseña
-        # (`IdentityService.reset_password`); el resto de los llamadores
+        # hashed_password: lo cambian el reset de contraseña
+        # (`IdentityService.reset_password`) y el ingreso con Google sobre una
+        # cuenta sin verificar (`_claim_unverified_account`); el resto de los llamadores
         # reasignan el mismo hash que ya tenía la entidad, así que incluirlo
         # acá es un no-op para ellos.
         model.hashed_password = user.hashed_password

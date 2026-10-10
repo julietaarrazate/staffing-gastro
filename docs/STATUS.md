@@ -73,21 +73,19 @@ Revisado contra el código y los PRs el 2026-10-03.
 8. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
    (#416), las carreras sobre el turno más la idempotencia (#417) y el token
    de sesión del frontend ("Va en camino", formularios que se recargaban,
-   401 sin reintento). La lista completa está en
+   401 sin reintento, #419), Google sobre cuenta sin verificar y
+   `ADMIN_EMAILS` sin verificación. La lista completa está en
    [`historial/2026-10-10-auditoria-privacidad.md`](./historial/2026-10-10-auditoria-privacidad.md).
-   Sigue: los ajustes de autenticación (Google sobre cuenta sin verificar,
-   rate limit detrás del proxy, `ADMIN_EMAILS` sin verificación); después,
-   los de dominio y los menores.
+   Sigue: el **rate limit detrás del proxy de Render** (usa la IP del proxy,
+   así que es global; falta confirmar qué header de IP es confiable en
+   Render antes de tocarlo, ver el historial de autenticación); después, los
+   de dominio y los menores.
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
-- **Cargar `GUEST_ACCESS_PIN` en Render** con un PIN nuevo de 8 o más
-  **dígitos** (el campo del login abre el teclado numérico: con letras no se
-  puede tipear en el celular). Mientras no esté, "Explorar sin cuenta" está apagado (ver
-  [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md)).
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
   Render y purgar las cuentas demo (runbook en
