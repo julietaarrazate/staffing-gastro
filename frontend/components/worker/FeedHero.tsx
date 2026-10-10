@@ -68,7 +68,7 @@ export default function FeedHero({ shift }: { shift: Shift }) {
             iban "Recomendado" y "Urgente" juntas, más el guardar. Si el turno
             es urgente, eso es lo que decide y va solo; si no, "Recomendado". */}
         {shift.urgent ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-label font-bold text-danger-text">
+          <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-label font-bold text-danger-text shadow-sm ring-1 ring-line">
             <FlameIcon size={12} /> Urgente
           </span>
         ) : (
@@ -98,7 +98,7 @@ export default function FeedHero({ shift }: { shift: Shift }) {
         </div>
         <span
           aria-hidden
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-night"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-night shadow-sm ring-1 ring-line"
         >
           <ChevronRightIcon size={18} />
         </span>

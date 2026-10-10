@@ -189,7 +189,7 @@ celeste). Tres tokens y una utilidad, nada más:
 
 | Pieza | Claro | Oscuro | Dónde |
 |---|---|---|---|
-| `--color-chrome` | blanco al 72% | `#1B1611` al 72% | Encabezado y barra de abajo, con `backdrop-blur-xl`. |
+| `--color-chrome` | blanco al 92% | `#1B1611` al 94% | Encabezado y barra de abajo, con `backdrop-blur-xl`. |
 | `--wash` | velo ámbar → durazno arriba al centro | resplandor ámbar en la esquina superior izquierda | Fondo de `body`, debajo de todo. |
 | `--glow-image` + `bg-glow` | blanco con brillo celeste arriba a la derecha y ámbar suave abajo | tarjeta oscura con los mismos brillos tenues | Tarjeta destacada de Inicio, cabecera del turno sin foto (mozo), encabezado del Perfil, plan Básico de la landing. |
 
