@@ -48,7 +48,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotEditableError,
     ShiftNotFoundError,
 )
-from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
+from app.modules.shift.domain.value_objects import OPEN_STATUSES
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -420,16 +420,21 @@ async def get_shift(
 async def get_shift_public(
     shift_id: UUID, service: ServiceDep, companies: CompaniesDep
 ):
-    """Sin auth. Sólo turnos en estado PUBLICADO; cualquier otro estado (o id
-    inexistente) devuelve 404 para no filtrar la existencia/estado interno del
-    turno. Expone únicamente campos seguros (ver `ShiftPublicResponse`): nada
-    de contacto del comercio, postulantes, ni ids internos más allá del
-    propio turno."""
+    """Sin auth. Sólo turnos abiertos (`OPEN_STATUSES`: PUBLICADO o
+    BUSCANDO_PERSONAL, los mismos que muestra el feed); cualquier otro estado
+    (o id inexistente) devuelve 404 para no filtrar la existencia/estado
+    interno del turno. Expone únicamente campos seguros (ver
+    `ShiftPublicResponse`): nada de contacto del comercio, postulantes, ni ids
+    internos más allá del propio turno.
+
+    Hasta 2026-10-10 exigía PUBLICADO a secas: un turno que volvía a buscar
+    gente (rechazo, cancelación, no-show) seguía en el feed y se podía
+    compartir, pero el link abría en "Turno no encontrado"."""
     try:
         shift = await service.get_shift(shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
-    if shift.status != ShiftStatus.PUBLICADO:
+    if shift.status not in OPEN_STATUSES:
         raise _not_found()
     company = await companies.get_by_id(shift.company_id)
     return ShiftPublicResponse(
