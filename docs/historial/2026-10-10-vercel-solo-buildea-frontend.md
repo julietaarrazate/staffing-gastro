@@ -11,13 +11,20 @@ imágenes). Los 8 proyectos de la cuenta comparten esa cuota, y Oído tuvo
 frontend entero en cada push a cualquier rama, aunque el cambio fuera sólo
 del backend o de docs (por ejemplo, #416 y #417).
 
-**Qué cambió:** `frontend/vercel.json` con un `ignoreCommand` que saltea el
-build si no cambió nada dentro de `frontend/` desde el último deploy de la
-rama (`VERCEL_GIT_PREVIOUS_SHA`, o el commit anterior). Probado con commits
-reales: el #417 (sólo backend) sale 0 → se saltea; un rango con cambios de
-la landing sale 1 → buildea; un SHA que no está en el clon sale 128 →
-buildea (ante la duda, buildea). Documentado en
-`docs/reference/DEPLOY.md`.
+**Qué cambió:** `frontend/vercel.json` con un `ignoreCommand` que corre
+`frontend/scripts/vercel-ignore-build.sh`: saltea el build si no cambió nada
+dentro de `frontend/` desde el último deploy de la rama
+(`VERCEL_GIT_PREVIOUS_SHA`, o el commit anterior si ese no existe).
+Documentado en `docs/reference/DEPLOY.md`.
+
+La primera versión era un `git diff` directo en el `ignoreCommand`, y el
+preview de este mismo PR falló: la rama se había rehecho desde `main`, el
+último deploy apuntaba a un commit que ya no existía, `git diff` salió 128
+("bad object") y **Vercel toma cualquier código que no sea 0 o 1 como deploy
+fallido**, no como "buildear" (se había supuesto lo contrario sin
+verificarlo). El script valida el commit de referencia y sólo sale 0 o 1:
+ante la duda, buildea. Probado: commit inexistente → 1, sin variable → 1,
+con cambios → 1, sin cambios → 0.
 
 De paso: el PIN del acceso invitado tiene que ser de **dígitos** (el campo
 del login abre el teclado numérico; Julieta puso letras y no podía

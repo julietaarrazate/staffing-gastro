@@ -48,14 +48,17 @@ Config declarativa en `render.yaml` (raíz del repo).
 ## Frontend en Vercel
 
 - Auto-deploy desde `main`; **preview por PR** (comentario de Vercel con la URL).
-- **Sólo buildea si cambió `frontend/`** (`frontend/vercel.json`, `ignoreCommand`,
-  desde 2026-10-10): compara contra el último deploy de la rama
-  (`VERCEL_GIT_PREVIOUS_SHA`, o el commit anterior si no hay). Un PR de backend o
-  de docs no genera preview, y un merge así a `main` no redespliega el frontend.
-  Motivo: los 8 proyectos de la cuenta Hobby comparten los Build CPU Minutes y
-  Oído los llevó al 75% con builds que no cambiaban nada (100 deploys en 13
-  días, 76 previews). Si el comando falla (SHA que no está en el clon), Vercel
-  buildea igual. Para forzar un build: "Redeploy" en el panel.
+- **Sólo buildea si cambió `frontend/`** (`frontend/vercel.json` →
+  `frontend/scripts/vercel-ignore-build.sh`, desde 2026-10-10): compara contra
+  el último deploy de la rama (`VERCEL_GIT_PREVIOUS_SHA`, o el commit anterior
+  si ese no existe). Un PR de backend o de docs no genera preview, y un merge
+  así a `main` no redespliega el frontend. Motivo: los 8 proyectos de la cuenta
+  Hobby comparten los Build CPU Minutes y Oído los llevó al 75% con builds que
+  no cambiaban nada (100 deploys en 13 días, 76 previews). **Trampa:** Vercel
+  toma 0 = saltear, 1 = buildear y cualquier otro código = deploy fallido; un
+  `git diff` contra un commit que ya no existe (rama rehecha) sale 128 y corta
+  el deploy. Por eso es un script que sólo sale 0 o 1 y ante la duda buildea.
+  Para forzar un build: "Redeploy" en el panel.
 - API remota vía `NEXT_PUBLIC_API_URL` (sin `localhost` en config de producto).
 
 ## Entornos
