@@ -191,7 +191,7 @@ celeste). Tres tokens y una utilidad, nada más:
 |---|---|---|---|
 | `--color-chrome` | blanco al 92% | `#1B1611` al 94% | Encabezado y barra de abajo, con `backdrop-blur-xl`. |
 | `--wash` | velo ámbar → durazno arriba al centro | resplandor ámbar en la esquina superior izquierda | Fondo de `body`, debajo de todo. |
-| `--glow-image` + `bg-glow` | blanco con brillo celeste arriba a la derecha y ámbar suave abajo | tarjeta oscura con los mismos brillos tenues | Tarjeta destacada de Inicio, cabecera del turno sin foto (mozo), encabezado del Perfil, plan Básico de la landing. |
+| `--glow-image` + `bg-glow` | blanco con brillo celeste arriba a la derecha y ámbar suave abajo | tarjeta oscura con los mismos brillos tenues | Tarjeta destacada de Inicio, cabecera del turno sin foto (mozo), encabezado del Perfil, plan Básico y las dos fichas de "Sabés quién viene" de la landing. |
 
 El **celeste lleno** queda sólo donde decide algo: el bloque de pago del
 turno y "Mejor valorado" en Candidatos. Lo demás que era celeste lleno pasó a
