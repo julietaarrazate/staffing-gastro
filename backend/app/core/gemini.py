@@ -22,6 +22,7 @@ cambio de código. Sigue sin ser automático a propósito (nada de
 falla.
 """
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
@@ -108,23 +109,50 @@ class GeminiRequestError(Exception):
     """La llamada a Gemini falló (red, cuota agotada, respuesta inválida)."""
 
 
+# El proveedor falla de a ratos (5xx, 429, timeouts): un reintento corto
+# resuelve la mayoría sin que el usuario se entere. Más que 2 reintentos es
+# esperar de más con alguien mirando la pantalla.
+_GEMINI_TIMEOUT_SECONDS = 20.0
+_GEMINI_MAX_RETRIES = 2
+_GEMINI_RETRY_DELAY_SECONDS = 0.7
+
+
+class GeminiUnavailableError(GeminiRequestError):
+    """Google no respondió (5xx, 429, timeout, red) incluso tras reintentar.
+    No es culpa del texto del usuario ni de nuestra configuración: la API
+    muestra "probá de nuevo en un rato" y esto NO va a Sentry como error."""
+
+
+def _is_transient(status_code: int) -> bool:
+    return status_code == 429 or status_code >= 500
+
+
 async def _call_gemini(payload: dict) -> dict:
-    """POST común a `generateContent`, compartido por las 3 llamadas de este
-    archivo. Antes cada una hacía `response.raise_for_status()` sin loguear
-    el cuerpo del error — Google manda un JSON con el motivo real (ej.
-    `PERMISSION_DENIED` con el detalle de qué falta), y se perdía: sólo
-    quedaba "404 Not Found" en Sentry, sin explicar el porqué."""
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        response = await client.post(
-            _gemini_url(),
-            params={"key": settings.gemini_api_key},
-            json=payload,
-        )
+    """POST común a `generateContent`, compartido por las llamadas de este
+    archivo. Reintenta 5xx/429/timeouts/errores de red (`GeminiUnavailableError`
+    si se agotan); los 4xx (clave, modelo dado de baja, permisos) son de
+    configuración y se loguean como error con el cuerpo de Google — el motivo
+    real (ej. `PERMISSION_DENIED`) que antes se perdía."""
+    last_problem = ""
+    for attempt in range(_GEMINI_MAX_RETRIES + 1):
+        if attempt:
+            await asyncio.sleep(_GEMINI_RETRY_DELAY_SECONDS * attempt)
+        try:
+            async with httpx.AsyncClient(timeout=_GEMINI_TIMEOUT_SECONDS) as client:
+                response = await client.post(
+                    _gemini_url(),
+                    params={"key": settings.gemini_api_key},
+                    json=payload,
+                )
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            last_problem = type(exc).__name__
+            continue
+        if _is_transient(response.status_code):
+            last_problem = f"HTTP {response.status_code}"
+            continue
         if response.status_code >= 400:
             # El modelo va en el log: el 404 de Google por modelo dado de baja
-            # y el 404 por endpoint mal armado se ven idénticos desde afuera, y
-            # sin saber CON QUÉ modelo se llamó no hay forma de distinguirlos
-            # desde los logs de Render.
+            # y el 404 por endpoint mal armado se ven idénticos desde afuera.
             logger.error(
                 "Gemini (%s) respondió %s: %s",
                 settings.gemini_model,
@@ -133,8 +161,15 @@ async def _call_gemini(payload: dict) -> dict:
             )
         response.raise_for_status()
         body = response.json()
-    raw = body["candidates"][0]["content"]["parts"][0]["text"]
-    return json.loads(raw)
+        raw = body["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(raw)
+    logger.warning(
+        "Gemini (%s) no disponible tras %s intentos: %s",
+        settings.gemini_model,
+        _GEMINI_MAX_RETRIES + 1,
+        last_problem,
+    )
+    raise GeminiUnavailableError(last_problem)
 
 
 @dataclass(frozen=True)
@@ -230,6 +265,8 @@ async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> 
     }
     try:
         data = await _call_gemini(payload)
+    except GeminiUnavailableError:
+        raise
     except Exception as exc:
         logger.exception("suggest_ticket_reply: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
@@ -264,6 +301,8 @@ async def parse_shift_text(text: str) -> ParsedShiftDraft:
     }
     try:
         data = await _call_gemini(payload)
+    except GeminiUnavailableError:
+        raise
     except Exception as exc:
         logger.exception("parse_shift_text: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
@@ -453,6 +492,8 @@ async def interpret_assistant_query(
     }
     try:
         data = await _call_gemini(payload)
+    except GeminiUnavailableError:
+        raise
     except Exception as exc:
         logger.exception("interpret_assistant_query: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
@@ -598,6 +639,8 @@ async def interpret_worker_shift_query(text: str) -> WorkerQueryResult:
     }
     try:
         data = await _call_gemini(payload)
+    except GeminiUnavailableError:
+        raise
     except Exception as exc:
         logger.exception("interpret_worker_shift_query: falló la llamada a Gemini")
         raise GeminiRequestError() from exc
