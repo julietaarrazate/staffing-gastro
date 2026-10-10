@@ -180,6 +180,14 @@ async def stop_available_now(current_user: WorkerDep, service: ServiceDep) -> No
     await service.stop_available_now(current_user.id)
 
 
+# Lo que el perfil PÚBLICO no muestra. La coordenada del perfil es el
+# domicilio que el trabajador marcó en el onboarding: el mapa del comercio
+# ya la desplaza (`fuzz_point`, TECH_DEBT S4), y este endpoint la devolvía
+# exacta a cualquier sesión con el `profile_id` que el mismo mapa entrega.
+# La fecha de nacimiento tampoco hace falta: la vista pública usa `age`.
+_PRIVATE_PROFILE_FIELDS = ("latitude", "longitude", "birth_date")
+
+
 @router.get(
     "/{profile_id}",
     response_model=WorkerProfileResponse,
@@ -190,7 +198,7 @@ async def get_profile(
     service: ServiceDep,
     users: UsersDep,
     verification: VerificationDep,
-    _current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         profile = await service.get_profile(profile_id)
@@ -199,4 +207,7 @@ async def get_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Perfil no encontrado",
         ) from exc
-    return await _to_response(profile, users, verification)
+    response = await _to_response(profile, users, verification)
+    if current_user.id == profile.user_id or current_user.role == UserRole.ADMIN:
+        return response
+    return response.model_copy(update={field: None for field in _PRIVATE_PROFILE_FIELDS})

@@ -41,6 +41,7 @@ from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
     EmailVerificationTokenInvalidError,
     GoogleEmailNotVerifiedError,
+    GuestAccessDisabledError,
     InactiveUserError,
     InvalidCredentialsError,
     InvalidGuestPinError,
@@ -74,16 +75,15 @@ logger = logging.getLogger(__name__)
 
 # --- Acceso de invitado para la beta ("Explorar sin cuenta") --------------
 # PIN pensado para que un grupo cerrado de testers entre a probar la app sin
-# registrarse. Se configura ACÁ, en el código (no es una env var, a pedido de
-# la operadora: "algo simple que puedas configurar, sin variables").
+# registrarse. Se configura con la env var `GUEST_ACCESS_PIN`
+# (`settings.guest_access_pin`); vacía = acceso invitado apagado.
 #
-#   👉 Para cambiar el PIN, editá esta constante y nada más.
-#
-# OJO (honestidad): si el repositorio es público, este valor queda visible en
-# el código. Es un gate liviano para una beta con amigos, NO una credencial
-# fuerte. Para seguridad real, moverlo a una env var. El rate-limit por IP del
-# endpoint (ver api/routes.py) frena la fuerza bruta.
-GUEST_ACCESS_PIN = "3526"
+# Hasta 2026-10-10 era una constante en este archivo, a pedido de la
+# operadora ("algo simple, sin variables"). Pero el repositorio es público:
+# el PIN estaba a la vista de cualquiera, y con él se entraba como comercio
+# al mapa de trabajadores. Ese valor quedó en la historia de git y no se
+# reusa. El rate-limit por IP del endpoint (ver api/routes.py) frena la
+# fuerza bruta; aun así conviene un PIN de 8+ caracteres.
 
 # Cuentas invitadas compartidas (una por rol), creadas on-demand la primera vez
 # que alguien entra con el PIN. Son sandboxes COMPARTIDOS: todos los testers de
@@ -174,12 +174,16 @@ class IdentityService:
         return await self._issue_tokens(user)
 
     async def guest_login(self, pin: str, role: UserRole) -> TokenPair:
-        """Acceso de invitado (beta): valida el PIN configurado en código y
+        """Acceso de invitado (beta): valida el PIN de `GUEST_ACCESS_PIN` y
         entra en la cuenta invitada compartida del rol pedido, creándola la
         primera vez. El tester sólo pone el PIN — nunca se exponen
         credenciales, y la cuenta invitada tiene contraseña imposible (no se
-        puede loguear por email/contraseña)."""
-        if not secrets.compare_digest(pin, GUEST_ACCESS_PIN):
+        puede loguear por email/contraseña). Sin PIN configurado, el acceso
+        invitado está apagado."""
+        expected_pin = settings.guest_access_pin
+        if not expected_pin:
+            raise GuestAccessDisabledError()
+        if not secrets.compare_digest(pin.encode(), expected_pin.encode()):
             raise InvalidGuestPinError()
 
         email, name = GUEST_ACCOUNTS[role]

@@ -30,6 +30,7 @@ from app.modules.shift.api.schemas import (
     ShiftInput,
     ShiftPublicResponse,
     ShiftResponse,
+    without_worker_data,
 )
 from app.modules.shift.application.dtos import EventData, EventRoleData, ShiftData
 from app.modules.shift.application.services import ShiftService
@@ -140,31 +141,6 @@ async def _is_party_to(
         profile = await workers.get_by_user_id(user.id)
         return profile is not None and profile.id == shift.worker_profile_id
     return False
-
-
-# Datos de una PERSONA (el trabajador del turno), no del turno: quién lo tomó,
-# dónde está viajando, dónde marcó llegada y salida, quién faltó.
-_WORKER_DATA_FIELDS = (
-    "worker_profile_id",
-    "worker_name",
-    "en_route_latitude",
-    "en_route_longitude",
-    "en_route_at",
-    "check_in_latitude",
-    "check_in_longitude",
-    "check_in_at",
-    "check_out_latitude",
-    "check_out_longitude",
-    "check_out_at",
-    "no_show_at",
-    "last_no_show_worker_profile_id",
-)
-
-
-def _without_worker_data(response: ShiftResponse) -> ShiftResponse:
-    """La vista de un turno para quien no es parte de él: todo lo del turno,
-    nada del trabajador."""
-    return response.model_copy(update={field: None for field in _WORKER_DATA_FIELDS})
 
 
 async def _with_pay_band(
@@ -291,7 +267,7 @@ async def feed(
     # Un turno reabierto por un no-show vuelve al feed con la marca de quién
     # faltó (`last_no_show_worker_profile_id`): otro trabajador no tiene por
     # qué verla.
-    return [_without_worker_data(r) for r in responses]
+    return [without_worker_data(r) for r in responses]
 
 
 @router.get(
@@ -423,7 +399,7 @@ async def get_shift(
         # No-disclosure: un turno ajeno que ya no está abierto no existe
         # para quien no es parte (mismo criterio que `/public`).
         raise _not_found()
-    return _without_worker_data(response)
+    return without_worker_data(response)
 
 
 @router.get(

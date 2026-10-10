@@ -87,8 +87,14 @@ toda vista previa y el sitemap apuntaban ahí.
    responde 503 (flag por ausencia) y el botón "Completar" muestra un
    error claro en vez de fallar en silencio.
 
-> El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
-> configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
+> **`GUEST_ACCESS_PIN`** (Render, **pendiente desde 2026-10-10**): el PIN
+> del acceso invitado ("Explorar sin cuenta"). Hasta esa fecha era una
+> constante en el código, pero el repo es público y con ese PIN cualquiera
+> entraba como comercio al mapa de trabajadores. **Sin esta var el acceso
+> invitado está apagado** (`POST /auth/guest` responde 404 y la pantalla
+> muestra "El acceso de invitado no está disponible"). Usar un PIN nuevo de
+> 8 o más caracteres; el viejo quedó en la historia de git y no sirve.
+> Para cambiarlo alcanza con editar la var (Render redeploya solo).
 
 **Otros pendientes operativos (no env vars):**
 - ✅ **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02,

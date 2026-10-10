@@ -9,6 +9,7 @@ from app.modules.saved_shift.domain.exceptions import ShiftNotSavableError
 from app.modules.saved_shift.domain.repositories import SavedShiftRepository
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
 
 # Tope de guardados considerados al listar — un trabajador de la beta no se
 # acerca a este volumen; de sobrarse, es mejor señal de que hace falta
@@ -30,7 +31,14 @@ class SavedShiftService:
         """Guarda un turno. Idempotente: si ya estaba guardado, devuelve el
         registro existente en vez de duplicar."""
         shift = await self._shifts.get_by_id(shift_id)
-        if shift is None:
+        # Sólo se guarda lo que el trabajador puede ver: un turno abierto, o
+        # el suyo. Antes se aceptaba cualquier id (circulan por WhatsApp y
+        # `/turno/{id}`) y "guardados" servía para seguir un turno ajeno
+        # —borrador, cerrado o en curso— que el detalle ya no muestra.
+        # Ajeno y no abierto = inexistente (mismo criterio que `GET /shifts/{id}`).
+        if shift is None or not (
+            shift.status in OPEN_STATUSES or shift.worker_profile_id == worker_profile_id
+        ):
             raise ShiftNotSavableError(str(shift_id))
 
         existing = await self._saved_shifts.get_by_worker_and_shift(
@@ -59,6 +67,9 @@ class SavedShiftService:
         if not shift_ids:
             return []
         shifts = await self._shifts.list_by_ids(shift_ids)
+        # Un borrador nunca fue público: si quedó guardado de antes de que
+        # `save` mirara el estado, no se lista.
+        shifts = [s for s in shifts if s.status != ShiftStatus.BORRADOR]
         # Por fecha del turno (el más próximo primero), no por cuándo se
         # guardó — es lo que sirve para planificar. Los turnos sin horario
         # cargado (no debería pasar en la práctica) quedan al final.
