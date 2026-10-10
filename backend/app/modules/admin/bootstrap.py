@@ -30,6 +30,13 @@ async def promote_configured_admins() -> None:
                 continue
             if user.role == UserRole.ADMIN:
                 continue
+            if not user.is_verified:
+                # Cualquiera puede registrarse con un email que todavía no
+                # tiene cuenta: si ese email estaba en ADMIN_EMAILS, el
+                # próximo reinicio lo hacía admin sin que nadie probara ser
+                # dueño de la casilla. Sólo se promueve una cuenta verificada.
+                logger.warning("ADMIN_EMAILS: %s no confirmó su email, no se promueve", email)
+                continue
             user.promote_to_admin()
             await repo.update(user)
             logger.info("ADMIN_EMAILS: %s promovido a administrador", email)

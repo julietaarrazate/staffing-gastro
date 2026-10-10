@@ -124,6 +124,67 @@ async def test_google_login_existing_user_logs_in(client: AsyncClient):
     assert body["role"] == "worker"
 
 
+async def test_google_takes_over_an_account_nobody_verified(client: AsyncClient):
+    """Alguien se registra con un email ajeno (sin confirmarlo) antes que la
+    dueña. Cuando ella entra con Google —que sí prueba que el email es suyo—
+    la cuenta queda de ella: verificada, la contraseña del otro deja de
+    servir y sus sesiones se cierran."""
+    await register_user(client, email="victima@gmail.com", password="clave-del-otro-123")
+    attacker = await client.post(
+        "/api/v1/auth/login", json={"email": "victima@gmail.com", "password": "clave-del-otro-123"}
+    )
+    assert attacker.status_code == 200
+    attacker_refresh = client.cookies.get("staffya_refresh")
+
+    _override_verifier(
+        _FakeGoogleVerifier(
+            GoogleIdentity(email="victima@gmail.com", email_verified=True, full_name="Dueña")
+        )
+    )
+    owner = await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+    assert owner.status_code == 200
+    me = await client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {owner.json()['access_token']}"}
+    )
+    assert me.json()["is_verified"] is True
+
+    # La contraseña que puso el otro ya no entra...
+    again = await client.post(
+        "/api/v1/auth/login", json={"email": "victima@gmail.com", "password": "clave-del-otro-123"}
+    )
+    assert again.status_code == 401
+    # ...y su sesión abierta tampoco se puede renovar.
+    client.cookies.set("staffya_refresh", attacker_refresh)
+    refreshed = await client.post("/api/v1/auth/refresh")
+    assert refreshed.status_code == 401
+
+
+async def test_google_on_a_verified_account_keeps_its_password(client: AsyncClient, session_factory):
+    """Una cuenta que ya confirmó su email no pierde la contraseña por entrar
+    también con Google."""
+    from sqlalchemy import update
+
+    from app.modules.identity.infrastructure.models import UserModel
+
+    await register_user(client, email="confirmada@gmail.com", password="mi-clave-123")
+    async with session_factory() as session:
+        await session.execute(
+            update(UserModel).where(UserModel.email == "confirmada@gmail.com").values(is_verified=True)
+        )
+        await session.commit()
+
+    _override_verifier(
+        _FakeGoogleVerifier(
+            GoogleIdentity(email="confirmada@gmail.com", email_verified=True, full_name="Ella")
+        )
+    )
+    assert (await client.post("/api/v1/auth/google", json={"id_token": "tok"})).status_code == 200
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "confirmada@gmail.com", "password": "mi-clave-123"}
+    )
+    assert login.status_code == 200
+
+
 async def test_google_login_invalid_token(client: AsyncClient):
     _override_verifier(_FakeGoogleVerifier(error=GoogleTokenInvalidError()))
     response = await client.post("/api/v1/auth/google", json={"id_token": "invalido"})

@@ -224,6 +224,8 @@ class IdentityService:
         if user is not None:
             if not user.is_active:
                 raise InactiveUserError()
+            if not user.is_verified:
+                await self._claim_unverified_account(user)
             return await self._issue_tokens(user)
 
         if command.role is None:
@@ -246,6 +248,25 @@ class IdentityService:
         # confirmada, así que es acá. Antes estas cuentas no la recibían nunca.
         await self._send_welcome_email(user)
         return await self._issue_tokens(user)
+
+    async def _claim_unverified_account(self, user: User) -> None:
+        """Google acaba de probar que quien entra es dueño del email; la cuenta
+        que ya existía con ese email nunca lo probó (se registró con
+        contraseña y no confirmó el mail). Puede ser de la misma persona... o
+        de alguien que la creó primero con un email ajeno: antes, al entrar
+        con Google, la dueña real compartía la cuenta con quien la había
+        creado, que seguía entrando con su contraseña y veía todo lo que ella
+        cargaba (DNI, chats, perfil).
+
+        Ahora la cuenta queda de quien probó el email: se marca verificada, la
+        contraseña anterior deja de servir y se cierran todas las sesiones
+        abiertas. Si era la misma persona, pierde la contraseña que nunca
+        confirmó y la recupera con "Olvidé mi contraseña"."""
+        user.verify()
+        user.hashed_password = _google_local_password()
+        await self._users.update(user)
+        await self._sessions.revoke_all_for_user(user.id)
+        logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
 
     async def _record_terms_acceptance(
         self, user: User, channel: TermsAcceptanceChannel

@@ -87,7 +87,7 @@ toda vista previa y el sitemap apuntaban ahí.
    responde 503 (flag por ausencia) y el botón "Completar" muestra un
    error claro en vez de fallar en silencio.
 
-> **`GUEST_ACCESS_PIN`** (Render, **pendiente desde 2026-10-10**): el PIN
+> ✅ **`GUEST_ACCESS_PIN`** (Render, cargada por Julieta el 2026-10-10): el PIN
 > del acceso invitado ("Explorar sin cuenta"). Hasta esa fecha era una
 > constante en el código, pero el repo es público y con ese PIN cualquiera
 > entraba como comercio al mapa de trabajadores. **Sin esta var el acceso
