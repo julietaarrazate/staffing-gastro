@@ -31,6 +31,7 @@ from app.modules.notification.api.routes import router as notification_router
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.shift.application.scheduler import start_scheduler
+from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.subscription.api.routes import router as subscription_router
 from app.modules.support.api.routes import router as support_router
 from app.modules.upload.api.routes import router as upload_router
@@ -117,6 +118,17 @@ async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONR
     respuesta guardada la primera vez, sin re-ejecutar el handler (ver
     `app/core/idempotency.py` y `product/IDEMPOTENCIA_SPEC.md`)."""
     return JSONResponse(status_code=exc.status_code, content=exc.body)
+
+
+@app.exception_handler(ShiftConcurrentModificationError)
+async def handle_shift_conflict(_: Request, exc: ShiftConcurrentModificationError) -> JSONResponse:
+    """Dos acciones a la vez sobre el mismo turno (ADR-0016): la segunda no se
+    guarda. Va acá y no en cada ruta porque cualquier mutación del turno
+    puede perder la carrera, y la respuesta es siempre la misma."""
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "El turno cambió mientras tanto. Actualizá y volvé a intentar."},
+    )
 
 
 # --- Routers de los módulos ---

@@ -28,3 +28,8 @@ class ShiftNotAssignedToWorkerError(ShiftError):
 class OverlappingShiftError(ShiftError):
     """El trabajador ya tiene otro turno comprometido cuyo horario se solapa
     con el que intenta confirmar (regla de doble turno)."""
+
+
+class ShiftConcurrentModificationError(ShiftError):
+    """Otro pedido modificó el turno entre que se leyó y se quiso guardar
+    (ADR-0016). Nada se guardó: hay que volver a leerlo y decidir de nuevo."""

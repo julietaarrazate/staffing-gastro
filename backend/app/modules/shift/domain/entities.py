@@ -139,6 +139,12 @@ class Shift:
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
+    # Versión del agregado (ADR-0016, bloqueo optimista): la que tenía el
+    # turno cuando se leyó. Guardarlo exige que en la base siga siendo esa;
+    # si otro la cambió en el medio, `ShiftConcurrentModificationError`.
+    # La maneja el repositorio; el dominio sólo la transporta.
+    version: int = 1
+
     def __post_init__(self) -> None:
         self._validate_schedule()
 
