@@ -16,6 +16,11 @@ formulario y no tiene tanto que ver con la landing y la app".
   mismo tratamiento que los precios de los planes. La primera versión lo
   tenía en celeste sólido y Julieta pidió sacarlo "para que no quede todo
   tan celeste nuevamente".
+- Las dos fichas llevan `bg-glow`, el mismo degradé celeste y ámbar de la
+  tarjeta del plan Básico (pedido de Julieta: "que tenga ese efecto
+  gradiente"). Quedó anotado en `color-system.md`, "Vidrio y brillo".
+- La línea gris que separaba los datos dentro de cada ficha pasa a ser la
+  barrita ámbar→celeste del plan Pro, también a pedido de Julieta.
 - La sección deja el fondo `bg-paper` (que en la paleta celeste es
   celeste grisáceo) y queda sobre el lienzo, como "Precios".
 - Las reglas que quedan como texto: no-show sin volver a publicar, urgente a

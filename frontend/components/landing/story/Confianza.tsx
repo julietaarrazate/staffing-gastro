@@ -114,7 +114,7 @@ function FichaTrabajador() {
     { v: String(LUCIA.events_completed ?? 0), k: "turnos" },
   ];
   return (
-    <div className="h-full rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div className="h-full rounded-[var(--radius-card)] bg-glow p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
       <div className="flex items-center gap-3">
         <Avatar src={null} name={LUCIA.full_name} size="lg" />
         <div className="min-w-0">
@@ -125,7 +125,9 @@ function FichaTrabajador() {
       <div className="mt-4">
         <IdentityVerifiedBadge verified />
       </div>
-      <dl className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-4 text-center">
+      {/* La barrita del plan Pro (Carta): ámbar a celeste, como divisor. */}
+      <div aria-hidden className="mt-4 h-1.5 w-full rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <dl className="mt-4 grid grid-cols-3 divide-x divide-line text-center">
         {datos.map((d) => (
           <div key={d.k}>
             <dd className="inline-flex items-center gap-1 font-mono text-lg font-medium tabular-nums text-ink">
@@ -146,7 +148,7 @@ function FichaTrabajador() {
 /** Lo que ve el trabajador de quien le va a pagar. */
 function FichaComercio() {
   return (
-    <div className="h-full rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div className="h-full rounded-[var(--radius-card)] bg-glow p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
       <div className="flex items-center gap-3">
         <span aria-hidden className="grid size-16 shrink-0 place-items-center rounded-2xl bg-card ring-1 ring-line">
           <GlassIcon size={26} className="text-ink" />
@@ -163,7 +165,9 @@ function FichaComercio() {
       </div>
       {/* Mismo tratamiento que los precios de los planes (Carta): número en
           tinta, sin bloque de color, para no cargar de celeste la sección. */}
-      <div className="mt-4 border-t border-line pt-4">
+      {/* La barrita del plan Pro (Carta): ámbar a celeste, como divisor. */}
+      <div aria-hidden className="mt-4 h-1.5 w-full rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <div className="mt-4">
         <p className="font-mono text-label font-medium uppercase tracking-[0.12em] text-ink-mute">Te paga directo</p>
         <p className="mt-1 flex items-baseline gap-1">
           <span className="font-display text-price font-semibold tracking-[-0.03em] tabular-nums text-ink">$70.000</span>
