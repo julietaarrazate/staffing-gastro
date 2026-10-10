@@ -11,9 +11,13 @@ formulario y no tiene tanto que ver con la landing y la app".
 - "Si tenés un local": la ficha de Lucía, la misma de la historia (avatar,
   "Identidad verificada", 4,9 de reseñas, 96% puntual, 23 turnos) y una
   línea que dice que el DNI y la selfie los revisa una persona.
-- "Si trabajás": la ficha de Tu bar con "Comercio verificado" y el bloque de
-  pago en celeste sólido ("Te paga directo · $70.000 · Sin comisión"), el
-  mismo tratamiento que el pago en el detalle del turno.
+- "Si trabajás": la ficha de Tu bar con "Comercio verificado" y el pago
+  ("Te paga directo · $70.000 por el turno · Sin comisión") en tinta, con el
+  mismo tratamiento que los precios de los planes. La primera versión lo
+  tenía en celeste sólido y Julieta pidió sacarlo "para que no quede todo
+  tan celeste nuevamente".
+- La sección deja el fondo `bg-paper` (que en la paleta celeste es
+  celeste grisáceo) y queda sobre el lienzo, como "Precios".
 - Las reglas que quedan como texto: no-show sin volver a publicar, urgente a
   los 8 minutos, ubicación sólo cuando la prendés y postulaciones que se
   bajan solas. El texto total bajó a la mitad.

@@ -49,8 +49,8 @@ export default function Confianza() {
       ref={ref}
       aria-label="Confianza"
       data-fin-historia
-      data-tone="paper"
-      className="bg-paper px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-12 lg:px-12 lg:py-28"
+      data-tone="light"
+      className="px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-12 lg:px-12 lg:py-28"
     >
       <h2 className="font-display text-poster font-semibold tracking-[-0.03em] text-ink [text-wrap:balance] lg:col-span-4 lg:text-[length:var(--text-poster)]">
         Sabés quién viene. <span className="font-medium text-ink-soft">Y ella sabe a dónde va.</span>
@@ -87,9 +87,11 @@ function Lado({
   reglas: { icon: ReactNode; texto: string }[];
 }) {
   return (
-    <div>
+    <div className="flex flex-col">
       <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-primary-text">{titulo}</p>
-      <div className="mt-4">{ficha}</div>
+      {/* flex-1 + h-full en la ficha: en compu las dos fichas terminan a la
+          misma altura y las reglas de abajo arrancan alineadas. */}
+      <div className="mt-4 flex-1">{ficha}</div>
       <ul className="mt-5 grid gap-3">
         {reglas.map((r) => (
           <li key={r.texto} className="flex items-start gap-3 text-body text-ink">
@@ -112,7 +114,7 @@ function FichaTrabajador() {
     { v: String(LUCIA.events_completed ?? 0), k: "turnos" },
   ];
   return (
-    <div className="rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div className="h-full rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
       <div className="flex items-center gap-3">
         <Avatar src={null} name={LUCIA.full_name} size="lg" />
         <div className="min-w-0">
@@ -144,7 +146,7 @@ function FichaTrabajador() {
 /** Lo que ve el trabajador de quien le va a pagar. */
 function FichaComercio() {
   return (
-    <div className="rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div className="h-full rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
       <div className="flex items-center gap-3">
         <span aria-hidden className="grid size-16 shrink-0 place-items-center rounded-2xl bg-card ring-1 ring-line">
           <GlassIcon size={26} className="text-ink" />
@@ -159,10 +161,15 @@ function FichaComercio() {
           Comercio verificado
         </Badge>
       </div>
-      <div className="mt-4 rounded-2xl bg-secondary px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-on-brand/75">Te paga directo</p>
-        <p className="text-price font-extrabold tracking-tight text-on-brand">$70.000</p>
-        <p className="text-sm text-on-brand/80">Sin comisión ni intermediarios</p>
+      {/* Mismo tratamiento que los precios de los planes (Carta): número en
+          tinta, sin bloque de color, para no cargar de celeste la sección. */}
+      <div className="mt-4 border-t border-line pt-4">
+        <p className="font-mono text-label font-medium uppercase tracking-[0.12em] text-ink-mute">Te paga directo</p>
+        <p className="mt-1 flex items-baseline gap-1">
+          <span className="font-display text-price font-semibold tracking-[-0.03em] tabular-nums text-ink">$70.000</span>
+          <span className="whitespace-nowrap text-body text-ink-mute">por el turno</span>
+        </p>
+        <p className="text-sm text-ink-soft">Sin comisión ni intermediarios.</p>
       </div>
       <p className="mt-4 text-sm text-ink-soft">Su constancia de AFIP la revisó una persona.</p>
     </div>
