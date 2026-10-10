@@ -93,7 +93,9 @@ toda vista previa y el sitemap apuntaban ahí.
 > entraba como comercio al mapa de trabajadores. **Sin esta var el acceso
 > invitado está apagado** (`POST /auth/guest` responde 404 y la pantalla
 > muestra "El acceso de invitado no está disponible"). Usar un PIN nuevo de
-> 8 o más caracteres; el viejo quedó en la historia de git y no sirve.
+> 8 o más **dígitos**, sin letras: el campo del login abre el teclado
+> numérico (`inputMode="numeric"`) y en el celular no se pueden tipear
+> letras. El viejo quedó en la historia de git y no sirve.
 > Para cambiarlo alcanza con editar la var (Render redeploya solo).
 
 **Otros pendientes operativos (no env vars):**

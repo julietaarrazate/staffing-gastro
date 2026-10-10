@@ -1,4 +1,4 @@
-# Dos acciones a la vez sobre un turno, e idempotencia que se trababa
+# Dos acciones a la vez sobre un turno, e idempotencia que se trababa (#417)
 
 **Pedido:** segundo arreglo de la auditoría del 2026-10-10 (ver
 [`2026-10-10-auditoria-privacidad.md`](./2026-10-10-auditoria-privacidad.md)),

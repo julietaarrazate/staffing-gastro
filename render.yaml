@@ -101,7 +101,8 @@ services:
         sync: false
       # PIN del acceso invitado ("Explorar sin cuenta"). Vacío = apagado
       # (`POST /auth/guest` responde 404). Hasta 2026-10-10 estaba fijo en el
-      # código y el repo es público: el valor viejo no se reusa. 8+ caracteres.
+      # código y el repo es público: el valor viejo no se reusa. 8+ DÍGITOS:
+      # el login abre el teclado numérico, con letras no se puede tipear.
       - key: GUEST_ACCESS_PIN
         sync: false
     autoDeploy: true
