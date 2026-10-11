@@ -17,6 +17,16 @@ export class ApiError extends Error {
  * token sea inválido. */
 export class NetworkError extends Error {}
 
+/** El backend no está disponible por un rato: sin conexión, timeout, o un
+ * 5xx/408/429 (Render responde 502-504 mientras arranca en frío). Eso no dice
+ * nada de la validez del token, así que nunca debe cerrar la sesión: sólo
+ * una respuesta de auth (401/403) la invalida. */
+export function isTransientFailure(err: unknown): boolean {
+  if (err instanceof NetworkError) return true;
+  if (!(err instanceof ApiError)) return false;
+  return err.status >= 500 || err.status === 408 || err.status === 429;
+}
+
 // --- Token de la sesión: el que ven las pantallas y el que se manda --------
 //
 // El access token vence a los 15 minutos y `AuthProvider` lo renueva cada 10.

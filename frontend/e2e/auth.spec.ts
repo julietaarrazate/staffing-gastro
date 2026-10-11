@@ -1,5 +1,10 @@
-import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { test, expect, type Route } from "@playwright/test";
+import {
+  blockExternalHosts,
+  HAS_SESSION_KEY,
+  injectSession,
+  mockEmptyNotifications,
+} from "./mocks";
 
 /**
  * Login manual (R1.5b): completa el form de /login, mockea
@@ -161,4 +166,35 @@ test("cerrar sesión revoca el refresh token en el backend", async ({ page }) =>
 
   await expect(page).toHaveURL(/\/login$/);
   await expect.poll(() => logoutCalled).toBe(true);
+});
+
+/**
+ * Con el backend arrancando en frío (Render responde 502-504 un rato), un
+ * 5xx en `/auth/me` y en `/auth/refresh` no dice nada del token. Antes se
+ * trataba como sesión inválida: se borraba la sesión y la persona terminaba
+ * en /login, aunque hubiera abierto la app por un aviso urgente. Ahora se
+ * conserva y la pantalla queda en su lugar hasta que el server despierte.
+ */
+test("un 503 del backend al abrir la app no cierra la sesión", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  const unavailable = (route: Route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: "Service Unavailable" }),
+    });
+  await page.route("**/api/v1/auth/me", unavailable);
+  await page.route("**/api/v1/auth/refresh", unavailable);
+  await page.route("**/api/v1/chats**", unavailable);
+
+  await page.goto("/chats");
+
+  await expect(page).toHaveURL(/\/chats$/);
+  await page.waitForTimeout(1500);
+  await expect(page).not.toHaveURL(/\/login/);
+  const hasSession = await page.evaluate((key) => localStorage.getItem(key), HAS_SESSION_KEY);
+  expect(hasSession).not.toBeNull();
 });

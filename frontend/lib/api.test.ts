@@ -3,6 +3,8 @@ import {
   api,
   ApiError,
   bindSessionToken,
+  isTransientFailure,
+  NetworkError,
   renewSessionToken,
   resolveToken,
   setUnauthorizedHandler,
@@ -127,5 +129,21 @@ describe("token de la sesión", () => {
 
     await expect(api.get("/x", "otro")).rejects.toBeInstanceOf(ApiError);
     expect(renew).not.toHaveBeenCalled();
+  });
+});
+
+describe("isTransientFailure", () => {
+  it("un backend que no está (sin red, timeout o arrancando en frío) es transitorio", () => {
+    expect(isTransientFailure(new NetworkError("sin red"))).toBe(true);
+    for (const status of [500, 502, 503, 504, 408, 429]) {
+      expect(isTransientFailure(new ApiError(status, "x"))).toBe(true);
+    }
+  });
+
+  it("un rechazo de auth o un error de negocio no es transitorio", () => {
+    for (const status of [400, 401, 403, 404, 409, 422]) {
+      expect(isTransientFailure(new ApiError(status, "x"))).toBe(false);
+    }
+    expect(isTransientFailure(new Error("otra cosa"))).toBe(false);
   });
 });
