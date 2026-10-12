@@ -34,7 +34,7 @@ export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
   {
     pregunta: "¿Cómo verifican a las personas?",
     respuesta:
-      "Una persona revisa el DNI y la selfie de cada trabajador, y la constancia de AFIP de cada comercio.",
+      "Verificamos el DNI y la selfie de cada trabajador, y la constancia de AFIP de cada comercio.",
   },
   {
     pregunta: "Si trabajo, ¿me cobran algo?",

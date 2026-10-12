@@ -35,7 +35,10 @@ export default function RelojDelTurno({
       <span className="sr-only">{`${hora}, turno de mozo: ${estado.toLowerCase()}`}</span>
       <span
         aria-hidden
-        className={cn("h-1.5 w-1.5 shrink-0 rounded-full", covered ? "bg-on-brand-label" : "bg-danger")}
+        className={cn(
+          "h-1.5 w-1.5 shrink-0 rounded-full",
+          covered ? "bg-on-brand-label" : at === "sinCubrir" ? "bg-danger" : "bg-manteca"
+        )}
       />
       <span aria-hidden className="tabular-nums">
         {hh}

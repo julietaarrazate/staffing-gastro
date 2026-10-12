@@ -43,7 +43,7 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
   await sinSesion(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /¿Se te cayó alguien para hoy\?\s*Cubrí el turno en minutos/
+    /¿Faltó alguien de tu equipo\?\s*Cubrí el turno en minutos/
   );
   const hero = page.locator("#hero-ctas");
   await expect(hero.getByRole("link", { name: "Publicar un turno gratis" })).toHaveAttribute(
@@ -178,13 +178,12 @@ const ANDROID_UA =
 test.describe("instalar en iPhone", () => {
   test.use({ userAgent: IPHONE_UA, viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("muestra sólo los pasos de iPhone: Compartir y Agregar a inicio", async ({ page }) => {
+  test("muestra los dos caminos, primero Safari: Compartir y Agregar a inicio", async ({ page }) => {
     await sinSesion(page);
     await page.goto("/");
-    const instalar = page.locator("#instalar");
-    await expect(instalar.getByRole("heading", { name: "En iPhone" })).toBeVisible();
-    await expect(instalar).toContainText("Agregar a inicio");
-    await expect(instalar.getByRole("heading", { name: "En Android" })).toHaveCount(0);
+    const titulos = page.locator("#instalar h3");
+    await expect(titulos).toHaveText(["iPhone · desde Safari", "Android · desde Chrome"]);
+    await expect(page.locator("#instalar")).toContainText("Agregar a inicio");
   });
 });
 

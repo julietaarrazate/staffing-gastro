@@ -1135,6 +1135,34 @@ body:has([data-landing]) main {
 [data-reveal="pending"] :is(.anim-pop, .anim-ring, .anim-rise, .anim-drop, .anim-shout) {
   opacity: 0;
 }
+/* Sólo existe durante la animación (el reloj "Avisado a 10" del mapa):
+   quieto no se ve, porque el estado final es el que lo reemplaza. */
+.anim-out {
+  opacity: 0;
+}
+@keyframes landingInOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  12%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+[data-reveal="shown"] .anim-out {
+  animation: landingInOut 2.2s ease var(--d, 0s) both;
+}
+/* Los campos del pedido (paso 1): entran cuando se marcan las partes de la
+   frase; los dispara JavaScript, no el `Reveal`. */
+.landing-chip {
+  animation: landingPop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 [data-reveal="pending"] .anim-fill {
   opacity: 0.15;
 }

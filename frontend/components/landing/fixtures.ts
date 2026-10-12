@@ -148,10 +148,12 @@ export const PEDIDO_PARTES = [
 
 /**
  * El reloj del turno: de que Martín avisa que no llega (20:46) a que Lucía
- * confirma (20:54).
+ * confirma (20:54), con los estados que muestra el mapa del paso 2.
  */
 export const RELOJ = {
   sinCubrir: { hora: "20:46", estado: "Sin cubrir" },
+  avisado: { hora: "20:48", estado: "Avisado a 10" },
+  postulantes: { hora: "20:51", estado: "3 postulantes" },
   cubierto: { hora: "20:54", estado: "Cubierto" },
 } as const;
 

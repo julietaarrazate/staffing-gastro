@@ -10,7 +10,7 @@ import Reveal from "./Reveal";
 /**
  * Confianza, del lado del comercio: la ficha de quien le va a entrar al salón
  * y cuatro reglas cortas. Cada una es una regla real del producto:
- * - DNI y selfie revisados por una persona: ADR-0010;
+ * - identidad verificada con DNI y selfie: ADR-0010;
  * - reseñas sólo de turnos hechos: ADR-0013;
  * - no se presentó: ADR-0007;
  * - ubicación sólo en camino: ADR-0014 y "va en camino" (#320).
@@ -19,7 +19,7 @@ import Reveal from "./Reveal";
 const LUCIA = CANDIDATES[0];
 
 const REGLAS = [
-  { icon: <ShieldIcon size={20} />, texto: "DNI y selfie revisados por una persona" },
+  { icon: <ShieldIcon size={20} />, texto: "Identidad verificada con DNI y selfie" },
   { icon: <StarIcon size={20} />, texto: "Reseñas sólo de turnos hechos en Oído, nadie se las pone solo" },
   { icon: <XCircleIcon size={20} />, texto: "¿No vino? La marcás y elegís a otra persona sin volver a publicar" },
   { icon: <MapPinIcon size={20} />, texto: "Ves su ubicación sólo mientras viene en camino" },

@@ -78,10 +78,6 @@ export default function Precios() {
             Empezás gratis, sin comisión por turno
           </h2>
         </div>
-        <p className="mt-4 max-w-[34ch] text-lg text-ink-soft lg:mt-0">
-          Cambiás de plan según cuántos turnos publicás por mes. A quien trabaja le pagás directo vos, sin
-          intermediarios.
-        </p>
       </div>
 
       <Reveal>

@@ -5,10 +5,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import CandidateCard from "@/components/CandidateCard";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import { Avatar, Rating } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { formatKm } from "@/lib/format";
 import { CANDIDATES, MAP_WORKERS, PEDIDO } from "./fixtures";
 import RelojDelTurno from "./RelojDelTurno";
-import { DescribeBox, PricePin, StreetGrid, WorkerPin } from "./replicas";
+import { DescribeBox, PricePin, StreetGrid, ToastLine, WorkerPin } from "./replicas";
 import Reveal from "./Reveal";
 import { useStoryShift } from "./useStoryShift";
 
@@ -39,19 +40,14 @@ export default function ComoFunciona() {
           <Paso
             n={1}
             titulo="Contalo como lo dirías"
-            texto={
-              <>
-                Escribí &ldquo;Necesito un mozo hoy de 21 a 2, pago 70.000&rdquo;. Oído arma el turno y lo revisás
-                antes de publicar.
-              </>
-            }
+            alt="Escribís “Necesito un mozo hoy de 21 a 2, pago 70.000” y Oído arma el turno: puesto, horario y pago."
           >
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-5">
               <PedidoEscribiendose />
-              {/* En el celular alcanza con la frase: la tarjeta sola suma media
-                  pantalla y el paso 3 ya muestra cómo se ve un turno. */}
+              {/* En el celular alcanza con la frase y sus piezas: la tarjeta
+                  sola suma media pantalla. */}
               <div className="hidden h-[285px] w-[240px] lg:block">
-                <div className="h-[380px] w-[320px] origin-top-left scale-[0.75]">
+                <div className="anim-rise h-[380px] w-[320px] origin-top-left scale-[0.75]" style={{ ["--d" as string]: "3.4s" }}>
                   <OpportunityCard shift={shift} preview />
                 </div>
               </div>
@@ -60,48 +56,14 @@ export default function ComoFunciona() {
           <Paso
             n={2}
             titulo="Le llega a quien está cerca"
-            texto="Avisamos primero a los 10 más indicados por cercanía, reputación y puntualidad. Si en 8 minutos nadie lo toma, pasa a urgente y le llega a más gente."
+            alt="El aviso les llega primero a los 10 más indicados de la zona; a los pocos minutos, tres ya se postularon."
           >
-            <div className="relative mx-auto aspect-square w-full max-w-[400px] overflow-hidden rounded-[1.75rem] bg-[var(--mapa)]">
-              <StreetGrid />
-              {/* Al entrar: se publica el turno (el pin), el aviso sale en
-                  ondas y a cada persona le llega cuando la onda la alcanza
-                  (el retraso sale de su distancia al local). */}
-              {[0.32, 0.52, 0.72].map((r, i) => (
-                <span
-                  key={r}
-                  className="anim-ring absolute rounded-full border-2 border-primary/40"
-                  style={{
-                    left: `${50 - r * 50}%`,
-                    top: `${50 - r * 50}%`,
-                    width: `${r * 100}%`,
-                    height: `${r * 100}%`,
-                    ["--d" as string]: `${500 + i * 350}ms`,
-                  }}
-                />
-              ))}
-              {MAP_WORKERS.map((w) => (
-                <span key={w.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${w.x}%`, top: `${w.y}%` }}>
-                  <span
-                    className="anim-pop block"
-                    style={{ ["--d" as string]: `${700 + Math.round(Math.hypot(w.x - 50, w.y - 50) * 30)}ms` }}
-                  >
-                    <WorkerPin inicial={w.inicial} variant="avisado" />
-                  </span>
-                </span>
-              ))}
-              <span className="absolute -translate-x-1/2 -translate-y-full" style={{ left: "50%", top: "50%" }}>
-                <PricePin className="anim-pop" style={{ ["--d" as string]: "150ms" }} />
-              </span>
-              <p className="absolute bottom-3 right-4 font-mono text-metadata uppercase tracking-[0.12em] text-ink-mute">
-                Ubicaciones aproximadas
-              </p>
-            </div>
+            <MapaAviso />
           </Paso>
           <Paso
             n={3}
             titulo="Elegís y te confirma"
-            texto="Ves por qué cada persona es buena opción. La asignás, te confirma desde su celular y la ves llegar."
+            alt="Ves a cada postulante con su puntaje, su puntualidad y su distancia; la asignás y te confirma."
           >
             <div className="mx-auto flex max-w-[400px] flex-col gap-2.5">
               <div className="anim-rise" style={{ ["--d" as string]: "250ms" }}>
@@ -114,6 +76,9 @@ export default function ComoFunciona() {
                 <div className="anim-rise" style={{ ["--d" as string]: "650ms" }}>
                   <CandidateRow candidateIndex={2} />
                 </div>
+              </div>
+              <div className="anim-pop mt-2 flex justify-center" style={{ ["--d" as string]: "1.5s" }}>
+                <ToastLine>Lucía confirmó · 20:54</ToastLine>
               </div>
             </div>
           </Paso>
@@ -149,27 +114,92 @@ export default function ComoFunciona() {
   );
 }
 
-function Paso({ n, titulo, texto, children }: { n: number; titulo: string; texto: ReactNode; children: ReactNode }) {
+/**
+ * Un paso: el título y la imagen animada. Sin bajada: lo que diría la imagen
+ * ya lo muestra (Julieta, 2026-10-12). Para los lectores de pantalla la
+ * imagen se describe en `alt`, porque las piezas van ocultas.
+ */
+function Paso({ n, titulo, alt, children }: { n: number; titulo: string; alt: string; children: ReactNode }) {
   return (
     <li className="grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-12">
       <Reveal className="lg:col-span-5">
         <p aria-hidden className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-primary-text">
           Paso {n}
         </p>
-        <h3 className="mt-3 font-display text-headline font-semibold tracking-[-0.012em] text-ink [text-wrap:balance]">
+        <h3 className="mt-3 font-display text-headline font-semibold tracking-[-0.012em] text-ink [text-wrap:balance] lg:text-poster">
           {titulo}
         </h3>
-        <p className="mt-4 max-w-[40ch] text-lg leading-[1.5] text-ink-soft">{texto}</p>
+        <p className="sr-only">{alt}</p>
       </Reveal>
       {/* Imagen del producto: piezas reales dentro de `inert` (no se pueden
-          tocar ni enfocar sus links) y `aria-hidden` (el texto de al lado ya
-          dice lo mismo). */}
+          tocar ni enfocar sus links) y `aria-hidden` (la describe `alt`). */}
       <Reveal className="lg:col-span-7" delay={120}>
         <div inert aria-hidden className="no-select">
           {children}
         </div>
       </Reveal>
     </li>
+  );
+}
+
+/**
+ * El mapa del paso 2, como una animación corta: se publica el turno (el pin),
+ * el aviso sale en ondas y a cada persona le llega cuando la onda la alcanza
+ * (el retraso sale de su distancia al local). El reloj dice "Avisado a 10";
+ * después tres se postulan (sus pines pasan a ámbar con su puntaje) y el
+ * reloj cambia a "3 postulantes". Quieto, se ve el final.
+ */
+function MapaAviso() {
+  return (
+    <div className="mx-auto w-full max-w-[400px]">
+      {/* El reloj: "Avisado a 10" mientras corre el aviso, "3 postulantes"
+          al final (el primero sólo existe durante la animación). Arriba del
+          mapa y no adentro, para no tapar pines. */}
+      <div className="relative mb-3 h-[2.125rem]">
+        <RelojDelTurno at="avisado" className="anim-out absolute left-0 top-0" style={{ ["--d" as string]: "0.4s" }} />
+        <RelojDelTurno at="postulantes" className="anim-pop" style={{ ["--d" as string]: "2.6s" }} />
+      </div>
+    <div className="relative aspect-square w-full overflow-hidden rounded-[1.75rem] bg-[var(--mapa)]">
+      <StreetGrid />
+      {[0.32, 0.52, 0.72].map((r, i) => (
+        <span
+          key={r}
+          className="anim-ring absolute rounded-full border-2 border-primary/40"
+          style={{
+            left: `${50 - r * 50}%`,
+            top: `${50 - r * 50}%`,
+            width: `${r * 100}%`,
+            height: `${r * 100}%`,
+            ["--d" as string]: `${500 + i * 350}ms`,
+          }}
+        />
+      ))}
+      {MAP_WORKERS.map((w) => (
+        <span key={w.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${w.x}%`, top: `${w.y}%` }}>
+          <span
+            className="anim-pop block"
+            style={{ ["--d" as string]: `${700 + Math.round(Math.hypot(w.x - 50, w.y - 50) * 30)}ms` }}
+          >
+            <WorkerPin inicial={w.inicial} variant="avisado" />
+          </span>
+          {w.candidato && (
+            <span
+              className="anim-pop absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2"
+              style={{ ["--d" as string]: `${2600 + MAP_WORKERS.indexOf(w) * 350}ms` }}
+            >
+              <WorkerPin inicial={w.inicial} variant="candidato" rating={w.rating} />
+            </span>
+          )}
+        </span>
+      ))}
+      <span className="absolute -translate-x-1/2 -translate-y-full" style={{ left: "50%", top: "50%" }}>
+        <PricePin className="anim-pop" style={{ ["--d" as string]: "150ms" }} />
+      </span>
+      <p className="absolute bottom-3 right-4 font-mono text-metadata uppercase tracking-[0.12em] text-ink-mute">
+        Ubicaciones aproximadas
+      </p>
+    </div>
+    </div>
   );
 }
 
@@ -206,6 +236,8 @@ function PedidoEscribiendose() {
   const ref = useRef<HTMLDivElement>(null);
   const [chars, setChars] = useState(PEDIDO.length);
   const [marked, setMarked] = useState(true);
+  // Si la animación corre (no estaba en pantalla, sin reducir movimiento).
+  const [animado, setAnimado] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -214,6 +246,7 @@ function PedidoEscribiendose() {
     if (el.getBoundingClientRect().top < window.innerHeight) return;
     setChars(0);
     setMarked(false);
+    setAnimado(true);
     let tick: ReturnType<typeof setInterval> | undefined;
     let mark: ReturnType<typeof setTimeout> | undefined;
     const io = new IntersectionObserver(
@@ -243,6 +276,29 @@ function PedidoEscribiendose() {
   return (
     <div ref={ref} className="w-full max-w-[420px]">
       <DescribeBox chars={chars} marked={marked} caret={chars < PEDIDO.length} />
+      {/* Las tres partes marcadas, convertidas en los campos del turno. */}
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {CAMPOS.map((c, i) => (
+          <span
+            key={c.k}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm text-ink shadow-[var(--shadow-soft)] ring-1 ring-line",
+              animado && (marked ? "landing-chip" : "opacity-0")
+            )}
+            style={{ animationDelay: `${150 + i * 180}ms` }}
+          >
+            <span className="font-mono text-label uppercase tracking-[0.1em] text-ink-mute">{c.k}</span>
+            <span className="font-semibold">{c.v}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
+
+/** Lo que Oído saca de la frase (mismos valores que la tarjeta del turno). */
+const CAMPOS = [
+  { k: "Puesto", v: "Mozo/a" },
+  { k: "Horario", v: "Hoy · 21 a 02" },
+  { k: "Pago", v: "$70.000" },
+];

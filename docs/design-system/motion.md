@@ -71,7 +71,8 @@ lugar. Reglas nuevas:
 - **Piezas que se arman al entrar** (segunda vuelta del mismo día): clases
   `.anim-pop`, `-ring`, `-rise`, `-drop`, `-shout`, `-fill` y `-bar` dentro
   de un `Reveal`, cada una con su retraso en `--d`. Corren una vez; no hay
-  bucles.
+  bucles. `.anim-out` es lo que sólo existe durante la animación (quieto no
+  se ve: el estado final lo reemplaza).
 - Con "reducir movimiento", nada.
 
 ## La landing: la excepción (2026-10-06, reemplazada el 2026-10-12)

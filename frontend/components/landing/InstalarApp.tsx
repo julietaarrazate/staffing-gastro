@@ -16,11 +16,11 @@ const PUSH_POSTULANTES = {
 /**
  * Instalar Oído en el celular (Julieta, 2026-10-12: "que quien entre por
  * primera vez se la descargue", en Android y en iPhone, sin tecnicismos).
- * Cada aparato ve sus pasos: en Android un botón que instala directo (o los
- * dos toques del menú si el navegador no lo ofrece), en iPhone Compartir →
- * Agregar a inicio, en la compu que la abra desde el celular. Ya instalada,
- * la sección no aparece. El HTML del servidor trae los pasos de los dos
- * celulares; al montar queda sólo el del aparato.
+ * Siempre los dos caminos, nombrando el navegador ("desde Chrome", "desde
+ * Safari") para que se entienda que se baja desde ahí; primero el del
+ * aparato que mira. En Android, si el navegador lo ofrece, un botón instala
+ * directo. Ya instalada, la sección no aparece. Va al final, antes del
+ * cierre, para no cortar lo que cuenta la página.
  *
  * Los avisos no se piden acá: la app los ofrece después de la primera
  * acción que importa (publicar, postularse), ver lib/push-prompt-context.tsx.
@@ -43,10 +43,6 @@ export default function InstalarApp() {
         >
           Llevá Oído en tu celular
         </h2>
-        <p className="mt-5 max-w-[40ch] text-lg leading-[1.5] text-ink-soft">
-          Instalala en tu pantalla de inicio, gratis y en un minuto. Así te avisamos al instante cuando alguien
-          se postula a tu turno o cuando sale uno cerca tuyo.
-        </p>
         <div className="mt-9">
           <Pasos estado={estado} />
         </div>
@@ -81,39 +77,45 @@ export default function InstalarApp() {
 function Pasos({ estado }: { estado: EstadoInstalar }) {
   const { plataforma, puedeInstalarDirecto, instalar } = estado;
 
-  if (plataforma === "android" && puedeInstalarDirecto) {
-    return (
-      <button
-        type="button"
-        data-cta="instalar"
-        onClick={() => void instalar()}
-        className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-[var(--radius-btn)] bg-night px-8 text-lg font-semibold text-white transition duration-200 active:scale-[0.96] hover:brightness-150 sm:w-auto"
-      >
-        <SmartphoneIcon size={20} aria-hidden />
-        Instalar Oído
-      </button>
-    );
-  }
-
-  if (plataforma === "compu") {
-    return (
-      <p className="flex max-w-[44ch] items-start gap-3 text-lg text-ink">
-        <SmartphoneIcon size={22} aria-hidden className="mt-1 shrink-0 text-primary-text" />
-        <span>
-          Entrá a <strong className="font-semibold">oido.com.ar</strong> desde tu celular y seguí los pasos para
-          instalarla.
-        </span>
-      </p>
-    );
-  }
-
+  // Se instala desde el navegador: cada columna lo nombra (Chrome, Safari)
+  // para que se entienda sin explicar qué es una web app.
+  const android = (
+    <ListaPasos
+      titulo="Android · desde Chrome"
+      pasos={
+        puedeInstalarDirecto
+          ? [
+              <button
+                key="boton"
+                type="button"
+                data-cta="instalar"
+                onClick={() => void instalar()}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-night px-6 text-base font-semibold text-white transition duration-200 active:scale-[0.96] hover:brightness-150"
+              >
+                <SmartphoneIcon size={18} aria-hidden />
+                Instalar Oído
+              </button>,
+              <>Abrí Oído desde el ícono nuevo</>,
+            ]
+          : [
+              <>
+                Tocá <Icono><MoreVerticalIcon size={16} /></Icono> arriba a la derecha
+              </>,
+              <>
+                Elegí <strong className="font-semibold">Instalar app</strong> o{" "}
+                <strong className="font-semibold">Agregar a la pantalla principal</strong>
+              </>,
+              <>Abrí Oído desde el ícono nuevo</>,
+            ]
+      }
+    />
+  );
   const iphone = (
     <ListaPasos
-      titulo="En iPhone"
+      titulo="iPhone · desde Safari"
       pasos={[
         <>
           Tocá <Icono><IosShareIcon size={16} /></Icono> <strong className="font-semibold">Compartir</strong>, abajo
-          en Safari
         </>,
         <>
           Elegí <Icono><SquarePlusIcon size={16} /></Icono> <strong className="font-semibold">Agregar a inicio</strong>
@@ -122,29 +124,27 @@ function Pasos({ estado }: { estado: EstadoInstalar }) {
       ]}
     />
   );
-  const android = (
-    <ListaPasos
-      titulo="En Android"
-      pasos={[
-        <>
-          Tocá <Icono><MoreVerticalIcon size={16} /></Icono> arriba a la derecha
-        </>,
-        <>
-          Elegí <strong className="font-semibold">Instalar app</strong> o{" "}
-          <strong className="font-semibold">Agregar a la pantalla principal</strong>
-        </>,
-        <>Abrí Oído desde el ícono nuevo</>,
-      ]}
-    />
-  );
 
-  if (plataforma === "iphone") return iphone;
-  if (plataforma === "android") return android;
-  // Antes de montar (HTML del servidor, sin JavaScript): los dos.
+  // Los dos siempre a la vista; primero el del aparato que está mirando.
   return (
     <div className="grid gap-8 sm:grid-cols-2">
-      {iphone}
-      {android}
+      {plataforma === "iphone" ? (
+        <>
+          {iphone}
+          {android}
+        </>
+      ) : (
+        <>
+          {android}
+          {iphone}
+        </>
+      )}
+      {plataforma === "compu" && (
+        <p className="flex items-start gap-3 text-body text-ink-soft sm:col-span-2">
+          <SmartphoneIcon size={20} aria-hidden className="mt-0.5 shrink-0 text-primary-text" />
+          Entrá a oido.com.ar desde el celular y seguí estos pasos.
+        </p>
+      )}
     </div>
   );
 }

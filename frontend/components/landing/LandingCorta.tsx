@@ -31,11 +31,11 @@ export default function LandingCorta() {
       <LandingHeader heroCtaId={HERO_CTA_ID} />
       <Hero />
       <ComoFunciona />
-      <InstalarApp />
       <Confianza />
       <Precios />
       <ParaTrabajar />
       <Preguntas />
+      <InstalarApp />
       <Cierre />
       <LandingFooter />
       <BarraCelular heroCtaId={HERO_CTA_ID} />

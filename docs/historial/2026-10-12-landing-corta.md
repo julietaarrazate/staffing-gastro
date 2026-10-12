@@ -123,8 +123,39 @@ dos dedos.
 - Ninguna animación es un bucle ni reemplaza texto. Con "reducir
   movimiento" o sin JavaScript todo queda quieto y visible.
 
-**Medidas:** con la sección nueva, la página mide 11,4 pantallas en un
+**Medidas (segunda vuelta):** con la sección nueva, la página medía 11,4 pantallas en un
 celular de 390 × 844 y 9,1 en una compu de 1440 × 900.
+
+## Tercera vuelta
+
+**Pedido:**
+- el título dice "¿Faltó alguien de tu equipo?";
+- fuera los textos debajo de los títulos que repiten lo que muestran las
+  animaciones;
+- la instalación tiene que mostrar Android y iPhone, nombrando Chrome y
+  Safari;
+- la instalación va al final, para no cortar lo que cuenta la página;
+- "verificada" sin "por una persona";
+- mejores animaciones.
+
+**Qué cambió:**
+
+- **Hero:** "¿Faltó alguien de tu equipo? Cubrí el turno en minutos".
+- **Pasos sin bajada.** Cada paso tiene una descripción oculta para
+  lectores de pantalla (`alt` de `Paso`) y la imagen cuenta más:
+  - **Paso 1:** la frase se escribe y salen tres fichas (Puesto, Horario,
+    Pago).
+  - **Paso 2:** el reloj dice "Avisado a 10" mientras corre el aviso;
+    después tres pines pasan a ámbar con su puntaje y el reloj dice
+    "3 postulantes".
+  - **Paso 3:** al final aparece "Lucía confirmó · 20:54".
+- **Se fueron otras bajadas:** la de precios y la de instalar.
+- **"Llevá Oído en tu celular"** va entre las preguntas y el cierre.
+  Muestra siempre "Android · desde Chrome" e "iPhone · desde Safari",
+  primero el del aparato que mira. En Android, si el navegador lo ofrece,
+  el primer paso es el botón "Instalar Oído".
+- **"Verificada":** la regla de confianza dice "Identidad verificada con
+  DNI y selfie" y la pregunta frecuente dice "Verificamos…".
 
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
