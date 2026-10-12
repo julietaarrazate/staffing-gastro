@@ -4,6 +4,7 @@ import Link from "next/link";
 export default function Cierre() {
   return (
     <section
+      id="cierre"
       aria-labelledby="cierre-titulo"
       data-tone="night"
       className="bg-night px-4 pb-6 pt-20 text-white sm:px-6 lg:px-12 lg:pt-28"

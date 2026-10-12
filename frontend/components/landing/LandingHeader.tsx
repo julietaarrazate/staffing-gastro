@@ -12,7 +12,8 @@ import { LogoMark } from "@/components/Logo";
  * (auditoría de la landing).
  *
  * El botón "Pedir personal" aparece cuando el del hero salió de la pantalla y
- * después ya no se esconde. "Para trabajar" lleva a la sección de quien
+ * después ya no se esconde. En el celular no va: ahí está la barra fija de
+ * abajo (BarraCelular.tsx), más cerca del pulgar. "Para trabajar" lleva a la sección de quien
  * trabaja; en el celular no entra al lado del botón, y ahí el camino del
  * trabajador es el link del hero.
  */
@@ -61,7 +62,7 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
             // Escondido no ocupa lugar (max-w-0): si no, "Ingresar" quedaba
             // flotando en el medio del encabezado.
             className={cn(
-              "inline-flex h-10 items-center overflow-hidden whitespace-nowrap rounded-[var(--radius-btn)] bg-primary text-night transition-[max-width,opacity,padding] duration-400 active:scale-95",
+              "hidden h-10 items-center overflow-hidden whitespace-nowrap rounded-[var(--radius-btn)] bg-primary text-night transition-[max-width,opacity,padding] duration-400 active:scale-95 sm:inline-flex",
               ctaVisible ? "max-w-[12rem] px-3.5 opacity-100" : "pointer-events-none max-w-0 px-0 opacity-0"
             )}
           >

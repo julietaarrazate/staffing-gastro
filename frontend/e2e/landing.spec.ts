@@ -54,6 +54,8 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
     "href",
     "/register?rol=trabajador"
   );
+  // Sin eyebrow ni bajada (Julieta, 2026-10-12).
+  await expect(page.getByText(/Beta en CABA/)).toHaveCount(0);
   // El Navbar de la app no se muestra en "/" sin sesión: la landing trae el suyo.
   await expect(page.getByRole("link", { name: "Ingresar" }).first()).toBeVisible();
 });
@@ -166,6 +168,70 @@ test("con el tema oscuro elegido, la landing mantiene su paleta propia", async (
     .locator("[data-landing]")
     .evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(fondo).toBe("rgb(243, 243, 243)");
+});
+
+const IPHONE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const ANDROID_UA =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
+
+test.describe("instalar en iPhone", () => {
+  test.use({ userAgent: IPHONE_UA, viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("muestra sólo los pasos de iPhone: Compartir y Agregar a inicio", async ({ page }) => {
+    await sinSesion(page);
+    await page.goto("/");
+    const instalar = page.locator("#instalar");
+    await expect(instalar.getByRole("heading", { name: "En iPhone" })).toBeVisible();
+    await expect(instalar).toContainText("Agregar a inicio");
+    await expect(instalar.getByRole("heading", { name: "En Android" })).toHaveCount(0);
+  });
+});
+
+test.describe("instalar en Android", () => {
+  test.use({ userAgent: ANDROID_UA, viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("con el aviso del navegador, el botón instala directo", async ({ page }) => {
+    await sinSesion(page);
+    // El navegador avisa que se puede instalar (lo simulamos antes de cargar).
+    await page.addInitScript(() => {
+      window.addEventListener("load", () => {
+        const e = new Event("beforeinstallprompt") as Event & Record<string, unknown>;
+        e.prompt = async () => {
+          (window as unknown as { __prompted: boolean }).__prompted = true;
+        };
+        e.userChoice = Promise.resolve({ outcome: "accepted" });
+        window.dispatchEvent(e);
+      });
+    });
+    await page.goto("/");
+    const boton = page.locator("#instalar").getByRole("button", { name: "Instalar Oído" });
+    await boton.click();
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __prompted?: boolean }).__prompted)).toBe(true);
+    // Instalada, la sección ya no se ofrece.
+    await expect(page.locator("#instalar")).toHaveCount(0);
+  });
+
+  test("la barra de abajo aparece al pasar el botón del inicio", async ({ page }) => {
+    await sinSesion(page);
+    await page.goto("/");
+    const barra = page.getByRole("link", { name: "Publicar un turno gratis" }).and(page.locator('[data-cta="barra"]'));
+    await expect(barra).not.toBeInViewport();
+    await page.evaluate(() => window.scrollTo(0, 1600));
+    await expect(barra).toBeInViewport();
+    await expect(page.locator('[data-cta="barra-instalar"]')).toHaveAttribute("href", "/#instalar");
+  });
+});
+
+test("abierta desde el ícono instalado y sin sesión, va a ingresar", async ({ page }) => {
+  await sinSesion(page);
+  await page.addInitScript(() => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (q: string) =>
+      q === "(display-mode: standalone)" ? ({ ...original(q), matches: true } as MediaQueryList) : original(q);
+  });
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test.describe("con reducir movimiento", () => {

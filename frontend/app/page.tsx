@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import LandingGate from "@/components/landing/LandingGate";
 import { PREGUNTAS } from "@/components/landing/preguntas";
 import { SITE_URL } from "@/lib/site";
+import { INSTALAR_SCRIPT } from "@/lib/instalar-script";
 
 // La home declara su URL canónica (sin parámetros como `?rol=` o los de las
 // campañas) y, en datos estructurados, quién es Oído y sus preguntas
@@ -48,6 +49,9 @@ export default function Home() {
         // Escapado de `<` para que un texto nunca pueda cerrar el <script>.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(DATOS).replace(/</g, "\\u003c") }}
       />
+      {/* Atrapa el aviso de "se puede instalar" de Android aunque llegue
+          antes de que la página termine de cargar (lib/instalar.ts). */}
+      <script dangerouslySetInnerHTML={{ __html: INSTALAR_SCRIPT }} />
       <LandingGate />
     </>
   );

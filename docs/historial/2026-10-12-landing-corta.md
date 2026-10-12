@@ -73,14 +73,67 @@ dos dedos.
 - No va la sección de prueba con números (turnos cubiertos, minutos de
   mediana, locales): todavía no hay datos reales y no se inventan.
 
+## Segunda vuelta, el mismo día
+
+**Pedido:** Julieta vio la vista previa. Le gustó que sea breve, pero pidió:
+- algo de animación en lo que quedó;
+- sacar el eyebrow ("Beta en CABA…") y la bajada del hero, que repetía lo
+  mismo;
+- que quien entre por primera vez se baje Oído al celular, en Android y en
+  iPhone, sin tecnicismos (mejor instalada y con los avisos prendidos);
+- un inicio pensado para captar clientes y cerrar leads.
+
+**Qué cambió:**
+
+- **Hero:** el título y el botón. Abajo, "Gratis para empezar · Sin
+  comisión por turno". La imagen se arma en orden: la burbuja, "sin
+  cubrir", la línea que se dibuja, "cubierto" y la confirmación de Lucía.
+- **Animaciones**, una vez y al aparecer (`.anim-*` en `globals.css`, que
+  corren dentro de un `Reveal`):
+  - la frase del paso 1 se escribe sola y marca sus tres partes;
+  - en el mapa se publica el pin, salen las ondas y a cada persona le llega
+    el aviso según su distancia;
+  - los postulantes suben;
+  - "¡Oído!" entra con rebote;
+  - los cupos de turnos de cada plan se llenan de a uno;
+  - la notificación cae en el celular.
+- **"Llevá Oído en tu celular"** (`InstalarApp.tsx`, después de "¡Oído!"):
+  - en Android, el botón "Instalar Oído" abre la ventana del navegador; si
+    el navegador no la ofrece, se muestran los dos toques del menú;
+  - en iPhone: Compartir → Agregar a inicio, con los íconos;
+  - en la compu, que la abran desde el celular;
+  - ya instalada, la sección no aparece.
+  La lógica está en `lib/instalar.ts`. El aviso de Android se atrapa con un
+  script en línea (`lib/instalar-script.ts`) aunque llegue antes de que
+  cargue la página.
+- **Barra fija abajo en el celular** (`BarraCelular.tsx`): "Publicar un
+  turno gratis" + "Instalar". Aparece al pasar el hero y se va en el cierre.
+  En el celular reemplaza al botón del encabezado.
+- **Abierta desde el ícono y sin sesión:** va a `/login` y no a la landing
+  (`LandingGate.tsx`).
+- La pregunta "¿Tengo que bajar una app?" pasa a "¿Cómo la bajo al
+  celular?".
+
+**Por qué así:**
+
+- Los avisos no se piden desde la landing: no hay sesión para guardarlos, y
+  la regla es pedirlos después de una acción que importa
+  (`lib/push-prompt-context.tsx`). La landing explica que se activan al
+  publicar o postularse.
+- Ninguna animación es un bucle ni reemplaza texto. Con "reducir
+  movimiento" o sin JavaScript todo queda quieto y visible.
+
+**Medidas:** con la sección nueva, la página mide 11,4 pantallas en un
+celular de 390 × 844 y 9,1 en una compu de 1440 × 900.
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
-- Los puestos del eyebrow ("Mozos, bartenders, cocina y más").
 - La pregunta legal (monotributo, quién es el empleador): no se publica
   sin asesoría.
 - El medio de pago que se recomienda (hoy sólo dice "directo, como
   acuerden").
-- El texto sobre instalar Oído en iPhone para recibir avisos: la app no
-  tiene todavía un aviso propio que guíe la instalación.
+- Probar la instalación en un Android y un iPhone reales: los tests simulan
+  el aviso del navegador. En Chrome de Android el botón necesita que el
+  navegador considere instalable el sitio.
 - Medir los botones: los `data-cta` están puestos, falta la herramienta de
   analítica.

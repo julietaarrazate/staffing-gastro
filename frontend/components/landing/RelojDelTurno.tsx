@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import { RELOJ, type RelojKey } from "./fixtures";
 
@@ -7,7 +8,15 @@ import { RELOJ, type RelojKey } from "./fixtures";
  * pasa al color de marca y la hora se queda quieta. Dos píldoras (20:46 y
  * 20:54) cuentan los minutos sin afirmar un promedio.
  */
-export default function RelojDelTurno({ at, className }: { at: RelojKey; className?: string }) {
+export default function RelojDelTurno({
+  at,
+  className,
+  style,
+}: {
+  at: RelojKey;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const { hora, estado } = RELOJ[at];
   const covered = at === "cubierto";
   const sep = covered ? "text-on-brand/45" : "text-white/45";
@@ -15,6 +24,7 @@ export default function RelojDelTurno({ at, className }: { at: RelojKey; classNa
 
   return (
     <p
+      style={style}
       className={cn(
         "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-caption font-medium uppercase tracking-[0.12em] shadow-[var(--shadow-soft)]",
         covered ? "bg-secondary text-on-brand" : "bg-night text-white",

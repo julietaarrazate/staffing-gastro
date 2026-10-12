@@ -77,8 +77,10 @@ export default function ParaTrabajar() {
           Crear mi perfil gratis
         </Link>
         <p className="mt-4 max-w-[48ch] text-caption text-ink-soft">
-          Oído funciona desde el navegador del celular, sin bajar nada. Para que te lleguen los avisos, activá las
-          notificaciones (en iPhone, primero agregá Oído a tu pantalla de inicio).
+          Para que te lleguen los turnos al instante, bajá Oído a tu celular.{" "}
+          <Link href="/#instalar" className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4">
+            Cómo instalarla →
+          </Link>
         </p>
       </div>
 
@@ -88,7 +90,7 @@ export default function ParaTrabajar() {
         <div inert aria-hidden className="no-select">
           <PhoneFrame hora="20:48">
             <div className="relative h-[504px] px-2.5">
-              <PushNotice title={PUSH_TURNO.title} body={PUSH_TURNO.body} />
+              <PushNotice className="anim-drop" title={PUSH_TURNO.title} body={PUSH_TURNO.body} />
               <div className="absolute inset-x-2.5 top-[7.25rem] h-[285px] w-[240px]">
                 <div className="h-[380px] w-[320px] origin-top-left scale-[0.75]">
                   <OpportunityCard shift={shift} distanceKm={0.6} preview />

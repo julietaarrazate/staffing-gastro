@@ -41,8 +41,8 @@ export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
     respuesta: "No. Para trabajar no se paga nada, y el local te paga directo.",
   },
   {
-    pregunta: "¿Tengo que bajar una app?",
+    pregunta: "¿Cómo la bajo al celular?",
     respuesta:
-      "No. Oído funciona desde el navegador del celular. Para recibir los avisos de turnos, activá las notificaciones (en iPhone, primero agregá Oído a tu pantalla de inicio).",
+      "Desde esta misma página, gratis y sin pasar por ninguna tienda. En Android tocá Instalar; en iPhone, Compartir y después Agregar a inicio. Queda como cualquier app y te llegan los avisos al instante.",
   },
 ];

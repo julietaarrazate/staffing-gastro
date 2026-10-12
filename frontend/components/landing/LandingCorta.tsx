@@ -6,6 +6,8 @@ import Precios from "./Precios";
 import ParaTrabajar from "./ParaTrabajar";
 import Preguntas from "./Preguntas";
 import Cierre from "./Cierre";
+import InstalarApp from "./InstalarApp";
+import BarraCelular from "./BarraCelular";
 import LandingFooter from "./LandingFooter";
 
 /**
@@ -29,12 +31,14 @@ export default function LandingCorta() {
       <LandingHeader heroCtaId={HERO_CTA_ID} />
       <Hero />
       <ComoFunciona />
+      <InstalarApp />
       <Confianza />
       <Precios />
       <ParaTrabajar />
       <Preguntas />
       <Cierre />
       <LandingFooter />
+      <BarraCelular heroCtaId={HERO_CTA_ID} />
     </div>
   );
 }

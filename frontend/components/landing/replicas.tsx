@@ -24,34 +24,62 @@ const PARTES = (() => {
 
 /**
  * El cuadro "Describilo y lo completamos" de /shifts/new (app/shifts/new/
- * page.tsx), con la frase entera escrita y subrayadas en manteca las tres
- * partes que se convierten en campos del turno. Es una imagen: el botón es
- * un `span`, no se puede apretar.
+ * page.tsx). `chars` es cuánto de la frase está escrito (por defecto, toda) y
+ * `marked` subraya en manteca las tres partes que se convierten en campos.
+ * Es una imagen: el botón es un `span`, no se puede apretar.
  */
-export function DescribeBox({ className }: { className?: string }) {
+export function DescribeBox({
+  chars = PEDIDO.length,
+  marked = true,
+  caret = false,
+  className,
+}: {
+  chars?: number;
+  marked?: boolean;
+  caret?: boolean;
+  className?: string;
+}) {
+  const shown = PEDIDO.slice(0, chars);
   const segments: ReactNode[] = [];
   let cursor = 0;
   PARTES.forEach((p, i) => {
-    if (p.start > cursor) segments.push(PEDIDO.slice(cursor, p.start));
+    if (p.start >= shown.length) return;
+    if (p.start > cursor) segments.push(shown.slice(cursor, p.start));
+    const end = Math.min(p.end, shown.length);
     segments.push(
-      <span key={i} className="rounded-[4px] bg-manteca shadow-[0_0_0_2px_var(--color-manteca)]">
-        {PEDIDO.slice(p.start, p.end)}
+      <span
+        key={i}
+        className={cn(
+          "rounded-[4px] transition-[background-color,box-shadow] duration-500",
+          marked && "bg-manteca shadow-[0_0_0_2px_var(--color-manteca)]"
+        )}
+      >
+        {shown.slice(p.start, end)}
       </span>
     );
-    cursor = p.end;
+    cursor = end;
   });
-  if (cursor < PEDIDO.length) segments.push(PEDIDO.slice(cursor));
+  if (cursor < shown.length) segments.push(shown.slice(cursor));
 
   return (
     <div className={cn("rounded-3xl bg-surface p-4 ring-1 ring-line", className)}>
       <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
         <LogoGlyph size={14} color="var(--color-primary)" /> Describilo y lo completamos
       </p>
-      <div className="mt-2 rounded-2xl bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink ring-1 ring-line">
+      {/* Alto mínimo de dos renglones: mientras se escribe, el cuadro no salta. */}
+      <div className="mt-2 min-h-[4.25rem] rounded-2xl bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink ring-1 ring-line">
         {segments}
+        {caret && (
+          <span aria-hidden className="story-colon ml-px inline-block h-[1.1em] w-[2px] translate-y-[0.2em] bg-primary" />
+        )}
       </div>
       <div className="mt-2 flex justify-end">
-        <span className="inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)]">
+        <span
+          className={cn(
+            "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-200",
+            marked ? "scale-100" : "scale-95"
+          )}
+        >
           Completar
         </span>
       </div>
@@ -208,9 +236,18 @@ export function PushNotice({
 }
 
 /** El toast de la app (components/ui/Toast.tsx), en línea. */
-export function ToastLine({ children, className }: { children: ReactNode; className?: string }) {
+export function ToastLine({
+  children,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
     <div
+      style={style}
       className={cn(
         "inline-flex items-center gap-2 rounded-full bg-toast px-4 py-3 text-sm font-semibold text-toast-ink shadow-[var(--shadow-float)]",
         className

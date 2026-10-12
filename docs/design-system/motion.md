@@ -66,9 +66,13 @@ lugar. Reglas nuevas:
   pone el navegador sólo a lo que está debajo de la pantalla.
 - **Nada se fija ni se reemplaza.** Los títulos están siempre; cambia, como
   mucho, que aparezcan.
-- **El hero se mueve solo una vez:** la burbuja de Martín y, un segundo
-  después, el turno cubierto (CSS, antes de hidratar). Con "reducir
-  movimiento", nada.
+- **El hero se mueve una sola vez, en orden** (CSS, antes de hidratar): la
+  burbuja de Martín, "sin cubrir", la línea, "cubierto" y la confirmación.
+- **Piezas que se arman al entrar** (segunda vuelta del mismo día): clases
+  `.anim-pop`, `-ring`, `-rise`, `-drop`, `-shout`, `-fill` y `-bar` dentro
+  de un `Reveal`, cada una con su retraso en `--d`. Corren una vez; no hay
+  bucles.
+- Con "reducir movimiento", nada.
 
 ## La landing: la excepción (2026-10-06, reemplazada el 2026-10-12)
 

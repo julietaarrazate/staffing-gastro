@@ -7,6 +7,7 @@ import { formatArs } from "@/lib/format";
 import { CheckIcon } from "@/components/icons";
 import type { SubscriptionPlan } from "@/lib/types";
 import { RESPALDO } from "./planes";
+import Reveal from "./Reveal";
 
 /**
  * PRECIOS. Responde "¿cuánto sale?" una vez que se entendió qué hace. Desde 2026-10-09 (Julieta: la carta con puntos guía se veía "muy
@@ -22,17 +23,21 @@ import { RESPALDO } from "./planes";
  */
 
 /** El tope del mes, dibujado: un cuadradito por turno (3, 15) o una barra
- *  llena si no hay tope. */
+ *  llena si no hay tope. Al aparecer se van llenando de a uno. */
 function Tope({ max, destacado }: { max: number | null; destacado: boolean }) {
   if (max === null) {
     return (
-      <div aria-hidden className="h-2.5 w-full rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <div aria-hidden className="anim-bar h-2.5 w-full origin-left rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
     );
   }
   return (
     <div aria-hidden className="flex flex-wrap gap-1">
       {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={`h-2.5 w-2.5 rounded-[3px] ${destacado ? "bg-primary" : "bg-ink/80"}`} />
+        <span
+          key={i}
+          className={`anim-fill h-2.5 w-2.5 rounded-[3px] ${destacado ? "bg-primary" : "bg-ink/80"}`}
+          style={{ ["--d" as string]: `${300 + i * 70}ms` }}
+        />
       ))}
     </div>
   );
@@ -79,66 +84,68 @@ export default function Precios() {
         </p>
       </div>
 
-      <ul className="mt-10 grid gap-4 lg:mt-14 lg:grid-cols-3 lg:items-stretch lg:gap-5">
-        {plans.map((p) => {
-          const destacado = p.code === "basico";
-          const gratis = Number(p.price_ars) === 0;
-          return (
-            <li
-              key={p.code}
-              className={`relative flex flex-col rounded-[var(--radius-card)] p-6 ${
-                destacado
-                  ? "bg-glow shadow-[var(--shadow-float)] ring-1 ring-secondary-strong lg:-my-3 lg:py-9"
-                  : "bg-card ring-1 ring-line"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-display text-h2 font-semibold text-ink">{p.name}</span>
-                {destacado && (
-                  <span className="rounded-full bg-night px-2.5 py-1 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
-                    Recomendado
-                  </span>
-                )}
-              </div>
-              <p className="mt-4 flex items-baseline gap-1">
-                <span className="font-display text-poster font-semibold tracking-[-0.015em] tabular-nums text-ink">
-                  {gratis ? "$0" : formatArs(p.price_ars)}
-                </span>
-                <span className="text-body text-ink-mute">{gratis ? "para siempre" : "/mes"}</span>
-              </p>
-
-              <div className="mt-6">
-                <p className="mb-2 font-mono text-caption font-medium uppercase tracking-[0.1em] text-ink-mute">
-                  {p.max_turnos_mes === null ? "Turnos sin tope" : `${p.max_turnos_mes} turnos por mes`}
-                </p>
-                <Tope max={p.max_turnos_mes} destacado={destacado} />
-              </div>
-
-              <ul className="mt-6 space-y-2.5 border-t border-line pt-5">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-body text-ink-soft">
-                    <CheckIcon size={16} className="mt-0.5 shrink-0 text-secondary-text" aria-hidden />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              <div aria-hidden className="min-h-7 flex-1" />
-              <Link
-                href="/register?rol=comercio"
-                data-cta={`precios-${p.code}`}
-                className={`inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] px-6 text-base font-semibold transition duration-200 active:scale-[0.96] ${
+      <Reveal>
+        <ul className="mt-10 grid gap-4 lg:mt-14 lg:grid-cols-3 lg:items-stretch lg:gap-5">
+          {plans.map((p) => {
+            const destacado = p.code === "basico";
+            const gratis = Number(p.price_ars) === 0;
+            return (
+              <li
+                key={p.code}
+                className={`relative flex flex-col rounded-[var(--radius-card)] p-6 ${
                   destacado
-                    ? "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04]"
-                    : "bg-card text-ink ring-1 ring-ink/15 hover:ring-ink/30"
+                    ? "bg-glow shadow-[var(--shadow-float)] ring-1 ring-secondary-strong lg:-my-3 lg:py-9"
+                    : "bg-card ring-1 ring-line"
                 }`}
               >
-                {gratis ? "Publicar un turno gratis" : `Elegir ${p.name}`}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-display text-h2 font-semibold text-ink">{p.name}</span>
+                  {destacado && (
+                    <span className="rounded-full bg-night px-2.5 py-1 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
+                      Recomendado
+                    </span>
+                  )}
+                </div>
+                <p className="mt-4 flex items-baseline gap-1">
+                  <span className="font-display text-poster font-semibold tracking-[-0.015em] tabular-nums text-ink">
+                    {gratis ? "$0" : formatArs(p.price_ars)}
+                  </span>
+                  <span className="text-body text-ink-mute">{gratis ? "para siempre" : "/mes"}</span>
+                </p>
+
+                <div className="mt-6">
+                  <p className="mb-2 font-mono text-caption font-medium uppercase tracking-[0.1em] text-ink-mute">
+                    {p.max_turnos_mes === null ? "Turnos sin tope" : `${p.max_turnos_mes} turnos por mes`}
+                  </p>
+                  <Tope max={p.max_turnos_mes} destacado={destacado} />
+                </div>
+
+                <ul className="mt-6 space-y-2.5 border-t border-line pt-5">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-body text-ink-soft">
+                      <CheckIcon size={16} className="mt-0.5 shrink-0 text-secondary-text" aria-hidden />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <div aria-hidden className="min-h-7 flex-1" />
+                <Link
+                  href="/register?rol=comercio"
+                  data-cta={`precios-${p.code}`}
+                  className={`inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] px-6 text-base font-semibold transition duration-200 active:scale-[0.96] ${
+                    destacado
+                      ? "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04]"
+                      : "bg-card text-ink ring-1 ring-ink/15 hover:ring-ink/30"
+                  }`}
+                >
+                  {gratis ? "Publicar un turno gratis" : `Elegir ${p.name}`}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Reveal>
 
       <p className="mt-8 text-center text-body text-ink-soft">
         Para trabajar no se paga nada.{" "}

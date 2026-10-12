@@ -48,7 +48,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 
 | Ruta | Qué es |
 |---|---|
-| `/` | Landing sin sesión: la landing corta (`components/landing/`, orden en `LandingCorta.tsx`; la puerta con sesión en `LandingGate.tsx`). Con sesión redirige a la home del rol |
+| `/` | Landing sin sesión: la landing corta (`components/landing/`, orden en `LandingCorta.tsx`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarApp.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; abierta desde el ícono instalado y sin sesión, a `/login` |
 | `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register` |
 | `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
 | `/profile` | Cómo te ven: vista, no formulario (#396) |

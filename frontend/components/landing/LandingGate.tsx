@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import LandingCorta from "@/components/landing/LandingCorta";
+import { estaInstalada } from "@/lib/instalar";
 
 // La puerta de "/": la landing para visitantes, la home del rol para quien ya
 // entró. Es cliente porque depende de la sesión; la página (app/page.tsx)
@@ -27,6 +28,13 @@ export default function LandingGate() {
     if (!loading && user) {
       router.replace(HOME_BY_ROLE[user.role] ?? "/feed");
     }
+  }, [loading, user, router]);
+
+  // Abierta desde el ícono instalado y sin sesión: la persona ya eligió
+  // Oído, no hace falta volver a venderle la landing. Va a entrar (desde
+  // ahí también se crea la cuenta).
+  useEffect(() => {
+    if (!loading && !user && estaInstalada()) router.replace("/login");
   }, [loading, user, router]);
 
   // Sólo ocultamos la landing cuando YA sabemos que hay sesión (redirigiendo a

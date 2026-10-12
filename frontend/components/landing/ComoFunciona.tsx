@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import CandidateCard from "@/components/CandidateCard";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import { Avatar, Rating } from "@/components/ui";
 import { formatKm } from "@/lib/format";
-import { CANDIDATES, MAP_WORKERS } from "./fixtures";
+import { CANDIDATES, MAP_WORKERS, PEDIDO } from "./fixtures";
 import RelojDelTurno from "./RelojDelTurno";
 import { DescribeBox, PricePin, StreetGrid, WorkerPin } from "./replicas";
 import Reveal from "./Reveal";
@@ -47,7 +47,7 @@ export default function ComoFunciona() {
             }
           >
             <div className="flex flex-col items-center gap-4">
-              <DescribeBox className="w-full max-w-[420px]" />
+              <PedidoEscribiendose />
               {/* En el celular alcanza con la frase: la tarjeta sola suma media
                   pantalla y el paso 3 ya muestra cómo se ve un turno. */}
               <div className="hidden h-[285px] w-[240px] lg:block">
@@ -64,19 +64,35 @@ export default function ComoFunciona() {
           >
             <div className="relative mx-auto aspect-square w-full max-w-[400px] overflow-hidden rounded-[1.75rem] bg-[var(--mapa)]">
               <StreetGrid />
-              {[0.32, 0.52, 0.72].map((r) => (
+              {/* Al entrar: se publica el turno (el pin), el aviso sale en
+                  ondas y a cada persona le llega cuando la onda la alcanza
+                  (el retraso sale de su distancia al local). */}
+              {[0.32, 0.52, 0.72].map((r, i) => (
                 <span
                   key={r}
-                  className="absolute rounded-full border-2 border-primary/40"
-                  style={{ left: `${50 - r * 50}%`, top: `${50 - r * 50}%`, width: `${r * 100}%`, height: `${r * 100}%` }}
+                  className="anim-ring absolute rounded-full border-2 border-primary/40"
+                  style={{
+                    left: `${50 - r * 50}%`,
+                    top: `${50 - r * 50}%`,
+                    width: `${r * 100}%`,
+                    height: `${r * 100}%`,
+                    ["--d" as string]: `${500 + i * 350}ms`,
+                  }}
                 />
               ))}
               {MAP_WORKERS.map((w) => (
                 <span key={w.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${w.x}%`, top: `${w.y}%` }}>
-                  <WorkerPin inicial={w.inicial} variant="avisado" />
+                  <span
+                    className="anim-pop block"
+                    style={{ ["--d" as string]: `${700 + Math.round(Math.hypot(w.x - 50, w.y - 50) * 30)}ms` }}
+                  >
+                    <WorkerPin inicial={w.inicial} variant="avisado" />
+                  </span>
                 </span>
               ))}
-              <PricePin className="absolute -translate-x-1/2 -translate-y-full" style={{ left: "50%", top: "50%" }} />
+              <span className="absolute -translate-x-1/2 -translate-y-full" style={{ left: "50%", top: "50%" }}>
+                <PricePin className="anim-pop" style={{ ["--d" as string]: "150ms" }} />
+              </span>
               <p className="absolute bottom-3 right-4 font-mono text-metadata uppercase tracking-[0.12em] text-ink-mute">
                 Ubicaciones aproximadas
               </p>
@@ -88,10 +104,16 @@ export default function ComoFunciona() {
             texto="Ves por qué cada persona es buena opción. La asignás, te confirma desde su celular y la ves llegar."
           >
             <div className="mx-auto flex max-w-[400px] flex-col gap-2.5">
-              <CandidateCard candidate={CANDIDATES[0]} onAssign={() => {}} recommended preview />
+              <div className="anim-rise" style={{ ["--d" as string]: "250ms" }}>
+                <CandidateCard candidate={CANDIDATES[0]} onAssign={() => {}} recommended preview />
+              </div>
               <div className="hidden flex-col gap-2.5 sm:flex">
-                <CandidateRow candidateIndex={1} />
-                <CandidateRow candidateIndex={2} />
+                <div className="anim-rise" style={{ ["--d" as string]: "500ms" }}>
+                  <CandidateRow candidateIndex={1} />
+                </div>
+                <div className="anim-rise" style={{ ["--d" as string]: "650ms" }}>
+                  <CandidateRow candidateIndex={2} />
+                </div>
               </div>
             </div>
           </Paso>
@@ -105,7 +127,7 @@ export default function ComoFunciona() {
       >
         <Reveal className="flex flex-col items-center">
           <RelojDelTurno at="cubierto" />
-          <h2 id="oido-titulo" className="mt-8 font-display text-shout font-bold tracking-[-0.02em] text-ink">
+          <h2 id="oido-titulo" className="anim-shout mt-8 font-display text-shout font-bold tracking-[-0.02em] text-ink">
             ¡Oído!
           </h2>
           <p className="mt-5 max-w-[30ch] text-xl font-medium text-ink lg:text-2xl">
@@ -170,6 +192,57 @@ function CandidateRow({ candidateIndex }: { candidateIndex: number }) {
       <span className="inline-flex h-9 items-center rounded-[var(--radius-btn)] px-3 text-sm font-semibold text-ink ring-1 ring-line">
         Asignar
       </span>
+    </div>
+  );
+}
+
+/**
+ * La frase del paso 1 se escribe sola cuando el cuadro aparece (unos 2,5 s)
+ * y después se marcan las tres partes que pasan a ser campos del turno.
+ * El HTML del servidor la trae entera; con "reducir movimiento", o si el
+ * cuadro ya está en pantalla al cargar, queda quieta.
+ */
+function PedidoEscribiendose() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [chars, setChars] = useState(PEDIDO.length);
+  const [marked, setMarked] = useState(true);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (el.getBoundingClientRect().top < window.innerHeight) return;
+    setChars(0);
+    setMarked(false);
+    let tick: ReturnType<typeof setInterval> | undefined;
+    let mark: ReturnType<typeof setTimeout> | undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        let n = 0;
+        tick = setInterval(() => {
+          n += 1;
+          setChars(n);
+          if (n >= PEDIDO.length) {
+            clearInterval(tick);
+            mark = setTimeout(() => setMarked(true), 350);
+          }
+        }, 55);
+      },
+      { rootMargin: "0px 0px -20% 0px" }
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      clearInterval(tick);
+      clearTimeout(mark);
+    };
+  }, []);
+
+  return (
+    <div ref={ref} className="w-full max-w-[420px]">
+      <DescribeBox chars={chars} marked={marked} caret={chars < PEDIDO.length} />
     </div>
   );
 }
