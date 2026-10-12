@@ -14,6 +14,7 @@ entrada. Por eso lo que se fija acá no es el diseño (que va a cambiar) sino
 los invariantes que hacen que un mail sea de Oído y no de cualquiera.
 """
 
+import re
 from datetime import timedelta
 
 import pytest
@@ -163,3 +164,29 @@ def test_la_bienvenida_no_pide_lo_que_ya_se_cargo_en_el_onboarding(nombre: str):
         assert ya_hecho not in html
     # "cadete" no es un rubro de la app (ver WorkerSkill).
     assert "cadete" not in html
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_ningun_titulo_termina_en_punto(nombre: str):
+    """Mismo criterio que la landing (Julieta, 2026-10-12): los títulos van
+    sin punto final."""
+    html = _PLANTILLAS[nombre]()
+    titulo = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S).group(1)
+    for renglon in titulo.split("<br>"):
+        assert not renglon.strip().endswith("."), renglon
+
+
+@pytest.mark.parametrize("nombre", ["bienvenida_trabajador", "bienvenida_comercio"])
+def test_la_bienvenida_explica_como_bajar_la_app(nombre: str):
+    """En iPhone los avisos sólo llegan con Oído en la pantalla de inicio:
+    la bienvenida dice cómo hacerlo desde el navegador de cada celular."""
+    html = _PLANTILLAS[nombre]()
+    assert "Chrome" in html and "Instalar app" in html
+    assert "Safari" in html and "Agregar a inicio" in html
+
+
+def test_el_boton_ambar_lleva_tinta_y_no_blanco():
+    """Blanco sobre el ámbar da 3.19: no pasa AA."""
+    html = render_welcome_worker_email_html("Ana", _LINK)
+    boton = re.search(r'<a href="' + re.escape(_LINK) + r'" style="([^"]*)"', html).group(1)
+    assert "color:#ffffff" not in boton

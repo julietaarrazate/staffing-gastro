@@ -90,7 +90,7 @@ def _shell(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600;700&display=swap');
   body,table,td,a{{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}}
   table,td{{mso-table-lspace:0pt;mso-table-rspace:0pt;}}
   img{{-ms-interpolation-mode:bicubic;border:0;line-height:100%;outline:none;text-decoration:none;}}
@@ -113,7 +113,7 @@ def _shell(
                   <span style="display:inline-block;padding:4px 10px;border-radius:999px;background-color:{eyebrow_bg};color:{eyebrow_color};font-family:Inter,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;">{eyebrow}</span>
                 </td>
               </tr></table>
-              <h1 style="margin:18px 0 6px;font-family:Fraunces,Georgia,serif;font-size:25px;line-height:1.25;font-weight:700;color:#ffffff;">{title_html}</h1>
+              <h1 style="margin:18px 0 6px;font-family:'Bricolage Grotesque',Arial,sans-serif;font-size:25px;line-height:1.25;font-weight:700;color:#ffffff;">{title_html}</h1>
               <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.55;color:#c9c4ba;">{subtitle_html}</p>
             </td>
           </tr>
@@ -165,7 +165,7 @@ def _step_box(
   <tr><td style="padding:16px 18px;">
     <table role="presentation" cellpadding="0" cellspacing="0"><tr>
       <td valign="top" style="padding-right:12px;width:26px;">
-        <span style="display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;background-color:{_AMBAR};color:#ffffff;font-family:Inter,Arial,sans-serif;font-size:13px;font-weight:700;border-radius:8px;">{number}</span>
+        <span style="display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;background-color:{_AMBAR};color:{_NIGHT};font-family:Inter,Arial,sans-serif;font-size:13px;font-weight:700;border-radius:8px;">{number}</span>
       </td>
       <td>
         <p style="margin:0 0 3px;font-family:Inter,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.03em;color:#1f1f1c;text-transform:uppercase;">{title}{optional_span}</p>
@@ -177,9 +177,12 @@ def _step_box(
 
 
 def _cta_button(label: str, link: str, *, bg: str = _AMBAR) -> str:
+    # Sobre el ámbar va tinta: el blanco da 3.19 y no pasa AA (misma regla
+    # que los botones de la app, COLOR_SYSTEM). Sobre petróleo, blanco.
+    color = _NIGHT if bg == _AMBAR else "#ffffff"
     return f"""<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px auto 4px;">
   <tr><td style="border-radius:999px;background-color:{bg};">
-    <a href="{link}" style="display:inline-block;padding:14px 34px;font-family:Inter,Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px;">{label}</a>
+    <a href="{link}" style="display:inline-block;padding:14px 34px;font-family:Inter,Arial,sans-serif;font-size:15px;font-weight:700;color:{color};text-decoration:none;border-radius:999px;">{label}</a>
   </td></tr>
 </table>"""
 
@@ -195,7 +198,7 @@ def render_welcome_worker_email_html(full_name: str, link: str) -> str:
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Hola {escape(full_name)},</p>
     <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Gracias por sumarte. Tu cuenta ya está activa. Esto es lo que hace que te lleguen turnos:</p>
-    {_step_box(1, "Activá los avisos", "Cuando un comercio cerca tuyo necesita a alguien ya, te avisamos al celular. Sin avisos, te enterás tarde.", accent="manteca")}
+    {_step_box(1, "Bajá Oído a tu celular", "Desde Chrome en Android: tocá los tres puntos ⋮ y elegí <strong>Instalar app</strong>. Desde Safari en iPhone: tocá Compartir y elegí <strong>Agregar a inicio</strong>. Abrila desde el ícono y tocá Activar cuando te lo pida: así te avisamos al instante cuando un comercio cerca tuyo necesita a alguien.", accent="manteca")}
     {_step_box(2, "Verificá tu identidad", "Subí tu DNI y una selfie desde tu perfil. Cuando un comercio mira a quién elegir, ve el sello de perfil verificado.", accent="cielo")}
     {_step_box(3, "Postulate a tu primer turno", "Elegí uno del feed y tocá Postularme. Si dejaste tu zona o tu oficio para después, cargalos en tu perfil para ver los turnos que te sirven.")}
     {_cta_button("Ver turnos cerca", link)}
@@ -203,13 +206,13 @@ def render_welcome_worker_email_html(full_name: str, link: str) -> str:
     <p style="margin:4px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1f1f1c;">¡Bienvenido/a!<br><strong>El equipo de Oído</strong></p>
     """
     return _shell(
-        preheader="Tres cosas para que te empiecen a llegar turnos cerca tuyo.",
+        preheader="Bajá Oído a tu celular y empezá a recibir turnos cerca tuyo.",
         header_bg=_NIGHT,
         eyebrow="TRABAJADOR · CUENTA NUEVA",
         eyebrow_bg="rgba(217,119,6,0.20)",
         eyebrow_color=_MANTECA,
-        title_html="Ya sos parte de Oído.",
-        subtitle_html="La plataforma que conecta a trabajadores gastronómicos con los comercios que necesitan cubrir turnos.",
+        title_html="Ya sos parte de Oído",
+        subtitle_html="",
         body_html=body,
         footer_note="Recibís este mail porque te registraste en Oído.",
     )
@@ -223,8 +226,8 @@ def render_welcome_employer_email_html(full_name: str, link: str) -> str:
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Hola {escape(full_name)},</p>
     <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1c;">Gracias por sumar tu local. Tu cuenta ya está activa. Así cubrís tu primer turno:</p>
     {_step_box(1, "Publicá tu primer turno", 'Contale al asistente qué necesitás en una frase ("un mozo para el sábado a la noche, pago 45 mil") y te lo arma. Vos revisás y publicás.', accent="manteca")}
-    {_step_box(2, "Verificá tu comercio", "Subí tu constancia de AFIP desde tu perfil. Los trabajadores ven el sello de Comercio verificado y se postulan con más confianza.", accent="cielo")}
-    {_step_box(3, "Activá los avisos", "Te avisamos al celular cuando alguien se postula, para que elijas antes de que se vaya a otro turno.")}
+    {_step_box(2, "Bajá Oído a tu celular", "Desde Chrome en Android: tocá los tres puntos ⋮ y elegí <strong>Instalar app</strong>. Desde Safari en iPhone: tocá Compartir y elegí <strong>Agregar a inicio</strong>. Abrila desde el ícono y tocá Activar cuando te lo pida: te avisamos cuando alguien se postula, para que elijas antes de que se vaya a otro turno.", accent="cielo")}
+    {_step_box(3, "Verificá tu comercio", "Subí tu constancia de AFIP desde tu perfil. Los trabajadores ven el sello de Comercio verificado y se postulan con más confianza.")}
     {_cta_button("Publicar un turno", link)}
     <p style="margin:24px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1f1f1c;">Cualquier duda, respondé este mail.</p>
     <p style="margin:4px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1f1f1c;">¡Bienvenido/a!<br><strong>El equipo de Oído</strong></p>
@@ -235,8 +238,8 @@ def render_welcome_employer_email_html(full_name: str, link: str) -> str:
         eyebrow="COMERCIO · CUENTA NUEVA",
         eyebrow_bg="rgba(217,119,6,0.20)",
         eyebrow_color=_MANTECA,
-        title_html="Ya sos parte de Oído.",
-        subtitle_html="La plataforma que conecta a tu local con trabajadores gastronómicos disponibles en tu zona.",
+        title_html="Ya sos parte de Oído",
+        subtitle_html="",
         body_html=body,
         footer_note="Recibís este mail porque registraste un comercio en Oído.",
     )
@@ -261,7 +264,7 @@ def render_confirm_email_html(full_name: str, link: str) -> str:
         eyebrow="CONFIRMÁ TU CUENTA",
         eyebrow_bg="rgba(217,119,6,0.20)",
         eyebrow_color=_MANTECA,
-        title_html="Confirmá tu email.",
+        title_html="Confirmá tu email",
         subtitle_html="",
         body_html=body,
         footer_note="",
@@ -304,7 +307,7 @@ def render_password_reset_email_html(full_name: str, link: str, expires_in_hours
         eyebrow="SEGURIDAD DE TU CUENTA",
         eyebrow_bg="rgba(217,119,6,0.20)",
         eyebrow_color=_MANTECA,
-        title_html="Restablecé tu contraseña.",
+        title_html="Restablecé tu contraseña",
         subtitle_html="",
         body_html=body,
         footer_note="Recibís este mail porque se pidió restablecer la contraseña de esta cuenta.",
@@ -329,7 +332,7 @@ def render_identity_verification_email_html(full_name: str, profile_link: str) -
       <tr><td style="padding:14px 16px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
           <td valign="middle" style="padding-right:12px;">
-            <span style="display:inline-block;width:40px;height:40px;border-radius:999px;background-color:#e3ded2;text-align:center;line-height:40px;font-family:Fraunces,Georgia,serif;font-size:16px;font-weight:700;color:#1f1f1c;">{full_name[:1].upper() if full_name else "?"}</span>
+            <span style="display:inline-block;width:40px;height:40px;border-radius:999px;background-color:#e3ded2;text-align:center;line-height:40px;font-family:'Bricolage Grotesque',Arial,sans-serif;font-size:16px;font-weight:700;color:#1f1f1c;">{full_name[:1].upper() if full_name else "?"}</span>
           </td>
           <td valign="middle">
             <p style="margin:0 0 3px;font-family:Inter,Arial,sans-serif;font-size:14px;font-weight:700;color:#1f1f1c;">{full_name}</p>
@@ -363,7 +366,7 @@ def render_identity_verification_email_html(full_name: str, profile_link: str) -
         eyebrow="NOVEDAD EN OÍDO",
         eyebrow_bg="rgba(255,255,255,0.14)",
         eyebrow_color="#bfe0da",
-        title_html="Verificá tu identidad.<br>Que se vea que sos vos.",
+        title_html="Verificá tu identidad<br>Que se vea que sos vos",
         subtitle_html="",
         body_html=body,
         footer_note="Recibís este mail porque tenés una cuenta de trabajador en Oído.",
@@ -386,7 +389,7 @@ def render_shift_accepted_email_html(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fbf3c9;border-radius:16px;margin-bottom:8px;">
       <tr><td style="padding:16px 18px;">
         <p style="margin:0 0 2px;font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;color:#4a4640;text-transform:uppercase;">{escape(position_label)}</p>
-        <p style="margin:0 0 2px;font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;color:{_NIGHT};">{escape(company_name)}</p>
+        <p style="margin:0 0 2px;font-family:'Bricolage Grotesque',Arial,sans-serif;font-size:19px;font-weight:700;color:{_NIGHT};">{escape(company_name)}</p>
         <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.5;color:{_NIGHT};">{escape(when_label)}</p>
       </td></tr>
     </table>
@@ -418,7 +421,7 @@ def render_verification_decision_email_html(
     if approved:
         text = f"Revisamos tu {escape(what)} y quedó aprobada. El sello ya se ve en tu perfil."
         detail = ""
-        title = "Verificación aprobada."
+        title = "Verificación aprobada"
         cta = "Ver mi perfil"
     else:
         text = f"Revisamos tu {escape(what)} y no la pudimos aprobar. Podés mandarla de nuevo desde tu perfil."
@@ -428,7 +431,7 @@ def render_verification_decision_email_html(
             if reason
             else ""
         )
-        title = "Hay que revisar tu verificación."
+        title = "Hay que revisar tu verificación"
         cta = "Mandarla de nuevo"
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_NIGHT};">Hola {escape(full_name)},</p>
