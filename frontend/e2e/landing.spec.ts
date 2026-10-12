@@ -255,3 +255,16 @@ test.describe("con reducir movimiento", () => {
     expect(sticky).toBe(0);
   });
 });
+
+test("la historia de un turno sigue en /historia, fuera de los buscadores", async ({ page }) => {
+  const errores: string[] = [];
+  page.on("pageerror", (e) => errores.push(String(e)));
+  await sinSesion(page);
+  await page.goto("/historia");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Personal gastronómico,\s*ya\./);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await page.waitForTimeout(600);
+  await recorrer(page);
+  await expect(page.getByText("¡Oído!").first()).toBeAttached();
+  expect(errores).toEqual([]);
+});

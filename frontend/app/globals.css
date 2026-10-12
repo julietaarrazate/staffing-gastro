@@ -1190,3 +1190,60 @@ body:has([data-landing]) main {
 [data-reveal="shown"] .anim-bar {
   animation: landingBar 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.3s) both;
 }
+
+/* ── La historia de un turno (/historia, components/landing/story/) ──
+   Guardada el 2026-10-12 para grabar reels e historias. Lo que sólo usa
+   ella; `storyBubbleIn` y `.story-colon` (más arriba) son compartidos. */
+[data-landing] {
+  --svh-estado: 93.333svh;
+}
+@media (min-width: 1024px) {
+  [data-landing] {
+    --svh-estado: 113.333svh;
+  }
+}
+/* "escribiendo…": la única espera en bucle de la página (motion.md regla 3). */
+@keyframes storyTyping {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+/* Onda que sale de un elemento (el pin publicado, la burbuja "¡Oído!"). */
+@keyframes storyRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+.story-typing span {
+  animation: storyTyping 1.6s ease-in-out infinite;
+}
+.story-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.story-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+/* El cursor del cuadro "Describilo": titila mientras espera que escribas. */
+.story-caret {
+  animation: storyColon 1.4s steps(2, jump-none) infinite;
+}
+/* Puntos guía de la carta de precios y del registro del turno. */
+.story-leader {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  border-bottom: 2px dotted currentColor;
+  opacity: 0.35;
+  transform: translateY(-0.3em);
+}

@@ -157,6 +157,29 @@ celular de 390 × 844 y 9,1 en una compu de 1440 × 900.
 - **"Verificada":** la regla de confianza dice "Identidad verificada con
   DNI y selfie" y la pregunta frecuente dice "Verificamos…".
 
+## La historia queda en /historia
+
+**Pedido:** Julieta quiere guardar la landing anterior. Sus animaciones
+explican mejor y sirven para reels, historias de Instagram y publicidad. La
+landing corta queda como borrador hasta que la convenza.
+
+**Qué cambió:**
+- `components/landing/story/` vuelve tal cual estaba, con los títulos en
+  Bricolage de #425.
+- Se publica en `app/historia/page.tsx`. No se indexa (`robots: noindex`),
+  no está en el sitemap y su canónica es `/`.
+- `Navbar` y `BottomNav` no se muestran en `/historia`, así no aparecen en
+  una grabación con la sesión iniciada.
+- Vuelven a `globals.css`, en su propio bloque, los estilos que sólo usa la
+  historia.
+- Test en `e2e/landing.spec.ts`: la recorre entera sin errores y comprueba
+  el `noindex`.
+
+**Por qué así:** con una ruta propia se puede grabar desde el celular
+cuando haga falta, sin depender de recuperar código viejo de git. La
+contra: hay dos encabezados y dos pies parecidos (los de `story/` y los de
+la landing corta). Se acepta mientras la historia sea material para redes.
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
 - La pregunta legal (monotributo, quién es el empleador): no se publica

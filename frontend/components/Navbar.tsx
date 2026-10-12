@@ -53,6 +53,9 @@ export default function Navbar() {
   // La landing (visitante sin sesión) lleva su propio encabezado
   // (components/landing/LandingHeader.tsx). Con sesión, "/" redirige a la home del rol y este header sigue apareciendo.
   if (pathname === "/" && !user) return null;
+  // /historia (la landing anterior, guardada para grabar reels) trae su
+  // propio encabezado, con o sin sesión.
+  if (pathname === "/historia") return null;
 
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto

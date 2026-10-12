@@ -41,8 +41,8 @@ Revisado contra el código y los PRs el 2026-10-03.
 2. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
    (pedido de Julieta, 2026-10-06; sin arrancar). La referencia era la
    landing "la historia de un turno" (#405), reemplazada el 2026-10-12 por
-   la landing corta: su motor de escena (`components/landing/story/
-   useStage.ts`) queda en el historial de git, y la trampa de motion 13
+   la landing corta; sigue viva en `/historia` para grabar reels, con su
+   motor de escena en `components/landing/story/useStage.ts`. La trampa de motion 13
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
