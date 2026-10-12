@@ -53,7 +53,24 @@ se mueve sin motivo, cansa a la tercera vez.
 - **Esperas de IA**: `OidoLoader` con "Oído está escuchando…" / "Leyendo tu
   pedido…".
 
-## La landing: la excepción (2026-10-06)
+## La landing corta (2026-10-12)
+
+La historia fijada al scroll de abajo se reemplazó por una landing corta
+(`frontend/components/landing/`; por qué, en
+[`../historial/2026-10-12-landing-corta.md`](../historial/2026-10-12-landing-corta.md)).
+Julieta: las animaciones iban muy rápidas y reemplazaban el texto en el mismo
+lugar. Reglas nuevas:
+
+- **Una sola animación de scroll:** cada bloque entra suave (0,7 s) una vez,
+  al aparecer (`Reveal.tsx`). El HTML sale visible; el estado escondido lo
+  pone el navegador sólo a lo que está debajo de la pantalla.
+- **Nada se fija ni se reemplaza.** Los títulos están siempre; cambia, como
+  mucho, que aparezcan.
+- **El hero se mueve solo una vez:** la burbuja de Martín y, un segundo
+  después, el turno cubierto (CSS, antes de hidratar). Con "reducir
+  movimiento", nada.
+
+## La landing: la excepción (2026-10-06, reemplazada el 2026-10-12)
 
 La landing no es una herramienta que se abre diez veces por turno: se ve
 una vez y tiene que contar Oído. Por eso ahí el movimiento **es** el

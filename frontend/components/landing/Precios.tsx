@@ -6,32 +6,20 @@ import { api } from "@/lib/api";
 import { formatArs } from "@/lib/format";
 import { CheckIcon } from "@/components/icons";
 import type { SubscriptionPlan } from "@/lib/types";
+import { RESPALDO } from "./planes";
 
 /**
- * PRECIOS. Responde "¿cuánto sale?" después de la historia, cuando ya hay
- * ganas. Desde 2026-10-09 (Julieta: la carta con puntos guía se veía "muy
+ * PRECIOS. Responde "¿cuánto sale?" una vez que se entendió qué hace. Desde 2026-10-09 (Julieta: la carta con puntos guía se veía "muy
  * básica") son tres tarjetas, pero no iguales: el Básico es la destacada
  * (vidrio celeste, el único botón ámbar) y cada plan DIBUJA su tope de turnos
  * del mes, un cuadradito por turno, para que la diferencia se vea antes de
  * leerla. Pro, sin tope, es una barra llena.
  *
- * El HTML del servidor trae `RESPALDO`, copia literal de
- * backend/app/modules/subscription/domain/plans.py; después se pide
+ * El HTML del servidor trae `RESPALDO` (planes.ts); después se pide
  * GET /subscription/plans/public y, si responde bien, gana la API (una sola
  * fuente de verdad). Antes la sección dependía sólo del fetch: con el backend
  * de Render dormido no aparecía, y "/#precios" caía en cualquier lado.
  */
-const RESPALDO: SubscriptionPlan[] = [
-  { code: "gratis", name: "Gratis", price_ars: 0, max_turnos_mes: 3, features: ["Hasta 3 turnos publicados por mes", "Soporte por email"] },
-  { code: "basico", name: "Básico", price_ars: 20000, max_turnos_mes: 15, features: ["Hasta 15 turnos publicados por mes", "Soporte prioritario"] },
-  {
-    code: "pro",
-    name: "Pro",
-    price_ars: 45000,
-    max_turnos_mes: null,
-    features: ["Turnos publicados ilimitados", "Soporte prioritario", "Destacado en el feed"],
-  },
-];
 
 /** El tope del mes, dibujado: un cuadradito por turno (3, 15) o una barra
  *  llena si no hay tope. */
@@ -50,7 +38,7 @@ function Tope({ max, destacado }: { max: number | null; destacado: boolean }) {
   );
 }
 
-export default function Carta() {
+export default function Precios() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>(RESPALDO);
 
   useEffect(() => {
@@ -71,20 +59,23 @@ export default function Carta() {
   return (
     <section
       id="precios"
-      aria-label="Precios"
+      aria-labelledby="precios-titulo"
       data-tone="light"
-      data-hide-cta=""
       className="scroll-mt-[var(--lht)] px-4 py-20 sm:px-6 lg:px-12 lg:py-28"
     >
       <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
         <div>
-          <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">Precios · Para comercios</p>
-          <h2 className="mt-3 font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]">
-            Sin comisión por turno.
+          <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-ink-mute">Precios para comercios</p>
+          <h2
+            id="precios-titulo"
+            className="mt-3 font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]"
+          >
+            Empezás gratis, sin comisión por turno
           </h2>
         </div>
         <p className="mt-4 max-w-[34ch] text-lg text-ink-soft lg:mt-0">
-          Empezás gratis y cambiás de plan según cuántos turnos publicás por mes.
+          Cambiás de plan según cuántos turnos publicás por mes. A quien trabaja le pagás directo vos, sin
+          intermediarios.
         </p>
       </div>
 
@@ -117,7 +108,7 @@ export default function Carta() {
               </p>
 
               <div className="mt-6">
-                <p className="mb-2 font-mono text-label font-medium uppercase tracking-[0.12em] text-ink-mute">
+                <p className="mb-2 font-mono text-caption font-medium uppercase tracking-[0.1em] text-ink-mute">
                   {p.max_turnos_mes === null ? "Turnos sin tope" : `${p.max_turnos_mes} turnos por mes`}
                 </p>
                 <Tope max={p.max_turnos_mes} destacado={destacado} />
@@ -142,7 +133,7 @@ export default function Carta() {
                     : "bg-card text-ink ring-1 ring-ink/15 hover:ring-ink/30"
                 }`}
               >
-                {gratis ? "Creá tu comercio gratis" : `Elegir ${p.name}`}
+                {gratis ? "Publicar un turno gratis" : `Elegir ${p.name}`}
               </Link>
             </li>
           );
@@ -152,11 +143,11 @@ export default function Carta() {
       <p className="mt-8 text-center text-body text-ink-soft">
         Para trabajar no se paga nada.{" "}
         <Link
-          href="/register?rol=trabajador"
+          href="/#trabajar"
           data-cta="precios-trabajo"
           className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-secondary"
         >
-          Quiero trabajar →
+          Ver cómo funciona para vos →
         </Link>
       </p>
     </section>

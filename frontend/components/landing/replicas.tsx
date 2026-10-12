@@ -1,18 +1,16 @@
 "use client";
 
-import { forwardRef, type CSSProperties, type ReactNode } from "react";
-import { motion, type MotionValue } from "motion/react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { LogoGlyph, LogoMark } from "@/components/Logo";
 import { CheckCircleIcon, StarIcon } from "@/components/icons";
-import { Spinner } from "@/components/ui";
 import { PEDIDO, PEDIDO_PARTES } from "./fixtures";
 
-/* Réplicas de piezas del producto que la historia necesita "en vivo" (un
- * botón que se aprieta, un mapa que se dibuja) y que los componentes reales no
- * pueden mostrar sin backend, MapLibre o sesión. Copian las clases de los
- * originales; cada una dice de cuál sale. Lo que sí se puede mostrar tal cual
- * (OpportunityCard, CandidateCard, ShiftCard) va real, dentro de un `inert`. */
+/* Réplicas de piezas del producto que la landing muestra como imagen y que
+ * los componentes reales no pueden mostrar sin backend, MapLibre o sesión.
+ * Copian las clases de los originales; cada una dice de cuál sale. Lo que sí
+ * se puede mostrar tal cual (OpportunityCard, CandidateCard) va real, dentro
+ * de un `inert` y `aria-hidden` (ver `Muestra` en ComoFunciona.tsx). */
 
 /** Partes de la frase del pedido, en orden, con su posición en el texto. */
 const PARTES = (() => {
@@ -26,87 +24,40 @@ const PARTES = (() => {
 
 /**
  * El cuadro "Describilo y lo completamos" de /shifts/new (app/shifts/new/
- * page.tsx). `chars` es cuánto de la frase está escrito (lo maneja el scroll);
- * `marked` subraya en manteca las tres partes que se convierten en campos.
+ * page.tsx), con la frase entera escrita y subrayadas en manteca las tres
+ * partes que se convierten en campos del turno. Es una imagen: el botón es
+ * un `span`, no se puede apretar.
  */
-export const DescribeBox = forwardRef<
-  HTMLDivElement,
-  {
-    chars: number;
-    marked: boolean;
-    loading: boolean;
-    pressed: boolean;
-    caret: boolean;
-    onComplete?: () => void;
-    style?: CSSProperties;
-    className?: string;
-  }
->(function DescribeBox({ chars, marked, loading, pressed, caret, onComplete, style, className }, ref) {
-  const shown = PEDIDO.slice(0, chars);
+export function DescribeBox({ className }: { className?: string }) {
   const segments: ReactNode[] = [];
   let cursor = 0;
   PARTES.forEach((p, i) => {
-    if (p.start >= shown.length) return;
-    if (p.start > cursor) segments.push(shown.slice(cursor, p.start));
-    const end = Math.min(p.end, shown.length);
+    if (p.start > cursor) segments.push(PEDIDO.slice(cursor, p.start));
     segments.push(
-      <span
-        key={i}
-        data-parte={i}
-        className={cn(
-          "rounded-[4px] transition-[background-color,box-shadow] duration-400",
-          marked && "bg-manteca shadow-[0_0_0_2px_var(--color-manteca)]"
-        )}
-      >
-        {shown.slice(p.start, end)}
+      <span key={i} className="rounded-[4px] bg-manteca shadow-[0_0_0_2px_var(--color-manteca)]">
+        {PEDIDO.slice(p.start, p.end)}
       </span>
     );
-    cursor = end;
+    cursor = p.end;
   });
-  if (cursor < shown.length) segments.push(shown.slice(cursor));
+  if (cursor < PEDIDO.length) segments.push(PEDIDO.slice(cursor));
 
   return (
-    <div ref={ref} style={style} className={cn("rounded-3xl bg-surface p-4 ring-1 ring-line", className)}>
+    <div className={cn("rounded-3xl bg-surface p-4 ring-1 ring-line", className)}>
       <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
         <LogoGlyph size={14} color="var(--color-primary)" /> Describilo y lo completamos
       </p>
-      <div className="mt-2 min-h-[4.25rem] rounded-2xl bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink ring-1 ring-line">
-        {chars === 0 && !caret ? (
-          <span className="text-ink-mute">Ej: necesito un mozo el sábado a la noche, se paga 45000</span>
-        ) : (
-          <>
-            {segments}
-            {caret && (
-              <span
-                aria-hidden
-                className="ml-px inline-block h-[1.1em] w-[2px] translate-y-[0.2em] bg-primary story-caret"
-              />
-            )}
-          </>
-        )}
+      <div className="mt-2 rounded-2xl bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink ring-1 ring-line">
+        {segments}
       </div>
-      <div className="mt-2 flex min-h-[40px] items-center justify-between gap-2">
-        {loading ? (
-          <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink/60">
-            <Spinner size={14} className="[animation-duration:1.333s]!" /> Leyendo tu pedido…
-          </span>
-        ) : (
-          <span />
-        )}
-        <button
-          type="button"
-          onClick={onComplete}
-          className={cn(
-            "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-200",
-            pressed ? "scale-[0.96]" : "scale-100"
-          )}
-        >
+      <div className="mt-2 flex justify-end">
+        <span className="inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)]">
           Completar
-        </button>
+        </span>
       </div>
     </div>
   );
-});
+}
 
 /** El marcador de turno del mapa en su estado activo (components/map/
  *  ShiftMarker.tsx): pastilla ámbar con el pago adentro, punto del rubro y
@@ -159,38 +110,25 @@ export function WorkerPin({
 }
 
 /**
- * Calles de la historia: una grilla en diagonal, como la de Palermo, sin
- * nombres (no tiene que leerse como una dirección real). Se revela en un
- * círculo que crece desde el local (`reveal`, 0→1), un solo recorte en vez de
- * animar cada calle.
+ * Calles del mapa de ejemplo: una grilla en diagonal, como la de Palermo, sin
+ * nombres (no tiene que leerse como una dirección real).
  */
-export function StreetGrid({
-  reveal,
-  className,
-  tone = "map",
-}: {
-  reveal?: MotionValue<string>;
-  className?: string;
-  /** `map`: calles blancas sobre fondo de mapa. `faint`: casi transparente,
-   *  para el mapa chico de "va en camino". */
-  tone?: "map" | "faint";
-}) {
+export function StreetGrid({ className }: { className?: string }) {
   const lines: { d: string; avenue: boolean }[] = [];
   for (let k = -4; k <= 4; k++) {
     const c = 50 + k * 15;
     lines.push({ d: `M${c} -60 L${c} 160`, avenue: k === 0 || k === 3 });
     lines.push({ d: `M-60 ${c} L160 ${c}`, avenue: k === -1 });
   }
-  const stroke = tone === "map" ? "#ffffff" : "rgba(17,17,17,0.12)";
   return (
-    <motion.div className={cn("absolute inset-0", className)} style={reveal ? { clipPath: reveal } : undefined}>
+    <div className={cn("absolute inset-0", className)}>
       <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden preserveAspectRatio="xMidYMid slice">
         <g transform="rotate(-34 50 50)">
           {lines.map((l, i) => (
             <path
               key={i}
               d={l.d}
-              stroke={stroke}
+              stroke="#ffffff"
               strokeWidth={l.avenue ? 6 : 3}
               vectorEffect="non-scaling-stroke"
               strokeLinecap="round"
@@ -199,7 +137,7 @@ export function StreetGrid({
           ))}
         </g>
       </svg>
-    </motion.div>
+    </div>
   );
 }
 

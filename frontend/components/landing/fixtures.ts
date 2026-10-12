@@ -4,7 +4,7 @@ import type { CandidateMatch, Shift, ShiftStatus } from "@/lib/types";
  * Datos de la historia de la landing: UN turno, el de mozo de 21 a 2 de un
  * viernes en Palermo, desde que se cae (20:46) hasta que queda cubierto.
  *
- * Todo es ilustrativo y la página lo dice ("Historia ilustrativa"). El local
+ * Todo es de ejemplo y la página lo dice una vez, en la banda "¡Oído!". El local
  * se llama "Tu bar" a propósito: el visitante ES el comercio, y así no se
  * nombra un negocio real sin su permiso (los ejemplos viejos usaban "Bar
  * Uriarte", que existe). Martín y Lucía son nombres de pila de ejemplo.
@@ -147,45 +147,22 @@ export const PEDIDO_PARTES = [
 ] as const;
 
 /**
- * El reloj del turno: la línea que acompaña toda la historia. Avanza un
- * minuto sólo cuando alguien hace algo, y se queda quieto en CUBIERTO.
- * El registro del final repite esta misma lista.
+ * El reloj del turno: de que Martín avisa que no llega (20:46) a que Lucía
+ * confirma (20:54).
  */
 export const RELOJ = {
   sinCubrir: { hora: "20:46", estado: "Sin cubrir" },
-  pidiendo: { hora: "20:47", estado: "Sin cubrir" },
-  publicado: { hora: "20:48", estado: "Publicado" },
-  avisado: { hora: "20:48", estado: "Avisado a 10" },
-  postulante: { hora: "20:49", estado: "1 postulante" },
-  postulantes: { hora: "20:51", estado: "3 postulantes" },
-  asignado: { hora: "20:53", estado: "Asignado" },
   cubierto: { hora: "20:54", estado: "Cubierto" },
-  enCamino: { hora: "20:54", estado: "En camino" },
-  llego: { hora: "20:54", estado: "Llegó" },
 } as const;
 
 export type RelojKey = keyof typeof RELOJ;
 
-/** El registro del turno que cierra la historia (RESULTADO). */
-export const REGISTRO = [
-  { hora: "20:46", texto: "Martín avisa que no llega" },
-  { hora: "20:48", texto: "Publicado" },
-  { hora: "20:48", texto: "Avisado a 10 cerca" },
-  { hora: "20:51", texto: "3 postulantes" },
-  { hora: "20:53", texto: "Asignado a Lucía" },
-  { hora: "20:54", texto: "Lucía confirma" },
-  { hora: "20:58", texto: "Llegó" },
-  { hora: "02:00", texto: "Turno terminado" },
-  { hora: "02:05", texto: "Se califican los dos" },
-] as const;
-
 /**
- * El mapa de la historia, en unidades de un cuadrado de 100×100 con el local
- * en el centro. Escala de referencia: 25 unidades ≈ 1 km, así las distancias
- * de los candidatos coinciden con lo que dicen sus tarjetas. Las posiciones
- * son inventadas y la escena dice "Ubicaciones aproximadas".
+ * El mapa de ejemplo, en unidades de un cuadrado de 100×100 con el local en
+ * el centro. Escala de referencia: 25 unidades ≈ 1 km, así las distancias de
+ * los candidatos coinciden con lo que dicen sus tarjetas. Las posiciones son
+ * inventadas y el mapa dice "Ubicaciones aproximadas".
  */
-export const MAP_LOCAL = { x: 50, y: 50 } as const;
 
 export type MapWorker = { id: string; inicial: string; x: number; y: number; candidato?: boolean; rating?: number };
 
@@ -201,8 +178,3 @@ export const MAP_WORKERS: MapWorker[] = [
   { id: "w9", inicial: "T", x: 15, y: 80 },
   { id: "w10", inicial: "F", x: 58, y: 13 },
 ];
-
-/** Distancia al local, en unidades del mapa. */
-export function mapDistance(w: { x: number; y: number }): number {
-  return Math.hypot(w.x - MAP_LOCAL.x, w.y - MAP_LOCAL.y);
-}

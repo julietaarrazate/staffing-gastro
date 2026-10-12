@@ -2,12 +2,12 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, setTheme, skipSplash } from "./mocks";
 
 /**
- * La landing es una historia fijada al scroll (components/landing/story/).
- * Lo que se fija acá no es la coreografía —eso se mira renderizado, en
- * capturas— sino lo que tiene que valer siempre: qué es y para quién arriba
- * de todo, que los botones lleven al alta correcta, que los precios estén
- * aunque el backend no conteste, que no haya scroll horizontal a 390px y que
- * con "reducir movimiento" se lea la misma historia sin animación.
+ * La landing corta (components/landing/). Lo que se fija acá es lo que tiene
+ * que valer siempre: qué es y para quién arriba de todo, que los botones
+ * lleven al alta correcta, que los títulos no terminen en punto, que los
+ * precios estén aunque el backend no conteste, que las preguntas frecuentes
+ * vayan también en datos estructurados, que no haya scroll horizontal a
+ * 390px y que con "reducir movimiento" esté todo a la vista.
  */
 
 async function sinSesion(page: Page, planes?: { status: number; body?: unknown }) {
@@ -28,8 +28,8 @@ async function sinSesion(page: Page, planes?: { status: number; body?: unknown }
   }
 }
 
-/** Baja la página entera a pasos (como un dedo), para que cada escena fijada
- *  corra su progreso de 0 a 1. */
+/** Baja la página entera a pasos (como un dedo), para que cada bloque
+ *  dispare su entrada. */
 async function recorrer(page: Page) {
   const alto = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y <= alto; y += 400) {
@@ -42,13 +42,15 @@ async function recorrer(page: Page) {
 test("arriba de todo dice qué es y para quién, con los dos caminos al alta", async ({ page }) => {
   await sinSesion(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Personal gastronómico,\s*ya\./);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    /¿Se te cayó alguien para hoy\?\s*Cubrí el turno en minutos/
+  );
   const hero = page.locator("#hero-ctas");
-  await expect(hero.getByRole("link", { name: "Necesito personal" })).toHaveAttribute(
+  await expect(hero.getByRole("link", { name: "Publicar un turno gratis" })).toHaveAttribute(
     "href",
     "/register?rol=comercio"
   );
-  await expect(hero.getByRole("link", { name: "Quiero trabajar" })).toHaveAttribute(
+  await expect(hero.getByRole("link", { name: /¿Trabajás en gastronomía\?/ })).toHaveAttribute(
     "href",
     "/register?rol=trabajador"
   );
@@ -56,7 +58,57 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
   await expect(page.getByRole("link", { name: "Ingresar" }).first()).toBeVisible();
 });
 
-test("la historia se recorre entera sin errores ni scroll horizontal a 390px", async ({ page }) => {
+test("ningún título termina en punto y los pasos son h3", async ({ page }) => {
+  await sinSesion(page);
+  await page.goto("/");
+  const titulos = await page
+    .locator("[data-landing] :is(h1, h2, h3)")
+    .evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
+  expect(titulos.length).toBeGreaterThan(6);
+  expect(titulos.filter((t) => t.endsWith("."))).toEqual([]);
+  await expect(page.getByRole("heading", { level: 3, name: "Contalo como lo dirías" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Le llega a quien está cerca" })).toBeAttached();
+  await expect(page.getByRole("heading", { level: 3, name: "Elegís y te confirma" })).toBeAttached();
+  // Las tarjetas de ejemplo no suman títulos ni links a perfiles inventados.
+  await expect(page.locator('[data-landing] a[href^="/workers/"], [data-landing] a[href^="/companies/"]')).toHaveCount(0);
+});
+
+test("el encabezado lleva a la sección de quien trabaja y muestra el botón al pasar el hero", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await sinSesion(page);
+  await page.goto("/");
+  const pedir = page.locator("header").getByRole("link", { name: "Pedir personal" });
+  await expect(pedir).toHaveCount(0); // escondido: fuera del árbol accesible
+  await page.locator("header").getByRole("link", { name: "Para trabajar" }).click();
+  await expect(page).toHaveURL(/#trabajar$/);
+  await expect(page.getByRole("heading", { level: 2, name: /Turnos de gastronomía cerca tuyo/ })).toBeInViewport();
+  await expect(page.locator("header").getByRole("link", { name: "Pedir personal" })).toHaveAttribute(
+    "href",
+    "/register?rol=comercio"
+  );
+  await expect(page.locator("#trabajar").getByRole("link", { name: "Crear mi perfil gratis" })).toHaveAttribute(
+    "href",
+    "/register?rol=trabajador"
+  );
+});
+
+test("las preguntas frecuentes también van como datos estructurados", async ({ page }) => {
+  await sinSesion(page);
+  await page.goto("/");
+  const datos = await page
+    .locator('script[type="application/ld+json"]')
+    .evaluateAll((els) => els.map((el) => JSON.parse(el.textContent ?? "null")).flat());
+  const faq = datos.find((d) => d?.["@type"] === "FAQPage");
+  const visibles = await page.locator("#preguntas summary").allTextContents();
+  expect(faq.mainEntity.map((q: { name: string }) => q.name)).toEqual(visibles.map((t) => t.trim()));
+  expect(datos.some((d) => d?.["@type"] === "Organization")).toBe(true);
+  // Se abre sin JavaScript (details/summary).
+  await page.getByText("¿Qué pasa si no viene?").click();
+  await expect(page.getByText(/elegís a otra persona de las que se postularon/)).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /oido\.com\.ar\/?$/);
+});
+
+test("se recorre entera sin errores ni scroll horizontal a 390px", async ({ page }) => {
   const errores: string[] = [];
   page.on("pageerror", (e) => errores.push(String(e)));
   await sinSesion(page);
@@ -95,7 +147,7 @@ test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ p
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$20.000");
   await expect(precios).toContainText("$45.000");
-  await expect(precios.getByRole("link", { name: "Creá tu comercio gratis" })).toHaveAttribute(
+  await expect(precios.getByRole("link", { name: "Publicar un turno gratis" })).toHaveAttribute(
     "href",
     "/register?rol=comercio"
   );
@@ -119,13 +171,16 @@ test("con el tema oscuro elegido, la landing mantiene su paleta propia", async (
 test.describe("con reducir movimiento", () => {
   test.use({ reducedMotion: "reduce" });
 
-  test("cada escena se lee como cuadros quietos, sin escenario fijado", async ({ page }) => {
+  test("todo está a la vista desde el principio, sin nada fijado al scroll", async ({ page }) => {
     await sinSesion(page);
     await page.goto("/");
-    await expect(page.getByText("Arrancás a las 21. Y te escribe el mozo.")).toBeVisible();
-    await expect(page.getByText("Lo pedís en una frase.").first()).toBeAttached();
-    await expect(page.getByText("¡Oído!").first()).toBeAttached();
-    // Ninguna escena queda fijada (el único `sticky` es el encabezado).
+    await expect(page.getByText("Perdón, hoy no llego.")).toBeVisible();
+    await expect(page.getByText("Lucía confirmó tu turno de las 21")).toBeVisible();
+    // Ningún bloque queda esperando su entrada.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "¡Oído!" })).toBeAttached();
+    // Ninguna sección queda fijada (el único `sticky` es el encabezado).
     const sticky = await page.evaluate(
       () =>
         Array.from(document.querySelectorAll("[data-landing] section *")).filter(

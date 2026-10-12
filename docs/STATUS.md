@@ -39,9 +39,10 @@ Revisado contra el código y los PRs el 2026-10-03.
    y [`design-system/color-system.md`](./design-system/color-system.md),
    "Propuesta v6".
 2. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
-   (pedido de Julieta, 2026-10-06; sin arrancar). La referencia es la
-   landing nueva, "la historia de un turno" (#405): motor de escena en
-   `frontend/components/landing/story/useStage.ts`, la trampa de motion 13
+   (pedido de Julieta, 2026-10-06; sin arrancar). La referencia era la
+   landing "la historia de un turno" (#405), reemplazada el 2026-10-12 por
+   la landing corta: su motor de escena (`components/landing/story/
+   useStage.ts`) queda en el historial de git, y la trampa de motion 13
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).

@@ -32,13 +32,14 @@ export default function OpportunityCard({
   onPass,
   applying = false,
   shareable = false,
+  preview = false,
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
   distanceKm?: number | null;
   /** Grilla de escritorio (feed/page.tsx, md+): decidir sin el gesto de
    *  swipe, que no tiene sentido con mouse. En el mazo mobile (SwipeDeck) y
-   *  en la historia de la landing (components/landing/story) se omiten y la
+   *  en la landing (components/landing) se omiten y la
    *  fila no se renderiza. */
   onApply?: () => void;
   onPass?: () => void;
@@ -49,8 +50,13 @@ export default function OpportunityCard({
    *  fijo y sobra lugar; en el mazo mobile no, porque ahí cada píxel del
    *  cuerpo compite con "Cómo llegar" (ver más abajo). */
   shareable?: boolean;
+  /** Como imagen (la landing): el puesto va como texto y no como `h2`, y el
+   *  comercio sin link, así los buscadores no leen títulos ni links de un
+   *  turno de ejemplo. */
+  preview?: boolean;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
+  const Title = preview ? "p" : "h2";
   const heroFallback = SKILL_HERO_TONE[shift.position];
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
@@ -135,14 +141,21 @@ export default function OpportunityCard({
             el título de abajo — bug real reportado por Julieta con captura,
             "Catering Puerto Madero" pisando "Personal de eventos", 2026-07-29). */}
         <div className="relative flex items-center justify-between gap-2 p-3.5">
-          <Link
-            href={`/companies/${shift.company_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
-          >
-            <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
-            <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
-          </Link>
+          {preview ? (
+            <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm">
+              <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
+              <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+            </span>
+          ) : (
+            <Link
+              href={`/companies/${shift.company_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
+            >
+              <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
+              <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+            </Link>
+          )}
           <div className="flex shrink-0 items-center gap-2">
             {shift.urgent && (
               <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm">
@@ -160,9 +173,9 @@ export default function OpportunityCard({
         <div className="relative px-5 pb-4">
           {/* Blanco sobre la foto con velo y sobre los tonos profundos; sobre
               el color de marca, `on-brand` (ver `heroInk`). */}
-          <h2 className={`line-clamp-2 font-display text-h1 font-medium ${ink.strong}`}>
+          <Title className={`line-clamp-2 font-display text-h1 font-medium ${ink.strong}`}>
             {SKILL_LABELS[shift.position]}
-          </h2>
+          </Title>
           <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${ink.soft}`}>
             <MapPinIcon size={15} />
             {shift.city ?? "Ubicación a confirmar"}
