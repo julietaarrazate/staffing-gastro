@@ -77,7 +77,7 @@ def test_todo_mail_lleva_la_marca_y_el_link_pedido(nombre: str):
     isotipo, el pie con la marca, y el link que el emisor pidió mandar."""
     html = _PLANTILLAS[nombre]()
     assert _AMBAR in html, f"{nombre} no lleva el ámbar de marca en ningún lado"
-    assert "OÍDO" in html, f"{nombre} no lleva el pie de marca"
+    assert ">oído</strong>" in html, f"{nombre} no lleva el pie de marca (el wordmark)"
     assert _LINK in html, f"{nombre} perdió el link que le pasaron"
 
 
@@ -190,3 +190,15 @@ def test_el_boton_ambar_lleva_tinta_y_no_blanco():
     html = render_welcome_worker_email_html("Ana", _LINK)
     boton = re.search(r'<a href="' + re.escape(_LINK) + r'" style="([^"]*)"', html).group(1)
     assert "color:#ffffff" not in boton
+
+
+# La paleta anterior (crema, manteca, tinta cálida): desde el 2026-10-12 los
+# mails usan la celeste v6, la misma de la app.
+_PALETA_VIEJA = ("#fff8f0", "#f1e7a0", "#fbf3c9", "#fbf2e6", "#1f1f1c", "#8a8378", "#ebe2d4", "#b45309")
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_ningun_mail_usa_la_paleta_crema_anterior(nombre: str):
+    html = _PLANTILLAS[nombre]().lower()
+    for color in _PALETA_VIEJA:
+        assert color not in html, color

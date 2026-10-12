@@ -1,4 +1,4 @@
-# Mails de bienvenida: bajar Oído al celular, títulos sin punto y botones legibles
+# Mails con la identidad nueva: paleta celeste, bajar Oído al celular y títulos sin punto
 
 **Pedido:** Julieta, 2026-10-12. Pidió mails de bienvenida para comercio y
 trabajador "y los necesarios". Los de bienvenida ya existían (llegan cuando
@@ -7,6 +7,22 @@ landing: que la persona baje Oído al celular sin tecnicismos, títulos sin
 punto y sin bajadas que repitan el título.
 
 **Qué cambió:**
+
+- **Paleta celeste v6 en todos los mails** (Julieta: "quedaron con la
+  identidad vieja"). Es la misma de la app (`:root` de `globals.css`):
+  - lienzo #f3f3f3 en lugar de crema;
+  - encabezado en noche #141118;
+  - pasos y tarjetas en celeste #c4e3ed / #e5eef1 en lugar de manteca y
+    beige;
+  - links en azul hondo #1c5478;
+  - tinta y grises fríos;
+  - logo blanco sobre ámbar;
+  - pie con el wordmark "oído" (Fraunces, como el logo).
+
+  El petróleo de los mails de verificación queda: es el color de
+  confianza que la app sigue usando. Los colores viven en constantes al
+  principio de `email_templates.py`. Un test nuevo falla si vuelve alguno
+  de la paleta crema.
 
 - **Trabajador:** el paso 1 pasa de "Activá los avisos" a **"Bajá Oído a tu
   celular"**: desde Chrome en Android (⋮ → Instalar app), desde Safari en
