@@ -40,7 +40,7 @@ export default function Resultado() {
           <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-on-brand/85">
             Viernes · Tu bar · Palermo
           </p>
-          <h2 className="mt-3 font-display text-poster font-medium tracking-[-0.03em] text-on-brand [text-wrap:balance] lg:text-hero">
+          <h2 className="mt-3 font-display text-poster font-medium tracking-[-0.015em] text-on-brand [text-wrap:balance] lg:text-hero">
             Viernes, 21:00. Turno <span className="font-bold">cubierto.</span>
           </h2>
           <p className="mt-4 max-w-[34ch] text-lg text-on-brand/90">

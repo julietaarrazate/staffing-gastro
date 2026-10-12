@@ -666,7 +666,7 @@ export function StaticFrame({
       <div className="lg:col-span-5">
         <RelojDelTurno at={reloj} />
         <SceneLabel className="mt-4">Historia ilustrativa · {label}</SceneLabel>
-        <p className="mt-3 font-display text-headline font-semibold tracking-[-0.025em] text-ink [text-wrap:balance]">{item.title}</p>
+        <p className="mt-3 font-display text-headline font-semibold tracking-[-0.012em] text-ink [text-wrap:balance]">{item.title}</p>
         <p className="mt-3 max-w-[38ch] text-body text-ink-soft lg:mt-4 lg:text-lg">{item.line}</p>
       </div>
       <div className="lg:col-span-7">{children}</div>
