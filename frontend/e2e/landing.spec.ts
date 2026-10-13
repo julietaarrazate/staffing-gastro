@@ -72,8 +72,8 @@ test("ningún título termina en punto y los pasos son h3", async ({ page }) => 
     .evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
   expect(titulos.length).toBeGreaterThan(6);
   expect(titulos.filter((t) => t.endsWith("."))).toEqual([]);
-  await expect(page.getByRole("heading", { level: 3, name: "Contalo como lo dirías" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Le llega a quien está cerca" })).toBeAttached();
+  await expect(page.getByRole("heading", { level: 3, name: "Pedí lo que necesitás" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Buscamos quién lo cubra, cerca tuyo" })).toBeAttached();
   await expect(page.getByRole("heading", { level: 3, name: "Elegís y te confirma" })).toBeAttached();
   // Las tarjetas de ejemplo no suman títulos ni links a perfiles inventados.
   await expect(page.locator('[data-landing] a[href^="/workers/"], [data-landing] a[href^="/companies/"]')).toHaveCount(0);
@@ -223,7 +223,7 @@ test.describe("instalar en Android", () => {
     await page.goto("/");
     const barra = page.getByRole("link", { name: "Necesito personal" }).and(page.locator('[data-cta="barra"]'));
     await expect(barra).not.toBeInViewport();
-    await page.evaluate(() => window.scrollTo(0, 1600));
+    await page.evaluate(() => document.getElementById("como-funciona")?.scrollIntoView());
     await expect(barra).toBeInViewport();
     // Sin aviso del navegador para instalar, la barra lleva un solo botón.
     await expect(page.locator('[data-cta="barra-instalar"]')).toHaveCount(0);

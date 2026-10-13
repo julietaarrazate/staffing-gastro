@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { animate, motion, useMotionValue, useMotionValueEvent, useTransform } from "motion/react";
 import { cn } from "@/lib/cn";
 import { setReloj } from "./relojStore";
 import { Stage, type Tone } from "./Stage";
 import { seg, useRange, useStage } from "./useStage";
+import RelojDelTurnoPieza from "../RelojDelTurno";
 
 /* ACTO 1 · HERO + URGENCIA.
  *
@@ -168,7 +169,14 @@ function useMeasure(stageRef: RefObject<HTMLDivElement | null>, copyRef: RefObje
   return box;
 }
 
-export function ActoNoche() {
+/**
+ * `copy`: el texto del hero (por defecto el de la historia).
+ * `final`: cómo termina el acto. "reloj" (la historia) condensa la burbuja en
+ * el reloj fijo del encabezado. "ticket" (la landing corta, que no tiene reloj
+ * fijo) la condensa en el ticket "20:46 · sin cubrir" en el medio de la
+ * pantalla, que queda como puente a "Así se cubre un turno".
+ */
+export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?: "reloj" | "ticket" } = {}) {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
@@ -189,6 +197,7 @@ export function ActoNoche() {
   // llega directo al final (el link "Precios" del pie, recargar abajo), la
   // noche también pasa a 1, pero la historia ya terminó: ahí no hay reloj.
   const relojNoche = (p: number) => {
+    if (final === "ticket") return;
     if (p < T.reloj) return setReloj(null);
     const fin = document.querySelector<HTMLElement>("[data-fin-historia]");
     if (p >= 1 && fin && fin.getBoundingClientRect().top < window.innerHeight * 0.15) return;
@@ -211,7 +220,7 @@ export function ActoNoche() {
     const c = easeInOut(seg(p, T.closeFrom, T.closeTo));
     const from = bubbleCenter(b, 0);
     const mid = bubbleCenter(b, 1);
-    const to = relojCenter(b);
+    const to = final === "ticket" ? mid : relojCenter(b);
     const grown = 1 + 0.12 * t;
     if (c > 0) {
       return {
@@ -244,6 +253,8 @@ export function ActoNoche() {
   const by = useTransform(progress, (p) => pose(p).y - box.current.bh / 2);
   const bscale = useTransform(progress, (p) => pose(p).s);
   const bopacity = useRange(progress, [T.reloj - 0.03, T.reloj + 0.02], [1, 0]);
+  const ticketOpacity = useRange(progress, [T.reloj - 0.02, T.reloj + 0.03], [0, 1]);
+  const ticketScale = useRange(progress, [T.reloj - 0.02, T.reloj + 0.05], [0.6, 1.25]);
 
   // Hora: chica en la ventana, grande arriba cuando la noche tapa todo.
   const smallOpacity = useRange(expand, [0, 0.4], [1, 0]);
@@ -261,7 +272,15 @@ export function ActoNoche() {
   }, [step, jumped, shake]);
 
   return (
-    <Stage ref={sectionRef} states={2.2} tone={tone} label="Inicio" stageClassName="bg-background">
+    <Stage
+      ref={sectionRef}
+      states={2.2}
+      tone={tone}
+      label="Inicio"
+      stageClassName="bg-background"
+      // La landing corta lleva el brillo ámbar de arriba, como crear cuenta.
+      stageStyle={final === "ticket" ? { background: "var(--wash) no-repeat, var(--background)" } : undefined}
+    >
       <div ref={stageRef} className="absolute inset-0">
         {/* Hero */}
         <motion.div
@@ -269,7 +288,7 @@ export function ActoNoche() {
           style={{ opacity: copyOpacity, scale: copyScale }}
           className="absolute inset-x-0 top-0 origin-top px-4 pt-6 sm:px-6 lg:bottom-0 lg:right-[41.666%] lg:flex lg:items-center lg:px-12 lg:pt-0"
         >
-          <HeroCopy />
+          {copy ?? <HeroCopy />}
         </motion.div>
 
         {/* La noche */}
@@ -313,6 +332,14 @@ export function ActoNoche() {
             <MartinBubble typing={typing} className="[animation:storyBubbleIn_.6s_cubic-bezier(.2,.8,.2,1)_.5333s_both]" />
           </motion.div>
         </motion.div>
+        {final === "ticket" && (
+          <motion.div
+            style={{ opacity: ticketOpacity, scale: ticketScale, top: box.current.h * 0.47 }}
+            className="absolute inset-x-0 flex -translate-y-1/2 justify-center"
+          >
+            <RelojDelTurnoPieza at="sinCubrir" />
+          </motion.div>
+        )}
       </div>
     </Stage>
   );

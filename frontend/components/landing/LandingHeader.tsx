@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { LogoMark } from "@/components/Logo";
+import { useHeroAtras } from "./useHeroAtras";
 
 /**
  * Encabezado propio de la landing (el Navbar global no se muestra en "/" sin
@@ -19,21 +19,7 @@ import { LogoMark } from "@/components/Logo";
  * trabajador es el link del hero.
  */
 export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
-  const [ctaVisible, setCtaVisible] = useState(false);
-
-  useEffect(() => {
-    const heroCta = document.getElementById(heroCtaId);
-    if (!heroCta || typeof IntersectionObserver === "undefined") {
-      setCtaVisible(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => setCtaVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0),
-      { threshold: 0 }
-    );
-    io.observe(heroCta);
-    return () => io.disconnect();
-  }, [heroCtaId]);
+  const ctaVisible = useHeroAtras(heroCtaId);
 
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-line/70 bg-background/80 backdrop-blur-xl backdrop-saturate-150">

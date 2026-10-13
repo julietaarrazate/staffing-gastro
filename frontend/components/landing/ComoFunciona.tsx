@@ -39,14 +39,14 @@ export default function ComoFunciona() {
         <ol className="mt-16 flex flex-col gap-24 lg:mt-24 lg:gap-32">
           <Paso
             n={1}
-            titulo="Contalo como lo dirías"
+            titulo="Pedí lo que necesitás"
             alt="Escribís “Necesito un mozo hoy de 21 a 2, pago 70.000”, tocás Completar y Oído arma el turno con puesto, horario y pago."
           >
             <PedidoEscribiendose shift={shift} />
           </Paso>
           <Paso
             n={2}
-            titulo="Le llega a quien está cerca"
+            titulo="Buscamos quién lo cubra, cerca tuyo"
             alt="El aviso les llega primero a los 10 más indicados de la zona; a los pocos minutos, tres ya se postularon."
           >
             <MapaAviso />

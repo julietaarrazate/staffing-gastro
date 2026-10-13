@@ -264,6 +264,27 @@ la landing corta). Se acepta mientras la historia sea material para redes.
   sin cubrir → cubierto, la hora grande pasa a 20:54 y Lucía confirma. Unos
   11 s en total.
 
+## Octava vuelta (2026-10-13): vuelve la noche atada al scroll
+
+- **Hero a la izquierda** otra vez (Julieta: "quedaba mejor a la izquierda que
+  centrado"); los botones conservan el mismo ancho en el celular.
+- **La noche es la de la historia original, con scroll** (Julieta: "estaba
+  mejor con el scroll, el original sigue teniendo mejor efecto"; la versión
+  por tiempo se sentía trabada). Se reusa `story/ActoNoche` con dos props
+  nuevas: `copy` (el texto del hero corto) y `final="ticket"`: como la landing
+  corta no tiene el reloj fijo del encabezado, la burbuja se condensa en el
+  ticket "20:46 · sin cubrir" en el medio de la pantalla, puente a "Así se
+  cubre un turno". /historia no cambia (valores por defecto). El escenario
+  lleva el brillo ámbar de arriba. Sin JavaScript o con "reducir movimiento"
+  sigue la versión quieta (texto + HeroNoche resuelta).
+- **Botón del encabezado y barra del celular:** `useHeroAtras` mide el botón
+  del hero en cada scroll en vez de observarlo una vez, porque el hero se
+  reemplaza después de montar y el IntersectionObserver quedaba mirando el
+  nodo viejo. Mientras la noche está fijada, aparecen al terminar la escena.
+- **Pasos:** paso 1 "Pedí lo que necesitás" (antes "Contalo como lo
+  dirías"); paso 2 "Buscamos quién lo cubra, cerca tuyo" (antes "Le llega a
+  quien está cerca").
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
 - La pregunta legal (monotributo, quién es el empleador): no se publica

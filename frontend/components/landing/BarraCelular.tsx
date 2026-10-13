@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { SmartphoneIcon } from "@/components/icons";
 import { useInstalar } from "@/lib/instalar";
+import { useHeroAtras } from "./useHeroAtras";
 
 /**
  * Barra fija abajo, sólo en el celular: el botón principal a mano del pulgar
@@ -15,24 +16,18 @@ import { useInstalar } from "@/lib/instalar";
  * botones. En pantallas anchas el botón vive en el encabezado.
  */
 export default function BarraCelular({ heroCtaId }: { heroCtaId: string }) {
-  const [heroAtras, setHeroAtras] = useState(false);
+  const heroAtras = useHeroAtras(heroCtaId);
   const [enCierre, setEnCierre] = useState(false);
   const { puedeInstalarDirecto, instalar } = useInstalar();
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
-    const hero = document.getElementById(heroCtaId);
     const cierre = document.getElementById("cierre");
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (e.target === hero) setHeroAtras(!e.isIntersecting && e.boundingClientRect.top < 0);
-        if (e.target === cierre) setEnCierre(e.isIntersecting || e.boundingClientRect.top < 0);
-      }
-    });
-    if (hero) io.observe(hero);
-    if (cierre) io.observe(cierre);
+    if (!cierre) return;
+    const io = new IntersectionObserver(([e]) => setEnCierre(e.isIntersecting || e.boundingClientRect.top < 0));
+    io.observe(cierre);
     return () => io.disconnect();
-  }, [heroCtaId]);
+  }, []);
 
   const visible = heroAtras && !enCierre;
 
