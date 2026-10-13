@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import settings
+from app.core.database import start_idle_connection_closer
 from app.core.idempotency import IdempotencyReplay
 from app.core.middleware import SecurityHeadersMiddleware
 from app.core.observability import RequestIdMiddleware, setup_logging, setup_sentry
@@ -65,9 +66,14 @@ async def lifespan(_: FastAPI):
     # Scheduler del ciclo de vida del turno (asistencia + escalada de
     # urgencia): no-op fuera de producción.
     scheduler_task = start_scheduler()
+    # Cierra la conexión ociosa del pool para que Neon pueda dormirse con
+    # Render siempre prendido (`core/database.py`): no-op fuera de producción.
+    idle_closer_task = start_idle_connection_closer()
     yield
     if scheduler_task is not None:
         scheduler_task.cancel()
+    if idle_closer_task is not None:
+        idle_closer_task.cancel()
 
 
 app = FastAPI(
