@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import LandingCorta from "@/components/landing/LandingCorta";
-import { estaInstalada } from "@/lib/instalar";
 
 // La puerta de "/": la landing para visitantes, la home del rol para quien ya
 // entró. Es cliente porque depende de la sesión; la página (app/page.tsx)
@@ -30,12 +29,12 @@ export default function LandingGate() {
     }
   }, [loading, user, router]);
 
-  // Abierta desde el ícono instalado y sin sesión: la persona ya eligió
-  // Oído, no hace falta volver a venderle la landing. Va a entrar (desde
-  // ahí también se crea la cuenta).
-  useEffect(() => {
-    if (!loading && !user && estaInstalada()) router.replace("/login");
-  }, [loading, user, router]);
+  // Abierta desde el ícono instalado y sin sesión también se ve la landing
+  // (Julieta, 2026-10-13). Del 12 al 13 de octubre mandaba directo a
+  // "/login", pero quien instala antes de registrarse, o sale de su cuenta,
+  // se quedaba sin poder leer qué es Oído: en Android, con la app instalada,
+  // Chrome abre el link adentro de la app y no hay otra forma de llegar.
+  // "Ingresar" y "Crear cuenta" están arriba, en el encabezado.
 
   // Sólo ocultamos la landing cuando YA sabemos que hay sesión (redirigiendo a
   // la home del rol). Antes se ocultaba también mientras `loading` — pero como

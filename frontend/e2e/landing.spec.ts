@@ -230,7 +230,7 @@ test.describe("instalar en Android", () => {
   });
 });
 
-test("abierta desde el ícono instalado y sin sesión, va a ingresar", async ({ page }) => {
+test("abierta desde el ícono instalado y sin sesión, muestra la landing con Ingresar y Crear cuenta", async ({ page }) => {
   await sinSesion(page);
   await page.addInitScript(() => {
     const original = window.matchMedia.bind(window);
@@ -238,7 +238,11 @@ test("abierta desde el ícono instalado y sin sesión, va a ingresar", async ({ 
       q === "(display-mode: standalone)" ? ({ ...original(q), matches: true } as MediaQueryList) : original(q);
   });
   await page.goto("/");
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("¿Faltó alguien de tu equipo?");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("header").getByRole("link", { name: "Ingresar" })).toBeVisible();
+  await expect(page.locator("header").getByRole("link", { name: "Crear cuenta" })).toBeVisible();
 });
 
 test.describe("con reducir movimiento", () => {

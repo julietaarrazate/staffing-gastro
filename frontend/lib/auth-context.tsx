@@ -41,6 +41,10 @@ interface AuthState {
    * registrarse validando un PIN (ver `POST /auth/guest`). */
   loginAsGuest: (pin: string, role: "worker" | "employer") => Promise<void>;
   logout: () => Promise<void>;
+  /** `true` después de "Cerrar sesión" hasta el próximo ingreso. Las
+   *  pantallas protegidas (`useRequireAuth`) mandan entonces a la landing y
+   *  no a "/login", para no pisar la salida (ver `logout`). */
+  justLoggedOut: boolean;
   /** No-null mientras una admin está "viendo como" otro usuario (ver
    * `impersonate`). Sólo expone los datos de la admin real, para el banner. */
   impersonating: { adminUser: User } | null;
@@ -93,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [justLoggedOut, setJustLoggedOut] = useState(false);
   // Snapshot de la sesión admin real mientras se está impersonando otro
   // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
   const [impersonating, setImpersonating] = useState<
@@ -107,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function setToken(next: string | null) {
     bindSessionToken(next);
     setTokenState(next);
+    if (next) setJustLoggedOut(false);
   }
 
   async function tryRefresh(timeoutMs?: number): Promise<string | null> {
@@ -347,11 +353,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // limpia en la respuesta.
     clearSession();
     clearAllCached();
+    setJustLoggedOut(true);
     setToken(null);
     setUser(null);
     // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
-    // una pantalla protegida ya renderizada en el historial.
-    router.replace("/login");
+    // una pantalla protegida ya renderizada en el historial. Va a la landing
+    // y no a "/login" (Julieta, 2026-10-13): desde la app instalada era la
+    // única forma de volver a verla; "Ingresar" está en su encabezado.
+    router.replace("/");
     try {
       await api.post("/auth/logout");
     } catch {
@@ -373,6 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         loginAsGuest,
         logout,
+        justLoggedOut,
         updateFullName,
         impersonating: impersonating ? { adminUser: impersonating.adminUser } : null,
         impersonate,
