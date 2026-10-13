@@ -1,10 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
+import { cn } from "@/lib/cn";
 
 /**
  * Link del header de escritorio, con estado activo.
@@ -24,7 +26,7 @@ function NavLink({
   replace = true,
 }: {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
   replace?: boolean;
 }) {
   const pathname = usePathname();
@@ -117,19 +119,52 @@ export default function Navbar() {
           )}
           {!loading && !user && (
             <>
-              <Link href="/login" className="hover:text-primary-text">
+              {/* El de la pantalla en la que estás queda marcado (celeste de
+                  marca), el otro en contorno. Antes "Crear cuenta" iba
+                  siempre en ámbar: en /login parecía el elegido e "Ingresar"
+                  quedaba en blanco (Julieta, 2026-10-13). Sin ámbar acá: el
+                  ámbar de la pantalla es su botón principal. */}
+              <AuthLink href="/login" active={pathname === "/login"}>
                 Ingresar
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-[var(--radius-btn)] bg-primary px-3.5 py-1.5 text-night shadow-[var(--shadow-primary)] transition active:scale-95 hover:brightness-[1.04]"
-              >
+              </AuthLink>
+              <AuthLink href="/register" active={pathname === "/register"} outlined>
                 Crear cuenta
-              </Link>
+              </AuthLink>
             </>
           )}
         </nav>
       </div>
     </header>
+  );
+}
+
+/** "Ingresar" / "Crear cuenta" sin sesión: marca el de la pantalla actual y
+ *  responde al toque (se hunde y se tiñe) para que se vea cuál se eligió. */
+function AuthLink({
+  href,
+  active,
+  outlined,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  outlined?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "inline-flex h-9 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 font-semibold transition duration-150 active:scale-95 active:bg-secondary active:text-on-brand",
+        active
+          ? "bg-secondary text-on-brand"
+          : outlined
+            ? "text-ink ring-[1.5px] ring-ink/70 ring-inset hover:bg-surface"
+            : "text-ink hover:text-primary-text"
+      )}
+    >
+      {children}
+    </Link>
   );
 }

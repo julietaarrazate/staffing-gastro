@@ -37,14 +37,16 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
           </Link>
           <Link
             href="/login"
-            className="inline-flex h-11 items-center px-3 text-ink transition-colors duration-200 hover:text-primary-text"
+            // Al tocarlo se tiñe de celeste y se hunde, como en el Navbar de
+            // la app: que se vea cuál se eligió (Julieta, 2026-10-13).
+            className="inline-flex h-10 items-center rounded-[var(--radius-btn)] px-3 text-ink transition duration-150 hover:text-primary-text active:scale-95 active:bg-secondary active:text-on-brand"
           >
             Ingresar
           </Link>
           <Link
             href="/register"
             data-cta="header-crear-cuenta"
-            className="inline-flex h-10 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 text-ink ring-[1.5px] ring-ink/70 ring-inset transition-colors duration-200 hover:bg-surface"
+            className="inline-flex h-10 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 text-ink ring-[1.5px] ring-ink/70 ring-inset transition duration-150 hover:bg-surface active:scale-95 active:bg-secondary active:text-on-brand active:ring-transparent"
           >
             Crear cuenta
           </Link>
