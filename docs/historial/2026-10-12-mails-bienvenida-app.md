@@ -41,6 +41,21 @@ punto y sin bajadas que repitan el título.
   nuevos en `tests/test_email_templates.py`: títulos sin punto, la
   bienvenida explica Chrome y Safari, y el botón ámbar no lleva blanco.
 
+**Cuarta vuelta (2026-10-13):** Julieta vio "un verde que ya no tiene que
+ver con la app" y pidió los colores actuales: blanco, naranja, celeste y el
+medio degradé de los planes, como la pantalla de crear cuenta. Los 8 mails
+pasan a tener el lienzo `#f3f3f3` con el brillo ámbar de arriba (`--wash` de
+`/register`). El encabezado deja de ser oscuro (noche o petróleo): ahora es
+blanco con el `bg-glow` de la tarjeta destacada de planes, el título va en
+tinta y el rótulo es una píldora celeste con texto azul hondo. El petróleo
+`#1e4a47` sale de todos lados. Los mails de verificación usan el mismo
+encabezado y el botón ámbar con tinta, y el sello "Perfil verificado" pasa a
+celeste con azul hondo. El paso destacado y la tarjeta de "¡Te eligieron!"
+llevan `bg-glow`. La caja "¿Es obligatoria?" pasa a celeste tinte con tinta.
+Todo degradé lleva un `background-color` de respaldo para los clientes que
+ignoran `background-image`. Tests nuevos: ningún mail usa petróleo ni un
+encabezado oscuro, y todo degradé tiene color de respaldo.
+
 **Por qué así:** en iPhone los avisos sólo llegan con Oído agregado a la
 pantalla de inicio. Sin ese paso, "Activá los avisos" no se puede cumplir.
 

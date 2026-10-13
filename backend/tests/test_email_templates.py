@@ -202,3 +202,33 @@ def test_ningun_mail_usa_la_paleta_crema_anterior(nombre: str):
     html = _PLANTILLAS[nombre]().lower()
     for color in _PALETA_VIEJA:
         assert color not in html, color
+
+
+# El petróleo de la verificación y los encabezados oscuros (noche, petróleo):
+# desde el 2026-10-13 los mails usan el encabezado claro con `bg-glow`, como
+# la tarjeta destacada de planes (Julieta: "veo un verde que ya no tiene que
+# ver con la app").
+_VERDES_PETROLEO = ("#1e4a47", "#bfe0da", "#e8f1f0")
+_FONDOS_OSCUROS = ("#141118", "#1e4a47", "#111111")
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_ningun_mail_usa_petroleo_ni_encabezado_oscuro(nombre: str):
+    html = _PLANTILLAS[nombre]().lower()
+    for verde in _VERDES_PETROLEO:
+        assert verde not in html, f"{nombre} todavía usa el petróleo {verde}"
+    # La celda del encabezado es la que tiene las esquinas de arriba redondas.
+    encabezado = re.search(r'<td style="([^"]*border-radius:24px 24px 0 0[^"]*)"', html).group(1)
+    for oscuro in _FONDOS_OSCUROS:
+        assert f"background-color:{oscuro}" not in encabezado, f"{nombre}: encabezado {oscuro}"
+    titulo = re.search(r"<h1 style=\"([^\"]*)\"", html).group(1)
+    assert "color:#ffffff" not in titulo
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_todo_fondo_con_degrade_tiene_color_de_respaldo(nombre: str):
+    """Outlook desktop y algunos webmails ignoran `background-image`: sin
+    `background-color` al lado, el fondo queda transparente."""
+    html = _PLANTILLAS[nombre]()
+    for estilo in re.findall(r'style="([^"]*background-image[^"]*)"', html):
+        assert "background-color:" in estilo, estilo
