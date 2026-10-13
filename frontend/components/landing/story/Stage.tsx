@@ -156,7 +156,7 @@ function NarrationText({
     <div className={className} {...rest}>
       <p
         className={cn(
-          "font-display text-headline font-semibold tracking-[-0.025em] [text-wrap:balance]",
+          "font-display text-headline font-semibold tracking-[-0.012em] [text-wrap:balance]",
           dark ? "text-white" : "text-ink"
         )}
       >

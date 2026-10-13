@@ -37,7 +37,7 @@ export function HeroCopy({ className }: { className?: string }) {
       <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">
         Beta en CABA
       </p>
-      <h1 className="mt-3 font-display text-poster tracking-[-0.03em] text-ink [text-wrap:balance] lg:text-hero">
+      <h1 className="mt-3 font-display text-poster tracking-[-0.015em] text-ink [text-wrap:balance] lg:text-hero">
         <span className="font-medium">Personal gastronómico,</span>{" "}
         <span className="block font-bold">ya.</span>
       </h1>
@@ -122,9 +122,9 @@ export function ActoNocheStatic() {
         className="flex flex-col items-start gap-8 bg-night px-4 py-20 sm:px-6 lg:items-center lg:py-28"
       >
         <p className="font-mono text-label uppercase tracking-[0.14em] text-manteca">Viernes · salón lleno</p>
-        <p className="font-display text-poster font-normal tracking-[-0.03em] text-white">20:46</p>
+        <p className="font-display text-poster font-normal tracking-[-0.015em] text-white">20:46</p>
         <MartinBubble typing={false} />
-        <p className="max-w-[16ch] font-display text-headline font-medium tracking-[-0.025em] text-white [text-wrap:balance] lg:text-center">
+        <p className="max-w-[16ch] font-display text-headline font-medium tracking-[-0.012em] text-white [text-wrap:balance] lg:text-center">
           Arrancás a las 21. Y te escribe el mozo.
         </p>
       </section>
@@ -291,13 +291,13 @@ export function ActoNoche() {
             <p className="font-mono text-label uppercase tracking-[0.14em] text-manteca">
               Viernes · salón lleno
             </p>
-            <p className="font-display text-[length:var(--text-poster)] font-normal leading-none tracking-[-0.03em] text-white lg:text-[length:var(--text-hero)]">
+            <p className="font-display text-[length:var(--text-poster)] font-normal leading-none tracking-[-0.015em] text-white lg:text-[length:var(--text-hero)]">
               20:46
             </p>
           </motion.div>
           <motion.p
             style={{ opacity: narrOpacity, y: narrY }}
-            className="absolute inset-x-4 bottom-[max(2rem,env(safe-area-inset-bottom))] text-center font-display text-headline font-medium tracking-[-0.025em] text-white [text-wrap:balance] sm:bottom-12"
+            className="absolute inset-x-4 bottom-[max(2rem,env(safe-area-inset-bottom))] text-center font-display text-headline font-medium tracking-[-0.012em] text-white [text-wrap:balance] sm:bottom-12"
           >
             Arrancás a las 21. Y te escribe el mozo.
           </motion.p>
