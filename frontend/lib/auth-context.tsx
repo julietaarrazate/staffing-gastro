@@ -6,7 +6,7 @@ import {
   api,
   bindSessionToken,
   hasBoundSession,
-  NetworkError,
+  isTransientFailure,
   renewSessionToken,
   setUnauthorizedHandler,
 } from "@/lib/api";
@@ -128,10 +128,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else setToken(tokens.access_token);
       return tokens.access_token;
     } catch (err) {
-      // Un fallo de red (backend caído/dormido) NO es un refresh inválido:
-      // se propaga para degradar sin cerrar la sesión. Sólo un ApiError real
-      // (refresh vencido/revocado) devuelve null → login.
-      if (err instanceof NetworkError) throw err;
+      // Un backend que no está (sin red, timeout, o 5xx/408/429 mientras
+      // Render arranca en frío) NO es un refresh inválido: se propaga para
+      // degradar sin cerrar la sesión. Sólo un rechazo real (refresh
+      // vencido/revocado, 401/403) devuelve null → login.
+      if (isTransientFailure(err)) throw err;
       clearSession();
       return null;
     }
@@ -166,8 +167,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Con refresh token disponible, intentamos restaurar en silencio:
       // primero probamos el access token si lo tenemos (evita un round-trip
       // extra cuando todavía es válido); si falta o venció, refrescamos.
-      // Todo el bloque va bajo un guard de NetworkError: si el backend no
-      // responde, se degrada a app deslogueada SIN cerrar la sesión (los
+      // Todo el bloque va bajo un guard de `isTransientFailure`: si el backend
+      // no responde o responde 5xx, se degrada a app deslogueada SIN cerrar la sesión (los
       // tokens siguen guardados y un reload reintenta cuando el server
       // despierte) — en vez de quedar en blanco esperando para siempre.
       try {
@@ -178,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             return;
           } catch (err) {
-            if (err instanceof NetworkError) throw err;
+            if (isTransientFailure(err)) throw err;
             // Access token vencido/inválido (ApiError): seguimos al refresh.
           }
         }
@@ -194,14 +195,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           setUser(await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS));
         } catch (err) {
-          if (err instanceof NetworkError) throw err;
+          if (isTransientFailure(err)) throw err;
           clearSession();
           setToken(null);
         }
         setLoading(false);
       } catch (err) {
         // Backend dormido/caído: no cerramos sesión, sólo dejamos de cargar.
-        if (!(err instanceof NetworkError)) {
+        if (!isTransientFailure(err)) {
           // Cualquier otro error inesperado tampoco debe colgar la app.
           clearSession();
           setToken(null);

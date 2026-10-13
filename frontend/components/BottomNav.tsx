@@ -51,6 +51,8 @@ export default function BottomNav() {
   // la barra tapaba su botón principal, y navegar a otra sección antes de
   // terminar deja el perfil a medias (sin zona ni oficio el feed no sirve).
   if (pathname === "/bienvenida") return null;
+  // /historia es la landing anterior, para grabar reels: sin barra de la app.
+  if (pathname === "/historia") return null;
 
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 
