@@ -305,6 +305,21 @@ la landing corta). Se acepta mientras la historia sea material para redes.
   pantalla (antes un tercio, que dejaba un blanco bajo cada título).
   Revisado bajando de a un cuarto de pantalla en 412×870 y 1280×800.
 
+## Décima vuelta (2026-10-13): la noche sigue de largo, paso 1 liviano
+
+- **Sin pantalla en blanco al terminar la noche:** cerrarla en un círculo
+  dejaba media pantalla vacía en el celular (captura de Julieta). Ahora la
+  landing corta usa `final="abierta"`: no se cierra, el escenario es más
+  corto (1,8 estados en vez de 2,2) y, con la narración en pantalla, la noche
+  se va hacia arriba con el scroll y entra "Así se cubre un turno" con el
+  ticket "20:46 · sin cubrir" debajo del título. /historia sigue igual.
+- **Paso 1 sin la tarjeta entera del turno:** tardaba en salir y alargaba el
+  paso. Después de "Leyendo tu pedido…" sale "Turno listo para publicar" con
+  tres datos (Mozo/a · Hoy 21:00 – 02:00 · $70.000). Unos 5 s en total.
+- **"¡Oído!" dice qué resolvió, no qué significa:** "Turno cubierto en 8
+  minutos, sin llamar a nadie ni pedir en grupos de WhatsApp" (la gente de
+  gastronomía ya sabe qué es "¡oído!").
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
 - La pregunta legal (monotributo, quién es el empleador): no se publica

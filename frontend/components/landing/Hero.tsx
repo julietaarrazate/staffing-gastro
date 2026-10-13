@@ -65,7 +65,7 @@ function HeroTexto() {
 
 export default function Hero() {
   const enhanced = useEnhanced();
-  if (enhanced) return <ActoNoche copy={<HeroTexto />} final="ticket" />;
+  if (enhanced) return <ActoNoche copy={<HeroTexto />} final="abierta" />;
   return (
     <section
       aria-labelledby="hero-titulo"

@@ -3,16 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import CandidateCard from "@/components/CandidateCard";
-import OpportunityCard from "@/components/worker/OpportunityCard";
 import { Avatar, Rating } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { CheckCircleIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import { formatKm } from "@/lib/format";
 import { CANDIDATES, MAP_WORKERS, PEDIDO } from "./fixtures";
 import RelojDelTurno from "./RelojDelTurno";
 import { DescribeBox, PricePin, StreetGrid, ToastLine, WorkerPin } from "./replicas";
 import Reveal from "./Reveal";
-import { useStoryShift } from "./useStoryShift";
-import { useEnhanced } from "./story/useStage";
 
 /**
  * Cómo funciona, en tres pasos con su título (`h3`) fijo y una imagen quieta
@@ -22,35 +20,31 @@ import { useEnhanced } from "./story/useStage";
  * services.py. Cierra con la banda "¡Oído!", el único momento de marca.
  */
 export default function ComoFunciona() {
-  const shift = useStoryShift("publicado");
-  // Con la noche animada, el título y el ticket "sin cubrir" ya quedaron en
-  // pantalla al final de esa escena (story/ActoNoche, final "ticket"): acá el
-  // título queda para lectores de pantalla y la lista arranca enseguida.
-  const enhanced = useEnhanced();
+
   return (
     <>
       <section
         id="como-funciona"
         aria-labelledby="como-funciona-titulo"
         data-tone="light"
-        className="scroll-mt-[var(--lht)] px-4 pb-14 pt-6 sm:px-6 lg:px-12 lg:pb-20 lg:pt-10"
+        className="scroll-mt-[var(--lht)] px-4 py-14 sm:px-6 lg:px-12 lg:py-20"
       >
         <h2
           id="como-funciona-titulo"
-          className={cn(
-            "font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]",
-            enhanced && "sr-only"
-          )}
+          className="font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]"
         >
           Así se cubre un turno
         </h2>
-        <ol className={cn("flex flex-col gap-16 lg:gap-24", enhanced ? "mt-4" : "mt-12 lg:mt-16")}>
+        {/* El turno de Martín, que recorre los tres pasos hasta quedar
+            cubierto (paso 2: avisado → postulantes; paso 3: cubierto). */}
+        <RelojDelTurno at="sinCubrir" className="mt-5" />
+        <ol className="mt-12 flex flex-col gap-16 lg:mt-16 lg:gap-24">
           <Paso
             n={1}
             titulo="Pedí lo que necesitás"
             alt="Escribís “Necesito un mozo hoy de 21 a 2, pago 70.000”, tocás Completar y Oído arma el turno con puesto, horario y pago."
           >
-            <PedidoEscribiendose shift={shift} />
+            <PedidoEscribiendose />
           </Paso>
           <Paso
             n={2}
@@ -99,13 +93,10 @@ export default function ComoFunciona() {
           <h2 id="oido-titulo" className="anim-shout mt-8 font-display text-shout font-bold tracking-[-0.02em] text-ink">
             ¡Oído!
           </h2>
-          {/* El nombre, explicado una sola vez y en el momento justo: cuando
-              alguien se hizo cargo del turno. */}
-          <p className="mt-5 max-w-[32ch] text-lg text-ink/80 lg:text-xl">
-            En la cocina, “¡oído!” quiere decir “escuché, me encargo”.
-          </p>
-          <p className="mt-2 max-w-[30ch] text-xl font-medium text-ink lg:text-2xl">
-            Eso hacemos con tu turno: buscamos cubrirlo en menos de 10 minutos
+          {/* Lo que resolvió, no qué significa la palabra: la gente de
+              gastronomía ya lo sabe (Julieta, 2026-10-13). */}
+          <p className="mt-5 max-w-[28ch] text-xl font-medium text-ink [text-wrap:balance] lg:text-2xl">
+            Turno cubierto en 8 minutos, sin llamar a nadie ni pedir en grupos de WhatsApp
           </p>
           <Link
             href="/register?rol=comercio"
@@ -250,14 +241,16 @@ function CandidateRow({ candidateIndex }: { candidateIndex: number }) {
  * El cuadro "Describilo" del paso 1, como en la historia original pero por
  * tiempo: la frase se escribe con el cursor, se marcan las tres partes que
  * pasan a ser campos, se aprieta "Completar", aparece "Leyendo tu pedido…" y
- * sale la tarjeta del turno. Unos 6 s en total, para que se lea.
+ * sale el turno armado en tres datos. Hasta el 2026-10-13 salía la tarjeta
+ * entera del turno: tardaba y alargaba el paso (Julieta), y lo que cuenta ya
+ * está en los tres datos. Unos 5 s en total.
  *
- * El HTML del servidor trae el final (frase entera y tarjeta); con "reducir
+ * El HTML del servidor trae el final (frase entera y turno armado); con "reducir
  * movimiento", o si el cuadro ya está en pantalla al cargar, queda quieto.
  */
 type Fase = "quieto" | "esperando" | "escribiendo" | "marcado" | "apretado" | "leyendo" | "listo";
 
-function PedidoEscribiendose({ shift }: { shift: ReturnType<typeof useStoryShift> }) {
+function PedidoEscribiendose() {
   const ref = useRef<HTMLDivElement>(null);
   const [chars, setChars] = useState(PEDIDO.length);
   const [fase, setFase] = useState<Fase>("quieto");
@@ -284,9 +277,9 @@ function PedidoEscribiendose({ shift }: { shift: ReturnType<typeof useStoryShift
           if (n < PEDIDO.length) return;
           clearInterval(tick);
           despues(450, () => setFase("marcado"));
-          despues(1500, () => setFase("apretado"));
-          despues(1800, () => setFase("leyendo"));
-          despues(3100, () => setFase("listo"));
+          despues(1200, () => setFase("apretado"));
+          despues(1500, () => setFase("leyendo"));
+          despues(2500, () => setFase("listo"));
         }, 60);
       },
       { rootMargin: "0px 0px -20% 0px" }
@@ -312,17 +305,31 @@ function PedidoEscribiendose({ shift }: { shift: ReturnType<typeof useStoryShift
         pressed={fase === "apretado"}
         loading={fase === "leyendo"}
       />
-      {/* La tarjeta del turno que arma Oído. */}
+      {/* El turno que arma Oído: puesto, horario y pago, ya como campos. */}
       <div
         className={cn(
-          "h-[285px] w-[240px] transition duration-700 ease-[cubic-bezier(.2,.8,.2,1)]",
-          tarjeta ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+          "flex w-full max-w-[420px] flex-col gap-2.5 transition duration-500 ease-[cubic-bezier(.2,.8,.2,1)]",
+          tarjeta ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
         )}
       >
-        <div className="h-[380px] w-[320px] origin-top-left scale-[0.75]">
-          <OpportunityCard shift={shift} preview />
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-secondary-text">
+          <CheckCircleIcon size={16} /> Turno listo para publicar
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Dato icono={<UsersIcon size={15} />}>Mozo/a</Dato>
+          <Dato icono={<ClockIcon size={15} />}>Hoy 21:00 – 02:00</Dato>
+          <Dato>$70.000</Dato>
         </div>
       </div>
     </div>
+  );
+}
+
+function Dato({ icono, children }: { icono?: ReactNode; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] ring-1 ring-line">
+      {icono}
+      {children}
+    </span>
   );
 }

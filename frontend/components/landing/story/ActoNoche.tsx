@@ -7,7 +7,6 @@ import { cn } from "@/lib/cn";
 import { setReloj } from "./relojStore";
 import { Stage, type Tone } from "./Stage";
 import { seg, useRange, useStage } from "./useStage";
-import RelojDelTurnoPieza from "../RelojDelTurno";
 
 /* ACTO 1 · HERO + URGENCIA.
  *
@@ -31,6 +30,11 @@ const T = {
   reloj: 0.91,
 };
 const STOPS = [T.message, T.narration, T.reloj] as const;
+/** La landing corta no cierra la noche: el acto termina con la narración en
+ *  pantalla y la noche se va hacia arriba con el scroll, dejando entrar la
+ *  sección siguiente. Cerrar en un círculo dejaba media pantalla en blanco
+ *  (Julieta, 2026-10-13). */
+const ABIERTA = { ...T, closeFrom: 2, closeTo: 2.2, reloj: 2.1 };
 
 export function HeroCopy({ className }: { className?: string }) {
   return (
@@ -171,12 +175,13 @@ function useMeasure(stageRef: RefObject<HTMLDivElement | null>, copyRef: RefObje
 
 /**
  * `copy`: el texto del hero (por defecto el de la historia).
- * `final`: cómo termina el acto. "reloj" (la historia) condensa la burbuja en
- * el reloj fijo del encabezado. "ticket" (la landing corta, que no tiene reloj
- * fijo) la condensa en el ticket "20:46 · sin cubrir" en el medio de la
- * pantalla, que queda como puente a "Así se cubre un turno".
+ * `final`: cómo termina el acto. "reloj" (la historia) cierra la noche en un
+ * círculo y condensa la burbuja en el reloj fijo del encabezado. "abierta"
+ * (la landing corta) no la cierra: el escenario es más corto y, después de la
+ * narración, la noche sigue de largo con el scroll.
  */
-export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?: "reloj" | "ticket" } = {}) {
+export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?: "reloj" | "abierta" } = {}) {
+  const U = final === "abierta" ? ABIERTA : T;
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
@@ -187,8 +192,8 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
 
   // El encabezado se pinta de noche sólo cuando la noche ya tapa su borde.
   useMotionValueEvent(progress, "change", (p) => {
-    const covering = easeInOut(seg(p, 0.01, T.covered)) > 0.85;
-    const closing = easeIn(seg(p, T.closeFrom, T.closeTo)) > 0.35;
+    const covering = easeInOut(seg(p, 0.01, U.covered)) > 0.85;
+    const closing = easeIn(seg(p, U.closeFrom, U.closeTo)) > 0.35;
     const next: Tone = covering && !closing ? "night" : "light";
     setTone((t) => (t === next ? t : next));
   });
@@ -197,8 +202,8 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
   // llega directo al final (el link "Precios" del pie, recargar abajo), la
   // noche también pasa a 1, pero la historia ya terminó: ahí no hay reloj.
   const relojNoche = (p: number) => {
-    if (final === "ticket") return;
-    if (p < T.reloj) return setReloj(null);
+    if (final === "abierta") return;
+    if (p < U.reloj) return setReloj(null);
     const fin = document.querySelector<HTMLElement>("[data-fin-historia]");
     if (p >= 1 && fin && fin.getBoundingClientRect().top < window.innerHeight * 0.15) return;
     setReloj("sinCubrir");
@@ -208,7 +213,7 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
     relojNoche(progress.get());
   }, [progress]);
 
-  const expand = useTransform(progress, (p) => easeInOut(seg(p, 0.01, T.covered)));
+  const expand = useTransform(progress, (p) => easeInOut(seg(p, 0.01, U.covered)));
 
   // Dónde está la burbuja (centro y escala) en cada punto del scroll: de su
   // lugar en la ventana al centro, y al cerrarse la noche, al lugar del reloj.
@@ -216,11 +221,11 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
   // entera se mete adentro del mensaje, y el mensaje se vuelve el reloj.
   const pose = (p: number) => {
     const b = box.current;
-    const t = easeInOut(seg(p, 0.06, T.message - 0.02));
-    const c = easeInOut(seg(p, T.closeFrom, T.closeTo));
+    const t = easeInOut(seg(p, 0.06, U.message - 0.02));
+    const c = easeInOut(seg(p, U.closeFrom, U.closeTo));
     const from = bubbleCenter(b, 0);
     const mid = bubbleCenter(b, 1);
-    const to = final === "ticket" ? ticketCenter(b) : relojCenter(b);
+    const to = relojCenter(b);
     const grown = 1 + 0.12 * t;
     if (c > 0) {
       return {
@@ -236,13 +241,13 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
   // cierra en un círculo que sigue a la burbuja.
   const clip = useTransform(progress, (p) => {
     const b = box.current;
-    const c = easeIn(seg(p, T.closeFrom, T.closeTo));
+    const c = easeIn(seg(p, U.closeFrom, U.closeTo));
     if (c > 0) {
       const { x, y } = pose(p);
       const r = Math.hypot(Math.max(x, b.w - x), Math.max(y, b.h - y)) * (1 - c);
       return `circle(${r.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px)`;
     }
-    const e = easeInOut(seg(p, 0.01, T.covered));
+    const e = easeInOut(seg(p, 0.01, U.covered));
     return `inset(${(b.bandTop * (1 - e)).toFixed(1)}px 0px 0px ${(b.bandLeft * (1 - e)).toFixed(1)}px)`;
   });
 
@@ -252,16 +257,14 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
   const bx = useTransform(progress, (p) => pose(p).x - box.current.bw / 2);
   const by = useTransform(progress, (p) => pose(p).y - box.current.bh / 2);
   const bscale = useTransform(progress, (p) => pose(p).s);
-  const bopacity = useRange(progress, [T.reloj - 0.03, T.reloj + 0.02], [1, 0]);
-  const ticketOpacity = useRange(progress, [T.reloj - 0.02, T.reloj + 0.03], [0, 1]);
-  const ticketScale = useRange(progress, [T.reloj - 0.02, T.reloj + 0.05], [0.6, 1.25]);
+  const bopacity = useRange(progress, [U.reloj - 0.03, U.reloj + 0.02], [1, 0]);
 
   // Hora: chica en la ventana, grande arriba cuando la noche tapa todo.
   const smallOpacity = useRange(expand, [0, 0.4], [1, 0]);
-  const bigOpacity = useRange(progress, [0.2, 0.32, T.closeFrom, T.closeFrom + 0.06], [0, 1, 1, 0]);
+  const bigOpacity = useRange(progress, [0.2, 0.32, U.closeFrom, U.closeFrom + 0.06], [0, 1, 1, 0]);
   const bigY = useRange(progress, [0.2, 0.34], [24, 0]);
-  const narrOpacity = useRange(progress, [T.narration, T.narration + 0.04, T.closeFrom, T.closeFrom + 0.05], [0, 1, 1, 0]);
-  const narrY = useRange(progress, [T.narration, T.narration + 0.05], [16, 0]);
+  const narrOpacity = useRange(progress, [U.narration, U.narration + 0.04, U.closeFrom, U.closeFrom + 0.05], [0, 1, 1, 0]);
+  const narrY = useRange(progress, [U.narration, U.narration + 0.05], [16, 0]);
 
   const typing = step < 1;
   const shake = useMotionValue(0);
@@ -274,12 +277,12 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
   return (
     <Stage
       ref={sectionRef}
-      states={2.2}
+      states={final === "abierta" ? 1.8 : 2.2}
       tone={tone}
       label="Inicio"
       stageClassName="bg-background"
       // La landing corta lleva el brillo ámbar de arriba, como crear cuenta.
-      stageStyle={final === "ticket" ? { background: "var(--wash) no-repeat, var(--background)" } : undefined}
+      stageStyle={final === "abierta" ? { background: "var(--wash) no-repeat, var(--background)" } : undefined}
     >
       <div ref={stageRef} className="absolute inset-0">
         {/* Hero */}
@@ -332,27 +335,6 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
             <MartinBubble typing={typing} className="[animation:storyBubbleIn_.6s_cubic-bezier(.2,.8,.2,1)_.5333s_both]" />
           </motion.div>
         </motion.div>
-        {final === "ticket" && (
-          <>
-            {/* Al cerrarse la noche queda el título de la sección siguiente
-                con el ticket abajo: la escena termina contando qué viene, en
-                vez de dejar la pantalla vacía. El h2 de verdad está en
-                ComoFunciona (oculto a la vista cuando corre esta escena). */}
-            <motion.p
-              aria-hidden
-              style={{ opacity: ticketOpacity, bottom: box.current.h - ticketCenter(box.current).y + 40 }}
-              className="absolute inset-x-0 px-4 font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance] sm:px-6 lg:px-12"
-            >
-              Así se cubre un turno
-            </motion.p>
-            <motion.div
-              style={{ opacity: ticketOpacity, scale: ticketScale, top: ticketCenter(box.current).y }}
-              className="absolute left-4 origin-left -translate-y-1/2 sm:left-6 lg:left-12"
-            >
-              <RelojDelTurnoPieza at="sinCubrir" />
-            </motion.div>
-          </>
-        )}
       </div>
     </Stage>
   );
@@ -373,14 +355,6 @@ function relojCenter(b: Box) {
   const left = b.desktop ? 48 : b.w >= 640 ? 24 : 16;
   const width = b.w >= 640 ? 270 : 196;
   return { x: left + width / 2, y: 20 };
-}
-
-/** Dónde queda el ticket en la landing corta: abajo a la izquierda, debajo
- *  de "Así se cubre un turno", para que al soltarse la escena le siga
- *  enseguida el paso 1 (en el medio dejaba media pantalla en blanco). */
-function ticketCenter(b: Box) {
-  const left = b.w >= 1024 ? 48 : b.w >= 640 ? 24 : 16;
-  return { x: left + 110, y: b.h - 48 };
 }
 
 function easeInOut(t: number) {
