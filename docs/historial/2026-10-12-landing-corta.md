@@ -157,6 +157,54 @@ celular de 390 × 844 y 9,1 en una compu de 1440 × 900.
 - **"Verificada":** la regla de confianza dice "Identidad verificada con
   DNI y selfie" y la pregunta frecuente dice "Verificamos…".
 
+## Quinta vuelta (2026-10-13): animaciones de la original y menos texto
+
+**Pedido:** que no esté sobrecargada como la original ni quede plana, con
+animaciones lentas que se lean. Además, sacar textos que sobran, sumar
+"Crear cuenta" y pasar instalar a las preguntas frecuentes.
+
+**Qué cambió:**
+
+- **Hero:** vuelve la animación original de la noche (`HeroNoche.tsx`), ahora
+  por tiempo y no por scroll, unos 8 s en total:
+  1. Martín escribe con los puntitos.
+  2. Llega "Perdón, hoy no llego." y la burbuja se sacude.
+  3. El mensaje se condensa en "20:46 · sin cubrir".
+  4. La línea baja hasta "20:54 · cubierto" y aparece "Lucía confirmó".
+
+  Un script en `app/page.tsx` marca `landing-js` antes de pintar, para que
+  no titile. Detrás del título va el brillo ámbar de crear cuenta (`--wash`).
+  Se sacó "Gratis para empezar · Sin comisión por turno".
+- **Paso 1:** vuelve el cuadro "Describilo" original:
+  1. la frase se escribe con el cursor;
+  2. se marcan sus tres partes;
+  3. se aprieta "Completar";
+  4. aparece "Leyendo tu pedido…";
+  5. sube la tarjeta del turno, también en el celular.
+- **Paso 2:** el mapa original:
+  1. las calles aparecen en un círculo desde el local;
+  2. cae el pin del turno;
+  3. salen las ondas y se encienden los avisados según la distancia;
+  4. tres pasan a postulantes.
+
+  Arranca cuando el mapa está un tercio adentro de la pantalla
+  (`Reveal margen`), para no correr mientras se mira el paso 1.
+- **Títulos de los pasos:** un escalón más chicos que "Así se cubre un
+  turno" y con el número en un círculo ámbar. Antes se leían como dos
+  bloques iguales pegados.
+- **Textos que se fueron:**
+  - "Martín, Lucía, Tu bar… son de ejemplo";
+  - "Para trabajar no se paga nada · Ver cómo funciona para vos";
+  - la regla de confianza queda en "Identidad verificada".
+- **Instalar:** se fue la sección "Llevá Oído en tu celular". Sus pasos
+  (Chrome y Safari, y el botón de Android) viven dentro de la pregunta
+  "¿Cómo la bajo al celular?" (`InstalarPasos.tsx`, ancla `#instalar`).
+- **Encabezado:** esmerilado, con "Ingresar" y **"Crear cuenta"** (`/register`)
+  siempre a la vista.
+- **Barra del celular:** vidrio esmerilado con un solo botón a lo ancho. El
+  ícono de instalar aparece sólo en Android, cuando el navegador ofrece
+  instalar directo.
+
 ## La historia queda en /historia
 
 **Pedido:** Julieta quiere guardar la landing anterior. Sus animaciones

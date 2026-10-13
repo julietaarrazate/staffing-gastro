@@ -1,76 +1,27 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LogoMark } from "@/components/Logo";
 import { IosShareIcon, MoreVerticalIcon, SmartphoneIcon, SquarePlusIcon } from "@/components/icons";
 import { useInstalar, type EstadoInstalar } from "@/lib/instalar";
-import { PhoneFrame, PushNotice } from "./replicas";
-import Reveal from "./Reveal";
-
-// backend/app/modules/application/application/services.py (aviso de postulante)
-const PUSH_POSTULANTES = {
-  title: "3 postulantes para Mozo/a",
-  body: "Camila P. se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
-};
 
 /**
- * Instalar Oído en el celular (Julieta, 2026-10-12: "que quien entre por
- * primera vez se la descargue", en Android y en iPhone, sin tecnicismos).
- * Siempre los dos caminos, nombrando el navegador ("desde Chrome", "desde
- * Safari") para que se entienda que se baja desde ahí; primero el del
- * aparato que mira. En Android, si el navegador lo ofrece, un botón instala
- * directo. Ya instalada, la sección no aparece. Va al final, antes del
- * cierre, para no cortar lo que cuenta la página.
- *
- * Los avisos no se piden acá: la app los ofrece después de la primera
- * acción que importa (publicar, postularse), ver lib/push-prompt-context.tsx.
+ * Cómo instalar Oído en el celular, para la pregunta frecuente "¿Cómo la bajo
+ * al celular?" (hasta el 2026-10-13 era una sección propia; Julieta la pasó a
+ * las preguntas para no cortar la página). Siempre los dos caminos,
+ * nombrando el navegador ("desde Chrome", "desde Safari"), primero el del
+ * aparato que mira; en Android, si el navegador lo ofrece, un botón instala
+ * directo. Ya instalada, dice eso. Los avisos no se piden acá: la app los
+ * ofrece después de la primera acción que importa (lib/push-prompt-context.tsx).
  */
-export default function InstalarApp() {
+export default function InstalarPasos() {
   const estado = useInstalar();
-  if (estado.instalada) return null;
-
+  if (estado.instalada) {
+    return <p className="pb-5 text-body text-ink-soft lg:text-lg">Ya tenés Oído instalada en este aparato.</p>;
+  }
   return (
-    <section
-      id="instalar"
-      aria-labelledby="instalar-titulo"
-      data-tone="light"
-      className="scroll-mt-[var(--lht)] px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:py-28"
-    >
-      <div className="lg:col-span-7">
-        <h2
-          id="instalar-titulo"
-          className="font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]"
-        >
-          Llevá Oído en tu celular
-        </h2>
-        <div className="mt-9">
-          <Pasos estado={estado} />
-        </div>
-        <p className="mt-8 max-w-[44ch] text-caption text-ink-soft">
-          Cuando publiques tu primer turno o te postules a uno, tocá &ldquo;Activar&rdquo; para que te lleguen los
-          avisos.
-        </p>
-      </div>
-
-      <Reveal className="mt-14 hidden justify-center lg:col-span-5 lg:mt-0 lg:flex" delay={120}>
-        <div inert aria-hidden className="no-select">
-          <PhoneFrame hora="20:51">
-            <div className="relative h-[504px] px-4 pt-3">
-              <PushNotice className="anim-drop" title={PUSH_POSTULANTES.title} body={PUSH_POSTULANTES.body} />
-              <div className="mt-8 grid grid-cols-4 gap-x-3 gap-y-5">
-                {Array.from({ length: 11 }, (_, i) => (
-                  <span key={i} className="aspect-square rounded-[14px] bg-ink/[0.07]" />
-                ))}
-                <span className="anim-pop flex flex-col items-center gap-1" style={{ ["--d" as string]: "500ms" }}>
-                  <LogoMark size={46} />
-                  <span className="text-label font-semibold text-ink">Oído</span>
-                </span>
-              </div>
-            </div>
-          </PhoneFrame>
-        </div>
-      </Reveal>
-    </section>
+    <div className="pb-6">
+      <Pasos estado={estado} />
+    </div>
   );
 }
 

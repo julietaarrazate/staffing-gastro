@@ -14,6 +14,8 @@ import { RESPALDO } from "./planes";
 const gratis = RESPALDO.find((p) => p.code === "gratis");
 const desde = Math.min(...RESPALDO.filter((p) => Number(p.price_ars) > 0).map((p) => Number(p.price_ars)));
 
+export const PREGUNTA_INSTALAR = "¿Cómo la bajo al celular?";
+
 export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
   {
     pregunta: "¿En qué zonas funciona?",
@@ -41,7 +43,7 @@ export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
     respuesta: "No. Para trabajar no se paga nada, y el local te paga directo.",
   },
   {
-    pregunta: "¿Cómo la bajo al celular?",
+    pregunta: PREGUNTA_INSTALAR,
     respuesta:
       "Desde esta misma página, gratis y sin pasar por ninguna tienda. En Android tocá Instalar; en iPhone, Compartir y después Agregar a inicio. Queda como cualquier app y te llegan los avisos al instante.",
   },

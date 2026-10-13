@@ -19,7 +19,7 @@ import Reveal from "./Reveal";
 const LUCIA = CANDIDATES[0];
 
 const REGLAS = [
-  { icon: <ShieldIcon size={20} />, texto: "Identidad verificada con DNI y selfie" },
+  { icon: <ShieldIcon size={20} />, texto: "Identidad verificada" },
   { icon: <StarIcon size={20} />, texto: "Reseñas sólo de turnos hechos en Oído, nadie se las pone solo" },
   { icon: <XCircleIcon size={20} />, texto: "¿No vino? La marcás y elegís a otra persona sin volver a publicar" },
   { icon: <MapPinIcon size={20} />, texto: "Ves su ubicación sólo mientras viene en camino" },

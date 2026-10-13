@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from "@/components/icons";
-import { PREGUNTAS } from "./preguntas";
+import InstalarPasos from "./InstalarPasos";
+import { PREGUNTA_INSTALAR, PREGUNTAS } from "./preguntas";
 
 /** Preguntas frecuentes con `<details>`: se abren sin JavaScript y el texto
  *  está en el HTML aunque estén cerradas. */
@@ -19,7 +20,7 @@ export default function Preguntas() {
       </h2>
       <div className="mt-10 divide-y divide-line border-y border-line lg:col-span-8 lg:mt-0">
         {PREGUNTAS.map((p) => (
-          <details key={p.pregunta} className="group">
+          <details key={p.pregunta} id={p.pregunta === PREGUNTA_INSTALAR ? "instalar" : undefined} className="group scroll-mt-[var(--lht)]">
             <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-semibold text-ink [&::-webkit-details-marker]:hidden">
               {p.pregunta}
               <ChevronDownIcon
@@ -29,6 +30,10 @@ export default function Preguntas() {
               />
             </summary>
             <p className="max-w-[60ch] pb-5 text-body text-ink-soft lg:text-lg">{p.respuesta}</p>
+            {/* La de instalar suma los pasos de cada celular (y el botón en
+                Android). El texto de arriba es el que va en los datos
+                estructurados. */}
+            {p.pregunta === PREGUNTA_INSTALAR && <InstalarPasos />}
           </details>
         ))}
       </div>

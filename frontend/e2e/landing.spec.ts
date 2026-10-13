@@ -56,8 +56,12 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
   );
   // Sin eyebrow ni bajada (Julieta, 2026-10-12).
   await expect(page.getByText(/Beta en CABA/)).toHaveCount(0);
-  // El Navbar de la app no se muestra en "/" sin sesión: la landing trae el suyo.
-  await expect(page.getByRole("link", { name: "Ingresar" }).first()).toBeVisible();
+  await expect(page.getByText(/Gratis para empezar/)).toHaveCount(0);
+  // El Navbar de la app no se muestra en "/" sin sesión: la landing trae el
+  // suyo, con "Ingresar" y "Crear cuenta" siempre a la vista.
+  const header = page.locator("header");
+  await expect(header.getByRole("link", { name: "Ingresar" })).toBeVisible();
+  await expect(header.getByRole("link", { name: "Crear cuenta" })).toHaveAttribute("href", "/register");
 });
 
 test("ningún título termina en punto y los pasos son h3", async ({ page }) => {
@@ -181,9 +185,11 @@ test.describe("instalar en iPhone", () => {
   test("muestra los dos caminos, primero Safari: Compartir y Agregar a inicio", async ({ page }) => {
     await sinSesion(page);
     await page.goto("/");
-    const titulos = page.locator("#instalar h3");
-    await expect(titulos).toHaveText(["iPhone · desde Safari", "Android · desde Chrome"]);
-    await expect(page.locator("#instalar")).toContainText("Agregar a inicio");
+    // Es una pregunta frecuente: se abre y muestra los dos caminos.
+    const instalar = page.locator("#instalar");
+    await instalar.locator("summary").click();
+    await expect(instalar.locator("h3")).toHaveText(["iPhone · desde Safari", "Android · desde Chrome"]);
+    await expect(instalar).toContainText("Agregar a inicio");
   });
 });
 
@@ -204,11 +210,12 @@ test.describe("instalar en Android", () => {
       });
     });
     await page.goto("/");
-    const boton = page.locator("#instalar").getByRole("button", { name: "Instalar Oído" });
-    await boton.click();
+    const instalar = page.locator("#instalar");
+    await instalar.locator("summary").click();
+    await instalar.getByRole("button", { name: "Instalar Oído" }).click();
     await expect.poll(() => page.evaluate(() => (window as unknown as { __prompted?: boolean }).__prompted)).toBe(true);
-    // Instalada, la sección ya no se ofrece.
-    await expect(page.locator("#instalar")).toHaveCount(0);
+    // Instalada, la pregunta lo dice en vez de mostrar pasos.
+    await expect(instalar).toContainText("Ya tenés Oído instalada");
   });
 
   test("la barra de abajo aparece al pasar el botón del inicio", async ({ page }) => {
@@ -218,7 +225,8 @@ test.describe("instalar en Android", () => {
     await expect(barra).not.toBeInViewport();
     await page.evaluate(() => window.scrollTo(0, 1600));
     await expect(barra).toBeInViewport();
-    await expect(page.locator('[data-cta="barra-instalar"]')).toHaveAttribute("href", "/#instalar");
+    // Sin aviso del navegador para instalar, la barra lleva un solo botón.
+    await expect(page.locator('[data-cta="barra-instalar"]')).toHaveCount(0);
   });
 });
 

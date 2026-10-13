@@ -143,16 +143,6 @@ export default function Precios() {
         </ul>
       </Reveal>
 
-      <p className="mt-8 text-center text-body text-ink-soft">
-        Para trabajar no se paga nada.{" "}
-        <Link
-          href="/#trabajar"
-          data-cta="precios-trabajo"
-          className="font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-secondary"
-        >
-          Ver cómo funciona para vos →
-        </Link>
-      </p>
     </section>
   );
 }

@@ -36,22 +36,13 @@ export default function ComoFunciona() {
         >
           Así se cubre un turno
         </h2>
-        <ol className="mt-14 flex flex-col gap-20 lg:mt-20 lg:gap-28">
+        <ol className="mt-16 flex flex-col gap-24 lg:mt-24 lg:gap-32">
           <Paso
             n={1}
             titulo="Contalo como lo dirías"
-            alt="Escribís “Necesito un mozo hoy de 21 a 2, pago 70.000” y Oído arma el turno: puesto, horario y pago."
+            alt="Escribís “Necesito un mozo hoy de 21 a 2, pago 70.000”, tocás Completar y Oído arma el turno con puesto, horario y pago."
           >
-            <div className="flex flex-col items-center gap-5">
-              <PedidoEscribiendose />
-              {/* En el celular alcanza con la frase y sus piezas: la tarjeta
-                  sola suma media pantalla. */}
-              <div className="hidden h-[285px] w-[240px] lg:block">
-                <div className="anim-rise h-[380px] w-[320px] origin-top-left scale-[0.75]" style={{ ["--d" as string]: "3.4s" }}>
-                  <OpportunityCard shift={shift} preview />
-                </div>
-              </div>
-            </div>
+            <PedidoEscribiendose shift={shift} />
           </Paso>
           <Paso
             n={2}
@@ -105,9 +96,6 @@ export default function ComoFunciona() {
           >
             Publicar un turno gratis
           </Link>
-          <p className="mt-8 max-w-[44ch] text-caption text-ink">
-            Martín, Lucía, Tu bar y los horarios de esta página son de ejemplo.
-          </p>
         </Reveal>
       </section>
     </>
@@ -122,18 +110,28 @@ export default function ComoFunciona() {
 function Paso({ n, titulo, alt, children }: { n: number; titulo: string; alt: string; children: ReactNode }) {
   return (
     <li className="grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-12">
-      <Reveal className="lg:col-span-5">
-        <p aria-hidden className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-primary-text">
-          Paso {n}
-        </p>
-        <h3 className="mt-3 font-display text-headline font-semibold tracking-[-0.012em] text-ink [text-wrap:balance] lg:text-poster">
-          {titulo}
-        </h3>
-        <p className="sr-only">{alt}</p>
+      {/* Un escalón más chico que "Así se cubre un turno" y con su número en
+          un círculo: antes los dos títulos tenían el mismo tamaño y se leían
+          como dos bloques iguales pegados (Julieta, 2026-10-13). */}
+      <Reveal className="flex items-center gap-4 lg:col-span-5">
+        <span
+          aria-hidden
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-primary font-mono text-body-strong font-medium text-night shadow-[var(--shadow-primary)]"
+        >
+          {n}
+        </span>
+        <div>
+          <h3 className="font-display text-h1 font-semibold tracking-[-0.01em] text-ink [text-wrap:balance] lg:text-display">
+            {titulo}
+          </h3>
+          <p className="sr-only">{alt}</p>
+        </div>
       </Reveal>
       {/* Imagen del producto: piezas reales dentro de `inert` (no se pueden
           tocar ni enfocar sus links) y `aria-hidden` (la describe `alt`). */}
-      <Reveal className="lg:col-span-7" delay={120}>
+      {/* Arranca cuando la imagen ya está bien en pantalla (un tercio
+          adentro): si no, el mapa corría mientras se miraba el paso 1. */}
+      <Reveal className="lg:col-span-7" delay={150} margen="0px 0px -33% 0px">
         <div inert aria-hidden className="no-select">
           {children}
         </div>
@@ -156,11 +154,15 @@ function MapaAviso() {
           al final (el primero sólo existe durante la animación). Arriba del
           mapa y no adentro, para no tapar pines. */}
       <div className="relative mb-3 h-[2.125rem]">
-        <RelojDelTurno at="avisado" className="anim-out absolute left-0 top-0" style={{ ["--d" as string]: "0.4s" }} />
-        <RelojDelTurno at="postulantes" className="anim-pop" style={{ ["--d" as string]: "2.6s" }} />
+        <RelojDelTurno at="avisado" className="anim-out absolute left-0 top-0" style={{ ["--d" as string]: "0.9s" }} />
+        <RelojDelTurno at="postulantes" className="anim-pop" style={{ ["--d" as string]: "4.2s" }} />
       </div>
-    <div className="relative aspect-square w-full overflow-hidden rounded-[1.75rem] bg-[var(--mapa)]">
-      <StreetGrid />
+    <div className="relative aspect-square w-full overflow-hidden rounded-[1.75rem] bg-[var(--mapa)] shadow-[var(--shadow-float)] ring-1 ring-line">
+      {/* Las calles aparecen en un círculo que crece desde el local, como en
+          la historia original. */}
+      <div className="anim-reveal absolute inset-0">
+        <StreetGrid />
+      </div>
       {[0.32, 0.52, 0.72].map((r, i) => (
         <span
           key={r}
@@ -170,7 +172,7 @@ function MapaAviso() {
             top: `${50 - r * 50}%`,
             width: `${r * 100}%`,
             height: `${r * 100}%`,
-            ["--d" as string]: `${500 + i * 350}ms`,
+            ["--d" as string]: `${900 + i * 450}ms`,
           }}
         />
       ))}
@@ -178,14 +180,14 @@ function MapaAviso() {
         <span key={w.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${w.x}%`, top: `${w.y}%` }}>
           <span
             className="anim-pop block"
-            style={{ ["--d" as string]: `${700 + Math.round(Math.hypot(w.x - 50, w.y - 50) * 30)}ms` }}
+            style={{ ["--d" as string]: `${1300 + Math.round(Math.hypot(w.x - 50, w.y - 50) * 40)}ms` }}
           >
             <WorkerPin inicial={w.inicial} variant="avisado" />
           </span>
           {w.candidato && (
             <span
               className="anim-pop absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2"
-              style={{ ["--d" as string]: `${2600 + MAP_WORKERS.indexOf(w) * 350}ms` }}
+              style={{ ["--d" as string]: `${4200 + MAP_WORKERS.indexOf(w) * 450}ms` }}
             >
               <WorkerPin inicial={w.inicial} variant="candidato" rating={w.rating} />
             </span>
@@ -193,7 +195,7 @@ function MapaAviso() {
         </span>
       ))}
       <span className="absolute -translate-x-1/2 -translate-y-full" style={{ left: "50%", top: "50%" }}>
-        <PricePin className="anim-pop" style={{ ["--d" as string]: "150ms" }} />
+        <PricePin className="anim-drop" style={{ ["--d" as string]: "500ms" }} />
       </span>
       <p className="absolute bottom-3 right-4 font-mono text-metadata uppercase tracking-[0.12em] text-ink-mute">
         Ubicaciones aproximadas
@@ -227,17 +229,20 @@ function CandidateRow({ candidateIndex }: { candidateIndex: number }) {
 }
 
 /**
- * La frase del paso 1 se escribe sola cuando el cuadro aparece (unos 2,5 s)
- * y después se marcan las tres partes que pasan a ser campos del turno.
- * El HTML del servidor la trae entera; con "reducir movimiento", o si el
- * cuadro ya está en pantalla al cargar, queda quieta.
+ * El cuadro "Describilo" del paso 1, como en la historia original pero por
+ * tiempo: la frase se escribe con el cursor, se marcan las tres partes que
+ * pasan a ser campos, se aprieta "Completar", aparece "Leyendo tu pedido…" y
+ * sale la tarjeta del turno. Unos 6 s en total, para que se lea.
+ *
+ * El HTML del servidor trae el final (frase entera y tarjeta); con "reducir
+ * movimiento", o si el cuadro ya está en pantalla al cargar, queda quieto.
  */
-function PedidoEscribiendose() {
+type Fase = "quieto" | "esperando" | "escribiendo" | "marcado" | "apretado" | "leyendo" | "listo";
+
+function PedidoEscribiendose({ shift }: { shift: ReturnType<typeof useStoryShift> }) {
   const ref = useRef<HTMLDivElement>(null);
   const [chars, setChars] = useState(PEDIDO.length);
-  const [marked, setMarked] = useState(true);
-  // Si la animación corre (no estaba en pantalla, sin reducir movimiento).
-  const [animado, setAnimado] = useState(false);
+  const [fase, setFase] = useState<Fase>("quieto");
 
   useEffect(() => {
     const el = ref.current;
@@ -245,23 +250,26 @@ function PedidoEscribiendose() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (el.getBoundingClientRect().top < window.innerHeight) return;
     setChars(0);
-    setMarked(false);
-    setAnimado(true);
+    setFase("esperando");
+    const timers: ReturnType<typeof setTimeout>[] = [];
     let tick: ReturnType<typeof setInterval> | undefined;
-    let mark: ReturnType<typeof setTimeout> | undefined;
+    const despues = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         io.disconnect();
+        setFase("escribiendo");
         let n = 0;
         tick = setInterval(() => {
           n += 1;
           setChars(n);
-          if (n >= PEDIDO.length) {
-            clearInterval(tick);
-            mark = setTimeout(() => setMarked(true), 350);
-          }
-        }, 55);
+          if (n < PEDIDO.length) return;
+          clearInterval(tick);
+          despues(450, () => setFase("marcado"));
+          despues(1500, () => setFase("apretado"));
+          despues(1800, () => setFase("leyendo"));
+          despues(3100, () => setFase("listo"));
+        }, 60);
       },
       { rootMargin: "0px 0px -20% 0px" }
     );
@@ -269,36 +277,34 @@ function PedidoEscribiendose() {
     return () => {
       io.disconnect();
       clearInterval(tick);
-      clearTimeout(mark);
+      timers.forEach(clearTimeout);
     };
   }, []);
 
+  const marcado = fase === "quieto" || fase === "marcado" || fase === "apretado" || fase === "leyendo" || fase === "listo";
+  const tarjeta = fase === "quieto" || fase === "listo";
+
   return (
-    <div ref={ref} className="w-full max-w-[420px]">
-      <DescribeBox chars={chars} marked={marked} caret={chars < PEDIDO.length} />
-      {/* Las tres partes marcadas, convertidas en los campos del turno. */}
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        {CAMPOS.map((c, i) => (
-          <span
-            key={c.k}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm text-ink shadow-[var(--shadow-soft)] ring-1 ring-line",
-              animado && (marked ? "landing-chip" : "opacity-0")
-            )}
-            style={{ animationDelay: `${150 + i * 180}ms` }}
-          >
-            <span className="font-mono text-label uppercase tracking-[0.1em] text-ink-mute">{c.k}</span>
-            <span className="font-semibold">{c.v}</span>
-          </span>
-        ))}
+    <div ref={ref} className="flex flex-col items-center gap-5">
+      <DescribeBox
+        className="w-full max-w-[420px]"
+        chars={chars}
+        marked={marcado}
+        caret={fase === "esperando" || fase === "escribiendo"}
+        pressed={fase === "apretado"}
+        loading={fase === "leyendo"}
+      />
+      {/* La tarjeta del turno que arma Oído. */}
+      <div
+        className={cn(
+          "h-[285px] w-[240px] transition duration-700 ease-[cubic-bezier(.2,.8,.2,1)]",
+          tarjeta ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+        )}
+      >
+        <div className="h-[380px] w-[320px] origin-top-left scale-[0.75]">
+          <OpportunityCard shift={shift} preview />
+        </div>
       </div>
     </div>
   );
 }
-
-/** Lo que Oído saca de la frase (mismos valores que la tarjeta del turno). */
-const CAMPOS = [
-  { k: "Puesto", v: "Mozo/a" },
-  { k: "Horario", v: "Hoy · 21 a 02" },
-  { k: "Pago", v: "$70.000" },
-];

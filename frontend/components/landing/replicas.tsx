@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { LogoGlyph, LogoMark } from "@/components/Logo";
 import { CheckCircleIcon, StarIcon } from "@/components/icons";
+import { Spinner } from "@/components/ui";
 import { PEDIDO, PEDIDO_PARTES } from "./fixtures";
 
 /* Réplicas de piezas del producto que la landing muestra como imagen y que
@@ -24,19 +25,24 @@ const PARTES = (() => {
 
 /**
  * El cuadro "Describilo y lo completamos" de /shifts/new (app/shifts/new/
- * page.tsx). `chars` es cuánto de la frase está escrito (por defecto, toda) y
- * `marked` subraya en manteca las tres partes que se convierten en campos.
+ * page.tsx). `chars` es cuánto de la frase está escrito (por defecto, toda),
+ * `marked` subraya en manteca las tres partes que se convierten en campos,
+ * `pressed` aprieta "Completar" y `loading` muestra "Leyendo tu pedido…".
  * Es una imagen: el botón es un `span`, no se puede apretar.
  */
 export function DescribeBox({
   chars = PEDIDO.length,
   marked = true,
   caret = false,
+  pressed = false,
+  loading = false,
   className,
 }: {
   chars?: number;
   marked?: boolean;
   caret?: boolean;
+  pressed?: boolean;
+  loading?: boolean;
   className?: string;
 }) {
   const shown = PEDIDO.slice(0, chars);
@@ -73,11 +79,18 @@ export function DescribeBox({
           <span aria-hidden className="story-colon ml-px inline-block h-[1.1em] w-[2px] translate-y-[0.2em] bg-primary" />
         )}
       </div>
-      <div className="mt-2 flex justify-end">
+      <div className="mt-2 flex min-h-[40px] items-center justify-between gap-2">
+        {loading ? (
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink/60">
+            <Spinner size={14} className="[animation-duration:1.333s]!" /> Leyendo tu pedido…
+          </span>
+        ) : (
+          <span />
+        )}
         <span
           className={cn(
             "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-200",
-            marked ? "scale-100" : "scale-95"
+            pressed ? "scale-[0.92]" : "scale-100"
           )}
         >
           Completar

@@ -18,12 +18,15 @@ export default function Reveal({
   children,
   className,
   delay = 0,
+  margen = "0px 0px -12% 0px",
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
   /** Retraso en ms, para escalonar bloques hermanos. */
   delay?: number;
+  /** Cuánto tiene que entrar en pantalla antes de arrancar (rootMargin). */
+  margen?: string;
   as?: "div" | "li";
 }) {
   const ref = useRef<HTMLElement>(null);
@@ -41,11 +44,11 @@ export default function Reveal({
         el.dataset.reveal = "shown";
         io.disconnect();
       },
-      { rootMargin: "0px 0px -12% 0px" }
+      { rootMargin: margen }
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [margen]);
 
   return (
     <Tag

@@ -7,7 +7,8 @@ import { LogoMark } from "@/components/Logo";
 
 /**
  * Encabezado propio de la landing (el Navbar global no se muestra en "/" sin
- * sesión). Siempre claro: hasta el 2026-10-12 cambiaba de color con cada
+ * sesión), esmerilado como el de la app. "Ingresar" y "Crear cuenta" siempre
+ * a la vista (Julieta, 2026-10-13: faltaba cómo crear la cuenta). Siempre claro: hasta el 2026-10-12 cambiaba de color con cada
  * tramo de la historia y en escritorio arrancaba oscuro encima del hero claro
  * (auditoría de la landing).
  *
@@ -35,7 +36,7 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
   }, [heroCtaId]);
 
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border-line bg-background">
+    <header className="safe-top sticky top-0 z-40 border-b border-line/70 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
         <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center gap-2">
           <LogoMark size={28} />
@@ -53,6 +54,13 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
             className="inline-flex h-11 items-center px-3 text-ink transition-colors duration-200 hover:text-primary-text"
           >
             Ingresar
+          </Link>
+          <Link
+            href="/register"
+            data-cta="header-crear-cuenta"
+            className="inline-flex h-10 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 text-ink ring-[1.5px] ring-ink/70 ring-inset transition-colors duration-200 hover:bg-surface"
+          >
+            Crear cuenta
           </Link>
           <Link
             href="/register?rol=comercio"
