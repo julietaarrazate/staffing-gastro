@@ -26,7 +26,7 @@ los 138 E2E contra el Worker local con dos ajustes chicos (ver
 ## Consecuencias
 
 - Dos ajustes propios que hay que revisar al subir de versión: el parche de
-  `patches/` (manifiesto `preview-props.json`) y la copia de las imágenes de
+  `scripts/patch-opennext.mjs` (manifiesto `preview-props.json`) y la copia de las imágenes de
   vista previa a los assets (`scripts/cf-static-assets.mjs`).
 - Se pierden las previews automáticas por PR de Vercel; se reemplazan con
   versiones de Worker (`wrangler versions upload`) desde CI.

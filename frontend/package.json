@@ -11,7 +11,7 @@
     "lint": "eslint",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "postinstall": "patch-package && node scripts/copy-maplibre-worker.mjs",
+    "postinstall": "node scripts/patch-opennext.mjs && node scripts/copy-maplibre-worker.mjs",
     "cf:build": "opennextjs-cloudflare build && node scripts/cf-static-assets.mjs",
     "cf:preview": "npm run cf:build && wrangler dev --port 8787",
     "cf:deploy": "npm run cf:build && wrangler deploy"
@@ -44,7 +44,6 @@
     "eslint-config-next": "16.3.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^30.0.1",
-    "patch-package": "^8.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.2",
@@ -60,6 +59,9 @@
     "@next/eslint-plugin-next": {
       "fast-glob": "npm:tinyglobby@^0.2.16"
     },
-    "source-map-js": "^1.2.2"
+    "source-map-js": "^1.2.2",
+    "@node-minify/core": {
+      "glob": "^10.5.0"
+    }
   }
 }

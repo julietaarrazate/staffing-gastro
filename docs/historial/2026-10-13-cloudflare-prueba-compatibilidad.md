@@ -10,12 +10,15 @@ producción.
 
 - `wrangler.jsonc`, `open-next.config.ts` y los scripts `cf:build`,
   `cf:preview` y `cf:deploy` en `package.json`.
-- `patches/@opennextjs+cloudflare+1.20.10.patch` (con `patch-package` en el
-  `postinstall`): sin él, Next 16.4 pide `preview-props.json`, OpenNext no lo
+- `scripts/patch-opennext.mjs` (corre en el `postinstall`; primero fue
+  `patch-package`, pero sus dependencias tienen avisos "high" y el CI de
+  Security lo rechazó): sin él, Next 16.4 pide `preview-props.json`, OpenNext no lo
   empaqueta y **todas** las páginas daban 500.
 - `scripts/cf-static-assets.mjs`: `/og/oido.jpg` y `/twitter-image` daban
   500 en el Worker (usan `sharp` y fuentes del disco). Ahora se copian del
   build a los assets estáticos. También escribe `_headers` para esos assets.
+- `overrides` de `package.json`: `glob` 10.5.0 para `@node-minify/core`
+  (dependencia de OpenNext que traía `glob` 10.3.3, con aviso "high").
 - `eslint.config.mjs` ignora `.open-next/` y `.wrangler/`.
 
 **Resultado contra el Worker local (`wrangler dev`, puerto 3100):** tsc sin

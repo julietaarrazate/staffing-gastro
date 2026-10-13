@@ -80,8 +80,9 @@ Julieta para cambiar el DNS. Etapas y resultados en
 - **Config:** `frontend/wrangler.jsonc` (Worker `oido-frontend`,
   `nodejs_compat`) y `frontend/open-next.config.ts` (caché de sólo lectura con
   lo prerenderizado; Oído no usa ISR, así que no hace falta R2 ni KV).
-- **Trampa 1, parche de OpenNext** (`frontend/patches/`, se aplica solo en el
-  `postinstall` con `patch-package`): Next 16.4 lee un manifiesto nuevo,
+- **Trampa 1, parche de OpenNext** (`frontend/scripts/patch-opennext.mjs`, se aplica solo
+  en el `postinstall`; no se usa `patch-package` porque trae dependencias con
+  avisos "high" de `npm audit`): Next 16.4 lee un manifiesto nuevo,
   `preview-props.json`, que OpenNext 1.20.10 no empaqueta; sin el parche
   **todas** las páginas dan 500 en el Worker. Es el mismo tipo de bug que
   OpenNext arregló en 1.17.3 para `prefetch-hints.json`. Al subir OpenNext,
