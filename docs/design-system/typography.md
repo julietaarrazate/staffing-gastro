@@ -3,15 +3,29 @@
 Todas las fuentes son **libres** (Google Fonts / OFL). Una fuente de títulos
 paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
 
-## Tres familias, tres roles
+## Cuatro familias, cuatro roles
 
 | Familia | Rol | Token / utilidad |
 |---|---|---|
-| **Fraunces** (serif) | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y el wordmark "oído" | `--font-fraunces` → `font-display` y `font-serif` |
+| **Bricolage Grotesque** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing | `--font-bricolage` → `font-display` |
+| **Fraunces** (serif) | Sólo el wordmark "oído" (logo) | `--font-fraunces` → `font-serif` |
 | **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
 | **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 
-## Por qué el título va en serif y la sección en sans
+## Cambio de títulos a Bricolage Grotesque (2026-10-12)
+
+Julieta sentía que Fraunces con Inter daba una sensación genérica, de
+plantilla. Comparó cuatro combinaciones gratuitas y eligió **Bricolage
+Grotesque sólo para los títulos**, sin tocar el texto (Inter) ni los datos
+(DM Mono). El wordmark "oído" sigue en Fraunces para no cambiar el logo:
+todo lo que dice "oído" usa `font-serif`, nunca `font-display`.
+
+Bricolage es más compacta que Fraunces: el espaciado negativo de los
+titulares de la landing se redujo a la mitad (por ejemplo, `-0.03em` pasó a
+`-0.015em`). Tiene eje de tamaño óptico (`opsz`), así que se ajusta sola
+entre títulos chicos y carteles.
+
+## Por qué el título y la sección usan familias distintas (historia)
 
 Así lo resuelven las pantallas del board de Julieta: el título grande de cada
 pantalla y los títulos de contenido (el puesto de un turno, el nombre de una

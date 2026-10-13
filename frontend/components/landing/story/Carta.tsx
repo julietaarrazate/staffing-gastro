@@ -79,7 +79,7 @@ export default function Carta() {
       <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
         <div>
           <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">Precios · Para comercios</p>
-          <h2 className="mt-3 font-display text-poster font-semibold tracking-[-0.03em] text-ink [text-wrap:balance]">
+          <h2 className="mt-3 font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]">
             Sin comisión por turno.
           </h2>
         </div>
@@ -110,7 +110,7 @@ export default function Carta() {
                 )}
               </div>
               <p className="mt-4 flex items-baseline gap-1">
-                <span className="font-display text-poster font-semibold tracking-[-0.03em] tabular-nums text-ink">
+                <span className="font-display text-poster font-semibold tracking-[-0.015em] tabular-nums text-ink">
                   {gratis ? "$0" : formatArs(p.price_ars)}
                 </span>
                 <span className="text-body text-ink-mute">{gratis ? "para siempre" : "/mes"}</span>

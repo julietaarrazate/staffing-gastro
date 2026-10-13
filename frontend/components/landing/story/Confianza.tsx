@@ -52,7 +52,7 @@ export default function Confianza() {
       data-tone="light"
       className="px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:gap-12 lg:px-12 lg:py-28"
     >
-      <h2 className="font-display text-poster font-semibold tracking-[-0.03em] text-ink [text-wrap:balance] lg:col-span-4 lg:text-[length:var(--text-poster)]">
+      <h2 className="font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance] lg:col-span-4 lg:text-[length:var(--text-poster)]">
         Sabés quién viene. <span className="font-medium text-ink-soft">Y ella sabe a dónde va.</span>
       </h2>
       <div className="mt-12 grid gap-12 lg:col-span-7 lg:col-start-6 lg:mt-0 lg:grid-cols-2 lg:gap-10">
@@ -170,7 +170,7 @@ function FichaComercio() {
       <div className="mt-4">
         <p className="font-mono text-label font-medium uppercase tracking-[0.12em] text-ink-mute">Te paga directo</p>
         <p className="mt-1 flex items-baseline gap-1">
-          <span className="font-display text-price font-semibold tracking-[-0.03em] tabular-nums text-ink">$70.000</span>
+          <span className="font-display text-price font-semibold tracking-[-0.015em] tabular-nums text-ink">$70.000</span>
           <span className="whitespace-nowrap text-body text-ink-mute">por el turno</span>
         </p>
         <p className="text-sm text-ink-soft">Sin comisión ni intermediarios.</p>

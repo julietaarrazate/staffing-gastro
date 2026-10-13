@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { CandidateMatch } from "@/lib/types";
 import { Avatar, Button } from "@/components/ui";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
@@ -48,12 +49,17 @@ export default function CandidateCard({
   onAssign,
   disabled,
   recommended = false,
+  preview = false,
 }: {
   candidate: CandidateMatch;
   onAssign: () => void;
   disabled?: boolean;
   recommended?: boolean;
+  /** Como imagen (la landing): el nombre y la foto sin link al perfil, que
+   *  sería de una persona de ejemplo. */
+  preview?: boolean;
 }) {
+  const perfil = preview ? null : `/workers/${candidate.profile_id}`;
   return (
     // `.no-select`: tarjeta de chrome (rating, chips) — mismo criterio C0 #2
     // que ShiftCard (docs/planning/PULIDO_ROADMAP.md fix 2).
@@ -77,16 +83,16 @@ export default function CandidateCard({
 
       <div className={recommended ? "px-5 pb-5 pt-4" : "p-5"}>
         <div className="flex items-center gap-3">
-          <Link href={`/workers/${candidate.profile_id}`}>
+          <PerfilLink href={perfil}>
             <Avatar src={candidate.photo_url} name={candidate.full_name} size="lg" />
-          </Link>
+          </PerfilLink>
           <div className="min-w-0 flex-1">
-            <Link
-              href={`/workers/${candidate.profile_id}`}
+            <PerfilLink
+              href={perfil}
               className={`block truncate text-lg font-bold ${recommended ? "text-on-brand" : "text-ink"}`}
             >
               {candidate.full_name}
-            </Link>
+            </PerfilLink>
             {candidate.identidad_verificada && (
               <IdentityVerifiedBadge verified className="mt-1" />
             )}
@@ -108,5 +114,15 @@ export default function CandidateCard({
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Link al perfil, o el mismo contenido sin link en la vista previa. */
+function PerfilLink({ href, className, children }: { href: string | null; className?: string; children: ReactNode }) {
+  if (!href) return <span className={className}>{children}</span>;
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
   );
 }

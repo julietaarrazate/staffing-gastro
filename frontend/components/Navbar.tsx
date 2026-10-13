@@ -50,10 +50,12 @@ export default function Navbar() {
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
   // blanco encima la cortaba al medio y duplicaba la marca.
   if (pathname === "/bienvenida") return null;
-  // La landing (visitante sin sesión) lleva su propio encabezado, que cambia
-  // de color con cada escena de la historia (components/landing/story/). Con
-  // sesión, "/" redirige a la home del rol y este header sigue apareciendo.
+  // La landing (visitante sin sesión) lleva su propio encabezado
+  // (components/landing/LandingHeader.tsx). Con sesión, "/" redirige a la home del rol y este header sigue apareciendo.
   if (pathname === "/" && !user) return null;
+  // /historia (la landing anterior, guardada para grabar reels) trae su
+  // propio encabezado, con o sin sesión.
+  if (pathname === "/historia") return null;
 
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
