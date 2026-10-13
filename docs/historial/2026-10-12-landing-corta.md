@@ -228,12 +228,31 @@ cuando haga falta, sin depender de recuperar código viejo de git. La
 contra: hay dos encabezados y dos pies parecidos (los de `story/` y los de
 la landing corta). Se acepta mientras la historia sea material para redes.
 
+## Sexta vuelta (2026-10-13): textos y la noche a pantalla completa
+
+- **Botones del inicio:** "Necesito personal" (ámbar) y "Quiero trabajar"
+  (con borde), como en la original. Cada visitante se reconoce en uno; "Publicar
+  un turno gratis" pedía entender qué es publicar un turno y el "gratis"
+  chocaba con los planes pagos. El encabezado y la barra del celular dicen
+  "Necesito personal"; el cierre y el final de los pasos, "Publicar mi primer
+  turno gratis", porque ahí ya se entendió de qué se trata.
+- **Cierre:** "La próxima vez que falte alguien, cubrilo con Oído" (retoma la
+  pregunta del inicio).
+- **Textos:** sin "Estamos en beta" en zonas; "Le pagás vos directo, como
+  acuerden"; "Reseñas solo de turnos hechos en Oído" (había dos "solo");
+  "solo" sin tilde en lo visible; "mozo/a" en minúscula en el aviso.
+- **La noche del hero en el celular:** quedaba debajo del inicio y la animación
+  arrancaba al cargar, así que se veía por la mitad o ya terminada. Ahora ocupa
+  la pantalla entera (menos el encabezado) y arranca cuando se ve casi
+  completa (IntersectionObserver al 75 %). En escritorio no cambia: está al
+  lado del título y arranca enseguida.
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
 - La pregunta legal (monotributo, quién es el empleador): no se publica
   sin asesoría.
-- El medio de pago que se recomienda (hoy sólo dice "directo, como
-  acuerden").
+- El medio de pago que se recomienda (hoy solo dice "le pagás vos directo,
+  como acuerden").
 - Probar la instalación en un Android y un iPhone reales: los tests simulan
   el aviso del navegador. En Chrome de Android el botón necesita que el
   navegador considere instalable el sitio.

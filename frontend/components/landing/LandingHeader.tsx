@@ -12,7 +12,7 @@ import { LogoMark } from "@/components/Logo";
  * tramo de la historia y en escritorio arrancaba oscuro encima del hero claro
  * (auditoría de la landing).
  *
- * El botón "Pedir personal" aparece cuando el del hero salió de la pantalla y
+ * El botón "Necesito personal" aparece cuando el del hero salió de la pantalla y
  * después ya no se esconde. En el celular no va: ahí está la barra fija de
  * abajo (BarraCelular.tsx), más cerca del pulgar. "Para trabajar" lleva a la sección de quien
  * trabaja; en el celular no entra al lado del botón, y ahí el camino del
@@ -74,7 +74,7 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
               ctaVisible ? "max-w-[12rem] px-3.5 opacity-100" : "pointer-events-none max-w-0 px-0 opacity-0"
             )}
           >
-            Pedir personal
+            Necesito personal
           </Link>
         </nav>
       </div>

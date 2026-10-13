@@ -51,7 +51,7 @@ export default function BarraCelular({ heroCtaId }: { heroCtaId: string }) {
           tabIndex={visible ? undefined : -1}
           className="inline-flex h-12 flex-1 items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-base font-semibold text-night shadow-[var(--shadow-primary)] active:scale-[0.97]"
         >
-          Publicar un turno gratis
+          Necesito personal
         </Link>
         {puedeInstalarDirecto && (
           <button

@@ -46,11 +46,11 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
     /¿Faltó alguien de tu equipo\?\s*Cubrí el turno en minutos/
   );
   const hero = page.locator("#hero-ctas");
-  await expect(hero.getByRole("link", { name: "Publicar un turno gratis" })).toHaveAttribute(
+  await expect(hero.getByRole("link", { name: "Necesito personal" })).toHaveAttribute(
     "href",
     "/register?rol=comercio"
   );
-  await expect(hero.getByRole("link", { name: /¿Trabajás en gastronomía\?/ })).toHaveAttribute(
+  await expect(hero.getByRole("link", { name: "Quiero trabajar" })).toHaveAttribute(
     "href",
     "/register?rol=trabajador"
   );
@@ -83,12 +83,12 @@ test("el encabezado lleva a la sección de quien trabaja y muestra el botón al 
   await page.setViewportSize({ width: 1280, height: 800 });
   await sinSesion(page);
   await page.goto("/");
-  const pedir = page.locator("header").getByRole("link", { name: "Pedir personal" });
+  const pedir = page.locator("header").getByRole("link", { name: "Necesito personal" });
   await expect(pedir).toHaveCount(0); // escondido: fuera del árbol accesible
   await page.locator("header").getByRole("link", { name: "Para trabajar" }).click();
   await expect(page).toHaveURL(/#trabajar$/);
   await expect(page.getByRole("heading", { level: 2, name: /Turnos de gastronomía cerca tuyo/ })).toBeInViewport();
-  await expect(page.locator("header").getByRole("link", { name: "Pedir personal" })).toHaveAttribute(
+  await expect(page.locator("header").getByRole("link", { name: "Necesito personal" })).toHaveAttribute(
     "href",
     "/register?rol=comercio"
   );
@@ -221,7 +221,7 @@ test.describe("instalar en Android", () => {
   test("la barra de abajo aparece al pasar el botón del inicio", async ({ page }) => {
     await sinSesion(page);
     await page.goto("/");
-    const barra = page.getByRole("link", { name: "Publicar un turno gratis" }).and(page.locator('[data-cta="barra"]'));
+    const barra = page.getByRole("link", { name: "Necesito personal" }).and(page.locator('[data-cta="barra"]'));
     await expect(barra).not.toBeInViewport();
     await page.evaluate(() => window.scrollTo(0, 1600));
     await expect(barra).toBeInViewport();

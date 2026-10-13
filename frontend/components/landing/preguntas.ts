@@ -19,7 +19,7 @@ export const PREGUNTA_INSTALAR = "¿Cómo la bajo al celular?";
 export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
   {
     pregunta: "¿En qué zonas funciona?",
-    respuesta: "Por ahora en la Ciudad de Buenos Aires. Estamos en beta.",
+    respuesta: "Por ahora en la Ciudad de Buenos Aires.",
   },
   {
     pregunta: "¿Cuánto cuesta?",
@@ -27,7 +27,7 @@ export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
   },
   {
     pregunta: "¿Cómo le pago a quien trabaja?",
-    respuesta: "Directo vos, como acuerden. Oído no cobra comisión ni pasa la plata por el medio.",
+    respuesta: "Le pagás vos directo, como acuerden. Oído no cobra comisión ni pasa la plata por el medio.",
   },
   {
     pregunta: "¿Qué pasa si no viene?",

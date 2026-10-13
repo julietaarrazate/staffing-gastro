@@ -9,8 +9,8 @@ import { useStoryShift } from "./useStoryShift";
 
 // backend/app/modules/shift/application/services.py (aviso a los cercanos)
 const PUSH_TURNO = {
-  title: "Turno de Mozo/a cerca tuyo",
-  body: "Tu bar está buscando Mozo/a. Entrá y postulate antes de que lo tomen.",
+  title: "Turno de mozo/a cerca tuyo",
+  body: "Tu bar está buscando mozo/a. Entrá y postulate antes de que lo tomen.",
 };
 
 /**
@@ -26,7 +26,7 @@ const PUNTOS = [
   "Ves cuánto paga, a qué hora y a qué distancia antes de postularte",
   "Te paga directo el local. Oído no te cobra nada",
   "Tu reputación se arma con turnos reales y te ayuda a que te elijan",
-  "Tu ubicación, sólo cuando avisás que vas en camino",
+  "Tu ubicación, solo cuando avisás que vas en camino",
 ];
 
 const PASOS = ["Creá tu perfil", "Verificá tu identidad con DNI y selfie", "Activá los avisos para que te lleguen los turnos"];

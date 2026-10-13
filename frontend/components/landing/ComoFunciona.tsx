@@ -94,7 +94,7 @@ export default function ComoFunciona() {
             data-cta="oido"
             className="mt-9 inline-flex h-14 items-center justify-center rounded-[var(--radius-btn)] bg-night px-8 text-lg font-semibold text-white transition duration-200 active:scale-[0.96] hover:brightness-150"
           >
-            Publicar un turno gratis
+            Publicar mi primer turno gratis
           </Link>
         </Reveal>
       </section>

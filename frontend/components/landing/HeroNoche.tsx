@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import RelojDelTurno from "./RelojDelTurno";
 import { ToastLine } from "./replicas";
@@ -24,6 +24,7 @@ const FASES = [600, 2700, 4700, 5900, 6600, 7400] as const; // ms en que entra c
 
 export default function HeroNoche() {
   const [fase, setFase] = useState<number | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -31,8 +32,33 @@ export default function HeroNoche() {
       return;
     }
     setFase(0);
-    const timers = FASES.map((ms, i) => setTimeout(() => setFase(i + 1), ms));
-    return () => timers.forEach(clearTimeout);
+    // Arranca cuando la escena se ve casi entera: en el celular queda debajo
+    // del inicio y, si arrancaba al cargar, se veía por la mitad o ya
+    // terminada (Julieta, 2026-10-13).
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    const arrancar = () => {
+      if (timers.length) return;
+      timers = FASES.map((ms, i) => setTimeout(() => setFase(i + 1), ms));
+    };
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      arrancar();
+      return () => timers.forEach(clearTimeout);
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          arrancar();
+          io.disconnect();
+        }
+      },
+      { threshold: 0.75 }
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   // Antes de montar (servidor): el final. `data-fase` sólo aparece montado.
@@ -41,6 +67,7 @@ export default function HeroNoche() {
 
   return (
     <div
+      ref={ref}
       data-hero-noche=""
       data-fase={fase ?? undefined}
       aria-hidden
