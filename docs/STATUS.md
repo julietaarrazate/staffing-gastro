@@ -80,6 +80,16 @@ Revisado contra el código y los PRs el 2026-10-03.
    así que es global; falta confirmar qué header de IP es confiable en
    Render antes de tocarlo, ver el historial de autenticación); después, los
    de dominio y los menores.
+9. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
+   beta comercial (Vercel Hobby no permite uso comercial; ADR-0017,
+   propuesto). Etapa 1, prueba de compatibilidad: hecha, anda (138/138 E2E
+   contra el Worker local). Siguen: 2) auditoría de seguridad del frontend
+   publicado, 3) endurecimiento con Cloudflare (WAF, rate limit, Turnstile,
+   backend detrás de Cloudflare), 4) publicación de prueba en `*.workers.dev`
+   (necesita la cuenta de Cloudflare de Julieta), 5) cambio de DNS sólo con
+   su "sí". Detalle en
+   [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)
+   y [`reference/DEPLOY.md`](./reference/DEPLOY.md).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).

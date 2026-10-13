@@ -46,7 +46,8 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   siempre va desplazado — `fuzz_point`, TECH_DEBT.md S4) ·
   0015 turno "no cubierto" (estado nuevo para un turno asignado que nadie
   confirma, o publicado que nadie toma, cuyo horario ya pasó — sin impacto
-  de reputación, ventana de gracia según `urgent`).
+  de reputación, ventana de gracia según `urgent`) · 0016 bloqueo optimista
+  del turno · 0017 frontend en Cloudflare Workers con OpenNext (propuesto).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
