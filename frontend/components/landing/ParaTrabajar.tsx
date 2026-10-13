@@ -29,7 +29,7 @@ const PUNTOS = [
   "Tu ubicación, solo cuando avisás que vas en camino",
 ];
 
-const PASOS = ["Creá tu perfil", "Verificá tu identidad con DNI y selfie", "Activá los avisos para que te lleguen los turnos"];
+const PASOS = ["Creá tu perfil", "Verificá tu identidad", "Activá los avisos para que te lleguen los turnos"];
 
 export default function ParaTrabajar() {
   const shift = useStoryShift("publicado");
@@ -38,7 +38,7 @@ export default function ParaTrabajar() {
       id="trabajar"
       aria-labelledby="trabajar-titulo"
       data-tone="paper"
-      className="scroll-mt-[var(--lht)] bg-paper px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:py-28"
+      className="scroll-mt-[var(--lht)] bg-paper px-4 py-14 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:py-20"
     >
       <div className="lg:col-span-7">
         <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-primary-text">Para trabajar</p>

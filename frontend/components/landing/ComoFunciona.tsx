@@ -12,6 +12,7 @@ import RelojDelTurno from "./RelojDelTurno";
 import { DescribeBox, PricePin, StreetGrid, ToastLine, WorkerPin } from "./replicas";
 import Reveal from "./Reveal";
 import { useStoryShift } from "./useStoryShift";
+import { useEnhanced } from "./story/useStage";
 
 /**
  * Cómo funciona, en tres pasos con su título (`h3`) fijo y una imagen quieta
@@ -22,21 +23,28 @@ import { useStoryShift } from "./useStoryShift";
  */
 export default function ComoFunciona() {
   const shift = useStoryShift("publicado");
+  // Con la noche animada, el título y el ticket "sin cubrir" ya quedaron en
+  // pantalla al final de esa escena (story/ActoNoche, final "ticket"): acá el
+  // título queda para lectores de pantalla y la lista arranca enseguida.
+  const enhanced = useEnhanced();
   return (
     <>
       <section
         id="como-funciona"
         aria-labelledby="como-funciona-titulo"
         data-tone="light"
-        className="scroll-mt-[var(--lht)] px-4 py-20 sm:px-6 lg:px-12 lg:py-28"
+        className="scroll-mt-[var(--lht)] px-4 pb-14 pt-6 sm:px-6 lg:px-12 lg:pb-20 lg:pt-10"
       >
         <h2
           id="como-funciona-titulo"
-          className="font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]"
+          className={cn(
+            "font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]",
+            enhanced && "sr-only"
+          )}
         >
           Así se cubre un turno
         </h2>
-        <ol className="mt-16 flex flex-col gap-24 lg:mt-24 lg:gap-32">
+        <ol className={cn("flex flex-col gap-16 lg:gap-24", enhanced ? "mt-4" : "mt-12 lg:mt-16")}>
           <Paso
             n={1}
             titulo="Pedí lo que necesitás"
@@ -57,6 +65,11 @@ export default function ComoFunciona() {
             alt="Ves a cada postulante con su puntaje, su puntualidad y su distancia; la asignás y te confirma."
           >
             <div className="mx-auto flex max-w-[400px] flex-col gap-2.5">
+              {/* El ticket termina acá: de "3 postulantes" a "cubierto". */}
+              <div className="relative mb-1 h-[2.125rem]">
+                <RelojDelTurno at="postulantes" className="anim-out absolute left-0 top-0" style={{ ["--d" as string]: "0s" }} />
+                <RelojDelTurno at="cubierto" className="anim-pop" style={{ ["--d" as string]: "2.9s" }} />
+              </div>
               <div className="anim-rise" style={{ ["--d" as string]: "250ms" }}>
                 <CandidateCard candidate={CANDIDATES[0]} onAssign={() => {}} recommended preview />
               </div>
@@ -68,7 +81,7 @@ export default function ComoFunciona() {
                   <CandidateRow candidateIndex={2} />
                 </div>
               </div>
-              <div className="anim-pop mt-2 flex justify-center" style={{ ["--d" as string]: "1.5s" }}>
+              <div className="anim-pop mt-2 flex justify-center" style={{ ["--d" as string]: "3.1s" }}>
                 <ToastLine>Lucía confirmó · 20:54</ToastLine>
               </div>
             </div>
@@ -79,15 +92,20 @@ export default function ComoFunciona() {
       <section
         aria-labelledby="oido-titulo"
         data-tone="amber"
-        className="flex flex-col items-center bg-primary px-4 py-20 text-center sm:px-6 lg:py-28"
+        className="flex flex-col items-center bg-primary px-4 py-14 text-center sm:px-6 lg:py-20"
       >
         <Reveal className="flex flex-col items-center">
           <RelojDelTurno at="cubierto" />
           <h2 id="oido-titulo" className="anim-shout mt-8 font-display text-shout font-bold tracking-[-0.02em] text-ink">
             ¡Oído!
           </h2>
-          <p className="mt-5 max-w-[30ch] text-xl font-medium text-ink lg:text-2xl">
-            Nuestro objetivo es cubrir cada turno en menos de 10 minutos
+          {/* El nombre, explicado una sola vez y en el momento justo: cuando
+              alguien se hizo cargo del turno. */}
+          <p className="mt-5 max-w-[32ch] text-lg text-ink/80 lg:text-xl">
+            En la cocina, “¡oído!” quiere decir “escuché, me encargo”.
+          </p>
+          <p className="mt-2 max-w-[30ch] text-xl font-medium text-ink lg:text-2xl">
+            Eso hacemos con tu turno: buscamos cubrirlo en menos de 10 minutos
           </p>
           <Link
             href="/register?rol=comercio"
@@ -129,9 +147,9 @@ function Paso({ n, titulo, alt, children }: { n: number; titulo: string; alt: st
       </Reveal>
       {/* Imagen del producto: piezas reales dentro de `inert` (no se pueden
           tocar ni enfocar sus links) y `aria-hidden` (la describe `alt`). */}
-      {/* Arranca cuando la imagen ya está bien en pantalla (un tercio
-          adentro): si no, el mapa corría mientras se miraba el paso 1. */}
-      <Reveal className="lg:col-span-7" delay={150} margen="0px 0px -33% 0px">
+      {/* Arranca cuando la imagen ya entró un quinto en pantalla: antes
+          (un tercio) quedaba un hueco en blanco abajo de cada título. */}
+      <Reveal className="lg:col-span-7" delay={150} margen="0px 0px -20% 0px">
         <div inert aria-hidden className="no-select">
           {children}
         </div>

@@ -30,7 +30,7 @@ export default function Confianza() {
     <section
       aria-labelledby="confianza-titulo"
       data-tone="light"
-      className="px-4 py-20 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:py-28"
+      className="px-4 py-14 sm:px-6 lg:grid lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:py-20"
     >
       <div className="lg:col-span-6">
         <h2

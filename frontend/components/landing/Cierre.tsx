@@ -7,7 +7,7 @@ export default function Cierre() {
       id="cierre"
       aria-labelledby="cierre-titulo"
       data-tone="night"
-      className="bg-night px-4 pb-6 pt-20 text-white sm:px-6 lg:px-12 lg:pt-28"
+      className="bg-night px-4 pb-6 pt-14 text-white sm:px-6 lg:px-12 lg:pt-20"
     >
       <h2
         id="cierre-titulo"

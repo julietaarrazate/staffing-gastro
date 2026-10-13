@@ -285,6 +285,26 @@ la landing corta). Se acepta mientras la historia sea material para redes.
   dirías"); paso 2 "Buscamos quién lo cubra, cerca tuyo" (antes "Le llega a
   quien está cerca").
 
+## Novena vuelta (2026-10-13): la tercera versión, un turno de punta a punta
+
+- **El ticket como hilo:** la noche se cierra en "Así se cubre un turno" con
+  el ticket "20:46 · sin cubrir" abajo a la izquierda (adentro de la escena,
+  así no queda la pantalla vacía al terminar); el paso 2 lo lleva a "Avisado
+  a 10" → "3 postulantes"; el paso 3 lo pasa de "3 postulantes" a "20:54 ·
+  cubierto" justo antes de que Lucía confirme. Con la noche animada, el h2 de
+  ComoFunciona queda sólo para lectores de pantalla (el título visible está
+  en la escena); sin animación, se ve como siempre.
+- **"¡Oído!" explica el nombre:** "En la cocina, '¡oído!' quiere decir
+  'escuché, me encargo'. Eso hacemos con tu turno: buscamos cubrirlo en menos
+  de 10 minutos."
+- **Sin "DNI y selfie" a la vista:** el paso del trabajador dice "Verificá tu
+  identidad" y la pregunta frecuente, "Verificamos la identidad de cada
+  trabajador y los datos fiscales de cada comercio".
+- **Sin huecos al bajar:** márgenes de sección 56/80 px (antes 80/112), pasos
+  más juntos, las imágenes de los pasos arrancan con un quinto adentro de la
+  pantalla (antes un tercio, que dejaba un blanco bajo cada título).
+  Revisado bajando de a un cuarto de pantalla en 412×870 y 1280×800.
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
 - La pregunta legal (monotributo, quién es el empleador): no se publica

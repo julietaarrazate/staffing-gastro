@@ -66,7 +66,7 @@ export default function Precios() {
       id="precios"
       aria-labelledby="precios-titulo"
       data-tone="light"
-      className="scroll-mt-[var(--lht)] px-4 py-20 sm:px-6 lg:px-12 lg:py-28"
+      className="scroll-mt-[var(--lht)] px-4 py-14 sm:px-6 lg:px-12 lg:py-20"
     >
       <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
         <div>

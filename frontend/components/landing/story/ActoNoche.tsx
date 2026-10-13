@@ -220,7 +220,7 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
     const c = easeInOut(seg(p, T.closeFrom, T.closeTo));
     const from = bubbleCenter(b, 0);
     const mid = bubbleCenter(b, 1);
-    const to = final === "ticket" ? mid : relojCenter(b);
+    const to = final === "ticket" ? ticketCenter(b) : relojCenter(b);
     const grown = 1 + 0.12 * t;
     if (c > 0) {
       return {
@@ -333,12 +333,25 @@ export function ActoNoche({ copy, final = "reloj" }: { copy?: ReactNode; final?:
           </motion.div>
         </motion.div>
         {final === "ticket" && (
-          <motion.div
-            style={{ opacity: ticketOpacity, scale: ticketScale, top: box.current.h * 0.47 }}
-            className="absolute inset-x-0 flex -translate-y-1/2 justify-center"
-          >
-            <RelojDelTurnoPieza at="sinCubrir" />
-          </motion.div>
+          <>
+            {/* Al cerrarse la noche queda el título de la sección siguiente
+                con el ticket abajo: la escena termina contando qué viene, en
+                vez de dejar la pantalla vacía. El h2 de verdad está en
+                ComoFunciona (oculto a la vista cuando corre esta escena). */}
+            <motion.p
+              aria-hidden
+              style={{ opacity: ticketOpacity, bottom: box.current.h - ticketCenter(box.current).y + 40 }}
+              className="absolute inset-x-0 px-4 font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance] sm:px-6 lg:px-12"
+            >
+              Así se cubre un turno
+            </motion.p>
+            <motion.div
+              style={{ opacity: ticketOpacity, scale: ticketScale, top: ticketCenter(box.current).y }}
+              className="absolute left-4 origin-left -translate-y-1/2 sm:left-6 lg:left-12"
+            >
+              <RelojDelTurnoPieza at="sinCubrir" />
+            </motion.div>
+          </>
         )}
       </div>
     </Stage>
@@ -360,6 +373,14 @@ function relojCenter(b: Box) {
   const left = b.desktop ? 48 : b.w >= 640 ? 24 : 16;
   const width = b.w >= 640 ? 270 : 196;
   return { x: left + width / 2, y: 20 };
+}
+
+/** Dónde queda el ticket en la landing corta: abajo a la izquierda, debajo
+ *  de "Así se cubre un turno", para que al soltarse la escena le siga
+ *  enseguida el paso 1 (en el medio dejaba media pantalla en blanco). */
+function ticketCenter(b: Box) {
+  const left = b.w >= 1024 ? 48 : b.w >= 640 ? 24 : 16;
+  return { x: left + 110, y: b.h - 48 };
 }
 
 function easeInOut(t: number) {
