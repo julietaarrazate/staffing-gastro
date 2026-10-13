@@ -14,6 +14,7 @@ entrada. Por eso lo que se fija acá no es el diseño (que va a cambiar) sino
 los invariantes que hacen que un mail sea de Oído y no de cualquiera.
 """
 
+import re
 from datetime import timedelta
 
 import pytest
@@ -76,7 +77,7 @@ def test_todo_mail_lleva_la_marca_y_el_link_pedido(nombre: str):
     isotipo, el pie con la marca, y el link que el emisor pidió mandar."""
     html = _PLANTILLAS[nombre]()
     assert _AMBAR in html, f"{nombre} no lleva el ámbar de marca en ningún lado"
-    assert "OÍDO" in html, f"{nombre} no lleva el pie de marca"
+    assert ">oído</strong>" in html, f"{nombre} no lleva el pie de marca (el wordmark)"
     assert _LINK in html, f"{nombre} perdió el link que le pasaron"
 
 
@@ -163,3 +164,71 @@ def test_la_bienvenida_no_pide_lo_que_ya_se_cargo_en_el_onboarding(nombre: str):
         assert ya_hecho not in html
     # "cadete" no es un rubro de la app (ver WorkerSkill).
     assert "cadete" not in html
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_ningun_titulo_termina_en_punto(nombre: str):
+    """Mismo criterio que la landing (Julieta, 2026-10-12): los títulos van
+    sin punto final."""
+    html = _PLANTILLAS[nombre]()
+    titulo = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.S).group(1)
+    for renglon in titulo.split("<br>"):
+        assert not renglon.strip().endswith("."), renglon
+
+
+@pytest.mark.parametrize("nombre", ["bienvenida_trabajador", "bienvenida_comercio"])
+def test_la_bienvenida_explica_como_bajar_la_app(nombre: str):
+    """En iPhone los avisos sólo llegan con Oído en la pantalla de inicio:
+    la bienvenida dice cómo hacerlo desde el navegador de cada celular."""
+    html = _PLANTILLAS[nombre]()
+    assert "Chrome" in html and "Instalar app" in html
+    assert "Safari" in html and "Agregar a inicio" in html
+
+
+def test_el_boton_ambar_lleva_tinta_y_no_blanco():
+    """Blanco sobre el ámbar da 3.19: no pasa AA."""
+    html = render_welcome_worker_email_html("Ana", _LINK)
+    boton = re.search(r'<a href="' + re.escape(_LINK) + r'" style="([^"]*)"', html).group(1)
+    assert "color:#ffffff" not in boton
+
+
+# La paleta anterior (crema, manteca, tinta cálida): desde el 2026-10-12 los
+# mails usan la celeste v6, la misma de la app.
+_PALETA_VIEJA = ("#fff8f0", "#f1e7a0", "#fbf3c9", "#fbf2e6", "#1f1f1c", "#8a8378", "#ebe2d4", "#b45309")
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_ningun_mail_usa_la_paleta_crema_anterior(nombre: str):
+    html = _PLANTILLAS[nombre]().lower()
+    for color in _PALETA_VIEJA:
+        assert color not in html, color
+
+
+# El petróleo de la verificación y los encabezados oscuros (noche, petróleo):
+# desde el 2026-10-13 los mails usan el encabezado claro con `bg-glow`, como
+# la tarjeta destacada de planes (Julieta: "veo un verde que ya no tiene que
+# ver con la app").
+_VERDES_PETROLEO = ("#1e4a47", "#bfe0da", "#e8f1f0")
+_FONDOS_OSCUROS = ("#141118", "#1e4a47", "#111111")
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_ningun_mail_usa_petroleo_ni_encabezado_oscuro(nombre: str):
+    html = _PLANTILLAS[nombre]().lower()
+    for verde in _VERDES_PETROLEO:
+        assert verde not in html, f"{nombre} todavía usa el petróleo {verde}"
+    # La celda del encabezado es la que tiene las esquinas de arriba redondas.
+    encabezado = re.search(r'<td style="([^"]*border-radius:24px 24px 0 0[^"]*)"', html).group(1)
+    for oscuro in _FONDOS_OSCUROS:
+        assert f"background-color:{oscuro}" not in encabezado, f"{nombre}: encabezado {oscuro}"
+    titulo = re.search(r"<h1 style=\"([^\"]*)\"", html).group(1)
+    assert "color:#ffffff" not in titulo
+
+
+@pytest.mark.parametrize("nombre", sorted(_PLANTILLAS))
+def test_todo_fondo_con_degrade_tiene_color_de_respaldo(nombre: str):
+    """Outlook desktop y algunos webmails ignoran `background-image`: sin
+    `background-color` al lado, el fondo queda transparente."""
+    html = _PLANTILLAS[nombre]()
+    for estilo in re.findall(r'style="([^"]*background-image[^"]*)"', html):
+        assert "background-color:" in estilo, estilo
