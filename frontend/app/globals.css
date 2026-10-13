@@ -943,9 +943,9 @@ textarea,
 
 
 /* ──────────────────────────────────────────────────────────────────────────
- * Landing: la historia de un turno (components/landing/story/, 2026-10-06).
- * Sólo lo que tiene que correr sin hidratar (CSS puro) o que no se puede
- * expresar con utilidades. Las escenas animadas usan motion/react.
+ * Landing (components/landing/; corta desde el 2026-10-12, antes la historia
+ * de un turno fijada al scroll). Sólo lo que tiene que correr sin hidratar
+ * (CSS puro) o que no se puede expresar con utilidades.
  * ────────────────────────────────────────────────────────────────────────── */
 
 /* La landing no tiene BottomNav (es para visitantes sin sesión), así que el
@@ -955,18 +955,12 @@ body:has([data-landing]) main {
   padding-bottom: 0;
 }
 
-/* El ritmo de toda la historia sale de un número: cuánto scroll mide cada
-   estado de una escena fijada (ver components/landing/story/Stage.tsx). Si la
-   recorrida se siente larga, se baja éste y no se cortan escenas. `--lh` es
-   el alto del encabezado propio de la landing y `--lht` le suma el notch.
-   2026-10-08 (Julieta: "baja la velocidad de scroll un 25%"): 70→93.333svh y
-   85→113.333svh, con el asiento de Stage en 6.667svh, así el recorrido fijado
-   de cada escena es exactamente 4/3 del anterior en celular y en escritorio. */
+/* `--lh` es el alto del encabezado propio de la landing y `--lht` le suma
+   el notch. */
 [data-landing] {
-  --svh-estado: 93.333svh;
   --lh: 3.5rem;
   --lht: calc(var(--lh) + env(safe-area-inset-top));
-  /* Colores propios de la historia que no son tokens de la app: el papel del
+  /* Colores propios de la landing que no son tokens de la app: el papel del
      mapa y la burbuja del chat de Martín. La paleta los redeclara. */
   --mapa: #ece6da;
   --burbuja: #26211b;
@@ -981,13 +975,12 @@ body:has([data-landing]) main {
 }
 @media (min-width: 1024px) {
   [data-landing] {
-    --svh-estado: 113.333svh;
     --lh: 4rem;
   }
 }
 
 /* La burbuja de Martín aparece sola al abrir la página, antes de que React
-   hidrate: por eso es CSS y no motion. */
+   hidrate: por eso es CSS. */
 @keyframes storyBubbleIn {
   0% {
     opacity: 0;
@@ -996,6 +989,232 @@ body:has([data-landing]) main {
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+/* Los dos puntos de la hora del reloj del turno laten mientras el turno
+   está sin cubrir; se quedan quietos cuando se cubre. */
+@keyframes storyColon {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.story-colon {
+  animation: storyColon 1.333s steps(2, jump-none) infinite;
+}
+
+/* Entrada de la landing corta (components/landing/Reveal.tsx): una sola
+   vez, lenta a propósito (Julieta, 2026-10-12: "las animaciones están muy
+   rápidas"). Sin JavaScript o con reducir movimiento, `data-reveal` no se
+   pone y el bloque está visible desde el principio. */
+.landing-reveal {
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.landing-reveal[data-reveal="pending"] {
+  opacity: 0;
+  transform: translateY(20px);
+}
+/* El hero (components/landing/HeroNoche.tsx): los pasos de la noche se
+   esconden antes de pintar si hay JavaScript (`landing-js`, script en
+   app/page.tsx) y los va mostrando el componente. Con "reducir movimiento"
+   no se esconde nada. */
+@media (prefers-reduced-motion: no-preference) {
+  .landing-js [data-hero-noche]:not([data-fase]) .hn-paso {
+    opacity: 0;
+  }
+}
+/* La sacudida de la burbuja cuando llega "Perdón, hoy no llego." */
+@keyframes landingSacudida {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20% {
+    translate: -6px 0;
+  }
+  40% {
+    translate: 6px 0;
+  }
+  60% {
+    translate: -4px 0;
+  }
+  80% {
+    translate: 4px 0;
+  }
+}
+.landing-sacudida {
+  animation: landingSacudida 0.45s ease-in-out 1;
+}
+/* La hora grande del hero cambia de 20:46 a 20:54: entra de abajo, como un
+   reloj de tablero. */
+@keyframes landingTic {
+  0% {
+    opacity: 0;
+    translate: 0 0.35em;
+  }
+  100% {
+    opacity: 1;
+    translate: 0;
+  }
+}
+.landing-tic {
+  animation: landingTic 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
+}
+
+/* Animaciones de las piezas DENTRO de un bloque que entra (`Reveal`): mientras
+   el bloque espera (`pending`) quedan en su estado inicial, y al entrar
+   (`shown`) corren una vez con el retraso de su `--d`. Sin JavaScript, con
+   "reducir movimiento" o si el bloque ya estaba en pantalla, ninguna de las
+   dos marcas está puesta y todo se ve quieto en su lugar. */
+@keyframes landingPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingRise {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingShout {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-4deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingBar {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: none;
+  }
+}
+[data-reveal="pending"] :is(.anim-pop, .anim-ring, .anim-rise, .anim-drop, .anim-shout) {
+  opacity: 0;
+}
+/* Sólo existe durante la animación (el reloj "Avisado a 10" del mapa):
+   quieto no se ve, porque el estado final es el que lo reemplaza. */
+.anim-out {
+  opacity: 0;
+}
+@keyframes landingInOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  12%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+[data-reveal="shown"] .anim-out {
+  animation: landingInOut 3.3s ease var(--d, 0s) both;
+}
+/* Las calles del mapa del paso 2 aparecen en un círculo desde el local. */
+@keyframes landingReveal {
+  0% {
+    clip-path: circle(0% at 50% 50%);
+  }
+  100% {
+    clip-path: circle(75% at 50% 50%);
+  }
+}
+[data-reveal="pending"] .anim-reveal {
+  clip-path: circle(0% at 50% 50%);
+}
+[data-reveal="shown"] .anim-reveal {
+  animation: landingReveal 1.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+[data-reveal="pending"] .anim-fill {
+  opacity: 0.15;
+}
+[data-reveal="pending"] .anim-bar {
+  transform: scaleX(0);
+}
+[data-reveal="shown"] .anim-pop {
+  animation: landingPop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+}
+[data-reveal="shown"] .anim-ring {
+  animation: landingRing 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+}
+[data-reveal="shown"] .anim-rise {
+  animation: landingRise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+}
+[data-reveal="shown"] .anim-drop {
+  animation: landingDrop 0.8s cubic-bezier(0.3, 1.4, 0.4, 1) var(--d, 0.6s) both;
+}
+[data-reveal="shown"] .anim-shout {
+  animation: landingShout 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.2s) both;
+}
+[data-reveal="shown"] .anim-fill {
+  transition: opacity 0.3s ease var(--d, 0s);
+}
+[data-reveal="shown"] .anim-bar {
+  animation: landingBar 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.3s) both;
+}
+
+/* ── La historia de un turno (/historia, components/landing/story/) ──
+   Guardada el 2026-10-12 para grabar reels e historias. Lo que sólo usa
+   ella; `storyBubbleIn` y `.story-colon` (más arriba) son compartidos. */
+[data-landing] {
+  --svh-estado: 93.333svh;
+}
+@media (min-width: 1024px) {
+  [data-landing] {
+    --svh-estado: 113.333svh;
   }
 }
 /* "escribiendo…": la única espera en bucle de la página (motion.md regla 3). */
@@ -1009,17 +1228,6 @@ body:has([data-landing]) main {
   30% {
     opacity: 1;
     transform: translateY(-2px);
-  }
-}
-/* Los dos puntos de la hora del reloj del turno laten mientras el turno
-   está sin cubrir; se quedan quietos cuando se cubre. */
-@keyframes storyColon {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.2;
   }
 }
 /* Onda que sale de un elemento (el pin publicado, la burbuja "¡Oído!"). */
@@ -1041,9 +1249,6 @@ body:has([data-landing]) main {
 }
 .story-typing span:nth-child(3) {
   animation-delay: 0.4s;
-}
-.story-colon {
-  animation: storyColon 1.333s steps(2, jump-none) infinite;
 }
 /* El cursor del cuadro "Describilo": titila mientras espera que escribas. */
 .story-caret {
