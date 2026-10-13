@@ -164,7 +164,8 @@ test("cerrar sesión revoca el refresh token en el backend", async ({ page }) =>
   await page.goto("/chats");
   await page.getByRole("button", { name: /^Salir/ }).click();
 
-  await expect(page).toHaveURL(/\/login$/);
+  // Vuelve a la landing (2026-10-13), que tiene "Ingresar" en el encabezado.
+  await expect(page).toHaveURL(/\/$/);
   await expect.poll(() => logoutCalled).toBe(true);
 });
 
