@@ -247,6 +247,23 @@ la landing corta). Se acepta mientras la historia sea material para redes.
   completa (IntersectionObserver al 75 %). En escritorio no cambia: está al
   lado del título y arranca enseguida.
 
+## Séptima vuelta (2026-10-13): título que convierte y la noche original
+
+- **Título:** "¿Faltó alguien de tu equipo? Conseguí un reemplazo en
+  minutos". "Reemplazo" nombra lo que el comercio necesita en ese momento
+  ("turno" es palabra de la app); "conseguí" es lo que Oído hace por él.
+- **Bajada nueva, que no repite el título:** "Mozos, bartenders y cocina con
+  identidad verificada, cerca de tu local." Dice qué es Oído y a quién te
+  consigue, para entenderlo en la primera pantalla.
+- **Botones en el celular:** centrados, del mismo ancho y más bajos (48 px);
+  lado a lado desde 400 px, uno abajo del otro en pantallas angostas, con
+  tope de ancho en tablet. En computadora siguen a la izquierda.
+- **La noche, como la original:** "Viernes · salón lleno" y la hora grande
+  20:46; Martín escribiendo un buen rato (~3 s) antes de "Perdón, hoy no
+  llego."; la narración "Arrancás a las 21. Y te escribe el mozo."; después
+  sin cubrir → cubierto, la hora grande pasa a 20:54 y Lucía confirma. Unos
+  11 s en total.
+
 **Queda abierto (a confirmar por Julieta antes de publicar):**
 
 - La pregunta legal (monotributo, quién es el empleador): no se publica

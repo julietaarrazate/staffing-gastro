@@ -43,7 +43,7 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
   await sinSesion(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /¿Faltó alguien de tu equipo\?\s*Cubrí el turno en minutos/
+    /¿Faltó alguien de tu equipo\?\s*Conseguí un reemplazo en minutos/
   );
   const hero = page.locator("#hero-ctas");
   await expect(hero.getByRole("link", { name: "Necesito personal" })).toHaveAttribute(

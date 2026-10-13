@@ -6,21 +6,24 @@ import RelojDelTurno from "./RelojDelTurno";
 import { ToastLine } from "./replicas";
 
 /**
- * La ventana a la noche del hero, animada como en la historia original
- * (Julieta, 2026-10-13: "la parte de Perdón, hoy no llego quedaba bien como
- * estaba"), pero por tiempo y no por scroll:
+ * La noche del hero, contada como en la historia original (Julieta,
+ * 2026-10-13: "estaba mejor la original, donde simula escribiendo el mensaje
+ * el mozo, se entendía más"), pero por tiempo y no por scroll:
  *
- * 1. Martín está escribiendo (los tres puntitos).
+ * 1. Viernes, salón lleno, 20:46 en grande. Martín está escribiendo
+ *    (los tres puntitos, un rato largo: es la espera que pone nervioso).
  * 2. Llega "Perdón, hoy no llego." y la burbuja se sacude.
- * 3. El mensaje se condensa en el reloj del turno: 20:46 · sin cubrir.
- * 4. La línea baja hasta 20:54 · cubierto y Lucía confirma.
+ * 3. La narración: "Arrancás a las 21. Y te escribe el mozo."
+ * 4. El reloj del turno: 20:46 · sin cubrir.
+ * 5. La línea baja hasta 20:54 · cubierto; la hora grande pasa a 20:54.
+ * 6. Lucía confirma.
  *
- * Lento a propósito, unos 8 s en total, para que se lea. El HTML del servidor
- * trae el final; el script `landing-js` (app/page.tsx) esconde los pasos antes
- * de pintar para que no titile, y sin JavaScript o con "reducir movimiento"
- * se ve todo quieto.
+ * Lento a propósito, unos 11 s, para que se lea. Arranca cuando la escena se
+ * ve casi entera. El HTML del servidor trae el final; el script `landing-js`
+ * (app/page.tsx) esconde los pasos antes de pintar para que no titile, y sin
+ * JavaScript o con "reducir movimiento" se ve todo quieto.
  */
-const FASES = [600, 2700, 4700, 5900, 6600, 7400] as const; // ms en que entra cada fase 1…6
+const FASES = [2900, 4500, 6900, 8300, 9100, 10100] as const; // ms en que entra cada fase 1…6
 
 export default function HeroNoche() {
   const [fase, setFase] = useState<number | null>(null);
@@ -71,14 +74,21 @@ export default function HeroNoche() {
       data-hero-noche=""
       data-fase={fase ?? undefined}
       aria-hidden
-      className="flex w-full max-w-[340px] flex-col items-start gap-5 lg:mx-auto"
+      className="flex w-full max-w-[360px] flex-col items-start gap-5 lg:mx-auto"
     >
-      <p className="font-mono text-caption uppercase tracking-[0.12em] text-manteca">Viernes · 20:46</p>
+      <div>
+        <p className="font-mono text-caption uppercase tracking-[0.14em] text-manteca">Viernes · salón lleno</p>
+        {/* La hora grande: 20:46 hasta que el turno queda cubierto. */}
+        <p className="mt-1 font-display text-poster font-normal tabular-nums tracking-[-0.015em] text-white">
+          <span key={f >= 5 ? "54" : "46"} className={cn("inline-block", fase !== null && f === 5 && "landing-tic")}>
+            {f >= 5 ? "20:54" : "20:46"}
+          </span>
+        </p>
+      </div>
 
       <div
         className={cn(
-          "hn-paso w-full rounded-[22px_22px_22px_6px] bg-[var(--burbuja)] px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)] transition duration-700 ease-[cubic-bezier(.2,.8,.2,1)]",
-          ver(1),
+          "w-full rounded-[22px_22px_22px_6px] bg-[var(--burbuja)] px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)] transition duration-700 ease-[cubic-bezier(.2,.8,.2,1)]",
           f === 2 && "landing-sacudida"
         )}
       >
@@ -95,18 +105,26 @@ export default function HeroNoche() {
         <p className="mt-1 text-right font-mono text-metadata tracking-[0.05em] text-[var(--burbuja-tenue)]">20:46</p>
       </div>
 
-      {/* El mensaje se condensa en el reloj: sale chico desde la burbuja. */}
+      <p
+        className={cn(
+          "hn-paso max-w-[18ch] font-display text-h1 font-medium leading-tight tracking-[-0.012em] text-white [text-wrap:balance] transition duration-700 ease-[cubic-bezier(.2,.8,.2,1)]",
+          ver(3)
+        )}
+      >
+        Arrancás a las 21. Y te escribe el mozo.
+      </p>
+
       <RelojDelTurno
         at="sinCubrir"
         className={cn(
           "hn-paso origin-top-left ring-1 ring-white/12 transition duration-700 ease-[cubic-bezier(.2,.8,.2,1)]",
-          f >= 3 ? "opacity-100 translate-y-0 scale-100" : "-translate-y-6 scale-50 opacity-0"
+          ver(4)
         )}
       />
       <span
         className={cn(
-          "hn-paso ml-5 h-8 w-px origin-top border-l-2 border-dotted border-white/30 transition duration-700",
-          f >= 4 ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0"
+          "hn-paso -my-2 ml-5 h-6 w-px origin-top border-l-2 border-dotted border-white/30 transition duration-700",
+          f >= 5 ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0"
         )}
       />
       <RelojDelTurno

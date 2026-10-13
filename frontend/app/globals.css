@@ -1050,6 +1050,21 @@ body:has([data-landing]) main {
 .landing-sacudida {
   animation: landingSacudida 0.45s ease-in-out 1;
 }
+/* La hora grande del hero cambia de 20:46 a 20:54: entra de abajo, como un
+   reloj de tablero. */
+@keyframes landingTic {
+  0% {
+    opacity: 0;
+    translate: 0 0.35em;
+  }
+  100% {
+    opacity: 1;
+    translate: 0;
+  }
+}
+.landing-tic {
+  animation: landingTic 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
+}
 
 /* Animaciones de las piezas DENTRO de un bloque que entra (`Reveal`): mientras
    el bloque espera (`pending`) quedan en su estado inicial, y al entrar
