@@ -11,6 +11,7 @@ import { toWorkerProfileInput, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
+import { normalizeUserLink } from "@/lib/safe-url";
 
 /**
  * Encabezado de sección con ícono de acento (mismo patrón que los
@@ -126,7 +127,7 @@ export default function WorkerProfileForm() {
       years_experience: yearsExperience,
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
-      cv_url: cvUrl.trim() || null,
+      cv_url: normalizeUserLink(cvUrl),
       cv_filename: cvUrl.trim() ? cvFilename : null,
       latitude,
       longitude,

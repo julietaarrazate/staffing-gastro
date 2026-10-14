@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.url import HttpsUrl
 from app.modules.company.domain.value_objects import CompanyCategory
 
 
@@ -12,10 +13,10 @@ class CompanyProfileInput(BaseModel):
     """Payload de alta/edición del perfil del comercio (sólo campos editables)."""
 
     name: str = Field(min_length=1, max_length=255)
-    logo_url: str | None = Field(default=None, max_length=512)
+    logo_url: HttpsUrl | None = None
     # Opcional y "sólo si viene": omitirlo NO borra la foto (ver
     # `CompanyProfileData.cover_photo_url`); mandar null sí la saca.
-    cover_photo_url: str | None = Field(default=None, max_length=512)
+    cover_photo_url: HttpsUrl | None = None
     category: CompanyCategory | None = None
     description: str | None = Field(default=None, max_length=1000)
     address: str | None = Field(default=None, max_length=255)

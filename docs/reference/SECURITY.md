@@ -78,6 +78,14 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   `is_verified` en `User`); las cuentas de Google entran ya verificadas
   (`is_verified=true` desde el alta, ver
   [ACCESO_MODERNO.md](./ACCESO_MODERNO.md)).
+- **URLs que carga el usuario sólo `https://`** (auditoría del 2026-10-14):
+  fotos, logo, portada, CV y evidencias de verificación usan el tipo
+  `HttpsUrl` (`backend/app/core/url.py`), que rechaza `javascript:`, `data:`,
+  `http:` y texto suelto. El frontend además pasa por `safeHttpsUrl`
+  (`frontend/lib/safe-url.ts`) toda URL de usuario que pone en un `href`, para
+  cubrir lo guardado antes.
+- **CSP sin `vercel.live` en producción:** se agrega sólo cuando
+  `VERCEL_ENV=preview` (`frontend/next.config.ts`).
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 
