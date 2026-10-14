@@ -61,6 +61,42 @@ Config declarativa en `render.yaml` (raíz del repo).
   Para forzar un build: "Redeploy" en el panel.
 - API remota vía `NEXT_PUBLIC_API_URL` (sin `localhost` en config de producto).
 
+## Frontend en Cloudflare Workers (en prueba, 2026-10-13)
+
+Mudanza en curso: Vercel Hobby no permite uso comercial (Pro 20 USD/mes,
+Workers Paid 5 USD/mes). **Producción sigue en Vercel** hasta el "sí" de
+Julieta para cambiar el DNS. Etapas y resultados en
+[`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](../historial/2026-10-13-cloudflare-prueba-compatibilidad.md).
+
+- **Adaptador: OpenNext** (`@opennextjs/cloudflare`, fijado en 1.20.10).
+  Corre el runtime real de Next 16.4. Se descartó vinext: no compila Oído tal
+  como está (se traba con `sharp` en `app/og/oido.jpg/route.ts`) y reimplementa
+  Next sobre Vite, con más superficie de diferencias.
+- **Comandos** (en `frontend/`): `npm run cf:build` arma el Worker en
+  `.open-next/`; `npm run cf:preview` lo sirve local con wrangler en el puerto
+  8787; `npm run cf:deploy` publica (necesita la cuenta de Cloudflare). Los E2E
+  se corren contra el Worker levantándolo en el 3100 (`npx wrangler dev --port
+  3100`) antes de `npm run test:e2e`; Playwright reusa ese servidor.
+- **Config:** `frontend/wrangler.jsonc` (Worker `oido-frontend`,
+  `nodejs_compat`) y `frontend/open-next.config.ts` (caché de sólo lectura con
+  lo prerenderizado; Oído no usa ISR, así que no hace falta R2 ni KV).
+- **Trampa 1, parche de OpenNext** (`frontend/scripts/patch-opennext.mjs`, se aplica solo
+  en el `postinstall`; no se usa `patch-package` porque trae dependencias con
+  avisos "high" de `npm audit`): Next 16.4 lee un manifiesto nuevo,
+  `preview-props.json`, que OpenNext 1.20.10 no empaqueta; sin el parche
+  **todas** las páginas dan 500 en el Worker. Es el mismo tipo de bug que
+  OpenNext arregló en 1.17.3 para `prefetch-hints.json`. Al subir OpenNext,
+  probar sin el parche y borrarlo si ya no hace falta.
+- **Trampa 2, imágenes de vista previa:** `/og/oido.jpg` y `/twitter-image`
+  usan `sharp` y leen fuentes del disco, y nada de eso existe en Workers. Se
+  arman en el build (como siempre) y `frontend/scripts/cf-static-assets.mjs`
+  las copia a los assets estáticos, que Cloudflare sirve sin pasar por el
+  Worker. Ese script también escribe el `_headers` de los assets.
+- **`next/image`:** Oído no lo usa (las fotos vienen de Cloudinary ya
+  recortadas), así que no hace falta Cloudflare Images.
+- **Tamaño:** 3,5 MB comprimido; entra en el límite de 10 MB del plan pago
+  (el gratis es 3 MB: hace falta el plan pago, que es el previsto).
+
 ## Entornos
 
 - **development:** `DEBUG=true`, DB local, CORS a `localhost:3000` (default de
