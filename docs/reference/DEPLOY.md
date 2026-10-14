@@ -107,6 +107,14 @@ todo sigue igual que hoy. Se prende en este orden, porque cada paso necesita
 el anterior. Los valores secretos van sólo en los paneles, nunca acá ni en el
 chat.
 
+0. **Pasar el DNS a Cloudflare.** Ojo: el DNS de oido.com.ar **no** está
+   en Cloudflare sino en Vercel (nameservers `ns1/ns2.vercel-dns.com`,
+   verificado el 2026-10-14; la nota de que "ya usaba Cloudflare" era
+   errónea). Se agrega la zona en Cloudflare (plan Free), se copian **todos**
+   los registros en "DNS only" (web en Vercel, MX/SPF/DKIM de Google y los de
+   Resend en `resend._domainkey` y `send`) y recién después, con el "sí" de
+   Julieta, se cambian los nameservers en NIC Argentina. Sin un registro de
+   mail, se cortan los mails.
 1. **API con dominio propio y proxy.** En Render, custom domain
    `api.oido.com.ar` en el servicio del backend. En Cloudflare DNS, `CNAME api
    → staffya-backend.onrender.com` **con proxy** (nube naranja), y SSL/TLS en
