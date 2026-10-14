@@ -86,6 +86,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   cubrir lo guardado antes.
 - **CSP sin `vercel.live` en producción:** se agrega sólo cuando
   `VERCEL_ENV=preview` (`frontend/next.config.ts`).
+- **Backend detrás de Cloudflare y Turnstile** (código listo, apagado; ADR-0018):
+  con `EDGE_SHARED_SECRET`, lo que no viene por Cloudflare recibe 403 y el
+  límite de intentos usa la IP real (`app/core/edge.py`); con
+  `TURNSTILE_SECRET_KEY`, login y registro piden el token anti-robots
+  (`app/core/turnstile.py`). Cómo prenderlo: DEPLOY.md, "Etapa 3".
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 

@@ -8,6 +8,8 @@ import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 function LoginForm() {
   const { login, loginAsGuest } = useAuth();
@@ -19,6 +21,8 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   // Acceso de invitado para la beta: un PIN (que configura la operadora en el
   // código) habilita entrar sin registrarse — así prueban sólo los que Julieta
   // quiere, no cualquiera. Reemplaza el login demo abierto anterior (que además
@@ -41,6 +45,8 @@ function LoginForm() {
       await doLogin(email, password);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");
+      // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
+      setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -110,8 +116,14 @@ function LoginForm() {
               placeholder="Contraseña"
               required
             />
+            <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
             {error && <p className="text-sm text-danger-text">{error}</p>}
-            <Button type="submit" fullWidth loading={submitting}>
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              disabled={Boolean(TURNSTILE_SITE_KEY) && !turnstileToken}
+            >
               Ingresar
             </Button>
             <Link
