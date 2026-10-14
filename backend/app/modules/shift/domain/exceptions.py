@@ -13,6 +13,11 @@ class InvalidShiftTransitionError(ShiftError):
     """La transición de estado solicitada no es válida desde el estado actual."""
 
 
+class WorkerTooFarFromShiftError(ShiftError):
+    """La posición informada al marcar llegada/salida queda fuera del radio
+    permitido alrededor del local del turno."""
+
+
 class ShiftNotEditableError(ShiftError):
     """El turno no puede editarse en su estado actual."""
 

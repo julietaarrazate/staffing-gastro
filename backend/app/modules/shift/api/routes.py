@@ -47,6 +47,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotAssignedToWorkerError,
     ShiftNotEditableError,
     ShiftNotFoundError,
+    WorkerTooFarFromShiftError,
 )
 from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
@@ -652,7 +653,7 @@ async def check_in(
         )
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
-    except InvalidShiftTransitionError as exc:
+    except (InvalidShiftTransitionError, WorkerTooFarFromShiftError) as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
@@ -693,7 +694,7 @@ async def check_out(
         )
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
-    except InvalidShiftTransitionError as exc:
+    except (InvalidShiftTransitionError, WorkerTooFarFromShiftError) as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))

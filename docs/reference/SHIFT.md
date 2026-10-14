@@ -61,7 +61,10 @@ trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
   `last_no_show_worker_profile_id` en el propio turno como registro
   auditable, y notifica al trabajador (`shift_no_show`).
 - **EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT:** asistencia; check-in y
-  check-out **capturan geolocalización**. Una vez hecho el check-in, el
+  check-out **capturan geolocalización** y se rechazan (400, "Tenés que estar en
+  el local… (estás a X m)") si la posición queda a más de 300 m del local
+  (`CHECK_RADIUS_KM` en `domain/entities.py`; sin coordenadas en el turno no
+  se verifica). Una vez hecho el check-in, el
   trabajador ya se presentó — ya no aplica no-show ni cancelación; un
   abandono en este punto es un problema distinto, sigue explícitamente fuera
   de alcance (mismo criterio que ADR-0004/ADR-0007; detección **automática**
