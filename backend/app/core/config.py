@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     # --- Seguridad ---
     # Rate limiting en memoria de endpoints sensibles (login/registro).
     rate_limit_enabled: bool = True
+    # Backend detrás de Cloudflare (etapa 3 de la mudanza, 2026-10-14).
+    # Secreto que Cloudflare agrega a cada pedido en el header `X-Oido-Edge`
+    # (Transform Rule en api.oido.com.ar). Con valor, el backend rechaza lo
+    # que no venga por Cloudflare (salvo `/health`) y toma la IP real de
+    # `CF-Connecting-IP`. Vacío = apagado, como hoy. Ver `app/core/edge.py`.
+    edge_shared_secret: str = ""
+    # Clave secreta de Cloudflare Turnstile (anti-robots en login y
+    # registro). Vacía = no se pide. Ver `app/core/turnstile.py`.
+    turnstile_secret_key: str = ""
 
     # --- Observabilidad ---
     # DSN de Sentry (captura de errores). Vacío = Sentry desactivado; se

@@ -1,3 +1,5 @@
+import { turnstileHeaders } from "@/lib/turnstile";
+
 // El backend siempre es el servicio remoto en Render. NEXT_PUBLIC_API_URL
 // (inyectado en next.config.ts) permite sobrescribirlo si algún día hiciera
 // falta apuntar a otro entorno, pero por defecto no hay localhost.
@@ -126,6 +128,8 @@ async function request<T>(
         // intento = misma key), para que un doble-tap o un reintento de red
         // no dupliquen la acción del lado del backend.
         ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        // Turnstile (anti-robots) sólo en login y registro; ver lib/turnstile.ts.
+        ...turnstileHeaders(path),
         ...headers,
       },
     });

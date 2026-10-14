@@ -50,7 +50,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 |---|---|
 | `/` | Landing sin sesión: la landing corta (`components/landing/`, orden en `LandingCorta.tsx`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
 | `/historia` | La landing anterior, "la historia de un turno" (`components/landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Guardada para grabar reels; sin indexar, sin Navbar ni BottomNav |
-| `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register` |
+| `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register`; anti-robots en `TurnstileWidget` (`lib/turnstile.ts`, apagado sin clave) |
 | `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
 | `/profile` | Cómo te ven: vista, no formulario (#396) |
 | `/profile/edit` | Editar datos (`WorkerProfileForm` / `CompanyProfileForm`) |
@@ -88,6 +88,8 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | "Disponible ahora" (4 h) | `AVAILABLE_NOW_TTL` en `backend/app/modules/worker/domain/entities.py`, `frontend/lib/use-available-now.ts` |
 | Pin desplazado del trabajador | `fuzz_point` en `backend/app/core/geo.py` |
 | Fechas de negocio en hora argentina | `backend/app/core/tz.py` |
+| Backend sólo por Cloudflare + IP real | `backend/app/core/edge.py` (`EDGE_SHARED_SECRET`, `client_ip`) |
+| Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
 | Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `frontend/lib/push.ts` |

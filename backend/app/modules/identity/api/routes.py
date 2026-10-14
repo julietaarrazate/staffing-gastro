@@ -6,7 +6,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.core.config import settings
+from app.core.edge import client_ip
 from app.core.rate_limit import RateLimiter
+from app.core.turnstile import require_turnstile
 from app.modules.identity.api.dependencies import (
     get_current_user,
     get_identity_service,
@@ -84,8 +86,7 @@ _resend_verification_rate_limit = RateLimiter(
 
 
 def _client_ip(request: Request) -> str:
-    client = request.client
-    return client.host if client else "unknown"
+    return client_ip(request)
 
 
 # --- Refresh token como cookie httpOnly (TECH_DEBT.md S1) -----------------
@@ -141,7 +142,7 @@ def _terms_not_accepted() -> HTTPException:
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Registrar un nuevo usuario",
-    dependencies=[Depends(_register_rate_limit)],
+    dependencies=[Depends(_register_rate_limit), Depends(require_turnstile)],
 )
 async def register(payload: RegisterRequest, service: ServiceDep) -> User:
     if not payload.accepted_terms:
@@ -167,7 +168,7 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
     "/login",
     response_model=TokenResponse,
     summary="Iniciar sesión",
-    dependencies=[Depends(_login_rate_limit)],
+    dependencies=[Depends(_login_rate_limit), Depends(require_turnstile)],
 )
 async def login(
     payload: LoginRequest, service: ServiceDep, request: Request, response: Response

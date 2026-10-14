@@ -8,6 +8,8 @@ import { ApiError } from "@/lib/api";
 import Logo from "@/components/Logo";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 type Role = "worker" | "employer";
 
@@ -30,6 +32,8 @@ function RegisterForm() {
   const [role, setRole] = useState<Role>(() => roleFromQuery(searchParams.get("rol")) ?? "worker");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,6 +49,8 @@ function RegisterForm() {
       router.replace("/bienvenida");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
+      // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
+      setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -135,7 +141,13 @@ function RegisterForm() {
                 {error}
               </p>
             )}
-            <Button type="submit" fullWidth loading={submitting} disabled={!acceptedTerms}>
+            <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              disabled={!acceptedTerms || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
+            >
               Crear cuenta
             </Button>
           </form>

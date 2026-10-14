@@ -14,6 +14,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from app.core.config import settings
 from app.core.database import start_idle_connection_closer
 from app.core.idempotency import IdempotencyReplay
+from app.core.edge import EdgeGuardMiddleware
 from app.core.middleware import SecurityHeadersMiddleware
 from app.core.observability import RequestIdMiddleware, setup_logging, setup_sentry
 from app.modules.admin.api.routes import router as admin_router
@@ -106,6 +107,10 @@ app.add_middleware(RequestIdMiddleware)
 # Compresión gzip de respuestas > 1 KB (PRODUCTION_HARDENING.md): payloads
 # JSON de listados se benefician directo, sin tocar ningún endpoint.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Último en agregarse = el primero en correr: lo que no viene por Cloudflare
+# se corta antes de todo lo demás. Apagado sin `EDGE_SHARED_SECRET`.
+app.add_middleware(EdgeGuardMiddleware)
 
 
 # `api_route` con GET **y HEAD**: los monitores de uptime (UptimeRobot y la

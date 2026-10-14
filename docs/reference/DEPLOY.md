@@ -97,6 +97,52 @@ Julieta para cambiar el DNS. Etapas y resultados en
 - **Tamaño:** 3,5 MB comprimido; entra en el límite de 10 MB del plan pago
   (el gratis es 3 MB: hace falta el plan pago, que es el previsto).
 
+### Etapa 3: endurecimiento con Cloudflare (runbook)
+
+El código ya está (2026-10-14) y **viene apagado**: sin las variables de abajo,
+todo sigue igual que hoy. Se prende en este orden, porque cada paso necesita
+el anterior. Los valores secretos van sólo en los paneles, nunca acá ni en el
+chat.
+
+1. **API con dominio propio y proxy.** En Render, custom domain
+   `api.oido.com.ar` en el servicio del backend. En Cloudflare DNS, `CNAME api
+   → staffya-backend.onrender.com` **con proxy** (nube naranja), y SSL/TLS en
+   **Full (strict)**. Probar `https://api.oido.com.ar/health`.
+2. **Sólo por Cloudflare.** Generar un secreto largo (por ejemplo
+   `openssl rand -hex 32`). En Cloudflare, Rules → Transform Rules → Modify
+   Request Header, para `http.host eq "api.oido.com.ar"`: *Set static*
+   `X-Oido-Edge` = el secreto, y *Set dynamic* `X-Oido-Client-IP` = `ip.src`.
+   Recién después, en Render, `EDGE_SHARED_SECRET` = el mismo secreto. Desde
+   ahí `staffya-backend.onrender.com` responde 403 (salvo `/health`) y el
+   límite de intentos cuenta por persona y no por el proxy de Render.
+   **Trampa:** si se carga en Render antes que la regla, el backend rechaza
+   todo. Para volver atrás, vaciar la variable.
+3. **El frontend usa la API nueva:** `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`
+   en el build (Vercel y Cloudflare). CORS no cambia: los orígenes permitidos
+   son los del frontend.
+4. **Turnstile.** En Cloudflare, Turnstile → Add widget (modo *Managed*,
+   hostnames `www.oido.com.ar` y el `*.workers.dev` de prueba). Clave del
+   sitio → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en el build del frontend; clave
+   secreta → `TURNSTILE_SECRET_KEY` en Render. **Orden:** primero el frontend
+   (el widget aparece y manda el token, el backend todavía no lo pide), después
+   el backend. Al revés, nadie puede entrar hasta que salga el frontend.
+5. **WAF y robots** (Security, plan Free): Bot Fight Mode prendido y el
+   *Cloudflare Free Managed Ruleset* activo. Ojo: Bot Fight Mode puede frenar
+   monitores de uptime; si pasa, excluir `/health`.
+6. **Límite de intentos en el borde** (Security rules → Rate limiting; el plan
+   Free da **una** regla, por IP, período de 10 s y bloqueo de 10 s):
+   expresión `http.host eq "api.oido.com.ar" and http.request.method eq "POST"
+   and http.request.uri.path in {"/api/v1/auth/login" "/api/v1/auth/register"
+   "/api/v1/auth/forgot-password" "/api/v1/auth/guest"}`, 5 pedidos cada 10 s →
+   Block. El backend sigue con sus propios límites por minuto, que ahora sí
+   ven la IP real.
+7. **HSTS del dominio** (SSL/TLS → Edge Certificates): HSTS con
+   `max-age` de 6 meses e *Include subdomains*. *Preload* recién cuando todo
+   lo anterior lleve semanas andando: es difícil de deshacer.
+
+Qué protege y qué no, en
+[`historial/2026-10-14-cloudflare-endurecimiento.md`](../historial/2026-10-14-cloudflare-endurecimiento.md).
+
 ## Entornos
 
 - **development:** `DEBUG=true`, DB local, CORS a `localhost:3000` (default de

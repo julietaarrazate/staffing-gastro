@@ -57,6 +57,13 @@ services:
         value: "true"
       - key: SENTRY_DSN
         sync: false
+      # --- Detrás de Cloudflare (etapa 3, 2026-10-14) ---
+      # Vacías = apagado. Se cargan recién cuando api.oido.com.ar ya pasa por
+      # Cloudflare; orden y riesgos en docs/reference/DEPLOY.md, "Etapa 3".
+      - key: EDGE_SHARED_SECRET
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
       # --- Email transaccional (Resend) ---
       # SIN ESTA CLAVE NO SE ENVÍA NINGÚN EMAIL. El backend cae a
       # `NullEmailSender`, que sólo loguea y nunca falla — por diseño, para
