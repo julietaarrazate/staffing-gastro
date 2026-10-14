@@ -9,6 +9,7 @@ import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldAttachment, cldThumb } from "@/lib/cloudinary";
+import { safeHttpsUrl } from "@/lib/safe-url";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import StarRating from "@/components/StarRating";
@@ -139,6 +140,7 @@ export default function PublicWorkerProfilePage() {
   if (!profile) return null;
 
   const name = profile.full_name ?? "Trabajador/a";
+  const cvUrl = safeHttpsUrl(profile.cv_url);
 
   return (
     <div className="app-container px-4 py-8">
@@ -232,19 +234,19 @@ export default function PublicWorkerProfilePage() {
             </div>
           )}
 
-          {profile.cv_url && (
+          {cvUrl && (
             <div className="mt-4 flex flex-wrap gap-2">
               <a
-                href={profile.cv_url}
+                href={cvUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
               >
                 <ClipboardIcon size={16} /> Ver CV
               </a>
-              {profile.cv_url.includes("res.cloudinary.com") && (
+              {cvUrl.includes("res.cloudinary.com") && (
                 <a
-                  href={cldAttachment(profile.cv_url)}
+                  href={cldAttachment(cvUrl)}
                   className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
                 >
                   <DownloadIcon size={16} /> Descargar
