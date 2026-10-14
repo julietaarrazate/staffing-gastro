@@ -94,6 +94,9 @@ Julieta para cambiar el DNS. Etapas y resultados en
   Worker. Ese script también escribe el `_headers` de los assets.
 - **`next/image`:** Oído no lo usa (las fotos vienen de Cloudinary ya
   recortadas), así que no hace falta Cloudflare Images.
+- **CSP:** desde la etapa 2 (2026-10-14) `vercel.live` sólo entra con
+  `VERCEL_ENV=preview`, así que el build de Cloudflare sale sin él. Nonces y
+  HSTS del dominio quedan para la etapa 3.
 - **Tamaño:** 3,5 MB comprimido; entra en el límite de 10 MB del plan pago
   (el gratis es 3 MB: hace falta el plan pago, que es el previsto).
 
