@@ -41,6 +41,7 @@ from app.modules.shift.application.dtos import EventData, EventRoleData, ShiftDa
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
+    AssigneeNotFoundError,
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
@@ -531,6 +532,10 @@ async def assign_worker(
         )
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
+    except AssigneeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Trabajador no encontrado"
+        ) from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)

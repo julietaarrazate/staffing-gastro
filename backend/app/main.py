@@ -7,6 +7,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
@@ -129,6 +131,17 @@ async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONR
     respuesta guardada la primera vez, sin re-ejecutar el handler (ver
     `app/core/idempotency.py` y `product/IDEMPOTENCIA_SPEC.md`)."""
     return JSONResponse(status_code=exc.status_code, content=exc.body)
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+    """422 con la misma forma de siempre, sin devolver el valor enviado
+    (`input`), el contexto interno (`ctx`) ni la URL de documentación."""
+    errors = [
+        {"type": e.get("type"), "loc": e.get("loc"), "msg": e.get("msg")}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
 @app.exception_handler(ShiftConcurrentModificationError)

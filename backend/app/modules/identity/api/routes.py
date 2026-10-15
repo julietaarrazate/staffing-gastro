@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.core.config import settings
 from app.core.edge import client_ip
+from app.core.origin import require_allowed_origin
 from app.core.rate_limit import RateLimiter
 from app.core.turnstile import require_turnstile
 from app.modules.identity.api.dependencies import (
@@ -283,7 +284,7 @@ async def google_auth(
     "/refresh",
     response_model=TokenResponse,
     summary="Renovar tokens",
-    dependencies=[Depends(_refresh_rate_limit)],
+    dependencies=[Depends(require_allowed_origin), Depends(_refresh_rate_limit)],
 )
 async def refresh(service: ServiceDep, request: Request, response: Response) -> TokenResponse:
     refresh_token = request.cookies.get(_REFRESH_COOKIE_NAME)
@@ -322,6 +323,7 @@ async def refresh(service: ServiceDep, request: Request, response: Response) -> 
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Cerrar sesión (revoca el refresh token)",
+    dependencies=[Depends(require_allowed_origin)],
 )
 async def logout(service: ServiceDep, request: Request, response: Response) -> None:
     refresh_token = request.cookies.get(_REFRESH_COOKIE_NAME)

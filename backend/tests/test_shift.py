@@ -1211,3 +1211,20 @@ async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
         assert all(s["status"] == "publicado" for s in body["shifts"])
     finally:
         settings.subscriptions_enforced = previous
+
+
+async def test_assign_unknown_worker_profile_is_404(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp_assign404@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": str(uuid4())},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Trabajador no encontrado"

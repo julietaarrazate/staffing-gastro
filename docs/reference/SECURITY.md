@@ -51,6 +51,13 @@ asignado del turno; en notificaciones, el propio usuario. Ver
 
 ## Endurecimiento ya aplicado
 
+- **`Origin` verificado en `/auth/refresh` y `/auth/logout`** (cookie de refresh
+  con SameSite=None): si el header viene y no está en `CORS_ORIGINS`, 403. Sin
+  `Origin` pasa (`app/core/origin.py`).
+- **422 sin eco del input:** el handler de `RequestValidationError` en
+  `app/main.py` devuelve solo `type`, `loc` y `msg` (sin `input`, `ctx` ni `url`).
+- **`POST /shifts/{id}/assign` con trabajador inexistente** responde 404, no 500
+  (existencia verificada por el puerto de trabajadores).
 - **`JWT_SECRET_KEY` no puede quedar en el default en producción.** Un validador
   de configuración (`Settings._reject_insecure_defaults`) **falla el arranque**
   si `ENVIRONMENT=production` y el secreto sigue siendo el valor por defecto. En
