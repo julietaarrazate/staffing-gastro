@@ -107,18 +107,21 @@ todo sigue igual que hoy. Se prende en este orden, porque cada paso necesita
 el anterior. Los valores secretos van sólo en los paneles, nunca acá ni en el
 chat.
 
-0. **Pasar el DNS a Cloudflare.** Ojo: el DNS de oido.com.ar **no** está
-   en Cloudflare sino en Vercel (nameservers `ns1/ns2.vercel-dns.com`,
-   verificado el 2026-10-14; la nota de que "ya usaba Cloudflare" era
-   errónea). Se agrega la zona en Cloudflare (plan Free), se copian **todos**
-   los registros en "DNS only" (web en Vercel, MX/SPF/DKIM de Google y los de
-   Resend en `resend._domainkey` y `send`) y recién después, con el "sí" de
-   Julieta, se cambian los nameservers en NIC Argentina. Sin un registro de
-   mail, se cortan los mails.
+0. **DNS en Cloudflare: hecho el 2026-10-14.** Antes estaba en Vercel
+   (`ns1/ns2.vercel-dns.com`; la nota de que "ya usaba Cloudflare" era
+   errónea). Se copiaron todos los registros en "DNS only" y, con el "sí" de
+   Julieta, se cambiaron los nameservers en NIC Argentina a
+   `jocelyn.ns.cloudflare.com` y `terry.ns.cloudflare.com` (zona activa el
+   mismo día; web, mail de Google y Resend verificados después). Apex, `www`
+   y `*` son CNAME a `23e8f3d43999aec1.vercel-dns-017.com` (la dirección del
+   proyecto en Vercel; Cloudflare aplana el del apex), no A con IPs fijas:
+   Vercel rota sus IPs. Para volver atrás: nameservers de Vercel en NIC.ar.
 1. **API con dominio propio y proxy.** En Render, custom domain
    `api.oido.com.ar` en el servicio del backend. En Cloudflare DNS, `CNAME api
-   → staffya-backend.onrender.com` **con proxy** (nube naranja), y SSL/TLS en
-   **Full (strict)**. Probar `https://api.oido.com.ar/health`.
+   → staffya-backend.onrender.com` primero en "DNS only" hasta que Render
+   diga *Verified* y emita el certificado; recién ahí **con proxy** (nube
+   naranja). SSL/TLS en **Full (strict)** (ya está). Probar
+   `https://api.oido.com.ar/health`.
 2. **Sólo por Cloudflare.** Generar un secreto largo (por ejemplo
    `openssl rand -hex 32`). En Cloudflare, Rules → Transform Rules → Modify
    Request Header, para `http.host eq "api.oido.com.ar"`: *Set static*
@@ -137,9 +140,11 @@ chat.
    secreta → `TURNSTILE_SECRET_KEY` en Render. **Orden:** primero el frontend
    (el widget aparece y manda el token, el backend todavía no lo pide), después
    el backend. Al revés, nadie puede entrar hasta que salga el frontend.
-5. **WAF y robots** (Security, plan Free): Bot Fight Mode prendido y el
-   *Cloudflare Free Managed Ruleset* activo. Ojo: Bot Fight Mode puede frenar
-   monitores de uptime; si pasa, excluir `/health`.
+5. **WAF** (Security, plan Free): *Cloudflare Free Managed Ruleset* activo.
+   **Bot Fight Mode NO**: en el plan Free se aplica a toda la zona sin
+   excepciones y frenaría al servidor del frontend cuando arma `/turno/[id]`
+   (pide los datos a la API desde un datacenter) y a los monitores de
+   `/health`. Contra robots alcanzan Turnstile y el límite de intentos.
 6. **Límite de intentos en el borde** (Security rules → Rate limiting; el plan
    Free da **una** regla, por IP, período de 10 s y bloqueo de 10 s):
    expresión `http.host eq "api.oido.com.ar" and http.request.method eq "POST"
