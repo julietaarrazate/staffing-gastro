@@ -39,7 +39,11 @@ def test_sign_cv_upload_produces_a_valid_cloudinary_signature(configured_cloudin
     # Recalculado a mano con el algoritmo documentado de Cloudinary: params
     # (menos file/cloud_name/resource_type/api_key) ordenados, unidos
     # `k=v&k2=v2`, `api_secret` pegado al final, SHA-1 hex.
-    to_sign = f"allowed_formats=pdf,doc,docx,jpg,jpeg,png&timestamp={result['timestamp']}"
+    to_sign = (
+        "allowed_formats=pdf,doc,docx,jpg,jpeg,png"
+        f"&folder=oido/cv&overwrite=false&public_id={result['public_id']}"
+        f"&timestamp={result['timestamp']}"
+    )
     expected = hashlib.sha1(f"{to_sign}test-api-secret".encode()).hexdigest()
     assert result["signature"] == expected
 
@@ -70,3 +74,42 @@ async def test_employer_cannot_sign_cv_upload(client: AsyncClient, configured_cl
     employer = await auth_headers(client, "employer", "emp_cvsign1@staffya.com")
     response = await client.post("/api/v1/uploads/sign-cv", headers=employer)
     assert response.status_code == 403
+
+
+# --- Fotos firmadas (auditoría de seguridad 2026-10-14) -------------------
+
+
+def test_cada_firma_trae_nombre_al_azar_carpeta_y_no_sobrescribe(configured_cloudinary):
+    from app.core.cloudinary import sign_image_upload
+
+    a, b = sign_image_upload("profile"), sign_image_upload("profile")
+    assert a["public_id"] != b["public_id"]
+    assert a["folder"] == "oido/perfiles"
+    assert a["overwrite"] == "false"
+    assert "heic" in a["allowed_formats"] and "pdf" not in a["allowed_formats"]
+
+
+@pytest.mark.parametrize(
+    ("role", "kind", "esperado"),
+    [
+        ("worker", "profile", 200),
+        ("employer", "profile", 200),
+        ("employer", "cover", 200),
+        ("worker", "cover", 403),
+        ("worker", "identity", 200),
+        ("employer", "identity", 403),
+    ],
+)
+async def test_quien_puede_pedir_cada_firma_de_foto(
+    client: AsyncClient, configured_cloudinary, role, kind, esperado
+):
+    headers = await auth_headers(client, role, f"{role}_{kind}_img@staffya.com")
+    res = await client.post(f"/api/v1/uploads/sign-image?kind={kind}", headers=headers)
+    assert res.status_code == esperado
+    if esperado == 200:
+        assert res.json()["folder"].startswith("oido/")
+
+
+async def test_firma_de_foto_sin_sesion_es_401(client: AsyncClient, configured_cloudinary):
+    res = await client.post("/api/v1/uploads/sign-image?kind=profile")
+    assert res.status_code == 401
