@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import ImageUpload from "./ImageUpload";
 
 vi.mock("@/lib/cloudinary", () => ({ uploadImage: vi.fn() }));
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
 vi.mock("@/components/ImageCropModal", () => ({ default: () => null }));
 
 /**

@@ -91,6 +91,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   límite de intentos usa la IP real (`app/core/edge.py`); con
   `TURNSTILE_SECRET_KEY`, login y registro piden el token anti-robots
   (`app/core/turnstile.py`). Cómo prenderlo: DEPLOY.md, "Etapa 3".
+- **Todas las subidas a Cloudinary son firmadas** (2026-10-15): fotos de
+  perfil, logo, portada, DNI y selfie usan `POST /uploads/sign-image?kind=…`
+  (rol según el tipo), igual que el CV y la constancia. La firma fija formatos,
+  carpeta, un `public_id` al azar y `overwrite=false`. El preset unsigned
+  (`staffya-profile`) queda sin uso y se apaga en el panel de Cloudinary.
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 

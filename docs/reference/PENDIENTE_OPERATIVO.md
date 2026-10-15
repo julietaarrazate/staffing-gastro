@@ -30,7 +30,8 @@ toda vista previa y el sitemap apuntaban ahí.
 
 **Ya configuradas — NO volver a pedirlas:**
 - **Vercel (frontend):** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
-  `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
+  `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` (sin uso desde 2026-10-15: las
+  fotos suben firmadas), `NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
   `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_SENTRY_DSN`.
 - **Render (backend):** `CORS_ORIGINS`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`,
   `JWT_SECRET_KEY`, `RESEND_API_KEY`, `SEED_DEMO_DATA`, `SENTRY_DSN`,
