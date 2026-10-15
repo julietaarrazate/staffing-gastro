@@ -900,6 +900,44 @@ perfil"). Ver el ADR para el resto de la implementación.
 - **Prioridad:** 🟢 Baja.
 - **Solución sugerida:** ADR si se necesita consistencia eventual real.
 
+### I6 — Fotos en Cloudinary: migrar a R2 + Cloudflare Images al salir del plan gratis 🟢 Baja (con disparador)
+
+- **Descripción:** las fotos (perfil, logo, portada, DNI/selfie), el CV y la
+  constancia viven en Cloudinary, con subida firmada (#437) y
+  transformaciones en la URL (`frontend/lib/cloudinary.ts`: `f_auto,q_auto`,
+  `w_<n>,c_limit,dpr_auto`; `c_fill,g_auto` en las imágenes para compartir;
+  `fl_attachment` para descargar el CV). Hoy entra en el plan gratis.
+- **Por qué migrar después:** Cloudinary cobra por créditos (1 crédito = 1 GB
+  guardado, 1 GB descargado o 1.000 transformaciones; 25 gratis por mes) y
+  el plan siguiente (Plus) sale unos 89 a 99 USD por mes según fuentes
+  secundarias. R2 no cobra las descargas, da 10 GB gratis y después cuesta
+  0,015 USD/GB-mes; Cloudflare Images da 5.000 transformaciones únicas
+  gratis y después 0,50 USD cada 1.000. Ejemplo estimado (2026-10-15):
+  2.000 trabajadores × 3 fotos (≈3 GB), 40 GB de descarga y 24.000
+  transformaciones por mes → Cloudinary ≈67 créditos (plan Plus, ≈90-100
+  USD); R2 + Images ≈10 USD. Precios de Cloudflare:
+  [R2](https://developers.cloudflare.com/r2/pricing/) e
+  [Images](https://developers.cloudflare.com/images/pricing/); confirmar
+  los de Cloudinary en su página oficial antes de decidir.
+- **Disparador:** el uso de Cloudinary (panel → Usage, ventana de 30 días)
+  supera ~20 de los 25 créditos, o Cloudinary pide pasar a un plan pago.
+- **Riesgo de quedarse:** bajo mientras dure el plan gratis; al pasarlo,
+  costo mensual alto para el volumen.
+- **Prioridad:** 🟢 Baja hasta el disparador.
+- **Solución sugerida:** ADR nuevo (cambia un proveedor de infraestructura).
+  Pasos:
+  1. Bucket R2 con URLs firmadas de subida desde el backend, manteniendo
+     carpeta por tipo, nombre al azar y sin sobrescritura, como hoy.
+  2. Transformaciones con Cloudflare Images sobre el dominio propio,
+     reemplazando los parámetros de `lib/cloudinary.ts`.
+  3. Copiar los archivos existentes y reescribir las URLs guardadas en la
+     base (`photo_url`, `logo_url`, `cover_photo_url`, `cv_url` y `data_url`
+     del módulo `verification`, con los archivos de verificación).
+  4. Ajustar la CSP (`next.config.ts`) y apagar Cloudinary.
+
+  El DNI y la selfie necesitan acceso privado (URL firmada de lectura), no
+  un bucket público.
+
 ---
 
 ## Calidad / observabilidad
@@ -1116,4 +1154,4 @@ del motivo real.
 | 🔴 Crítica | P1 (quantity, mitigado R1.4), ~~S1 (tokens/revocación)~~ ✅ resuelta 2026-08-08 (cookie httpOnly, último pendiente), I1 (DB 90 días), T1 (sin CI) |
 | 🟠 Alta | P2 (badges, resuelto ADR-0004), ~~P3 (métricas reputación)~~ ✅ resuelta 2026-08-02 (`cancellations` vía ADR-0004, `on_time_payment_rate`/`events_published` vía hook directo en `ShiftService`), P4 (pagos placeholder), I2 (seed en prod), ~~T2 (sin tests frontend)~~ ✅ resuelta 2026-08-09 (Vitest/RTL, 48 tests, en CI), T3 (sin observabilidad) |
 | 🟡 Media | ~~F1 (TextField subutilizado)~~ ✅ resuelta 2026-08-05 (auth migradas, resto revisado y descartado con motivo), F2 (landing sin DS), F3 (admin sin DS), ~~F4 (accesibilidad)~~ ✅ resuelta 2026-08-09 (jsx-a11y/recommended en lint, 16 errores reales corregidos), ~~S2 (cuotas WS)~~ ✅ resuelta 2026-08-11 (tope de conexiones 2026-08-04 + tope de frames/mensajes 2026-08-11, completo), I3 (Haversine duplicado), ~~P5 (RECHAZADA de los no elegidos)~~ ✅ resuelta 2026-07-23, ~~T5 (lint fuera de CI)~~ ✅ resuelta 2026-08-05 (0 errores, 6 warnings catalogados) |
-| 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), T4 (warning cosmético) |
+| 🟢 Baja | F5 (`<img>`), I4 (PostGIS/Redis), I5 (sin bus de eventos), I6 (fotos a R2 al salir del plan gratis de Cloudinary), T4 (warning cosmético) |
