@@ -9,6 +9,10 @@ class ShiftNotFoundError(ShiftError):
     """No se encontró el turno solicitado (o no pertenece al comercio)."""
 
 
+class AssigneeNotFoundError(ShiftError):
+    """El perfil de trabajador a asignar no existe."""
+
+
 class InvalidShiftTransitionError(ShiftError):
     """La transición de estado solicitada no es válida desde el estado actual."""
 
