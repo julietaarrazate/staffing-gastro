@@ -116,8 +116,10 @@ chat.
    y `*` son CNAME a `23e8f3d43999aec1.vercel-dns-017.com` (la dirección del
    proyecto en Vercel; Cloudflare aplana el del apex), no A con IPs fijas:
    Vercel rota sus IPs. Para volver atrás: nameservers de Vercel en NIC.ar.
-1. **API con dominio propio y proxy.** En Render, custom domain
-   `api.oido.com.ar` en el servicio del backend. En Cloudflare DNS, `CNAME api
+1. **API con dominio propio y proxy.** El dominio `api.oido.com.ar` se
+   declara en `render.yaml` (`domains:`), no en el dashboard: el servicio es
+   *Blueprint managed* y Render no muestra ahí la sección Custom Domains.
+   En Cloudflare DNS, `CNAME api
    → staffya-backend.onrender.com` primero en "DNS only" hasta que Render
    diga *Verified* y emita el certificado; recién ahí **con proxy** (nube
    naranja). SSL/TLS en **Full (strict)** (ya está). Probar
@@ -126,14 +128,17 @@ chat.
    `openssl rand -hex 32`). En Cloudflare, Rules → Transform Rules → Modify
    Request Header, para `http.host eq "api.oido.com.ar"`: *Set static*
    `X-Oido-Edge` = el secreto, y *Set dynamic* `X-Oido-Client-IP` = `ip.src`.
-   Recién después, en Render, `EDGE_SHARED_SECRET` = el mismo secreto. Desde
-   ahí `staffya-backend.onrender.com` responde 403 (salvo `/health`) y el
-   límite de intentos cuenta por persona y no por el proxy de Render.
-   **Trampa:** si se carga en Render antes que la regla, el backend rechaza
-   todo. Para volver atrás, vaciar la variable.
+   Recién **después del paso 3** (el frontend publicado ya usando
+   `api.oido.com.ar`), en Render, `EDGE_SHARED_SECRET` = el mismo secreto.
+   Desde ahí `staffya-backend.onrender.com` responde 403 (salvo `/health`) y
+   el límite de intentos cuenta por persona y no por el proxy de Render.
+   **Trampas:** si se carga en Render antes que la regla, el backend rechaza
+   todo; si se carga antes de que el frontend use la API nueva, el sitio
+   (que todavía llama a `onrender.com`) se queda sin login. Para volver
+   atrás, vaciar la variable.
 3. **El frontend usa la API nueva:** `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`
-   en el build (Vercel y Cloudflare). CORS no cambia: los orígenes permitidos
-   son los del frontend.
+   en el build (Vercel y Cloudflare), y volver a publicar. CORS no cambia:
+   los orígenes permitidos son los del frontend.
 4. **Turnstile.** En Cloudflare, Turnstile → Add widget (modo *Managed*,
    hostnames `www.oido.com.ar` y el `*.workers.dev` de prueba). Clave del
    sitio → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en el build del frontend; clave

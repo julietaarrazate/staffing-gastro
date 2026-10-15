@@ -27,6 +27,12 @@ services:
     # como default en `frontend/lib/api.ts` y para la CSP en `next.config.ts`).
     region: ohio
     healthCheckPath: /health
+    # Dominio propio de la API (etapa 3 de Cloudflare, 2026-10-15). Va acá y
+    # no en el dashboard: el servicio es "Blueprint managed" y Render no
+    # muestra la sección Custom Domains. DNS: CNAME api →
+    # staffya-backend.onrender.com en Cloudflare (docs/reference/DEPLOY.md).
+    domains:
+      - api.oido.com.ar
     envVars:
       - key: DATABASE_URL
         sync: false # Neon connection string — se setea manual en el dashboard
