@@ -102,10 +102,11 @@ Julieta para cambiar el DNS. Etapas y resultados en
 
 ### Etapa 3: endurecimiento con Cloudflare (runbook)
 
-El código ya está (2026-10-14) y **viene apagado**: sin las variables de abajo,
-todo sigue igual que hoy. Se prende en este orden, porque cada paso necesita
-el anterior. Los valores secretos van sólo en los paneles, nunca acá ni en el
-chat.
+**Prendida en producción el 2026-10-15**, pasos 0 a 6 (el 7, HSTS de la
+zona, queda para más adelante). Qué quedó y cómo se verificó, en
+[`historial/2026-10-15-etapa3-prendida.md`](../historial/2026-10-15-etapa3-prendida.md).
+Si hay que rehacerlo, este es el orden: cada paso necesita el anterior. Los
+valores secretos van sólo en los paneles, nunca acá ni en el chat.
 
 0. **DNS en Cloudflare: hecho el 2026-10-14.** Antes estaba en Vercel
    (`ns1/ns2.vercel-dns.com`; la nota de que "ya usaba Cloudflare" era
@@ -138,9 +139,14 @@ chat.
    atrás, vaciar la variable.
 3. **El frontend usa la API nueva:** `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`
    en el build (Vercel y Cloudflare), y volver a publicar. CORS no cambia:
-   los orígenes permitidos son los del frontend.
+   los orígenes permitidos son los del frontend. **Trampa de Vercel:** un
+   Redeploy después de cambiar sólo variables se cancela solo, porque
+   `scripts/vercel-ignore-build.sh` no ve cambios en `frontend/`. En el
+   diálogo de Redeploy hay que desmarcar *Use project's Ignore Build Step*
+   (y *Use existing Build Cache*); vale sólo para ese redeploy.
 4. **Turnstile.** En Cloudflare, Turnstile → Add widget (modo *Managed*,
-   hostnames `www.oido.com.ar` y el `*.workers.dev` de prueba). Clave del
+   hostnames `oido.com.ar` y `www.oido.com.ar`; sumar el `*.workers.dev` de
+   prueba en la etapa 4). Clave del
    sitio → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en el build del frontend; clave
    secreta → `TURNSTILE_SECRET_KEY` en Render. **Orden:** primero el frontend
    (el widget aparece y manda el token, el backend todavía no lo pide), después
@@ -151,12 +157,14 @@ chat.
    (pide los datos a la API desde un datacenter) y a los monitores de
    `/health`. Contra robots alcanzan Turnstile y el límite de intentos.
 6. **Límite de intentos en el borde** (Security rules → Rate limiting; el plan
-   Free da **una** regla, por IP, período de 10 s y bloqueo de 10 s):
-   expresión `http.host eq "api.oido.com.ar" and http.request.method eq "POST"
-   and http.request.uri.path in {"/api/v1/auth/login" "/api/v1/auth/register"
-   "/api/v1/auth/forgot-password" "/api/v1/auth/guest"}`, 5 pedidos cada 10 s →
-   Block. El backend sigue con sus propios límites por minuto, que ahora sí
-   ven la IP real.
+   Free da **una** regla, por IP, período de 10 s y bloqueo de 10 s, y en la
+   expresión **sólo acepta la ruta**, no host ni método):
+   `(http.request.uri.path in {"/api/v1/auth/login" "/api/v1/auth/register"
+   "/api/v1/auth/forgot-password" "/api/v1/auth/guest"})`, 5 pedidos cada
+   10 s → Block. Esas rutas sólo existen en la API, así que alcanza. El
+   backend sigue con sus propios límites por minuto, que ahora sí ven la IP
+   real. Para probarla hay que hacerlo desde una sola IP (el navegador de
+   casa): un cliente que sale por varias IPs no la dispara.
 7. **HSTS del dominio** (SSL/TLS → Edge Certificates): HSTS con
    `max-age` de 6 meses e *Include subdomains*. *Preload* recién cuando todo
    lo anterior lleve semanas andando: es difícil de deshacer.
