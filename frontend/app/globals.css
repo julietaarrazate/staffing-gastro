@@ -1019,13 +1019,642 @@ body:has([data-landing]) main {
   opacity: 0;
   transform: translateY(20px);
 }
-/* El hero (components/landing/HeroNoche.tsx): los pasos de la noche se
-   esconden antes de pintar si hay JavaScript (`landing-js`, script en
-   app/page.tsx) y los va mostrando el componente. Con "reducir movimiento"
-   no se esconde nada. */
-@media (prefers-reduced-motion: no-preference) {
-  .landing-js [data-hero-noche]:not([data-fase]) .hn-paso {
+
+/* ── Landing "cielo" (2026-10-18): celeste y blanco con el ámbar de siempre.
+   Cada sección como el inicio: un título y una sola cosa para mirar.
+   Componentes: HeroRueda, Comanda, MapaCamino, Confianza, Precios,
+   ParaTrabajar, Preguntas, Cierre y LandingFooter. ── */
+[data-landing] {
+  /* Aire entre el título de una sección y lo que muestra. */
+  --aire: clamp(28px, 4vw, 48px);
+}
+.landing-sec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-block: clamp(52px, 7vw, 96px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.landing-h2 {
+  max-width: 16ch;
+  margin-inline: auto;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(2.25rem, 4.8vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+.landing-h2-grande {
+  max-width: 15ch;
+  font-size: clamp(2.75rem, 6vw, 5.25rem);
+}
+.landing-sec-cosa {
+  margin-top: var(--aire);
+}
+.landing-sec-accion {
+  margin-top: 32px;
+}
+/* En pantallas anchas, donde lo que se muestra es angosto, el título va al
+   costado; en el celular todo sigue centrado. */
+@media (min-width: 1024px) {
+  .landing-sec-dos {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    column-gap: 96px;
+    align-items: center;
+    width: 100%;
+    max-width: calc(1080px + 2 * 48px);
+    margin-inline: auto;
+    padding-inline: 48px;
+    text-align: left;
+  }
+  .landing-sec-dos .landing-h2 {
+    grid-column: 1;
+    max-width: 11ch;
+    margin: 0;
+  }
+  .landing-sec-dos .landing-sec-cosa {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: center;
+    margin-top: 0;
+  }
+  .landing-sec-dos .landing-sec-accion {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .landing-sec-arriba {
+    align-items: start;
+  }
+}
+
+/* Botones de la landing: píldora con flecha en un círculo. */
+.landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 50px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  transition: transform 0.15s;
+}
+.landing-btn:active {
+  transform: translateY(1px);
+}
+.landing-btn-flecha {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -12px;
+  border-radius: 50%;
+  font-size: 14px;
+  background: var(--color-ink);
+  color: var(--color-card);
+}
+.landing-btn-primario {
+  background: var(--color-primary);
+  color: var(--color-night);
+}
+.landing-btn-borde {
+  background: rgb(255 255 255 / 0.6);
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px rgb(17 17 17 / 0.16);
+}
+.landing-btn-tinta {
+  background: var(--color-ink);
+  color: var(--color-card);
+}
+.landing-btn-tinta .landing-btn-flecha {
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+
+/* Inicio: cielo arriba, blanco donde va el título, rueda de fotos. Los
+   tamaños de la ficha coinciden con los de HeroRueda.tsx. */
+.landing-hero {
+  --cw: 104px;
+  --ch: 135px;
+  padding-top: calc(var(--ch) + 96px);
+  padding-bottom: clamp(64px, 9vw, 128px);
+  background:
+    radial-gradient(18% 10% at 18% 14%, rgb(255 255 255 / 0.9), transparent 70%),
+    radial-gradient(22% 9% at 80% 9%, rgb(255 255 255 / 0.85), transparent 70%),
+    radial-gradient(14% 7% at 62% 24%, rgb(255 255 255 / 0.7), transparent 70%),
+    linear-gradient(180deg, var(--color-secondary-strong) 0%, var(--color-secondary) 26%, #eef6f9 46%, var(--color-card) 60%);
+}
+@media (min-width: 600px) {
+  .landing-hero {
+    --cw: 140px;
+    --ch: 182px;
+  }
+}
+@media (min-width: 1000px) {
+  .landing-hero {
+    --cw: 170px;
+    --ch: 221px;
+  }
+}
+.landing-rueda {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 1;
+}
+.landing-ficha {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cw);
+  height: var(--ch);
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 24px 40px -26px rgb(22 25 26 / 0.5);
+  will-change: transform;
+}
+.landing-palabra {
+  position: relative;
+  height: 1em;
+}
+.landing-palabra b {
+  display: block;
+  animation: landingPalabra 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes landingPalabra {
+  from {
     opacity: 0;
+    transform: translateY(0.18em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* La comanda: banda de cielo, impresora, ticket con filete y cinta. */
+.landing-cielo {
+  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 18%, var(--color-secondary) 72%, var(--color-secondary-strong) 100%);
+  padding-bottom: clamp(64px, 8vw, 112px);
+}
+.landing-campo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 24px;
+  border-radius: 30px;
+  background: var(--color-card);
+  box-shadow: 0 0 0 1.5px rgb(17 17 17 / 0.85), 0 24px 40px -26px rgb(28 84 120 / 0.45);
+  text-align: left;
+}
+.landing-campo:focus-within {
+  box-shadow: 0 0 0 2.5px var(--color-primary), 0 24px 40px -26px rgb(28 84 120 / 0.45);
+}
+.landing-campo textarea {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  overflow: hidden;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+.landing-campo textarea::placeholder {
+  color: #9aa0a8;
+}
+.landing-campo .landing-btn {
+  flex: none;
+  height: 48px;
+}
+@media (max-width: 640px) {
+  .landing-campo {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 14px 10px 18px;
+    border-radius: 22px;
+  }
+  .landing-campo textarea {
+    flex: none;
+  }
+}
+.landing-impresora {
+  position: relative;
+  z-index: 2;
+  width: min(420px, 92%);
+  height: 58px;
+  margin-top: var(--aire);
+  border-radius: 18px 18px 10px 10px;
+  background: linear-gradient(180deg, #26303a, #12171c);
+  box-shadow: 0 22px 34px -18px rgb(18 23 28 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+.landing-impresora-luz {
+  position: absolute;
+  right: 22px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 10px 2px rgb(217 119 6 / 0.7);
+}
+.landing-impresora-ranura {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 9px;
+  height: 7px;
+  border-radius: 4px;
+  background: #05080a;
+  box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.8);
+}
+.landing-comanda-marco {
+  width: min(360px, 86%);
+  margin-top: -14px;
+  padding: 0 24px 40px;
+  box-sizing: content-box;
+  overflow: hidden;
+}
+.landing-comanda {
+  position: relative;
+  padding: 34px 22px 30px;
+  background: var(--color-card);
+  color: #141c24;
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  text-align: left;
+  filter: drop-shadow(0 26px 30px rgb(20 69 106 / 0.28)) drop-shadow(0 0 1px rgb(20 69 106 / 0.3));
+  /* Corte de papel en zigzag abajo. */
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
+}
+.landing-voluta {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 38px;
+  height: 38px;
+  color: var(--color-secondary-text);
+}
+.landing-voluta-der {
+  left: auto;
+  right: 8px;
+  transform: scaleX(-1);
+}
+.landing-comanda-tope {
+  padding-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-secondary-text);
+}
+.landing-orla {
+  position: relative;
+  height: 10px;
+  margin-bottom: 4px;
+}
+.landing-orla::before,
+.landing-orla::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: var(--color-secondary-text);
+}
+.landing-orla::before {
+  top: 2px;
+}
+.landing-orla::after {
+  top: 7px;
+  background: var(--color-secondary-strong);
+}
+.landing-orla i {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-secondary-text);
+  transform: translateX(-50%) rotate(45deg);
+}
+.landing-comanda-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px dashed #cfe2ea;
+}
+.landing-comanda-fila dt {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-secondary-text);
+}
+.landing-comanda-fila dd {
+  font-size: 17px;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .landing-comanda-fila dd {
+    font-size: 14px;
+  }
+  .landing-comanda {
+    padding-inline: 18px;
+  }
+}
+.landing-falta {
+  color: #9aa6ad;
+  font-weight: 400;
+}
+.landing-cinta {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+}
+.landing-cinta-svg {
+  display: block;
+  width: 210px;
+  max-width: 100%;
+  height: auto;
+  transform: rotate(-6deg);
+}
+.landing-cinta-texto {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 30px;
+}
+.landing-comanda-pie {
+  margin-top: 22px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-secondary-text);
+}
+.landing-guarda {
+  height: 12px;
+  margin: 18px -22px 0;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-secondary-text) 0 10px,
+    var(--color-card) 10px 12px,
+    var(--color-secondary-strong) 12px 22px,
+    var(--color-card) 22px 24px,
+    var(--color-primary) 24px 28px,
+    var(--color-card) 28px 30px
+  );
+}
+/* Esperando que aparezca: el papel todavía está adentro de la impresora. */
+.landing-espera .landing-comanda {
+  transform: translateY(-104%);
+}
+.landing-imprime .landing-comanda {
+  animation: landingImprimir 1.5s steps(14) both;
+}
+.landing-imprime .landing-cinta-svg {
+  animation: landingCinta 0.38s cubic-bezier(0.3, 1.6, 0.5, 1) 1.9s both;
+}
+.landing-imprime .landing-comanda-pie {
+  animation: landingAparecer 0.4s 2.4s both;
+}
+.landing-imprime .landing-impresora-luz {
+  animation: landingTitila 0.3s steps(2) 5;
+}
+@keyframes landingImprimir {
+  from {
+    transform: translateY(-104%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes landingCinta {
+  from {
+    opacity: 0;
+    transform: rotate(-6deg) scale(2.2);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-6deg) scale(1);
+  }
+}
+@keyframes landingAparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes landingTitila {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* El mapa de "va en camino" sobre un pedazo de Palermo. */
+.landing-mapa {
+  width: min(1000px, 100%);
+  margin-top: var(--aire);
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--color-card);
+  box-shadow: 0 0 0 1px var(--color-line), 0 40px 70px -46px rgb(28 84 120 / 0.45);
+  text-align: left;
+}
+.landing-mapa-calles {
+  position: relative;
+  aspect-ratio: 16 / 8.5;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .landing-mapa-calles {
+    aspect-ratio: 1;
+  }
+}
+.landing-mapa-linea {
+  stroke: var(--color-secondary-text);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  opacity: 0.55;
+}
+.landing-mapa-linea-va {
+  stroke-width: 2;
+  opacity: 0.9;
+}
+.landing-mapa-local {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+}
+.landing-mapa-local i {
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 7px rgb(217 119 6 / 0.16);
+}
+.landing-mapa-local span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-card);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.landing-mapa-avisado,
+.landing-mapa-persona {
+  position: absolute;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+  transition:
+    opacity 0.4s,
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4),
+    left 5s ease-in-out,
+    top 5s ease-in-out;
+}
+.landing-mapa-avisado {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-secondary-strong);
+  box-shadow: 0 0 0 4px rgb(154 201 231 / 0.3);
+}
+.landing-mapa-persona,
+.landing-mapa-persona-pie {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  color: var(--color-night);
+  font-weight: 700;
+  font-size: 12.5px;
+  box-shadow: 0 0 0 2px var(--color-card), 0 8px 14px -8px rgb(0 0 0 / 0.4);
+}
+.landing-mapa-persona {
+  z-index: 3;
+}
+.landing-mapa-avisado.landing-on,
+.landing-mapa-persona.landing-on {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.landing-mapa-avisado.landing-tenue,
+.landing-mapa-persona.landing-tenue {
+  opacity: 0.18;
+}
+.landing-mapa-persona.landing-elegida {
+  box-shadow: 0 0 0 3px var(--color-card), 0 0 0 5px var(--color-success), 0 10px 18px -8px rgb(0 0 0 / 0.4);
+}
+.landing-mapa-pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-line);
+}
+.landing-mapa-persona-pie {
+  flex: none;
+  opacity: 0.35;
+  transition: opacity 0.3s;
+}
+.landing-mapa-persona-pie.landing-on {
+  opacity: 1;
+}
+.landing-mapa-eta {
+  margin-left: auto;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El final: "oído" grande sobre el cielo y el pie en el mismo celeste. */
+.landing-firma {
+  position: relative;
+  height: clamp(190px, 33vw, 450px);
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 60%, var(--color-secondary-strong) 100%);
+}
+.landing-firma span {
+  position: absolute;
+  left: 50%;
+  bottom: -0.13em;
+  transform: translateX(-50%);
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(170px, 34vw, 460px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+.landing-pie-fila {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: var(--color-secondary-strong);
+  color: rgb(17 17 17 / 0.62);
+  text-align: center;
+}
+.landing-pie-fila a {
+  color: rgb(17 17 17 / 0.78);
+}
+.landing-pie-fila a:hover {
+  color: var(--color-ink);
+}
+@media (min-width: 1024px) {
+  .landing-pie-fila {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-inline: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-palabra b,
+  .landing-imprime .landing-comanda,
+  .landing-imprime .landing-cinta-svg,
+  .landing-imprime .landing-comanda-pie,
+  .landing-imprime .landing-impresora-luz {
+    animation: none;
+  }
+  .landing-mapa-avisado,
+  .landing-mapa-persona {
+    transition: none;
   }
 }
 /* La sacudida de la burbuja cuando llega "Perdón, hoy no llego." */

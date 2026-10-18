@@ -52,9 +52,6 @@ export default function Home() {
       {/* Atrapa el aviso de "se puede instalar" de Android aunque llegue
           antes de que la página termine de cargar (lib/instalar.ts). */}
       <script dangerouslySetInnerHTML={{ __html: INSTALAR_SCRIPT }} />
-      {/* Marca que hay JavaScript antes de pintar: así las animaciones del
-          hero arrancan escondidas y no titilan (ver globals.css). */}
-      <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('landing-js')" }} />
       <LandingGate />
     </>
   );

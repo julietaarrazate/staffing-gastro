@@ -13,8 +13,8 @@ import { useHeroAtras } from "./useHeroAtras";
  * (auditoría de la landing).
  *
  * El botón "Necesito personal" aparece cuando el del hero salió de la pantalla y
- * después ya no se esconde. En el celular no va: ahí está la barra fija de
- * abajo (BarraCelular.tsx), más cerca del pulgar. "Para trabajar" lleva a la sección de quien
+ * después ya no se esconde. En el celular no va (desde el 2026-10-18 tampoco
+ * hay barra fija abajo: Julieta la sentía molesta). "Para trabajar" lleva a la sección de quien
  * trabaja; en el celular no entra al lado del botón, y ahí el camino del
  * trabajador es el link del hero.
  */
@@ -22,7 +22,7 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
   const ctaVisible = useHeroAtras(heroCtaId);
 
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border-line/70 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
+    <header className="safe-top sticky top-0 z-40 border-b border-line/70 bg-card/80 backdrop-blur-xl backdrop-saturate-150">
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
         <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center gap-2">
           <LogoMark size={28} />
@@ -39,14 +39,14 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
             href="/login"
             // Al tocarlo se tiñe de celeste y se hunde, como en el Navbar de
             // la app: que se vea cuál se eligió (Julieta, 2026-10-13).
-            className="inline-flex h-10 items-center rounded-[var(--radius-btn)] px-3 text-ink transition duration-150 hover:text-primary-text active:scale-95 active:bg-secondary active:text-on-brand"
+            className="inline-flex h-10 items-center rounded-full px-3 text-ink transition duration-150 hover:text-primary-text active:scale-95 active:bg-secondary active:text-on-brand"
           >
             Ingresar
           </Link>
           <Link
             href="/register"
             data-cta="header-crear-cuenta"
-            className="inline-flex h-10 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 text-ink ring-[1.5px] ring-ink/70 ring-inset transition duration-150 hover:bg-surface active:scale-95 active:bg-secondary active:text-on-brand active:ring-transparent"
+            className="inline-flex h-10 items-center whitespace-nowrap rounded-full px-3.5 text-ink ring-[1.5px] ring-ink/70 ring-inset transition duration-150 hover:bg-surface active:scale-95 active:bg-secondary active:text-on-brand active:ring-transparent"
           >
             Crear cuenta
           </Link>
@@ -58,7 +58,7 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
             // Escondido no ocupa lugar (max-w-0): si no, "Ingresar" quedaba
             // flotando en el medio del encabezado.
             className={cn(
-              "hidden h-10 items-center overflow-hidden whitespace-nowrap rounded-[var(--radius-btn)] bg-primary text-night transition-[max-width,opacity,padding] duration-400 active:scale-95 sm:inline-flex",
+              "hidden h-10 items-center overflow-hidden whitespace-nowrap rounded-full bg-primary text-night transition-[max-width,opacity,padding] duration-400 active:scale-95 sm:inline-flex",
               ctaVisible ? "max-w-[12rem] px-3.5 opacity-100" : "pointer-events-none max-w-0 px-0 opacity-0"
             )}
           >

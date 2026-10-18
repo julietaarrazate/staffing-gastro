@@ -1,12 +1,12 @@
 import LandingHeader from "./LandingHeader";
-import Hero, { HERO_CTA_ID } from "./Hero";
-import ComoFunciona from "./ComoFunciona";
+import HeroRueda, { HERO_CTA_ID } from "./HeroRueda";
+import Comanda from "./Comanda";
+import MapaCamino from "./MapaCamino";
 import Confianza from "./Confianza";
 import Precios from "./Precios";
 import ParaTrabajar from "./ParaTrabajar";
 import Preguntas from "./Preguntas";
 import Cierre from "./Cierre";
-import BarraCelular from "./BarraCelular";
 import LandingFooter from "./LandingFooter";
 
 /**
@@ -16,9 +16,16 @@ import LandingFooter from "./LandingFooter";
  * que no decían nada. Diagnóstico y estructura: docs/historial/
  * 2026-10-12-landing-corta.md.
  *
- * Una sola versión para todos: el contenido sale entero en el HTML del
- * servidor y la única animación es una entrada suave al aparecer (`Reveal`),
- * que no corre con "reducir movimiento". Nada se fija al scroll.
+ * Desde el 2026-10-18 ("cielo"): celeste y blanco con el ámbar de siempre,
+ * cada sección como el inicio (un título y una sola cosa para mirar), sin
+ * subtítulos ni textos grises que repitan. Inicio con rueda de fotos, la
+ * comanda que se escribe en lenguaje natural, el mapa de "va en camino",
+ * la ficha, precios, para trabajar, preguntas, cierre y "oído" grande.
+ * Recorrido y decisiones: docs/historial/2026-10-18-landing-cielo.md.
+ *
+ * El contenido sale entero en el HTML del servidor; las animaciones (rueda,
+ * palabra, comanda, mapa) arrancan en el navegador y se apagan con "reducir
+ * movimiento". Nada se fija al scroll.
  */
 export default function LandingCorta() {
   return (
@@ -26,17 +33,17 @@ export default function LandingCorta() {
     // son tramos, no un tema). globals.css redeclara los tokens claros para
     // este subárbol. `overflow-x-clip` y no `hidden`: `hidden` rompería el
     // encabezado `sticky`.
-    <div data-landing data-theme="light" data-palette="celeste" className="overflow-x-clip bg-background text-ink">
+    <div data-landing data-theme="light" data-palette="celeste" className="overflow-x-clip bg-card text-ink">
       <LandingHeader heroCtaId={HERO_CTA_ID} />
-      <Hero />
-      <ComoFunciona />
+      <HeroRueda />
+      <Comanda />
+      <MapaCamino />
       <Confianza />
       <Precios />
       <ParaTrabajar />
       <Preguntas />
       <Cierre />
       <LandingFooter />
-      <BarraCelular heroCtaId={HERO_CTA_ID} />
     </div>
   );
 }

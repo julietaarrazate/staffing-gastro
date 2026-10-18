@@ -53,3 +53,19 @@ un CRM ni un portal de empleo.
 
 Oído = **disciplina + marketplace + hospitality editorial + personalidad social**,
 con identidad propia.
+
+## La landing: una idea por sección (2026-10-18)
+
+Reglas que Julieta repitió varias veces mientras se armaba la landing
+"cielo" ([historial](../historial/2026-10-18-landing-cielo.md)); valen para
+cualquier pieza de venta:
+
+- **Un título y una sola cosa para mirar** por sección. Si la imagen ya lo
+  dice, el texto sobra.
+- **Sin subtítulos, etiquetas ni textos grises que expliquen lo mismo** que
+  el título o la imagen ("Publicar tu primer turno es gratis", "Para
+  comercios", la bajada debajo de cada paso).
+- **Un solo botón ámbar a la vista.** Nada de barras fijas abajo ni botones
+  por tarjeta compitiendo.
+- **Celeste y blanco con el ámbar de siempre**; lo decorado (el filete de la
+  comanda) va en un solo lugar, a propósito.

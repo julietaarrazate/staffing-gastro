@@ -2,9 +2,10 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, setTheme, skipSplash } from "./mocks";
 
 /**
- * La landing corta (components/landing/). Lo que se fija acá es lo que tiene
- * que valer siempre: qué es y para quién arriba de todo, que los botones
- * lleven al alta correcta, que los títulos no terminen en punto, que los
+ * La landing (components/landing/, "cielo" desde el 2026-10-18). Lo que se
+ * fija acá es lo que tiene que valer siempre: qué es y para quién arriba de
+ * todo, que los botones lleven al alta correcta, que los títulos no terminen
+ * en punto, que la comanda lea un pedido escrito como se habla, que los
  * precios estén aunque el backend no conteste, que las preguntas frecuentes
  * vayan también en datos estructurados, que no haya scroll horizontal a
  * 390px y que con "reducir movimiento" esté todo a la vista.
@@ -42,9 +43,7 @@ async function recorrer(page: Page) {
 test("arriba de todo dice qué es y para quién, con los dos caminos al alta", async ({ page }) => {
   await sinSesion(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    /¿Faltó alguien de tu equipo\?\s*Conseguí un reemplazo en minutos/
-  );
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Encontrá tu");
   const hero = page.locator("#hero-ctas");
   await expect(hero.getByRole("link", { name: "Necesito personal" })).toHaveAttribute(
     "href",
@@ -54,9 +53,9 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
     "href",
     "/register?rol=trabajador"
   );
-  // Sin eyebrow ni bajada (Julieta, 2026-10-12).
-  await expect(page.getByText(/Beta en CABA/)).toHaveCount(0);
-  await expect(page.getByText(/Gratis para empezar/)).toHaveCount(0);
+  // Sin bajada ni textos grises debajo de los botones (Julieta, 2026-10-18).
+  await expect(page.getByText(/Conseguí un reemplazo en minutos/)).toHaveCount(0);
+  await expect(page.getByText(/Publicar tu primer turno es gratis/)).toHaveCount(0);
   // El Navbar de la app no se muestra en "/" sin sesión: la landing trae el
   // suyo, con "Ingresar" y "Crear cuenta" siempre a la vista.
   const header = page.locator("header");
@@ -64,7 +63,7 @@ test("arriba de todo dice qué es y para quién, con los dos caminos al alta", a
   await expect(header.getByRole("link", { name: "Crear cuenta" })).toHaveAttribute("href", "/register");
 });
 
-test("ningún título termina en punto y los pasos son h3", async ({ page }) => {
+test("ningún título termina en punto", async ({ page }) => {
   await sinSesion(page);
   await page.goto("/");
   const titulos = await page
@@ -72,9 +71,6 @@ test("ningún título termina en punto y los pasos son h3", async ({ page }) => 
     .evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
   expect(titulos.length).toBeGreaterThan(6);
   expect(titulos.filter((t) => t.endsWith("."))).toEqual([]);
-  await expect(page.getByRole("heading", { level: 3, name: "Pedí lo que necesitás" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Buscamos quién lo cubra, cerca tuyo" })).toBeAttached();
-  await expect(page.getByRole("heading", { level: 3, name: "Elegís y te confirma" })).toBeAttached();
   // Las tarjetas de ejemplo no suman títulos ni links a perfiles inventados.
   await expect(page.locator('[data-landing] a[href^="/workers/"], [data-landing] a[href^="/companies/"]')).toHaveCount(0);
 });
@@ -96,6 +92,23 @@ test("el encabezado lleva a la sección de quien trabaja y muestra el botón al 
     "href",
     "/register?rol=trabajador"
   );
+});
+
+test("la comanda lee el pedido escrito como se habla", async ({ page }) => {
+  await sinSesion(page);
+  await page.goto("/");
+  const comanda = page.locator("#como");
+  await comanda.scrollIntoViewIfNeeded();
+  const campo = comanda.getByLabel("Tu pedido");
+  await campo.click();
+  await campo.fill("dos bartenders el sábado de 20 a 3, 80 mil");
+  await comanda.getByRole("button", { name: "Pedir" }).click();
+  await expect(comanda.locator("dd")).toHaveText(["2 × Bartender", "Sábado 20:00 – 03:00", "$80.000"]);
+  // Sin puesto no imprime: pide que lo diga.
+  await campo.fill("hola, necesito alguien");
+  await campo.press("Enter");
+  await expect(comanda.getByRole("status")).toContainText("Decí qué puesto necesitás");
+  await expect(comanda.locator("dd").first()).toHaveText("2 × Bartender");
 });
 
 test("las preguntas frecuentes también van como datos estructurados", async ({ page }) => {
@@ -153,10 +166,8 @@ test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ p
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$20.000");
   await expect(precios).toContainText("$45.000");
-  await expect(precios.getByRole("link", { name: "Publicar un turno gratis" })).toHaveAttribute(
-    "href",
-    "/register?rol=comercio"
-  );
+  // Desde el 2026-10-18 los planes no llevan botón propio, pero sí lo que suman.
+  await expect(precios).toContainText("Soporte por email");
 });
 
 test("con el tema oscuro elegido, la landing mantiene su paleta propia", async ({ page }) => {
@@ -164,14 +175,12 @@ test("con el tema oscuro elegido, la landing mantiene su paleta propia", async (
   await sinSesion(page);
   await page.goto("/");
   // La app sí se oscurece (data-theme="dark" en <html>); la landing fija la
-  // suya, porque su contraste de tramos (noche, ámbar, marca) ya es el diseño.
-  // La paleta celeste en previsualización cambia sólo lo que era violeta:
-  // el lienzo sigue en #f3f3f3.
+  // suya: blanco con cielo celeste y el ámbar de siempre (2026-10-18).
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const fondo = await page
     .locator("[data-landing]")
     .evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(fondo).toBe("rgb(243, 243, 243)");
+  expect(fondo).toBe("rgb(255, 255, 255)");
 });
 
 const IPHONE_UA =
@@ -217,17 +226,6 @@ test.describe("instalar en Android", () => {
     // Instalada, la pregunta lo dice en vez de mostrar pasos.
     await expect(instalar).toContainText("Ya tenés Oído instalada");
   });
-
-  test("la barra de abajo aparece al pasar el botón del inicio", async ({ page }) => {
-    await sinSesion(page);
-    await page.goto("/");
-    const barra = page.getByRole("link", { name: "Necesito personal" }).and(page.locator('[data-cta="barra"]'));
-    await expect(barra).not.toBeInViewport();
-    await page.evaluate(() => document.getElementById("como-funciona")?.scrollIntoView());
-    await expect(barra).toBeInViewport();
-    // Sin aviso del navegador para instalar, la barra lleva un solo botón.
-    await expect(page.locator('[data-cta="barra-instalar"]')).toHaveCount(0);
-  });
 });
 
 test("abierta desde el ícono instalado y sin sesión, muestra la landing con Ingresar y Crear cuenta", async ({ page }) => {
@@ -238,7 +236,7 @@ test("abierta desde el ícono instalado y sin sesión, muestra la landing con In
       q === "(display-mode: standalone)" ? ({ ...original(q), matches: true } as MediaQueryList) : original(q);
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("¿Faltó alguien de tu equipo?");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Encontrá tu");
   await page.waitForTimeout(500);
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator("header").getByRole("link", { name: "Ingresar" })).toBeVisible();
@@ -251,12 +249,12 @@ test.describe("con reducir movimiento", () => {
   test("todo está a la vista desde el principio, sin nada fijado al scroll", async ({ page }) => {
     await sinSesion(page);
     await page.goto("/");
-    await expect(page.getByText("Perdón, hoy no llego.")).toBeVisible();
-    await expect(page.getByText("Lucía confirmó tu turno de las 21")).toBeVisible();
+    // La comanda ya impresa y el mapa en su final ("va en camino").
+    await expect(page.locator("#como dd").first()).toHaveText("Mozo/a");
+    await expect(page.getByText("Lucía va en camino")).toBeAttached();
     // Ningún bloque queda esperando su entrada.
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "¡Oído!" })).toBeAttached();
     // Ninguna sección queda fijada (el único `sticky` es el encabezado).
     const sticky = await page.evaluate(
       () =>
