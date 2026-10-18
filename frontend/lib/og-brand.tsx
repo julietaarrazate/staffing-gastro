@@ -5,13 +5,13 @@ import { ImageResponse } from "next/og";
 /**
  * La imagen que acompaña un link de Oído al compartirlo (WhatsApp, Slack, X).
  * Generada desde el código y no un PNG entero commiteado: si cambia la marca,
- * se cambia acá (colores y textos de abajo), el SVG de `public/logo-mark.svg`
- * o el filete de `assets/og/filete-oido.png`.
+ * se cambia acá (colores y textos de abajo) o el filete de
+ * `assets/og/filete-oido.png`.
  *
- * Desde el 2026-10-18 sigue a la landing "cielo": el isotipo, la palabra
- * "oído" fileteada (la misma de `components/landing/Filete.tsx`, guardada
+ * Desde el 2026-10-18 sigue a la landing "cielo": la palabra "oído" fileteada (la misma de `components/landing/Filete.tsx`, guardada
  * como PNG porque satori no dibuja texto dentro de un SVG) y el tagline,
- * sobre el cielo celeste. Todo centrado: hasta el 2026-10-05 era apaisada
+ * sobre el cielo celeste. Sin el isotipo (Julieta): el ícono ya lo muestra la
+ * app y su ámbar competía con el del filete. Todo centrado: hasta el 2026-10-05 era apaisada
  * con el logo a la izquierda y una tarjeta de turno a la derecha, y en
  * WhatsApp se veía como "un pedazo recortado del ticket": WhatsApp la
  * mostraba como miniatura cuadrada recortando el centro, que caía justo
@@ -35,19 +35,16 @@ export { OG_ALT, OG_SQUARE, OG_WIDE } from "./og";
 
 export async function renderBrandImage(size: { width: number; height: number }) {
   const root = process.cwd();
-  const [inter, logo, filete] = await Promise.all([
+  const [inter, filete] = await Promise.all([
     readFile(join(root, "assets/og/Inter-SemiBold.ttf")),
-    readFile(join(root, "public/logo-mark.svg"), "utf8"),
     readFile(join(root, "assets/og/filete-oido.png")),
   ]);
-  const logoSrc = `data:image/svg+xml;base64,${Buffer.from(logo).toString("base64")}`;
   const fileteSrc = `data:image/png;base64,${filete.toString("base64")}`;
 
   // Todo escala con el lado corto: el mismo diseño entra en 1200×1200 y en
   // 1200×630 sin tocar nada más.
   const u = Math.min(size.width, size.height) / 100;
-  const logoSize = Math.round(u * 15);
-  const fileteAncho = Math.round(u * 84);
+  const fileteAncho = Math.round(u * 90);
 
   return new ImageResponse(
     (
@@ -66,20 +63,12 @@ export async function renderBrandImage(size: { width: number; height: number }) 
         }}
       >
         <img
-          src={logoSrc}
-          width={logoSize}
-          height={logoSize}
-          alt=""
-          style={{ borderRadius: logoSize * 0.215, boxShadow: "0 16px 48px rgba(20,69,106,0.22)" }}
-        />
-        <img
           src={fileteSrc}
           width={fileteAncho}
           height={Math.round(fileteAncho * FILETE_ALTO)}
           alt=""
-          style={{ marginTop: Math.round(u * 3) }}
         />
-        <div style={{ display: "flex", fontSize: Math.round(u * 5), marginTop: Math.round(u * 3) }}>
+        <div style={{ display: "flex", fontSize: Math.round(u * 5.4), marginTop: Math.round(u * 3) }}>
           {TAGLINE}&nbsp;<span style={{ color: AMBAR_TEXTO }}>{TAGLINE_ACENTO}</span>
         </div>
       </div>

@@ -6,7 +6,7 @@ porteño".
 
 **Qué cambió:** la imagen que sale al compartir un link de Oído (WhatsApp,
 Facebook, iMessage, X). Antes: isotipo, "oído" en Fraunces y el tagline sobre
-crema. Ahora: el isotipo, la palabra "oído" fileteada de la landing (letras
+crema. Ahora, sin el isotipo: la palabra "oído" fileteada de la landing (letras
 crema y doradas, relieve ámbar, volutas, hojas celestes y flores) y
 "Personal gastronómico, ya." sobre el cielo celeste de la landing. Sigue
 todo centrado, así que el recorte cuadrado de WhatsApp la conserva entera.
