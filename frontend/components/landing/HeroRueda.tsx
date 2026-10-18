@@ -113,7 +113,7 @@ export default function HeroRueda() {
       <div className="relative z-[2]">
         <h1
           id="hero-titulo"
-          className="font-display text-[clamp(3.25rem,6.6vw,6rem)] font-semibold leading-[0.95] tracking-[-0.045em] text-ink"
+          className="font-display text-[clamp(3.25rem,6.6vw,6rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink"
         >
           <span className="block">Encontrá tu</span>
           <span className="sr-only">mozo, bartender, bachero o cocinero</span>

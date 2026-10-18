@@ -367,12 +367,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Tipografía (todas libres): Bricolage Grotesque para títulos de pantalla
-     (font-display, desde el 2026-10-12); Fraunces sólo para el wordmark
+  /* Tipografía (todas libres): Schibsted Grotesk para títulos de pantalla
+     (font-display, desde el 2026-10-18); Fraunces sólo para el wordmark
      (font-serif); Inter para texto y encabezados de sección; DM Mono cargada
      para datos (los precios no la usan, decisión de Julieta). */
   --font-sans: var(--font-inter);
-  --font-display: var(--font-bricolage);
+  --font-display: var(--font-schibsted);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-dm-mono);
 }
@@ -1040,11 +1040,11 @@ body:has([data-landing]) main {
 .landing-h2 {
   max-width: 16ch;
   margin-inline: auto;
-  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-weight: 600;
   font-size: clamp(2.25rem, 4.8vw, 4rem);
   line-height: 0.95;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.035em;
   color: var(--color-ink);
   text-wrap: balance;
 }
@@ -1586,7 +1586,7 @@ body:has([data-landing]) main {
 }
 .landing-mapa-eta {
   margin-left: auto;
-  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
   font-size: 26px;
   letter-spacing: -0.03em;

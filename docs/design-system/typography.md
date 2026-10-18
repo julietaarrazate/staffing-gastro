@@ -7,12 +7,23 @@ paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
 
 | Familia | Rol | Token / utilidad |
 |---|---|---|
-| **Bricolage Grotesque** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing | `--font-bricolage` → `font-display` |
+| **Schibsted Grotesk** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing | `--font-schibsted` → `font-display` |
 | **Fraunces** (serif) | Sólo el wordmark "oído" (logo) | `--font-fraunces` → `font-serif` |
 | **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
 | **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 
-## Cambio de títulos a Bricolage Grotesque (2026-10-12)
+## Cambio de títulos a Schibsted Grotesk (2026-10-18)
+
+Julieta veía Bricolage Grotesque "muy infantil para Oído", sobre todo al lado
+del filete porteño de la landing, y además es la fuente de títulos de Pasito.
+Se compararon Inter Tight, Schibsted Grotesk, Instrument Sans, Hanken Grotesk
+y Geist; quedó **Schibsted Grotesk** (libre, OFL): firme y con algo de cartel
+o diario, sin el tono lúdico. Mismo rol que Bricolage, `font-display`; el
+texto, los datos y el wordmark no cambian. Los titulares grandes de la
+landing aflojan el espaciado de `-0.045em` a `-0.035em` porque las letras se
+tocaban.
+
+## Cambio de títulos a Bricolage Grotesque (2026-10-12, reemplazado)
 
 Julieta sentía que Fraunces con Inter daba una sensación genérica, de
 plantilla. Comparó cuatro combinaciones gratuitas y eligió **Bricolage
