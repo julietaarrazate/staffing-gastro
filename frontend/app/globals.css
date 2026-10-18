@@ -1394,16 +1394,10 @@ body:has([data-landing]) main {
 }
 .landing-cinta-svg {
   display: block;
-  width: 210px;
+  width: 270px;
   max-width: 100%;
   height: auto;
-  transform: rotate(-6deg);
-}
-.landing-cinta-texto {
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-style: italic;
-  font-weight: 600;
-  font-size: 30px;
+  transform: rotate(-4deg);
 }
 .landing-comanda-pie {
   margin-top: 22px;
@@ -1453,11 +1447,11 @@ body:has([data-landing]) main {
 @keyframes landingCinta {
   from {
     opacity: 0;
-    transform: rotate(-6deg) scale(2.2);
+    transform: rotate(-4deg) scale(2.2);
   }
   to {
     opacity: 1;
-    transform: rotate(-6deg) scale(1);
+    transform: rotate(-4deg) scale(1);
   }
 }
 @keyframes landingAparecer {
@@ -1600,25 +1594,16 @@ body:has([data-landing]) main {
   font-variant-numeric: tabular-nums;
 }
 
-/* El final: "oído" grande sobre el cielo y el pie en el mismo celeste. */
+/* El final: "oído" grande y fileteado sobre el cielo y el pie en el mismo celeste. */
 .landing-firma {
-  position: relative;
-  height: clamp(190px, 33vw, 450px);
-  overflow: hidden;
+  padding: clamp(24px, 5vw, 56px) max(16px, env(safe-area-inset-left, 0px)) 8px;
   background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 60%, var(--color-secondary-strong) 100%);
 }
-.landing-firma span {
-  position: absolute;
-  left: 50%;
-  bottom: -0.13em;
-  transform: translateX(-50%);
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-weight: 600;
-  font-size: clamp(170px, 34vw, 460px);
-  line-height: 1;
-  letter-spacing: -0.035em;
-  white-space: nowrap;
-  color: var(--color-ink);
+.landing-firma svg {
+  display: block;
+  width: min(1000px, 100%);
+  height: auto;
+  margin: 0 auto;
 }
 .landing-pie-fila {
   display: flex;

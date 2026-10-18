@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { leerPedido } from "@/lib/pedido-natural";
 import { cn } from "@/lib/cn";
+import Filete from "./Filete";
 
 /**
  * "Pedilo como lo dirías" (2026-10-18): el pedido se escribe como se habla,
- * sale impreso en una comanda y cae la cinta "¡Oído!", lo que se contesta en
+ * sale impreso en una comanda y cae "¡Oído!" fileteado, lo que se contesta en
  * la cocina cuando entra una comanda. Es el momento de marca de la página:
- * banda de cielo, papel blanco, volutas y guarda de filete porteño (lo único
- * decorado de la landing, a propósito).
+ * banda de cielo, papel blanco, volutas y guarda de filete porteño (con el
+ * "oído" del final, lo único decorado de la landing, a propósito).
  *
  * Se escribe sola la primera vez que aparece; si la persona toca el renglón,
  * escribe lo suyo y la comanda se imprime con eso. Lo lee
@@ -35,23 +36,6 @@ function Voluta({ derecha }: { derecha?: boolean }) {
       <path d="M14 44c6-10 16-13 21-11-6 4-12 9-21 11z" fill="var(--color-secondary)" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
       <path d="M9 53c6-5 13-5 15-1 1 3-3 5-5 2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <circle cx="48" cy="20" r="2.4" fill="var(--color-primary)" />
-    </svg>
-  );
-}
-
-function Cinta() {
-  return (
-    <svg aria-hidden viewBox="0 0 240 70" className="landing-cinta-svg">
-      <path d="M8 18h28v34H8l10-17z" fill="#14456a" />
-      <path d="M232 18h-28v34h28l-10-17z" fill="#14456a" />
-      <path d="M30 10h180v42H30z" fill="var(--color-secondary-text)" />
-      <path d="M30 10h180M30 52h180" stroke="var(--color-secondary-strong)" strokeWidth="2" />
-      <text x="120" y="42" dx="1.5" dy="1.5" textAnchor="middle" className="landing-cinta-texto" fill="var(--color-secondary)">
-        ¡Oído!
-      </text>
-      <text x="120" y="42" textAnchor="middle" className="landing-cinta-texto" fill="#fff">
-        ¡Oído!
-      </text>
     </svg>
   );
 }
@@ -219,7 +203,7 @@ export default function Comanda() {
             </div>
           </dl>
           <div className="landing-cinta">
-            <Cinta />
+            <Filete palabra="¡Oído!" tam="cinta" className="landing-cinta-svg" />
           </div>
           <p className="landing-comanda-pie">Avisado a 10 cerca tuyo</p>
           <div aria-hidden className="landing-guarda" />

@@ -48,7 +48,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 
 | Ruta | Qué es |
 |---|---|
-| `/` | Landing sin sesión, "cielo" desde el 2026-10-18 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda`, `Comanda` con `lib/pedido-natural.ts`, `MapaCamino`, `Confianza`, `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
+| `/` | Landing sin sesión, "cielo" desde el 2026-10-18 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda`, `Comanda` con `lib/pedido-natural.ts`, `MapaCamino`, `Confianza`, `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; el filete de "oído" en `Filete.tsx`; estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
 | `/historia` | La landing anterior, "la historia de un turno" (`components/landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Guardada para grabar reels; sin indexar, sin Navbar ni BottomNav |
 | `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register`; anti-robots en `TurnstileWidget` (`lib/turnstile.ts`, apagado sin clave) |
 | `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |

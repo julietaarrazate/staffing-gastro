@@ -13,7 +13,7 @@ repo tal cual.
    subtítulo: el título y los dos caminos. `HeroRueda.tsx`.
 2. **"Pedilo como lo dirías":** un renglón para escribir el pedido como se
    habla; al tocar "Pedir" sale impresa una comanda (puesto, cuándo, paga) y
-   cae la cinta "¡Oído!". Es el momento de marca: banda de cielo, impresora,
+   cae "¡Oído!" fileteado. Es el momento de marca: banda de cielo, impresora,
    volutas y guarda de filete porteño. Se escribe sola la primera vez.
    `Comanda.tsx` + `lib/pedido-natural.ts` (lector en el navegador, con test;
    es una demostración, el pedido real lo lee la IA de `/shifts/parse-text`).
@@ -30,8 +30,8 @@ repo tal cual.
    ve el trabajador y un solo botón.
 7. **Preguntas frecuentes:** sin "¿Cuánto cuesta?" (los precios están
    arriba); la de instalar sigue con `InstalarPasos`.
-8. **Cierre** en claro, igual que el inicio, y **"oído" grande** sobre el
-   cielo con el pie (links y firma) debajo, en el mismo celeste.
+8. **Cierre** en claro, igual que el inicio, y **"oído" grande y fileteado**
+   sobre el cielo con el pie (links y firma) debajo, en el mismo celeste.
 
 En pantallas anchas, Confianza, Para trabajar y Preguntas ponen el título al
 costado (`.landing-sec-dos`); en el celular todo va centrado.
@@ -59,7 +59,12 @@ anterior. Fondo de la landing en blanco (`bg-card`). E2E de
   palabra que cambia.
 - **La comanda y no un celular:** el celular con la app quedaba chico y no
   entraba en la pantalla; la comanda cuenta el nombre ("¡oído!" es lo que se
-  contesta en la cocina) y es propia. El filete porteño va sólo ahí.
+  contesta en la cocina) y es propia.
+- **Filete porteño sólo en la palabra "oído"** (`Filete.tsx`): Julieta mandó
+  carteles de referencia ("Pase y vea", "Corazón de tango", "Argentina"). Un
+  cartel entero dentro de la comanda quedaba raro; quedó la palabra como en
+  "Pase y vea" (letras crema y doradas, relieve ámbar, volutas, hojas
+  celestes y flores) en la cinta de la comanda y en el "oído" del final.
 - **Se descartó:** la noche atada al scroll (cortaba el lenguaje claro), los
   personajes de gelatina para arrastrar, el vidrio y la burbuja, la grilla
   de mosaicos con una cita inventada y el mapa de puntos (muy parecido al de
@@ -90,6 +95,3 @@ CC0, vía Openverse:
   ver profesional.
 - **Prueba de gente real** (una cita corta de un local, con nombre) cuando
   haya locales usando Oído.
-- **El filete de la comanda:** Julieta mandó referencias de fileteado porteño
-  (carteles "Pase y vea", "Corazón de tango" y "Argentina") para llevarlo
-  más lejos.

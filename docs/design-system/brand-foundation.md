@@ -67,5 +67,6 @@ cualquier pieza de venta:
   comercios", la bajada debajo de cada paso).
 - **Un solo botón ámbar a la vista.** Nada de barras fijas abajo ni botones
   por tarjeta compitiendo.
-- **Celeste y blanco con el ámbar de siempre**; lo decorado (el filete de la
-  comanda) va en un solo lugar, a propósito.
+- **Celeste y blanco con el ámbar de siempre**; lo decorado es el filete
+  porteño estilo "Pase y vea" (`components/landing/Filete.tsx`) y va sólo en
+  la palabra: el "¡Oído!" de la comanda y el "oído" del final.

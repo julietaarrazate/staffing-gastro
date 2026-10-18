@@ -1,12 +1,13 @@
 import Link from "next/link";
+import Filete from "./Filete";
 
-/** El final: "oído" grande sobre el cielo y, debajo, en el mismo celeste,
+/** El final: "oído" grande y fileteado sobre el cielo y, debajo, en el mismo celeste,
  *  los links y la firma (2026-10-18). Los links de registro van con su rol. */
 export default function LandingFooter() {
   return (
     <footer className="landing-pie">
-      <div aria-hidden className="landing-firma">
-        <span>oído</span>
+      <div className="landing-firma">
+        <Filete palabra="oído" tam="firma" />
       </div>
       <div className="landing-pie-fila">
         <nav aria-label="Pie" className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm lg:justify-start">

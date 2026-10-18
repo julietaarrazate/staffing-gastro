@@ -59,8 +59,7 @@ Revisado contra el código y los PRs el 2026-10-03.
    rueda del inicio y la oferta usan fotos de banco (dominio público/CC0,
    de otros países); hay que reemplazarlas por fotos de locales porteños
    (`frontend/public/landing/`). Cuando haya locales usando Oído, sumar una
-   cita corta con nombre. Julieta mandó referencias de fileteado para llevar
-   más lejos la comanda. Detalle en
+   cita corta con nombre. Detalle en
    [`historial/2026-10-18-landing-cielo.md`](./historial/2026-10-18-landing-cielo.md).
 5. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
