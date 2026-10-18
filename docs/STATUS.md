@@ -41,7 +41,7 @@ Revisado contra el código y los PRs el 2026-10-03.
 2. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
    (pedido de Julieta, 2026-10-06; sin arrancar). La referencia era la
    landing "la historia de un turno" (#405), reemplazada el 2026-10-12 por
-   la landing corta; sigue viva en `/historia` para grabar reels, con su
+   la landing corta y el 2026-10-18 por la landing "cielo"; sigue viva en `/historia` para grabar reels, con su
    motor de escena en `components/landing/story/useStage.ts`. La trampa de motion 13
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
@@ -49,29 +49,37 @@ Revisado contra el código y los PRs el 2026-10-03.
 3. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
    direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
    que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
-   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Contexto:
+   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Desde el
+   2026-10-18 la landing la usa: celeste y blanco con el ámbar, y una comanda
+   con filete porteño que se canta "¡Oído!". Contexto:
    [`historial/ARCHIVO…`](./historial/ARCHIVO-2026-07-a-2026-10-03.md), sección
    "Ideas de la competencia (2026-10-02)", y
    [`design-system/brand-foundation.md`](./design-system/brand-foundation.md).
-4. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
+4. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
+   rueda del inicio y la oferta usan fotos de banco (dominio público/CC0,
+   de otros países); hay que reemplazarlas por fotos de locales porteños
+   (`frontend/public/landing/`). Cuando haya locales usando Oído, sumar una
+   cita corta con nombre. Detalle en
+   [`historial/2026-10-18-landing-cielo.md`](./historial/2026-10-18-landing-cielo.md).
+5. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
-5. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
+6. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
    abril de 2027). **Vercel ya corre 24.x** (visto en la config del
    proyecto el 2026-10-10), así que hoy CI prueba con una versión distinta
    de la que corre en producción. Faltan `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-6. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
+7. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
    ADR-0005): `/subscription` necesita botón de baja y de arrepentimiento,
    que los términos ya prometen por mail o soporte.
-7. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
+8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
    tráfico real.
-8. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
+9. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
    (#416), las carreras sobre el turno más la idempotencia (#417) y el token
    de sesión del frontend ("Va en camino", formularios que se recargaban,
    401 sin reintento, #419), Google sobre cuenta sin verificar y
@@ -81,7 +89,7 @@ Revisado contra el código y los PRs el 2026-10-03.
    así que es global; falta confirmar qué header de IP es confiable en
    Render antes de tocarlo, ver el historial de autenticación); después, los
    de dominio y los menores.
-9. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
+10. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
    beta comercial (Vercel Hobby no permite uso comercial; ADR-0017,
    propuesto). Etapa 1, prueba de compatibilidad: hecha (#428). Etapa 2,
    auditoría de seguridad del frontend publicado: hecha; lo chico se arregló

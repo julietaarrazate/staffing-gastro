@@ -1,18 +1,15 @@
-import { formatArs } from "@/lib/format";
-import { RESPALDO } from "./planes";
 
 /**
  * Preguntas frecuentes de la landing. Una sola lista para la sección y para
  * los datos estructurados (`FAQPage` en app/page.tsx), así lo que lee Google
  * es lo mismo que lee la persona.
  *
- * Sólo van respuestas que el producto ya cumple. Quedan afuera hasta tenerlas
+ * "¿Cuánto cuesta?" salió el 2026-10-18: los precios están justo arriba, en
+ * su sección. Sólo van respuestas que el producto ya cumple. Quedan afuera hasta tenerlas
  * validadas: quién es el empleador y si hace falta monotributo (asesoría
  * legal) y el medio de pago recomendado (auditoría de la landing,
  * 2026-10-12).
  */
-const gratis = RESPALDO.find((p) => p.code === "gratis");
-const desde = Math.min(...RESPALDO.filter((p) => Number(p.price_ars) > 0).map((p) => Number(p.price_ars)));
 
 export const PREGUNTA_INSTALAR = "¿Cómo la bajo al celular?";
 
@@ -20,10 +17,6 @@ export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
   {
     pregunta: "¿En qué zonas funciona?",
     respuesta: "Por ahora en la Ciudad de Buenos Aires.",
-  },
-  {
-    pregunta: "¿Cuánto cuesta?",
-    respuesta: `Publicar es gratis hasta ${gratis?.max_turnos_mes ?? 3} turnos por mes. Después hay planes desde ${formatArs(desde)} por mes. No cobramos comisión por turno.`,
   },
   {
     pregunta: "¿Cómo le pago a quien trabaja?",
