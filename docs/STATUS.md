@@ -105,12 +105,9 @@ Revisado contra el código y los PRs el 2026-10-03.
    **Etapa 5, cambio de DNS: hecho el 2026-10-19.** `www.oido.com.ar` y
    `oido.com.ar` los sirve el Worker en Workers Paid
    ([`historial/2026-10-19-etapa5-dns-a-cloudflare.md`](./historial/2026-10-19-etapa5-dns-a-cloudflare.md)).
-   Quedan:
-   - unos días de Vercel como respaldo, y después pausarlo con el "sí" de
-     Julieta;
-   - sacar Vercel de `/privacidad` (sube `LEGAL_TERMS_VERSION`), de
-     `CORS_ORIGINS` y de los orígenes de Google;
-   - el comodín `*` del DNS, que todavía apunta a Vercel.
+   Vercel quedó retirado el mismo día
+   ([`historial/2026-10-19-chau-vercel.md`](./historial/2026-10-19-chau-vercel.md)).
+   Queda sólo el HSTS de la zona, en unas semanas.
 
    Detalle en
    [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)

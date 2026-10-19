@@ -50,7 +50,7 @@ services:
       # 2026-10-19). Este valor es fijo: si se cambia sólo en el dashboard, la
       # próxima sincronización del Blueprint lo pisa.
       - key: CORS_ORIGINS
-        value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar,https://oido-frontend.julietaarrazate.workers.dev
+        value: https://oido.com.ar,https://www.oido.com.ar,https://oido-frontend.julietaarrazate.workers.dev
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente, y
       # desde 2026-09-22 repone los turnos demo que ya pasaron).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
@@ -92,6 +92,10 @@ services:
       # "Oído <hola@tudominio.com>".
       - key: EMAIL_FROM
         sync: false
+      # Base de los links de los mails (verificar email, restablecer
+      # contraseña, turnos). Antes caía en el default de Vercel.
+      - key: FRONTEND_URL
+        value: https://www.oido.com.ar
       # --- Interpretación por IA (Gemini) ---
       # Sin esta clave, `POST /shifts/parse-text` y los dos asistentes
       # responden 503 y la app cae a "completá los datos a mano". Se declara
