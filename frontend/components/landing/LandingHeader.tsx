@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { LogoMark } from "@/components/Logo";
+import Filete from "./Filete";
 import { useHeroAtras } from "./useHeroAtras";
 
 /**
@@ -24,9 +24,11 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-line/70 bg-card/80 backdrop-blur-xl backdrop-saturate-150">
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
-        <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center gap-2">
-          <LogoMark size={28} />
-          <span className="font-serif text-xl font-semibold tracking-tight text-ink">oído</span>
+        {/* La marca es una sola (2026-10-19): el "oído" fileteado de la
+            miniatura y del final, acá sin adornos. El isotipo queda como
+            ícono de la app (pantalla de inicio, pestaña del navegador). */}
+        <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center">
+          <Filete palabra="oído" tam="marca" className="h-9 w-auto sm:h-11" />
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-1 text-sm font-semibold">
           <Link

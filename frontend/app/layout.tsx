@@ -3,6 +3,7 @@ import { Inter, Fraunces, Schibsted_Grotesk, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { PushPromptProvider } from "@/lib/push-prompt-context";
 import { ToastProvider } from "@/components/ui";
 import SplashScreen from "@/components/SplashScreen";
@@ -85,7 +86,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#d97706",
+  // Blanca como el encabezado; `lib/theme.tsx` la pasa a la noche azul en
+  // oscuro. Hasta el 2026-10-19 era el ámbar, y pintaba de naranja la barra
+  // del celular en toda la app.
+  themeColor: THEME_COLOR_LIGHT,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
