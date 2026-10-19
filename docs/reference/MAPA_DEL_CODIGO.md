@@ -89,6 +89,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Pin desplazado del trabajador | `fuzz_point` en `backend/app/core/geo.py` |
 | Fechas de negocio en hora argentina | `backend/app/core/tz.py` |
 | Backend sólo por Cloudflare + IP real | `backend/app/core/edge.py` (`EDGE_SHARED_SECRET`, `client_ip`) |
+| Entrada del Worker del frontend y caché de `/turno/[id]` | `frontend/cloudflare/worker.mjs`, `frontend/cloudflare/turno-cache.mjs` |
 | Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
