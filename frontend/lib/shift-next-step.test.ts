@@ -23,6 +23,12 @@ describe("nextStepFor", () => {
     }
   });
 
+  it("publicado, buscando y cancelado no repiten en texto lo que ya dice el chip", () => {
+    for (const status of ["publicado", "buscando_personal", "cancelado"] as const) {
+      expect(nextStepFor(withStatus(status)).hint).toBe("");
+    }
+  });
+
   it("check_out pide cerrar el turno, finalizado pide marcar como pagado", () => {
     expect(nextStepFor(withStatus("check_out")).action).toBe("finish");
     expect(nextStepFor(withStatus("finalizado")).action).toBe("markPaid");

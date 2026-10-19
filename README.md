@@ -27,34 +27,11 @@ operativas. La visión completa del producto está en [`docs/foundation/PRODUCT.
 
 ## Estado actual
 
-**Fase 1 — Completa** ✅:
-- ✅ `identity`: registro, login, JWT + refresh tokens, roles.
-- ✅ `worker` / `company`: Perfiles de Trabajador y Comercio.
-- ✅ `shift`: Publicación de turnos (ciclo de vida del turno + feed).
-
-**Fase 2 — En progreso** 🚧:
-- ✅ `matching`: motor de scoring (distancia, experiencia, reputación, puntualidad,
-  historial de desempeño) y top de candidatos recomendados por turno.
-- ✅ Asignación de turnos: el comercio asigna un candidato, el trabajador confirma
-  o rechaza (`asignado` → `confirmado` / vuelve a `buscando_personal`).
-- ✅ Frontend web (Next.js): login/registro, perfiles, feed de turnos con tarjetas,
-  publicación de turnos, vista de candidatos y asignación, panel del trabajador
-  para confirmar/rechazar turnos asignados.
-- ✅ Notificaciones in-app: asignación, confirmación, rechazo, check-out y pago de turnos.
-- ✅ Asistencia geolocalizada: en_camino → check-in (con ubicación) → trabajando →
-  check-out (con ubicación) → finalizado → pagado.
-- ✅ Chat trabajador↔comercio por turno (inbox + conversación con burbujas).
-- ✅ Suscripción mensual del comercio (planes, gating de publicación).
-- ✅ PWA instalable + notificaciones push (Web Push/VAPID).
-- ✅ Acceso con Google (Google Identity Services) además de email+contraseña.
-- ✅ Fotos de perfil/logo vía Cloudinary.
-- ✅ Observabilidad: logging estructurado + Sentry (ambos opcionales por env var).
-- ⬜ Pagos reales del turno comercio→trabajador (hoy `mark-paid` sólo registra
-  que el comercio pagó, no procesa el cobro; existe integración con Mercado
-  Pago para la suscripción mensual, Fase 1 de ADR-0005).
-- ✅ Despliegue (Render + Vercel + Neon), con CI en GitHub Actions.
-
-Ver el estado completo en [`docs/`](./docs/).
+En producción en [oido.com.ar](https://oido.com.ar), lista para la beta
+cerrada en Palermo. Qué está abierto hoy: [`docs/STATUS.md`](./docs/STATUS.md).
+Qué pantalla hace qué y dónde vive cada pieza:
+[`docs/reference/MAPA_DEL_CODIGO.md`](./docs/reference/MAPA_DEL_CODIGO.md).
+Cómo se trabaja en el repo: [`CLAUDE.md`](./CLAUDE.md).
 
 ## Arranque rápido
 
@@ -77,7 +54,7 @@ Para desarrollo local del frontend ver [`frontend/README.md`](./frontend/README.
   Cloudinary (imágenes), Mercado Pago (suscripción), Google Identity Services
   (login), Web Push/VAPID (notificaciones), Resend (email transaccional)
 - **Mobile (futuro):** React Native
-- **Infra:** Docker · Render · Vercel · Neon · GitHub Actions (CI) · Cloudflare (dominio propio, futuro)
+- **Infra:** Docker · Render · Vercel · Neon · GitHub Actions (CI) · dominio `oido.com.ar` en Vercel
 
 > `docker-compose.yml` incluye imágenes de Redis y PostGIS para desarrollo
 > local, pero **el código no las usa hoy** (rate limiting en memoria, sin

@@ -111,7 +111,7 @@ Aplicado al modelo **Claim/Evidence** ([TRUST_SYSTEM.md §3](../TRUST_SYSTEM.md)
   públicos permanentes.
 - **Borrado real** del asset (no sólo olvidar la URL): requiere API firmada del
   storage (p. ej. Cloudinary `api_secret`) — **tarea de la operadora**, hoy
-  pendiente (ver `CLAUDE.md`, "Pendiente de la operadora").
+  pendiente (ver `docs/reference/PENDIENTE_OPERATIVO.md`).
 - **Consentimiento y transparencia**: informar qué se pide, para qué, cuánto se
   guarda y cómo se borra; registrar el consentimiento.
 

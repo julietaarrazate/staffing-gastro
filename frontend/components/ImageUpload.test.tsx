@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ImageUpload from "./ImageUpload";
 
 vi.mock("@/lib/cloudinary", () => ({ uploadImage: vi.fn() }));
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
 vi.mock("@/components/ImageCropModal", () => ({ default: () => null }));
 
 /**
@@ -41,11 +42,37 @@ describe("ImageUpload sin foto", () => {
     expect(container.querySelector(".absolute.bottom-0.right-0")).not.toBeNull();
   });
 
-  it("con foto cargada mantiene la misma insignia, no otro patrón", () => {
+  it("con foto cargada no dibuja la cámara encima", () => {
+    // Julieta, 2026-09-27: con la foto ya subida, la insignia de cámara
+    // quedaba mordida por el círculo y se leía como una mancha sobre la cara.
+    // Cambiarla sigue siendo tocar la foto (lo dice el `aria-label`).
     const { container } = render(
       <ImageUpload value="https://x/foto.jpg" onChange={() => {}} fallbackLabel="Julieta A." />
     );
     expect(container.querySelector("img")).not.toBeNull();
-    expect(container.querySelector(".absolute.bottom-0.right-0")).not.toBeNull();
+    expect(container.querySelector(".absolute.bottom-0.right-0")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cambiar foto de perfil" })).toBeInTheDocument();
+  });
+
+  it("la insignia no queda adentro del círculo que recorta", () => {
+    const { container } = render(
+      <ImageUpload value={null} onChange={() => {}} fallbackLabel="Julieta A." avatar />
+    );
+    const badge = container.querySelector(".absolute.bottom-0.right-0");
+    expect(badge).not.toBeNull();
+    expect(badge!.closest(".overflow-hidden")).toBeNull();
+  });
+});
+
+describe("ImageUpload con una foto que no carga", () => {
+  it("vuelve a la inicial en vez de dibujar el nombre en letra gigante", () => {
+    const { container } = render(
+      <ImageUpload value="https://ejemplo.invalid/rota.jpg" onChange={() => {}} fallbackLabel="Lucas Fernández" />
+    );
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+    fireEvent.error(img!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cambiar foto de perfil" })).toHaveTextContent("L");
   });
 });

@@ -16,7 +16,8 @@ from app.modules.application.domain.exceptions import (
     ShiftNotApplicableError,
 )
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
-from app.modules.shift.api.schemas import ShiftResponse
+from app.modules.shift.api.schemas import ShiftResponse, without_worker_data
+from app.modules.shift.domain.entities import Shift
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -107,10 +108,21 @@ async def my_applications(
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
             created_at=application.created_at,
-            shift=ShiftResponse.model_validate(shift) if shift is not None else None,
+            shift=_shift_for_applicant(shift, worker_profile_id),
         )
         for application, shift in enriched
     ]
+
+
+def _shift_for_applicant(shift: Shift | None, worker_profile_id: UUID) -> ShiftResponse | None:
+    """Postularse no te hace parte del turno: si lo tomó otro, el postulante
+    no ve quién ni dónde está (su postulación rechazada sigue en la lista)."""
+    if shift is None:
+        return None
+    response = ShiftResponse.model_validate(shift)
+    if shift.worker_profile_id != worker_profile_id:
+        return without_worker_data(response)
+    return response
 
 
 @router.get(

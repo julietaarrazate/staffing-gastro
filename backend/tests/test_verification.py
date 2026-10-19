@@ -598,3 +598,57 @@ def test_el_claim_de_negocio_no_da_nivel_de_garantia_de_persona():
 
     assert has_verified_identity([claim]) is False
     assert compute_assurance_level([claim]) == AssuranceLevel.L0
+
+
+@pytest.mark.asyncio
+async def test_aprobar_le_avisa_a_la_persona_en_la_app_y_por_mail(
+    client, session_factory, fake_email_sender: FakeEmailSender
+):
+    """El mail de invitación promete "te avisamos por acá apenas quede lista"
+    y hasta el 2026-09-26 nadie avisaba nada."""
+    worker = await auth_headers(client, "worker", "w-aviso-ok@test.com")
+    admin = await _make_admin(client, session_factory, "admin-aviso-ok@test.com")
+    await client.post(
+        "/api/v1/identity/me/document",
+        headers=worker,
+        json={"dni_frente_url": "https://x/dni.jpg", "selfie_url": "https://x/s.jpg"},
+    )
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    claim_id = pending.json()[0]["claim_id"]
+
+    await client.post(f"/api/v1/identity/claims/{claim_id}/approve", headers=admin)
+
+    notifications = (await client.get("/api/v1/notifications", headers=worker)).json()
+    assert notifications[0]["type"] == "verification_decided"
+    assert notifications[0]["title"] == "Verificación aprobada"
+    assert notifications[0]["link"] == "/profile"
+    last = fake_email_sender.sent[-1]
+    assert last.to == "w-aviso-ok@test.com"
+    assert "aprobada" in last.subject.lower()
+
+
+@pytest.mark.asyncio
+async def test_rechazar_le_dice_el_motivo(
+    client, session_factory, fake_email_sender: FakeEmailSender
+):
+    worker = await auth_headers(client, "worker", "w-aviso-no@test.com")
+    admin = await _make_admin(client, session_factory, "admin-aviso-no@test.com")
+    await client.post(
+        "/api/v1/identity/me/document",
+        headers=worker,
+        json={"dni_frente_url": "https://x/dni.jpg", "selfie_url": "https://x/s.jpg"},
+    )
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    claim_id = pending.json()[0]["claim_id"]
+
+    await client.post(
+        f"/api/v1/identity/claims/{claim_id}/reject",
+        headers=admin,
+        json={"reason": "La foto del DNI está borrosa"},
+    )
+
+    notifications = (await client.get("/api/v1/notifications", headers=worker)).json()
+    assert "La foto del DNI está borrosa" in notifications[0]["message"]
+    last = fake_email_sender.sent[-1]
+    assert last.to == "w-aviso-no@test.com"
+    assert "La foto del DNI está borrosa" in last.html

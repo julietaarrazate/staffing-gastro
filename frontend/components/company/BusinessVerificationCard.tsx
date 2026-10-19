@@ -9,6 +9,7 @@ import { businessClaim, type IdentitySummary } from "@/lib/identity";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 import { CheckCircleIcon, FileTextIcon, ShieldIcon, UploadIcon } from "@/components/icons";
+import IconChip from "@/components/ui/IconChip";
 
 const ACCEPT = ".pdf,image/*";
 // Mismo resguardo de cuota que el CV (`CvUpload`): no es seguridad — un
@@ -184,7 +185,7 @@ export default function BusinessVerificationCard() {
             disabled={uploading}
             className="flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left ring-1 ring-line transition active:scale-[0.99] disabled:opacity-70"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink/60">
+            <IconChip tone="trust">
               {uploading ? (
                 <Spinner size={16} />
               ) : fileUrl ? (
@@ -192,7 +193,7 @@ export default function BusinessVerificationCard() {
               ) : (
                 <UploadIcon size={17} />
               )}
-            </span>
+            </IconChip>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-ink">
                 {fileUrl ? fileName : "Subir constancia"}

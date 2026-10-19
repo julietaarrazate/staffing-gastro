@@ -32,6 +32,10 @@ class NotificationType(str, Enum):
     # ADR-0008: recordatorio push para que el trabajador marque su llegada
     # cuando ya arrancó el turno y todavía no hizo check-in.
     CHECKIN_REMINDER = "checkin_reminder"
+    # "Va en camino": al trabajador, un rato antes del turno, para que avise
+    # cuando sale; y al comercio, una sola vez, cuando el trabajador salió.
+    DEPARTURE_REMINDER = "departure_reminder"
+    WORKER_EN_ROUTE = "worker_en_route"
     # Escalada automática de urgencia: el turno no se cubrió rápido, se
     # amplía el círculo de candidatos avisados (ver
     # `ShiftService.escalate_urgency`).
@@ -39,6 +43,10 @@ class NotificationType(str, Enum):
     # C.1 (auditoría de producto 2026-08-10): un admin respondió un ticket de
     # soporte del usuario.
     SUPPORT_REPLY = "support_reply"
+    # Un admin aprobó o rechazó una verificación (DNI + selfie del trabajador
+    # o constancia de AFIP del comercio). Antes la decisión no le llegaba a
+    # nadie: la persona se enteraba sólo si volvía a mirar su perfil.
+    VERIFICATION_DECIDED = "verification_decided"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -54,6 +62,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_NO_SHOW: "/my-shifts",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
     NotificationType.CHECKIN_REMINDER: "/my-shifts",
+    NotificationType.DEPARTURE_REMINDER: "/my-shifts",
     # Turno todavía no suyo: va al feed, donde puede verlo y postularse.
     NotificationType.NEW_SHIFT_NEARBY: "/feed",
     NotificationType.URGENT_SHIFT_NEARBY: "/feed",
@@ -63,6 +72,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_REJECTED: "/shifts",
     NotificationType.SHIFT_CHECKED_OUT: "/shifts",
     NotificationType.SHIFT_REOPENED: "/shifts",
+    NotificationType.WORKER_EN_ROUTE: "/shifts",
     # Sólo al comercio (ADR-0015): si había un trabajador asignado sin
     # confirmar, no se lo penaliza ni se le avisa nada — no es una noticia
     # accionable para él, el momento ya pasó.
@@ -71,6 +81,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.CHAT_MESSAGE: "/chats",
     NotificationType.REVIEW_RECEIVED: "/profile",
     NotificationType.SUPPORT_REPLY: "/support",
+    NotificationType.VERIFICATION_DECIDED: "/profile",
 }
 
 

@@ -9,8 +9,10 @@
  * `LogoGlyph` es sólo el trazo (mano + oreja), sin tile de fondo — se tiñe
  * del color pedido vía CSS mask (`logo-figure.svg` sólo aporta la silueta
  * en su canal alfa, el fill del SVG es irrelevante para una máscara). Lo
- * reusa SplashScreen/EmptyState sobre superficie neutra. `LogoMark` agrega
- * el tile naranja ya horneado (uso estándar: Navbar, favicon/app icons).
+ * reusa EmptyState sobre superficie neutra. `LogoMark` agrega el tile ya
+ * horneado (uso estándar: Navbar, favicon/app icons): azul hondo #1c5478 con
+ * la figura blanca desde el 2026-10-19 (era ámbar con crema), hasta que haya
+ * un isotipo nuevo.
  * `Logo` agrega el wordmark y es el default export que ya consumen Navbar,
  * login/register/recuperar/restablecer y la landing.
  */

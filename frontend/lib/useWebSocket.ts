@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { resolveToken } from "@/lib/api";
 
 const HTTP_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onrender.com/api/v1";
@@ -56,7 +57,11 @@ export function useWebSocket<T>(
 
     function connect() {
       setStatus("connecting");
-      socket = new WebSocket(`${WS_BASE_URL}${path}?token=${encodeURIComponent(token!)}`);
+      // `resolveToken`: cada (re)conexión sale con el access token vigente,
+      // no con el que había al montar (el contexto ya no cambia al renovarlo,
+      // ver `lib/api.ts`); sin esto, reconectar después de 15 min fallaba.
+      const current = resolveToken(token) ?? token!;
+      socket = new WebSocket(`${WS_BASE_URL}${path}?token=${encodeURIComponent(current)}`);
 
       socket.onopen = () => {
         attempt = 0;

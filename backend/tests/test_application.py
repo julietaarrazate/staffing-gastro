@@ -395,6 +395,7 @@ async def test_applying_notifies_company(client: AsyncClient):
     # del postulante, puesto y conteo — mismo espíritu que el push de
     # "presupuestos listos", en el tono ya establecido
     # de la app (voseo, sin emoji).
-    assert notif["title"] == "1 postulante para mozo"
+    # El puesto como lo lee una persona ("Mozo/a"), no el identificador.
+    assert notif["title"] == "1 postulante para Mozo/a"
     assert "Test User" in notif["message"]
-    assert "mozo" in notif["message"]
+    assert "Mozo/a" in notif["message"]

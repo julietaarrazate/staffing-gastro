@@ -10,6 +10,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.core.config import settings
+from app.core.tz import to_art
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
@@ -1011,7 +1012,16 @@ async def test_assign_worker_sends_acceptance_email(
     sent = fake_email_sender.sent[-1]
     assert sent.to == "w_email@staffya.com"
     assert "aceptaron" in sent.subject.lower()
+    # El puesto como lo lee una persona, no el identificador ("mozo").
+    assert "Mozo/a" in sent.subject
     assert "Bar Palermo" in sent.html
+    # La hora sale en hora argentina: la base guarda UTC y el mail decía la
+    # hora UTC (un turno de las 20:00 llegaba como "23:00").
+    shift = created.json()
+    start_art = to_art(datetime.fromisoformat(shift["start_at"]))
+    assert f"{start_art:%H:%M}" in sent.html
+    # Con la marca de Oído, no un `<p>` suelto.
+    assert sent.html.lstrip().startswith("<!doctype html>")
 
 
 async def test_assign_worker_does_not_fail_if_email_sender_explodes(
@@ -1201,3 +1211,20 @@ async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
         assert all(s["status"] == "publicado" for s in body["shifts"])
     finally:
         settings.subscriptions_enforced = previous
+
+
+async def test_assign_unknown_worker_profile_is_404(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp_assign404@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    response = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": str(uuid4())},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Trabajador no encontrado"

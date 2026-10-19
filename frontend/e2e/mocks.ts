@@ -71,6 +71,17 @@ export async function skipSplash(page: Page) {
   });
 }
 
+/**
+ * Arranca la página en el tema pedido (misma clave que `lib/theme.tsx`). Es
+ * lo que necesitan las capturas en claro y oscuro del protocolo de sesión;
+ * cada sesión lo resolvía con un `page.evaluate` propio.
+ */
+export async function setTheme(page: Page, theme: "light" | "dark") {
+  await page.addInitScript((t) => {
+    window.localStorage.setItem("oido-theme", t);
+  }, theme);
+}
+
 /** GET /notifications -> [] (lo pide el Navbar en cuanto hay sesión). */
 export async function mockEmptyNotifications(page: Page) {
   await page.route("**/api/v1/notifications", (route) => {

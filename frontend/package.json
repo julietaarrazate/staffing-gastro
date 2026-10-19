@@ -11,7 +11,10 @@
     "lint": "eslint",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "postinstall": "node scripts/copy-maplibre-worker.mjs"
+    "postinstall": "node scripts/patch-opennext.mjs && node scripts/copy-maplibre-worker.mjs",
+    "cf:build": "opennextjs-cloudflare build && node scripts/cf-static-assets.mjs",
+    "cf:preview": "npm run cf:build && wrangler dev --port 8787",
+    "cf:deploy": "npm run cf:build && wrangler deploy"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.75.3",
@@ -20,12 +23,14 @@
     "lucide-react": "^1.22.0",
     "maplibre-gl": "^6.8.0",
     "motion": "^13.2.0",
-    "next": "16.3.4",
+    "next": "16.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "sharp": "^0.35.4",
     "supercluster": "^8.0.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "1.20.10",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",
@@ -41,14 +46,22 @@
     "jsdom": "^30.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.2",
+    "wrangler": "^4.150.0"
   },
   "overrides": {
-    "sharp": "^0.35.4",
+    "sharp": "$sharp",
     "next": {
       "postcss": "^8.5.18"
     },
     "nanoid": "^3.3.18",
-    "js-yaml": "^4.3.2"
+    "js-yaml": "^4.3.2",
+    "@next/eslint-plugin-next": {
+      "fast-glob": "npm:tinyglobby@^0.2.16"
+    },
+    "source-map-js": "^1.2.2",
+    "@node-minify/core": {
+      "glob": "^10.5.0"
+    }
   }
 }

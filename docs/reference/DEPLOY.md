@@ -48,7 +48,164 @@ Config declarativa en `render.yaml` (raíz del repo).
 ## Frontend en Vercel
 
 - Auto-deploy desde `main`; **preview por PR** (comentario de Vercel con la URL).
+- **Sólo buildea si cambió `frontend/`** (`frontend/vercel.json` →
+  `frontend/scripts/vercel-ignore-build.sh`, desde 2026-10-10): compara contra
+  el último deploy de la rama (`VERCEL_GIT_PREVIOUS_SHA`, o el commit anterior
+  si ese no existe). Un PR de backend o de docs no genera preview, y un merge
+  así a `main` no redespliega el frontend. Motivo: los 8 proyectos de la cuenta
+  Hobby comparten los Build CPU Minutes y Oído los llevó al 75% con builds que
+  no cambiaban nada (100 deploys en 13 días, 76 previews). **Trampa:** Vercel
+  toma 0 = saltear, 1 = buildear y cualquier otro código = deploy fallido; un
+  `git diff` contra un commit que ya no existe (rama rehecha) sale 128 y corta
+  el deploy. Por eso es un script que sólo sale 0 o 1 y ante la duda buildea.
+  Para forzar un build: "Redeploy" en el panel.
 - API remota vía `NEXT_PUBLIC_API_URL` (sin `localhost` en config de producto).
+
+## Frontend en Cloudflare Workers (producción desde 2026-10-19)
+
+**Producción: `www.oido.com.ar` y `oido.com.ar` los sirve el Worker
+`oido-frontend`** (dominios personalizados, plan Workers Paid), desde el
+2026-10-19. Vercel Hobby no permite uso comercial (Pro sale 20 USD/mes y
+Workers Paid 5 USD/mes). Vercel queda unos días de respaldo; la sección
+"Frontend en Vercel" de arriba describe ese respaldo.
+
+- **`oido.com.ar` → `www`:** Redirect Rule "oido.com.ar a www", 301, conserva
+  la ruta y la consulta. Antes lo hacía Vercel.
+- **"Always Use HTTPS"** está activado en la zona: `http://` redirige a
+  `https://`. Antes también lo hacía Vercel.
+- **Volver a Vercel:** sacar los dos dominios personalizados del Worker y
+  recrear `oido.com.ar` y `www` como `CNAME
+  23e8f3d43999aec1.vercel-dns-017.com` en "DNS only". La regla de
+  redirección queda inerte sola.
+
+Etapas y resultados en
+[`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](../historial/2026-10-13-cloudflare-prueba-compatibilidad.md).
+
+- **Adaptador: OpenNext** (`@opennextjs/cloudflare`, fijado en 1.20.10).
+  Corre el runtime real de Next 16.4. Se descartó vinext: no compila Oído tal
+  como está (se traba con `sharp` en `app/og/oido.jpg/route.ts`) y reimplementa
+  Next sobre Vite, con más superficie de diferencias.
+- **Comandos** (en `frontend/`): `npm run cf:build` arma el Worker en
+  `.open-next/`; `npm run cf:preview` lo sirve local con wrangler en el puerto
+  8787; `npm run cf:deploy` publica (necesita la cuenta de Cloudflare). Los E2E
+  se corren contra el Worker levantándolo en el 3100 (`npx wrangler dev --port
+  3100`) antes de `npm run test:e2e`; Playwright reusa ese servidor.
+- **Config:** `frontend/wrangler.jsonc` (Worker `oido-frontend`,
+  `nodejs_compat`) y `frontend/open-next.config.ts` (caché de sólo lectura con
+  lo prerenderizado; Oído no usa ISR, así que no hace falta R2 ni KV).
+- **Trampa 1, parche de OpenNext** (`frontend/scripts/patch-opennext.mjs`, se aplica solo
+  en el `postinstall`; no se usa `patch-package` porque trae dependencias con
+  avisos "high" de `npm audit`): Next 16.4 lee un manifiesto nuevo,
+  `preview-props.json`, que OpenNext 1.20.10 no empaqueta; sin el parche
+  **todas** las páginas dan 500 en el Worker. Es el mismo tipo de bug que
+  OpenNext arregló en 1.17.3 para `prefetch-hints.json`. Al subir OpenNext,
+  probar sin el parche y borrarlo si ya no hace falta.
+- **Trampa 2, imágenes de vista previa:** `/og/oido.jpg` y `/twitter-image`
+  usan `sharp` y leen fuentes del disco, y nada de eso existe en Workers. Se
+  arman en el build (como siempre) y `frontend/scripts/cf-static-assets.mjs`
+  las copia a los assets estáticos, que Cloudflare sirve sin pasar por el
+  Worker. Ese script también escribe el `_headers` de los assets.
+- **`next/image`:** Oído no lo usa (las fotos vienen de Cloudinary ya
+  recortadas), así que no hace falta Cloudflare Images.
+- **CSP:** desde la etapa 2 (2026-10-14) `vercel.live` sólo entra con
+  `VERCEL_ENV=preview`, así que el build de Cloudflare sale sin él. Nonces y
+  HSTS del dominio quedan para la etapa 3.
+- **Tamaño:** 3,5 MB comprimido. El límite actual de Cloudflare es 64 MiB
+  también en el plan gratis (el de 3 MB que se citaba antes ya no corre); el
+  primer deploy en el plan gratis anduvo.
+
+### Etapa 4: publicación de prueba en workers.dev (2026-10-19)
+
+- **Dirección:** `https://oido-frontend.julietaarrazate.workers.dev`
+  (cuenta de Cloudflare `julietaarrazate@gmail.com`).
+- **Cómo se publica:** Workers Builds conectado a GitHub, rama `main`,
+  directorio `frontend`, build `npm run cf:build`, deploy `npx wrangler
+  deploy`. Cada merge a `main` la vuelve a publicar sola. Los builds de otras
+  ramas ("compilaciones de vista previa") están apagados, y las direcciones
+  por versión también (`preview_urls: false` en `wrangler.jsonc`).
+- **Variables de build** (todas públicas, de texto): `NEXT_PUBLIC_API_URL`,
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
+  `NEXT_PUBLIC_GOOGLE_CLIENT_ID` y `NEXT_PUBLIC_SENTRY_DSN`. Van en
+  *Build variables*, no en las de runtime: Next las incrusta al compilar.
+- **Para que el login ande ahí**, la dirección tiene que estar en:
+  - `CORS_ORIGINS` (en `render.yaml`, valor fijo, y en el dashboard);
+  - los hostnames del widget de Turnstile;
+  - los orígenes autorizados de JavaScript del cliente OAuth de Google.
+- **Plan:** la prueba corre en el plan gratis (10 ms de CPU por pedido).
+  Mirar *Metrics → Errors* del Worker: si aparece `Exceeded CPU Time Limits`
+  (error 1102), pasar a Workers Paid (5 USD/mes) antes del cambio de DNS.
+
+### Etapa 3: endurecimiento con Cloudflare (runbook)
+
+**Prendida en producción el 2026-10-15**, pasos 0 a 6 (el 7, HSTS de la
+zona, queda para más adelante). Qué quedó y cómo se verificó, en
+[`historial/2026-10-15-etapa3-prendida.md`](../historial/2026-10-15-etapa3-prendida.md).
+Si hay que rehacerlo, este es el orden: cada paso necesita el anterior. Los
+valores secretos van sólo en los paneles, nunca acá ni en el chat.
+
+0. **DNS en Cloudflare: hecho el 2026-10-14.** Antes estaba en Vercel
+   (`ns1/ns2.vercel-dns.com`; la nota de que "ya usaba Cloudflare" era
+   errónea). Se copiaron todos los registros en "DNS only" y, con el "sí" de
+   Julieta, se cambiaron los nameservers en NIC Argentina a
+   `jocelyn.ns.cloudflare.com` y `terry.ns.cloudflare.com` (zona activa el
+   mismo día; web, mail de Google y Resend verificados después). Apex, `www`
+   y `*` son CNAME a `23e8f3d43999aec1.vercel-dns-017.com` (la dirección del
+   proyecto en Vercel; Cloudflare aplana el del apex), no A con IPs fijas:
+   Vercel rota sus IPs. Para volver atrás: nameservers de Vercel en NIC.ar.
+1. **API con dominio propio y proxy.** El dominio `api.oido.com.ar` se
+   declara en `render.yaml` (`domains:`), no en el dashboard: el servicio es
+   *Blueprint managed* y Render no muestra ahí la sección Custom Domains.
+   En Cloudflare DNS, `CNAME api
+   → staffya-backend.onrender.com` primero en "DNS only" hasta que Render
+   diga *Verified* y emita el certificado; recién ahí **con proxy** (nube
+   naranja). SSL/TLS en **Full (strict)** (ya está). Probar
+   `https://api.oido.com.ar/health`.
+2. **Sólo por Cloudflare.** Generar un secreto largo (por ejemplo
+   `openssl rand -hex 32`). En Cloudflare, Rules → Transform Rules → Modify
+   Request Header, para `http.host eq "api.oido.com.ar"`: *Set static*
+   `X-Oido-Edge` = el secreto, y *Set dynamic* `X-Oido-Client-IP` = `ip.src`.
+   Recién **después del paso 3** (el frontend publicado ya usando
+   `api.oido.com.ar`), en Render, `EDGE_SHARED_SECRET` = el mismo secreto.
+   Desde ahí `staffya-backend.onrender.com` responde 403 (salvo `/health`) y
+   el límite de intentos cuenta por persona y no por el proxy de Render.
+   **Trampas:** si se carga en Render antes que la regla, el backend rechaza
+   todo; si se carga antes de que el frontend use la API nueva, el sitio
+   (que todavía llama a `onrender.com`) se queda sin login. Para volver
+   atrás, vaciar la variable.
+3. **El frontend usa la API nueva:** `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`
+   en el build (Vercel y Cloudflare), y volver a publicar. CORS no cambia:
+   los orígenes permitidos son los del frontend. **Trampa de Vercel:** un
+   Redeploy después de cambiar sólo variables se cancela solo, porque
+   `scripts/vercel-ignore-build.sh` no ve cambios en `frontend/`. En el
+   diálogo de Redeploy hay que desmarcar *Use project's Ignore Build Step*
+   (y *Use existing Build Cache*); vale sólo para ese redeploy.
+4. **Turnstile.** En Cloudflare, Turnstile → Add widget (modo *Managed*,
+   hostnames `oido.com.ar` y `www.oido.com.ar`; sumar el `*.workers.dev` de
+   prueba en la etapa 4). Clave del
+   sitio → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en el build del frontend; clave
+   secreta → `TURNSTILE_SECRET_KEY` en Render. **Orden:** primero el frontend
+   (el widget aparece y manda el token, el backend todavía no lo pide), después
+   el backend. Al revés, nadie puede entrar hasta que salga el frontend.
+5. **WAF** (Security, plan Free): *Cloudflare Free Managed Ruleset* activo.
+   **Bot Fight Mode NO**: en el plan Free se aplica a toda la zona sin
+   excepciones y frenaría al servidor del frontend cuando arma `/turno/[id]`
+   (pide los datos a la API desde un datacenter) y a los monitores de
+   `/health`. Contra robots alcanzan Turnstile y el límite de intentos.
+6. **Límite de intentos en el borde** (Security rules → Rate limiting; el plan
+   Free da **una** regla, por IP, período de 10 s y bloqueo de 10 s, y en la
+   expresión **sólo acepta la ruta**, no host ni método):
+   `(http.request.uri.path in {"/api/v1/auth/login" "/api/v1/auth/register"
+   "/api/v1/auth/forgot-password" "/api/v1/auth/guest"})`, 5 pedidos cada
+   10 s → Block. Esas rutas sólo existen en la API, así que alcanza. El
+   backend sigue con sus propios límites por minuto, que ahora sí ven la IP
+   real. Para probarla hay que hacerlo desde una sola IP (el navegador de
+   casa): un cliente que sale por varias IPs no la dispara.
+7. **HSTS del dominio** (SSL/TLS → Edge Certificates): HSTS con
+   `max-age` de 6 meses e *Include subdomains*. *Preload* recién cuando todo
+   lo anterior lleve semanas andando: es difícil de deshacer.
+
+Qué protege y qué no, en
+[`historial/2026-10-14-cloudflare-endurecimiento.md`](../historial/2026-10-14-cloudflare-endurecimiento.md).
 
 ## Entornos
 

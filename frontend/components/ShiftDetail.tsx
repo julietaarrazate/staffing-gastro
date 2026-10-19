@@ -10,7 +10,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, Shift, ShiftPublic } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
@@ -33,6 +33,7 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
 /** Lo que sabemos del turno: siempre la vista pública (la trae el servidor,
  *  sin sesión) y, si hay sesión, el turno completo encima. */
@@ -142,10 +143,10 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           del feed y del panel (`SKILL_HERO_TONE`). Antes era verde bosque para
           todos los puestos: el bartender se veía vino en la tarjeta y verde al
           abrirlo, así que la identidad que arma la tarjeta se perdía justo en
-          el paso siguiente. El verde queda para el bloque del pago, que es la
+          el paso siguiente. El color de marca queda para el bloque del pago, que es la
           superficie destacada de la pantalla (v5.0). */}
       <header
-        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${SKILL_HERO_TONE[shift.position]}`}
+        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${!photo && SKILL_HERO_TONE[shift.position] === "bg-brand" ? "bg-glow" : SKILL_HERO_TONE[shift.position]}`}
       >
         {photo ? (
           <>
@@ -159,7 +160,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/30" />
           </>
         ) : (
-          <Icon size={190} className="absolute -right-8 -top-4 text-white/10" aria-hidden />
+          <Icon size={190} className={`absolute -right-8 -top-4 ${heroInk(shift.position, false).mark}`} aria-hidden />
         )}
 
         <div className="relative flex items-start justify-between p-4">
@@ -210,31 +211,31 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
         {/* Datos con íconos: cuándo, cuánto dura, dónde. */}
         <dl className="mt-5 space-y-3">
-          <InfoRow icon={<ClockIcon size={18} />} label="Cuándo">
+          <InfoRow icon={<ClockIcon size={18} />} tone="cielo" label="Cuándo">
             {formatShiftWhen(shift.start_at, shift.end_at)}
             {minutes != null && <span className="text-ink/50"> · {formatDuration(minutes)}</span>}
           </InfoRow>
-          <InfoRow icon={<MapPinIcon size={18} />} label="Dónde">
+          <InfoRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde">
             {where ?? "Zona a confirmar"}
           </InfoRow>
           {shift.quantity != null && shift.quantity > 1 && (
-            <InfoRow icon={<UsersIcon size={18} />} label="Personas">
+            <InfoRow icon={<UsersIcon size={18} />} tone="manteca" label="Personas">
               {shift.quantity}
             </InfoRow>
           )}
         </dl>
 
-        {/* Pago: la masa de color de la pantalla, en el verde de la marca. */}
+        {/* Pago: la masa de color de la pantalla, en el color de marca. */}
         <section
           aria-label="Pago"
           className="mt-5 flex items-center justify-between gap-3 rounded-[var(--radius-card)] bg-secondary px-4 py-4"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/65">Pago</p>
-            <p className="text-price font-extrabold tracking-tight text-white">
+            <p className="text-xs font-semibold uppercase tracking-wide text-on-brand/75">Pago</p>
+            <p className="text-price font-extrabold tracking-tight text-on-brand">
               {formatPayAmount(shift)}
             </p>
-            <p className="text-sm text-white/75">
+            <p className="text-sm text-on-brand/80">
               {[shift.tips ? "+ propinas" : null, perHour ? `≈ ${formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora` : null]
                 .filter(Boolean)
                 .join(" · ")}
@@ -304,10 +305,22 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   );
 }
 
-function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function InfoRow({
+  icon,
+  tone,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  tone: IconChipTone;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-ink/70">{icon}</span>
+      <IconChip tone={tone} size="lg">
+        {icon}
+      </IconChip>
       <div className="min-w-0">
         <dt className="text-xs text-ink/50">{label}</dt>
         <dd className="text-body font-medium text-ink">{children}</dd>
