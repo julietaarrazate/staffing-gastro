@@ -218,8 +218,10 @@ Reglas que salieron de medir:
   foto, siempre blanco.
 - **Ninguna sección pasa de la noche a la marca con la letra ya escrita**:
   la tinta no se lee sobre la noche (por eso el resultado ya entra celeste).
-- Ningún relleno ámbar lleva letra blanca (3,19): la splash, la inicial de
-  los perfiles sin foto y el botón de ubicación de Buscar van en tinta.
+- Ningún relleno ámbar lleva letra blanca (3,19): el botón de ubicación de
+  Buscar va en tinta. (La splash dejó de ser ámbar el 2026-10-19: es el
+  "oído" fileteado sobre el cielo; la inicial de los perfiles sin foto va
+  en celeste desde el mismo día.)
 - Los chips `IconChip` de tono `manteca`, `secondary` y `primary` quedaron
   los tres en celeste con azul hondo: se distinguen por el ícono, ya no por
   el color.
