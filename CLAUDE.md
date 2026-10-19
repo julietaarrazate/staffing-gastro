@@ -45,13 +45,14 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 
 - Fechas de negocio con `hoy_art()`/`now_art()` (`backend/app/core/tz.py`); auditoría en UTC.
 - Si cambia el texto de `/terminos` o `/privacidad`, subir `LEGAL_TERMS_VERSION` (backend) y `frontend/lib/legal.ts` en el mismo PR. "Va en camino" y "Disponible ahora" tienen modelo de privacidad deliberado: leer su ADR / `docs/reference/QUE_EXISTE_HOY.md` antes de tocarlos.
-- Diseño v5.0: fuente de verdad en `docs/design-system/` (`color-system.md`, `typography.md`); todos los fondos por tokens de `globals.css`, un solo acento ámbar por pantalla, tema explícito (`lib/theme.tsx`).
+- Diseño: la marca vigente en una página es `docs/design-system/marca-hoy.md` (2026-10-19: celeste y blanco, un solo ámbar, el «oído» fileteado, noche azul en oscuro); valores en `color-system.md` y `typography.md`; todos los fondos por tokens de `globals.css`, un solo acento ámbar por pantalla, letra sobre la marca con `on-brand` (nunca `text-white`), tema explícito (`lib/theme.tsx`).
 
 ## Dónde está cada cosa
 
 | Necesito… | Archivo |
 |---|---|
 | Qué está abierto / qué sigue | `docs/STATUS.md` |
+| La marca hoy (paleta, tipografía, filete, isotipo) | `docs/design-system/marca-hoy.md` |
 | Ubicar pantalla o pieza de código | `docs/reference/MAPA_DEL_CODIGO.md` |
 | Funcionalidades vigentes y contexto de producto | `docs/reference/QUE_EXISTE_HOY.md` |
 | Env vars, dominio, deploy, trámites de Julieta | `docs/reference/PENDIENTE_OPERATIVO.md`, `docs/reference/DEPLOY.md` |

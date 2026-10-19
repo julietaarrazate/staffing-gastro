@@ -120,3 +120,9 @@ class ShiftModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+    # Bloqueo optimista (ADR-0016, migración 0036): SQLAlchemy la incrementa
+    # en cada UPDATE y lo condiciona a la versión cargada (`WHERE version = n`).
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+
+    __mapper_args__ = {"version_id_col": version}

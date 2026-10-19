@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShiftDetail from "@/components/ShiftDetail";
-import { SITE_HOST } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 import { cldOgImage } from "@/lib/cloudinary";
 import { OG_IMAGE_URL } from "@/lib/og";
 
@@ -20,20 +20,26 @@ import { OG_IMAGE_URL } from "@/lib/og";
  * el resto del lado del cliente — ver ahí el porqué.
  */
 
-async function getPublicShift(id: string): Promise<ShiftPublic | null> {
+// Un id que no es UUID no puede ser un turno: el backend responde 422 y la
+// página daba 500 en vez de "no encontrado" (auditoría 2026-10-14).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// `cache`: `generateMetadata` y la página piden el mismo turno; así sale un
+// solo pedido al backend por visita.
+const getPublicShift = cache(async (id: string): Promise<ShiftPublic | null> => {
+  if (!UUID_RE.test(id)) return null;
   try {
     return await api.get<ShiftPublic>(`/shifts/${id}/public`);
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return null;
+    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null;
     throw err;
   }
-}
+});
 
-async function getPublicUrl(id: string): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? SITE_HOST;
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return `${proto}://${host}/turno/${id}`;
+// La dirección canónica, fija: antes salía de los headers `x-forwarded-host`
+// y `host` del pedido, que manda el cliente, y quedaba en `og:url`.
+function getPublicUrl(id: string): string {
+  return `${SITE_URL}/turno/${id}`;
 }
 
 export async function generateMetadata({
@@ -52,7 +58,7 @@ export async function generateMetadata({
     shift.company_name ? ` en ${shift.company_name}` : ""
   } — Oído`;
   const description = buildShiftSummary(shift);
-  const url = await getPublicUrl(id);
+  const url = getPublicUrl(id);
   // Con foto del local, la vista previa del link muestra el LUGAR (lo que
   // hace que alguien toque el link); sin foto, la imagen de marca de
   // `app/og/oido.jpg/route.ts`. Hay que nombrarla acá: el `openGraph` de esta

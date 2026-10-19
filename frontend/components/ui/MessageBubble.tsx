@@ -29,7 +29,7 @@ export default function MessageBubble({
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-body text-ink ${
-          mine ? "rounded-br-md bg-primary/15" : "rounded-bl-md bg-card ring-1 ring-line"
+          mine ? "rounded-br-md bg-primary-tint" : "rounded-bl-md bg-card ring-1 ring-line"
         }`}
       >
         {author && <p className="mb-0.5 text-label font-semibold text-ink/50">{author}</p>}

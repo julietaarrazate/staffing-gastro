@@ -31,6 +31,7 @@ from app.modules.shift.domain.pay_benchmark import (
     hourly_rate,
 )
 from app.modules.shift.domain.exceptions import (
+    AssigneeNotFoundError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -630,6 +631,9 @@ class ShiftService:
         turno se reabre (el asignado rechaza/cancela/no-show), esos rechazos se
         revierten (`_restore_rejected_applicants`)."""
         shift = await self._get_owned(company_id, shift_id)
+        # Un perfil inexistente antes terminaba en error de FK (500).
+        if await self._workers.get_by_id(worker_profile_id) is None:
+            raise AssigneeNotFoundError()
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(

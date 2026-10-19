@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Logo from "@/components/Logo";
 import { ChevronLeftIcon } from "@/components/icons";
 import { LEGAL_LAST_UPDATED, LEGAL_OWNER } from "@/lib/legal";
 
@@ -29,7 +28,7 @@ export default function PrivacidadPage() {
   return (
     <div className="min-h-[calc(100vh-57px)] bg-paper px-4 py-10">
       <div className="app-container-reading">
-        {/* Nav mínima: volver + marca */}
+        {/* Nav mínima: volver (la marca ya está en el Navbar) */}
         <div className="flex items-center justify-between">
           <Link
             href="/"
@@ -38,7 +37,6 @@ export default function PrivacidadPage() {
             <ChevronLeftIcon size={18} />
             Volver al inicio
           </Link>
-          <Logo size={28} withWordmark={false} />
         </div>
 
         <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
@@ -248,6 +246,12 @@ export default function PrivacidadPage() {
             </p>
             <ul className="ml-5 list-disc space-y-1.5">
               <li>Vercel: sirve la app web (EE.UU. y red global).</li>
+              <li>
+                Cloudflare: dominio y conexión segura con el servidor,
+                protección contra ataques y la verificación anti-robots al
+                entrar o registrarte (EE.UU. y red global). Ve tu dirección
+                IP y datos técnicos del navegador.
+              </li>
               <li>Render: servidor de la app (EE.UU.).</li>
               <li>Neon: base de datos (EE.UU.).</li>
               <li>

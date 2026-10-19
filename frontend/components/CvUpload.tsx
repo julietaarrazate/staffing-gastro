@@ -5,6 +5,7 @@ import { uploadCv } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { TextField } from "@/components/ui";
 import { FileTextIcon, TrashIcon, UploadIcon } from "@/components/icons";
+import { safeHttpsUrl } from "@/lib/safe-url";
 
 const ACCEPT = ".pdf,.doc,.docx,image/*";
 // Resguardo de cuota (no de seguridad — un cliente hostil puede saltearlo):
@@ -79,7 +80,8 @@ export default function CvUpload({
   // el nombre de archivo en vez de la URL completa (más legible). Preferimos
   // el `fileName` guardado (nombre real); si no está (perfil viejo, de antes
   // de este campo), caemos al nombre derivado de la URL como antes.
-  const isUploadedFile = Boolean(value && value.includes("res.cloudinary.com"));
+  const uploadedUrl = safeHttpsUrl(value);
+  const isUploadedFile = Boolean(uploadedUrl && new URL(uploadedUrl).host === "res.cloudinary.com");
   const displayName = isUploadedFile ? (fileName ?? value.split("/").pop() ?? null) : null;
 
   return (
@@ -96,7 +98,7 @@ export default function CvUpload({
         <div className="mt-2 flex items-center gap-2.5 rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 ring-1 ring-line">
           <FileTextIcon size={18} className="shrink-0 text-ink/50" />
           <a
-            href={value}
+            href={uploadedUrl ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="min-w-0 flex-1 truncate text-sm font-medium text-primary-text underline decoration-transparent hover:decoration-current"

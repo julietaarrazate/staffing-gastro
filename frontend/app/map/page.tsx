@@ -9,10 +9,11 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
+import { sortByDistance } from "@/lib/current-location";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE, SKILL_RAIL_BORDER } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
 import { formatShiftRange } from "@/lib/datetime";
@@ -95,7 +96,6 @@ function ShiftRow({
   onApply: () => void;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
-  const heroTone = SKILL_HERO_TONE[shift.position];
   const rail = SKILL_RAIL_BORDER[shift.position];
   const distance =
     shift.latitude != null && shift.longitude != null ? haversineKm(center, [shift.latitude, shift.longitude]) : null;
@@ -118,7 +118,7 @@ function ShiftRow({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroTone}`}>
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
             <Icon size={20} />
           </span>
           <div className="min-w-0">
@@ -188,9 +188,35 @@ export default function MapPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // El mapa abre en la persona y ordena las tarjetas por cercanía a ella,
+  // igual que /feed y /buscar (auditoría de interfaz 2026-10-11, B02).
+  // Mientras no hay ubicación (GPS pendiente o negado) la cámara acompaña a
+  // la primera tarjeta, para no quedar en el Obelisco sin turnos a la vista.
+  // Cuando llega la ubicación, vuela a la persona y recién vuelve a seguir a
+  // una tarjeta cuando ella toca o desliza.
+  const originRef = useRef<[number, number] | null>(null);
+  const userInteractedRef = useRef(false);
+  const [hasOrigin, setHasOrigin] = useState(false);
+  const [userInteracted, setUserInteracted] = useState(false);
+  const followActive = userInteracted || !hasOrigin;
+  const startFollowing = useCallback(() => {
+    userInteractedRef.current = true;
+    setUserInteracted(true);
+  }, []);
+
   useEffect(() => {
     getCurrentPosition()
-      .then((p) => setCenter([p.latitude, p.longitude]))
+      .then((p) => {
+        const origin: [number, number] = [p.latitude, p.longitude];
+        originRef.current = origin;
+        setCenter(origin);
+        setHasOrigin(true);
+        // Si ya estaba eligiendo tarjetas, no le reordenamos la lista abajo.
+        if (!userInteractedRef.current) {
+          setShifts((prev) => sortByDistance(prev, origin));
+          setActiveIndex(0);
+        }
+      })
       .catch(() => setLocationUnavailable(true)); // fallback al Obelisco, avisado
   }, []);
 
@@ -203,7 +229,12 @@ export default function MapPage() {
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
       const appliedIds = new Set(applied.map((a) => a.shift_id));
-      setShifts(feed.filter((s) => !appliedIds.has(s.id) && s.latitude != null));
+      setShifts(
+        sortByDistance(
+          feed.filter((s) => !appliedIds.has(s.id) && s.latitude != null),
+          originRef.current
+        )
+      );
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
@@ -222,7 +253,10 @@ export default function MapPage() {
     if (!el) return;
     const cardWidth = el.scrollWidth / Math.max(shifts.length, 1);
     const idx = Math.round(el.scrollLeft / cardWidth);
-    if (idx !== activeIndex && idx >= 0 && idx < shifts.length) setActiveIndex(idx);
+    if (idx !== activeIndex && idx >= 0 && idx < shifts.length) {
+      startFollowing();
+      setActiveIndex(idx);
+    }
   }
 
   // Click en un pin -> scrollea el carrusel a esa tarjeta. Estable
@@ -233,6 +267,7 @@ export default function MapPage() {
     (id: string) => {
       const idx = shifts.findIndex((s) => s.id === id);
       if (idx < 0) return;
+      startFollowing();
       setActiveIndex(idx);
       const el = carouselRef.current;
       if (el) {
@@ -240,7 +275,7 @@ export default function MapPage() {
         el.scrollTo({ left: cardWidth * idx, behavior: "smooth" });
       }
     },
-    [shifts]
+    [shifts, startFollowing]
   );
 
   async function apply(shift: Shift) {
@@ -363,7 +398,13 @@ export default function MapPage() {
 
       {/* Mapa + overlays mobile */}
       <div ref={containerRef} className="relative h-full flex-1 overflow-hidden">
-      <ShiftMap shifts={shifts} center={center} activeId={activeId} onSelect={selectById} />
+      <ShiftMap
+        shifts={shifts}
+        center={center}
+        activeId={activeId}
+        onSelect={selectById}
+        followActive={followActive}
+      />
 
       {/* Encabezado flotante (sólo mobile: en desktop el conteo ya está en el
           panel lateral, repetirlo acá arriba del mapa sería ruido). */}
@@ -423,7 +464,6 @@ export default function MapPage() {
           <AnimatePresence initial={false} mode="popLayout">
           {shifts.map((shift) => {
             const { Icon } = SKILL_ACCENT[shift.position];
-            const heroTone = SKILL_HERO_TONE[shift.position];
             const rail = SKILL_RAIL_BORDER[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
@@ -451,7 +491,7 @@ export default function MapPage() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroTone}`}>
+                    <span className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
                       <Icon size={22} />
                     </span>
                     <div>
@@ -549,7 +589,6 @@ export default function MapPage() {
             // lista: esto es la hoja de detalle de UN turno, y el riel existe
             // para diferenciar filas entre sí. Sobre un único elemento a
             // pantalla completa sería decoración sin información.
-            const heroTone = SKILL_HERO_TONE[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
                 ? haversineKm(center, [shift.latitude, shift.longitude])
@@ -557,7 +596,7 @@ export default function MapPage() {
             return (
               <div className="pb-2 pt-1">
                 <div className="flex items-center gap-3">
-                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-white ${heroTone}`}>
+                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
                     <Icon size={26} />
                   </span>
                   <div className="min-w-0">

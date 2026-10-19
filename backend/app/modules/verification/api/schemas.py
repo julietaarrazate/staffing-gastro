@@ -11,6 +11,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.core.url import HttpsUrl
 from app.modules.verification.domain.value_objects import (
     AssuranceLevel,
     ClaimStatus,
@@ -23,9 +24,9 @@ from app.modules.verification.domain.value_objects import (
 class SubmitIdentityDocumentInput(BaseModel):
     """El trabajador envía su DNI + selfie a revisión."""
 
-    dni_frente_url: str = Field(min_length=1, max_length=512)
-    selfie_url: str = Field(min_length=1, max_length=512)
-    dni_dorso_url: str | None = Field(default=None, max_length=512)
+    dni_frente_url: HttpsUrl
+    selfie_url: HttpsUrl
+    dni_dorso_url: HttpsUrl | None = None
 
 
 class SubmitBusinessDocumentInput(BaseModel):
@@ -36,7 +37,7 @@ class SubmitBusinessDocumentInput(BaseModel):
     a su DNI — o sea que sería dato personal guardado sin uso, sólo porque
     pasó por delante (ADR-0013 §3)."""
 
-    constancia_url: str = Field(min_length=1, max_length=512)
+    constancia_url: HttpsUrl
 
 
 class RejectClaimInput(BaseModel):

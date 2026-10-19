@@ -21,6 +21,10 @@ class InvalidGuestPinError(IdentityError):
     """El PIN de acceso de invitado (beta) es incorrecto."""
 
 
+class GuestAccessDisabledError(IdentityError):
+    """El acceso de invitado está apagado (no hay PIN configurado)."""
+
+
 class UserNotFoundError(IdentityError):
     """No se encontró el usuario solicitado."""
 

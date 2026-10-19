@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { uploadImage } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon } from "@/components/icons";
@@ -26,6 +27,7 @@ export default function ImageUpload({
   /** Lado del círculo en px. Sólo aplica con `avatar`. */
   size?: number;
 }) {
+  const { token } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,8 @@ export default function ImageUpload({
     setPendingFile(null);
     setUploading(true);
     try {
-      const url = await uploadImage(cropped);
+      if (!token) throw new Error("Tu sesión venció. Volvé a entrar para subir la foto.");
+      const url = await uploadImage(cropped, token, "profile");
       onChange(url);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir la imagen"));
@@ -74,7 +77,7 @@ export default function ImageUpload({
           disabled={uploading}
           style={avatar ? { width: size, height: size } : undefined}
           aria-label={value ? "Cambiar foto de perfil" : "Subir foto de perfil"}
-          className={`group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-primary to-primary-strong font-bold text-white transition active:scale-95 disabled:opacity-70 ${
+          className={`group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-secondary font-bold text-secondary-text transition active:scale-95 disabled:opacity-70 ${
             avatar ? "text-3xl ring-4 ring-white/20" : "h-24 w-24 text-2xl shadow-md"
           }`}
         >

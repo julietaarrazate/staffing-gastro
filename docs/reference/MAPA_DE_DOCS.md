@@ -17,7 +17,7 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   [ARCHITECTURE.md](../foundation/ARCHITECTURE.md) · [PRINCIPLES.md](../foundation/PRINCIPLES.md)
 - **Identidad visual / diseño** — [ART_DIRECTION.md](../design/ART_DIRECTION.md)
   (dirección de marca, territorio, benchmark — punto de partida) ·
-  **sistema vigente (v5.0): [`docs/design-system/`](../design-system/)**
+  **sistema vigente: [`docs/design-system/`](../design-system/)** (empezar por [`marca-hoy.md`](../design-system/marca-hoy.md))
   (`color-system.md`, `typography.md`, `elevation.md`…) ·
   [COLOR_SYSTEM.md](../design/COLOR_SYSTEM.md) (histórico v1–v4 + el
   método de medición de contraste, que sigue vigente) ·
@@ -46,7 +46,9 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   siempre va desplazado — `fuzz_point`, TECH_DEBT.md S4) ·
   0015 turno "no cubierto" (estado nuevo para un turno asignado que nadie
   confirma, o publicado que nadie toma, cuyo horario ya pasó — sin impacto
-  de reputación, ventana de gracia según `urgent`).
+  de reputación, ventana de gracia según `urgent`) · 0016 bloqueo optimista
+  del turno · 0017 frontend en Cloudflare Workers con OpenNext (propuesto) ·
+  0018 backend detrás de Cloudflare con secreto compartido (propuesto).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 

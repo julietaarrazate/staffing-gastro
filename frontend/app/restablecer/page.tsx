@@ -4,7 +4,6 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import Logo from "@/components/Logo";
 import { Button, TextField } from "@/components/ui";
 
 function RestablecerForm() {
@@ -43,10 +42,7 @@ function RestablecerForm() {
   return (
     <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="flex justify-center">
-          <Logo size={48} withWordmark={false} />
-        </div>
-        <h1 className="mt-4 text-center font-display text-h1 font-semibold text-ink">
+        <h1 className="text-center font-display text-h1 font-semibold text-ink">
           Elegí una nueva contraseña
         </h1>
         <p className="mt-1 text-center text-sm text-ink/50">

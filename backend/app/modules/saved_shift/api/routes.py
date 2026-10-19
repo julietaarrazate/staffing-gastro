@@ -13,7 +13,7 @@ from app.modules.saved_shift.api.schemas import SavedShiftStatusResponse
 from app.modules.saved_shift.application.services import SavedShiftService
 from app.modules.saved_shift.domain.exceptions import ShiftNotSavableError
 from app.modules.shift.api.dependencies import get_my_worker_profile_id
-from app.modules.shift.api.schemas import ShiftResponse
+from app.modules.shift.api.schemas import ShiftResponse, without_worker_data
 from app.modules.shift.domain.entities import Shift
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -36,7 +36,10 @@ _SHIFT_NOT_FOUND = HTTPException(
 # usa `favorite/infrastructure/repositories.py` para su propio JOIN
 # enriquecido en vez de depender de otro módulo de rutas.
 async def _with_company_info(
-    shifts: list[Shift], companies: CompaniesDep, verification: VerificationDep
+    shifts: list[Shift],
+    worker_profile_id: UUID,
+    companies: CompaniesDep,
+    verification: VerificationDep,
 ) -> list[ShiftResponse]:
     unique_ids = list({shift.company_id for shift in shifts})
     companies_by_id = await companies.list_by_ids(unique_ids)
@@ -51,6 +54,10 @@ async def _with_company_info(
             response.company_logo_url = company.logo_url
             response.company_cover_url = company.cover_photo_url
             response.company_verified = company.user_id in verified_owner_ids
+        # Guardar un turno no te hace parte de él: salvo que lo hayas tomado,
+        # no ves quién lo tomó ni dónde está (mismo criterio que el detalle).
+        if shift.worker_profile_id != worker_profile_id:
+            response = without_worker_data(response)
         responses.append(response)
     return responses
 
@@ -67,7 +74,7 @@ async def list_my_saved_shifts(
     verification: VerificationDep,
 ):
     shifts = await service.list_my_saved_shifts(worker_profile_id)
-    return await _with_company_info(shifts, companies, verification)
+    return await _with_company_info(shifts, worker_profile_id, companies, verification)
 
 
 @router.put(

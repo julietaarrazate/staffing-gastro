@@ -28,7 +28,13 @@ y:
 1. Lo verifica contra el endpoint `tokeninfo` de Google (audience = nuestro
    `GOOGLE_CLIENT_ID`, `email_verified=true`).
 2. Si el email ya tiene cuenta → sesión normal (mismos tokens JWT propios que
-   `/auth/login`, mismo contrato de respuesta).
+   `/auth/login`, mismo contrato de respuesta). **Si esa cuenta nunca
+   confirmó el email** (se registró con contraseña y no tocó el link), Google
+   es la primera prueba de que el email es de quien entra: la cuenta se marca
+   verificada, la contraseña anterior deja de servir y se cierran todas las
+   sesiones (desde 2026-10-10; antes, quien hubiera creado la cuenta con un
+   email ajeno la seguía compartiendo con la dueña). Si era la misma persona,
+   recupera la contraseña con "Olvidé mi contraseña".
 3. Si el email es nuevo y no se mandó `role` → responde
    `{"requires_role": true, "email", "full_name"}` (200): el frontend muestra
    "¿Buscás trabajo o buscás personal?" y reintenta el mismo `POST
