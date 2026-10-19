@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { claveDeTurno, conCacheDeTurno, TTL_SEGUNDOS } from "./turno-cache.mjs";
+import { claveDeTurno, conCacheDeTurno, FRESCA_SEGUNDOS, VIGENCIA_SEGUNDOS } from "./turno-cache.mjs";
 
 const ID = "04c36513-c114-43e8-ad9c-8dfcd33d1580";
 const URL_TURNO = `https://www.oido.com.ar/turno/${ID}`;
@@ -13,6 +13,7 @@ function cacheFalsa() {
     put: vi.fn(async (k: Request, r: Response) => {
       datos.set(k.url, r);
     }),
+    delete: vi.fn(async (k: Request) => datos.delete(k.url)),
   };
 }
 
@@ -45,7 +46,8 @@ describe("conCacheDeTurno", () => {
     const r1 = await fetch(new Request(URL_TURNO), {}, ctx1);
     await Promise.all(ctx1.pendientes);
     expect(await r1.text()).toBe("<html>turno</html>");
-    expect(r1.headers.get("Cache-Control")).toBe(`public, max-age=${TTL_SEGUNDOS}`);
+    expect(r1.headers.get("Cache-Control")).toBe(`public, max-age=${FRESCA_SEGUNDOS}`);
+    expect(r1.headers.has("X-Oido-Armada")).toBe(false);
 
     const r2 = await fetch(new Request(`${URL_TURNO}?ref=wa`), {}, ctxFalso());
     expect(await r2.text()).toBe("<html>turno</html>");
@@ -71,5 +73,62 @@ describe("conCacheDeTurno", () => {
     const fetch = conCacheDeTurno(handler, () => undefined);
     await fetch(new Request(URL_TURNO), {}, ctxFalso());
     expect(handler.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("pasado el minuto sirve la copia al instante y la renueva por detrás", async () => {
+    const cache = cacheFalsa();
+    let reloj = 0;
+    const versiones = ["v1", "v2"];
+    const handler = { fetch: vi.fn(async () => new Response(versiones.shift()!, { status: 200 })) };
+    const fetch = conCacheDeTurno(handler, () => cache, () => reloj);
+
+    const ctx1 = ctxFalso();
+    await fetch(new Request(URL_TURNO), {}, ctx1);
+    await Promise.all(ctx1.pendientes);
+
+    reloj = (FRESCA_SEGUNDOS + 1) * 1000;
+    const ctx2 = ctxFalso();
+    const r2 = await fetch(new Request(URL_TURNO), {}, ctx2);
+    expect(await r2.text()).toBe("v1");
+    await Promise.all(ctx2.pendientes);
+    await Promise.all(ctx2.pendientes);
+    expect(handler.fetch).toHaveBeenCalledTimes(2);
+
+    const r3 = await fetch(new Request(URL_TURNO), {}, ctxFalso());
+    expect(await r3.text()).toBe("v2");
+  });
+
+  it("pasada la vigencia la arma en el momento", async () => {
+    const cache = cacheFalsa();
+    let reloj = 0;
+    const versiones = ["v1", "v2"];
+    const handler = { fetch: vi.fn(async () => new Response(versiones.shift()!, { status: 200 })) };
+    const fetch = conCacheDeTurno(handler, () => cache, () => reloj);
+
+    const ctx1 = ctxFalso();
+    await fetch(new Request(URL_TURNO), {}, ctx1);
+    await Promise.all(ctx1.pendientes);
+
+    reloj = (VIGENCIA_SEGUNDOS + 1) * 1000;
+    const r2 = await fetch(new Request(URL_TURNO), {}, ctxFalso());
+    expect(await r2.text()).toBe("v2");
+  });
+
+  it("si al renovar el turno ya no existe, borra la copia", async () => {
+    const cache = cacheFalsa();
+    let reloj = 0;
+    const respuestas = [new Response("v1", { status: 200 }), new Response("no está", { status: 404 })];
+    const handler = { fetch: vi.fn(async () => respuestas.shift()!) };
+    const fetch = conCacheDeTurno(handler, () => cache, () => reloj);
+
+    const ctx1 = ctxFalso();
+    await fetch(new Request(URL_TURNO), {}, ctx1);
+    await Promise.all(ctx1.pendientes);
+
+    reloj = (FRESCA_SEGUNDOS + 1) * 1000;
+    const ctx2 = ctxFalso();
+    await fetch(new Request(URL_TURNO), {}, ctx2);
+    await Promise.all(ctx2.pendientes);
+    expect(cache.datos.size).toBe(0);
   });
 });

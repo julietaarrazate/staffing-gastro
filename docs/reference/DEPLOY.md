@@ -112,13 +112,18 @@ Etapas y resultados en
   las copia a los assets estáticos, que Cloudflare sirve sin pasar por el
   Worker. Ese script también escribe el `_headers` de los assets.
 - **Entrada propia del Worker** (`frontend/cloudflare/worker.mjs`, desde
-  2026-10-19): envuelve el handler de OpenNext y guarda 60 s en la Cache API
-  de Cloudflare la página pública `/turno/[id]`. Esa página es la que se
+  2026-10-19): envuelve el handler de OpenNext y guarda en la Cache API de
+  Cloudflare la página pública `/turno/[id]`: fresca 60 s y, hasta 10 min, se
+  sirve al instante mientras se arma la nueva por detrás. Esa página es la que se
   comparte por WhatsApp, y armarla tardaba entre 1,3 y 2 s. La caché usa
   como clave sólo la ruta y deja afuera RSC, lo que no sea 200 y las
   respuestas con `Set-Cookie`; la lógica está en `turno-cache.mjs`, con sus
   tests. Si OpenNext suma Durable Objects nuevos, hay que reexportarlos ahí.
   En `workers.dev` la Cache API no guarda nada, así que ahí no se nota.
+  En el panel de la zona, **Caching → Configuration → Browser Cache TTL**
+  tiene que quedar en "Respect Existing Headers": si no, Cloudflare reescribe
+  el `max-age` de lo que sale de la caché (con 4 h, el celular guardaba la
+  página del turno 4 h).
 - **Rutas estáticas:** 33 de 39 se prerenderizan y salen con
   `enableCacheInterception` sin cargar Next. Smart Placement se descartó:
   mueve todo el Worker cerca de Render, y las páginas estáticas, que hoy
