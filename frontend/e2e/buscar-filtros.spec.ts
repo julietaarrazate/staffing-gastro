@@ -142,3 +142,34 @@ test("el Inicio ya no tiene chips de filtro", async ({ page }) => {
   await expect(page.getByRole("switch", { name: /Urgentes/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Mejores pagos/ })).toHaveCount(0);
 });
+
+test("la tarjeta de Buscar comparte el turno por WhatsApp", async ({ page }) => {
+  await skipSplash(page);
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockFeed(page);
+  // Sin Web Share (como en escritorio) cae al link de WhatsApp; se anota la
+  // URL que se abriría en vez de abrir la pestaña.
+  await page.addInitScript(() => {
+    delete (Navigator.prototype as { share?: unknown }).share;
+    const w = window as unknown as { __opened: string[] };
+    w.__opened = [];
+    window.open = (url?: string | URL) => {
+      w.__opened.push(String(url));
+      return null;
+    };
+  });
+
+  await page.goto("/buscar");
+  const card = page.getByTestId("buscar-card").filter({ hasText: "Bar Palermo" });
+  await card.getByRole("button", { name: "Compartir" }).click();
+
+  const opened = await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened);
+  expect(opened).toHaveLength(1);
+  const url = new URL(opened[0]);
+  expect(url.hostname).toBe("wa.me");
+  const text = url.searchParams.get("text") ?? "";
+  expect(text).toContain("Buscamos Mozo/a");
+  expect(text).toContain("/turno/s-normal");
+});

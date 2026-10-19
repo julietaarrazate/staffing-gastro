@@ -166,3 +166,79 @@ async def test_shifts_together_counts_only_completed_shifts(client: AsyncClient)
     body = listed.json()
     assert len(body) == 1
     assert body[0]["shifts_together"] == 1
+
+
+async def test_publish_always_notifies_available_favorites(
+    client: AsyncClient, monkeypatch
+):
+    """Los favoritos entran en el aviso de turno nuevo aunque no queden
+    entre los mejores rankeados. Con el tope en 0, nadie más recibe el aviso:
+    si al favorito le llega, es por ser favorito."""
+    from app.modules.shift.application.services import ShiftService
+
+    monkeypatch.setattr(ShiftService, "NEARBY_NOTIFICATION_LIMIT", 0)
+    employer = await _employer_with_company(client, "fav_notif_emp@staffya.com")
+    fav_headers, fav_id = await _worker_with_profile(client, "fav_notif_w1@staffya.com")
+    other_headers, _other_id = await _worker_with_profile(
+        client, "fav_notif_w2@staffya.com"
+    )
+    await client.put(f"/api/v1/favorites/{fav_id}", headers=employer)
+
+    start = _now_naive() + timedelta(days=1)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": start.isoformat(),
+            "end_at": (start + timedelta(hours=6)).isoformat(),
+            "pay_amount": "60000.00",
+            "city": "Palermo",
+            **PALERMO,
+        },
+    )
+    await client.post(
+        f"/api/v1/shifts/{created.json()['id']}/publish", headers=employer
+    )
+
+    fav_notifs = (await client.get("/api/v1/notifications", headers=fav_headers)).json()
+    other_notifs = (
+        await client.get("/api/v1/notifications", headers=other_headers)
+    ).json()
+    assert [n["type"] for n in fav_notifs] == ["new_shift_nearby"]
+    assert other_notifs == []
+
+
+async def test_favorite_without_the_position_is_not_notified(client: AsyncClient):
+    """Ser favorito no saltea la elegibilidad: a quien no tiene el puesto
+    pedido no le llega el aviso."""
+    employer = await _employer_with_company(client, "fav_notif_emp2@staffya.com")
+    headers = await auth_headers(client, "worker", "fav_notif_w3@staffya.com")
+    profile = await client.post(
+        "/api/v1/workers/me/profile",
+        headers=headers,
+        json={"skills": ["cocinero"], **PALERMO},
+    )
+    await client.put(f"/api/v1/favorites/{profile.json()['id']}", headers=employer)
+
+    start = _now_naive() + timedelta(days=1)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": start.isoformat(),
+            "end_at": (start + timedelta(hours=6)).isoformat(),
+            "pay_amount": "60000.00",
+            "city": "Palermo",
+            **PALERMO,
+        },
+    )
+    await client.post(
+        f"/api/v1/shifts/{created.json()['id']}/publish", headers=employer
+    )
+
+    notifs = (await client.get("/api/v1/notifications", headers=headers)).json()
+    assert notifs == []

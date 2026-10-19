@@ -14,6 +14,7 @@ from app.core.gemini import (
     AssistantQueryResult,
     GeminiNotConfiguredError,
     GeminiRequestError,
+    GeminiUnavailableError,
     interpret_assistant_query,
     interpret_worker_shift_query,
 )
@@ -82,6 +83,11 @@ async def query(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="El asistente no está configurado en este servidor",
         ) from exc
+    except GeminiUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El asistente no está disponible en este momento. Probá de nuevo en unos minutos.",
+        ) from exc
     except GeminiRequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -113,6 +119,11 @@ async def worker_query(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="El asistente no está configurado en este servidor",
+        ) from exc
+    except GeminiUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El asistente no está disponible en este momento. Probá de nuevo en unos minutos.",
         ) from exc
     except GeminiRequestError as exc:
         raise HTTPException(

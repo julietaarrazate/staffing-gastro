@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.url import HttpsUrl
 from app.modules.worker.domain.value_objects import (
     GamificationLevel,
     WorkerBadge,
@@ -16,7 +17,7 @@ from app.modules.worker.domain.value_objects import (
 class WorkerProfileInput(BaseModel):
     """Payload de alta/edición del perfil (sólo campos editables)."""
 
-    photo_url: str | None = Field(default=None, max_length=512)
+    photo_url: HttpsUrl | None = None
     birth_date: date | None = None
     city: str | None = Field(default=None, max_length=120)
     bio: str | None = Field(default=None, max_length=1000)
@@ -26,7 +27,7 @@ class WorkerProfileInput(BaseModel):
     years_experience: int = Field(default=0, ge=0, le=80)
     languages: list[str] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
-    cv_url: str | None = Field(default=None, max_length=512)
+    cv_url: HttpsUrl | None = None
     cv_filename: str | None = Field(default=None, max_length=255)
     is_available: bool = True
 

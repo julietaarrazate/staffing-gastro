@@ -35,11 +35,16 @@ export default function ShiftMap({
   center,
   activeId,
   onSelect,
+  followActive,
 }: {
   shifts: Shift[];
   center: [number, number];
   activeId: string | null;
   onSelect: (id: string) => void;
+  /** Si la cámara acompaña a la tarjeta activa. Al abrir es `false`: el mapa
+   * se queda en la persona y recién sigue a una tarjeta cuando ella toca o
+   * desliza (o cuando no hay GPS, ver `app/map/page.tsx`). */
+  followActive: boolean;
 }) {
   const mapRef = useRef<MapRef | null>(null);
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -89,10 +94,15 @@ export default function ShiftMap({
   // estás"). `zoom: 15` para que el paneo ACERQUE a la dirección: sin fijar
   // zoom, `easeTo` conserva el que hubiera, que tras el vuelo inicial es una
   // vista de barrio donde el pin queda perdido.
+  //
+  // Sólo con `followActive`: si corría también al abrir, la cámara volaba a
+  // la persona y enseguida saltaba a la primera tarjeta, así que el mapa
+  // mostraba siempre la zona de ese turno y no dónde estaba la persona
+  // (auditoría de interfaz 2026-10-11, B02).
   useEffect(() => {
-    if (!mapRef.current || activeLat == null || activeLng == null) return;
+    if (!followActive || !mapRef.current || activeLat == null || activeLng == null) return;
     easeToPoint(mapRef.current, [activeLat, activeLng], { zoom: 15, duration: 450 });
-  }, [activeLat, activeLng, ready]);
+  }, [activeLat, activeLng, ready, followActive]);
 
   const clusterIndex = useMemo(() => buildShiftClusterIndex(shifts), [shifts]);
 

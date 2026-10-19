@@ -10,6 +10,7 @@ from app.core.tz import ARG_TZ, format_turno_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.favorite.domain.repositories import FavoriteRepository
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.matching.domain.entities import ShiftRequirement
 from app.modules.matching.domain.repositories import CandidateRepository
@@ -30,6 +31,7 @@ from app.modules.shift.domain.pay_benchmark import (
     hourly_rate,
 )
 from app.modules.shift.domain.exceptions import (
+    AssigneeNotFoundError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -112,6 +114,10 @@ class ShiftService:
         # Opcional para no romper a quien construya el servicio sin él: sin
         # este puerto, publicar sigue funcionando y simplemente no se avisa.
         candidates: CandidateRepository | None = None,
+        # Favoritos del comercio: siempre entran en el aviso de turno nuevo
+        # (ver `_notify_nearby_workers`). Opcional por el mismo motivo que
+        # `candidates`: sin él, el aviso sigue saliendo, sólo que sin ellos.
+        favorites: FavoriteRepository | None = None,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -122,6 +128,7 @@ class ShiftService:
         self._users = users
         self._email_sender = email_sender
         self._candidates = candidates
+        self._favorites = favorites
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -265,7 +272,7 @@ class ShiftService:
         shift: Shift,
         *,
         max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
-        limit: int = NEARBY_NOTIFICATION_LIMIT,
+        limit: int | None = None,
         notification_type: NotificationType = NotificationType.NEW_SHIFT_NEARBY,
         escalation: bool = False,
     ) -> None:
@@ -291,9 +298,13 @@ class ShiftService:
         """
         if self._candidates is None:
             return
+        # Se resuelve acá y no como default del parámetro para que el tope se
+        # lea al llamar (los tests lo bajan para aislar a los favoritos).
+        if limit is None:
+            limit = self.NEARBY_NOTIFICATION_LIMIT
         try:
             available = await self._candidates.list_available(shift.position)
-            ranked = rank_candidates(
+            ranked_all = rank_candidates(
                 available,
                 ShiftRequirement(
                     position=shift.position,
@@ -301,7 +312,26 @@ class ShiftService:
                     longitude=shift.longitude,
                 ),
                 max_radius_km=max_radius_km,
-            )[:limit]
+            )
+            # Los favoritos del comercio entran siempre, además del tope: son
+            # los que ya le resolvieron un turno, y el que más chances tiene
+            # de cubrir el próximo rápido es alguien que ya conoce el local
+            # (en Instawork y Brigad, el 85–93% de los comercios repite
+            # trabajador). Sin esto, un favorito que no quedaba entre los
+            # mejores rankeados ni se enteraba. No hay ventana exclusiva para
+            # ellos a propósito: demoraría el aviso al resto y va contra los
+            # 10 minutos. Siguen pasando por `rank_candidates`, así que un
+            # favorito que no está disponible o no tiene el puesto no recibe
+            # nada. Es la única forma en que marcar favorito afecta algo: el
+            # ranking y la reputación siguen sin leerlo.
+            favorite_ids = (
+                await self._favorites.list_worker_ids_by_company(shift.company_id)
+                if self._favorites is not None
+                else set()
+            )
+            ranked = [m for m in ranked_all if m.profile_id in favorite_ids] + [
+                m for m in ranked_all if m.profile_id not in favorite_ids
+            ][:limit]
 
             if not ranked:
                 return
@@ -601,6 +631,9 @@ class ShiftService:
         turno se reabre (el asignado rechaza/cancela/no-show), esos rechazos se
         revierten (`_restore_rejected_applicants`)."""
         shift = await self._get_owned(company_id, shift_id)
+        # Un perfil inexistente antes terminaba en error de FK (500).
+        if await self._workers.get_by_id(worker_profile_id) is None:
+            raise AssigneeNotFoundError()
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(

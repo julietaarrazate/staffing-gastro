@@ -9,7 +9,14 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
-import { ParsedShiftDraft, SKILL_LABELS, Shift, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
+import {
+  CompanyProfile,
+  ParsedShiftDraft,
+  SKILL_LABELS,
+  Shift,
+  WORKER_SKILLS,
+  WorkerSkill,
+} from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import {
   argentinaISOToLocalInput,
@@ -40,7 +47,12 @@ import {
 } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
-const STEPS = ["Puesto", "Personas", "Cuándo", "Pago", "Publicar"];
+// Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
+// pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
+// publicación (auditoría de interfaz 2026-10-11, U01).
+const STEPS = ["Puesto", "Cuándo", "Pago", "Publicar"];
+
+type CompanyPlace = { label: string; city: string; latitude: number; longitude: number };
 
 // Duplicar un turno (frontend puro, ver spec de crecimiento): movemos el
 // horario +7 días manteniendo la misma hora de pared en Argentina.
@@ -84,6 +96,11 @@ function NewShiftWizard() {
   const [city, setCity] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  // Dirección del local, para no pedirle la zona en cada turno (auditoría de
+  // interfaz 2026-10-11, U04/B03). `changingPlace` muestra el selector para
+  // publicar en otra zona.
+  const [companyPlace, setCompanyPlace] = useState<CompanyPlace | null>(null);
+  const [changingPlace, setChangingPlace] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   // Turno por texto libre (P2, auditoría de producto 2026-08-10): la IA sólo
@@ -144,6 +161,41 @@ function NewShiftWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duplicateId, token]);
 
+  // Precarga la ubicación con la del local. No pisa una ubicación ya elegida
+  // (duplicar un turno trae la suya). Si el local no tiene coordenadas, el
+  // último paso pide elegir la zona.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    api
+      .get<CompanyProfile>("/companies/me/profile", token)
+      .then((company) => {
+        if (cancelled || company.latitude == null || company.longitude == null) return;
+        const place: CompanyPlace = {
+          label: company.address || company.city || company.name,
+          city: company.city ?? "",
+          latitude: company.latitude,
+          longitude: company.longitude,
+        };
+        setCompanyPlace(place);
+      })
+      .catch(() => {
+        // Sin perfil o sin red: el comercio elige la zona a mano.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!companyPlace || latitude != null) return;
+    setCity(companyPlace.city);
+    setLatitude(companyPlace.latitude);
+    setLongitude(companyPlace.longitude);
+    // Sólo al llegar el perfil: después, la ubicación la decide el comercio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyPlace]);
+
   function applyParsedDraft(draft: ParsedShiftDraft) {
     if (draft.position) setPosition(draft.position);
     if (draft.start_at) setStartAt(argentinaISOToLocalInput(draft.start_at));
@@ -162,15 +214,14 @@ function NewShiftWizard() {
     // están). Mismo criterio que "Duplicar turno" arriba, que ya salta
     // directo al último paso — acá la diferencia es que un draft de la IA
     // puede venir incompleto (ej. sin fecha), así que el destino depende
-    // de qué faltó, no siempre es el final. `quantity` no entra en la
-    // cuenta: siempre vale 1 (R1.4), el paso 1 nunca bloquea.
+    // de qué faltó, no siempre es el final.
     const startInput = draft.start_at ? argentinaISOToLocalInput(draft.start_at) : "";
     const endInput = draft.end_at ? argentinaISOToLocalInput(draft.end_at) : "";
     const hasWhen = startInput !== "" && endInput !== "" && endInput > startInput;
     const hasPay = draft.pay_amount != null && Number(draft.pay_amount) > 0;
     if (!draft.position) setStep(0);
-    else if (!hasWhen) setStep(2);
-    else if (!hasPay) setStep(3);
+    else if (!hasWhen) setStep(1);
+    else if (!hasPay) setStep(2);
     else setStep(STEPS.length - 1);
 
     toast(
@@ -227,12 +278,19 @@ function NewShiftWizard() {
     setStep(next);
   }
 
+  // Sin ubicación el turno no aparece en el mapa ni se puede avisar a gente
+  // cerca (auditoría de interfaz 2026-10-11, B03): el último paso la exige.
+  const hasPlace = latitude != null && longitude != null;
+  const usingCompanyPlace =
+    !changingPlace &&
+    companyPlace != null &&
+    latitude === companyPlace.latitude &&
+    longitude === companyPlace.longitude;
   const canNext =
     (step === 0 && position !== null) ||
-    (step === 1 && quantity >= 1) ||
-    (step === 2 && startAt !== "" && endAt !== "" && endAt > startAt) ||
-    (step === 3 && Number(payAmount) > 0) ||
-    step === 4;
+    (step === 1 && startAt !== "" && endAt !== "" && endAt > startAt) ||
+    (step === 2 && Number(payAmount) > 0) ||
+    (step === 3 && hasPlace);
 
   // Duración del turno, derivada de inicio/fin (feedback de Julieta 2026-08-06:
   // "no se entiende si es 1 día o más"). Se muestra en vivo en el paso "Cuándo"
@@ -368,7 +426,10 @@ function NewShiftWizard() {
             {step === 0 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Qué necesitás?</h1>
-                <p className="mt-1 text-sm text-ink/50">Elegí el puesto a cubrir.</p>
+                <p className="mt-1 text-sm text-ink/50">
+                  Elegí el puesto a cubrir. Cada turno es para una persona: para
+                  varias, creá varios turnos o un evento.
+                </p>
 
                 {/* Turno por texto libre (P2, auditoría de producto 2026-08-10):
                     la IA sólo PRECARGA los pasos siguientes — nunca publica nada
@@ -443,7 +504,13 @@ function NewShiftWizard() {
                       <motion.button
                         key={skill}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setPosition(skill)}
+                        // Elegir el puesto avanza solo: el botón Continuar
+                        // quedaba debajo de la grilla, fuera de pantalla en
+                        // celulares (auditoría de interfaz 2026-10-11, U02).
+                        onClick={() => {
+                          setPosition(skill);
+                          go(1);
+                        }}
                         className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
                           active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
                         }`}
@@ -460,34 +527,6 @@ function NewShiftWizard() {
             )}
 
             {step === 1 && (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <h1 className="font-display text-h1 font-semibold text-ink">¿Cuántas personas?</h1>
-                <p className="mt-1 text-sm text-ink/50">Para este puesto.</p>
-                <div className="mt-10 flex items-center gap-6">
-                  <button
-                    disabled
-                    aria-disabled
-                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-surface text-3xl font-bold text-ink/25 ring-1 ring-line"
-                  >
-                    −
-                  </button>
-                  <span className="w-20 text-6xl font-extrabold text-ink">{quantity}</span>
-                  <button
-                    disabled
-                    aria-disabled
-                    className="flex h-14 w-14 cursor-not-allowed items-center justify-center rounded-full bg-line text-3xl font-bold text-ink/40"
-                  >
-                    +
-                  </button>
-                </div>
-                <p className="mt-6 max-w-xs text-sm text-ink/50">
-                  Por ahora, un turno = una persona. Para varios puestos creá varios
-                  turnos.
-                </p>
-              </div>
-            )}
-
-            {step === 2 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Cuándo?</h1>
                 <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
@@ -544,7 +583,7 @@ function NewShiftWizard() {
               </div>
             )}
 
-            {step === 3 && (
+            {step === 2 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Cuánto pagás?</h1>
                 <p className="mt-1 text-sm text-ink/50">
@@ -595,25 +634,53 @@ function NewShiftWizard() {
               </div>
             )}
 
-            {step === 4 && (
+            {step === 3 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Dónde es?</h1>
-                <p className="mt-1 text-sm text-ink/50">
-                  Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
-                </p>
-                <div className="mt-5">
-                  <LocationPicker
-                    onSelect={(loc: LocationSelection) => {
-                      setCity(loc.city);
-                      setLatitude(loc.latitude);
-                      setLongitude(loc.longitude);
-                    }}
-                  />
-                </div>
-                {city && (
-                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
-                    <MapPinIcon size={15} /> {city}
-                  </p>
+                {usingCompanyPlace && companyPlace ? (
+                  <>
+                    <p className="mt-1 text-sm text-ink/50">
+                      En tu local. Avisamos a la gente que está cerca.
+                    </p>
+                    <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary-tint px-4 py-3 ring-1 ring-primary/15">
+                      <MapPinIcon size={18} className="shrink-0 text-primary-text" />
+                      <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
+                        {companyPlace.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setChangingPlace(true)}
+                        className="min-h-[44px] shrink-0 px-2 text-sm font-semibold text-primary-text underline"
+                      >
+                        Cambiar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink/50">
+                      Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
+                    </p>
+                    <div className="mt-5">
+                      <LocationPicker
+                        onSelect={(loc: LocationSelection) => {
+                          setCity(loc.city);
+                          setLatitude(loc.latitude);
+                          setLongitude(loc.longitude);
+                        }}
+                      />
+                    </div>
+                    {city && hasPlace && (
+                      <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                        <MapPinIcon size={15} /> {city}
+                      </p>
+                    )}
+                    {!hasPlace && (
+                      <p className="mt-3 text-sm text-ink/60">
+                        Elegí la zona para poder avisar a gente cerca.
+                      </p>
+                    )}
+                  </>
                 )}
                 {/* Resumen */}
                 <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-ink/70">
@@ -638,7 +705,7 @@ function NewShiftWizard() {
             Continuar
           </Button>
         ) : (
-          <Button fullWidth size="lg" loading={submitting} onClick={publish}>
+          <Button fullWidth size="lg" loading={submitting} disabled={!hasPlace} onClick={publish}>
             Publicar turno
           </Button>
         )}

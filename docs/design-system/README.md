@@ -1,5 +1,10 @@
 # Design System de Oído — v5.0 "sistema de identidad"
 
+> **Para arrancar, leé [`marca-hoy.md`](./marca-hoy.md)**: la ficha corta de
+> la marca vigente (2026-10-19: celeste y blanco con un solo ámbar, el «oído»
+> fileteado, noche azul en oscuro). Lo de abajo es la historia de v5.0; los
+> valores vigentes están en `color-system.md` y `typography.md`.
+
 > Creado 2026-09-20 a partir del board de diseño definitivo que pasó Julieta
 > (dos tableros: style-guide + pantallas). Esta carpeta documenta las REGLAS
 > del sistema — cuándo y por qué usar cada cosa —, no sólo los valores.

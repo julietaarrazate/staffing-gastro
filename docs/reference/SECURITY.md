@@ -51,6 +51,13 @@ asignado del turno; en notificaciones, el propio usuario. Ver
 
 ## Endurecimiento ya aplicado
 
+- **`Origin` verificado en `/auth/refresh` y `/auth/logout`** (cookie de refresh
+  con SameSite=None): si el header viene y no está en `CORS_ORIGINS`, 403. Sin
+  `Origin` pasa (`app/core/origin.py`).
+- **422 sin eco del input:** el handler de `RequestValidationError` en
+  `app/main.py` devuelve solo `type`, `loc` y `msg` (sin `input`, `ctx` ni `url`).
+- **`POST /shifts/{id}/assign` con trabajador inexistente** responde 404, no 500
+  (existencia verificada por el puerto de trabajadores).
 - **`JWT_SECRET_KEY` no puede quedar en el default en producción.** Un validador
   de configuración (`Settings._reject_insecure_defaults`) **falla el arranque**
   si `ENVIRONMENT=production` y el secreto sigue siendo el valor por defecto. En
@@ -78,6 +85,24 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   `is_verified` en `User`); las cuentas de Google entran ya verificadas
   (`is_verified=true` desde el alta, ver
   [ACCESO_MODERNO.md](./ACCESO_MODERNO.md)).
+- **URLs que carga el usuario sólo `https://`** (auditoría del 2026-10-14):
+  fotos, logo, portada, CV y evidencias de verificación usan el tipo
+  `HttpsUrl` (`backend/app/core/url.py`), que rechaza `javascript:`, `data:`,
+  `http:` y texto suelto. El frontend además pasa por `safeHttpsUrl`
+  (`frontend/lib/safe-url.ts`) toda URL de usuario que pone en un `href`, para
+  cubrir lo guardado antes.
+- **CSP sin `vercel.live` en producción:** se agrega sólo cuando
+  `VERCEL_ENV=preview` (`frontend/next.config.ts`).
+- **Backend detrás de Cloudflare y Turnstile** (código listo, apagado; ADR-0018):
+  con `EDGE_SHARED_SECRET`, lo que no viene por Cloudflare recibe 403 y el
+  límite de intentos usa la IP real (`app/core/edge.py`); con
+  `TURNSTILE_SECRET_KEY`, login y registro piden el token anti-robots
+  (`app/core/turnstile.py`). Cómo prenderlo: DEPLOY.md, "Etapa 3".
+- **Todas las subidas a Cloudinary son firmadas** (2026-10-15): fotos de
+  perfil, logo, portada, DNI y selfie usan `POST /uploads/sign-image?kind=…`
+  (rol según el tipo), igual que el CV y la constancia. La firma fija formatos,
+  carpeta, un `public_id` al azar y `overwrite=false`. El preset unsigned
+  (`staffya-profile`) queda sin uso y se apaga en el panel de Cloudinary.
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 

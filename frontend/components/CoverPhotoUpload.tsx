@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { cldThumb, uploadImage } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon, TrashIcon } from "@/components/icons";
@@ -22,6 +23,7 @@ export default function CoverPhotoUpload({
   value: string | null;
   onChange: (url: string | null) => void;
 }) {
+  const { token } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +45,8 @@ export default function CoverPhotoUpload({
     setPendingFile(null);
     setUploading(true);
     try {
-      onChange(await uploadImage(cropped));
+      if (!token) throw new Error("Tu sesión venció. Volvé a entrar para subir la foto.");
+      onChange(await uploadImage(cropped, token, "cover"));
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir la foto"));
     } finally {
