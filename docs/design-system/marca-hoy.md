@@ -23,8 +23,11 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    - `marca` (sólo la palabra): encabezado de la landing;
    - `cinta` («¡Oído!»): la comanda.
    No va en ningún otro lugar ni con otra palabra.
-4. **Isotipo provisorio:** el actual (`public/logo-mark.svg`) es sólo el
-   ícono de la app (pantalla del celular, pestaña). Falta diseñar uno nuevo.
+4. **Isotipo provisorio:** el de siempre (manos y oreja, `public/logo-mark.svg`)
+   en **blanco sobre azul hondo `#1C5478`** desde el 2026-10-19 (era crema
+   sobre ámbar). Es el ícono de la app (pantalla del celular, arranque en
+   Android, pestaña) y el logo chico del encabezado dentro de la app. Falta
+   diseñar uno nuevo.
 5. **Modo oscuro = noche azul** (lienzo `#0D131A`, tarjeta `#151D26`, grises
    fríos, brillo celeste). Nada de café ni resplandor naranja.
 6. Barra del celular (`theme-color`) blanca en claro, noche azul en oscuro.
