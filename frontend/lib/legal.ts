@@ -7,9 +7,9 @@
  * páginas, subí la versión acá y allá en el mismo cambio. Si no, el registro
  * diría que alguien aceptó una versión que no fue la que leyó.
  */
-export const LEGAL_TERMS_VERSION = "2026-09-29";
+export const LEGAL_TERMS_VERSION = "2026-10-19";
 
-export const LEGAL_LAST_UPDATED = "Última actualización: septiembre 2026";
+export const LEGAL_LAST_UPDATED = "Última actualización: octubre 2026";
 
 /**
  * Responsable de la base de datos (Ley 25.326, art. 6) y prestadora del

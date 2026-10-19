@@ -149,8 +149,6 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await page.goto("/shifts/new");
 
   await page.getByRole("button", { name: "Mozo/a" }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
   await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
   await page.getByRole("button", { name: "Continuar" }).click();

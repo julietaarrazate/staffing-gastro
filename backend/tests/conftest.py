@@ -19,6 +19,11 @@ from app.main import app
 # lo ejercita explícitamente (test_identity::test_rate_limit_*).
 settings.rate_limit_enabled = False
 
+# PIN del acceso invitado sólo para tests (en producción es la env var
+# `GUEST_ACCESS_PIN`; sin ella el acceso invitado está apagado).
+TEST_GUEST_PIN = "pin-de-test-1234"
+settings.guest_access_pin = TEST_GUEST_PIN
+
 # Importar modelos para registrarlos en la metadata antes de create_all
 from app.core import idempotency as idempotency_models  # noqa: F401
 from app.modules.application.infrastructure import models as application_models  # noqa: F401

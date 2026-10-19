@@ -10,11 +10,13 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
+from app.core.geo import haversine_km
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
     ShiftNotEditableError,
+    WorkerTooFarFromShiftError,
 )
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
@@ -33,6 +35,11 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 # esa fecha"). `check_out()`/`finish()`/`mark_paid()` no necesitan su propio
 # guard: ya dependen de haber pasado por `check_in()` primero.
 EARLY_CHECKIN_WINDOW = timedelta(minutes=30)
+
+# Radio máximo entre la posición informada y el local para marcar llegada o
+# salida (aprobado por Julieta, 2026-10-14). Si el turno no tiene coordenadas
+# no hay contra qué comparar y la marca se acepta como antes.
+CHECK_RADIUS_KM = 0.3
 
 # "Va en camino" (2026-09): cuánto antes del turno el trabajador puede empezar
 # a compartir dónde está, para que el comercio vea que está llegando (pedido de
@@ -138,6 +145,12 @@ class Shift:
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    # Versión del agregado (ADR-0016, bloqueo optimista): la que tenía el
+    # turno cuando se leyó. Guardarlo exige que en la base siga siendo esa;
+    # si otro la cambió en el medio, `ShiftConcurrentModificationError`.
+    # La maneja el repositorio; el dominio sólo la transporta.
+    version: int = 1
 
     def __post_init__(self) -> None:
         self._validate_schedule()
@@ -354,6 +367,17 @@ class Shift:
         self.en_route_at = None
         self.departure_reminder_sent_at = None
 
+    def _ensure_at_venue(self, latitude: float, longitude: float, action: str) -> None:
+        """Rechaza la marca si la posición está a más de `CHECK_RADIUS_KM` del
+        local. Sin coordenadas en el turno no se puede verificar: se acepta."""
+        distance_km = haversine_km(latitude, longitude, self.latitude, self.longitude)
+        if distance_km is None or distance_km <= CHECK_RADIUS_KM:
+            return
+        meters = round(distance_km * 1000)
+        raise WorkerTooFarFromShiftError(
+            f"Tenés que estar en el local para marcar {action} (estás a {meters} m)."
+        )
+
     def check_in(self, latitude: float, longitude: float) -> None:
         """CONFIRMADO/EN_CAMINO → CHECK_IN: el trabajador llega y marca su
         ubicación.
@@ -374,6 +398,7 @@ class Shift:
                 "Todavía no se puede marcar llegada: el turno empieza el "
                 f"{self.start_at.isoformat()}."
             )
+        self._ensure_at_venue(latitude, longitude, "la llegada")
         self.status = ShiftStatus.CHECK_IN
         self.check_in_latitude = latitude
         self.check_in_longitude = longitude
@@ -396,6 +421,7 @@ class Shift:
             raise InvalidShiftTransitionError(
                 f"No se puede marcar salida desde el estado {self.status.value}"
             )
+        self._ensure_at_venue(latitude, longitude, "la salida")
         self.status = ShiftStatus.CHECK_OUT
         self.check_out_latitude = latitude
         self.check_out_longitude = longitude

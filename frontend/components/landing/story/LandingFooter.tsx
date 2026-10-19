@@ -11,7 +11,7 @@ export default function LandingFooter() {
         <div>
           <span className="no-select inline-flex items-center gap-2">
             <LogoMark size={28} />
-            <span className="font-display text-xl font-semibold tracking-tight text-white">oído</span>
+            <span className="font-serif text-xl font-semibold tracking-tight text-white">oído</span>
           </span>
           <p className="mt-3 font-display text-h2 font-medium text-manteca">Personal gastronómico, ya.</p>
         </div>

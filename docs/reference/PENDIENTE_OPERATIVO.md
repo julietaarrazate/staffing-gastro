@@ -30,7 +30,8 @@ toda vista previa y el sitemap apuntaban ahí.
 
 **Ya configuradas — NO volver a pedirlas:**
 - **Vercel (frontend):** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
-  `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
+  `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` (sin uso desde 2026-10-15: las
+  fotos suben firmadas), `NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
   `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_SENTRY_DSN`.
 - **Render (backend):** `CORS_ORIGINS`, `DATABASE_URL`, `GOOGLE_CLIENT_ID`,
   `JWT_SECRET_KEY`, `RESEND_API_KEY`, `SEED_DEMO_DATA`, `SENTRY_DSN`,
@@ -87,10 +88,36 @@ toda vista previa y el sitemap apuntaban ahí.
    responde 503 (flag por ausencia) y el botón "Completar" muestra un
    error claro en vez de fallar en silencio.
 
-> El **PIN de acceso invitado** ("Explorar sin cuenta") **no** es env var: se
-> configura en el código (`IdentityService.GUEST_ACCESS_PIN`, hoy `3526`).
+> ✅ **`GUEST_ACCESS_PIN`** (Render, cargada por Julieta el 2026-10-10): el PIN
+> del acceso invitado ("Explorar sin cuenta"). Hasta esa fecha era una
+> constante en el código, pero el repo es público y con ese PIN cualquiera
+> entraba como comercio al mapa de trabajadores. **Sin esta var el acceso
+> invitado está apagado** (`POST /auth/guest` responde 404 y la pantalla
+> muestra "El acceso de invitado no está disponible"). Usar un PIN nuevo de
+> 8 o más **dígitos**, sin letras: el campo del login abre el teclado
+> numérico (`inputMode="numeric"`) y en el celular no se pueden tipear
+> letras. El viejo quedó en la historia de git y no sirve.
+> Para cambiarlo alcanza con editar la var (Render redeploya solo).
 
 **Otros pendientes operativos (no env vars):**
+- 🟠 **Pasar Render al plan Starter ($7/mes, siempre prendido)** — decidido
+  por Julieta el 2026-10-13, para hacerlo **antes de tener usuarios reales**.
+  Por qué: en el plan free el servidor se duerme a los 15 minutos sin tráfico.
+  Quien entra después espera 30 a 60 s, y mientras duerme **no corre el
+  scheduler** (`shift/application/scheduler.py`): no salen los recordatorios
+  de llegada, no se amplía la búsqueda de un turno sin cubrir y no se marcan
+  ausencias. El backend ya está preparado para que Neon siga en el plan free
+  con Render siempre prendido (#429, cierra la conexión ociosa a los 2
+  minutos; detalle en `docs/historial/2026-10-13-neon-dormir.md`).
+  Pasos: Render → el servicio del backend → Settings → Instance Type →
+  **Starter** → guardar (redeploya solo, no hay que tocar env vars).
+  Después: durante la primera semana mirar en Neon → Monitoring el consumo de
+  cómputo (CU-h). El plan free da 100 CU-h por mes; con el arreglo, la base se
+  duerme cuando nadie usa la app. Si en un mes pasa de ~70 CU-h, es momento de
+  pasar Neon al plan pago por uso. Estimación (no medida): eso pasa cuando hay
+  alguien usando la app unas 13 horas por día, del orden de 80 a 150 personas
+  activas por día. Render Starter (512 MB) alcanza para cientos de personas
+  usándola a la vez.
 - ✅ **Dominio propio `oido.com.ar`** (comprado en NIC.ar, 2026-09-02,
   conectado el 2026-09-08; ver arriba).
   El **dominio de envío propio en Resend ya está**: verificado contra su API

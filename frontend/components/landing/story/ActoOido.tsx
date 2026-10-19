@@ -463,7 +463,7 @@ export function ActoOido() {
               aria-label="¡Oído! Repetir"
               onClick={() => setBurst((b) => b + 1)}
               style={{ opacity: shoutOpacity, scale: shoutScale }}
-              className="font-display text-shout font-bold tracking-[-0.04em] text-ink"
+              className="font-display text-shout font-bold tracking-[-0.02em] text-ink"
             >
               <motion.span
                 key={burst}
@@ -707,7 +707,7 @@ export function ActoOidoStatic() {
         className="flex flex-col items-center bg-primary px-4 pb-10 pt-20 text-center lg:pt-28"
       >
         <RelojDelTurno at="cubierto" />
-        <p className="mt-8 font-display text-shout font-bold tracking-[-0.04em] text-ink">¡Oído!</p>
+        <p className="mt-8 font-display text-shout font-bold tracking-[-0.02em] text-ink">¡Oído!</p>
         <p className="mt-4 max-w-[30ch] text-lg font-medium text-ink lg:text-2xl">
           Lucía confirmó. Tu turno de las 21 está cubierto.
         </p>

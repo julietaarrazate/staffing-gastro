@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
-import Logo from "@/components/Logo";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 function LoginForm() {
   const { login, loginAsGuest } = useAuth();
@@ -19,6 +20,8 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   // Acceso de invitado para la beta: un PIN (que configura la operadora en el
   // código) habilita entrar sin registrarse — así prueban sólo los que Julieta
   // quiere, no cualquiera. Reemplaza el login demo abierto anterior (que además
@@ -41,6 +44,8 @@ function LoginForm() {
       await doLogin(email, password);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");
+      // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
+      setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -74,10 +79,7 @@ function LoginForm() {
   return (
     <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="flex justify-center">
-          <Logo size={48} withWordmark={false} />
-        </div>
-        <h1 className="mt-4 text-center font-display text-h1 font-semibold tracking-tight text-ink">Ingresar</h1>
+        <h1 className="text-center font-display text-h1 font-semibold tracking-tight text-ink">Ingresar</h1>
         <p className="mt-1 text-center text-sm text-ink/50">
           Entrá para ver tus turnos y mensajes.
         </p>
@@ -110,8 +112,14 @@ function LoginForm() {
               placeholder="Contraseña"
               required
             />
+            <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
             {error && <p className="text-sm text-danger-text">{error}</p>}
-            <Button type="submit" fullWidth loading={submitting}>
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              disabled={Boolean(TURNSTILE_SITE_KEY) && !turnstileToken}
+            >
               Ingresar
             </Button>
             <Link

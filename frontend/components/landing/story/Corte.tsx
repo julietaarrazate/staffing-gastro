@@ -16,7 +16,7 @@ export default function Corte() {
     >
       {/* Intertítulo: el único cartel de la página que no es producto. */}
       <p className="font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">20:51</p>
-      <h2 className="mt-3 max-w-[14ch] font-display text-headline font-medium tracking-[-0.025em] text-ink [text-wrap:balance]">
+      <h2 className="mt-3 max-w-[14ch] font-display text-headline font-medium tracking-[-0.012em] text-ink [text-wrap:balance]">
         Mientras tanto, en tu bar.
       </h2>
       <p className="mt-4 max-w-[34ch] text-body text-ink-soft lg:text-lg">

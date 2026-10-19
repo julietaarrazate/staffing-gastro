@@ -8,3 +8,6 @@ class SignedUploadResponse(BaseModel):
     signature: str
     api_key: str
     allowed_formats: str
+    folder: str
+    public_id: str
+    overwrite: str

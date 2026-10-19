@@ -15,7 +15,8 @@ nueva genera una key nueva. Backend:
 2. Con header y la key ya tiene una respuesta guardada → se devuelve esa
    respuesta tal cual (mismo status+body), sin re-ejecutar el handler.
 3. Con header, la key existe pero SIN respuesta (in-flight o crash previo)
-   → 409 "operación en curso".
+   → 409 "operación en curso". Si el handler falla, la reserva se libera
+   (desde 2026-10-10): sólo un éxito se replica; un error se reintenta.
 4. Con header, la key existe pero el fingerprint del body no coincide con
    el guardado → 422 "misma clave, pedido distinto".
 5. Key nueva → se reserva (insert + commit inmediato, visible para
@@ -34,6 +35,7 @@ una key nueva (`_lazy_cleanup`), no crítico para v1 (documentado en el spec).
 import hashlib
 import logging
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 
@@ -111,6 +113,7 @@ class IdempotencyRecorder:
     def __init__(self, session: AsyncSession | None, row_id: uuid.UUID | None) -> None:
         self._session = session
         self._row_id = row_id
+        self._saved = False
 
     @property
     def active(self) -> bool:
@@ -124,6 +127,25 @@ class IdempotencyRecorder:
             IdempotencyKeyModel.__table__.update()
             .where(IdempotencyKeyModel.id == self._row_id)
             .values(response_status=status_code, response_body=body)
+        )
+        await self._session.commit()
+        self._saved = True
+
+    async def release(self, *, after_error: bool) -> None:
+        """Libera una reserva que terminó sin respuesta guardada (el handler
+        falló, o devolvió sin llamar a `save`). Antes quedaba "en curso" 24 h
+        y el reintento con la misma key —que el frontend reusa hasta un
+        éxito— daba 409 aunque el problema ya no existiera (marcar "Llegué"
+        antes de la ventana y volver a probar más tarde). Liberada, el
+        reintento se ejecuta de nuevo, igual que un pedido sin key."""
+        if not self.active or self._saved:
+            return
+        assert self._session is not None
+        if after_error:
+            # La sesión puede haber quedado en una transacción fallida.
+            await self._session.rollback()
+        await self._session.execute(
+            delete(IdempotencyKeyModel).where(IdempotencyKeyModel.id == self._row_id)
         )
         await self._session.commit()
 
@@ -172,12 +194,16 @@ async def idempotent(
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> IdempotencyRecorder:
+) -> AsyncIterator[IdempotencyRecorder]:
     """Dependencia de FastAPI para proteger una mutación crítica.
 
     Se declara como el ÚLTIMO parámetro de dependencia del endpoint (después
     de la resolución de rol/perfil, p. ej. `company_id`/`worker_profile_id`)
     para que un 403 de rol falle antes de reservar la key.
+
+    Es una dependencia con `yield` para poder liberar la reserva si el
+    handler termina sin guardar respuesta (ver `IdempotencyRecorder.release`):
+    sólo un éxito queda registrado; un error no "quema" la key.
     """
     key = request.headers.get(IDEMPOTENCY_KEY_HEADER)
     if not key:
@@ -187,7 +213,8 @@ async def idempotent(
             request.method,
             current_user.id,
         )
-        return IdempotencyRecorder(None, None)
+        yield IdempotencyRecorder(None, None)
+        return
 
     body = await request.body()
     fingerprint = _fingerprint(request.method, request.url.path, body)
@@ -225,4 +252,20 @@ async def idempotent(
     # `row.id` ya está poblado por el default de Python (`uuid.uuid4`) desde
     # antes del flush del commit; no hace falta `session.refresh(row)` (que
     # además puede fallar espurioso bajo alta concurrencia).
-    return IdempotencyRecorder(session, row.id)
+    recorder = IdempotencyRecorder(session, row.id)
+    try:
+        yield recorder
+    except Exception:
+        await _release_quietly(recorder, after_error=True)
+        raise
+    await _release_quietly(recorder, after_error=False)
+
+
+async def _release_quietly(recorder: IdempotencyRecorder, *, after_error: bool) -> None:
+    """Si liberar falla, se loguea y nada más: no debe tapar el error
+    original del handler (lo peor que pasa es la key "en curso" hasta su TTL,
+    que es el comportamiento de antes)."""
+    try:
+        await recorder.release(after_error=after_error)
+    except Exception:
+        logger.exception("idempotency.release_failed")

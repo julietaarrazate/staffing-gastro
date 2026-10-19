@@ -4,11 +4,18 @@ Expone:
 - `Base`: clase declarativa base para los modelos ORM.
 - `engine`: motor async.
 - `get_session`: dependencia de FastAPI que entrega una sesión por request.
+- `start_idle_connection_closer`: cierra la conexión que queda en el pool
+  cuando nadie usa la app, para que Neon pueda dormirse.
 """
 
+import asyncio
+import logging
+import time
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -74,6 +81,78 @@ engine = create_async_engine(
     pool_size=1,
     max_overflow=10,
 )
+
+# --- Cerrar la conexión ociosa (2026-10-13) ---------------------------------
+#
+# `pool_size=1` deja UNA conexión abierta en el pool para siempre, aunque nadie
+# use la app. Con Render en el plan free no importaba: el servidor se duerme a
+# los 15 minutos sin tráfico y la conexión se corta con él. Con Render pago
+# (siempre prendido) esa conexión quedaría abierta día y noche, y una conexión
+# abierta puede impedir que Neon suspenda el cómputo: serían ~180 CU-h por
+# mes contra las 100 del plan free (cuenta en docs/historial/
+# 2026-10-13-neon-dormir.md). Neon documenta que suspende tras 5 minutos de
+# inactividad, no si una conexión ociosa cuenta como actividad, así que se
+# cierra igual: si no la cuenta, cerrarla no cuesta nada; si la cuenta, es lo
+# que deja dormir a la base.
+#
+# Cómo: el pool anota la hora de cada uso (checkout/checkin). Una tarea de
+# fondo mira cada `IDLE_CHECK_EVERY` y, si pasaron `IDLE_CLOSE_AFTER` sin uso
+# y no hay ninguna conexión prestada, descarta el pool (`engine.dispose()`),
+# que cierra las conexiones guardadas. El próximo request abre una nueva
+# (lo que ya pasaba tras un hueco largo: `pool_pre_ping` la reponía). La tarea
+# no toca la base: sólo mira el reloj y el pool en memoria.
+IDLE_CLOSE_AFTER = 120.0  # segundos sin uso; bien por debajo de los 5 min de Neon
+IDLE_CHECK_EVERY = 30.0
+
+_last_pool_use = time.monotonic()
+
+
+def _mark_pool_use(*_args: object) -> None:
+    global _last_pool_use
+    _last_pool_use = time.monotonic()
+
+
+def track_pool_use(eng: AsyncEngine) -> None:
+    """Anota cada préstamo y devolución de una conexión del pool. Los
+    listeners sobreviven a `dispose()` (el pool nuevo hereda los eventos)."""
+    event.listen(eng.sync_engine, "checkout", _mark_pool_use)
+    event.listen(eng.sync_engine, "checkin", _mark_pool_use)
+
+
+track_pool_use(engine)
+
+
+async def close_idle_connections(now: float | None = None) -> bool:
+    """Cierra las conexiones guardadas en el pool si nadie lo usó en
+    `IDLE_CLOSE_AFTER` segundos y no hay ninguna prestada. Devuelve si cerró."""
+    now = time.monotonic() if now is None else now
+    pool = engine.pool
+    if now - _last_pool_use < IDLE_CLOSE_AFTER:
+        return False
+    if pool.checkedout() > 0 or pool.checkedin() == 0:
+        return False
+    await engine.dispose()
+    logging.getLogger(__name__).info("db.idle_connections_closed")
+    return True
+
+
+async def _idle_connection_closer_loop() -> None:
+    while True:
+        await asyncio.sleep(IDLE_CHECK_EVERY)
+        try:
+            await close_idle_connections()
+        except Exception:
+            # Best-effort: un error acá no debe matar el loop ni la app.
+            logging.getLogger(__name__).exception("Error cerrando conexiones ociosas")
+
+
+def start_idle_connection_closer() -> asyncio.Task | None:
+    """Arranca la tarea de fondo, sólo en producción (mismo criterio que el
+    scheduler: nunca corre en `pytest` ni en local sin querer)."""
+    if not settings.is_production:
+        return None
+    return asyncio.create_task(_idle_connection_closer_loop())
+
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

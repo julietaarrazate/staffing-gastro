@@ -60,26 +60,27 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
 
   await page.goto("/shifts/new");
 
-  // Paso 1: puesto.
+  // Paso 1: puesto (elegirlo avanza solo; ya no hay paso de cantidad).
   await page.getByRole("button", { name: "Mozo/a" }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
 
-  // Paso 2: cantidad (fija en 1, sólo avanzar).
-  await page.getByRole("button", { name: "Continuar" }).click();
-
-  // Paso 3: horario.
+  // Paso 2: horario.
   await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
   await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  // Paso 4: pago.
+  // Paso 3: pago.
   await page.getByPlaceholder("48000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  // Paso 5: ubicación (opcional para publicar, pero la completamos). Los
+  // Paso 4: ubicación (obligatoria: sin perfil de local, se elige la zona). Los
   // <select> de LocationPicker no tienen label asociado por htmlFor, así que
   // se ubican por posición: 0 = provincia (CABA por defecto), 1 = barrio.
+  // Sin zona elegida no se puede publicar: el turno no aparecería en el
+  // mapa ni se podría avisar a gente cerca (auditoría de interfaz, B03).
+  await expect(page.getByRole("button", { name: "Publicar turno" })).toBeDisabled();
+  await expect(page.getByText("Elegí la zona para poder avisar a gente cerca.")).toBeVisible();
   await page.locator("select").nth(1).selectOption("Palermo");
+  await expect(page.getByRole("button", { name: "Publicar turno" })).toBeEnabled();
 
   const publishRequest = page.waitForRequest(
     (req) =>
