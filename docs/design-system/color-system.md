@@ -78,7 +78,10 @@ resplandor ámbar en la esquina, de antes de la paleta celeste. Julieta: "un
 marrón y naranja que no tienen que ver con lo actual". Pasó a una noche azul,
 el cielo de la landing de noche, y los links (`primary-text`) a celeste. En
 claro, el resplandor de arriba (`--wash`) pasó de ámbar y durazno al celeste,
-y la pestaña activa del nav de abajo a `primary-tint` (celeste). Los `-text` se recalculan para el fondo oscuro en el bloque
+y la pestaña activa del nav de abajo a `primary-tint` (celeste). Un solo ámbar por pantalla: avatares, ícono de
+ganancias y chips de rubro (`SKILL_ACCENT`) van en celeste con azul hondo; el
+botón principal desactivado va en `surface` con tinta apagada (no ámbar al
+50%); el lienzo claro pasa de `#F3F3F3` a `#F8FBFC`. Los `-text` se recalculan para el fondo oscuro en el bloque
 `:root[data-theme="dark"]` de `globals.css`.
 
 **Regla del par tint/text en oscuro:** todo token que tenga un `-text` que se

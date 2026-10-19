@@ -178,7 +178,7 @@ export default function WorkerGameCard() {
         <>
         {earnings && Number(earnings.total_earned) > 0 && (
           <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-surface px-4 py-4">
-            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-night">
+            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-text">
               <WalletIcon size={21} />
             </span>
             <div className="min-w-0 flex-1">

@@ -17,11 +17,26 @@ ver con lo actual".
 - **Los dos:** la pestaña activa del menú de abajo pasa de un fondo ámbar
   suave a celeste. El ámbar queda para la acción principal de cada pantalla
   ("Publicar turno", "Ingresar"), como en la landing.
+- **Segunda vuelta** (Julieta: "¿esos son los mejores que proponés?"): un
+  solo ámbar por pantalla. La inicial del perfil y de los avatares, el ícono
+  de "Ganado este mes" y los íconos de los puestos (grilla de "¿Qué
+  necesitás?", "Cerca tuyo") pasan a celeste con azul hondo; los botones
+  principales desactivados ("Completar") van gris azulado en vez de ámbar
+  transparente (en oscuro se leía marrón); las burbujas propias del chat, a
+  celeste; y el lienzo claro pasa del gris `#F3F3F3` a casi blanco
+  `#F8FBFC`, como la landing.
 
 **Qué cambió (técnico):** tokens del bloque `:root[data-theme="dark"]` y
 `--wash`/`--glow-image` del bloque celeste de `app/globals.css`; en oscuro
 `--color-primary-text` y `--color-primary-tint` pasan a celeste.
 `components/BottomNav.tsx` usa `bg-primary-tint` en vez de `bg-primary/12`.
+Segunda vuelta: `ui/Avatar.tsx` e `ImageUpload.tsx` (inicial en
+`bg-secondary`/`text-secondary-text`), `worker/WorkerGameCard.tsx` (ícono de
+ganancias), `lib/skill-style.tsx` (`SKILL_ACCENT`: todos los rubros con
+`bg-secondary-tint`/`text-secondary-text`; el banner y el riel por oficio no
+cambian), `ui/Button.tsx` (el `primary` desactivado va `bg-surface` con
+tinta apagada y hairline), `ui/MessageBubble.tsx` (`bg-primary-tint`) y
+`--background` claro `#F8FBFC`.
 `docs/design-system/color-system.md` actualizado con los contrastes nuevos
 (todos AA o más: tinta 15,2, suave 8,2, apagada 5,5 y celeste 9,6 sobre la
 tarjeta).

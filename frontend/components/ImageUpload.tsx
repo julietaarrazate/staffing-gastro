@@ -77,7 +77,7 @@ export default function ImageUpload({
           disabled={uploading}
           style={avatar ? { width: size, height: size } : undefined}
           aria-label={value ? "Cambiar foto de perfil" : "Subir foto de perfil"}
-          className={`group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-gradient-to-br from-primary to-primary-strong font-bold text-night transition active:scale-95 disabled:opacity-70 ${
+          className={`group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-secondary font-bold text-secondary-text transition active:scale-95 disabled:opacity-70 ${
             avatar ? "text-3xl ring-4 ring-white/20" : "h-24 w-24 text-2xl shadow-md"
           }`}
         >

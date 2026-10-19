@@ -670,7 +670,9 @@
  * ────────────────────────────────────────────────────────────────────────── */
 :root,
 :root[data-theme="dark"] [data-theme="light"] {
-  --background: #f3f3f3;
+  /* Lienzo casi blanco y frío (2026-10-19), como la landing; era el gris
+     #f3f3f3. Las tarjetas blancas se despegan por la hairline y la sombra. */
+  --background: #f8fbfc;
   --foreground: #111111;
   --line: #deecf0;
   --color-line: #deecf0;
