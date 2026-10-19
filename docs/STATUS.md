@@ -100,12 +100,19 @@ Revisado contra el código y los PRs el 2026-10-03.
    límite de intentos, Turnstile): **prendida en producción el 2026-10-15**
    ([`historial/2026-10-15-etapa3-prendida.md`](./historial/2026-10-15-etapa3-prendida.md);
    ADR-0018). Falta sólo el HSTS de la zona (paso 7 del runbook). Etapa 4,
-   publicación de prueba: **andando** en
-   `https://oido-frontend.julietaarrazate.workers.dev` (2026-10-19,
-   [`historial/2026-10-19-etapa4-workers-dev.md`](./historial/2026-10-19-etapa4-workers-dev.md));
-   falta autorizar la dirección en Google y la prueba de Julieta. Sigue
-   5) cambio de DNS sólo con su "sí" (antes, `/privacidad` pasa de Vercel a
-   Cloudflare con su `LEGAL_TERMS_VERSION`). Detalle en
+   publicación de prueba: hecha
+   ([`historial/2026-10-19-etapa4-workers-dev.md`](./historial/2026-10-19-etapa4-workers-dev.md)).
+   **Etapa 5, cambio de DNS: hecho el 2026-10-19.** `www.oido.com.ar` y
+   `oido.com.ar` los sirve el Worker en Workers Paid
+   ([`historial/2026-10-19-etapa5-dns-a-cloudflare.md`](./historial/2026-10-19-etapa5-dns-a-cloudflare.md)).
+   Quedan:
+   - unos días de Vercel como respaldo, y después pausarlo con el "sí" de
+     Julieta;
+   - sacar Vercel de `/privacidad` (sube `LEGAL_TERMS_VERSION`), de
+     `CORS_ORIGINS` y de los orígenes de Google;
+   - el comodín `*` del DNS, que todavía apunta a Vercel.
+
+   Detalle en
    [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)
    y [`reference/DEPLOY.md`](./reference/DEPLOY.md).
 

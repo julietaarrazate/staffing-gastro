@@ -61,11 +61,24 @@ Config declarativa en `render.yaml` (raíz del repo).
   Para forzar un build: "Redeploy" en el panel.
 - API remota vía `NEXT_PUBLIC_API_URL` (sin `localhost` en config de producto).
 
-## Frontend en Cloudflare Workers (en prueba, 2026-10-13)
+## Frontend en Cloudflare Workers (producción desde 2026-10-19)
 
-Mudanza en curso: Vercel Hobby no permite uso comercial (Pro 20 USD/mes,
-Workers Paid 5 USD/mes). **Producción sigue en Vercel** hasta el "sí" de
-Julieta para cambiar el DNS. Etapas y resultados en
+**Producción: `www.oido.com.ar` y `oido.com.ar` los sirve el Worker
+`oido-frontend`** (dominios personalizados, plan Workers Paid), desde el
+2026-10-19. Vercel Hobby no permite uso comercial (Pro sale 20 USD/mes y
+Workers Paid 5 USD/mes). Vercel queda unos días de respaldo; la sección
+"Frontend en Vercel" de arriba describe ese respaldo.
+
+- **`oido.com.ar` → `www`:** Redirect Rule "oido.com.ar a www", 301, conserva
+  la ruta y la consulta. Antes lo hacía Vercel.
+- **"Always Use HTTPS"** está activado en la zona: `http://` redirige a
+  `https://`. Antes también lo hacía Vercel.
+- **Volver a Vercel:** sacar los dos dominios personalizados del Worker y
+  recrear `oido.com.ar` y `www` como `CNAME
+  23e8f3d43999aec1.vercel-dns-017.com` en "DNS only". La regla de
+  redirección queda inerte sola.
+
+Etapas y resultados en
 [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](../historial/2026-10-13-cloudflare-prueba-compatibilidad.md).
 
 - **Adaptador: OpenNext** (`@opennextjs/cloudflare`, fijado en 1.20.10).
