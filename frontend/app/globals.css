@@ -256,8 +256,8 @@
 
   /* Lo ELEGIDO dentro de un riel recesado (la píldora activa de
      `SegmentedControl`). En claro es la tarjeta blanca sobre el riel arena.
-     En oscuro NO puede ser `--color-card`: ahí la tarjeta (#221d18) es más
-     oscura que el riel `--color-surface` (#2b251f), así que la opción elegida
+     En oscuro NO puede ser `--color-card`: ahí la tarjeta (#151d26) es más
+     oscura que el riel `--color-surface` (#1c2631), así que la opción elegida
      se veía como un agujero en vez de levantarse. Sube un escalón por arriba
      del riel (auditoría visual 2026-09-24). */
   --color-raised: #ffffff;
@@ -473,43 +473,51 @@
      oscurece — es un modo oscuro de verdad, como el board. La jerarquía la da
      la LUMINANCIA, no la sombra. Escala:
 
-       lienzo   #17130f   el fondo de la app (warm near-black)
-       card     #221d18   la tarjeta, despegada del lienzo
-       surface  #2b251f   lo recesado dentro de una tarjeta (inputs, chips)
-       focus    #3d3630   el módulo de foco (ganancias, pago del turno)
+       lienzo   #0d131a   el fondo de la app (noche azul, casi negro)
+       card     #151d26   la tarjeta, despegada del lienzo
+       surface  #1c2631   lo recesado dentro de una tarjeta (inputs, chips)
+       focus    #263240   el módulo de foco (ganancias, pago del turno)
+
+     Noche azul desde el 2026-10-19 (Julieta: "un marrón y naranja que no
+     tienen que ver con lo actual"): hasta ahí la escala era café cálido
+     (#17130f, #221d18, #2b251f, #3d3630) con resplandor ámbar, de antes de la
+     paleta celeste. Ahora es el cielo de la landing de noche: grises fríos,
+     brillo celeste, y el ámbar sólo en la acción principal.
 
      El coral y el violeta se mantienen como acentos; texto y bordes van
      claros. El cromo (nav/header) también se oscurece (ya no es blanco fijo). */
-  --background: #17130f;
-  --foreground: #f5f1ea;
-  --line: rgba(245, 241, 234, 0.12);
+  --background: #0d131a;
+  --foreground: #eef3f6;
+  --line: rgba(238, 243, 246, 0.12);
 
-  --color-card: #221d18;
-  --color-surface: #2b251f;
-  --color-focus: #3d3630;
-  --color-focus-ink: #f5f1ea;
-  --color-raised: #3a332c; /* un escalón sobre surface #2b251f */
-  --color-chrome: #1b1611; /* nav/header oscuros en modo oscuro */
+  --color-card: #151d26;
+  --color-surface: #1c2631;
+  --color-focus: #263240;
+  --color-focus-ink: #eef3f6;
+  --color-raised: #24303c; /* un escalón sobre surface #1c2631 */
+  --color-chrome: #111820; /* nav/header oscuros en modo oscuro */
   /* PROTOTIPO esmerilado (2026-10-09): cromo de vidrio, resplandor ámbar en
      la esquina y los bloques de marca como vidrio celeste, no celeste lleno. */
-  --color-chrome: rgba(27, 22, 17, 0.94);
-  --wash: radial-gradient(90% 560px at 0% 0%, rgba(232, 146, 15, 0.22), rgba(232, 146, 15, 0.06) 50%, transparent 75%);
-  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(154, 201, 231, 0.20), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(232, 146, 15, 0.16), transparent 70%);
+  --color-chrome: rgba(17, 24, 32, 0.94);
+  --wash: radial-gradient(130% 520px at 50% -160px, rgba(154, 201, 231, 0.22), rgba(154, 201, 231, 0.06) 50%, transparent 78%);
+  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(154, 201, 231, 0.20), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(154, 201, 231, 0.07), transparent 70%);
   --color-secondary: rgba(196, 227, 237, 0.12);
-  --color-on-brand: #f5f1ea;
+  --color-on-brand: #eef3f6;
   --color-on-brand-label: #9ac9e7;
   --color-on-brand-icon: #9ac9e7;
-  --color-paper: #201a15;
+  --color-paper: #121a22;
 
   /* Texto claro, page-wide (no sólo dentro de tarjetas). */
-  --color-ink: #f5f1ea;
-  --color-ink-soft: #b7afa2;
-  --color-ink-mute: #8b8276;
+  --color-ink: #eef3f6;
+  --color-ink-soft: #a9b6c2;
+  --color-ink-mute: #8494a3;
 
   /* Acentos y estados sobre lienzo/tarjeta oscura (todos ≥ AA como texto). */
   /* Paleta celeste (2026-10-09): el celeste ya es claro y va tal cual como
-     texto sobre oscuro; el ámbar, aclarado como en v5.0. */
-  --color-primary-text: #e8920f;
+     texto sobre oscuro. Los links y el texto destacado (`primary-text`) van
+     en celeste desde el 2026-10-19, como el azul hondo en claro: en ámbar
+     sumaban acentos naranjas a cada pantalla. */
+  --color-primary-text: #9ac9e7;
   --color-secondary-text: #c4e3ed;
   --color-accent-text: #9ac9e7;
   --color-success-text: #4ade80;
@@ -522,7 +530,7 @@
 
   /* Hairline oscura. Sin esto las tarjetas, inputs y el header quedaban con el
      borde claro de :root (#ece7dd): una línea blanca que brilla sobre oscuro. */
-  --color-line: rgba(245, 241, 234, 0.12);
+  --color-line: rgba(238, 243, 246, 0.12);
 
   /* Tintes en oscuro. Con el modo oscuro real, los `-text` de arriba se
      aclaran en TODA la página; si los `-tint` siguieran siendo los pálidos de
@@ -539,17 +547,17 @@
   --color-manteca-text: #c4e3ed;
   --color-cielo-tint: rgba(207, 228, 255, 0.14);
   --color-cielo-text: #cfe4ff;
-  --color-primary-tint: rgba(217, 119, 6, 0.18);
+  --color-primary-tint: rgba(154, 201, 231, 0.14);
   --color-secondary-tint: rgba(196, 227, 237, 0.14);
   --color-accent-tint: rgba(154, 201, 231, 0.14);
   --color-success-tint: rgba(74, 222, 128, 0.14);
   --color-danger-tint: rgba(244, 116, 111, 0.14);
   --color-warning-tint: rgba(251, 191, 118, 0.14);
   --color-info-tint: rgba(147, 197, 253, 0.14);
-  --color-toast: #f5f1ea;
-  --color-toast-ink: #17130f;
-  /* El azul hondo del foco en claro no se ve sobre el lienzo oscuro. */
-  --focus-ring: #e8920f;
+  --color-toast: #eef3f6;
+  --color-toast-ink: #0d131a;
+  /* El azul hondo del foco en claro no se ve sobre el lienzo oscuro: celeste. */
+  --focus-ring: #9ac9e7;
 }
 
 /* Desde 2026-10-09 (vidrio y menos celeste) la miniatura sin foto es blanca
@@ -687,8 +695,10 @@
   --color-accent: #9ac9e7;
   /* PROTOTIPO esmerilado (2026-10-09). */
   --color-chrome: rgba(255, 255, 255, 0.92);
-  --wash: radial-gradient(130% 460px at 50% -140px, rgba(217, 119, 6, 0.30), rgba(251, 191, 136, 0.18) 45%, transparent 78%);
-  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(196, 227, 237, 0.95), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(217, 119, 6, 0.10), transparent 70%);
+  /* El cielo de la landing arriba de cada pantalla (2026-10-19); antes era
+     un resplandor ámbar y durazno que dejaba el arranque color crema. */
+  --wash: radial-gradient(130% 460px at 50% -140px, rgba(154, 201, 231, 0.55), rgba(196, 227, 237, 0.30) 45%, transparent 78%);
+  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(196, 227, 237, 0.95), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(154, 201, 231, 0.18), transparent 70%);
   --color-accent-tint: #deecf0;
   --color-accent-text: #1c5478;
   --color-manteca: #c4e3ed;
