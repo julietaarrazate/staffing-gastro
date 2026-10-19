@@ -46,8 +46,11 @@ services:
       # NIC.ar, DNS todavía sin propagar) — agregar un origen no rompe nada
       # mientras el dominio no resuelva; así ya queda listo apenas Julieta
       # cargue los registros DNS, sin depender de otro deploy después.
+      # El *.workers.dev es la publicación de prueba en Cloudflare (etapa 4,
+      # 2026-10-19). Este valor es fijo: si se cambia sólo en el dashboard, la
+      # próxima sincronización del Blueprint lo pisa.
       - key: CORS_ORIGINS
-        value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar
+        value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar,https://oido-frontend.julietaarrazate.workers.dev
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente, y
       # desde 2026-09-22 repone los turnos demo que ya pasaron).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.

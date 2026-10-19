@@ -97,8 +97,30 @@ Julieta para cambiar el DNS. Etapas y resultados en
 - **CSP:** desde la etapa 2 (2026-10-14) `vercel.live` sólo entra con
   `VERCEL_ENV=preview`, así que el build de Cloudflare sale sin él. Nonces y
   HSTS del dominio quedan para la etapa 3.
-- **Tamaño:** 3,5 MB comprimido; entra en el límite de 10 MB del plan pago
-  (el gratis es 3 MB: hace falta el plan pago, que es el previsto).
+- **Tamaño:** 3,5 MB comprimido. El límite actual de Cloudflare es 64 MiB
+  también en el plan gratis (el de 3 MB que se citaba antes ya no corre); el
+  primer deploy en el plan gratis anduvo.
+
+### Etapa 4: publicación de prueba en workers.dev (2026-10-19)
+
+- **Dirección:** `https://oido-frontend.julietaarrazate.workers.dev`
+  (cuenta de Cloudflare `julietaarrazate@gmail.com`).
+- **Cómo se publica:** Workers Builds conectado a GitHub, rama `main`,
+  directorio `frontend`, build `npm run cf:build`, deploy `npx wrangler
+  deploy`. Cada merge a `main` la vuelve a publicar sola. Los builds de otras
+  ramas ("compilaciones de vista previa") están apagados, y las direcciones
+  por versión también (`preview_urls: false` en `wrangler.jsonc`).
+- **Variables de build** (todas públicas, de texto): `NEXT_PUBLIC_API_URL`,
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
+  `NEXT_PUBLIC_GOOGLE_CLIENT_ID` y `NEXT_PUBLIC_SENTRY_DSN`. Van en
+  *Build variables*, no en las de runtime: Next las incrusta al compilar.
+- **Para que el login ande ahí**, la dirección tiene que estar en:
+  - `CORS_ORIGINS` (en `render.yaml`, valor fijo, y en el dashboard);
+  - los hostnames del widget de Turnstile;
+  - los orígenes autorizados de JavaScript del cliente OAuth de Google.
+- **Plan:** la prueba corre en el plan gratis (10 ms de CPU por pedido).
+  Mirar *Metrics → Errors* del Worker: si aparece `Exceeded CPU Time Limits`
+  (error 1102), pasar a Workers Paid (5 USD/mes) antes del cambio de DNS.
 
 ### Etapa 3: endurecimiento con Cloudflare (runbook)
 
