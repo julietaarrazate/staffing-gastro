@@ -53,7 +53,29 @@ se mueve sin motivo, cansa a la tercera vez.
 - **Esperas de IA**: `OidoLoader` con "Oído está escuchando…" / "Leyendo tu
   pedido…".
 
-## La landing: la excepción (2026-10-06)
+## La landing corta (2026-10-12)
+
+La historia fijada al scroll de abajo se reemplazó por una landing corta
+(`frontend/components/landing/`; por qué, en
+[`../historial/2026-10-12-landing-corta.md`](../historial/2026-10-12-landing-corta.md)).
+Julieta: las animaciones iban muy rápidas y reemplazaban el texto en el mismo
+lugar. Reglas nuevas:
+
+- **Una sola animación de scroll:** cada bloque entra suave (0,7 s) una vez,
+  al aparecer (`Reveal.tsx`). El HTML sale visible; el estado escondido lo
+  pone el navegador sólo a lo que está debajo de la pantalla.
+- **Nada se fija ni se reemplaza.** Los títulos están siempre; cambia, como
+  mucho, que aparezcan.
+- **El hero se mueve una sola vez, en orden** (CSS, antes de hidratar): la
+  burbuja de Martín, "sin cubrir", la línea, "cubierto" y la confirmación.
+- **Piezas que se arman al entrar** (segunda vuelta del mismo día): clases
+  `.anim-pop`, `-ring`, `-rise`, `-drop`, `-shout`, `-fill` y `-bar` dentro
+  de un `Reveal`, cada una con su retraso en `--d`. Corren una vez; no hay
+  bucles. `.anim-out` es lo que sólo existe durante la animación (quieto no
+  se ve: el estado final lo reemplaza).
+- Con "reducir movimiento", nada.
+
+## La landing: la excepción (2026-10-06, reemplazada el 2026-10-12)
 
 La landing no es una herramienta que se abre diez veces por turno: se ve
 una vez y tiene que contar Oído. Por eso ahí el movimiento **es** el
@@ -75,3 +97,23 @@ contenido, con reglas propias (`frontend/components/landing/story/`):
 - **Trampa de motion 13:** `useTransform(progresoDeUnUseScroll, [..], [..])`
   se "acelera" a una animación nativa que dentro de un `sticky` no sigue al
   scroll. En las escenas se usa `useRange` (forma con función).
+
+### El ritmo de la landing, 25% más lento (2026-10-08)
+
+Pedido de Julieta: bajar un 25% la velocidad del scroll y de la animación
+automática. Se aplicó en tres lugares, con el mismo factor (×4/3), para que
+nada quede desfasado:
+
+- **Scroll por estado** (`--svh-estado` en `[data-landing]`, `globals.css`):
+  de 70svh a **93,333svh** en el celular y de 85svh a **113,333svh** en
+  escritorio. El asiento de cada escena pasa de 30svh a 6,667svh: lo que
+  se scrollea dentro de una escena es su alto menos una pantalla, y así da
+  93,333 × (estados − 1)svh contra 70 × (estados − 1)svh de antes, 4/3 justo.
+- **Cada duración y retardo de la landing**, también los de CSS
+  (`storyBubbleIn`, los bucles de la historia) y las clases de Tailwind
+  (`duration-200` → `duration-267`, `duration-300` → `duration-400`…).
+- **Los resortes** (`type: "spring"`): rigidez ×0,5625 y amortiguación
+  ×0,75. Así el resorte tarda 4/3 más y rebota igual (la amortiguación
+  relativa no cambia); bajar sólo la rigidez lo hacía más elástico.
+
+La app no cambia: sus duraciones siguen en `lib/motion.ts`.

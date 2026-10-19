@@ -16,7 +16,7 @@ export default function BandaOido() {
       className="bg-primary px-4 pb-24 pt-10 sm:px-6 lg:px-12 lg:pb-32"
     >
       <div>
-        <h2 className="font-display text-poster font-semibold tracking-[-0.03em] text-ink [text-wrap:balance]">
+        <h2 className="font-display text-poster font-semibold tracking-[-0.015em] text-ink [text-wrap:balance]">
           La próxima, pedilo así.
         </h2>
         <p className="mt-3 text-lg text-ink">Crear tu comercio es gratis.</p>
@@ -24,7 +24,7 @@ export default function BandaOido() {
           <Link
             href="/register?rol=comercio"
             data-cta="post-oido"
-            className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-night px-7 text-base font-semibold text-white transition active:scale-[0.96] hover:brightness-150"
+            className="inline-flex h-[52px] items-center justify-center rounded-[var(--radius-btn)] bg-night px-7 text-base font-semibold text-white transition duration-200 active:scale-[0.96] hover:brightness-150"
           >
             Necesito personal
           </Link>

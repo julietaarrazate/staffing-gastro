@@ -27,6 +27,7 @@ function DocSlot({
   value: string | null;
   onChange: (url: string | null) => void;
 }) {
+  const { token } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,8 @@ function DocSlot({
     setError(null);
     setUploading(true);
     try {
-      onChange(await uploadImage(file));
+      if (!token) throw new Error("Tu sesión venció. Volvé a entrar para subir la foto.");
+      onChange(await uploadImage(file, token, "identity"));
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir la imagen"));
     } finally {

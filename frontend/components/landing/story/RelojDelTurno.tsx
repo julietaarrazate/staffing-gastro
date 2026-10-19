@@ -15,7 +15,8 @@ import { useReloj } from "./relojStore";
  *   algo de verdad (se publica, alguien se postula, Lucía confirma).
  * - La hora avanza un minuto sólo cuando alguien actúa.
  * - Mientras el turno está sin cubrir, los dos puntos de la hora laten; cuando
- *   se cubre, la píldora pasa a verde bosque y la hora se queda quieta. Así se
+ *   se cubre, la píldora pasa al color de marca (`secondary`: verde bosque, o
+ *   celeste claro con la paleta celeste) y la hora se queda quieta. Así se
  *   siente el objetivo de los 10 minutos sin afirmarlo como dato.
  */
 export default function RelojDelTurno({
@@ -32,13 +33,16 @@ export default function RelojDelTurno({
   const { hora, estado } = RELOJ[at];
   const covered = at === "cubierto" || at === "enCamino" || at === "llego";
   const shown = useRetype(estado.toUpperCase());
+  // Separadores: blancos sobre la píldora oscura; cubierto, la píldora es la
+  // marca (celeste claro con esta paleta) y van en `on-brand`.
+  const sep = covered ? "text-on-brand/45" : "text-white/45";
   const [hh, mm] = hora.split(":");
 
   return (
     <div
       className={cn(
-        "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-500",
-        covered ? "bg-secondary text-white" : "bg-night text-white",
+        "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-667",
+        covered ? "bg-secondary text-on-brand" : "bg-night text-white",
         surface === "dark" && "ring-1 ring-white/12",
         className
       )}
@@ -51,7 +55,7 @@ export default function RelojDelTurno({
         aria-hidden
         className={cn(
           "h-1.5 w-1.5 shrink-0 rounded-full",
-          covered ? "bg-manteca" : at === "sinCubrir" || at === "pidiendo" ? "bg-danger" : "bg-manteca"
+          covered ? "bg-on-brand-label" : at === "sinCubrir" || at === "pidiendo" ? "bg-danger" : "bg-manteca"
         )}
       />
       <span aria-hidden className="tabular-nums">
@@ -59,12 +63,12 @@ export default function RelojDelTurno({
         <span className={covered ? undefined : "story-colon"}>:</span>
         {mm}
       </span>
-      <span aria-hidden className="text-white/45">·</span>
+      <span aria-hidden className={sep}>·</span>
       <span aria-hidden className="max-sm:hidden">Mozo · Palermo</span>
-      <span aria-hidden className="text-white/45 max-sm:hidden">·</span>
+      <span aria-hidden className={cn(sep, "max-sm:hidden")}>·</span>
       <span aria-hidden className="sm:hidden">Mozo</span>
-      <span aria-hidden className="text-white/45 sm:hidden">·</span>
-      <span aria-hidden className="text-manteca">{shown}</span>
+      <span aria-hidden className={cn(sep, "sm:hidden")}>·</span>
+      <span aria-hidden className={covered ? "text-on-brand-label" : "text-manteca"}>{shown}</span>
     </div>
   );
 }
@@ -74,9 +78,12 @@ export default function RelojDelTurno({
 const STRIP: Record<"light" | "paper" | "night" | "amber" | "forest", { bg: string; label: string }> = {
   light: { bg: "bg-background/95 border-line", label: "text-ink-mute" },
   paper: { bg: "bg-paper border-transparent", label: "text-ink-mute" },
-  night: { bg: "bg-night border-transparent", label: "text-[#F1E7A0]/70" },
-  amber: { bg: "bg-primary border-transparent", label: "text-ink/70" },
-  forest: { bg: "bg-secondary border-transparent", label: "text-[#F1E7A0]/70" },
+  night: { bg: "bg-night border-transparent", label: "text-manteca/70" },
+  // Tinta llena: sobre el naranja, al 70% daría 3,40.
+  amber: { bg: "bg-primary border-transparent", label: "text-ink" },
+  // `on-brand` al 75%: tinta sobre el celeste (7.15); blanco sobre el verde
+  // bosque de la paleta de siempre.
+  forest: { bg: "bg-secondary border-transparent", label: "text-on-brand/75" },
 };
 
 /**
@@ -97,14 +104,14 @@ export function RelojFijo({ tone }: { tone: keyof typeof STRIP }) {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+          transition={{ duration: 0.2933, ease: [0.2, 0.8, 0.2, 1] }}
           className={cn(
-            "pointer-events-none absolute inset-x-0 top-full border-b transition-colors duration-300",
+            "pointer-events-none absolute inset-x-0 top-full border-b transition-colors duration-400",
             t.bg
           )}
         >
           <div className="flex h-10 items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
-            <RelojDelTurno at={at} surface={tone === "night" || tone === "forest" ? "dark" : "light"} />
+            <RelojDelTurno at={at} surface={tone === "night" ? "dark" : "light"} />
             <span
               className={cn(
                 "hidden whitespace-nowrap font-mono text-label font-medium uppercase tracking-[0.14em] min-[400px]:inline",
@@ -120,8 +127,8 @@ export function RelojFijo({ tone }: { tone: keyof typeof STRIP }) {
   );
 }
 
-/** Reescribe el texto letra por letra cuando cambia (18 ms por letra, tope de
- *  300 ms). Con reducir movimiento, el cambio es directo. */
+/** Reescribe el texto letra por letra cuando cambia (24 ms por letra, tope de
+ *  400 ms). Con reducir movimiento, el cambio es directo. */
 function useRetype(target: string): string {
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(target);
@@ -134,7 +141,7 @@ function useRetype(target: string): string {
       setShown(target);
       return;
     }
-    const step = Math.max(10, Math.min(18, 300 / Math.max(1, target.length)));
+    const step = Math.max(13.33, Math.min(24, 400 / Math.max(1, target.length)));
     let i = 0;
     setShown("");
     const id = setInterval(() => {

@@ -240,3 +240,38 @@ async def test_concurrent_same_key_does_not_duplicate(client: AsyncClient):
 
     mine = await client.get("/api/v1/applications/mine", headers=worker)
     assert len(mine.json()) == 1
+
+
+# --- 5. Un error no "quema" la key ------------------------------------------
+
+
+async def test_failed_attempt_releases_the_key_for_a_later_retry(client: AsyncClient):
+    """El frontend reusa la key hasta tener un éxito. Antes, si el primer
+    intento fallaba por una regla de negocio, la key quedaba "en curso" 24 h
+    y todo reintento daba 409, aunque el problema ya se hubiera resuelto."""
+    employer = await _employer_with_company(client, "emp_idem_release@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, worker_profile_id = await _worker_with_profile(
+        client, "w_idem_release@staffya.com"
+    )
+    headers = {**worker, "Idempotency-Key": str(uuid.uuid4())}
+
+    # Todavía no se lo asignaron: confirmar falla.
+    early = await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=headers)
+    assert early.status_code >= 400
+
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker_profile_id},
+    )
+    assert assigned.status_code == 200
+
+    retry = await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=headers)
+    assert retry.status_code == 200
+    assert retry.json()["status"] == "confirmado"
+
+    # Y el éxito sí queda registrado: otro reintento lo replica.
+    replay = await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=headers)
+    assert replay.status_code == 200
+    assert replay.json() == retry.json()

@@ -36,10 +36,18 @@ export default function LandingStory() {
   return (
     <StoryContext.Provider value={{ enhanced }}>
       {/* `data-theme="light"`: la landing es siempre clara (la noche, el ámbar
-          y el bosque son tramos de la historia, no un tema). globals.css
-          redeclara los tokens claros para este subárbol. `overflow-x-clip` y
-          no `hidden`: `hidden` rompería los escenarios `sticky`. */}
-      <div data-landing data-theme="light" className="overflow-x-clip bg-background text-ink">
+          y el celeste son tramos de la historia, no un tema). globals.css
+          redeclara los tokens claros para este subárbol. `data-palette`
+          prende la paleta celeste en previsualización (Julieta, 2026-10-09);
+          cuando se apruebe pasa a `:root` y este atributo se va.
+          `overflow-x-clip` y no `hidden`: `hidden` rompería los escenarios
+          `sticky`. */}
+      <div
+        data-landing
+        data-theme="light"
+        data-palette="celeste"
+        className="overflow-x-clip bg-background text-ink"
+      >
         <LandingHeader heroCtaId={HERO_CTA_ID} reloj={enhanced} />
         {enhanced ? <ActoNoche /> : <ActoNocheStatic />}
         <Silencio />

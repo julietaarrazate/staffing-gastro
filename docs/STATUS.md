@@ -27,45 +27,100 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 Revisado contra el código y los PRs el 2026-10-03.
 
-1. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
-   (pedido de Julieta, 2026-10-06; sin arrancar). La referencia es la
-   landing nueva, "la historia de un turno" (#405): motor de escena en
-   `frontend/components/landing/story/useStage.ts`, la trampa de motion 13
+1. 🟡 **Paleta celeste (v6) en toda la app** (pedido de Julieta,
+   2026-10-08, con violeta; el 2026-10-09 pasó a celeste claro sólo lo que
+   era violeta, con el lienzo `#f3f3f3` de la versión del diseñador, y
+   volvió al ámbar de siempre `#d97706`, el del logo). Primero en la
+   landing; ahora rige en `:root` de `globals.css`, con su versión oscura.
+   Desde #412 lleva vidrio esmerilado (cromo translúcido, velo ámbar,
+   `bg-glow`) y menos celeste lleno. Falta rehacer el PDF y el paquete del
+   diseñador, que siguen en violeta. Detalle en
+   [`historial/2026-10-09-paleta-celeste-app.md`](./historial/2026-10-09-paleta-celeste-app.md)
+   y [`design-system/color-system.md`](./design-system/color-system.md),
+   "Propuesta v6".
+2. 🟡 **Llevar el movimiento de la landing a la interfaz de la app**
+   (pedido de Julieta, 2026-10-06; sin arrancar). La referencia era la
+   landing "la historia de un turno" (#405), reemplazada el 2026-10-12 por
+   la landing corta y el 2026-10-18 por la landing "cielo"; sigue viva en `/historia` para grabar reels, con su
+   motor de escena en `components/landing/story/useStage.ts`. La trampa de motion 13
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
-2. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
+3. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
    direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
    que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
-   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Contexto:
+   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Desde el
+   2026-10-18 la landing la usa: celeste y blanco con el ámbar, y una comanda
+   con filete porteño que se canta "¡Oído!". Contexto:
    [`historial/ARCHIVO…`](./historial/ARCHIVO-2026-07-a-2026-10-03.md), sección
    "Ideas de la competencia (2026-10-02)", y
    [`design-system/brand-foundation.md`](./design-system/brand-foundation.md).
-3. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
+4. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
+   rueda del inicio y la oferta usan fotos de banco (dominio público/CC0,
+   de otros países); hay que reemplazarlas por fotos de locales porteños
+   (`frontend/public/landing/`). Cuando haya locales usando Oído, sumar una
+   cita corta con nombre. Detalle en
+   [`historial/2026-10-18-landing-cielo.md`](./historial/2026-10-18-landing-cielo.md).
+5. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
-4. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
-   abril de 2027). Son tres cambios juntos: la versión de Node en Vercel
-   (Settings → Node.js Version), `node-version` en
+6. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
+   abril de 2027). **Vercel ya corre 24.x** (visto en la config del
+   proyecto el 2026-10-10), así que hoy CI prueba con una versión distinta
+   de la que corre en producción. Faltan `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-5. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
+7. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
    ADR-0005): `/subscription` necesita botón de baja y de arrepentimiento,
    que los términos ya prometen por mail o soporte.
-6. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
+8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
    tráfico real.
+9. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
+   (#416), las carreras sobre el turno más la idempotencia (#417) y el token
+   de sesión del frontend ("Va en camino", formularios que se recargaban,
+   401 sin reintento, #419), Google sobre cuenta sin verificar y
+   `ADMIN_EMAILS` sin verificación. La lista completa está en
+   [`historial/2026-10-10-auditoria-privacidad.md`](./historial/2026-10-10-auditoria-privacidad.md).
+   Sigue: el **rate limit detrás del proxy de Render** (usa la IP del proxy,
+   así que es global; falta confirmar qué header de IP es confiable en
+   Render antes de tocarlo, ver el historial de autenticación); después, los
+   de dominio y los menores.
+10. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
+   beta comercial (Vercel Hobby no permite uso comercial; ADR-0017,
+   propuesto). Etapa 1, prueba de compatibilidad: hecha (#428). Etapa 2,
+   auditoría de seguridad del frontend publicado: hecha; lo chico se arregló
+   y lo pendiente está en un documento privado de Julieta (el repo es
+   público), ver
+   [`historial/2026-10-14-auditoria-seguridad-frontend.md`](./historial/2026-10-14-auditoria-seguridad-frontend.md).
+   Etapa 3, endurecimiento (backend sólo por Cloudflare, IP real para el
+   límite de intentos, Turnstile): **prendida en producción el 2026-10-15**
+   ([`historial/2026-10-15-etapa3-prendida.md`](./historial/2026-10-15-etapa3-prendida.md);
+   ADR-0018). Falta sólo el HSTS de la zona (paso 7 del runbook). Etapa 4,
+   publicación de prueba: hecha
+   ([`historial/2026-10-19-etapa4-workers-dev.md`](./historial/2026-10-19-etapa4-workers-dev.md)).
+   **Etapa 5, cambio de DNS: hecho el 2026-10-19.** `www.oido.com.ar` y
+   `oido.com.ar` los sirve el Worker en Workers Paid
+   ([`historial/2026-10-19-etapa5-dns-a-cloudflare.md`](./historial/2026-10-19-etapa5-dns-a-cloudflare.md)).
+   Quedan:
+   - unos días de Vercel como respaldo, y después pausarlo con el "sí" de
+     Julieta;
+   - sacar Vercel de `/privacidad` (sube `LEGAL_TERMS_VERSION`), de
+     `CORS_ORIGINS` y de los orígenes de Google;
+   - el comodín `*` del DNS, que todavía apunta a Vercel.
+
+   Detalle en
+   [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)
+   y [`reference/DEPLOY.md`](./reference/DEPLOY.md).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
-- **Crear la casilla `hola@oido.com.ar`.** Ya figura en `/privacidad` y
-  `/terminos`, pero todavía no recibe.
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
   Render y purgar las cuentas demo (runbook en
@@ -93,8 +148,9 @@ El detalle de cada env var, y cuáles ya están cargadas, está en `CLAUDE.md`,
 - **Cada pantalla responde una sola pregunta** (2026-09-28). Es la regla con
   la que se recortaron Inicio (#393), el Panel del comercio (#395) y el
   Perfil (#396); lo que sobra va a una pantalla propia, no a un acordeón.
-- **Design system v5.0** (#345): ámbar `#D97706`, verde bosque, Fraunces +
-  Inter + DM Mono. La fuente de verdad es
+- **Design system v5.0** (#345): Fraunces + Inter + DM Mono, que siguen.
+  Su color (ámbar `#D97706`, verde bosque) quedó reemplazado por la paleta
+  celeste (v6) el 2026-10-09. La fuente de verdad es
   [`design-system/`](./design-system/README.md); `design/COLOR_SYSTEM.md` y
   `design/TYPOGRAPHY_SYSTEM.md` son históricos.
 - **La app no se oscurece sola.** "Sistema" resuelve a claro; el oscuro es

@@ -48,8 +48,9 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 
 | Ruta | Qué es |
 |---|---|
-| `/` | Landing sin sesión: la historia de un turno, escena por escena (`landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Con sesión redirige a la home del rol |
-| `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register` |
+| `/` | Landing sin sesión, "cielo" desde el 2026-10-18 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda`, `Comanda` con `lib/pedido-natural.ts`, `MapaCamino`, `Confianza`, `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; el filete de "oído" en `Filete.tsx`; estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
+| `/historia` | La landing anterior, "la historia de un turno" (`components/landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Guardada para grabar reels; sin indexar, sin Navbar ni BottomNav |
+| `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register`; anti-robots en `TurnstileWidget` (`lib/turnstile.ts`, apagado sin clave) |
 | `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
 | `/profile` | Cómo te ven: vista, no formulario (#396) |
 | `/profile/edit` | Editar datos (`WorkerProfileForm` / `CompanyProfileForm`) |
@@ -66,6 +67,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 |---|---|
 | Color de cada rubro (mozo, bartender, cocina…) | `frontend/lib/skill-style.tsx` |
 | Tokens de color, sombras, anchos (`.app-container`, `.app-container-reading`) | `frontend/app/globals.css` |
+| Paleta celeste (v6) y la superficie de marca `bg-brand` | `frontend/app/globals.css`, bloque "PALETA CELESTE" (rige en `:root`) y `@utility bg-brand`; tinta sobre la marca: tokens `on-brand`, `heroInk()`/`heroTile()` en `lib/skill-style.tsx` |
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
@@ -74,7 +76,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Claves de `localStorage`/`sessionStorage` (`staffya_*`) y mocks E2E | `frontend/e2e/mocks.ts` |
 | Cliente de la API (por defecto apunta a **producción**) | `frontend/lib/api.ts` |
 | URL pública del sitio (`www.oido.com.ar`) | `frontend/lib/site.ts` |
-| Imagen de vista previa al compartir un link (WhatsApp, X) | `frontend/lib/og-brand.tsx` (la usan `app/og/oido.jpg/route.ts` y `app/twitter-image.tsx`) |
+| Imagen de vista previa al compartir un link (WhatsApp, X) | `frontend/lib/og-brand.tsx` (la usan `app/og/oido.jpg/route.ts` y `app/twitter-image.tsx`; el filete en `assets/og/filete-oido.png`) |
 | Versión de términos y privacidad (**las dos juntas**) | `backend/app/modules/identity/domain/value_objects.py` y `frontend/lib/legal.ts` |
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
@@ -86,11 +88,14 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | "Disponible ahora" (4 h) | `AVAILABLE_NOW_TTL` en `backend/app/modules/worker/domain/entities.py`, `frontend/lib/use-available-now.ts` |
 | Pin desplazado del trabajador | `fuzz_point` en `backend/app/core/geo.py` |
 | Fechas de negocio en hora argentina | `backend/app/core/tz.py` |
+| Backend sólo por Cloudflare + IP real | `backend/app/core/edge.py` (`EDGE_SHARED_SECRET`, `client_ip`) |
+| Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
 | Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `frontend/lib/push.ts` |
 | Gemini (modelo fijado) | `backend/app/core/gemini.py` |
-| PIN del acceso invitado | `GUEST_ACCESS_PIN` en `backend/app/modules/identity/application/services.py` |
+| PIN del acceso invitado | env var `GUEST_ACCESS_PIN` (`settings.guest_access_pin`, `backend/app/core/config.py`); vacía = apagado |
+| Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 

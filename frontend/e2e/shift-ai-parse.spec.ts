@@ -49,6 +49,33 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
     });
   });
 
+  // El local tiene su dirección cargada: el último paso la usa sin pedir
+  // la zona otra vez (auditoría de interfaz 2026-10-11, U04).
+  await page.route("**/api/v1/companies/me/profile", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "company-1",
+        user_id: "user-2",
+        name: "Bar Ejemplo",
+        logo_url: null,
+        category: null,
+        description: null,
+        address: "Calle Falsa 123, Palermo",
+        city: "Palermo, CABA",
+        latitude: -34.5889,
+        longitude: -58.4306,
+        capacity: null,
+        opening_hours: null,
+        rating: 0,
+        events_published: 0,
+        on_time_payment_rate: 0,
+        late_cancellations: 0,
+      }),
+    })
+  );
+
   await page.goto("/shifts/new");
 
   const continuar = page.getByRole("button", { name: "Continuar" });
@@ -76,6 +103,7 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   // el horario no se muestra ahí (sólo en el paso "Cuándo", que en este
   // caso se salteó) — se verifica al publicar, más abajo.
   await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
+  await expect(page.getByText("Calle Falsa 123, Palermo")).toBeVisible();
   await expect(page.getByText("Mozo/a").first()).toBeVisible();
   await expect(page.getByText("ARS 45.000", { exact: false }).first()).toBeVisible();
 
@@ -95,16 +123,28 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
     route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   );
 
-  await page.getByRole("button", { name: "Publicar turno" }).click();
+  // La misma carrera que con "Completar": el click resuelve antes de que
+  // salga el POST, y leer `publishedBody` en el acto a veces daba null (pasó
+  // en CI el 2026-10-09 y una vez en local). Se espera el request.
+  await Promise.all([
+    page.waitForRequest(
+      (req) => req.method() === "POST" && new URL(req.url()).pathname.endsWith("/api/v1/shifts")
+    ),
+    page.getByRole("button", { name: "Publicar turno" }).click(),
+  ]);
 
   // El turno publicado lleva el horario y el pago que vinieron del texto,
   // sin que el comercio los haya tenido que revisar paso por paso.
-  expect(publishedBody).not.toBeNull();
+  await expect.poll(() => publishedBody).not.toBeNull();
   const body = publishedBody as unknown as {
     start_at: string;
     end_at: string;
     pay_amount: string;
+    latitude: number;
+    longitude: number;
   };
+  expect(body.latitude).toBe(-34.5889);
+  expect(body.longitude).toBe(-58.4306);
   expect(body.start_at).toContain("2026-08-15T20:00");
   expect(body.end_at).toContain("2026-08-16T02:00");
   expect(body.pay_amount).toBe("45000");

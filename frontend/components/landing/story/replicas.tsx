@@ -54,7 +54,7 @@ export const DescribeBox = forwardRef<
         key={i}
         data-parte={i}
         className={cn(
-          "rounded-[4px] transition-[background-color,box-shadow] duration-300",
+          "rounded-[4px] transition-[background-color,box-shadow] duration-400",
           marked && "bg-manteca shadow-[0_0_0_2px_var(--color-manteca)]"
         )}
       >
@@ -88,7 +88,7 @@ export const DescribeBox = forwardRef<
       <div className="mt-2 flex min-h-[40px] items-center justify-between gap-2">
         {loading ? (
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink/60">
-            <Spinner size={14} /> Leyendo tu pedido…
+            <Spinner size={14} className="[animation-duration:1.333s]!" /> Leyendo tu pedido…
           </span>
         ) : (
           <span />
@@ -97,7 +97,7 @@ export const DescribeBox = forwardRef<
           type="button"
           onClick={onComplete}
           className={cn(
-            "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-150",
+            "inline-flex min-h-[40px] items-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-semibold text-night shadow-[var(--shadow-primary)] transition-transform duration-200",
             pressed ? "scale-[0.96]" : "scale-100"
           )}
         >
@@ -147,7 +147,7 @@ export function WorkerPin({
   }
   return (
     <span className="relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-primary to-primary-strong shadow-[0_4px_10px_rgba(17,17,20,0.22)]">
-      <span className="text-sm font-bold text-white">{inicial}</span>
+      <span className="text-sm font-bold text-night">{inicial}</span>
       {rating != null && (
         <span className="absolute -bottom-1.5 -right-2 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-px text-metadata font-bold leading-tight text-white shadow-sm">
           <StarIcon size={9} filled className="text-rating" />

@@ -256,8 +256,8 @@
 
   /* Lo ELEGIDO dentro de un riel recesado (la píldora activa de
      `SegmentedControl`). En claro es la tarjeta blanca sobre el riel arena.
-     En oscuro NO puede ser `--color-card`: ahí la tarjeta (#221d18) es más
-     oscura que el riel `--color-surface` (#2b251f), así que la opción elegida
+     En oscuro NO puede ser `--color-card`: ahí la tarjeta (#151d26) es más
+     oscura que el riel `--color-surface` (#1c2631), así que la opción elegida
      se veía como un agujero en vez de levantarse. Sube un escalón por arriba
      del riel (auditoría visual 2026-09-24). */
   --color-raised: #ffffff;
@@ -291,6 +291,15 @@
        manteca-text sobre manteca-tint 6.08 · sobre manteca 5.41
        cielo-text   sobre cielo-tint   7.67 · sobre cielo   6.73 */
   --color-manteca: #f1e7a0;
+  /* Sobre la superficie de marca (`bg-brand`, `bg-secondary`): la letra, el
+     dato destacado, sus íconos y el velo del banner. Con la paleta de
+     siempre la marca es oscura (verde bosque) y van blanco, manteca, ámbar y
+     un velo negro; la
+     paleta celeste de la landing los redeclara porque su marca es clara. */
+  --color-on-brand: #ffffff;
+  --color-on-brand-label: #f1e7a0;
+  --color-on-brand-icon: #d97706;
+  --color-brand-veil: rgb(0 0 0 / 0.15);
   --color-manteca-tint: #fbf3c9;
   --color-manteca-text: #6a5a12;
   --color-cielo: #cfe4ff;
@@ -341,23 +350,29 @@
   /* Tamaños cartel de la landing (la historia del turno, 2026-10-06). Sólo
      para la landing: la app no usa nada más grande que text-display. Fluidos
      con clamp para que "gastronómico," entre en 358px sin cortar. */
-  --text-poster: clamp(2.75rem, 12vw, 4.5rem); /* titulares de escena */
+  --text-poster: clamp(3rem, 12vw, 4.5rem); /* titulares de escena: 48px como piso en el celular */
   --text-poster--line-height: 0.95;
   --text-hero: clamp(3rem, 7.4vw, 7rem); /* H1 del hero en escritorio */
   --text-hero--line-height: 0.92;
   --text-shout: clamp(5.5rem, 26vw, 17rem); /* el cartel "¡Oído!" */
   --text-shout--line-height: 0.9;
+  /* Titular de narración e intertítulo (Julieta, 2026-10-08: "todos los
+     header fraunces pasen de 32px a 48px"; medían 28px de cuerpo y 32px de
+     línea, que era `text-h1`). No se cambia `--text-h1` porque lo usan 40
+     pantallas de la app y los títulos de las tarjetas reales. */
+  --text-headline: 3rem;
+  --text-headline--line-height: 1.04;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Tipografía (todas libres): Fraunces serif para títulos de pantalla
-     (font-display) y el wordmark (font-serif), como en las pantallas del
-     board; Inter para texto y encabezados de sección; DM Mono cargada para
-     datos (los precios no la usan, decisión de Julieta). */
+  /* Tipografía (todas libres): Schibsted Grotesk para títulos de pantalla
+     (font-display, desde el 2026-10-18); Fraunces sólo para el wordmark
+     (font-serif); Inter para texto y encabezados de sección; DM Mono cargada
+     para datos (los precios no la usan, decisión de Julieta). */
   --font-sans: var(--font-inter);
-  --font-display: var(--font-fraunces);
+  --font-display: var(--font-schibsted);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-dm-mono);
 }
@@ -458,34 +473,53 @@
      oscurece — es un modo oscuro de verdad, como el board. La jerarquía la da
      la LUMINANCIA, no la sombra. Escala:
 
-       lienzo   #17130f   el fondo de la app (warm near-black)
-       card     #221d18   la tarjeta, despegada del lienzo
-       surface  #2b251f   lo recesado dentro de una tarjeta (inputs, chips)
-       focus    #3d3630   el módulo de foco (ganancias, pago del turno)
+       lienzo   #0d131a   el fondo de la app (noche azul, casi negro)
+       card     #151d26   la tarjeta, despegada del lienzo
+       surface  #1c2631   lo recesado dentro de una tarjeta (inputs, chips)
+       focus    #263240   el módulo de foco (ganancias, pago del turno)
+
+     Noche azul desde el 2026-10-19 (Julieta: "un marrón y naranja que no
+     tienen que ver con lo actual"): hasta ahí la escala era café cálido
+     (#17130f, #221d18, #2b251f, #3d3630) con resplandor ámbar, de antes de la
+     paleta celeste. Ahora es el cielo de la landing de noche: grises fríos,
+     brillo celeste, y el ámbar sólo en la acción principal.
 
      El coral y el violeta se mantienen como acentos; texto y bordes van
      claros. El cromo (nav/header) también se oscurece (ya no es blanco fijo). */
-  --background: #17130f;
-  --foreground: #f5f1ea;
-  --line: rgba(245, 241, 234, 0.12);
+  --background: #0d131a;
+  --foreground: #eef3f6;
+  --line: rgba(238, 243, 246, 0.12);
 
-  --color-card: #221d18;
-  --color-surface: #2b251f;
-  --color-focus: #3d3630;
-  --color-focus-ink: #f5f1ea;
-  --color-raised: #3a332c; /* un escalón sobre surface #2b251f */
-  --color-chrome: #1b1611; /* nav/header oscuros en modo oscuro */
-  --color-paper: #201a15;
+  --color-card: #151d26;
+  --color-surface: #1c2631;
+  --color-focus: #263240;
+  --color-focus-ink: #eef3f6;
+  --color-raised: #24303c; /* un escalón sobre surface #1c2631 */
+  --color-chrome: #111820; /* nav/header oscuros en modo oscuro */
+  /* PROTOTIPO esmerilado (2026-10-09): cromo de vidrio, resplandor ámbar en
+     la esquina y los bloques de marca como vidrio celeste, no celeste lleno. */
+  --color-chrome: rgba(17, 24, 32, 0.94);
+  --wash: radial-gradient(130% 520px at 50% -160px, rgba(154, 201, 231, 0.22), rgba(154, 201, 231, 0.06) 50%, transparent 78%);
+  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(154, 201, 231, 0.20), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(154, 201, 231, 0.07), transparent 70%);
+  --color-secondary: rgba(196, 227, 237, 0.12);
+  --color-on-brand: #eef3f6;
+  --color-on-brand-label: #9ac9e7;
+  --color-on-brand-icon: #9ac9e7;
+  --color-paper: #121a22;
 
   /* Texto claro, page-wide (no sólo dentro de tarjetas). */
-  --color-ink: #f5f1ea;
-  --color-ink-soft: #b7afa2;
-  --color-ink-mute: #8b8276;
+  --color-ink: #eef3f6;
+  --color-ink-soft: #a9b6c2;
+  --color-ink-mute: #8494a3;
 
   /* Acentos y estados sobre lienzo/tarjeta oscura (todos ≥ AA como texto). */
-  --color-primary-text: #e8920f; /* ámbar aclarado para texto sobre oscuro (AA) */
-  --color-secondary-text: #7fb8a3; /* verde bosque aclarado sobre oscuro */
-  --color-accent-text: #c4b5fd;
+  /* Paleta celeste (2026-10-09): el celeste ya es claro y va tal cual como
+     texto sobre oscuro. Los links y el texto destacado (`primary-text`) van
+     en celeste desde el 2026-10-19, como el azul hondo en claro: en ámbar
+     sumaban acentos naranjas a cada pantalla. */
+  --color-primary-text: #9ac9e7;
+  --color-secondary-text: #c4e3ed;
+  --color-accent-text: #9ac9e7;
   --color-success-text: #4ade80;
   --color-danger-text: #f4746f;
   --color-warning-text: #fbbf76;
@@ -496,7 +530,7 @@
 
   /* Hairline oscura. Sin esto las tarjetas, inputs y el header quedaban con el
      borde claro de :root (#ece7dd): una línea blanca que brilla sobre oscuro. */
-  --color-line: rgba(245, 241, 234, 0.12);
+  --color-line: rgba(238, 243, 246, 0.12);
 
   /* Tintes en oscuro. Con el modo oscuro real, los `-text` de arriba se
      aclaran en TODA la página; si los `-tint` siguieran siendo los pálidos de
@@ -509,22 +543,30 @@
      "Nivel Plata" del perfil, los íconos de las estadísticas). Mismo velo que
      el resto, con el color base como texto: manteca #f1e7a0 y cielo #cfe4ff
      sobre la tarjeta oscura dan más de 10:1. */
-  --color-manteca-tint: rgba(241, 231, 160, 0.14);
-  --color-manteca-text: #f1e7a0;
+  --color-manteca-tint: rgba(196, 227, 237, 0.14);
+  --color-manteca-text: #c4e3ed;
   --color-cielo-tint: rgba(207, 228, 255, 0.14);
   --color-cielo-text: #cfe4ff;
-  --color-primary-tint: rgba(217, 119, 6, 0.18);
-  --color-secondary-tint: rgba(127, 184, 163, 0.16);
-  --color-accent-tint: rgba(196, 181, 253, 0.14);
+  --color-primary-tint: rgba(154, 201, 231, 0.14);
+  --color-secondary-tint: rgba(196, 227, 237, 0.14);
+  --color-accent-tint: rgba(154, 201, 231, 0.14);
   --color-success-tint: rgba(74, 222, 128, 0.14);
   --color-danger-tint: rgba(244, 116, 111, 0.14);
   --color-warning-tint: rgba(251, 191, 118, 0.14);
   --color-info-tint: rgba(147, 197, 253, 0.14);
-  --color-toast: #f5f1ea;
-  --color-toast-ink: #17130f;
+  --color-toast: #eef3f6;
+  --color-toast-ink: #0d131a;
+  /* El azul hondo del foco en claro no se ve sobre el lienzo oscuro: celeste. */
+  --focus-ring: #9ac9e7;
 }
 
-/* Miniatura sin foto de "Cerca tuyo" (NearbyRow): en claro lleva el tinte
+/* Desde 2026-10-09 (vidrio y menos celeste) la miniatura sin foto es blanca
+   en claro, con el ícono en el color del rubro: el tinte crema/naranja era de
+   la paleta v5 y ensuciaba el lienzo gris. */
+.rubro-tile {
+  background-color: var(--color-card);
+}
+/* Miniatura sin foto de "Cerca tuyo" (NearbyRow): en claro llevaba el tinte
    pálido del rubro, que son clases crudas de Tailwind (SKILL_ACCENT) y no
    tienen modo oscuro — sobre el lienzo oscuro ese tile pálido encandila. En
    oscuro pasa a la superficie del sistema con el ícono en tinta atenuada. */
@@ -589,8 +631,117 @@
   --color-toast-ink: #ffffff;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * PALETA CELESTE (v6), la de toda la app (Julieta, 2026-10-09).
+ *
+ * Historia: el 2026-10-08 Julieta pidió pasar el verde bosque a un degradé
+ * violeta, el ámbar #d97706 a #ffab25 y la crema a #f3f3f3, y eligió que sea
+ * la paleta de TODA la app, probándola primero en la landing. El 2026-10-09,
+ * comparando, decidió: todo lo que era violeta pasa al celeste claro
+ * #c4e3ed, y el resto queda como en la versión violeta (ámbar #ffab25 con
+ * tinta, lienzo #f3f3f3). Esa misma noche, comparando, volvió al ámbar de
+ * siempre #d97706: con el celeste se despega más (2.36 contra 1.40) y es
+ * el color del logo. Ese mismo día se había probado celeste con botones
+ * naranja #e64c1e; quedó descartado. Primero vivió sólo en la landing
+ * (`data-palette="celeste"`); desde el 2026-10-09 rige en `:root`, o sea en
+ * toda la app en claro y en cualquier subárbol forzado a claro. El modo
+ * oscuro toma de acá el ámbar, el celeste y la noche, y aclara sus `-text` y
+ * `-tint` en su propio bloque (más arriba). Los valores de :root y @theme de
+ * más arriba quedan como la paleta v5.0 que estos pisan.
+ *
+ * Decisiones medidas (WCAG, sobre el lienzo #f3f3f3 salvo que diga otra cosa):
+ * - El ámbar #d97706 lleva SIEMPRE texto oscuro: tinta 5.93, blanco 3.19 (falla).
+ * - El celeste es claro: la letra que iba en blanco sobre el violeta va en
+ *   tinta sobre el celeste (13.99). Por eso existe `--color-on-brand`: blanco
+ *   en la paleta de siempre (verde bosque), tinta en ésta. Lo mismo el dato
+ *   destacado sobre la marca (`--color-on-brand-label`): manteca en la de
+ *   siempre, azul hondo #1c5478 acá (6.01 sobre el celeste).
+ * - El celeste como letra no se lee sobre claro: el texto destacado
+ *   (`primary-text`) y el anillo de foco van en azul hondo #1c5478, el mismo
+ *   tono oscurecido (7.31 sobre el lienzo, 8.11 sobre blanco).
+ * - Superficie de marca lisa (`--gradient-brand: none`), sin el velo negro
+ *   del banner (`--color-brand-veil`): sobre un color claro, el velo sólo lo
+ *   ensucia.
+ * - El ámbar sobre el celeste: 2.36 (con el #ffab25 daba 1.40 y el botón se
+ *   perdía encima).
+ * - Rellenos: el celeste mezclado con el lienzo (sRGB), 30% #e5eef1
+ *   (recesado y mapa; tinta apagada 4.83) y 45% #deecf0 (bordes y tintes).
+ *   Dato sobre la noche (`manteca`): el celeste, 13.85.
+ * ────────────────────────────────────────────────────────────────────────── */
+:root,
+:root[data-theme="dark"] [data-theme="light"] {
+  /* Lienzo casi blanco y frío (2026-10-19), como la landing; era el gris
+     #f3f3f3. Las tarjetas blancas se despegan por la hairline y la sombra. */
+  --background: #f8fbfc;
+  --foreground: #111111;
+  --line: #deecf0;
+  --color-line: #deecf0;
+  --color-surface: #e5eef1;
+  --color-paper: #e5eef1;
+  --color-card: #ffffff;
+  --color-raised: #ffffff;
+  --color-ink-mute: #686572;
+  --color-primary: #d97706;
+  --color-primary-strong: #b45309;
+  --color-primary-text: #1c5478;
+  --color-primary-tint: #deecf0;
+  --color-secondary: #c4e3ed;
+  --color-secondary-strong: #9ac9e7;
+  --color-secondary-tint: #deecf0;
+  --color-secondary-text: #1c5478;
+  --gradient-brand: none;
+  --color-on-brand: #111111;
+  --color-on-brand-label: #1c5478;
+  --color-on-brand-icon: #1c5478;
+  --color-brand-veil: transparent;
+  --color-accent: #9ac9e7;
+  /* PROTOTIPO esmerilado (2026-10-09). */
+  --color-chrome: rgba(255, 255, 255, 0.92);
+  /* El cielo de la landing arriba de cada pantalla (2026-10-19); antes era
+     un resplandor ámbar y durazno que dejaba el arranque color crema. */
+  --wash: radial-gradient(130% 460px at 50% -140px, rgba(154, 201, 231, 0.55), rgba(196, 227, 237, 0.30) 45%, transparent 78%);
+  --glow-image: radial-gradient(90% 100% at 100% 0%, rgba(196, 227, 237, 0.95), transparent 70%), radial-gradient(70% 90% at 0% 100%, rgba(154, 201, 231, 0.18), transparent 70%);
+  --color-accent-tint: #deecf0;
+  --color-accent-text: #1c5478;
+  --color-manteca: #c4e3ed;
+  --color-manteca-tint: #deecf0;
+  --color-manteca-text: #1c5478;
+  --color-night: #141118;
+  --color-structure: #141118;
+  --color-focus: #141118;
+  --color-toast: #141118;
+  /* El anillo de foco ámbar daría 1.70 sobre claro: azul hondo (7.31). */
+  --focus-ring: #1c5478;
+}
+/* Sobre la noche el anillo vuelve al ámbar aclarado; sobre el celeste y
+   sobre la banda ámbar, tinta. */
+[data-palette="celeste"] [data-tone="night"] {
+  --focus-ring: #e8920f;
+}
+[data-palette="celeste"] [data-tone="forest"] {
+  --focus-ring: #111111;
+}
+[data-palette="celeste"] [data-tone="amber"] {
+  --focus-ring: #111111;
+}
+
+/* Superficie de marca: el verde bosque liso hoy; con la paleta celeste, el
+   celeste claro, también liso (`--gradient-brand: none`). Queda como utilidad
+   aparte para las superficies grandes (secciones, el frente de las
+   tarjetas), por si la paleta vuelve a llevar un degradé: las píldoras
+   chicas van en `bg-secondary`. */
+@utility bg-brand {
+  background-color: var(--color-secondary);
+  background-image: var(--gradient-brand, none);
+}
+
+@utility bg-glow {
+  background-color: var(--color-card);
+  background-image: var(--glow-image, none);
+}
+
 body {
-  background: var(--background);
+  background: var(--wash, none) no-repeat, var(--background);
   color: var(--foreground);
   overscroll-behavior-y: contain;
 }
@@ -661,7 +812,7 @@ textarea,
  * Los componentes que ya definen su propio anillo lo siguen ganando por
  * especificidad; esto es el piso, no un techo. */
 :where(a, button, [role="button"], [tabindex]:not([tabindex="-1"]), input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--focus-ring, var(--color-primary));
   outline-offset: 2px;
 }
 
@@ -804,9 +955,9 @@ textarea,
 
 
 /* ──────────────────────────────────────────────────────────────────────────
- * Landing: la historia de un turno (components/landing/story/, 2026-10-06).
- * Sólo lo que tiene que correr sin hidratar (CSS puro) o que no se puede
- * expresar con utilidades. Las escenas animadas usan motion/react.
+ * Landing (components/landing/; corta desde el 2026-10-12, antes la historia
+ * de un turno fijada al scroll). Sólo lo que tiene que correr sin hidratar
+ * (CSS puro) o que no se puede expresar con utilidades.
  * ────────────────────────────────────────────────────────────────────────── */
 
 /* La landing no tiene BottomNav (es para visitantes sin sesión), así que el
@@ -816,24 +967,32 @@ body:has([data-landing]) main {
   padding-bottom: 0;
 }
 
-/* El ritmo de toda la historia sale de un número: cuánto scroll mide cada
-   estado de una escena fijada (ver components/landing/story/Stage.tsx). Si la
-   recorrida se siente larga, se baja éste y no se cortan escenas. `--lh` es
-   el alto del encabezado propio de la landing y `--lht` le suma el notch. */
+/* `--lh` es el alto del encabezado propio de la landing y `--lht` le suma
+   el notch. */
 [data-landing] {
-  --svh-estado: 70svh;
   --lh: 3.5rem;
   --lht: calc(var(--lh) + env(safe-area-inset-top));
+  /* Colores propios de la landing que no son tokens de la app: el papel del
+     mapa y la burbuja del chat de Martín. La paleta los redeclara. */
+  --mapa: #ece6da;
+  --burbuja: #26211b;
+  --burbuja-tinta: #b3a999;
+  --burbuja-tenue: #7d7468;
+}
+[data-landing][data-palette="celeste"] {
+  --mapa: #e5eef1;
+  --burbuja: #24202b;
+  --burbuja-tinta: #aaa6b3;
+  --burbuja-tenue: #9a96a3;
 }
 @media (min-width: 1024px) {
   [data-landing] {
-    --svh-estado: 85svh;
     --lh: 4rem;
   }
 }
 
 /* La burbuja de Martín aparece sola al abrir la página, antes de que React
-   hidrate: por eso es CSS y no motion. */
+   hidrate: por eso es CSS. */
 @keyframes storyBubbleIn {
   0% {
     opacity: 0;
@@ -842,6 +1001,861 @@ body:has([data-landing]) main {
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+/* Los dos puntos de la hora del reloj del turno laten mientras el turno
+   está sin cubrir; se quedan quietos cuando se cubre. */
+@keyframes storyColon {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.story-colon {
+  animation: storyColon 1.333s steps(2, jump-none) infinite;
+}
+
+/* Entrada de la landing corta (components/landing/Reveal.tsx): una sola
+   vez, lenta a propósito (Julieta, 2026-10-12: "las animaciones están muy
+   rápidas"). Sin JavaScript o con reducir movimiento, `data-reveal` no se
+   pone y el bloque está visible desde el principio. */
+.landing-reveal {
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.landing-reveal[data-reveal="pending"] {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* ── Landing "cielo" (2026-10-18): celeste y blanco con el ámbar de siempre.
+   Cada sección como el inicio: un título y una sola cosa para mirar.
+   Componentes: HeroRueda, Comanda, MapaCamino, Confianza, Precios,
+   ParaTrabajar, Preguntas, Cierre y LandingFooter. ── */
+[data-landing] {
+  /* Aire entre el título de una sección y lo que muestra. */
+  --aire: clamp(28px, 4vw, 48px);
+}
+.landing-sec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-block: clamp(52px, 7vw, 96px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.landing-h2 {
+  max-width: 16ch;
+  margin-inline: auto;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(2.25rem, 4.8vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+.landing-h2-grande {
+  max-width: 15ch;
+  font-size: clamp(2.75rem, 6vw, 5.25rem);
+}
+.landing-sec-cosa {
+  margin-top: var(--aire);
+}
+.landing-sec-accion {
+  margin-top: 32px;
+}
+/* En pantallas anchas, donde lo que se muestra es angosto, el título va al
+   costado; en el celular todo sigue centrado. */
+@media (min-width: 1024px) {
+  .landing-sec-dos {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    column-gap: 96px;
+    align-items: center;
+    width: 100%;
+    max-width: calc(1080px + 2 * 48px);
+    margin-inline: auto;
+    padding-inline: 48px;
+    text-align: left;
+  }
+  .landing-sec-dos .landing-h2 {
+    grid-column: 1;
+    max-width: 11ch;
+    margin: 0;
+  }
+  .landing-sec-dos .landing-sec-cosa {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: center;
+    margin-top: 0;
+  }
+  .landing-sec-dos .landing-sec-accion {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .landing-sec-arriba {
+    align-items: start;
+  }
+}
+
+/* Botones de la landing: píldora con flecha en un círculo. */
+.landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 50px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  transition: transform 0.15s;
+}
+.landing-btn:active {
+  transform: translateY(1px);
+}
+.landing-btn-flecha {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -12px;
+  border-radius: 50%;
+  font-size: 14px;
+  background: var(--color-ink);
+  color: var(--color-card);
+}
+.landing-btn-primario {
+  background: var(--color-primary);
+  color: var(--color-night);
+}
+.landing-btn-borde {
+  background: rgb(255 255 255 / 0.6);
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px rgb(17 17 17 / 0.16);
+}
+.landing-btn-tinta {
+  background: var(--color-ink);
+  color: var(--color-card);
+}
+.landing-btn-tinta .landing-btn-flecha {
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+
+/* Inicio: cielo arriba, blanco donde va el título, rueda de fotos. Los
+   tamaños de la ficha coinciden con los de HeroRueda.tsx. */
+.landing-hero {
+  --cw: 104px;
+  --ch: 135px;
+  padding-top: calc(var(--ch) + 96px);
+  padding-bottom: clamp(64px, 9vw, 128px);
+  background:
+    radial-gradient(18% 10% at 18% 14%, rgb(255 255 255 / 0.9), transparent 70%),
+    radial-gradient(22% 9% at 80% 9%, rgb(255 255 255 / 0.85), transparent 70%),
+    radial-gradient(14% 7% at 62% 24%, rgb(255 255 255 / 0.7), transparent 70%),
+    linear-gradient(180deg, var(--color-secondary-strong) 0%, var(--color-secondary) 26%, #eef6f9 46%, var(--color-card) 60%);
+}
+@media (min-width: 600px) {
+  .landing-hero {
+    --cw: 140px;
+    --ch: 182px;
+  }
+}
+@media (min-width: 1000px) {
+  .landing-hero {
+    --cw: 170px;
+    --ch: 221px;
+  }
+}
+.landing-rueda {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 1;
+}
+.landing-ficha {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cw);
+  height: var(--ch);
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 24px 40px -26px rgb(22 25 26 / 0.5);
+  will-change: transform;
+}
+.landing-palabra {
+  position: relative;
+  height: 1em;
+}
+.landing-palabra b {
+  display: block;
+  animation: landingPalabra 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes landingPalabra {
+  from {
+    opacity: 0;
+    transform: translateY(0.18em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* La comanda: banda de cielo, impresora, ticket con filete y cinta. */
+.landing-cielo {
+  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 18%, var(--color-secondary) 72%, var(--color-secondary-strong) 100%);
+  padding-bottom: clamp(64px, 8vw, 112px);
+}
+.landing-campo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 24px;
+  border-radius: 30px;
+  background: var(--color-card);
+  box-shadow: 0 0 0 1.5px rgb(17 17 17 / 0.85), 0 24px 40px -26px rgb(28 84 120 / 0.45);
+  text-align: left;
+}
+.landing-campo:focus-within {
+  box-shadow: 0 0 0 2.5px var(--color-primary), 0 24px 40px -26px rgb(28 84 120 / 0.45);
+}
+.landing-campo textarea {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  overflow: hidden;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+.landing-campo textarea::placeholder {
+  color: #9aa0a8;
+}
+.landing-campo .landing-btn {
+  flex: none;
+  height: 48px;
+}
+@media (max-width: 640px) {
+  .landing-campo {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 14px 10px 18px;
+    border-radius: 22px;
+  }
+  .landing-campo textarea {
+    flex: none;
+  }
+}
+.landing-impresora {
+  position: relative;
+  z-index: 2;
+  width: min(420px, 92%);
+  height: 58px;
+  margin-top: var(--aire);
+  border-radius: 18px 18px 10px 10px;
+  background: linear-gradient(180deg, #26303a, #12171c);
+  box-shadow: 0 22px 34px -18px rgb(18 23 28 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+.landing-impresora-luz {
+  position: absolute;
+  right: 22px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 10px 2px rgb(217 119 6 / 0.7);
+}
+.landing-impresora-ranura {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 9px;
+  height: 7px;
+  border-radius: 4px;
+  background: #05080a;
+  box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.8);
+}
+.landing-comanda-marco {
+  width: min(360px, 86%);
+  margin-top: -14px;
+  padding: 0 24px 40px;
+  box-sizing: content-box;
+  overflow: hidden;
+}
+.landing-comanda {
+  position: relative;
+  padding: 34px 22px 30px;
+  background: var(--color-card);
+  color: #141c24;
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  text-align: left;
+  filter: drop-shadow(0 26px 30px rgb(20 69 106 / 0.28)) drop-shadow(0 0 1px rgb(20 69 106 / 0.3));
+  /* Corte de papel en zigzag abajo. */
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
+}
+.landing-voluta {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 38px;
+  height: 38px;
+  color: var(--color-secondary-text);
+}
+.landing-voluta-der {
+  left: auto;
+  right: 8px;
+  transform: scaleX(-1);
+}
+.landing-comanda-tope {
+  padding-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-secondary-text);
+}
+.landing-orla {
+  position: relative;
+  height: 10px;
+  margin-bottom: 4px;
+}
+.landing-orla::before,
+.landing-orla::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: var(--color-secondary-text);
+}
+.landing-orla::before {
+  top: 2px;
+}
+.landing-orla::after {
+  top: 7px;
+  background: var(--color-secondary-strong);
+}
+.landing-orla i {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-secondary-text);
+  transform: translateX(-50%) rotate(45deg);
+}
+.landing-comanda-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px dashed #cfe2ea;
+}
+.landing-comanda-fila dt {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-secondary-text);
+}
+.landing-comanda-fila dd {
+  font-size: 17px;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .landing-comanda-fila dd {
+    font-size: 14px;
+  }
+  .landing-comanda {
+    padding-inline: 18px;
+  }
+}
+.landing-falta {
+  color: #9aa6ad;
+  font-weight: 400;
+}
+.landing-cinta {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+}
+.landing-cinta-svg {
+  display: block;
+  width: 270px;
+  max-width: 100%;
+  height: auto;
+  transform: rotate(-4deg);
+}
+.landing-comanda-pie {
+  margin-top: 22px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-secondary-text);
+}
+.landing-guarda {
+  height: 12px;
+  margin: 18px -22px 0;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-secondary-text) 0 10px,
+    var(--color-card) 10px 12px,
+    var(--color-secondary-strong) 12px 22px,
+    var(--color-card) 22px 24px,
+    var(--color-primary) 24px 28px,
+    var(--color-card) 28px 30px
+  );
+}
+/* Esperando que aparezca: el papel todavía está adentro de la impresora. */
+.landing-espera .landing-comanda {
+  transform: translateY(-104%);
+}
+.landing-imprime .landing-comanda {
+  animation: landingImprimir 1.5s steps(14) both;
+}
+.landing-imprime .landing-cinta-svg {
+  animation: landingCinta 0.38s cubic-bezier(0.3, 1.6, 0.5, 1) 1.9s both;
+}
+.landing-imprime .landing-comanda-pie {
+  animation: landingAparecer 0.4s 2.4s both;
+}
+.landing-imprime .landing-impresora-luz {
+  animation: landingTitila 0.3s steps(2) 5;
+}
+@keyframes landingImprimir {
+  from {
+    transform: translateY(-104%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes landingCinta {
+  from {
+    opacity: 0;
+    transform: rotate(-4deg) scale(2.2);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+@keyframes landingAparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes landingTitila {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* El mapa de "va en camino" sobre un pedazo de Palermo. */
+.landing-mapa {
+  width: min(1000px, 100%);
+  margin-top: var(--aire);
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--color-card);
+  box-shadow: 0 0 0 1px var(--color-line), 0 40px 70px -46px rgb(28 84 120 / 0.45);
+  text-align: left;
+}
+.landing-mapa-calles {
+  position: relative;
+  aspect-ratio: 16 / 8.5;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .landing-mapa-calles {
+    aspect-ratio: 1;
+  }
+}
+.landing-mapa-linea {
+  stroke: var(--color-secondary-text);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  opacity: 0.55;
+}
+.landing-mapa-linea-va {
+  stroke-width: 2;
+  opacity: 0.9;
+}
+.landing-mapa-local {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+}
+.landing-mapa-local i {
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 7px rgb(217 119 6 / 0.16);
+}
+.landing-mapa-local span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-card);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.landing-mapa-avisado,
+.landing-mapa-persona {
+  position: absolute;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+  transition:
+    opacity 0.4s,
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4),
+    left 5s ease-in-out,
+    top 5s ease-in-out;
+}
+.landing-mapa-avisado {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-secondary-strong);
+  box-shadow: 0 0 0 4px rgb(154 201 231 / 0.3);
+}
+.landing-mapa-persona,
+.landing-mapa-persona-pie {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  color: var(--color-night);
+  font-weight: 700;
+  font-size: 12.5px;
+  box-shadow: 0 0 0 2px var(--color-card), 0 8px 14px -8px rgb(0 0 0 / 0.4);
+}
+.landing-mapa-persona {
+  z-index: 3;
+}
+.landing-mapa-avisado.landing-on,
+.landing-mapa-persona.landing-on {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.landing-mapa-avisado.landing-tenue,
+.landing-mapa-persona.landing-tenue {
+  opacity: 0.18;
+}
+.landing-mapa-persona.landing-elegida {
+  box-shadow: 0 0 0 3px var(--color-card), 0 0 0 5px var(--color-success), 0 10px 18px -8px rgb(0 0 0 / 0.4);
+}
+.landing-mapa-pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-line);
+}
+.landing-mapa-persona-pie {
+  flex: none;
+  opacity: 0.35;
+  transition: opacity 0.3s;
+}
+.landing-mapa-persona-pie.landing-on {
+  opacity: 1;
+}
+.landing-mapa-eta {
+  margin-left: auto;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pantalla de bienvenida (SplashScreen): el cielo de la landing en claro y
+   la noche azul con brillo celeste en oscuro. */
+.splash-cielo {
+  background: linear-gradient(180deg, #ffffff 0%, #e4f2f8 45%, #c4e3ed 75%, #9ac9e7 100%);
+}
+:root[data-theme="dark"] .splash-cielo {
+  background: radial-gradient(120% 70% at 50% 0%, rgba(154, 201, 231, 0.22), transparent 70%), #0d131a;
+}
+.splash-ya {
+  color: #b45309; /* el ámbar del tagline de la miniatura: 5,0 sobre el cielo */
+}
+:root[data-theme="dark"] .splash-ya {
+  color: #e8920f;
+}
+
+/* El final: "oído" grande y fileteado sobre el cielo y el pie en el mismo celeste. */
+.landing-firma {
+  padding: clamp(24px, 5vw, 56px) max(16px, env(safe-area-inset-left, 0px)) 8px;
+  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 60%, var(--color-secondary-strong) 100%);
+}
+.landing-firma svg {
+  display: block;
+  width: min(1000px, 100%);
+  height: auto;
+  margin: 0 auto;
+}
+.landing-pie-fila {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: var(--color-secondary-strong);
+  color: rgb(17 17 17 / 0.62);
+  text-align: center;
+}
+.landing-pie-fila a {
+  color: rgb(17 17 17 / 0.78);
+}
+.landing-pie-fila a:hover {
+  color: var(--color-ink);
+}
+@media (min-width: 1024px) {
+  .landing-pie-fila {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-inline: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-palabra b,
+  .landing-imprime .landing-comanda,
+  .landing-imprime .landing-cinta-svg,
+  .landing-imprime .landing-comanda-pie,
+  .landing-imprime .landing-impresora-luz {
+    animation: none;
+  }
+  .landing-mapa-avisado,
+  .landing-mapa-persona {
+    transition: none;
+  }
+}
+/* La sacudida de la burbuja cuando llega "Perdón, hoy no llego." */
+@keyframes landingSacudida {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20% {
+    translate: -6px 0;
+  }
+  40% {
+    translate: 6px 0;
+  }
+  60% {
+    translate: -4px 0;
+  }
+  80% {
+    translate: 4px 0;
+  }
+}
+.landing-sacudida {
+  animation: landingSacudida 0.45s ease-in-out 1;
+}
+/* La hora grande del hero cambia de 20:46 a 20:54: entra de abajo, como un
+   reloj de tablero. */
+@keyframes landingTic {
+  0% {
+    opacity: 0;
+    translate: 0 0.35em;
+  }
+  100% {
+    opacity: 1;
+    translate: 0;
+  }
+}
+.landing-tic {
+  animation: landingTic 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
+}
+
+/* Animaciones de las piezas DENTRO de un bloque que entra (`Reveal`): mientras
+   el bloque espera (`pending`) quedan en su estado inicial, y al entrar
+   (`shown`) corren una vez con el retraso de su `--d`. Sin JavaScript, con
+   "reducir movimiento" o si el bloque ya estaba en pantalla, ninguna de las
+   dos marcas está puesta y todo se ve quieto en su lugar. */
+@keyframes landingPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingRise {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingShout {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-4deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landingBar {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: none;
+  }
+}
+[data-reveal="pending"] :is(.anim-pop, .anim-ring, .anim-rise, .anim-drop, .anim-shout) {
+  opacity: 0;
+}
+/* Sólo existe durante la animación (el reloj "Avisado a 10" del mapa):
+   quieto no se ve, porque el estado final es el que lo reemplaza. */
+.anim-out {
+  opacity: 0;
+}
+@keyframes landingInOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  12%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+[data-reveal="shown"] .anim-out {
+  animation: landingInOut 3.3s ease var(--d, 0s) both;
+}
+/* Las calles del mapa del paso 2 aparecen en un círculo desde el local. */
+@keyframes landingReveal {
+  0% {
+    clip-path: circle(0% at 50% 50%);
+  }
+  100% {
+    clip-path: circle(75% at 50% 50%);
+  }
+}
+[data-reveal="pending"] .anim-reveal {
+  clip-path: circle(0% at 50% 50%);
+}
+[data-reveal="shown"] .anim-reveal {
+  animation: landingReveal 1.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+[data-reveal="pending"] .anim-fill {
+  opacity: 0.15;
+}
+[data-reveal="pending"] .anim-bar {
+  transform: scaleX(0);
+}
+[data-reveal="shown"] .anim-pop {
+  animation: landingPop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+}
+[data-reveal="shown"] .anim-ring {
+  animation: landingRing 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+}
+[data-reveal="shown"] .anim-rise {
+  animation: landingRise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+}
+[data-reveal="shown"] .anim-drop {
+  animation: landingDrop 0.8s cubic-bezier(0.3, 1.4, 0.4, 1) var(--d, 0.6s) both;
+}
+[data-reveal="shown"] .anim-shout {
+  animation: landingShout 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.2s) both;
+}
+[data-reveal="shown"] .anim-fill {
+  transition: opacity 0.3s ease var(--d, 0s);
+}
+[data-reveal="shown"] .anim-bar {
+  animation: landingBar 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.3s) both;
+}
+
+/* ── La historia de un turno (/historia, components/landing/story/) ──
+   Guardada el 2026-10-12 para grabar reels e historias. Lo que sólo usa
+   ella; `storyBubbleIn` y `.story-colon` (más arriba) son compartidos. */
+[data-landing] {
+  --svh-estado: 93.333svh;
+}
+@media (min-width: 1024px) {
+  [data-landing] {
+    --svh-estado: 113.333svh;
   }
 }
 /* "escribiendo…": la única espera en bucle de la página (motion.md regla 3). */
@@ -857,17 +1871,6 @@ body:has([data-landing]) main {
     transform: translateY(-2px);
   }
 }
-/* Los dos puntos de la hora del reloj del turno laten mientras el turno
-   está sin cubrir; se quedan quietos cuando se cubre. */
-@keyframes storyColon {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.2;
-  }
-}
 /* Onda que sale de un elemento (el pin publicado, la burbuja "¡Oído!"). */
 @keyframes storyRing {
   0% {
@@ -880,20 +1883,17 @@ body:has([data-landing]) main {
   }
 }
 .story-typing span {
-  animation: storyTyping 1.2s ease-in-out infinite;
+  animation: storyTyping 1.6s ease-in-out infinite;
 }
 .story-typing span:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: 0.2s;
 }
 .story-typing span:nth-child(3) {
-  animation-delay: 0.3s;
-}
-.story-colon {
-  animation: storyColon 1s steps(2, jump-none) infinite;
+  animation-delay: 0.4s;
 }
 /* El cursor del cuadro "Describilo": titila mientras espera que escribas. */
 .story-caret {
-  animation: storyColon 1.05s steps(2, jump-none) infinite;
+  animation: storyColon 1.4s steps(2, jump-none) infinite;
 }
 /* Puntos guía de la carta de precios y del registro del turno. */
 .story-leader {

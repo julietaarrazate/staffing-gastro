@@ -9,7 +9,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch, SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
 import { rankApplicants, standoutApplicant } from "@/lib/applicants";
@@ -155,7 +155,7 @@ function ShiftCandidatesContent() {
             const { Icon } = SKILL_ACCENT[shift.position];
             return (
               <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white ${SKILL_HERO_TONE[shift.position]}`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${heroTile(shift.position)}`}
               >
                 <Icon size={20} />
               </span>
@@ -226,7 +226,7 @@ function ShiftCandidatesContent() {
                       }`}
                     >
                       {top && (
-                        <p className="mb-3 inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-primary">
+                        <p className="mb-3 inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-on-brand-label">
                           <StarIcon size={13} filled /> Mejor valorado
                         </p>
                       )}
@@ -238,7 +238,7 @@ function ShiftCandidatesContent() {
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <Link
                               href={`/workers/${a.worker_profile_id}`}
-                              className={`truncate font-semibold ${top ? "text-white" : "text-ink"}`}
+                              className={`truncate font-semibold ${top ? "text-on-brand" : "text-ink"}`}
                             >
                               {a.full_name}
                             </Link>

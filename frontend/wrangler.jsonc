@@ -1,0 +1,22 @@
+// Worker de Cloudflare que sirve el frontend de Oído (adaptador OpenNext).
+// Ver docs/reference/DEPLOY.md, sección "Cloudflare Workers".
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oido-frontend",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Dirección de prueba oido-frontend.julietaarrazate.workers.dev (etapa 4).
+  // Sin direcciones por versión: el login no anda en ellas (no están en
+  // CORS_ORIGINS, Turnstile ni Google).
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "oido-frontend" }
+  ],
+  "observability": { "enabled": true }
+}

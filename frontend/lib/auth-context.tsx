@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { api, NetworkError } from "@/lib/api";
+import {
+  api,
+  bindSessionToken,
+  hasBoundSession,
+  isTransientFailure,
+  renewSessionToken,
+  setUnauthorizedHandler,
+} from "@/lib/api";
 import { clearAllCached } from "@/lib/screen-cache";
 import { User } from "@/lib/types";
 
@@ -34,6 +41,10 @@ interface AuthState {
    * registrarse validando un PIN (ver `POST /auth/guest`). */
   loginAsGuest: (pin: string, role: "worker" | "employer") => Promise<void>;
   logout: () => Promise<void>;
+  /** `true` después de "Cerrar sesión" hasta el próximo ingreso. Las
+   *  pantallas protegidas (`useRequireAuth`) mandan entonces a la landing y
+   *  no a "/login", para no pisar la salida (ver `logout`). */
+  justLoggedOut: boolean;
   /** No-null mientras una admin está "viendo como" otro usuario (ver
    * `impersonate`). Sólo expone los datos de la admin real, para el banner. */
   impersonating: { adminUser: User } | null;
@@ -83,14 +94,26 @@ function clearSession() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [justLoggedOut, setJustLoggedOut] = useState(false);
   // Snapshot de la sesión admin real mientras se está impersonando otro
   // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
   const [impersonating, setImpersonating] = useState<
     { adminToken: string; adminUser: User } | null
   >(null);
+  // Lo lee el manejador de 401 (registrado una sola vez), que no ve el estado.
+  const impersonatingRef = useRef(false);
+
+  /** Cambia de SESIÓN (login, logout, impersonar): el `token` del contexto
+   * sólo cambia acá. Renovar el access token no pasa por acá (ver
+   * `tryRefresh` y `lib/api.ts`), así que no recarga las pantallas. */
+  function setToken(next: string | null) {
+    bindSessionToken(next);
+    setTokenState(next);
+    if (next) setJustLoggedOut(false);
+  }
 
   async function tryRefresh(timeoutMs?: number): Promise<string | null> {
     // Sin esta marca no hay (o ya no hay) sesión que renovar — el refresh
@@ -104,17 +127,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         timeoutMs
       );
       persistAccessToken(tokens.access_token);
-      setToken(tokens.access_token);
+      // Con una sesión en curso, sólo se renueva el token vigente; el del
+      // contexto queda igual. Sin sesión (restaurando al abrir la app), la
+      // renovación ES el arranque de la sesión.
+      if (hasBoundSession()) renewSessionToken(tokens.access_token);
+      else setToken(tokens.access_token);
       return tokens.access_token;
     } catch (err) {
-      // Un fallo de red (backend caído/dormido) NO es un refresh inválido:
-      // se propaga para degradar sin cerrar la sesión. Sólo un ApiError real
-      // (refresh vencido/revocado) devuelve null → login.
-      if (err instanceof NetworkError) throw err;
+      // Un backend que no está (sin red, timeout, o 5xx/408/429 mientras
+      // Render arranca en frío) NO es un refresh inválido: se propaga para
+      // degradar sin cerrar la sesión. Sólo un rechazo real (refresh
+      // vencido/revocado, 401/403) devuelve null → login.
+      if (isTransientFailure(err)) throw err;
       clearSession();
       return null;
     }
   }
+
+  // Ante un 401 con el token de la sesión, `lib/api.ts` renueva y reintenta
+  // una vez. Va antes de `restoreSession` para cubrir también el access token
+  // guardado que ya venció. Impersonando no se renueva: el refresh traería un
+  // token de la admin real, no del usuario que se está viendo.
+  useEffect(() => {
+    setUnauthorizedHandler(() =>
+      impersonatingRef.current ? Promise.resolve(null) : tryRefresh()
+    );
+    return () => setUnauthorizedHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `tryRefresh` sólo usa setters estables y localStorage
+  }, []);
 
   useEffect(() => {
     async function restoreSession() {
@@ -133,8 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Con refresh token disponible, intentamos restaurar en silencio:
       // primero probamos el access token si lo tenemos (evita un round-trip
       // extra cuando todavía es válido); si falta o venció, refrescamos.
-      // Todo el bloque va bajo un guard de NetworkError: si el backend no
-      // responde, se degrada a app deslogueada SIN cerrar la sesión (los
+      // Todo el bloque va bajo un guard de `isTransientFailure`: si el backend
+      // no responde o responde 5xx, se degrada a app deslogueada SIN cerrar la sesión (los
       // tokens siguen guardados y un reload reintenta cuando el server
       // despierte) — en vez de quedar en blanco esperando para siempre.
       try {
@@ -145,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             return;
           } catch (err) {
-            if (err instanceof NetworkError) throw err;
+            if (isTransientFailure(err)) throw err;
             // Access token vencido/inválido (ApiError): seguimos al refresh.
           }
         }
@@ -161,14 +201,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           setUser(await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS));
         } catch (err) {
-          if (err instanceof NetworkError) throw err;
+          if (isTransientFailure(err)) throw err;
           clearSession();
           setToken(null);
         }
         setLoading(false);
       } catch (err) {
         // Backend dormido/caído: no cerramos sesión, sólo dejamos de cargar.
-        if (!(err instanceof NetworkError)) {
+        if (!isTransientFailure(err)) {
           // Cualquier otro error inesperado tampoco debe colgar la app.
           clearSession();
           setToken(null);
@@ -271,12 +311,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token
     );
     setImpersonating({ adminToken: token, adminUser: user });
+    impersonatingRef.current = true;
+    // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
+    // el feed o el perfil de la admin como si fueran del usuario impersonado.
+    clearAllCached();
     setToken(data.access_token);
     setUser(data.user);
   }
 
   function stopImpersonating() {
     if (!impersonating) return;
+    impersonatingRef.current = false;
+    clearAllCached();
+    // El token de la admin pudo haber vencido durante la impersonación (el
+    // auto-refresh estaba apagado): la primera request da 401 y se renueva.
     setToken(impersonating.adminToken);
     setUser(impersonating.adminUser);
     setImpersonating(null);
@@ -305,11 +353,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // limpia en la respuesta.
     clearSession();
     clearAllCached();
+    setJustLoggedOut(true);
     setToken(null);
     setUser(null);
     // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
-    // una pantalla protegida ya renderizada en el historial.
-    router.replace("/login");
+    // una pantalla protegida ya renderizada en el historial. Va a la landing
+    // y no a "/login" (Julieta, 2026-10-13): desde la app instalada era la
+    // única forma de volver a verla; "Ingresar" está en su encabezado.
+    router.replace("/");
     try {
       await api.post("/auth/logout");
     } catch {
@@ -331,6 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         loginAsGuest,
         logout,
+        justLoggedOut,
         updateFullName,
         impersonating: impersonating ? { adminUser: impersonating.adminUser } : null,
         impersonate,

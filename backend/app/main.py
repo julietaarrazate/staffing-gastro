@@ -7,12 +7,16 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import settings
+from app.core.database import start_idle_connection_closer
 from app.core.idempotency import IdempotencyReplay
+from app.core.edge import EdgeGuardMiddleware
 from app.core.middleware import SecurityHeadersMiddleware
 from app.core.observability import RequestIdMiddleware, setup_logging, setup_sentry
 from app.modules.admin.api.routes import router as admin_router
@@ -31,6 +35,7 @@ from app.modules.notification.api.routes import router as notification_router
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.shift.application.scheduler import start_scheduler
+from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.subscription.api.routes import router as subscription_router
 from app.modules.support.api.routes import router as support_router
 from app.modules.upload.api.routes import router as upload_router
@@ -64,9 +69,14 @@ async def lifespan(_: FastAPI):
     # Scheduler del ciclo de vida del turno (asistencia + escalada de
     # urgencia): no-op fuera de producción.
     scheduler_task = start_scheduler()
+    # Cierra la conexión ociosa del pool para que Neon pueda dormirse con
+    # Render siempre prendido (`core/database.py`): no-op fuera de producción.
+    idle_closer_task = start_idle_connection_closer()
     yield
     if scheduler_task is not None:
         scheduler_task.cancel()
+    if idle_closer_task is not None:
+        idle_closer_task.cancel()
 
 
 app = FastAPI(
@@ -100,6 +110,10 @@ app.add_middleware(RequestIdMiddleware)
 # JSON de listados se benefician directo, sin tocar ningún endpoint.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# Último en agregarse = el primero en correr: lo que no viene por Cloudflare
+# se corta antes de todo lo demás. Apagado sin `EDGE_SHARED_SECRET`.
+app.add_middleware(EdgeGuardMiddleware)
+
 
 # `api_route` con GET **y HEAD**: los monitores de uptime (UptimeRobot y la
 # mayoría) chequean con HEAD por ser más barato, y FastAPI no lo agrega solo a
@@ -117,6 +131,28 @@ async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONR
     respuesta guardada la primera vez, sin re-ejecutar el handler (ver
     `app/core/idempotency.py` y `product/IDEMPOTENCIA_SPEC.md`)."""
     return JSONResponse(status_code=exc.status_code, content=exc.body)
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+    """422 con la misma forma de siempre, sin devolver el valor enviado
+    (`input`), el contexto interno (`ctx`) ni la URL de documentación."""
+    errors = [
+        {"type": e.get("type"), "loc": e.get("loc"), "msg": e.get("msg")}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
+
+
+@app.exception_handler(ShiftConcurrentModificationError)
+async def handle_shift_conflict(_: Request, exc: ShiftConcurrentModificationError) -> JSONResponse:
+    """Dos acciones a la vez sobre el mismo turno (ADR-0016): la segunda no se
+    guarda. Va acá y no en cada ruta porque cualquier mutación del turno
+    puede perder la carrera, y la respuesta es siempre la misma."""
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "El turno cambió mientras tanto. Actualizá y volvé a intentar."},
+    )
 
 
 # --- Routers de los módulos ---

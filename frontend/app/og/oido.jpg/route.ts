@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { OG_SQUARE, renderBrandImage } from "@/lib/og-brand";
+import { LIENZO, OG_SQUARE, renderBrandImage } from "@/lib/og-brand";
 
 /**
  * La imagen de vista previa de Oído (`og:image`) como JPEG en una URL fija,
@@ -17,7 +17,7 @@ export const dynamic = "force-static";
 
 export async function GET() {
   const png = Buffer.from(await (await renderBrandImage(OG_SQUARE)).arrayBuffer());
-  const jpg = await sharp(png).flatten({ background: "#fbfaf6" }).jpeg({ quality: 85 }).toBuffer();
+  const jpg = await sharp(png).flatten({ background: LIENZO }).jpeg({ quality: 85 }).toBuffer();
   return new Response(new Uint8Array(jpg), {
     headers: {
       "Content-Type": "image/jpeg",

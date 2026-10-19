@@ -24,7 +24,7 @@ pantallas del board. Suma verde bosque como secundario editorial; manteca
 |---|---|---|
 | `--color-primary` | `#D97706` | Ámbar. Relleno del botón principal, pin activo, badge Urgente. Con texto **oscuro** (`text-night`, 6.61); el blanco sobre ámbar da 2.86 y falla. |
 | `--color-primary-strong` | `#B45309` | Hover/pressed. |
-| `--color-primary-text` | `#B45309` (claro) / `#E8920F` (oscuro) | Ámbar como **texto** (precio, links). 4.77 sobre el blanco cálido. |
+| `--color-primary-text` | `#B45309` (claro; `#1C5478` con la paleta celeste) / `#9AC9E7` (oscuro, desde 2026-10-19) | Ámbar como **texto** (precio, links). 4.77 sobre el blanco cálido. |
 | `--color-primary-tint` | `#FFFBEB` | Tinte ámbar: fondo de acción/activo, pill de nav, badge. |
 | `--color-secondary` | `#1B3A31` | **Verde bosque** editorial (tarjeta "Turnos activos"). Superficie destacada con texto claro. Distinto de `success`. |
 | `--color-secondary-tint` / `-text` | `#E6EFE9` / `#1B3A31` | Superficie pálida y texto del verde bosque. |
@@ -37,11 +37,11 @@ Escala en **claro**: lienzo → tarjeta (elevada) → superficie recesada → fo
 
 | Token | Claro | Oscuro | Qué es |
 |---|---|---|---|
-| `--background` | `#FBFAF6` | `#17130F` | Lienzo de la app (blanco cálido / warm near-black). |
-| `--color-card` | `#FFFFFF` | `#221D18` | La tarjeta. Flota por elevación (hairline + sombra en claro; luminancia en oscuro). |
-| `--color-surface` | `#F3EFE6` | `#2B251F` | Recesado: chips, tracks, inputs idle. |
-| `--color-chrome` | `#FFFFFF` | `#1B1611` | Nav/header. En oscuro también se oscurece. |
-| `--color-focus` | `#111111` | `#3D3630` | Módulo de foco (ganancias, pago): la masa de máxima jerarquía. |
+| `--background` | `#FBFAF6` | `#0D131A` | Lienzo de la app (blanco / noche azul casi negra). |
+| `--color-card` | `#FFFFFF` | `#151D26` | La tarjeta. Flota por elevación (hairline + sombra en claro; luminancia en oscuro). |
+| `--color-surface` | `#F3EFE6` | `#1C2631` | Recesado: chips, tracks, inputs idle. |
+| `--color-chrome` | `#FFFFFF` | `#111820` | Nav/header. En oscuro también se oscurece. |
+| `--color-focus` | `#111111` | `#263240` | Módulo de foco (ganancias, pago): la masa de máxima jerarquía. |
 
 ## Text
 
@@ -67,9 +67,21 @@ siguen válidos; los tokens soft/mute son la versión nombrada del board.)*
 
 Es un **modo oscuro real** (v5.0): el lienzo se oscurece, no sólo las tarjetas
 (supersede el híbrido anterior). La jerarquía la da la **luminancia**: lienzo
-`#17130F` → card `#221D18` → surface `#2B251F` → focus `#3D3630`. Ámbar y
-verde bosque se mantienen como acentos (aclarados para AA como texto); texto y
-bordes van claros. Los `-text` se recalculan para el fondo oscuro en el bloque
+`#0D131A` → card `#151D26` → surface `#1C2631` → focus `#263240`. Texto y
+bordes van claros y fríos (tinta `#EEF3F6`, suave `#A9B6C2`, apagada
+`#8494A3`); el brillo de arriba es celeste y el ámbar queda para la acción
+principal.
+
+**Noche azul (2026-10-19).** Hasta ese día la escala era café cálido
+(`#17130F` → `#221D18` → `#2B251F` → `#3D3630`, tinta crema `#F5F1EA`) con un
+resplandor ámbar en la esquina, de antes de la paleta celeste. Julieta: "un
+marrón y naranja que no tienen que ver con lo actual". Pasó a una noche azul,
+el cielo de la landing de noche, y los links (`primary-text`) a celeste. En
+claro, el resplandor de arriba (`--wash`) pasó de ámbar y durazno al celeste,
+y la pestaña activa del nav de abajo a `primary-tint` (celeste). Un solo ámbar por pantalla: avatares, ícono de
+ganancias y chips de rubro (`SKILL_ACCENT`) van en celeste con azul hondo; el
+botón principal desactivado va en `surface` con tinta apagada (no ámbar al
+50%); el lienzo claro pasa de `#F3F3F3` a `#F8FBFC`. Los `-text` se recalculan para el fondo oscuro en el bloque
 `:root[data-theme="dark"]` de `globals.css`.
 
 **Regla del par tint/text en oscuro:** todo token que tenga un `-text` que se
@@ -110,7 +122,7 @@ color: son herramientas, no datos. Todos los tonos usan pares tint/text que
 `--color-night`/`bg-night` es near-black en los dos modos por diseño (burbujas
 propias del chat, badges sobre foto). El **toast** ya no lo usa: tiene su par
 `--color-toast`/`--color-toast-ink`, que en claro es el mismo negro y en
-oscuro se **invierte** (crema `#F5F1EA` con tinta `#17130F`), porque un toast
+oscuro se **invierte** (claro `#EEF3F6` con tinta `#0D131A`), porque un toast
 casi negro sobre el lienzo oscuro no se distinguía del fondo.
 
 ## Tono de banner por rubro
@@ -122,3 +134,98 @@ saturado: sigue distinguiendo dos turnos seguidos sin competir con el ámbar.
 Ningún rubro usa un matiz rojo: el bartender pasó de rojo a borgoña y de
 borgoña a petróleo (`#173f4c`, 2026-09-25) porque cualquier rojo se lee como
 el color de error.
+
+## v6: celeste claro (vigente desde 2026-10-09)
+
+Historia corta: el 2026-10-08 Julieta pidió pasar el verde bosque a un
+degradé violeta (`#5c22cf` → `#8e69d8`), el ámbar `#d97706` a `#ffab25` y la
+crema a `#f3f3f3`, y eligió que sea la paleta de **toda la app**, probándola
+primero en la landing. El 2026-10-09 decidió que **todo lo que era violeta
+pasa al celeste claro `#c4e3ed`** y el resto queda como en la versión violeta.
+Se probaron y descartaron el petróleo y una versión con lienzo celeste y
+botones naranja `#e64c1e`. Esa misma noche, comparando lado a lado, volvió
+al **ámbar de siempre `#d97706`** en lugar del `#ffab25`: con el celeste se
+despega más y es el color del logo.
+
+Es un bloque de tokens en `globals.css` ("PALETA CELESTE") que primero se
+prendió sólo en la landing y desde el 2026-10-09 rige en `:root`: **en toda
+la app pisa los colores de las tablas de arriba (v5.0)**, que quedan como
+historia. El modo oscuro toma el ámbar, el celeste y la noche, y aclara sus
+`-text` y `-tint` (tabla de abajo). El PDF del design system de
+`/mnt/project-files/design-system/` documenta la versión violeta; no se
+rehízo.
+
+| Token | v5.0 | v6 | Nota |
+|---|---|---|---|
+| `--background` | `#FBFAF6` | `#F3F3F3` | Lienzo neutro, como en la versión violeta. |
+| `--color-primary` | `#D97706` | `#D97706` | El ámbar de siempre. Siempre con tinta encima (5,93); blanco da 3,19: no. Sobre el celeste, 2,36 (el `#ffab25` daba 1,40). |
+| `--color-primary-text` | `#B45309` | `#1C5478` | Azul hondo, el celeste oscurecido: 7,31 sobre el lienzo, 8,11 sobre blanco. |
+| `--color-secondary` | `#1B3A31` | `#C4E3ED` | Celeste claro, la superficie de marca. Lleva **tinta** (13,99), no blanco (1,35). |
+| `--gradient-brand` | — | `none` | `bg-brand` queda liso. |
+| `--color-surface` / `--color-paper` | `#F3EFE6` | `#E5EEF1` | 30% del celeste sobre el lienzo. También el mapa. |
+| `--color-line` y los `-tint` | varios | `#DEECF0` | 45% del celeste. |
+| `--color-accent` | `#A78BFA` | `#9AC9E7` | |
+| `--color-manteca` | `#F1E7A0` | `#C4E3ED` | Dato sobre la noche: 13,85. |
+| `--color-ink-mute` | `#7C8A9A` | `#686572` | El de la versión violeta: 4,83 sobre el recesado. Nunca sobre el celeste lleno (4,21). |
+| `--color-night` | `#191410` | `#141118` | El de la versión violeta. |
+
+Letra sobre la superficie de marca (`@theme`, con su valor en la paleta):
+
+| Token | De siempre | Celeste | Uso |
+|---|---|---|---|
+| `--color-on-brand` | blanco | `#111111` | Letra sobre `bg-brand`/`bg-secondary`. Con alfa: al 60% da 4,46 sobre el celeste. |
+| `--color-on-brand-label` | `#F1E7A0` | `#1C5478` | Dato destacado (horas del registro, rótulos). 6,01. |
+| `--color-on-brand-icon` | `#D97706` | `#1C5478` | Ícono sobre la marca. |
+| `--color-brand-veil` | negro 15% | transparente | Velo del banner sin foto. |
+
+En oscuro (`:root[data-theme="dark"]`, sobre el lienzo `#0D131A`, la tarjeta
+`#151D26` y el recesado `#1C2631`):
+
+| Token | Oscuro | Contraste |
+|---|---|---|
+| `--color-primary-text` | `#9AC9E7` | 10,56 · 9,62 · 8,67 |
+| `--color-secondary-text`, `--color-manteca-text` | `#C4E3ED` | 13,83 · 12,59 · 11,35 |
+| `--color-accent-text` | `#9AC9E7` | 10,56 · 9,62 · 8,67 |
+| los `-tint` | el color al 14–16% | |
+| `--focus-ring` | `#9AC9E7` | El azul hondo no se ve sobre oscuro. |
+
+Desde el 2026-10-09 (vidrio esmerilado, #412) la superficie de marca **ya no
+es celeste lleno en oscuro**: `--color-secondary` es el celeste al 12%
+(vidrio sobre la tarjeta) y la letra pasa a clara (`--color-on-brand`
+`#EEF3F6`, rótulo e ícono `#9AC9E7`).
+
+### Vidrio y brillo (desde 2026-10-09)
+
+Pedido de Julieta con referencias (degradés, vidrio esmerilado, menos
+celeste). Tres tokens y una utilidad, nada más:
+
+| Pieza | Claro | Oscuro | Dónde |
+|---|---|---|---|
+| `--color-chrome` | blanco al 92% | `#1B1611` al 94% | Encabezado y barra de abajo, con `backdrop-blur-xl`. |
+| `--wash` | velo ámbar → durazno arriba al centro | resplandor ámbar en la esquina superior izquierda | Fondo de `body`, debajo de todo. |
+| `--glow-image` + `bg-glow` | blanco con brillo celeste arriba a la derecha y ámbar suave abajo | tarjeta oscura con los mismos brillos tenues | Tarjeta destacada de Inicio, cabecera del turno sin foto (mozo), encabezado del Perfil, plan Básico y las dos fichas de "Sabés quién viene" de la landing. |
+
+El **celeste lleno** queda sólo donde decide algo: el bloque de pago del
+turno y "Mejor valorado" en Candidatos. Lo demás que era celeste lleno pasó a
+`bg-glow`. No sumar vidrio ni degradé en otros lugares sin pasar por acá: con
+dos superficies translúcidas y un brillo por pantalla alcanza.
+
+Reglas que salieron de medir:
+
+- **La letra sobre la marca va en `on-brand`, nunca en `text-white`.** Así
+  la misma tarjeta da blanco sobre el verde bosque y tinta sobre el celeste.
+  El banner por rubro lo resuelve `heroInk()` (`lib/skill-style.tsx`): con
+  foto, siempre blanco.
+- **Ninguna sección pasa de la noche a la marca con la letra ya escrita**:
+  la tinta no se lee sobre la noche (por eso el resultado ya entra celeste).
+- Ningún relleno ámbar lleva letra blanca (3,19): el botón de ubicación de
+  Buscar va en tinta. (La splash dejó de ser ámbar el 2026-10-19: es el
+  "oído" fileteado sobre el cielo; la inicial de los perfiles sin foto va
+  en celeste desde el mismo día.)
+- Los chips `IconChip` de tono `manteca`, `secondary` y `primary` quedaron
+  los tres en celeste con azul hondo: se distinguen por el ícono, ya no por
+  el color.
+- El anillo de foco es azul hondo sobre claro, ámbar sobre la noche y tinta
+  sobre el verde bosque y la banda ámbar (`--focus-ring`).
+- La inicial de los avatares sin foto va en tinta: sobre el degradé ámbar da
+  9,10 contra 2,06 del blanco.

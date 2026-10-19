@@ -103,7 +103,9 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     (`publicado`/`buscando_personal`, `OPEN_STATUSES`).
   - `reject` de un asignado vuelve el turno a `buscando_personal`.
   - `cancelado`, `finalizado`, `pagado` son **terminales**.
-  - check-in/check-out capturan geolocalización.
+  - check-in/check-out capturan geolocalización y exigen estar a ≤ 300 m del
+    local del turno (`CHECK_RADIUS_KM`); si el turno no tiene coordenadas no se
+    verifica.
 - Detalle en [SHIFT.md](../reference/SHIFT.md) / `STATE_MACHINE.md` (fases siguientes).
 
 ## Match — `ShiftApplication` + asignación
