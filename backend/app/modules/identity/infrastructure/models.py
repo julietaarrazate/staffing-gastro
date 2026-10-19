@@ -87,3 +87,20 @@ class EmailVerificationTokenModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class TermsAcceptanceModel(Base):
+    """Tabla `terms_acceptances`: constancia de quién aceptó los términos y
+    la privacidad, qué versión, desde dónde y cuándo. Sólo se agregan filas."""
+
+    __tablename__ = "terms_acceptances"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    version: Mapped[str] = mapped_column(String(20), nullable=False)
+    channel: Mapped[str] = mapped_column(String(20), nullable=False)
+    accepted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

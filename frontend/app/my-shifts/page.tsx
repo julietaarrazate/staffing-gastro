@@ -425,7 +425,7 @@ export default function MatchesPage() {
             <EmptyState
               icon={<ClockIcon size={28} />}
               title="No tenés postulaciones activas"
-              subtitle="Deslizá turnos a la derecha en Inicio para postularte. Acá vas a seguir su estado."
+              subtitle="Postulate a un turno desde Inicio. Acá vas a seguir su estado."
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

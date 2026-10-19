@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
@@ -8,10 +8,9 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
-import ActiveShiftsCard from "@/components/employer/ActiveShiftsCard";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
-import QuickActions, { type QuickAction } from "@/components/QuickActions";
+import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
@@ -31,10 +30,8 @@ import {
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
-  HeartIcon,
   PlusIcon,
   SearchIcon,
-  WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
 
@@ -129,22 +126,6 @@ const FAMILY_META: Record<
  * empleado"). Mismo componente (`GuidedTour`), apuntando a lo mínimo para
  * entender el panel: cómo publicar, las pestañas por familia de estado (si
  * ya hay turnos) y dónde buscar candidatos directo. */
-// Acciones rápidas del panel. Una sola primaria (ADR-0011: un acento por
-// pantalla) y las otras tres neutras. `Buscar` NO está acá a propósito: ya es
-// una pestaña del nav de abajo.
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    href: "/shifts/new",
-    label: "Publicar",
-    icon: <PlusIcon size={22} />,
-    primary: true,
-    tourId: "shifts-publish",
-  },
-  { href: "/shifts/new-event", label: "Evento", icon: <CalendarPlusIcon size={22} /> },
-  { href: "/favorites", label: "Favoritos", icon: <HeartIcon size={22} /> },
-  { href: "/subscription", label: "Mi plan", icon: <WalletIcon size={22} /> },
-];
-
 const EMPLOYER_PANEL_TOUR: TourStep[] = [
   {
     target: '[data-tour="shifts-publish"]',
@@ -182,6 +163,24 @@ export default function MyShiftsPage() {
   );
 }
 
+/** Cada cuánto se refresca el panel mientras alguien puede venir en camino. */
+const EN_ROUTE_REFRESH_MS = 30_000;
+const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * ¿Puede este turno tener a alguien viajando ahora? Confirmado y dentro de la
+ * ventana del "va en camino": desde 2h antes del inicio (`EN_ROUTE_WINDOW` del
+ * backend) hasta 2h después, cuando el no-show automático ya lo resolvió.
+ * Se evalúa en cada tick, no al renderizar: un turno de esta noche entra en la
+ * ventana sin que la lista cambie.
+ */
+function mayBeOnTheWay(shift: Shift, now: number): boolean {
+  if (shift.status !== "confirmado" && shift.status !== "en_camino") return false;
+  if (shift.en_route_at != null) return true;
+  const start = new Date(shift.start_at).getTime();
+  return now >= start - 2 * HOUR_MS && now <= start + 2 * HOUR_MS;
+}
+
 function MyShiftsPanel() {
   const { token, user } = useRequireAuth();
   const router = useRouter();
@@ -211,23 +210,53 @@ function MyShiftsPanel() {
   // `ShiftPublishedNextSteps` para la justificación completa).
   const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  // `silent`: el refresco de fondo del "va en camino" no vuelve a mostrar el
+  // esqueleto de carga ni pisa la lista con un error pasajero de red.
+  const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await api.get<Shift[]>("/shifts/me", token);
       setShifts(data);
       setError(null);
     } catch (err) {
-      setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      if (!silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // "Va en camino": mientras algún turno pueda tener a alguien viajando, el
+  // panel se refresca solo — si no, el mapa es una foto y el comercio tiene
+  // que recargar para ver si se movió. Sólo en ese caso: un panel sin turnos
+  // por empezar no le pega al backend (la base es Neon con cuota: cada
+  // request la despierta). Y sólo con la pestaña a la vista; al volver a
+  // ella, refresca de una.
+  const shiftsRef = useRef(shifts);
+  useEffect(() => {
+    shiftsRef.current = shifts;
+  }, [shifts]);
+  const hasConfirmed = shifts.some(
+    (s) => s.status === "confirmado" || s.status === "en_camino"
+  );
+  useEffect(() => {
+    if (!hasConfirmed) return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (shiftsRef.current.some((s) => mayBeOnTheWay(s, now))) void load({ silent: true });
+    };
+    const timer = setInterval(refresh, EN_ROUTE_REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [hasConfirmed, load]);
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para loading/disabled), atrapa errores del POST (antes se
@@ -318,27 +347,35 @@ function MyShiftsPanel() {
         <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>
       </div>
 
-      {!loading && !error && (
-        <ActiveShiftsCard className="mt-4" searching={families.buscando} inProgress={families.en_marcha} />
-      )}
+      {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
+          sobrecarga). Antes había cinco capas antes del primer turno: saludo,
+          la tarjeta verde "Turnos activos", el buscador, cuatro accesos
+          rápidos y las pestañas. "Turnos activos" repetía los conteos de las
+          pestañas; Favoritos y Mi plan siguen a un toque desde Perfil. Queda
+          Publicar como la acción, Evento al lado como variante, y el
+          asistente. */}
+      <div className="mt-4 flex gap-2">
+        <Link
+          href="/shifts/new"
+          data-tour="shifts-publish"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-primary px-4 py-3 text-sm font-bold text-night shadow-[var(--shadow-primary-sm)] transition active:scale-95"
+        >
+          <PlusIcon size={18} /> Publicar turno
+        </Link>
+        <Link
+          href="/shifts/new-event"
+          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+        >
+          <CalendarPlusIcon size={17} /> Evento
+        </Link>
+      </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         <AIAssistantBar />
       </div>
 
-      {/* Acciones rápidas (2026-09-16). Antes "+ Evento" y "+ Publicar" vivían
-          apretados a la derecha del título: no escalaba —no había lugar para
-          una tercera— y dejaba a Favoritos y Mi plan enterradas a dos toques,
-          adentro del menú de Perfil. Acá las cuatro quedan al mismo nivel y el
-          ámbar dice cuál es LA acción.
-
-          Buscar no entra a propósito: ya es una pestaña del nav de abajo, y
-          repetir un destino que está a un toque no es una acción rápida, es
-          ruido. */}
-      <QuickActions className="mt-5" actions={QUICK_ACTIONS} />
-
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {error && <ErrorBanner message={error} onRetry={() => load()} />}
 
       {/* Primera experiencia (Parte B): CTA imposible de errar + qué va a
           pasar en 3 pasos concretos. Reusa el `EmptyState` de marca (mismo

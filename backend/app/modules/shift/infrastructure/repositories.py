@@ -7,8 +7,10 @@ from uuid import UUID
 
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.shift.domain.pay_benchmark import hourly_rate
 from app.modules.shift.domain.repositories import ShiftPublicationStats, ShiftRepository
 from app.modules.shift.domain.value_objects import (
@@ -79,6 +81,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         no_show_at=model.no_show_at,
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
+        departure_reminder_sent_at=model.departure_reminder_sent_at,
         event_id=model.event_id,
         event_name=model.event_name,
         published_at=model.published_at,
@@ -86,6 +89,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         escalated_at=model.escalated_at,
         created_at=model.created_at,
         updated_at=model.updated_at,
+        version=model.version,
     )
 
 
@@ -110,6 +114,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
+    model.departure_reminder_sent_at = shift.departure_reminder_sent_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
     model.escalated_at = shift.escalated_at
@@ -128,16 +133,37 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         return _to_entity(model)
 
     async def update(self, shift: Shift) -> Shift:
-        model = await self._session.get(ShiftModel, shift.id)
+        """Guarda el turno sólo si nadie lo cambió desde que se leyó
+        (ADR-0016). Dos chequeos, porque cubren ventanas distintas:
+
+        1. Antes de escribir: la versión leída ahora de la base contra la que
+           trae la entidad. Atrapa lo que pasó entre la lectura del caso de
+           uso y este guardado (la ventana grande, la de las carreras reales).
+        2. Al escribir: `version_id_col` agrega `WHERE version = ...` al
+           UPDATE; si afecta 0 filas, `StaleDataError`. Atrapa la ventana
+           chica entre el chequeo 1 y el commit."""
+        model = await self._session.get(ShiftModel, shift.id, populate_existing=True)
         if model is None:
             raise ValueError("El turno no existe")
+        if model.version != shift.version:
+            raise ShiftConcurrentModificationError(str(shift.id))
         _apply_fields(model, shift)
-        await self._session.commit()
+        try:
+            await self._session.commit()
+        except StaleDataError as exc:
+            await self._session.rollback()
+            raise ShiftConcurrentModificationError(str(shift.id)) from exc
         await self._session.refresh(model)
+        # Quien reuse la misma entidad para otro guardado en el mismo caso de
+        # uso parte de la versión nueva, no de la que ya se consumió.
+        shift.version = model.version
         return _to_entity(model)
 
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
-        model = await self._session.get(ShiftModel, shift_id)
+        # `populate_existing`: siempre lo que hay en la base, no la copia del
+        # identity map de la sesión. El scheduler usa una sesión por pasada y,
+        # sin esto, decidía sobre un turno que un usuario ya había cambiado.
+        model = await self._session.get(ShiftModel, shift_id, populate_existing=True)
         return _to_entity(model) if model else None
 
     async def list_by_ids(self, shift_ids: Sequence[UUID]) -> list[Shift]:

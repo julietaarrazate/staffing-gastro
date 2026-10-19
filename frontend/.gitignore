@@ -51,3 +51,8 @@ playwright.local.config.ts
 # Worker de MapLibre copiado desde node_modules en cada install/build
 # (scripts/copy-maplibre-worker.mjs). Es un artefacto generado, no código.
 /public/maplibre/
+
+# Cloudflare (OpenNext + wrangler)
+/.open-next/
+/.wrangler/
+.dev.vars*

@@ -360,9 +360,13 @@ export type NotificationType =
   | "shift_no_show"
   | "shift_cancelled_late"
   | "shift_not_covered"
+  | "checkin_reminder"
+  | "departure_reminder"
+  | "worker_en_route"
   | "new_shift_nearby"
   | "urgent_shift_nearby"
-  | "support_reply";
+  | "support_reply"
+  | "verification_decided";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 

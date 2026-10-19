@@ -28,16 +28,27 @@ const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, "ws");
 //   (script-src), el botón se renderiza en un iframe propio (frame-src) y el
 //   flujo hace sus propias llamadas (connect-src). Sin esto el botón carga
 //   pero el iframe queda bloqueado por `default-src 'self'`.
+// `vercel.live` es la barra de comentarios de las vistas previas de Vercel:
+// sólo hace falta ahí. En producción (y en Cloudflare, donde `VERCEL_ENV` no
+// existe) no se habilita (auditoría de seguridad 2026-10-14).
+const VERCEL_LIVE = process.env.VERCEL_ENV === "preview" ? " https://vercel.live" : "";
+
+// Cloudflare Turnstile (anti-robots en login y registro): su script y su
+// iframe, sólo si está configurado (`lib/turnstile.ts`).
+const TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  ? " https://challenges.cloudflare.com"
+  : "";
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "frame-src https://accounts.google.com",
-  "script-src 'self' 'unsafe-inline' blob: https://vercel.live https://accounts.google.com",
+  `frame-src https://accounts.google.com${TURNSTILE}`,
+  `script-src 'self' 'unsafe-inline' blob:${VERCEL_LIVE}${TURNSTILE} https://accounts.google.com`,
   "style-src 'self' 'unsafe-inline'",
-  `connect-src 'self' ${API_ORIGIN} ${API_WS_ORIGIN} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://api.cloudinary.com https://vercel.live https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://accounts.google.com`,
+  `connect-src 'self' ${API_ORIGIN} ${API_WS_ORIGIN} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://api.cloudinary.com${VERCEL_LIVE} https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://accounts.google.com`,
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
@@ -46,6 +57,8 @@ const CSP = [
 const securityHeaders = [
   { key: "Content-Security-Policy", value: CSP },
   { key: "X-Content-Type-Options", value: "nosniff" },
+  // HSTS propio: Vercel lo agregaba solo; en Cloudflare lo pone la app.
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "geolocation=(self), microphone=(self), camera=()" },

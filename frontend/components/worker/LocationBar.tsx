@@ -49,17 +49,14 @@ export default function LocationBar({
   }
 
   return (
-    // Sin margen propio: el espaciado antes/después lo controla el padre
-    // (app/feed/page.tsx), igual que el resto de los bloques apilados de la
-    // cabecera — antes tenía `mt-3` acá Y `mb-3` en el bloque anterior, que en
-    // un `flex flex-col` NO colapsan (a diferencia del flujo normal): el
-    // espacio real terminaba siendo el doble (24px) de lo que se ve en el
-    // resto de la pantalla (8px), y encima sin nada de aire después, antes
-    // del chip de urgentes (auditoría de espaciado, Julieta, 2026-08-16).
-    <div>
-      <div className="flex items-center gap-2 rounded-full bg-card px-3.5 py-2 ring-1 ring-line">
-        <MapPinIcon size={16} className="shrink-0 text-primary-text" />
-        <p className="min-w-0 flex-1 truncate text-sm text-ink/70">
+    // Un renglón debajo del saludo, no una barra propia (2026-09-28,
+    // diagnóstico de sobrecarga): arriba del primer turno había buscador,
+    // barra de ubicación y chips, tres maneras de decir qué y dónde. La zona
+    // sigue a la vista y se cambia desde acá mismo, sin ocupar una fila.
+    <div className="mt-0.5">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-ink/55">
+        <MapPinIcon size={14} className="shrink-0 text-ink/40" />
+        <span className="min-w-0 truncate">
           {current ? (
             <>
               Turnos cerca de <span className="font-semibold text-ink">donde estás ahora</span>
@@ -71,12 +68,13 @@ export default function LocationBar({
           ) : (
             "Ordená los turnos por cercanía"
           )}
-        </p>
+        </span>
+        <span aria-hidden className="text-ink/30">·</span>
         {current ? (
           <button
             type="button"
             onClick={backToProfile}
-            className="shrink-0 text-sm font-semibold text-primary-text"
+            className="shrink-0 font-semibold text-primary-text"
           >
             Volver a mi zona
           </button>
@@ -85,13 +83,13 @@ export default function LocationBar({
             type="button"
             onClick={useHere}
             disabled={loading}
-            className="shrink-0 text-sm font-semibold text-primary-text disabled:opacity-60"
+            className="shrink-0 font-semibold text-primary-text disabled:opacity-60"
           >
             {loading ? "Ubicando…" : "Estoy acá"}
           </button>
         )}
-      </div>
-      {error && <p className="mt-1.5 px-1 text-xs text-danger-text">{error}</p>}
+      </p>
+      {error && <p className="mt-1 text-xs text-danger-text">{error}</p>}
     </div>
   );
 }

@@ -9,11 +9,14 @@ const BY_TYPE: Record<NotificationType, string> = {
   shift_paid: "/my-shifts",
   shift_no_show: "/my-shifts",
   shift_cancelled_late: "/my-shifts",
+  checkin_reminder: "/my-shifts",
+  departure_reminder: "/my-shifts",
   new_applicant: "/shifts",
   shift_confirmed: "/shifts",
   shift_rejected: "/shifts",
   shift_checked_out: "/shifts",
   shift_reopened: "/shifts",
+  worker_en_route: "/shifts",
   // Sólo al comercio (ADR-0015): si había un trabajador asignado sin
   // confirmar, no se le avisa nada — mismo criterio que el backend
   // (`deep_link_for` en notification/domain/value_objects.py).
@@ -25,6 +28,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   chat_message: "/chats",
   review_received: "/profile",
   support_reply: "/support",
+  // Un admin aprobó o rechazó una verificación: el resultado y el motivo se
+  // ven en el perfil, donde se vuelve a mandar si hizo falta.
+  verification_decided: "/profile",
 };
 
 /** Pantalla que debe abrir una notificación al tocarla. */

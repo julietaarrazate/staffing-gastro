@@ -42,7 +42,7 @@ lo primero que se ve:
 
 ```
 docs/
-├── STATUS.md                          Bitácora viva — leer primero en cada sesión
+├── STATUS.md                          Estado vigente — leer primero (desde 2026-10-03; bitácora en historial/)
 ├── TECH_DEBT.md                       Deuda técnica vigente, priorizada
 ├── BUGS.md                            Patrones de bugs ya resueltos
 ├── INCIDENTE_2026-07-23_BACKEND_CAIDO.md   Postmortem del incidente de DB

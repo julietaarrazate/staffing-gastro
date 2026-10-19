@@ -5,14 +5,18 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
+from app.core.geo import haversine_km
+from app.core.tz import ARG_TZ, format_turno_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.favorite.domain.repositories import FavoriteRepository
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.matching.domain.entities import ShiftRequirement
 from app.modules.matching.domain.repositories import CandidateRepository
 from app.modules.matching.domain.scoring import DEFAULT_MAX_RADIUS_KM, rank_candidates
 from app.modules.notification.domain.email_sender import EmailSender
+from app.modules.notification.domain.email_templates import render_shift_accepted_email_html
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
@@ -27,6 +31,7 @@ from app.modules.shift.domain.pay_benchmark import (
     hourly_rate,
 )
 from app.modules.shift.domain.exceptions import (
+    AssigneeNotFoundError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -62,6 +67,13 @@ PAYMENT_TOLERANCE = timedelta(hours=48)
 # recordatorio ya haya surtido efecto — pasado eso, asumir no-show.
 CHECKIN_REMINDER_DELAY = timedelta(minutes=20)
 NO_SHOW_GRACE_PERIOD = timedelta(hours=2)
+
+# "Va en camino": cuánto antes del inicio se le recuerda al trabajador que
+# avise al salir. Una hora y media cubre el viaje típico en AMBA (colectivo +
+# subte) sin llegar tan temprano que el aviso se olvide. Tiene que ser menor
+# que `EN_ROUTE_WINDOW` (2h): si no, el botón al que lleva el push todavía
+# estaría rechazando el reporte.
+DEPARTURE_REMINDER_LEAD = timedelta(minutes=90)
 
 # Escalada automática de urgencia: cuánto tiempo desde `published_at` sin
 # cubrirse antes de subirle la prioridad al turno y avisar a un círculo más
@@ -102,6 +114,10 @@ class ShiftService:
         # Opcional para no romper a quien construya el servicio sin él: sin
         # este puerto, publicar sigue funcionando y simplemente no se avisa.
         candidates: CandidateRepository | None = None,
+        # Favoritos del comercio: siempre entran en el aviso de turno nuevo
+        # (ver `_notify_nearby_workers`). Opcional por el mismo motivo que
+        # `candidates`: sin él, el aviso sigue saliendo, sólo que sin ellos.
+        favorites: FavoriteRepository | None = None,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -112,6 +128,7 @@ class ShiftService:
         self._users = users
         self._email_sender = email_sender
         self._candidates = candidates
+        self._favorites = favorites
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -255,7 +272,7 @@ class ShiftService:
         shift: Shift,
         *,
         max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
-        limit: int = NEARBY_NOTIFICATION_LIMIT,
+        limit: int | None = None,
         notification_type: NotificationType = NotificationType.NEW_SHIFT_NEARBY,
         escalation: bool = False,
     ) -> None:
@@ -281,9 +298,13 @@ class ShiftService:
         """
         if self._candidates is None:
             return
+        # Se resuelve acá y no como default del parámetro para que el tope se
+        # lea al llamar (los tests lo bajan para aislar a los favoritos).
+        if limit is None:
+            limit = self.NEARBY_NOTIFICATION_LIMIT
         try:
             available = await self._candidates.list_available(shift.position)
-            ranked = rank_candidates(
+            ranked_all = rank_candidates(
                 available,
                 ShiftRequirement(
                     position=shift.position,
@@ -291,14 +312,33 @@ class ShiftService:
                     longitude=shift.longitude,
                 ),
                 max_radius_km=max_radius_km,
-            )[:limit]
+            )
+            # Los favoritos del comercio entran siempre, además del tope: son
+            # los que ya le resolvieron un turno, y el que más chances tiene
+            # de cubrir el próximo rápido es alguien que ya conoce el local
+            # (en Instawork y Brigad, el 85–93% de los comercios repite
+            # trabajador). Sin esto, un favorito que no quedaba entre los
+            # mejores rankeados ni se enteraba. No hay ventana exclusiva para
+            # ellos a propósito: demoraría el aviso al resto y va contra los
+            # 10 minutos. Siguen pasando por `rank_candidates`, así que un
+            # favorito que no está disponible o no tiene el puesto no recibe
+            # nada. Es la única forma en que marcar favorito afecta algo: el
+            # ranking y la reputación siguen sin leerlo.
+            favorite_ids = (
+                await self._favorites.list_worker_ids_by_company(shift.company_id)
+                if self._favorites is not None
+                else set()
+            )
+            ranked = [m for m in ranked_all if m.profile_id in favorite_ids] + [
+                m for m in ranked_all if m.profile_id not in favorite_ids
+            ][:limit]
 
             if not ranked:
                 return
 
             company = await self._companies.get_by_id(shift.company_id)
             lugar = company.name if company is not None else "Un comercio cerca tuyo"
-            puesto = shift.title or shift.position.value
+            puesto = shift.title or shift.position.label
             if escalation:
                 title = f"¡Urgente! Turno de {puesto} cerca tuyo"
                 message = (
@@ -424,7 +464,7 @@ class ShiftService:
                 NotificationType.SHIFT_CANCELLED_LATE,
                 "El comercio canceló tu turno",
                 (
-                    f"\"{updated.title or updated.position.value}\" fue cancelado por "
+                    f"\"{updated.title or updated.position.label}\" fue cancelado por "
                     "el comercio después de que confirmaste tu asistencia."
                 ),
             )
@@ -473,7 +513,7 @@ class ShiftService:
                 "Te marcaron como no presentado",
                 (
                     f"El comercio marcó que no te presentaste al turno "
-                    f"\"{updated.title or updated.position.value}\". "
+                    f"\"{updated.title or updated.position.label}\". "
                     "Esto impacta tu reputación."
                 ),
             )
@@ -499,8 +539,33 @@ class ShiftService:
                 NotificationType.CHECKIN_REMINDER,
                 "¿Ya llegaste a tu turno?",
                 (
-                    f"Marcá tu llegada en \"{updated.title or updated.position.value}\" "
+                    f"Marcá tu llegada en \"{updated.title or updated.position.label}\" "
                     "para confirmar que estás en el lugar."
+                ),
+            )
+        return updated
+
+    async def send_departure_reminder(self, shift_id: UUID) -> Shift:
+        """Push al trabajador para que avise al comercio cuando sale ("va en
+        camino"). Lo dispara el scheduler `DEPARTURE_REMINDER_LEAD` antes del
+        inicio de un turno CONFIRMADO. No prende nada solo: compartir la
+        ubicación sigue siendo un toque del trabajador, esto sólo le recuerda
+        que existe. Idempotente vía `departure_reminder_sent_at`."""
+        shift = await self.get_shift(shift_id)
+        shift.departure_reminder_sent_at = datetime.now(timezone.utc)
+        updated = await self._shifts.update(shift)
+        if updated.worker_profile_id is not None:
+            start_utc = updated.start_at
+            if start_utc.tzinfo is None:  # SQLite (tests) devuelve naive, en UTC
+                start_utc = start_utc.replace(tzinfo=timezone.utc)
+            start = start_utc.astimezone(ARG_TZ)
+            await self._notify_worker(
+                updated.worker_profile_id,
+                NotificationType.DEPARTURE_REMINDER,
+                f"Tu turno arranca a las {start:%H:%M}",
+                (
+                    "Cuando salgas, tocá \"Va en camino\" para que el comercio "
+                    "sepa que estás llegando."
                 ),
             )
         return updated
@@ -541,7 +606,7 @@ class ShiftService:
             NotificationType.SHIFT_NOT_COVERED,
             "Un turno quedó sin cubrir",
             (
-                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.value}\" "
+                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
                 "sin que nadie confirmara. Podés publicarlo de nuevo."
             ),
         )
@@ -566,6 +631,9 @@ class ShiftService:
         turno se reabre (el asignado rechaza/cancela/no-show), esos rechazos se
         revierten (`_restore_rejected_applicants`)."""
         shift = await self._get_owned(company_id, shift_id)
+        # Un perfil inexistente antes terminaba en error de FK (500).
+        if await self._workers.get_by_id(worker_profile_id) is None:
+            raise AssigneeNotFoundError()
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(
@@ -582,7 +650,7 @@ class ShiftService:
             worker_profile_id,
             NotificationType.SHIFT_ASSIGNED,
             "Te asignaron un turno",
-            f"Te asignaron el turno \"{updated.title or updated.position.value}\". Confirmá tu asistencia.",
+            f"Te asignaron el turno \"{updated.title or updated.position.label}\". Confirmá tu asistencia.",
         )
         await self._send_acceptance_email(worker_profile_id, updated)
         return updated
@@ -657,15 +725,15 @@ class ShiftService:
             if user is None:
                 return
             company = await self._companies.get_by_id(shift.company_id)
-            company_name = company.name if company is not None else "un comercio"
-            position_label = shift.position.value
-            when = shift.start_at.strftime("%d/%m/%Y a las %H:%M")
-            subject = f"¡Te aceptaron para el turno de {position_label}!"
-            html = (
-                f"<p>Hola {user.full_name},</p>"
-                f"<p>¡Te aceptaron para el turno de {position_label}!</p>"
-                f"<p><strong>{company_name}</strong> te asignó el turno del "
-                f"{when} hs. Entrá a Oído para confirmar tu asistencia.</p>"
+            company_name = (company.name if company is not None else None) or "Un comercio"
+            position_label = shift.position.label
+            subject = f"Te aceptaron: {position_label} en {company_name}"
+            html = render_shift_accepted_email_html(
+                user.full_name,
+                position_label,
+                company_name,
+                format_turno_art(shift.start_at, shift.end_at),
+                f"{settings.frontend_url}/my-shifts",
             )
             await self._email_sender.send(to=user.email, subject=subject, html=html)
         except Exception:
@@ -698,11 +766,11 @@ class ShiftService:
             updated.company_id,
             NotificationType.SHIFT_CONFIRMED,
             "Confirmaron un turno",
-            f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.value}\".",
+            f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.label}\".",
         )
         await self._withdraw_overlapping_applications(worker_profile_id, updated)
-        # Nuevas deadlines: recordatorio de check-in / no-show alrededor del
-        # `start_at` del turno recién confirmado. Despierta al scheduler para
+        # Nuevas deadlines: recordatorio de salida, de check-in y no-show
+        # alrededor del `start_at` del turno recién confirmado. Despierta al scheduler para
         # que las agende (ver `scheduler_signal.py`).
         notify_scheduler()
         return updated
@@ -734,7 +802,7 @@ class ShiftService:
             updated.company_id,
             NotificationType.SHIFT_REJECTED,
             "Rechazaron un turno",
-            f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.value}\". Volvió a buscar personal.",
+            f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.label}\". Volvió a buscar personal.",
             # El turno quedó sin cubrir: lo que el comercio necesita es elegir
             # a otro, así que el aviso abre los candidatos de ESE turno.
             link=f"/shifts/{updated.id}/candidates",
@@ -764,7 +832,7 @@ class ShiftService:
             "El trabajador canceló su asignación",
             (
                 f"El trabajador canceló su asignación al turno "
-                f"\"{updated.title or updated.position.value}\" luego de "
+                f"\"{updated.title or updated.position.label}\" luego de "
                 "confirmarla. Volvió a buscar personal."
             ),
             link=f"/shifts/{updated.id}/candidates",
@@ -788,13 +856,46 @@ class ShiftService:
         acepta el reporte y cuándo se borra el dato son reglas de la entidad,
         no de acá.
 
-        No notifica al comercio a propósito: son reportes periódicos mientras
-        viaja, y un push por cada uno sería inusable. El comercio lo ve cuando
-        mira el turno.
+        Avisa al comercio UNA sola vez, en el primer reporte del viaje ("salió
+        para tu local"): los siguientes son periódicos mientras viaja, y un
+        push por cada uno sería inusable. Después lo ve en el mapa del panel,
+        que se refresca solo. Si el trabajador apaga y vuelve a prender, no se
+        repite: `en_route_at` sigue puesto hasta que llega o se lo desasigna.
         """
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        first_report = shift.en_route_at is None
         shift.report_en_route_location(latitude, longitude)
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        if first_report:
+            await self._notify_company_worker_left(updated, worker_profile_id)
+        return updated
+
+    async def _notify_company_worker_left(
+        self, shift: Shift, worker_profile_id: UUID
+    ) -> None:
+        name = "Tu trabajador"
+        worker = await self._workers.get_by_id(worker_profile_id)
+        if worker is not None:
+            user = await self._users.get_by_id(worker.user_id)
+            if user is not None and user.full_name:
+                name = user.full_name
+        distance = haversine_km(
+            shift.en_route_latitude, shift.en_route_longitude, shift.latitude, shift.longitude
+        )
+        # La distancia es en línea recta, igual que en el mapa: se redondea
+        # para no fingir una precisión que no tiene.
+        if distance is None:
+            where = "Ya está en viaje"
+        elif distance < 1:
+            where = "Está a menos de 1 km"
+        else:
+            where = f"Está a {distance:.1f} km".replace(".", ",")
+        await self._notify_company(
+            shift.company_id,
+            NotificationType.WORKER_EN_ROUTE,
+            f"{name} salió para tu local",
+            f"{where}. Seguilo en el turno \"{shift.title or shift.position.label}\".",
+        )
 
     async def check_in(
         self, worker_profile_id: UUID, shift_id: UUID, latitude: float, longitude: float
@@ -821,7 +922,7 @@ class ShiftService:
             updated.company_id,
             NotificationType.SHIFT_CHECKED_OUT,
             "Terminó un turno",
-            f"El trabajador terminó el turno \"{updated.title or updated.position.value}\".",
+            f"El trabajador terminó el turno \"{updated.title or updated.position.label}\".",
         )
         return updated
 
@@ -888,7 +989,7 @@ class ShiftService:
                 updated.worker_profile_id,
                 NotificationType.SHIFT_PAID,
                 "Te pagaron un turno",
-                f"Te pagaron el turno \"{updated.title or updated.position.value}\".",
+                f"Te pagaron el turno \"{updated.title or updated.position.label}\".",
             )
         return updated
 

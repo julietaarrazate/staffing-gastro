@@ -257,7 +257,7 @@ test("el ítem Soporte del perfil lleva al admin al inbox, no a sus propios tick
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
 
-  await page.goto("/profile");
+  await page.goto("/profile/settings");
   await page.getByText("Soporte").click();
   await expect(page).toHaveURL("/admin/support");
 });

@@ -15,6 +15,8 @@ from app.modules.identity.domain.exceptions import (
     GoogleTokenInvalidError,
 )
 from app.modules.identity.domain.google_verifier import GoogleIdentity, GoogleTokenVerifier
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
 from tests.conftest import register_user
 
 pytestmark = pytest.mark.asyncio
@@ -74,7 +76,7 @@ async def test_google_login_new_user_with_role_creates_account(client: AsyncClie
         )
     )
     response = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker"}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True}
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -106,7 +108,7 @@ async def test_google_login_existing_user_logs_in(client: AsyncClient):
     )
     # Se manda `role` para probar que se ignora cuando el email ya existe.
     response = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "employer"}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "employer", "accepted_terms": True}
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -120,6 +122,67 @@ async def test_google_login_existing_user_logs_in(client: AsyncClient):
     assert body["email"] == "mozo@staffya.com"
     # El rol sigue siendo el del registro original: /auth/google nunca lo cambia.
     assert body["role"] == "worker"
+
+
+async def test_google_takes_over_an_account_nobody_verified(client: AsyncClient):
+    """Alguien se registra con un email ajeno (sin confirmarlo) antes que la
+    dueña. Cuando ella entra con Google —que sí prueba que el email es suyo—
+    la cuenta queda de ella: verificada, la contraseña del otro deja de
+    servir y sus sesiones se cierran."""
+    await register_user(client, email="victima@gmail.com", password="clave-del-otro-123")
+    attacker = await client.post(
+        "/api/v1/auth/login", json={"email": "victima@gmail.com", "password": "clave-del-otro-123"}
+    )
+    assert attacker.status_code == 200
+    attacker_refresh = client.cookies.get("staffya_refresh")
+
+    _override_verifier(
+        _FakeGoogleVerifier(
+            GoogleIdentity(email="victima@gmail.com", email_verified=True, full_name="Dueña")
+        )
+    )
+    owner = await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+    assert owner.status_code == 200
+    me = await client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {owner.json()['access_token']}"}
+    )
+    assert me.json()["is_verified"] is True
+
+    # La contraseña que puso el otro ya no entra...
+    again = await client.post(
+        "/api/v1/auth/login", json={"email": "victima@gmail.com", "password": "clave-del-otro-123"}
+    )
+    assert again.status_code == 401
+    # ...y su sesión abierta tampoco se puede renovar.
+    client.cookies.set("staffya_refresh", attacker_refresh)
+    refreshed = await client.post("/api/v1/auth/refresh")
+    assert refreshed.status_code == 401
+
+
+async def test_google_on_a_verified_account_keeps_its_password(client: AsyncClient, session_factory):
+    """Una cuenta que ya confirmó su email no pierde la contraseña por entrar
+    también con Google."""
+    from sqlalchemy import update
+
+    from app.modules.identity.infrastructure.models import UserModel
+
+    await register_user(client, email="confirmada@gmail.com", password="mi-clave-123")
+    async with session_factory() as session:
+        await session.execute(
+            update(UserModel).where(UserModel.email == "confirmada@gmail.com").values(is_verified=True)
+        )
+        await session.commit()
+
+    _override_verifier(
+        _FakeGoogleVerifier(
+            GoogleIdentity(email="confirmada@gmail.com", email_verified=True, full_name="Ella")
+        )
+    )
+    assert (await client.post("/api/v1/auth/google", json={"id_token": "tok"})).status_code == 200
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "confirmada@gmail.com", "password": "mi-clave-123"}
+    )
+    assert login.status_code == 200
 
 
 async def test_google_login_invalid_token(client: AsyncClient):
@@ -157,7 +220,7 @@ async def test_google_account_has_no_usable_local_password(client: AsyncClient):
         )
     )
     created = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker"}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True}
     )
     assert created.status_code == 200
 
@@ -166,3 +229,25 @@ async def test_google_account_has_no_usable_local_password(client: AsyncClient):
         json={"email": "sologoogle@gmail.com", "password": "cualquier-cosa-123"},
     )
     assert login_response.status_code == 401
+
+
+async def test_la_cuenta_nueva_con_google_recibe_la_bienvenida(client: AsyncClient):
+    """La bienvenida salía sólo al confirmar el email. Las cuentas de Google
+    nacen confirmadas, así que no la recibían nunca."""
+    fake = FakeEmailSender()
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    try:
+        _override_verifier(
+            _FakeGoogleVerifier(
+                GoogleIdentity(email="bienve@gmail.com", email_verified=True, full_name="Bien Venida")
+            )
+        )
+        await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True})
+        assert [e.to for e in fake.sent] == ["bienve@gmail.com"]
+        assert "Bienvenido" in fake.sent[0].subject
+
+        # Volver a entrar no la repite.
+        await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+        assert len(fake.sent) == 1
+    finally:
+        app.dependency_overrides.pop(get_email_sender, None)

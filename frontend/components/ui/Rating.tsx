@@ -2,6 +2,7 @@
 
 import { StarIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { formatDecimal1 } from "@/lib/format";
 
 /**
  * Rating compacto de sólo lectura: estrella llena + valor numérico.
@@ -21,7 +22,7 @@ export default function Rating({
   return (
     <span className={cn("inline-flex items-center gap-1 text-sm font-semibold text-ink/70", className)}>
       <StarIcon size={size} filled className="text-rating" />
-      {value.toFixed(1)}
+      {formatDecimal1(value)}
       {count != null && <span className="font-normal text-ink/40">({count})</span>}
     </span>
   );

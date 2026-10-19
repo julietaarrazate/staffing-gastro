@@ -46,11 +46,16 @@ import {
   Mic,
   MicOff,
   Pencil,
+  Settings,
   Plus,
   Route,
   Scale,
   Search,
+  Share,
   Share2,
+  Smartphone,
+  SquarePlus,
+  EllipsisVertical,
   Shield,
   Sparkles,
   Star,
@@ -136,6 +141,13 @@ export const CreditCardIcon = make(CreditCard);
 export const AlertTriangleIcon = make(AlertTriangle);
 export const SparklesIcon = make(Sparkles);
 export const ShareIcon = make(Share2);
+/** El botón "Compartir" de Safari (cuadrado con flecha): para explicar
+ *  cómo agregar Oído a la pantalla de inicio del iPhone. */
+export const IosShareIcon = make(Share);
+export const SquarePlusIcon = make(SquarePlus);
+/** El menú de tres puntos de Chrome en Android. */
+export const MoreVerticalIcon = make(EllipsisVertical);
+export const SmartphoneIcon = make(Smartphone);
 export const CopyIcon = make(Copy);
 export const FileTextIcon = make(FileText);
 export const FlaskIcon = make(FlaskConical);
@@ -143,3 +155,4 @@ export const UploadIcon = make(Upload);
 export const DownloadIcon = make(Download);
 export const PencilIcon = make(Pencil);
 export const HeartIcon = make(Heart);
+export const SettingsIcon = make(Settings);

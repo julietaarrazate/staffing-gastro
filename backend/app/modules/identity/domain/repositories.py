@@ -12,6 +12,7 @@ from app.modules.identity.domain.entities import (
     EmailVerificationToken,
     PasswordResetToken,
     RefreshSession,
+    TermsAcceptance,
     User,
 )
 
@@ -149,3 +150,16 @@ class EmailVerificationTokenRepository(ABC):
     @abstractmethod
     async def mark_used(self, token_id: UUID) -> None:
         """Marca el token como usado (no-op si no existe o ya lo estaba)."""
+
+
+class TermsAcceptanceRepository(ABC):
+    """Puerto de persistencia de las aceptaciones de términos. Sólo agrega y
+    lee: una constancia no se modifica."""
+
+    @abstractmethod
+    async def add(self, acceptance: TermsAcceptance) -> TermsAcceptance:
+        """Guarda una aceptación y la devuelve con `accepted_at` resuelto."""
+
+    @abstractmethod
+    async def list_for_user(self, user_id: UUID) -> list[TermsAcceptance]:
+        """Aceptaciones del usuario, la más reciente primero."""
