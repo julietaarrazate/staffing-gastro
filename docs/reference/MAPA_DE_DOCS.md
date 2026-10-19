@@ -17,7 +17,7 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   [ARCHITECTURE.md](../foundation/ARCHITECTURE.md) · [PRINCIPLES.md](../foundation/PRINCIPLES.md)
 - **Identidad visual / diseño** — [ART_DIRECTION.md](../design/ART_DIRECTION.md)
   (dirección de marca, territorio, benchmark — punto de partida) ·
-  **sistema vigente (v5.0): [`docs/design-system/`](../design-system/)**
+  **sistema vigente: [`docs/design-system/`](../design-system/)** (empezar por [`marca-hoy.md`](../design-system/marca-hoy.md))
   (`color-system.md`, `typography.md`, `elevation.md`…) ·
   [COLOR_SYSTEM.md](../design/COLOR_SYSTEM.md) (histórico v1–v4 + el
   método de medición de contraste, que sigue vigente) ·
