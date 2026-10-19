@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Logo from "@/components/Logo";
 import { ChevronLeftIcon } from "@/components/icons";
 import { LEGAL_LAST_UPDATED, LEGAL_OWNER } from "@/lib/legal";
 
@@ -29,7 +28,7 @@ export default function TerminosPage() {
   return (
     <div className="min-h-[calc(100vh-57px)] bg-paper px-4 py-10">
       <div className="app-container-reading">
-        {/* Nav mínima: volver + marca */}
+        {/* Nav mínima: volver (la marca ya está en el Navbar) */}
         <div className="flex items-center justify-between">
           <Link
             href="/"
@@ -38,7 +37,6 @@ export default function TerminosPage() {
             <ChevronLeftIcon size={18} />
             Volver al inicio
           </Link>
-          <Logo size={28} withWordmark={false} />
         </div>
 
         <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
