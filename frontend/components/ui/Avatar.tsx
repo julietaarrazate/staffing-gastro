@@ -32,10 +32,11 @@ export default function Avatar({
     <div
       style={{ width: px, height: px, fontSize: px * 0.4 }}
       className={cn(
-        // Inicial en tinta, como el botón principal. Medido en el centro del
-        // degradé, donde cae la letra: con el ámbar de v5.0 la tinta da 4,74
-        // y el blanco 3,99 (no llega).
-        "flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary-strong font-bold text-night ring-1 ring-black/5",
+        // Inicial en celeste con letra azul hondo (2026-10-19): el degradé
+        // ámbar de antes sumaba un segundo naranja a la pantalla, y el ámbar
+        // queda para la acción principal. Hondo sobre celeste: 6,01; en
+        // oscuro, celeste claro sobre el velo celeste: más de 10.
+        "flex shrink-0 items-center justify-center overflow-hidden bg-secondary font-bold text-secondary-text ring-1 ring-black/5",
         radius,
         className
       )}

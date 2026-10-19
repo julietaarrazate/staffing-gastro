@@ -24,20 +24,28 @@ import {
  * el chip del ícono sobre tarjetas blancas/foto y en el ícono del marcador del
  * mapa — nunca como banda de color a toda la tarjeta.
  */
+// Desde el 2026-10-19 todos los rubros comparten el chip celeste con ícono
+// azul hondo: los naranjas y ámbares de cada rubro sumaban acentos cálidos a
+// cada pantalla (la grilla de "¿Qué necesitás?", "Cerca tuyo"). El rubro lo
+// dice el ícono y el nombre; el color de cada oficio sigue en el banner
+// (`SKILL_HERO_TONE`) y en el riel de la lista (`SKILL_RAIL_BORDER`).
+const TINTE = "bg-secondary-tint";
+const TINTA = "text-secondary-text";
+
 export const SKILL_ACCENT: Record<
   WorkerSkill,
   { Icon: ComponentType<IconProps>; bg: string; fg: string }
 > = {
-  mozo: { Icon: UsersIcon, bg: "bg-orange-50", fg: "text-orange-700" },
-  bartender: { Icon: GlassIcon, bg: "bg-[#e3eef1]", fg: "text-[#1e5566]" }, // petróleo: el borgoña se leía como error
-  barista: { Icon: CoffeeIcon, bg: "bg-amber-50", fg: "text-amber-700" },
-  runner: { Icon: RouteIcon, bg: "bg-stone-100", fg: "text-stone-600" },
-  cocinero: { Icon: ChefHatIcon, bg: "bg-orange-50", fg: "text-orange-600" },
-  cajero: { Icon: WalletIcon, bg: "bg-green-50", fg: "text-success-text" },
-  recepcionista: { Icon: BellIcon, bg: "bg-amber-50", fg: "text-amber-800" },
-  personal_eventos: { Icon: CalendarIcon, bg: "bg-green-50", fg: "text-success-text" },
-  ayudante_cocina: { Icon: ChefHatIcon, bg: "bg-amber-50", fg: "text-amber-700" },
-  personal_salon: { Icon: BuildingIcon, bg: "bg-stone-100", fg: "text-stone-700" },
+  mozo: { Icon: UsersIcon, bg: TINTE, fg: TINTA },
+  bartender: { Icon: GlassIcon, bg: TINTE, fg: TINTA },
+  barista: { Icon: CoffeeIcon, bg: TINTE, fg: TINTA },
+  runner: { Icon: RouteIcon, bg: TINTE, fg: TINTA },
+  cocinero: { Icon: ChefHatIcon, bg: TINTE, fg: TINTA },
+  cajero: { Icon: WalletIcon, bg: TINTE, fg: TINTA },
+  recepcionista: { Icon: BellIcon, bg: TINTE, fg: TINTA },
+  personal_eventos: { Icon: CalendarIcon, bg: TINTE, fg: TINTA },
+  ayudante_cocina: { Icon: ChefHatIcon, bg: TINTE, fg: TINTA },
+  personal_salon: { Icon: BuildingIcon, bg: TINTE, fg: TINTA },
 };
 
 /**
