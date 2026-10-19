@@ -21,6 +21,8 @@ import {
   sortByDistance,
 } from "@/lib/current-location";
 import { SKILL_ACCENT } from "@/lib/skill-style";
+import { sortByBestPay } from "@/lib/pay";
+import { FlameIcon, StarIcon } from "@/components/icons";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import { CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import { EmptyFeedIllustration } from "@/components/illustrations";
@@ -37,10 +39,21 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
  */
 
 function pillClass(active: boolean): string {
-  return `inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold ring-1 transition active:scale-95 ${
+  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
     active
       ? "bg-primary text-night ring-primary"
       : "bg-card text-ink/60 ring-line hover:bg-surface"
+  }`;
+}
+
+/** Filtros secundarios (urgentes, orden por pago): en tinte cuando están
+ *  prendidos, para que no compitan con el rubro elegido, que es la decisión
+ *  principal. Mismo alto y cuerpo de letra que los rubros (2026-10-04): eran
+ *  más chicos (`text-caption`, `py-1.5`) y con la letra agrandada del celular
+ *  las dos filas se veían de tamaños distintos, como si no entraran. */
+function filterChipClass(active: boolean): string {
+  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+    active ? "bg-primary-tint text-primary-text ring-primary/30" : "bg-card text-ink/70 ring-line hover:bg-surface"
   }`;
 }
 
@@ -54,6 +67,13 @@ export default function BuscarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  // "Urgentes" y "Mejores pagos" vivían en el Inicio y se mudaron acá
+  // (2026-09-28, diagnóstico de sobrecarga): el Inicio muestra qué tomar,
+  // Buscar es donde se filtra. Filtro y orden client-side, sobre lo ya
+  // cargado (el feed no pagina): "Urgentes" se combina con cualquier orden;
+  // "Mejores pagos" ordena por pago por hora (ADR-0012).
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [sort, setSort] = useState<"nearby" | "pay">("nearby");
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(async () => {
@@ -121,7 +141,9 @@ export default function BuscarPage() {
   }
 
   const origin = originFor(getStoredLocation(), profile);
-  const sortedShifts = sortByDistance(shifts, origin);
+  const byDistance = sortByDistance(shifts, origin);
+  const sorted = sort === "pay" ? sortByBestPay(byDistance) : byDistance;
+  const sortedShifts = urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
 
   return (
     <div className="app-container px-4 pb-10 pt-6">
@@ -132,7 +154,15 @@ export default function BuscarPage() {
         Explorá oportunidades de cualquier rubro, no sólo el tuyo.
       </p>
 
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      {/* Las filas de chips sangran hasta el borde de la pantalla (`-mx-4
+          px-4`) y tienen aire arriba y abajo (`py-1`). Antes el scroll
+          horizontal cortaba en seco contra el margen de 16px ("Ba|" partido
+          al costado) y, como `overflow-x-auto` también recorta en vertical,
+          se comía el borde (`ring-1`) del primer chip de cada fila: "Todos" y
+          "Urgentes" se veían mordidos (captura de Julieta, 2026-10-04). Ahora
+          el chip que no entra se va por debajo del borde de la pantalla, que
+          es como se lee "hay más para deslizar". */}
+      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 py-1">
         <button type="button" onClick={() => setSkill("")} className={pillClass(skill === "")}>
           Todos
         </button>
@@ -151,6 +181,26 @@ export default function BuscarPage() {
         })}
       </div>
 
+      <div className="no-scrollbar -mx-4 mt-1 flex gap-2 overflow-x-auto px-4 py-1">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={urgentOnly}
+          onClick={() => setUrgentOnly((v) => !v)}
+          className={filterChipClass(urgentOnly)}
+        >
+          <FlameIcon size={14} className="text-primary-text" /> Urgentes
+        </button>
+        <button
+          type="button"
+          aria-pressed={sort === "pay"}
+          onClick={() => setSort((v) => (v === "pay" ? "nearby" : "pay"))}
+          className={filterChipClass(sort === "pay")}
+        >
+          <StarIcon size={14} filled className="text-rating" /> Mejores pagos
+        </button>
+      </div>
+
       {error && (
         <div className="mt-4">
           <ErrorBanner message={error} onRetry={load} />
@@ -163,19 +213,30 @@ export default function BuscarPage() {
         ) : sortedShifts.length === 0 ? (
           <EmptyState
             icon={<EmptyFeedIllustration color="var(--color-primary)" />}
-            title="No hay turnos en este rubro"
-            subtitle="Probá con otra categoría o volvé más tarde."
+            title={urgentOnly ? "No hay turnos urgentes ahora" : "No hay turnos en este rubro"}
+            subtitle={
+              urgentOnly
+                ? "Sacá el filtro para ver el resto de las oportunidades."
+                : "Probá con otra categoría o volvé más tarde."
+            }
           />
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {sortedShifts.map((shift) => (
-              <div key={shift.id} className="h-[620px]">
+              // 560px en el celu, 620px desde `sm` (2026-10-04): en una sola
+              // columna no hay otra tarjeta con la que alinear el alto, y con
+              // 620px quedaba un hueco de ~100px entre los datos y las
+              // acciones (captura de Julieta). En la grilla sí hace falta el
+              // alto parejo. El cuerpo de la tarjeta igual scrollea si algún
+              // dress code largo no entra.
+              <div key={shift.id} data-testid="buscar-card" className="h-[560px] sm:h-[620px]">
                 <OpportunityCard
                   shift={shift}
                   distanceKm={distanceOf(shift, origin)}
                   applying={decidingId === shift.id}
                   onApply={() => handleDecide(shift, "like")}
                   onPass={() => handleDecide(shift, "pass")}
+                  shareable
                 />
               </div>
             ))}

@@ -27,6 +27,12 @@ services:
     # como default en `frontend/lib/api.ts` y para la CSP en `next.config.ts`).
     region: ohio
     healthCheckPath: /health
+    # Dominio propio de la API (etapa 3 de Cloudflare, 2026-10-15). Va acá y
+    # no en el dashboard: el servicio es "Blueprint managed" y Render no
+    # muestra la sección Custom Domains. DNS: CNAME api →
+    # staffya-backend.onrender.com en Cloudflare (docs/reference/DEPLOY.md).
+    domains:
+      - api.oido.com.ar
     envVars:
       - key: DATABASE_URL
         sync: false # Neon connection string — se setea manual en el dashboard
@@ -40,8 +46,11 @@ services:
       # NIC.ar, DNS todavía sin propagar) — agregar un origen no rompe nada
       # mientras el dominio no resuelva; así ya queda listo apenas Julieta
       # cargue los registros DNS, sin depender de otro deploy después.
+      # El *.workers.dev es la publicación de prueba en Cloudflare (etapa 4,
+      # 2026-10-19). Este valor es fijo: si se cambia sólo en el dashboard, la
+      # próxima sincronización del Blueprint lo pisa.
       - key: CORS_ORIGINS
-        value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar
+        value: https://staffing-gastro.vercel.app,https://oido.com.ar,https://www.oido.com.ar,https://oido-frontend.julietaarrazate.workers.dev
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente, y
       # desde 2026-09-22 repone los turnos demo que ya pasaron).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
@@ -56,6 +65,13 @@ services:
       - key: SEED_DEMO_DATA
         value: "true"
       - key: SENTRY_DSN
+        sync: false
+      # --- Detrás de Cloudflare (etapa 3, 2026-10-14) ---
+      # Vacías = apagado. Se cargan recién cuando api.oido.com.ar ya pasa por
+      # Cloudflare; orden y riesgos en docs/reference/DEPLOY.md, "Etapa 3".
+      - key: EDGE_SHARED_SECRET
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
         sync: false
       # --- Email transaccional (Resend) ---
       # SIN ESTA CLAVE NO SE ENVÍA NINGÚN EMAIL. El backend cae a
@@ -98,5 +114,11 @@ services:
       # fijo dentro de la URL. `sync: false` para que un redeploy del
       # blueprint no pise lo que el operador puso en medio de un incidente.
       - key: GEMINI_MODEL
+        sync: false
+      # PIN del acceso invitado ("Explorar sin cuenta"). Vacío = apagado
+      # (`POST /auth/guest` responde 404). Hasta 2026-10-10 estaba fijo en el
+      # código y el repo es público: el valor viejo no se reusa. 8+ DÍGITOS:
+      # el login abre el teclado numérico, con letras no se puede tipear.
+      - key: GUEST_ACCESS_PIN
         sync: false
     autoDeploy: true

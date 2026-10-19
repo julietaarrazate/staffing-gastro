@@ -13,6 +13,7 @@ from collections import defaultdict
 from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
+from app.core.edge import client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +54,7 @@ class RateLimiter:
         self._hits[key] = recent
 
     async def __call__(self, request: Request) -> None:
-        client = request.client
-        ip = client.host if client else "unknown"
-        self.check(ip)
+        self.check(client_ip(request))
 
     def reset(self) -> None:
         self._hits.clear()

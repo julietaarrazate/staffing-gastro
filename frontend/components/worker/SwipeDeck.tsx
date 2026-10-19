@@ -1,121 +1,136 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import {
-  motion,
-  useAnimationControls,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-} from "motion/react";
+import { motion, useAnimationControls, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { Shift } from "@/lib/types";
-import { CheckIcon } from "@/components/icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { MOTION_UI } from "@/lib/motion";
 
-type Decision = "like" | "pass";
+type Direction = 1 | -1;
 
 /**
- * Mazo de tarjetas: la de arriba se arrastra (drag horizontal). Derecha =
- * "Me interesa", izquierda = "No gracias". Muestra la siguiente tarjeta
- * detrás para dar profundidad.
+ * Mazo de "Descubrir rápido": deslizar RECORRE, postularse es un botón.
  *
- * Sin fila de botones fija debajo (Julieta, 2026-08-16, con capturas de
- * OkCupid: "borra el botón x y check, que aparezcan dependiendo si haces
- * swipe para un lado u otro"): los indicadores aparecen SOBRE la tarjeta
- * mientras arrastrás, y crecen con el gesto. Eso además le devuelve a la
- * tarjeta los ~80px de alto que ocupaba la fila — parte del pedido de que
- * "entre todo el contenido" sin deslizar dentro de la tarjeta.
+ * Antes el gesto decidía (derecha = postularse, izquierda = descartar), así
+ * que no había forma de mirar varios turnos y elegir: el primer swipe ya te
+ * comprometía o te sacaba el turno para siempre (Julieta, 2026-09-26: "no
+ * podés seguir viendo los demás y elegir cuál querés verdaderamente"). Ahora
+ * funciona como un carrusel: deslizar a la izquierda muestra el siguiente, a
+ * la derecha vuelve al anterior, y nada se pierde. Postularse es la única
+ * acción que compromete, y es explícita ("Postularme", debajo de la tarjeta).
+ * No hay "descartar": el que no te sirve, lo pasás de largo.
  *
- * Accesibilidad: sacar los botones visibles dejaría el mazo sin ninguna
- * forma de decidir con teclado o lector de pantalla (el drag es puro
- * puntero). Por eso quedan dos botones `sr-only` + `focus:not-sr-only`:
- * invisibles mientras usás el dedo, pero alcanzables con Tab y anunciados
- * por el lector — misma función, cero costo visual.
+ * Tocar la tarjeta (sin arrastrar) abre el detalle del turno — `onTap` de
+ * motion distingue tap de arrastre por diseño. Las flechas y el teclado
+ * (← →) hacen lo mismo que el gesto, así el mazo se usa sin puntero.
  */
 export default function SwipeDeck({
   shifts,
-  onDecide,
+  onApply,
   renderCard,
   empty,
   onOpen,
 }: {
   shifts: Shift[];
   /**
-   * Devuelve `true` cuando la decisión quedó procesada (o es un descarte que
-   * no requiere red) y `false` cuando falló: en ese caso la carta vuelve al
-   * tope del mazo para que el usuario pueda reintentar en vez de perderla.
+   * Devuelve `true` cuando la postulación quedó procesada y `false` cuando
+   * falló: en ese caso la carta vuelve al mazo, en el lugar donde estaba,
+   * para que el usuario pueda reintentar en vez de perderla.
    */
-  onDecide: (shift: Shift, decision: Decision) => Promise<boolean>;
+  onApply: (shift: Shift) => Promise<boolean>;
   renderCard: (shift: Shift) => ReactNode;
   empty: ReactNode;
-  /** Tocar la tarjeta (sin arrastrar) abre el detalle del turno. Antes el
-   *  mazo SÓLO dejaba swipear: no había forma de mirar el turno completo ni
-   *  de entrar al comercio sin decidir primero (Julieta, 2026-08-17: "cuando
-   *  quiero abrir para mirar bien el turno tampoco abre, no hace nada, no
-   *  puedo indagar el comercio, sólo me deja hacer swipe"). Se usa `onTap` de
-   *  motion, que distingue tap de arrastre por diseño — un `onClick` común se
-   *  disparaba también al terminar un swipe. */
+  /** Tocar la tarjeta (sin arrastrar) abre el detalle del turno. */
   onOpen?: (shift: Shift) => void;
 }) {
-  // Mazo local para poder avanzar de forma OPTIMISTA: la siguiente carta se
-  // habilita apenas termina la animación de salida, sin esperar la respuesta
-  // de red de la postulación (contra un backend lento eso congelaba el mazo
-  // varios segundos con la carta siguiente "gris" y los botones muertos).
+  // Mazo local para sacar la carta postulada de forma OPTIMISTA, sin esperar
+  // la respuesta de red (contra un backend lento eso congelaba el mazo).
   const [deck, setDeck] = useState(shifts);
-  // `busy` sólo cubre la animación de salida (~0.3s), no la red.
+  const [index, setIndex] = useState(0);
+  // `busy` sólo cubre las animaciones (~0.2s), no la red.
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setDeck(shifts);
+    setIndex(0);
   }, [shifts]);
+
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 0, 220], [-14, 0, 14]);
-  // Los indicadores no sólo aparecen: CRECEN con el gesto (0.6→1), así el
-  // arrastre se siente proporcional a la decisión, como en OkCupid. El umbral
-  // de opacidad plena (±150) coincide a propósito con el punto en que soltar
-  // ya dispara la decisión (±120 en `onDragEnd`): cuando el círculo está
-  // lleno, ya estás del otro lado del umbral.
-  const likeOpacity = useTransform(x, [40, 150], [0, 1]);
-  const likeScale = useTransform(x, [40, 150], [0.6, 1]);
-  const nopeOpacity = useTransform(x, [-150, -40], [1, 0]);
-  const nopeScale = useTransform(x, [-150, -40], [1, 0.6]);
+  const rotate = useTransform(x, [-220, 0, 220], [-8, 0, 8]);
   const controls = useAnimationControls();
   const reducedMotion = useReducedMotion();
 
-  const current = deck[0];
-  const upcoming = deck[1];
+  const safeIndex = Math.min(index, Math.max(deck.length - 1, 0));
+  const current = deck[safeIndex];
+  const upcoming = deck[safeIndex + 1];
+  const hasPrev = safeIndex > 0;
+  const hasNext = safeIndex < deck.length - 1;
 
-  async function decide(decision: Decision) {
+  /** Saca la carta hacia un lado y trae la otra desde el lado opuesto. */
+  async function slide(dir: Direction, change: () => void) {
+    setBusy(true);
+    const transition = reducedMotion ? { duration: 0 } : MOTION_UI;
+    await controls.start({ x: -dir * 420, opacity: 0, transition });
+    change();
+    x.set(dir * 420);
+    controls.set({ x: dir * 420, opacity: 0 });
+    await controls.start({ x: 0, opacity: 1, transition });
+    setBusy(false);
+  }
+
+  function go(dir: Direction) {
+    if (busy) return;
+    if (dir === 1 && !hasNext) return;
+    if (dir === -1 && !hasPrev) return;
+    void slide(dir, () => setIndex(safeIndex + dir));
+  }
+
+  async function apply() {
     if (busy || !current) return;
     const shift = current;
+    const at = safeIndex;
     setBusy(true);
-    const dir = decision === "like" ? 1 : -1;
-    await controls.start({
-      x: dir * 520,
-      rotate: dir * 18,
-      opacity: 0,
-      transition: reducedMotion ? { duration: 0 } : MOTION_UI,
-    });
+    const transition = reducedMotion ? { duration: 0 } : MOTION_UI;
+    // La carta postulada sube y se va: es otro gesto que "pasar de largo",
+    // para que se note que ésta sí quedó enviada.
+    await controls.start({ y: -60, scale: 0.96, opacity: 0, transition });
+    setDeck((d) => d.filter((s) => s.id !== shift.id));
+    // El índice queda donde estaba: ahora apunta al turno siguiente. Si era
+    // el último, `safeIndex` lo acomoda al anterior.
     x.set(0);
-    controls.set({ x: 0, rotate: 0, opacity: 1 });
-    setDeck((d) => d.slice(1));
+    controls.set({ x: 0, y: 0, scale: 1, opacity: 1 });
     setBusy(false);
-    // La red corre en segundo plano. Si la postulación falla (red/5xx), la
-    // carta vuelve al tope del mazo para reintentar — `onDecide` ya mostró el
-    // error y conserva la Idempotency-Key, así que el reintento es el mismo
-    // intento para el backend.
-    void onDecide(shift, decision).then((ok) => {
-      if (!ok) setDeck((d) => [shift, ...d]);
+    // La red corre en segundo plano. Si falla, la carta vuelve a su lugar —
+    // `onApply` ya mostró el error y conserva la Idempotency-Key, así que el
+    // reintento es el mismo intento para el backend.
+    void onApply(shift).then((ok) => {
+      if (ok) return;
+      setDeck((d) => (d.some((s) => s.id === shift.id) ? d : [...d.slice(0, at), shift, ...d.slice(at)]));
+      setIndex(at);
     });
   }
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   if (!current) return <>{empty}</>;
+
+  const navButton =
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-ink ring-1 ring-line transition active:scale-95 disabled:opacity-35";
 
   return (
     <div className="flex h-full flex-col">
       <div className="relative flex-1 select-none">
         {upcoming && (
           <div
+            aria-hidden
             className="absolute inset-0 scale-[0.94] opacity-80"
             style={{ transformOrigin: "bottom" }}
           >
@@ -123,80 +138,45 @@ export default function SwipeDeck({
           </div>
         )}
 
+        {/* Sin `key` por turno a propósito: la misma carta animada cambia de
+            contenido. Con una `key`, el cambio de turno la remontaba en medio
+            de `slide` y la animación de entrada nunca resolvía (el mazo
+            quedaba trabado en `busy`). */}
         <motion.div
-          key={current.id}
           data-testid="swipe-deck-card"
-          className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
+          className="absolute inset-0 cursor-grab touch-pan-y active:cursor-grabbing"
           style={{ x, rotate }}
           drag="x"
           dragSnapToOrigin
-          dragElastic={0.6}
+          // En los bordes del mazo la carta se resiste: no hay nada del otro lado.
+          dragElastic={{ left: hasNext ? 0.6 : 0.15, right: hasPrev ? 0.6 : 0.15 }}
           animate={controls}
           onTap={() => {
-            // `busy` cubre la animación de salida: sin esto, un tap durante
-            // el vuelo de la carta abriría el detalle de un turno que el
-            // usuario acaba de descartar.
             if (!busy) onOpen?.(current);
           }}
           onDragEnd={(_, info) => {
-            if (info.offset.x > 120 || info.velocity.x > 700) decide("like");
-            else if (info.offset.x < -120 || info.velocity.x < -700) decide("pass");
+            if (info.offset.x < -100 || info.velocity.x < -600) go(1);
+            else if (info.offset.x > 100 || info.velocity.x > 600) go(-1);
           }}
         >
           {renderCard(current)}
-
-          {/* Indicadores de decisión, estilo OkCupid: círculos grandes que
-              aparecen y crecen sobre la tarjeta según hacia dónde arrastrás.
-              Reemplazan a la fila de botones fija que había debajo y a los
-              sellos de texto ("ME INTERESA"/"NO") que había antes acá.
-              Centrados verticalmente y hacia el borde correspondiente, para
-              que el pulgar no los tape mientras arrastra. */}
-          <motion.div
-            style={{ opacity: nopeOpacity, scale: nopeScale }}
-            className="pointer-events-none absolute left-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-card text-danger-text shadow-[var(--shadow-float)] ring-1 ring-line"
-          >
-            <CrossIcon />
-          </motion.div>
-          <motion.div
-            style={{ opacity: likeOpacity, scale: likeScale }}
-            className="pointer-events-none absolute right-6 top-1/2 flex h-20 w-20 -translate-y-1/2 items-center justify-center rounded-full bg-success text-white shadow-[0_10px_24px_color-mix(in_srgb,var(--color-success)_45%,transparent)]"
-          >
-            <CheckIcon size={34} />
-          </motion.div>
         </motion.div>
       </div>
 
-      {/* Único camino no-táctil para decidir, ahora que no hay botones
-          visibles: invisibles hasta que los enfocás con Tab, y ahí sí se
-          muestran (`focus:not-sr-only`). Sin esto el mazo quedaría
-          inoperable con teclado o lector de pantalla — el drag es puro
-          puntero. */}
-      <div className="sr-only focus-within:not-sr-only focus-within:mt-4 focus-within:flex focus-within:items-center focus-within:justify-center focus-within:gap-4">
-        <button
-          type="button"
-          onClick={() => decide("pass")}
-          disabled={busy}
-          className="rounded-full bg-card px-4 py-2 text-sm font-semibold text-danger-text ring-1 ring-line disabled:opacity-50"
-        >
-          No gracias
+      <div className="mt-3 flex items-center gap-3">
+        <button type="button" aria-label="Turno anterior" onClick={() => go(-1)} disabled={!hasPrev || busy} className={navButton}>
+          <ChevronLeftIcon size={20} />
         </button>
-        <button
-          type="button"
-          onClick={() => decide("like")}
-          disabled={busy}
-          className="rounded-full bg-success px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          Me interesa
+        <Button fullWidth onClick={apply} disabled={busy}>
+          Postularme
+        </Button>
+        <button type="button" aria-label="Turno siguiente" onClick={() => go(1)} disabled={!hasNext || busy} className={navButton}>
+          <ChevronRightIcon size={20} />
         </button>
       </div>
+      <p aria-live="polite" data-testid="swipe-deck-position" className="mt-2 text-center font-mono text-caption text-ink/55">
+        {safeIndex + 1} de {deck.length}
+      </p>
     </div>
-  );
-}
-
-function CrossIcon() {
-  return (
-    <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
   );
 }

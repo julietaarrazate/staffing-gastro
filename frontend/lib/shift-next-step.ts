@@ -18,7 +18,8 @@ import type { Shift, ShiftStatus } from "@/lib/types";
 export type PrimaryAction = "publish" | "candidates" | "finish" | "markPaid";
 
 export interface NextStep {
-  /** Qué está pasando, en una línea, en el idioma del comercio. */
+  /** Qué está pasando, en una línea, en el idioma del comercio. Vacío
+   *  cuando el chip de estado ya lo dice todo. */
   hint: string;
   /** La única acción destacada, si hay alguna que dependa del comercio. */
   action: PrimaryAction | null;
@@ -31,13 +32,16 @@ const NEXT_STEP: Record<ShiftStatus, NextStep> = {
     action: "publish",
     actionLabel: "Publicar turno",
   },
+  // Sin línea (2026-09-28, diagnóstico de sobrecarga): "Buscando gente cerca
+  // tuyo" repetía el chip "Publicado" y el encabezado "Buscando personal" de
+  // la misma familia. La acción ("Elegir a alguien") ya dice qué sigue.
   publicado: {
-    hint: "Buscando gente cerca tuyo.",
+    hint: "",
     action: "candidates",
     actionLabel: "Elegir a alguien",
   },
   buscando_personal: {
-    hint: "Buscando gente cerca tuyo.",
+    hint: "",
     action: "candidates",
     actionLabel: "Elegir a alguien",
   },
@@ -57,7 +61,9 @@ const NEXT_STEP: Record<ShiftStatus, NextStep> = {
     actionLabel: "Marcar como pagado",
   },
   pagado: { hint: "Listo: trabajado y pagado.", action: null },
-  cancelado: { hint: "Este turno se canceló.", action: null },
+  // Sin línea: el chip "Cancelado" y el stepper ("Cancelado en el paso 1 de
+  // 4") ya lo dicen.
+  cancelado: { hint: "", action: null },
   // ADR-0015: nadie decidió esto (a diferencia de "cancelado"), así que el
   // hint lo dice distinto — y sin acción, porque lo que sigue es publicar un
   // turno NUEVO, no algo que se haga sobre éste.

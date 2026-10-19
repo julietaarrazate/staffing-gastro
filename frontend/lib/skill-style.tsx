@@ -24,20 +24,28 @@ import {
  * el chip del ícono sobre tarjetas blancas/foto y en el ícono del marcador del
  * mapa — nunca como banda de color a toda la tarjeta.
  */
+// Desde el 2026-10-19 todos los rubros comparten el chip celeste con ícono
+// azul hondo: los naranjas y ámbares de cada rubro sumaban acentos cálidos a
+// cada pantalla (la grilla de "¿Qué necesitás?", "Cerca tuyo"). El rubro lo
+// dice el ícono y el nombre; el color de cada oficio sigue en el banner
+// (`SKILL_HERO_TONE`) y en el riel de la lista (`SKILL_RAIL_BORDER`).
+const TINTE = "bg-secondary-tint";
+const TINTA = "text-secondary-text";
+
 export const SKILL_ACCENT: Record<
   WorkerSkill,
   { Icon: ComponentType<IconProps>; bg: string; fg: string }
 > = {
-  mozo: { Icon: UsersIcon, bg: "bg-orange-50", fg: "text-orange-700" },
-  bartender: { Icon: GlassIcon, bg: "bg-[#e3eef1]", fg: "text-[#1e5566]" }, // petróleo: el borgoña se leía como error
-  barista: { Icon: CoffeeIcon, bg: "bg-amber-50", fg: "text-amber-700" },
-  runner: { Icon: RouteIcon, bg: "bg-stone-100", fg: "text-stone-600" },
-  cocinero: { Icon: ChefHatIcon, bg: "bg-orange-50", fg: "text-orange-600" },
-  cajero: { Icon: WalletIcon, bg: "bg-green-50", fg: "text-success-text" },
-  recepcionista: { Icon: BellIcon, bg: "bg-amber-50", fg: "text-amber-800" },
-  personal_eventos: { Icon: CalendarIcon, bg: "bg-green-50", fg: "text-success-text" },
-  ayudante_cocina: { Icon: ChefHatIcon, bg: "bg-amber-50", fg: "text-amber-700" },
-  personal_salon: { Icon: BuildingIcon, bg: "bg-stone-100", fg: "text-stone-700" },
+  mozo: { Icon: UsersIcon, bg: TINTE, fg: TINTA },
+  bartender: { Icon: GlassIcon, bg: TINTE, fg: TINTA },
+  barista: { Icon: CoffeeIcon, bg: TINTE, fg: TINTA },
+  runner: { Icon: RouteIcon, bg: TINTE, fg: TINTA },
+  cocinero: { Icon: ChefHatIcon, bg: TINTE, fg: TINTA },
+  cajero: { Icon: WalletIcon, bg: TINTE, fg: TINTA },
+  recepcionista: { Icon: BellIcon, bg: TINTE, fg: TINTA },
+  personal_eventos: { Icon: CalendarIcon, bg: TINTE, fg: TINTA },
+  ayudante_cocina: { Icon: ChefHatIcon, bg: TINTE, fg: TINTA },
+  personal_salon: { Icon: BuildingIcon, bg: TINTE, fg: TINTA },
 };
 
 /**
@@ -58,7 +66,7 @@ export const SKILL_ACCENT: Record<
  * blanco.
  */
 export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
-  mozo: "bg-secondary",
+  mozo: "bg-brand", // el color de marca: el celeste claro (v6, 2026-10-09)
   bartender: "bg-[#173f4c]", // petróleo (antes vino: se leía como error)
   barista: "bg-[#4a3222]", // espresso
   runner: "bg-[#2e3a40]", // pizarra
@@ -69,6 +77,40 @@ export const SKILL_HERO_TONE: Record<WorkerSkill, string> = {
   ayudante_cocina: "bg-[#5a3a12]", // ámbar tostado
   personal_salon: "bg-[#34302b]", // piedra
 };
+
+const HERO_INK_WHITE = {
+  strong: "text-white drop-shadow",
+  soft: "text-white/90",
+  softer: "text-white/85",
+  mark: "text-white/15",
+  veil: "bg-black/15",
+  chip: "bg-white/20 text-white",
+} as const;
+
+const HERO_INK_ON_BRAND = {
+  strong: "text-on-brand",
+  soft: "text-on-brand/90",
+  softer: "text-on-brand/85",
+  mark: "text-on-brand/15",
+  veil: "bg-brand-veil",
+  chip: "bg-on-brand/20 text-on-brand",
+} as const;
+
+/**
+ * Tinta del texto del banner. Los rubros llevan tonos profundos con texto
+ * blanco, y la foto lleva un velo negro. El mozo sin foto va sobre el color
+ * de marca, que desde la paleta celeste (2026-10-09) es clara: `on-brand` es
+ * tinta (13,99 sobre el celeste; el blanco daría 1,35).
+ */
+export function heroInk(position: WorkerSkill, hasPhoto: boolean) {
+  return !hasPhoto && SKILL_HERO_TONE[position] === "bg-brand" ? HERO_INK_ON_BRAND : HERO_INK_WHITE;
+}
+
+/** Cuadradito del rubro (ícono o inicial): el tono del banner con su tinta. */
+export function heroTile(position: WorkerSkill) {
+  const tone = SKILL_HERO_TONE[position];
+  return `${tone} ${tone === "bg-brand" ? "text-on-brand" : "text-white"}`;
+}
 
 /**
  * Color de RIEL (borde izquierdo grueso) por oficio, para filas de lista que

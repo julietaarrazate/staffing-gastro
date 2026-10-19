@@ -52,10 +52,9 @@ async function irAlPasoCuando(page: Page, tema: "light" | "dark") {
   await page.goto("/shifts/new");
   await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
 
-  // Mismo camino que employer-wizard.spec.ts: puesto → cantidad → horario.
+  // Mismo camino que employer-wizard.spec.ts: elegir el puesto avanza solo
+  // al horario.
   await page.getByRole("button", { name: "Mozo/a" }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByText("¿Cuándo?")).toBeVisible();
 }
 

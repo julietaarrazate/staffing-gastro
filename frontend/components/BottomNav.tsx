@@ -51,6 +51,8 @@ export default function BottomNav() {
   // la barra tapaba su botón principal, y navegar a otra sección antes de
   // terminar deja el perfil a medias (sin zona ni oficio el feed no sirve).
   if (pathname === "/bienvenida") return null;
+  // /historia es la landing anterior, para grabar reels: sin barra de la app.
+  if (pathname === "/historia") return null;
 
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 
@@ -60,7 +62,7 @@ export default function BottomNav() {
     // forma de distinguirlas (auditoría de navegación, fase H).
     <nav
       aria-label="Secciones"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -87,14 +89,16 @@ export default function BottomNav() {
           >
             {/* Pestaña activa como PILL relleno, no sólo un cambio de color
                 (dirección "lienzo blanco", ref. Pasito): sobre el cromo blanco
-                el ícono suelto ámbar se leía poco; el pill ámbar suave le da
-                una masa que ancla la sección y sube la jerarquía de la barra.
+                el ícono suelto se leía poco; el pill le da una masa que ancla
+                la sección y sube la jerarquía de la barra. Desde el
+                2026-10-19 el pill es celeste (`primary-tint`), no ámbar: el
+                ámbar queda para la acción principal de cada pantalla.
                 El `aria-current` de arriba sigue siendo lo que anuncia el
                 lector de pantalla — el pill es refuerzo visual, no el único
                 indicador. */}
             <span
               className={`flex items-center justify-center rounded-full px-5 py-1 transition-colors ${
-                active ? "bg-primary/12" : "bg-transparent"
+                active ? "bg-primary-tint" : "bg-transparent"
               }`}
             >
               <Icon size={22} />

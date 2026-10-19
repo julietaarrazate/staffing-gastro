@@ -6,7 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.dt import parse_iso_datetime
-from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, parse_shift_text
+from app.core.gemini import (
+    GeminiNotConfiguredError,
+    GeminiRequestError,
+    GeminiUnavailableError,
+    parse_shift_text,
+)
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
@@ -30,17 +35,20 @@ from app.modules.shift.api.schemas import (
     ShiftInput,
     ShiftPublicResponse,
     ShiftResponse,
+    without_worker_data,
 )
 from app.modules.shift.application.dtos import EventData, EventRoleData, ShiftData
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
+    AssigneeNotFoundError,
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
     ShiftNotAssignedToWorkerError,
     ShiftNotEditableError,
     ShiftNotFoundError,
+    WorkerTooFarFromShiftError,
 )
 from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
 from app.modules.subscription.domain.exceptions import PlanLimitExceededError
@@ -142,31 +150,6 @@ async def _is_party_to(
     return False
 
 
-# Datos de una PERSONA (el trabajador del turno), no del turno: quién lo tomó,
-# dónde está viajando, dónde marcó llegada y salida, quién faltó.
-_WORKER_DATA_FIELDS = (
-    "worker_profile_id",
-    "worker_name",
-    "en_route_latitude",
-    "en_route_longitude",
-    "en_route_at",
-    "check_in_latitude",
-    "check_in_longitude",
-    "check_in_at",
-    "check_out_latitude",
-    "check_out_longitude",
-    "check_out_at",
-    "no_show_at",
-    "last_no_show_worker_profile_id",
-)
-
-
-def _without_worker_data(response: ShiftResponse) -> ShiftResponse:
-    """La vista de un turno para quien no es parte de él: todo lo del turno,
-    nada del trabajador."""
-    return response.model_copy(update={field: None for field in _WORKER_DATA_FIELDS})
-
-
 async def _with_pay_band(
     shifts: list[Shift], responses: list[ShiftResponse], service: ShiftService
 ) -> list[ShiftResponse]:
@@ -231,6 +214,11 @@ async def parse_text(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="La interpretación por IA no está configurada en este servidor",
         ) from exc
+    except GeminiUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La IA no está disponible en este momento. Completá los datos a mano.",
+        ) from exc
     except GeminiRequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -291,7 +279,7 @@ async def feed(
     # Un turno reabierto por un no-show vuelve al feed con la marca de quién
     # faltó (`last_no_show_worker_profile_id`): otro trabajador no tiene por
     # qué verla.
-    return [_without_worker_data(r) for r in responses]
+    return [without_worker_data(r) for r in responses]
 
 
 @router.get(
@@ -423,7 +411,7 @@ async def get_shift(
         # No-disclosure: un turno ajeno que ya no está abierto no existe
         # para quien no es parte (mismo criterio que `/public`).
         raise _not_found()
-    return _without_worker_data(response)
+    return without_worker_data(response)
 
 
 @router.get(
@@ -544,6 +532,10 @@ async def assign_worker(
         )
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
+    except AssigneeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Trabajador no encontrado"
+        ) from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)
@@ -666,7 +658,7 @@ async def check_in(
         )
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
-    except InvalidShiftTransitionError as exc:
+    except (InvalidShiftTransitionError, WorkerTooFarFromShiftError) as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
@@ -707,7 +699,7 @@ async def check_out(
         )
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
-    except InvalidShiftTransitionError as exc:
+    except (InvalidShiftTransitionError, WorkerTooFarFromShiftError) as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))

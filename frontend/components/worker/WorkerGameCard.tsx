@@ -20,14 +20,14 @@ import {
   AwardIcon,
   BriefcaseIcon,
   CheckCircleIcon,
-  MedalIcon,
   StarIcon,
   WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
 import CountUp from "@/components/ui/CountUp";
+import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
-// `accent` sigue el mismo criterio que la landing (StatsStrip/bento): un color
+// `accent` sigue el criterio que tenía la landing anterior (StatsStrip/bento): un color
 // por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
 // un color... otra tarjeta con ícono celeste... para que no todo parezca un
 // bloque beige").
@@ -45,24 +45,26 @@ import CountUp from "@/components/ui/CountUp";
 // la única que encaja por significado: cancelaciones/no-shows es un dato de
 // FIABILIDAD, la misma familia de "lo que se puede constatar". Además su par
 // tint/text sí está redefinido para oscuro, así que sobrevive a los dos modos.
-const TILE_MANTECA = "bg-manteca-tint text-manteca-text";
-const TILE_CIELO = "bg-cielo-tint text-cielo-text";
-const TILE_TRUST = "bg-trust-tint text-trust-text";
+//
+// Desde 2026-09-27 el chip es `IconChip`, el mismo del resto de la app: estos
+// tres tonos fijaron qué color significa qué (ver su comentario).
 
 function StatTile({
   icon,
   value,
   label,
-  accent = TILE_TRUST,
+  tone,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
-  accent?: string;
+  tone: IconChipTone;
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card px-2 py-3.5 text-center ring-1 ring-line">
-      <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accent}`}>{icon}</span>
+      <IconChip tone={tone} size="sm">
+        {icon}
+      </IconChip>
       {/* `text-metric` (rediseño 2026-09): antes `text-lg` (18px), la misma
           escala que cualquier título de card — un número de estadística no
           es texto, es un DATO (brief: "los números... deben tener presencia
@@ -117,6 +119,11 @@ export default function WorkerGameCard() {
 
   const level = (profile.level ?? "bronce").toLowerCase();
   const meta = levelMeta(level);
+  // Las métricas aparecen con el primer turno completado (sobrecarga visual,
+  // 2026-09-30). Antes, a quien recién arrancaba la tarjeta le mostraba $0,
+  // puntualidad "Sin datos", 0 turnos, 0 cancelaciones y "todavía no tenés
+  // insignias": una pantalla entera diciéndole lo que no tiene.
+  const hasHistory = profile.events_completed > 0;
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -130,7 +137,7 @@ export default function WorkerGameCard() {
           misma superficie destacada que la tarjeta "Recomendado" del home y
           "Turnos activos" del comercio. En claro el bloque negro pesaba más
           que todo el resto de la pantalla junta. */}
-      <div className="relative flex flex-col items-center bg-secondary px-5 pb-5 pt-6 text-white">
+      <div className="relative flex flex-col items-center bg-glow px-5 pb-5 pt-6 text-on-brand">
         {/* La foto se sube ACÁ, tocando el avatar (Julieta, 2026-09: "la foto
             se tiene que poder subir arriba con el nombre"). Antes se veía
             arriba pero el control para cambiarla vivía en el formulario de
@@ -147,7 +154,7 @@ export default function WorkerGameCard() {
           fallbackLabel={user?.full_name ?? "Vos"}
         />
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
-        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
+        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-on-brand/10 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
@@ -167,106 +174,95 @@ export default function WorkerGameCard() {
       {/* DS v5.0: sobre superficie clara (`bg-surface`), no otro bloque oscuro
           debajo del hero verde — dos masas de color apiladas competían. El
           monto en tinta grande, "ARS" y el ícono en ámbar como único acento. */}
-      {earnings && (
-        <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-surface px-4 py-4">
-          <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-primary text-night">
-            <WalletIcon size={21} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-label font-bold uppercase tracking-wide text-ink/50">Ganado este mes</p>
-            <p className="flex items-baseline gap-1 leading-none">
-              <span className="text-sm font-semibold text-primary-text">$</span>
-              <CountUp
-                value={Number(earnings.this_month_earned)}
-                className="text-2xl font-extrabold tabular-nums text-ink"
-              />
+      {hasHistory ? (
+        <>
+        {earnings && Number(earnings.total_earned) > 0 && (
+          <div className="mx-4 mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-surface px-4 py-4">
+            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-text">
+              <WalletIcon size={21} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-label font-bold uppercase tracking-wide text-ink/50">Ganado este mes</p>
+              <p className="flex items-baseline gap-1 leading-none">
+                <span className="text-sm font-semibold text-primary-text">$</span>
+                <CountUp
+                  value={Number(earnings.this_month_earned)}
+                  className="text-2xl font-extrabold tabular-nums text-ink"
+                />
+              </p>
+            </div>
+            <p className="shrink-0 text-right text-xs font-bold text-ink/70">
+              ${Number(earnings.total_earned).toLocaleString("es-AR")}
+              <span className="block text-label font-medium text-ink/45">total</span>
             </p>
           </div>
-          <p className="shrink-0 text-right text-xs font-bold text-ink/70">
-            ${Number(earnings.total_earned).toLocaleString("es-AR")}
-            <span className="block text-label font-medium text-ink/45">total</span>
-          </p>
-        </div>
-      )}
-
-      {/* Puntualidad: proporción contra un límite (100%), no un stat tile de
-          texto plano — se muestra como barra con severidad (dataviz skill,
-          "single ratio against a limit" → meter). Antes competía en tamaño
-          con "Turnos"/"Cancelaciones", que son valores sueltos, no ratios. */}
-      <div className="px-4 pt-4">
-        <RateMeter
-          label="Puntualidad"
-          rate={profile.punctuality_rate}
-          hasHistory={profile.events_completed > 0}
-        />
-      </div>
-
-      {/* Stats, un acento por tile y los tres distintos: manteca en el dato
-          operativo (turnos), petróleo en el de fiabilidad (cancelaciones),
-          celeste en lo que acumula confianza (experiencia). */}
-      <div className="grid grid-cols-3 gap-2.5 p-4">
-        <StatTile
-          icon={<BriefcaseIcon size={16} />}
-          value={String(profile.events_completed)}
-          label="Turnos"
-          accent={TILE_MANTECA}
-        />
-        <StatTile
-          icon={<XCircleIcon size={16} />}
-          value={String(profile.cancellations)}
-          label="Cancelaciones"
-          accent={TILE_TRUST}
-        />
-        <StatTile
-          icon={<CheckCircleIcon size={16} />}
-          value={String(profile.years_experience)}
-          label="Años exp."
-          accent={TILE_CIELO}
-        />
-      </div>
-
-      {/* Nivel */}
-      <div className="px-4 pb-3">
-        <div className={`flex items-center gap-2.5 rounded-2xl ${meta.bg} px-3.5 py-2.5 ring-1 ${meta.ring}`}>
-          <MedalIcon size={20} className={meta.text} />
-          <div className="min-w-0">
-            <p className={`text-sm font-extrabold ${meta.text}`}>Nivel {levelLabel(level)}</p>
-            {/* El subtítulo hereda el color DEL NIVEL, no `text-ink/50`. En
-                modo oscuro `--color-ink` es crema y esta tarjeta no es una de
-                las superficies que voltean sus tokens, así que `text-ink/50`
-                salía crema translúcida sobre un tinte claro: invisible.
-                Colgarlo del mismo par de color que el título lo hace legible
-                en los dos modos por construcción. */}
-            <p className={`text-xs ${meta.text} opacity-70`}>
-              Según tu desempeño en turnos completados
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Insignias */}
-      <div className="px-4 pb-3">
-        <p className="mb-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Insignias</p>
-        {profile.badges.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {profile.badges.map((badge) => {
-              const Icon = BADGE_ICONS[badge] ?? AwardIcon;
-              return (
-                <span
-                  key={badge}
-                  className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary-text"
-                >
-                  <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
-                </span>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-ink/50">
-            Todavía no tenés insignias — completá turnos para ganarlas.
-          </p>
         )}
-      </div>
+
+        {/* Puntualidad: proporción contra un límite (100%), no un stat tile de
+            texto plano — se muestra como barra con severidad (dataviz skill,
+            "single ratio against a limit" → meter). Antes competía en tamaño
+            con "Turnos"/"Cancelaciones", que son valores sueltos, no ratios. */}
+        <div className="px-4 pt-4">
+          <RateMeter
+            label="Puntualidad"
+            rate={profile.punctuality_rate}
+            hasHistory={profile.events_completed > 0}
+          />
+        </div>
+
+        {/* Stats, un acento por tile y los tres distintos: manteca en el dato
+            operativo (turnos), petróleo en el de fiabilidad (cancelaciones),
+            celeste en lo que acumula confianza (experiencia). */}
+        <div className="grid grid-cols-3 gap-2.5 p-4">
+          <StatTile
+            icon={<BriefcaseIcon size={16} />}
+            value={String(profile.events_completed)}
+            label="Turnos"
+            tone="manteca"
+          />
+          <StatTile
+            icon={<XCircleIcon size={16} />}
+            value={String(profile.cancellations)}
+            label="Cancelaciones"
+            tone="trust"
+          />
+          <StatTile
+            icon={<CheckCircleIcon size={16} />}
+            value={String(profile.years_experience)}
+            label="Años exp."
+            tone="cielo"
+          />
+        </div>
+
+        {/* Insignias */}
+        <div className="px-4 pb-3">
+          <p className="mb-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Insignias</p>
+          {profile.badges.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {profile.badges.map((badge) => {
+                const Icon = BADGE_ICONS[badge] ?? AwardIcon;
+                return (
+                  <span
+                    key={badge}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary-text"
+                  >
+                    <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-ink/50">
+              Todavía no tenés insignias — completá turnos para ganarlas.
+            </p>
+          )}
+        </div>
+        </>
+      ) : (
+        <p className="px-5 py-4 text-center text-sm text-ink/55">
+          Tu reputación arranca con tu primer turno.
+        </p>
+      )}
 
       {/* Rubros */}
       {profile.skills.length > 0 && (

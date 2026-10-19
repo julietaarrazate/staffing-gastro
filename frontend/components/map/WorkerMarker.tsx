@@ -96,7 +96,7 @@ function WorkerMarker({
               className="h-full w-full rounded-full object-cover"
             />
           ) : (
-            <span className="text-sm font-bold text-white">{initial}</span>
+            <span className="text-sm font-bold text-night">{initial}</span>
           )}
           <span className="absolute -bottom-1 -right-1 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm">
             <StarIcon size={8} filled className="text-rating" />

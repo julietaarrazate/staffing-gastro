@@ -1,0 +1,22 @@
+{
+  "duracion": 48.0,
+  "bpm": 80,
+  "lineas": [
+    {"id": "v01", "voz": "ef_dora", "at": 0.9, "texto": "Viernes a la noche.", "dur": 1.36},
+    {"id": "v02", "voz": "ef_dora", "at": 2.5, "texto": "Salón lleno.", "dur": 0.98},
+    {"id": "v03", "voz": "ef_dora", "at": 4.0, "texto": "Y te escribe el mozo.", "dur": 1.54},
+    {"id": "v04", "voz": "ef_dora", "at": 7.3, "texto": "Si trabajás en gastronomía, conocés ese mensaje.", "dur": 3.19},
+    {"id": "v05", "voz": "ef_dora", "at": 12.0, "texto": "Somos Oído.", "dur": 1.0},
+    {"id": "v06", "voz": "ef_dora", "at": 13.5, "texto": "Y este año, nos vas a ver en Palermo.", "dur": 2.32},
+    {"id": "v07", "voz": "ef_dora", "at": 17.3, "texto": "Pero antes, te queremos contar por qué existimos.", "dur": 2.89},
+    {"id": "v08", "voz": "ef_dora", "at": 21.5, "texto": "Oído nace en Buenos Aires, con una idea simple:", "dur": 2.81},
+    {"id": "v09", "voz": "ef_dora", "at": 24.8, "texto": "que ningún turno se caiga por no encontrar a quién llamar.", "dur": 3.48},
+    {"id": "v10", "voz": "ef_dora", "at": 29.2, "texto": "El comercio lo pide en una frase.", "dur": 2.15},
+    {"id": "v11", "voz": "ef_dora", "at": 32.4, "texto": "Le avisamos a quien está cerca.", "dur": 2.02},
+    {"id": "v12", "voz": "ef_dora", "at": 34.9, "texto": "Y alguien contesta:", "dur": 1.39},
+    {"id": "v13", "voz": "em_alex", "at": 36.9, "texto": "¡Oído!", "dur": 0.67},
+    {"id": "v14", "voz": "ef_dora", "at": 38.2, "texto": "Nuestra misión: cubrir un turno en menos de diez minutos.", "dur": 3.41},
+    {"id": "v15", "voz": "ef_dora", "at": 43.4, "texto": "Oído.", "dur": 0.68},
+    {"id": "v16", "voz": "ef_dora", "at": 44.4, "texto": "Personal gastronómico, ya.", "dur": 1.85}
+  ]
+}

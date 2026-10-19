@@ -8,7 +8,7 @@ import { CloseIcon } from "@/components/icons";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
- * "Descubrir rápido": el mazo de tarjetas para deslizar, ahora como modo a pantalla completa
+ * "Descubrir rápido": el mazo de tarjetas para recorrer deslizando, como modo a pantalla completa
  * detrás de un botón del home (decisión de Julieta, 2026-09-22 — el home pasó a
  * la composición del board y el swipe se conserva para quien quiere decidir en
  * segundos).
@@ -19,14 +19,14 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
  */
 export default function DiscoverDeck({
   shifts,
-  onDecide,
+  onApply,
   onOpen,
   onClose,
   renderCard,
   empty,
 }: {
   shifts: Shift[];
-  onDecide: (shift: Shift, decision: "like" | "pass") => Promise<boolean>;
+  onApply: (shift: Shift) => Promise<boolean>;
   onOpen: (shift: Shift) => void;
   onClose: () => void;
   renderCard: (shift: Shift) => ReactNode;
@@ -64,7 +64,7 @@ export default function DiscoverDeck({
           <h2 id="discover-title" className="font-display text-h2 font-medium text-ink">
             Descubrir rápido
           </h2>
-          <p className="text-xs text-ink/55">Deslizá a la derecha para postularte, a la izquierda para pasar.</p>
+          <p className="text-xs text-ink/55">Deslizá para ver más turnos y postulate al que elijas.</p>
         </div>
         <button
           type="button"
@@ -76,7 +76,7 @@ export default function DiscoverDeck({
         </button>
       </div>
       <div className="min-h-0 flex-1 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <SwipeDeck shifts={shifts} onDecide={onDecide} onOpen={onOpen} renderCard={renderCard} empty={empty} />
+        <SwipeDeck shifts={shifts} onApply={onApply} onOpen={onOpen} renderCard={renderCard} empty={empty} />
       </div>
     </div>,
     document.body

@@ -38,6 +38,12 @@ Staffya no tenía hasta este fix.
   resultados fuera de `node_modules`). El único uso de UTC en fechas (`app/shifts/new/page.tsx`,
   duplicar turno +7 días con `setUTCDate`) es correcto a propósito: Argentina no tiene horario de
   verano, así que +7 días en UTC preserva la hora de pared ART sin ambigüedad.
+- **Encontrado (2026-09-26): una hora que ve el usuario, formateada en UTC.** El mail de "te
+  aceptaron" (`shift/application/services.py::_send_acceptance_email`) hacía
+  `shift.start_at.strftime("%d/%m/%Y a las %H:%M")` sobre el datetime de la base (UTC): un turno
+  de las 20:00 llegaba como "a las 23:00". No es un corte de día sino la hora misma, y pasaba
+  siempre, no sólo de noche. Nadie lo vio porque en producción salió un solo mail en toda la
+  historia. Fix: `core/tz.py::format_turno_art`/`to_art`, con test en `tests/test_tz.py`.
 - **Excepción a propósito (no tocar):** timestamps de auditoría/creación/expiración de tokens
   siguen en UTC — `created_at`/`updated_at` (`func.now()` en todos los modelos ORM),
   `revoked_at`/`used_at` (sesiones y tokens de reset, `identity/infrastructure/repositories.py`),
@@ -46,7 +52,9 @@ Staffya no tenía hasta este fix.
   de negocio con corte de día — deben quedar comparables sin importar en qué zona corre el
   servidor.
 
-**Cómo evitarlo:** nunca `date.today()`/`datetime.now()` sin tz para una decisión que dependa del
+**Cómo evitarlo:** nunca `strftime` directo sobre un datetime de la base para un texto que lee una
+persona (mail, push, notificación): pasarlo antes por `to_art()`/`format_turno_art()`. Y nunca
+`date.today()`/`datetime.now()` sin tz para una decisión que dependa del
 día calendario en Argentina — usar `hoy_art()`/`now_art()` (`backend/app/core/tz.py`) o, en el
 frontend, `lib/datetime.ts`. Sólo dejar UTC en timestamps de auditoría/expiración que no
 representan un "día de negocio".
@@ -279,8 +287,21 @@ circulan públicamente (`/turno/{id}` se comparte por WhatsApp).
 
 **Cómo evitarlo:** un endpoint que devuelve un recurso por id decide **quién es el que mira**
 (parte del recurso / cualquier otro) y recorta lo que es de una persona para el segundo caso
-(`_is_party_to` + `_without_worker_data` en `shift/api/routes.py`). Un parámetro
+(`_is_party_to` + `without_worker_data` en `shift/api/schemas.py`). Un parámetro
 `_current_user` sin usar en una ruta de lectura es la señal para revisar.
+
+- **Se repitió (2026-10-10, auditoría):** el arreglo cerró una puerta y quedaron tres:
+  `GET /workers/{id}` devolvía el domicilio exacto del trabajador (`latitude`/`longitude`, que el
+  mapa ya desplazaba, TECH_DEBT S4) y su fecha de nacimiento a cualquier sesión;
+  `GET /saved-shifts` y `GET /applications/mine` embebían el `ShiftResponse` entero, así que
+  guardar un turno ajeno (se aceptaba cualquier id, en cualquier estado) o haber sido el
+  postulante rechazado daba la posición en vivo de quien lo tomó. Arreglo: los tres recortan
+  para quien no es parte, y `save` sólo acepta turnos abiertos o propios. Tests en
+  `backend/tests/test_privacidad_datos_trabajador.py`.
+
+**Cómo evitarlo, segunda parte:** el recorte va donde se **embebe** el schema, no sólo en su
+endpoint propio. Antes de devolver un `ShiftResponse` o un `WorkerProfileResponse` desde otro
+módulo, preguntate quién mira; `without_worker_data` es público para eso.
 
 ---
 
@@ -458,3 +479,26 @@ que respetar TODAS las ventanas de tiempo cercanas que el dominio vaya a chequea
 que motivó el cambio. Se resolvió con 15 minutos — suficiente para seguir siendo "futuro" (el
 filtro de `list_open`) y cómodamente adentro de cualquier ventana de gracia de 30 minutos del
 dominio.
+
+---
+
+## Renovar el access token cambiaba el `token` del contexto (y todo lo que dependía de él)
+
+**Patrón:** el access token vence a los 15 minutos y `AuthProvider` lo renueva cada 10. La
+renovación hacía `setToken(nuevo)`, y unas 30 pantallas cargan sus datos en un efecto con
+`[token]`: cada 10 minutos todo se recargaba. Los formularios de perfil y "duplicar turno"
+pisaban lo que la persona estaba escribiendo, el chat se reconectaba, y lo que había capturado
+el token en un closure (el intervalo de "Va en camino") seguía mandando el viejo hasta dar 401,
+tragado por un `.catch(() => {})` mientras la pantalla decía "compartiendo".
+
+- **Encontrado (2026-10-10, auditoría):** leyendo `use-en-route-sharing.ts` y los efectos de
+  `WorkerProfileForm`/`CompanyProfileForm`. Fix en la raíz, no pantalla por pantalla:
+  `lib/api.ts` distingue el token que **identifica la sesión** (el del contexto, que sólo cambia
+  al loguearse, salir o impersonar) del **vigente** (el renovado), y toda request con el de la
+  sesión sale con el vigente. Ante un 401 renueva una vez (compartida) y reintenta. Tests en
+  `lib/api.test.ts`.
+
+**Cómo evitarlo:** un valor que cambia por mantenimiento (renovar una credencial, reconectar)
+no va en el estado que las pantallas usan como dependencia de sus efectos. Si una pantalla
+necesita "el token de ahora" dentro de un timer, lo pide al momento (`resolveToken`), no lo
+captura al arrancar.

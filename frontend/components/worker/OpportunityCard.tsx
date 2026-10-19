@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar } from "@/components/ui";
-import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon } from "@/components/icons";
+import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon } from "@/components/icons";
+import { shareShift } from "@/lib/shift-share";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { shiftHeroPhoto } from "@/lib/company-photo";
+import { formatKm } from "@/lib/format";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first): foto real
@@ -20,7 +22,7 @@ import { shiftHeroPhoto } from "@/lib/company-photo";
  */
 /** Distancia legible: bajo 1 km en metros redondeados, arriba con un decimal. */
 function formatDistance(km: number): string {
-  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${km.toFixed(1)} km`;
+  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${formatKm(km)}`;
 }
 
 export default function OpportunityCard({
@@ -29,24 +31,40 @@ export default function OpportunityCard({
   onApply,
   onPass,
   applying = false,
+  shareable = false,
+  preview = false,
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
   distanceKm?: number | null;
   /** Grilla de escritorio (feed/page.tsx, md+): decidir sin el gesto de
    *  swipe, que no tiene sentido con mouse. En el mazo mobile (SwipeDeck) y
-   *  en la landing (ScrollHeroShowcase) se omiten y la fila no se renderiza. */
+   *  en la landing (components/landing) se omiten y la
+   *  fila no se renderiza. */
   onApply?: () => void;
   onPass?: () => void;
   applying?: boolean;
+  /** Botón "Compartir" al lado de "Cómo llegar", para pasarle el turno a un
+   *  colega (Web Share nativo en el celu, `wa.me` de respaldo). Sólo en las
+   *  grillas (`/buscar`, feed de escritorio), donde la tarjeta tiene alto
+   *  fijo y sobra lugar; en el mazo mobile no, porque ahí cada píxel del
+   *  cuerpo compite con "Cómo llegar" (ver más abajo). */
+  shareable?: boolean;
+  /** Como imagen (la landing): el puesto va como texto y no como `h2`, y el
+   *  comercio sin link, así los buscadores no leen títulos ni links de un
+   *  turno de ejemplo. */
+  preview?: boolean;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
+  const Title = preview ? "p" : "h2";
   const heroFallback = SKILL_HERO_TONE[shift.position];
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
+  const ink = heroInk(shift.position, hasPhoto);
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const hasDirections = shift.latitude != null && shift.longitude != null;
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
@@ -110,7 +128,7 @@ export default function OpportunityCard({
                 quedaba ilegible. Es el mismo defecto que la inicial y la
                 cámara pisándose en el avatar (fase L): dos cosas dibujadas en
                 el mismo lugar porque cada una se posicionó por su cuenta. */}
-            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
+            <Icon size={132} className={`absolute -right-5 -top-6 ${ink.mark}`} />
           </div>
         )}
         {/* Velo para legibilidad del texto sobre la foto */}
@@ -123,14 +141,21 @@ export default function OpportunityCard({
             el título de abajo — bug real reportado por Julieta con captura,
             "Catering Puerto Madero" pisando "Personal de eventos", 2026-07-29). */}
         <div className="relative flex items-center justify-between gap-2 p-3.5">
-          <Link
-            href={`/companies/${shift.company_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
-          >
-            <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
-            <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
-          </Link>
+          {preview ? (
+            <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm">
+              <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
+              <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+            </span>
+          ) : (
+            <Link
+              href={`/companies/${shift.company_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
+            >
+              <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
+              <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+            </Link>
+          )}
           <div className="flex shrink-0 items-center gap-2">
             {shift.urgent && (
               <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm">
@@ -146,16 +171,18 @@ export default function OpportunityCard({
             líneas en columnas angostas) para que nunca crezca más de lo que
             el hero tiene reservado. */}
         <div className="relative px-5 pb-4">
-          {/* Blanco siempre, con o sin foto: el fallback ahora es un gradiente
-              saturado (no la banda pálida de antes), así que necesita el
-              mismo contraste que la foto+velo. */}
-          <h2 className="line-clamp-2 font-display text-h1 font-medium text-white drop-shadow">
+          {/* Blanco sobre la foto con velo y sobre los tonos profundos; sobre
+              el color de marca, `on-brand` (ver `heroInk`). */}
+          <Title className={`line-clamp-2 font-display text-h1 font-medium ${ink.strong}`}>
             {SKILL_LABELS[shift.position]}
-          </h2>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
+          </Title>
+          <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${ink.soft}`}>
             <MapPinIcon size={15} />
             {shift.city ?? "Ubicación a confirmar"}
-            {distanceKm != null && <span className="text-white/70">· {formatDistance(distanceKm)}</span>}
+            {/* Al 85% y no al 70%: sobre el degradé violeta que probó la landing
+                el 70% daba 3,98:1 (medido con píxeles a 390 y 1440px); al
+                85%, 5,1. */}
+            {distanceKm != null && <span className={ink.softer}>· {formatDistance(distanceKm)}</span>}
           </p>
         </div>
       </div>
@@ -241,23 +268,48 @@ export default function OpportunityCard({
               lo asignaron (antes sólo estaba en /my-shifts, con el turno ya
               aceptado — al revés de lo que hace falta; Julieta, 2026-07-29).
               stopPropagation para no interferir con el swipe/drag del mazo. */}
-          {shift.latitude != null && shift.longitude != null && (
-            <button
-              type="button"
-              aria-label="Cómo llegar"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(
-                  `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                );
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
-            >
-              <RouteIcon size={16} /> Cómo llegar
-            </button>
+          {/* Compartir (2026-10-04, pedido de Julieta: en Buscar la tarjeta
+              tenía un hueco grande entre los datos y "Cómo llegar"). Va AL
+              LADO de "Cómo llegar", no en una fila propia: son las dos
+              acciones secundarias (sirven antes de decidir y no comprometen
+              nada), así que se leen como un par, y no suman alto — el motivo
+              por el que el "Compartir por WhatsApp" de 2026-08-16 se había
+              sacado de esta tarjeta era justamente que empujaba "Cómo llegar"
+              fuera de vista. */}
+          {(hasDirections || shareable) && (
+            <div className="flex gap-2">
+              {hasDirections && (
+                <button
+                  type="button"
+                  aria-label="Cómo llegar"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+                >
+                  <RouteIcon size={16} /> Cómo llegar
+                </button>
+              )}
+              {shareable && (
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    shareShift(shift, `${window.location.origin}/turno/${shift.id}`);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-card py-2.5 text-sm font-semibold text-ink/80 active:scale-[0.98]"
+                >
+                  <ShareIcon size={16} /> Compartir
+                </button>
+              )}
+            </div>
           )}
 
           {/* Decidir sin swipe (grilla de escritorio): mismo par de acciones

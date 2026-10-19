@@ -243,6 +243,7 @@ def test_notifications_websocket_closes_after_too_many_frames():
                     "password": "supersecreta123",
                     "full_name": "Worker Flood",
                     "role": "worker",
+                    "accepted_terms": True,
                 },
             )
             assert register.status_code == 201

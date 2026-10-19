@@ -81,15 +81,18 @@ test("el stepper resalta el hito real (asignado→paso2, en curso→paso3, final
 
   await page.goto("/shifts");
 
+  // Desde 2026-09-28 el texto "Paso N de 4" ya no se ve en el camino normal
+  // (repetía el chip de estado); sigue siendo el nombre accesible del stepper.
   const asignadoCard = page.locator('[data-shift-id="shift-asignado"]');
   await expect(asignadoCard).toBeVisible();
-  await expect(asignadoCard.getByText("Paso 2 de 4: Asignado")).toBeVisible();
+  await expect(asignadoCard.getByText("Paso 2 de 4: Asignado")).toHaveCount(0);
+  await expect(asignadoCard.getByRole("list", { name: "Paso 2 de 4: Asignado" })).toBeVisible();
 
   const enCaminoCard = page.locator('[data-shift-id="shift-en-camino"]');
-  await expect(enCaminoCard.getByText("Paso 3 de 4: En curso")).toBeVisible();
+  await expect(enCaminoCard.getByRole("list", { name: "Paso 3 de 4: En curso" })).toBeVisible();
 
   const finalizadoCard = page.locator('[data-shift-id="shift-finalizado"]');
-  await expect(finalizadoCard.getByText("Paso 4 de 4: Finalizado")).toBeVisible();
+  await expect(finalizadoCard.getByRole("list", { name: "Paso 4 de 4: Finalizado" })).toBeVisible();
 });
 
 test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde murió, sin un 5º paso", async ({
@@ -236,8 +239,66 @@ test("el comercio ve 'va en camino' sólo mientras el trabajador comparte", asyn
   await expect(enViaje.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 15_000 });
   // La distancia es el dato que responde "¿llega?", no un adorno.
   await expect(enViaje.getByText(/\d/).filter({ hasText: /km|m ·/ }).first()).toBeVisible();
+  // Y el tiempo estimado, que es la pregunta real ("¿llega a horario?"):
+  // ~1 km en línea recta son unos 5 minutos en colectivo.
+  await expect(enViaje.getByText("~5 min")).toBeVisible();
 
   await expect(
     page.locator('[data-shift-id="shift-sin-compartir"]').getByText("Va en camino")
   ).toHaveCount(0);
+});
+
+/**
+ * El mapa no es una foto: mientras un turno confirmado está por empezar, el
+ * panel se refresca solo y el comercio ve aparecer (y moverse) al trabajador
+ * sin recargar la página.
+ */
+test("el panel se refresca solo mientras alguien puede venir en camino", async ({ page }) => {
+  await page.clock.install();
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  const startSoon = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const base = {
+    id: "shift-por-empezar",
+    status: "confirmado",
+    worker_profile_id: "wp-1",
+    worker_name: "Juana Pérez",
+    start_at: startSoon,
+    latitude: -34.5875,
+    longitude: -58.4257,
+  };
+  let enViaje = false;
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPLOYER_SESSION) })
+  );
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        shift(
+          enViaje
+            ? {
+                ...base,
+                en_route_latitude: -34.5955,
+                en_route_longitude: -58.4257,
+                en_route_at: new Date().toISOString(),
+              }
+            : base
+        ),
+      ]),
+    })
+  );
+
+  await page.goto("/shifts");
+  const card = page.locator('[data-shift-id="shift-por-empezar"]');
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await expect(card.getByText("Juana Pérez va en camino")).toHaveCount(0);
+
+  // El trabajador sale; el comercio no toca nada.
+  enViaje = true;
+  await page.clock.runFor(31_000);
+  await expect(card.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 10_000 });
 });

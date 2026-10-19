@@ -5,6 +5,7 @@ Admin: cola de revisión, aprobar/rechazar. Mapea las excepciones de dominio a
 códigos HTTP; el estado propio no expone evidencias (no-disclosure).
 """
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -15,11 +16,18 @@ from app.modules.identity.api.dependencies import get_current_user, require_role
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
-from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.api.dependencies import (
+    get_email_sender,
+    get_notification_repository,
+)
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_identity_verification_email_html,
+    render_verification_decision_email_html,
 )
+from app.modules.notification.domain.entities import Notification
+from app.modules.notification.domain.repositories import NotificationRepository
+from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.verification.api.dependencies import get_verification_service
@@ -41,8 +49,11 @@ from app.modules.verification.domain.exceptions import (
     ClaimNotPendingError,
     EvidenceRequiredError,
 )
-from app.modules.verification.domain.value_objects import ClaimType
+from app.modules.verification.domain.entities import Claim
+from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
 from app.modules.worker.api.dependencies import get_user_repository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/identity", tags=["identity-verification"])
 
@@ -50,6 +61,9 @@ ServiceDep = Annotated[VerificationService, Depends(get_verification_service)]
 UsersDep = Annotated[UserRepository, Depends(get_user_repository)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]
+NotificationsDep = Annotated[
+    NotificationRepository, Depends(get_notification_repository)
+]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 # Cruce a otro módulo por su PUERTO inyectado, nunca importando sus entrañas
@@ -190,13 +204,75 @@ async def list_pending_claims(
     return responses
 
 
+# Qué se verificó, dicho como lo entiende la persona ("Revisamos tu ...").
+_DECISION_SUBJECT = {
+    ClaimType.DOCUMENTO_VERIFICADO: "identidad",
+    ClaimType.NEGOCIO_VERIFICADO: "constancia de AFIP",
+}
+
+
+async def _notify_decision(
+    claim: Claim,
+    users: UserRepository,
+    notifications: NotificationRepository,
+    email_sender: EmailSender,
+) -> None:
+    """Le avisa a la persona que su verificación se aprobó o se rechazó, en
+    la app (con push, si lo tiene activado) y por mail.
+
+    Antes no se avisaba nada: el mail de invitación promete "te avisamos por
+    acá apenas quede lista" y la promesa no se cumplía. Best-effort: la
+    decisión ya quedó guardada y un aviso que falla no la deshace."""
+    what = _DECISION_SUBJECT.get(claim.claim_type, "verificación")
+    approved = claim.status == ClaimStatus.VERIFICADA
+    if approved:
+        title = "Verificación aprobada"
+        message = f"Revisamos tu {what} y quedó aprobada. El sello ya se ve en tu perfil."
+    else:
+        title = "Revisá tu verificación"
+        message = f"No pudimos aprobar tu {what}."
+        if claim.rejection_reason:
+            message += f" Motivo: {claim.rejection_reason}"
+    try:
+        await notifications.add(
+            Notification(
+                user_id=claim.user_id,
+                type=NotificationType.VERIFICATION_DECIDED,
+                title=title,
+                message=message,
+                link="/profile",
+            )
+        )
+        user = await users.get_by_id(claim.user_id)
+        if user is None:
+            return
+        await email_sender.send(
+            to=user.email,
+            subject=f"{title} en Oído",
+            html=render_verification_decision_email_html(
+                user.full_name,
+                approved=approved,
+                what=what,
+                reason=claim.rejection_reason,
+                link=f"{settings.frontend_url}/profile",
+            ),
+        )
+    except Exception:
+        logger.exception("No se pudo avisar la decisión del claim %s", claim.id)
+
+
 @router.post(
     "/claims/{claim_id}/approve",
     response_model=ClaimSummaryResponse,
     summary="Aprobar un claim de identidad (admin)",
 )
 async def approve_claim(
-    claim_id: UUID, current_user: AdminDep, service: ServiceDep
+    claim_id: UUID,
+    current_user: AdminDep,
+    service: ServiceDep,
+    users: UsersDep,
+    notifications: NotificationsDep,
+    email_sender: EmailSenderDep,
 ):
     try:
         claim = await service.approve_claim(claim_id, current_user.id)
@@ -209,6 +285,7 @@ async def approve_claim(
             status_code=status.HTTP_409_CONFLICT,
             detail="El claim no está pendiente de revisión",
         ) from exc
+    await _notify_decision(claim, users, notifications, email_sender)
     return ClaimSummaryResponse(
         claim_type=claim.claim_type,
         status=claim.status,
@@ -228,6 +305,9 @@ async def reject_claim(
     payload: RejectClaimInput,
     current_user: AdminDep,
     service: ServiceDep,
+    users: UsersDep,
+    notifications: NotificationsDep,
+    email_sender: EmailSenderDep,
 ):
     try:
         claim = await service.reject_claim(claim_id, current_user.id, payload.reason)
@@ -240,6 +320,7 @@ async def reject_claim(
             status_code=status.HTTP_409_CONFLICT,
             detail="El claim no está pendiente de revisión",
         ) from exc
+    await _notify_decision(claim, users, notifications, email_sender)
     return ClaimSummaryResponse(
         claim_type=claim.claim_type,
         status=claim.status,

@@ -10,8 +10,10 @@ type Size = "sm" | "md" | "lg";
 const VARIANTS: Record<Variant, string> = {
   // Ámbar de marca con texto OSCURO: ink sobre #d97706 da 6.61 (AA holgado); el
   // blanco sobre ámbar da 2.86 y no llega ni al mínimo de texto grande.
+  // Desactivado va gris azulado (`surface` + tinta apagada), no ámbar al 50%:
+  // sobre el lienzo oscuro el ámbar transparente se leía marrón (2026-10-19).
   primary:
-    "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04]",
+    "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04] disabled:bg-surface disabled:text-ink-mute disabled:shadow-none disabled:opacity-100 disabled:ring-1 disabled:ring-line",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
   secondary:

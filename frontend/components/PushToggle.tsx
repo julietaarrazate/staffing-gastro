@@ -14,6 +14,7 @@ import {
 } from "@/lib/push";
 import { BellIcon } from "@/components/icons";
 import { Spinner } from "@/components/ui";
+import IconChip from "@/components/ui/IconChip";
 
 export default function PushToggle() {
   const { token } = useAuth();
@@ -56,9 +57,9 @@ export default function PushToggle() {
       disabled={checking || loading}
       className="flex w-full items-center gap-3 px-4 py-3.5 text-left first:rounded-t-2xl last:rounded-b-2xl hover:bg-surface disabled:opacity-70"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface text-ink/50">
+      <IconChip tone="cielo">
         <BellIcon size={18} />
-      </span>
+      </IconChip>
       <span className="flex-1 text-sm font-medium text-ink/80">Notificaciones push</span>
       {checking || loading ? (
         <Spinner size={16} className="text-ink/40" />

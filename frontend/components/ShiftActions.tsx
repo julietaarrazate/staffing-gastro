@@ -45,12 +45,14 @@ export default function ShiftActions({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <p className="text-sm text-ink/60">
-        {shift.status === "pagado" && (
-          <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
-        )}
-        {step.hint}
-      </p>
+      {step.hint && (
+        <p className="text-sm text-ink/60">
+          {shift.status === "pagado" && (
+            <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
+          )}
+          {step.hint}
+        </p>
+      )}
 
       <div className="flex items-center gap-2">
         {step.action === "candidates" ? (

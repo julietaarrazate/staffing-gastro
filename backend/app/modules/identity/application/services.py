@@ -34,12 +34,14 @@ from app.modules.identity.domain.entities import (
     EmailVerificationToken,
     PasswordResetToken,
     RefreshSession,
+    TermsAcceptance,
     User,
 )
 from app.modules.identity.domain.exceptions import (
     EmailAlreadyExistsError,
     EmailVerificationTokenInvalidError,
     GoogleEmailNotVerifiedError,
+    GuestAccessDisabledError,
     InactiveUserError,
     InvalidCredentialsError,
     InvalidGuestPinError,
@@ -53,9 +55,14 @@ from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
+    TermsAcceptanceRepository,
     UserRepository,
 )
-from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.domain.value_objects import (
+    LEGAL_TERMS_VERSION,
+    TermsAcceptanceChannel,
+    UserRole,
+)
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
@@ -68,16 +75,16 @@ logger = logging.getLogger(__name__)
 
 # --- Acceso de invitado para la beta ("Explorar sin cuenta") --------------
 # PIN pensado para que un grupo cerrado de testers entre a probar la app sin
-# registrarse. Se configura ACÁ, en el código (no es una env var, a pedido de
-# la operadora: "algo simple que puedas configurar, sin variables").
+# registrarse. Se configura con la env var `GUEST_ACCESS_PIN`
+# (`settings.guest_access_pin`); vacía = acceso invitado apagado.
 #
-#   👉 Para cambiar el PIN, editá esta constante y nada más.
-#
-# OJO (honestidad): si el repositorio es público, este valor queda visible en
-# el código. Es un gate liviano para una beta con amigos, NO una credencial
-# fuerte. Para seguridad real, moverlo a una env var. El rate-limit por IP del
-# endpoint (ver api/routes.py) frena la fuerza bruta.
-GUEST_ACCESS_PIN = "3526"
+# Hasta 2026-10-10 era una constante en este archivo, a pedido de la
+# operadora ("algo simple, sin variables"). Pero el repositorio es público:
+# el PIN estaba a la vista de cualquiera, y con él se entraba como comercio
+# al mapa de trabajadores. Ese valor quedó en la historia de git y no se
+# reusa. El rate-limit por IP del endpoint (ver api/routes.py) frena la
+# fuerza bruta; aun así conviene un PIN de 8+ dígitos (sólo dígitos: el
+# campo del login abre el teclado numérico).
 
 # Cuentas invitadas compartidas (una por rol), creadas on-demand la primera vez
 # que alguien entra con el PIN. Son sandboxes COMPARTIDOS: todos los testers de
@@ -126,6 +133,7 @@ class IdentityService:
         email_sender: EmailSender,
         google_verifier: GoogleTokenVerifier,
         email_verification_tokens: EmailVerificationTokenRepository | None = None,
+        terms_acceptances: TermsAcceptanceRepository | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
@@ -133,6 +141,7 @@ class IdentityService:
         self._email_sender = email_sender
         self._google_verifier = google_verifier
         self._verification_tokens = email_verification_tokens
+        self._terms_acceptances = terms_acceptances
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe.
@@ -150,6 +159,8 @@ class IdentityService:
             role=command.role,
         )
         created = await self._users.add(user)
+        if command.accepted_terms:
+            await self._record_terms_acceptance(created, TermsAcceptanceChannel.EMAIL)
         if self._verification_tokens is not None:
             await self._send_verification_email(created)
         return created
@@ -164,12 +175,16 @@ class IdentityService:
         return await self._issue_tokens(user)
 
     async def guest_login(self, pin: str, role: UserRole) -> TokenPair:
-        """Acceso de invitado (beta): valida el PIN configurado en código y
+        """Acceso de invitado (beta): valida el PIN de `GUEST_ACCESS_PIN` y
         entra en la cuenta invitada compartida del rol pedido, creándola la
         primera vez. El tester sólo pone el PIN — nunca se exponen
         credenciales, y la cuenta invitada tiene contraseña imposible (no se
-        puede loguear por email/contraseña)."""
-        if not secrets.compare_digest(pin, GUEST_ACCESS_PIN):
+        puede loguear por email/contraseña). Sin PIN configurado, el acceso
+        invitado está apagado."""
+        expected_pin = settings.guest_access_pin
+        if not expected_pin:
+            raise GuestAccessDisabledError()
+        if not secrets.compare_digest(pin.encode(), expected_pin.encode()):
             raise InvalidGuestPinError()
 
         email, name = GUEST_ACCOUNTS[role]
@@ -209,6 +224,8 @@ class IdentityService:
         if user is not None:
             if not user.is_active:
                 raise InactiveUserError()
+            if not user.is_verified:
+                await self._claim_unverified_account(user)
             return await self._issue_tokens(user)
 
         if command.role is None:
@@ -224,7 +241,44 @@ class IdentityService:
             is_verified=True,
         )
         user = await self._users.add(user)
+        if command.accepted_terms:
+            await self._record_terms_acceptance(user, TermsAcceptanceChannel.GOOGLE)
+        # La bienvenida se manda cuando la cuenta queda activa. Con email eso
+        # pasa al confirmarlo (`verify_email`); con Google la cuenta ya nace
+        # confirmada, así que es acá. Antes estas cuentas no la recibían nunca.
+        await self._send_welcome_email(user)
         return await self._issue_tokens(user)
+
+    async def _claim_unverified_account(self, user: User) -> None:
+        """Google acaba de probar que quien entra es dueño del email; la cuenta
+        que ya existía con ese email nunca lo probó (se registró con
+        contraseña y no confirmó el mail). Puede ser de la misma persona... o
+        de alguien que la creó primero con un email ajeno: antes, al entrar
+        con Google, la dueña real compartía la cuenta con quien la había
+        creado, que seguía entrando con su contraseña y veía todo lo que ella
+        cargaba (DNI, chats, perfil).
+
+        Ahora la cuenta queda de quien probó el email: se marca verificada, la
+        contraseña anterior deja de servir y se cierran todas las sesiones
+        abiertas. Si era la misma persona, pierde la contraseña que nunca
+        confirmó y la recupera con "Olvidé mi contraseña"."""
+        user.verify()
+        user.hashed_password = _google_local_password()
+        await self._users.update(user)
+        await self._sessions.revoke_all_for_user(user.id)
+        logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
+
+    async def _record_terms_acceptance(
+        self, user: User, channel: TermsAcceptanceChannel
+    ) -> None:
+        """Deja constancia de que `user` aceptó la versión vigente de términos
+        y privacidad. La versión la pone el servidor, no el cliente: es la que
+        se estaba publicando cuando se creó la cuenta."""
+        if self._terms_acceptances is None:
+            return
+        await self._terms_acceptances.add(
+            TermsAcceptance(user_id=user.id, version=LEGAL_TERMS_VERSION, channel=channel)
+        )
 
     async def refresh(self, refresh_token: str) -> TokenPair:
         """Emite un nuevo par de tokens a partir de un refresh token válido.
@@ -392,16 +446,20 @@ class IdentityService:
             )
 
     async def _send_welcome_email(self, user: User) -> None:
-        """Bienvenida con próximos pasos — se manda una sola vez, al
-        confirmar el email por primera vez (ver `verify_email`), no al
-        registrarse: mandar dos emails (confirmación + bienvenida) en el
-        mismo instante del registro se siente a spam, y recién ahí la cuenta
-        queda activa de verdad. Best-effort, mismo contrato que el resto."""
-        profile_link = f"{settings.frontend_url}/bienvenida"
+        """Bienvenida con próximos pasos — se manda una sola vez, cuando la
+        cuenta queda activa: al confirmar el email por primera vez (ver
+        `verify_email`) o al crearla con Google (ver `authenticate_google`).
+        No al registrarse con email: dos mails (confirmación + bienvenida) en
+        el mismo instante se sienten a spam. Best-effort, mismo contrato que
+        el resto."""
         if user.role == UserRole.EMPLOYER:
-            html = render_welcome_employer_email_html(user.full_name, profile_link)
+            html = render_welcome_employer_email_html(
+                user.full_name, f"{settings.frontend_url}/shifts/new"
+            )
         else:
-            html = render_welcome_worker_email_html(user.full_name, profile_link)
+            html = render_welcome_worker_email_html(
+                user.full_name, f"{settings.frontend_url}/feed"
+            )
         try:
             await self._email_sender.send(
                 to=user.email,
