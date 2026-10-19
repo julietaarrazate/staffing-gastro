@@ -45,7 +45,13 @@ Config declarativa en `render.yaml` (raíz del repo).
 > **Credenciales:** nunca en el repo ni en el chat; siempre env vars en
 > Render/Vercel. Si se filtran, revocar. Ver [SECURITY.md](./SECURITY.md).
 
-## Frontend en Vercel
+## Frontend en Vercel (retirado el 2026-10-19)
+
+**Ya no sirve producción.** El 2026-10-19 se desconectó Git del proyecto
+`staffing-gastro` y después se lo pausó; también se sacaron sus dominios. El
+proyecto queda guardado, sin borrar. `FRONTEND_URL` y `CORS_ORIGINS` ya no
+nombran `staffing-gastro.vercel.app`. Lo que sigue describe cómo funcionaba,
+por si hubiera que volver.
 
 - Auto-deploy desde `main`; **preview por PR** (comentario de Vercel con la URL).
 - **Sólo buildea si cambió `frontend/`** (`frontend/vercel.json` →

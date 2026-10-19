@@ -111,9 +111,10 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = "Oído <onboarding@resend.dev>"
 
-    # URL pública del frontend (Vercel), usada para armar links de emails
-    # transaccionales (p. ej. `{frontend_url}/restablecer?token=...`).
-    frontend_url: str = "https://staffing-gastro.vercel.app"
+    # URL pública del frontend, usada para armar links de emails
+    # transaccionales (p. ej. `{frontend_url}/restablecer?token=...`). Desde el
+    # 2026-10-19 la sirve Cloudflare Workers; `render.yaml` la fija igual.
+    frontend_url: str = "https://www.oido.com.ar"
 
     # --- Google Sign-In (opt-in) — ver docs/reference/ACCESO_MODERNO.md ---
     # Client ID de un "OAuth 2.0 Client ID" tipo Web application, creado en

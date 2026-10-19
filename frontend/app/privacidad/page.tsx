@@ -245,12 +245,11 @@ export default function PrivacidadPage() {
               que tratan los datos sólo por cuenta nuestra y para esto:
             </p>
             <ul className="ml-5 list-disc space-y-1.5">
-              <li>Vercel: sirve la app web (EE.UU. y red global).</li>
               <li>
-                Cloudflare: dominio y conexión segura con el servidor,
-                protección contra ataques y la verificación anti-robots al
-                entrar o registrarte (EE.UU. y red global). Ve tu dirección
-                IP y datos técnicos del navegador.
+                Cloudflare: sirve la app web, el dominio y la conexión segura
+                con el servidor, la protección contra ataques y la
+                verificación anti-robots al entrar o registrarte (EE.UU. y red
+                global). Ve tu dirección IP y datos técnicos del navegador.
               </li>
               <li>Render: servidor de la app (EE.UU.).</li>
               <li>Neon: base de datos (EE.UU.).</li>
