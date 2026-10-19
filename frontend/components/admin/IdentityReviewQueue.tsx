@@ -13,6 +13,7 @@ import {
 } from "@/lib/identity";
 import { Avatar, Button, Card, EmptyState, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { FileTextIcon, ShieldIcon } from "@/components/icons";
+import { safeHttpsUrl } from "@/lib/safe-url";
 
 /**
  * Una evidencia en la cola. La constancia de AFIP suele ser un **PDF**, y un
@@ -21,12 +22,13 @@ import { FileTextIcon, ShieldIcon } from "@/components/icons";
  * una foto de DNI. Un documento se muestra como documento.
  */
 function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
-  if (!evidence.data_url) return null;
+  const href = safeHttpsUrl(evidence.data_url);
+  if (!href) return null;
   const label = EVIDENCE_LABELS[evidence.evidence_type] ?? evidence.evidence_type;
 
   return (
     <a
-      href={evidence.data_url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="group"
@@ -40,7 +42,7 @@ function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={evidence.data_url}
+          src={href}
           alt={label}
           className="aspect-[3/2] w-32 rounded-xl object-cover ring-1 ring-line transition group-hover:ring-primary"
         />

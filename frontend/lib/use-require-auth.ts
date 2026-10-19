@@ -16,12 +16,15 @@ import { useAuth } from "@/lib/auth-context";
  * auditoría de producto 2026-08-09).
  */
 export function useRequireAuth() {
-  const { user, token, loading } = useAuth();
+  const { user, token, loading, justLoggedOut } = useAuth();
   const router = useRouter();
 
+  // Recién salida de la cuenta, va a la landing como el propio `logout`
+  // (2026-10-13): si mandara a "/login", este redirect de la pantalla que se
+  // estaba viendo le ganaba al de la salida.
   useEffect(() => {
-    if (!loading && !token) router.replace("/login");
-  }, [loading, token, router]);
+    if (!loading && !token) router.replace(justLoggedOut ? "/" : "/login");
+  }, [loading, token, justLoggedOut, router]);
 
   return { user, token, loading };
 }

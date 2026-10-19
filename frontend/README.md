@@ -6,7 +6,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 |----------|-------------|
 | `NEXT_PUBLIC_API_URL` | URL base del backend (ver `.env.production`). |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloud name de la cuenta de [Cloudinary](https://cloudinary.com) usada para subir foto de perfil/logo. |
-| `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | Nombre de un *upload preset* **unsigned** en esa cuenta de Cloudinary (Settings → Upload → Upload presets → Add upload preset, Signing mode: Unsigned). |
+| ~~`NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`~~ | Ya no se usa (2026-10-15): todas las subidas son firmadas por el backend (`POST /uploads/sign-*`), que necesita `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET` en Render. |
 
 Sin estas dos últimas, el botón de subir foto en `/profile` muestra un error
 ("La subida de imágenes no está configurada todavía") pero el resto de la

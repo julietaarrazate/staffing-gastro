@@ -3,8 +3,10 @@
 Cuatro chequeos independientes, un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
-   manda un recordatorio push de "¿ya llegaste?" una sola vez, o marca
-   no-show automático si ya pasó el período de gracia.
+   antes del inicio, le recuerda al trabajador que avise al salir ("va en
+   camino", `DEPARTURE_REMINDER_LEAD`); después, manda un recordatorio push
+   de "¿ya llegaste?" una sola vez, o marca no-show automático si ya pasó el
+   período de gracia.
 2. **Escalada de urgencia:** turnos abiertos (PUBLICADO/BUSCANDO_PERSONAL)
    que no se cubren rápido — los marca `urgent` y avisa a un círculo más
    amplio de candidatos (`ShiftService.escalate_urgency`).
@@ -50,7 +52,9 @@ hace falta persistir timers.
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
@@ -63,6 +67,7 @@ from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.favorite.infrastructure.repositories import SqlAlchemyFavoriteRepository
 from app.modules.matching.infrastructure.repositories import (
     SqlAlchemyCandidateRepository,
 )
@@ -72,11 +77,17 @@ from app.modules.notification.infrastructure.repositories import (
 )
 from app.modules.shift.application.services import (
     CHECKIN_REMINDER_DELAY,
+    DEPARTURE_REMINDER_LEAD,
     ESCALATION_DELAY,
     NOT_COVERED_GRACE_NORMAL,
     NOT_COVERED_GRACE_URGENT,
     NO_SHOW_GRACE_PERIOD,
     ShiftService,
+)
+from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.exceptions import (
+    InvalidShiftTransitionError,
+    ShiftConcurrentModificationError,
 )
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.infrastructure.repositories import (
@@ -87,6 +98,22 @@ from app.modules.worker.infrastructure.repositories import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def _act(action: Callable[[UUID], Awaitable[Shift]], shift_id: UUID) -> None:
+    """Una acción automática sobre un turno, que puede perder contra un
+    usuario: entre que la pasada listó el turno y actúa, el trabajador marcó
+    llegada o el comercio lo canceló. Antes el scheduler decidía sobre su
+    copia vieja y pisaba lo del usuario; ahora relee (`get_by_id`) y guarda
+    con versión (ADR-0016). Si perdió, se saltea ESE turno —la próxima
+    pasada decide con el estado nuevo— en vez de cortar la pasada entera."""
+    try:
+        await action(shift_id)
+    except (ShiftConcurrentModificationError, InvalidShiftTransitionError) as exc:
+        logger.info(
+            "scheduler.skipped",
+            extra={"shift_id": str(shift_id), "reason": type(exc).__name__},
+        )
 
 # Piso del sueño: aunque la próxima deadline sea "ya mismo", nunca se re-
 # consulta la base más seguido que esto, para no girar en falso si un turno
@@ -143,6 +170,7 @@ def _build_service(session) -> ShiftService:
         # Sin esto `escalate_urgency` no podría avisar a nadie (mismo puerto
         # que habilita el aviso al publicar, ver `get_shift_service`).
         candidates=SqlAlchemyCandidateRepository(session),
+        favorites=SqlAlchemyFavoriteRepository(session),
     )
 
 
@@ -166,12 +194,26 @@ async def run_attendance_check() -> datetime | None:
             reminder_at = start + CHECKIN_REMINDER_DELAY
             no_show_at = start + NO_SHOW_GRACE_PERIOD
             elapsed = now - start
+            if elapsed < timedelta(0):
+                # Todavía no empezó: lo único que puede tocarle es el
+                # recordatorio de salida ("va en camino"), y sólo si no lo
+                # recibió y no salió ya (si ya comparte ubicación, recordarle
+                # que avise sería ruido).
+                if shift.departure_reminder_sent_at is None and shift.en_route_at is None:
+                    departure_at = start - DEPARTURE_REMINDER_LEAD
+                    if now >= departure_at:
+                        await _act(service.send_departure_reminder, shift.id)
+                    else:
+                        next_deadline = _earlier(next_deadline, departure_at)
+                        continue
+                next_deadline = _earlier(next_deadline, reminder_at)
+                continue
             if elapsed >= NO_SHOW_GRACE_PERIOD:
-                await service.auto_mark_no_show(shift.id)
+                await _act(service.auto_mark_no_show, shift.id)
                 # Se resolvió (salió de CONFIRMADO/EN_CAMINO): no aporta deadline.
                 continue
             if shift.checkin_reminder_sent_at is None and elapsed >= CHECKIN_REMINDER_DELAY:
-                await service.send_checkin_reminder(shift.id)
+                await _act(service.send_checkin_reminder, shift.id)
                 # Ya recordado: su próxima (y última) deadline es el no-show.
                 next_deadline = _earlier(next_deadline, no_show_at)
                 continue
@@ -198,7 +240,7 @@ async def run_escalation_check() -> datetime | None:
                 continue
             escalate_at = _naive(shift.published_at) + ESCALATION_DELAY
             if now >= escalate_at:
-                await service.escalate_urgency(shift.id)
+                await _act(service.escalate_urgency, shift.id)
             else:
                 next_deadline = _earlier(next_deadline, escalate_at)
         return next_deadline
@@ -224,7 +266,7 @@ async def run_coverage_check() -> datetime | None:
             grace = NOT_COVERED_GRACE_URGENT if shift.urgent else NOT_COVERED_GRACE_NORMAL
             deadline = _naive(shift.start_at) + grace
             if now >= deadline:
-                await service.mark_not_covered(shift.id)
+                await _act(service.mark_not_covered, shift.id)
             else:
                 next_deadline = _earlier(next_deadline, deadline)
         return next_deadline

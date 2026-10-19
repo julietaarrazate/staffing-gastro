@@ -11,6 +11,7 @@ import ImageUpload from "@/components/ImageUpload";
 import CoverPhotoUpload from "@/components/CoverPhotoUpload";
 import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
+import IconChip from "@/components/ui/IconChip";
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
@@ -126,9 +127,9 @@ export default function CompanyProfileForm() {
             cascada de provincia/localidad — jsx-a11y/label-has-associated-
             control, TECH_DEBT.md F4). */}
         <p className="flex items-center gap-2 text-sm font-medium text-ink/70">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary-text">
+          <IconChip tone="trust" size="xs">
             <MapPinIcon size={13} />
-          </span>
+          </IconChip>
           Ubicación del comercio
         </p>
         <div className="mt-2">

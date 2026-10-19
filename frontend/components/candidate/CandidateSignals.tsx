@@ -9,6 +9,7 @@ import {
   type IconProps,
 } from "@/components/icons";
 import { BADGE_ICONS, badgeLabel, formatPunctuality, levelLabel } from "@/lib/reputation";
+import { formatKm } from "@/lib/format";
 
 /**
  * Señales legibles de un candidato/postulante, para que el comercio vea *por
@@ -41,7 +42,7 @@ interface Reason {
 export function topReasons(s: CandidateSignals, max = 3): Reason[] {
   const reasons: Reason[] = [];
   if (s.distance_km != null && s.distance_km <= 3) {
-    reasons.push({ Icon: MapPinIcon, label: `A ${s.distance_km.toFixed(1)} km del local` });
+    reasons.push({ Icon: MapPinIcon, label: `A ${formatKm(s.distance_km)} del local` });
   }
   if (s.events_completed >= 3 && s.punctuality_rate >= 0.9) {
     reasons.push({ Icon: ClockIcon, label: `Muy puntual (${formatPunctuality(s.punctuality_rate)})` });
@@ -66,7 +67,9 @@ export function topReasons(s: CandidateSignals, max = 3): Reason[] {
  * negra" de COLOR_SYSTEM §3.2 — sobre negro el relleno arena y la tinta al 60%
  * desaparecen, así que el chip pasa a un velo claro con texto crema. Va como
  * prop y no como `dark:` porque no depende del modo del usuario sino de la
- * SUPERFICIE sobre la que está dibujado. */
+ * SUPERFICIE sobre la que está dibujado. Los colores salen de los tokens
+ * `on-brand` (globals.css), así la misma tarjeta sirve sobre la marca oscura
+ * de siempre y sobre el celeste claro de la landing. */
 export function CandidateStatChips({
   signals,
   className,
@@ -87,12 +90,12 @@ export function CandidateStatChips({
           una MALA nota, cuando es alguien que todavía no tuvo su primer
           turno. Se dice lo que es. */}
       {hasHistory || signals.rating > 0 ? (
-        <Rating value={signals.rating} className={onDark ? "text-white/85" : undefined} />
+        <Rating value={signals.rating} className={onDark ? "text-on-brand/85" : undefined} />
       ) : (
         <StatChip onDark={onDark}>Nuevo en Oído</StatChip>
       )}
       {signals.distance_km != null && (
-        <StatChip onDark={onDark}>{signals.distance_km.toFixed(1)} km</StatChip>
+        <StatChip onDark={onDark}>{formatKm(signals.distance_km)}</StatChip>
       )}
       {hasHistory && <StatChip onDark={onDark}>{signals.events_completed} turnos</StatChip>}
       {hasHistory && signals.punctuality_rate > 0 && (
@@ -128,7 +131,7 @@ function StatChip({ children, onDark = false }: { children: React.ReactNode; onD
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-        onDark ? "bg-white/10 text-white/75" : "bg-surface text-ink/60"
+        onDark ? "bg-on-brand/10 text-on-brand/90" : "bg-surface text-ink/60"
       }`}
     >
       {children}
@@ -153,10 +156,10 @@ export function RecommendationReasons({
         <p
           key={label}
           className={`flex items-center gap-1.5 text-sm font-medium ${
-            onDark ? "text-white/85" : "text-ink/75"
+            onDark ? "text-on-brand/90" : "text-ink/75"
           }`}
         >
-          <Icon size={15} className={`shrink-0 ${onDark ? "text-primary" : "text-primary-text"}`} />
+          <Icon size={15} className={`shrink-0 ${onDark ? "text-on-brand-icon" : "text-primary-text"}`} />
           {label}
         </p>
       ))}

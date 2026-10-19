@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, DM_Mono } from "next/font/google";
+import { Inter, Fraunces, Schibsted_Grotesk, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { PushPromptProvider } from "@/lib/push-prompt-context";
 import { ToastProvider } from "@/components/ui";
 import SplashScreen from "@/components/SplashScreen";
@@ -10,6 +11,7 @@ import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { SITE_URL } from "@/lib/site";
+import { OG_ALT, OG_IMAGE_URL, OG_SQUARE } from "@/lib/og";
 
 // Inter: texto e interfaz (spec del diseñador). Reemplaza a Geist como sans
 // por defecto de toda la app.
@@ -18,16 +20,22 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Fraunces: serif de los títulos de pantalla y del wordmark. Las pantallas del
-// board de Julieta ponen en serif los títulos grandes ("Hola, Sofía",
-// "Camarero/a", el nombre en el perfil) y dejan en sans los encabezados de
-// sección; Fraunces es libre (OFL) y era la serif de Oído desde el principio.
-// Se expone como `font-display` (títulos) y `font-serif` (wordmark). Una
-// fuente de títulos paga (Saans) se descartó por decisión de Julieta.
+// Fraunces: serif del wordmark "oído" (`font-serif`). Hasta el 2026-10-12
+// también era la de los títulos; Julieta la cambió en los títulos porque se
+// sentía genérica y dejó el logo como estaba.
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+// Schibsted Grotesk: títulos de pantalla y titulares de la landing
+// (`font-display`), desde el 2026-10-18. Libre (OFL). Reemplaza a Bricolage
+// Grotesque (2026-10-12), que Julieta veía "muy infantil para Oído" y que
+// además usa Pasito.
+const schibsted = Schibsted_Grotesk({
+  variable: "--font-schibsted",
+  subsets: ["latin"],
 });
 
 // DM Mono (board v5.0): datos y precios — el precio de un turno, horarios,
@@ -63,9 +71,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: `oído — ${TAGLINE}`,
     description: DESCRIPTION,
+    url: "/",
     siteName: "Oído",
     locale: "es_AR",
     type: "website",
+    // Diseño en `lib/og-brand.tsx`; ver `app/og/oido.jpg/route.ts`.
+    images: [{ url: OG_IMAGE_URL, width: OG_SQUARE.width, height: OG_SQUARE.height, alt: OG_ALT, type: "image/jpeg" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -75,7 +86,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#d97706",
+  // Blanca como el encabezado; `lib/theme.tsx` la pasa a la noche azul en
+  // oscuro. Hasta el 2026-10-19 era el ámbar, y pintaba de naranja la barra
+  // del celular en toda la app.
+  themeColor: THEME_COLOR_LIGHT,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -102,7 +116,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${dmMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la

@@ -9,7 +9,11 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
-from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.identity.domain.value_objects import (
+    TermsAcceptanceChannel,
+    UserRole,
+    UserStatus,
+)
 
 
 @dataclass
@@ -144,3 +148,21 @@ class EmailVerificationToken:
         if self.created_at is None:
             return False
         return (_naive(now) - _naive(self.created_at)) < window
+
+
+@dataclass
+class TermsAcceptance:
+    """Constancia de que una persona aceptó los términos y la política de
+    privacidad: quién, qué versión, desde dónde y cuándo.
+
+    Antes del 2026-09-26 el checkbox del registro sólo trababa el botón y no
+    quedaba nada guardado: si alguien discutía haber aceptado, no había cómo
+    mostrarlo. Es un registro que sólo crece (nunca se edita ni se borra una
+    fila): cuando cambie `LEGAL_TERMS_VERSION`, la nueva aceptación es otra
+    fila y la anterior queda como historia."""
+
+    user_id: UUID
+    version: str
+    channel: TermsAcceptanceChannel
+    id: UUID = field(default_factory=uuid4)
+    accepted_at: datetime | None = None

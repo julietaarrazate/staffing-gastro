@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./marketing/**)",
+      "Read(./**/node_modules/**)",
+      "Read(./**/package-lock.json)",
+      "Read(./docs/historial/ARCHIVO-*)",
+      "Read(./docs/mockups/**)",
+      "Read(./docs/audits/**)",
+      "Read(./**/.next/**)",
+      "Read(./**/playwright-report/**)",
+      "Read(./**/test-results/**)"
+    ]
+  }
+}

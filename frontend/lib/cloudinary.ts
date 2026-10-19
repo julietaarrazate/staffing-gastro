@@ -27,16 +27,17 @@ export function cldThumb(url: string | null | undefined, width: number): string 
 
 /**
  * Variante de una foto de Cloudinary para la vista previa de un link
- * compartido (Open Graph): 1200×630 recortada al centro, en JPEG explícito.
+ * compartido (Open Graph): recortada al tamaño pedido (1200×630 por defecto;
+ * cuadrada para `og:image`, que WhatsApp muestra grande), en JPEG explícito.
  * No `f_auto` como `cldThumb`: los que arman la vista previa (WhatsApp,
  * Slack) no siempre aceptan WebP/AVIF, y `f_auto` elige según quién pide.
  * URLs que no son de Cloudinary se devuelven tal cual.
  */
-export function cldOgImage(url: string): string {
+export function cldOgImage(url: string, width = 1200, height = 630): string {
   const marker = "/image/upload/";
   const at = url.indexOf(marker);
   if (!url.includes("res.cloudinary.com") || at === -1) return url;
-  return `${url.slice(0, at + marker.length)}f_jpg,q_auto,c_fill,g_auto,w_1200,h_630/${url.slice(at + marker.length)}`;
+  return `${url.slice(0, at + marker.length)}f_jpg,q_auto,c_fill,g_auto,w_${width},h_${height}/${url.slice(at + marker.length)}`;
 }
 
 /**
@@ -59,26 +60,17 @@ export function cldAttachment(url: string): string {
   return `${head}fl_attachment/${tail}`;
 }
 
-export async function uploadImage(file: File): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-  if (!cloudName || !uploadPreset) {
-    throw new Error("La subida de archivos no está configurada todavía.");
-  }
+/**
+ * Sube una foto (perfil o logo, portada del comercio, DNI o selfie) con una
+ * subida FIRMADA por el backend (`POST /uploads/sign-image`). Antes usaba un
+ * preset unsigned que viajaba en el código del navegador, y con él cualquiera
+ * podía subir lo que quisiera a la cuenta (auditoría de seguridad
+ * 2026-10-14). La carpeta y el nombre del archivo los decide el servidor.
+ */
+export type ImageKind = "profile" | "cover" | "identity";
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", uploadPreset);
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!res.ok) {
-    throw new Error("No se pudo subir el archivo. Probá de nuevo.");
-  }
-  const data = await res.json();
-  return data.secure_url as string;
+export async function uploadImage(file: File, token: string, kind: ImageKind): Promise<string> {
+  return uploadSigned(file, token, `/uploads/sign-image?kind=${kind}`);
 }
 
 /**
@@ -119,12 +111,16 @@ async function uploadSigned(
     throw new Error("La subida de archivos no está configurada todavía.");
   }
 
-  const { timestamp, signature, api_key, allowed_formats } = await api.post<{
-    timestamp: string;
-    signature: string;
-    api_key: string;
-    allowed_formats: string;
-  }>(signEndpoint, undefined, token);
+  const { timestamp, signature, api_key, allowed_formats, folder, public_id, overwrite } =
+    await api.post<{
+      timestamp: string;
+      signature: string;
+      api_key: string;
+      allowed_formats: string;
+      folder: string;
+      public_id: string;
+      overwrite: string;
+    }>(signEndpoint, undefined, token);
 
   const formData = new FormData();
   formData.append("file", file);
@@ -132,6 +128,10 @@ async function uploadSigned(
   formData.append("timestamp", timestamp);
   formData.append("signature", signature);
   formData.append("allowed_formats", allowed_formats);
+  // Firmados por el backend: carpeta, nombre al azar y no pisar archivos.
+  formData.append("folder", folder);
+  formData.append("public_id", public_id);
+  formData.append("overwrite", overwrite);
 
   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
     method: "POST",

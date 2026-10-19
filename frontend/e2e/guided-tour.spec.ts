@@ -5,7 +5,8 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * Mini-tour post-onboarding (`components/GuidedTour.tsx`, pedido de Julieta:
  * "falta las tooltips en onboarding para que sea más guiado"). El
  * trabajador aterriza en `/feed` la primera vez y ve 3 globos señalando el
- * mazo de turnos, el filtro de urgentes y dónde ver sus postulaciones —
+ * mazo de turnos, dónde filtrar los urgentes (Buscar) y dónde ver sus
+ * postulaciones —
  * una sola vez por navegador (`localStorage`).
  *
  * `injectSession` (ver `mocks.ts`) marca este tour como ya visto por
@@ -114,7 +115,7 @@ async function mockFeed(page: import("@playwright/test").Page) {
   );
 }
 
-test("el tour del feed recorre mazo, filtro y nav, y no vuelve a aparecer", async ({ page }) => {
+test("el tour del feed recorre mazo, Buscar y nav, y no vuelve a aparecer", async ({ page }) => {
   await skipSplash(page);
   await injectSession(page);
   // Arranca desde cero: `injectSession` ya lo marcó como visto.
@@ -138,13 +139,12 @@ test("el tour del feed recorre mazo, filtro y nav, y no vuelve a aparecer", asyn
   // El feed sigue siendo usable después de cerrar el tour (nada quedó
   // bloqueando clicks — el mismo síntoma que ya rompió `Sheet`/`Modal`
   // antes de portarlos a `document.body`).
-  const chip = page.getByRole("switch", { name: /Urgentes/ });
-  await chip.click();
-  await expect(chip).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("navigation", { name: "Secciones" }).getByRole("link", { name: "Buscar" }).click();
+  await expect(page).toHaveURL(/\/buscar/);
 
   expect(await page.evaluate(() => localStorage.getItem("staffya_tour_worker_feed"))).toBe("1");
 
-  await page.reload();
+  await page.goto("/feed");
   await expect(page.getByText("Así se ven los turnos")).not.toBeVisible();
 });
 

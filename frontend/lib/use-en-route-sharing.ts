@@ -26,11 +26,14 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getCurrentPosition } from "@/lib/geolocation";
 
 /** Cada cuánto se manda la posición mientras dura el viaje. */
 const REPORT_INTERVAL_MS = 60_000;
+
+/** Fallos de red seguidos antes de avisar que la ubicación no está llegando. */
+const FAILURES_BEFORE_WARNING = 3;
 
 export interface EnRouteSharing {
   /** `true` mientras se está compartiendo la posición. */
@@ -86,11 +89,30 @@ export function useEnRouteSharing(
       await report();
       setSharing(true);
       clearTimer();
+      let failures = 0;
       timerRef.current = setInterval(() => {
-        // Un fallo suelto (túnel, señal perdida) no corta el viaje: el próximo
-        // tick lo reintenta. Lo que sí corta es que el usuario lo apague o que
-        // el turno cambie de estado.
-        void report().catch(() => {});
+        report()
+          .then(() => {
+            failures = 0;
+            setError(null);
+          })
+          .catch((err) => {
+            // El backend rechazó (el turno ya no está en viaje, se salió de la
+            // ventana): seguir mandando no tiene sentido. Se corta y se dice.
+            if (err instanceof ApiError) {
+              clearTimer();
+              setSharing(false);
+              setError(err.message);
+              return;
+            }
+            // Un fallo de red suelto (túnel, señal perdida) no corta el viaje:
+            // el próximo tick reintenta. Varios seguidos sí se avisan — antes
+            // la pantalla seguía diciendo "compartiendo" sin que llegara nada.
+            failures += 1;
+            if (failures >= FAILURES_BEFORE_WARNING) {
+              setError("No pudimos enviar tu ubicación hace unos minutos. Seguimos intentando.");
+            }
+          });
       }, REPORT_INTERVAL_MS);
     } catch (err) {
       setSharing(false);

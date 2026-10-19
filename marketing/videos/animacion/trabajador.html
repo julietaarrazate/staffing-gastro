@@ -1,0 +1,194 @@
+<!-- Animación "¿Querés trabajar esta noche?" (lado del trabajador). Ver README.md. -->
+<style>
+#stage{position:fixed;left:0;top:0;width:540px;height:960px;overflow:hidden;z-index:2147483647;background:#111;font-family:var(--font-inter),Inter,sans-serif;color:#111;-webkit-font-smoothing:antialiased}
+#stage *{box-sizing:border-box}
+#stage .abs{position:absolute}
+#stage .scene{position:absolute;inset:0}
+#stage .serif{font-family:var(--font-fraunces),Georgia,serif;font-weight:600;letter-spacing:-.02em}
+#stage .mono{font-family:var(--font-dm-mono),ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase}
+#stage svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.c{left:0;right:0;text-align:center}
+
+/* easing */
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes upblur{from{opacity:0;transform:translateY(46px) scale(1.08);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes out{to{opacity:0;transform:translateY(-60px) scale(.96)}}
+@keyframes outfade{to{opacity:0}}
+@keyframes press{0%,100%{transform:scale(1)}40%{transform:scale(.92)}}
+@keyframes fromright{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+@keyframes drift{from{transform:scale(1)}to{transform:scale(1.045)}}
+@keyframes circ{from{clip-path:circle(0% at var(--x) var(--y))}to{clip-path:circle(150% at var(--x) var(--y))}}
+@keyframes wipeup{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes wipedown{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes phonein{from{opacity:0;transform:translateY(520px) rotateX(38deg) scale(.9)}to{opacity:1;transform:none}}
+@keyframes phoneout{to{opacity:0;transform:translateY(-40px) scale(.86)}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes ring{from{transform:translate(-50%,-50%) scale(.3);opacity:.7}to{transform:translate(-50%,-50%) scale(4.2);opacity:0}}
+@keyframes pinpop{0%{opacity:0;transform:translate(-50%,-100%) scale(.2)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.15)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes cardin{from{opacity:0;transform:translateY(80px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes travel{from{left:0%}to{left:100%}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,.0)}50%{box-shadow:0 0 0 10px rgba(217,119,6,.18)}}
+
+.A{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+</style>
+<style>
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px) rotate(-1deg)}40%{transform:translateX(7px) rotate(1deg)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes dropin{from{opacity:0;transform:translateY(-140px)}to{opacity:1;transform:none}}
+@keyframes knob{from{transform:translateX(0)}to{transform:translateX(22px)}}
+@keyframes trackon{from{background:#d9d2c4}to{background:#1B3A31}}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes dotfill{from{background:#fff;border-color:#d9d2c4;color:transparent}to{background:#1B3A31;border-color:#1B3A31;color:#F1E7A0}}
+@keyframes starpop{0%{opacity:0;transform:scale(.2) rotate(-40deg)}70%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:scale(1)}}
+@keyframes route{0%{offset-distance:0%}100%{offset-distance:100%}}
+#stage .opp{background:#fff;border:1px solid #efe9dc;border-radius:20px;padding:14px 15px;display:grid;gap:8px}
+#stage .opp .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#stage .opp .pos{font-family:var(--font-fraunces),Georgia,serif;font-weight:600;font-size:21px;letter-spacing:-.01em}
+#stage .opp .pay{font-family:var(--font-dm-mono),monospace;font-size:19px;font-weight:500}
+#stage .opp .meta{font-size:12.5px;color:#6b6358;display:flex;gap:10px;align-items:center}
+#stage .ver{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#1F5B6B;background:#DDEEF0;border-radius:99px;padding:3px 8px 3px 6px}
+#stage .dotr{width:9px;height:9px;border-radius:99px;display:inline-block}
+#stage .step{display:flex;align-items:center;gap:14px;font-size:18px;font-weight:600;color:#111}
+#stage .step .d{width:34px;height:34px;border-radius:99px;border:2px solid #d9d2c4;display:flex;align-items:center;justify-content:center;flex:none}
+</style>
+
+<div id="stage">
+  <!-- ESCENA 1: la noche libre -->
+  <div class="scene" id="s1" style="background:radial-gradient(120% 70% at 50% 110%,#3a2410 0%,#111 60%);animation:drift 3.6s linear 0s both">
+    <div class="abs c mono A" style="top:118px;font-size:15px;color:#F1E7A0;animation-name:fade;animation-duration:.5s;animation-delay:.15s">Sábado · 19:30</div>
+    <div class="abs c serif" style="top:250px;font-size:70px;line-height:1.04;color:#fff">
+      <span class="A" style="display:inline-block;animation-name:upblur;animation-duration:.5s;animation-delay:.45s">¿Querés</span><br>
+      <span class="A" style="display:inline-block;animation-name:upblur;animation-duration:.5s;animation-delay:.62s">trabajar</span><br>
+      <span class="A" style="display:inline-block;animation-name:upblur;animation-duration:.5s;animation-delay:.79s">esta</span>
+      <span class="A" style="display:inline-block;animation-name:upblur;animation-duration:.5s;animation-delay:.96s">noche?</span>
+    </div>
+    <div class="abs A" id="notif" style="left:34px;right:34px;top:600px;animation:dropin .55s cubic-bezier(.2,.8,.2,1) 1.75s both, shake .45s ease 2.3s both">
+      <div style="background:rgba(255,255,255,.94);border-radius:26px;padding:14px 16px;display:flex;gap:13px;align-items:center;box-shadow:0 20px 40px rgba(0,0,0,.4)">
+        <img src="/logo-mark.svg" style="width:46px;height:46px;border-radius:12px;flex:none">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700">Oído</span><span style="font-size:12px;color:#8a8175">ahora</span></div>
+          <div style="font-size:16px;font-weight:600;margin-top:2px">Mozo/a · $45.000</div>
+          <div style="font-size:14px;color:#55504a">A 1,2 km tuyo, hoy de 21 a 02.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESCENA 2: la marca -->
+  <div class="scene A" id="wipe1" style="--x:50%;--y:67%;background:#D97706;animation-name:circ;animation-duration:.6s;animation-delay:3.05s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s2" style="animation:outfade .3s ease 5.45s forwards">
+    <div class="abs A" style="left:195px;top:240px;width:150px;height:150px;background:#fff;-webkit-mask:url(/logo-figure.svg) center/contain no-repeat;mask:url(/logo-figure.svg) center/contain no-repeat;animation-name:pop;animation-duration:.7s;animation-delay:3.45s"></div>
+    <div class="abs c serif" style="top:410px;font-size:112px;color:#fff;line-height:1">
+      <span class="A" style="display:inline-block;animation-name:up;animation-duration:.45s;animation-delay:3.85s">o</span><span class="A" style="display:inline-block;animation-name:up;animation-duration:.45s;animation-delay:3.93s">í</span><span class="A" style="display:inline-block;animation-name:up;animation-duration:.45s;animation-delay:4.01s">d</span><span class="A" style="display:inline-block;animation-name:up;animation-duration:.45s;animation-delay:4.09s">o</span>
+    </div>
+    <div class="abs c A" style="top:555px;font-size:24px;line-height:1.35;color:#fff;font-weight:500;animation-name:up;animation-duration:.5s;animation-delay:4.4s">Turnos cerca tuyo,<br>con el pago a la vista.</div>
+  </div>
+
+  <!-- ESCENA 3: el feed -->
+  <div class="scene A" id="wipe2" style="background:#FBFAF6;animation-name:wipeup;animation-duration:.55s;animation-delay:5.2s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s3" style="animation:outfade .35s ease 10.4s forwards">
+    <div class="abs c mono A" style="top:66px;font-size:14px;color:#B45309;animation-name:up;animation-duration:.5s;animation-delay:5.65s">Vos elegís</div>
+    <div class="abs c serif A" style="top:94px;font-size:44px;line-height:1.08;color:#111;animation-name:up;animation-duration:.5s;animation-delay:5.75s">Qué, cuándo<br>y dónde.</div>
+    <div class="abs" style="left:0;right:0;top:232px;height:700px;perspective:1200px">
+      <div class="abs A" style="left:100px;width:340px;height:690px;background:#111;border-radius:50px;padding:11px;box-shadow:0 40px 80px rgba(60,40,10,.28);animation:phonein .8s cubic-bezier(.2,.8,.2,1) 5.85s both, phoneout .4s ease 10.35s forwards">
+        <div style="position:relative;width:100%;height:100%;background:#FBFAF6;border-radius:40px;overflow:hidden;padding:44px 16px 20px">
+          <div class="abs" style="left:50%;top:12px;width:96px;height:26px;border-radius:20px;background:#111;transform:translateX(-50%)"></div>
+          <div class="abs mono" style="left:26px;top:16px;font-size:12px;letter-spacing:0;color:#111">19:31</div>
+          <div class="serif" style="font-size:27px;margin:6px 4px 0">Hola, Sofía</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #efe9dc;border-radius:16px;padding:10px 12px;margin-top:12px">
+            <div><div style="font-size:14px;font-weight:600">Disponible ahora</div><div id="dispSub" style="font-size:11.5px;color:#6b6358">Apagado</div></div>
+            <div class="A" style="width:50px;height:28px;border-radius:99px;padding:3px;animation-name:trackon;animation-duration:.25s;animation-delay:6.75s"><div class="A" style="width:22px;height:22px;border-radius:99px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);animation-name:knob;animation-duration:.25s;animation-delay:6.75s"></div></div>
+          </div>
+          <div style="display:grid;gap:10px;margin-top:12px">
+            <div class="opp A" id="opp1" style="animation:fromright .45s cubic-bezier(.2,.8,.2,1) 7.1s both, glow .9s ease 8.5s both">
+              <div class="row"><span class="pos">Mozo/a</span><span class="pay"><span style="color:#D97706">$</span>45.000</span></div>
+              <div class="meta"><span><span class="dotr" style="background:#D97706"></span> Bodegón Gorriti</span><span class="ver"><svg class="i" style="width:12px;height:12px;stroke-width:2.6" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Verificado</span></div>
+              <div class="meta"><span>Hoy · 21:00 a 02:00</span><span>1,2 km</span></div>
+              <div style="display:inline-flex;width:max-content;background:#1B3A31;color:#F1E7A0;font-size:11.5px;font-weight:600;border-radius:99px;padding:4px 10px">Paga más que lo típico</div>
+            </div>
+            <div class="opp A" style="animation-name:fromright;animation-duration:.45s;animation-delay:7.3s">
+              <div class="row"><span class="pos">Bachero/a</span><span class="pay"><span style="color:#D97706">$</span>32.000</span></div>
+              <div class="meta"><span><span class="dotr" style="background:#2F6F8F"></span> Bar Honduras</span><span class="ver"><svg class="i" style="width:12px;height:12px;stroke-width:2.6" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Verificado</span></div>
+              <div class="meta"><span>Hoy · 20:00 a 00:00</span><span>2,4 km</span></div>
+            </div>
+            <div class="opp A" style="animation-name:fromright;animation-duration:.45s;animation-delay:7.5s">
+              <div class="row"><span class="pos">Bartender</span><span class="pay"><span style="color:#D97706">$</span>52.000</span></div>
+              <div class="meta"><span><span class="dotr" style="background:#7A5A00"></span> Parrilla Thames</span></div>
+            </div>
+          </div>
+          <div class="A" style="position:absolute;left:16px;right:16px;bottom:22px;animation-name:up;animation-duration:.45s;animation-delay:8.8s">
+            <div class="A" style="background:#D97706;color:#fff;border-radius:18px;padding:16px;text-align:center;font-size:17px;font-weight:600;box-shadow:0 10px 24px rgba(217,119,6,.35);animation-name:press;animation-duration:.3s;animation-delay:9.35s">Postularme · Mozo/a</div>
+          </div>
+          <div class="abs A" style="left:26px;right:26px;top:52px;background:#1B3A31;color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);animation-name:pop;animation-duration:.45s;animation-delay:9.65s">
+            <span style="display:flex;width:26px;height:26px;border-radius:99px;background:#F1E7A0;color:#1B3A31;align-items:center;justify-content:center"><svg class="i" style="width:15px;height:15px;stroke-width:3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+            Te postulaste
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESCENA 4: te eligen -->
+  <div class="scene" id="s4" style="animation:outfade .01s linear 15.1s forwards">
+    <div class="abs c mono A" style="top:66px;font-size:14px;color:#B45309;animation-name:up;animation-duration:.5s;animation-delay:10.6s">Al rato</div>
+    <div class="abs c serif A" style="top:94px;font-size:44px;line-height:1.08;color:#111;animation-name:up;animation-duration:.5s;animation-delay:10.7s">Te eligen.</div>
+    <div class="abs A" style="left:40px;right:40px;top:210px;background:#fff;border-radius:28px;padding:24px;box-shadow:0 24px 50px rgba(60,40,10,.14);animation-name:cardin;animation-duration:.55s;animation-delay:10.85s">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="width:58px;height:58px;border-radius:18px;background:#FDEBD0;color:#B45309;display:flex;align-items:center;justify-content:center;flex:none"><svg class="i" style="width:28px;height:28px" viewBox="0 0 24 24"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M2 7h20v3a2 2 0 0 1-4 0 2 2 0 0 1-4 0 2 2 0 0 1-4 0 2 2 0 0 1-4 0V7"/></svg></div>
+        <div><div class="serif" style="font-size:26px;line-height:1.1">Bodegón Gorriti</div><div style="font-size:15px;color:#55504a;margin-top:3px">te aceptó para <b style="color:#111">Mozo/a</b></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:16px;border-top:1px solid #efe9dc">
+        <div><div class="mono" style="font-size:10px;color:#8a8175">Hoy</div><div style="font-size:17px;font-weight:600">21:00 a 02:00</div></div>
+        <div style="text-align:right"><div class="mono" style="font-size:10px;color:#8a8175">Pago</div><div style="font-family:var(--font-dm-mono),monospace;font-size:22px"><span style="color:#D97706">$</span>45.000</div></div>
+      </div>
+      <div class="A" id="confirmBtn" style="margin-top:18px;background:#D97706;color:#fff;border-radius:16px;padding:15px;text-align:center;font-size:17px;font-weight:600;animation-name:press;animation-duration:.3s;animation-delay:12.3s">Confirmar que voy</div>
+    </div>
+    <div class="abs" style="left:70px;right:70px;top:560px;display:grid;gap:26px">
+      <div class="step A" style="animation-name:up;animation-duration:.4s;animation-delay:11.3s"><div class="d A" style="animation-name:dotfill;animation-duration:.3s;animation-delay:11.5s"><svg class="i" style="width:16px;height:16px;stroke-width:3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>Te postulaste</div>
+      <div class="step A" style="animation-name:up;animation-duration:.4s;animation-delay:11.45s"><div class="d A" style="animation-name:dotfill;animation-duration:.3s;animation-delay:11.9s"><svg class="i" style="width:16px;height:16px;stroke-width:3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>Te aceptaron</div>
+      <div class="step A" style="animation-name:up;animation-duration:.4s;animation-delay:11.6s"><div class="d A" style="animation-name:dotfill;animation-duration:.3s;animation-delay:12.55s"><svg class="i" style="width:16px;height:16px;stroke-width:3" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>Confirmaste</div>
+      <div class="abs A" style="left:16px;top:36px;width:2px;height:120px;background:#1B3A31;transform-origin:top;animation-name:fill;animation-duration:1.2s;animation-delay:11.5s;z-index:-1"></div>
+    </div>
+  </div>
+
+  <!-- ESCENA 5: en camino y cobrado -->
+  <div class="scene A" id="wipe3" style="--x:50%;--y:40%;background:#1B3A31;animation-name:circ;animation-duration:.65s;animation-delay:14.5s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s5" style="animation:outfade .01s linear 19.3s forwards">
+    <div class="abs c serif A" style="top:96px;font-size:46px;line-height:1.08;color:#fff;animation-name:up;animation-duration:.5s;animation-delay:14.95s">Avisás que<br>vas en camino.</div>
+    <div class="abs A" style="left:40px;right:40px;top:250px;height:220px;border-radius:26px;background:rgba(255,255,255,.07);border:1px solid rgba(241,231,160,.18);overflow:hidden;animation-name:fade;animation-duration:.4s;animation-delay:15.1s">
+      <svg viewBox="0 0 460 220" width="460" height="220" style="position:absolute;inset:0">
+        <g stroke="rgba(255,255,255,.08)" stroke-width="9" fill="none"><path d="M-10 70 L470 40"/><path d="M-10 170 L470 140"/><path d="M120 -10 L150 230"/><path d="M320 -10 L350 230"/></g>
+        <path class="A" pathLength="1" stroke-dasharray="1" d="M60 175 C 140 175, 150 95, 240 100 S 360 60, 400 55" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" style="animation-name:draw;animation-duration:1.8s;animation-delay:15.3s;animation-timing-function:cubic-bezier(.4,0,.2,1)"/>
+      </svg>
+      <div class="abs" style="left:388px;top:43px;width:24px;height:24px;border-radius:7px;background:#D97706;box-shadow:0 0 0 6px rgba(217,119,6,.25)"></div>
+      <div class="abs A" style="left:0;top:0;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:99px;background:#F1E7A0;box-shadow:0 0 0 7px rgba(241,231,160,.22);offset-path:path('M60 175 C 140 175, 150 95, 240 100 S 360 60, 400 55');offset-rotate:0deg;animation:route 1.8s cubic-bezier(.4,0,.2,1) 15.3s both"></div>
+      <div class="abs mono" style="left:22px;bottom:14px;font-size:11px;color:#F1E7A0;opacity:.85">Llegás 20:52</div>
+    </div>
+    <div class="abs c mono A" style="top:520px;font-size:14px;color:#F1E7A0;opacity:.85;animation-name:fade;animation-duration:.4s;animation-delay:17.2s">Turno completado</div>
+    <div class="abs c A" style="top:548px;font-family:var(--font-dm-mono),monospace;font-size:92px;line-height:1;color:#F1E7A0;letter-spacing:-.03em;animation-name:pop;animation-duration:.5s;animation-delay:17.25s"><span style="color:#F59E0B">+$</span><span id="amount">0</span></div>
+    <div class="abs c" style="top:680px;font-size:40px;color:#F59E0B;letter-spacing:6px">
+      <span class="A" style="display:inline-block;animation-name:starpop;animation-duration:.35s;animation-delay:18.2s">★</span><span class="A" style="display:inline-block;animation-name:starpop;animation-duration:.35s;animation-delay:18.3s">★</span><span class="A" style="display:inline-block;animation-name:starpop;animation-duration:.35s;animation-delay:18.4s">★</span><span class="A" style="display:inline-block;animation-name:starpop;animation-duration:.35s;animation-delay:18.5s">★</span><span class="A" style="display:inline-block;animation-name:starpop;animation-duration:.35s;animation-delay:18.6s">★</span>
+    </div>
+    <div class="abs c A" style="top:740px;font-size:19px;color:#fff;opacity:.85;animation-name:up;animation-duration:.4s;animation-delay:18.65s">Tu reputación sube con cada turno.</div>
+  </div>
+
+  <!-- ESCENA 6: cierre -->
+  <div class="scene A" id="wipe4" style="background:#FBFAF6;animation-name:wipedown;animation-duration:.55s;animation-delay:19.0s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s6">
+    <img class="abs A" src="/logo-mark.svg" style="left:205px;top:250px;width:130px;height:130px;animation-name:pop;animation-duration:.6s;animation-delay:19.4s">
+    <div class="abs c serif A" style="top:398px;font-size:92px;line-height:1;color:#111;animation-name:up;animation-duration:.5s;animation-delay:19.6s">oído</div>
+    <div class="abs c A" style="top:510px;font-size:24px;color:#55504a;animation-name:up;animation-duration:.5s;animation-delay:19.8s">Personal gastronómico, ya.</div>
+    <div class="abs" style="left:46px;right:46px;top:610px;display:grid;gap:12px">
+      <div class="A" style="display:flex;gap:14px;align-items:center;background:#fff;border-radius:20px;padding:15px 16px;box-shadow:0 8px 24px rgba(60,40,10,.08);animation-name:up;animation-duration:.5s;animation-delay:20.2s">
+        <span style="display:flex;width:40px;height:40px;border-radius:13px;background:#E3EFE8;color:#1B3A31;align-items:center;justify-content:center;flex:none"><svg class="i" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></span>
+        <div><div class="mono" style="font-size:10px;color:#8a8175">Sin vueltas</div><div style="font-size:17px;font-weight:600">El pago, antes de postularte.</div></div>
+      </div>
+      <div class="A" style="display:flex;gap:14px;align-items:center;background:#fff;border-radius:20px;padding:15px 16px;box-shadow:0 8px 24px rgba(60,40,10,.08);animation-name:up;animation-duration:.5s;animation-delay:20.4s">
+        <span style="display:flex;width:40px;height:40px;border-radius:13px;background:#DDEEF0;color:#1F5B6B;align-items:center;justify-content:center;flex:none"><svg class="i" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <div><div class="mono" style="font-size:10px;color:#8a8175">Con confianza</div><div style="font-size:17px;font-weight:600">Comercios verificados.</div></div>
+      </div>
+    </div>
+    <div class="abs c mono A" style="top:830px;font-size:20px;letter-spacing:.08em;text-transform:none;color:#B45309;font-weight:500;animation-name:up;animation-duration:.5s;animation-delay:20.7s">oido.com.ar</div>
+  </div>
+</div>

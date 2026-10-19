@@ -29,3 +29,9 @@ class FavoriteRepository(ABC):
     ) -> list[EnrichedFavorite]:
         """Lista los favoritos de un comercio (más recientes primero, paginado),
         ya enriquecidos con los datos del trabajador y `shifts_together`."""
+
+    @abstractmethod
+    async def list_worker_ids_by_company(self, company_id: UUID) -> set[UUID]:
+        """Ids de perfil de todos los favoritos de un comercio, sin paginar ni
+        enriquecer: lo que necesita el aviso de turno nuevo para incluirlos
+        siempre (`ShiftService._notify_nearby_workers`)."""

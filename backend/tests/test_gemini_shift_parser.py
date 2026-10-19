@@ -232,3 +232,65 @@ async def test_parse_text_endpoint_exposes_missing(client: AsyncClient, configur
     )
     assert response.status_code == 200
     assert response.json()["missing"] == ["cuánto pagás"]
+
+
+class _FlakyClient(_FakeAsyncClient):
+    """Falla `fail_times` veces con `fail_status` y después responde bien."""
+
+    calls = 0
+    fail_times = 0
+    fail_status = 503
+
+    async def post(self, url, params=None, json=None):
+        _FlakyClient.calls += 1
+        if _FlakyClient.calls <= _FlakyClient.fail_times:
+            resp = _FakeResponse({})
+            resp.status_code = _FlakyClient.fail_status
+            resp.text = "unavailable"
+            return resp
+        return await super().post(url, params=params, json=json)
+
+
+@pytest.fixture
+def flaky(configured_gemini, monkeypatch):
+    import app.core.gemini as gemini_mod
+
+    monkeypatch.setattr(gemini_mod, "_GEMINI_RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr(gemini_mod.httpx, "AsyncClient", _FlakyClient)
+    _FlakyClient.calls = 0
+    _FakeAsyncClient.next_gemini_text = _gemini_json()
+    return _FlakyClient
+
+
+@pytest.mark.asyncio
+async def test_gemini_retries_transient_5xx_then_succeeds(flaky):
+    flaky.fail_times = 2
+    draft = await parse_shift_text("necesito un mozo")
+    assert draft is not None
+    assert flaky.calls == 3
+
+
+@pytest.mark.asyncio
+async def test_gemini_unavailable_after_retries(flaky):
+    from app.core.gemini import GeminiUnavailableError
+
+    flaky.fail_times = 99
+    with pytest.raises(GeminiUnavailableError):
+        await parse_shift_text("necesito un mozo")
+    assert flaky.calls == 3
+
+
+@pytest.mark.asyncio
+async def test_gemini_4xx_is_not_retried(flaky):
+    flaky.fail_times = 99
+    flaky.fail_status = 404
+
+    # raise_for_status del fake no levanta: un 4xx cae en el parseo y falla
+    # como GeminiRequestError (no Unavailable), sin reintentar.
+    from app.core.gemini import GeminiUnavailableError
+
+    with pytest.raises(GeminiRequestError) as info:
+        await parse_shift_text("necesito un mozo")
+    assert not isinstance(info.value, GeminiUnavailableError)
+    assert flaky.calls == 1
+    flaky.fail_status = 503

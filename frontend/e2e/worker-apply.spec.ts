@@ -4,7 +4,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 /**
  * Postulación desde el feed (R1.5b): sesión worker ya guardada en
  * localStorage, un turno mockeado en /shifts/feed y verificación de que
- * tocar "Me interesa" dispara el POST de postulación.
+ * tocar "Postularme" en Descubrir rápido dispara el POST de postulación.
  */
 test("un worker ve un turno en el feed y se postula", async ({ page }) => {
   await injectSession(page);
@@ -135,21 +135,12 @@ test("un worker ve un turno en el feed y se postula", async ({ page }) => {
     (res) => res.url().includes("/api/v1/applications/shifts/shift-1") && res.request().method() === "POST"
   );
 
-  // El botón "Me interesa" vive a propósito dentro de un `sr-only
-  // focus-within:not-sr-only` (SwipeDeck.tsx): invisible al tacto/mouse,
-  // sólo se revela cuando algo adentro tiene foco de teclado — es la
-  // alternativa accesible al gesto de swipe, no un botón de uso normal.
-  // Por eso hace falta enfocarlo de verdad (`.focus()`, mismo evento de
-  // foco que dispara un usuario tabulando) antes de clickearlo: sin esto
-  // Playwright lo ve "visible" (opacidad 1) pero su caja real es ~1×1px
-  // recortada, y el click cae sobre lo que sea que esté ahí encima en vez
-  // de decidir nada — un intento de simular el drag con mouse.move/down/up
-  // no disparó el gesto de Framer Motion en Chromium headless, así que se
-  // optó por este camino, más explícitamente accesible.
-  const applyButton = page.getByRole("button", { name: "Me interesa" });
-  await applyButton.focus();
-  await expect(applyButton).toBeVisible();
-  await applyButton.click();
+  // Deslizar sólo recorre el mazo (2026-09-26): postularse es el botón
+  // explícito debajo de la tarjeta. Se escopea al diálogo porque la grilla
+  // de escritorio también tiene botones "Postularme" en el DOM.
+  const dialog = page.getByRole("dialog", { name: "Descubrir rápido" });
+  await expect(dialog.getByTestId("swipe-deck-position")).toHaveText("1 de 1");
+  await dialog.getByRole("button", { name: "Postularme" }).click();
   await applyResponse;
 
   expect(applyCalled).toBe(true);

@@ -9,8 +9,17 @@ class ShiftNotFoundError(ShiftError):
     """No se encontró el turno solicitado (o no pertenece al comercio)."""
 
 
+class AssigneeNotFoundError(ShiftError):
+    """El perfil de trabajador a asignar no existe."""
+
+
 class InvalidShiftTransitionError(ShiftError):
     """La transición de estado solicitada no es válida desde el estado actual."""
+
+
+class WorkerTooFarFromShiftError(ShiftError):
+    """La posición informada al marcar llegada/salida queda fuera del radio
+    permitido alrededor del local del turno."""
 
 
 class ShiftNotEditableError(ShiftError):
@@ -28,3 +37,8 @@ class ShiftNotAssignedToWorkerError(ShiftError):
 class OverlappingShiftError(ShiftError):
     """El trabajador ya tiene otro turno comprometido cuyo horario se solapa
     con el que intenta confirmar (regla de doble turno)."""
+
+
+class ShiftConcurrentModificationError(ShiftError):
+    """Otro pedido modificó el turno entre que se leyó y se quiso guardar
+    (ADR-0016). Nada se guardó: hay que volver a leerlo y decidir de nuevo."""

@@ -10,20 +10,27 @@ from app.modules.identity.domain.entities import (
     EmailVerificationToken,
     PasswordResetToken,
     RefreshSession,
+    TermsAcceptance,
     User,
 )
 from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
+    TermsAcceptanceRepository,
     UserCounts,
     UserRepository,
 )
-from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.identity.domain.value_objects import (
+    TermsAcceptanceChannel,
+    UserRole,
+    UserStatus,
+)
 from app.modules.identity.infrastructure.models import (
     EmailVerificationTokenModel,
     PasswordResetTokenModel,
     RefreshSessionModel,
+    TermsAcceptanceModel,
     UserModel,
 )
 
@@ -85,8 +92,9 @@ class SqlAlchemyUserRepository(UserRepository):
         model.status = user.status.value
         model.is_verified = user.is_verified
         model.full_name = user.full_name
-        # hashed_password: sólo lo cambia el flujo de reset de contraseña
-        # (`IdentityService.reset_password`); el resto de los llamadores
+        # hashed_password: lo cambian el reset de contraseña
+        # (`IdentityService.reset_password`) y el ingreso con Google sobre una
+        # cuenta sin verificar (`_claim_unverified_account`); el resto de los llamadores
         # reasignan el mismo hash que ya tenía la entidad, así que incluirlo
         # acá es un no-op para ellos.
         model.hashed_password = user.hashed_password
@@ -326,3 +334,40 @@ class SqlAlchemyEmailVerificationTokenRepository(EmailVerificationTokenRepositor
         if model is not None and model.used_at is None:
             model.used_at = datetime.now(timezone.utc)
             await self._session.commit()
+
+
+def _acceptance_to_entity(model: TermsAcceptanceModel) -> TermsAcceptance:
+    return TermsAcceptance(
+        id=model.id,
+        user_id=model.user_id,
+        version=model.version,
+        channel=TermsAcceptanceChannel(model.channel),
+        accepted_at=model.accepted_at,
+    )
+
+
+class SqlAlchemyTermsAcceptanceRepository(TermsAcceptanceRepository):
+    """Implementación del puerto TermsAcceptanceRepository sobre SQLAlchemy async."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, acceptance: TermsAcceptance) -> TermsAcceptance:
+        model = TermsAcceptanceModel(
+            id=acceptance.id,
+            user_id=acceptance.user_id,
+            version=acceptance.version,
+            channel=acceptance.channel.value,
+        )
+        self._session.add(model)
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _acceptance_to_entity(model)
+
+    async def list_for_user(self, user_id: UUID) -> list[TermsAcceptance]:
+        result = await self._session.execute(
+            select(TermsAcceptanceModel)
+            .where(TermsAcceptanceModel.user_id == user_id)
+            .order_by(desc(TermsAcceptanceModel.accepted_at))
+        )
+        return [_acceptance_to_entity(m) for m in result.scalars().all()]

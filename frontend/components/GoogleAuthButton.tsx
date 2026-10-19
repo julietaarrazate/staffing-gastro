@@ -9,6 +9,7 @@
 // docs/reference/ACCESO_MODERNO.md): sin `NEXT_PUBLIC_GOOGLE_CLIENT_ID` seteada, este
 // componente no renderiza nada — ni carga el script de Google.
 
+import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -64,6 +65,12 @@ export default function GoogleAuthButton({
     null
   );
   const [roleLoading, setRoleLoading] = useState<"worker" | "employer" | null>(null);
+  // Crear la cuenta con Google también pide aceptar términos y privacidad.
+  // Hasta el 2026-09-26 el checkbox sólo existía en el formulario de email de
+  // /register, y este botón creaba la cuenta sin pasar por él. Va en el paso
+  // del rol porque es el único que se muestra sólo a cuentas NUEVAS: quien ya
+  // tiene cuenta entra directo y ya los aceptó al registrarse.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleCredential(idToken: string) {
@@ -115,7 +122,7 @@ export default function GoogleAuthButton({
   }, [scriptReady, isDark]);
 
   async function chooseRole(role: "worker" | "employer") {
-    if (!idTokenRef.current) return;
+    if (!idTokenRef.current || !acceptedTerms) return;
     setError(null);
     setRoleLoading(role);
     try {
@@ -149,21 +156,53 @@ export default function GoogleAuthButton({
         </div>
       </div>
 
+      {/* Las `key` distintas no son decorativas: sin ellas React reusa el
+          mismo `<div>` al pasar de un lado al otro del ternario, y el botón
+          que Google inyectó a mano adentro (fuera de React) quedaba visible
+          encima de la pregunta del rol. */}
       {pendingRole ? (
-        <div className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
+        <div key="role" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
           <p className="text-sm font-semibold text-ink">
             ¿Buscás trabajo o buscás personal?
           </p>
           <p className="mt-1 text-xs text-ink/50">
             Elegí para terminar de crear tu cuenta de Google, {pendingRole.fullName}.
           </p>
+          <label className="mt-3 flex items-start gap-2.5 text-left text-sm text-ink/70">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary focus:ring-primary"
+            />
+            <span>
+              Acepto los{" "}
+              <Link
+                href="/terminos"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary-text hover:underline"
+              >
+                Términos y Condiciones
+              </Link>{" "}
+              y la{" "}
+              <Link
+                href="/privacidad"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary-text hover:underline"
+              >
+                Política de Privacidad
+              </Link>
+            </span>
+          </label>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <Button
               variant="surface"
               size="sm"
               fullWidth
               loading={roleLoading === "worker"}
-              disabled={roleLoading !== null}
+              disabled={roleLoading !== null || !acceptedTerms}
               onClick={() => chooseRole("worker")}
             >
               Busco trabajo
@@ -173,7 +212,7 @@ export default function GoogleAuthButton({
               size="sm"
               fullWidth
               loading={roleLoading === "employer"}
-              disabled={roleLoading !== null}
+              disabled={roleLoading !== null || !acceptedTerms}
               onClick={() => chooseRole("employer")}
             >
               Busco personal
@@ -181,7 +220,7 @@ export default function GoogleAuthButton({
           </div>
         </div>
       ) : (
-        <div className="flex justify-center" ref={buttonHostRef} />
+        <div key="google" className="flex justify-center" ref={buttonHostRef} />
       )}
 
       {error && <p className="mt-2 text-center text-sm text-danger-text">{error}</p>}

@@ -621,3 +621,110 @@ async def test_worker_name_is_not_exposed_to_other_workers(client: AsyncClient):
     feed = await client.get("/api/v1/shifts/feed", headers=worker_headers)
     assert feed.status_code == 200
     assert all(s["worker_name"] is None for s in feed.json())
+
+
+async def test_first_location_report_notifies_employer_once(client: AsyncClient):
+    """El comercio se entera de que el trabajador salió sin tener que estar
+    mirando el panel — pero una sola vez: los reportes siguientes son
+    periódicos y un push por cada uno sería inusable."""
+    near_start = (datetime.now(timezone.utc) + timedelta(minutes=40)).replace(tzinfo=None)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "enroute_emp_notif@staffya.com",
+        "enroute_w_notif@staffya.com",
+        worker_name="Juana Pérez",
+        start_at=near_start.isoformat(),
+        end_at=(near_start + timedelta(hours=6)).isoformat(),
+    )
+    for lat in (-34.60, -34.59, -34.58):
+        await client.post(
+            f"/api/v1/shifts/{shift_id}/en-route",
+            headers=worker_headers,
+            json={"latitude": lat, "longitude": -58.40},
+        )
+    notifications = await client.get("/api/v1/notifications", headers=employer_headers)
+    en_route = [n for n in notifications.json() if n["type"] == "worker_en_route"]
+    assert len(en_route) == 1
+    assert en_route[0]["title"] == "Juana Pérez salió para tu local"
+    # El aviso es para el comercio: al trabajador no le llega nada.
+    mine = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "worker_en_route" for n in mine.json())
+
+
+# --- Geocerca de llegada/salida: 300 m alrededor del local ---
+
+LOCAL = {"latitude": -34.58, "longitude": -58.43}
+# 1° de latitud ≈ 111,19 km: 0,00045° ≈ 50 m, 0,0025° ≈ 278 m, 0,0029° ≈ 322 m, 0,009° ≈ 1 km.
+
+
+async def _check(client, shift_id, headers, action, dlat):
+    return await client.post(
+        f"/api/v1/shifts/{shift_id}/{action}",
+        headers=headers,
+        json={"latitude": LOCAL["latitude"] + dlat, "longitude": LOCAL["longitude"]},
+    )
+
+
+async def test_check_in_inside_radius_is_accepted(client: AsyncClient):
+    shift_id, _e, worker = await _confirmed_shift(
+        client, "geo_e1@staffya.com", "geo_w1@staffya.com", **LOCAL
+    )
+    res = await _check(client, shift_id, worker, "check-in", 0.00045)
+    assert res.status_code == 200
+    assert res.json()["status"] == "check_in"
+
+
+async def test_check_in_far_from_venue_is_rejected_and_not_stored(client: AsyncClient):
+    shift_id, _e, worker = await _confirmed_shift(
+        client, "geo_e2@staffya.com", "geo_w2@staffya.com", **LOCAL
+    )
+    res = await _check(client, shift_id, worker, "check-in", 0.009)
+    assert res.status_code == 400
+    detail = res.json()["detail"]
+    assert "Tenés que estar en el local para marcar la llegada" in detail
+    assert "estás a 100" in detail  # ~1000 m
+    # No quedó registrada ninguna llegada: el trabajador sigue confirmado.
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)
+    assert shift.json()["status"] == "confirmado"
+    assert shift.json()["check_in_latitude"] is None
+
+
+async def test_check_in_radius_edges(client: AsyncClient):
+    shift_id, _e, worker = await _confirmed_shift(
+        client, "geo_e3@staffya.com", "geo_w3@staffya.com", **LOCAL
+    )
+    outside = await _check(client, shift_id, worker, "check-in", 0.0029)  # ~322 m
+    assert outside.status_code == 400
+    inside = await _check(client, shift_id, worker, "check-in", 0.0025)  # ~278 m
+    assert inside.status_code == 200
+
+
+async def test_check_in_exactly_at_the_venue(client: AsyncClient):
+    shift_id, _e, worker = await _confirmed_shift(
+        client, "geo_e4@staffya.com", "geo_w4@staffya.com", **LOCAL
+    )
+    assert (await _check(client, shift_id, worker, "check-in", 0)).status_code == 200
+
+
+async def test_check_out_far_from_venue_is_rejected(client: AsyncClient):
+    shift_id, _e, worker = await _confirmed_shift(
+        client, "geo_e5@staffya.com", "geo_w5@staffya.com", **LOCAL
+    )
+    assert (await _check(client, shift_id, worker, "check-in", 0.00045)).status_code == 200
+    far = await _check(client, shift_id, worker, "check-out", 0.009)
+    assert far.status_code == 400
+    assert "marcar la salida" in far.json()["detail"]
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)
+    assert shift.json()["status"] == "check_in"
+    near = await _check(client, shift_id, worker, "check-out", -0.00045)
+    assert near.status_code == 200
+    assert near.json()["status"] == "check_out"
+
+
+async def test_check_in_without_shift_coordinates_is_accepted(client: AsyncClient):
+    """Turno sin coordenadas: no hay contra qué comparar, se acepta (como antes)."""
+    shift_id, _e, worker = await _confirmed_shift(
+        client, "geo_e6@staffya.com", "geo_w6@staffya.com"
+    )
+    res = await _check(client, shift_id, worker, "check-in", 0.5)
+    assert res.status_code == 200

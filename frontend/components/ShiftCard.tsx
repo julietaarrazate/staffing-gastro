@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE } from "@/lib/skill-style";
+import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { Avatar, Badge, Button } from "@/components/ui";
 import {
   CalendarPlusIcon,
@@ -117,6 +117,7 @@ export default function ShiftCard({
   const durationMin = shiftDurationMinutes(shift.start_at, shift.end_at);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
+  const ink = heroInk(shift.position, hasPhoto);
 
   return (
     // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
@@ -192,8 +193,8 @@ export default function ShiftCard({
           <div className={`absolute inset-0 ${SKILL_HERO_TONE[shift.position]}`}>
             {/* Velo: los extremos claros de algunos gradientes (ámbar, naranja)
                 no dan contraste suficiente para el texto blanco por sí solos. */}
-            <div className="absolute inset-0 bg-black/15" />
-            <Icon size={132} className="absolute -right-5 -top-6 text-white/15" />
+            <div className={`absolute inset-0 ${ink.veil}`} />
+            <Icon size={132} className={`absolute -right-5 -top-6 ${ink.mark}`} />
           </div>
         )}
 
@@ -234,16 +235,16 @@ export default function ShiftCard({
               vez, ver /shifts/new-event): se marca para poder identificarlo
               aunque la familia de estado lo separe de sus hermanos. */}
           {shift.event_name && (
-            <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
+            <p className={`mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold backdrop-blur ${ink.chip}`}>
               <CalendarPlusIcon size={12} /> {shift.event_name}
             </p>
           )}
 
           <div className="mt-3">
-            <h3 className="font-display text-h1 font-medium text-white drop-shadow">
+            <h3 className={`font-display text-h1 font-medium ${ink.strong}`}>
               {SKILL_LABELS[shift.position]}
             </h3>
-            <p className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/85">
+            <p className={`mt-0.5 inline-flex items-center gap-1 text-sm font-medium ${ink.softer}`}>
               <MapPinIcon size={13} />
               {shift.city ?? "Ubicación a confirmar"}
             </p>
@@ -304,23 +305,29 @@ export default function ShiftCard({
             </p>
           )}
 
-        <div className="mt-4">
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
-              }`}
-            >
-              {STATUS_LABELS[shift.status]}
-            </span>
-          </div>
+        {/* Estado y stepper en UNA fila (2026-09-28, diagnóstico de
+            sobrecarga): antes el chip iba en su renglón y abajo el stepper con
+            su propio texto ("Publicado" y "Paso 1 de 4: Publicado"), y la
+            tarjeta decía el estado dos veces seguidas. El chip nombra el
+            estado; los puntos dicen cuánto falta. El texto del stepper sólo
+            vuelve cuando el turno se cortó, porque ahí agrega en qué paso. */}
+        <div className="mt-4 flex items-start gap-3">
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+              STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
+            }`}
+          >
+            {STATUS_LABELS[shift.status]}
+          </span>
+          {showLifecycle && (
+            <ShiftLifecycleStepper
+              shift={shift}
+              perspective={perspective}
+              caption="cutShort"
+              className="min-w-0 flex-1 pt-0.5"
+            />
+          )}
         </div>
-
-        {/* Stepper del ciclo de vida (docs/planning/PULIDO_ROADMAP.md): de un
-            vistazo, en qué punto del viaje está el turno. */}
-        {showLifecycle && (
-          <ShiftLifecycleStepper shift={shift} perspective={perspective} className="mt-3" />
-        )}
 
         {/* Horario en 24 h y con la duración ("Hoy · 20:00 – 02:00 · 6 h"),
             igual que el home y el detalle (DS v5.0). Sin la fila "1
@@ -333,7 +340,9 @@ export default function ShiftCard({
           </span>
         </p>
 
-        {shift.dress_code && (
+        {/* La vestimenta es para quien va a trabajar: en el panel del
+            comercio le repetía lo que él mismo escribió al publicar. */}
+        {perspective === "worker" && shift.dress_code && (
           <p className="mt-2 text-xs text-ink/65">Vestimenta: {shift.dress_code}</p>
         )}
 

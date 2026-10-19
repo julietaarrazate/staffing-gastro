@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
-import Logo from "@/components/Logo";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 type Role = "worker" | "employer";
 
@@ -30,6 +31,8 @@ function RegisterForm() {
   const [role, setRole] = useState<Role>(() => roleFromQuery(searchParams.get("rol")) ?? "worker");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,6 +48,8 @@ function RegisterForm() {
       router.replace("/bienvenida");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
+      // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
+      setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -53,10 +58,7 @@ function RegisterForm() {
   return (
     <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="flex justify-center">
-          <Logo size={48} withWordmark={false} />
-        </div>
-        <h1 className="mt-4 text-center font-display text-h1 font-semibold tracking-tight text-ink">Crear cuenta</h1>
+        <h1 className="text-center font-display text-h1 font-semibold tracking-tight text-ink">Crear cuenta</h1>
         <p className="mt-1 text-center text-sm text-ink/50">
           Empezá a cubrir o conseguir turnos en minutos.
         </p>
@@ -135,7 +137,13 @@ function RegisterForm() {
                 {error}
               </p>
             )}
-            <Button type="submit" fullWidth loading={submitting} disabled={!acceptedTerms}>
+            <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              disabled={!acceptedTerms || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
+            >
               Crear cuenta
             </Button>
           </form>

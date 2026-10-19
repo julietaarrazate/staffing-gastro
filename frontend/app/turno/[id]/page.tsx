@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShiftDetail from "@/components/ShiftDetail";
-import { SITE_HOST } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 import { cldOgImage } from "@/lib/cloudinary";
+import { OG_IMAGE_URL } from "@/lib/og";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
@@ -19,20 +20,26 @@ import { cldOgImage } from "@/lib/cloudinary";
  * el resto del lado del cliente — ver ahí el porqué.
  */
 
-async function getPublicShift(id: string): Promise<ShiftPublic | null> {
+// Un id que no es UUID no puede ser un turno: el backend responde 422 y la
+// página daba 500 en vez de "no encontrado" (auditoría 2026-10-14).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// `cache`: `generateMetadata` y la página piden el mismo turno; así sale un
+// solo pedido al backend por visita.
+const getPublicShift = cache(async (id: string): Promise<ShiftPublic | null> => {
+  if (!UUID_RE.test(id)) return null;
   try {
     return await api.get<ShiftPublic>(`/shifts/${id}/public`);
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return null;
+    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null;
     throw err;
   }
-}
+});
 
-async function getPublicUrl(id: string): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? SITE_HOST;
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return `${proto}://${host}/turno/${id}`;
+// La dirección canónica, fija: antes salía de los headers `x-forwarded-host`
+// y `host` del pedido, que manda el cliente, y quedaba en `og:url`.
+function getPublicUrl(id: string): string {
+  return `${SITE_URL}/turno/${id}`;
 }
 
 export async function generateMetadata({
@@ -51,14 +58,19 @@ export async function generateMetadata({
     shift.company_name ? ` en ${shift.company_name}` : ""
   } — Oído`;
   const description = buildShiftSummary(shift);
-  const url = await getPublicUrl(id);
+  const url = getPublicUrl(id);
   // Con foto del local, la vista previa del link muestra el LUGAR (lo que
   // hace que alguien toque el link); sin foto, la imagen de marca de
-  // `app/opengraph-image.tsx`. Hay que nombrarla acá: el `openGraph` de esta
+  // `app/og/oido.jpg/route.ts`. Hay que nombrarla acá: el `openGraph` de esta
   // página reemplaza entero al del layout, y sin `images` el link de un
   // turno salía SIN imagen (pasaba desde siempre, visto el 2026-09-23).
-  const cover = shift.company_cover_url ? cldOgImage(shift.company_cover_url) : "/opengraph-image";
-  const images = [{ url: cover, width: 1200, height: 630, alt: title }];
+  // Cuadrada para `og:image` (WhatsApp la muestra grande) y apaisada para X,
+  // igual que la de marca — ver `lib/og-brand.tsx`.
+  const cover = shift.company_cover_url;
+  const ogImage = cover
+    ? { url: cldOgImage(cover, 1200, 1200), width: 1200, height: 1200, alt: title }
+    : { url: OG_IMAGE_URL, width: 1200, height: 1200, alt: title };
+  const twitterImage = cover ? cldOgImage(cover, 1200, 630) : "/twitter-image";
 
   return {
     title,
@@ -70,13 +82,13 @@ export async function generateMetadata({
       siteName: "Oído",
       locale: "es_AR",
       type: "website",
-      images,
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: images.map((i) => i.url),
+      images: [twitterImage],
     },
   };
 }

@@ -1,0 +1,13 @@
+{
+  "duracion": 30.0,
+  "bpm": 80,
+  "lineas": [
+    {"id": "t01", "voz": "ef_dora", "at": 0.6, "texto": "Te damos la bienvenida a Oído.", "dur": 2.0},
+    {"id": "t02", "voz": "ef_dora", "at": 4.1, "texto": "Uno: contanos dónde y qué sabés hacer.", "dur": 2.5},
+    {"id": "t03", "voz": "ef_dora", "at": 8.6, "texto": "Dos: te llegan turnos cerca, con el pago a la vista.", "dur": 3.0},
+    {"id": "t04", "voz": "ef_dora", "at": 13.1, "texto": "Tres: si te eligen, confirmás.", "dur": 1.9},
+    {"id": "t05", "voz": "ef_dora", "at": 17.6, "texto": "Cuatro: al llegar tocás Llegué, y al irte, Me fui.", "dur": 2.8},
+    {"id": "t06", "voz": "ef_dora", "at": 22.1, "texto": "Cinco: cobrás y sumás reputación.", "dur": 2.3},
+    {"id": "t07", "voz": "ef_dora", "at": 26.6, "texto": "Elegí tu zona y empezá.", "dur": 1.8}
+  ]
+}
