@@ -111,6 +111,18 @@ Etapas y resultados en
   arman en el build (como siempre) y `frontend/scripts/cf-static-assets.mjs`
   las copia a los assets estáticos, que Cloudflare sirve sin pasar por el
   Worker. Ese script también escribe el `_headers` de los assets.
+- **Entrada propia del Worker** (`frontend/cloudflare/worker.mjs`, desde
+  2026-10-19): envuelve el handler de OpenNext y guarda 60 s en la Cache API
+  de Cloudflare la página pública `/turno/[id]`. Esa página es la que se
+  comparte por WhatsApp, y armarla tardaba entre 1,3 y 2 s. La caché usa
+  como clave sólo la ruta y deja afuera RSC, lo que no sea 200 y las
+  respuestas con `Set-Cookie`; la lógica está en `turno-cache.mjs`, con sus
+  tests. Si OpenNext suma Durable Objects nuevos, hay que reexportarlos ahí.
+  En `workers.dev` la Cache API no guarda nada, así que ahí no se nota.
+- **Rutas estáticas:** 33 de 39 se prerenderizan y salen con
+  `enableCacheInterception` sin cargar Next. Smart Placement se descartó:
+  mueve todo el Worker cerca de Render, y las páginas estáticas, que hoy
+  salen desde Buenos Aires, pasarían a salir desde Ohio.
 - **`next/image`:** Oído no lo usa (las fotos vienen de Cloudinary ya
   recortadas), así que no hace falta Cloudflare Images.
 - **CSP:** desde la etapa 2 (2026-10-14) `vercel.live` sólo entra con
