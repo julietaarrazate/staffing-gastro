@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, Bricolage_Grotesque, DM_Mono } from "next/font/google";
+import { Inter, Fraunces, Schibsted_Grotesk, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -28,13 +28,13 @@ const fraunces = Fraunces({
   weight: ["400", "500", "600", "700"],
 });
 
-// Bricolage Grotesque: títulos de pantalla y titulares de la landing
-// (`font-display`), elegida por Julieta el 2026-10-12. Libre (OFL). Variable,
-// con eje de tamaño óptico: se ajusta sola entre títulos chicos y carteles.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+// Schibsted Grotesk: títulos de pantalla y titulares de la landing
+// (`font-display`), desde el 2026-10-18. Libre (OFL). Reemplaza a Bricolage
+// Grotesque (2026-10-12), que Julieta veía "muy infantil para Oído" y que
+// además usa Pasito.
+const schibsted = Schibsted_Grotesk({
+  variable: "--font-schibsted",
   subsets: ["latin"],
-  axes: ["opsz"],
 });
 
 // DM Mono (board v5.0): datos y precios — el precio de un turno, horarios,
@@ -112,7 +112,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${bricolage.variable} ${dmMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la
