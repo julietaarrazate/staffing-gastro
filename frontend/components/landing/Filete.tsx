@@ -4,7 +4,9 @@ import { useId } from "react";
  * Filete porteño (2026-10-18): una palabra con letras crema y doradas, relieve
  * ámbar y borde hondo, entre volutas, hojas celestes, florcitas y perlitas,
  * a la manera del cartel "Pase y vea". Va en la cinta "¡Oído!" de la comanda
- * y en el "oído" grande del final; el resto de la landing queda liso.
+ * y en el "oído" grande del final; el resto de la landing queda liso. En el
+ * encabezado (`tam="marca"`, desde el 2026-10-19) va sólo la palabra, sin
+ * volutas ni flores: a 30 px de alto se volvían manchitas.
  *
  * Los colores son del cartel, no tokens: el filete es una ilustración y se ve
  * igual en cualquier tema.
@@ -59,14 +61,19 @@ type Medidas = {
   dy: number;
   relieve: number;
   borde: number;
+  /** Volutas, hojas, flores y perlitas a los costados. */
+  adornos: boolean;
 };
 
-const MEDIDAS: Record<"cinta" | "firma", Medidas> = {
-  cinta: { ancho: 340, alto: 124, y: 86, cuerpo: 66, escala: 0.27, dx: -4, dy: 6, relieve: 5, borde: 2.4 },
-  firma: { ancho: 1000, alto: 420, y: 330, cuerpo: 300, escala: 1, dx: 0, dy: 0, relieve: 12, borde: 5 },
+type Tam = "marca" | "cinta" | "firma";
+
+const MEDIDAS: Record<Tam, Medidas> = {
+  marca: { ancho: 176, alto: 84, y: 64, cuerpo: 78, escala: 0, dx: 0, dy: 0, relieve: 3.5, borde: 2.6, adornos: false },
+  cinta: { ancho: 340, alto: 124, y: 86, cuerpo: 66, escala: 0.27, dx: -4, dy: 6, relieve: 5, borde: 2.4, adornos: true },
+  firma: { ancho: 1000, alto: 420, y: 330, cuerpo: 300, escala: 1, dx: 0, dy: 0, relieve: 12, borde: 5, adornos: true },
 };
 
-export default function Filete({ palabra, tam, className }: { palabra: string; tam: "cinta" | "firma"; className?: string }) {
+export default function Filete({ palabra, tam, className }: { palabra: string; tam: Tam; className?: string }) {
   const id = useId().replace(/:/g, "");
   const m = MEDIDAS[tam];
   const texto = `filete-texto-${id}`;
@@ -82,7 +89,7 @@ export default function Filete({ palabra, tam, className }: { palabra: string; t
           textAnchor="middle"
           fontWeight="700"
           fontSize={m.cuerpo}
-          letterSpacing={tam === "firma" ? -6 : -1}
+          letterSpacing={tam === "firma" ? -6 : tam === "marca" ? -2 : -1}
           style={{ fontFamily: "var(--font-fraunces), Georgia, serif" }}
         >
           {palabra}
@@ -93,12 +100,16 @@ export default function Filete({ palabra, tam, className }: { palabra: string; t
           <stop offset="1" stopColor="#e9b84a" />
         </linearGradient>
       </defs>
-      <g transform={`translate(${m.dx} ${m.dy}) scale(${m.escala})`}>
-        <Costado />
-      </g>
-      <g transform={`translate(${m.ancho - m.dx} ${m.dy}) scale(${-m.escala} ${m.escala})`}>
-        <Costado />
-      </g>
+      {m.adornos && (
+        <>
+          <g transform={`translate(${m.dx} ${m.dy}) scale(${m.escala})`}>
+            <Costado />
+          </g>
+          <g transform={`translate(${m.ancho - m.dx} ${m.dy}) scale(${-m.escala} ${m.escala})`}>
+            <Costado />
+          </g>
+        </>
+      )}
       {pasos.map((d) => (
         <use key={d} href={`#${texto}`} x={d} y={d} fill={RELIEVE} />
       ))}

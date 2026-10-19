@@ -10,8 +10,11 @@ export default function manifest(): MetadataRoute.Manifest {
       "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fff8f0",
-    theme_color: "#d97706",
+    // Blanco (2026-10-19): el crema #fff8f0 y el ámbar eran de la paleta
+    // anterior; en la app instalada pintaban la barra de abajo de crema y la
+    // de arriba de naranja.
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     lang: "es",
     icons: [
       {

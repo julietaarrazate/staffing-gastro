@@ -28,6 +28,7 @@
  * inicio del <body>, antes de que React hidrate.
  */
 
+import { THEME_COLOR_DARK, THEME_COLOR_LIGHT } from "./theme-color";
 import {
   createContext,
   useCallback,
@@ -71,6 +72,11 @@ function resolveTheme(choice: ThemeChoice): ResolvedTheme {
  *  fuente de verdad que leen tanto el CSS como el JS. */
 function applyTheme(resolved: ResolvedTheme) {
   document.documentElement.setAttribute("data-theme", resolved);
+  // La barra del celular sigue al tema (2026-10-19): blanca en claro, la
+  // noche azul del cromo en oscuro. Antes era el ámbar fijo de `layout.tsx`.
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", resolved === "dark" ? THEME_COLOR_DARK : THEME_COLOR_LIGHT);
 }
 
 function readStored(): ThemeChoice {
