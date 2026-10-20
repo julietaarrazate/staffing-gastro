@@ -601,3 +601,46 @@ export interface AdminSupportTicket {
   last_message_at: string | null;
   created_at: string | null;
 }
+
+// Comercios a captar para la beta (`/admin/leads`, ADR-0019).
+export type LeadStatus =
+  | "nuevo"
+  | "contactado"
+  | "visitado"
+  | "interesado"
+  | "alta"
+  | "descartado";
+
+export type LeadKind = "restaurante" | "bar" | "cafe" | "comida_rapida" | "heladeria";
+
+export interface Lead {
+  id: string;
+  osm_ref: string;
+  name: string;
+  kind: LeadKind;
+  barrio: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
+  instagram: string | null;
+  email: string | null;
+  status: LeadStatus;
+  notes: string;
+  priority: number;
+  contacted_at: string | null;
+  updated_at: string | null;
+}
+
+export interface LeadSummary {
+  counts: Record<LeadStatus, number>;
+  total: number;
+}
+
+export interface LeadImportResult {
+  barrio: string;
+  found: number;
+  created: number;
+  updated: number;
+}

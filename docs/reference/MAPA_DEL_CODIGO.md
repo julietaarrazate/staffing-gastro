@@ -60,6 +60,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`) |
 | `/terminos`, `/privacidad` **SSR** | Legales. Si cambia el texto, se sube la versión (ver abajo) |
 | `/admin`, `/admin/support` | Métricas, cola de verificación (DNI y constancia AFIP), cuentas de prueba |
+| `/admin/leads` | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) |
 
 ## Dónde vive cada cosa que se busca seguido
 
@@ -119,3 +120,4 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/uploads` | firma de subida de CV y de constancia |
 | `/assistant` | IA del comercio (`query`) y del trabajador (`worker-query`) |
 | `/admin` | stats, usuarios, cuentas de prueba, suscripciones |
+| `/admin/leads` | comercios a captar: listar, `summary`, `barrios`, `import` (OpenStreetMap), `PATCH {id}` (módulo `lead`) |
