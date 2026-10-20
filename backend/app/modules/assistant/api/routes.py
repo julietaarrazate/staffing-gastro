@@ -56,6 +56,16 @@ _worker_query_rate_limit = RateLimiter(
     max_attempts=15, window_seconds=600, name="worker_assistant_query"
 )
 
+# Tope por día y por cuenta (revisión de seguridad 2026-10-20): los de arriba
+# frenan un loop, pero dejaban 2.000 consultas por día a una sola cuenta. El
+# tope global de toda la app está en `app/core/gemini.py`.
+_assistant_query_daily_limit = RateLimiter(
+    max_attempts=60, window_seconds=86_400, name="assistant_query_daily"
+)
+_worker_query_daily_limit = RateLimiter(
+    max_attempts=60, window_seconds=86_400, name="worker_assistant_query_daily"
+)
+
 
 @router.post(
     "/query",
@@ -69,6 +79,7 @@ async def query(
     verification: VerificationDep,
 ) -> AssistantQueryResponse:
     _assistant_query_rate_limit.check(str(company_id))
+    _assistant_query_daily_limit.check(str(company_id))
     # P2 (Julieta: "la IA tiene que aprender cosas de cada persona, está muy
     # genérica"): contexto de turnos anteriores de ESTE comercio, para que
     # el asistente complete campos que el texto no menciona (puesto más
@@ -113,6 +124,7 @@ async def worker_query(
     current_user: WorkerUserDep,
 ) -> WorkerQueryResponse:
     _worker_query_rate_limit.check(str(current_user.id))
+    _worker_query_daily_limit.check(str(current_user.id))
     try:
         result = await interpret_worker_shift_query(payload.text)
     except GeminiNotConfiguredError as exc:

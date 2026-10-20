@@ -86,6 +86,11 @@ EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 _parse_shift_text_rate_limit = RateLimiter(
     max_attempts=15, window_seconds=600, name="parse-shift-text"
 )
+# Tope por día y por cuenta (revisión de seguridad 2026-10-20); el global de
+# toda la app está en `app/core/gemini.py`.
+_parse_shift_text_daily_limit = RateLimiter(
+    max_attempts=60, window_seconds=86_400, name="parse-shift-text-daily"
+)
 
 
 def _to_data(payload: ShiftInput) -> ShiftData:
@@ -207,6 +212,7 @@ async def parse_text(
     # mano en /shifts/new antes de publicar nada (la IA interpreta
     # intención, el motor de turnos/matching decide resultados).
     _parse_shift_text_rate_limit.check(str(current_user.id))
+    _parse_shift_text_daily_limit.check(str(current_user.id))
     try:
         draft = await parse_shift_text(payload.text)
     except GeminiNotConfiguredError as exc:

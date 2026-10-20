@@ -127,12 +127,39 @@ def _is_transient(status_code: int) -> bool:
     return status_code == 429 or status_code >= 500
 
 
+# Contador del tope diario global (`settings.gemini_daily_limit`). En memoria
+# del proceso: hay una sola instancia del backend en Render; con varias,
+# cada una tendría su propio tope.
+_daily_usage: dict[str, int] = {"day": 0, "count": 0}
+
+
+def _reserve_daily_call() -> None:
+    limit = settings.gemini_daily_limit
+    if limit <= 0:
+        return
+    today = now_art().date().toordinal()
+    if _daily_usage["day"] != today:
+        _daily_usage["day"] = today
+        _daily_usage["count"] = 0
+    if _daily_usage["count"] >= limit:
+        logger.warning("Gemini: se alcanzó el tope diario global (%s llamadas)", limit)
+        raise GeminiUnavailableError("tope diario")
+    _daily_usage["count"] += 1
+
+
+def reset_gemini_daily_usage() -> None:
+    """Uso en tests."""
+    _daily_usage["day"] = 0
+    _daily_usage["count"] = 0
+
+
 async def _call_gemini(payload: dict) -> dict:
     """POST común a `generateContent`, compartido por las llamadas de este
     archivo. Reintenta 5xx/429/timeouts/errores de red (`GeminiUnavailableError`
     si se agotan); los 4xx (clave, modelo dado de baja, permisos) son de
     configuración y se loguean como error con el cuerpo de Google — el motivo
     real (ej. `PERMISSION_DENIED`) que antes se perdía."""
+    _reserve_daily_call()
     last_problem = ""
     for attempt in range(_GEMINI_MAX_RETRIES + 1):
         if attempt:

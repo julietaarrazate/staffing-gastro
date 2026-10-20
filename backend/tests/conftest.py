@@ -18,6 +18,8 @@ from app.main import app
 # comparten la IP del cliente ASGI, así que se desactiva salvo en el test que
 # lo ejercita explícitamente (test_identity::test_rate_limit_*).
 settings.rate_limit_enabled = False
+# El tope diario global de Gemini se prueba aparte (test_gemini_shift_parser.py).
+settings.gemini_daily_limit = 0
 
 # PIN del acceso invitado sólo para tests (en producción es la env var
 # `GUEST_ACCESS_PIN`; sin ella el acceso invitado está apagado).
