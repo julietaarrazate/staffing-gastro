@@ -1,7 +1,7 @@
 # Suscripciones push: sólo servicios conocidos, con timeout y por dueño
 
 **Pedido:** Julieta, 2026-10-20, como parte de la revisión de seguridad
-(ítem 11 de `../STATUS.md`, prioridad media).
+(ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, prioridad media).
 
 **Qué cambió:** el backend le hace un POST al `endpoint` que manda el
 navegador al activar los avisos. El endpoint era texto libre y el envío no
