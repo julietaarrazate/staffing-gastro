@@ -9,6 +9,7 @@ import { AdminUser, PlatformStats, SubscriptionStats, TestAccount } from "@/lib/
 import { Avatar, Badge, Button, Card, EmptyState, ErrorBanner, OidoLoader, Skeleton } from "@/components/ui";
 import IdentityReviewQueue from "@/components/admin/IdentityReviewQueue";
 import {
+  BuildingIcon,
   CheckCircleIcon,
   EyeIcon,
   FlaskIcon,
@@ -197,13 +198,22 @@ export default function AdminPage() {
           <ShieldIcon size={22} className="text-primary-text" />
           <h1 className="font-display text-h1 font-semibold text-ink">Panel de administración</h1>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push("/admin/support")}
-          className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition hover:bg-line"
-        >
-          <MessageIcon size={16} /> Soporte
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/admin/leads")}
+            className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition hover:bg-line"
+          >
+            <BuildingIcon size={16} /> Comercios a captar
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/support")}
+            className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition hover:bg-line"
+          >
+            <MessageIcon size={16} /> Soporte
+          </button>
+        </div>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
