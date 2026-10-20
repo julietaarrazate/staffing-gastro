@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.geo import haversine_km
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from tests.conftest import TEST_GUEST_PIN, auth_headers, login
 
@@ -187,9 +188,13 @@ async def test_search_map_never_returns_the_workers_exact_coordinates(
     assert response.status_code == 200
     worker = response.json()[0]
     assert (worker["latitude"], worker["longitude"]) != (-34.58, -58.43)
-    # La distancia sigue siendo la real (calculada antes de desplazar el
-    # pin) — lo que se oculta es DÓNDE, no QUÉ TAN LEJOS.
-    assert worker["distance_km"] is not None
+    # La distancia se mide desde el pin desplazado, no desde el domicilio:
+    # con la real, tres búsquedas desde puntos distintos triangulaban la casa
+    # (revisión de seguridad 2026-10-20).
+    from_pin = haversine_km(worker["latitude"], worker["longitude"], -34.6, -58.45)
+    real = haversine_km(-34.58, -58.43, -34.6, -58.45)
+    assert worker["distance_km"] == round(from_pin, 1)
+    assert worker["distance_km"] != round(real, 3)
 
 
 async def test_worker_cannot_search_map(client: AsyncClient):

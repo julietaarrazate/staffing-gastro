@@ -1,5 +1,6 @@
 """Caso de uso del motor de matching: top de candidatos para un turno."""
 
+from dataclasses import replace
 from uuid import UUID
 
 from app.core.geo import fuzz_point, haversine_km
@@ -18,6 +19,26 @@ from app.modules.matching.domain.value_objects import (
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+
+def _public_distance_km(
+    lat: float | None,
+    lng: float | None,
+    seed: str,
+    from_lat: float | None,
+    from_lng: float | None,
+) -> float | None:
+    """Distancia que ve el comercio (ADR-0014 §3: "qué tan lejos, no dónde").
+
+    Se mide desde el MISMO punto desplazado que muestra el mapa, nunca desde el
+    domicilio o la posición en vivo exactos: con la distancia real, tres
+    búsquedas desde puntos distintos alcanzaban para triangular la casa del
+    trabajador (revisión de seguridad 2026-10-20). Así la distancia no dice
+    nada que el pin no diga ya. Redondeada a 0,1 km, que es lo que muestra la
+    UI."""
+    fuzzed_lat, fuzzed_lng = fuzz_point(lat, lng, seed)
+    distance = haversine_km(fuzzed_lat, fuzzed_lng, from_lat, from_lng)
+    return None if distance is None else round(distance, 1)
 
 
 class MatchingService:
@@ -50,8 +71,23 @@ class MatchingService:
             longitude=shift.longitude,
         )
         candidates = await self._candidates.list_available(shift.position)
+        # El ranking usa la distancia real (decide a quién conviene avisar);
+        # lo que sale hacia el comercio lleva la distancia pública.
         ranked = rank_candidates(candidates, requirement, weights, max_radius_km)
-        return ranked[:limit]
+        by_profile = {c.profile_id: c for c in candidates}
+        return [
+            replace(
+                result,
+                distance_km=_public_distance_km(
+                    by_profile[result.profile_id].latitude,
+                    by_profile[result.profile_id].longitude,
+                    str(result.profile_id),
+                    shift.latitude,
+                    shift.longitude,
+                ),
+            )
+            for result in ranked[:limit]
+        ]
 
     async def search_workers(
         self,
@@ -73,15 +109,20 @@ class MatchingService:
         candidates = await self._candidates.list_available(skill)
         results = []
         for candidate in candidates:
-            distance_km = haversine_km(
-                candidate.latitude, candidate.longitude, latitude, longitude
+            # TECH_DEBT.md S4 / ADR-0014 §3: ni el pin ni la distancia que ve el
+            # comercio (y el admin, mismo endpoint) salen del domicilio exacto.
+            # El filtro por radio y el orden usan la misma distancia pública:
+            # si filtraran con la real, achicar el radio de a poco la
+            # revelaría igual.
+            distance_km = _public_distance_km(
+                candidate.latitude,
+                candidate.longitude,
+                str(candidate.profile_id),
+                latitude,
+                longitude,
             )
             if radius_km is not None and (distance_km is None or distance_km > radius_km):
                 continue
-            # TECH_DEBT.md S4 / ADR-0014 §3: el pin que ve el comercio (y el
-            # admin, mismo endpoint) nunca es el domicilio exacto del
-            # trabajador — la distancia sí es la real, calculada arriba antes
-            # de desplazar.
             fuzzed_lat, fuzzed_lng = fuzz_point(
                 candidate.latitude, candidate.longitude, str(candidate.profile_id)
             )
