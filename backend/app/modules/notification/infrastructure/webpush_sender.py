@@ -16,6 +16,8 @@ from app.modules.notification.domain.push_sender import PushSendResult, PushSend
 
 logger = logging.getLogger(__name__)
 
+_PUSH_TIMEOUT_SECONDS = 10
+
 
 class WebPushSender(PushSender):
     """Adaptador real: envía la notificación al servicio push del navegador
@@ -57,6 +59,9 @@ class WebPushSender(PushSender):
                 data=json.dumps({"title": title, "body": body, "url": url}),
                 vapid_private_key=self._settings.vapid_private_key,
                 vapid_claims={"sub": f"mailto:{self._settings.vapid_contact_email}"},
+                # Sin timeout, un servicio que no responde dejaba un hilo del
+                # pool colgado por cada aviso (revisión de seguridad 2026-10-20).
+                timeout=_PUSH_TIMEOUT_SECONDS,
             )
             return PushSendResult.SENT
         except WebPushException as exc:

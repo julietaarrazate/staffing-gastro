@@ -12,6 +12,7 @@ from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.notification.infrastructure.fake_push_sender import FakePushSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
+    SqlAlchemyPushSubscriptionRepository,
 )
 from tests.conftest import auth_headers
 
@@ -61,6 +62,53 @@ async def test_push_subscribe_is_idempotent_and_can_unsubscribe(client: AsyncCli
         "DELETE", _SUBSCRIBE_PATH, json={"endpoint": payload["endpoint"]}, headers=headers
     )
     assert again.status_code == 204
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://fcm.googleapis.com/fcm/send/x",  # sin https
+        "https://10.0.0.5/push",  # red interna
+        "https://evil.example.com/fcm.googleapis.com",
+        "https://fcm.googleapis.com.evil.com/x",
+        "https://fcm.googleapis.com:8443/x",
+    ],
+)
+async def test_push_subscribe_rejects_unknown_push_services(
+    client: AsyncClient, endpoint: str
+):
+    """Revisión de seguridad 2026-10-20: el backend le hace POST al endpoint,
+    así que sólo se aceptan los servicios push de los navegadores."""
+    headers = await auth_headers(client, "worker", "push_ssrf@staffya.com")
+    response = await client.post(
+        _SUBSCRIBE_PATH,
+        json={"endpoint": endpoint, "keys": {"p256dh": "a", "auth": "b"}},
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
+async def test_push_unsubscribe_only_removes_your_own_subscription(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    owner = await auth_headers(client, "worker", "push_own@staffya.com")
+    other = await auth_headers(client, "worker", "push_other@staffya.com")
+    endpoint = "https://updates.push.services.mozilla.com/wpush/v2/abc"
+    await client.post(
+        _SUBSCRIBE_PATH,
+        json={"endpoint": endpoint, "keys": {"p256dh": "a", "auth": "b"}},
+        headers=owner,
+    )
+
+    response = await client.request(
+        "DELETE", _SUBSCRIBE_PATH, json={"endpoint": endpoint}, headers=other
+    )
+    assert response.status_code == 204
+
+    owner_id = UUID((await client.get("/api/v1/auth/me", headers=owner)).json()["id"])
+    async with session_factory() as session:
+        remaining = await SqlAlchemyPushSubscriptionRepository(session).list_by_user(owner_id)
+    assert [s.endpoint for s in remaining] == [endpoint]
 
 
 async def test_notification_creation_sends_push_best_effort(
