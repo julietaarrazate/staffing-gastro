@@ -1,7 +1,7 @@
 # El CV del trabajador sólo lo ve quien tiene un vínculo con él
 
 **Pedido:** Julieta, 2026-10-20, como parte de la revisión de seguridad
-(ítem 11 de `../STATUS.md`, prioridad media).
+(ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, prioridad media).
 
 **Qué cambió:** `GET /workers/{profile_id}` devolvía `cv_url` a cualquier
 sesión. El mapa del comercio entrega los `profile_id`, así que cualquier
@@ -23,5 +23,5 @@ decidir; uno que sólo ve el mapa, no. Mira hasta 200 turnos y postulaciones
 del trabajador; si algún día no alcanza, pasa a una consulta SQL con JOIN.
 El frontend (`app/workers/[id]/page.tsx`) ya manejaba `cv_url` vacío.
 
-**Queda abierto:** nada de este tema. El resto sigue en el ítem 11 de
-`../STATUS.md`.
+**Queda abierto:** nada de este tema. El resto sigue en el ítem «Revisión de seguridad
+del 2026-10-20» de `../STATUS.md`.
