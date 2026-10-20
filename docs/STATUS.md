@@ -134,16 +134,22 @@ Revisado contra el código y los PRs el 2026-10-03.
      y email verificado para usar la IA (`modules/assistant/api/routes.py`,
      `modules/shift/api/routes.py`).
    - **Media — documentos de identidad en Cloudinary con entrega pública**
-     (`core/cloudinary.py`): subirlos `authenticated` y que admin los vea
-     con URL firmada que vence.
+     (`core/cloudinary.py`). **Espera decisión de Julieta:** el arreglo de
+     verdad es subirlos `private` y que el panel de admin pida un link de
+     descarga que vence (API de Cloudinary). Toca la subida, lo que se
+     guarda, el panel de verificación y los archivos ya subidos. Hoy el
+     nombre de cada archivo es al azar (128 bits), así que el riesgo es que
+     se filtre un link, no que lo adivinen.
    - **Baja:** emails en logs (`notification/infrastructure/*email_sender.py`,
      `admin/`), login sin hash de relleno si el email no existe y sin límite
      por cuenta (`identity/`), `DELETE /push/subscribe` sin dueño (va con el
      de push), CSP con `unsafe-inline`.
-   - **A confirmar:** que el límite de intentos ya use la IP real
-     (`core/edge.py` + `EDGE_SHARED_SECRET`, etapa 3 del ítem 10); y que el
-     frontend apunte a `api.oido.com.ar` y no a `onrender.com`
-     (`frontend/.env.production`, `frontend/lib/api.ts`).
+   - **Limpieza chica:** `frontend/.env.production`, `frontend/lib/api.ts` y
+     `frontend/next.config.ts` siguen con `staffya-backend.onrender.com`
+     como valor por defecto. En producción no afecta, porque Workers Builds
+     inyecta `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`. Pero si
+     esa variable faltara, el frontend llamaría a una API que responde 403.
+     El límite de intentos con IP real ya está (etapa 3, 2026-10-15).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
