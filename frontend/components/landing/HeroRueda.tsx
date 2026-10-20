@@ -109,7 +109,11 @@ function Rueda() {
 export default function HeroRueda() {
   return (
     <section aria-labelledby="hero-titulo" data-tone="light" className="landing-hero relative overflow-hidden px-4 text-center sm:px-6">
-      <Rueda />
+      {/* El marco funde la rueda hacia abajo: sin él, en pantallas anchas las
+          fichas de los costados se cortaban en seco contra el borde. */}
+      <div aria-hidden className="landing-rueda-marco">
+        <Rueda />
+      </div>
       <div className="relative z-[2]">
         <h1
           id="hero-titulo"

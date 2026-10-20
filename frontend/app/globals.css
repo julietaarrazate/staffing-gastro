@@ -1075,7 +1075,7 @@ body:has([data-landing]) main {
 @media (min-width: 1024px) {
   .landing-sec-dos {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 96px;
     align-items: center;
     width: 100%;
@@ -1086,7 +1086,7 @@ body:has([data-landing]) main {
   }
   .landing-sec-dos .landing-h2 {
     grid-column: 1;
-    max-width: 11ch;
+    max-width: 14ch;
     margin: 0;
   }
   .landing-sec-dos .landing-sec-cosa {
@@ -1174,6 +1174,12 @@ body:has([data-landing]) main {
     --cw: 170px;
     --ch: 221px;
   }
+}
+.landing-rueda-marco {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 180px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 180px), transparent);
 }
 .landing-rueda {
   position: absolute;
