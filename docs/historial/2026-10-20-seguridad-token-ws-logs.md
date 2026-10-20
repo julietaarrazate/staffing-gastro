@@ -1,7 +1,7 @@
 # El token del WebSocket ya no queda en los logs
 
 **Pedido:** Julieta, 2026-10-20, como parte de la revisión de seguridad
-(ítem 11 de `../STATUS.md`, prioridad media).
+(ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, prioridad media).
 
 **Qué cambió:** el navegador no puede mandar headers en un WebSocket, así que
 el access token viaja en `?token=` (`identity/api/dependencies.py`,

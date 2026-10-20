@@ -59,7 +59,10 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/support`, `/support/[id]` | Tickets de soporte |
 | `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`) |
 | `/terminos`, `/privacidad` **SSR** | Legales. Si cambia el texto, se sube la versión (ver abajo) |
-| `/admin`, `/admin/support` | Métricas, cola de verificación (DNI y constancia AFIP), cuentas de prueba |
+| `/admin` ("Hoy") | Portada del admin: pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
+| `/admin/personas`, `/admin/verificacion`, `/admin/support` | Usuarios y moderación · cola de DNI y constancia AFIP · tickets |
+| `/admin/metricas`, `/admin/herramientas` | Conteos, promesa, métricas de producto y suscripciones · cuentas de prueba |
+| `/admin/leads` ("Crecimiento") | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) |
 
 ## Dónde vive cada cosa que se busca seguido
 
@@ -119,3 +122,4 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/uploads` | firma de subida de CV y de constancia |
 | `/assistant` | IA del comercio (`query`) y del trabajador (`worker-query`) |
 | `/admin` | stats, usuarios, cuentas de prueba, suscripciones |
+| `/admin/leads` | comercios a captar: listar, `summary`, `barrios`, `import` (OpenStreetMap), `PATCH {id}` (módulo `lead`) |

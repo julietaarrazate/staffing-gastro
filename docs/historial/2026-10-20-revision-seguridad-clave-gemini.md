@@ -31,6 +31,6 @@ scrubber por defecto de `sentry_sdk` no conoce `new_password` ni `pin`.
 - Julieta: crear una clave nueva en Google AI Studio, borrar la vieja,
   cargar la nueva en Render (`GEMINI_API_KEY`) y **borrar** (no resolver)
   `STAFFYA-BACKEND-7` en Sentry después del deploy de este PR.
-- El resto de la revisión quedó como ítem 11 de `../STATUS.md`, en orden de
+- El resto de la revisión quedó como ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, en orden de
   prioridad, con un PR por tema. Se describe por tema y archivo, sin cómo
   explotarlo.
