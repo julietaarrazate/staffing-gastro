@@ -96,7 +96,7 @@ test("el panel de admin muestra las cuentas de prueba con acceso directo", async
   await mockEmptyNotifications(page);
   await mockAdminPanel(page);
 
-  await page.goto("/admin");
+  await page.goto("/admin/herramientas");
 
   await expect(page.getByText("Mis cuentas de prueba")).toBeVisible();
   await expect(page.getByRole("button", { name: "Ver como trabajador" })).toBeVisible();
@@ -143,7 +143,7 @@ test("\"Ver como trabajador\" (cuenta de prueba) impersona y saca del panel de a
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
 
-  await page.goto("/admin");
+  await page.goto("/admin/herramientas");
   await page.getByRole("button", { name: "Ver como trabajador" }).click();
 
   await expect(page).toHaveURL(/\/feed$/);
