@@ -21,6 +21,7 @@ from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
+from app.modules.support.infrastructure.repositories import SqlAlchemySupportTicketRepository
 from app.modules.worker.infrastructure.repositories import SqlAlchemyWorkerProfileRepository
 
 
@@ -37,4 +38,5 @@ def get_admin_service(
         SqlAlchemySubscriptionRepository(session),
         billing,
         SqlAlchemyRefreshSessionRepository(session),
+        SqlAlchemySupportTicketRepository(session),
     )

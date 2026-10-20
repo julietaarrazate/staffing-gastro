@@ -1,109 +1,136 @@
 "use client";
 
-// "Personas": usuarios de la plataforma y las acciones de moderación
-// (suspender, reactivar, verificar, ver como, hacer admin). Salió tal cual del
-// panel de una sola página (2026-10-20); buscador y ficha son el paso 2.
+// "Personas": responde "¿quién es esta persona?". Buscador por nombre o
+// email y filtros por rol, estado y verificación (paso 2 del panel por
+// secciones, 2026-10-20). Cada fila abre la ficha (`/admin/personas/[id]`),
+// donde viven las acciones de moderación.
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import type { AdminUser } from "@/lib/types";
-import { Avatar, Badge, Button, Card, ErrorBanner, Skeleton } from "@/components/ui";
-import { CheckCircleIcon, EyeIcon, UsersIcon } from "@/components/icons";
+import { Avatar, Badge, Button, CardSkeletons, EmptyState, ErrorBanner } from "@/components/ui";
+import { CheckCircleIcon, SearchIcon, UsersIcon } from "@/components/icons";
 import { AdminHeading } from "@/components/admin/AdminStats";
+import { ROLE_LABELS, STATUS_LABELS } from "@/components/admin/people";
 
-const ROLE_LABELS: Record<string, string> = {
-  worker: "Trabajador",
-  employer: "Comercio",
-  admin: "Admin",
-};
+const PAGE_SIZE = 50;
 
-const STATUS_TONE: Record<string, "secondary" | "danger" | "neutral"> = {
-  active: "secondary",
-  suspended: "danger",
-  deleted: "neutral",
-};
+type Filter = "todos" | "worker" | "employer" | "admin" | "suspended" | "unverified";
 
-const STATUS_LABELS: Record<string, string> = {
-  active: "Activo",
-  suspended: "Suspendido",
-};
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "worker", label: "Trabajadores" },
+  { value: "employer", label: "Comercios" },
+  { value: "admin", label: "Admins" },
+  { value: "unverified", label: "Sin verificar" },
+  { value: "suspended", label: "Suspendidos" },
+];
 
-function AdminUserRowSkeleton() {
-  return (
-    <Card className="p-5" aria-hidden>
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-11 w-11 rounded-full" />
-        <div className="flex-1 space-y-2">
-          <Skeleton className="h-4 w-1/3" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-      </div>
-    </Card>
-  );
+function buildQuery(search: string, filter: Filter, offset: number): string {
+  const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
+  if (search.trim()) params.set("q", search.trim());
+  if (filter === "worker" || filter === "employer" || filter === "admin") params.set("role", filter);
+  if (filter === "suspended") params.set("status", "suspended");
+  if (filter === "unverified") params.set("verified", "false");
+  return `/admin/users?${params}`;
 }
 
 export default function AdminPeoplePage() {
-  const { user, token, impersonate } = useAuth();
-  const router = useRouter();
+  const { token } = useAuth();
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [filter, setFilter] = useState<Filter>("todos");
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  // Descarta respuestas viejas si el texto cambió mientras viajaban.
+  const requestId = useRef(0);
 
-  // Sólo la primera carga muestra skeleton: las recargas que dispara una
-  // acción ya tienen su propio feedback (el `busy` por fila).
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const load = useCallback(() => {
     if (!token) return;
+    const id = ++requestId.current;
+    setLoading(true);
     setError(null);
     api
-      .get<AdminUser[]>("/admin/users", token)
-      .then(setUsers)
-      .catch((err) => setError(getErrorMessage(err, "No se pudieron cargar los usuarios")))
-      .finally(() => setLoading(false));
-  }, [token]);
+      .get<AdminUser[]>(buildQuery(debounced, filter, 0), token)
+      .then((data) => {
+        if (id !== requestId.current) return;
+        setUsers(data);
+        setHasMore(data.length === PAGE_SIZE);
+      })
+      .catch((err) => {
+        if (id === requestId.current) setError(getErrorMessage(err, "No se pudo buscar"));
+      })
+      .finally(() => {
+        if (id === requestId.current) setLoading(false);
+      });
+  }, [token, debounced, filter]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function act(userId: string, action: string) {
+  const loadMore = async () => {
     if (!token) return;
-    setBusy(`${userId}:${action}`);
+    setLoadingMore(true);
     try {
-      await api.post(`/admin/users/${userId}/${action}`, undefined, token);
-      load();
+      const data = await api.get<AdminUser[]>(buildQuery(debounced, filter, users.length), token);
+      setUsers((current) => [...current, ...data]);
+      setHasMore(data.length === PAGE_SIZE);
     } catch (err) {
-      setError(getErrorMessage(err, "No se pudo completar la acción"));
+      setError(getErrorMessage(err, "No se pudieron traer más"));
     } finally {
-      setBusy(null);
+      setLoadingMore(false);
     }
-  }
-
-  async function handleImpersonate(userId: string) {
-    setBusy(`${userId}:impersonate`);
-    try {
-      await impersonate(userId);
-      // Al home: resuelve la vista correcta según el rol impersonado.
-      router.push("/");
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : getErrorMessage(err, "No se pudo entrar como este usuario")
-      );
-      setBusy(null);
-    }
-  }
+  };
 
   return (
     <div>
       <AdminHeading
         title="Personas"
-        subtitle="Trabajadores, comercios y admins, con las acciones de moderación."
+        subtitle="Buscá a alguien por nombre o email y abrí su ficha."
       />
+
+      <label className="mt-5 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
+        <SearchIcon size={16} className="shrink-0 text-ink/40" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Nombre o email"
+          aria-label="Buscar por nombre o email"
+          maxLength={100}
+          className="w-full bg-transparent text-sm text-ink placeholder:text-ink/40 focus:outline-none"
+        />
+      </label>
+
+      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrar">
+        {FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => setFilter(f.value)}
+            aria-pressed={filter === f.value}
+            className={
+              filter === f.value
+                ? "rounded-full bg-raised px-3 py-1.5 text-xs font-semibold text-ink shadow-[var(--shadow-soft)] ring-1 ring-ink/50"
+                : "rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink/60 ring-1 ring-line transition hover:bg-line"
+            }
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <div className="mt-4">
@@ -111,101 +138,59 @@ export default function AdminPeoplePage() {
         </div>
       )}
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-2">
-        {loading ? (
-          <>
-            <AdminUserRowSkeleton />
-            <AdminUserRowSkeleton />
-            <AdminUserRowSkeleton />
-          </>
-        ) : (
-          users.map((u) => (
-            <Card key={u.id} className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar src={u.photo_url} name={u.full_name} size="md" />
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 truncate font-semibold text-ink">
-                      {u.full_name}
-                      {u.is_verified && <CheckCircleIcon size={15} className="text-success-text" />}
-                    </p>
-                    <p className="truncate text-xs text-ink/50">{u.email}</p>
-                  </div>
+      {loading && (
+        <div className="mt-5">
+          <CardSkeletons />
+        </div>
+      )}
+
+      {!loading && !error && users.length === 0 && (
+        <div className="mt-5">
+          <EmptyState
+            icon={<UsersIcon size={28} />}
+            title="No hay nadie con ese criterio"
+            subtitle="Probá con otro nombre, otro email u otro filtro."
+          />
+        </div>
+      )}
+
+      {!loading && users.length > 0 && (
+        <ul className="mt-5 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
+          {users.map((u) => (
+            <li key={u.id}>
+              <Link
+                href={`/admin/personas/${u.id}`}
+                className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface"
+              >
+                <Avatar src={u.photo_url} name={u.full_name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 truncate font-semibold text-ink">
+                    {u.full_name}
+                    {u.is_verified && (
+                      <CheckCircleIcon size={15} className="shrink-0 text-success-text" />
+                    )}
+                  </p>
+                  <p className="truncate text-xs text-ink/50">{u.email}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  <Badge tone="neutral" icon={<UsersIcon size={11} />}>
-                    {ROLE_LABELS[u.role] ?? u.role}
-                  </Badge>
-                  <Badge tone={STATUS_TONE[u.status] ?? "neutral"}>
-                    {STATUS_LABELS[u.status] ?? u.status}
-                  </Badge>
+                  <Badge tone="neutral">{ROLE_LABELS[u.role] ?? u.role}</Badge>
+                  {u.status !== "active" && (
+                    <Badge tone="danger">{STATUS_LABELS[u.status] ?? u.status}</Badge>
+                  )}
                 </div>
-              </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {u.status === "active" ? (
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    disabled={busy !== null || u.id === user?.id}
-                    loading={busy === `${u.id}:suspend`}
-                    onClick={() => act(u.id, "suspend")}
-                  >
-                    {u.id === user?.id ? "Sos vos" : "Suspender"}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={busy !== null}
-                    loading={busy === `${u.id}:activate`}
-                    onClick={() => act(u.id, "activate")}
-                  >
-                    Reactivar
-                  </Button>
-                )}
-                {!u.is_verified && (
-                  <Button
-                    size="sm"
-                    variant="surface"
-                    disabled={busy !== null}
-                    loading={busy === `${u.id}:verify`}
-                    onClick={() => act(u.id, "verify")}
-                  >
-                    Verificar
-                  </Button>
-                )}
-                {u.role !== "admin" && (
-                  <Button
-                    size="sm"
-                    variant="surface"
-                    leftIcon={<EyeIcon size={14} />}
-                    disabled={busy !== null}
-                    loading={busy === `${u.id}:impersonate`}
-                    onClick={() => handleImpersonate(u.id)}
-                  >
-                    Ver como
-                  </Button>
-                )}
-                {u.role !== "admin" && (
-                  // Antes era `primary` (ámbar) en cada tarjeta: con la lista
-                  // entera la pantalla tenía decenas de acentos, contra la
-                  // regla de un solo ámbar por pantalla.
-                  <Button
-                    size="sm"
-                    variant="surface"
-                    disabled={busy !== null}
-                    loading={busy === `${u.id}:promote`}
-                    onClick={() => act(u.id, "promote")}
-                  >
-                    Hacer admin
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
+      {!loading && hasMore && (
+        <div className="mt-4 flex justify-center">
+          <Button variant="surface" size="sm" loading={loadingMore} onClick={loadMore}>
+            Ver más
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
