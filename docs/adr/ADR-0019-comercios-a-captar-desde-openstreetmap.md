@@ -63,5 +63,11 @@ atribución de OSM. No cambia `/privacidad`: no son usuarios de la app.
   (sin salida a ese host); los tests cubren la consulta armada y el parseo de
   una respuesta real de ejemplo. Primera importación en producción: revisar
   que Palermo devuelva comercios.
+- ⚠️ **Primera importación real (2026-10-20): falló.** Desde Render,
+  `overpass-api.de` no aceptó la conexión ("All connection attempts
+  failed"). Se agregaron servidores públicos de respaldo de Overpass que se
+  prueban en orden si uno no conecta, está limitado (429) o falla (5xx);
+  un 4xx (consulta mal armada) no se reintenta. Ver
+  `historial/2026-10-20-overpass-respaldo.md`.
 - ✅ Tests: `backend/tests/test_lead.py`, `frontend/lib/leads.test.ts`,
   `frontend/e2e/admin-leads.spec.ts`.

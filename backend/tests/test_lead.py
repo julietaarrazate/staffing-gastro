@@ -1,5 +1,6 @@
 """Tests del módulo lead (comercios a captar, panel de admin)."""
 
+import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -12,6 +13,7 @@ from app.modules.lead.domain.exceptions import PlaceSourceUnavailableError
 from app.modules.lead.domain.repositories import PlaceSource
 from app.modules.lead.domain.value_objects import LeadKind, LeadStatus
 from app.modules.lead.infrastructure.overpass_place_source import (
+    OverpassPlaceSource,
     build_query,
     parse_elements,
 )
@@ -261,3 +263,66 @@ async def test_non_admin_cannot_use_leads(client, places):
     res = await client.post("/api/v1/admin/leads/import", json={"barrio": "Palermo"}, headers=employer)
     assert res.status_code == 403
     assert places.calls == []
+
+
+# --- respaldo entre servidores de Overpass (sin red) ------------------------
+
+_ONE_CAFE = {
+    "elements": [
+        {
+            "type": "node",
+            "id": 7,
+            "lat": -34.58,
+            "lon": -58.42,
+            "tags": {"amenity": "cafe", "name": "Café Respaldo"},
+        }
+    ]
+}
+
+
+def _source(handler) -> tuple[OverpassPlaceSource, list[str]]:
+    hosts: list[str] = []
+
+    def record(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        return handler(request)
+
+    urls = ("https://uno.test/api", "https://dos.test/api", "https://tres.test/api")
+    return OverpassPlaceSource(urls=urls, transport=httpx.MockTransport(record)), hosts
+
+
+async def test_overpass_falls_back_when_a_server_does_not_connect():
+    def handler(request):
+        if request.url.host == "uno.test":
+            raise httpx.ConnectError("All connection attempts failed", request=request)
+        if request.url.host == "dos.test":
+            return httpx.Response(429)
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    source, hosts = _source(handler)
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+    assert hosts == ["uno.test", "dos.test", "tres.test"]
+
+
+async def test_overpass_stops_at_the_first_server_that_answers():
+    source, hosts = _source(lambda request: httpx.Response(200, json=_ONE_CAFE))
+    await source.find_gastronomy("Palermo")
+    assert hosts == ["uno.test"]
+
+
+async def test_overpass_raises_when_every_server_fails():
+    def handler(request):
+        raise httpx.ConnectError("All connection attempts failed", request=request)
+
+    source, hosts = _source(handler)
+    with pytest.raises(PlaceSourceUnavailableError):
+        await source.find_gastronomy("Palermo")
+    assert len(hosts) == 3
+
+
+async def test_overpass_does_not_retry_a_bad_request():
+    source, hosts = _source(lambda request: httpx.Response(400, text="consulta inválida"))
+    with pytest.raises(PlaceSourceUnavailableError):
+        await source.find_gastronomy("Palermo")
+    assert hosts == ["uno.test"]
