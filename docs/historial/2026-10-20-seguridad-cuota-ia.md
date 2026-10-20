@@ -1,7 +1,7 @@
 # Topes de uso de la IA: por día y por cuenta, y uno global
 
 **Pedido:** Julieta, 2026-10-20, como parte de la revisión de seguridad
-(ítem 11 de `../STATUS.md`, prioridad media).
+(ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, prioridad media).
 
 **Qué cambió:** los límites de la IA eran sólo de 15 consultas cada 10
 minutos por cuenta (frenan un doble click). No había tope por día ni uno de
