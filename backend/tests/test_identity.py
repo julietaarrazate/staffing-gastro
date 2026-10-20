@@ -280,6 +280,31 @@ async def test_login_rate_limited(client: AsyncClient):
     assert statuses.index(429) >= 10
 
 
+async def test_login_rate_limited_per_email_even_from_many_ips(
+    client: AsyncClient, monkeypatch
+):
+    """Revisión de seguridad 2026-10-20: rotando IPs se podía probar
+    contraseñas sin límite contra un mismo email. El límite por IP se
+    agranda acá para simular muchas IPs."""
+    from app.modules.identity.api import routes as identity_routes
+
+    monkeypatch.setattr(identity_routes._login_rate_limit, "max_attempts", 1000)
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        await register_user(client)
+        creds = {"email": "mozo@staffya.com", "password": "incorrecta"}
+        statuses = [
+            (await client.post("/api/v1/auth/login", json=creds)).status_code
+            for _ in range(21)
+        ]
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+    assert statuses[:20] == [401] * 20
+    assert statuses[20] == 429
+
+
 async def test_refresh_rate_limited(client: AsyncClient):
     """Tras superar el límite por IP, /auth/refresh responde 429 (antes no
     tenía ningún límite, a diferencia de login/register)."""

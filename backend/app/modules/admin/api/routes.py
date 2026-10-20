@@ -10,6 +10,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.log_privacy import mask_email
 from app.modules.admin.api.dependencies import get_admin_service
 from app.modules.admin.api.schemas import (
     AdminUserResponse,
@@ -159,7 +160,11 @@ async def impersonate_user(user_id: UUID, current: AdminDep, service: ServiceDep
     # necesita persistirse en tabla además del log.
     logger.warning(
         "admin impersonate: admin=%s (%s) → target=%s (%s, rol=%s)",
-        current.id, current.email, user.id, user.email, user.role.value,
+        current.id,
+        mask_email(current.email),
+        user.id,
+        mask_email(user.email),
+        user.role.value,
     )
     return ImpersonateResponse(
         access_token=access_token, user=AdminUserResponse.model_validate(user)

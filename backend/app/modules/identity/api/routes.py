@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from app.core.config import settings
 from app.core.edge import client_ip
 from app.core.origin import require_allowed_origin
+from app.core.log_privacy import email_log_key
 from app.core.rate_limit import RateLimiter
 from app.core.turnstile import require_turnstile
 from app.modules.identity.api.dependencies import (
@@ -62,6 +63,12 @@ ServiceDep = Annotated[IdentityService, Depends(get_identity_service)]
 
 # Límite por IP para frenar fuerza bruta / abuso de alta de cuentas.
 _login_rate_limit = RateLimiter(max_attempts=10, window_seconds=60, name="login")
+# Además del límite por IP, uno por cuenta: rotando IPs se podía probar
+# contraseñas sin límite contra un mismo email (revisión de seguridad
+# 2026-10-20). Generoso para no trabar a quien se equivoca de verdad.
+_login_per_email_rate_limit = RateLimiter(
+    max_attempts=20, window_seconds=900, name="login_per_email"
+)
 _register_rate_limit = RateLimiter(
     max_attempts=5, window_seconds=60, name="register"
 )
@@ -174,6 +181,8 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
 async def login(
     payload: LoginRequest, service: ServiceDep, request: Request, response: Response
 ) -> TokenResponse:
+    # Clave hasheada: el limitador loguea la clave en cada 429.
+    _login_per_email_rate_limit.check(email_log_key(payload.email))
     try:
         tokens = await service.authenticate(
             LoginCommand(email=payload.email, password=payload.password)
