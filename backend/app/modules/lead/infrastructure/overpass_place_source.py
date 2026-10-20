@@ -21,8 +21,21 @@ from app.modules.lead.domain.value_objects import OSM_AMENITY_TO_KIND
 
 logger = logging.getLogger(__name__)
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Servidores públicos de Overpass, en orden. En producción (Render) el
+# principal rechazó la conexión ("All connection attempts failed",
+# 2026-10-20): algunos servidores públicos cortan rangos de IP de nubes. Si
+# uno no conecta, responde 429 (limitado) o falla con 5xx, se prueba el
+# siguiente. La consulta es la misma en todos.
+OVERPASS_URLS: tuple[str, ...] = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+)
 _TIMEOUT_S = 90
+# Conectar tiene que ser rápido: si un servidor no atiende, mejor pasar al
+# siguiente que esperar los 90 s de la consulta.
+_CONNECT_TIMEOUT_S = 10
 _USER_AGENT = "Oido/1.0 (captacion de comercios; www.oido.com.ar)"
 
 
@@ -91,16 +104,51 @@ def parse_elements(payload: dict, barrio: str) -> list[PlaceCandidate]:
     return candidates
 
 
+def _retryable(exc: httpx.HTTPError) -> bool:
+    """Errores en los que vale la pena probar otro servidor: no conecta,
+    tarda demasiado, está limitado (429) o falla del lado del servidor (5xx)."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        return code == 429 or code >= 500
+    return isinstance(exc, (httpx.TransportError,))
+
+
 class OverpassPlaceSource(PlaceSource):
+    def __init__(
+        self,
+        urls: tuple[str, ...] = OVERPASS_URLS,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
+        self._urls = urls
+        # Sólo los tests pasan un transporte falso (sin red).
+        self._transport = transport
+
     async def find_gastronomy(self, barrio: str) -> list[PlaceCandidate]:
-        try:
-            async with httpx.AsyncClient(
-                timeout=_TIMEOUT_S, headers={"User-Agent": _USER_AGENT}
-            ) as client:
-                res = await client.post(OVERPASS_URL, data={"data": build_query(barrio)})
-                res.raise_for_status()
-                payload = res.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            logger.warning("lead.overpass_failed", extra={"barrio": barrio})
-            raise PlaceSourceUnavailableError(str(exc)) from exc
-        return parse_elements(payload, barrio)
+        query = build_query(barrio)
+        timeout = httpx.Timeout(_TIMEOUT_S, connect=_CONNECT_TIMEOUT_S)
+        last_error: Exception | None = None
+        async with httpx.AsyncClient(
+            timeout=timeout, headers={"User-Agent": _USER_AGENT}, transport=self._transport
+        ) as client:
+            for url in self._urls:
+                try:
+                    res = await client.post(url, data={"data": query})
+                    res.raise_for_status()
+                    payload = res.json()
+                except httpx.HTTPError as exc:
+                    last_error = exc
+                    logger.warning(
+                        "lead.overpass_failed",
+                        extra={"barrio": barrio, "url": url, "error": type(exc).__name__},
+                    )
+                    if _retryable(exc):
+                        continue
+                    break
+                except ValueError as exc:  # respuesta que no es JSON
+                    last_error = exc
+                    logger.warning(
+                        "lead.overpass_bad_json", extra={"barrio": barrio, "url": url}
+                    )
+                    continue
+                return parse_elements(payload, barrio)
+        raise PlaceSourceUnavailableError(str(last_error))
