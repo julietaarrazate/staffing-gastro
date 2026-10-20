@@ -1,7 +1,7 @@
 # Emails enmascarados en los logs y login más difícil de forzar
 
 **Pedido:** Julieta, 2026-10-20, como parte de la revisión de seguridad
-(ítem 11 de `../STATUS.md`, prioridad baja).
+(ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, prioridad baja).
 
 **Qué cambió:**
 
