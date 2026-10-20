@@ -5,10 +5,10 @@
 // comercio lleva su estado y notas de seguimiento. Sólo admin.
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useRequireAuth } from "@/lib/use-require-auth";
+import { useAuth } from "@/lib/auth-context";
+import { AdminHeading } from "@/components/admin/AdminStats";
 import type { Lead, LeadImportResult, LeadStatus, LeadSummary } from "@/lib/types";
 import {
   LEAD_KIND_LABELS,
@@ -27,15 +27,12 @@ import {
   CardSkeletons,
   EmptyState,
   ErrorBanner,
-  OidoLoader,
   useToast,
 } from "@/components/ui";
 import {
   BuildingIcon,
-  ChevronLeftIcon,
   DownloadIcon,
   MapPinIcon,
-  ShieldIcon,
 } from "@/components/icons";
 
 type Filter = LeadStatus | "todos";
@@ -44,8 +41,8 @@ const SELECT_CLASS =
   "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40";
 
 export default function AdminLeadsPage() {
-  const { user, token, loading } = useRequireAuth();
-  const router = useRouter();
+  // El control de acceso lo hace `app/admin/layout.tsx`.
+  const { user, token } = useAuth();
   const toast = useToast();
 
   const [barrios, setBarrios] = useState<string[]>([]);
@@ -144,41 +141,12 @@ export default function AdminLeadsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center px-4 py-16">
-        <OidoLoader label="Cargando…" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-20">
-        <EmptyState
-          icon={<ShieldIcon size={26} />}
-          title="Acceso restringido"
-          subtitle="Esta sección es sólo para administradores."
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="app-container px-4 pb-10 pt-6">
-      <button
-        type="button"
-        onClick={() => router.push("/admin")}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
-      >
-        <ChevronLeftIcon size={16} /> Panel
-      </button>
-      <h1 className="mt-2 font-display text-h1 font-semibold tracking-tight text-ink">
-        Comercios a captar
-      </h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta.
-      </p>
+    <div>
+      <AdminHeading
+        title="Comercios a captar"
+        subtitle="Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
+      />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <select
