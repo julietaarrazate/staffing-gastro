@@ -113,7 +113,13 @@ Revisado contra el código y los PRs el 2026-10-03.
    [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)
    y [`reference/DEPLOY.md`](./reference/DEPLOY.md).
 
-11. 🟡 **Panel de admin ordenado, pasos 2 a 4** (pedido de Julieta,
+11. 🟠 **Cubrir el turno en minutos: propuesta para pulir** (pedido de
+    Julieta, 2026-10-14). Lo primero es sacar el backend de Render free
+    (se duerme a los 15 min y con él el scheduler de la escalada); después,
+    "el primero que toma" para urgentes, cascada por tandas y verificación
+    de identidad gratis. Nada decidido:
+    [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
+12. 🟡 **Panel de admin ordenado, pasos 2 a 4** (pedido de Julieta,
     2026-10-20). El paso 1 (menú por secciones y portada "Hoy") está hecho.
     Faltan: **Personas** con buscador y ficha de cada usuario; **Turnos en
     vivo** (turnos abiertos ahora, minutos sin cubrir, escalados; necesita
