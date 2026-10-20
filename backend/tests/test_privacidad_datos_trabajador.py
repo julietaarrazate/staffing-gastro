@@ -100,6 +100,39 @@ async def test_own_and_admin_view_keep_the_full_profile(
         assert body["birth_date"] == "1998-03-14"
 
 
+async def test_cv_only_for_employers_linked_to_the_worker(client: AsyncClient):
+    """Revisión de seguridad 2026-10-20: el CV (teléfono, email, domicilio) lo
+    veía cualquier sesión con el `profile_id` que entrega el mapa. Ahora sólo
+    el comercio con un turno o postulación de esa persona."""
+    worker, profile_id = await _worker_with_profile(client, "priv_cv_w@staffya.com")
+    cv = "https://example.com/mi-cv.pdf"
+    updated = await client.put(
+        "/api/v1/workers/me/profile",
+        headers=worker,
+        json={"skills": ["mozo"], "cv_url": cv},
+    )
+    assert updated.status_code == 200
+    linked = await _employer_with_company(client, "priv_cv_emp1@staffya.com")
+    stranger = await _employer_with_company(client, "priv_cv_emp2@staffya.com")
+    other_worker, _ = await _worker_with_profile(client, "priv_cv_otro@staffya.com")
+
+    for headers in (linked, stranger, other_worker):
+        body = (await client.get(f"/api/v1/workers/{profile_id}", headers=headers)).json()
+        assert body["cv_url"] is None
+
+    shift_id = await _published_shift_near_start(client, linked)
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    assert applied.status_code in (200, 201)
+
+    seen = (await client.get(f"/api/v1/workers/{profile_id}", headers=linked)).json()
+    assert seen["cv_url"] == cv
+    for headers in (stranger, other_worker):
+        body = (await client.get(f"/api/v1/workers/{profile_id}", headers=headers)).json()
+        assert body["cv_url"] is None
+    mine = (await client.get(f"/api/v1/workers/{profile_id}", headers=worker)).json()
+    assert mine["cv_url"] == cv
+
+
 # --- Turnos guardados -------------------------------------------------------
 
 
