@@ -22,7 +22,7 @@ export default function Confianza() {
       <h2 id="confianza-titulo" className="landing-h2">
         Sabés quién entra a tu salón
       </h2>
-      <Reveal className="landing-sec-cosa w-full max-w-[420px] text-left" delay={120}>
+      <Reveal className="landing-sec-cosa w-full max-w-[420px] text-left lg:max-w-[460px]" delay={120}>
         <FichaTrabajador />
       </Reveal>
     </section>

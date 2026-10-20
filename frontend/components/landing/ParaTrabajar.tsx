@@ -22,7 +22,7 @@ export default function ParaTrabajar() {
       <h2 id="trabajar-titulo" className="landing-h2">
         Turnos de gastronomía cerca tuyo, cuando quieras
       </h2>
-      <Reveal className="landing-sec-cosa w-full max-w-[360px] text-left" delay={120}>
+      <Reveal className="landing-sec-cosa w-full max-w-[360px] text-left lg:max-w-[420px]" delay={120}>
         <div aria-hidden className="overflow-hidden rounded-[1.25rem] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
           <div className="relative h-40">
             <Image src="/landing/mozo1.webp" alt="" fill sizes="360px" className="object-cover" />
@@ -34,7 +34,7 @@ export default function ParaTrabajar() {
             </p>
             <p className="font-display text-xl font-bold tracking-[-0.02em] text-ink">Mozo/a</p>
             <p className="mt-1.5 flex items-baseline gap-1.5">
-              <b className="font-display text-2xl tracking-[-0.03em] tabular-nums text-ink">$70.000</b>
+              <b className="font-display text-2xl tracking-[-0.03em] text-ink">$70.000</b>
               <span className="text-sm text-ink-soft">$14.000 por hora</span>
             </p>
             <p className="mt-1 text-sm text-ink-soft">Hoy · 21:00 – 02:00</p>
