@@ -1,7 +1,7 @@
 # La distancia que ve el comercio sale del pin desplazado
 
 **Pedido:** Julieta, 2026-10-20, como parte de la revisión de seguridad
-(ítem 11 de `../STATUS.md`, prioridad alta).
+(ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`, prioridad alta).
 
 **Qué cambió:** el mapa del comercio ya mostraba el pin del trabajador
 desplazado 150–350 m (TECH_DEBT S4, ADR-0014 §3), pero `distance_km` salía
@@ -27,4 +27,4 @@ redondear en bandas la distancia real: con suficientes búsquedas los bordes
 de las bandas siguen acotando el punto.
 
 **Queda abierto:** nada de este tema. El resto de la revisión sigue en el
-ítem 11 de `../STATUS.md`.
+ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`.
