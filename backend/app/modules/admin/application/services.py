@@ -13,7 +13,12 @@ from uuid import UUID
 from app.core.dt import naive as _naive
 from app.core.security import create_access_token, hash_password
 from app.modules.admin.application.dtos import (
+    AdminCompanySummary,
+    AdminShiftRow,
+    AdminTicketRow,
+    AdminUserDetail,
     AdminUserRow,
+    AdminWorkerSummary,
     PlatformStats,
     SubscriptionStats,
     TestAccount,
@@ -28,12 +33,13 @@ from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
-from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
 from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
+from app.modules.support.domain.repositories import SupportTicketRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 
@@ -83,6 +89,7 @@ class AdminService:
         subscriptions: SubscriptionRepository,
         billing: BillingGateway,
         sessions: RefreshSessionRepository,
+        tickets: SupportTicketRepository,
     ) -> None:
         self._users = users
         self._shifts = shifts
@@ -92,12 +99,35 @@ class AdminService:
         self._subscriptions = subscriptions
         self._billing = billing
         self._sessions = sessions
+        self._tickets = tickets
 
-    async def list_users(self, *, limit: int = 50, offset: int = 0) -> list[AdminUserRow]:
-        """Lista usuarios paginados (más recientes primero), con la foto de
-        perfil (trabajador) o logo (comercio) resuelto en 2 consultas batch
-        en vez de una por fila."""
-        users = await self._users.list_all(limit=limit, offset=offset)
+    # Turnos y tickets que muestra la ficha de una persona: los más recientes.
+    DETAIL_RECENT_LIMIT = 5
+
+    async def list_users(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        search: str | None = None,
+        role: UserRole | None = None,
+        status: UserStatus | None = None,
+        verified: bool | None = None,
+    ) -> list[AdminUserRow]:
+        """Lista usuarios paginados (más recientes primero), con los filtros
+        del buscador de "Personas" y la foto de perfil (trabajador) o logo
+        (comercio) resuelta en 2 consultas batch en vez de una por fila."""
+        users = await self._users.list_all(
+            limit=limit,
+            offset=offset,
+            search=search.strip() if search else None,
+            role=role,
+            status=status,
+            verified=verified,
+        )
+        return await self._rows(users)
+
+    async def _rows(self, users: list[User]) -> list[AdminUserRow]:
         worker_ids = [u.id for u in users if u.role == UserRole.WORKER]
         employer_ids = [u.id for u in users if u.role == UserRole.EMPLOYER]
         worker_photos = await self._workers.photo_urls_by_user_ids(worker_ids)
@@ -115,6 +145,74 @@ class AdminService:
             )
             for u in users
         ]
+
+    async def get_user_detail(self, user_id: UUID) -> AdminUserDetail:
+        """Ficha de una persona: cuenta, perfil según el rol (reputación del
+        trabajador o datos del comercio), turnos y tickets recientes."""
+        user = await self._get(user_id)
+        [row] = await self._rows([user])
+        limit = self.DETAIL_RECENT_LIMIT
+
+        worker_summary = None
+        company_summary = None
+        shifts = []
+        if user.role == UserRole.WORKER:
+            profile = await self._workers.get_by_user_id(user.id)
+            if profile is not None:
+                worker_summary = AdminWorkerSummary(
+                    city=profile.city,
+                    skills=[s.value for s in profile.skills],
+                    years_experience=profile.years_experience,
+                    is_available=profile.is_available,
+                    rating=profile.rating,
+                    events_completed=profile.events_completed,
+                    punctuality_rate=profile.punctuality_rate,
+                    cancellations=profile.cancellations,
+                    no_shows=profile.no_shows,
+                    level=profile.level.value,
+                )
+                shifts = await self._shifts.list_by_worker(profile.id, limit=limit)
+        elif user.role == UserRole.EMPLOYER:
+            company = await self._companies.get_by_user_id(user.id)
+            if company is not None:
+                company_summary = AdminCompanySummary(
+                    name=company.name,
+                    category=company.category.value if company.category else None,
+                    address=company.address,
+                    city=company.city,
+                    rating=company.rating,
+                    events_published=company.events_published,
+                    on_time_payment_rate=company.on_time_payment_rate,
+                    late_cancellations=company.late_cancellations,
+                )
+                shifts = await self._shifts.list_by_company(company.id, limit=limit)
+
+        tickets = await self._tickets.list_by_user(user.id, limit=limit)
+        return AdminUserDetail(
+            user=row,
+            worker=worker_summary,
+            company=company_summary,
+            recent_shifts=[
+                AdminShiftRow(
+                    id=s.id,
+                    title=s.title,
+                    position=s.position.value,
+                    start_at=s.start_at,
+                    status=s.status.value,
+                    pay_amount=s.pay_amount,
+                )
+                for s in shifts
+            ],
+            tickets=[
+                AdminTicketRow(
+                    id=t.id,
+                    subject=t.subject,
+                    status=t.status.value,
+                    created_at=t.created_at,
+                )
+                for t in tickets
+            ],
+        )
 
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma, incluida la promesa

@@ -448,6 +448,46 @@ export interface AdminUser {
   photo_url: string | null;
 }
 
+// Ficha de una persona en el panel de admin (`GET /admin/users/{id}`).
+export interface AdminWorkerSummary {
+  city: string | null;
+  skills: string[];
+  years_experience: number;
+  is_available: boolean;
+  rating: number;
+  events_completed: number;
+  punctuality_rate: number;
+  cancellations: number;
+  no_shows: number;
+  level: string;
+}
+
+export interface AdminCompanySummary {
+  name: string;
+  category: string | null;
+  address: string | null;
+  city: string | null;
+  rating: number;
+  events_published: number;
+  on_time_payment_rate: number;
+  late_cancellations: number;
+}
+
+export interface AdminUserDetail {
+  user: AdminUser;
+  worker: AdminWorkerSummary | null;
+  company: AdminCompanySummary | null;
+  recent_shifts: {
+    id: string;
+    title: string | null;
+    position: string;
+    start_at: string;
+    status: string;
+    pay_amount: string;
+  }[];
+  tickets: { id: string; subject: string; status: string; created_at: string | null }[];
+}
+
 export interface TestAccount {
   id: string;
   email: string;
