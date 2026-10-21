@@ -26,3 +26,16 @@ usa otro servicio, se agrega a `_PUSH_SERVICE_HOSTS`.
 **Queda abierto:** las suscripciones ya guardadas no se revisaron; si hubiera
 alguna con otro host, seguiría recibiendo avisos hasta que el navegador la
 renueve.
+
+**Revisión del 2026-10-21:** lo que quedaba abierto era un SSRF persistente:
+las suscripciones guardadas antes del deploy con un endpoint interno o propio
+seguían recibiendo el POST de cada aviso. Ahora `WebPushSender.send`
+(`infrastructure/webpush_sender.py`) pasa el endpoint por
+`is_known_push_endpoint` antes de enviar; si no pasa, no hace ningún POST,
+loguea sólo el `user_id` (nunca el endpoint) y devuelve `GONE`, así
+`_send_push_best_effort` la borra con el mismo `remove_many_by_id` que usa
+para los 404/410. La validación ya vivía en `domain/value_objects.py`, así que
+no hubo que mover nada para respetar las capas. Test nuevo en
+`backend/tests/test_push.py`: con `https://169.254.169.254/...` y con
+`http://...`, `pywebpush.webpush` no se llama para esa suscripción, se purga,
+y la válida del mismo usuario sí recibe el aviso.

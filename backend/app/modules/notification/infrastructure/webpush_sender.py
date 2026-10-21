@@ -13,6 +13,7 @@ import logging
 from app.core.config import Settings
 from app.modules.notification.domain.entities import PushSubscription
 from app.modules.notification.domain.push_sender import PushSendResult, PushSender
+from app.modules.notification.domain.value_objects import is_known_push_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,17 @@ class WebPushSender(PushSender):
     async def send(
         self, subscription: PushSubscription, *, title: str, body: str, url: str = "/"
     ) -> PushSendResult:
+        if not is_known_push_endpoint(subscription.endpoint):
+            # Suscripciones guardadas antes de validar el alta (revisión
+            # 2026-10-21): nunca se les hace POST (SSRF persistente). `GONE`
+            # hace que el llamador la purgue, igual que un 404/410. No se
+            # loguea el endpoint: puede ser una URL interna o con datos.
+            logger.warning(
+                "WebPushSender: endpoint fuera de los servicios push conocidos, "
+                "se descarta sin enviar (user_id=%s)",
+                subscription.user_id,
+            )
+            return PushSendResult.GONE
         try:
             return await asyncio.to_thread(self._send_sync, subscription, title, body, url)
         except Exception:
