@@ -28,3 +28,19 @@ de las bandas siguen acotando el punto.
 
 **Queda abierto:** nada de este tema. El resto de la revisión sigue en el
 ítem «Revisión de seguridad del 2026-10-20» de `../STATUS.md`.
+
+**Revisión del 2026-10-21:** el arreglo no cerraba el agujero en el top de
+candidatos (`/shifts/{id}/candidates`): `distance_km` salía del pin, pero el
+`score` se seguía calculando con la distancia real. Un comercio con tres
+turnos de lat/lng elegidas despejaba la distancia real de las diferencias de
+score (Δdist = Δscore·25/0,30) y triangulaba el domicilio. Ahora
+`rank_candidates`/`score_candidate` reciben la función de distancia
+(`distance_fn`, en `matching/domain/scoring.py`) y `MatchingService.get_top_candidates`
+le pasa la distancia pública (pin desplazado, redondeada a 0,1 km), así que el
+puntaje y su tope por radio usan exactamente lo que se muestra y el score no
+revela más que `distance_km`. El aviso a trabajadores cercanos
+(`shift/application/services.py`, `_notify_nearby_workers`) sigue con la
+distancia real: no sale hacia el comercio. `/matching/search` no devuelve
+score y ya filtraba con la distancia pública. Test:
+`test_top_candidates_score_does_not_leak_the_real_distance` (dos turnos a
+distinta distancia real dentro de la misma banda dan el mismo score).

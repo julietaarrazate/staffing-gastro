@@ -1,10 +1,10 @@
 """Caso de uso del motor de matching: top de candidatos para un turno."""
 
-from dataclasses import replace
 from uuid import UUID
 
 from app.core.geo import fuzz_point, haversine_km
 from app.modules.matching.domain.entities import (
+    CandidateProfile,
     MatchResult,
     ShiftRequirement,
     WorkerMapResult,
@@ -71,23 +71,30 @@ class MatchingService:
             longitude=shift.longitude,
         )
         candidates = await self._candidates.list_available(shift.position)
-        # El ranking usa la distancia real (decide a quién conviene avisar);
-        # lo que sale hacia el comercio lleva la distancia pública.
-        ranked = rank_candidates(candidates, requirement, weights, max_radius_km)
-        by_profile = {c.profile_id: c for c in candidates}
-        return [
-            replace(
-                result,
-                distance_km=_public_distance_km(
-                    by_profile[result.profile_id].latitude,
-                    by_profile[result.profile_id].longitude,
-                    str(result.profile_id),
-                    shift.latitude,
-                    shift.longitude,
-                ),
+        # El puntaje (y su tope por radio) usa la MISMA distancia pública que
+        # se muestra: con la real, el `score` la filtraba igual — tres turnos
+        # con lat/lng elegidas y Δdist = Δscore·radio/peso triangulaban el
+        # domicilio (revisión de seguridad 2026-10-21). Así el score no dice
+        # nada que `distance_km` no diga ya.
+        def public_distance(
+            candidate: CandidateProfile, req: ShiftRequirement
+        ) -> float | None:
+            return _public_distance_km(
+                candidate.latitude,
+                candidate.longitude,
+                str(candidate.profile_id),
+                req.latitude,
+                req.longitude,
             )
-            for result in ranked[:limit]
-        ]
+
+        ranked = rank_candidates(
+            candidates,
+            requirement,
+            weights,
+            max_radius_km,
+            distance_fn=public_distance,
+        )
+        return ranked[:limit]
 
     async def search_workers(
         self,
