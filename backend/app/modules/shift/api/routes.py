@@ -216,7 +216,7 @@ async def parse_text(
     # Sólo PRECARGA el wizard — el comercio revisa y confirma cada paso a
     # mano en /shifts/new antes de publicar nada (la IA interpreta
     # intención, el motor de turnos/matching decide resultados).
-    _parse_shift_text_rate_limit.check(str(current_user.id))
+    _parse_shift_text_rate_limit.check(per_account_quota_key(current_user, request))
     _parse_shift_text_daily_limit.check(per_account_quota_key(current_user, request))
     try:
         draft = await parse_shift_text(payload.text)

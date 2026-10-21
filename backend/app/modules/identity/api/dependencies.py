@@ -113,7 +113,7 @@ async def get_current_user_ws(
 
 
 def per_account_quota_key(user: User, request: Request, account_key: str | None = None) -> str:
-    """Clave de un límite "por cuenta" (p. ej. los topes diarios de la IA).
+    """Clave de un límite "por cuenta" (p. ej. los límites cortos y los topes diarios de la IA).
     `account_key` es lo que identifica a la cuenta (default: el id del
     usuario; el asistente del comercio usa el id del comercio).
 

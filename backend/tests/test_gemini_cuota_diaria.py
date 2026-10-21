@@ -149,6 +149,25 @@ async def test_invitados_de_distintas_ip_no_comparten_el_tope_de_worker_query(
     assert otro_tester.status_code == 200
 
 
+async def test_invitados_de_distintas_ip_no_comparten_el_limite_corto_de_parse_text(
+    client: AsyncClient, configured_gemini, cuota_limpia, limites_prendidos, monkeypatch
+):
+    """El límite corto (15 cada 10 minutos) también cuenta por IP para la
+    cuenta invitada: si no, los testers se seguían trabando entre sí."""
+    monkeypatch.setattr(shift_routes._parse_shift_text_rate_limit, "max_attempts", 1)
+    tester_a = await _guest_headers(client, "employer", "203.0.113.40")
+    tester_b = await _guest_headers(client, "employer", "203.0.113.41")
+    body = {"text": "necesito un mozo hoy a la noche"}
+    url = "/api/v1/shifts/parse-text"
+
+    ok = await client.post(url, json=body, headers=_desde("203.0.113.40", tester_a))
+    assert ok.status_code == 200
+    frenado = await client.post(url, json=body, headers=_desde("203.0.113.40", tester_a))
+    assert frenado.status_code == 429
+    otro_tester = await client.post(url, json=body, headers=_desde("203.0.113.41", tester_b))
+    assert otro_tester.status_code == 200
+
+
 async def test_una_cuenta_normal_sigue_contando_por_cuenta_aunque_cambie_de_ip(
     client: AsyncClient, configured_gemini, cuota_limpia, limites_prendidos, monkeypatch
 ):

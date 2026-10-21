@@ -47,7 +47,8 @@ EmployerUserDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 
 # Por comercio, no por IP (mismo criterio que parse-shift-text/ai-suggestion
 # de soporte — protege contra un doble click/loop del frontend, no es la
-# cuota real de Gemini).
+# cuota real de Gemini). La cuenta invitada compartida cuenta por IP
+# (`per_account_quota_key`, revisión 2026-10-21).
 _assistant_query_rate_limit = RateLimiter(
     max_attempts=15, window_seconds=600, name="assistant_query"
 )
@@ -82,7 +83,9 @@ async def query(
     verification: VerificationDep,
     request: Request,
 ) -> AssistantQueryResponse:
-    _assistant_query_rate_limit.check(str(company_id))
+    _assistant_query_rate_limit.check(
+        per_account_quota_key(current_user, request, account_key=str(company_id))
+    )
     _assistant_query_daily_limit.check(
         per_account_quota_key(current_user, request, account_key=str(company_id))
     )
@@ -130,7 +133,7 @@ async def worker_query(
     current_user: WorkerUserDep,
     request: Request,
 ) -> WorkerQueryResponse:
-    _worker_query_rate_limit.check(str(current_user.id))
+    _worker_query_rate_limit.check(per_account_quota_key(current_user, request))
     _worker_query_daily_limit.check(per_account_quota_key(current_user, request))
     try:
         result = await interpret_worker_shift_query(payload.text)

@@ -54,5 +54,7 @@ en `docs/reference/DEPLOY.md`). Los tests se mudaron a
 pisan, una cuenta normal no gana tope cambiando de IP, agotar el presupuesto
 del trabajador no apaga `parse-text` ni soporte), así
 `test_gemini_shift_parser.py` queda como en `main` y no choca con el PR de
-la clave de Gemini. Sigue igual: el límite corto (15 cada 10 minutos) de
-estos endpoints todavía es por cuenta, también para la invitada.
+la clave de Gemini. El límite corto (15 cada 10 minutos) de estos tres
+endpoints usa la misma clave, así los testers invitados tampoco se traban
+entre sí por ese lado (test
+`test_invitados_de_distintas_ip_no_comparten_el_limite_corto_de_parse_text`).
