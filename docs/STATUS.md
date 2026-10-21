@@ -127,17 +127,59 @@ Revisado contra el código y los PRs el 2026-10-03.
     del día; **Métricas** con período (7/30 días) y comparación. Ver
     [`historial/2026-10-20-panel-admin-por-secciones.md`](./historial/2026-10-20-panel-admin-por-secciones.md)
     y [`historial/2026-10-20-admin-personas.md`](./historial/2026-10-20-admin-personas.md).
+13. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
+   por prioridad"). Un PR por tema; al cerrar uno, borrarlo de esta lista.
+   Origen en
+   [`historial/2026-10-20-revision-seguridad-clave-gemini.md`](./historial/2026-10-20-revision-seguridad-clave-gemini.md).
+   - **Clave de Gemini en Sentry y token del WebSocket en los logs:** el
+     código ya no manda la clave en la URL, Sentry filtra secretos y los logs
+     de uvicorn tapan `?token=`. Falta lo de Julieta: rotar la clave y borrar
+     `STAFFYA-BACKEND-7` (ver "Pendiente de Julieta").
+   - **Alta — distancia exacta en `/matching/search`**
+     (`modules/matching/application/services.py`): el pin se desplaza pero
+     `distance_km` sale exacto. Devolverla redondeada en bandas.
+   - **Media — `cv_url` visible para cualquier usuario autenticado**
+     (`modules/worker/api/routes.py`, `schemas.py`): mostrarlo sólo al
+     dueño, a admin o a un comercio con postulación/asignación.
+   - **Media — suscripción push** (`modules/notification/`): validar que el
+     `endpoint` sea `https` de un servicio push conocido, `timeout` en
+     `webpush`, y que el `DELETE` filtre por usuario.
+   - **Media — cuota de Gemini:** tope global diario además del de usuario,
+     y email verificado para usar la IA (`modules/assistant/api/routes.py`,
+     `modules/shift/api/routes.py`).
+   - **Media — documentos de identidad en Cloudinary con entrega pública**
+     (`core/cloudinary.py`). **Espera decisión de Julieta:** el arreglo de
+     verdad es subirlos `private` y que el panel de admin pida un link de
+     descarga que vence (API de Cloudinary). Toca la subida, lo que se
+     guarda, el panel de verificación y los archivos ya subidos. Hoy el
+     nombre de cada archivo es al azar (128 bits), así que el riesgo es que
+     se filtre un link, no que lo adivinen.
+   - **Baja:** emails en logs (`notification/infrastructure/*email_sender.py`,
+     `admin/`), login sin hash de relleno si el email no existe y sin límite
+     por cuenta (`identity/`), `DELETE /push/subscribe` sin dueño (va con el
+     de push), CSP con `unsafe-inline`.
+   - **Limpieza chica:** `frontend/.env.production`, `frontend/lib/api.ts` y
+     `frontend/next.config.ts` siguen con `staffya-backend.onrender.com`
+     como valor por defecto. En producción no afecta, porque Workers Builds
+     inyecta `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`. Pero si
+     esa variable faltara, el frontend llamaría a una API que responde 403.
+     El límite de intentos con IP real ya está (etapa 3, 2026-10-15).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Rotar la clave de Gemini** (estuvo expuesta en Sentry): clave nueva en
+  Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
+  **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
   Render y purgar las cuentas demo (runbook en
   [`reference/DEPLOY.md`](./reference/DEPLOY.md)). Hoy está en `true` a
-  propósito para que la app se vea poblada.
+  propósito para que la app se vea poblada. La revisión del 2026-10-20 lo
+  marca como riesgo alto: la contraseña de las cuentas demo (también de
+  comercio) está en el repo, y con ellas se ven trabajadores reales.
 - **Confirmar** en Render `ENVIRONMENT=production` (controla la cookie del
   refresh token, TECH_DEBT S1) y `GEMINI_API_KEY` (sin ella, "Describí el
   turno" y el asistente responden 503 con un mensaje claro).

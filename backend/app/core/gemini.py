@@ -170,7 +170,11 @@ async def _call_gemini(payload: dict, *, budget: str) -> dict:
             async with httpx.AsyncClient(timeout=_GEMINI_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     _gemini_url(),
-                    params={"key": settings.gemini_api_key},
+                    # La clave va en el header y NUNCA en la URL: httpx arma el
+                    # mensaje de `HTTPStatusError` con la URL completa, y así
+                    # terminó la clave entera en Sentry (STAFFYA-BACKEND-7,
+                    # 2026-10-09).
+                    headers={"x-goog-api-key": settings.gemini_api_key},
                     json=payload,
                 )
         except (httpx.TimeoutException, httpx.TransportError) as exc:
