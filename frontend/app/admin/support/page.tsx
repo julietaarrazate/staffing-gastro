@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useRequireAuth } from "@/lib/use-require-auth";
+import { useAuth } from "@/lib/auth-context";
+import { AdminHeading } from "@/components/admin/AdminStats";
 import { AdminSupportTicket, TICKET_CATEGORY_LABELS, TicketStatus } from "@/lib/types";
 import {
   Badge,
@@ -18,7 +19,8 @@ import { MessageIcon } from "@/components/icons";
 type Filter = TicketStatus | "todos";
 
 export default function AdminSupportPage() {
-  const { token } = useRequireAuth();
+  // El control de acceso lo hace `app/admin/layout.tsx`.
+  const { token } = useAuth();
   const [tickets, setTickets] = useState<AdminSupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,13 +47,11 @@ export default function AdminSupportPage() {
   }, [load]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-10 pt-6 md:max-w-5xl">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
-        Soporte — tickets
-      </h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        Problemas reportados por trabajadores y comercios.
-      </p>
+    <div>
+      <AdminHeading
+        title="Soporte"
+        subtitle="Problemas reportados por trabajadores y comercios."
+      />
 
       <div className="mt-4">
         <SegmentedControl

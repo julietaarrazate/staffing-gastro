@@ -26,6 +26,7 @@ from app.modules.assistant.api.routes import router as assistant_router
 from app.modules.chat.api.routes import router as chat_router
 from app.modules.company.api.routes import router as company_router
 from app.modules.favorite.api.routes import router as favorite_router
+from app.modules.lead.api.routes import router as lead_router
 from app.modules.saved_shift.api.routes import router as saved_shift_router
 from app.modules.identity.api.routes import router as identity_router
 from app.modules.matching.api.routes import router as matching_router
@@ -172,6 +173,7 @@ app.include_router(admin_router, prefix="/api/v1")
 app.include_router(application_router, prefix="/api/v1")
 app.include_router(subscription_router, prefix="/api/v1")
 app.include_router(favorite_router, prefix="/api/v1")
+app.include_router(lead_router, prefix="/api/v1")
 app.include_router(saved_shift_router, prefix="/api/v1")
 app.include_router(support_router, prefix="/api/v1")
 app.include_router(upload_router, prefix="/api/v1")
