@@ -122,3 +122,68 @@ class SubscriptionStats:
     # 2026-08-15, F1: la tarjeta mostraba plata nunca cobrada como si fuera
     # ingreso real).
     billing_enabled: bool
+
+
+@dataclass
+class AdminWorkerSummary:
+    """Lo que la admin necesita ver del perfil de un trabajador en su ficha:
+    dónde está, qué hace y cómo le viene yendo (reputación)."""
+
+    city: str | None
+    skills: list[str]
+    years_experience: int
+    is_available: bool
+    rating: float
+    events_completed: int
+    punctuality_rate: float
+    cancellations: int
+    no_shows: int
+    level: str
+
+
+@dataclass
+class AdminCompanySummary:
+    """Lo que la admin necesita ver de un comercio en su ficha."""
+
+    name: str
+    category: str | None
+    address: str | None
+    city: str | None
+    rating: float
+    events_published: int
+    on_time_payment_rate: float
+    late_cancellations: int
+
+
+@dataclass
+class AdminShiftRow:
+    """Turno reciente de la persona (como trabajador asignado o como comercio)."""
+
+    id: UUID
+    title: str | None
+    position: str
+    start_at: datetime
+    status: str
+    pay_amount: Decimal
+
+
+@dataclass
+class AdminTicketRow:
+    """Ticket de soporte de la persona."""
+
+    id: UUID
+    subject: str
+    status: str
+    created_at: datetime | None
+
+
+@dataclass
+class AdminUserDetail:
+    """Ficha de una persona en el panel de admin (`/admin/personas/{id}`):
+    datos de la cuenta, su perfil según el rol, turnos y tickets recientes."""
+
+    user: AdminUserRow
+    worker: AdminWorkerSummary | None
+    company: AdminCompanySummary | None
+    recent_shifts: list[AdminShiftRow]
+    tickets: list[AdminTicketRow]

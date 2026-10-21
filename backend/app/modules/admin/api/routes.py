@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.modules.admin.api.dependencies import get_admin_service
 from app.modules.admin.api.schemas import (
+    AdminUserDetailResponse,
     AdminUserResponse,
     ImpersonateResponse,
     PlatformStatsResponse,
@@ -26,7 +27,7 @@ from app.modules.admin.application.exceptions import (
 from app.modules.admin.application.services import AdminService
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
-from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -62,9 +63,37 @@ async def subscription_stats(_: AdminDep, service: ServiceDep):
 
 @router.get("/users", response_model=list[AdminUserResponse], summary="Listar usuarios")
 async def list_users(
-    _: AdminDep, service: ServiceDep, limit: LimitDep = 50, offset: OffsetDep = 0
+    _: AdminDep,
+    service: ServiceDep,
+    limit: LimitDep = 50,
+    offset: OffsetDep = 0,
+    q: Annotated[str | None, Query(max_length=100, description="Nombre o email")] = None,
+    role: UserRole | None = None,
+    user_status: Annotated[UserStatus | None, Query(alias="status")] = None,
+    verified: bool | None = None,
 ):
-    return await service.list_users(limit=limit, offset=offset)
+    return await service.list_users(
+        limit=limit,
+        offset=offset,
+        search=q,
+        role=role,
+        status=user_status,
+        verified=verified,
+    )
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=AdminUserDetailResponse,
+    summary="Ficha de una persona: perfil, turnos y tickets recientes",
+)
+async def get_user_detail(user_id: UUID, _: AdminDep, service: ServiceDep):
+    try:
+        return await service.get_user_detail(user_id)
+    except TargetUserNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
+        ) from exc
 
 
 @router.post(

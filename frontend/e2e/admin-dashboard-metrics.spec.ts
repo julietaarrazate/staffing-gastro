@@ -82,7 +82,7 @@ test("el panel de admin muestra admins/verificados y las 6 métricas de producto
   await mockEmptyNotifications(page);
   await mockAdminPanel(page);
 
-  await page.goto("/admin");
+  await page.goto("/admin/metricas");
 
   // Grilla principal ampliada (antes sólo mostraba usuarios/trabajadores/
   // comercios/suspendidos, con `admins`/`verified` ya calculados pero
@@ -147,7 +147,7 @@ test("sin muestra todavía, una métrica de producto muestra un guion en vez de 
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
 
-  await page.goto("/admin");
+  await page.goto("/admin/metricas");
 
   await expect(page.getByText("No-shows")).toBeVisible();
   await expect(page.getByText("Sobre 0 asignaciones")).toBeVisible();
