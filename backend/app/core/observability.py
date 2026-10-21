@@ -13,6 +13,7 @@ Tres piezas chicas, sin infraestructura externa:
 
 import json
 import logging
+import re
 import sys
 import uuid
 from contextvars import ContextVar
@@ -86,6 +87,31 @@ class _PlainFormatter(logging.Formatter):
         return super().format(record)
 
 
+# El navegador no puede mandar headers en un WebSocket, así que el access
+# token viaja en `?token=` (`get_current_user_ws`). Uvicorn loguea el path
+# completo del handshake ("uvicorn.error") y de cada pedido ("uvicorn.access"),
+# y esos logs quedan en Render: quien los leyera tenía sesiones válidas por 15
+# minutos (revisión de seguridad 2026-10-20).
+_TOKEN_IN_QUERY = re.compile(r"([?&](?:token|access_token)=)[^&\s\"]+", re.IGNORECASE)
+_TOKEN_LOGGERS = ("uvicorn.access", "uvicorn.error")
+
+
+def _redact_token(value):
+    if isinstance(value, str):
+        return _TOKEN_IN_QUERY.sub(r"\1[Filtered]", value)
+    return value
+
+
+class _RedactTokenFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = _redact_token(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(_redact_token(a) for a in record.args)
+        elif isinstance(record.args, dict):
+            record.args = {k: _redact_token(v) for k, v in record.args.items()}
+        return True
+
+
 def setup_logging() -> None:
     """Configura el root logger una sola vez (idempotente)."""
     root = logging.getLogger()
@@ -100,7 +126,69 @@ def setup_logging() -> None:
         )
     root.handlers = [handler]
     root.setLevel(logging.DEBUG if settings.debug else logging.INFO)
+    for name in _TOKEN_LOGGERS:
+        logging.getLogger(name).addFilter(_RedactTokenFilter())
     root._staffya_configured = True  # type: ignore[attr-defined]
+
+
+# Campos que nunca deben llegar a Sentry, en cualquier nivel del evento
+# (cuerpo del pedido, extras, variables locales). El scrubber por defecto de
+# sentry_sdk tapa `password` y `token`, pero no `new_password`, `pin` ni
+# `id_token` (revisión de seguridad 2026-10-20).
+_SENSITIVE_KEYS = frozenset(
+    {
+        "password",
+        "new_password",
+        "current_password",
+        "pin",
+        "token",
+        "id_token",
+        "access_token",
+        "refresh_token",
+        "api_key",
+        "key",
+        "secret",
+        "authorization",
+        "cookie",
+        "x-goog-api-key",
+    }
+)
+# Secretos pegados dentro de un texto: `?key=...`, `&token=...` en una URL
+# (así se filtró la clave de Gemini, STAFFYA-BACKEND-7) y `Bearer ...`.
+_SECRET_IN_TEXT = re.compile(
+    r"(?i)((?:^|[?&])(?:key|api_key|token|access_token|id_token)=)[^&\s'\"]+"
+    r"|(bearer\s+)[A-Za-z0-9._~+/=-]+"
+)
+_FILTERED = "[Filtered]"
+
+
+def _scrub(value):
+    if isinstance(value, dict):
+        return {
+            k: _FILTERED
+            if isinstance(k, str) and k.lower() in _SENSITIVE_KEYS
+            else _scrub(v)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_scrub(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_scrub(v) for v in value)
+    if isinstance(value, str):
+        return _SECRET_IN_TEXT.sub(
+            lambda m: (m.group(1) or m.group(2)) + _FILTERED, value
+        )
+    return value
+
+
+def scrub_sentry_event(event, hint):
+    """`before_send` de Sentry: tapa secretos en todo el evento antes de
+    mandarlo. Si algo falla al limpiar, el evento NO se manda: perder un
+    error es mejor que filtrar una clave."""
+    try:
+        return _scrub(event)
+    except Exception:
+        return None
 
 
 def setup_sentry() -> None:
@@ -122,6 +210,7 @@ def setup_sentry() -> None:
             # Sin tracing de performance por ahora: sólo captura de errores.
             traces_sample_rate=0.0,
             send_default_pii=False,
+            before_send=scrub_sentry_event,
         )
     except Exception:
         logging.getLogger(__name__).exception(

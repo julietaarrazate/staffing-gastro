@@ -91,7 +91,7 @@ export default function Precios() {
                   )}
                 </div>
                 <p className="mt-4 flex items-baseline gap-1.5">
-                  <span className="font-display text-[clamp(2.5rem,4vw,3.4rem)] font-semibold leading-none tracking-[-0.045em] tabular-nums text-ink">
+                  <span className="font-display text-[clamp(2.5rem,4vw,3.4rem)] font-semibold leading-none tracking-[-0.045em] text-ink">
                     {gratis ? "$0" : formatArs(p.price_ars)}
                   </span>
                   <span className="text-body text-ink-mute">{gratis ? "para siempre" : "/mes"}</span>

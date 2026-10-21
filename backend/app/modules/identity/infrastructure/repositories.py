@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import case, desc, func, select
+from sqlalchemy import case, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import (
@@ -102,8 +102,33 @@ class SqlAlchemyUserRepository(UserRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def list_all(self, *, limit: int | None = None, offset: int = 0) -> list[User]:
+    async def list_all(
+        self,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+        search: str | None = None,
+        role: UserRole | None = None,
+        status: UserStatus | None = None,
+        verified: bool | None = None,
+    ) -> list[User]:
         stmt = select(UserModel).order_by(desc(UserModel.created_at)).offset(offset)
+        if search:
+            # `%` y `_` del texto se escapan: son comodines de LIKE.
+            escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped.lower()}%"
+            stmt = stmt.where(
+                or_(
+                    func.lower(UserModel.full_name).like(pattern, escape="\\"),
+                    func.lower(UserModel.email).like(pattern, escape="\\"),
+                )
+            )
+        if role is not None:
+            stmt = stmt.where(UserModel.role == role.value)
+        if status is not None:
+            stmt = stmt.where(UserModel.status == status.value)
+        if verified is not None:
+            stmt = stmt.where(UserModel.is_verified.is_(verified))
         if limit is not None:
             stmt = stmt.limit(limit)
         result = await self._session.execute(stmt)

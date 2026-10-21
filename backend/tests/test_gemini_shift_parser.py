@@ -36,6 +36,8 @@ class _FakeAsyncClient:
 
     last_payload: dict | None = None
     last_url: str | None = None
+    last_params: dict | None = None
+    last_headers: dict | None = None
     next_gemini_text: str = ""
 
     def __init__(self, *args, **kwargs):
@@ -47,9 +49,11 @@ class _FakeAsyncClient:
     async def __aexit__(self, *args):
         return False
 
-    async def post(self, url, params=None, json=None):
+    async def post(self, url, params=None, json=None, headers=None):
         _FakeAsyncClient.last_payload = json
         _FakeAsyncClient.last_url = url
+        _FakeAsyncClient.last_params = params
+        _FakeAsyncClient.last_headers = headers
         text = _FakeAsyncClient.next_gemini_text
         return _FakeResponse(
             {"candidates": [{"content": {"parts": [{"text": text}]}}]}
@@ -94,6 +98,16 @@ async def test_parse_shift_text_returns_structured_draft(configured_gemini):
     assert draft.pay_amount == 45000
     assert draft.tips is True
     assert draft.urgent is False
+
+
+@pytest.mark.asyncio
+async def test_api_key_goes_in_header_not_in_url(configured_gemini):
+    """STAFFYA-BACKEND-7: con la clave en `?key=`, httpx la metía en el texto
+    de `HTTPStatusError` y Sentry la guardó entera. Va sólo en el header."""
+    await parse_shift_text("necesito un mozo hoy a la noche")
+    assert _FakeAsyncClient.last_headers == {"x-goog-api-key": "test-gemini-key"}
+    assert not _FakeAsyncClient.last_params
+    assert "test-gemini-key" not in (_FakeAsyncClient.last_url or "")
 
 
 @pytest.mark.asyncio
@@ -241,14 +255,14 @@ class _FlakyClient(_FakeAsyncClient):
     fail_times = 0
     fail_status = 503
 
-    async def post(self, url, params=None, json=None):
+    async def post(self, url, params=None, json=None, headers=None):
         _FlakyClient.calls += 1
         if _FlakyClient.calls <= _FlakyClient.fail_times:
             resp = _FakeResponse({})
             resp.status_code = _FlakyClient.fail_status
             resp.text = "unavailable"
             return resp
-        return await super().post(url, params=params, json=json)
+        return await super().post(url, params=params, json=json, headers=headers)
 
 
 @pytest.fixture

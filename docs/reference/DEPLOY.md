@@ -87,7 +87,7 @@ Workers Paid 5 USD/mes). Vercel queda unos días de respaldo; la sección
 Etapas y resultados en
 [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](../historial/2026-10-13-cloudflare-prueba-compatibilidad.md).
 
-- **Adaptador: OpenNext** (`@opennextjs/cloudflare`, fijado en 1.20.10).
+- **Adaptador: OpenNext** (`@opennextjs/cloudflare`, fijado en 1.20.13).
   Corre el runtime real de Next 16.4. Se descartó vinext: no compila Oído tal
   como está (se traba con `sharp` en `app/og/oido.jpg/route.ts`) y reimplementa
   Next sobre Vite, con más superficie de diferencias.
@@ -102,7 +102,7 @@ Etapas y resultados en
 - **Trampa 1, parche de OpenNext** (`frontend/scripts/patch-opennext.mjs`, se aplica solo
   en el `postinstall`; no se usa `patch-package` porque trae dependencias con
   avisos "high" de `npm audit`): Next 16.4 lee un manifiesto nuevo,
-  `preview-props.json`, que OpenNext 1.20.10 no empaqueta; sin el parche
+  `preview-props.json`, que OpenNext 1.20.13 (y antes) no empaqueta; sin el parche
   **todas** las páginas dan 500 en el Worker. Es el mismo tipo de bug que
   OpenNext arregló en 1.17.3 para `prefetch-hints.json`. Al subir OpenNext,
   probar sin el parche y borrarlo si ya no hace falta.
