@@ -18,7 +18,7 @@
     del usuario.
   - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
     `exp`, y `jti` sólo en el refresh.
-- **Contraseñas:** hash **bcrypt** (`passlib`). Nunca se guarda ni se loguea la
+- **Contraseñas:** hash **bcrypt** (librería `bcrypt` directa, 12 rondas; `passlib` se sacó el 2026-10-21 por estar sin mantenimiento). Nunca se guarda ni se loguea la
   contraseña en claro.
 - **Frontend:** access + refresh en `localStorage`, renovado al cargar y
   periódicamente (sesión persistente; ver
@@ -103,6 +103,12 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   (rol según el tipo), igual que el CV y la constancia. La firma fija formatos,
   carpeta, un `public_id` al azar y `overwrite=false`. El preset unsigned
   (`staffya-profile`) queda sin uso y se apaga en el panel de Cloudinary.
+
+- **Análisis estático del código en CI** (2026-10-21, job `static-analysis`
+  de `.github/workflows/security.yml`): Semgrep con las reglas de Python,
+  TypeScript, React, Next.js y secretos. Falla el PR con hallazgos de
+  severidad ERROR. Complementa a pip-audit y npm audit, que sólo miran las
+  librerías. No es CodeQL porque en un repo privado eso es pago.
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 
