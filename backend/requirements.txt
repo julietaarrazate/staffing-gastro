@@ -4,15 +4,15 @@
 # 0.115.6 permitía starlette<0.42.0 (0.41.3 instalada, vulnerable); hace
 # falta cruzar a la serie 1.x de starlette para tener los fixes, lo que
 # exige fastapi>=0.135.0 (0.130.0 todavía tope-a en starlette<1.0.0).
-fastapi==0.141.1
-uvicorn[standard]==0.53.0
-pydantic==2.13.5
-pydantic-settings==2.15.0
+fastapi==0.157.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.1
 email-validator==2.3.0
 
 # --- Base de datos ---
 sqlalchemy[asyncio]==2.0.54
-asyncpg==0.31.0
+asyncpg==0.32.0
 alembic==1.20.0
 
 # --- Seguridad / Auth ---
@@ -29,4 +29,4 @@ pytest==9.1.1
 pytest-asyncio==1.4.0
 httpx==0.28.1
 aiosqlite==0.22.1
-sentry-sdk[fastapi]==2.70.0
+sentry-sdk[fastapi]==2.72.0

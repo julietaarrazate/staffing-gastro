@@ -1,4 +1,5 @@
-// Parche a @opennextjs/cloudflare 1.20.10 (corre en el `postinstall`).
+// Parche a @opennextjs/cloudflare 1.20.13 (corre en el `postinstall`).
+// (sigue haciendo falta en 1.20.13: su patrón todavía no incluye preview-props).
 //
 // Next 16.4 lee un manifiesto nuevo, `.next/server/preview-props.json`, y
 // OpenNext no lo empaqueta en el Worker: sin esto TODAS las páginas dan 500
