@@ -40,7 +40,7 @@ Config declarativa en `render.yaml` (raíz del repo).
 | `RESEND_API_KEY` | Manual (`sync: false`) | **Sin esta clave no sale NINGÚN email.** Ver runbook "Prender el email transaccional" |
 | `GEMINI_API_KEY` | Manual (`sync: false`) | Sin ella, `POST /shifts/parse-text` y los asistentes responden 503. **Ojo también con el MODELO**, no sólo con la clave: ver nota abajo |
 | `GEMINI_MODEL` | Manual (`sync: false`), opcional | Vacío = default del código (`gemini-3.5-flash`). Se setea para migrar de modelo sin deploy — ver "Migrar de modelo" abajo |
-| `GEMINI_DAILY_LIMIT` | Opcional | Default 1000. Tope diario de llamadas a Gemini de toda la app (día de Argentina); al llegar, la IA responde "probá en un rato". `0` = sin tope. Bajarlo si el plan de Google es el gratis (250/día) |
+| `GEMINI_DAILY_LIMIT_PARSE_TEXT` · `_ASISTENTE` · `_TRABAJADOR` · `_SOPORTE` | Opcionales | Topes diarios de llamadas a Gemini de toda la app (día de Argentina), uno por función para que agotar uno no apague los otros. Defaults: `PARSE_TEXT` 500 ("Describí el turno" del comercio), `ASISTENTE` 200 (asistente del comercio), `TRABAJADOR` 250 (asistente del trabajador), `SOPORTE` 50 (sugerencia del admin); suman 1000. Al llegar, esa función responde "probá en un rato". `0` = sin tope. Si el plan de Google es el gratis (250/día), bajarlos para que sumen unos 200 |
 | `EMAIL_FROM` | Manual (`sync: false`) | Default del código: `onboarding@resend.dev` — dominio de prueba de Resend, sólo entrega a la casilla dueña de la cuenta |
 
 > **Credenciales:** nunca en el repo ni en el chat; siempre env vars en

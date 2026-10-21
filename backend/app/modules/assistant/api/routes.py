@@ -7,7 +7,7 @@ de una descripción en texto libre o dictada).
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.dt import parse_iso_datetime
 from app.core.gemini import (
@@ -28,7 +28,7 @@ from app.modules.assistant.api.schemas import (
     WorkerQueryResponse,
 )
 from app.modules.assistant.application.services import AssistantService
-from app.modules.identity.api.dependencies import require_roles
+from app.modules.identity.api.dependencies import per_account_quota_key, require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.api.dependencies import get_my_company_id
@@ -43,6 +43,7 @@ ServiceDep = Annotated[AssistantService, Depends(get_assistant_service)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 WorkerUserDep = Annotated[User, Depends(require_roles(UserRole.WORKER))]
+EmployerUserDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 
 # Por comercio, no por IP (mismo criterio que parse-shift-text/ai-suggestion
 # de soporte — protege contra un doble click/loop del frontend, no es la
@@ -57,7 +58,8 @@ _worker_query_rate_limit = RateLimiter(
 )
 
 # Tope por día y por cuenta (revisión de seguridad 2026-10-20): los de arriba
-# frenan un loop, pero dejaban 2.000 consultas por día a una sola cuenta. El
+# frenan un loop, pero dejaban 2.000 consultas por día a una sola cuenta. La
+# cuenta invitada compartida cuenta por IP (`per_account_quota_key`). El
 # tope global de toda la app está en `app/core/gemini.py`.
 _assistant_query_daily_limit = RateLimiter(
     max_attempts=60, window_seconds=86_400, name="assistant_query_daily"
@@ -75,11 +77,15 @@ _worker_query_daily_limit = RateLimiter(
 async def query(
     payload: AssistantQueryRequest,
     company_id: CompanyIdDep,
+    current_user: EmployerUserDep,
     service: ServiceDep,
     verification: VerificationDep,
+    request: Request,
 ) -> AssistantQueryResponse:
     _assistant_query_rate_limit.check(str(company_id))
-    _assistant_query_daily_limit.check(str(company_id))
+    _assistant_query_daily_limit.check(
+        per_account_quota_key(current_user, request, account_key=str(company_id))
+    )
     # P2 (Julieta: "la IA tiene que aprender cosas de cada persona, está muy
     # genérica"): contexto de turnos anteriores de ESTE comercio, para que
     # el asistente complete campos que el texto no menciona (puesto más
@@ -122,9 +128,10 @@ async def query(
 async def worker_query(
     payload: WorkerQueryRequest,
     current_user: WorkerUserDep,
+    request: Request,
 ) -> WorkerQueryResponse:
     _worker_query_rate_limit.check(str(current_user.id))
-    _worker_query_daily_limit.check(str(current_user.id))
+    _worker_query_daily_limit.check(per_account_quota_key(current_user, request))
     try:
         result = await interpret_worker_shift_query(payload.text)
     except GeminiNotConfiguredError as exc:

@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.dt import parse_iso_datetime
 from app.core.gemini import (
@@ -16,7 +16,11 @@ from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
-from app.modules.identity.api.dependencies import get_current_user, require_roles
+from app.modules.identity.api.dependencies import (
+    get_current_user,
+    per_account_quota_key,
+    require_roles,
+)
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.api.dependencies import (
@@ -86,8 +90,9 @@ EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 _parse_shift_text_rate_limit = RateLimiter(
     max_attempts=15, window_seconds=600, name="parse-shift-text"
 )
-# Tope por día y por cuenta (revisión de seguridad 2026-10-20); el global de
-# toda la app está en `app/core/gemini.py`.
+# Tope por día y por cuenta (revisión de seguridad 2026-10-20; la cuenta
+# invitada compartida cuenta por IP, ver `per_account_quota_key`); el global
+# de toda la app está en `app/core/gemini.py`.
 _parse_shift_text_daily_limit = RateLimiter(
     max_attempts=60, window_seconds=86_400, name="parse-shift-text-daily"
 )
@@ -206,13 +211,13 @@ async def create_shift(
     summary="Interpretar una descripción en texto libre y precargar el wizard de turno",
 )
 async def parse_text(
-    payload: ParseShiftTextRequest, current_user: EmployerDep
+    payload: ParseShiftTextRequest, current_user: EmployerDep, request: Request
 ) -> ParsedShiftDraftResponse:
     # Sólo PRECARGA el wizard — el comercio revisa y confirma cada paso a
     # mano en /shifts/new antes de publicar nada (la IA interpreta
     # intención, el motor de turnos/matching decide resultados).
     _parse_shift_text_rate_limit.check(str(current_user.id))
-    _parse_shift_text_daily_limit.check(str(current_user.id))
+    _parse_shift_text_daily_limit.check(per_account_quota_key(current_user, request))
     try:
         draft = await parse_shift_text(payload.text)
     except GeminiNotConfiguredError as exc:

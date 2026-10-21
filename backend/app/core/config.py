@@ -173,13 +173,19 @@ class Settings(BaseSettings):
     # Sigue sin usar el alias `-latest`: ver el docstring de `gemini.py`.
     gemini_model: str = "gemini-3.5-flash"
 
-    # Tope diario de llamadas a Gemini de TODA la app (todas las personas y
-    # funciones juntas), por día de Argentina. Los límites por usuario frenan
-    # un doble click; esto frena a quien crea muchas cuentas para agotar la
-    # cuota o subir la factura (revisión de seguridad 2026-10-20). Al
-    # llegar, la IA responde "probá en un rato" hasta el día siguiente.
+    # Topes diarios de llamadas a Gemini de TODA la app (todas las personas
+    # juntas), por día de Argentina y POR FUNCIÓN. Los límites por usuario
+    # frenan un doble click; esto frena a quien crea muchas cuentas para
+    # agotar la cuota o subir la factura (revisión de seguridad 2026-10-20).
+    # Son presupuestos separados para que agotar uno (p. ej. muchas cuentas de
+    # trabajador autoregistradas) no apague "Describí el turno" de los
+    # comercios, que es el flujo central (revisión 2026-10-21). Al llegar, esa
+    # función responde "probá en un rato" hasta el día siguiente. Suman 1000.
     # 0 = sin tope.
-    gemini_daily_limit: int = 1000
+    gemini_daily_limit_parse_text: int = 500  # POST /shifts/parse-text
+    gemini_daily_limit_asistente: int = 200  # POST /assistant/query (comercio)
+    gemini_daily_limit_trabajador: int = 250  # POST /assistant/worker-query
+    gemini_daily_limit_soporte: int = 50  # sugerencia de respuesta del admin
 
     # --- Administración ---
     # Emails que se promueven a rol admin al iniciar la app (separados por coma).

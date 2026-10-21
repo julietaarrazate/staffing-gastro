@@ -97,21 +97,6 @@ async def test_parse_shift_text_returns_structured_draft(configured_gemini):
 
 
 @pytest.mark.asyncio
-async def test_global_daily_limit_stops_calls_to_gemini(configured_gemini, monkeypatch):
-    """Revisión de seguridad 2026-10-20: un tope diario de toda la app, para
-    que muchas cuentas juntas no agoten la cuota de Google."""
-    from app.core.gemini import GeminiUnavailableError, reset_gemini_daily_usage
-
-    monkeypatch.setattr(settings, "gemini_daily_limit", 2)
-    reset_gemini_daily_usage()
-    await parse_shift_text("necesito un mozo hoy")
-    await parse_shift_text("necesito una bachera mañana")
-    with pytest.raises(GeminiUnavailableError):
-        await parse_shift_text("necesito un cocinero")
-    reset_gemini_daily_usage()
-
-
-@pytest.mark.asyncio
 async def test_parse_shift_text_caps_output_tokens(configured_gemini):
     """F4 (auditoría 2026-08-15): sin `maxOutputTokens`, el rate limit acota
     la cantidad de llamadas a Gemini pero no el gasto por token de CADA una."""

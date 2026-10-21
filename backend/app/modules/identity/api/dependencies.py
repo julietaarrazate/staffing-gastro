@@ -8,13 +8,14 @@ import logging
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Query, WebSocket, WebSocketException, status
+from fastapi import Depends, HTTPException, Query, Request, WebSocket, WebSocketException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings as app_settings
 from app.core.database import get_session
-from app.modules.identity.application.services import IdentityService
+from app.core.edge import client_ip
+from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS, IdentityService
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import (
     InactiveUserError,
@@ -109,6 +110,21 @@ async def get_current_user_ws(
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
     finally:
         await session.close()
+
+
+def per_account_quota_key(user: User, request: Request, account_key: str | None = None) -> str:
+    """Clave de un límite "por cuenta" (p. ej. los topes diarios de la IA).
+    `account_key` es lo que identifica a la cuenta (default: el id del
+    usuario; el asistente del comercio usa el id del comercio).
+
+    Las cuentas invitadas de la beta son UNA por rol, compartida por todos
+    los que entran con el PIN: por cuenta sola, entre todos agotaban el tope
+    y la IA quedaba en 429 para todos (revisión 2026-10-21). Para ellas la
+    clave es cuenta + IP real del cliente (`client_ip`, la de Cloudflare)."""
+    key = account_key or str(user.id)
+    if user.email in GUEST_ACCOUNT_EMAILS:
+        return f"{key}:{client_ip(request)}"
+    return key
 
 
 def require_roles(*roles: UserRole) -> Callable[[User], User]:

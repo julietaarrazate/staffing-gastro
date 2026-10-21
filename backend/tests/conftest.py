@@ -12,14 +12,17 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import settings
 from app.core.database import Base, get_session
+from app.core.gemini import DAILY_BUDGETS
 from app.main import app
 
 # El rate limiting de login/registro es por IP y global al proceso; los tests
 # comparten la IP del cliente ASGI, así que se desactiva salvo en el test que
 # lo ejercita explícitamente (test_identity::test_rate_limit_*).
 settings.rate_limit_enabled = False
-# El tope diario global de Gemini se prueba aparte (test_gemini_shift_parser.py).
-settings.gemini_daily_limit = 0
+# Los topes diarios globales de Gemini se prueban aparte
+# (test_gemini_cuota_diaria.py).
+for _budget in DAILY_BUDGETS:
+    setattr(settings, f"gemini_daily_limit_{_budget}", 0)
 
 # PIN del acceso invitado sólo para tests (en producción es la env var
 # `GUEST_ACCESS_PIN`; sin ella el acceso invitado está apagado).

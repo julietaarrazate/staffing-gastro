@@ -29,5 +29,30 @@ código).
 - **Decisión de Julieta:** ¿exigir email verificado para usar la IA? Frena
   mejor las cuentas falsas, pero un comercio nuevo no podría usar "Describí
   el turno" hasta verificar. No se hizo sin su "sí".
-- Si el plan de Google es el gratis (250 por día), bajar
-  `GEMINI_DAILY_LIMIT` en Render a unos 200.
+- Si el plan de Google es el gratis (250 por día), bajar los
+  `GEMINI_DAILY_LIMIT_*` en Render para que sumen unos 200.
+
+**Revisión del 2026-10-21:** la revisión del PR encontró dos problemas y se
+corrigieron acá. (1) Las cuentas invitadas de la beta son una por rol,
+compartida por todos los que entran con el PIN, así que el tope de 60 por
+día "por cuenta" lo agotaban entre todos los testers y la IA quedaba en 429
+para todos. Ahora `per_account_quota_key`
+(`identity/api/dependencies.py`) arma la clave del tope: para las cuentas
+invitadas es cuenta + IP real del cliente (`app.core.edge.client_ip`); las
+cuentas normales siguen contando por cuenta aunque cambien de IP. Lo usan
+`parse-text`, `/assistant/query` y `/assistant/worker-query`. (2) El tope
+global era uno solo: con unas 17 cuentas de trabajador autoregistradas se
+gastaban las 1000 llamadas en `worker-query` y se apagaba también
+"Describí el turno" de los comercios y la sugerencia de soporte. Ahora hay
+un presupuesto por función (`DAILY_BUDGETS` en `core/gemini.py`; cada
+llamada dice el suyo): `parse_text` 500, `asistente` 200, `trabajador` 250
+y `soporte` 50 (suman las mismas 1000), configurables con
+`GEMINI_DAILY_LIMIT_PARSE_TEXT`, `_ASISTENTE`, `_TRABAJADOR` y `_SOPORTE`
+(reemplazan a `GEMINI_DAILY_LIMIT`, que no llegó a producción; documentado
+en `docs/reference/DEPLOY.md`). Los tests se mudaron a
+`backend/tests/test_gemini_cuota_diaria.py` (invitados en distintas IP no se
+pisan, una cuenta normal no gana tope cambiando de IP, agotar el presupuesto
+del trabajador no apaga `parse-text` ni soporte), así
+`test_gemini_shift_parser.py` queda como en `main` y no choca con el PR de
+la clave de Gemini. Sigue igual: el límite corto (15 cada 10 minutos) de
+estos endpoints todavía es por cuenta, también para la invitada.
