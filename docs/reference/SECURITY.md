@@ -18,7 +18,7 @@
     del usuario.
   - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
     `exp`, y `jti` sólo en el refresh.
-- **Contraseñas:** hash **bcrypt** (`passlib`). Nunca se guarda ni se loguea la
+- **Contraseñas:** hash **bcrypt** (librería `bcrypt` directa, 12 rondas; `passlib` se sacó el 2026-10-21 por estar sin mantenimiento). Nunca se guarda ni se loguea la
   contraseña en claro.
 - **Frontend:** access + refresh en `localStorage`, renovado al cargar y
   periódicamente (sesión persistente; ver

@@ -7,12 +7,20 @@ dependan de funciones puras y testeables.
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt sólo mira los primeros 72 bytes. passlib (hasta el 2026-10-21)
+# cortaba en silencio y bcrypt 5 en cambio da error, así que se corta acá:
+# si no, las contraseñas de más de 72 bytes guardadas con passlib dejarían de
+# verificar. Una contraseña admite hasta 128 caracteres (schemas de identity).
+_BCRYPT_MAX_BYTES = 72
+
+
+def _bcrypt_input(plain_password: str) -> bytes:
+    return plain_password.encode("utf-8")[:_BCRYPT_MAX_BYTES]
 
 # Tipos de token emitidos
 ACCESS_TOKEN = "access"
@@ -22,12 +30,16 @@ REFRESH_TOKEN = "refresh"
 # --- Contraseñas ---
 def hash_password(plain_password: str) -> str:
     """Devuelve el hash bcrypt de una contraseña en texto plano."""
-    return _pwd_context.hash(plain_password)
+    return bcrypt.hashpw(_bcrypt_input(plain_password), bcrypt.gensalt()).decode("ascii")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Compara una contraseña en texto plano contra su hash."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(_bcrypt_input(plain_password), hashed_password.encode("ascii"))
+    except ValueError:
+        # Hash con formato inválido: no verifica, en vez de un 500.
+        return False
 
 
 # --- JWT ---
