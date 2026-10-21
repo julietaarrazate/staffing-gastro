@@ -104,6 +104,12 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   carpeta, un `public_id` al azar y `overwrite=false`. El preset unsigned
   (`staffya-profile`) queda sin uso y se apaga en el panel de Cloudinary.
 
+- **Análisis estático del código en CI** (2026-10-21, job `static-analysis`
+  de `.github/workflows/security.yml`): Semgrep con las reglas de Python,
+  TypeScript, React, Next.js y secretos. Falla el PR con hallazgos de
+  severidad ERROR. Complementa a pip-audit y npm audit, que sólo miran las
+  librerías. No es CodeQL porque en un repo privado eso es pago.
+
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 
 > Deudas reales pendientes (ver [TECH_DEBT.md](../TECH_DEBT.md),
