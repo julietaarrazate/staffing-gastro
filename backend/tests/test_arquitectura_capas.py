@@ -33,7 +33,7 @@ FRAMEWORKS = (
     "httpx",
     "requests",
     "jwt",
-    "passlib",
+    "bcrypt",
 )
 
 # app.core.* que es infraestructura (DB, red, secretos, sockets). El resto de
