@@ -15,6 +15,7 @@ from app.modules.identity.domain.entities import (
     TermsAcceptance,
     User,
 )
+from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
 
 @dataclass
@@ -51,8 +52,21 @@ class UserRepository(ABC):
         """Busca un usuario por su id."""
 
     @abstractmethod
-    async def list_all(self, *, limit: int | None = None, offset: int = 0) -> list[User]:
+    async def list_all(
+        self,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+        search: str | None = None,
+        role: UserRole | None = None,
+        status: UserStatus | None = None,
+        verified: bool | None = None,
+    ) -> list[User]:
         """Lista usuarios (más recientes primero).
+
+        Filtros opcionales del buscador de "Personas" (panel de admin):
+        `search` busca en nombre y email sin distinguir mayúsculas; `role`,
+        `status` y `verified` filtran por igualdad.
 
         `limit=None` (default) trae todos: lo usa `AdminService.get_stats`,
         que necesita el total real para las métricas agregadas (P5 de
