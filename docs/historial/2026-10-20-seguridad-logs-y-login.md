@@ -21,9 +21,22 @@
   `test_login_rate_limited_per_email_even_from_many_ips`.
 
 **Por qué así:** el límite por email es generoso para no trabar a quien se
-equivoca de verdad. El costo es que alguien puede bloquear 15 minutos el
-login de una cuenta ajena probando 20 veces; con el límite por IP y
-Turnstile, ese abuso es caro.
+equivoca de verdad, y cuenta solo los intentos fallidos: con la contraseña
+correcta se entra siempre (ver la revisión de abajo), así nadie puede
+bloquearle el login a una cuenta ajena.
 
 **Queda abierto:** la CSP del frontend con `script-src 'unsafe-inline'`
 (pasar a nonces) es un cambio del frontend aparte.
+
+**Revisión del 2026-10-21:** el límite por email corría antes de verificar
+la contraseña y contaba todo intento, así que cualquiera podía mandar 20
+logins con el email de otra persona (desde varias IPs) y dejarla 15 minutos
+con 429 aunque pusiera bien la contraseña, repetible sin fin (por ejemplo
+contra un comercio a la hora de un turno). Ahora `identity/api/routes.py`
+verifica primero la contraseña: si es correcta entra (200) aunque el email
+haya superado el umbral; si es incorrecta suma un fallo y, pasados los 20,
+responde 429 en vez de 401. El límite por IP no cambia y el costo de bcrypt
+por intento es el mismo. `app/core/rate_limit.py` suma `is_exceeded`
+(consulta sin sumar), `record` (suma sin chequear) y `reject` (el 429 con su
+log), con tests en `tests/test_rate_limit.py`, y
+`test_login_per_email_limit_never_blocks_the_right_password`.

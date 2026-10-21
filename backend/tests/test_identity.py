@@ -305,6 +305,39 @@ async def test_login_rate_limited_per_email_even_from_many_ips(
     assert statuses[20] == 429
 
 
+async def test_login_per_email_limit_never_blocks_the_right_password(
+    client: AsyncClient, monkeypatch
+):
+    """Revisión 2026-10-21: el límite por email contaba todo intento antes
+    de autenticar, así cualquiera le bloqueaba el login a otra persona
+    mandando 20 intentos con su email. Ahora cuenta solo los fallidos y con
+    la contraseña correcta se entra igual."""
+    from app.modules.identity.api import routes as identity_routes
+
+    monkeypatch.setattr(identity_routes._login_rate_limit, "max_attempts", 1000)
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        await register_user(client)
+        wrong = {"email": "mozo@staffya.com", "password": "incorrecta"}
+        right = {"email": "mozo@staffya.com", "password": DEFAULT_PASSWORD}
+        fails = [
+            (await client.post("/api/v1/auth/login", json=wrong)).status_code
+            for _ in range(20)
+        ]
+        owner = await client.post("/api/v1/auth/login", json=right)
+        attacker = await client.post("/api/v1/auth/login", json=wrong)
+        owner_again = await client.post("/api/v1/auth/login", json=right)
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+    assert fails == [401] * 20
+    assert owner.status_code == 200
+    assert "access_token" in owner.json()
+    assert attacker.status_code == 429
+    assert owner_again.status_code == 200
+
+
 async def test_refresh_rate_limited(client: AsyncClient):
     """Tras superar el límite por IP, /auth/refresh responde 429 (antes no
     tenía ningún límite, a diferencia de login/register)."""

@@ -65,7 +65,8 @@ ServiceDep = Annotated[IdentityService, Depends(get_identity_service)]
 _login_rate_limit = RateLimiter(max_attempts=10, window_seconds=60, name="login")
 # Además del límite por IP, uno por cuenta: rotando IPs se podía probar
 # contraseñas sin límite contra un mismo email (revisión de seguridad
-# 2026-10-20). Generoso para no trabar a quien se equivoca de verdad.
+# 2026-10-20). Cuenta solo los intentos fallidos (revisión 2026-10-21): ver
+# `login`. Generoso para no trabar a quien se equivoca de verdad.
 _login_per_email_rate_limit = RateLimiter(
     max_attempts=20, window_seconds=900, name="login_per_email"
 )
@@ -181,14 +182,20 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
 async def login(
     payload: LoginRequest, service: ServiceDep, request: Request, response: Response
 ) -> TokenResponse:
+    # Límite por email: cuenta solo los intentos FALLIDOS y se aplica después
+    # de verificar la contraseña, así un tercero no puede bloquearle el login
+    # al dueño (con la contraseña correcta nunca hay 429 por este límite).
     # Clave hasheada: el limitador loguea la clave en cada 429.
-    _login_per_email_rate_limit.check(email_log_key(payload.email))
+    email_key = email_log_key(payload.email)
     try:
         tokens = await service.authenticate(
             LoginCommand(email=payload.email, password=payload.password)
         )
     except InvalidCredentialsError as exc:
         logger.warning("login fallido (credenciales inválidas) ip=%s", _client_ip(request))
+        if _login_per_email_rate_limit.is_exceeded(email_key):
+            _login_per_email_rate_limit.reject(email_key)
+        _login_per_email_rate_limit.record(email_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales inválidas",
