@@ -13,6 +13,7 @@ from app.modules.application.infrastructure.repositories import (
 from app.modules.company.infrastructure.repositories import SqlAlchemyCompanyProfileRepository
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.shift.domain.value_objects import COMMITTED_STATUSES, ShiftStatus
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.repositories import WorkerProfileRepository
@@ -48,12 +49,24 @@ def get_worker_repository(
 # alcanza, pasa a ser una consulta SQL con JOIN.
 _RELATION_LOOKBACK = 200
 
+# Turnos que cuentan como vínculo: sólo los que el trabajador CONFIRMÓ (o
+# siguieron de ahí en el ciclo). ASIGNADO no alcanza: la asignación directa
+# la hace el comercio solo, sin consentimiento, y con eso se fabricaba el
+# vínculo (revisión 2026-10-21). CANCELADO/NO_CUBIERTO quedan afuera porque
+# se llega a ellos también desde ASIGNADO sin que el trabajador confirmara.
+_LINKED_SHIFT_STATUSES: frozenset[ShiftStatus] = COMMITTED_STATUSES | frozenset(
+    {ShiftStatus.FINALIZADO, ShiftStatus.PAGADO}
+)
+
 
 class EmployerWorkerRelation:
-    """¿Este comercio tiene (o tuvo) un turno o una postulación con este
-    trabajador? Decide quién ve datos que el perfil público no muestra, como
-    el CV (revisión de seguridad 2026-10-20). Vive en `api/` porque cruza
-    tres módulos (company, shift, application) sólo para leer."""
+    """¿Este trabajador eligió a este comercio? Cuenta sólo lo que hizo la
+    persona: una postulación suya a un turno del comercio, o un turno del
+    comercio que confirmó (`_LINKED_SHIFT_STATUSES`). Una asignación directa
+    sin confirmar no cuenta: la hace el comercio solo. Decide quién ve datos
+    que el perfil público no muestra, como el CV (revisión de seguridad
+    2026-10-20/21). Vive en `api/` porque cruza tres módulos (company,
+    shift, application) sólo para leer."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._companies = SqlAlchemyCompanyProfileRepository(session)
@@ -64,10 +77,10 @@ class EmployerWorkerRelation:
         company = await self._companies.get_by_user_id(employer_user_id)
         if company is None:
             return False
-        assigned = await self._shifts.list_by_worker(
-            worker_profile_id, limit=_RELATION_LOOKBACK
+        confirmed = await self._shifts.list_by_worker_and_statuses(
+            worker_profile_id, _LINKED_SHIFT_STATUSES
         )
-        if any(shift.company_id == company.id for shift in assigned):
+        if any(shift.company_id == company.id for shift in confirmed):
             return True
         applications = await self._applications.list_by_worker(
             worker_profile_id, limit=_RELATION_LOOKBACK

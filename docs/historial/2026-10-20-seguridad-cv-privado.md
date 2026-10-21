@@ -25,3 +25,17 @@ El frontend (`app/workers/[id]/page.tsx`) ya manejaba `cv_url` vacío.
 
 **Queda abierto:** nada de este tema. El resto sigue en el ítem «Revisión de seguridad
 del 2026-10-20» de `../STATUS.md`.
+
+**Revisión del 2026-10-21:** el vínculo se podía fabricar. `EmployerWorkerRelation`
+contaba cualquier turno con `worker_profile_id`, y la asignación directa
+(`POST /shifts/{id}/assign`) la hace el comercio solo, sin postulación ni
+consentimiento: publicar un turno, asignarlo al `profile_id` del mapa y pedir
+`GET /workers/{id}` alcanzaba para llevarse el CV (una URL permanente), aunque
+la persona rechazara después. Ahora cuenta sólo lo que hizo el trabajador: una
+postulación suya a un turno del comercio, o un turno del comercio que confirmó
+o siguió de ahí en el ciclo (`_LINKED_SHIFT_STATUSES`: CONFIRMADO, EN_CAMINO,
+CHECK_IN, TRABAJANDO, CHECK_OUT, FINALIZADO, PAGADO). ASIGNADO no cuenta;
+CANCELADO y NO_CUBIERTO tampoco, porque se llega a ellos también desde ASIGNADO
+sin confirmar. Tests nuevos en `test_privacidad_datos_trabajador.py`: asignación
+directa sin confirmar (y después rechazada) → `cv_url` null; confirmada → lo ve;
+postulación del trabajador → lo ve (y un comercio ajeno, no).

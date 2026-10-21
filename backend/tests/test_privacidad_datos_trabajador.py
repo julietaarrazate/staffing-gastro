@@ -133,6 +133,78 @@ async def test_cv_only_for_employers_linked_to_the_worker(client: AsyncClient):
     assert mine["cv_url"] == cv
 
 
+async def _worker_with_cv(client: AsyncClient, email: str) -> tuple[dict, str, str]:
+    worker, profile_id = await _worker_with_profile(client, email)
+    cv = "https://example.com/cv-privado.pdf"
+    updated = await client.put(
+        "/api/v1/workers/me/profile",
+        headers=worker,
+        json={"skills": ["mozo"], "cv_url": cv},
+    )
+    assert updated.status_code == 200
+    return worker, profile_id, cv
+
+
+async def _cv_seen_by(client: AsyncClient, profile_id: str, headers: dict) -> str | None:
+    response = await client.get(f"/api/v1/workers/{profile_id}", headers=headers)
+    assert response.status_code == 200
+    return response.json()["cv_url"]
+
+
+async def test_direct_assignment_without_confirmation_does_not_unlock_cv(
+    client: AsyncClient,
+):
+    """Revisión 2026-10-21: el comercio podía fabricarse el vínculo solo,
+    asignando directo (sin postulación ni consentimiento) a quien vio en el
+    mapa. Asignado sin confirmar no cuenta, y si la persona rechaza, menos."""
+    worker, profile_id, cv = await _worker_with_cv(client, "priv_cv_asig_w@staffya.com")
+    employer = await _employer_with_company(client, "priv_cv_asig_emp@staffya.com")
+    shift_id = await _published_shift_near_start(client, employer)
+
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": profile_id},
+    )
+    assert assigned.status_code == 200
+    assert await _cv_seen_by(client, profile_id, employer) is None
+
+    rejected = await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=worker)
+    assert rejected.status_code == 200
+    assert await _cv_seen_by(client, profile_id, employer) is None
+    assert await _cv_seen_by(client, profile_id, worker) == cv
+
+
+async def test_confirmed_assignment_unlocks_cv(client: AsyncClient):
+    worker, profile_id, cv = await _worker_with_cv(client, "priv_cv_conf_w@staffya.com")
+    employer = await _employer_with_company(client, "priv_cv_conf_emp@staffya.com")
+    stranger = await _employer_with_company(client, "priv_cv_conf_otro@staffya.com")
+    shift_id = await _published_shift_near_start(client, employer)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": profile_id},
+    )
+
+    confirmed = await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker)
+    assert confirmed.status_code == 200
+    assert await _cv_seen_by(client, profile_id, employer) == cv
+    assert await _cv_seen_by(client, profile_id, stranger) is None
+
+
+async def test_worker_application_unlocks_cv_for_that_employer(client: AsyncClient):
+    worker, profile_id, cv = await _worker_with_cv(client, "priv_cv_post_w@staffya.com")
+    employer = await _employer_with_company(client, "priv_cv_post_emp@staffya.com")
+    stranger = await _employer_with_company(client, "priv_cv_post_otro@staffya.com")
+    shift_id = await _published_shift_near_start(client, employer)
+    assert await _cv_seen_by(client, profile_id, employer) is None
+
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    assert applied.status_code == 201
+    assert await _cv_seen_by(client, profile_id, employer) == cv
+    assert await _cv_seen_by(client, profile_id, stranger) is None
+
+
 # --- Turnos guardados -------------------------------------------------------
 
 
