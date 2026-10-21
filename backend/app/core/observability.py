@@ -156,7 +156,7 @@ _SENSITIVE_KEYS = frozenset(
 # Secretos pegados dentro de un texto: `?key=...`, `&token=...` en una URL
 # (así se filtró la clave de Gemini, STAFFYA-BACKEND-7) y `Bearer ...`.
 _SECRET_IN_TEXT = re.compile(
-    r"(?i)([?&](?:key|api_key|token|access_token|id_token)=)[^&\s'\"]+"
+    r"(?i)((?:^|[?&])(?:key|api_key|token|access_token|id_token)=)[^&\s'\"]+"
     r"|(bearer\s+)[A-Za-z0-9._~+/=-]+"
 )
 _FILTERED = "[Filtered]"

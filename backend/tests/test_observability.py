@@ -133,3 +133,11 @@ def test_uvicorn_logs_hide_the_websocket_token():
     text = record.getMessage()
     assert "eyJhbGci" not in text
     assert "?token=[Filtered]&x=1" in text
+
+
+def test_scrub_tapa_el_token_al_principio_del_query_string():
+    """El SDK de Sentry guarda `request.query_string` sin el `?` adelante:
+    `token=…` al principio también se tiene que tapar."""
+    event = {"request": {"query_string": "token=eyJsecreto&x=1"}}
+    scrubbed = scrub_sentry_event(event, None)
+    assert scrubbed["request"]["query_string"] == "token=[Filtered]&x=1"
