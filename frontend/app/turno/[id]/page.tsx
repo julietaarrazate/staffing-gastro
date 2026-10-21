@@ -51,7 +51,7 @@ export async function generateMetadata({
   const shift = await getPublicShift(id);
 
   if (!shift) {
-    return { title: "Turno no encontrado — Oído" };
+    return { title: "Turno no encontrado" };
   }
 
   const title = `Buscamos ${SKILL_LABELS[shift.position]}${
@@ -73,7 +73,9 @@ export async function generateMetadata({
   const twitterImage = cover ? cldOgImage(cover, 1200, 630) : "/twitter-image";
 
   return {
-    title,
+    // `absolute`: el título ya termina en "— Oído" (va igual a `og:title`), y
+    // con la plantilla del layout salía "— Oído — Oído".
+    title: { absolute: title },
     description,
     openGraph: {
       title,
