@@ -174,12 +174,6 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
   **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
-- **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
-  Render y purgar las cuentas demo (runbook en
-  [`reference/DEPLOY.md`](./reference/DEPLOY.md)). Hoy está en `true` a
-  propósito para que la app se vea poblada. La revisión del 2026-10-20 lo
-  marca como riesgo alto: la contraseña de las cuentas demo (también de
-  comercio) está en el repo, y con ellas se ven trabajadores reales.
 - **Confirmar** en Render `ENVIRONMENT=production` (controla la cookie del
   refresh token, TECH_DEBT S1) y `GEMINI_API_KEY` (sin ella, "Describí el
   turno" y el asistente responden 503 con un mensaje claro).

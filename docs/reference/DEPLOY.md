@@ -35,7 +35,7 @@ Config declarativa en `render.yaml` (raíz del repo).
 | `ENVIRONMENT` | `production` | |
 | `DEBUG` | `"false"` | |
 | `CORS_ORIGINS` | dominio Vercel de producción | sin `localhost` |
-| `SEED_DEMO_DATA` | `"false"` | **APAGADO** desde 2026-08-07 (runbook más abajo): sembraba ~26 cuentas demo con contraseña pública en la base real. Las fotos de las 4 cuentas invitado/prueba **no** cuelgan de este flag — corren siempre, ver `scripts/startup_seed.py` |
+| `SEED_DEMO_DATA` | `"false"` | **APAGADO** desde 2026-10-22 (estuvo prendido a propósito del 2026-09-22 a esa fecha; runbook más abajo): sembraba ~26 cuentas demo con contraseña pública en la base real. Las fotos de las 4 cuentas invitado/prueba **no** cuelgan de este flag — corren siempre, ver `scripts/startup_seed.py` |
 | `ADMIN_EMAILS` | (opcional) | promueve admins al bootstrap |
 | `RESEND_API_KEY` | Manual (`sync: false`) | **Sin esta clave no sale NINGÚN email.** Ver runbook "Prender el email transaccional" |
 | `GEMINI_API_KEY` | Manual (`sync: false`) | Sin ella, `POST /shifts/parse-text` y los asistentes responden 503. **Ojo también con el MODELO**, no sólo con la clave: ver nota abajo |
@@ -329,7 +329,9 @@ Pasos:
 conocida** — correcto para la etapa de demostración, inaceptable con usuarios
 reales. Antes de abrir la beta:
 
-> **Mientras está prendido (2026-09-22):** Julieta lo prendió para ver la app
+> **Hecho el 2026-10-22:** flag en `false` y las 26 cuentas demo purgadas de Neon (respaldo previo en una rama de Neon). Lo que sigue es cómo funcionaba mientras estuvo prendido.
+>
+> **Mientras estuvo prendido (2026-09-22 a 2026-10-22):** Julieta lo prendió para ver la app
 > poblada sin usuarios reales. Cada arranque del backend **repone** los turnos
 > de los comercios demo que se quedaron sin turnos vigentes (antes se
 > sembraban una sola vez y al día siguiente la app volvía a verse vacía), con

@@ -54,16 +54,12 @@ services:
       # Siembra cuentas/comercios/turnos demo en el arranque (idempotente, y
       # desde 2026-09-22 repone los turnos demo que ya pasaron).
       # OJO: con la base real de Neon, esto siembra datos demo en producción.
-      # PRENDIDO (2026-09-23, decisión de Julieta): sin usuarios reales, la app
-      # se ve poblada. Fijado acá Y en el panel, para que no se contradigan
-      # (si la siembra no corre, mirar la línea `[seed]` del log de arranque
-      # antes de culpar a este archivo: la vez que "no corría" era un bug de
-      # event loop en scripts/startup_seed.py, ver docs/BUGS.md). ANTES DE LA
-      # BETA CON GENTE REAL: volver a "false" ACÁ y en el panel, y purgar las
-      # cuentas demo (runbook "apagar el modo demo" en
-      # docs/reference/DEPLOY.md) — tienen contraseña pública.
+      # APAGADO (2026-10-22, decisión de Julieta): ya hay usuarios reales y las
+      # cuentas demo tienen contraseña pública en el repo. Fijado acá Y en el
+      # panel, para que no se contradigan; las cuentas demo se purgaron de
+      # Neon (runbook "apagar el modo demo" en docs/reference/DEPLOY.md).
       - key: SEED_DEMO_DATA
-        value: "true"
+        value: "false"
       - key: SENTRY_DSN
         sync: false
       # --- Detrás de Cloudflare (etapa 3, 2026-10-14) ---
