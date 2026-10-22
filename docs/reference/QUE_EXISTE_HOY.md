@@ -45,7 +45,8 @@ listados más abajo.
   construir** (Feature 3 del mismo doc).
 - **Alta de local desde el mapa** (ADR-0006): geocoder Nominatim/OSM gratis +
   pin arrastrable como fuente de verdad de lat/lng.
-- **Suscripciones Fase 1** al comercio (ADR-0005): planes gratis/básico/pro,
+- **Suscripciones Fase 1** al comercio (ADR-0005; sin plan gratis desde
+  ADR-0020): planes inicial ($9.900)/básico/pro,
   pantalla "Mi plan", gating de publicación por tope mensual — **enforcement
   OFF por default** (`subscriptions_enforced=false`: se cuenta el uso pero no
   se bloquea a nadie en la beta).

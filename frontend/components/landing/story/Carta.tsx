@@ -22,7 +22,7 @@ import type { SubscriptionPlan } from "@/lib/types";
  * de Render dormido no aparecía, y "/#precios" caía en cualquier lado.
  */
 const RESPALDO: SubscriptionPlan[] = [
-  { code: "gratis", name: "Gratis", price_ars: 0, max_turnos_mes: 3, features: ["Hasta 3 turnos publicados por mes", "Soporte por email"] },
+  { code: "inicial", name: "Inicial", price_ars: 9900, max_turnos_mes: 5, features: ["Hasta 5 turnos publicados por mes", "Soporte por email"] },
   { code: "basico", name: "Básico", price_ars: 20000, max_turnos_mes: 15, features: ["Hasta 15 turnos publicados por mes", "Soporte prioritario"] },
   {
     code: "pro",
@@ -84,14 +84,13 @@ export default function Carta() {
           </h2>
         </div>
         <p className="mt-4 max-w-[34ch] text-lg text-ink-soft lg:mt-0">
-          Empezás gratis y cambiás de plan según cuántos turnos publicás por mes.
+          Elegís el plan según cuántos turnos publicás por mes, y lo cambiás cuando quieras.
         </p>
       </div>
 
       <ul className="mt-10 grid gap-4 lg:mt-14 lg:grid-cols-3 lg:items-stretch lg:gap-5">
         {plans.map((p) => {
           const destacado = p.code === "basico";
-          const gratis = Number(p.price_ars) === 0;
           return (
             <li
               key={p.code}
@@ -111,9 +110,9 @@ export default function Carta() {
               </div>
               <p className="mt-4 flex items-baseline gap-1">
                 <span className="font-display text-poster font-semibold tracking-[-0.015em] tabular-nums text-ink">
-                  {gratis ? "$0" : formatArs(p.price_ars)}
+                  {formatArs(p.price_ars)}
                 </span>
-                <span className="text-body text-ink-mute">{gratis ? "para siempre" : "/mes"}</span>
+                <span className="text-body text-ink-mute">/mes</span>
               </p>
 
               <div className="mt-6">
@@ -142,7 +141,7 @@ export default function Carta() {
                     : "bg-card text-ink ring-1 ring-ink/15 hover:ring-ink/30"
                 }`}
               >
-                {gratis ? "Creá tu comercio gratis" : `Elegir ${p.name}`}
+                {`Elegir ${p.name}`}
               </Link>
             </li>
           );

@@ -191,6 +191,14 @@ def scrub_sentry_event(event, hint):
         return None
 
 
+# 502 y 503 salen a propósito cuando un servicio de afuera no responde
+# (Gemini, OpenStreetMap, Cloudinary, Resend): el usuario ve un mensaje claro
+# y el log ya lo registra como aviso. Reportarlos a Sentry como error llenaba
+# la lista de issues de cosas que no son bugs (2026-10-22). Un 500, que sí es
+# un bug, se sigue reportando.
+SENTRY_FAILED_STATUS_CODES = frozenset(range(500, 600)) - {502, 503}
+
+
 def setup_sentry() -> None:
     """Activa Sentry si hay DSN configurado; si no, no hace nada.
 
@@ -203,6 +211,8 @@ def setup_sentry() -> None:
         return
     try:
         import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
 
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
@@ -211,6 +221,10 @@ def setup_sentry() -> None:
             traces_sample_rate=0.0,
             send_default_pii=False,
             before_send=scrub_sentry_event,
+            integrations=[
+                StarletteIntegration(failed_request_status_codes=SENTRY_FAILED_STATUS_CODES),
+                FastApiIntegration(failed_request_status_codes=SENTRY_FAILED_STATUS_CODES),
+            ],
         )
     except Exception:
         logging.getLogger(__name__).exception(

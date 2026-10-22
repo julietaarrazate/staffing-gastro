@@ -6,8 +6,8 @@ conocen un `Plan` (código, tope de turnos, precio) resuelto acá, nunca un
 número hardcodeado en medio de una regla. Ajustar montos/topes es editar este
 diccionario — no toca el dominio ni el caso de uso.
 
-Valores semilla del ADR-0005 (a calibrar en la beta, ver
-docs/adr/ADR-0005-pagos-y-antidesintermediacion.md).
+Valores semilla del ADR-0005, sin el plan gratis desde el ADR-0020 (a
+calibrar en la beta, ver docs/adr/).
 """
 
 from dataclasses import dataclass, field
@@ -28,12 +28,15 @@ class Plan:
 
 
 PLANS: dict[str, Plan] = {
-    "gratis": Plan(
-        code="gratis",
-        name="Gratis",
-        price_ars=Decimal("0"),
-        max_turnos_mes=3,
-        features=("Hasta 3 turnos publicados por mes", "Soporte por email"),
+    # Sin plan gratis desde ADR-0020 (2026-10-22): un escalón de entrada pago
+    # filtra a quien entra sólo a mirar o copiar, y el que es comercio de
+    # verdad igual lo paga.
+    "inicial": Plan(
+        code="inicial",
+        name="Inicial",
+        price_ars=Decimal("9900"),
+        max_turnos_mes=5,
+        features=("Hasta 5 turnos publicados por mes", "Soporte por email"),
     ),
     "basico": Plan(
         code="basico",
@@ -56,7 +59,7 @@ PLANS: dict[str, Plan] = {
 }
 
 # Cada comercio nuevo arranca acá (ver `SubscriptionRepository.get_or_create`).
-DEFAULT_PLAN_CODE = "gratis"
+DEFAULT_PLAN_CODE = "inicial"
 
 
 def get_plan(plan_code: str) -> Plan:

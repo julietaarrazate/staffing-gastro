@@ -741,7 +741,7 @@ async def test_feed_pagination(client: AsyncClient):
     """R2.1: `/shifts/feed` pagina con `limit`/`offset` sin cambiar el shape
     de la respuesta (sigue siendo una lista simple)."""
     headers = await _employer_with_company(client, "emp_pag@staffya.com")
-    # 5 turnos > el tope del plan gratis (3/mes, ADR-0005 Fase 1): se
+    # 5 turnos = el tope del plan inicial (5/mes, ADR-0020): se
     # sube a `pro` (ilimitado) para no acoplar este test de paginación al
     # gating de capacidad, que se cubre en tests/test_subscription.py.
     await client.post(
@@ -1192,7 +1192,7 @@ async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
     settings.subscriptions_enforced = True
     try:
         headers = await _employer_with_company(client, "evento2@staffya.com")
-        # Plan gratis por defecto: tope de 3 turnos/mes.
+        # Plan inicial por defecto: tope de 5 turnos/mes.
         response = await client.post(
             "/api/v1/shifts/events",
             headers=headers,
@@ -1201,13 +1201,13 @@ async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
                 "start_at": "2026-09-10T20:00:00",
                 "end_at": "2026-09-11T02:00:00",
                 "city": "Palermo",
-                "roles": [{"position": "mozo", "count": 5, "pay_amount": "50000.00"}],
+                "roles": [{"position": "mozo", "count": 7, "pay_amount": "50000.00"}],
             },
         )
         assert response.status_code == 201
         body = response.json()
-        assert body["requested"] == 5
-        assert len(body["shifts"]) == 3
+        assert body["requested"] == 7
+        assert len(body["shifts"]) == 5
         assert all(s["status"] == "publicado" for s in body["shifts"])
     finally:
         settings.subscriptions_enforced = previous

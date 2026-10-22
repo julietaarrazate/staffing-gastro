@@ -19,7 +19,7 @@ export function buildBusinessInviteText(): string {
   return (
     "Te paso Oído, una app para cubrir turnos en gastronomía: si te falta alguien, " +
     "publicás el turno y te avisan los que están cerca y disponibles. " +
-    `Crear la cuenta es gratis: ${BUSINESS_INVITE_URL}`
+    `Sin comisión por turno: ${BUSINESS_INVITE_URL}`
   );
 }
 

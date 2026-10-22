@@ -1,4 +1,4 @@
-import Supercluster from "supercluster";
+import Supercluster, { type ClusterFeature, type PointFeature } from "supercluster";
 import type { Shift, WorkerSkill } from "@/lib/types";
 
 /**
@@ -34,8 +34,8 @@ type ShiftWithCoords = Shift & { latitude: number; longitude: number };
 // No usamos `map`/`reduce` de supercluster: los clusters no agregan
 // propiedades de turno (rubro/urgente), sólo el conteo. Segundo genérico de
 // `Supercluster` (propiedades de cluster) queda vacío para reflejar eso.
-export type ShiftGeoPoint = Supercluster.PointFeature<ShiftPointProps>;
-export type ShiftClusterOnly = Supercluster.ClusterFeature<Record<string, never>>;
+export type ShiftGeoPoint = PointFeature<ShiftPointProps>;
+export type ShiftClusterOnly = ClusterFeature<Record<string, never>>;
 export type ShiftClusterFeature = ShiftClusterOnly | ShiftGeoPoint;
 
 /** Type guard: distingue un cluster de un punto individual. */

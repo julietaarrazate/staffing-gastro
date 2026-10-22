@@ -351,7 +351,7 @@ async def test_badges_and_level_recompute_after_finish_and_worker_cancel(
         client, "att_badges_w@staffya.com"
     )
     # Este test publica 4 turnos para el mismo comercio, por encima del tope
-    # del plan gratis (3/mes, ADR-0005 Fase 1); se sube a `pro` (ilimitado)
+    # de un plan con límite; se sube a `pro` (ilimitado)
     # para no acoplar este test de reputación al gating de capacidad.
     await client.post(
         "/api/v1/subscription/subscribe",

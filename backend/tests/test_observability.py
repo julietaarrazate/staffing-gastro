@@ -6,7 +6,12 @@ Unitarios, sin DB: `_JsonFormatter` no depende de nada async ni de sesión.
 import json
 import logging
 
-from app.core.observability import _JsonFormatter, request_id_var, scrub_sentry_event
+from app.core.observability import (
+    SENTRY_FAILED_STATUS_CODES,
+    _JsonFormatter,
+    request_id_var,
+    scrub_sentry_event,
+)
 
 
 def _make_record(
@@ -141,3 +146,12 @@ def test_scrub_tapa_el_token_al_principio_del_query_string():
     event = {"request": {"query_string": "token=eyJsecreto&x=1"}}
     scrubbed = scrub_sentry_event(event, None)
     assert scrubbed["request"]["query_string"] == "token=[Filtered]&x=1"
+
+
+def test_sentry_no_reporta_las_caidas_de_servicios_de_afuera():
+    """502/503 son respuestas a propósito cuando Gemini u OpenStreetMap no
+    responden; un 500 es un bug y se reporta."""
+    assert 502 not in SENTRY_FAILED_STATUS_CODES
+    assert 503 not in SENTRY_FAILED_STATUS_CODES
+    assert 500 in SENTRY_FAILED_STATUS_CODES
+    assert 504 in SENTRY_FAILED_STATUS_CODES

@@ -65,14 +65,13 @@ export default function Precios() {
   return (
     <section id="precios" aria-labelledby="precios-titulo" data-tone="light" className="landing-sec scroll-mt-[var(--lht)]">
       <h2 id="precios-titulo" className="landing-h2 max-w-[14ch]">
-        Empezás gratis, sin comisión por turno
+        Sin comisión por turno
       </h2>
 
       <Reveal className="mt-[var(--aire)] w-full max-w-[1080px]">
         <ul className="grid gap-4 text-left lg:grid-cols-3 lg:gap-5">
           {plans.map((p) => {
             const destacado = p.code === "basico";
-            const gratis = Number(p.price_ars) === 0;
             // El primer beneficio repite el tope que ya está dibujado arriba.
             const extra = p.features.slice(1).join(" · ");
             return (
@@ -92,9 +91,9 @@ export default function Precios() {
                 </div>
                 <p className="mt-4 flex items-baseline gap-1.5">
                   <span className="font-display text-[clamp(2.5rem,4vw,3.4rem)] font-semibold leading-none tracking-[-0.045em] text-ink">
-                    {gratis ? "$0" : formatArs(p.price_ars)}
+                    {formatArs(p.price_ars)}
                   </span>
-                  <span className="text-body text-ink-mute">{gratis ? "para siempre" : "/mes"}</span>
+                  <span className="text-body text-ink-mute">/mes</span>
                 </p>
 
                 <div className="mt-6">

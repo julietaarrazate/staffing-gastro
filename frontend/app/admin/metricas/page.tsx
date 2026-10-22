@@ -22,7 +22,7 @@ import {
 } from "@/components/admin/AdminStats";
 
 const PLAN_LABELS: Record<string, string> = {
-  gratis: "Gratis",
+  inicial: "Inicial",
   basico: "Básico",
   pro: "Pro",
 };

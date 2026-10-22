@@ -535,7 +535,7 @@ export interface SubscriptionStats {
   mrr_ars: number | string;
   total_companies: number;
   /** Cantidad de comercios por `plan_code` (incluye a los que todavía no
-   * tienen fila en `subscriptions`, contados en `gratis`). */
+   * tienen fila en `subscriptions`, contados en el plan por defecto, `inicial`). */
   companies_by_plan: Record<string, number>;
   companies_at_plan_limit: number;
   /** False mientras no haya credenciales de Mercado Pago: `mrr_ars` es
