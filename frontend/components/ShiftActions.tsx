@@ -6,6 +6,7 @@ import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
 import { nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
+import { isShareable } from "@/lib/shift-share";
 import type { Shift } from "@/lib/types";
 
 /**
@@ -112,7 +113,7 @@ export default function ShiftActions({
               Ver perfil del trabajador
             </MenuLink>
           )}
-          {shift.status === "publicado" && (
+          {isShareable(shift) && (
             <div className="py-2.5">
               <ShareShiftButton shift={shift} shiftId={shift.id} />
             </div>
