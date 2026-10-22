@@ -109,7 +109,7 @@ class SubscriptionStats:
     """Métricas de suscripción/mensualidad (ADR-0005) para el panel de
     administración: ingreso mensual recurrente y distribución de comercios
     por plan, incluidos los que todavía no tienen fila en `subscriptions`
-    (implícitamente en `gratis`, ver `AdminService.get_subscription_stats`)."""
+    (implícitamente en el plan por defecto, ver `AdminService.get_subscription_stats`)."""
 
     mrr_ars: Decimal
     total_companies: int

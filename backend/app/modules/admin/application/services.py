@@ -309,9 +309,9 @@ class AdminService:
         plan (ADR-0005), para el panel de administración.
 
         Un comercio sin fila en `subscriptions` (nunca llamó `get_or_create`,
-        ver `SubscriptionRepository`) está implícitamente en `gratis` — se
+        ver `SubscriptionRepository`) está implícitamente en el plan por defecto — se
         suma ahí usando el total real de comercios como denominador, en vez
-        de sólo contar filas existentes (subestimaría "gratis")."""
+        de sólo contar filas existentes (subestimaría ese plan)."""
         plan_status_counts = await self._subscriptions.count_by_plan_and_status()
         total_companies = await self._companies.count_total()
 

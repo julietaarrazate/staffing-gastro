@@ -32,8 +32,8 @@ class SubscriptionRepository(ABC):
     @abstractmethod
     async def get_or_create(self, company_id: UUID) -> Subscription:
         """Devuelve la suscripción del comercio; si todavía no tiene una (primer
-        acceso), la crea en el plan `gratis` con un período nuevo y la
-        persiste. Así "cada comercio nuevo arranca en gratis" (ADR-0005) sin
+        acceso), la crea en el plan por defecto (`inicial`, ADR-0020) con un período nuevo y la
+        persiste. Así "cada comercio nuevo arranca en el plan de entrada" sin
         depender de un hook en el alta del perfil de comercio."""
 
     @abstractmethod
@@ -41,7 +41,7 @@ class SubscriptionRepository(ABC):
         """Conteo agregado `(plan_code, status, cantidad)` de las suscripciones
         que ya tienen fila (panel de admin, MRR). Un comercio sin fila
         todavía (nunca llamó `get_or_create`) NO aparece acá — el llamador lo
-        suma al plan `gratis` usando el total real de comercios
+        suma al plan por defecto usando el total real de comercios
         (`CompanyProfileRepository.count_total`), ver ADR-0005."""
 
     @abstractmethod
