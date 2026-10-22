@@ -144,9 +144,10 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
         await self._session.refresh(model)
         return _push_to_entity(model)
 
-    async def remove_by_endpoint(self, endpoint: str) -> None:
+    async def remove_by_endpoint(self, endpoint: str, *, user_id: UUID) -> None:
         stmt = select(PushSubscriptionModel).where(
-            PushSubscriptionModel.endpoint == endpoint
+            PushSubscriptionModel.endpoint == endpoint,
+            PushSubscriptionModel.user_id == user_id,
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()

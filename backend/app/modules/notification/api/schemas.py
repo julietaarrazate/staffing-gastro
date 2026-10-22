@@ -3,9 +3,12 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.modules.notification.domain.value_objects import NotificationType
+from app.modules.notification.domain.value_objects import (
+    NotificationType,
+    is_known_push_endpoint,
+)
 
 
 class NotificationResponse(BaseModel):
@@ -33,6 +36,13 @@ class PushSubscribeRequest(BaseModel):
 
     endpoint: str
     keys: PushSubscriptionKeys
+
+    @field_validator("endpoint")
+    @classmethod
+    def _known_push_service(cls, value: str) -> str:
+        if not is_known_push_endpoint(value):
+            raise ValueError("El endpoint no es de un servicio push conocido")
+        return value
 
 
 class PushUnsubscribeRequest(BaseModel):
