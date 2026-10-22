@@ -13,6 +13,7 @@ import logging
 
 import httpx
 
+from app.core.log_privacy import mask_email
 from app.core.config import Settings
 from app.modules.notification.domain.email_sender import EmailSender
 
@@ -50,6 +51,6 @@ class ResendEmailSender(EmailSender):
         except Exception:
             logger.exception(
                 "ResendEmailSender: no se pudo enviar el email (to=%s, subject=%r)",
-                to,
+                mask_email(to),
                 subject,
             )

@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.geo import haversine_km
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from tests.conftest import TEST_GUEST_PIN, auth_headers, login
 
@@ -187,9 +188,13 @@ async def test_search_map_never_returns_the_workers_exact_coordinates(
     assert response.status_code == 200
     worker = response.json()[0]
     assert (worker["latitude"], worker["longitude"]) != (-34.58, -58.43)
-    # La distancia sigue siendo la real (calculada antes de desplazar el
-    # pin) — lo que se oculta es DÓNDE, no QUÉ TAN LEJOS.
-    assert worker["distance_km"] is not None
+    # La distancia se mide desde el pin desplazado, no desde el domicilio:
+    # con la real, tres búsquedas desde puntos distintos triangulaban la casa
+    # (revisión de seguridad 2026-10-20).
+    from_pin = haversine_km(worker["latitude"], worker["longitude"], -34.6, -58.45)
+    real = haversine_km(-34.58, -58.43, -34.6, -58.45)
+    assert worker["distance_km"] == round(from_pin, 1)
+    assert worker["distance_km"] != round(real, 3)
 
 
 async def test_worker_cannot_search_map(client: AsyncClient):
@@ -251,3 +256,74 @@ async def test_guest_worker_excluded_from_search_results(client: AsyncClient):
     results = response.json()
     assert len(results) == 1
     assert results[0]["full_name"] != "Invitado · Trabajador"
+
+
+async def test_top_candidates_score_does_not_leak_the_real_distance():
+    """Revisión de seguridad 2026-10-21: el `score` del top de candidatos se
+    calculaba con la distancia REAL aunque `distance_km` ya saliera del pin
+    desplazado. Con tres turnos de lat/lng elegidas, Δdist = Δscore·25/0,30
+    despejaba la distancia real y triangulaba el domicilio. Dos turnos a la
+    misma distancia pública pero a distinta distancia real tienen que dar el
+    MISMO score."""
+    from types import SimpleNamespace
+    from uuid import UUID, uuid4
+
+    from app.core.geo import fuzz_point
+    from app.modules.matching.application.services import MatchingService
+    from app.modules.matching.domain.entities import CandidateProfile
+    from app.modules.worker.domain.value_objects import WorkerSkill
+
+    home = (-34.58, -58.43)
+    candidate = CandidateProfile(
+        profile_id=UUID("11111111-2222-3333-4444-555555555555"),
+        user_id=uuid4(),
+        full_name="Candidata",
+        photo_url=None,
+        skills=(WorkerSkill.MOZO,),
+        years_experience=2,
+        rating=4.0,
+        punctuality_rate=0.9,
+        events_completed=10,
+        cancellations=0,
+        no_shows=0,
+        is_available=True,
+        latitude=home[0],
+        longitude=home[1],
+    )
+    pin = fuzz_point(*home, str(candidate.profile_id))
+    # Dos turnos sobre la recta pin→domicilio, a ~2,03 km del pin: uno del
+    # lado del domicilio (real ≈ 2,03 − r) y otro del lado opuesto
+    # (real ≈ 2,03 + r), con r = desplazamiento del pin (≥ 0,15 km).
+    r = haversine_km(*pin, *home)
+    k = 2.03 / r
+    d_lat, d_lng = home[0] - pin[0], home[1] - pin[1]
+    near = (pin[0] + d_lat * k, pin[1] + d_lng * k)
+    far = (pin[0] - d_lat * k, pin[1] - d_lng * k)
+
+    company_id = uuid4()
+    shifts = {
+        "near": SimpleNamespace(
+            company_id=company_id, position=WorkerSkill.MOZO, latitude=near[0], longitude=near[1]
+        ),
+        "far": SimpleNamespace(
+            company_id=company_id, position=WorkerSkill.MOZO, latitude=far[0], longitude=far[1]
+        ),
+    }
+
+    class _Shifts:
+        async def get_by_id(self, shift_id):
+            return shifts[shift_id]
+
+    class _Candidates:
+        async def list_available(self, position):
+            return [candidate]
+
+    service = MatchingService(_Shifts(), _Candidates())
+    [a] = await service.get_top_candidates("near", company_id)
+    [b] = await service.get_top_candidates("far", company_id)
+
+    real_a = haversine_km(*home, *near)
+    real_b = haversine_km(*home, *far)
+    assert abs(real_a - real_b) > 0.25  # de verdad están a distinta distancia
+    assert a.distance_km == b.distance_km == 2.0  # misma banda pública
+    assert a.score == b.score  # el score no despeja la distancia real

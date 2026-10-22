@@ -50,8 +50,9 @@ class PushService:
             )
         )
 
-    async def unsubscribe(self, endpoint: str) -> None:
+    async def unsubscribe(self, user_id: UUID, endpoint: str) -> None:
         """No-disclosure/idempotente: no distingue "no existía" de "era de
-        otro usuario" — el endpoint por sí solo no alcanza para operar sobre
-        la suscripción de otra persona (es un valor opaco del browser)."""
-        await self._subscriptions.remove_by_endpoint(endpoint)
+        otro usuario". Sólo borra la suscripción si es de quien la pide:
+        antes alcanzaba con conocer el endpoint de otra persona para cortarle
+        los avisos (revisión de seguridad 2026-10-20)."""
+        await self._subscriptions.remove_by_endpoint(endpoint, user_id=user_id)
