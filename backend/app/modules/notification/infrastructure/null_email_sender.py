@@ -8,6 +8,7 @@ credenciales reales (mismo patrón que `sentry_dsn`/`mercadopago_access_token`).
 
 import logging
 
+from app.core.log_privacy import mask_email
 from app.modules.notification.domain.email_sender import EmailSender
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,6 @@ class NullEmailSender(EmailSender):
         logger.info(
             "NullEmailSender: RESEND_API_KEY no configurada, no se envía email "
             "(to=%s, subject=%r)",
-            to,
+            mask_email(to),
             subject,
         )

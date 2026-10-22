@@ -145,4 +145,4 @@ async def push_subscribe(
 async def push_unsubscribe(
     payload: PushUnsubscribeRequest, current_user: CurrentUserDep, service: PushServiceDep
 ) -> None:
-    await service.unsubscribe(payload.endpoint)
+    await service.unsubscribe(current_user.id, payload.endpoint)

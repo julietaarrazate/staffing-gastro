@@ -5,6 +5,8 @@ desempeño, según el spec del motor de matching de Oído. La afinidad con
 el local queda fuera hasta que exista historial de asignaciones (Fase 3+).
 """
 
+from collections.abc import Callable
+
 from app.core.geo import haversine_km
 from app.modules.matching.domain.entities import (
     CandidateProfile,
@@ -61,19 +63,36 @@ def _performance_score(events_completed: int, cancellations: int, no_shows: int 
     return events_completed / total
 
 
-def score_candidate(
-    candidate: CandidateProfile,
-    requirement: ShiftRequirement,
-    weights: MatchWeights = DEFAULT_WEIGHTS,
-    max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
-) -> ScoreBreakdown:
-    """Calcula el desglose del score de un candidato para un turno."""
-    distance_km = haversine_km(
+DistanceFn = Callable[[CandidateProfile, ShiftRequirement], float | None]
+
+
+def real_distance_km(
+    candidate: CandidateProfile, requirement: ShiftRequirement
+) -> float | None:
+    """Distancia exacta entre la ubicación del candidato y la del turno."""
+    return haversine_km(
         candidate.latitude,
         candidate.longitude,
         requirement.latitude,
         requirement.longitude,
     )
+
+
+def score_candidate(
+    candidate: CandidateProfile,
+    requirement: ShiftRequirement,
+    weights: MatchWeights = DEFAULT_WEIGHTS,
+    max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
+    distance_fn: DistanceFn = real_distance_km,
+) -> ScoreBreakdown:
+    """Calcula el desglose del score de un candidato para un turno.
+
+    `distance_fn` decide QUÉ distancia entra al puntaje. Por defecto la real
+    (aviso a trabajadores cercanos: no sale hacia nadie). Lo que el comercio
+    ve pasa la distancia pública (pin desplazado, redondeada): si el puntaje
+    usara la real, la diferencia de score entre turnos la despejaría igual
+    (revisión de seguridad 2026-10-21)."""
+    distance_km = distance_fn(candidate, requirement)
     return ScoreBreakdown(
         distance_score=_distance_score(distance_km, max_radius_km),
         experience_score=_experience_score(candidate.years_experience),
@@ -96,13 +115,16 @@ def rank_candidates(
     requirement: ShiftRequirement,
     weights: MatchWeights = DEFAULT_WEIGHTS,
     max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
+    distance_fn: DistanceFn = real_distance_km,
 ) -> list[MatchResult]:
     """Filtra por elegibilidad, calcula el score y ordena de mayor a menor."""
     results = []
     for candidate in candidates:
         if not is_eligible(candidate, requirement):
             continue
-        breakdown = score_candidate(candidate, requirement, weights, max_radius_km)
+        breakdown = score_candidate(
+            candidate, requirement, weights, max_radius_km, distance_fn
+        )
         results.append(
             MatchResult(
                 profile_id=candidate.profile_id,

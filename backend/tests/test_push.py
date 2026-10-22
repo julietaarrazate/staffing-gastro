@@ -12,6 +12,7 @@ from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.notification.infrastructure.fake_push_sender import FakePushSender
 from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
+    SqlAlchemyPushSubscriptionRepository,
 )
 from tests.conftest import auth_headers
 
@@ -61,6 +62,53 @@ async def test_push_subscribe_is_idempotent_and_can_unsubscribe(client: AsyncCli
         "DELETE", _SUBSCRIBE_PATH, json={"endpoint": payload["endpoint"]}, headers=headers
     )
     assert again.status_code == 204
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://fcm.googleapis.com/fcm/send/x",  # sin https
+        "https://10.0.0.5/push",  # red interna
+        "https://evil.example.com/fcm.googleapis.com",
+        "https://fcm.googleapis.com.evil.com/x",
+        "https://fcm.googleapis.com:8443/x",
+    ],
+)
+async def test_push_subscribe_rejects_unknown_push_services(
+    client: AsyncClient, endpoint: str
+):
+    """Revisión de seguridad 2026-10-20: el backend le hace POST al endpoint,
+    así que sólo se aceptan los servicios push de los navegadores."""
+    headers = await auth_headers(client, "worker", "push_ssrf@staffya.com")
+    response = await client.post(
+        _SUBSCRIBE_PATH,
+        json={"endpoint": endpoint, "keys": {"p256dh": "a", "auth": "b"}},
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
+async def test_push_unsubscribe_only_removes_your_own_subscription(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    owner = await auth_headers(client, "worker", "push_own@staffya.com")
+    other = await auth_headers(client, "worker", "push_other@staffya.com")
+    endpoint = "https://updates.push.services.mozilla.com/wpush/v2/abc"
+    await client.post(
+        _SUBSCRIBE_PATH,
+        json={"endpoint": endpoint, "keys": {"p256dh": "a", "auth": "b"}},
+        headers=owner,
+    )
+
+    response = await client.request(
+        "DELETE", _SUBSCRIBE_PATH, json={"endpoint": endpoint}, headers=other
+    )
+    assert response.status_code == 204
+
+    owner_id = UUID((await client.get("/api/v1/auth/me", headers=owner)).json()["id"])
+    async with session_factory() as session:
+        remaining = await SqlAlchemyPushSubscriptionRepository(session).list_by_user(owner_id)
+    assert [s.endpoint for s in remaining] == [endpoint]
 
 
 async def test_notification_creation_sends_push_best_effort(
@@ -235,3 +283,63 @@ async def test_notificacion_sin_link_cae_al_destino_por_tipo(
             )
         )
     assert created.link is None
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://169.254.169.254/latest/meta-data/",
+        "http://fcm.googleapis.com/fcm/send/plano",
+    ],
+)
+async def test_suscripcion_vieja_con_endpoint_arbitrario_no_recibe_post_y_se_purga(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+    endpoint: str,
+):
+    """Suscripciones guardadas antes de validar el alta (endpoint interno o
+    sin https): el sender real no les hace POST y se borran (SSRF persistente,
+    revisión 2026-10-21). La válida del mismo usuario sí recibe el aviso."""
+    from app.core.config import get_settings
+    from app.modules.notification.domain.entities import PushSubscription
+    from app.modules.notification.infrastructure.webpush_sender import WebPushSender
+
+    headers = await auth_headers(client, "worker", f"push-ssrf-{len(endpoint)}@staffya.com")
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    user_id = UUID(me.json()["id"])
+    valido = "https://fcm.googleapis.com/fcm/send/legit"
+
+    # Se guarda directo por el repositorio: simula un registro previo al deploy
+    # que el schema de alta hoy rechazaría.
+    async with session_factory() as session:
+        repo = SqlAlchemyPushSubscriptionRepository(session)
+        for ep in (endpoint, valido):
+            await repo.add(
+                PushSubscription(user_id=user_id, endpoint=ep, p256dh_key="p", auth_key="a")
+            )
+
+    llamados: list[str] = []
+    monkeypatch.setattr(
+        "pywebpush.webpush",
+        lambda subscription_info, **_: llamados.append(subscription_info["endpoint"]),
+    )
+    monkeypatch.setattr(
+        "app.modules.notification.infrastructure.repositories._get_push_sender",
+        lambda: WebPushSender(get_settings()),
+    )
+
+    async with session_factory() as session:
+        await SqlAlchemyNotificationRepository(session).add(
+            Notification(
+                user_id=user_id,
+                type=NotificationType.SHIFT_ASSIGNED,
+                title="Aviso",
+                message="Solo al servicio push conocido.",
+            )
+        )
+
+    assert llamados == [valido]
+    async with session_factory() as session:
+        restantes = await SqlAlchemyPushSubscriptionRepository(session).list_by_user(user_id)
+    assert [s.endpoint for s in restantes] == [valido]

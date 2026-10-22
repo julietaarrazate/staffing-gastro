@@ -8,6 +8,7 @@ Es idempotente: si el usuario ya es admin o no existe todavía, no hace nada.
 
 import logging
 
+from app.core.log_privacy import mask_email
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.modules.identity.domain.value_objects import UserRole
@@ -26,7 +27,9 @@ async def promote_configured_admins() -> None:
         for email in emails:
             user = await repo.get_by_email(email)
             if user is None:
-                logger.info("ADMIN_EMAILS: %s todavía no está registrado, se omite", email)
+                logger.info(
+                    "ADMIN_EMAILS: %s todavía no está registrado, se omite", mask_email(email)
+                )
                 continue
             if user.role == UserRole.ADMIN:
                 continue
@@ -35,8 +38,10 @@ async def promote_configured_admins() -> None:
                 # tiene cuenta: si ese email estaba en ADMIN_EMAILS, el
                 # próximo reinicio lo hacía admin sin que nadie probara ser
                 # dueño de la casilla. Sólo se promueve una cuenta verificada.
-                logger.warning("ADMIN_EMAILS: %s no confirmó su email, no se promueve", email)
+                logger.warning(
+                    "ADMIN_EMAILS: %s no confirmó su email, no se promueve", mask_email(email)
+                )
                 continue
             user.promote_to_admin()
             await repo.update(user)
-            logger.info("ADMIN_EMAILS: %s promovido a administrador", email)
+            logger.info("ADMIN_EMAILS: %s promovido a administrador", mask_email(email))
