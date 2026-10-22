@@ -1,6 +1,7 @@
 """Objetos de valor del dominio de notificaciones."""
 
 from enum import Enum
+from urllib.parse import urlsplit
 
 
 class NotificationType(str, Enum):
@@ -88,3 +89,24 @@ _DEEP_LINKS: dict[NotificationType, str] = {
 def deep_link_for(type_: NotificationType) -> str:
     """Ruta del frontend que debe abrir el push de este tipo de notificación."""
     return _DEEP_LINKS.get(type_, "/")
+
+
+# Servicios push de los navegadores (Chrome/Samsung/Opera, Firefox, Safari,
+# Edge). El backend le hace POST al `endpoint` que manda el navegador: sin
+# esta lista, cualquier usuario podía registrar una URL propia o interna y el
+# servidor le pegaba en cada aviso (revisión de seguridad 2026-10-20).
+_PUSH_SERVICE_HOSTS = (
+    "fcm.googleapis.com",
+    "updates.push.services.mozilla.com",
+    "push.apple.com",
+    "notify.windows.com",
+)
+
+
+def is_known_push_endpoint(endpoint: str) -> bool:
+    """`https` y host de un servicio push conocido (o subdominio suyo)."""
+    parts = urlsplit(endpoint)
+    host = (parts.hostname or "").lower()
+    if parts.scheme != "https" or not host or parts.port not in (None, 443):
+        return False
+    return any(host == h or host.endswith("." + h) for h in _PUSH_SERVICE_HOSTS)
