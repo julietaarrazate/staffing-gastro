@@ -45,16 +45,9 @@ toda vista previa y el sitemap apuntaban ahí.
    marcado en rojo como "el más importante y el que falta" durante semanas
    después de estar resuelto; si lo leés en rojo en algún lado, es una copia
    vieja. La verificación de identidad F1 quedó operativa de punta a punta.
-2. 🟠 **`SEED_DEMO_DATA` = `true` a propósito, por ahora** (Render, decisión
-   de Julieta 2026-09-22): sin usuarios reales, la app se ve poblada con los
-   comercios/trabajadores demo, y cada arranque repone sus turnos vigentes.
-   Queda fijado también en `render.yaml`, para que el archivo y el panel no
-   se contradigan. (El 2026-09-23 se culpó a `render.yaml` de pisar el panel;
-   la causa real de que no se sembrara nada era un bug de event loop en
-   `backend/scripts/startup_seed.py` — ver `docs/BUGS.md`.)
-   **Antes de abrir la beta con gente real** va a `false` y se purgan las
-   cuentas demo (runbook en `docs/reference/DEPLOY.md`): tienen contraseña
-   pública y sus turnos entran en la referencia de pago.
+2. ✅ **`SEED_DEMO_DATA` = `false`** (Render y `render.yaml`, 2026-10-22):
+   ya hay usuarios reales, así que se apagó y se purgaron las 26 cuentas
+   demo de Neon. Ver `docs/historial/2026-10-22-apagar-datos-demo.md`.
 3. 🟢 **`MERCADOPAGO_ACCESS_TOKEN`** (Render): sólo para pagos reales; el
    enforcement está apagado, así que **no urge** para la beta.
 4. 🟠 **Confirmar** `ENVIRONMENT=production` (Render) y `NEXT_PUBLIC_API_URL`

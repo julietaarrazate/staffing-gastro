@@ -39,8 +39,9 @@ class PushSubscriptionRepository(ABC):
         cual en vez de duplicarla."""
 
     @abstractmethod
-    async def remove_by_endpoint(self, endpoint: str) -> None:
-        """Elimina la suscripción de ese endpoint (no-op si no existe)."""
+    async def remove_by_endpoint(self, endpoint: str, *, user_id: UUID) -> None:
+        """Elimina la suscripción de ese endpoint SI es de `user_id` (no-op si
+        no existe o es de otra persona)."""
 
     @abstractmethod
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:

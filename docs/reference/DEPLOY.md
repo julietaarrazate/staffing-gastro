@@ -35,11 +35,12 @@ Config declarativa en `render.yaml` (raíz del repo).
 | `ENVIRONMENT` | `production` | |
 | `DEBUG` | `"false"` | |
 | `CORS_ORIGINS` | dominio Vercel de producción | sin `localhost` |
-| `SEED_DEMO_DATA` | `"false"` | **APAGADO** desde 2026-08-07 (runbook más abajo): sembraba ~26 cuentas demo con contraseña pública en la base real. Las fotos de las 4 cuentas invitado/prueba **no** cuelgan de este flag — corren siempre, ver `scripts/startup_seed.py` |
+| `SEED_DEMO_DATA` | `"false"` | **APAGADO** desde 2026-10-22 (estuvo prendido a propósito del 2026-09-22 a esa fecha; runbook más abajo): sembraba ~26 cuentas demo con contraseña pública en la base real. Las fotos de las 4 cuentas invitado/prueba **no** cuelgan de este flag — corren siempre, ver `scripts/startup_seed.py` |
 | `ADMIN_EMAILS` | (opcional) | promueve admins al bootstrap |
 | `RESEND_API_KEY` | Manual (`sync: false`) | **Sin esta clave no sale NINGÚN email.** Ver runbook "Prender el email transaccional" |
 | `GEMINI_API_KEY` | Manual (`sync: false`) | Sin ella, `POST /shifts/parse-text` y los asistentes responden 503. **Ojo también con el MODELO**, no sólo con la clave: ver nota abajo |
 | `GEMINI_MODEL` | Manual (`sync: false`), opcional | Vacío = default del código (`gemini-3.5-flash`). Se setea para migrar de modelo sin deploy — ver "Migrar de modelo" abajo |
+| `GEMINI_DAILY_LIMIT_PARSE_TEXT` · `_ASISTENTE` · `_TRABAJADOR` · `_SOPORTE` | Opcionales | Topes diarios de llamadas a Gemini de toda la app (día de Argentina), uno por función para que agotar uno no apague los otros. Defaults: `PARSE_TEXT` 500 ("Describí el turno" del comercio), `ASISTENTE` 200 (asistente del comercio), `TRABAJADOR` 250 (asistente del trabajador), `SOPORTE` 50 (sugerencia del admin); suman 1000. Al llegar, esa función responde "probá en un rato". `0` = sin tope. Si el plan de Google es el gratis (250/día), bajarlos para que sumen unos 200 |
 | `EMAIL_FROM` | Manual (`sync: false`) | Default del código: `onboarding@resend.dev` — dominio de prueba de Resend, sólo entrega a la casilla dueña de la cuenta |
 
 > **Credenciales:** nunca en el repo ni en el chat; siempre env vars en
@@ -328,7 +329,9 @@ Pasos:
 conocida** — correcto para la etapa de demostración, inaceptable con usuarios
 reales. Antes de abrir la beta:
 
-> **Mientras está prendido (2026-09-22):** Julieta lo prendió para ver la app
+> **Hecho el 2026-10-22:** flag en `false` y las 26 cuentas demo purgadas de Neon (respaldo previo en una rama de Neon). Lo que sigue es cómo funcionaba mientras estuvo prendido.
+>
+> **Mientras estuvo prendido (2026-09-22 a 2026-10-22):** Julieta lo prendió para ver la app
 > poblada sin usuarios reales. Cada arranque del backend **repone** los turnos
 > de los comercios demo que se quedaron sin turnos vigentes (antes se
 > sembraban una sola vez y al día siguiente la app volvía a verse vacía), con

@@ -71,9 +71,13 @@ Revisado contra el código y los PRs el 2026-10-03.
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-7. ⏸️ **Cuando se active el cobro real de la suscripción** (hoy apagado,
-   ADR-0005): `/subscription` necesita botón de baja y de arrepentimiento,
-   que los términos ya prometen por mail o soporte.
+7. 🟠 **Cobro real de la suscripción** (pedido de Julieta, 2026-10-22: sin
+   plan gratis, ADR-0020; hoy el cobro está apagado y el plan Inicial queda
+   activo sin pagar). Falta: webhook de Mercado Pago que active el plan al
+   confirmarse el pago, estado "pendiente" guardado, bloquear la publicación
+   hasta el primer pago, `back_url` del checkout a `oido.com.ar` (hoy
+   `staffya.com`), y botón de baja y de arrepentimiento en `/subscription`.
+   Necesita la cuenta de Mercado Pago de Julieta (`MERCADOPAGO_ACCESS_TOKEN`).
 8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
@@ -174,12 +178,6 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
   **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
-- **Antes de abrir la beta con gente real:** `SEED_DEMO_DATA=false` en
-  Render y purgar las cuentas demo (runbook en
-  [`reference/DEPLOY.md`](./reference/DEPLOY.md)). Hoy está en `true` a
-  propósito para que la app se vea poblada. La revisión del 2026-10-20 lo
-  marca como riesgo alto: la contraseña de las cuentas demo (también de
-  comercio) está en el repo, y con ellas se ven trabajadores reales.
 - **Confirmar** en Render `ENVIRONMENT=production` (controla la cookie del
   refresh token, TECH_DEBT S1) y `GEMINI_API_KEY` (sin ella, "Describí el
   turno" y el asistente responden 503 con un mensaje claro).

@@ -45,7 +45,7 @@ const STATS = {
 const SUBSCRIPTION_STATS = {
   mrr_ars: "65000",
   total_companies: 4,
-  companies_by_plan: { gratis: 2, basico: 1, pro: 1 },
+  companies_by_plan: { inicial: 2, basico: 1, pro: 1 },
   companies_at_plan_limit: 1,
   billing_enabled: true,
 };
@@ -92,7 +92,7 @@ test("con el cobro activo, la sección Suscripciones muestra el MRR real y la di
   await expect(page.getByText("Cobro no activado")).toHaveCount(0);
   await expect(page.getByText("Potencial si se cobrara")).toHaveCount(0);
   await expect(page.getByText("Cerca del límite")).toBeVisible();
-  await expect(page.getByText("Gratis: 2")).toBeVisible();
+  await expect(page.getByText("Inicial: 2")).toBeVisible();
   await expect(page.getByText("Básico: 1")).toBeVisible();
   await expect(page.getByText("Pro: 1")).toBeVisible();
 });

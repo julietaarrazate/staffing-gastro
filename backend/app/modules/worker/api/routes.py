@@ -11,7 +11,12 @@ from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
-from app.modules.worker.api.dependencies import get_user_repository, get_worker_service
+from app.modules.worker.api.dependencies import (
+    EmployerWorkerRelation,
+    get_employer_worker_relation,
+    get_user_repository,
+    get_worker_service,
+)
 from app.modules.worker.api.schemas import (
     AvailableNowInput,
     AvailableNowResponse,
@@ -32,6 +37,7 @@ router = APIRouter(prefix="/workers", tags=["workers"])
 ServiceDep = Annotated[WorkerProfileService, Depends(get_worker_service)]
 UsersDep = Annotated[UserRepository, Depends(get_user_repository)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+RelationDep = Annotated[EmployerWorkerRelation, Depends(get_employer_worker_relation)]
 WorkerDep = Annotated[User, Depends(require_roles(UserRole.WORKER))]
 
 
@@ -186,6 +192,11 @@ async def stop_available_now(current_user: WorkerDep, service: ServiceDep) -> No
 # exacta a cualquier sesión con el `profile_id` que el mismo mapa entrega.
 # La fecha de nacimiento tampoco hace falta: la vista pública usa `age`.
 _PRIVATE_PROFILE_FIELDS = ("latitude", "longitude", "birth_date")
+# El CV suele traer teléfono, email y domicilio: lo ve el dueño, admin y un
+# comercio que tenga o haya tenido un turno o una postulación con esa persona.
+# Antes lo veía cualquier sesión con el `profile_id` del mapa (revisión de
+# seguridad 2026-10-20).
+_CONTACT_PROFILE_FIELDS = ("cv_url",)
 
 
 @router.get(
@@ -198,6 +209,7 @@ async def get_profile(
     service: ServiceDep,
     users: UsersDep,
     verification: VerificationDep,
+    relation: RelationDep,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     try:
@@ -210,4 +222,10 @@ async def get_profile(
     response = await _to_response(profile, users, verification)
     if current_user.id == profile.user_id or current_user.role == UserRole.ADMIN:
         return response
-    return response.model_copy(update={field: None for field in _PRIVATE_PROFILE_FIELDS})
+    hidden = list(_PRIVATE_PROFILE_FIELDS)
+    if not (
+        current_user.role == UserRole.EMPLOYER
+        and await relation.exists(current_user.id, profile.id)
+    ):
+        hidden.extend(_CONTACT_PROFILE_FIELDS)
+    return response.model_copy(update={field: None for field in hidden})

@@ -127,12 +127,41 @@ def _is_transient(status_code: int) -> bool:
     return status_code == 429 or status_code >= 500
 
 
-async def _call_gemini(payload: dict) -> dict:
+# Presupuestos diarios globales, uno por función (`settings.
+# gemini_daily_limit_<función>`): agotar uno no apaga los otros. En memoria
+# del proceso: hay una sola instancia del backend en Render; con varias,
+# cada una tendría su propio tope.
+DAILY_BUDGETS = ("parse_text", "asistente", "trabajador", "soporte")
+_daily_usage: dict[str, tuple[int, int]] = {}  # función -> (día, llamadas)
+
+
+def _reserve_daily_call(budget: str) -> None:
+    limit = getattr(settings, f"gemini_daily_limit_{budget}")
+    if limit <= 0:
+        return
+    today = now_art().date().toordinal()
+    day, count = _daily_usage.get(budget, (today, 0))
+    if day != today:
+        count = 0
+    if count >= limit:
+        logger.warning("Gemini: tope diario de '%s' alcanzado (%s llamadas)", budget, limit)
+        raise GeminiUnavailableError("tope diario")
+    _daily_usage[budget] = (today, count + 1)
+
+
+def reset_gemini_daily_usage() -> None:
+    """Uso en tests."""
+    _daily_usage.clear()
+
+
+async def _call_gemini(payload: dict, *, budget: str) -> dict:
     """POST común a `generateContent`, compartido por las llamadas de este
     archivo. Reintenta 5xx/429/timeouts/errores de red (`GeminiUnavailableError`
     si se agotan); los 4xx (clave, modelo dado de baja, permisos) son de
     configuración y se loguean como error con el cuerpo de Google — el motivo
-    real (ej. `PERMISSION_DENIED`) que antes se perdía."""
+    real (ej. `PERMISSION_DENIED`) que antes se perdía. `budget` es el
+    presupuesto diario de la función que llama (`DAILY_BUDGETS`)."""
+    _reserve_daily_call(budget)
     last_problem = ""
     for attempt in range(_GEMINI_MAX_RETRIES + 1):
         if attempt:
@@ -268,7 +297,7 @@ async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> 
         },
     }
     try:
-        data = await _call_gemini(payload)
+        data = await _call_gemini(payload, budget="soporte")
     except GeminiUnavailableError:
         raise
     except Exception as exc:
@@ -304,7 +333,7 @@ async def parse_shift_text(text: str) -> ParsedShiftDraft:
         },
     }
     try:
-        data = await _call_gemini(payload)
+        data = await _call_gemini(payload, budget="parse_text")
     except GeminiUnavailableError:
         raise
     except Exception as exc:
@@ -495,7 +524,7 @@ async def interpret_assistant_query(
         },
     }
     try:
-        data = await _call_gemini(payload)
+        data = await _call_gemini(payload, budget="asistente")
     except GeminiUnavailableError:
         raise
     except Exception as exc:
@@ -642,7 +671,7 @@ async def interpret_worker_shift_query(text: str) -> WorkerQueryResult:
         },
     }
     try:
-        data = await _call_gemini(payload)
+        data = await _call_gemini(payload, budget="trabajador")
     except GeminiUnavailableError:
         raise
     except Exception as exc:

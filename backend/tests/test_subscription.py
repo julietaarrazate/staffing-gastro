@@ -1,6 +1,6 @@
 """Tests del módulo subscription (Fase 1 ADR-0005: mensualidad al comercio).
 
-Cubre: gating de capacidad por plan al publicar un turno (gratis tope 3,
+Cubre: gating de capacidad por plan al publicar un turno (inicial tope 5,
 básico más, pro ilimitado), `subscribe` con el feature-flag de cobro apagado
 y encendido (`FakeBillingGateway`), config de planes y auth (401/404/403).
 """
@@ -32,7 +32,7 @@ def _enforce_subscriptions():
 
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
-    """Empleador con perfil de comercio (arranca en el plan `gratis`)."""
+    """Empleador con perfil de comercio (arranca en el plan `inicial`)."""
     headers = await auth_headers(client, "employer", email)
     await client.post(
         "/api/v1/companies/me/profile",
@@ -69,35 +69,35 @@ async def _publish_new_shift(client: AsyncClient, headers: dict, city: str):
 # --- Gating de capacidad por plan --------------------------------------
 
 
-async def test_free_plan_publishes_up_to_three_and_blocks_fourth(client: AsyncClient):
-    headers = await _employer_with_company(client, "sub_free@staffya.com")
+async def test_inicial_plan_publishes_up_to_five_and_blocks_sixth(client: AsyncClient):
+    headers = await _employer_with_company(client, "sub_inicial@staffya.com")
 
-    for i in range(3):
-        response = await _publish_new_shift(client, headers, f"Free{i}")
+    for i in range(5):
+        response = await _publish_new_shift(client, headers, f"Ini{i}")
         assert response.status_code == 200
         assert response.json()["status"] == "publicado"
 
-    fourth = await _publish_new_shift(client, headers, "Free3")
-    assert fourth.status_code == 402
-    assert "límite" in fourth.json()["detail"].lower()
-    assert "3" in fourth.json()["detail"]
+    sixth = await _publish_new_shift(client, headers, "Ini5")
+    assert sixth.status_code == 402
+    assert "límite" in sixth.json()["detail"].lower()
+    assert "5" in sixth.json()["detail"]
 
     subscription = await client.get("/api/v1/subscription", headers=headers)
     assert subscription.status_code == 200
     body = subscription.json()
-    assert body["plan_code"] == "gratis"
-    assert body["turnos_usados_mes"] == 3
-    assert body["max_turnos_mes"] == 3
+    assert body["plan_code"] == "inicial"
+    assert body["turnos_usados_mes"] == 5
+    assert body["max_turnos_mes"] == 5
 
 
 async def test_upgrading_to_basico_allows_more_publications(client: AsyncClient):
     headers = await _employer_with_company(client, "sub_upgrade@staffya.com")
 
-    for i in range(3):
+    for i in range(5):
         response = await _publish_new_shift(client, headers, f"Up{i}")
         assert response.status_code == 200
 
-    blocked = await _publish_new_shift(client, headers, "Up3")
+    blocked = await _publish_new_shift(client, headers, "Up5")
     assert blocked.status_code == 402
 
     upgraded = await client.post(
@@ -108,7 +108,7 @@ async def test_upgrading_to_basico_allows_more_publications(client: AsyncClient)
     assert upgraded.json()["status"] == "activa"
     assert upgraded.json()["checkout_url"] is None
 
-    now_allowed = await _publish_new_shift(client, headers, "Up4")
+    now_allowed = await _publish_new_shift(client, headers, "Up6")
     assert now_allowed.status_code == 200
     assert now_allowed.json()["status"] == "publicado"
 
@@ -141,16 +141,16 @@ async def test_pro_plan_is_never_blocked(client: AsyncClient):
 # --- Suscripción / plan --------------------------------------------------
 
 
-async def test_new_company_defaults_to_free_plan(client: AsyncClient):
+async def test_new_company_defaults_to_inicial_plan(client: AsyncClient):
     headers = await _employer_with_company(client, "sub_default@staffya.com")
     response = await client.get("/api/v1/subscription", headers=headers)
     assert response.status_code == 200
     body = response.json()
-    assert body["plan_code"] == "gratis"
+    assert body["plan_code"] == "inicial"
     assert body["status"] == "activa"
-    assert body["max_turnos_mes"] == 3
+    assert body["max_turnos_mes"] == 5
     assert body["turnos_usados_mes"] == 0
-    assert Decimal(str(body["price_ars"])) == Decimal("0")
+    assert Decimal(str(body["price_ars"])) == Decimal("9900")
 
 
 async def test_subscribe_with_flag_off_sets_plan_immediately(client: AsyncClient):
@@ -190,9 +190,9 @@ async def test_subscribe_with_flag_on_returns_pending_checkout(client: AsyncClie
         assert body["checkout_url"] is not None
         assert len(fake_gateway.created) == 1
 
-        # El plan persistido NO cambió todavía (queda gratis hasta confirmar).
+        # El plan persistido NO cambió todavía (queda inicial hasta confirmar).
         subscription = await client.get("/api/v1/subscription", headers=headers)
-        assert subscription.json()["plan_code"] == "gratis"
+        assert subscription.json()["plan_code"] == "inicial"
     finally:
         app.dependency_overrides.pop(get_billing_gateway, None)
 
@@ -211,7 +211,7 @@ async def test_get_plans_returns_config(client: AsyncClient):
     assert response.status_code == 200
     plans = response.json()["plans"]
     codes = [p["code"] for p in plans]
-    assert codes == ["gratis", "basico", "pro"]  # orden ascendente de precio
+    assert codes == ["inicial", "basico", "pro"]  # orden ascendente de precio
 
     pro = next(p for p in plans if p["code"] == "pro")
     assert pro["max_turnos_mes"] is None
@@ -227,7 +227,7 @@ async def test_get_plans_public_needs_no_auth_and_matches_catalog(client: AsyncC
     assert response.status_code == 200
     plans = response.json()["plans"]
     codes = [p["code"] for p in plans]
-    assert codes == ["gratis", "basico", "pro"]  # orden ascendente de precio
+    assert codes == ["inicial", "basico", "pro"]  # orden ascendente de precio
 
     basico = next(p for p in plans if p["code"] == "basico")
     assert Decimal(str(basico["price_ars"])) == Decimal("20000")

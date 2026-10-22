@@ -542,8 +542,10 @@ pseudo-aleatorio pero **determinístico** (hash del `profile_id`, no
 150–350 m: alcanza para decidir a quién contactar, no para ir a golpear una
 puerta. Se aplica en `MatchingService.search_workers` (el único lugar que
 arma `WorkerMapResult`, usado tanto por el mapa del comercio como por el del
-admin, mismo endpoint) — la distancia mostrada sigue siendo la real, calculada
-**antes** de desplazar. `frontend/components/WorkerSearchMap.tsx` no cambió:
+admin, mismo endpoint). Desde el 2026-10-20 la distancia también se mide
+desde el punto desplazado (y el filtro por radio usa esa misma distancia):
+con la real, tres búsquedas desde puntos distintos triangulaban el domicilio.
+Ver `historial/2026-10-20-seguridad-distancia-publica.md`. `frontend/components/WorkerSearchMap.tsx` no cambió:
 sólo dibuja las coordenadas que le llegan, así que alcanzó con arreglarlo en
 un solo lugar del backend. Tests en `backend/tests/test_geo.py` (anillo,
 determinismo, nunca la coordenada exacta) y
