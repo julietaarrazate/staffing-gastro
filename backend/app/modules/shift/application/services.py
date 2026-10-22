@@ -357,8 +357,8 @@ class ShiftService:
                     f"{lugar} está buscando {puesto}. "
                     "Entrá y postulate antes de que lo tomen."
                 )
-            for match in ranked:
-                await self._notifications.add(
+            await self._notifications.add_many(
+                [
                     Notification(
                         user_id=match.user_id,
                         type=notification_type,
@@ -366,7 +366,9 @@ class ShiftService:
                         message=message,
                         link="/feed",
                     )
-                )
+                    for match in ranked
+                ]
+            )
         except Exception:
             logger.exception(
                 "Aviso de turno: fallo inesperado, no se propaga (shift_id=%s)",

@@ -1,6 +1,8 @@
 """Adaptadores SQLAlchemy de los repositorios del módulo notification."""
 
+import asyncio
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
@@ -9,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings as app_settings
 from app.core.ws_manager import ws_manager
 from app.modules.notification.domain.entities import Notification, PushSubscription
-from app.modules.notification.domain.push_sender import PushSendResult, PushSender
+from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 from app.modules.notification.domain.repositories import (
     NotificationRepository,
     PushSubscriptionRepository,
@@ -81,6 +83,38 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
                 entity.user_id,
             )
         return entity
+
+    async def add_many(self, notifications: list[Notification]) -> list[Notification]:
+        if not notifications:
+            return []
+        # `created_at` se fija acá y no con el default del servidor: así no
+        # hace falta releer cada fila después del commit. Antes, avisar un
+        # turno nuevo hacía un INSERT, un COMMIT y una relectura por cada
+        # trabajador (N+1, medido el 2026-10-22).
+        now = datetime.now(timezone.utc)
+        models = [
+            NotificationModel(
+                id=n.id,
+                user_id=n.user_id,
+                type=n.type.value,
+                title=n.title,
+                message=n.message,
+                read=n.read,
+                link=n.link,
+                created_at=now,
+            )
+            for n in notifications
+        ]
+        self._session.add_all(models)
+        await self._session.commit()
+        entities = [_to_entity(m) for m in models]
+        for entity in entities:
+            await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
+        try:
+            await _send_push_many_best_effort(self._session, entities)
+        except Exception:
+            logger.exception("Push best-effort: fallo inesperado en un aviso masivo")
+        return entities
 
     async def list_by_user(
         self, user_id: UUID, *, limit: int = 50, offset: int = 0
@@ -160,6 +194,13 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
         result = await self._session.execute(stmt)
         return [_push_to_entity(m) for m in result.scalars().all()]
 
+    async def list_by_users(self, user_ids: list[UUID]) -> list[PushSubscription]:
+        if not user_ids:
+            return []
+        stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.user_id.in_(user_ids))
+        result = await self._session.execute(stmt)
+        return [_push_to_entity(m) for m in result.scalars().all()]
+
     async def remove_many_by_id(self, subscription_ids: list[UUID]) -> None:
         if not subscription_ids:
             return
@@ -184,6 +225,39 @@ def _get_push_sender() -> PushSender:
     from app.modules.notification.infrastructure.null_push_sender import NullPushSender
 
     return NullPushSender()
+
+
+async def _send_push_many_best_effort(
+    session: AsyncSession, notifications: list[Notification]
+) -> None:
+    """Como `_send_push_best_effort`, para muchos avisos: una sola consulta de
+    suscripciones y los envíos en paralelo (cada uno ya corre en su hilo,
+    ver `WebPushSender`), en vez de uno detrás de otro."""
+    push_repo = SqlAlchemyPushSubscriptionRepository(session)
+    by_user = {n.user_id: n for n in notifications}
+    subscriptions = await push_repo.list_by_users(list(by_user))
+    if not subscriptions:
+        return
+
+    sender = _get_push_sender()
+
+    async def _send(subscription: PushSubscription) -> PushSendResult:
+        notification = by_user[subscription.user_id]
+        return await sender.send(
+            subscription,
+            title=notification.title,
+            body=notification.message,
+            url=notification.link or deep_link_for(notification.type),
+        )
+
+    results = await asyncio.gather(
+        *(_send(s) for s in subscriptions), return_exceptions=True
+    )
+    gone_ids = [
+        s.id for s, r in zip(subscriptions, results, strict=True) if r == PushSendResult.GONE
+    ]
+    if gone_ids:
+        await push_repo.remove_many_by_id(gone_ids)
 
 
 async def _send_push_best_effort(session: AsyncSession, notification: Notification) -> None:
