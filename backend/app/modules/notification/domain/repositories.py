@@ -14,6 +14,12 @@ class NotificationRepository(ABC):
         """Persiste una nueva notificación y la devuelve."""
 
     @abstractmethod
+    async def add_many(self, notifications: list[Notification]) -> list[Notification]:
+        """Persiste varias notificaciones de una vez (un solo commit) y las
+        devuelve. Para los avisos masivos, como el de un turno nuevo a los
+        trabajadores de la zona."""
+
+    @abstractmethod
     async def list_by_user(
         self, user_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Notification]:
@@ -46,6 +52,10 @@ class PushSubscriptionRepository(ABC):
     @abstractmethod
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:
         """Lista las suscripciones activas de un usuario (todos sus dispositivos)."""
+
+    @abstractmethod
+    async def list_by_users(self, user_ids: list[UUID]) -> list[PushSubscription]:
+        """Suscripciones de varios usuarios en una sola consulta."""
 
     @abstractmethod
     async def remove_many_by_id(self, subscription_ids: list[UUID]) -> None:

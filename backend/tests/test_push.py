@@ -152,6 +152,55 @@ async def test_notification_creation_sends_push_best_effort(
     assert fake_sender.sent[0].title == "Te asignaron un turno"
 
 
+async def test_add_many_guarda_todo_en_un_commit_y_manda_push_a_cada_uno(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """El aviso masivo (turno nuevo a los de la zona) guarda todas las
+    notificaciones juntas y manda el push de cada usuario con su texto."""
+    user_ids = []
+    for i in range(3):
+        headers = await auth_headers(client, "worker", f"pushmany{i}@staffya.com")
+        me = await client.get("/api/v1/auth/me", headers=headers)
+        user_ids.append(UUID(me.json()["id"]))
+        await client.post(
+            _SUBSCRIBE_PATH,
+            json={
+                "endpoint": f"https://fcm.googleapis.com/fcm/send/many{i}",
+                "keys": {"p256dh": "p", "auth": "a"},
+            },
+            headers=headers,
+        )
+
+    fake_sender = FakePushSender()
+    monkeypatch.setattr(
+        "app.modules.notification.infrastructure.repositories._get_push_sender",
+        lambda: fake_sender,
+    )
+
+    async with session_factory() as session:
+        repo = SqlAlchemyNotificationRepository(session)
+        saved = await repo.add_many(
+            [
+                Notification(
+                    user_id=uid,
+                    type=NotificationType.NEW_SHIFT_NEARBY,
+                    title=f"Turno {n}",
+                    message="Postulate.",
+                    link="/feed",
+                )
+                for n, uid in enumerate(user_ids)
+            ]
+        )
+        assert [n.created_at is not None for n in saved] == [True, True, True]
+        for n, uid in enumerate(user_ids):
+            listed = await repo.list_by_user(uid)
+            assert [x.title for x in listed] == [f"Turno {n}"]
+
+    assert sorted(s.title for s in fake_sender.sent) == ["Turno 0", "Turno 1", "Turno 2"]
+
+
 async def test_notification_creation_survives_push_failure(
     client: AsyncClient,
     session_factory: async_sessionmaker[AsyncSession],
