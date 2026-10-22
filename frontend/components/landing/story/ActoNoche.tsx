@@ -69,7 +69,7 @@ export function HeroCopy({ className }: { className?: string }) {
         </Link>
       </div>
       <p className="mt-4 font-mono text-label font-medium uppercase tracking-[0.14em] text-ink-mute">
-        Sin comisión por turno · Empezás gratis
+        Sin comisión por turno · Desde $9.900 por mes
       </p>
     </div>
   );

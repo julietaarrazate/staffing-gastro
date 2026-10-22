@@ -101,5 +101,5 @@ class CompanyProfileRepository(ABC):
     async def count_total(self) -> int:
         """Total de comercios registrados (panel de admin, distribución de
         planes de suscripción): incluye a los que todavía no tienen fila en
-        `subscriptions` (implícitamente en el plan `gratis`, ver
+        `subscriptions` (implícitamente en el plan por defecto, ver
         `SubscriptionRepository.get_or_create`)."""

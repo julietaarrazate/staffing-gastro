@@ -565,11 +565,11 @@ async def _publish_n_shifts(client: AsyncClient, employer_headers: dict, n: int)
         )
 
 
-async def test_subscription_stats_folds_company_without_row_into_gratis(
+async def test_subscription_stats_folds_company_without_row_into_default_plan(
     client, session_factory
 ):
     """Un comercio que nunca publicó ni llamó a `/subscription` no tiene fila
-    en `subscriptions` todavía — igual cuenta como `gratis` (arranca ahí por
+    en `subscriptions` todavía — igual cuenta como `inicial` (arranca ahí por
     default, ADR-0005), usando el total real de comercios como denominador."""
     admin = await _make_admin(client, session_factory, "admin_sub1@test.com")
     await _employer_with_company(client, "emp_sub_norow@test.com")
@@ -578,7 +578,7 @@ async def test_subscription_stats_folds_company_without_row_into_gratis(
     assert stats.status_code == 200
     body = stats.json()
     assert body["total_companies"] == 1
-    assert body["companies_by_plan"] == {"gratis": 1}
+    assert body["companies_by_plan"] == {"inicial": 1}
     assert Decimal(str(body["mrr_ars"])) == Decimal("0")
     assert body["companies_at_plan_limit"] == 0
     # Sin credenciales de Mercado Pago configuradas (default de test): el
@@ -589,12 +589,12 @@ async def test_subscription_stats_folds_company_without_row_into_gratis(
 
 async def test_subscription_stats_computes_mrr_and_plan_distribution(client, session_factory):
     admin = await _make_admin(client, session_factory, "admin_sub2@test.com")
-    gratis_employer = await _employer_with_company(client, "emp_sub_gratis@test.com")
+    inicial_employer = await _employer_with_company(client, "emp_sub_inicial@test.com")
     basico_employer = await _employer_with_company(client, "emp_sub_basico@test.com")
     pro_employer = await _employer_with_company(client, "emp_sub_pro@test.com")
 
-    # El de gratis publica (crea su fila `subscriptions`, sigue en gratis).
-    await _publish_n_shifts(client, gratis_employer, 1)
+    # El de inicial publica (crea su fila `subscriptions`, sigue en inicial).
+    await _publish_n_shifts(client, inicial_employer, 1)
     await client.post(
         "/api/v1/subscription/subscribe", headers=basico_employer, json={"plan_code": "basico"}
     )
@@ -605,9 +605,9 @@ async def test_subscription_stats_computes_mrr_and_plan_distribution(client, ses
     stats = await client.get("/api/v1/admin/subscription-stats", headers=admin)
     body = stats.json()
     assert body["total_companies"] == 3
-    assert body["companies_by_plan"] == {"gratis": 1, "basico": 1, "pro": 1}
-    # MRR = básico ($20.000) + pro ($45.000); gratis no aporta.
-    assert Decimal(str(body["mrr_ars"])) == Decimal("65000")
+    assert body["companies_by_plan"] == {"inicial": 1, "basico": 1, "pro": 1}
+    # MRR = inicial ($9.900) + básico ($20.000) + pro ($45.000).
+    assert Decimal(str(body["mrr_ars"])) == Decimal("74900")
 
 
 async def test_subscription_stats_reports_billing_enabled_when_gateway_is_active(
@@ -629,14 +629,14 @@ async def test_subscription_stats_reports_billing_enabled_when_gateway_is_active
 
 
 async def test_subscription_stats_detects_companies_at_plan_limit(client, session_factory):
-    """Plan gratis: tope 3 turnos/mes (`plans.py`). Publicar 3 alcanza el
+    """Plan inicial: tope 5 turnos/mes (`plans.py`). Publicar 5 alcanza el
     tope aunque `subscriptions_enforced` esté OFF (el uso se registra
     igual, ver `ShiftService._consume_publication_slot`)."""
     admin = await _make_admin(client, session_factory, "admin_sub3@test.com")
     at_limit_employer = await _employer_with_company(client, "emp_sub_limit@test.com")
     under_limit_employer = await _employer_with_company(client, "emp_sub_under@test.com")
 
-    await _publish_n_shifts(client, at_limit_employer, 3)
+    await _publish_n_shifts(client, at_limit_employer, 5)
     await _publish_n_shifts(client, under_limit_employer, 1)
 
     stats = await client.get("/api/v1/admin/subscription-stats", headers=admin)
@@ -654,7 +654,7 @@ async def test_subscription_stats_excludes_companies_with_expired_period(
     admin = await _make_admin(client, session_factory, "admin_sub4@test.com")
     expired_employer = await _employer_with_company(client, "emp_sub_expired@test.com")
 
-    await _publish_n_shifts(client, expired_employer, 3)
+    await _publish_n_shifts(client, expired_employer, 5)
 
     async with session_factory() as session:
         stmt = select(SubscriptionModel)

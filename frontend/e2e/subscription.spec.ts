@@ -21,9 +21,9 @@ const EMPLOYER_ME = {
 
 const PLANS = [
   {
-    code: "gratis",
-    name: "Gratis",
-    price_ars: 0,
+    code: "inicial",
+    name: "Inicial",
+    price_ars: 9900,
     max_turnos_mes: 5,
     features: ["Hasta 5 turnos por mes", "Chat con postulantes", "Soporte por email"],
   },

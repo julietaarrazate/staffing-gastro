@@ -48,7 +48,9 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   confirma, o publicado que nadie toma, cuyo horario ya pasó — sin impacto
   de reputación, ventana de gracia según `urgent`) · 0016 bloqueo optimista
   del turno · 0017 frontend en Cloudflare Workers con OpenNext (propuesto) ·
-  0018 backend detrás de Cloudflare con secreto compartido (propuesto).
+  0018 backend detrás de Cloudflare con secreto compartido (propuesto) ·
+  0019 comercios a captar desde OpenStreetMap · 0020 sin plan gratis (el
+  escalón de entrada del comercio es pago).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 

@@ -3,7 +3,7 @@ import type { SubscriptionPlan } from "@/lib/types";
 /** Copia literal de backend/app/modules/subscription/domain/plans.py. La
  *  usan los precios mientras no contesta la API. */
 export const RESPALDO: SubscriptionPlan[] = [
-  { code: "gratis", name: "Gratis", price_ars: 0, max_turnos_mes: 3, features: ["Hasta 3 turnos publicados por mes", "Soporte por email"] },
+  { code: "inicial", name: "Inicial", price_ars: 9900, max_turnos_mes: 5, features: ["Hasta 5 turnos publicados por mes", "Soporte por email"] },
   { code: "basico", name: "Básico", price_ars: 20000, max_turnos_mes: 15, features: ["Hasta 15 turnos publicados por mes", "Soporte prioritario"] },
   {
     code: "pro",
