@@ -11,6 +11,12 @@ demo y sus turnos. Técnico:
   Render, para que no se contradigan). El arranque ya no siembra ni repone
   turnos demo; las fotos de las 4 cuentas invitado/prueba (`@oido.beta`)
   siguen corriendo siempre, no cuelgan de este flag.
+- Ese mismo día Julieta hizo **público** el repo (para que corra GitHub
+  Actions), y con eso la contraseña demo de `scripts/seed_demo_data.py`
+  quedó a la vista de cualquiera. Como medida inmediata, antes de la purga,
+  las 26 cuentas pasaron a `status='suspended'` (no pueden entrar ni renovar
+  sesión) y se borraron sus `refresh_sessions`. El seed no pisa cuentas que
+  ya existen, así que la suspensión se mantiene aunque el flag siga prendido.
 - Neon (`staffya-us-east`): antes de borrar, rama de respaldo
   `respaldo-pre-purga-demo-2026-10-22`. Después se borraron las cuentas con
   email `@staffya.com`: 26 cuentas y, en cascada, 228 turnos demo con sus
