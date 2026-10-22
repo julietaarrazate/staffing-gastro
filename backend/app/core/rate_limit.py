@@ -38,20 +38,43 @@ class RateLimiter:
         (ver `chat/api/routes.py`, PRODUCTION_HARDENING.md)."""
         if not settings.rate_limit_enabled:
             return
+        if self.is_exceeded(key):
+            self.reject(key)
+        self.record(key)
+
+    def _recent(self, key: str) -> list[float]:
         now = time.monotonic()
-        recent = [t for t in self._hits[key] if now - t < self.window_seconds]
-        if len(recent) >= self.max_attempts:
-            # PRODUCTION_HARDENING.md: un solo punto de log para los 429 de
-            # todos los limitadores (login/register/refresh/chat/etc.) — la
-            # `key` ya es IP o user_id según el limitador, nunca un dato
-            # sensible en sí misma.
-            logger.warning("429 rate limit '%s' key=%s", self.name, key)
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Demasiados intentos. Esperá un momento y volvé a probar.",
-            )
-        recent.append(now)
-        self._hits[key] = recent
+        recent = [t for t in self._hits.get(key, []) if now - t < self.window_seconds]
+        if recent:
+            self._hits[key] = recent
+        else:
+            self._hits.pop(key, None)
+        return recent
+
+    def is_exceeded(self, key: str) -> bool:
+        """Consulta sin sumar: ¿`key` ya llegó al límite en la ventana?
+        Para limitadores que cuentan solo algunos intentos (los fallidos del
+        login por email, ver `identity/api/routes.py`)."""
+        if not settings.rate_limit_enabled:
+            return False
+        return len(self._recent(key)) >= self.max_attempts
+
+    def record(self, key: str) -> None:
+        """Suma un intento contra `key` sin chequear el límite."""
+        if not settings.rate_limit_enabled:
+            return
+        self._hits[key] = [*self._recent(key), time.monotonic()]
+
+    def reject(self, key: str) -> None:
+        """Tira el 429. PRODUCTION_HARDENING.md: un solo punto de log para
+        los 429 de todos los limitadores (login/register/refresh/chat/etc.)
+        — la `key` es IP, user_id o un hash, nunca un dato sensible en sí
+        misma."""
+        logger.warning("429 rate limit '%s' key=%s", self.name, key)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Demasiados intentos. Esperá un momento y volvé a probar.",
+        )
 
     async def __call__(self, request: Request) -> None:
         self.check(client_ip(request))

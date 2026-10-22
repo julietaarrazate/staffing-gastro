@@ -73,6 +73,9 @@ from app.modules.notification.domain.email_templates import (
 
 logger = logging.getLogger(__name__)
 
+# Hash de una contraseña al azar, para `authenticate` con un email inexistente.
+_DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(16))
+
 # --- Acceso de invitado para la beta ("Explorar sin cuenta") --------------
 # PIN pensado para que un grupo cerrado de testers entre a probar la app sin
 # registrarse. Se configura con la env var `GUEST_ACCESS_PIN`
@@ -168,7 +171,13 @@ class IdentityService:
     async def authenticate(self, command: LoginCommand) -> TokenPair:
         """Valida credenciales y devuelve un par de tokens."""
         user = await self._users.get_by_email(command.email)
-        if user is None or not verify_password(command.password, user.hashed_password):
+        if user is None:
+            # Mismo trabajo de bcrypt que con un email existente: si no, la
+            # respuesta rápida delataba qué emails tienen cuenta (revisión de
+            # seguridad 2026-10-20).
+            verify_password(command.password, _DUMMY_PASSWORD_HASH)
+            raise InvalidCredentialsError()
+        if not verify_password(command.password, user.hashed_password):
             raise InvalidCredentialsError()
         if not user.is_active:
             raise InactiveUserError()
