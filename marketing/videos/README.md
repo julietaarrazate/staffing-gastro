@@ -15,6 +15,7 @@ file** (el ícono de descarga arriba a la derecha).
 | `oido-bienvenida-trabajador.mp4` | Bienvenida para trabajadores, en 5 pasos: zona y oficios, turnos cerca con el pago a la vista, confirmar, "Llegué" y "Me fui", cobrar y sumar reputación. | 30 s | Música y efectos, **sin voz** (guion previsto) |
 | `oido-instalar-android.mp4` | Cómo tener Oído en un Android sin tienda de apps (Chrome → tres puntitos → "Instalar app") y activar los avisos. Sin tecnicismos. | 30 s | Música y efectos, **sin voz** (guion previsto) |
 | `oido-instalar-iphone.mp4` | Lo mismo en iPhone (Safari → compartir → "Agregar a pantalla de inicio"), con el aviso de que en iPhone las notificaciones sólo llegan abriendo Oído desde el ícono. | 30 s | Música y efectos, **sin voz** (guion previsto) |
+| `oido-bodegon.mp4` | Animación "Viernes, salón lleno", con la marca celeste y blanco: el bodegón un viernes, el mozo que no llega, la riel de comandas que se llena, pedirlo como lo dirías, la comanda con «¡Oído!», el mapa «va en camino» y el «oído» fileteado. Sin personajes: lo cuentan los objetos. | 25,5 s | Efectos sintetizados, sin música ni voz |
 
 Los tres primeros no llevan música a propósito: se suma en Instagram o CapCut, que tienen
 temas con licencia. Los nombres de personas y comercios, y el 07:42 del reloj,
@@ -25,7 +26,7 @@ real sin su permiso).
 
 Cada animación es un par en `animacion/`: `<video>.html`, una escena HTML/CSS
 de 540 × 960, y `<video>.js`, lo poco que no es CSS (un texto que se tipea,
-un contador). Los videos son `lanzamiento`, `trabajador`, `historia`,
+un contador). Los videos son `lanzamiento`, `trabajador`, `bodegon`, `historia`,
 `anuncio`, `bienvenida-comercio`, `bienvenida-trabajador`,
 `instalar-android` e `instalar-iphone` (todos menos los dos primeros tienen
 guion, `<video>.guion.json`: ver `historia-de-marca.md`; los de bienvenida
@@ -37,7 +38,9 @@ segundos del video) se cambian ahí.
 1. Levantar el frontend (`npm run build && npx next start`, en `frontend/`).
    La escena se monta arriba de `/terminos` para usar las fuentes de la app
    (Fraunces, Inter, DM Mono) y los SVG del logo.
-2. `node render.mjs <video>` (en `animacion/`) → `frames/<video>/*.jpg` a 1080 × 1920.
+2. `node render.mjs <video>` (en `animacion/`) → `frames/<video>/*.jpg` a 1080 × 1920
+   (`bodegon` dura 25,5 s: `node render.mjs bodegon 30 0 25.5`). Las piezas de la marca
+   se piden con `src="marca/<archivo>.svg"` y salen de `docs/design-system/marca/`.
    `APP_URL` cambia el puerto (por defecto `http://localhost:3000`) y
    `CHROMIUM_PATH` el Chromium. `node render.mjs <video> 30 0 0 3.5 9.4` saca
    sólo esos instantes a `shots/<video>/`, para revisar antes del render
