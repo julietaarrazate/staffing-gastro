@@ -1,17 +1,30 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { CompanyProfile } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
-import MapAddressPicker, { MapAddressSelection } from "@/components/map/MapAddressPicker";
+import type { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
 import CoverPhotoUpload from "@/components/CoverPhotoUpload";
 import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
 import IconChip from "@/components/ui/IconChip";
+
+// maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
+// mapa, no con la página (medido 2026-10-22, ver historial).
+const MapAddressPicker = dynamic(() => import("@/components/map/MapAddressPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col gap-3">
+      <div className="h-12 w-full animate-pulse rounded-[var(--radius-input)] bg-surface" />
+      <div className="h-64 w-full animate-pulse rounded-[var(--radius-card)] bg-surface" />
+    </div>
+  ),
+});
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();

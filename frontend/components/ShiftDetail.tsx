@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,7 +15,6 @@ import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
-import MiniMap from "@/components/MiniMap";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { Skeleton, useToast } from "@/components/ui";
@@ -34,6 +34,13 @@ import {
   WalletIcon,
 } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
+
+// maplibre pesa ~286 KB comprimidos: el mapa chico se carga aparte, como en
+// `ShiftCard` (medido 2026-10-22, ver historial).
+const MiniMap = dynamic(() => import("@/components/MiniMap"), {
+  ssr: false,
+  loading: () => <div className="h-40 w-full animate-pulse bg-surface" />,
+});
 
 /** Lo que sabemos del turno: siempre la vista pública (la trae el servidor,
  *  sin sesión) y, si hay sesión, el turno completo encima. */

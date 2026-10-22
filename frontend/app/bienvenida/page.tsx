@@ -48,6 +48,7 @@
  * del alta y es donde más gente abandona.
  */
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -61,12 +62,24 @@ import {
   type CompanyProfile,
 } from "@/lib/types";
 import LocationPicker, { type LocationSelection } from "@/components/LocationPicker";
-import MapAddressPicker, { type MapAddressSelection } from "@/components/map/MapAddressPicker";
+import type { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
 import Logo from "@/components/Logo";
 import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 import { WelcomeIllustration } from "@/components/illustrations";
+
+// maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
+// mapa, no con la página (medido 2026-10-22, ver historial).
+const MapAddressPicker = dynamic(() => import("@/components/map/MapAddressPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col gap-3">
+      <div className="h-12 w-full animate-pulse rounded-[var(--radius-input)] bg-surface" />
+      <div className="h-64 w-full animate-pulse rounded-[var(--radius-card)] bg-surface" />
+    </div>
+  ),
+});
 
 export default function BienvenidaPage() {
   const { token, user, loading: authLoading } = useAuth();
