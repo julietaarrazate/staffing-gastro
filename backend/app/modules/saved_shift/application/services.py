@@ -60,6 +60,13 @@ class SavedShiftService:
         )
         return existing is not None
 
+    async def list_my_saved_shift_ids(self, worker_profile_id: UUID) -> list[UUID]:
+        """Sólo los ids, para marcar el ícono de guardado en las tarjetas del
+        feed con un pedido en vez de uno por tarjeta."""
+        return await self._saved_shifts.list_shift_ids_by_worker(
+            worker_profile_id, limit=_LIST_LIMIT
+        )
+
     async def list_my_saved_shifts(self, worker_profile_id: UUID) -> list[Shift]:
         shift_ids = await self._saved_shifts.list_shift_ids_by_worker(
             worker_profile_id, limit=_LIST_LIMIT
