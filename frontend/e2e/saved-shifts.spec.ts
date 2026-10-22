@@ -104,11 +104,11 @@ test("guardar un turno desde el feed dispara el PUT y el ícono queda marcado", 
   );
 
   let isSaved = false;
-  await page.route("**/api/v1/saved-shifts/shift-1/status", (route) =>
+  await page.route("**/api/v1/saved-shifts/ids", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ is_saved: isSaved }),
+      body: JSON.stringify({ shift_ids: isSaved ? ["shift-1"] : [] }),
     })
   );
   let putCalled = false;

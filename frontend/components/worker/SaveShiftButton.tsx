@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { setShiftSaved, useIsShiftSaved } from "@/lib/saved-shifts";
 import { useToast } from "@/components/ui";
 import { BookmarkIcon } from "@/components/icons";
 
@@ -27,31 +28,15 @@ export default function SaveShiftButton({
 }) {
   const { token } = useAuth();
   const toast = useToast();
-  const [isSaved, setIsSaved] = useState<boolean | null>(null);
+  // Un solo pedido para todas las tarjetas (`lib/saved-shifts.ts`).
+  const isSaved = useIsShiftSaved(shiftId, token);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    api
-      .get<{ is_saved: boolean }>(`/saved-shifts/${shiftId}/status`, token)
-      .then((data) => {
-        if (!cancelled) setIsSaved(data.is_saved);
-      })
-      .catch(() => {
-        // Sin estado visible no rompe la card: el botón queda oculto hasta
-        // el próximo montaje en vez de mostrar un estado que podría ser falso.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [shiftId, token]);
 
   async function toggle() {
     if (!token || isSaved === null || busy) return;
     setBusy(true);
     const next = !isSaved;
-    setIsSaved(next); // optimista
+    setShiftSaved(shiftId, next); // optimista
     try {
       if (next) {
         await api.put<{ is_saved: boolean }>(`/saved-shifts/${shiftId}`, undefined, token);
@@ -59,7 +44,7 @@ export default function SaveShiftButton({
         await api.del<{ is_saved: boolean }>(`/saved-shifts/${shiftId}`, undefined, token);
       }
     } catch (err) {
-      setIsSaved(!next); // revertir si falló
+      setShiftSaved(shiftId, !next); // revertir si falló
       // AVISAR, no sólo revertir (Julieta, 2026-08-17: "cuando aprieto el
       // botón de guardar no guarda"). Antes el `catch` revertía en
       // silencio: el ícono se llenaba por el optimismo y volvía atrás sin

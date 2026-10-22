@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.saved_shift.api.dependencies import get_saved_shift_service
-from app.modules.saved_shift.api.schemas import SavedShiftStatusResponse
+from app.modules.saved_shift.api.schemas import SavedShiftIdsResponse, SavedShiftStatusResponse
 from app.modules.saved_shift.application.services import SavedShiftService
 from app.modules.saved_shift.domain.exceptions import ShiftNotSavableError
 from app.modules.shift.api.dependencies import get_my_worker_profile_id
@@ -75,6 +75,17 @@ async def list_my_saved_shifts(
 ):
     shifts = await service.list_my_saved_shifts(worker_profile_id)
     return await _with_company_info(shifts, worker_profile_id, companies, verification)
+
+
+@router.get(
+    "/ids",
+    response_model=SavedShiftIdsResponse,
+    summary="Ids de mis turnos guardados (trabajador), para marcar las tarjetas",
+)
+async def list_my_saved_shift_ids(worker_profile_id: WorkerProfileIdDep, service: ServiceDep):
+    # Un pedido por pantalla en vez de `/{shift_id}/status` por tarjeta: el
+    # feed hacía ~30 (más su preflight CORS cada uno), medido 2026-10-22.
+    return SavedShiftIdsResponse(shift_ids=await service.list_my_saved_shift_ids(worker_profile_id))
 
 
 @router.put(

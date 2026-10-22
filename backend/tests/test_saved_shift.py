@@ -120,6 +120,29 @@ async def test_saved_shift_status_endpoint(client: AsyncClient):
     assert after.json()["is_saved"] is True
 
 
+async def test_saved_shift_ids_endpoint_lists_only_mine(client: AsyncClient):
+    employer = await _employer_with_company(client, "sav_emp9@staffya.com")
+    worker_a, _ = await _worker_with_profile(client, "sav_w9a@staffya.com")
+    worker_b, _ = await _worker_with_profile(client, "sav_w9b@staffya.com")
+    first = await _published_shift(client, employer, start_at=_now_naive() + timedelta(days=1))
+    second = await _published_shift(client, employer, start_at=_now_naive() + timedelta(days=2))
+
+    empty = await client.get("/api/v1/saved-shifts/ids", headers=worker_a)
+    assert empty.status_code == 200
+    assert empty.json() == {"shift_ids": []}
+
+    await client.put(f"/api/v1/saved-shifts/{first}", headers=worker_a)
+    await client.put(f"/api/v1/saved-shifts/{second}", headers=worker_a)
+    mine = await client.get("/api/v1/saved-shifts/ids", headers=worker_a)
+    assert sorted(mine.json()["shift_ids"]) == sorted([first, second])
+
+    others = await client.get("/api/v1/saved-shifts/ids", headers=worker_b)
+    assert others.json() == {"shift_ids": []}
+
+    forbidden = await client.get("/api/v1/saved-shifts/ids", headers=employer)
+    assert forbidden.status_code == 403
+
+
 async def test_saved_shifts_are_private_per_worker(client: AsyncClient):
     employer = await _employer_with_company(client, "sav_emp5@staffya.com")
     worker_a, _ = await _worker_with_profile(client, "sav_w5a@staffya.com")
