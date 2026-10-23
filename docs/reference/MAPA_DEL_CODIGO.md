@@ -86,7 +86,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |
-| Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos) | `backend/app/modules/shift/application/scheduler.py` |
+| Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos, reintento del borrado de documentos) | `backend/app/modules/shift/application/scheduler.py` (los chequeos de otros módulos entran por `extra_checks` desde `app/main.py`) |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |
@@ -103,7 +103,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | PIN del acceso invitado | env var `GUEST_ACCESS_PIN` (`settings.guest_access_pin`, `backend/app/core/config.py`); vacía = apagado |
 | Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
-| Documentos de identidad privados (subida firmada `private`, link que vence, migración de los viejos) | `backend/app/core/cloudinary.py`, `backend/app/modules/verification/infrastructure/evidence_link_signer.py`, `backend/scripts/privatize_identity_evidence.py` (ADR-0021) |
+| Documentos de identidad privados (subida firmada `private`, link que vence, borrado al decidir con reintentos, migración de los viejos) | `backend/app/core/cloudinary.py`, `backend/app/modules/verification/infrastructure/evidence_link_signer.py`, `.../infrastructure/evidence_file_storage.py` y `file_cleanup_job.py` (borrado y reintento del scheduler), `backend/scripts/privatize_identity_evidence.py` (ADR-0021) |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 
 ## Endpoints por módulo (`/api/v1/…`)

@@ -9,12 +9,16 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import UUID
 
-from app.modules.verification.domain.entities import Claim
+from app.modules.verification.domain.entities import Claim, EvidenceFileDeletion
 from app.modules.verification.domain.value_objects import ClaimType, EvidenceFile
 
 
 class ClaimRepository(ABC):
-    """Persistencia de claims (con sus evidencias como parte del agregado)."""
+    """Persistencia de claims (con sus evidencias como parte del agregado).
+
+    `add` y `update` también guardan `claim.files_to_delete` en la cola de
+    borrado, **en el mismo commit** que el claim: si se guarda la purga del
+    puntero, se guarda el pedido de borrar el archivo (ADR-0021)."""
 
     @abstractmethod
     async def add(self, claim: Claim) -> Claim: ...
@@ -59,3 +63,39 @@ class EvidenceLinkSigner(ABC):
 
     @abstractmethod
     def link_for(self, file: EvidenceFile, expires_at: datetime) -> str: ...
+
+
+class EvidenceFileDeletionRepository(ABC):
+    """Cola de archivos de evidencia que hay que borrar del storage
+    (ADR-0021). La llenan las decisiones (vía `ClaimRepository`); la vacía
+    `EvidenceFileCleaner`."""
+
+    @abstractmethod
+    async def list_due(
+        self, now: datetime, ids: list[UUID] | None = None, limit: int = 100
+    ) -> list[EvidenceFileDeletion]:
+        """Los pendientes cuyo `next_attempt_at` ya llegó (sólo esos `ids`,
+        si se pasan), los más viejos primero."""
+
+    @abstractmethod
+    async def next_attempt_at(self) -> datetime | None:
+        """El `next_attempt_at` más temprano de la cola, o None si está vacía."""
+
+    @abstractmethod
+    async def remove(self, deletion_id: UUID) -> None:
+        """El storage confirmó el borrado: se olvida la referencia."""
+
+    @abstractmethod
+    async def save_failure(self, deletion: EvidenceFileDeletion) -> None:
+        """Guarda el intento fallido (`attempts`, `last_error`,
+        `next_attempt_at`)."""
+
+
+class EvidenceFileStorage(ABC):
+    """Donde viven los archivos de las evidencias. El adaptador es
+    Cloudinary; el dominio sólo sabe que se pueden borrar."""
+
+    @abstractmethod
+    async def delete(self, file: EvidenceFile) -> None:
+        """Borra el archivo. Que ya no exista cuenta como borrado (no lanza).
+        Lanza si no se pudo (red, credenciales, error del storage)."""

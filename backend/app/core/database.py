@@ -162,6 +162,16 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
+def sessions_like(session: AsyncSession) -> async_sessionmaker[AsyncSession]:
+    """Sesiones nuevas sobre el mismo engine que `session`, para el trabajo que
+    corre después de responder (la sesión del request ya está cerrada): en
+    producción, el de `AsyncSessionLocal`; en los tests, la base del test.
+    Lo usan los push de los avisos y el borrado de documentos al decidir."""
+    if session.bind is None:
+        return AsyncSessionLocal
+    return async_sessionmaker(bind=session.bind, class_=AsyncSession, expire_on_commit=False)
+
+
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependencia que provee una sesión async por request y la cierra al final."""
     async with AsyncSessionLocal() as session:

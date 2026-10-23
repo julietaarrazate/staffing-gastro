@@ -69,8 +69,24 @@ toda vista previa y el sitemap apuntaban ahí.
 5b. 🟠 **`CLOUDINARY_CLOUD_NAME`** (Render, nueva 2026-10-23, ADR-0021): el
    mismo valor que `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` de Vercel. Sin ella el
    panel de Verificación no puede abrir los DNI/selfies/constancias nuevos
-   (responde 503). Después de cargarla, correr la migración de los archivos
-   viejos: pasos en
+   (responde 503), y **tampoco se pueden borrar** los documentos al aprobar
+   o rechazar: quedan en la cola y se reintentan, pero no se borran hasta
+   que esté cargada. Después de cargarla, correr **una vez** el script de
+   los archivos viejos (privatiza los pendientes y **borra** los de claims
+   ya decididos), desde una compu con el repo:
+
+   ```bash
+   cd backend
+   export DATABASE_URL='<connection string DIRECTA de Neon, sin -pooler>'
+   export CLOUDINARY_CLOUD_NAME='<cloud name>'
+   export CLOUDINARY_API_KEY='<api key>'
+   export CLOUDINARY_API_SECRET='<api secret>'
+   python -m scripts.privatize_identity_evidence          # mira: no cambia nada
+   python -m scripts.privatize_identity_evidence --apply  # privatiza y borra
+   python -m scripts.privatize_identity_evidence          # tiene que dar todo en 0
+   ```
+
+   Detalle en
    [`../adr/ADR-0021-documentos-de-identidad-privados.md`](../adr/ADR-0021-documentos-de-identidad-privados.md)
    ("Migración").
 6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
