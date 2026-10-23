@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.modules.identity.api.dependencies import get_current_user, require_roles
@@ -73,17 +73,27 @@ async def get_plans(_current_user: EmployerDep, service: ServiceDep):
     return _plans_response(service.list_plans())
 
 
+# 5 minutos: un cambio de precios (que sale con un deploy) tarda como mucho
+# eso en verse en la landing.
+PUBLIC_PLANS_CACHE_CONTROL = "public, max-age=300"
+
+
 @router.get(
     "/plans/public",
     response_model=PlansResponse,
     summary="Ver los planes disponibles (público, sin auth)",
 )
-async def get_plans_public():
+async def get_plans_public(response: Response):
     """Catálogo de planes para la landing / página pública (feedback de
     Julieta 2026-08-06: "no queda claro qué costo tiene la plataforma en la
     versión sin cuenta"). Son datos de configuración (`plans.py`), sin nada
     por-comercio, así que no requieren sesión — misma forma que `/plans` pero
-    sin el gate de employer."""
+    sin el gate de employer.
+
+    Cacheable 5 minutos por el navegador y cualquier caché compartida
+    (2026-10-23): es igual para todos y sólo cambia con un deploy, así que
+    quien vuelve a la landing no tiene que despertar a Render para pedirlo."""
+    response.headers["Cache-Control"] = PUBLIC_PLANS_CACHE_CONTROL
     return _plans_response(list_plans())
 
 
