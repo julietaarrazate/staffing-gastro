@@ -1,4 +1,4 @@
-# Verificación en dos pasos obligatoria para la cuenta admin
+# Verificación en dos pasos obligatoria para la cuenta admin (#508)
 
 **Pedido:** Julieta, vía el coordinador: que la cuenta admin (ve datos de
 personas, documentos de identidad y métricas) pida, además de la
