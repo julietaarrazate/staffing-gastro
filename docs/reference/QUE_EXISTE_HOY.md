@@ -49,7 +49,11 @@ listados más abajo.
   ADR-0020): planes inicial ($9.900)/básico/pro,
   pantalla "Mi plan", gating de publicación por tope mensual — **enforcement
   OFF por default** (`subscriptions_enforced=false`: se cuenta el uso pero no
-  se bloquea a nadie en la beta).
+  se bloquea a nadie en la beta). **Cobro mensual con Mercado Pago**
+  (ADR-0022): un pago por mes con Checkout Pro (QR en la compu, app en el
+  celular, sin tarjeta de crédito), webhook firmado, vencimiento con 3 días de
+  gracia y avisos, "Dar de baja" y "Arrepentirme" en Mi plan. **Apagado**
+  hasta que estén `MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`.
 - **Compartir turno por WhatsApp** (deep-link `wa.me`, Web Share API con
   fallback) + **duplicar turno** desde el panel del comercio. Página pública
   de turno sin auth para compartir. Desde 2026-07-23 el **trabajador también
@@ -130,6 +134,12 @@ listados más abajo.
   validación automática contra AFIP; acá mira una persona), **no se guarda el
   número de CUIT** (la constancia se purga al decidir, como el DNI), y un
   comercio verificado **no** sube el nivel de garantía personal de su dueño.
+- **Documentos de identidad privados** (ADR-0021): DNI, selfie y constancia
+  suben a Cloudinary como `private` y la base guarda la referencia, no una
+  URL. El admin los ve con un link que vence a los 5 minutos
+  (`GET /identity/evidences/{id}/link`); nadie más los puede bajar, ni el
+  dueño. Los subidos antes se pasan a privados con
+  `backend/scripts/privatize_identity_evidence.py`.
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito.

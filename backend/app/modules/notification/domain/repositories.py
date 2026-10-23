@@ -1,6 +1,7 @@
 """Puertos de los repositorios del módulo notification."""
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.notification.domain.entities import Notification, PushSubscription
@@ -31,6 +32,11 @@ class NotificationRepository(ABC):
 
         Devuelve None si no existe o no pertenece al usuario (no-disclosure).
         """
+
+    @abstractmethod
+    async def delete_read_before(self, cutoff: datetime) -> int:
+        """Borra las notificaciones YA LEÍDAS creadas antes de `cutoff` y
+        devuelve cuántas borró (retención). Las no leídas nunca se borran."""
 
 
 class PushSubscriptionRepository(ABC):

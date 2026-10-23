@@ -155,3 +155,15 @@ def test_sentry_no_reporta_las_caidas_de_servicios_de_afuera():
     assert 503 not in SENTRY_FAILED_STATUS_CODES
     assert 500 in SENTRY_FAILED_STATUS_CODES
     assert 504 in SENTRY_FAILED_STATUS_CODES
+
+
+def test_sentry_mide_uno_de_cada_diez_pedidos_por_defecto():
+    from app.core.config import Settings
+
+    assert Settings.model_fields["sentry_traces_sample_rate"].default == 0.1
+
+
+def test_scrub_tapa_el_token_en_una_medicion():
+    event = {"type": "transaction", "request": {"url": "https://api.oido.com.ar/ws?token=eyJabc"}}
+    out = scrub_sentry_event(event, None)
+    assert "eyJabc" not in out["request"]["url"]

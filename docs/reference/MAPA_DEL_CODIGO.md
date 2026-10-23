@@ -42,13 +42,13 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
 | `/favorites` | Mis trabajadores favoritos (reciben siempre el primer aviso, #399) | — | `/favorites` |
 | `/workers/[id]` | Perfil público de un trabajador | `WorkerReviews`, `IdentityVerifiedBadge` | `/workers/{id}` |
-| `/subscription` | Mi plan (cobro apagado en la beta, ADR-0005) | `subscription/PlanCard` | `/subscription` |
+| `/subscription` | Mi plan: pagar el mes con Mercado Pago, vuelta `?pago=`, dar de baja, arrepentirme (ADR-0022; con el cobro apagado, como en la beta) | `subscription/PlanCard`, `subscription/SubscriptionStatusCard`, `lib/subscription.ts` | `/subscription`, `/subscription/subscribe`, `/cancel-renewal`, `/withdraw` |
 
 ### Compartidas, públicas y admin
 
 | Ruta | Qué es |
 |---|---|
-| `/` | Landing sin sesión, "cielo" desde el 2026-10-18 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda`, `Comanda` con `lib/pedido-natural.ts`, `MapaCamino` (con la ficha de quien va en el pie), `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; el filete de "oído" en `Filete.tsx`; estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
+| `/` | Landing sin sesión, "cielo" desde el 2026-10-18 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda`, `Comanda` con `lib/pedido-natural.ts`, `MapaCamino` (imagen real de Palermo en `public/landing/mapa-palermo.webp`, onda, relojito y la ficha de quien va en el pie), `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; el filete de "oído" en `Filete.tsx` (Sancreek local en `app/fonts/sancreek-oido.woff2`; el final usa sus `Sol` y `Letras` en `LandingFooter.tsx`); estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
 | `/historia` | La landing anterior, "la historia de un turno" (`components/landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Guardada para grabar reels; sin indexar, sin Navbar ni BottomNav |
 | `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register`; anti-robots en `TurnstileWidget` (`lib/turnstile.ts`, apagado sin clave) |
 | `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
@@ -59,10 +59,11 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/support`, `/support/[id]` | Tickets de soporte |
 | `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`) |
 | `/terminos`, `/privacidad` **SSR** | Legales. Si cambia el texto, se sube la versión (ver abajo) |
-| `/admin` ("Hoy") | Portada del admin: pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
+| `/admin` ("Hoy") | Portada del admin: urgentes sin cubrir y ausencias del día, pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
+| `/admin/en-vivo` ("Turnos en vivo") | Turnos publicados sin nadie confirmado, lo más urgente primero, filtros urgentes/escalados (`?filtro=`), se actualiza cada 30 s. Cuentas en `components/admin/live.ts` |
 | `/admin/personas`, `/admin/personas/[id]` | Buscador y filtros de usuarios · ficha con perfil, turnos, tickets y acciones de moderación (`components/admin/people.ts`) |
 | `/admin/verificacion`, `/admin/support` | Cola de DNI y constancia AFIP · tickets |
-| `/admin/metricas`, `/admin/herramientas` | Conteos, promesa, métricas de producto y suscripciones · cuentas de prueba |
+| `/admin/metricas`, `/admin/herramientas` | Últimos 7/30 días contra el período anterior (`DeltaStatCard` en `components/admin/AdminStats.tsx`), conteos, promesa, métricas de producto y suscripciones · cuentas de prueba |
 | `/admin/leads` ("Crecimiento") | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) |
 
 ## Dónde vive cada cosa que se busca seguido
@@ -85,7 +86,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |
-| Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto") | `backend/app/modules/shift/application/scheduler.py` |
+| Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos) | `backend/app/modules/shift/application/scheduler.py` |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |
@@ -102,6 +103,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | PIN del acceso invitado | env var `GUEST_ACCESS_PIN` (`settings.guest_access_pin`, `backend/app/core/config.py`); vacía = apagado |
 | Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
+| Documentos de identidad privados (subida firmada `private`, link que vence, migración de los viejos) | `backend/app/core/cloudinary.py`, `backend/app/modules/verification/infrastructure/evidence_link_signer.py`, `backend/scripts/privatize_identity_evidence.py` (ADR-0021) |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 
 ## Endpoints por módulo (`/api/v1/…`)
@@ -117,10 +119,10 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/matching` | búsqueda de trabajadores para el comercio |
 | `/workers`, `/companies` | perfil propio (`me/profile`), perfil público; `workers/me/earnings`, `workers/me/available-now` |
 | `/favorites`, `/saved-shifts` | favoritos del comercio, turnos guardados del trabajador |
-| `/identity` | verificación: DNI y selfie, constancia AFIP, cola de admin |
+| `/identity` | verificación: DNI y selfie, constancia AFIP, cola de admin, link que vence de cada evidencia (`/evidences/{id}/link`) |
 | `/reviews`, `/chats`, `/notifications`, `/support` | reseñas, chat por turno, avisos, tickets |
-| `/subscription` | plan, planes, suscribirse |
+| `/subscription` | plan, planes, suscribirse (Checkout Pro), baja, arrepentimiento, `webhooks/mercadopago` |
 | `/uploads` | firma de subida de CV y de constancia |
 | `/assistant` | IA del comercio (`query`) y del trabajador (`worker-query`) |
-| `/admin` | stats, usuarios (`users?q=&role=&status=&verified=`), ficha `users/{id}`, cuentas de prueba, suscripciones |
+| `/admin` | stats, `today`, `live-shifts?urgent=&escalated=`, `period-metrics?period=7\|30` (cortes en días argentinos, `admin/application/periods.py`), usuarios (`users?q=&role=&status=&verified=`), ficha `users/{id}`, cuentas de prueba, suscripciones |
 | `/admin/leads` | comercios a captar: listar, `summary`, `barrios`, `import` (OpenStreetMap), `PATCH {id}` (módulo `lead`) |

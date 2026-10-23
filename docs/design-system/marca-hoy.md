@@ -19,9 +19,12 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    tinta): la acción principal. Links, chips, avatares, íconos de rubro y
    pestaña activa van en celeste con azul hondo `#1C5478`.
 3. **La marca es una sola: el «oído» fileteado** (`components/landing/Filete.tsx`):
-   - completo (con volutas): pantalla de inicio, final de la landing, miniatura;
+   - `firma` (con adornos finos dorados): pantalla de inicio;
+   - el final de la landing: la palabra grande, cortada por el borde, con el
+     Sol de Mayo saliendo detrás (como el cierre de coofounder);
    - `marca` (sólo la palabra): encabezado de la landing;
    - `cinta` («¡Oído!»): la comanda.
+   La miniatura para compartir todavía usa el filete anterior (pendiente).
    No va en ningún otro lugar ni con otra palabra.
 4. **Isotipo provisorio:** el de siempre (manos y oreja, `public/logo-mark.svg`)
    en **blanco sobre azul hondo `#1C5478`** desde el 2026-10-19 (era crema
@@ -43,7 +46,7 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
 | Celeste / fuerte / tinte | `#C4E3ED` / `#9AC9E7` / `#DEECF0` | velo celeste 12–14 % / `#9AC9E7` |
 | Azul hondo (links, letra sobre celeste) | `#1C5478` | `#9AC9E7` |
 | Ámbar (acción) / como texto | `#D97706` / `#B45309` | `#D97706` / `#E8920F` |
-| Filete: crema → oro, relieve, borde | `#FFF9DC` → `#F6DF8C` → `#E9B84A`, `#8A3F05`, `#14456A` | igual |
+| Filete (desde el 2026-10-23): cara crema, filete interior blanco, borde y relieve azul hondo, canto dorado; adornos finos y Sol de Mayo dorados | `#FFF9DC` → `#F2DC9A`, `#FFFFFF`, `#14456A` / `#1C5478`, `#C98A1A`; oro `#B8801F` `#E2B04A` | igual |
 
 Detalle y contrastes: [`color-system.md`](./color-system.md).
 
@@ -54,7 +57,8 @@ Detalle y contrastes: [`color-system.md`](./color-system.md).
 | **Schibsted Grotesk** | Títulos de la landing y de pantalla (desde el 2026-10-18; antes Bricolage, "muy infantil") |
 | **Inter** | Texto, botones, inputs |
 | **DM Mono** | Rótulos de la comanda, horarios |
-| **Fraunces** | Sólo la palabra «oído», fileteada |
+| **Sancreek** | Sólo la palabra «oído» fileteada (letra de cartel con espolones, desde el 2026-10-23; recorte local de 1,5 KB) |
+| **Fraunces** | El wordmark chico de la app (`components/Logo.tsx`) |
 
 Detalle: [`typography.md`](./typography.md).
 

@@ -366,7 +366,11 @@ export type NotificationType =
   | "new_shift_nearby"
   | "urgent_shift_nearby"
   | "support_reply"
-  | "verification_decided";
+  | "verification_decided"
+  | "subscription_paid"
+  | "subscription_expiring"
+  | "subscription_expired"
+  | "subscription_refunded";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 
@@ -531,6 +535,62 @@ export interface PlatformStats {
   employer_repeat_rate_pct: number | null;
 }
 
+/** Un turno de "Turnos en vivo" (`GET /admin/live-shifts`): publicado y
+ * todavía sin nadie confirmado. */
+export interface LiveShift {
+  id: string;
+  title: string | null;
+  position: WorkerSkill;
+  status: ShiftStatus;
+  start_at: string;
+  end_at: string;
+  city: string | null;
+  company_name: string | null;
+  /** Lo marcó el comercio o lo escaló el sistema. */
+  urgent: boolean;
+  /** El sistema lo escaló por no cubrirse rápido. */
+  escalated: boolean;
+  escalated_at: string | null;
+  published_at: string;
+  /** Minutos desde que se publicó, calculados por el backend. */
+  minutes_open: number;
+  /** Postulaciones no retiradas. */
+  applications: number;
+}
+
+export interface LiveShiftsBoard {
+  generated_at: string;
+  /** Totales de la lista completa, sin el filtro pedido. */
+  total: number;
+  urgent: number;
+  escalated: number;
+  shifts: LiveShift[];
+}
+
+/** Contadores extra de "Hoy" (`GET /admin/today`). */
+export interface AdminTodayCounts {
+  urgent_uncovered: number;
+  no_shows_today: number;
+}
+
+export interface PeriodSummary {
+  start: string;
+  end: string;
+  shifts_published: number;
+  shifts_covered: number;
+  covered_pct: number | null;
+  covered_under_10_min_pct: number | null;
+  avg_minutes_to_cover: number | null;
+  applications: number;
+}
+
+/** "Métricas" con período (`GET /admin/period-metrics?period=7|30`). */
+export interface PeriodMetrics {
+  days: number;
+  current: PeriodSummary;
+  previous: PeriodSummary;
+}
+
 export interface SubscriptionStats {
   mrr_ars: number | string;
   total_companies: number;
@@ -546,7 +606,7 @@ export interface SubscriptionStats {
 
 // Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,
 // construido en paralelo por el backend — no inventar campos ni endpoints.
-export type SubscriptionStatus = "activa" | "vencida" | "cancelada" | string;
+export type SubscriptionStatus = "pendiente" | "activa" | "vencida" | "cancelada" | string;
 
 export interface Subscription {
   plan_code: string;
@@ -556,6 +616,17 @@ export interface Subscription {
   /** `null` = ilimitado. */
   max_turnos_mes: number | null;
   turnos_usados_mes: number;
+  /** Cobro real con Mercado Pago prendido (ADR-0022). En false, el resto de
+   * los campos de cobro no aplica y la pantalla se ve como en la beta. */
+  billing_enabled?: boolean;
+  /** Hasta cuándo está pago el plan (con el cobro prendido). */
+  paid_until?: string | null;
+  /** False = dio de baja: no renueva, sigue hasta `paid_until`. */
+  renews?: boolean;
+  /** Si hoy puede publicar turnos por el plan (pago y vigente). */
+  can_publish?: boolean;
+  /** Último día (AAAA-MM-DD, hora argentina) para arrepentirse; null si no aplica. */
+  withdrawal_until?: string | null;
 }
 
 export interface SubscriptionPlan {

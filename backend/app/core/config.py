@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     # DSN de Sentry (captura de errores). Vacío = Sentry desactivado; se
     # enciende solo con setear la env var SENTRY_DSN en Render (R1.1).
     sentry_dsn: str = ""
+    # Fracción de pedidos que Sentry mide (tiempos de cada endpoint y de sus
+    # consultas). 0.1 = 1 de cada 10: alcanza para ver la velocidad real con
+    # el tráfico de la beta y queda muy lejos del cupo gratis (2026-10-23).
+    sentry_traces_sample_rate: float = 0.1
     # Logging estructurado JSON con request_id (apto para agregadores).
     # En desarrollo conviene texto plano legible.
     log_json: bool = False
@@ -88,13 +92,33 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
-    # --- Suscripciones / cobro (ADR-0005 Fase 1: mensualidad) ---
-    # Credenciales de Mercado Pago para el cobro recurrente (preapproval, NO
-    # split). Vacío = feature de cobro real desactivada: el plan se puede
-    # setear igual (`POST /subscription/subscribe` con el flag apagado), pero
-    # no se intenta cobrar (mismo patrón "flag por ausencia" que `sentry_dsn`).
+    # --- Suscripciones / cobro (ADR-0005 Fase 1, ADR-0022: un pago por mes) ---
+    # Credenciales de Mercado Pago para el cobro mensual con Checkout Pro (un
+    # pago por mes, sin débito automático, ver ADR-0022). Hacen falta LAS DOS:
+    # el access token (crear la preferencia, leer el pago, reembolsar) y la
+    # clave secreta del webhook (validar `x-signature`). Con alguna vacía el
+    # cobro real está apagado: el plan se puede setear igual
+    # (`POST /subscription/subscribe`) y no se intenta cobrar (mismo patrón
+    # "flag por ausencia" que `sentry_dsn`).
     mercadopago_access_token: str = ""
+    mercadopago_webhook_secret: str = ""
     mercadopago_base_url: str = "https://api.mercadopago.com"
+
+    # URL pública del backend, para el `notification_url` que se le pasa a
+    # Mercado Pago (el webhook tiene que entrar por Cloudflare, ADR-0018).
+    api_public_url: str = "https://api.oido.com.ar"
+
+    @property
+    def billing_enabled(self) -> bool:
+        """Cobro real de Mercado Pago prendido (las dos credenciales)."""
+        return bool(self.mercadopago_access_token and self.mercadopago_webhook_secret)
+
+    @property
+    def billing_enforced(self) -> bool:
+        """Publicar exige un plan pago y vigente: `subscriptions_enforced` y
+        el cobro real prendidos a la vez (ADR-0022). Con el cobro apagado la
+        beta sigue como siempre aunque `subscriptions_enforced` esté en true."""
+        return self.subscriptions_enforced and self.billing_enabled
 
     # Hacer cumplir el tope de turnos por plan (ADR-0005 Fase 1). Default OFF:
     # durante la beta temprana los comercios publican libre para generar
@@ -151,6 +175,11 @@ class Settings(BaseSettings):
     # server-side igual, junto al `api_secret`, para no duplicar configuración.
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
+    # Cloud name (el mismo valor que `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` del
+    # frontend). Lo necesita el backend para armar el link de descarga que
+    # vence de los documentos de identidad privados (ADR-0021). Vacío = el
+    # admin no puede abrir las evidencias nuevas (503), pero nada más se rompe.
+    cloudinary_cloud_name: str = ""
 
     # --- Gemini (turno por texto libre) — P2, auditoría de producto 2026-08-10 ---
     # El comercio describe el turno en texto libre ("necesito 2 mozos el sábado

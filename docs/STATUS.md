@@ -25,6 +25,12 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 ## Qué sigue (estado vigente)
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
+
+0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
+   la miniatura para compartir (`lib/og-brand.tsx` + `assets/og/filete-oido.png`),
+   la ficha de marca, el brand system y el paquete siguen con el filete
+   anterior. Julieta todavía duda de la letra (Sancreek) y del acento
+   (ámbar o bordó): probar antes de rehacer esas piezas.
 Revisado contra el código y los PRs el 2026-10-03.
 
 1. 🟡 **Paleta celeste (v6) en toda la app** (pedido de Julieta,
@@ -71,13 +77,19 @@ Revisado contra el código y los PRs el 2026-10-03.
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-7. 🟠 **Cobro real de la suscripción** (pedido de Julieta, 2026-10-22: sin
-   plan gratis, ADR-0020; hoy el cobro está apagado y el plan Inicial queda
-   activo sin pagar). Falta: webhook de Mercado Pago que active el plan al
-   confirmarse el pago, estado "pendiente" guardado, bloquear la publicación
-   hasta el primer pago, `back_url` del checkout a `oido.com.ar` (hoy
-   `staffya.com`), y botón de baja y de arrepentimiento en `/subscription`.
-   Necesita la cuenta de Mercado Pago de Julieta (`MERCADOPAGO_ACCESS_TOKEN`).
+7. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
+   (ADR-0022, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
+   sin débito automático ni tarjeta de crédito; webhook firmado que acredita
+   30 días, estado "pendiente", bloqueo al publicar sin mes pago, avisos de
+   vencimiento, "Dar de baja" y "Arrepentirme" (reembolso) en
+   `/subscription`. **Falta de Julieta:** crear la app "Oído" en Mercado
+   Pago, cargar `MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET` en
+   Render, probar con un comercio propio y recién ahí
+   `SUBSCRIPTIONS_ENFORCED=true` (pasos en
+   [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md),
+   "Cobro mensual con Mercado Pago"). Decidir qué hacer con los comercios de
+   la beta que hoy publican sin pagar cuando se exija (quedan bloqueados
+   hasta su primer pago).
 8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
@@ -123,15 +135,7 @@ Revisado contra el código y los PRs el 2026-10-03.
     "el primero que toma" para urgentes, cascada por tandas y verificación
     de identidad gratis. Nada decidido:
     [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
-12. 🟡 **Panel de admin ordenado, pasos 3 y 4** (pedido de Julieta,
-    2026-10-20). Hechos: paso 1 (menú por secciones y portada "Hoy") y
-    paso 2 (Personas con buscador, filtros y ficha). Faltan: **Turnos en
-    vivo** (turnos abiertos ahora, minutos sin cubrir, escalados; necesita
-    endpoint nuevo) y sumar a "Hoy" los urgentes sin cubrir y las ausencias
-    del día; **Métricas** con período (7/30 días) y comparación. Ver
-    [`historial/2026-10-20-panel-admin-por-secciones.md`](./historial/2026-10-20-panel-admin-por-secciones.md)
-    y [`historial/2026-10-20-admin-personas.md`](./historial/2026-10-20-admin-personas.md).
-13. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
+12. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
    por prioridad"). Un PR por tema; al cerrar uno, borrarlo de esta lista.
    Origen en
    [`historial/2026-10-20-revision-seguridad-clave-gemini.md`](./historial/2026-10-20-revision-seguridad-clave-gemini.md).
@@ -151,13 +155,6 @@ Revisado contra el código y los PRs el 2026-10-03.
    - **Media — cuota de Gemini:** tope global diario además del de usuario,
      y email verificado para usar la IA (`modules/assistant/api/routes.py`,
      `modules/shift/api/routes.py`).
-   - **Media — documentos de identidad en Cloudinary con entrega pública**
-     (`core/cloudinary.py`). **Espera decisión de Julieta:** el arreglo de
-     verdad es subirlos `private` y que el panel de admin pida un link de
-     descarga que vence (API de Cloudinary). Toca la subida, lo que se
-     guarda, el panel de verificación y los archivos ya subidos. Hoy el
-     nombre de cada archivo es al azar (128 bits), así que el riesgo es que
-     se filtre un link, no que lo adivinen.
    - **Baja:** emails en logs (`notification/infrastructure/*email_sender.py`,
      `admin/`), login sin hash de relleno si el email no existe y sin límite
      por cuenta (`identity/`), `DELETE /push/subscribe` sin dueño (va con el
@@ -174,6 +171,9 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Sol de Mayo en la marca:** antes de registrar la marca con el sol del
+  final de la landing, confirmar con la asesoría legal el uso de símbolos
+  nacionales ([`historial/2026-10-23-landing-filete-cartel.md`](./historial/2026-10-23-landing-filete-cartel.md)).
 - **Prender las vistas previas por PR en Cloudflare:** Workers & Pages →
   `oido-frontend` → Settings → Build, activar los builds de ramas que no son
   de producción con el comando `npx wrangler preview`
@@ -181,6 +181,13 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 - **Rotar la clave de Gemini** (estuvo expuesta en Sentry): clave nueva en
   Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
   **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
+- **Documentos de identidad privados (ADR-0021), después del merge:** cargar
+  `CLOUDINARY_CLOUD_NAME` en Render (mismo valor que el de Vercel) y correr
+  una vez `python -m scripts.privatize_identity_evidence` (mira) y después
+  con `--apply` (pasa a privados los DNI/constancias ya subidos). Pasos en
+  el ADR, "Migración". Y decidir si al aprobar/rechazar se **borra** el
+  archivo de Cloudinary (hoy queda guardado, privado; la app dice "las
+  eliminamos").
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Confirmar** en Render `ENVIRONMENT=production` (controla la cookie del
   refresh token, TECH_DEBT S1) y `GEMINI_API_KEY` (sin ella, "Describí el

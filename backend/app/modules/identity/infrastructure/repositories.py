@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import case, desc, func, or_, select
+from sqlalchemy import case, delete, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import (
@@ -225,6 +225,13 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         for model in result.scalars().all():
             model.revoked_at = now
         await self._session.commit()
+
+    async def delete_expired_before(self, cutoff: datetime) -> int:
+        result = await self._session.execute(
+            delete(RefreshSessionModel).where(RefreshSessionModel.expires_at < cutoff)
+        )
+        await self._session.commit()
+        return result.rowcount or 0
 
 
 def _reset_token_to_entity(model: PasswordResetTokenModel) -> PasswordResetToken:

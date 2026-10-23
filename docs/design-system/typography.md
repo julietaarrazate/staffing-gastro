@@ -8,7 +8,7 @@ paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
 | Familia | Rol | Token / utilidad |
 |---|---|---|
 | **Schibsted Grotesk** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing | `--font-schibsted` → `font-display` |
-| **Fraunces** (serif) | Sólo el wordmark "oído" (logo) | `--font-fraunces` → `font-serif` |
+| **Fraunces** (serif) | Sólo el wordmark "oído" (logo). Desde 2026-10-23 es un recorte local con los glifos "o í d O" (`frontend/app/fonts/fraunces-oido.woff2`, 2 KB): otra palabra en `font-serif` cae a la serif de respaldo (ver comentario en `app/layout.tsx` para regenerarlo) | `--font-fraunces` → `font-serif` |
 | **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
 | **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 

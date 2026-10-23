@@ -25,7 +25,7 @@ export default function ParaTrabajar() {
         <div aria-hidden className="landing-tarjeta overflow-hidden bg-card">
           <div className="relative h-32 sm:h-40">
             <Image src="/landing/mozo1.webp" alt="" fill sizes="360px" className="landing-foto object-cover" />
-            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 font-mono text-[11px] font-medium tracking-[0.04em] text-ink">A {DISTANCIA_M} m</span>
+            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 font-mono text-label font-medium tracking-[0.04em] text-ink">A {DISTANCIA_M} m</span>
           </div>
           <div className="p-5">
             <p className="text-sm text-ink-mute">

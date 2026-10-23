@@ -5,10 +5,11 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings as app_settings
+from app.core.database import AsyncSessionLocal
 from app.core.ws_manager import ws_manager
 from app.modules.notification.domain.entities import Notification, PushSubscription
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
@@ -21,6 +22,7 @@ from app.modules.notification.infrastructure.models import (
     NotificationModel,
     PushSubscriptionModel,
 )
+from app.modules.notification.infrastructure.push_tasks import spawn_push_task
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +76,10 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         # Best-effort: además del in-app (ws) de arriba, si el usuario tiene
         # algún dispositivo suscripto a Web Push le mandamos push también.
         # Nunca debe romper la creación de la notificación (ver contrato de
-        # `PushSender`/docs/reference/ACCESO_MODERNO.md).
+        # `PushSender`/docs/reference/ACCESO_MODERNO.md), y el request no
+        # espera el envío: sale después de responder (`_schedule_pushes`).
         try:
-            await _send_push_best_effort(self._session, entity)
+            await _schedule_pushes(self._session, [entity])
         except Exception:
             logger.exception(
                 "Push best-effort: fallo inesperado, no se propaga (user_id=%s)",
@@ -111,7 +114,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         for entity in entities:
             await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
         try:
-            await _send_push_many_best_effort(self._session, entities)
+            await _schedule_pushes(self._session, entities)
         except Exception:
             logger.exception("Push best-effort: fallo inesperado en un aviso masivo")
         return entities
@@ -137,6 +140,16 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
+
+    async def delete_read_before(self, cutoff: datetime) -> int:
+        result = await self._session.execute(
+            delete(NotificationModel).where(
+                NotificationModel.read.is_(True),
+                NotificationModel.created_at < cutoff,
+            )
+        )
+        await self._session.commit()
+        return result.rowcount or 0
 
 
 def _push_to_entity(model: PushSubscriptionModel) -> PushSubscription:
@@ -227,59 +240,73 @@ def _get_push_sender() -> PushSender:
     return NullPushSender()
 
 
-async def _send_push_many_best_effort(
-    session: AsyncSession, notifications: list[Notification]
-) -> None:
-    """Como `_send_push_best_effort`, para muchos avisos: una sola consulta de
-    suscripciones y los envíos en paralelo (cada uno ya corre en su hilo,
-    ver `WebPushSender`), en vez de uno detrás de otro."""
-    push_repo = SqlAlchemyPushSubscriptionRepository(session)
+def _sessions_like(session: AsyncSession) -> async_sessionmaker[AsyncSession]:
+    """Sesiones nuevas sobre el mismo engine que `session`: en producción, el
+    de `AsyncSessionLocal`; en los tests, la base del test."""
+    if session.bind is None:
+        return AsyncSessionLocal
+    return async_sessionmaker(bind=session.bind, class_=AsyncSession, expire_on_commit=False)
+
+
+async def _schedule_pushes(session: AsyncSession, notifications: list[Notification]) -> None:
+    """Busca las suscripciones push dentro del request (una consulta, barata)
+    y deja los envíos para una tarea de fondo (`push_tasks.spawn_push_task`):
+    el request ya no espera los POST al servicio de push, que pueden tardar
+    hasta 10 s cada uno. Un solo aviso (`add`) o muchos (`add_many`), igual."""
     by_user = {n.user_id: n for n in notifications}
-    subscriptions = await push_repo.list_by_users(list(by_user))
+    subscriptions = await SqlAlchemyPushSubscriptionRepository(session).list_by_users(list(by_user))
     if not subscriptions:
         return
-
+    # El sender se resuelve acá y no en la tarea: es lo que pisan los tests.
     sender = _get_push_sender()
-
-    async def _send(subscription: PushSubscription) -> PushSendResult:
-        notification = by_user[subscription.user_id]
-        return await sender.send(
-            subscription,
-            title=notification.title,
-            body=notification.message,
-            url=notification.link or deep_link_for(notification.type),
+    spawn_push_task(
+        _deliver_pushes(
+            sender,
+            [(s, by_user[s.user_id]) for s in subscriptions],
+            _sessions_like(session),
         )
-
-    results = await asyncio.gather(
-        *(_send(s) for s in subscriptions), return_exceptions=True
     )
-    gone_ids = [
-        s.id for s, r in zip(subscriptions, results, strict=True) if r == PushSendResult.GONE
-    ]
-    if gone_ids:
-        await push_repo.remove_many_by_id(gone_ids)
 
 
-async def _send_push_best_effort(session: AsyncSession, notification: Notification) -> None:
-    push_repo = SqlAlchemyPushSubscriptionRepository(session)
-    subscriptions = await push_repo.list_by_user(notification.user_id)
-    if not subscriptions:
-        return
-
-    sender = _get_push_sender()
-    gone_ids: list[UUID] = []
-    for subscription in subscriptions:
-        result = await sender.send(
-            subscription,
-            title=notification.title,
-            body=notification.message,
-            # Destino del push: el enlace concreto del aviso (el turno, los
-            # candidatos de ese turno) y, si no lo tiene, la pantalla genérica
-            # del tipo.
-            url=notification.link or deep_link_for(notification.type),
+async def _deliver_pushes(
+    sender: PushSender,
+    deliveries: list[tuple[PushSubscription, Notification]],
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    """Corre después de la respuesta. Manda los push en paralelo (cada uno ya
+    corre en su hilo, ver `WebPushSender`) y purga las suscripciones que el
+    proveedor dio de baja (404/410) con una sesión propia y corta: la del
+    request ya está cerrada. Nunca lanza; todo error queda en el log."""
+    try:
+        results = await asyncio.gather(
+            *(
+                sender.send(
+                    subscription,
+                    title=notification.title,
+                    body=notification.message,
+                    # Destino del push: el enlace concreto del aviso (el turno,
+                    # los candidatos de ese turno) y, si no lo tiene, la
+                    # pantalla genérica del tipo.
+                    url=notification.link or deep_link_for(notification.type),
+                )
+                for subscription, notification in deliveries
+            ),
+            return_exceptions=True,
         )
-        if result == PushSendResult.GONE:
-            gone_ids.append(subscription.id)
-
-    if gone_ids:
-        await push_repo.remove_many_by_id(gone_ids)
+        gone_ids: list[UUID] = []
+        for (subscription, notification), result in zip(deliveries, results, strict=True):
+            if isinstance(result, BaseException):
+                logger.error(
+                    "Push: falló el envío, no se reintenta (user_id=%s)",
+                    notification.user_id,
+                    exc_info=result,
+                )
+            elif result == PushSendResult.GONE:
+                gone_ids.append(subscription.id)
+        if gone_ids:
+            async with sessions() as cleanup_session:
+                await SqlAlchemyPushSubscriptionRepository(cleanup_session).remove_many_by_id(
+                    gone_ids
+                )
+    except Exception:
+        logger.exception("Push: fallo inesperado en el envío de fondo")

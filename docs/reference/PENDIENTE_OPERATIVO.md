@@ -66,6 +66,13 @@ toda vista previa y el sitemap apuntaban ahí.
    esto por sí solo NO resuelve "el PDF sube pero no abre" (ver el ítem de
    abajo, corregido tras probarlo en vivo) — hace falta además el toggle
    del dashboard.
+5b. 🟠 **`CLOUDINARY_CLOUD_NAME`** (Render, nueva 2026-10-23, ADR-0021): el
+   mismo valor que `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` de Vercel. Sin ella el
+   panel de Verificación no puede abrir los DNI/selfies/constancias nuevos
+   (responde 503). Después de cargarla, correr la migración de los archivos
+   viejos: pasos en
+   [`../adr/ADR-0021-documentos-de-identidad-privados.md`](../adr/ADR-0021-documentos-de-identidad-privados.md)
+   ("Migración").
 6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
    producto): habilita "Describí el turno" en `/shifts/new` — el comercio
    escribe algo como "necesito un mozo el sábado a la noche, se paga
@@ -154,6 +161,47 @@ toda vista previa y el sitemap apuntaban ahí.
   archivos a la cuenta sin pasar por el backend), pero el toggle es lo que
   de verdad destraba la entrega de PDF — no un fallback, es **el** fix.
 
+
+### 🟠 Cobro mensual con Mercado Pago (ADR-0022) — pendiente de Julieta
+
+El código está listo y **apagado**: sin las dos credenciales de abajo, los
+planes se cambian sin pagar, como en la beta. Para prenderlo:
+
+**En Mercado Pago** (con la cuenta de Mercado Pago de Oído):
+
+1. Entrar a <https://www.mercadopago.com.ar/developers/panel/app> → **Crear
+   aplicación**. Nombre: **Oído**. Tipo de solución: **Pagos online**, producto
+   **Checkout Pro**. Sin plataforma de e-commerce.
+2. En la aplicación → **Credenciales de producción** → completar los datos
+   del negocio que pida (rubro, sitio `https://www.oido.com.ar`) y activarlas.
+   Copiar el **Access Token** de producción (empieza con `APP_USR-`). No
+   usar el de prueba (`TEST-`).
+3. En la aplicación → **Webhooks** → **Configurar notificaciones** → Modo
+   **productivo**:
+   - URL: `https://api.oido.com.ar/api/v1/subscription/webhooks/mercadopago`
+   - Eventos: tildar sólo **Pagos**.
+   - Guardar y copiar la **clave secreta** que muestra esa pantalla.
+4. En esa misma pantalla, **Simular** una notificación: tiene que responder
+   200 (si responde 401, la clave secreta cargada en Render no es la misma;
+   si no llega, revisar que Cloudflare no la esté frenando).
+5. Revisar en **Tu negocio → Costos** la comisión vigente de Checkout Pro
+   con dinero en cuenta y débito (el ADR-0022 anota 0,8 % + IVA para QR con
+   dinero en cuenta al 2026-10-23, a verificar).
+
+**En Render** (servicio del backend → Environment), cargar y guardar
+(redeploya solo):
+
+- `MERCADOPAGO_ACCESS_TOKEN` = el Access Token de producción del paso 2.
+- `MERCADOPAGO_WEBHOOK_SECRET` = la clave secreta del paso 3.
+- Recién cuando quieras que **publicar exija haber pagado**:
+  `SUBSCRIPTIONS_ENFORCED=true`. Con las credenciales cargadas y esto en
+  `false`, se puede pagar pero nadie queda bloqueado (sirve para probar con
+  un comercio propio primero).
+
+**Prueba recomendada antes de exigirlo:** con un comercio propio, elegir
+Inicial en `/subscription`, pagar con dinero en cuenta, volver a la app y ver
+"Pagado hasta el …"; después "Arrepentirme" y confirmar que llega la
+devolución.
 
 ## Convenciones de producto/diseño
 

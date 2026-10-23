@@ -39,10 +39,21 @@ class IdentitySummary:
 
 @dataclass
 class PendingEvidenceItem:
-    """Evidencia visible **sólo** para el admin mientras revisa."""
+    """Evidencia de la cola del admin. Sin URL (ADR-0021): el admin pide un
+    link que vence con `evidence_id` (`VerificationService.evidence_link`)."""
 
+    evidence_id: UUID
     evidence_type: EvidenceType
-    data_url: str | None
+    available: bool
+
+
+@dataclass
+class EvidenceLink:
+    """Link para ver una evidencia. `expires_at` es `None` sólo para las
+    evidencias viejas todavía públicas (antes de correr la migración)."""
+
+    url: str
+    expires_at: datetime | None
 
 
 @dataclass

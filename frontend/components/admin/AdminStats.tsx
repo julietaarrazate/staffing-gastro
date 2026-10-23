@@ -4,12 +4,48 @@
 
 import type { ReactNode } from "react";
 import { Card, Skeleton } from "@/components/ui";
+import { formatDelta } from "@/components/admin/live";
+import type { Delta } from "@/components/admin/live";
 
 export function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card className="p-5">
       <p className="text-2xl font-extrabold text-ink">{value}</p>
       <p className="text-xs font-medium text-ink/50">{label}</p>
+    </Card>
+  );
+}
+
+/**
+ * Número del período con la comparación contra el anterior ("Métricas" con
+ * período). La flecha va en verde si el cambio es bueno para el negocio y en
+ * rojo si es malo (en el tiempo hasta cubrir, bajar es bueno), y en gris si
+ * no cambió o no hay con qué comparar.
+ */
+export function DeltaStatCard({
+  label,
+  value,
+  previous,
+  delta,
+  caption,
+}: {
+  label: string;
+  value: string;
+  previous: string;
+  delta: Delta;
+  caption?: string;
+}) {
+  const tone =
+    delta.good === true ? "text-success-text" : delta.good === false ? "text-danger-text" : "text-ink/50";
+  return (
+    <Card className="p-5">
+      <p className="text-2xl font-extrabold text-ink">{value}</p>
+      <p className="text-xs font-medium text-ink/50">{label}</p>
+      <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 text-xs">
+        <span className={`font-bold ${tone}`}>{formatDelta(delta)}</span>
+        <span className="text-ink/50">antes {previous}</span>
+      </p>
+      {caption && <p className="mt-0.5 text-label text-ink/40">{caption}</p>}
     </Card>
   );
 }
