@@ -174,6 +174,10 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Prender las vistas previas por PR en Cloudflare:** Workers & Pages →
+  `oido-frontend` → Settings → Build, activar los builds de ramas que no son
+  de producción con el comando `npx wrangler preview`
+  ([`DEPLOY.md`](./reference/DEPLOY.md), "Vistas previas por PR").
 - **Rotar la clave de Gemini** (estuvo expuesta en Sentry): clave nueva en
   Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
   **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
