@@ -16,12 +16,16 @@ export default function PlanCard({
   currentPriceArs,
   onSelect,
   busy,
+  payLabel,
 }: {
   plan: SubscriptionPlan;
   isCurrent: boolean;
   currentPriceArs: number;
   onSelect: () => void;
   busy: boolean;
+  /** Cobro prendido (ADR-0021): el plan actual se puede pagar (o renovar)
+   * desde su tarjeta con esta etiqueta. Sin esto queda "Plan actual". */
+  payLabel?: string;
 }) {
   const priceArs = typeof plan.price_ars === "string" ? Number(plan.price_ars) : plan.price_ars;
   const isUpgrade = priceArs > currentPriceArs;
@@ -54,7 +58,13 @@ export default function PlanCard({
       </ul>
 
       <div className="mt-5">
-        {isCurrent ? (
+        {isCurrent && payLabel ? (
+          // Secundario: el ámbar de la pantalla es "Mejorá tu plan" o el
+          // "Pagar el mes" del aviso de arriba (un solo acento por pantalla).
+          <Button fullWidth variant="surface" loading={busy} disabled={busy} onClick={onSelect}>
+            {payLabel}
+          </Button>
+        ) : isCurrent ? (
           <Button fullWidth variant="surface" disabled>
             Plan actual
           </Button>
