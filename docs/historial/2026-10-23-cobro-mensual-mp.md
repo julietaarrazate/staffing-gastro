@@ -17,7 +17,7 @@ apagado (hoy) todo se ve y funciona como antes.
 Técnico:
 - `backend/app/modules/subscription/`: `Subscription` suma `paid_until`,
   `renews`, `expiry_notice` y el estado `pendiente`; nueva entidad
-  `SubscriptionPayment` (tabla `subscription_payments`, migración `0041`,
+  `SubscriptionPayment` (tabla `subscription_payments`, migración `0042`,
   `mp_payment_id` único). Puerto `BillingGateway` nuevo (`create_checkout`,
   `get_payment`, `refund_payment`); `MercadoPagoCheckoutAdapter` reemplaza al
   de preapproval, que se borró. Firma del webhook en

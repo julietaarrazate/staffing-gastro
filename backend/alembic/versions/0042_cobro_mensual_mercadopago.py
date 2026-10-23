@@ -6,8 +6,8 @@
   `external_reference` de la preferencia de Checkout Pro y `mp_payment_id`
   es único para que un pago no se acredite dos veces.
 
-Revision ID: 0041
-Revises: 0040
+Revision ID: 0042
+Revises: 0041 (la de "sacar índices redundantes", PR aparte: este PR se mergea después de ese)
 Create Date: 2026-10-23
 
 """
@@ -19,8 +19,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0041"
-down_revision: str | None = "0040"
+revision: str = "0042"
+down_revision: str | None = "0041"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
