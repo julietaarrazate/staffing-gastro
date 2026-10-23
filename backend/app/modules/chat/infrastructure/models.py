@@ -18,7 +18,7 @@ class ChatMessageModel(Base):
         GUID(),
         ForeignKey("shifts.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
+        # Sin índice simple: lo cubre `(shift_id, created_at)` (0041).
     )
     sender_user_id: Mapped[uuid.UUID] = mapped_column(
         GUID(),
@@ -28,6 +28,8 @@ class ChatMessageModel(Base):
     )
 
     body: Mapped[str] = mapped_column(String(2000), nullable=False)
+    # Con índice: casi todo termina leído, así que `read = false` es selectivo
+    # y el planner lo usa para contar y marcar los no leídos (ver 0041).
     read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
 
     created_at: Mapped[datetime] = mapped_column(
