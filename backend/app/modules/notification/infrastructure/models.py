@@ -28,7 +28,8 @@ class NotificationModel(Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(String(500), nullable=False)
-    read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    # Sin índice simple (0041): ninguna consulta filtra por `read` solo.
+    read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Pantalla exacta que abre este aviso (p. ej. `/shifts/<id>/candidates`).
     # Nullable: las notificaciones creadas antes de esta columna caen al

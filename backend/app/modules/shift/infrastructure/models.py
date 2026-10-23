@@ -41,7 +41,7 @@ class ShiftModel(Base):
         GUID(),
         ForeignKey("company_profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
+        # Sin índice simple: lo cubre `(company_id, created_at DESC)` (0041).
     )
 
     position: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
@@ -63,8 +63,9 @@ class ShiftModel(Base):
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
+    # Sin índice simple: lo cubre `(status, start_at)` (0041).
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=ShiftStatus.BORRADOR.value, index=True
+        String(20), nullable=False, default=ShiftStatus.BORRADOR.value
     )
     worker_profile_id: Mapped[uuid.UUID | None] = mapped_column(
         GUID(),

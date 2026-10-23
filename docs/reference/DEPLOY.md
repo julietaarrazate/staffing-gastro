@@ -111,7 +111,12 @@ Etapas y resultados en
   usan `sharp` y leen fuentes del disco, y nada de eso existe en Workers. Se
   arman en el build (como siempre) y `frontend/scripts/cf-static-assets.mjs`
   las copia a los assets estáticos, que Cloudflare sirve sin pasar por el
-  Worker. Ese script también escribe el `_headers` de los assets.
+  Worker. Ese script también escribe el `_headers` de los assets
+  (contenido y motivo de cada regla en `frontend/scripts/cf-headers.mjs`):
+  desde 2026-10-23, caché de un año e `immutable` para `/_next/static/*` y
+  `/maplibre/*` (el worker de MapLibre se pide con `?v=<versión>`), un día
+  para `/landing/*` y `/logo-*`; `sw.js`, el manifest y el HTML siguen
+  revalidando siempre.
 - **Entrada propia del Worker** (`frontend/cloudflare/worker.mjs`, desde
   2026-10-19): envuelve el handler de OpenNext y guarda en la Cache API de
   Cloudflare la página pública `/turno/[id]`: fresca 60 s y, hasta 10 min, se
