@@ -14,7 +14,9 @@ from app.modules.identity.domain.entities import (
     PasswordResetToken,
     RefreshSession,
     TermsAcceptance,
+    TwoFactorChallenge,
     User,
+    UserTwoFactor,
 )
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
@@ -184,3 +186,84 @@ class TermsAcceptanceRepository(ABC):
     @abstractmethod
     async def list_for_user(self, user_id: UUID) -> list[TermsAcceptance]:
         """Aceptaciones del usuario, la más reciente primero."""
+
+
+class TwoFactorRepository(ABC):
+    """Puerto de la verificación en dos pasos de cada cuenta (ADR-0023): el
+    secreto TOTP cifrado y los códigos de recuperación (sólo sus hashes).
+
+    Las operaciones de "un solo uso" son condicionales y atómicas en la base
+    (`try_use_step`, `consume_recovery_code`): dos pedidos simultáneos con el
+    mismo código no pueden pasar los dos."""
+
+    @abstractmethod
+    async def get(self, user_id: UUID) -> UserTwoFactor | None:
+        """La verificación de la cuenta, o None si nunca empezó el alta."""
+
+    @abstractmethod
+    async def save_pending_secret(self, user_id: UUID, secret_encrypted: str) -> None:
+        """Guarda un secreto nuevo sin confirmar (alta o cambio de celular).
+        No toca el secreto vigente: ése sigue sirviendo hasta confirmar."""
+
+    @abstractmethod
+    async def activate_pending_secret(
+        self, user_id: UUID, *, pending_secret_encrypted: str, step: int, now: datetime
+    ) -> bool:
+        """Pasa el secreto pendiente a vigente (si sigue siendo
+        `pending_secret_encrypted`: otro alta en paralelo no se pisa), anota
+        `step` como último paso usado y, si era la primera vez, `enabled_at`.
+        Devuelve False si el pendiente ya no era ése."""
+
+    @abstractmethod
+    async def try_use_step(self, user_id: UUID, step: int) -> bool:
+        """Anti-replay: guarda `step` como último paso usado sólo si es
+        posterior al guardado. False si ya se usó (o uno posterior)."""
+
+    @abstractmethod
+    async def replace_recovery_codes(self, user_id: UUID, code_hashes: list[str]) -> None:
+        """Borra los códigos de recuperación anteriores y guarda estos."""
+
+    @abstractmethod
+    async def consume_recovery_code(self, user_id: UUID, code_hash: str, now: datetime) -> bool:
+        """Marca como usado el código con ese hash, si existe y no se usó."""
+
+    @abstractmethod
+    async def count_unused_recovery_codes(self, user_id: UUID) -> int:
+        """Cuántos códigos de recuperación le quedan."""
+
+    @abstractmethod
+    async def delete(self, user_id: UUID) -> bool:
+        """Borra la verificación y los códigos (plan B de soporte, ver
+        `scripts/disable_two_factor.py`). False si no había nada."""
+
+
+class TwoFactorChallengeRepository(ABC):
+    """Puerto de los desafíos del login en dos pasos (ADR-0023)."""
+
+    @abstractmethod
+    async def add(self, challenge: TwoFactorChallenge) -> TwoFactorChallenge:
+        """Guarda un desafío nuevo."""
+
+    @abstractmethod
+    async def get_by_token_hash(self, token_hash: str) -> TwoFactorChallenge | None:
+        """Busca por el hash del token (nunca por el valor en claro)."""
+
+    @abstractmethod
+    async def record_failure(self, challenge_id: UUID) -> None:
+        """Suma un código equivocado al desafío."""
+
+    @abstractmethod
+    async def try_consume(self, challenge_id: UUID, now: datetime) -> bool:
+        """Lo marca como usado si todavía no lo estaba (un solo uso)."""
+
+    @abstractmethod
+    async def count_failures_since(self, user_id: UUID, since: datetime) -> int:
+        """Códigos equivocados de la cuenta en desafíos creados desde `since`
+        (tope por cuenta, además del de cada desafío)."""
+
+    @abstractmethod
+    async def delete_for_user(
+        self, user_id: UUID, *, created_before: datetime | None = None
+    ) -> int:
+        """Borra los desafíos de la cuenta (todos, o los creados antes de
+        `created_before`: ya no cuentan para el tope). Devuelve cuántos."""

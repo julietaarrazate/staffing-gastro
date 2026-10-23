@@ -6,6 +6,7 @@ Separan los comandos/resultados de los casos de uso de los esquemas HTTP (API).
 from dataclasses import dataclass
 
 from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.two_factor import AdminGate, admin_gate
 from app.modules.identity.domain.value_objects import UserRole
 
 
@@ -62,3 +63,23 @@ class GoogleRoleRequired:
 
 
 GoogleLoginResult = TokenPair | GoogleRoleRequired
+
+
+@dataclass(frozen=True)
+class AuthenticatedSession:
+    """Quién hace el pedido y qué tan verificada está su sesión (ADR-0023).
+
+    `two_factor_verified`: el access token lo emitió un login que pasó por
+    el código (o el alta de la verificación). Sólo importa para admin."""
+
+    user: User
+    two_factor_enabled: bool = False
+    two_factor_verified: bool = False
+
+    @property
+    def gate(self) -> AdminGate:
+        return admin_gate(
+            self.user,
+            enabled=self.two_factor_enabled,
+            session_verified=self.two_factor_verified,
+        )

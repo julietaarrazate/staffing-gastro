@@ -50,7 +50,9 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   del turno · 0017 frontend en Cloudflare Workers con OpenNext (propuesto) ·
   0018 backend detrás de Cloudflare con secreto compartido (propuesto) ·
   0019 comercios a captar desde OpenStreetMap · 0020 sin plan gratis (el
-  escalón de entrada del comercio es pago).
+  escalón de entrada del comercio es pago) · 0021 documentos de identidad
+  privados con link que vence · 0022 cobro mensual sin débito automático ·
+  0023 verificación en dos pasos obligatoria para las cuentas admin.
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 

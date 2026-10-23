@@ -12,23 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.tz import ARG_TZ
 from app.modules.admin.application.periods import day_bounds, period_bounds
 from app.modules.application.infrastructure.models import ShiftApplicationModel
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.models import ShiftModel
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 from tests.test_shift import _count_queries
 
 pytestmark = pytest.mark.asyncio
 
 
 async def _make_admin(client: AsyncClient, session_factory, email: str) -> dict:
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 async def _employer(client: AsyncClient, email: str, name: str) -> dict:

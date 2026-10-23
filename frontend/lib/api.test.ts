@@ -5,8 +5,10 @@ import {
   bindSessionToken,
   isTransientFailure,
   NetworkError,
+  parseErrorDetail,
   renewSessionToken,
   resolveToken,
+  setTwoFactorGateHandler,
   setUnauthorizedHandler,
 } from "@/lib/api";
 
@@ -145,5 +147,56 @@ describe("isTransientFailure", () => {
       expect(isTransientFailure(new ApiError(status, "x"))).toBe(false);
     }
     expect(isTransientFailure(new Error("otra cosa"))).toBe(false);
+  });
+});
+
+describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setTwoFactorGateHandler(null);
+  });
+
+  it("lee el mensaje y el código del detail", () => {
+    expect(parseErrorDetail("Credenciales inválidas")).toEqual({ message: "Credenciales inválidas" });
+    expect(parseErrorDetail({ code: "two_factor_required", message: "Volvé a ingresar" })).toEqual({
+      code: "two_factor_required",
+      message: "Volvé a ingresar",
+    });
+    expect(parseErrorDetail([{ loc: ["body"], msg: "x" }])).toEqual({ message: "Error inesperado" });
+  });
+
+  it("un 403 del candado avisa al manejador y llega a la pantalla con su código", async () => {
+    const gate = vi.fn();
+    setTwoFactorGateHandler(gate);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(403, {
+        detail: { code: "two_factor_setup_required", message: "Activá la verificación" },
+      })
+    );
+    const err = (await api.get("/admin/stats", "tok").catch((e) => e)) as ApiError;
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.code).toBe("two_factor_setup_required");
+    expect(err.message).toBe("Activá la verificación");
+    expect(gate).toHaveBeenCalledWith("two_factor_setup_required");
+  });
+
+  it("otros errores con código no tocan la sesión", async () => {
+    const gate = vi.fn();
+    setTwoFactorGateHandler(gate);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(401, {
+        detail: { code: "two_factor_challenge_invalid", message: "El ingreso venció." },
+      })
+    );
+    const err = (await api.post("/auth/2fa/verify", { code: "1" }).catch((e) => e)) as ApiError;
+    expect(err.code).toBe("two_factor_challenge_invalid");
+    expect(gate).not.toHaveBeenCalled();
   });
 });

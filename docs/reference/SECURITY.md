@@ -17,7 +17,8 @@
     un `jti` ya revocado se trata como robo: revoca **todas** las sesiones
     del usuario.
   - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
-    `exp`, y `jti` sólo en el refresh.
+    `exp`, `jti` sólo en el refresh, y `mfa: true` (en los dos) cuando la
+    sesión pasó por la verificación en dos pasos (ADR-0023, abajo).
 - **Contraseñas:** hash **bcrypt** (librería `bcrypt` directa, 12 rondas; `passlib` se sacó el 2026-10-21 por estar sin mantenimiento). Nunca se guarda ni se loguea la
   contraseña en claro. En los casos de uso, bcrypt corre en un hilo
   (`hash_password_async` / `verify_password_async`, 2026-10-23) para no
@@ -35,6 +36,30 @@
   primer admin sin endpoint de auto-registro.
 - **No-disclosure:** recurso ajeno o inexistente → **404**. Nunca se distingue
   "no existe" de "no es tuyo". Regla transversal de la capa `api/`.
+
+## Verificación en dos pasos (admin, ADR-0023)
+
+- **Obligatoria para el rol admin**; trabajadores y comercios no cambian.
+  TOTP (RFC 6238, implementación propia en `identity/domain/two_factor.py`),
+  6 dígitos, ventana ±1 paso, **anti-replay** con el último paso usado.
+- **Secreto cifrado** con Fernet y `TWO_FACTOR_ENCRYPTION_KEY` (varias
+  claves separadas por coma para rotar). **Códigos de recuperación:** 10, de
+  un solo uso, sólo su sha256 en la base, se muestran una vez.
+- **Login:** admin con la verificación activa → `/auth/login` y
+  `/auth/google` devuelven un desafío (5 min, un uso, se quema a los 5
+  errores; sólo su hash en `two_factor_challenges`) y la sesión sale de
+  `POST /auth/2fa/verify`. Límite por IP (10/min) y por cuenta en la base
+  (10 errores en 15 min → 429).
+- **Candado:** `get_current_user` responde 403 con `detail.code`
+  (`two_factor_setup_required` / `two_factor_required`) a toda sesión admin
+  sin `mfa`, en cualquier endpoint (también el WebSocket). Sólo `/auth/me` y
+  el alta usan `get_current_user_allow_pending_2fa`. Activarla cierra las
+  demás sesiones de la cuenta.
+- **Cambiar de celular / códigos nuevos:** sesión verificada + un código
+  actual. **Plan B:** `scripts/disable_two_factor.py` (dry-run por defecto).
+  Pasos de la operadora en
+  [PENDIENTE_OPERATIVO.md](./PENDIENTE_OPERATIVO.md), "Verificación en dos
+  pasos del admin".
 
 ## WebSockets
 

@@ -228,6 +228,15 @@ class Settings(BaseSettings):
     # y no se reusa. Ver docs/reference/PENDIENTE_OPERATIVO.md.
     guest_access_pin: str = ""
 
+    # Clave para cifrar en la base el secreto de la verificación en dos pasos
+    # de las cuentas admin (ADR-0023). Clave Fernet (44 caracteres base64);
+    # se genera una vez con el comando de docs/reference/PENDIENTE_OPERATIVO.md
+    # y se carga en Render. Admite varias separadas por coma para rotarla (la
+    # primera cifra, todas descifran). Vacía = no se puede activar ni usar la
+    # verificación, y como es obligatoria para admin, el panel de admin queda
+    # cerrado (falla cerrado); trabajadores y comercios no se enteran.
+    two_factor_encryption_key: str = ""
+
     @property
     def admin_emails_list(self) -> list[str]:
         return [

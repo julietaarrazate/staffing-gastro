@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -22,8 +22,13 @@ function roleFromQuery(value: string | null): Role | null {
 }
 
 function RegisterForm() {
-  const { register } = useAuth();
+  const { register, pendingTwoFactor } = useAuth();
   const router = useRouter();
+  // "Continuar con Google" con una cuenta admin que tiene la verificación en
+  // dos pasos: el código se pide en /login (ADR-0023).
+  useEffect(() => {
+    if (pendingTwoFactor) router.replace("/login");
+  }, [pendingTwoFactor, router]);
   const searchParams = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
