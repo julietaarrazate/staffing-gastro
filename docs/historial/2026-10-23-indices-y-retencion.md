@@ -1,4 +1,4 @@
-# Índices para las consultas calientes, fuera los duplicados y retención de sesiones y avisos (#PR)
+# Índices para las consultas calientes, fuera los duplicados y retención de sesiones y avisos (#493)
 
 **Pedido:** Julieta aprobó el plan de rendimiento del backend (medición del
 2026-10-22): índices con la forma real de las consultas que más corren,
