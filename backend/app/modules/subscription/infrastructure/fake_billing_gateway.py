@@ -1,8 +1,8 @@
-"""`FakeBillingGateway`: doble de `BillingGateway` para tests.
+"""`FakeBillingGateway`: doble de `BillingGateway` para tests (sin red).
 
-No llama a Mercado Pago; simula ambos estados del feature-flag (`enabled`
-fijo por instancia) y registra los llamados a `create_preapproval` (`created`)
-para asserts, sin acoplar los tests a la infraestructura real.
+Simula los dos estados del feature-flag (`enabled_`), guarda las preferencias
+creadas (`created`) y los reembolsos pedidos (`refunds`), y devuelve los
+pagos que el test cargue en `payments` como si vinieran de la API.
 """
 
 from dataclasses import dataclass, field
@@ -10,8 +10,10 @@ from uuid import UUID
 
 from app.modules.subscription.domain.billing_gateway import (
     BillingGateway,
-    PreapprovalResult,
+    CheckoutResult,
+    GatewayPayment,
 )
+from app.modules.subscription.domain.exceptions import BillingGatewayError
 from app.modules.subscription.domain.plans import Plan
 
 
@@ -19,16 +21,27 @@ from app.modules.subscription.domain.plans import Plan
 class FakeBillingGateway(BillingGateway):
     enabled_: bool = False
     created: list[tuple[UUID, Plan]] = field(default_factory=list)
+    payments: dict[str, GatewayPayment] = field(default_factory=dict)
+    refunds: list[str] = field(default_factory=list)
+    fail_refunds: bool = False
 
     @property
     def enabled(self) -> bool:
         return self.enabled_
 
-    async def create_preapproval(
-        self, *, company_id: UUID, payer_email: str, plan: Plan
-    ) -> PreapprovalResult:
-        self.created.append((company_id, plan))
-        return PreapprovalResult(
-            checkout_url=f"https://fake-mp.test/checkout/{company_id}",
-            external_reference=str(company_id),
+    async def create_checkout(
+        self, *, intent_id: UUID, plan: Plan, payer_email: str
+    ) -> CheckoutResult:
+        self.created.append((intent_id, plan))
+        return CheckoutResult(
+            checkout_url=f"https://fake-mp.test/checkout/{intent_id}",
+            preference_id=f"pref-{intent_id}",
         )
+
+    async def get_payment(self, payment_id: str) -> GatewayPayment | None:
+        return self.payments.get(payment_id)
+
+    async def refund_payment(self, payment_id: str, *, idempotency_key: str) -> None:
+        if self.fail_refunds:
+            raise BillingGatewayError("refund falló")
+        self.refunds.append(payment_id)

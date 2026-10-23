@@ -48,6 +48,13 @@ class NotificationType(str, Enum):
     # o constancia de AFIP del comercio). Antes la decisión no le llegaba a
     # nadie: la persona se enteraba sólo si volvía a mirar su perfil.
     VERIFICATION_DECIDED = "verification_decided"
+    # Cobro mensual del comercio (ADR-0021): pago acreditado, aviso de
+    # vencimiento (3 días antes y el día que vence), plan vencido y
+    # arrepentimiento con reembolso.
+    SUBSCRIPTION_PAID = "subscription_paid"
+    SUBSCRIPTION_EXPIRING = "subscription_expiring"
+    SUBSCRIPTION_EXPIRED = "subscription_expired"
+    SUBSCRIPTION_REFUNDED = "subscription_refunded"
 
 
 # Pantalla que abre cada push al tocarlo. Sin esto todas las notificaciones
@@ -83,6 +90,11 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.REVIEW_RECEIVED: "/profile",
     NotificationType.SUPPORT_REPLY: "/support",
     NotificationType.VERIFICATION_DECIDED: "/profile",
+    # Comercio: todo lo del cobro mensual abre "Mi plan".
+    NotificationType.SUBSCRIPTION_PAID: "/subscription",
+    NotificationType.SUBSCRIPTION_EXPIRING: "/subscription",
+    NotificationType.SUBSCRIPTION_EXPIRED: "/subscription",
+    NotificationType.SUBSCRIPTION_REFUNDED: "/subscription",
 }
 
 

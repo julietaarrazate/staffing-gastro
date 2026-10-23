@@ -21,6 +21,10 @@ Cuatro chequeos independientes, un solo loop:
    ya la trata como vencida en cuanto pasa el TTL (el matching/mapa nunca la
    usan de más), este chequeo sólo borra la posición de la base en vez de
    dejarla ahí sin uso indefinidamente.
+5. **Vencimiento del plan pago (ADR-0021):** sólo con el cobro de Mercado
+   Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
+   después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
+   `subscription/infrastructure/expiry_job.py`).
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo
@@ -90,6 +94,9 @@ from app.modules.shift.domain.exceptions import (
     ShiftConcurrentModificationError,
 )
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.infrastructure.expiry_job import (
+    run_subscription_expiry_check,
+)
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
@@ -297,7 +304,7 @@ async def run_available_now_cleanup() -> datetime | None:
 
 
 async def scheduler_loop() -> None:
-    """Loop infinito: corre los cuatro chequeos y duerme hasta la próxima deadline.
+    """Loop infinito: corre los cinco chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
     entre los cuatro chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
@@ -331,6 +338,11 @@ async def scheduler_loop() -> None:
         except Exception:
             had_error = True
             logger.exception('Error en la limpieza de "Disponible ahora"')
+        try:
+            next_deadline = _earlier(next_deadline, await run_subscription_expiry_check())
+        except Exception:
+            had_error = True
+            logger.exception("Error en el chequeo de vencimiento de planes")
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 

@@ -454,3 +454,25 @@ def render_verification_decision_email_html(
         body_html=body,
         footer_note="Recibís este mail porque pediste verificar tu cuenta en Oído.",
     )
+
+
+def render_subscription_email_html(
+    full_name: str, *, title: str, text: str, cta_label: str, link: str
+) -> str:
+    """Avisos del cobro mensual del comercio (ADR-0021): pago acreditado,
+    plan por vencer, plan vencido, reembolso del arrepentimiento. Un solo
+    molde: cambia el título, el texto y el botón."""
+    body = f"""
+    <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Hola {escape(full_name)},</p>
+    <p style="margin:0 0 18px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">{escape(text)}</p>
+    {_cta_button(escape(cta_label), link)}
+    <p style="margin:18px 0 0;font-family:Inter,Arial,sans-serif;font-size:12px;line-height:1.6;color:{_TINTA_APAGADA};">El pago es mes a mes, sin débito automático: nunca te cobramos sin que vos pagues el link.</p>
+    """
+    return _shell(
+        preheader=escape(title),
+        eyebrow="MI PLAN",
+        title_html=escape(title),
+        subtitle_html="",
+        body_html=body,
+        footer_note="Recibís este mail porque tu comercio tiene un plan en Oído.",
+    )
