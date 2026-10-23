@@ -15,9 +15,12 @@ import { ShieldIcon } from "@/components/icons";
 
 export default function TwoFactorLoginStep({
   onExpired,
+  onCancel,
 }: {
   /** El desafío venció o se usó: vuelve al formulario de la contraseña. */
   onExpired: (message: string) => void;
+  /** "Volver" al formulario de la contraseña. */
+  onCancel: () => void;
 }) {
   const { completeTwoFactor, cancelTwoFactor } = useAuth();
   const router = useRouter();
@@ -137,7 +140,14 @@ export default function TwoFactorLoginStep({
       >
         {mode === "app" ? "No tengo el celular: usar un código de recuperación" : "Usar el código de la app"}
       </button>
-      <Button variant="ghost" size="sm" onClick={cancelTwoFactor}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          cancelTwoFactor();
+          onCancel();
+        }}
+      >
         Volver
       </Button>
     </form>

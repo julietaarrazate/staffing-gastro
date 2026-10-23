@@ -30,6 +30,11 @@ function LoginForm() {
   const [pin, setPin] = useState("");
   const [guestLoading, setGuestLoading] = useState<"employer" | "worker" | null>(null);
   const [guestRole, setGuestRole] = useState<"employer" | "worker" | null>(null);
+  // Paso del código (admin con verificación en dos pasos). Queda abierto
+  // aunque el desafío ya se haya canjeado: si entró con un código de
+  // recuperación, el paso le avisa cuántos le quedan antes de seguir.
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+  if (pendingTwoFactor && !twoFactorOpen) setTwoFactorOpen(true);
 
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
@@ -94,10 +99,12 @@ function LoginForm() {
           </p>
         )}
 
-        {pendingTwoFactor ? (
+        {twoFactorOpen ? (
           <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
             <TwoFactorLoginStep
+              onCancel={() => setTwoFactorOpen(false)}
               onExpired={(message) => {
+                setTwoFactorOpen(false);
                 setPassword("");
                 setError(message);
                 setTurnstileReset((n) => n + 1);

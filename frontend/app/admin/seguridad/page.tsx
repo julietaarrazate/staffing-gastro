@@ -240,7 +240,7 @@ function ScanStep({
       </div>
       <p className="mt-4 text-sm text-ink/60">¿No podés escanearlo? Cargá esta clave a mano:</p>
       <div className="mt-2 flex items-center gap-2">
-        <code className="min-w-0 flex-1 select-all break-all rounded-xl bg-surface px-3 py-2.5 font-mono text-sm text-ink ring-1 ring-line">
+        <code className="min-w-0 flex-1 select-all break-words rounded-xl bg-surface px-3 py-2.5 font-mono text-sm text-ink ring-1 ring-line">
           {formatSecret(setup.secret)}
         </code>
         <Button

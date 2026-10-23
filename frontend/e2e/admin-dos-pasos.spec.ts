@@ -161,22 +161,24 @@ test("una admin sin la verificación va al alta, la activa y guarda los códigos
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
-  // Todo lo de admin responde 403 con el código del candado.
+  // Hasta activarla, todo lo de admin responde 403 con el código del candado.
+  let enabled = false;
   await page.route("**/api/v1/**", (route) =>
     route.fulfill(
-      json(
-        {
-          detail: {
-            code: "two_factor_setup_required",
-            message: "Activá la verificación en dos pasos para usar el panel de admin.",
-          },
-        },
-        403
-      )
+      enabled
+        ? json([])
+        : json(
+            {
+              detail: {
+                code: "two_factor_setup_required",
+                message: "Activá la verificación en dos pasos para usar el panel de admin.",
+              },
+            },
+            403
+          )
     )
   );
   await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(ADMIN)));
-  let enabled = false;
   await page.route("**/api/v1/auth/2fa", (route) =>
     route.fulfill(
       json({
@@ -239,8 +241,6 @@ test("una admin sin la verificación va al alta, la activa y guarda los códigos
   await page.getByLabel("Los guardé en un lugar seguro.").check();
   // Ya verificada: aparece el menú y el resto del panel.
   await expect(page.getByRole("navigation", { name: "Secciones del panel" })).toBeVisible();
-  await page.unroute("**/api/v1/**");
-  await mockRestOfApi(page);
   await done.click();
   await expect(page).toHaveURL(/\/admin$/);
 });

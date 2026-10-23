@@ -120,6 +120,7 @@ async def test_alta_con_qr_codigo_y_codigos_de_recuperacion(client, session_fact
     assert confirm.status_code == 200
     body = confirm.json()
     assert len(body["recovery_codes"]) == 10
+    assert "refresh_token" not in body
     assert "staffya_refresh" in confirm.cookies
     assert (
         await client.get(f"{API}/admin/stats", headers=_bearer(body["access_token"]))
@@ -201,6 +202,7 @@ async def test_login_pide_codigo_y_recien_ahi_da_la_sesion(client, session_facto
         assert ok.status_code == 200
         body = ok.json()
         assert body["user"]["role"] == "admin" and body["used_recovery_code"] is False
+        assert "refresh_token" not in body  # sólo en la cookie httpOnly
         assert "staffya_refresh" in ok.cookies
         assert (
             await device.get(f"{API}/admin/stats", headers=_bearer(body["access_token"]))

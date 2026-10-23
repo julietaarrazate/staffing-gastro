@@ -203,6 +203,69 @@ Inicial en `/subscription`, pagar con dinero en cuenta, volver a la app y ver
 "Pagado hasta el …"; después "Arrepentirme" y confirmar que llega la
 devolución.
 
+### 🔴 Verificación en dos pasos del admin (ADR-0023) — pendiente de Julieta
+
+Desde este cambio, la cuenta admin necesita un código de una app
+autenticadora además de la contraseña (o de Google). Trabajadores y comercios
+no cambian. **Hay que hacerlo en este orden:**
+
+**1. Antes del merge — generar y cargar la clave de cifrado.** Es la clave
+que cifra en la base el secreto de tu app autenticadora. En una terminal
+(Mac o Linux):
+
+```bash
+openssl rand -base64 32 | tr '+/' '-_'
+```
+
+(o, con Python y `cryptography`:
+`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`).
+Sale un texto de 44 caracteres que termina en `=`. En Render → servicio del
+backend → **Environment** → agregar `TWO_FACTOR_ENCRYPTION_KEY` con ese
+valor y guardar. **Guardala también en tu gestor de contraseñas**: si se
+pierde, los secretos guardados dejan de servir y hay que volver a activar la
+verificación (paso 4). Sin la clave, el panel de admin queda cerrado (no se
+rompe nada más).
+
+**2. Instalar una app autenticadora** en el celular: Google Authenticator,
+Microsoft Authenticator o 1Password.
+
+**3. Después del deploy — activarla (una sola vez).** Entrá a
+`https://www.oido.com.ar/login` con tu email y contraseña como siempre. El
+panel te lleva solo a **Administración → Seguridad**:
+
+- **Activar la verificación** → escaneá el QR con la app (o cargá la clave
+  a mano) → escribí el código de 6 dígitos → **Activar**.
+- Te muestra **10 códigos de recuperación, una sola vez**: **Descargar** (o
+  Copiar) y guardalos fuera del celular (gestor de contraseñas). Cada uno te
+  deja entrar una vez si no tenés el celular.
+- Al activarla se cierran tus otras sesiones (otros dispositivos): ahí
+  volvés a entrar con contraseña + código.
+
+Hacelo apenas se deploya: hasta que la actives, quien tuviera tu contraseña
+podría activarla con su propio celular.
+
+**Desde entonces:** cada ingreso pide el código de la app (también con
+Google). Si perdés el celular, en el paso del código tocá **"No tengo el
+celular: usar un código de recuperación"**, y después en **Seguridad →
+Cambiar de celular** configurá el nuevo. Con pocos códigos de recuperación,
+**Seguridad → Generar códigos nuevos**.
+
+**4. Plan B (perdiste el celular y los códigos):** con la `DATABASE_URL` de
+Neon, desde `backend/`:
+
+```bash
+DATABASE_URL='<la de Neon, directa>' python -m scripts.disable_two_factor --email <tu email>          # sólo mira
+DATABASE_URL='<la de Neon, directa>' python -m scripts.disable_two_factor --email <tu email> --apply  # la apaga
+```
+
+Apaga la verificación y cierra tus sesiones; al entrar con la contraseña te
+pide activarla de nuevo.
+
+**Rotar la clave** (si se filtró): generar una nueva y cargar
+`TWO_FACTOR_ENCRYPTION_KEY=<nueva>,<vieja>` (la nueva primero). Activar de
+nuevo desde Seguridad → Cambiar de celular guarda el secreto con la nueva;
+después se puede sacar la vieja.
+
 ## Convenciones de producto/diseño
 
 - Todo en **español**, incluido el texto de cara al usuario.

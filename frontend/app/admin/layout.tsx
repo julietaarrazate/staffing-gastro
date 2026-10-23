@@ -43,6 +43,8 @@ const NAV: NavItem[] = [
   { href: "/admin/leads", label: "Crecimiento" },
   { href: "/admin/metricas", label: "Métricas" },
   { href: "/admin/herramientas", label: "Herramientas" },
+  // Verificación en dos pasos de la cuenta (ADR-0023).
+  { href: "/admin/seguridad", label: "Seguridad" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
