@@ -2,7 +2,6 @@ import LandingHeader from "./LandingHeader";
 import HeroRueda, { HERO_CTA_ID } from "./HeroRueda";
 import Comanda from "./Comanda";
 import MapaCamino from "./MapaCamino";
-import Confianza from "./Confianza";
 import Precios from "./Precios";
 import ParaTrabajar from "./ParaTrabajar";
 import Preguntas from "./Preguntas";
@@ -38,7 +37,6 @@ export default function LandingCorta() {
       <HeroRueda />
       <Comanda />
       <MapaCamino />
-      <Confianza />
       <Precios />
       <ParaTrabajar />
       <Preguntas />

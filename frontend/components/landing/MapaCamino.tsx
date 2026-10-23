@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
+import { StarIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { formatDecimal1 } from "@/lib/format";
 import { CANDIDATES, LOCAL } from "./fixtures";
 
 /**
- * "A pocas cuadras de tu local hay alguien libre para hoy" (2026-10-18): el
+ * "Alguien libre, a pocas cuadras" (2026-10-18; título corto y con la ficha
+ * de Lucía en el pie desde el 2026-10-23, antes una sección aparte): el
  * mapa de "va en camino" de la app (components/employer/EnRouteMap.tsx) sobre
  * un pedazo de Palermo dibujado. Primero aparecen los avisados, después los
  * tres que se postularon con una línea recta a Tu bar (recta a propósito,
@@ -147,7 +151,7 @@ export default function MapaCamino() {
   return (
     <section aria-labelledby="mapa-titulo" data-tone="light" className="landing-sec">
       <h2 id="mapa-titulo" className="landing-h2">
-        A pocas cuadras de tu local hay alguien libre para hoy
+        Alguien libre, <span className="whitespace-nowrap">a pocas cuadras</span>
       </h2>
       <figure className="landing-mapa">
         <div ref={caja} className="landing-mapa-calles">
@@ -205,8 +209,22 @@ export default function MapaCamino() {
               {fase >= 3 ? `${LUCIA.full_name.split(" ")[0]} va en camino` : fase >= 2 ? "3 se postularon" : "Avisando a 10 cerca tuyo"}
             </b>
             <small className="text-sm text-ink-mute">
-              {fase >= 3 ? `A 600 m de ${LOCAL}` : fase >= 2 ? "Lucía, Diego y Camila" : "Mozo/a · hoy 21 a 2"}
+              {fase >= 3 ? (
+                <span className="inline-flex items-center gap-1">
+                  <StarIcon size={12} filled className="text-rating" />
+                  {formatDecimal1(LUCIA.rating ?? 0)} · {LUCIA.events_completed} turnos
+                </span>
+              ) : fase >= 2 ? (
+                "Lucía, Diego y Camila"
+              ) : (
+                "Mozo/a · hoy 21 a 2"
+              )}
             </small>
+            {fase >= 3 && (
+              <span className="mt-1.5 block">
+                <IdentityVerifiedBadge verified />
+              </span>
+            )}
           </span>
           {fase >= 3 && <span className="landing-mapa-eta">{eta}</span>}
         </figcaption>
