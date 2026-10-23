@@ -46,8 +46,15 @@ export default function MapSheet({
     return () => observer.disconnect();
   }, [containerRef]);
 
-  const panelHeight = containerHeight * SNAPS[MAX_SNAP];
   const offsetFor = (i: SnapIndex) => containerHeight * (SNAPS[MAX_SNAP] - SNAPS[i]);
+  // Antes de medir el contenedor el sheet ya se pinta con su tamaño y posición
+  // finales: el alto en % del contenedor (el `md:hidden` de afuera no está
+  // posicionado, así que el % resuelve contra `containerRef`) y el corrimiento
+  // en % de su propio alto (offsetFor(i) / panel = 1 − SNAPS[i] / SNAPS[MAX]).
+  // Hasta el 2026-10-23 arrancaba en "58%" y saltaba al alto medido, que era
+  // todo el CLS de /map (0,197 en mobile). Los px medidos quedan para el drag.
+  const yFor = (i: SnapIndex) =>
+    containerHeight > 0 ? offsetFor(i) : `${(1 - SNAPS[i] / SNAPS[MAX_SNAP]) * 100}%`;
   const maxDrag = offsetFor(0);
 
   function snapToClosest(rawY: number) {
@@ -69,10 +76,10 @@ export default function MapSheet({
       dragElastic={0.12}
       dragConstraints={{ top: 0, bottom: maxDrag }}
       dragMomentum={false}
-      animate={{ y: offsetFor(snap) }}
+      animate={{ y: yFor(snap) }}
       transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 340, damping: 34 }}
       onDragEnd={(_, info) => snapToClosest(offsetFor(snap) + info.offset.y)}
-      style={{ height: panelHeight || "58%" }}
+      style={{ height: `${SNAPS[MAX_SNAP] * 100}%` }}
       className="absolute inset-x-0 bottom-0 z-10 flex flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-card shadow-[0_-8px_30px_rgba(17,17,20,0.14)]"
     >
       <button
