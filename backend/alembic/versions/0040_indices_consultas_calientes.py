@@ -24,8 +24,8 @@ Saca los que estaban duplicados (cuestan en cada escritura y no suman nada):
 Tablas chicas (la más grande, `notifications`, tiene cientos de filas): no
 hace falta `CONCURRENTLY`.
 
-Revision ID: 0039
-Revises: 0038
+Revision ID: 0040
+Revises: 0039
 Create Date: 2026-10-23
 
 """
@@ -36,8 +36,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0039"
-down_revision: str | None = "0038"
+revision: str = "0040"
+down_revision: str | None = "0039"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

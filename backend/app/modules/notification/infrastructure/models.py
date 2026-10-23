@@ -20,7 +20,7 @@ class NotificationModel(Base):
         GUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        # Sin índice simple: lo cubren los dos compuestos de abajo (0039).
+        # Sin índice simple: lo cubren los dos compuestos de abajo (0040).
     )
 
     type: Mapped[str] = mapped_column(
@@ -40,7 +40,7 @@ class NotificationModel(Base):
     )
 
 
-# Índices compuestos (0022 y 0039). `user_id, created_at DESC` es la forma
+# Índices compuestos (0022 y 0040). `user_id, created_at DESC` es la forma
 # exacta de la bandeja (`list_by_user`: WHERE user_id ORDER BY created_at DESC
 # LIMIT); `user_id, read` es el conteo de no leídas.
 Index("ix_notifications_user_id_read", NotificationModel.user_id, NotificationModel.read)

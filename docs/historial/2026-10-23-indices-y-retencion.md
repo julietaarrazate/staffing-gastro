@@ -7,7 +7,7 @@ sacar índices duplicados y dejar de acumular sesiones de refresh vencidas
 
 **Qué cambió:** nada visible para quien usa la app; la base trabaja menos.
 
-- Migración `backend/alembic/versions/0039_indices_consultas_calientes.py`:
+- Migración `backend/alembic/versions/0040_indices_consultas_calientes.py`:
   - agrega `notifications (user_id, created_at DESC)` (bandeja),
     `shifts (status, start_at)` (feed y scheduler),
     `shifts (company_id, created_at DESC)` (panel del comercio),
@@ -35,11 +35,11 @@ sacar índices duplicados y dejar de acumular sesiones de refresh vencidas
 - Tests: `backend/tests/test_retencion.py`.
 
 **Medición (antes → después).** EXPLAIN ANALYZE en un Postgres 16 local
-descartable (no Neon), migrado con Alembic hasta 0038 y después a 0039, con
+descartable (no Neon), migrado con Alembic hasta la migración anterior y después a esta, con
 datos sintéticos: 20.000 turnos de 200 comercios, 105.000 avisos (uno de los
 usuarios con 5.000) y 70.000 mensajes (20 chats de 1.000). Mejor de 3 corridas.
 
-| Consulta | Plan en 0038 | Plan en 0039 | Tiempo |
+| Consulta | Plan antes | Plan después | Tiempo |
 |---|---|---|---|
 | Bandeja: avisos de un usuario, `ORDER BY created_at DESC LIMIT 50` | Bitmap sobre `ix_notifications_user_id` (5.050 filas) + top-N sort | Index Scan sobre `(user_id, created_at DESC)`, sin sort, lee 50 | 1,39 → 0,09 ms |
 | Panel del comercio, `ORDER BY created_at DESC LIMIT 50` | Bitmap + sort | Index Scan, sin sort | 0,35 → 0,19 ms |
@@ -53,7 +53,7 @@ Postgres local. Sentencias por request en el bench de consultas
 (`perf/bench_queries.py`, N=2 y N=20): **idénticas** antes y después en los 39
 endpoints (los índices no cambian cuántas consultas se hacen, sino cuánto
 cuesta cada una). La migración se probó ida, vuelta e ida en el mismo
-Postgres: `downgrade` deja exactamente los índices de 0038.
+Postgres: `downgrade` deja exactamente los índices de la migración anterior. Renumerada de 0039 a 0040 porque #494 tomó la 0039 (merge de `main`); probada de nuevo sobre 0039.
 
 **Por qué así:** índices compuestos con la forma de cada consulta en vez de
 más índices simples, que es lo que había y el planner no podía combinar con

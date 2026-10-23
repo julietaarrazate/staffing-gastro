@@ -129,7 +129,7 @@ class ShiftModel(Base):
     __mapper_args__ = {"version_id_col": version}
 
 
-# Índices compuestos (0039) para la forma real de las consultas calientes:
+# Índices compuestos (0040) para la forma real de las consultas calientes:
 # - feed y scheduler: `status IN (...) AND start_at ...`;
 # - panel del comercio (`list_by_company`): `company_id = ? ORDER BY created_at DESC`;
 # - referencia de pago (`hourly_pay_samples`) y filtro por ciudad del feed:

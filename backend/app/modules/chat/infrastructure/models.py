@@ -36,7 +36,7 @@ class ChatMessageModel(Base):
 
 
 # Mensajes de un chat en orden y último mensaje por chat (ROW_NUMBER
-# particionado por shift_id, ordenado por created_at): 0039.
+# particionado por shift_id, ordenado por created_at): 0040.
 Index(
     "ix_chat_messages_shift_id_created_at",
     ChatMessageModel.shift_id,

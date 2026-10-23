@@ -85,7 +85,7 @@ crea el esquema a mano en producción. En Render, el arranque corre
 >   `notifications`, `reviews`, `shift_applications`). Revisar cobertura para
 >   consultas nuevas al escalar (detalle en
 >   [PERFORMANCE_REPORT.md](../audits/PERFORMANCE_REPORT.md)).
->   Desde la migración 0039 (2026-10-23) hay compuestos con la forma de las
+>   Desde la migración 0040 (2026-10-23) hay compuestos con la forma de las
 >   consultas calientes: `notifications (user_id, created_at DESC)`,
 >   `shifts (status, start_at)`, `shifts (company_id, created_at DESC)`,
 >   `shifts (position, lower(city), created_at)` y
