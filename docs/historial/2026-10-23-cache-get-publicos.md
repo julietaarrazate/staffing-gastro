@@ -1,4 +1,4 @@
-# Cache-Control en los GET públicos: planes 5 minutos, turno público sin caché (#PR)
+# Cache-Control en los GET públicos: planes 5 minutos, turno público sin caché (#496)
 
 **Pedido:** Julieta aprobó el plan de rendimiento del backend (medición del
 2026-10-22). El backend no mandaba `Cache-Control` en ninguna respuesta, ni
