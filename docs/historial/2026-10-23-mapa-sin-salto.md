@@ -1,4 +1,4 @@
-# Mapa: la lista de turnos ya no salta al abrir (CLS 0,197 → 0)
+# Mapa: la lista de turnos ya no salta al abrir (CLS 0,197 → 0) (#498)
 
 **Pedido:** Julieta, 2026-10-23: seguir con el relevamiento de rendimiento
 del frontend (ítem 7, salto del mapa), midiendo antes y después.
