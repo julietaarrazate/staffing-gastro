@@ -1,4 +1,4 @@
-# Cloudflare: los archivos con hash se cachean un año (visita repetida sin revalidar)
+# Cloudflare: los archivos con hash se cachean un año (visita repetida sin revalidar) (#500)
 
 **Pedido:** Julieta, 2026-10-23: seguir con el relevamiento de rendimiento
 del frontend (ítem 8b, caché de estáticos), midiendo antes y después.
