@@ -31,9 +31,36 @@ export interface IdentitySummary {
   claims: ClaimSummary[];
 }
 
+/**
+ * Una evidencia de la cola del admin. Sin URL (ADR-0021): el archivo es
+ * privado, y para verlo se pide un link que vence con `evidenceLinkPath`.
+ */
 export interface PendingEvidence {
+  evidence_id: string;
   evidence_type: string;
-  data_url: string | null;
+  /** `false` si ya no hay archivo (purgado). */
+  available: boolean;
+}
+
+/** Link para ver una evidencia. `expires_at` es `null` sólo en evidencias
+ * viejas, todavía públicas, que no pasaron por la migración. */
+export interface EvidenceLink {
+  url: string;
+  expires_at: string | null;
+}
+
+export function evidenceLinkPath(evidenceId: string): string {
+  return `/identity/evidences/${encodeURIComponent(evidenceId)}/link`;
+}
+
+/** Margen antes del vencimiento para pedir un link nuevo en vez de abrir
+ * uno que puede vencer mientras carga. */
+const LINK_MARGIN_MS = 30_000;
+
+/** ¿Hay que pedir un link nuevo antes de abrirlo? */
+export function isLinkStale(link: EvidenceLink, now: number = Date.now()): boolean {
+  if (!link.expires_at) return false;
+  return new Date(link.expires_at).getTime() - LINK_MARGIN_MS <= now;
 }
 
 export interface PendingClaim {

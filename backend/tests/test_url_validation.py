@@ -4,10 +4,6 @@ import pytest
 from pydantic import ValidationError
 
 from app.modules.company.api.schemas import CompanyProfileInput
-from app.modules.verification.api.schemas import (
-    SubmitBusinessDocumentInput,
-    SubmitIdentityDocumentInput,
-)
 from app.modules.worker.api.schemas import WorkerProfileInput
 
 PELIGROSAS = [
@@ -32,17 +28,11 @@ def test_rechaza_urls_que_no_son_https(url):
         CompanyProfileInput(name="Bar", logo_url=url)
     with pytest.raises(ValidationError):
         CompanyProfileInput(name="Bar", cover_photo_url=url)
-    with pytest.raises(ValidationError):
-        SubmitIdentityDocumentInput(dni_frente_url=url, selfie_url=VALIDA)
-    with pytest.raises(ValidationError):
-        SubmitBusinessDocumentInput(constancia_url=url)
 
 
 def test_acepta_https_y_vacio():
     assert WorkerProfileInput(cv_url=VALIDA, photo_url=None).cv_url == VALIDA
     assert CompanyProfileInput(name="Bar", logo_url=VALIDA).logo_url == VALIDA
-    doc = SubmitIdentityDocumentInput(dni_frente_url=VALIDA, selfie_url=VALIDA)
-    assert doc.dni_dorso_url is None
 
 
 def test_respeta_el_largo_de_la_columna():

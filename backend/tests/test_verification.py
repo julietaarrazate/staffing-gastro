@@ -40,6 +40,31 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _ident(fmt: str = "jpg") -> dict:
+    """Lo que devuelve Cloudinary al subir un DNI/selfie privado (ADR-0021)."""
+    return {
+        "public_id": f"oido/identidad/{uuid4().hex}",
+        "resource_type": "image",
+        "format": fmt,
+        "type": "private",
+    }
+
+
+def _doc_payload() -> dict:
+    return {"dni_frente": _ident(), "selfie": _ident()}
+
+
+def _constancia_payload() -> dict:
+    return {
+        "constancia": {
+            "public_id": f"oido/constancias/{uuid4().hex}",
+            "resource_type": "image",
+            "format": "pdf",
+            "type": "private",
+        }
+    }
+
+
 def _doc_evidences() -> list[Evidence]:
     return [
         Evidence(evidence_type=EvidenceType.DNI_FRENTE, data_url="https://x/dni.jpg"),
@@ -173,10 +198,7 @@ async def test_full_verification_flow(client, session_factory):
     submit = await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={
-            "dni_frente_url": "https://x/dni.jpg",
-            "selfie_url": "https://x/selfie.jpg",
-        },
+        json=_doc_payload(),
     )
     assert submit.status_code == 200
     body = submit.json()
@@ -185,14 +207,15 @@ async def test_full_verification_flow(client, session_factory):
     assert body["identidad_verificada"] is False
     assert body["claims"][0]["status"] == "pendiente"
 
-    # 2) El admin ve la cola con las URLs de evidencia (sólo acá).
+    # 2) El admin ve la cola: qué evidencias hay, sin URLs (ADR-0021).
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     assert pending.status_code == 200
     items = pending.json()
     assert len(items) == 1
     claim_id = items[0]["claim_id"]
     assert items[0]["full_name"] is not None
-    assert any(e["data_url"] for e in items[0]["evidences"])
+    assert all(e["available"] for e in items[0]["evidences"])
+    assert all("data_url" not in e for e in items[0]["evidences"])
 
     # 3) El admin aprueba.
     approve = await client.post(
@@ -227,7 +250,7 @@ async def test_public_worker_profile_shows_verified_identity(client, session_fac
     await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={"dni_frente_url": "https://x/a.jpg", "selfie_url": "https://x/b.jpg"},
+        json=_doc_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     claim_id = pending.json()[0]["claim_id"]
@@ -258,7 +281,7 @@ async def test_reject_flow_lets_worker_resubmit(client, session_factory):
     await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={"dni_frente_url": "https://x/a.jpg", "selfie_url": "https://x/b.jpg"},
+        json=_doc_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     claim_id = pending.json()[0]["claim_id"]
@@ -278,7 +301,7 @@ async def test_reject_flow_lets_worker_resubmit(client, session_factory):
     resubmit = await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={"dni_frente_url": "https://x/c.jpg", "selfie_url": "https://x/d.jpg"},
+        json=_doc_payload(),
     )
     assert resubmit.json()["claims"][0]["status"] == "pendiente"
 
@@ -332,7 +355,7 @@ async def test_reminder_rejects_already_verified_worker(
     await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={"dni_frente_url": "https://x/a.jpg", "selfie_url": "https://x/b.jpg"},
+        json=_doc_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     claim_id = pending.json()[0]["claim_id"]
@@ -398,7 +421,7 @@ async def test_flujo_completo_de_verificacion_de_comercio(client, session_factor
     submit = await client.post(
         "/api/v1/identity/me/business",
         headers=employer,
-        json={"constancia_url": "https://x/constancia.pdf"},
+        json=_constancia_payload(),
     )
     assert submit.status_code == 200, submit.text
     body = submit.json()
@@ -415,7 +438,7 @@ async def test_flujo_completo_de_verificacion_de_comercio(client, session_factor
     # PDF contra el nombre cargado en la app. Sin esto el admin aprueba a ciegas.
     assert item["company_name"] == "Bar La Esquina"
     assert item["evidences"][0]["evidence_type"] == "constancia_cuit"
-    assert item["evidences"][0]["data_url"] == "https://x/constancia.pdf"
+    assert item["evidences"][0]["available"] is True
 
     approve = await client.post(
         f"/api/v1/identity/claims/{item['claim_id']}/approve", headers=admin
@@ -467,7 +490,7 @@ async def test_aprobar_el_claim_enciende_el_sello_en_el_feed(client, session_fac
     await client.post(
         "/api/v1/identity/me/business",
         headers=employer,
-        json={"constancia_url": "https://x/constancia.pdf"},
+        json=_constancia_payload(),
     )
     # Pendiente todavía NO es verificado: el sello no se enciende al mandarlo.
     mitad = await client.get("/api/v1/shifts/feed", headers=worker, params={"limit": 100})
@@ -501,7 +524,7 @@ async def test_la_constancia_se_purga_al_decidir(client, session_factory):
     await client.post(
         "/api/v1/identity/me/business",
         headers=employer,
-        json={"constancia_url": "https://x/constancia.pdf"},
+        json=_constancia_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     item = next(i for i in pending.json() if i["claim_type"] == "negocio_verificado")
@@ -525,7 +548,7 @@ async def test_la_constancia_se_purga_al_decidir(client, session_factory):
     reenvio = await client.post(
         "/api/v1/identity/me/business",
         headers=employer,
-        json={"constancia_url": "https://x/constancia-2.pdf"},
+        json=_constancia_payload(),
     )
     assert reenvio.json()["claims"][0]["status"] == "pendiente"
 
@@ -540,7 +563,7 @@ async def test_un_trabajador_no_puede_usar_el_flujo_de_negocio(client: AsyncClie
     envio = await client.post(
         "/api/v1/identity/me/business",
         headers=worker,
-        json={"constancia_url": "https://x/constancia.pdf"},
+        json=_constancia_payload(),
     )
     assert envio.status_code == 403
 
@@ -562,7 +585,7 @@ async def test_el_comercio_no_reenvia_una_verificacion_ya_aprobada(
     await client.post(
         "/api/v1/identity/me/business",
         headers=employer,
-        json={"constancia_url": "https://x/constancia.pdf"},
+        json=_constancia_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     item = next(i for i in pending.json() if i["claim_type"] == "negocio_verificado")
@@ -573,7 +596,7 @@ async def test_el_comercio_no_reenvia_una_verificacion_ya_aprobada(
     otra_vez = await client.post(
         "/api/v1/identity/me/business",
         headers=employer,
-        json={"constancia_url": "https://x/otra.pdf"},
+        json=_constancia_payload(),
     )
     assert otra_vez.status_code == 409
 
@@ -611,7 +634,7 @@ async def test_aprobar_le_avisa_a_la_persona_en_la_app_y_por_mail(
     await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={"dni_frente_url": "https://x/dni.jpg", "selfie_url": "https://x/s.jpg"},
+        json=_doc_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     claim_id = pending.json()[0]["claim_id"]
@@ -636,7 +659,7 @@ async def test_rechazar_le_dice_el_motivo(
     await client.post(
         "/api/v1/identity/me/document",
         headers=worker,
-        json={"dni_frente_url": "https://x/dni.jpg", "selfie_url": "https://x/s.jpg"},
+        json=_doc_payload(),
     )
     pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
     claim_id = pending.json()[0]["claim_id"]

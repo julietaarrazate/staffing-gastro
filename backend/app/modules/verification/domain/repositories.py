@@ -6,10 +6,11 @@ sus evidencias.
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.verification.domain.entities import Claim
-from app.modules.verification.domain.value_objects import ClaimType
+from app.modules.verification.domain.value_objects import ClaimType, EvidenceFile
 
 
 class ClaimRepository(ABC):
@@ -35,6 +36,10 @@ class ClaimRepository(ABC):
         """Todos los claims del sujeto (para calcular su nivel de garantía)."""
 
     @abstractmethod
+    async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
+        """El claim dueño de esa evidencia, o None si no existe."""
+
+    @abstractmethod
     async def list_pending(self) -> list[Claim]:
         """Cola de revisión: claims en estado PENDIENTE (con sus evidencias)."""
 
@@ -45,3 +50,12 @@ class ClaimRepository(ABC):
         """De los `user_ids` dados, cuáles tienen un claim VERIFICADA de ese
         tipo. Consulta batch para que los consumidores (perfil público, cola
         de candidatos) no hagan N+1."""
+
+
+class EvidenceLinkSigner(ABC):
+    """Arma un link para ver el archivo privado de una evidencia, que deja de
+    andar en `expires_at` (ADR-0021). El adaptador es Cloudinary; el dominio
+    sólo sabe que existe un link que vence."""
+
+    @abstractmethod
+    def link_for(self, file: EvidenceFile, expires_at: datetime) -> str: ...

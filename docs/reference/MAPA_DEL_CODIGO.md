@@ -103,6 +103,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | PIN del acceso invitado | env var `GUEST_ACCESS_PIN` (`settings.guest_access_pin`, `backend/app/core/config.py`); vacía = apagado |
 | Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
+| Documentos de identidad privados (subida firmada `private`, link que vence, migración de los viejos) | `backend/app/core/cloudinary.py`, `backend/app/modules/verification/infrastructure/evidence_link_signer.py`, `backend/scripts/privatize_identity_evidence.py` (ADR-0021) |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 
 ## Endpoints por módulo (`/api/v1/…`)
@@ -118,7 +119,7 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/matching` | búsqueda de trabajadores para el comercio |
 | `/workers`, `/companies` | perfil propio (`me/profile`), perfil público; `workers/me/earnings`, `workers/me/available-now` |
 | `/favorites`, `/saved-shifts` | favoritos del comercio, turnos guardados del trabajador |
-| `/identity` | verificación: DNI y selfie, constancia AFIP, cola de admin |
+| `/identity` | verificación: DNI y selfie, constancia AFIP, cola de admin, link que vence de cada evidencia (`/evidences/{id}/link`) |
 | `/reviews`, `/chats`, `/notifications`, `/support` | reseñas, chat por turno, avisos, tickets |
 | `/subscription` | plan, planes, suscribirse |
 | `/uploads` | firma de subida de CV y de constancia |

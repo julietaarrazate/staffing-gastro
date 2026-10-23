@@ -6,6 +6,7 @@ comercio, §11 de TRUST_SYSTEM.md) o un método de verificación nuevo (KYC,
 Renaper) es un valor más, no un cambio de esquema.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -94,3 +95,19 @@ class AssuranceLevel(str, Enum):
     L2 = "L2"  # documento verificado
     L3 = "L3"  # presencia (selfie/liveness = persona del documento)
     L4 = "L4"  # reforzado (fuente autoritativa: Renaper/KYC)
+
+
+@dataclass(frozen=True)
+class EvidenceFile:
+    """Dónde está guardado el archivo de una evidencia (ADR-0021).
+
+    No es una URL: es la referencia al archivo **privado** en el storage
+    (`public_id`, tipo de recurso, formato y tipo de entrega). Para verlo hay
+    que pedir un link que vence (`EvidenceLinkSigner`), y sólo un admin puede.
+    Así un link filtrado deja de servir a los pocos minutos, y la base no
+    guarda nada que abra el DNI por sí solo."""
+
+    public_id: str
+    resource_type: str
+    format: str
+    delivery_type: str = "private"

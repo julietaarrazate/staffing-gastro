@@ -29,6 +29,7 @@ from app.modules.verification.domain.value_objects import (
     ClaimStatus,
     ClaimType,
     ConfidenceLevel,
+    EvidenceFile,
     EvidenceType,
     VerificationMethod,
 )
@@ -38,22 +39,33 @@ from app.modules.verification.domain.value_objects import (
 class Evidence:
     """Una prueba que respalda un claim.
 
-    `data_url` es el puntero al archivo sensible (imagen del DNI/selfie). Es
-    `None` cuando la evidencia todavía no se cargó o —lo importante— cuando ya
-    **se purgó tras la decisión**: en ese caso la fila queda como constancia de
-    auditoría (tipo, método, quién/cuándo) pero sin el dato sensible.
+    `file` es el puntero al archivo sensible (imagen del DNI/selfie, PDF de la
+    constancia), guardado **privado** (ADR-0021). `data_url` es el puntero
+    viejo: una URL pública, que sólo tienen las evidencias subidas antes del
+    ADR-0021 hasta que corre `scripts/privatize_identity_evidence.py`.
+
+    Los dos son `None` cuando la evidencia todavía no se cargó o —lo
+    importante— cuando ya **se purgó tras la decisión**: en ese caso la fila
+    queda como constancia de auditoría (tipo, método, quién/cuándo) pero sin
+    el dato sensible.
     """
 
     evidence_type: EvidenceType
     method: VerificationMethod = VerificationMethod.ADMIN_MANUAL
     data_url: str | None = None
+    file: EvidenceFile | None = None
     data_purged: bool = False
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
 
+    @property
+    def has_data(self) -> bool:
+        return self.file is not None or self.data_url is not None
+
     def purge_data(self) -> None:
         """Borra el puntero al dato sensible dejando la constancia (retención)."""
         self.data_url = None
+        self.file = None
         self.data_purged = True
 
 
@@ -98,7 +110,7 @@ class Claim:
         sentido reenviar. Se exige al menos una evidencia con dato cargado."""
         if self.status == ClaimStatus.VERIFICADA:
             raise ClaimAlreadyVerifiedError(str(self.user_id))
-        if not evidences or all(e.data_url is None for e in evidences):
+        if not evidences or not any(e.has_data for e in evidences):
             raise EvidenceRequiredError(str(self.claim_type))
         self.evidences = evidences
         self.method = method

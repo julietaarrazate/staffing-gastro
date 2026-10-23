@@ -155,6 +155,11 @@ class Settings(BaseSettings):
     # server-side igual, junto al `api_secret`, para no duplicar configuración.
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
+    # Cloud name (el mismo valor que `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` del
+    # frontend). Lo necesita el backend para armar el link de descarga que
+    # vence de los documentos de identidad privados (ADR-0021). Vacío = el
+    # admin no puede abrir las evidencias nuevas (503), pero nada más se rompe.
+    cloudinary_cloud_name: str = ""
 
     # --- Gemini (turno por texto libre) — P2, auditoría de producto 2026-08-10 ---
     # El comercio describe el turno en texto libre ("necesito 2 mozos el sábado
