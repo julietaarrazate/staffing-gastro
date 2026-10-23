@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
@@ -22,7 +22,7 @@ import { shiftHeroPhoto } from "@/lib/company-photo";
  * `pointer-events-none`, salvo el botón de guardar. Así la tarjeta entera abre
  * el detalle sin meter un <button> adentro de un <a> (HTML inválido).
  */
-export default function FeedHero({ shift }: { shift: Shift }) {
+function FeedHero({ shift }: { shift: Shift }) {
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
@@ -106,3 +106,7 @@ export default function FeedHero({ shift }: { shift: Shift }) {
     </article>
   );
 }
+
+// Memo: el feed se re-renderiza al tocar "Disponible" y otros controles que
+// no cambian sus datos (medido 2026-10-22).
+export default memo(FeedHero);

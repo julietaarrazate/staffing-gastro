@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -96,6 +96,27 @@ function feedPathFor(positions: string[]): string {
   const params = new URLSearchParams();
   positions.forEach((p) => params.append("positions", p));
   return `/shifts/feed?${params.toString()}`;
+}
+
+// Una sola composición del feed por pantalla: antes se montaban la de celular
+// y la de escritorio a la vez (una oculta con CSS), ~2300 nodos en celular, y
+// cada toque re-renderizaba las dos (INP ~460 ms medido 2026-10-22). En el
+// servidor y en la hidratación se asume celular; si es escritorio, cambia
+// apenas monta.
+const DESKTOP_QUERY = "(min-width: 48rem)"; // `md` de Tailwind
+
+function subscribeDesktop(onChange: () => void) {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+function useIsDesktop(): boolean {
+  return useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
 }
 
 export default function WorkerHomePage() {
@@ -297,20 +318,30 @@ function WorkerFeedPanel() {
   // Búsqueda del asistente: origen fijo en la zona pedida (no "acá ahora"/
   // perfil), radio como corte duro (no sólo orden, como en el feed normal —
   // "a menos de 2 km" tiene que sacar lo que no entra) y sólo hoy si lo pidió.
-  const origin = assistantSearch ? assistantSearch.origin : originFor(here, profile);
-  let sortedShifts = sortByDistance(shifts, origin);
-  if (assistantSearch?.radiusKm != null) {
-    const radiusKm = assistantSearch.radiusKm;
-    sortedShifts = sortedShifts.filter((s) => {
-      const d = distanceOf(s, origin);
-      return d != null && d <= radiusKm;
-    });
-  }
-  if (assistantSearch?.todayOnly) {
-    sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
-  }
-  const visibleShifts = sortedShifts;
-  const [heroShift, ...restShifts] = visibleShifts;
+  // Memorizado (como `distanceFromOrigin`): así tocar "Disponible" no vuelve
+  // a ordenar ni a dibujar las tarjetas, que no cambiaron.
+  const origin = useMemo(
+    () => (assistantSearch ? assistantSearch.origin : originFor(here, profile)),
+    [assistantSearch, here, profile],
+  );
+  const distanceFromOrigin = useCallback((s: Shift) => distanceOf(s, origin), [origin]);
+  const visibleShifts = useMemo(() => {
+    let sortedShifts = sortByDistance(shifts, origin);
+    if (assistantSearch?.radiusKm != null) {
+      const radiusKm = assistantSearch.radiusKm;
+      sortedShifts = sortedShifts.filter((s) => {
+        const d = distanceOf(s, origin);
+        return d != null && d <= radiusKm;
+      });
+    }
+    if (assistantSearch?.todayOnly) {
+      sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
+    }
+    return sortedShifts;
+  }, [shifts, origin, assistantSearch]);
+  const heroShift = visibleShifts[0];
+  const restShifts = useMemo(() => visibleShifts.slice(1), [visibleShifts]);
+  const isDesktop = useIsDesktop();
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
     : "No hay más turnos cerca";
@@ -421,59 +452,63 @@ function WorkerFeedPanel() {
       ) : (
         <>
           {/* Mobile: Recomendado + Descubrir rápido + Cerca tuyo. */}
-          <div className="md:hidden">
-            {heroShift ? (
-              <div className="space-y-6">
-                <div data-tour="feed-deck" className="space-y-3">
-                  <FeedHero shift={heroShift} />
-                  <button
-                    type="button"
-                    onClick={() => openDiscover(visibleShifts)}
-                    className="flex w-full items-center gap-3 rounded-[var(--radius-card)] bg-card px-4 py-3 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-primary-tint text-primary-text">
-                      <SparklesIcon size={20} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-body font-semibold text-ink">Descubrir rápido</span>
-                      <span className="block text-xs text-ink/55">
-                        Recorré {visibleShifts.length === 1 ? "el turno" : `los ${visibleShifts.length} turnos`} y
-                        postulate al que elijas
+          {!isDesktop && (
+            <div className="md:hidden">
+              {heroShift ? (
+                <div className="space-y-6">
+                  <div data-tour="feed-deck" className="space-y-3">
+                    <FeedHero shift={heroShift} />
+                    <button
+                      type="button"
+                      onClick={() => openDiscover(visibleShifts)}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-card)] bg-card px-4 py-3 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-primary-tint text-primary-text">
+                        <SparklesIcon size={20} />
                       </span>
-                    </span>
-                    <ChevronRightIcon size={18} className="shrink-0 text-ink/35" />
-                  </button>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-body font-semibold text-ink">Descubrir rápido</span>
+                        <span className="block text-xs text-ink/55">
+                          Recorré {visibleShifts.length === 1 ? "el turno" : `los ${visibleShifts.length} turnos`} y
+                          postulate al que elijas
+                        </span>
+                      </span>
+                      <ChevronRightIcon size={18} className="shrink-0 text-ink/35" />
+                    </button>
+                  </div>
+                  <NearbyRow shifts={restShifts} distanceOf={distanceFromOrigin} />
                 </div>
-                <NearbyRow shifts={restShifts} distanceOf={(s) => distanceOf(s, origin)} />
-              </div>
-            ) : (
-              emptyState
-            )}
-          </div>
+              ) : (
+                emptyState
+              )}
+            </div>
+          )}
 
           {/* Desktop (md+): el gesto de swipe no existe con mouse, así que
               se ven todas las oportunidades a la vez en una grilla, con
               Postularme/No gracias como botones directos en cada tarjeta. */}
-          <div className="hidden md:block">
-            {visibleShifts.length === 0 ? (
-              emptyState
-            ) : (
-              <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
-                {visibleShifts.map((shift) => (
-                  <div key={shift.id} data-testid="feed-grid-card" className="h-[620px]">
-                    <OpportunityCard
-                      shift={shift}
-                      distanceKm={distanceOf(shift, origin)}
-                      applying={decidingId === shift.id}
-                      onApply={() => handleGridDecide(shift, "like")}
-                      onPass={() => handleGridDecide(shift, "pass")}
-                      shareable
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {isDesktop && (
+            <div className="hidden md:block">
+              {visibleShifts.length === 0 ? (
+                emptyState
+              ) : (
+                <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
+                  {visibleShifts.map((shift) => (
+                    <div key={shift.id} data-testid="feed-grid-card" className="h-[620px]">
+                      <OpportunityCard
+                        shift={shift}
+                        distanceKm={distanceOf(shift, origin)}
+                        applying={decidingId === shift.id}
+                        onApply={() => handleGridDecide(shift, "like")}
+                        onPass={() => handleGridDecide(shift, "pass")}
+                        shareable
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 

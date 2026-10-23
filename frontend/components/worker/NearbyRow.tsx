@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
@@ -68,7 +68,7 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
 /** Fila "Cerca tuyo" del home (board de Julieta, pantalla 1): miniaturas en
  *  scroll horizontal, ordenadas como el resto del feed. "Ver todos" lleva a la
  *  lista completa de /buscar. */
-export default function NearbyRow({
+function NearbyRow({
   shifts,
   distanceOf,
   title = "Cerca tuyo",
@@ -100,3 +100,7 @@ export default function NearbyRow({
     </section>
   );
 }
+
+// Memo: el feed se re-renderiza al tocar "Disponible" y otros controles que
+// no cambian sus datos (medido 2026-10-22).
+export default memo(NearbyRow);
