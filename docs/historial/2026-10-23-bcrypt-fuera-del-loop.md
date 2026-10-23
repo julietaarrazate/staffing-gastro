@@ -1,4 +1,4 @@
-# bcrypt fuera del event loop: un login ya no congela a todos (#PR)
+# bcrypt fuera del event loop: un login ya no congela a todos (#491)
 
 **Pedido:** Julieta aprobó el plan de rendimiento del backend (medición del
 2026-10-22). El backend corre en **un solo proceso** de uvicorn y bcrypt
