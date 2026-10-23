@@ -98,8 +98,8 @@ export default function TerminosPage() {
               Podés verificar tu identidad (con tu DNI y una selfie) o tu
               comercio (con tu constancia de AFIP). Una persona del equipo la
               revisa y, si se aprueba, la otra parte ve un sello de
-              &quot;verificado&quot;. Los documentos se guardan privados y,
-              apenas se decide, ya no se pueden abrir desde la app.
+              &quot;verificado&quot;. Los documentos se borran apenas se
+              decide.
             </p>
             <p>
               La verificación es una obligación de medios, no de resultado: el

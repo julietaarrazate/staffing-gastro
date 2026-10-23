@@ -1,10 +1,8 @@
-# Privacidad: cuánto guardamos avisos y sesiones, y qué pasa de verdad con el DNI
+# Privacidad: cuánto guardamos los avisos y las sesiones
 
 **Pedido:** Julieta aprobó sumar a `/privacidad` las reglas de retención que
 ahora aplica el scheduler
-([`2026-10-23-indices-y-retencion.md`](./2026-10-23-indices-y-retencion.md))
-y alinear lo que dice de los documentos de identidad con lo que hace el
-código ([`2026-10-23-documentos-privados.md`](./2026-10-23-documentos-privados.md)).
+([`2026-10-23-indices-y-retencion.md`](./2026-10-23-indices-y-retencion.md)).
 
 **Qué cambió:** en `/privacidad`, "Cuánto tiempo los guardamos" suma dos
 renglones:
@@ -19,44 +17,29 @@ renglones:
   cuándo empezó y cuándo vence, sin IP ni dispositivo
   (`RefreshSessionModel`).
 
-Documentos de verificación (DNI, selfie, constancia de AFIP): la página
-decía en cuatro lugares que **se borran** al decidir, y `/terminos` lo
-repetía. El código no borra el archivo: al aprobar o rechazar purga la
-referencia en la base (`Evidence.purge_data`), y el archivo queda privado en
-Cloudinary. Ese borrado figura como pendiente en la entrada de documentos
-privados. Ahora las dos páginas dicen lo que pasa: se guardan privados, sin
-link público; quien revisa los ve con un link que vence a los pocos
-minutos; después de la decisión ya no se pueden abrir desde la app; el
-archivo queda privado en Cloudinary, y se puede pedir que lo borremos.
+En "Seguridad", los documentos de verificación ahora dicen que se guardan
+privados y que quien los revisa los ve con un link que vence a los pocos
+minutos (ADR-0021), antes de borrarse.
 
-Técnico: `frontend/app/privacidad/page.tsx`, `frontend/app/terminos/page.tsx`
-y `LEGAL_TERMS_VERSION` de `2026-10-19-2` a `2026-10-23`, en
+Técnico: `frontend/app/privacidad/page.tsx` y `LEGAL_TERMS_VERSION` de
+`2026-10-23` a `2026-10-23-2`, en
 `backend/app/modules/identity/domain/value_objects.py` y en
 `frontend/lib/legal.ts` (`lib/legal.test.ts` exige que coincidan).
 "Última actualización: octubre 2026" no cambia.
 
+**Por qué así:** la primera versión de este PR cambiaba el "se borran" del
+DNI, la selfie y la constancia de AFIP por "quedan privados", porque el
+código todavía no borraba el archivo de Cloudinary. Julieta decidió
+borrarlos al decidir la verificación
+([`2026-10-23-borrado-documentos-al-decidir.md`](./2026-10-23-borrado-documentos-al-decidir.md)),
+así que la política conserva el "se borran" y este PR queda sólo con la
+retención. Se usa el sufijo `-2` porque el cobro mensual (#497) ya publicó
+`2026-10-23` con otro texto de `/terminos`: una misma versión no puede
+nombrar dos textos.
+
 **Qué hace la versión nueva con la gente que ya tiene cuenta:** nada
-automático. La versión sólo se graba en `terms_acceptances` cuando alguien
-crea una cuenta (`IdentityService`, canal email o Google). No hay pantalla
-de re-aceptación ni aviso dentro de la app: las cuentas existentes conservan
-su fila con la versión que aceptaron y las nuevas graban `2026-10-23`. La
-política promete avisar en la app con 15 días de anticipación "si cambiamos
-algo importante". Decidir si esto cuenta como importante y si hace falta
-avisar queda para Julieta.
+automático. La versión sólo se graba en `terms_acceptances` al crear una
+cuenta; no hay re-aceptación ni aviso en la app. Son renglones informativos
+sobre plazos más cortos, no un cambio de lo que se hace con los datos.
 
-**Por qué así:** la página tiene que describir lo que el código hace hoy, no
-lo que se planea. Se descartó dejar el "se borran" hasta implementar el
-borrado en Cloudinary: la versión nueva habría seguido prometiendo algo
-falso. Cuando ese borrado exista, el texto puede volver a decir "se borran"
-con otra versión.
-
-**Queda abierto:**
-- "Sin link público" vale para lo subido desde #494. Lo anterior sigue con
-  URL pública hasta que se corra `scripts/privatize_identity_evidence.py`
-  en producción (pendiente de Julieta, junto con `CLOUDINARY_CLOUD_NAME` en
-  Render). Conviene correrlo antes de mergear esto.
-- Borrar el archivo de Cloudinary al aprobar o rechazar. Las tarjetas de
-  verificación del trabajador y del comercio
-  (`IdentityVerificationCard.tsx`, `BusinessVerificationCard.tsx`) siguen
-  diciendo "las eliminamos una vez revisadas". No se tocaron acá: hay que
-  implementar el borrado o cambiar ese texto.
+**Queda abierto:** nada.

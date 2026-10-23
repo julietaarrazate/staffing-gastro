@@ -95,13 +95,11 @@ export default function PrivacidadPage() {
               </li>
               <li>
                 <strong>Verificación de identidad (opcional):</strong> foto de
-                tu DNI y una selfie. Se guardan <strong>privadas</strong>: no
-                tienen un link público y sólo las mira una persona del equipo,
-                con un link que vence a los pocos minutos, para confirmar que
-                sos quien decís ser. Cuando se aprueba o rechaza, ya no se
-                pueden abrir desde la app: lo que queda en tu cuenta es el
-                resultado y la fecha. La selfie no se usa para ninguna otra
-                cosa.
+                tu DNI y una selfie. Las mira una persona del equipo para
+                confirmar que sos quien decís ser, y{" "}
+                <strong>se borran apenas se aprueba o rechaza</strong>. Lo
+                único que queda es el resultado y la fecha. La selfie no se
+                usa para ninguna otra cosa.
               </li>
               <li>
                 <strong>Reputación:</strong> las calificaciones y reseñas que
@@ -123,10 +121,9 @@ export default function PrivacidadPage() {
               </li>
               <li>
                 <strong>Verificación del comercio (opcional):</strong> tu
-                constancia de inscripción de AFIP. Se guarda{" "}
-                <strong>privada</strong>, la revisa una persona y, al decidir,
-                ya no se puede abrir desde la app. No guardamos tu número de
-                CUIT.
+                constancia de inscripción de AFIP. La revisa una persona y{" "}
+                <strong>se borra al decidir</strong>. No guardamos tu número
+                de CUIT.
               </li>
               <li>
                 <strong>Turnos y suscripción:</strong> los turnos que publicás
@@ -299,12 +296,8 @@ export default function PrivacidadPage() {
           <Section title="Cuánto tiempo los guardamos">
             <ul className="ml-5 list-disc space-y-1.5">
               <li>
-                <strong>DNI, selfie y constancia de AFIP:</strong> se pueden
-                abrir desde la app sólo hasta que se decide la verificación.
-                Los archivos quedan guardados de forma privada en nuestro
-                proveedor de almacenamiento (Cloudinary), sin un link público.
-                Si querés que los borremos, escribinos (ver &quot;Tus
-                derechos&quot;).
+                <strong>DNI, selfie y constancia de AFIP:</strong> hasta que se
+                decide la verificación. Después se borran.
               </li>
               <li>
                 <strong>&quot;Va en camino&quot;:</strong> hasta que marcás la
@@ -406,7 +399,8 @@ export default function PrivacidadPage() {
               (nadie, ni nosotros, puede leerla), toda la comunicación entre tu
               dispositivo y nuestros servidores viaja cifrada, y los documentos
               de verificación se guardan privados: sólo los ve quien los
-              revisa, con un link que vence a los pocos minutos.
+              revisa, con un link que vence a los pocos minutos, antes de
+              borrarse.
               Si alguna vez hubiera un incidente que afecte tus datos, te
               avisamos.
             </p>
