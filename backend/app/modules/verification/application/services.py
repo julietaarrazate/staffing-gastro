@@ -6,27 +6,38 @@ verificación es `admin_manual`: el trabajador presenta DNI + selfie
 resultante se calcula agregando los claims (dominio puro).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from app.modules.verification.application.dtos import (
     ClaimSummary,
+    EvidenceLink,
     IdentitySummary,
     PendingClaimItem,
     PendingEvidenceItem,
 )
 from app.modules.verification.domain.entities import Claim, Evidence
-from app.modules.verification.domain.exceptions import ClaimNotFoundError
-from app.modules.verification.domain.repositories import ClaimRepository
+from app.modules.verification.domain.exceptions import (
+    ClaimNotFoundError,
+    EvidenceNotFoundError,
+)
+from app.modules.verification.domain.repositories import (
+    ClaimRepository,
+    EvidenceLinkSigner,
+)
 from app.modules.verification.domain.services import (
     compute_assurance_level,
     has_verified_identity,
 )
 from app.modules.verification.domain.value_objects import (
     ClaimType,
+    EvidenceFile,
     EvidenceType,
     VerificationMethod,
 )
+
+# Cuánto dura el link de una evidencia privada (ADR-0021).
+EVIDENCE_LINK_TTL = timedelta(minutes=5)
 
 
 def _now() -> datetime:
@@ -35,15 +46,20 @@ def _now() -> datetime:
 
 
 class VerificationService:
-    def __init__(self, claims: ClaimRepository) -> None:
+    def __init__(
+        self,
+        claims: ClaimRepository,
+        link_signer: EvidenceLinkSigner | None = None,
+    ) -> None:
         self._claims = claims
+        self._link_signer = link_signer
 
     async def submit_identity_document(
         self,
         user_id: UUID,
-        dni_frente_url: str,
-        selfie_url: str,
-        dni_dorso_url: str | None = None,
+        dni_frente: EvidenceFile,
+        selfie: EvidenceFile,
+        dni_dorso: EvidenceFile | None = None,
     ) -> Claim:
         """El trabajador presenta (o reenvía) su DNI + selfie a revisión.
 
@@ -54,21 +70,21 @@ class VerificationService:
             Evidence(
                 evidence_type=EvidenceType.DNI_FRENTE,
                 method=VerificationMethod.ADMIN_MANUAL,
-                data_url=dni_frente_url,
+                file=dni_frente,
             ),
             Evidence(
                 evidence_type=EvidenceType.SELFIE,
                 method=VerificationMethod.ADMIN_MANUAL,
-                data_url=selfie_url,
+                file=selfie,
             ),
         ]
-        if dni_dorso_url:
+        if dni_dorso:
             evidences.insert(
                 1,
                 Evidence(
                     evidence_type=EvidenceType.DNI_DORSO,
                     method=VerificationMethod.ADMIN_MANUAL,
-                    data_url=dni_dorso_url,
+                    file=dni_dorso,
                 ),
             )
 
@@ -83,7 +99,7 @@ class VerificationService:
         return await (self._claims.add(claim) if is_new else self._claims.update(claim))
 
     async def submit_business_document(
-        self, user_id: UUID, constancia_url: str
+        self, user_id: UUID, constancia: EvidenceFile
     ) -> Claim:
         """El comercio presenta (o reenvía) su constancia de AFIP a revisión
         (ADR-0013).
@@ -101,7 +117,7 @@ class VerificationService:
             Evidence(
                 evidence_type=EvidenceType.CONSTANCIA_CUIT,
                 method=VerificationMethod.ADMIN_MANUAL,
-                data_url=constancia_url,
+                file=constancia,
             )
         ]
 
@@ -132,8 +148,8 @@ class VerificationService:
         return await self._claims.update(claim)
 
     async def list_pending(self) -> list[PendingClaimItem]:
-        """Cola de revisión del admin. Incluye los punteros a evidencias
-        (visibles sólo acá, mientras el claim está pendiente)."""
+        """Cola de revisión del admin. Dice qué evidencias hay, pero no dónde
+        están: para verlas, `evidence_link` (ADR-0021)."""
         claims = await self._claims.list_pending()
         return [
             PendingClaimItem(
@@ -143,13 +159,45 @@ class VerificationService:
                 submitted_at=claim.submitted_at,
                 evidences=[
                     PendingEvidenceItem(
-                        evidence_type=e.evidence_type, data_url=e.data_url
+                        evidence_id=e.id,
+                        evidence_type=e.evidence_type,
+                        available=e.has_data,
                     )
                     for e in claim.evidences
                 ],
             )
             for claim in claims
         ]
+
+    async def evidence_link(
+        self, evidence_id: UUID, now: datetime | None = None
+    ) -> EvidenceLink:
+        """Link para que el admin vea una evidencia mientras revisa (ADR-0021).
+
+        Sólo para claims PENDIENTES con el dato todavía cargado: una vez
+        decidido el claim, la evidencia ya cumplió su finalidad y no se
+        vuelve a mirar. Ajena, inexistente o purgada responden igual
+        (`EvidenceNotFoundError`), para no revelar qué existe.
+
+        Archivo privado → link firmado que vence en `EVIDENCE_LINK_TTL`.
+        Evidencia vieja todavía pública (antes de correr la migración) → su
+        URL tal cual, para que el admin no quede ciego entre el deploy y la
+        migración."""
+        claim = await self._claims.get_by_evidence_id(evidence_id)
+        if claim is None or not claim.is_pending:
+            raise EvidenceNotFoundError(str(evidence_id))
+        evidence = next((e for e in claim.evidences if e.id == evidence_id), None)
+        if evidence is None or not evidence.has_data:
+            raise EvidenceNotFoundError(str(evidence_id))
+        if evidence.file is None:
+            return EvidenceLink(url=str(evidence.data_url), expires_at=None)
+        if self._link_signer is None:
+            raise RuntimeError("VerificationService sin EvidenceLinkSigner")
+        expires_at = (now or _now()) + EVIDENCE_LINK_TTL
+        return EvidenceLink(
+            url=self._link_signer.link_for(evidence.file, expires_at),
+            expires_at=expires_at,
+        )
 
     async def verified_user_ids(self, user_ids: list[UUID]) -> set[UUID]:
         """De los `user_ids` dados, cuáles tienen la identidad verificada

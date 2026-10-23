@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { uploadBusinessDocument } from "@/lib/cloudinary";
+import { uploadBusinessDocument, type PrivateFileRef } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { businessClaim, type IdentitySummary } from "@/lib/identity";
 import Button from "@/components/ui/Button";
@@ -42,7 +42,8 @@ export default function BusinessVerificationCard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  // Referencia al archivo privado (ADR-0021), no una URL.
+  const [fileRef, setFileRef] = useState<PrivateFileRef | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +77,7 @@ export default function BusinessVerificationCard() {
     }
     setUploading(true);
     try {
-      setFileUrl(await uploadBusinessDocument(file, token));
+      setFileRef(await uploadBusinessDocument(file, token));
       setFileName(file.name);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir el archivo"));
@@ -86,17 +87,17 @@ export default function BusinessVerificationCard() {
   }
 
   async function handleSubmit() {
-    if (!token || !fileUrl) return;
+    if (!token || !fileRef) return;
     setSubmitting(true);
     setError(null);
     try {
       const updated = await api.post<IdentitySummary>(
         "/identity/me/business",
-        { constancia_url: fileUrl },
+        { constancia: fileRef },
         token
       );
       setSummary(updated);
-      setFileUrl(null);
+      setFileRef(null);
       setFileName(null);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo enviar la verificación"));
@@ -188,7 +189,7 @@ export default function BusinessVerificationCard() {
             <IconChip tone="trust">
               {uploading ? (
                 <Spinner size={16} />
-              ) : fileUrl ? (
+              ) : fileRef ? (
                 <FileTextIcon size={17} />
               ) : (
                 <UploadIcon size={17} />
@@ -196,13 +197,13 @@ export default function BusinessVerificationCard() {
             </IconChip>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-ink">
-                {fileUrl ? fileName : "Subir constancia"}
+                {fileRef ? fileName : "Subir constancia"}
               </span>
               <span className="block text-xs text-ink/50">
-                {fileUrl ? "Tocá para cambiarla" : "PDF o foto, hasta 10MB"}
+                {fileRef ? "Tocá para cambiarla" : "PDF o foto, hasta 10MB"}
               </span>
             </span>
-            {fileUrl && !uploading && (
+            {fileRef && !uploading && (
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-white">
                 <CheckCircleIcon size={14} />
               </span>
@@ -217,14 +218,14 @@ export default function BusinessVerificationCard() {
           />
 
           <p className="mt-3 text-label leading-relaxed text-ink/45">
-            La bajás gratis del sitio de AFIP con tu CUIT. La revisa una
-            persona de nuestro equipo y la eliminamos una vez revisada
-            (Ley 25.326).
+            La bajás gratis del sitio de AFIP con tu CUIT. Queda privada: la
+            revisa una persona de nuestro equipo y la eliminamos una vez
+            revisada (Ley 25.326).
           </p>
           {error && <p className="mt-2 text-sm text-danger">{error}</p>}
           <Button
             onClick={handleSubmit}
-            disabled={!fileUrl || uploading || submitting}
+            disabled={!fileRef || uploading || submitting}
             loading={submitting}
             className="mt-3 w-full"
           >
