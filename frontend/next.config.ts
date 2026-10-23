@@ -1,4 +1,22 @@
 import type { NextConfig } from "next";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+
+// Versión de maplibre-gl instalada: versiona la URL de su worker
+// (`lib/map/worker.ts`) para que Cloudflare pueda cachearlo un año
+// (`scripts/cf-headers.mjs`). Se lee del package.json del paquete, al lado del
+// mismo `dist/` que copia `scripts/copy-maplibre-worker.mjs`.
+const MAPLIBRE_VERSION: string = JSON.parse(
+  readFileSync(
+    join(
+      dirname(createRequire(join(process.cwd(), "package.json")).resolve("maplibre-gl/dist/maplibre-gl.mjs")),
+      "..",
+      "package.json",
+    ),
+    "utf8",
+  ),
+).version;
 
 // La URL del backend se toma de NEXT_PUBLIC_API_URL si está definida
 // (ej: .env.local en desarrollo apunta a localhost). Si no está definida
@@ -67,6 +85,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? PROD_API_URL,
+    NEXT_PUBLIC_MAPLIBRE_VERSION: MAPLIBRE_VERSION,
   },
   async headers() {
     if (process.env.NODE_ENV !== "production") return [];
