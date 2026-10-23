@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, Schibsted_Grotesk, DM_Mono } from "next/font/google";
+import { Inter, Schibsted_Grotesk, DM_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -23,10 +24,18 @@ const inter = Inter({
 // Fraunces: serif del wordmark "oído" (`font-serif`). Hasta el 2026-10-12
 // también era la de los títulos; Julieta la cambió en los títulos porque se
 // sentía genérica y dejó el logo como estaba.
-const fraunces = Fraunces({
+// Desde el 2026-10-23 es un recorte local del mismo archivo que servía Google
+// (Fraunces variable, eje wght 100–900, OFL) con sólo los glifos "o í d O":
+// 2 KB precargados en vez de 36 KB, y el wordmark se dibuja igual. Si el
+// wordmark usa otra letra, regenerarlo con fonttools sobre el latin de Google:
+//   pyftsubset Fraunces-latin.woff2 --text="oídO" --layout-features='*' \
+//     --flavor=woff2 --output-file=app/fonts/fraunces-oido.woff2
+// (una letra que no esté cae a la serif de respaldo, no se rompe nada).
+const fraunces = localFont({
+  src: "./fonts/fraunces-oido.woff2",
   variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "100 900",
+  adjustFontFallback: "Times New Roman",
 });
 
 // Schibsted Grotesk: títulos de pantalla y titulares de la landing
