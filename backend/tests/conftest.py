@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.database import Base, get_session
 from app.core.gemini import DAILY_BUDGETS
 from app.main import app
+from app.modules.notification.infrastructure.push_tasks import drain_pending_pushes
 
 # El rate limiting de login/registro es por IP y global al proceso; los tests
 # comparten la IP del cliente ASGI, así que se desactiva salvo en el test que
@@ -59,6 +60,9 @@ async def session_factory() -> AsyncGenerator[async_sessionmaker[AsyncSession], 
     factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
     yield factory
 
+    # Los push salen en tareas de fondo (`push_tasks.py`): que terminen antes
+    # de cerrar la base y el event loop del test, que pueden usar.
+    await drain_pending_pushes(timeout=5)
     await engine.dispose()
 
 

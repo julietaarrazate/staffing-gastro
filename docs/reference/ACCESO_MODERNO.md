@@ -142,15 +142,20 @@ crean **todas** las notificaciones in-app (shift, chat, review, application:
 `grep -rn SqlAlchemyNotificationRepository app/modules/*/api/dependencies.py`).
 Cada `Notification` que se persiste dispara, best-effort, un intento de push
 a cada suscripción del usuario. Si el usuario no tiene ninguna, es un no-op
-inmediato. Si el envío falla, se loguea y sigue; si el proveedor devuelve
-404/410 (endpoint dado de baja — el usuario desinstaló la PWA, revocó el
-permiso), la suscripción se purga sola.
+inmediato. Las suscripciones se buscan dentro del request, pero los envíos
+salen **después de responder**, en una tarea de fondo
+(`infrastructure/push_tasks.py`, desde 2026-10-23): el request ya no espera
+al proveedor de push. Si el envío falla, se loguea y sigue; si el proveedor
+devuelve 404/410 (endpoint dado de baja — el usuario desinstaló la PWA,
+revocó el permiso), la suscripción se purga sola, con una sesión de base
+propia porque la del request ya se cerró. Al apagar la app, el lifespan
+espera hasta 10 s los envíos en curso y loguea los que no terminaron.
 
 Archivos clave: `domain/entities.py::PushSubscription`,
 `domain/push_sender.py` (puerto), `infrastructure/webpush_sender.py`
 (adaptador real, `pywebpush`), `infrastructure/null_push_sender.py` (flag por
-ausencia), `infrastructure/repositories.py::_send_push_best_effort` (el
-hook). Frontend: `public/sw.js` (service worker mínimo), `lib/push.ts`
+ausencia), `infrastructure/repositories.py::_schedule_pushes` (el
+hook) y `infrastructure/push_tasks.py` (las tareas de fondo). Frontend: `public/sw.js` (service worker mínimo), `lib/push.ts`
 (helpers), `lib/push-prompt-context.tsx` (prompt de opt-in),
 `components/PushToggle.tsx` (toggle en `/profile`).
 
