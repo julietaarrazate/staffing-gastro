@@ -17,12 +17,12 @@ export default function ParaTrabajar() {
       id="trabajar"
       aria-labelledby="trabajar-titulo"
       data-tone="light"
-      className="landing-sec landing-sec-dos landing-sec-trabajar scroll-mt-[var(--lht)]"
+      className="landing-sec scroll-mt-[var(--lht)]"
     >
       <h2 id="trabajar-titulo" className="landing-h2">
-        Turnos de gastronomía cerca tuyo, cuando quieras
+        Turnos cerca tuyo, cuando quieras
       </h2>
-      <Reveal className="landing-sec-cosa w-full max-w-[360px] text-left lg:max-w-[420px]" delay={120}>
+      <Reveal className="landing-sec-cosa w-full max-w-[360px] text-left" delay={120}>
         <div aria-hidden className="overflow-hidden rounded-[1.25rem] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
           <div className="relative h-40">
             <Image src="/landing/mozo1.webp" alt="" fill sizes="360px" className="object-cover" />
