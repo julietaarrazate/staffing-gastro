@@ -1,4 +1,4 @@
-# Los documentos de verificación se borran de Cloudinary al decidir (#PR)
+# Los documentos de verificación se borran de Cloudinary al decidir (#507)
 
 **Pedido:** Julieta decidió que el DNI (frente y dorso), la selfie y la
 constancia de AFIP se borren de Cloudinary apenas la verificación se aprueba o
