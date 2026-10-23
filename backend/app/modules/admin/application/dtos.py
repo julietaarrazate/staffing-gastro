@@ -187,3 +187,68 @@ class AdminUserDetail:
     company: AdminCompanySummary | None
     recent_shifts: list[AdminShiftRow]
     tickets: list[AdminTicketRow]
+
+
+@dataclass
+class LiveShiftRow:
+    """Un turno de "Turnos en vivo": publicado y todavía sin nadie
+    confirmado. `minutes_open` cuenta desde `published_at`."""
+
+    id: UUID
+    title: str | None
+    position: str
+    status: str
+    start_at: datetime
+    end_at: datetime
+    city: str | None
+    company_name: str | None
+    urgent: bool
+    escalated: bool
+    escalated_at: datetime | None
+    published_at: datetime
+    minutes_open: int
+    applications: int
+
+
+@dataclass
+class LiveShiftsBoard:
+    """"Turnos en vivo": los turnos (ya filtrados) y los totales de la
+    lista completa, para que los filtros muestren cuántos hay de cada uno."""
+
+    generated_at: datetime
+    total: int
+    urgent: int
+    escalated: int
+    shifts: list[LiveShiftRow]
+
+
+@dataclass
+class TodayCounts:
+    """Contadores extra de la portada "Hoy" del panel de admin."""
+
+    urgent_uncovered: int
+    no_shows_today: int
+
+
+@dataclass
+class PeriodSummary:
+    """Métricas de un período (`[start, end)`, cortes a la medianoche
+    argentina). Los `%` y el promedio son `None` sin muestra."""
+
+    start: datetime
+    end: datetime
+    shifts_published: int
+    shifts_covered: int
+    covered_pct: float | None
+    covered_under_10_min_pct: float | None
+    avg_minutes_to_cover: float | None
+    applications: int
+
+
+@dataclass
+class PeriodMetrics:
+    """"Métricas" con período: el actual y el anterior del mismo largo."""
+
+    days: int
+    current: PeriodSummary
+    previous: PeriodSummary

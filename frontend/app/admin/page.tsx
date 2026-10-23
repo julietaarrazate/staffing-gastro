@@ -1,7 +1,8 @@
 "use client";
 
 // "Hoy": portada del panel de admin. Responde "¿qué necesita mi atención?":
-// pendientes con contador y acceso directo, y la promesa de los 10 minutos.
+// pendientes con contador y acceso directo, los turnos de hoy que apuran
+// (urgentes sin cubrir y ausencias) y la promesa de los 10 minutos.
 // Las métricas completas están en `/admin/metricas`.
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,13 @@ import { api } from "@/lib/api";
 import type { PlatformStats } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import { Card } from "@/components/ui";
-import { BuildingIcon, MessageIcon, ShieldIcon } from "@/components/icons";
+import {
+  AlertTriangleIcon,
+  BuildingIcon,
+  FlameIcon,
+  MessageIcon,
+  ShieldIcon,
+} from "@/components/icons";
 import {
   AdminHeading,
   SectionLabel,
@@ -79,6 +86,37 @@ export default function AdminTodayPage() {
       />
 
       <div className="mt-6">
+        <SectionLabel>Turnos de hoy</SectionLabel>
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          {loaded ? (
+            <>
+              <PendingCard
+                href="/admin/en-vivo?filtro=urgentes"
+                icon={<FlameIcon size={14} />}
+                label="Urgentes sin cubrir"
+                count={inbox.urgentUncovered === null ? null : String(inbox.urgentUncovered)}
+                doneLabel="Ninguno ahora"
+                action="Ver en vivo"
+              />
+              <PendingCard
+                href="/admin/en-vivo"
+                icon={<AlertTriangleIcon size={14} />}
+                label="Ausencias de hoy"
+                count={inbox.noShowsToday === null ? null : String(inbox.noShowsToday)}
+                doneLabel="Ninguna"
+                action="Ver turnos en vivo"
+              />
+            </>
+          ) : (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-8">
         <SectionLabel>Pendientes</SectionLabel>
         <div className="mt-2 grid gap-3 sm:grid-cols-3">
           {loaded ? (

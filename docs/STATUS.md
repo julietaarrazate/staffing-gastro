@@ -123,15 +123,7 @@ Revisado contra el código y los PRs el 2026-10-03.
     "el primero que toma" para urgentes, cascada por tandas y verificación
     de identidad gratis. Nada decidido:
     [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
-12. 🟡 **Panel de admin ordenado, pasos 3 y 4** (pedido de Julieta,
-    2026-10-20). Hechos: paso 1 (menú por secciones y portada "Hoy") y
-    paso 2 (Personas con buscador, filtros y ficha). Faltan: **Turnos en
-    vivo** (turnos abiertos ahora, minutos sin cubrir, escalados; necesita
-    endpoint nuevo) y sumar a "Hoy" los urgentes sin cubrir y las ausencias
-    del día; **Métricas** con período (7/30 días) y comparación. Ver
-    [`historial/2026-10-20-panel-admin-por-secciones.md`](./historial/2026-10-20-panel-admin-por-secciones.md)
-    y [`historial/2026-10-20-admin-personas.md`](./historial/2026-10-20-admin-personas.md).
-13. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
+12. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
    por prioridad"). Un PR por tema; al cerrar uno, borrarlo de esta lista.
    Origen en
    [`historial/2026-10-20-revision-seguridad-clave-gemini.md`](./historial/2026-10-20-revision-seguridad-clave-gemini.md).

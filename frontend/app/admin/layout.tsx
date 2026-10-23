@@ -23,6 +23,11 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "Hoy" },
+  {
+    href: "/admin/en-vivo",
+    label: "Turnos en vivo",
+    badge: (i) => (i.urgentUncovered ? formatCount(i.urgentUncovered, Infinity) : null),
+  },
   { href: "/admin/personas", label: "Personas" },
   {
     href: "/admin/verificacion",
