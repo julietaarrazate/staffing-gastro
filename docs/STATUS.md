@@ -71,13 +71,19 @@ Revisado contra el código y los PRs el 2026-10-03.
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-7. 🟠 **Cobro real de la suscripción** (pedido de Julieta, 2026-10-22: sin
-   plan gratis, ADR-0020; hoy el cobro está apagado y el plan Inicial queda
-   activo sin pagar). Falta: webhook de Mercado Pago que active el plan al
-   confirmarse el pago, estado "pendiente" guardado, bloquear la publicación
-   hasta el primer pago, `back_url` del checkout a `oido.com.ar` (hoy
-   `staffya.com`), y botón de baja y de arrepentimiento en `/subscription`.
-   Necesita la cuenta de Mercado Pago de Julieta (`MERCADOPAGO_ACCESS_TOKEN`).
+7. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
+   (ADR-0021, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
+   sin débito automático ni tarjeta de crédito; webhook firmado que acredita
+   30 días, estado "pendiente", bloqueo al publicar sin mes pago, avisos de
+   vencimiento, "Dar de baja" y "Arrepentirme" (reembolso) en
+   `/subscription`. **Falta de Julieta:** crear la app "Oído" en Mercado
+   Pago, cargar `MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET` en
+   Render, probar con un comercio propio y recién ahí
+   `SUBSCRIPTIONS_ENFORCED=true` (pasos en
+   [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md),
+   "Cobro mensual con Mercado Pago"). Decidir qué hacer con los comercios de
+   la beta que hoy publican sin pagar cuando se exija (quedan bloqueados
+   hasta su primer pago).
 8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
