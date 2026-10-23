@@ -366,7 +366,11 @@ export type NotificationType =
   | "new_shift_nearby"
   | "urgent_shift_nearby"
   | "support_reply"
-  | "verification_decided";
+  | "verification_decided"
+  | "subscription_paid"
+  | "subscription_expiring"
+  | "subscription_expired"
+  | "subscription_refunded";
 
 export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
 
@@ -602,7 +606,7 @@ export interface SubscriptionStats {
 
 // Fase 1 de ADR-0005 (mensualidad al comercio). Contrato de API congelado,
 // construido en paralelo por el backend — no inventar campos ni endpoints.
-export type SubscriptionStatus = "activa" | "vencida" | "cancelada" | string;
+export type SubscriptionStatus = "pendiente" | "activa" | "vencida" | "cancelada" | string;
 
 export interface Subscription {
   plan_code: string;
@@ -612,6 +616,17 @@ export interface Subscription {
   /** `null` = ilimitado. */
   max_turnos_mes: number | null;
   turnos_usados_mes: number;
+  /** Cobro real con Mercado Pago prendido (ADR-0022). En false, el resto de
+   * los campos de cobro no aplica y la pantalla se ve como en la beta. */
+  billing_enabled?: boolean;
+  /** Hasta cuándo está pago el plan (con el cobro prendido). */
+  paid_until?: string | null;
+  /** False = dio de baja: no renueva, sigue hasta `paid_until`. */
+  renews?: boolean;
+  /** Si hoy puede publicar turnos por el plan (pago y vigente). */
+  can_publish?: boolean;
+  /** Último día (AAAA-MM-DD, hora argentina) para arrepentirse; null si no aplica. */
+  withdrawal_until?: string | null;
 }
 
 export interface SubscriptionPlan {

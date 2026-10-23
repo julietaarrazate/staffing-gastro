@@ -6,7 +6,7 @@ sumar una dependencia nueva sólo por un único endpoint simple. Activo sólo si
 `app/modules/notification/api/dependencies.py::get_email_sender`).
 
 Cero import de la capa de aplicación de otro módulo — sólo `app.core.config`
-(mismo criterio que `MercadoPagoSuscripcionAdapter`).
+(mismo criterio que `MercadoPagoCheckoutAdapter`).
 """
 
 import logging

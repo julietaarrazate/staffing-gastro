@@ -116,18 +116,22 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | GET | `/users` | Listar usuarios — **paginado** |
 | POST | `/users/{id}/promote` · `/suspend` · `/activate` · `/verify` | Moderación |
 
-### `subscription` — `/subscription` (Fase 1 ADR-0005: mensualidad, sólo rol employer)
+### `subscription` — `/subscription` (ADR-0005 Fase 1 + cobro mensual ADR-0022, rol employer salvo el webhook)
 | Método | Ruta | Qué hace |
 |--------|------|----------|
-| GET | `` | Suscripción del comercio logueado (`plan_code`, `status`, `period_end`, `price_ars`, `max_turnos_mes`, `turnos_usados_mes`) — 404 sin perfil de comercio |
-| GET | `/plans` | Planes disponibles (config, no hardcode): `gratis`/`basico`/`pro` |
-| POST | `/subscribe` | `{plan_code}` → flag de cobro OFF: setea el plan ya (`status activa`, `checkout_url: null`); flag ON: crea el preapproval de MP (`status "pendiente"` + `checkout_url`) |
+| GET | `` | Suscripción del comercio logueado (`plan_code`, `status` pendiente/activa/vencida/cancelada, `period_end`, `price_ars`, `max_turnos_mes`, `turnos_usados_mes`, `billing_enabled`, `paid_until`, `renews`, `can_publish`, `withdrawal_until`) — 404 sin perfil de comercio |
+| GET | `/plans` · `/plans/public` | Planes disponibles (config en `plans.py`): `inicial`/`basico`/`pro` |
+| POST | `/subscribe` | `{plan_code}` → cobro apagado: setea el plan ya (`status activa`, `checkout_url: null`); cobro prendido: crea el intento de pago y la preferencia de Checkout Pro (`status "pendiente"` + `checkout_url` = `init_point`). 502 si Mercado Pago no responde |
+| POST | `/cancel-renewal` | "Dar de baja": no renueva, el plan sigue hasta `paid_until`. 409 sin cobro prendido o sin mes pago |
+| POST | `/withdraw` | "Arrepentimiento": dentro de los 10 días corridos del primer pago, reembolso total por Mercado Pago y plan `cancelada`. 409 fuera de plazo |
+| POST | `/webhooks/mercadopago` | Webhook de Mercado Pago, sin sesión. Sólo tópico `payment`; valida `x-signature` (401 si no) y lee el pago de la API de MP antes de acreditar. 404 con el cobro apagado |
 
-Gating de capacidad: `shift` consulta el plan del comercio al **publicar** un
-turno (`POST /shifts/{id}/publish`) vía el puerto de dominio de
-`subscription` — si el plan tiene tope y ya se agotó en el período, responde
-**402** con mensaje claro. `mark-paid` (pago del turno al trabajador) no
-cambia: sigue siendo un módulo distinto (`payment`, placeholder).
+Gating al **publicar** (`POST /shifts/{id}/publish` y `/shifts/events`):
+`shift` consulta el plan vía el puerto de dominio de `subscription`. Con
+`SUBSCRIPTIONS_ENFORCED=true` y tope agotado → **402**; con el cobro real
+exigido (además las dos credenciales de MP) y sin mes pago vigente → **402**
+"Tu plan no está activo…". `mark-paid` (pago del turno al trabajador) no
+cambia.
 
 ## Paginación
 

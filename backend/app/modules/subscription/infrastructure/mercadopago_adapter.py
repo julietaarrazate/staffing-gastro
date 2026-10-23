@@ -1,67 +1,146 @@
-"""`MercadoPagoSuscripcionAdapter`: cobro recurrente simple (preapproval).
+"""`MercadoPagoCheckoutAdapter`: un pago por mes con Checkout Pro (ADR-0022).
 
-Fase 1 del ADR-0005 — es un preapproval de suscripción estándar de MP, NO
-split/marketplace (eso es Fase 2, fuera de alcance). Detrás de un
-feature-flag: sin `mercadopago_access_token` configurado, `enabled` es False
-y el sistema no intenta cobrar (mismo patrón que `sentry_dsn`, ver
-`app.core.config.Settings`). Cero import de la capa de aplicación de otro
-módulo — sólo `app.core.config.Settings` (core, no un módulo de dominio).
+Sin débito automático (preapproval) a propósito: cada mes el comercio paga un
+link de Checkout Pro (en compu muestra un QR, en el celular abre la app de
+Mercado Pago). Se excluye la tarjeta de crédito para que la comisión quede
+baja. Endpoints (API de Mercado Pago, ver las referencias en ADR-0022):
+
+- `POST /checkout/preferences` → `init_point`.
+- `GET /v1/payments/{id}` → estado, monto, moneda, `external_reference`.
+- `POST /v1/payments/{id}/refunds` → reembolso total (arrepentimiento).
+
+Detrás del feature-flag `settings.billing_enabled` (access token + clave del
+webhook). Cero import de la capa de aplicación de otro módulo.
 """
+
+import logging
+from datetime import datetime
+from decimal import Decimal
+from uuid import UUID
 
 import httpx
 
 from app.core.config import Settings
+from app.core.dt import parse_iso_datetime
 from app.modules.subscription.domain.billing_gateway import (
     BillingGateway,
-    PreapprovalResult,
+    CheckoutResult,
+    GatewayPayment,
 )
+from app.modules.subscription.domain.exceptions import BillingGatewayError
 from app.modules.subscription.domain.plans import Plan
 
+logger = logging.getLogger(__name__)
 
-class MercadoPagoSuscripcionAdapter(BillingGateway):
-    """Adaptador real contra la API de Mercado Pago (`/preapproval`)."""
+WEBHOOK_PATH = "/api/v1/subscription/webhooks/mercadopago"
+
+
+def build_preference_payload(
+    settings: Settings, *, intent_id: UUID, plan: Plan, payer_email: str
+) -> dict:
+    """Cuerpo de la preferencia. Público para testearlo sin red."""
+    front = settings.frontend_url.rstrip("/")
+    return {
+        "items": [
+            {
+                "id": plan.code,
+                "title": f"Oído · plan {plan.name} (30 días)",
+                "quantity": 1,
+                "unit_price": float(plan.price_ars),
+                "currency_id": "ARS",
+            }
+        ],
+        "payer": {"email": payer_email},
+        "external_reference": str(intent_id),
+        "back_urls": {
+            "success": f"{front}/subscription?pago=ok",
+            "pending": f"{front}/subscription?pago=pendiente",
+            "failure": f"{front}/subscription?pago=error",
+        },
+        "auto_return": "approved",
+        "notification_url": f"{settings.api_public_url.rstrip('/')}{WEBHOOK_PATH}",
+        # Sin tarjeta de crédito: es la que más comisión cobra. Quedan dinero
+        # en cuenta, débito y lo que Mercado Pago ofrezca además (ADR-0022).
+        "payment_methods": {
+            "excluded_payment_types": [{"id": "credit_card"}],
+            "installments": 1,
+        },
+        "statement_descriptor": "OIDO",
+    }
+
+
+class MercadoPagoCheckoutAdapter(BillingGateway):
+    """Adaptador real contra la API de Mercado Pago."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
     @property
     def enabled(self) -> bool:
-        return bool(self._settings.mercadopago_access_token)
+        return self._settings.billing_enabled
 
-    async def create_preapproval(
-        self, *, company_id, payer_email: str, plan: Plan
-    ) -> PreapprovalResult:
+    def _client(self) -> httpx.AsyncClient:
         if not self.enabled:
             raise RuntimeError(
-                "MercadoPagoSuscripcionAdapter sin credenciales: la feature de "
-                "cobro real está apagada (falta MERCADOPAGO_ACCESS_TOKEN)."
+                "MercadoPagoCheckoutAdapter sin credenciales: el cobro real está "
+                "apagado (faltan MERCADOPAGO_ACCESS_TOKEN / MERCADOPAGO_WEBHOOK_SECRET)."
             )
-        payload = {
-            "reason": f"Oído — plan {plan.name}",
-            "external_reference": str(company_id),
-            "payer_email": payer_email,
-            "auto_recurring": {
-                "frequency": 1,
-                "frequency_type": "months",
-                "transaction_amount": float(plan.price_ars),
-                "currency_id": "ARS",
-            },
-            "back_url": "https://staffya.com/subscription",
-            "status": "pending",
-        }
-        async with httpx.AsyncClient(
-            base_url=self._settings.mercadopago_base_url, timeout=15.0
-        ) as client:
-            response = await client.post(
-                "/preapproval",
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {self._settings.mercadopago_access_token}"
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
-        return PreapprovalResult(
-            checkout_url=data["init_point"],
-            external_reference=str(data.get("id", "")),
+        return httpx.AsyncClient(
+            base_url=self._settings.mercadopago_base_url,
+            timeout=15.0,
+            headers={"Authorization": f"Bearer {self._settings.mercadopago_access_token}"},
         )
+
+    async def create_checkout(
+        self, *, intent_id: UUID, plan: Plan, payer_email: str
+    ) -> CheckoutResult:
+        payload = build_preference_payload(
+            self._settings, intent_id=intent_id, plan=plan, payer_email=payer_email
+        )
+        try:
+            async with self._client() as client:
+                response = await client.post(
+                    "/checkout/preferences",
+                    json=payload,
+                    headers={"X-Idempotency-Key": str(intent_id)},
+                )
+                response.raise_for_status()
+                data = response.json()
+        except httpx.HTTPError as exc:
+            logger.warning("mercadopago.preference_failed", extra={"error": str(exc)})
+            raise BillingGatewayError(str(exc)) from exc
+        return CheckoutResult(checkout_url=data["init_point"], preference_id=str(data["id"]))
+
+    async def get_payment(self, payment_id: str) -> GatewayPayment | None:
+        try:
+            async with self._client() as client:
+                response = await client.get(f"/v1/payments/{payment_id}")
+                if response.status_code == 404:
+                    return None
+                response.raise_for_status()
+                data = response.json()
+        except httpx.HTTPError as exc:
+            logger.warning("mercadopago.payment_read_failed", extra={"error": str(exc)})
+            raise BillingGatewayError(str(exc)) from exc
+        approved_at: datetime | None = parse_iso_datetime(data.get("date_approved"))
+        return GatewayPayment(
+            id=str(data["id"]),
+            status=str(data.get("status", "")),
+            amount=Decimal(str(data.get("transaction_amount", "0"))),
+            currency=str(data.get("currency_id", "")),
+            external_reference=data.get("external_reference"),
+            approved_at=approved_at,
+        )
+
+    async def refund_payment(self, payment_id: str, *, idempotency_key: str) -> None:
+        try:
+            async with self._client() as client:
+                response = await client.post(
+                    f"/v1/payments/{payment_id}/refunds",
+                    json={},
+                    headers={"X-Idempotency-Key": idempotency_key},
+                )
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.warning("mercadopago.refund_failed", extra={"error": str(exc)})
+            raise BillingGatewayError(str(exc)) from exc

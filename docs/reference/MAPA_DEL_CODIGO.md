@@ -42,7 +42,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
 | `/favorites` | Mis trabajadores favoritos (reciben siempre el primer aviso, #399) | — | `/favorites` |
 | `/workers/[id]` | Perfil público de un trabajador | `WorkerReviews`, `IdentityVerifiedBadge` | `/workers/{id}` |
-| `/subscription` | Mi plan (cobro apagado en la beta, ADR-0005) | `subscription/PlanCard` | `/subscription` |
+| `/subscription` | Mi plan: pagar el mes con Mercado Pago, vuelta `?pago=`, dar de baja, arrepentirme (ADR-0022; con el cobro apagado, como en la beta) | `subscription/PlanCard`, `subscription/SubscriptionStatusCard`, `lib/subscription.ts` | `/subscription`, `/subscription/subscribe`, `/cancel-renewal`, `/withdraw` |
 
 ### Compartidas, públicas y admin
 
@@ -121,7 +121,7 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/favorites`, `/saved-shifts` | favoritos del comercio, turnos guardados del trabajador |
 | `/identity` | verificación: DNI y selfie, constancia AFIP, cola de admin, link que vence de cada evidencia (`/evidences/{id}/link`) |
 | `/reviews`, `/chats`, `/notifications`, `/support` | reseñas, chat por turno, avisos, tickets |
-| `/subscription` | plan, planes, suscribirse |
+| `/subscription` | plan, planes, suscribirse (Checkout Pro), baja, arrepentimiento, `webhooks/mercadopago` |
 | `/uploads` | firma de subida de CV y de constancia |
 | `/assistant` | IA del comercio (`query`) y del trabajador (`worker-query`) |
 | `/admin` | stats, `today`, `live-shifts?urgent=&escalated=`, `period-metrics?period=7\|30` (cortes en días argentinos, `admin/application/periods.py`), usuarios (`users?q=&role=&status=&verified=`), ficha `users/{id}`, cuentas de prueba, suscripciones |

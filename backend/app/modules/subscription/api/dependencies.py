@@ -11,29 +11,44 @@ from app.core.database import get_session
 from app.modules.company.api.dependencies import get_company_service
 from app.modules.company.application.services import CompanyProfileService
 from app.modules.company.domain.exceptions import CompanyProfileNotFoundError
+from app.modules.company.infrastructure.repositories import SqlAlchemyCompanyProfileRepository
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.notification.api.dependencies import get_email_sender
+from app.modules.notification.domain.email_sender import EmailSender
+from app.modules.notification.infrastructure.repositories import (
+    SqlAlchemyNotificationRepository,
+)
 from app.modules.subscription.application.services import SubscriptionService
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.infrastructure.mercadopago_adapter import (
-    MercadoPagoSuscripcionAdapter,
+    MercadoPagoCheckoutAdapter,
 )
 from app.modules.subscription.infrastructure.repositories import (
+    SqlAlchemySubscriptionPaymentRepository,
     SqlAlchemySubscriptionRepository,
 )
 
 
 def get_billing_gateway() -> BillingGateway:
-    return MercadoPagoSuscripcionAdapter(app_settings)
+    return MercadoPagoCheckoutAdapter(app_settings)
 
 
 def get_subscription_service(
     session: Annotated[AsyncSession, Depends(get_session)],
     billing: Annotated[BillingGateway, Depends(get_billing_gateway)],
+    email_sender: Annotated[EmailSender, Depends(get_email_sender)],
 ) -> SubscriptionService:
     return SubscriptionService(
-        subscriptions=SqlAlchemySubscriptionRepository(session), billing=billing
+        subscriptions=SqlAlchemySubscriptionRepository(session),
+        billing=billing,
+        payments=SqlAlchemySubscriptionPaymentRepository(session),
+        companies=SqlAlchemyCompanyProfileRepository(session),
+        users=SqlAlchemyUserRepository(session),
+        notifications=SqlAlchemyNotificationRepository(session),
+        email_sender=email_sender,
     )
 
 
