@@ -1,4 +1,4 @@
-# Cobro mensual real con Mercado Pago, sin débito automático
+# Cobro mensual real con Mercado Pago, sin débito automático (#497)
 
 **Pedido:** Julieta (2026-10-23, "vamos con todo"): que pagar el plan sea
 real, pero sin débito automático con tarjeta de crédito por la comisión. Un
