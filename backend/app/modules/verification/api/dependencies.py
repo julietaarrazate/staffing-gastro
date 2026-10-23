@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.modules.verification.application.services import VerificationService
+from app.modules.verification.infrastructure.evidence_link_signer import (
+    CloudinaryEvidenceLinkSigner,
+)
 from app.modules.verification.infrastructure.repositories import (
     SqlAlchemyClaimRepository,
 )
@@ -15,4 +18,6 @@ from app.modules.verification.infrastructure.repositories import (
 def get_verification_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> VerificationService:
-    return VerificationService(SqlAlchemyClaimRepository(session))
+    return VerificationService(
+        SqlAlchemyClaimRepository(session), CloudinaryEvidenceLinkSigner()
+    )

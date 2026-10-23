@@ -146,3 +146,66 @@ class SubscriptionStatsResponse(BaseModel):
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
     billing_enabled: bool
+
+
+class LiveShiftResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str | None = None
+    position: str
+    status: str
+    start_at: datetime
+    end_at: datetime
+    city: str | None = None
+    company_name: str | None = None
+    urgent: bool
+    escalated: bool
+    escalated_at: datetime | None = None
+    published_at: datetime
+    minutes_open: int
+    applications: int
+
+
+class LiveShiftsResponse(BaseModel):
+    """Ver `AdminService.list_live_shifts`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    generated_at: datetime
+    total: int
+    urgent: int
+    escalated: int
+    shifts: list[LiveShiftResponse]
+
+
+class TodayCountsResponse(BaseModel):
+    """Ver `AdminService.get_today_counts`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    urgent_uncovered: int
+    no_shows_today: int
+
+
+class PeriodSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    start: datetime
+    end: datetime
+    shifts_published: int
+    shifts_covered: int
+    covered_pct: float | None = None
+    covered_under_10_min_pct: float | None = None
+    avg_minutes_to_cover: float | None = None
+    applications: int
+
+
+class PeriodMetricsResponse(BaseModel):
+    """Ver `AdminService.get_period_metrics`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    days: int
+    current: PeriodSummaryResponse
+    previous: PeriodSummaryResponse

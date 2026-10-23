@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { uploadImage } from "@/lib/cloudinary";
+import { uploadIdentityImage, type PrivateFileRef } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import {
   documentClaim,
@@ -14,8 +14,16 @@ import Spinner from "@/components/ui/Spinner";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { CameraIcon, CheckCircleIcon, ShieldIcon } from "@/components/icons";
 
-/** Un casillero para subir una imagen (DNI o selfie). Sube a Cloudinary y
- * expone la URL resultante; no recorta (un DNI no es un avatar). */
+/** Lo subido en un casillero: la referencia privada que va al backend y una
+ * vista previa local (del archivo en el teléfono, no de Cloudinary: el
+ * archivo subido es privado y no tiene URL que se pueda mostrar, ADR-0021). */
+interface UploadedDoc {
+  ref: PrivateFileRef;
+  preview: string;
+}
+
+/** Un casillero para subir una imagen (DNI o selfie). Sube a Cloudinary,
+ * privada; no recorta (un DNI no es un avatar). */
 function DocSlot({
   label,
   hint,
@@ -24,8 +32,8 @@ function DocSlot({
 }: {
   label: string;
   hint: string;
-  value: string | null;
-  onChange: (url: string | null) => void;
+  value: UploadedDoc | null;
+  onChange: (doc: UploadedDoc | null) => void;
 }) {
   const { token } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +48,8 @@ function DocSlot({
     setUploading(true);
     try {
       if (!token) throw new Error("Tu sesión venció. Volvé a entrar para subir la foto.");
-      onChange(await uploadImage(file, token, "identity"));
+      const ref = await uploadIdentityImage(file, token);
+      onChange({ ref, preview: URL.createObjectURL(file) });
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir la imagen"));
     } finally {
@@ -65,7 +74,7 @@ function DocSlot({
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt={label} className="h-full w-full object-cover" />
+          <img src={value.preview} alt={label} className="h-full w-full object-cover" />
         ) : (
           <span className="flex flex-col items-center gap-1 text-xs font-semibold">
             <CameraIcon size={22} />
@@ -103,8 +112,8 @@ export default function IdentityVerificationCard() {
   const [loadError, setLoadError] = useState(false);
 
   // Formulario de envío (visible cuando corresponde subir/reenviar).
-  const [dniFront, setDniFront] = useState<string | null>(null);
-  const [selfie, setSelfie] = useState<string | null>(null);
+  const [dniFront, setDniFront] = useState<UploadedDoc | null>(null);
+  const [selfie, setSelfie] = useState<UploadedDoc | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -131,7 +140,7 @@ export default function IdentityVerificationCard() {
     try {
       const updated = await api.post<IdentitySummary>(
         "/identity/me/document",
-        { dni_frente_url: dniFront, selfie_url: selfie },
+        { dni_frente: dniFront.ref, selfie: selfie.ref },
         token
       );
       setSummary(updated);
@@ -227,8 +236,9 @@ export default function IdentityVerificationCard() {
             />
           </div>
           <p className="mt-3 text-label leading-relaxed text-ink/45">
-            Usamos estas imágenes sólo para verificar tu identidad y las
-            eliminamos una vez revisadas (Ley 25.326).
+            Usamos estas imágenes sólo para verificar tu identidad. Quedan
+            privadas: las ve una persona de nuestro equipo mientras revisa, y
+            las eliminamos una vez revisadas (Ley 25.326).
           </p>
           {submitError && <p className="mt-2 text-sm text-danger">{submitError}</p>}
           <Button

@@ -61,16 +61,36 @@ export function cldAttachment(url: string): string {
 }
 
 /**
- * Sube una foto (perfil o logo, portada del comercio, DNI o selfie) con una
- * subida FIRMADA por el backend (`POST /uploads/sign-image`). Antes usaba un
- * preset unsigned que viajaba en el código del navegador, y con él cualquiera
- * podía subir lo que quisiera a la cuenta (auditoría de seguridad
- * 2026-10-14). La carpeta y el nombre del archivo los decide el servidor.
+ * Sube una foto pública (perfil o logo, portada del comercio) con una subida
+ * FIRMADA por el backend (`POST /uploads/sign-image`). Antes usaba un preset
+ * unsigned que viajaba en el código del navegador, y con él cualquiera podía
+ * subir lo que quisiera a la cuenta (auditoría de seguridad 2026-10-14). La
+ * carpeta y el nombre del archivo los decide el servidor.
+ *
+ * El DNI y la selfie NO van por acá: son privados (`uploadIdentityImage`).
  */
-export type ImageKind = "profile" | "cover" | "identity";
+export type ImageKind = "profile" | "cover";
 
 export async function uploadImage(file: File, token: string, kind: ImageKind): Promise<string> {
-  return uploadSigned(file, token, `/uploads/sign-image?kind=${kind}`);
+  return (await uploadSigned(file, token, `/uploads/sign-image?kind=${kind}`)).secure_url;
+}
+
+/**
+ * Referencia a un archivo PRIVADO en Cloudinary (ADR-0021): DNI, selfie o
+ * constancia de AFIP. No es una URL — no hay URL pública que lo muestre. Se
+ * manda tal cual al backend; el único que lo puede volver a ver es un admin,
+ * con un link que vence a los 5 minutos.
+ */
+export interface PrivateFileRef {
+  public_id: string;
+  resource_type: string;
+  format: string;
+  type: "private";
+}
+
+/** Sube el DNI o la selfie, privados (ADR-0021). */
+export async function uploadIdentityImage(file: File, token: string): Promise<PrivateFileRef> {
+  return toPrivateRef(await uploadSigned(file, token, "/uploads/sign-image?kind=identity"));
 }
 
 /**
@@ -83,7 +103,7 @@ export async function uploadImage(file: File, token: string, kind: ImageKind): P
  * un error claro (503) en vez de fallar en silencio.
  */
 export async function uploadCv(file: File, token: string): Promise<string> {
-  return uploadSigned(file, token, "/uploads/sign-cv");
+  return (await uploadSigned(file, token, "/uploads/sign-cv")).secure_url;
 }
 
 /**
@@ -92,26 +112,49 @@ export async function uploadCv(file: File, token: string): Promise<string> {
  * Cloudinary no entrega PDF subido sin firma— pero contra su propio endpoint:
  * la lista de formatos viaja DENTRO de la firma, y la de la constancia es más
  * angosta (sin `doc`/`docx`). Reusar la firma del CV le daría al comercio
- * permiso para subir formatos que este flujo no necesita.
+ * permiso para subir formatos que este flujo no necesita. Privada (ADR-0021).
  */
 export async function uploadBusinessDocument(
   file: File,
   token: string
-): Promise<string> {
-  return uploadSigned(file, token, "/uploads/sign-business-document");
+): Promise<PrivateFileRef> {
+  return toPrivateRef(await uploadSigned(file, token, "/uploads/sign-business-document"));
+}
+
+/** Lo que contesta Cloudinary a una subida (los campos que usamos). */
+interface UploadResult {
+  secure_url: string;
+  public_id: string;
+  resource_type: string;
+  format?: string;
+  type: string;
+}
+
+function toPrivateRef(result: UploadResult): PrivateFileRef {
+  if (result.type !== "private") {
+    // El backend firmó `type=private`; si Cloudinary contesta otra cosa, el
+    // archivo quedó público y no hay que mandarlo como si fuera privado.
+    throw new Error("No se pudo subir el archivo de forma privada. Probá de nuevo.");
+  }
+  return {
+    public_id: result.public_id,
+    resource_type: result.resource_type,
+    format: result.format ?? "",
+    type: "private",
+  };
 }
 
 async function uploadSigned(
   file: File,
   token: string,
   signEndpoint: string
-): Promise<string> {
+): Promise<UploadResult> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   if (!cloudName) {
     throw new Error("La subida de archivos no está configurada todavía.");
   }
 
-  const { timestamp, signature, api_key, allowed_formats, folder, public_id, overwrite } =
+  const { timestamp, signature, api_key, allowed_formats, folder, public_id, overwrite, type } =
     await api.post<{
       timestamp: string;
       signature: string;
@@ -120,6 +163,7 @@ async function uploadSigned(
       folder: string;
       public_id: string;
       overwrite: string;
+      type?: string | null;
     }>(signEndpoint, undefined, token);
 
   const formData = new FormData();
@@ -132,6 +176,8 @@ async function uploadSigned(
   formData.append("folder", folder);
   formData.append("public_id", public_id);
   formData.append("overwrite", overwrite);
+  // Documentos de identidad: `private`, también firmado (ADR-0021).
+  if (type) formData.append("type", type);
 
   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
     method: "POST",
@@ -140,6 +186,5 @@ async function uploadSigned(
   if (!res.ok) {
     throw new Error("No se pudo subir el archivo. Probá de nuevo.");
   }
-  const data = await res.json();
-  return data.secure_url as string;
+  return (await res.json()) as UploadResult;
 }

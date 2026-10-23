@@ -2,18 +2,22 @@
 
 // "Métricas": cómo va el negocio. Conteos de usuarios, la promesa de los 10
 // minutos, métricas de producto (docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md
-// §6) y suscripciones (ADR-0005). Salió tal cual del panel de una sola página
-// (2026-10-20); el período y la comparación son el paso 4.
+// §6) y suscripciones (ADR-0005). Arriba, lo de los últimos 7 o 30 días
+// contra el período anterior (paso 4 del panel ordenado, 2026-10-20); abajo,
+// los acumulados de siempre.
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import type { PlatformStats, SubscriptionStats } from "@/lib/types";
-import { Badge, Card, ErrorBanner } from "@/components/ui";
+import { AR_TIMEZONE } from "@/lib/datetime";
+import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } from "@/lib/types";
+import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
+import { periodDelta } from "@/components/admin/live";
 import {
   AdminHeading,
+  DeltaStatCard,
   RateCard,
   SectionLabel,
   StatCard,
@@ -26,6 +30,116 @@ const PLAN_LABELS: Record<string, string> = {
   basico: "Básico",
   pro: "Pro",
 };
+
+type Period = "7" | "30";
+
+function formatDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "numeric",
+    month: "numeric",
+  });
+}
+
+/** "17/10 al 23/10": el período en días argentinos (`end` es exclusivo). */
+function periodRange(summary: PeriodSummary): string {
+  const lastDay = new Date(new Date(summary.end).getTime() - 1).toISOString();
+  return `${formatDay(summary.start)} al ${formatDay(lastDay)}`;
+}
+
+const minutes = (m: number | null) => (m === null ? "—" : `${m.toFixed(0)} min`);
+const pct = (p: number | null) => (p === null ? "—" : `${p.toFixed(0)}%`);
+
+function PeriodSection({ token }: { token: string | null }) {
+  const [period, setPeriod] = useState<Period>("7");
+  const [data, setData] = useState<PeriodMetrics | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    if (!token) return;
+    setData(null);
+    setError(null);
+    api
+      .get<PeriodMetrics>(`/admin/period-metrics?period=${period}`, token)
+      .then(setData)
+      .catch((err) => setError(getErrorMessage(err, "No se pudo cargar el período")));
+  }, [token, period]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const cur = data?.current;
+  const prev = data?.previous;
+
+  return (
+    <div className="mt-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <SectionLabel>
+          {cur ? `Período: ${periodRange(cur)}` : "Período"}
+        </SectionLabel>
+        <SegmentedControl<Period>
+          className="sm:w-72"
+          value={period}
+          onChange={setPeriod}
+          options={[
+            { value: "7", label: "Últimos 7 días" },
+            { value: "30", label: "Últimos 30 días" },
+          ]}
+        />
+      </div>
+      {error && (
+        <div className="mt-2">
+          <ErrorBanner message={error} onRetry={load} />
+        </div>
+      )}
+      <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {!cur || !prev ? (
+          !error && Array.from({ length: 5 }, (_, i) => <StatCardSkeleton key={i} />)
+        ) : (
+          <>
+            <DeltaStatCard
+              label="Turnos publicados"
+              value={String(cur.shifts_published)}
+              previous={String(prev.shifts_published)}
+              delta={periodDelta(cur.shifts_published, prev.shifts_published)}
+            />
+            <DeltaStatCard
+              label="Turnos cubiertos"
+              value={String(cur.shifts_covered)}
+              previous={String(prev.shifts_covered)}
+              delta={periodDelta(cur.shifts_covered, prev.shifts_covered)}
+              caption={cur.covered_pct === null ? undefined : `${pct(cur.covered_pct)} de los publicados`}
+            />
+            <DeltaStatCard
+              label="Tiempo hasta cubrir"
+              value={minutes(cur.avg_minutes_to_cover)}
+              previous={minutes(prev.avg_minutes_to_cover)}
+              delta={periodDelta(cur.avg_minutes_to_cover, prev.avg_minutes_to_cover, {
+                lowerIsBetter: true,
+              })}
+            />
+            <DeltaStatCard
+              label="Cubiertos en menos de 10 min"
+              value={pct(cur.covered_under_10_min_pct)}
+              previous={pct(prev.covered_under_10_min_pct)}
+              delta={periodDelta(cur.covered_under_10_min_pct, prev.covered_under_10_min_pct)}
+            />
+            <DeltaStatCard
+              label="Postulaciones"
+              value={String(cur.applications)}
+              previous={String(prev.applications)}
+              delta={periodDelta(cur.applications, prev.applications)}
+            />
+          </>
+        )}
+      </div>
+      <p className="mt-1.5 px-1 text-xs text-ink/40">
+        Contra los {period} días anteriores. Los días se cortan a la medianoche de Argentina.
+      </p>
+    </div>
+  );
+}
 
 export default function AdminMetricsPage() {
   const { token } = useAuth();
@@ -64,7 +178,9 @@ export default function AdminMetricsPage() {
         </div>
       )}
 
-      <div className="mt-6">
+      <PeriodSection token={token} />
+
+      <div className="mt-8">
         <SectionLabel>Usuarios</SectionLabel>
         <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           {loading || !stats ? (
@@ -88,7 +204,7 @@ export default function AdminMetricsPage() {
               siempre para que el promedio no se lea como certeza con pocos
               datos (sin backfill: sólo cuenta desde que se empezó a medir). */}
           <div className="mt-8">
-            <SectionLabel>La promesa de los 10 minutos</SectionLabel>
+            <SectionLabel>La promesa de los 10 minutos, desde el principio</SectionLabel>
             <div className="mt-2 grid grid-cols-2 gap-3">
               <StatCard
                 label="Tiempo promedio de cobertura"
@@ -196,6 +312,9 @@ export default function AdminMetricsPage() {
                   {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
                 </p>
               )}
+              {/* El ingreso es una foto de hoy: no se guarda su historia, así
+                  que no hay período anterior contra el cual comparar. */}
+              <p className="mt-1 text-xs text-ink/40">Hoy, sin comparación por período.</p>
             </Card>
             <StatCard label="Comercios" value={subscriptionStats.total_companies} />
             <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />

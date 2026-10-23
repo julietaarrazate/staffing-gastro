@@ -78,8 +78,17 @@ class IdentityEvidenceModel(Base):
     )
     evidence_type: Mapped[str] = mapped_column(String(20), nullable=False)
     method: Mapped[str] = mapped_column(String(20), nullable=False)
-    # Puntero al archivo sensible. NULL cuando se purgó tras la decisión.
+    # Puntero VIEJO al archivo sensible: URL pública, sólo en evidencias
+    # subidas antes del ADR-0021 que todavía no pasaron por
+    # `scripts/privatize_identity_evidence.py`. NULL en las nuevas y cuando se
+    # purgó tras la decisión.
     data_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Puntero al archivo PRIVADO en Cloudinary (ADR-0021). No es una URL: para
+    # verlo hay que pedir un link que vence. NULL cuando se purgó.
+    file_public_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    file_resource_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    file_format: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    file_delivery_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     data_purged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -217,10 +217,12 @@ def setup_sentry() -> None:
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
             environment=settings.environment,
-            # Sin tracing de performance por ahora: sólo captura de errores.
-            traces_sample_rate=0.0,
+            traces_sample_rate=settings.sentry_traces_sample_rate,
             send_default_pii=False,
             before_send=scrub_sentry_event,
+            # Las mediciones llevan URLs y parámetros: pasan por el mismo
+            # filtro de secretos que los errores (p. ej. `?token=` del WS).
+            before_send_transaction=scrub_sentry_event,
             integrations=[
                 StarletteIntegration(failed_request_status_codes=SENTRY_FAILED_STATUS_CODES),
                 FastApiIntegration(failed_request_status_codes=SENTRY_FAILED_STATUS_CODES),

@@ -83,7 +83,7 @@ test("el encabezado lleva a la sección de quien trabaja y muestra el botón al 
   await expect(pedir).toHaveCount(0); // escondido: fuera del árbol accesible
   await page.locator("header").getByRole("link", { name: "Para trabajar" }).click();
   await expect(page).toHaveURL(/#trabajar$/);
-  await expect(page.getByRole("heading", { level: 2, name: /Turnos de gastronomía cerca tuyo/ })).toBeInViewport();
+  await expect(page.getByRole("heading", { level: 2, name: /Turnos cerca tuyo/ })).toBeInViewport();
   await expect(page.locator("header").getByRole("link", { name: "Necesito personal" })).toHaveAttribute(
     "href",
     "/register?rol=comercio"

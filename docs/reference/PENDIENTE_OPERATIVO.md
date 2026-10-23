@@ -66,6 +66,13 @@ toda vista previa y el sitemap apuntaban ahí.
    esto por sí solo NO resuelve "el PDF sube pero no abre" (ver el ítem de
    abajo, corregido tras probarlo en vivo) — hace falta además el toggle
    del dashboard.
+5b. 🟠 **`CLOUDINARY_CLOUD_NAME`** (Render, nueva 2026-10-23, ADR-0021): el
+   mismo valor que `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` de Vercel. Sin ella el
+   panel de Verificación no puede abrir los DNI/selfies/constancias nuevos
+   (responde 503). Después de cargarla, correr la migración de los archivos
+   viejos: pasos en
+   [`../adr/ADR-0021-documentos-de-identidad-privados.md`](../adr/ADR-0021-documentos-de-identidad-privados.md)
+   ("Migración").
 6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
    producto): habilita "Describí el turno" en `/shifts/new` — el comercio
    escribe algo como "necesito un mozo el sábado a la noche, se paga

@@ -12,6 +12,7 @@ from uuid import UUID
 
 from app.core.dt import naive as _naive
 from app.core.security import create_access_token, hash_password
+from app.core.tz import now_art, to_art
 from app.modules.admin.application.dtos import (
     AdminCompanySummary,
     AdminShiftRow,
@@ -19,22 +20,28 @@ from app.modules.admin.application.dtos import (
     AdminUserDetail,
     AdminUserRow,
     AdminWorkerSummary,
+    LiveShiftRow,
+    LiveShiftsBoard,
+    PeriodMetrics,
+    PeriodSummary,
     PlatformStats,
     SubscriptionStats,
     TestAccount,
+    TodayCounts,
 )
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
     TargetUserNotFoundError,
 )
+from app.modules.admin.application.periods import day_bounds, period_bounds
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
-from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
 from app.modules.subscription.domain.repositories import SubscriptionRepository
@@ -279,6 +286,106 @@ class AdminService:
                 company_stats.companies_with_2plus_shifts,
                 company_stats.companies_with_1plus_shifts,
             ),
+        )
+
+    # Tope de "Turnos en vivo": más que esto no se mira en una pantalla, y
+    # sin tope un día raro traería la tabla entera cada 30 segundos.
+    LIVE_SHIFTS_LIMIT = 200
+
+    async def list_live_shifts(
+        self,
+        *,
+        urgent_only: bool = False,
+        escalated_only: bool = False,
+        now: datetime | None = None,
+    ) -> LiveShiftsBoard:
+        """"Turnos en vivo": publicados y sin nadie confirmado, con los
+        minutos que llevan sin cubrir, el comercio y cuántas postulaciones
+        tienen. Tres consultas fijas (turnos, comercios, postulaciones),
+        sin importar cuántos turnos haya."""
+        now = now or now_art()
+        shifts = await self._shifts.list_live(limit=self.LIVE_SHIFTS_LIMIT)
+        companies = await self._companies.list_by_ids(list({s.company_id for s in shifts}))
+        applications = await self._applications.count_active_by_shift_ids([s.id for s in shifts])
+
+        rows = [
+            LiveShiftRow(
+                id=s.id,
+                title=s.title,
+                position=s.position.value,
+                status=s.status.value,
+                start_at=s.start_at,
+                end_at=s.end_at,
+                city=s.city,
+                company_name=companies[s.company_id].name if s.company_id in companies else None,
+                urgent=s.urgent,
+                escalated=s.escalated_at is not None,
+                escalated_at=s.escalated_at,
+                published_at=s.published_at,
+                minutes_open=max(
+                    int((now - to_art(s.published_at)).total_seconds() // 60), 0
+                ),
+                applications=applications.get(s.id, 0),
+            )
+            for s in shifts
+            if s.published_at is not None
+        ]
+        filtered = [
+            r
+            for r in rows
+            if (not urgent_only or r.urgent) and (not escalated_only or r.escalated)
+        ]
+        return LiveShiftsBoard(
+            generated_at=now,
+            total=len(rows),
+            urgent=sum(1 for r in rows if r.urgent),
+            escalated=sum(1 for r in rows if r.escalated),
+            shifts=filtered,
+        )
+
+    async def get_today_counts(self, *, now: datetime | None = None) -> TodayCounts:
+        """Urgentes sin cubrir y ausencias del día argentino de hoy, para
+        la portada "Hoy"."""
+        day_start, day_end = day_bounds(now or now_art())
+        counts = await self._shifts.count_today(day_start=day_start, day_end=day_end)
+        return TodayCounts(
+            urgent_uncovered=counts.urgent_uncovered,
+            no_shows_today=counts.no_shows_today,
+        )
+
+    async def get_period_metrics(
+        self, days: int, *, now: datetime | None = None
+    ) -> PeriodMetrics:
+        """"Métricas" de los últimos `days` días argentinos contra los
+        `days` anteriores. Dos consultas fijas (turnos y postulaciones),
+        cada una con los dos períodos adentro."""
+        bounds = period_bounds(days, now or now_art())
+        window = {
+            "previous_start": bounds.previous_start,
+            "current_start": bounds.current_start,
+            "end": bounds.end,
+        }
+        current, previous = await self._shifts.count_period_stats(**window)
+        apps_current, apps_previous = await self._applications.count_created_by_period(**window)
+
+        def _summary(
+            start: datetime, end: datetime, s: ShiftPeriodStats, apps: int
+        ) -> PeriodSummary:
+            return PeriodSummary(
+                start=start,
+                end=end,
+                shifts_published=s.published,
+                shifts_covered=s.covered,
+                covered_pct=_rate_pct(s.covered, s.published),
+                covered_under_10_min_pct=_rate_pct(s.covered_under_10_min, s.covered),
+                avg_minutes_to_cover=s.avg_minutes_to_cover,
+                applications=apps,
+            )
+
+        return PeriodMetrics(
+            days=days,
+            current=_summary(bounds.current_start, bounds.end, current, apps_current),
+            previous=_summary(bounds.previous_start, bounds.current_start, previous, apps_previous),
         )
 
     async def get_or_create_test_accounts(self) -> list[TestAccount]:
