@@ -4,13 +4,24 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { useRouter } from "next/navigation";
 import {
   api,
+  ApiError,
   bindSessionToken,
   hasBoundSession,
   isTransientFailure,
   renewSessionToken,
+  setTwoFactorGateHandler,
   setUnauthorizedHandler,
 } from "@/lib/api";
 import { clearAllCached } from "@/lib/screen-cache";
+import {
+  isTwoFactorChallenge,
+  TWO_FACTOR_CODES,
+  TWO_FACTOR_PAGE,
+  twoFactorApi,
+  type SessionTokens,
+  type TwoFactorChallenge,
+  type TwoFactorVerified,
+} from "@/lib/two-factor";
 import { User } from "@/lib/types";
 
 /** Resultado de `loginWithGoogle`: o bien ya se completó la sesión, o el
@@ -18,13 +29,17 @@ import { User } from "@/lib/types";
  * (ver `POST /auth/google` en el backend, docs/reference/ACCESO_MODERNO.md). */
 export type GoogleLoginResult =
   | { requiresRole: true; email: string; fullName: string }
-  | { requiresRole: false };
+  | { requiresRole: false; twoFactor: boolean };
+
+/** Resultado de `login`: `twoFactor` = la cuenta es admin con la
+ * verificación en dos pasos y falta el código (`pendingTwoFactor`). */
+export type LoginOutcome = { twoFactor: boolean };
 
 interface AuthState {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginOutcome>;
   register: (
     email: string,
     password: string,
@@ -60,6 +75,19 @@ interface AuthState {
    *  editable desde el perfil — ni el registro por email ni el acceso con
    *  Google dejaban forma de corregirlo, Julieta 2026-07-30). */
   updateFullName: (fullName: string) => Promise<void>;
+  /** Login de una admin a mitad de camino: la contraseña (o Google) ya
+   * pasó y falta el código de la app (ADR-0023). Vive en memoria. */
+  pendingTwoFactor: { challengeToken: string } | null;
+  /** Manda el código (de la app o de recuperación) y, si sirve, abre la
+   * sesión. Si el desafío venció, lo descarta y tira el error. */
+  completeTwoFactor: (code: string) => Promise<TwoFactorVerified>;
+  cancelTwoFactor: () => void;
+  /** `true` cuando el backend dijo que esta admin todavía no activó la
+   * verificación: el panel sólo muestra el alta. */
+  twoFactorSetupPending: boolean;
+  setTwoFactorSetupPending: (pending: boolean) => void;
+  /** Adopta la sesión verificada que devuelve el alta de la verificación. */
+  adoptSession: (tokens: SessionTokens) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -105,6 +133,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   >(null);
   // Lo lee el manejador de 401 (registrado una sola vez), que no ve el estado.
   const impersonatingRef = useRef(false);
+  const [pendingTwoFactor, setPendingTwoFactor] = useState<{ challengeToken: string } | null>(
+    null
+  );
+  const [twoFactorSetupPending, setTwoFactorSetupPending] = useState(false);
+  // Varias pantallas reciben el mismo 403 a la vez: se actúa una sola vez.
+  const leavingForReauth = useRef(false);
 
   /** Cambia de SESIÓN (login, logout, impersonar): el `token` del contexto
    * sólo cambia acá. Renovar el access token no pasa por acá (ver
@@ -155,6 +189,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `tryRefresh` sólo usa setters estables y localStorage
   }, []);
+
+  // Verificación en dos pasos (ADR-0023). Una sesión admin sin activarla
+  // recibe 403 `two_factor_setup_required` en todo menos el alta: se la
+  // lleva al alta. Una sesión de antes de activarla (otro dispositivo)
+  // recibe `two_factor_required`: se cierra y se vuelve a ingresar.
+  useEffect(() => {
+    setTwoFactorGateHandler((code) => {
+      if (code === TWO_FACTOR_CODES.setupRequired) {
+        setTwoFactorSetupPending(true);
+        if (window.location.pathname !== TWO_FACTOR_PAGE) router.replace(TWO_FACTOR_PAGE);
+        return;
+      }
+      if (leavingForReauth.current) return;
+      leavingForReauth.current = true;
+      clearSession();
+      clearAllCached();
+      bindSessionToken(null);
+      api.post("/auth/logout").catch(() => {});
+      // Recarga completa: el guard de las pantallas protegidas no le gana
+      // al mensaje, y no queda nada de la sesión vieja en memoria.
+      window.location.replace(
+        `/login?message=${encodeURIComponent("Volvé a ingresar con el código de tu app autenticadora.")}`
+      );
+    });
+    return () => setTwoFactorGateHandler(null);
+  }, [router]);
 
   useEffect(() => {
     async function restoreSession() {
@@ -233,11 +293,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [token, impersonating]);
 
-  async function login(email: string, password: string) {
-    const tokens = await api.post<{
-      access_token: string;
-      user?: User;
-    }>("/auth/login", { email, password });
+  /** Abre la sesión con los tokens de una respuesta de login. */
+  async function startSession(tokens: SessionTokens) {
     persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
     // Fast path: el usuario viene embebido en la respuesta del login → sin un
@@ -245,6 +302,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // al /auth/me sólo si no vino `user` — cubre el skew de deploy (frontend
     // nuevo contra backend viejo que todavía no lo embebe) y no rompe el login.
     setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
+  }
+
+  async function login(email: string, password: string): Promise<LoginOutcome> {
+    const data = await api.post<SessionTokens | TwoFactorChallenge>("/auth/login", {
+      email,
+      password,
+    });
+    if (isTwoFactorChallenge(data)) {
+      setPendingTwoFactor({ challengeToken: data.challenge_token });
+      return { twoFactor: true };
+    }
+    await startSession(data);
+    return { twoFactor: false };
+  }
+
+  async function completeTwoFactor(code: string): Promise<TwoFactorVerified> {
+    if (!pendingTwoFactor) {
+      throw new ApiError(401, "El ingreso venció. Volvé a poner tu contraseña.", TWO_FACTOR_CODES.challengeInvalid);
+    }
+    try {
+      const result = await twoFactorApi.verify(pendingTwoFactor.challengeToken, code);
+      setPendingTwoFactor(null);
+      setTwoFactorSetupPending(false);
+      await startSession(result);
+      return result;
+    } catch (err) {
+      if (err instanceof ApiError && err.code === TWO_FACTOR_CODES.challengeInvalid) {
+        setPendingTwoFactor(null);
+      }
+      throw err;
+    }
+  }
+
+  function cancelTwoFactor() {
+    setPendingTwoFactor(null);
+  }
+
+  async function adoptSession(tokens: SessionTokens) {
+    leavingForReauth.current = false;
+    setTwoFactorSetupPending(false);
+    await startSession(tokens);
   }
 
   async function register(
@@ -272,6 +370,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await api.post<
       | { requires_role: true; email: string; full_name: string }
       | { requires_role?: false; access_token: string; user?: User }
+      | TwoFactorChallenge
     >("/auth/google", {
       id_token: idToken,
       role,
@@ -283,14 +382,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if ("requires_role" in data && data.requires_role) {
       return { requiresRole: true, email: data.email, fullName: data.full_name };
     }
+    // Admin con la verificación en dos pasos: falta el código (ADR-0023).
+    if (isTwoFactorChallenge(data)) {
+      setPendingTwoFactor({ challengeToken: data.challenge_token });
+      return { requiresRole: false, twoFactor: true };
+    }
 
-    const tokens = data as { access_token: string; user?: User };
-    persistAccessToken(tokens.access_token);
-    setToken(tokens.access_token);
     // Usuario embebido (mismo contrato que /auth/login); fallback a /auth/me si
     // no vino, por el mismo motivo de skew de deploy.
-    setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
-    return { requiresRole: false };
+    await startSession(data as SessionTokens);
+    return { requiresRole: false, twoFactor: false };
   }
 
   async function loginAsGuest(pin: string, role: "worker" | "employer") {
@@ -354,6 +455,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
     clearAllCached();
     setJustLoggedOut(true);
+    setTwoFactorSetupPending(false);
     setToken(null);
     setUser(null);
     // `replace` (no `push`): que "atrás" después de cerrar sesión no vuelva a
@@ -387,6 +489,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         impersonating: impersonating ? { adminUser: impersonating.adminUser } : null,
         impersonate,
         stopImpersonating,
+        pendingTwoFactor,
+        completeTwoFactor,
+        cancelTwoFactor,
+        twoFactorSetupPending,
+        setTwoFactorSetupPending,
+        adoptSession,
       }}
     >
       {children}

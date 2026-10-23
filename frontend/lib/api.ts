@@ -7,10 +7,44 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onre
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Código estable que manda el backend junto al mensaje (`detail.code`),
+   * para los errores que la pantalla tiene que distinguir, como los de la
+   * verificación en dos pasos (ADR-0023). */
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
+}
+
+/** `detail` del backend: un texto, o `{code, message}` cuando el error trae
+ * un código (los 422 de validación son una lista y quedan genéricos). */
+export function parseErrorDetail(detail: unknown): { message: string; code?: string } {
+  if (typeof detail === "string") return { message: detail };
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    const { message, code } = detail as { message?: unknown; code?: unknown };
+    if (typeof message === "string") {
+      return { message, code: typeof code === "string" ? code : undefined };
+    }
+  }
+  return { message: "Error inesperado" };
+}
+
+// --- Verificación en dos pasos de la admin (ADR-0023) ----------------------
+// Una sesión admin sin la verificación recibe 403 con uno de estos códigos en
+// cualquier endpoint. `AuthProvider` registra qué hacer (llevar al alta, o
+// cerrar la sesión vieja); acá sólo se avisa, venga de la pantalla que venga.
+export const TWO_FACTOR_GATE_CODES = ["two_factor_setup_required", "two_factor_required"] as const;
+export type TwoFactorGateCode = (typeof TWO_FACTOR_GATE_CODES)[number];
+let onTwoFactorGate: ((code: TwoFactorGateCode) => void) | null = null;
+
+export function setTwoFactorGateHandler(handler: ((code: TwoFactorGateCode) => void) | null) {
+  onTwoFactorGate = handler;
+}
+
+function isGateCode(code: string | undefined): code is TwoFactorGateCode {
+  return (TWO_FACTOR_GATE_CODES as readonly string[]).includes(code ?? "");
 }
 
 /** Error de red/timeout: el backend no respondió (dormido, caído, sin
@@ -156,8 +190,9 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    const detail = body?.detail ?? res.statusText;
-    throw new ApiError(res.status, typeof detail === "string" ? detail : "Error inesperado");
+    const { message, code } = parseErrorDetail(body?.detail ?? res.statusText);
+    if (res.status === 403 && isGateCode(code)) onTwoFactorGate?.(code);
+    throw new ApiError(res.status, message, code);
   }
 
   if (res.status === 204) return undefined as T;

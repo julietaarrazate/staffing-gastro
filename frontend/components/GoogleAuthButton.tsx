@@ -80,9 +80,11 @@ export default function GoogleAuthButton({
       const result = await loginWithGoogle(idToken);
       if (result.requiresRole) {
         setPendingRole({ email: result.email, fullName: result.fullName });
-      } else {
+      } else if (!result.twoFactor) {
         onDone(false);
       }
+      // Con `twoFactor` (admin con la verificación en dos pasos), /login
+      // pasa a pedir el código: no hay sesión todavía.
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo continuar con Google");
     }
@@ -127,7 +129,7 @@ export default function GoogleAuthButton({
     setRoleLoading(role);
     try {
       const result = await loginWithGoogle(idTokenRef.current, role);
-      if (!result.requiresRole) onDone(true);
+      if (!result.requiresRole && !result.twoFactor) onDone(true);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo crear la cuenta con Google"

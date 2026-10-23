@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import AppearanceControl from "@/components/AppearanceControl";
 import PushToggle from "@/components/PushToggle";
 import { Row, RowGroup, SectionLabel, SubpageHeader } from "@/components/profile/ProfileParts";
-import { LogOutIcon, MessageIcon } from "@/components/icons";
+import { LogOutIcon, MessageIcon, ShieldIcon } from "@/components/icons";
 import { Skeleton } from "@/components/ui";
 
 /**
@@ -58,6 +58,12 @@ export default function SettingsPage() {
             >
               Soporte
             </Row>
+            {/* Verificación en dos pasos, obligatoria para admin (ADR-0023). */}
+            {user.role === "admin" && (
+              <Row icon={<ShieldIcon size={18} />} tone="trust" href="/admin/seguridad">
+                Verificación en dos pasos
+              </Row>
+            )}
             <Row icon={<LogOutIcon size={18} />} tone="neutral" onClick={logout}>
               Cerrar sesión
             </Row>

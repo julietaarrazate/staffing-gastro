@@ -18,6 +18,9 @@ alembic==1.20.0
 # --- Seguridad / Auth ---
 pyjwt==2.15.1
 bcrypt==5.0.0
+# Cifrado del secreto de la verificación en dos pasos (Fernet, ADR-0023). Ya
+# venía instalada por pywebpush; se pinea porque ahora la usamos directo.
+cryptography==50.0.2
 python-multipart==0.0.32
 
 # --- Notificaciones push (Web Push / VAPID, ver docs/reference/ACCESO_MODERNO.md) ---

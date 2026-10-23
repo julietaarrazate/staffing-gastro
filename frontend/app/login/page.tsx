@@ -8,10 +8,11 @@ import { ApiError } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 function LoginForm() {
-  const { login, loginAsGuest } = useAuth();
+  const { login, loginAsGuest, pendingTwoFactor } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   // Mensaje opcional tras un redirect (p. ej. `/restablecer` al terminar OK).
@@ -32,7 +33,10 @@ function LoginForm() {
 
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
-    await login(emailToUse, passwordToUse);
+    const outcome = await login(emailToUse, passwordToUse);
+    // Admin con la verificación en dos pasos: esta misma pantalla pasa a
+    // pedir el código (`pendingTwoFactor`), sin sesión todavía.
+    if (outcome.twoFactor) return;
     // `replace`: "atrás" tras entrar no debe volver a /login.
     router.replace("/");
   }
@@ -90,6 +94,18 @@ function LoginForm() {
           </p>
         )}
 
+        {pendingTwoFactor ? (
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <TwoFactorLoginStep
+              onExpired={(message) => {
+                setPassword("");
+                setError(message);
+                setTurnstileReset((n) => n + 1);
+              }}
+            />
+          </div>
+        ) : (
+        <>
         <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <TextField
@@ -217,6 +233,8 @@ function LoginForm() {
             Creá una
           </Link>
         </p>
+        </>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ de aplicación y de las entidades de dominio.
 
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -140,3 +141,63 @@ class UserResponse(BaseModel):
 # Resuelve el forward-ref `user: "UserResponse"` de TokenResponse ahora que
 # UserResponse ya está definido.
 TokenResponse.model_rebuild()
+
+
+# --- Verificación en dos pasos (ADR-0023) ------------------------------------
+
+# Un código de la app (6 dígitos) o uno de recuperación (`xxxx-xxxx-xxxx`,
+# con o sin guiones ni espacios).
+TwoFactorCode = Annotated[str, Field(min_length=6, max_length=32)]
+
+
+class TwoFactorChallengeResponse(BaseModel):
+    """Respuesta de `/auth/login` y `/auth/google` para un admin con la
+    verificación activa: todavía no hay sesión. El frontend pide el código y
+    lo manda con este token a `POST /auth/2fa/verify`."""
+
+    two_factor_required: bool = True
+    challenge_token: str
+    expires_in: int
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    challenge_token: str = Field(min_length=1, max_length=128)
+    code: TwoFactorCode
+
+
+class TwoFactorVerifyResponse(TokenResponse):
+    used_recovery_code: bool = False
+    recovery_codes_left: int
+
+
+class TwoFactorStatusResponse(BaseModel):
+    enabled: bool
+    enabled_at: datetime | None = None
+    recovery_codes_left: int
+
+
+class TwoFactorSetupRequest(BaseModel):
+    """`code` sólo hace falta para cambiar de celular (la verificación ya
+    está activa): un código actual, de la app o de recuperación."""
+
+    code: str | None = Field(default=None, min_length=6, max_length=32)
+
+
+class TwoFactorSetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class TwoFactorCodeRequest(BaseModel):
+    code: TwoFactorCode
+
+
+class TwoFactorConfirmResponse(TokenResponse):
+    """Sesión nueva, ya verificada, y los códigos de recuperación: se
+    muestran esta única vez."""
+
+    recovery_codes: list[str]
+
+
+class RecoveryCodesResponse(BaseModel):
+    recovery_codes: list[str]
