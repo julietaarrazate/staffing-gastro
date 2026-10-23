@@ -1040,6 +1040,13 @@ body:has([data-landing]) main {
 [data-landing] {
   /* Aire entre el título de una sección y lo que muestra. */
   --aire: clamp(28px, 4vw, 48px);
+  /* Las tarjetas de producto (mapa, oferta) comparten radio y sombra. */
+  --l-radio: 20px;
+  --l-sombra: 0 0 0 1px var(--color-line), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
+}
+.landing-tarjeta {
+  border-radius: var(--l-radio);
+  box-shadow: var(--l-sombra);
 }
 .landing-sec {
   display: flex;
@@ -1054,16 +1061,16 @@ body:has([data-landing]) main {
   max-width: 16ch;
   margin-inline: auto;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 600;
-  font-size: clamp(2.25rem, 4.8vw, 4rem);
-  line-height: 0.95;
-  letter-spacing: -0.035em;
+  font-weight: 500;
+  font-size: clamp(2rem, 3.6vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
   color: var(--color-ink);
   text-wrap: balance;
 }
 .landing-h2-grande {
   max-width: 15ch;
-  font-size: clamp(2.75rem, 6vw, 5.25rem);
+  font-size: clamp(2.5rem, 4.8vw, 4.25rem);
 }
 .landing-sec-cosa {
   margin-top: var(--aire);
@@ -1071,6 +1078,41 @@ body:has([data-landing]) main {
 .landing-sec-accion {
   margin-top: 32px;
 }
+/* En escritorio, las secciones con una tarjeta angosta van en dos columnas
+   sobre la misma grilla (texto a la izquierda, tarjeta a la derecha); en el
+   celular, todo centrado. */
+@media (min-width: 1024px) {
+  .landing-sec-dos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 96px;
+    align-items: center;
+    width: 100%;
+    max-width: calc(1080px + 2 * 48px);
+    margin-inline: auto;
+    padding-inline: 48px;
+    text-align: left;
+  }
+  .landing-sec-dos .landing-h2 {
+    grid-column: 1;
+    max-width: 14ch;
+    margin: 0;
+  }
+  .landing-sec-dos .landing-sec-cosa {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: center;
+    margin-top: 0;
+  }
+  .landing-sec-dos .landing-sec-accion {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .landing-sec-arriba {
+    align-items: start;
+  }
+}
+
 /* El cierre se apoya en el cielo del final: menos aire abajo. */
 .landing-cierre {
   padding-bottom: 0;
@@ -1104,9 +1146,15 @@ body:has([data-landing]) main {
   background: var(--color-ink);
   color: var(--color-card);
 }
+/* El principal va en tinta: el ámbar queda sólo en la palabra que cambia
+   (un solo acento por pantalla). */
 .landing-btn-primario {
-  background: var(--color-primary);
-  color: var(--color-night);
+  background: var(--color-ink);
+  color: var(--color-card);
+}
+.landing-btn-primario .landing-btn-flecha {
+  background: var(--color-card);
+  color: var(--color-ink);
 }
 .landing-btn-borde {
   background: rgb(255 255 255 / 0.6);
@@ -1127,7 +1175,9 @@ body:has([data-landing]) main {
 .landing-hero {
   --cw: 104px;
   --ch: 135px;
-  padding-top: calc(var(--ch) + 96px);
+  /* Sube debajo del encabezado transparente: el cielo llega hasta arriba. */
+  margin-top: calc(-1 * var(--lht));
+  padding-top: calc(var(--ch) + 96px + var(--lht));
   padding-bottom: clamp(40px, 6vw, 96px);
   background:
     radial-gradient(18% 10% at 18% 14%, rgb(255 255 255 / 0.9), transparent 70%),
@@ -1160,6 +1210,15 @@ body:has([data-landing]) main {
   width: 0;
   height: 0;
   z-index: 1;
+  opacity: 0;
+  translate: 0 12px;
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.landing-rueda[data-listo] {
+  opacity: 1;
+  translate: none;
 }
 .landing-ficha {
   position: absolute;
@@ -1172,22 +1231,59 @@ body:has([data-landing]) main {
   box-shadow: 0 24px 40px -26px rgb(22 25 26 / 0.5);
   will-change: transform;
 }
+/* Las fotos de prueba vienen de fuentes distintas: un mismo tratamiento
+   apagado las hace parecer de una misma sesión (2026-10-23, prueba sobria). */
+.landing-ficha img,
+.landing-foto {
+  filter: saturate(0.5) contrast(1.06);
+}
 .landing-palabra {
   position: relative;
   height: 1em;
+  /* El recorte deja ver la "j" de cajera. */
+  clip-path: inset(-0.1em -1em -0.24em);
 }
+/* La que sale se va primero; la nueva entra apenas después, así no se pisan. */
 .landing-palabra b {
   display: block;
-  animation: landingPalabra 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: landingPalabraEntra 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
 }
-@keyframes landingPalabra {
+.landing-palabra b.landing-palabra-sale {
+  position: absolute;
+  inset: 0 0 auto;
+  animation: landingPalabraSale 0.26s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+@keyframes landingPalabraEntra {
   from {
     opacity: 0;
-    transform: translateY(0.18em);
+    transform: translateY(1em);
   }
   to {
     opacity: 1;
     transform: none;
+  }
+}
+@keyframes landingPalabraSale {
+  to {
+    opacity: 0;
+    transform: translateY(-1em);
+  }
+}
+/* Los dos caminos (inicio y cierre): en el celular, uno arriba del otro y
+   del mismo ancho. */
+.landing-par {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+@media (max-width: 599px) {
+  .landing-par {
+    flex-direction: column;
+    align-items: center;
+  }
+  .landing-par .landing-btn {
+    min-width: 252px;
   }
 }
 
@@ -1195,7 +1291,7 @@ body:has([data-landing]) main {
 .landing-cielo {
   /* Vuelve al blanco abajo: antes cortaba en seco contra el mapa. */
   background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 16%, var(--color-secondary) 50%, var(--color-secondary) 72%, var(--color-card) 100%);
-  padding-bottom: clamp(64px, 8vw, 112px);
+  padding-bottom: clamp(40px, 6vw, 88px);
 }
 .landing-campo {
   display: flex;
@@ -1204,11 +1300,11 @@ body:has([data-landing]) main {
   padding: 8px 8px 8px 24px;
   border-radius: 30px;
   background: var(--color-card);
-  box-shadow: 0 0 0 1.5px rgb(17 17 17 / 0.85), 0 24px 40px -26px rgb(28 84 120 / 0.45);
+  box-shadow: 0 0 0 1.5px rgb(17 17 17 / 0.85), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
   text-align: left;
 }
 .landing-campo:focus-within {
-  box-shadow: 0 0 0 2.5px var(--color-primary), 0 24px 40px -26px rgb(28 84 120 / 0.45);
+  box-shadow: 0 0 0 2.5px var(--color-primary), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
 }
 .landing-campo textarea {
   flex: 1;
@@ -1231,15 +1327,38 @@ body:has([data-landing]) main {
   flex: none;
   height: 48px;
 }
+.landing-apretado {
+  transform: scale(0.94);
+}
+/* En el celular, el campo es como un mensaje de chat: el texto y un botón
+   redondo con la flecha (el nombre "Pedir" queda para lectores de pantalla). */
 @media (max-width: 640px) {
   .landing-campo {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 14px 14px 10px 18px;
-    border-radius: 22px;
+    align-items: flex-end;
+    padding: 10px 8px 10px 18px;
+    border-radius: 26px;
   }
-  .landing-campo textarea {
-    flex: none;
+  .landing-campo .landing-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    gap: 0;
+  }
+  .landing-campo .landing-btn-flecha {
+    width: auto;
+    height: auto;
+    margin: 0;
+    background: none;
+    color: var(--color-card);
+    font-size: 18px;
+  }
+  .landing-campo-pedir {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
 .landing-impresora {
@@ -1275,7 +1394,7 @@ body:has([data-landing]) main {
 .landing-comanda-marco {
   width: min(360px, 86%);
   margin-top: -14px;
-  padding: 0 24px 40px;
+  padding: 0 24px 32px;
   box-sizing: content-box;
   overflow: hidden;
 }
@@ -1367,11 +1486,18 @@ body:has([data-landing]) main {
   white-space: nowrap;
 }
 @media (max-width: 640px) {
+  .landing-comanda-fila {
+    padding-block: 9px;
+  }
   .landing-comanda-fila dd {
     font-size: 14px;
   }
   .landing-comanda {
+    padding-top: 28px;
     padding-inline: 18px;
+  }
+  .landing-cinta-svg {
+    width: 220px;
   }
 }
 .landing-falta {
@@ -1390,14 +1516,6 @@ body:has([data-landing]) main {
   height: auto;
   transform: rotate(-4deg);
 }
-.landing-comanda-pie {
-  margin-top: 22px;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-align: center;
-  color: var(--color-secondary-text);
-}
 .landing-guarda {
   height: 12px;
   margin: 18px -22px 0;
@@ -1415,14 +1533,19 @@ body:has([data-landing]) main {
 .landing-espera .landing-comanda {
   transform: translateY(-104%);
 }
+/* Sale en 2,4 s en 20 pasos y, cuando cae "¡Oído!", el papel da un golpecito. */
 .landing-imprime .landing-comanda {
-  animation: landingImprimir 1.5s steps(14) both;
+  animation:
+    landingImprimir 2.4s steps(20) both,
+    landingGolpe 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) 3.3s 1;
+}
+@keyframes landingGolpe {
+  40% {
+    translate: 0 3px;
+  }
 }
 .landing-imprime .landing-cinta-svg {
-  animation: landingCinta 0.38s cubic-bezier(0.3, 1.6, 0.5, 1) 1.9s both;
-}
-.landing-imprime .landing-comanda-pie {
-  animation: landingAparecer 0.4s 2.4s both;
+  animation: landingCinta 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) 2.9s both;
 }
 .landing-imprime .landing-impresora-luz {
   animation: landingTitila 0.3s steps(2) 5;
@@ -1445,64 +1568,128 @@ body:has([data-landing]) main {
     transform: rotate(-4deg) scale(1);
   }
 }
-@keyframes landingAparecer {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 @keyframes landingTitila {
   50% {
     opacity: 0.2;
   }
 }
 
-/* El mapa de "va en camino" sobre un pedazo de Palermo. */
+/* El mapa de "va en camino" sobre Palermo Soho (imagen del mapa de la app,
+   Carto Voyager). Marcas como en EnRouteMap: el local cuadrado y oscuro, la
+   persona redonda con halo y la línea ámbar punteada. Hasta que Lucía queda
+   elegida no hay nada ámbar en el mapa. */
 .landing-mapa {
-  width: min(1000px, 100%);
+  width: min(560px, 100%);
   margin-top: var(--aire);
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: var(--l-radio);
   background: var(--color-card);
-  box-shadow: 0 0 0 1px var(--color-line), 0 40px 70px -46px rgb(28 84 120 / 0.45);
+  box-shadow: var(--l-sombra);
   text-align: left;
 }
 .landing-mapa-calles {
   position: relative;
-  aspect-ratio: 16 / 8.5;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
+  background: #f6f2ec;
 }
-@media (max-width: 640px) {
-  .landing-mapa-calles {
-    aspect-ratio: 1;
+.landing-mapa-credito {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  z-index: 4;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.75);
+  color: rgb(17 17 17 / 0.6);
+  font-size: 9px;
+}
+/* El relojito del turno: la misma hora del ticket, que avanza con la escena. */
+.landing-mapa-reloj {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: 0 0 0 1px var(--color-line);
+  color: var(--color-ink);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 0.4s,
+    color 0.4s;
+}
+.landing-mapa-reloj i {
+  font-style: normal;
+}
+.landing-mapa-reloj.landing-cubierto {
+  background: var(--color-secondary);
+  color: var(--color-secondary-text);
+  box-shadow: none;
+}
+.landing-titila {
+  animation: landingTitila 1s steps(2) infinite;
+}
+.landing-tic {
+  display: inline-block;
+  animation: landingTic 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes landingTic {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5em);
+  }
+}
+/* La onda que sale de Tu bar: cada punto aparece cuando lo alcanza. */
+.landing-mapa-onda {
+  position: absolute;
+  z-index: 1;
+  width: 124%;
+  aspect-ratio: 1;
+  border: 1.5px solid rgb(28 84 120 / 0.45);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: landingOnda 1.1s linear forwards;
+}
+@keyframes landingOnda {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
   }
 }
 .landing-mapa-linea {
-  stroke: var(--color-secondary-text);
-  stroke-width: 1.5;
-  stroke-dasharray: 5 5;
-  opacity: 0.55;
-}
-.landing-mapa-linea-va {
-  stroke-width: 2;
-  opacity: 0.9;
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.85;
 }
 .landing-mapa-local {
   position: absolute;
   z-index: 2;
   display: grid;
   justify-items: center;
-  gap: 8px;
-  transform: translate(-50%, -50%);
+  gap: 6px;
+  /* La etiqueta va arriba del cuadrado: Lucía llega desde abajo. */
+  transform: translate(-50%, calc(-100% + 7px));
 }
 .landing-mapa-local i {
-  width: 16px;
-  height: 16px;
-  background: var(--color-primary);
-  transform: rotate(45deg);
-  box-shadow: 0 0 0 7px rgb(217 119 6 / 0.16);
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  background: var(--color-night);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
 }
 .landing-mapa-local span {
   padding: 3px 9px;
@@ -1519,34 +1706,72 @@ body:has([data-landing]) main {
   position: absolute;
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.6);
+}
+.landing-mapa-avisado {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--color-secondary-text);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  transition:
+    opacity 0.4s,
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+.landing-mapa-persona {
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: var(--color-secondary-text);
+  font-weight: 700;
+  font-size: 12px;
+  box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
   transition:
     opacity 0.4s,
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4),
-    left 5s ease-in-out,
-    top 5s ease-in-out;
+    background-color 0.3s,
+    color 0.3s;
 }
-.landing-mapa-avisado {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--color-secondary-strong);
-  box-shadow: 0 0 0 4px rgb(154 201 231 / 0.3);
+/* Antes de postularse, los tres son un avisado más. */
+.landing-mapa-persona.landing-punto {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(0.3);
+  background: var(--color-secondary-text);
+  color: transparent;
 }
-.landing-mapa-persona,
+.landing-mapa-persona.landing-elegida {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  color: var(--color-night);
+}
 .landing-mapa-persona-pie {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
   color: var(--color-night);
   font-weight: 700;
-  font-size: 12.5px;
-  box-shadow: 0 0 0 2px var(--color-card), 0 8px 14px -8px rgb(0 0 0 / 0.4);
+  font-size: 12px;
+  box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
 }
-.landing-mapa-persona {
-  z-index: 3;
+.landing-mapa-halo {
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: 50%;
+  background: rgb(217 119 6 / 0.3);
+  animation: puckHalo 2s ease-out infinite;
+}
+.landing-mapa-halo.landing-quieto {
+  animation: none;
+  transform: scale(1.3);
+  opacity: 0.35;
 }
 .landing-mapa-avisado.landing-on,
 .landing-mapa-persona.landing-on {
@@ -1555,31 +1780,32 @@ body:has([data-landing]) main {
 }
 .landing-mapa-avisado.landing-tenue,
 .landing-mapa-persona.landing-tenue {
-  opacity: 0.18;
+  opacity: 0.2;
 }
-.landing-mapa-persona.landing-elegida {
-  box-shadow: 0 0 0 3px var(--color-card), 0 0 0 5px var(--color-success), 0 10px 18px -8px rgb(0 0 0 / 0.4);
-}
+/* El pie aparece una sola vez, con el alto ya reservado: nada salta. */
 .landing-mapa-pie {
+  padding: 14px 18px;
+  border-top: 1px solid var(--color-line);
+}
+.landing-mapa-pie-dentro {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-line);
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.landing-mapa-persona-pie {
-  flex: none;
-  opacity: 0.35;
-  transition: opacity 0.3s;
-}
-.landing-mapa-persona-pie.landing-on {
+.landing-mapa-pie-dentro.landing-on {
   opacity: 1;
+  translate: none;
 }
 .landing-mapa-eta {
   margin-left: auto;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  font-size: 26px;
+  font-size: 24px;
   letter-spacing: -0.03em;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -1602,8 +1828,9 @@ body:has([data-landing]) main {
 
 /* El final: "oído" grande y fileteado sobre el cielo y el pie en el mismo celeste. */
 .landing-firma {
-  padding: clamp(24px, 5vw, 56px) max(16px, env(safe-area-inset-left, 0px)) 8px;
-  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 60%, var(--color-secondary-strong) 100%);
+  overflow: hidden;
+  padding: 0 max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, var(--color-secondary) 0%, var(--color-secondary-strong) 100%);
 }
 .landing-firma svg {
   display: block;
@@ -1616,8 +1843,8 @@ body:has([data-landing]) main {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 28px max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-  background: var(--color-secondary-strong);
+  padding: 28px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 100%);
   color: rgb(17 17 17 / 0.62);
   text-align: center;
 }
@@ -1639,12 +1866,22 @@ body:has([data-landing]) main {
   .landing-palabra b,
   .landing-imprime .landing-comanda,
   .landing-imprime .landing-cinta-svg,
-  .landing-imprime .landing-comanda-pie,
   .landing-imprime .landing-impresora-luz {
     animation: none;
   }
+  .landing-palabra b.landing-palabra-sale,
+  .landing-titila,
+  .landing-tic,
+  .landing-mapa-halo {
+    animation: none;
+  }
+  .landing-mapa-onda {
+    display: none;
+  }
   .landing-mapa-avisado,
-  .landing-mapa-persona {
+  .landing-mapa-persona,
+  .landing-rueda,
+  .landing-mapa-pie-dentro {
     transition: none;
   }
 }

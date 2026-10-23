@@ -38,6 +38,18 @@ const fraunces = localFont({
   adjustFontFallback: "Times New Roman",
 });
 
+// Sancreek (OFL): la letra de cartel del «oído» fileteado
+// (components/landing/Filete.tsx), desde el 2026-10-23. Recorte local con
+// sólo "o í d O ¡ !" (1,5 KB); si el filete usa otra palabra, regenerarlo:
+//   pyftsubset Sancreek.ttf --text="oídO¡!" --layout-features='*' \
+//     --flavor=woff2 --output-file=app/fonts/sancreek-oido.woff2
+const sancreek = localFont({
+  src: "./fonts/sancreek-oido.woff2",
+  variable: "--font-sancreek",
+  weight: "400",
+  adjustFontFallback: "Times New Roman",
+});
+
 // Schibsted Grotesk: títulos de pantalla y titulares de la landing
 // (`font-display`), desde el 2026-10-18. Libre (OFL). Reemplaza a Bricolage
 // Grotesque (2026-10-12), que Julieta veía "muy infantil para Oído" y que
@@ -125,7 +137,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} ${sancreek.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la

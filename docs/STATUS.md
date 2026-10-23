@@ -25,6 +25,12 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 ## Qué sigue (estado vigente)
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
+
+0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
+   la miniatura para compartir (`lib/og-brand.tsx` + `assets/og/filete-oido.png`),
+   la ficha de marca, el brand system y el paquete siguen con el filete
+   anterior. Julieta todavía duda de la letra (Sancreek) y del acento
+   (ámbar o bordó): probar antes de rehacer esas piezas.
 Revisado contra el código y los PRs el 2026-10-03.
 
 1. 🟡 **Paleta celeste (v6) en toda la app** (pedido de Julieta,
@@ -165,6 +171,9 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Sol de Mayo en la marca:** antes de registrar la marca con el sol del
+  final de la landing, confirmar con la asesoría legal el uso de símbolos
+  nacionales ([`historial/2026-10-23-landing-filete-cartel.md`](./historial/2026-10-23-landing-filete-cartel.md)).
 - **Prender las vistas previas por PR en Cloudflare:** Workers & Pages →
   `oido-frontend` → Settings → Build, activar los builds de ramas que no son
   de producción con el comando `npx wrangler preview`

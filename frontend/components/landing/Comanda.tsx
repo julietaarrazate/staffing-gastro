@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { leerPedido } from "@/lib/pedido-natural";
 import { cn } from "@/lib/cn";
 import Filete from "./Filete";
+import { PEDIDO, RELOJ } from "./fixtures";
 
 /**
  * "Pedilo como lo dirías" (2026-10-18): el pedido se escribe como se habla,
@@ -12,13 +13,15 @@ import Filete from "./Filete";
  * banda de cielo, papel blanco, volutas y guarda de filete porteño (con el
  * "oído" del final, lo único decorado de la landing, a propósito).
  *
- * Se escribe sola la primera vez que aparece; si la persona toca el renglón,
+ * Se escribe sola cuando aparece el campo y se imprime cuando se ve el
+ * ticket, apretando Pedir; al caer "¡Oído!" el papel da un golpecito. Vuelve
+ * a pasar si la sección salió del todo. Si la persona toca el renglón,
  * escribe lo suyo y la comanda se imprime con eso. Lo lee
  * `lib/pedido-natural.ts`, en el navegador: es una demostración, el pedido
  * real lo lee la IA dentro de la app. Con "reducir movimiento" la comanda ya
  * está impresa.
  */
-const EJEMPLO = "Necesito un mozo hoy de 21 a 2, pago 70.000";
+const EJEMPLO = PEDIDO;
 
 type Comanda = { puesto: string; cuando?: string; pago?: string };
 
@@ -50,6 +53,11 @@ export default function Comanda() {
   const [vuelta, setVuelta] = useState(0);
   const [faltaPuesto, setFaltaPuesto] = useState(false);
   const [sacudir, setSacudir] = useState(0);
+  // Sin texto gris mientras espera la demo; el ejemplo aparece cuando la
+  // persona toma el renglón.
+  const [tomado, setTomado] = useState(false);
+  // El demo "aprieta" Pedir antes de imprimir.
+  const [apretado, setApretado] = useState(false);
   const demo = useRef(true);
 
   const crecer = () => {
@@ -76,43 +84,100 @@ export default function Comanda() {
     setVuelta((n) => n + 1);
   }, []);
 
-  // La primera vez que aparece, se escribe sola y se imprime.
+  // Dos disparadores (2026-10-23): la frase se escribe cuando el campo entra
+  // en los dos tercios de arriba de la pantalla, y el ticket se imprime recién
+  // cuando está visible a la mitad (si no, la frase espera escrita). Antes de
+  // imprimir, la demo aprieta Pedir. Se repite sólo si la sección salió del
+  // todo y vuelve; si la persona tomó el renglón, ya no.
   useEffect(() => {
     const el = seccion.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    setEstado("esperando");
-    setTexto("");
+    const campoEl = el.querySelector(".landing-campo");
+    const ticketEl = el.querySelector("[data-comanda]");
+    if (!campoEl || !ticketEl) return;
     let tic: ReturnType<typeof setInterval> | undefined;
-    let fin: ReturnType<typeof setTimeout> | undefined;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (!e.isIntersecting) return;
-        io.disconnect();
-        let n = 0;
-        tic = setInterval(() => {
-          if (!demo.current) return clearInterval(tic);
-          n += 1;
-          setTexto(EJEMPLO.slice(0, n));
-          if (n >= EJEMPLO.length) {
-            clearInterval(tic);
-            fin = setTimeout(() => demo.current && imprimir(EJEMPLO), 400);
-          }
-        }, 45);
-      },
-      { threshold: 0.35 }
-    );
-    io.observe(el.querySelector("[data-comanda]") ?? el);
-    return () => {
-      io.disconnect();
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    let escribiendo = false;
+    let escrito = false;
+    let impreso = false;
+    let ticketVisible = false;
+    const parar = () => {
       clearInterval(tic);
-      clearTimeout(fin);
+      timers.forEach(clearTimeout);
+      timers = [];
+      escribiendo = escrito = impreso = false;
+      setApretado(false);
+    };
+    const preparar = () => {
+      setEstado("esperando");
+      setTexto("");
+    };
+    const intentarImprimir = () => {
+      if (!demo.current || !escrito || !ticketVisible || impreso) return;
+      impreso = true;
+      timers.push(setTimeout(() => demo.current && setApretado(true), 420));
+      timers.push(
+        setTimeout(() => {
+          setApretado(false);
+          if (demo.current) imprimir(EJEMPLO);
+        }, 560)
+      );
+    };
+    const escribir = () => {
+      if (escribiendo || escrito) return;
+      escribiendo = true;
+      let n = 0;
+      tic = setInterval(() => {
+        if (!demo.current) return clearInterval(tic);
+        n += 1;
+        setTexto(EJEMPLO.slice(0, n));
+        if (n >= EJEMPLO.length) {
+          clearInterval(tic);
+          escribiendo = false;
+          escrito = true;
+          intentarImprimir();
+        }
+      }, 70);
+    };
+    preparar();
+    const ioCampo = new IntersectionObserver(
+      ([e]) => {
+        if (!demo.current) return ioCampo.disconnect();
+        if (e.isIntersecting) escribir();
+      },
+      { rootMargin: "0px 0px -35% 0px" }
+    );
+    const ioTicket = new IntersectionObserver(
+      (entradas) => {
+        if (!demo.current) return ioTicket.disconnect();
+        for (const e of entradas) {
+          if (e.target === ticketEl) {
+            ticketVisible = e.intersectionRatio >= 0.5;
+            intentarImprimir();
+          } else if (!e.isIntersecting) {
+            // Salió del todo: la próxima vez que vuelva, se escribe de nuevo.
+            parar();
+            preparar();
+          }
+        }
+      },
+      { threshold: [0, 0.5] }
+    );
+    ioCampo.observe(campoEl);
+    ioTicket.observe(ticketEl);
+    ioTicket.observe(el);
+    return () => {
+      ioCampo.disconnect();
+      ioTicket.disconnect();
+      parar();
     };
   }, [imprimir]);
 
   useEffect(crecer, [texto]);
 
   const tomarControl = () => {
+    setTomado(true);
     if (!demo.current) return;
     demo.current = false;
     setTexto("");
@@ -140,7 +205,7 @@ export default function Comanda() {
             id="pedido"
             rows={1}
             value={texto}
-            placeholder={EJEMPLO}
+            placeholder={tomado ? EJEMPLO : undefined}
             onFocus={tomarControl}
             onChange={(e) => {
               setTexto(e.target.value);
@@ -156,7 +221,7 @@ export default function Comanda() {
           />
           <button
             type="button"
-            className="landing-btn landing-btn-tinta"
+            className={cn("landing-btn landing-btn-tinta", apretado && "landing-apretado")}
             onClick={() => {
               demo.current = false;
               const valor = texto.trim() ? texto : EJEMPLO;
@@ -164,7 +229,7 @@ export default function Comanda() {
               imprimir(valor);
             }}
           >
-            Pedir <span aria-hidden className="landing-btn-flecha">→</span>
+            <span className="landing-campo-pedir">Pedir</span> <span aria-hidden className="landing-btn-flecha">→</span>
           </button>
         </div>
         {faltaPuesto && (
@@ -183,7 +248,7 @@ export default function Comanda() {
           <Voluta />
           <Voluta derecha />
           <p className="landing-comanda-tope">
-            <span>Comanda</span> <span>· Tu bar · 20:46</span>
+            <span>Comanda</span> <span>· Tu bar · {RELOJ.sinCubrir.hora}</span>
           </p>
           <div aria-hidden className="landing-orla">
             <i />
@@ -205,7 +270,6 @@ export default function Comanda() {
           <div className="landing-cinta">
             <Filete palabra="¡Oído!" tam="cinta" className="landing-cinta-svg" />
           </div>
-          <p className="landing-comanda-pie">Avisado a 10 cerca tuyo</p>
           <div aria-hidden className="landing-guarda" />
         </div>
       </div>

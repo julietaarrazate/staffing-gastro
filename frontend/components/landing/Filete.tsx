@@ -1,120 +1,197 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
 /**
- * Filete porteño (2026-10-18): una palabra con letras crema y doradas, relieve
- * ámbar y borde hondo, entre volutas, hojas celestes, florcitas y perlitas,
- * a la manera del cartel "Pase y vea". Va en la cinta "¡Oído!" de la comanda
- * y en el "oído" grande del final; el resto de la landing queda liso. En el
- * encabezado (`tam="marca"`, desde el 2026-10-19) va sólo la palabra, sin
- * volutas ni flores: a 30 px de alto se volvían manchitas.
+ * El «oído» fileteado (2026-10-23): letra de cartel antiguo (Sancreek, con
+ * espolones, como los alfabetos "lettres fantaisie" y los carteles de
+ * fileteado) en crema, con filete interior de luz, borde y relieve azul hondo
+ * y canto dorado. En el tamaño grande, adornos finos dorados: arco con doble
+ * filete y flor de tres hojas arriba, filete cortado con eses y rombo abajo,
+ * rulos y perlitas.
  *
- * Los colores son del cartel, no tokens: el filete es una ilustración y se ve
- * igual en cualquier tema.
+ * Tres tamaños: `firma` (con adornos: pantalla de inicio), `marca` (sólo la
+ * palabra: encabezado) y `cinta` («¡Oído!» en la comanda). El final de la
+ * landing usa `Sol` y `Letras` sueltos (LandingFooter.tsx): el Sol de Mayo
+ * saliendo detrás de la palabra. Los colores son del cartel, no tokens: se
+ * ve igual en cualquier tema.
  */
-const AMBAR = "#d97706";
-const RELIEVE = "#8a3f05";
-const HONDO = "#1c5478";
-const BORDE = "#14456a";
+const ORO = "#b8801f";
+const ORO_CLARO = "#e2b04a";
+const RAYO = "#9a6410";
+const HONDO = "#14456a";
+const HONDO_CLARO = "#1c5478";
+const CANTO = "#c98a1a";
+const FUENTE = "var(--font-sancreek), Georgia, serif";
 
-/** Un costado del adorno, en un lienzo de 1000 × 420 (el otro es su espejo). */
-function Costado() {
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
+/** El sol, a la manera del Sol de Mayo: rayos rectos y ondulados alternados y disco con relieve. */
+export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: number; id: string; rayos?: number }) {
+  const piezas: ReactNode[] = [];
+  const R1 = r * 1.08;
+  const R2 = r * 1.72;
+  const R3 = r * 1.52;
+  for (let k = 0; k < rayos; k++) {
+    const a = (k * 2 * Math.PI) / rayos - Math.PI / 2;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    if (k % 2 === 0) {
+      const w = rayos >= 32 ? 0.075 : 0.13;
+      const d = `M${r1(cx + R1 * Math.cos(a - w))} ${r1(cy + R1 * Math.sin(a - w))}L${r1(cx + R2 * ca)} ${r1(cy + R2 * sa)}L${r1(cx + R1 * Math.cos(a + w))} ${r1(cy + R1 * Math.sin(a + w))}Z`;
+      piezas.push(<path key={k} d={d} fill={`url(#${id}-rayo)`} stroke={RAYO} strokeWidth={1.6} strokeLinejoin="round" />);
+    } else {
+      const pts: string[] = [];
+      for (let j = 0; j <= 14; j++) {
+        const t = j / 14;
+        const rr = R1 + (R3 - R1) * t;
+        const off = Math.sin(t * Math.PI * 2.2) * r * 0.07 * (1 - t * 0.5);
+        pts.push(`${r1(cx + rr * ca - off * sa)} ${r1(cy + rr * sa + off * ca)}`);
+      }
+      const p = pts.join(" ");
+      piezas.push(
+        <g key={k} fill="none" strokeLinecap="round">
+          <polyline points={p} stroke={RAYO} strokeWidth={r1(r * 0.11)} />
+          <polyline points={p} stroke="#f1c75a" strokeWidth={r1(r * 0.06)} />
+        </g>
+      );
+    }
+  }
+  const relieve = Array.from({ length: 10 }, (_, i) => 10 - i);
   return (
     <g>
-      <path d="M168 352C70 352 44 262 98 220c42-32 86-2 66 30-14 22-46 14-38-6" fill="none" stroke={AMBAR} strokeWidth="12" strokeLinecap="round" />
-      <path d="M160 320C104 320 86 270 116 244" fill="none" stroke="#9ac9e7" strokeWidth="6" strokeLinecap="round" />
-      <path d="M98 220c-24-44-4-92 46-104-10 44-22 78-46 104z" fill="#c4e3ed" stroke={HONDO} strokeWidth="3" />
-      <path d="M168 352c22-32 64-38 98-20-32 22-64 28-98 20z" fill="#c4e3ed" stroke={HONDO} strokeWidth="3" />
-      <path d="M144 116c10-30 36-44 66-40" fill="none" stroke={AMBAR} strokeWidth="7" strokeLinecap="round" />
-      <g transform="translate(66 132)">
-        <g fill="#e8f4f8" stroke={HONDO} strokeWidth="2.5">
-          <circle cy="-17" r="15" />
-          <circle cx="16" cy="-5" r="15" />
-          <circle cx="10" cy="14" r="15" />
-          <circle cx="-10" cy="14" r="15" />
-          <circle cx="-16" cy="-5" r="15" />
-        </g>
-        <circle r="9" fill={AMBAR} />
-      </g>
-      <g fill={AMBAR}>
-        <circle cx="230" cy="60" r="7" />
-        <circle cx="40" cy="300" r="8" />
-        <circle cx="250" cy="380" r="6" />
-      </g>
-      <g fill="#fff">
-        <circle cx="228" cy="58" r="2.2" />
-        <circle cx="38" cy="298" r="2.6" />
-        <circle cx="248" cy="378" r="2" />
+      {piezas}
+      {relieve.map((k) => (
+        <circle key={k} cx={cx + k} cy={cy + k} r={r} fill={k > 5 ? HONDO : HONDO_CLARO} />
+      ))}
+      <circle cx={cx} cy={cy} r={r} fill={`url(#${id}-disco)`} stroke={RAYO} strokeWidth={4} />
+      <circle cx={cx} cy={cy} r={r - 8} fill="none" stroke="#fff6cf" strokeWidth={2.5} />
+    </g>
+  );
+}
+
+/** La letra: sombra, relieve azul, canto dorado, borde, cara crema y filete interior de luz. */
+export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1 }: { x: number; y: number; tam: number; texto: string; id: string; anchor?: "start" | "middle"; e?: number }) {
+  const t = `${id}-texto`;
+  const pasos = Array.from({ length: 14 }, (_, i) => 14 - i);
+  return (
+    <g>
+      <defs>
+        <text id={t} x={x} y={y} textAnchor={anchor} fontSize={tam} letterSpacing={6 * e} style={{ fontFamily: FUENTE }}>
+          {texto}
+        </text>
+        <linearGradient id={`${id}-cara`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff9dc" />
+          <stop offset="1" stopColor="#f2dc9a" />
+        </linearGradient>
+        <clipPath id={`${id}-recorte`}>
+          <use href={`#${t}`} />
+        </clipPath>
+      </defs>
+      <use href={`#${t}`} x={20 * e} y={20 * e} fill={CANTO} opacity={0.5} />
+      {pasos.map((k) => {
+        const c = k > 6 ? HONDO : HONDO_CLARO;
+        return <use key={k} href={`#${t}`} x={k * e} y={k * e} fill={c} stroke={c} strokeWidth={2 * e} />;
+      })}
+      <use href={`#${t}`} x={2.2 * e} y={2.2 * e} fill={CANTO} />
+      <use href={`#${t}`} fill={`url(#${id}-cara)`} stroke={HONDO} strokeWidth={5 * e} paintOrder="stroke" />
+      <g clipPath={`url(#${id}-recorte)`}>
+        <use href={`#${t}`} fill="none" stroke="#ffffff" strokeWidth={16 * e} />
+        <use href={`#${t}`} fill="none" stroke={`url(#${id}-cara)`} strokeWidth={10 * e} />
       </g>
     </g>
   );
 }
 
-type Medidas = {
-  ancho: number;
-  alto: number;
-  /** Base de la palabra y su cuerpo. */
-  y: number;
-  cuerpo: number;
-  /** Escala y corrimiento de los costados (dibujados en 1000 × 420). */
-  escala: number;
-  dx: number;
-  dy: number;
-  relieve: number;
-  borde: number;
-  /** Volutas, hojas, flores y perlitas a los costados. */
-  adornos: boolean;
-};
-
-type Tam = "marca" | "cinta" | "firma";
-
-const MEDIDAS: Record<Tam, Medidas> = {
-  marca: { ancho: 176, alto: 84, y: 64, cuerpo: 78, escala: 0, dx: 0, dy: 0, relieve: 3.5, borde: 2.6, adornos: false },
-  cinta: { ancho: 340, alto: 124, y: 86, cuerpo: 66, escala: 0.27, dx: -4, dy: 6, relieve: 5, borde: 2.4, adornos: true },
-  firma: { ancho: 1000, alto: 420, y: 330, cuerpo: 300, escala: 1, dx: 0, dy: 0, relieve: 12, borde: 5, adornos: true },
-};
-
-export default function Filete({ palabra, tam, className }: { palabra: string; tam: Tam; className?: string }) {
-  const id = useId().replace(/:/g, "");
-  const m = MEDIDAS[tam];
-  const texto = `filete-texto-${id}`;
-  const cara = `filete-cara-${id}`;
-  const pasos = Array.from({ length: 10 }, (_, k) => (m.relieve * (10 - k)) / 10);
+function Hoja({ x, y, rot, s = 1 }: { x: number; y: number; rot: number; s?: number }) {
+  const tr = `translate(${x} ${y}) rotate(${rot}) scale(${s})`;
   return (
-    <svg aria-hidden viewBox={`0 0 ${m.ancho} ${m.alto}`} className={className}>
-      <defs>
-        <text
-          id={texto}
-          x={m.ancho / 2}
-          y={m.y}
-          textAnchor="middle"
-          fontWeight="700"
-          fontSize={m.cuerpo}
-          letterSpacing={tam === "firma" ? -6 : tam === "marca" ? -2 : -1}
-          style={{ fontFamily: "var(--font-fraunces), Georgia, serif" }}
-        >
-          {palabra}
-        </text>
-        <linearGradient id={cara} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff9dc" />
-          <stop offset=".55" stopColor="#f6df8c" />
-          <stop offset="1" stopColor="#e9b84a" />
-        </linearGradient>
-      </defs>
-      {m.adornos && (
-        <>
-          <g transform={`translate(${m.dx} ${m.dy}) scale(${m.escala})`}>
-            <Costado />
-          </g>
-          <g transform={`translate(${m.ancho - m.dx} ${m.dy}) scale(${-m.escala} ${m.escala})`}>
-            <Costado />
-          </g>
-        </>
-      )}
-      {pasos.map((d) => (
-        <use key={d} href={`#${texto}`} x={d} y={d} fill={RELIEVE} />
+    <g transform={tr}>
+      <path d="M0 0c7-9 7-19 0-27c-7 8-7 18 0 27z" fill={ORO_CLARO} stroke={ORO} strokeWidth={1.4} />
+      <path d="M0-4v-18" stroke="#fff6cf" strokeWidth={1.2} strokeLinecap="round" />
+    </g>
+  );
+}
+
+function Rulo({ x, y, lado }: { x: number; y: number; lado: 1 | -1 }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${lado} 1)`}>
+      <path d="M0 0c22 0 36-10 36-24 0-12-10-18-18-14-7 4-6 13 1 14" fill="none" stroke={ORO} strokeWidth={2.2} strokeLinecap="round" />
+      <circle cx={19} cy={-24} r={2.6} fill={ORO} />
+      <Hoja x={10} y={-3} rot={-70} s={0.7} />
+    </g>
+  );
+}
+
+/** Los adornos finos de la firma, como los de los carteles de "Argentina". */
+function Adornos({ x0, yt, yb, hw }: { x0: number; yt: number; yb: number; hw: number }) {
+  return (
+    <g>
+      <g fill="none" stroke={ORO} strokeLinecap="round">
+        <path d={`M${x0 - hw} ${yt + 26}Q${x0} ${yt - 26} ${x0 + hw} ${yt + 26}`} strokeWidth={2.4} />
+        <path d={`M${x0 - hw + 30} ${yt + 30}Q${x0} ${yt - 14} ${x0 + hw - 30} ${yt + 30}`} strokeWidth={1.1} />
+        <path d={`M${x0 - hw} ${yb}H${x0 - 58}M${x0 + 58} ${yb}H${x0 + hw}`} strokeWidth={2.4} />
+        <path d={`M${x0 - hw + 40} ${yb + 8}H${x0 - 70}M${x0 + 70} ${yb + 8}H${x0 + hw - 40}`} strokeWidth={1.1} />
+        {[1, -1].map((e) => (
+          <path key={e} transform={`translate(${x0} ${yb}) scale(${e} 1)`} d="M12 0c10 0 18 8 28 8s16-10 10-16c-5-5-12 0-8 5" strokeWidth={2} />
+        ))}
+        <path d={`M${x0 - hw} ${yt + 26}c-14 2-24-8-18-17 4-6 12-3 10 3`} strokeWidth={2.2} />
+        <path d={`M${x0 + hw} ${yt + 26}c14 2 24-8 18-17-4-6-12-3-10 3`} strokeWidth={2.2} />
+      </g>
+      <path d={`M${x0} ${yb - 9}l8 9-8 9-8-9z`} fill={ORO_CLARO} stroke={ORO} strokeWidth={1.4} />
+      <Hoja x={x0} y={yt - 2} rot={0} s={1.1} />
+      <Hoja x={x0} y={yt - 2} rot={-48} s={0.8} />
+      <Hoja x={x0} y={yt - 2} rot={48} s={0.8} />
+      <circle cx={x0} cy={yt + 2} r={3.2} fill={ORO} />
+      <Rulo x={x0 + hw} y={yb} lado={1} />
+      <Rulo x={x0 - hw} y={yb} lado={-1} />
+      {[-1, 1].map((e) => (
+        <g key={e} fill={ORO}>
+          <circle cx={x0 + e * hw * 0.62} cy={yt + 4} r={2.4} />
+          <circle cx={x0 + e * hw * 0.69} cy={yt + 12} r={1.6} />
+        </g>
       ))}
-      <use href={`#${texto}`} fill={`url(#${cara})`} stroke={BORDE} strokeWidth={m.borde} paintOrder="stroke" />
-      <use href={`#${texto}`} fill="none" stroke="#fff" strokeWidth={m.borde / 3} opacity={0.7} transform="translate(-1 -1)" />
+    </g>
+  );
+}
+
+export function Degrades({ id }: { id: string }) {
+  return (
+    <defs>
+      <radialGradient id={`${id}-disco`} cx=".4" cy=".35" r=".75">
+        <stop offset="0" stopColor="#fff3b0" />
+        <stop offset=".6" stopColor="#f1c75a" />
+        <stop offset="1" stopColor="#d9962a" />
+      </radialGradient>
+      <linearGradient id={`${id}-rayo`} x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#fbe08a" />
+        <stop offset="1" stopColor="#d9962a" />
+      </linearGradient>
+    </defs>
+  );
+}
+
+export default function Filete({ palabra, tam, className }: { palabra: string; tam: "marca" | "cinta" | "firma"; className?: string }) {
+  const id = `filete-${useId().replace(/:/g, "")}`;
+
+  if (tam === "cinta") {
+    return (
+      <svg aria-hidden viewBox="0 0 640 250" className={className}>
+        <Letras x={320} y={180} tam={170} texto={palabra} id={id} anchor="middle" />
+      </svg>
+    );
+  }
+
+  if (tam === "marca") {
+    return (
+      <svg aria-hidden viewBox="145 55 365 175" className={className}>
+        <Letras x={320} y={200} tam={175} texto={palabra} id={id} anchor="middle" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden viewBox="70 20 680 345" className={className}>
+      <Adornos x0={410} yt={58} yb={330} hw={300} />
+      <Letras x={410} y={253} tam={175} texto={palabra} id={id} anchor="middle" />
     </svg>
   );
 }
