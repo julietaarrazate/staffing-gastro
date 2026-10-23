@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -46,6 +46,7 @@ from app.modules.worker.infrastructure.repositories import (
 def get_shift_service(
     session: Annotated[AsyncSession, Depends(get_session)],
     email_sender: Annotated[EmailSender, Depends(get_email_sender)],
+    background_tasks: BackgroundTasks,
 ) -> ShiftService:
     return ShiftService(
         shifts=SqlAlchemyShiftRepository(session),
@@ -60,6 +61,8 @@ def get_shift_service(
         # publicar un turno (ver `_notify_nearby_workers`).
         candidates=SqlAlchemyCandidateRepository(session),
         favorites=SqlAlchemyFavoriteRepository(session),
+        # El email de aceptación sale después de la respuesta.
+        run_after_response=background_tasks.add_task,
     )
 
 
