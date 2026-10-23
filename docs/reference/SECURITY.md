@@ -19,7 +19,9 @@
   - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
     `exp`, y `jti` sólo en el refresh.
 - **Contraseñas:** hash **bcrypt** (librería `bcrypt` directa, 12 rondas; `passlib` se sacó el 2026-10-21 por estar sin mantenimiento). Nunca se guarda ni se loguea la
-  contraseña en claro.
+  contraseña en claro. En los casos de uso, bcrypt corre en un hilo
+  (`hash_password_async` / `verify_password_async`, 2026-10-23) para no
+  congelar el único proceso de uvicorn.
 - **Frontend:** access + refresh en `localStorage`, renovado al cargar y
   periódicamente (sesión persistente; ver
   [ARCHITECTURE.md](../foundation/ARCHITECTURE.md#frontend-nextjs)).

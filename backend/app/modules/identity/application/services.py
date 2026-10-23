@@ -20,7 +20,8 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
     hash_password,
-    verify_password,
+    hash_password_async,
+    verify_password_async,
 )
 from app.modules.identity.application.dtos import (
     GoogleLoginCommand,
@@ -157,7 +158,7 @@ class IdentityService:
 
         user = User(
             email=command.email.lower(),
-            hashed_password=hash_password(command.password),
+            hashed_password=await hash_password_async(command.password),
             full_name=command.full_name,
             role=command.role,
         )
@@ -175,9 +176,9 @@ class IdentityService:
             # Mismo trabajo de bcrypt que con un email existente: si no, la
             # respuesta rápida delataba qué emails tienen cuenta (revisión de
             # seguridad 2026-10-20).
-            verify_password(command.password, _DUMMY_PASSWORD_HASH)
+            await verify_password_async(command.password, _DUMMY_PASSWORD_HASH)
             raise InvalidCredentialsError()
-        if not verify_password(command.password, user.hashed_password):
+        if not await verify_password_async(command.password, user.hashed_password):
             raise InvalidCredentialsError()
         if not user.is_active:
             raise InactiveUserError()
@@ -202,7 +203,7 @@ class IdentityService:
             user = await self._users.add(
                 User(
                     email=email,
-                    hashed_password=_google_local_password(),
+                    hashed_password=await _google_local_password(),
                     full_name=name,
                     role=role,
                     is_verified=True,
@@ -242,7 +243,7 @@ class IdentityService:
 
         user = User(
             email=email,
-            hashed_password=_google_local_password(),
+            hashed_password=await _google_local_password(),
             full_name=identity.full_name,
             role=command.role,
             # Google ya verificó la propiedad del email: no hace falta el
@@ -272,7 +273,7 @@ class IdentityService:
         abiertas. Si era la misma persona, pierde la contraseña que nunca
         confirmó y la recupera con "Olvidé mi contraseña"."""
         user.verify()
-        user.hashed_password = _google_local_password()
+        user.hashed_password = await _google_local_password()
         await self._users.update(user)
         await self._sessions.revoke_all_for_user(user.id)
         logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
@@ -418,7 +419,7 @@ class IdentityService:
         if user is None:
             raise PasswordResetTokenInvalidError()
 
-        user.hashed_password = hash_password(new_password)
+        user.hashed_password = await hash_password_async(new_password)
         await self._users.update(user)
 
         await self._reset_tokens.mark_used(reset_token.id)
@@ -565,7 +566,7 @@ def _hash_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
-def _google_local_password() -> str:
+async def _google_local_password() -> str:
     """Contraseña local "imposible" para una cuenta creada vía Google.
 
     `UserModel.hashed_password` es `NOT NULL` (columna compartida con el
@@ -579,4 +580,4 @@ def _google_local_password() -> str:
     propia sin cambios adicionales (el flujo de reset ya no le importa el
     hash anterior). Ver docs/reference/ACCESO_MODERNO.md.
     """
-    return hash_password(secrets.token_urlsafe(32))
+    return await hash_password_async(secrets.token_urlsafe(32))

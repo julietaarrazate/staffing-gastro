@@ -4,6 +4,7 @@ Mantiene la criptografía aislada del dominio para que los casos de uso
 dependan de funciones puras y testeables.
 """
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -40,6 +41,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except ValueError:
         # Hash con formato inválido: no verifica, en vez de un 500.
         return False
+
+
+# bcrypt tarda ~250 ms a costo 12 y es CPU puro. El backend corre en un solo
+# proceso de uvicorn: llamado directo desde un handler async congela el event
+# loop y con él a todos los usuarios. Los casos de uso usan estas variantes,
+# que lo corren en un hilo (bcrypt suelta el GIL mientras calcula).
+async def hash_password_async(plain_password: str) -> str:
+    """`hash_password` en un hilo, sin bloquear el event loop."""
+    return await asyncio.to_thread(hash_password, plain_password)
+
+
+async def verify_password_async(plain_password: str, hashed_password: str) -> bool:
+    """`verify_password` en un hilo, sin bloquear el event loop."""
+    return await asyncio.to_thread(verify_password, plain_password, hashed_password)
 
 
 # --- JWT ---
