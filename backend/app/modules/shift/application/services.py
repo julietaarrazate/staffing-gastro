@@ -1,6 +1,7 @@
 """Casos de uso del módulo shift (publicación y ciclo de vida del turno)."""
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -122,6 +123,12 @@ class ShiftService:
         # (ver `_notify_nearby_workers`). Opcional por el mismo motivo que
         # `candidates`: sin él, el aviso sigue saliendo, sólo que sin ellos.
         favorites: FavoriteRepository | None = None,
+        # Cómo correr trabajo DESPUÉS de responder (en la API, el
+        # `BackgroundTasks.add_task` del request). Lo usa el email de
+        # aceptación para no hacer esperar al comercio al proveedor de email
+        # (hasta 10 s de timeout). Sin él (scheduler, tests de servicio) se
+        # corre en el momento, como antes.
+        run_after_response: Callable[..., None] | None = None,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -133,6 +140,7 @@ class ShiftService:
         self._email_sender = email_sender
         self._candidates = candidates
         self._favorites = favorites
+        self._run_after_response = run_after_response
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -738,7 +746,10 @@ class ShiftService:
 
         Best-effort: un error acá (proveedor caído, perfil/usuario
         inconsistente) nunca debe romper la asignación, que ya quedó
-        persistida. Ver contrato de `EmailSender`."""
+        persistida. Ver contrato de `EmailSender`.
+
+        Con `run_after_response` el envío sale después de responder
+        (2026-10-23): el comercio ya no espera al proveedor de email."""
         try:
             profile = await self._workers.get_by_id(worker_profile_id)
             if profile is None:
@@ -757,7 +768,28 @@ class ShiftService:
                 format_turno_art(shift.start_at, shift.end_at),
                 f"{settings.frontend_url}/my-shifts",
             )
-            await self._email_sender.send(to=user.email, subject=subject, html=html)
+        except Exception:
+            logger.exception(
+                "No se pudo armar el email de aceptación de turno al trabajador %s",
+                worker_profile_id,
+            )
+            return
+        # Las lecturas de arriba usan la sesión del request y van antes de
+        # responder; el envío (red, hasta 10 s) va después, si se puede.
+        if self._run_after_response is not None:
+            self._run_after_response(
+                self._deliver_acceptance_email, worker_profile_id, user.email, subject, html
+            )
+        else:
+            await self._deliver_acceptance_email(worker_profile_id, user.email, subject, html)
+
+    async def _deliver_acceptance_email(
+        self, worker_profile_id: UUID, to: str, subject: str, html: str
+    ) -> None:
+        """El envío en sí. Atrapa todo: corriendo después de la respuesta, una
+        excepción acá ya no tiene a quién llegar más que al log."""
+        try:
+            await self._email_sender.send(to=to, subject=subject, html=html)
         except Exception:
             logger.exception(
                 "No se pudo enviar el email de aceptación de turno al trabajador %s",

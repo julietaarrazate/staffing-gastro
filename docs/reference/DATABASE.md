@@ -85,3 +85,14 @@ crea el esquema a mano en producción. En Render, el arranque corre
 >   `notifications`, `reviews`, `shift_applications`). Revisar cobertura para
 >   consultas nuevas al escalar (detalle en
 >   [PERFORMANCE_REPORT.md](../audits/PERFORMANCE_REPORT.md)).
+>   Desde la migración 0040 (2026-10-23) hay compuestos con la forma de las
+>   consultas calientes: `notifications (user_id, created_at DESC)`,
+>   `shifts (status, start_at)`, `shifts (company_id, created_at DESC)`,
+>   `shifts (position, lower(city), created_at)` y
+>   `chat_messages (shift_id, created_at)`; se fueron los duplicados
+>   (`ix_notifications_user_id` y los `UNIQUE` repetidos de
+>   `company_profiles.user_id` / `worker_profiles.user_id`).
+> - **Retención:** el scheduler borra una vez por día las sesiones de refresh
+>   vencidas hace más de 7 días y las notificaciones **leídas** de más de 90
+>   días (`run_retention_cleanup`, `shift/application/scheduler.py`). Las no
+>   leídas y las sesiones revocadas todavía vigentes no se tocan.

@@ -86,7 +86,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |
-| Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto") | `backend/app/modules/shift/application/scheduler.py` |
+| Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos) | `backend/app/modules/shift/application/scheduler.py` |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |

@@ -7,7 +7,7 @@
   es único para que un pago no se acredite dos veces.
 
 Revision ID: 0041
-Revises: 0039 (0040 cuando entre a main el PR de perf: corregir al mergear)
+Revises: 0040
 Create Date: 2026-10-23
 
 """
@@ -20,7 +20,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "0041"
-down_revision: str | None = "0039"  # TODO al mergear: "0040" si ya está en main
+down_revision: str | None = "0040"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

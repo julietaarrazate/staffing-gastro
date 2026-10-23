@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings as app_settings
@@ -137,6 +137,16 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
+
+    async def delete_read_before(self, cutoff: datetime) -> int:
+        result = await self._session.execute(
+            delete(NotificationModel).where(
+                NotificationModel.read.is_(True),
+                NotificationModel.created_at < cutoff,
+            )
+        )
+        await self._session.commit()
+        return result.rowcount or 0
 
 
 def _push_to_entity(model: PushSubscriptionModel) -> PushSubscription:
