@@ -1,4 +1,4 @@
-# Inicio: la foto de la rueda se pide desde el HTML, sin esperar a hidratar
+# Inicio: la foto de la rueda se pide desde el HTML, sin esperar a hidratar (#501)
 
 **Pedido:** Julieta, 2026-10-23: seguir con el relevamiento de rendimiento
 del frontend (ítem 6, LCP de la landing), midiendo antes y después.
