@@ -116,7 +116,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | GET | `/users` | Listar usuarios — **paginado** |
 | POST | `/users/{id}/promote` · `/suspend` · `/activate` · `/verify` | Moderación |
 
-### `subscription` — `/subscription` (ADR-0005 Fase 1 + cobro mensual ADR-0021, rol employer salvo el webhook)
+### `subscription` — `/subscription` (ADR-0005 Fase 1 + cobro mensual ADR-0022, rol employer salvo el webhook)
 | Método | Ruta | Qué hace |
 |--------|------|----------|
 | GET | `` | Suscripción del comercio logueado (`plan_code`, `status` pendiente/activa/vencida/cancelada, `period_end`, `price_ars`, `max_turnos_mes`, `turnos_usados_mes`, `billing_enabled`, `paid_until`, `renews`, `can_publish`, `withdrawal_until`) — 404 sin perfil de comercio |

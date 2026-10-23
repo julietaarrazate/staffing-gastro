@@ -89,7 +89,7 @@ rate limiting, WS manager, zona horaria, tipos). El punto de entrada es
 | `chat` | ✅ | Mensajería por turno en tiempo real (WebSocket). |
 | `review` | ✅ | Reseñas bidireccionales; recalculan reputación. |
 | `admin` | ✅ | Métricas y moderación (sólo rol admin). |
-| `subscription` | ✅ | Mensualidad al comercio (ADR-0005 Fase 1): plan + gating de capacidad al publicar turnos. Cobro con un pago por mes de Checkout Pro (ADR-0021): `BillingGateway`/Mercado Pago detrás de feature-flag, **apagado** sin `MERCADOPAGO_ACCESS_TOKEN` + `MERCADOPAGO_WEBHOOK_SECRET`. |
+| `subscription` | ✅ | Mensualidad al comercio (ADR-0005 Fase 1): plan + gating de capacidad al publicar turnos. Cobro con un pago por mes de Checkout Pro (ADR-0022): `BillingGateway`/Mercado Pago detrás de feature-flag, **apagado** sin `MERCADOPAGO_ACCESS_TOKEN` + `MERCADOPAGO_WEBHOOK_SECRET`. |
 | `verification` | ✅ | Verificación de identidad (DNI/selfie), cola de revisión manual para el admin. |
 | `favorite` | ✅ | Comercios/trabajadores favoritos. |
 | `saved_shift` | ✅ | Turnos guardados por el trabajador. |

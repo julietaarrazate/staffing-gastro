@@ -459,7 +459,7 @@ def render_verification_decision_email_html(
 def render_subscription_email_html(
     full_name: str, *, title: str, text: str, cta_label: str, link: str
 ) -> str:
-    """Avisos del cobro mensual del comercio (ADR-0021): pago acreditado,
+    """Avisos del cobro mensual del comercio (ADR-0022): pago acreditado,
     plan por vencer, plan vencido, reembolso del arrepentimiento. Un solo
     molde: cambia el título, el texto y el botón."""
     body = f"""

@@ -16,7 +16,7 @@ class SubscriptionResponse(BaseModel):
     price_ars: Decimal
     max_turnos_mes: int | None
     turnos_usados_mes: int
-    # Cobro real (ADR-0021). Con `billing_enabled` en false el resto de los
+    # Cobro real (ADR-0022). Con `billing_enabled` en false el resto de los
     # campos de cobro no aplica y la pantalla se ve como en la beta.
     billing_enabled: bool = False
     paid_until: datetime | None = None

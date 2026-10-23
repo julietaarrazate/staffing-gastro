@@ -15,7 +15,7 @@ import { CardSkeletons, ErrorBanner, Modal, Button, Card, useToast } from "@/com
 
 type SubscribeResponse = { plan_code: string; status: string; checkout_url: string | null };
 
-/** Qué acción del cobro (ADR-0021) está esperando confirmación. */
+/** Qué acción del cobro (ADR-0022) está esperando confirmación. */
 type PendingAction = "baja" | "arrepentimiento" | null;
 
 const RETURN_TONE = {
@@ -25,7 +25,7 @@ const RETURN_TONE = {
 } as const;
 
 /**
- * "Mi plan" del comercio (ADR-0005 Fase 1; cobro real en ADR-0021). Junta el
+ * "Mi plan" del comercio (ADR-0005 Fase 1; cobro real en ADR-0022). Junta el
  * estado de la suscripción (`GET /subscription`) con el catálogo
  * (`GET /subscription/plans`).
  *

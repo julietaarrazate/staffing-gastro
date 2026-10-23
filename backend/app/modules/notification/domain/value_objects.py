@@ -48,7 +48,7 @@ class NotificationType(str, Enum):
     # o constancia de AFIP del comercio). Antes la decisión no le llegaba a
     # nadie: la persona se enteraba sólo si volvía a mirar su perfil.
     VERIFICATION_DECIDED = "verification_decided"
-    # Cobro mensual del comercio (ADR-0021): pago acreditado, aviso de
+    # Cobro mensual del comercio (ADR-0022): pago acreditado, aviso de
     # vencimiento (3 días antes y el día que vence), plan vencido y
     # arrepentimiento con reembolso.
     SUBSCRIPTION_PAID = "subscription_paid"

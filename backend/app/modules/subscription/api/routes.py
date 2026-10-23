@@ -1,4 +1,4 @@
-"""Rutas HTTP del módulo subscription (ADR-0005 Fase 1, ADR-0021)."""
+"""Rutas HTTP del módulo subscription (ADR-0005 Fase 1, ADR-0022)."""
 
 import logging
 from typing import Annotated
@@ -172,7 +172,7 @@ async def withdraw(company_id: CompanyIdDep, service: ServiceDep):
     include_in_schema=False,
 )
 async def mercadopago_webhook(request: Request, service: ServiceDep):
-    """Notificación de Mercado Pago (ADR-0021).
+    """Notificación de Mercado Pago (ADR-0022).
 
     1. Sólo interesa el tópico `payment`; el resto se contesta 200 y se ignora.
     2. Se valida `x-signature` (HMAC-SHA256 con la clave secreta del webhook

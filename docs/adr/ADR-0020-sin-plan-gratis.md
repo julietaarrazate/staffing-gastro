@@ -45,6 +45,6 @@ arrepentimiento en `/subscription`. Necesita la cuenta de Mercado Pago de
 Julieta.
 
 **Actualización 2026-10-23:** todo lo de "Queda abierto" está hecho en el
-[ADR-0021](./ADR-0021-cobro-mensual-sin-debito-automatico.md) (un pago por
+[ADR-0022](./ADR-0022-cobro-mensual-sin-debito-automatico.md) (un pago por
 mes con Checkout Pro, sin débito automático). Falta que Julieta cargue las
 credenciales de Mercado Pago.

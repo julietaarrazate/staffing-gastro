@@ -162,7 +162,7 @@ toda vista previa y el sitemap apuntaban ahí.
   de verdad destraba la entrega de PDF — no un fallback, es **el** fix.
 
 
-### 🟠 Cobro mensual con Mercado Pago (ADR-0021) — pendiente de Julieta
+### 🟠 Cobro mensual con Mercado Pago (ADR-0022) — pendiente de Julieta
 
 El código está listo y **apagado**: sin las dos credenciales de abajo, los
 planes se cambian sin pagar, como en la beta. Para prenderlo:
@@ -185,7 +185,7 @@ planes se cambian sin pagar, como en la beta. Para prenderlo:
    200 (si responde 401, la clave secreta cargada en Render no es la misma;
    si no llega, revisar que Cloudflare no la esté frenando).
 5. Revisar en **Tu negocio → Costos** la comisión vigente de Checkout Pro
-   con dinero en cuenta y débito (el ADR-0021 anota 0,8 % + IVA para QR con
+   con dinero en cuenta y débito (el ADR-0022 anota 0,8 % + IVA para QR con
    dinero en cuenta al 2026-10-23, a verificar).
 
 **En Render** (servicio del backend → Environment), cargar y guardar

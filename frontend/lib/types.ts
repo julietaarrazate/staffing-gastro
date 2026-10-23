@@ -616,7 +616,7 @@ export interface Subscription {
   /** `null` = ilimitado. */
   max_turnos_mes: number | null;
   turnos_usados_mes: number;
-  /** Cobro real con Mercado Pago prendido (ADR-0021). En false, el resto de
+  /** Cobro real con Mercado Pago prendido (ADR-0022). En false, el resto de
    * los campos de cobro no aplica y la pantalla se ve como en la beta. */
   billing_enabled?: boolean;
   /** Hasta cuándo está pago el plan (con el cobro prendido). */

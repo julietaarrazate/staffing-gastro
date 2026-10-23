@@ -1,7 +1,7 @@
 """Entidades de dominio: `Subscription` y `SubscriptionPayment`.
 
 Suscripción del comercio al plan de Oído — Fase 1 del ADR-0005 (mensualidad
-escalonada, NO split de pago de turno) con el cobro del ADR-0021: un pago por
+escalonada, NO split de pago de turno) con el cobro del ADR-0022: un pago por
 mes con Checkout Pro de Mercado Pago, sin débito automático.
 
 Dos relojes distintos en la misma suscripción:
@@ -37,12 +37,12 @@ from app.modules.subscription.domain.value_objects import (
     SubscriptionStatus,
 )
 
-# Un mes pago = 30 días fijos (ADR-0021), igual que la ventana de uso: evita
+# Un mes pago = 30 días fijos (ADR-0022), igual que la ventana de uso: evita
 # los bordes de meses de distinta longitud.
 PERIOD_LENGTH = timedelta(days=30)
 
 # Gracia después de `paid_until`: se puede seguir publicando 3 días más y
-# recién ahí la suscripción pasa a `vencida` (ADR-0021).
+# recién ahí la suscripción pasa a `vencida` (ADR-0022).
 GRACE_PERIOD = timedelta(days=3)
 
 # El primer aviso sale 3 días antes de `paid_until`.
@@ -110,7 +110,7 @@ class Subscription:
         self.period_end = now + PERIOD_LENGTH
         self.turnos_usados_mes = 0
 
-    # --- Cobro (ADR-0021) -------------------------------------------------
+    # --- Cobro (ADR-0022) -------------------------------------------------
 
     def is_paid(self, now: datetime) -> bool:
         """Mes pago vigente, contando los días de gracia."""
@@ -172,7 +172,7 @@ class Subscription:
 class SubscriptionPayment:
     """Un intento de pago mensual. Su `id` viaja como `external_reference`
     de la preferencia de Checkout Pro, así el webhook sabe qué plan y qué
-    monto esperaba (ADR-0021)."""
+    monto esperaba (ADR-0022)."""
 
     company_id: UUID
     plan_code: str

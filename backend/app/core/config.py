@@ -92,9 +92,9 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
-    # --- Suscripciones / cobro (ADR-0005 Fase 1, ADR-0021: un pago por mes) ---
+    # --- Suscripciones / cobro (ADR-0005 Fase 1, ADR-0022: un pago por mes) ---
     # Credenciales de Mercado Pago para el cobro mensual con Checkout Pro (un
-    # pago por mes, sin débito automático, ver ADR-0021). Hacen falta LAS DOS:
+    # pago por mes, sin débito automático, ver ADR-0022). Hacen falta LAS DOS:
     # el access token (crear la preferencia, leer el pago, reembolsar) y la
     # clave secreta del webhook (validar `x-signature`). Con alguna vacía el
     # cobro real está apagado: el plan se puede setear igual
@@ -116,7 +116,7 @@ class Settings(BaseSettings):
     @property
     def billing_enforced(self) -> bool:
         """Publicar exige un plan pago y vigente: `subscriptions_enforced` y
-        el cobro real prendidos a la vez (ADR-0021). Con el cobro apagado la
+        el cobro real prendidos a la vez (ADR-0022). Con el cobro apagado la
         beta sigue como siempre aunque `subscriptions_enforced` esté en true."""
         return self.subscriptions_enforced and self.billing_enabled
 

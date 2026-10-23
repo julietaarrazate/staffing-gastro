@@ -23,7 +23,7 @@ export default function PlanCard({
   currentPriceArs: number;
   onSelect: () => void;
   busy: boolean;
-  /** Cobro prendido (ADR-0021): el plan actual se puede pagar (o renovar)
+  /** Cobro prendido (ADR-0022): el plan actual se puede pagar (o renovar)
    * desde su tarjeta con esta etiqueta. Sin esto queda "Plan actual". */
   payLabel?: string;
 }) {

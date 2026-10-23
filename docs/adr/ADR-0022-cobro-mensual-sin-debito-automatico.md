@@ -1,4 +1,4 @@
-# ADR-0021 — Cobro mensual con Mercado Pago, sin débito automático
+# ADR-0022 — Cobro mensual con Mercado Pago, sin débito automático
 
 **Estado:** aceptado · **Fecha:** 2026-10-23 · **Completa a:** ADR-0005 (Fase 1, mensualidad) y ADR-0020 (sin plan gratis)
 

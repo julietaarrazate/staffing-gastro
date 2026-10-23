@@ -205,7 +205,7 @@ class ShiftService:
                     published = await self.publish_shift(company_id, shift.id)
                     created.append(published)
         except PublishingNotAllowedError as exc:
-            # Sin plan pago vigente (ADR-0021) no se publicó nada: que llegue
+            # Sin plan pago vigente (ADR-0022) no se publicó nada: que llegue
             # el 402 con el mensaje, no un evento vacío.
             if isinstance(exc, SubscriptionNotActiveError) and not created:
                 raise
@@ -430,7 +430,7 @@ class ShiftService:
         comercios en un escalón pago"). El uso se registra igual estando OFF,
         para tener el dato cuando se encienda."""
         now = datetime.now(timezone.utc)
-        # ADR-0021: con el cobro real exigido (`billing_enforced` = tope
+        # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
         # prendido + credenciales de Mercado Pago) publicar pide además un
         # mes pago vigente; un comercio nuevo arranca `pendiente`. Con el
         # cobro apagado esto no cambia nada (la beta sigue igual).

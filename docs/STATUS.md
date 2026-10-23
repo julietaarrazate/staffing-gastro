@@ -72,7 +72,7 @@ Revisado contra el código y los PRs el 2026-10-03.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
 7. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
-   (ADR-0021, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
+   (ADR-0022, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
    sin débito automático ni tarjeta de crédito; webhook firmado que acredita
    30 días, estado "pendiente", bloqueo al publicar sin mes pago, avisos de
    vencimiento, "Dar de baja" y "Arrepentirme" (reembolso) en

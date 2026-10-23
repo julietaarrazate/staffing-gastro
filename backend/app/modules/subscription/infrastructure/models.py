@@ -1,5 +1,5 @@
 """Modelos ORM de la suscripción del comercio (`subscriptions`) y de sus
-pagos mensuales (`subscription_payments`, ADR-0021)."""
+pagos mensuales (`subscription_payments`, ADR-0022)."""
 
 import uuid
 from datetime import datetime

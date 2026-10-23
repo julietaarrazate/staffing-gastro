@@ -32,7 +32,7 @@ class PaymentStatus(str, Enum):
 
 class ExpiryNotice(str, Enum):
     """Último aviso de vencimiento mandado para el `paid_until` vigente.
-    Se borra cuando entra un pago nuevo (ADR-0021)."""
+    Se borra cuando entra un pago nuevo (ADR-0022)."""
 
     POR_VENCER = "por_vencer"
     VENCIO = "vencio"

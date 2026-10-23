@@ -50,7 +50,7 @@ listados más abajo.
   pantalla "Mi plan", gating de publicación por tope mensual — **enforcement
   OFF por default** (`subscriptions_enforced=false`: se cuenta el uso pero no
   se bloquea a nadie en la beta). **Cobro mensual con Mercado Pago**
-  (ADR-0021): un pago por mes con Checkout Pro (QR en la compu, app en el
+  (ADR-0022): un pago por mes con Checkout Pro (QR en la compu, app en el
   celular, sin tarjeta de crédito), webhook firmado, vencimiento con 3 días de
   gracia y avisos, "Dar de baja" y "Arrepentirme" en Mi plan. **Apagado**
   hasta que estén `MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`.

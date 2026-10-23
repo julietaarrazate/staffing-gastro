@@ -21,7 +21,7 @@ Cuatro chequeos independientes, un solo loop:
    ya la trata como vencida en cuanto pasa el TTL (el matching/mapa nunca la
    usan de más), este chequeo sólo borra la posición de la base en vez de
    dejarla ahí sin uso indefinidamente.
-5. **Vencimiento del plan pago (ADR-0021):** sólo con el cobro de Mercado
+5. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
    Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
    después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
    `subscription/infrastructure/expiry_job.py`).

@@ -12,7 +12,7 @@ notificación"):
 - `v1` = HMAC-SHA256 del manifest con la clave secreta del webhook, en hex.
 
 Funciones puras (sin red ni config) para poder probarlas con una clave de
-test. Ver ADR-0021.
+test. Ver ADR-0022.
 """
 
 import hashlib

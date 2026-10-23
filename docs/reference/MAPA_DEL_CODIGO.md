@@ -42,7 +42,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
 | `/favorites` | Mis trabajadores favoritos (reciben siempre el primer aviso, #399) | — | `/favorites` |
 | `/workers/[id]` | Perfil público de un trabajador | `WorkerReviews`, `IdentityVerifiedBadge` | `/workers/{id}` |
-| `/subscription` | Mi plan: pagar el mes con Mercado Pago, vuelta `?pago=`, dar de baja, arrepentirme (ADR-0021; con el cobro apagado, como en la beta) | `subscription/PlanCard`, `subscription/SubscriptionStatusCard`, `lib/subscription.ts` | `/subscription`, `/subscription/subscribe`, `/cancel-renewal`, `/withdraw` |
+| `/subscription` | Mi plan: pagar el mes con Mercado Pago, vuelta `?pago=`, dar de baja, arrepentirme (ADR-0022; con el cobro apagado, como en la beta) | `subscription/PlanCard`, `subscription/SubscriptionStatusCard`, `lib/subscription.ts` | `/subscription`, `/subscription/subscribe`, `/cancel-renewal`, `/withdraw` |
 
 ### Compartidas, públicas y admin
 

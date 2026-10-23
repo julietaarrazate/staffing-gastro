@@ -1,5 +1,5 @@
 /**
- * Cobro mensual del comercio (ADR-0021): un pago por mes con Mercado Pago,
+ * Cobro mensual del comercio (ADR-0022): un pago por mes con Mercado Pago,
  * sin débito automático. Helpers puros de la pantalla "Mi plan".
  */
 

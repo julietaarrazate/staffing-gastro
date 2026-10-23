@@ -17,7 +17,7 @@ apagado (hoy) todo se ve y funciona como antes.
 Técnico:
 - `backend/app/modules/subscription/`: `Subscription` suma `paid_until`,
   `renews`, `expiry_notice` y el estado `pendiente`; nueva entidad
-  `SubscriptionPayment` (tabla `subscription_payments`, migración `0039`,
+  `SubscriptionPayment` (tabla `subscription_payments`, migración `0041`,
   `mp_payment_id` único). Puerto `BillingGateway` nuevo (`create_checkout`,
   `get_payment`, `refund_payment`); `MercadoPagoCheckoutAdapter` reemplaza al
   de preapproval, que se borró. Firma del webhook en
@@ -42,7 +42,7 @@ Técnico:
 - Tests: `backend/tests/test_subscription_cobro.py`,
   `frontend/lib/subscription.test.ts`, `frontend/e2e/subscription.spec.ts`.
 
-**Por qué así:** ver [ADR-0021](../adr/ADR-0021-cobro-mensual-sin-debito-automatico.md).
+**Por qué así:** ver [ADR-0022](../adr/ADR-0022-cobro-mensual-sin-debito-automatico.md).
 Se descartó el preapproval (comisión de crédito), un QR estático (no se sabe
 quién pagó qué) y activar por la vuelta del navegador (falsificable). El
 webhook firmado más la lectura del pago por API es lo único que acredita.

@@ -92,7 +92,7 @@ services:
       # contraseña, turnos). Antes caía en el default de Vercel.
       - key: FRONTEND_URL
         value: https://www.oido.com.ar
-      # --- Cobro mensual con Mercado Pago (ADR-0021) ---
+      # --- Cobro mensual con Mercado Pago (ADR-0022) ---
       # Vacías = cobro apagado: los planes se cambian sin pagar, como en la
       # beta. Hacen falta LAS DOS (access token de producción y clave secreta
       # del webhook). Pasos en docs/reference/PENDIENTE_OPERATIVO.md, "Cobro

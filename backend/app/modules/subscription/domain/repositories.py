@@ -38,7 +38,7 @@ class SubscriptionRepository(ABC):
     ) -> Subscription:
         """Devuelve la suscripción del comercio; si todavía no tiene una (primer
         acceso), la crea en el plan por defecto (`inicial`, ADR-0020) con
-        `initial_status` (`pendiente` cuando el cobro real se exige, ADR-0021)."""
+        `initial_status` (`pendiente` cuando el cobro real se exige, ADR-0022)."""
 
     @abstractmethod
     async def list_paid(self) -> list[Subscription]:

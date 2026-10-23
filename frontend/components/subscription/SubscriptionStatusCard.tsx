@@ -32,7 +32,7 @@ export default function SubscriptionStatusCard({
   subscription: Subscription;
   planName: string;
   onUpgrade: () => void;
-  /** Cobro prendido (ADR-0021): ir a pagar el mes del plan actual. */
+  /** Cobro prendido (ADR-0022): ir a pagar el mes del plan actual. */
   onPay?: () => void;
 }) {
   const { max_turnos_mes, turnos_usados_mes, status, price_ars } = subscription;

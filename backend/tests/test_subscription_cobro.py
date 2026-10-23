@@ -1,4 +1,4 @@
-"""Cobro mensual con Mercado Pago (ADR-0021), sin red: `FakeBillingGateway`.
+"""Cobro mensual con Mercado Pago (ADR-0022), sin red: `FakeBillingGateway`.
 
 Cubre: firma del webhook (válida / inválida), idempotencia por id de pago,
 monto que no coincide, extensión de un período activo, gating de publicación

@@ -1,4 +1,4 @@
-"""Puerto de cobro mensual (ADR-0021: un pago por mes, sin débito automático).
+"""Puerto de cobro mensual (ADR-0022: un pago por mes, sin débito automático).
 
 `BillingGateway.enabled` es el feature-flag: sin las credenciales de Mercado
 Pago (`MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`) la

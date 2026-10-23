@@ -8,7 +8,7 @@ import { isInactivePlanMessage } from "@/lib/subscription";
 /**
  * Se muestra cuando publicar un turno devuelve 402 en vez de un error crudo:
  * por límite de plan (ADR-0005) o, con el cobro prendido, por plan sin pagar
- * (ADR-0021). Explica el motivo y lleva a "Mi plan".
+ * (ADR-0022). Explica el motivo y lleva a "Mi plan".
  */
 export default function PlanLimitModal({
   open,

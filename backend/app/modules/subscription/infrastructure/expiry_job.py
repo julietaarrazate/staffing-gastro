@@ -1,4 +1,4 @@
-"""Pasada del chequeo de vencimiento de planes pagos (ADR-0021), armada con
+"""Pasada del chequeo de vencimiento de planes pagos (ADR-0022), armada con
 los adaptadores reales. La llama el scheduler en proceso
 (`shift/application/scheduler.py`), igual que los chequeos del turno.
 

@@ -167,7 +167,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await page.screenshot({ path: "/tmp/sub-fe-limit-reached.png", fullPage: true });
 });
 
-// --- Cobro mensual con Mercado Pago (ADR-0021) ---------------------------
+// --- Cobro mensual con Mercado Pago (ADR-0022) ---------------------------
 
 function mockSubscription(page: import("@playwright/test").Page, body: Record<string, unknown>) {
   return page.route("**/api/v1/subscription", (route) => {

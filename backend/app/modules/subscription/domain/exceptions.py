@@ -1,4 +1,4 @@
-"""Excepciones del dominio de suscripción (ADR-0005 Fase 1, ADR-0021)."""
+"""Excepciones del dominio de suscripción (ADR-0005 Fase 1, ADR-0022)."""
 
 
 class SubscriptionError(Exception):
@@ -32,7 +32,7 @@ class PlanLimitExceededError(PublishingNotAllowedError):
 
 class SubscriptionNotActiveError(PublishingNotAllowedError):
     """Con el cobro real exigido, el comercio no tiene un mes pago vigente
-    (nunca pagó, venció o se arrepintió). ADR-0021."""
+    (nunca pagó, venció o se arrepintió). ADR-0022."""
 
     def __init__(self) -> None:
         super().__init__(

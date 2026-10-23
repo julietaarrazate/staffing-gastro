@@ -31,7 +31,7 @@ const BY_TYPE: Record<NotificationType, string> = {
   // Un admin aprobó o rechazó una verificación: el resultado y el motivo se
   // ven en el perfil, donde se vuelve a mandar si hizo falta.
   verification_decided: "/profile",
-  // Cobro mensual del comercio (ADR-0021): pago, vencimiento, reembolso.
+  // Cobro mensual del comercio (ADR-0022): pago, vencimiento, reembolso.
   subscription_paid: "/subscription",
   subscription_expiring: "/subscription",
   subscription_expired: "/subscription",

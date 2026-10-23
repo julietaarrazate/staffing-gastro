@@ -1,4 +1,4 @@
-"""Casos de uso del módulo subscription (ADR-0005 Fase 1, ADR-0021).
+"""Casos de uso del módulo subscription (ADR-0005 Fase 1, ADR-0022).
 
 Con el cobro apagado (sin credenciales de Mercado Pago) todo sigue como en
 la beta: cambiar de plan es inmediato y nadie paga. Con el cobro prendido,
@@ -266,7 +266,7 @@ class SubscriptionService:
 
     async def cancel_renewal(self, company_id: UUID) -> Subscription:
         """Dar de baja: deja de recordarle que pague. El plan sigue hasta el
-        final del mes pago (no hay débito que cortar, ADR-0021)."""
+        final del mes pago (no hay débito que cortar, ADR-0022)."""
         if not self._billing.enabled:
             raise BillingDisabledError()
         subscription = await self.get_my_subscription(company_id)

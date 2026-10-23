@@ -1,9 +1,9 @@
-"""`MercadoPagoCheckoutAdapter`: un pago por mes con Checkout Pro (ADR-0021).
+"""`MercadoPagoCheckoutAdapter`: un pago por mes con Checkout Pro (ADR-0022).
 
 Sin débito automático (preapproval) a propósito: cada mes el comercio paga un
 link de Checkout Pro (en compu muestra un QR, en el celular abre la app de
 Mercado Pago). Se excluye la tarjeta de crédito para que la comisión quede
-baja. Endpoints (API de Mercado Pago, ver las referencias en ADR-0021):
+baja. Endpoints (API de Mercado Pago, ver las referencias en ADR-0022):
 
 - `POST /checkout/preferences` → `init_point`.
 - `GET /v1/payments/{id}` → estado, monto, moneda, `external_reference`.
@@ -60,7 +60,7 @@ def build_preference_payload(
         "auto_return": "approved",
         "notification_url": f"{settings.api_public_url.rstrip('/')}{WEBHOOK_PATH}",
         # Sin tarjeta de crédito: es la que más comisión cobra. Quedan dinero
-        # en cuenta, débito y lo que Mercado Pago ofrezca además (ADR-0021).
+        # en cuenta, débito y lo que Mercado Pago ofrezca además (ADR-0022).
         "payment_methods": {
             "excluded_payment_types": [{"id": "credit_card"}],
             "installments": 1,
