@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -33,3 +33,12 @@ class ChatMessageModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+# Mensajes de un chat en orden y último mensaje por chat (ROW_NUMBER
+# particionado por shift_id, ordenado por created_at): 0039.
+Index(
+    "ix_chat_messages_shift_id_created_at",
+    ChatMessageModel.shift_id,
+    ChatMessageModel.created_at,
+)
