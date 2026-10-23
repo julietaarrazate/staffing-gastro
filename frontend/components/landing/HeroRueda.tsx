@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 
 export const HERO_CTA_ID = "hero-ctas";
 
@@ -45,9 +46,22 @@ function PalabraQueCambia() {
   );
 }
 
+/** Lo que `next/image` pide para cada ficha (mismo `sizes`, mismo srcset). */
+const fichaProps = (k: number) =>
+  getImageProps({ src: `/landing/${FOTOS[k % FOTOS.length]}.webp`, alt: "", fill: true, sizes: "180px" }).props;
+
 function Rueda() {
   const ref = useRef<HTMLDivElement>(null);
   const [n, setN] = useState(0);
+  // La rueda se arma en el navegador (depende del ancho), así que sus fotos no
+  // están en el HTML del servidor. Este preload sí sale en el <head>: el
+  // navegador las empieza a bajar antes de hidratar. Van la 0 y la 1 porque
+  // en 390 px el LCP es la 1 (la 0 queda recortada arriba y pinta menos
+  // área); precargar sólo la 0 no movió el LCP (medido 2026-10-23).
+  for (const k of [0, 1]) {
+    const f = fichaProps(k);
+    preload(f.src, { as: "image", imageSrcSet: f.srcSet, imageSizes: f.sizes, fetchPriority: "high" });
+  }
 
   useEffect(() => {
     const rueda = ref.current;
@@ -97,11 +111,27 @@ function Rueda() {
 
   return (
     <div ref={ref} aria-hidden className="landing-rueda">
-      {Array.from({ length: n }, (_, k) => (
-        <div key={k} data-ficha className="landing-ficha">
-          <Image src={`/landing/${FOTOS[k % FOTOS.length]}.webp`} alt="" fill sizes="180px" className="object-cover" />
-        </div>
-      ))}
+      {Array.from({ length: n }, (_, k) => {
+        // La ficha 0 arranca arriba al centro; la 1 y la última son sus
+        // vecinas. Las tres se ven en 390 px de entrada. Con el `lazy` por
+        // defecto el navegador esperaba al layout para pedirlas (Lighthouse:
+        // ~0,5 s de "resource load delay" en el LCP). El resto, fuera de
+        // pantalla hasta que la rueda gira, sigue en lazy.
+        const aLaVista = k === 0 || k === 1 || k === n - 1;
+        return (
+          <div key={k} data-ficha className="landing-ficha">
+            <Image
+              src={`/landing/${FOTOS[k % FOTOS.length]}.webp`}
+              alt=""
+              fill
+              sizes="180px"
+              className="object-cover"
+              loading={aLaVista ? "eager" : "lazy"}
+              fetchPriority={k <= 1 ? "high" : undefined}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
