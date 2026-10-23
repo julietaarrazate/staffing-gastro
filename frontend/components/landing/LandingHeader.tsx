@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import Filete from "./Filete";
 import { useHeroAtras } from "./useHeroAtras";
@@ -20,15 +21,29 @@ import { useHeroAtras } from "./useHeroAtras";
  */
 export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
   const ctaVisible = useHeroAtras(heroCtaId);
+  // Arriba de todo el encabezado es transparente y el cielo del inicio llega
+  // hasta el borde; al bajar aparece el blanco esmerilado (2026-10-23).
+  const [arriba, setArriba] = useState(true);
+  useEffect(() => {
+    const medir = () => setArriba(window.scrollY < 8);
+    medir();
+    window.addEventListener("scroll", medir, { passive: true });
+    return () => window.removeEventListener("scroll", medir);
+  }, []);
 
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border-line/70 bg-card/80 backdrop-blur-xl backdrop-saturate-150">
+    <header
+      className={cn(
+        "safe-top sticky top-0 z-40 border-b transition-[background-color,border-color] duration-200 motion-reduce:transition-none",
+        arriba ? "border-transparent bg-transparent" : "border-line/70 bg-card/80 backdrop-blur-xl backdrop-saturate-150"
+      )}
+    >
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
         {/* La marca es una sola (2026-10-19): el "oído" fileteado de la
             miniatura y del final, acá sin adornos. El isotipo queda como
             ícono de la app (pantalla de inicio, pestaña del navegador). */}
         <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center">
-          <Filete palabra="oído" tam="marca" className="h-9 w-auto sm:h-11" />
+          <Filete palabra="oído" tam="marca" className="h-10 w-auto sm:h-12" />
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-1 text-sm font-semibold">
           <Link
@@ -60,7 +75,7 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
             // Escondido no ocupa lugar (max-w-0): si no, "Ingresar" quedaba
             // flotando en el medio del encabezado.
             className={cn(
-              "hidden h-10 items-center overflow-hidden whitespace-nowrap rounded-full bg-primary text-night transition-[max-width,opacity,padding] duration-400 active:scale-95 sm:inline-flex",
+              "hidden h-10 items-center overflow-hidden whitespace-nowrap rounded-full bg-ink text-card transition-[max-width,opacity,padding] duration-400 active:scale-95 sm:inline-flex",
               ctaVisible ? "max-w-[12rem] px-3.5 opacity-100" : "pointer-events-none max-w-0 px-0 opacity-0"
             )}
           >

@@ -18,6 +18,8 @@ import type { CandidateMatch, Shift, ShiftStatus } from "@/lib/types";
 
 export const LOCAL = "Tu bar";
 export const BARRIO = "Palermo";
+/** Desde dónde viene Lucía en el mapa, y la distancia de la oferta de Para trabajar. */
+export const DISTANCIA_M = 600;
 
 /** Fecha fija para el HTML del servidor: con una fecha relativa a "hoy", el
  *  prerender y el navegador podían dar textos distintos (error de

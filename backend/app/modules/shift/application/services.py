@@ -39,9 +39,13 @@ from app.modules.shift.domain.exceptions import (
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
-from app.modules.subscription.domain.exceptions import PlanLimitExceededError
+from app.modules.subscription.domain.exceptions import (
+    PublishingNotAllowedError,
+    SubscriptionNotActiveError,
+)
 from app.modules.subscription.domain.plans import get_plan
 from app.modules.subscription.domain.repositories import SubscriptionRepository
+from app.modules.subscription.domain.value_objects import SubscriptionStatus
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -208,8 +212,12 @@ class ShiftService:
                     )
                     published = await self.publish_shift(company_id, shift.id)
                     created.append(published)
-        except PlanLimitExceededError:
-            pass  # publicación parcial: se devuelve lo que sí entró en el plan.
+        except PublishingNotAllowedError as exc:
+            # Sin plan pago vigente (ADR-0022) no se publicó nada: que llegue
+            # el 402 con el mensaje, no un evento vacío.
+            if isinstance(exc, SubscriptionNotActiveError) and not created:
+                raise
+            # Si no, publicación parcial: se devuelve lo que sí entró en el plan.
         return EventResult(event_id=event_id, requested=requested, shifts=created)
 
     async def update_shift(
@@ -430,9 +438,21 @@ class ShiftService:
         comercios en un escalón pago"). El uso se registra igual estando OFF,
         para tener el dato cuando se encienda."""
         now = datetime.now(timezone.utc)
-        subscription = await self._subscriptions.get_or_create(company_id)
+        # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
+        # prendido + credenciales de Mercado Pago) publicar pide además un
+        # mes pago vigente; un comercio nuevo arranca `pendiente`. Con el
+        # cobro apagado esto no cambia nada (la beta sigue igual).
+        enforced_billing = settings.billing_enforced
+        subscription = await self._subscriptions.get_or_create(
+            company_id,
+            initial_status=(
+                SubscriptionStatus.PENDIENTE if enforced_billing else SubscriptionStatus.ACTIVA
+            ),
+        )
         subscription.roll_period_if_expired(now)
         plan = get_plan(subscription.plan_code)
+        if enforced_billing:
+            subscription.ensure_paid(now)
         if settings.subscriptions_enforced:
             subscription.ensure_can_publish(plan)
         subscription.register_publication()

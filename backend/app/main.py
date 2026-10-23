@@ -33,6 +33,7 @@ from app.modules.matching.api.routes import router as matching_router
 from app.modules.matching.api.routes import search_router as matching_search_router
 from app.modules.notification.api.routes import push_router
 from app.modules.notification.api.routes import router as notification_router
+from app.modules.notification.infrastructure.push_tasks import shutdown_pending_pushes
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.shift.application.scheduler import start_scheduler
@@ -78,6 +79,11 @@ async def lifespan(_: FastAPI):
         scheduler_task.cancel()
     if idle_closer_task is not None:
         idle_closer_task.cancel()
+    # Los push de los avisos salen después de responder, en tareas de fondo
+    # (`notification/infrastructure/push_tasks.py`): se esperan un rato antes
+    # de apagar y, si alguno no termina, queda en el log en vez de perderse
+    # en silencio.
+    await shutdown_pending_pushes()
 
 
 app = FastAPI(

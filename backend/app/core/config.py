@@ -92,13 +92,33 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
-    # --- Suscripciones / cobro (ADR-0005 Fase 1: mensualidad) ---
-    # Credenciales de Mercado Pago para el cobro recurrente (preapproval, NO
-    # split). Vacío = feature de cobro real desactivada: el plan se puede
-    # setear igual (`POST /subscription/subscribe` con el flag apagado), pero
-    # no se intenta cobrar (mismo patrón "flag por ausencia" que `sentry_dsn`).
+    # --- Suscripciones / cobro (ADR-0005 Fase 1, ADR-0022: un pago por mes) ---
+    # Credenciales de Mercado Pago para el cobro mensual con Checkout Pro (un
+    # pago por mes, sin débito automático, ver ADR-0022). Hacen falta LAS DOS:
+    # el access token (crear la preferencia, leer el pago, reembolsar) y la
+    # clave secreta del webhook (validar `x-signature`). Con alguna vacía el
+    # cobro real está apagado: el plan se puede setear igual
+    # (`POST /subscription/subscribe`) y no se intenta cobrar (mismo patrón
+    # "flag por ausencia" que `sentry_dsn`).
     mercadopago_access_token: str = ""
+    mercadopago_webhook_secret: str = ""
     mercadopago_base_url: str = "https://api.mercadopago.com"
+
+    # URL pública del backend, para el `notification_url` que se le pasa a
+    # Mercado Pago (el webhook tiene que entrar por Cloudflare, ADR-0018).
+    api_public_url: str = "https://api.oido.com.ar"
+
+    @property
+    def billing_enabled(self) -> bool:
+        """Cobro real de Mercado Pago prendido (las dos credenciales)."""
+        return bool(self.mercadopago_access_token and self.mercadopago_webhook_secret)
+
+    @property
+    def billing_enforced(self) -> bool:
+        """Publicar exige un plan pago y vigente: `subscriptions_enforced` y
+        el cobro real prendidos a la vez (ADR-0022). Con el cobro apagado la
+        beta sigue como siempre aunque `subscriptions_enforced` esté en true."""
+        return self.subscriptions_enforced and self.billing_enabled
 
     # Hacer cumplir el tope de turnos por plan (ADR-0005 Fase 1). Default OFF:
     # durante la beta temprana los comercios publican libre para generar

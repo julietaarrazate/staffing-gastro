@@ -8,7 +8,7 @@ export default function Cierre() {
       <h2 id="cierre-titulo" className="landing-h2 landing-h2-grande">
         ¿Te falta alguien hoy?
       </h2>
-      <div className="mt-8 flex flex-wrap justify-center gap-2.5">
+      <div className="landing-par mt-8">
         <Link href="/register?rol=comercio" data-cta="cierre" className="landing-btn landing-btn-primario">
           Necesito personal <span aria-hidden className="landing-btn-flecha">→</span>
         </Link>

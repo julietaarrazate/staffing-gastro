@@ -11,7 +11,7 @@ export default function Preguntas() {
       id="preguntas"
       aria-labelledby="preguntas-titulo"
       data-tone="light"
-      className="landing-sec scroll-mt-[var(--lht)]"
+      className="landing-sec landing-sec-dos landing-sec-arriba scroll-mt-[var(--lht)]"
     >
       <h2 id="preguntas-titulo" className="landing-h2">
         Preguntas frecuentes
@@ -19,13 +19,10 @@ export default function Preguntas() {
       <div className="landing-sec-cosa w-full max-w-[640px] divide-y divide-line border-y border-line text-left">
         {PREGUNTAS.map((p) => (
           <details key={p.pregunta} id={p.pregunta === PREGUNTA_INSTALAR ? "instalar" : undefined} className="group scroll-mt-[var(--lht)]">
-            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-5 font-display text-[clamp(1.125rem,1.8vw,1.375rem)] font-semibold tracking-[-0.02em] text-ink [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-display text-[clamp(1.125rem,1.8vw,1.375rem)] font-medium tracking-[-0.02em] text-ink [&::-webkit-details-marker]:hidden">
               {p.pregunta}
-              <span
-                aria-hidden
-                className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-ink transition duration-300 group-open:rotate-180 group-open:bg-primary"
-              >
-                <ChevronDownIcon size={18} />
+              <span aria-hidden className="shrink-0 text-ink-mute transition duration-300 group-open:rotate-180 group-open:text-primary">
+                <ChevronDownIcon size={20} />
               </span>
             </summary>
             <p className="max-w-[60ch] pb-5 text-body text-ink-soft lg:text-lg">{p.respuesta}</p>

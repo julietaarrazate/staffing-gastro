@@ -1,31 +1,48 @@
-"""Puerto de cobro recurrente (Fase 1 ADR-0005: mensualidad, NO split).
+"""Puerto de cobro mensual (ADR-0022: un pago por mes, sin débito automático).
 
-`BillingGateway.enabled` es el feature-flag: sin credenciales de Mercado Pago
-configuradas (`app.core.config.Settings.mercadopago_access_token` vacío), la
-implementación real reporta `enabled=False` y el sistema opera sin cobro (el
-plan se puede setear igual, ver `SubscriptionService.subscribe`). Mismo
-patrón que `sentry_dsn`/observability: cada integración es un flag.
+`BillingGateway.enabled` es el feature-flag: sin las credenciales de Mercado
+Pago (`MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`) la
+implementación real reporta `enabled=False` y el sistema opera sin cobro
+(el plan se puede setear igual, ver `SubscriptionService.subscribe`).
+Mismo patrón que `sentry_dsn`: cada integración es un flag.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from app.modules.subscription.domain.plans import Plan
 
+# Estado de un pago aprobado en Mercado Pago (`status` de `/v1/payments/{id}`).
+APPROVED = "approved"
+
 
 @dataclass(frozen=True)
-class PreapprovalResult:
-    """Resultado de iniciar un cobro recurrente (preapproval) en el gateway."""
+class CheckoutResult:
+    """La preferencia creada: el link al que se manda al comercio
+    (`init_point`; en compu muestra un QR, en el celular abre la app de MP)."""
 
     checkout_url: str
-    external_reference: str
+    preference_id: str
+
+
+@dataclass(frozen=True)
+class GatewayPayment:
+    """Lo que interesa de un pago leído de la API del gateway."""
+
+    id: str
+    status: str
+    amount: Decimal
+    currency: str
+    external_reference: str | None
+    approved_at: datetime | None
 
 
 class BillingGateway(ABC):
-    """Puerto de cobro recurrente simple (preapproval de suscripción), NO
-    split/`application_fee` — eso es Fase 2 (ver ADR-0005), fuera de alcance
-    acá. Cero import de la capa de aplicación de otro módulo."""
+    """Puerto de cobro de un pago por mes (Checkout Pro), NO split ni
+    `application_fee` (eso es Fase 2 de ADR-0005)."""
 
     @property
     @abstractmethod
@@ -33,9 +50,16 @@ class BillingGateway(ABC):
         """True si hay credenciales configuradas y el cobro real está activo."""
 
     @abstractmethod
-    async def create_preapproval(
-        self, *, company_id: UUID, payer_email: str, plan: Plan
-    ) -> PreapprovalResult:
-        """Crea la suscripción recurrente (preapproval) en el gateway y
-        devuelve la URL de checkout para que el comercio complete el alta.
-        No debe invocarse si `enabled` es False."""
+    async def create_checkout(
+        self, *, intent_id: UUID, plan: Plan, payer_email: str
+    ) -> CheckoutResult:
+        """Crea la preferencia de pago de un mes de `plan`, con
+        `external_reference = intent_id`. Sólo con `enabled`."""
+
+    @abstractmethod
+    async def get_payment(self, payment_id: str) -> GatewayPayment | None:
+        """Lee un pago por su id. `None` si el gateway no lo conoce."""
+
+    @abstractmethod
+    async def refund_payment(self, payment_id: str, *, idempotency_key: str) -> None:
+        """Reembolso total del pago (arrepentimiento)."""

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BARRIO, LOCAL } from "./fixtures";
-import Reveal from "./Reveal";
+import { BARRIO, DISTANCIA_M, LOCAL } from "./fixtures";
 
 /**
  * La sección de quien trabaja, con su ancla (`#trabajar`, el link del
@@ -17,16 +16,16 @@ export default function ParaTrabajar() {
       id="trabajar"
       aria-labelledby="trabajar-titulo"
       data-tone="light"
-      className="landing-sec scroll-mt-[var(--lht)]"
+      className="landing-sec landing-sec-dos scroll-mt-[var(--lht)]"
     >
       <h2 id="trabajar-titulo" className="landing-h2">
         Turnos cerca tuyo, cuando quieras
       </h2>
-      <Reveal className="landing-sec-cosa w-full max-w-[360px] text-left" delay={120}>
-        <div aria-hidden className="overflow-hidden rounded-[1.25rem] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
-          <div className="relative h-40">
-            <Image src="/landing/mozo1.webp" alt="" fill sizes="360px" className="object-cover" />
-            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-ink">A 600 m</span>
+      <div className="landing-sec-cosa w-full max-w-[360px] text-left">
+        <div aria-hidden className="landing-tarjeta overflow-hidden bg-card">
+          <div className="relative h-32 sm:h-40">
+            <Image src="/landing/mozo1.webp" alt="" fill sizes="360px" className="landing-foto object-cover" />
+            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 font-mono text-label font-medium tracking-[0.04em] text-ink">A {DISTANCIA_M} m</span>
           </div>
           <div className="p-5">
             <p className="text-sm text-ink-mute">
@@ -40,7 +39,7 @@ export default function ParaTrabajar() {
             <p className="mt-1 text-sm text-ink-soft">Hoy · 21:00 – 02:00</p>
           </div>
         </div>
-      </Reveal>
+      </div>
       <div className="landing-sec-accion">
         <Link href="/register?rol=trabajador" data-cta="trabajar" className="landing-btn landing-btn-primario">
           Crear mi perfil gratis <span aria-hidden className="landing-btn-flecha">→</span>

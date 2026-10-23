@@ -11,7 +11,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.core.dt import naive as _naive
-from app.core.security import create_access_token, hash_password
+from app.core.security import create_access_token, hash_password_async
 from app.core.tz import now_art, to_art
 from app.modules.admin.application.dtos import (
     AdminCompanySummary,
@@ -71,10 +71,10 @@ TEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
 )
 
 
-def _local_password() -> str:
+async def _local_password() -> str:
     """Contraseña local irrecuperable: nadie puede iniciar sesión en la
     cuenta de prueba con email+contraseña, sólo vía "Ver como" (admin)."""
-    return hash_password(secrets.token_urlsafe(32))
+    return await hash_password_async(secrets.token_urlsafe(32))
 
 
 def _rate_pct(numerator: int, denominator: int) -> float | None:
@@ -400,7 +400,7 @@ class AdminService:
                 user = await self._users.add(
                     User(
                         email=email,
-                        hashed_password=_local_password(),
+                        hashed_password=await _local_password(),
                         full_name=name,
                         role=role,
                         is_verified=True,

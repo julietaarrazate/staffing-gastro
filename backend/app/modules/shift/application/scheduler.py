@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Cinco chequeos independientes, un solo loop:
+Seis chequeos independientes, un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    antes del inicio, le recuerda al trabajador que avise al salir ("va en
@@ -26,6 +26,10 @@ Cinco chequeos independientes, un solo loop:
    de `READ_NOTIFICATION_RETENTION`. Como mucho una vez cada
    `RETENTION_INTERVAL`; no agrega despertares propios (va colgada de las
    pasadas que ya ocurren, al menos cada `MAX_SLEEP`).
+6. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
+   Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
+   después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
+   `subscription/infrastructure/expiry_job.py`).
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo
@@ -98,6 +102,9 @@ from app.modules.shift.domain.exceptions import (
     ShiftConcurrentModificationError,
 )
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.subscription.infrastructure.expiry_job import (
+    run_subscription_expiry_check,
+)
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
@@ -352,7 +359,7 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
 
 
 async def scheduler_loop() -> None:
-    """Loop infinito: corre los cinco chequeos y duerme hasta la próxima deadline.
+    """Loop infinito: corre los seis chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
     entre los cuatro chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
@@ -386,6 +393,11 @@ async def scheduler_loop() -> None:
         except Exception:
             had_error = True
             logger.exception('Error en la limpieza de "Disponible ahora"')
+        try:
+            next_deadline = _earlier(next_deadline, await run_subscription_expiry_check())
+        except Exception:
+            had_error = True
+            logger.exception("Error en el chequeo de vencimiento de planes")
         try:
             await run_retention_cleanup()
         except Exception:

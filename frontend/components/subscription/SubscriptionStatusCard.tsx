@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { Subscription } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { Badge, Button, Card } from "@/components/ui";
 import { AlertTriangleIcon } from "@/components/icons";
+import { formatShiftDate } from "@/lib/datetime";
 
-const STATUS_TONE: Record<string, { tone: "secondary" | "danger" | "neutral"; label: string }> = {
+const STATUS_TONE: Record<string, { tone: "primary" | "secondary" | "danger" | "neutral"; label: string }> = {
+  pendiente: { tone: "primary", label: "Falta pagar" },
   activa: { tone: "secondary", label: "Activo" },
   vencida: { tone: "danger", label: "Vencido" },
   cancelada: { tone: "neutral", label: "Cancelado" },
@@ -24,13 +27,32 @@ export default function SubscriptionStatusCard({
   subscription,
   planName,
   onUpgrade,
+  onPay,
 }: {
   subscription: Subscription;
   planName: string;
   onUpgrade: () => void;
+  /** Cobro prendido (ADR-0022): ir a pagar el mes del plan actual. */
+  onPay?: () => void;
 }) {
   const { max_turnos_mes, turnos_usados_mes, status, price_ars } = subscription;
-  const statusInfo = STATUS_TONE[status] ?? { tone: "neutral" as const, label: status };
+  const billing = subscription.billing_enabled === true;
+  const renews = subscription.renews !== false;
+  const statusInfo =
+    billing && status === "activa" && !renews
+      ? { tone: "neutral" as const, label: "No se renueva" }
+      : (STATUS_TONE[status] ?? { tone: "neutral" as const, label: status });
+  const paidUntil = billing && status === "activa" ? subscription.paid_until ?? null : null;
+  // Hora de cuando se montó la tarjeta: alcanza para saber si ya venció.
+  const [mountedAt] = useState(() => Date.now());
+  const inGrace = paidUntil !== null && new Date(paidUntil).getTime() < mountedAt;
+  const blocked = billing && subscription.can_publish === false;
+  const blockedText =
+    status === "vencida"
+      ? "Tu plan venció. Pagá el mes para volver a publicar turnos."
+      : status === "cancelada"
+        ? "Tu plan está cancelado. Pagá un mes para volver a publicar turnos."
+        : "Para publicar turnos, pagá tu primer mes.";
 
   const unlimited = max_turnos_mes === null;
   const remaining = unlimited ? null : Math.max(max_turnos_mes - turnos_usados_mes, 0);
@@ -48,6 +70,28 @@ export default function SubscriptionStatusCard({
         </div>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>
+
+      {paidUntil && (
+        <p className="mt-3 text-sm text-ink/70">
+          {inGrace
+            ? `Venció el ${formatShiftDate(paidUntil)}. Tenés 3 días de gracia para pagar.`
+            : renews
+              ? `Pagado hasta el ${formatShiftDate(paidUntil)}.`
+              : `Activo hasta el ${formatShiftDate(paidUntil)}. Después no se renueva.`}
+        </p>
+      )}
+
+      {(blocked || (inGrace && renews)) && onPay && (
+        <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-warning-tint p-3.5 ring-1 ring-warning/20">
+          <p className="flex items-start gap-2 text-sm font-semibold text-warning-text">
+            <AlertTriangleIcon size={16} className="mt-0.5 shrink-0" />
+            {blocked ? blockedText : "Pagá el mes que viene para no cortar la publicación."}
+          </p>
+          <Button size="sm" onClick={onPay}>
+            Pagar el mes
+          </Button>
+        </div>
+      )}
 
       <div className="mt-4">
         <div className="flex items-center justify-between text-sm">

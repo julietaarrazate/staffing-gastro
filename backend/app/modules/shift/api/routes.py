@@ -55,7 +55,7 @@ from app.modules.shift.domain.exceptions import (
     WorkerTooFarFromShiftError,
 )
 from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
-from app.modules.subscription.domain.exceptions import PlanLimitExceededError
+from app.modules.subscription.domain.exceptions import PublishingNotAllowedError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
 from app.modules.worker.api.dependencies import get_worker_repository
@@ -353,28 +353,33 @@ async def create_event(
     companies: CompaniesDep,
     recorder: RecorderDep,
 ):
-    result = await service.create_event(
-        company_id,
-        EventData(
-            name=payload.name,
-            start_at=payload.start_at,
-            end_at=payload.end_at,
-            roles=[
-                EventRoleData(position=r.position, count=r.count, pay_amount=r.pay_amount)
-                for r in payload.roles
-            ],
-            currency=payload.currency,
-            tips=payload.tips,
-            meal=payload.meal,
-            dress_code=payload.dress_code,
-            urgent=payload.urgent,
-            address=payload.address,
-            city=payload.city,
-            latitude=payload.latitude,
-            longitude=payload.longitude,
-            description=payload.description,
-        ),
-    )
+    try:
+        result = await service.create_event(
+            company_id,
+            EventData(
+                name=payload.name,
+                start_at=payload.start_at,
+                end_at=payload.end_at,
+                roles=[
+                    EventRoleData(position=r.position, count=r.count, pay_amount=r.pay_amount)
+                    for r in payload.roles
+                ],
+                currency=payload.currency,
+                tips=payload.tips,
+                meal=payload.meal,
+                dress_code=payload.dress_code,
+                urgent=payload.urgent,
+                address=payload.address,
+                city=payload.city,
+                latitude=payload.latitude,
+                longitude=payload.longitude,
+                description=payload.description,
+            ),
+        )
+    except PublishingNotAllowedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
+        ) from exc
     shifts = await _with_company_info(result.shifts, companies)
     response = EventResponse(event_id=result.event_id, requested=result.requested, shifts=shifts)
     # Idempotencia (D3, auditoría de producto/UI 2026-08-09): un evento crea
@@ -504,7 +509,7 @@ async def publish_shift(
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
-    except PlanLimitExceededError as exc:
+    except PublishingNotAllowedError as exc:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
         ) from exc

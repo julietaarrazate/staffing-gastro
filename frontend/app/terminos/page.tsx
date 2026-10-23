@@ -157,17 +157,24 @@ export default function TerminosPage() {
           <Section title="Suscripciones del comercio">
             <p>
               Los comercios acceden a planes pagos con precios visibles
-              dentro de la app. Se renuevan mes a mes de forma automática.
+              dentro de la app. Cada plan dura 30 días y se paga mes a mes
+              con Mercado Pago, sin débito automático: nunca te cobramos
+              sin que vos hagas el pago. Antes de que venza te avisamos; si
+              no pagás, después de 3 días de gracia el plan se pausa y no
+              podés publicar turnos nuevos hasta pagar el mes.
             </p>
             <p>
-              Podés dar de baja tu suscripción cuando quieras, escribiéndonos
-              a {LEGAL_OWNER.email} o por el soporte de la app; sigue activa
-              hasta el final del período ya pagado, sin renovarse después.
+              Podés dar de baja tu suscripción cuando quieras con el botón
+              «Dar de baja» en Mi plan, o escribiéndonos a {LEGAL_OWNER.email}{" "}
+              o por el soporte de la app. Sigue activa hasta el final del
+              período ya pagado y después no te pedimos más pagos.
             </p>
             <p>
               Si contrataste un plan por primera vez, tenés 10 días corridos
-              para arrepentirte y que te devolvamos lo pagado, como establece
-              la Ley 24.240 de Defensa del Consumidor.
+              desde el pago para arrepentirte con el botón «Arrepentirme» en
+              Mi plan (o por los mismos medios): cancelamos el plan y te
+              devolvemos lo pagado por Mercado Pago, como establece la Ley
+              24.240 de Defensa del Consumidor.
             </p>
           </Section>
 
