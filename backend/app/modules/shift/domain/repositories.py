@@ -38,6 +38,30 @@ class ShiftPublicationStats:
     completed: int
 
 
+@dataclass
+class ShiftPeriodStats:
+    """Turnos publicados en un período (`published_at` dentro de la ventana)
+    y cuántos de ésos se cubrieron, para "Métricas" con período del panel
+    de admin. Mismo criterio de "cubierto" que `ShiftPublicationStats`:
+    tiene `first_assigned_at`. `avg_minutes_to_cover` es `None` sin turnos
+    cubiertos (nunca un promedio sobre cero casos)."""
+
+    published: int
+    covered: int
+    covered_under_10_min: int
+    avg_minutes_to_cover: float | None
+
+
+@dataclass
+class ShiftTodayCounts:
+    """Lo que la portada "Hoy" del panel de admin pide mirar ya: turnos
+    urgentes todavía sin nadie asignado, y ausencias (no-show) marcadas en
+    el día argentino."""
+
+    urgent_uncovered: int
+    no_shows_today: int
+
+
 class ShiftRepository(ABC):
     """Puerto de persistencia para Turno."""
 
@@ -171,3 +195,30 @@ class ShiftRepository(ABC):
     async def count_publication_stats(self) -> ShiftPublicationStats:
         """Cuenta turnos publicados y turnos cubiertos (`shift_fill_rate`,
         panel de admin) — agregado en SQL, no una lista de filas."""
+
+    @abstractmethod
+    async def list_live(self, *, limit: int = 200) -> list[Shift]:
+        """Turnos publicados que todavía no tienen a nadie confirmado
+        (`UNCOVERED_ELIGIBLE_STATUSES`: PUBLICADO, BUSCANDO_PERSONAL y
+        ASIGNADO sin confirmar), para "Turnos en vivo" del panel de admin.
+
+        Ordenados por lo que más apura: urgentes primero, dentro de ellos
+        los escalados por el sistema, y después el que lleva más tiempo
+        publicado sin cubrir. Una sola consulta, acotada a `limit`."""
+
+    @abstractmethod
+    async def count_today(
+        self, *, day_start: datetime, day_end: datetime
+    ) -> ShiftTodayCounts:
+        """Urgentes sin cubrir (abiertos, `urgent`) y no-shows con
+        `no_show_at` en `[day_start, day_end)` — el día de negocio lo arma
+        quien llama con `hoy_art()`. Una sola consulta con SUM/CASE."""
+
+    @abstractmethod
+    async def count_period_stats(
+        self, *, previous_start: datetime, current_start: datetime, end: datetime
+    ) -> tuple[ShiftPeriodStats, ShiftPeriodStats]:
+        """`(actual, anterior)`: turnos publicados en `[current_start, end)`
+        y en `[previous_start, current_start)`. Los dos períodos salen de UNA
+        consulta (SUM/CASE por ventana), así la comparación no duplica
+        round-trips."""
