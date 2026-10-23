@@ -14,8 +14,10 @@ export const HERO_CTA_ID = "hero-ctas";
  * título y los dos caminos.
  *
  * El HTML del servidor trae el título y los botones; la rueda se arma en el
- * navegador porque depende del ancho. Con "reducir movimiento" queda quieta
- * y la palabra no cambia.
+ * navegador porque depende del ancho, entra con un fundido y deja de girar
+ * cuando el inicio sale de pantalla. La palabra cambia como un cartel de
+ * estación (2026-10-23). Con "reducir movimiento" queda quieta y la palabra
+ * no cambia.
  *
  * Las fotos son de prueba, en dominio público o CC0 (Openverse); autores en
  * docs/historial/2026-10-18-landing-cielo.md. Hay que reemplazarlas por
@@ -29,17 +31,39 @@ const FOTOS = [
 const PUESTOS = ["mozo", "bartender", "bachero", "barista", "cocinero", "runner", "cajera", "moza"];
 
 function PalabraQueCambia() {
-  const [i, setI] = useState(0);
+  // `antes` es la palabra que sale (sube y se apaga) mientras entra la nueva:
+  // un cartel de estación, sin que cambie el alto del título.
+  const [par, setPar] = useState<{ i: number; antes: number | null }>({ i: 0, antes: null });
+  const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setI((n) => (n + 1) % PUESTOS.length), 2200);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | undefined;
+    const correr = () => {
+      clearInterval(id);
+      id = setInterval(() => setPar((p) => ({ i: (p.i + 1) % PUESTOS.length, antes: p.i })), 2400);
+    };
+    // Sólo cambia mientras el inicio está en pantalla.
+    const seccion = ref.current?.closest("section");
+    const io =
+      seccion && typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([e]) => (e.isIntersecting ? correr() : clearInterval(id)), { threshold: 0 })
+        : null;
+    if (io && seccion) io.observe(seccion);
+    else correr();
+    return () => {
+      clearInterval(id);
+      io?.disconnect();
+    };
   }, []);
   return (
-    <span aria-hidden className="landing-palabra block text-primary">
-      {/* `key` remonta el texto y dispara la entrada (globals.css). */}
-      <b key={PUESTOS[i]} className="font-semibold">
-        {PUESTOS[i]}
+    <span ref={ref} aria-hidden className="landing-palabra block text-primary">
+      {par.antes !== null && (
+        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-semibold">
+          {PUESTOS[par.antes]}
+        </b>
+      )}
+      <b key={`e${par.i}`} className="font-semibold">
+        {PUESTOS[par.i]}
       </b>
     </span>
   );
@@ -71,26 +95,49 @@ function Rueda() {
       const w = window.innerWidth;
       const ancho = w < 600 ? 104 : w < 1000 ? 140 : 170;
       radio = w < 600 ? 560 : w < 1000 ? 640 : Math.min(860, w * 0.53);
-      rueda.style.top = `${24 + (ancho * 1.3) / 2 + radio}px`;
+      // El inicio sube debajo del encabezado transparente (`--lht`).
+      rueda.style.top = `calc(var(--lht) + ${24 + (ancho * 1.3) / 2 + radio}px)`;
       setN(Math.max(14, Math.round((2 * Math.PI * radio) / (ancho * 1.55))));
     };
+    // Fuera de pantalla no gira (no gasta cuadros).
+    let visible = true;
     const girar = (ahora: number) => {
       fase -= Math.min(50, ahora - antes) * 0.000045;
       antes = ahora;
       pintar();
-      raf = requestAnimationFrame(girar);
+      raf = visible ? requestAnimationFrame(girar) : 0;
     };
 
     medir();
     const alCambiar = () => medir();
     window.addEventListener("resize", alCambiar);
-    // Primer cuadro después de que React pinte las fichas.
+    const seccion = rueda.closest("section");
+    const io =
+      seccion && typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(
+            ([e]) => {
+              visible = e.isIntersecting;
+              if (!visible) {
+                cancelAnimationFrame(raf);
+                raf = 0;
+              } else if (!reducir && !raf) {
+                antes = performance.now();
+                raf = requestAnimationFrame(girar);
+              }
+            },
+            { threshold: 0 }
+          )
+        : null;
+    if (io && seccion) io.observe(seccion);
+    // Primer cuadro después de que React pinte las fichas; entra con un fundido.
     raf = requestAnimationFrame(() => {
       pintar();
-      if (!reducir) raf = requestAnimationFrame(girar);
+      rueda.dataset.listo = "";
+      raf = !reducir && visible ? requestAnimationFrame(girar) : 0;
     });
     return () => {
       window.removeEventListener("resize", alCambiar);
+      io?.disconnect();
       cancelAnimationFrame(raf);
     };
   }, [n]);
@@ -117,13 +164,13 @@ export default function HeroRueda() {
       <div className="relative z-[2]">
         <h1
           id="hero-titulo"
-          className="font-display text-[clamp(3.25rem,6.6vw,6rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink"
+          className="font-display text-[clamp(3.25rem,5.6vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink"
         >
           <span className="block">Encontrá tu</span>
           <span className="sr-only">mozo, bartender, bachero o cocinero</span>
           <PalabraQueCambia />
         </h1>
-        <div id={HERO_CTA_ID} className="mt-9 flex flex-wrap justify-center gap-2.5">
+        <div id={HERO_CTA_ID} className="landing-par mt-9">
           <Link href="/register?rol=comercio" data-cta="hero" className="landing-btn landing-btn-primario">
             Necesito personal <span aria-hidden className="landing-btn-flecha">→</span>
           </Link>

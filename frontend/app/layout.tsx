@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces, Schibsted_Grotesk, DM_Mono } from "next/font/google";
+import { Inter, Fraunces, Schibsted_Grotesk, DM_Mono, Sancreek } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -27,6 +27,13 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+// Sancreek: la letra de cartel del «oído» fileteado (components/landing/Filete.tsx).
+const sancreek = Sancreek({
+  variable: "--font-sancreek",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 // Schibsted Grotesk: títulos de pantalla y titulares de la landing
@@ -116,7 +123,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} ${sancreek.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la
