@@ -1,4 +1,4 @@
-# Fuentes: el wordmark "oído" baja 2 KB en vez de 36 KB
+# Fuentes: el wordmark "oído" baja 2 KB en vez de 36 KB (#499)
 
 **Pedido:** Julieta, 2026-10-23: seguir con el relevamiento de rendimiento
 del frontend (ítem 5, fuentes), midiendo antes y después, sin que el logo
