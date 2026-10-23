@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Seis chequeos independientes, un solo loop:
+Seis chequeos independientes (más los que entran de afuera), un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    antes del inicio, le recuerda al trabajador que avise al salir ("va en
@@ -30,6 +30,12 @@ Seis chequeos independientes, un solo loop:
    Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
    después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
    `subscription/infrastructure/expiry_job.py`).
+7. **Chequeos que entran de afuera (`extra_checks`):** `app/main.py` los
+   pasa a `start_scheduler` para que este archivo no importe la
+   infraestructura de otro módulo (candado de capas). Hoy uno: el borrado de
+   los documentos de verificación que Cloudinary no pudo borrar al decidir
+   (`verification/infrastructure/file_cleanup_job.py`, ADR-0021). Con la
+   cola vacía no agrega despertares.
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo
@@ -61,7 +67,7 @@ hace falta persistir timers.
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
@@ -358,11 +364,16 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
     return None
 
 
-async def scheduler_loop() -> None:
-    """Loop infinito: corre los seis chequeos y duerme hasta la próxima deadline.
+# Un chequeo que entra de afuera (`extra_checks`): devuelve su próxima
+# deadline (naive UTC) o `None`, como los de acá.
+Check = Callable[[], Awaitable[datetime | None]]
+
+
+async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
+    """Loop infinito: corre los chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
-    entre los cuatro chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
+    entre los chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
     MAX_SLEEP]), despertable antes por `notify_scheduler()` cuando entra
     trabajo nuevo.
 
@@ -403,10 +414,16 @@ async def scheduler_loop() -> None:
         except Exception:
             had_error = True
             logger.exception("Error en la limpieza de retención")
+        for check in extra_checks:
+            try:
+                next_deadline = _earlier(next_deadline, await check())
+            except Exception:
+                had_error = True
+                logger.exception("Error en el chequeo %s", getattr(check, "__name__", check))
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 
-def start_scheduler() -> asyncio.Task | None:
+def start_scheduler(extra_checks: Sequence[Check] = ()) -> asyncio.Task | None:
     """Arranca el loop como task de fondo, sólo en producción.
 
     En desarrollo/tests (`settings.is_production` False) es un no-op, mismo
@@ -414,4 +431,4 @@ def start_scheduler() -> asyncio.Task | None:
     Resend) — nunca corre en `pytest` ni en un entorno local sin querer."""
     if not settings.is_production:
         return None
-    return asyncio.create_task(scheduler_loop())
+    return asyncio.create_task(scheduler_loop(extra_checks))

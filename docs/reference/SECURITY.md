@@ -105,6 +105,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   (rol según el tipo), igual que el CV y la constancia. La firma fija formatos,
   carpeta, un `public_id` al azar y `overwrite=false`. El preset unsigned
   (`staffya-profile`) queda sin uso y se apaga en el panel de Cloudinary.
+- **Documentos de identidad privados y borrados al decidir** (ADR-0021): DNI,
+  selfie y constancia de AFIP suben `type=private` (firmado); el admin los ve
+  con un link que vence a los 5 minutos, y al aprobar o rechazar se borran de
+  Cloudinary (`destroy` con `invalidate=true`; si falla, la cola
+  `identity_evidence_file_deletions` reintenta desde el scheduler).
 
 - **Análisis estático del código en CI** (2026-10-21, job `static-analysis`
   de `.github/workflows/security.yml`): Semgrep con las reglas de Python,

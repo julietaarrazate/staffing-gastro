@@ -122,7 +122,7 @@ def sign_image_upload(kind: str) -> dict[str, str]:
 
 def signed_api_params(params: dict[str, str]) -> dict[str, str]:
     """Firma parámetros de un pedido a la Upload API de Cloudinary (descarga
-    privada, `rename`): descarta los vacíos, agrega `timestamp` si falta, y
+    privada, `rename`, `destroy`): descarta los vacíos, agrega `timestamp` si falta, y
     suma `signature` + `api_key`. Mismo algoritmo que `cloudinary.utils.
     sign_request` del SDK oficial."""
     if not settings.cloudinary_api_key or not settings.cloudinary_api_secret:
@@ -169,6 +169,43 @@ def private_download_url(
         }
     )
     return f"{api_url(resource_type, 'download')}?{urlencode(params)}"
+
+
+# Respuestas de `destroy` que cuentan como borrado (ADR-0021, «Borrado al
+# decidir»): "ok", y "not found" (ya no estaba: otra pasada lo borró antes).
+# Ojo: un HTTP 404 NO cuenta. Cloudinary lo devuelve también para un
+# `cloud_name` que no existe, y tomarlo como borrado haría olvidar la
+# referencia de un archivo que sigue ahí.
+DESTROY_DONE_RESULTS = frozenset({"ok", "not found"})
+
+
+class CloudinaryDestroyError(Exception):
+    """`destroy` respondió 200 pero sin borrar (un `result` inesperado)."""
+
+
+def destroy_request(
+    public_id: str, resource_type: str, delivery_type: str
+) -> tuple[str, dict[str, str]]:
+    """URL y parámetros firmados para borrar un archivo con `destroy` de la
+    Upload API (`POST /v1_1/<cloud>/<resource_type>/destroy`): `public_id`,
+    `type` (el de entrega: `private` para los documentos de identidad) e
+    `invalidate=true`, para que el CDN deje de servir una copia en caché.
+    Mismos parámetros que `cloudinary.uploader.destroy` del SDK oficial. Es
+    de la Upload API a propósito: la Admin API tiene un tope por hora en el
+    plan gratis; ésta no."""
+    params = signed_api_params(
+        {"public_id": public_id, "type": delivery_type, "invalidate": "true"}
+    )
+    return api_url(resource_type, "destroy"), params
+
+
+def check_destroy_result(body: object) -> str:
+    """Devuelve el `result` si cuenta como borrado; si no, lanza
+    `CloudinaryDestroyError` (el pedido queda pendiente y se reintenta)."""
+    result = body.get("result") if isinstance(body, dict) else None
+    if result not in DESTROY_DONE_RESULTS:
+        raise CloudinaryDestroyError(f"destroy respondió {result!r}")
+    return str(result)
 
 
 def _sign(params: dict[str, str], api_secret: str) -> str:
