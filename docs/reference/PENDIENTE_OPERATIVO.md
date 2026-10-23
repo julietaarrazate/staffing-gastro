@@ -83,7 +83,7 @@ toda vista previa y el sitemap apuntaban ahí.
    export CLOUDINARY_API_SECRET='<api secret>'
    python -m scripts.privatize_identity_evidence          # mira: no cambia nada
    python -m scripts.privatize_identity_evidence --apply  # privatiza y borra
-   python -m scripts.privatize_identity_evidence          # tiene que dar todo en 0
+   python -m scripts.privatize_identity_evidence          # filas, a privado y huérfanos en 0
    ```
 
    Detalle en
