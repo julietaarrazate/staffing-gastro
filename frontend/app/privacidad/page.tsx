@@ -95,11 +95,13 @@ export default function PrivacidadPage() {
               </li>
               <li>
                 <strong>Verificación de identidad (opcional):</strong> foto de
-                tu DNI y una selfie. Las mira una persona del equipo para
-                confirmar que sos quien decís ser, y{" "}
-                <strong>se borran apenas se aprueba o rechaza</strong>. Lo
-                único que queda es el resultado y la fecha. La selfie no se
-                usa para ninguna otra cosa.
+                tu DNI y una selfie. Se guardan <strong>privadas</strong>: no
+                tienen un link público y sólo las mira una persona del equipo,
+                con un link que vence a los pocos minutos, para confirmar que
+                sos quien decís ser. Cuando se aprueba o rechaza, ya no se
+                pueden abrir desde la app: lo que queda en tu cuenta es el
+                resultado y la fecha. La selfie no se usa para ninguna otra
+                cosa.
               </li>
               <li>
                 <strong>Reputación:</strong> las calificaciones y reseñas que
@@ -121,9 +123,10 @@ export default function PrivacidadPage() {
               </li>
               <li>
                 <strong>Verificación del comercio (opcional):</strong> tu
-                constancia de inscripción de AFIP. La revisa una persona y{" "}
-                <strong>se borra al decidir</strong>. No guardamos tu número
-                de CUIT.
+                constancia de inscripción de AFIP. Se guarda{" "}
+                <strong>privada</strong>, la revisa una persona y, al decidir,
+                ya no se puede abrir desde la app. No guardamos tu número de
+                CUIT.
               </li>
               <li>
                 <strong>Turnos y suscripción:</strong> los turnos que publicás
@@ -296,8 +299,12 @@ export default function PrivacidadPage() {
           <Section title="Cuánto tiempo los guardamos">
             <ul className="ml-5 list-disc space-y-1.5">
               <li>
-                <strong>DNI, selfie y constancia de AFIP:</strong> hasta que se
-                decide la verificación. Después se borran.
+                <strong>DNI, selfie y constancia de AFIP:</strong> se pueden
+                abrir desde la app sólo hasta que se decide la verificación.
+                Los archivos quedan guardados de forma privada en nuestro
+                proveedor de almacenamiento (Cloudinary), sin un link público.
+                Si querés que los borremos, escribinos (ver &quot;Tus
+                derechos&quot;).
               </li>
               <li>
                 <strong>&quot;Va en camino&quot;:</strong> hasta que marcás la
@@ -306,6 +313,18 @@ export default function PrivacidadPage() {
               <li>
                 <strong>&quot;Disponible ahora&quot;:</strong> hasta 4 horas, o
                 hasta que lo apagues.
+              </li>
+              <li>
+                <strong>Avisos dentro de la app:</strong> los que ya leíste se
+                borran cuando cumplen 90 días. Los que todavía no leíste se
+                guardan mientras tu cuenta esté activa.
+              </li>
+              <li>
+                <strong>Sesiones iniciadas:</strong> el registro de cada
+                sesión (cuándo empezó y hasta cuándo vale, sin tu ubicación ni
+                tu dispositivo) se borra 7 días después de que vence. Si
+                cerrás sesión antes, queda marcada como cerrada hasta entonces,
+                para darnos cuenta si alguien intenta volver a usarla.
               </li>
               <li>
                 <strong>Cuenta, perfil, turnos, chats y reseñas:</strong>{" "}
@@ -386,7 +405,8 @@ export default function PrivacidadPage() {
               Tu contraseña se guarda cifrada con un algoritmo de una sola vía
               (nadie, ni nosotros, puede leerla), toda la comunicación entre tu
               dispositivo y nuestros servidores viaja cifrada, y los documentos
-              de verificación sólo los ve quien los revisa, antes de borrarse.
+              de verificación se guardan privados: sólo los ve quien los
+              revisa, con un link que vence a los pocos minutos.
               Si alguna vez hubiera un incidente que afecte tus datos, te
               avisamos.
             </p>
