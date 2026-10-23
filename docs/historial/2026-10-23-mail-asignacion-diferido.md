@@ -1,4 +1,4 @@
-# El email "Te aceptaron" sale después de responder: asignar ya no espera al proveedor (#PR)
+# El email "Te aceptaron" sale después de responder: asignar ya no espera al proveedor (#495)
 
 **Pedido:** Julieta aprobó el plan de rendimiento del backend (medición del
 2026-10-22). `POST /shifts/{id}/assign` esperaba el envío del email de
