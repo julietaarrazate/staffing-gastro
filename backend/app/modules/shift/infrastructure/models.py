@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -126,3 +127,23 @@ class ShiftModel(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
 
     __mapper_args__ = {"version_id_col": version}
+
+
+# Índices compuestos (0040) para la forma real de las consultas calientes:
+# - feed y scheduler: `status IN (...) AND start_at ...`;
+# - panel del comercio (`list_by_company`): `company_id = ? ORDER BY created_at DESC`;
+# - referencia de pago (`hourly_pay_samples`) y filtro por ciudad del feed:
+#   `position = ? AND lower(city) = ?` — `ix_shifts_city` es sobre `city` a
+#   secas y no sirve para `lower(city)`.
+Index("ix_shifts_status_start_at", ShiftModel.status, ShiftModel.start_at)
+Index(
+    "ix_shifts_company_id_created_at",
+    ShiftModel.company_id,
+    ShiftModel.created_at.desc(),
+)
+Index(
+    "ix_shifts_position_lower_city_created_at",
+    ShiftModel.position,
+    func.lower(ShiftModel.city),
+    ShiftModel.created_at,
+)

@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.core.dt import parse_iso_datetime
 from app.core.gemini import (
@@ -431,7 +431,7 @@ async def get_shift(
     summary="Ver un turno publicado sin autenticación (para compartir por WhatsApp/redes)",
 )
 async def get_shift_public(
-    shift_id: UUID, service: ServiceDep, companies: CompaniesDep
+    shift_id: UUID, service: ServiceDep, companies: CompaniesDep, response: Response
 ):
     """Sin auth. Sólo turnos en estado PUBLICADO; cualquier otro estado (o id
     inexistente) devuelve 404 para no filtrar la existencia/estado interno del
@@ -445,6 +445,13 @@ async def get_shift_public(
     if shift.status != ShiftStatus.PUBLICADO:
         raise _not_found()
     company = await companies.get_by_id(shift.company_id)
+    # Sin caché en el navegador ni en cachés intermedias (2026-10-23): un
+    # turno publicado se puede cubrir en minutos y desde ahí tiene que dar
+    # 404; una copia vieja mostraría como abierto un turno ya tomado. La
+    # página que se comparte ya tiene su caché corta en el borde, que sabe
+    # renovarse y borrar la copia cuando el turno deja de dar 200
+    # (`frontend/cloudflare/turno-cache.mjs`).
+    response.headers["Cache-Control"] = "no-cache"
     return ShiftPublicResponse(
         id=shift.id,
         position=shift.position,

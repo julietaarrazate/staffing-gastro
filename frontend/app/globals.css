@@ -1034,8 +1034,9 @@ body:has([data-landing]) main {
 
 /* ── Landing "cielo" (2026-10-18): celeste y blanco con el ámbar de siempre.
    Cada sección como el inicio: un título y una sola cosa para mirar.
-   Componentes: HeroRueda, Comanda, MapaCamino, Confianza, Precios,
-   ParaTrabajar, Preguntas, Cierre y LandingFooter. ── */
+   Componentes: HeroRueda, Comanda, MapaCamino (con la ficha de quien va),
+   Precios, ParaTrabajar, Preguntas, Cierre y LandingFooter, todos
+   centrados (2026-10-23). ── */
 [data-landing] {
   /* Aire entre el título de una sección y lo que muestra. */
   --aire: clamp(28px, 4vw, 48px);
@@ -1070,38 +1071,9 @@ body:has([data-landing]) main {
 .landing-sec-accion {
   margin-top: 32px;
 }
-/* En pantallas anchas, donde lo que se muestra es angosto, el título va al
-   costado; en el celular todo sigue centrado. */
-@media (min-width: 1024px) {
-  .landing-sec-dos {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 96px;
-    align-items: center;
-    width: 100%;
-    max-width: calc(1080px + 2 * 48px);
-    margin-inline: auto;
-    padding-inline: 48px;
-    text-align: left;
-  }
-  .landing-sec-dos .landing-h2 {
-    grid-column: 1;
-    max-width: 14ch;
-    margin: 0;
-  }
-  .landing-sec-dos .landing-sec-cosa {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    justify-self: center;
-    margin-top: 0;
-  }
-  .landing-sec-dos .landing-sec-accion {
-    grid-column: 1;
-    justify-self: start;
-  }
-  .landing-sec-arriba {
-    align-items: start;
-  }
+/* El cierre se apoya en el cielo del final: menos aire abajo. */
+.landing-cierre {
+  padding-bottom: 0;
 }
 
 /* Botones de la landing: píldora con flecha en un círculo. */
@@ -1156,7 +1128,7 @@ body:has([data-landing]) main {
   --cw: 104px;
   --ch: 135px;
   padding-top: calc(var(--ch) + 96px);
-  padding-bottom: clamp(64px, 9vw, 128px);
+  padding-bottom: clamp(40px, 6vw, 96px);
   background:
     radial-gradient(18% 10% at 18% 14%, rgb(255 255 255 / 0.9), transparent 70%),
     radial-gradient(22% 9% at 80% 9%, rgb(255 255 255 / 0.85), transparent 70%),
@@ -1221,7 +1193,8 @@ body:has([data-landing]) main {
 
 /* La comanda: banda de cielo, impresora, ticket con filete y cinta. */
 .landing-cielo {
-  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 18%, var(--color-secondary) 72%, var(--color-secondary-strong) 100%);
+  /* Vuelve al blanco abajo: antes cortaba en seco contra el mapa. */
+  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 16%, var(--color-secondary) 50%, var(--color-secondary) 72%, var(--color-card) 100%);
   padding-bottom: clamp(64px, 8vw, 112px);
 }
 .landing-campo {

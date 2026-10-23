@@ -5,14 +5,19 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.exc import StaleDataError
 
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.shift.domain.pay_benchmark import hourly_rate
-from app.modules.shift.domain.repositories import ShiftPublicationStats, ShiftRepository
+from app.modules.shift.domain.repositories import (
+    ShiftPeriodStats,
+    ShiftPublicationStats,
+    ShiftRepository,
+    ShiftTodayCounts,
+)
 from app.modules.shift.domain.value_objects import (
     OPEN_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
@@ -44,6 +49,15 @@ _EDITABLE_FIELDS = (
     "event_id",
     "event_name",
 )
+
+
+def _minutes_between(dialect: str, start, end):
+    """Minutos entre dos columnas de fecha, en SQL. Cada motor lo escribe
+    distinto: Postgres (producción) resta y extrae los segundos; SQLite
+    (tests) no tiene intervalos y usa `julianday` (días con decimales)."""
+    if dialect == "postgresql":
+        return extract("epoch", end - start) / 60.0
+    return (func.julianday(end) - func.julianday(start)) * 1440.0
 
 
 def _to_entity(model: ShiftModel) -> Shift:
@@ -386,3 +400,72 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_live(self, *, limit: int = 200) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(
+                ShiftModel.status.in_([s.value for s in UNCOVERED_ELIGIBLE_STATUSES]),
+                ShiftModel.published_at.is_not(None),
+            )
+            .order_by(
+                ShiftModel.urgent.desc(),
+                # `IS NULL` da falso para los escalados: van antes.
+                ShiftModel.escalated_at.is_(None),
+                ShiftModel.published_at.asc(),
+            )
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def count_today(self, *, day_start: datetime, day_end: datetime) -> ShiftTodayCounts:
+        urgent_open = (
+            ShiftModel.status.in_([s.value for s in OPEN_STATUSES])
+            & ShiftModel.urgent.is_(True)
+            & ShiftModel.published_at.is_not(None)
+        )
+        no_show_today = (ShiftModel.no_show_at >= day_start) & (ShiftModel.no_show_at < day_end)
+        stmt = select(
+            func.sum(case((urgent_open, 1), else_=0)).label("urgent_uncovered"),
+            func.sum(case((no_show_today, 1), else_=0)).label("no_shows_today"),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return ShiftTodayCounts(
+            urgent_uncovered=row.urgent_uncovered or 0,
+            no_shows_today=row.no_shows_today or 0,
+        )
+
+    async def count_period_stats(
+        self, *, previous_start: datetime, current_start: datetime, end: datetime
+    ) -> tuple[ShiftPeriodStats, ShiftPeriodStats]:
+        published = ShiftModel.published_at
+        assigned = ShiftModel.first_assigned_at
+        minutes = _minutes_between(self._session.get_bind().dialect.name, published, assigned)
+        windows = {
+            "cur": (published >= current_start) & (published < end),
+            "prev": (published >= previous_start) & (published < current_start),
+        }
+        columns = []
+        for key, in_window in windows.items():
+            covered = in_window & assigned.is_not(None)
+            columns += [
+                func.sum(case((in_window, 1), else_=0)).label(f"{key}_published"),
+                func.sum(case((covered, 1), else_=0)).label(f"{key}_covered"),
+                func.sum(case((covered & (minutes <= 10), 1), else_=0)).label(f"{key}_fast"),
+                # AVG ignora los NULL: sólo promedia los cubiertos del período.
+                func.avg(case((covered, minutes), else_=None)).label(f"{key}_avg"),
+            ]
+        stmt = select(*columns).where(published >= previous_start, published < end)
+        row = (await self._session.execute(stmt)).one()
+
+        def _stats(key: str) -> ShiftPeriodStats:
+            avg = getattr(row, f"{key}_avg")
+            return ShiftPeriodStats(
+                published=getattr(row, f"{key}_published") or 0,
+                covered=getattr(row, f"{key}_covered") or 0,
+                covered_under_10_min=getattr(row, f"{key}_fast") or 0,
+                avg_minutes_to_cover=float(avg) if avg is not None else None,
+            )
+
+        return _stats("cur"), _stats("prev")

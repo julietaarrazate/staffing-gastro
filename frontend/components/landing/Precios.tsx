@@ -28,7 +28,7 @@ import Reveal from "./Reveal";
 function Tope({ max, destacado }: { max: number | null; destacado: boolean }) {
   if (max === null) {
     return (
-      <div aria-hidden className="anim-bar h-2.5 w-full origin-left rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <div aria-hidden className="anim-bar h-2.5 w-full origin-left rounded-full bg-ink/80" />
     );
   }
   return (
@@ -83,11 +83,6 @@ export default function Precios() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-display text-h2 font-semibold text-ink">{p.name}</span>
-                  {destacado && (
-                    <span className="rounded-full bg-night px-2.5 py-1 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
-                      Recomendado
-                    </span>
-                  )}
                 </div>
                 <p className="mt-4 flex items-baseline gap-1.5">
                   <span className="font-display text-[clamp(2.5rem,4vw,3.4rem)] font-semibold leading-none tracking-[-0.045em] text-ink">

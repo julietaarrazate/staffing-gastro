@@ -6,6 +6,7 @@ concretas (adaptadores) viven en la capa de infraestructura.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.identity.domain.entities import (
@@ -109,6 +110,12 @@ class RefreshSessionRepository(ABC):
     @abstractmethod
     async def revoke_all_for_user(self, user_id: UUID) -> None:
         """Revoca todas las sesiones activas de un usuario (reuso detectado = posible robo)."""
+
+    @abstractmethod
+    async def delete_expired_before(self, cutoff: datetime) -> int:
+        """Borra las sesiones cuyo `expires_at` es anterior a `cutoff` y
+        devuelve cuántas borró (retención: un refresh vencido ya no sirve,
+        su JWT también venció)."""
 
 
 class PasswordResetTokenRepository(ABC):

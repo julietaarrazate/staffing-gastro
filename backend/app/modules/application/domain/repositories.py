@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.application.domain.entities import (
@@ -79,3 +80,15 @@ class ShiftApplicationRepository(ABC):
     async def count_application_stats(self) -> ApplicationStats:
         """Cuenta postulaciones totales y aceptadas (`application_to_acceptance_rate`,
         panel de admin) — agregado en SQL, no una lista de filas."""
+
+    @abstractmethod
+    async def count_active_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
+        """Postulaciones no retiradas por turno, para una lista de turnos en
+        UNA consulta (GROUP BY). Los turnos sin postulaciones no aparecen."""
+
+    @abstractmethod
+    async def count_created_by_period(
+        self, *, previous_start: datetime, current_start: datetime, end: datetime
+    ) -> tuple[int, int]:
+        """`(actual, anterior)`: postulaciones creadas en `[current_start,
+        end)` y en `[previous_start, current_start)`, en una consulta."""

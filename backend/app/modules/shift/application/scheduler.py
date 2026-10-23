@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Cuatro chequeos independientes, un solo loop:
+Cinco chequeos independientes, un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    antes del inicio, le recuerda al trabajador que avise al salir ("va en
@@ -21,6 +21,11 @@ Cuatro chequeos independientes, un solo loop:
    ya la trata como vencida en cuanto pasa el TTL (el matching/mapa nunca la
    usan de más), este chequeo sólo borra la posición de la base en vez de
    dejarla ahí sin uso indefinidamente.
+5. **Retención (2026-10-23):** borra las sesiones de refresh vencidas hace
+   más de `REFRESH_SESSION_RETENTION` y las notificaciones **leídas** de más
+   de `READ_NOTIFICATION_RETENTION`. Como mucho una vez cada
+   `RETENTION_INTERVAL`; no agrega despertares propios (va colgada de las
+   pasadas que ya ocurren, al menos cada `MAX_SLEEP`).
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo
@@ -53,7 +58,7 @@ hace falta persistir timers.
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
 from app.core.config import settings
@@ -66,7 +71,10 @@ from app.modules.application.infrastructure.repositories import (
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+from app.modules.identity.infrastructure.repositories import (
+    SqlAlchemyRefreshSessionRepository,
+    SqlAlchemyUserRepository,
+)
 from app.modules.favorite.infrastructure.repositories import SqlAlchemyFavoriteRepository
 from app.modules.matching.infrastructure.repositories import (
     SqlAlchemyCandidateRepository,
@@ -296,8 +304,55 @@ async def run_available_now_cleanup() -> datetime | None:
         return next_deadline
 
 
+# Retención (2026-10-23). Reglas conservadoras a propósito:
+# - Sesión de refresh: se borra 7 días DESPUÉS de vencer. Vencida ya no sirve
+#   (el JWT del refresh vence a la vez que la fila, así que presentarlo falla
+#   antes de buscar la sesión); el margen deja una semana para mirar un
+#   incidente. Las revocadas que todavía no vencieron NO se tocan: son las que
+#   detectan el reuso de un token robado (ADR-0002).
+# - Notificación: sólo las LEÍDAS y de más de 90 días. Una no leída nunca se
+#   borra, por vieja que sea.
+REFRESH_SESSION_RETENTION = timedelta(days=7)
+READ_NOTIFICATION_RETENTION = timedelta(days=90)
+# Borrar es barato pero no hace falta en cada pasada: una vez por día alcanza.
+RETENTION_INTERVAL = timedelta(hours=24)
+_last_retention_run: datetime | None = None
+
+
+async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
+    """Una pasada de retención. Público para poder testearlo sin el loop.
+
+    Corre como mucho una vez cada `RETENTION_INTERVAL` (`force` lo saltea, para
+    tests). Devuelve siempre `None`: no es una deadline que justifique
+    despertar la base, se aprovecha la próxima pasada del loop."""
+    global _last_retention_run
+    now = datetime.now(UTC)
+    if (
+        not force
+        and _last_retention_run is not None
+        and now - _last_retention_run < RETENTION_INTERVAL
+    ):
+        return None
+    async with AsyncSessionLocal() as session:
+        sessions_deleted = await SqlAlchemyRefreshSessionRepository(
+            session
+        ).delete_expired_before(now - REFRESH_SESSION_RETENTION)
+        notifications_deleted = await SqlAlchemyNotificationRepository(
+            session
+        ).delete_read_before(now - READ_NOTIFICATION_RETENTION)
+    _last_retention_run = now
+    logger.info(
+        "scheduler.retention",
+        extra={
+            "refresh_sessions_deleted": sessions_deleted,
+            "notifications_deleted": notifications_deleted,
+        },
+    )
+    return None
+
+
 async def scheduler_loop() -> None:
-    """Loop infinito: corre los cuatro chequeos y duerme hasta la próxima deadline.
+    """Loop infinito: corre los cinco chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
     entre los cuatro chequeos y duerme hasta ahí (acotado a [MIN_SLEEP,
@@ -331,6 +386,11 @@ async def scheduler_loop() -> None:
         except Exception:
             had_error = True
             logger.exception('Error en la limpieza de "Disponible ahora"')
+        try:
+            await run_retention_cleanup()
+        except Exception:
+            had_error = True
+            logger.exception("Error en la limpieza de retención")
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 

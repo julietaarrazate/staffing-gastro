@@ -8,7 +8,8 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   // Dirección de prueba oido-frontend.julietaarrazate.workers.dev (etapa 4).
   // Sin direcciones por versión: el login no anda en ellas (no están en
-  // CORS_ORIGINS, Turnstile ni Google).
+  // CORS_ORIGINS, Turnstile ni Google). Las vistas previas por PR son
+  // Previews (`wrangler preview`), no dependen de esto: DEPLOY.md.
   "workers_dev": true,
   "preview_urls": false,
   "assets": {

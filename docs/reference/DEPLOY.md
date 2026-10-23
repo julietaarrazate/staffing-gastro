@@ -144,9 +144,9 @@ Etapas y resultados en
   (cuenta de Cloudflare `julietaarrazate@gmail.com`).
 - **Cómo se publica:** Workers Builds conectado a GitHub, rama `main`,
   directorio `frontend`, build `npm run cf:build`, deploy `npx wrangler
-  deploy`. Cada merge a `main` la vuelve a publicar sola. Los builds de otras
-  ramas ("compilaciones de vista previa") están apagados, y las direcciones
-  por versión también (`preview_urls: false` en `wrangler.jsonc`).
+  deploy`. Cada merge a `main` la vuelve a publicar sola. Las direcciones
+  por versión siguen apagadas (`preview_urls: false` en `wrangler.jsonc`);
+  las vistas previas por PR van por otro lado, ver abajo.
 - **Variables de build** (todas públicas, de texto): `NEXT_PUBLIC_API_URL`,
   `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`,
   `NEXT_PUBLIC_GOOGLE_CLIENT_ID` y `NEXT_PUBLIC_SENTRY_DSN`. Van en
@@ -158,6 +158,39 @@ Etapas y resultados en
 - **Plan:** la prueba corre en el plan gratis (10 ms de CPU por pedido).
   Mirar *Metrics → Errors* del Worker: si aparece `Exceeded CPU Time Limits`
   (error 1102), pasar a Workers Paid (5 USD/mes) antes del cambio de DNS.
+
+### Vistas previas por PR en Cloudflare (2026-10-23)
+
+Reemplazan a las de Vercel, que dejaron de salir cuando la web pasó a
+Cloudflare (el último deploy de Vercel es del 2026-10-19; pedir uno a mano
+devuelve `BLOCKED`).
+
+- **Qué son:** las *Previews* de Workers (`npx wrangler preview`, beta
+  abierta; pide wrangler 4.135 o más nuevo, el proyecto usa 4.151). Cada
+  rama que no es `main` arma su vista previa en
+  `<rama>-oido-frontend.julietaarrazate.workers.dev` (la barra de la rama
+  pasa a guion) y Workers Builds comenta el link en el PR. La dirección de
+  la rama siempre sirve el último commit.
+- **Cómo se prende (Julieta, una sola vez):** en el panel de Cloudflare,
+  Workers & Pages → `oido-frontend` → *Settings* → *Build*, activar los
+  builds de las ramas que no son de producción y confirmar que el comando
+  de vista previa sea `npx wrangler preview`. No hace falta tocar
+  `wrangler.jsonc`: `preview_urls` maneja las direcciones por versión
+  (`<versión>-oido-frontend…`), que Cloudflare desaconseja para probar PRs.
+- **Qué anda y qué no:** la landing, la splash, los términos y cualquier
+  pantalla que no pida datos al servidor. **El login no anda** (la dirección
+  no está en `CORS_ORIGINS`, ni en Turnstile, ni en Google OAuth). Para
+  sumarlo hace falta aceptar las direcciones de vista previa en esos tres
+  lugares; queda para cuando haga falta.
+- **Son públicas** (con `X-Robots-Tag: noindex` en `workers.dev`). Si se
+  quiere pedir ingreso, Cloudflare Access sobre el Worker.
+- **Límites del plan gratis:** 100 vistas previas por Worker y 100 deploys
+  por vista previa; al llegar, Cloudflare borra la más vieja. Usan los
+  minutos de build de Workers Builds.
+- **Trampa:** el *service binding* `WORKER_SELF_REFERENCE` de una vista
+  previa apunta al Worker de producción, no a la vista previa. Sólo lo usa
+  la cola de revalidación de OpenNext y Oído no revalida (sin ISR), así que
+  no cambia lo que se ve.
 
 ### Etapa 3: endurecimiento con Cloudflare (runbook)
 
