@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     # DSN de Sentry (captura de errores). Vacío = Sentry desactivado; se
     # enciende solo con setear la env var SENTRY_DSN en Render (R1.1).
     sentry_dsn: str = ""
+    # Fracción de pedidos que Sentry mide (tiempos de cada endpoint y de sus
+    # consultas). 0.1 = 1 de cada 10: alcanza para ver la velocidad real con
+    # el tráfico de la beta y queda muy lejos del cupo gratis (2026-10-23).
+    sentry_traces_sample_rate: float = 0.1
     # Logging estructurado JSON con request_id (apto para agregadores).
     # En desarrollo conviene texto plano legible.
     log_json: bool = False
