@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     # DSN de Sentry (captura de errores). Vacío = Sentry desactivado; se
     # enciende solo con setear la env var SENTRY_DSN en Render (R1.1).
     sentry_dsn: str = ""
+    # Fracción de pedidos que Sentry mide (tiempos de cada endpoint y de sus
+    # consultas). 0.1 = 1 de cada 10: alcanza para ver la velocidad real con
+    # el tráfico de la beta y queda muy lejos del cupo gratis (2026-10-23).
+    sentry_traces_sample_rate: float = 0.1
     # Logging estructurado JSON con request_id (apto para agregadores).
     # En desarrollo conviene texto plano legible.
     log_json: bool = False
@@ -171,6 +175,11 @@ class Settings(BaseSettings):
     # server-side igual, junto al `api_secret`, para no duplicar configuración.
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
+    # Cloud name (el mismo valor que `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` del
+    # frontend). Lo necesita el backend para armar el link de descarga que
+    # vence de los documentos de identidad privados (ADR-0021). Vacío = el
+    # admin no puede abrir las evidencias nuevas (503), pero nada más se rompe.
+    cloudinary_cloud_name: str = ""
 
     # --- Gemini (turno por texto libre) — P2, auditoría de producto 2026-08-10 ---
     # El comercio describe el turno en texto libre ("necesito 2 mozos el sábado

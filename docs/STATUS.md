@@ -129,15 +129,7 @@ Revisado contra el código y los PRs el 2026-10-03.
     "el primero que toma" para urgentes, cascada por tandas y verificación
     de identidad gratis. Nada decidido:
     [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
-12. 🟡 **Panel de admin ordenado, pasos 3 y 4** (pedido de Julieta,
-    2026-10-20). Hechos: paso 1 (menú por secciones y portada "Hoy") y
-    paso 2 (Personas con buscador, filtros y ficha). Faltan: **Turnos en
-    vivo** (turnos abiertos ahora, minutos sin cubrir, escalados; necesita
-    endpoint nuevo) y sumar a "Hoy" los urgentes sin cubrir y las ausencias
-    del día; **Métricas** con período (7/30 días) y comparación. Ver
-    [`historial/2026-10-20-panel-admin-por-secciones.md`](./historial/2026-10-20-panel-admin-por-secciones.md)
-    y [`historial/2026-10-20-admin-personas.md`](./historial/2026-10-20-admin-personas.md).
-13. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
+12. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
    por prioridad"). Un PR por tema; al cerrar uno, borrarlo de esta lista.
    Origen en
    [`historial/2026-10-20-revision-seguridad-clave-gemini.md`](./historial/2026-10-20-revision-seguridad-clave-gemini.md).
@@ -157,13 +149,6 @@ Revisado contra el código y los PRs el 2026-10-03.
    - **Media — cuota de Gemini:** tope global diario además del de usuario,
      y email verificado para usar la IA (`modules/assistant/api/routes.py`,
      `modules/shift/api/routes.py`).
-   - **Media — documentos de identidad en Cloudinary con entrega pública**
-     (`core/cloudinary.py`). **Espera decisión de Julieta:** el arreglo de
-     verdad es subirlos `private` y que el panel de admin pida un link de
-     descarga que vence (API de Cloudinary). Toca la subida, lo que se
-     guarda, el panel de verificación y los archivos ya subidos. Hoy el
-     nombre de cada archivo es al azar (128 bits), así que el riesgo es que
-     se filtre un link, no que lo adivinen.
    - **Baja:** emails en logs (`notification/infrastructure/*email_sender.py`,
      `admin/`), login sin hash de relleno si el email no existe y sin límite
      por cuenta (`identity/`), `DELETE /push/subscribe` sin dueño (va con el
@@ -187,6 +172,13 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 - **Rotar la clave de Gemini** (estuvo expuesta en Sentry): clave nueva en
   Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
   **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
+- **Documentos de identidad privados (ADR-0021), después del merge:** cargar
+  `CLOUDINARY_CLOUD_NAME` en Render (mismo valor que el de Vercel) y correr
+  una vez `python -m scripts.privatize_identity_evidence` (mira) y después
+  con `--apply` (pasa a privados los DNI/constancias ya subidos). Pasos en
+  el ADR, "Migración". Y decidir si al aprobar/rechazar se **borra** el
+  archivo de Cloudinary (hoy queda guardado, privado; la app dice "las
+  eliminamos").
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Confirmar** en Render `ENVIRONMENT=production` (controla la cookie del
   refresh token, TECH_DEBT S1) y `GEMINI_API_KEY` (sin ella, "Describí el

@@ -15,6 +15,7 @@ from app.modules.verification.domain.value_objects import (
     ClaimStatus,
     ClaimType,
     ConfidenceLevel,
+    EvidenceFile,
     EvidenceType,
     VerificationMethod,
 )
@@ -24,12 +25,24 @@ from app.modules.verification.infrastructure.models import (
 )
 
 
+def _file_to_entity(model: IdentityEvidenceModel) -> EvidenceFile | None:
+    if not model.file_public_id:
+        return None
+    return EvidenceFile(
+        public_id=model.file_public_id,
+        resource_type=model.file_resource_type or "image",
+        format=model.file_format or "",
+        delivery_type=model.file_delivery_type or "private",
+    )
+
+
 def _evidence_to_entity(model: IdentityEvidenceModel) -> Evidence:
     return Evidence(
         id=model.id,
         evidence_type=EvidenceType(model.evidence_type),
         method=VerificationMethod(model.method),
         data_url=model.data_url,
+        file=_file_to_entity(model),
         data_purged=model.data_purged,
         created_at=model.created_at,
     )
@@ -75,6 +88,10 @@ def _sync_evidences(model: IdentityClaimModel, claim: Claim) -> None:
             evidence_type=evidence.evidence_type.value,
             method=evidence.method.value,
             data_url=evidence.data_url,
+            file_public_id=evidence.file.public_id if evidence.file else None,
+            file_resource_type=evidence.file.resource_type if evidence.file else None,
+            file_format=evidence.file.format if evidence.file else None,
+            file_delivery_type=evidence.file.delivery_type if evidence.file else None,
             data_purged=evidence.data_purged,
         )
         for evidence in claim.evidences
@@ -125,6 +142,13 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         stmt = select(IdentityClaimModel).where(IdentityClaimModel.user_id == user_id)
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
+        stmt = select(IdentityEvidenceModel.claim_id).where(
+            IdentityEvidenceModel.id == evidence_id
+        )
+        claim_id = (await self._session.execute(stmt)).scalar_one_or_none()
+        return await self.get_by_id(claim_id) if claim_id else None
 
     async def list_pending(self) -> list[Claim]:
         stmt = (

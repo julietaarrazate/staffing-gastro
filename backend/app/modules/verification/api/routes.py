@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.cloudinary import CloudinaryNotConfiguredError
 from app.core.config import settings
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
@@ -33,6 +34,7 @@ from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.api.schemas import (
     ClaimSummaryResponse,
+    EvidenceLinkResponse,
     IdentitySummaryResponse,
     PendingClaimResponse,
     PendingEvidenceResponse,
@@ -47,6 +49,7 @@ from app.modules.verification.domain.exceptions import (
     ClaimAlreadyVerifiedError,
     ClaimNotFoundError,
     ClaimNotPendingError,
+    EvidenceNotFoundError,
     EvidenceRequiredError,
 )
 from app.modules.verification.domain.entities import Claim
@@ -112,9 +115,9 @@ async def submit_my_document(
     try:
         await service.submit_identity_document(
             current_user.id,
-            payload.dni_frente_url,
-            payload.selfie_url,
-            payload.dni_dorso_url,
+            payload.dni_frente.to_domain(),
+            payload.selfie.to_domain(),
+            payload.dni_dorso.to_domain() if payload.dni_dorso else None,
         )
     except ClaimAlreadyVerifiedError as exc:
         raise HTTPException(
@@ -146,7 +149,9 @@ async def submit_my_business_document(
     negocio registrado atrás, así que sólo tiene sentido para quien tiene uno.
     Un trabajador que llame acá recibe 403."""
     try:
-        await service.submit_business_document(current_user.id, payload.constancia_url)
+        await service.submit_business_document(
+            current_user.id, payload.constancia.to_domain()
+        )
     except ClaimAlreadyVerifiedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -195,13 +200,43 @@ async def list_pending_claims(
                 submitted_at=item.submitted_at,
                 evidences=[
                     PendingEvidenceResponse(
-                        evidence_type=e.evidence_type, data_url=e.data_url
+                        evidence_id=e.evidence_id,
+                        evidence_type=e.evidence_type,
+                        available=e.available,
                     )
                     for e in item.evidences
                 ],
             )
         )
     return responses
+
+
+@router.get(
+    "/evidences/{evidence_id}/link",
+    response_model=EvidenceLinkResponse,
+    summary="Link que vence para ver una evidencia pendiente (admin, ADR-0021)",
+)
+async def get_evidence_link(
+    evidence_id: UUID,
+    _current_user: AdminDep,
+    service: ServiceDep,
+):
+    """Sólo admin (otro rol → 403, como el resto de la cola). Inexistente,
+    ya purgada o de un claim ya decidido → 404 igual para todas: no se
+    revela qué existe. El dueño del documento tampoco lo puede volver a
+    bajar: ve el estado de su claim en `/identity/me`, nada más."""
+    try:
+        link = await service.evidence_link(evidence_id)
+    except EvidenceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Evidencia no encontrada"
+        ) from exc
+    except CloudinaryNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Ver documentos privados no está configurado en este servidor",
+        ) from exc
+    return EvidenceLinkResponse(url=link.url, expires_at=link.expires_at)
 
 
 # Qué se verificó, dicho como lo entiende la persona ("Revisamos tu ...").

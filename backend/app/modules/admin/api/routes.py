@@ -16,15 +16,19 @@ from app.modules.admin.api.schemas import (
     AdminUserDetailResponse,
     AdminUserResponse,
     ImpersonateResponse,
+    LiveShiftsResponse,
+    PeriodMetricsResponse,
     PlatformStatsResponse,
     SubscriptionStatsResponse,
     TestAccountResponse,
+    TodayCountsResponse,
 )
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
     TargetUserNotFoundError,
 )
+from app.modules.admin.application.periods import METRICS_PERIODS
 from app.modules.admin.application.services import AdminService
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
@@ -42,6 +46,47 @@ OffsetDep = Annotated[int, Query(ge=0)]
 @router.get("/stats", response_model=PlatformStatsResponse, summary="Métricas de la plataforma")
 async def stats(_: AdminDep, service: ServiceDep):
     return await service.get_stats()
+
+
+@router.get(
+    "/today",
+    response_model=TodayCountsResponse,
+    summary='Portada "Hoy": urgentes sin cubrir y ausencias del día',
+)
+async def today(_: AdminDep, service: ServiceDep):
+    return await service.get_today_counts()
+
+
+@router.get(
+    "/live-shifts",
+    response_model=LiveShiftsResponse,
+    summary="Turnos en vivo: publicados y sin nadie confirmado, lo más urgente primero",
+)
+async def live_shifts(
+    _: AdminDep,
+    service: ServiceDep,
+    urgent: bool = False,
+    escalated: bool = False,
+):
+    return await service.list_live_shifts(urgent_only=urgent, escalated_only=escalated)
+
+
+@router.get(
+    "/period-metrics",
+    response_model=PeriodMetricsResponse,
+    summary="Métricas de los últimos 7 o 30 días contra el período anterior",
+)
+async def period_metrics(
+    _: AdminDep,
+    service: ServiceDep,
+    period: Annotated[int, Query(description="Días: 7 o 30")] = 7,
+):
+    if period not in METRICS_PERIODS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="El período tiene que ser de 7 o 30 días",
+        )
+    return await service.get_period_metrics(period)
 
 
 @router.get(

@@ -6,6 +6,7 @@ el perfil y el usuario de cada postulante con un único JOIN (fix de P2 en
 `matching/infrastructure/repositories.py` para lecturas agregadas.
 """
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import case, func, select
@@ -180,3 +181,28 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         )
         row = (await self._session.execute(stmt)).one()
         return ApplicationStats(total=row.total or 0, accepted=row.accepted or 0)
+
+    async def count_active_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
+        if not shift_ids:
+            return {}
+        stmt = (
+            select(ShiftApplicationModel.shift_id, func.count())
+            .where(
+                ShiftApplicationModel.shift_id.in_(shift_ids),
+                ShiftApplicationModel.status != ApplicationStatus.RETIRADA.value,
+            )
+            .group_by(ShiftApplicationModel.shift_id)
+        )
+        result = await self._session.execute(stmt)
+        return {shift_id: count for shift_id, count in result.all()}
+
+    async def count_created_by_period(
+        self, *, previous_start: datetime, current_start: datetime, end: datetime
+    ) -> tuple[int, int]:
+        created = ShiftApplicationModel.created_at
+        stmt = select(
+            func.sum(case(((created >= current_start) & (created < end), 1), else_=0)),
+            func.sum(case(((created >= previous_start) & (created < current_start), 1), else_=0)),
+        ).where(created >= previous_start, created < end)
+        current, previous = (await self._session.execute(stmt)).one()
+        return current or 0, previous or 0

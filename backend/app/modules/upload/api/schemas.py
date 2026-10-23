@@ -11,3 +11,6 @@ class SignedUploadResponse(BaseModel):
     folder: str
     public_id: str
     overwrite: str
+    # Sólo en las subidas privadas (DNI, selfie, constancia; ADR-0021):
+    # `private`, firmado. El cliente lo tiene que mandar tal cual.
+    type: str | None = None

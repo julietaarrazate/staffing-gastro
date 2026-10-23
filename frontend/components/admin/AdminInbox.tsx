@@ -8,7 +8,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "@/lib/api";
-import type { LeadSummary } from "@/lib/types";
+import type { AdminTodayCounts, LeadSummary } from "@/lib/types";
 
 /** Tope de la consulta de tickets: si llega al tope se muestra "100+". */
 export const INBOX_LIST_LIMIT = 100;
@@ -18,9 +18,19 @@ export interface AdminInbox {
   identities: number | null;
   openTickets: number | null;
   newLeads: number | null;
+  /** Turnos urgentes todavía sin nadie asignado (`/admin/today`). */
+  urgentUncovered: number | null;
+  /** Ausencias (no-show) marcadas hoy, día argentino. */
+  noShowsToday: number | null;
 }
 
-const EMPTY: AdminInbox = { identities: null, openTickets: null, newLeads: null };
+const EMPTY: AdminInbox = {
+  identities: null,
+  openTickets: null,
+  newLeads: null,
+  urgentUncovered: null,
+  noShowsToday: null,
+};
 
 const AdminInboxContext = createContext<{ inbox: AdminInbox; loaded: boolean }>({
   inbox: EMPTY,
@@ -49,7 +59,7 @@ export function AdminInboxProvider({
 
   const load = useCallback(async () => {
     if (!token) return;
-    const [identities, openTickets, newLeads] = await Promise.all([
+    const [identities, openTickets, newLeads, today] = await Promise.all([
       count(api.get<unknown[]>("/identity/claims/pending", token)),
       count(
         api.get<unknown[]>(`/support/tickets?status=abierto&limit=${INBOX_LIST_LIMIT}`, token)
@@ -58,8 +68,15 @@ export function AdminInboxProvider({
         .get<LeadSummary>("/admin/leads/summary", token)
         .then((s) => s.counts.nuevo ?? 0)
         .catch(() => null),
+      api.get<AdminTodayCounts>("/admin/today", token).catch(() => null),
     ]);
-    setInbox({ identities, openTickets, newLeads });
+    setInbox({
+      identities,
+      openTickets,
+      newLeads,
+      urgentUncovered: today?.urgent_uncovered ?? null,
+      noShowsToday: today?.no_shows_today ?? null,
+    });
     setLoaded(true);
   }, [token]);
 
