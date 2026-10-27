@@ -21,7 +21,6 @@ from sqlalchemy import select
 from app.core.cloudinary import CloudinaryDestroyError
 from app.core.config import settings
 from app.core.dt import naive
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.application import scheduler
 from app.modules.verification.domain.entities import (
     FILE_DELETION_MAX_RETRY,
@@ -45,7 +44,7 @@ from app.modules.verification.infrastructure.models import (
     EvidenceFileDeletionModel,
     IdentityEvidenceModel,
 )
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 
 
 def _file(folder: str = "oido/identidad", fmt: str = "jpg") -> dict:
@@ -58,14 +57,7 @@ def _file(folder: str = "oido/identidad", fmt: str = "jpg") -> dict:
 
 
 async def _admin(client, session_factory, email: str) -> dict:
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 async def _pending_claim_id(client, admin: dict, claim_type: str) -> str:

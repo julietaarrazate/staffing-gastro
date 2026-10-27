@@ -64,6 +64,5 @@ cambian. Decisión completa en
 - Julieta: cargar `TWO_FACTOR_ENCRYPTION_KEY` antes del merge y activar la
   verificación apenas se deploya (en `../STATUS.md`, "Pendiente de
   Julieta").
-- La migración es la `0044` sobre la `0042`: la `0043` es de otro PR (#507,
-  borrado de DNI). Si ése se mergea antes, hay que pasar el `down_revision`
-  de la `0044` a `"0043"` (`tests/test_cadena_migraciones.py` lo marca).
+- Nada más del lado del código. La migración `0044` va sobre la `0043`
+  (cola de borrado de evidencias, #507, que se mergeó antes).

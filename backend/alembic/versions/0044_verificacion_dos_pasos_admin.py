@@ -9,8 +9,7 @@
   (sha256 del token, vence a los 5 min, cuenta los errores).
 
 Revision ID: 0044
-Revises: 0042 (la 0043 la tiene reservada otro PR que todavía no está en
-main; si se mergea antes que éste, hay que pasar `down_revision` a "0043")
+Revises: 0043 (cola de borrado de evidencias, #507)
 Create Date: 2026-10-23
 
 """
@@ -23,7 +22,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "0044"
-down_revision: str | None = "0042"
+down_revision: str | None = "0043"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
