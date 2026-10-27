@@ -1,10 +1,11 @@
 """Efectos de sonido de los videos, sintetizados (sin samples con licencia).
 Sólo biblioteca estándar. Uso: python3 sfx.py <video> → <video>.wav,
-48 kHz estéreo, 22.5 s. Cada video es una función con su lista de cues."""
+48 kHz estéreo, 22.5 s (o lo que diga DURACION). Cada video es una función con su lista de cues."""
 import math, random, struct, sys, wave
 
 SR = 48000
-DUR = 22.5
+DURACION = {"bodegon": 25.5}
+DUR = DURACION.get(sys.argv[1] if len(sys.argv) > 1 else "", 22.5)
 N = int(SR * DUR)
 L = [0.0] * N
 R = [0.0] * N
@@ -172,7 +173,68 @@ def trabajador():
     add(20.7, tone(1567.98, 0.6, 6), 0.05)
 
 
-VIDEOS = {"lanzamiento": lanzamiento, "trabajador": trabajador}
+def campanita(t, gain=0.14):
+    """La campanita del pase: dos parciales metálicos que se apagan lento."""
+    add(t, tone(2093.0, 1.3, 3.2, harm=0.25), gain)
+    add(t, tone(2793.8, 0.9, 4.5), gain * 0.5)
+
+
+def bodegon():
+    # 1 · el salón: murmullo de gente y alguna copa
+    for k in range(5):
+        add(k * 0.9, whoosh(1.4, 250, 600, 0.5, q=1.4), 0.05)
+    for t in (0.6, 1.3, 1.9, 3.4, 4.1):
+        add(t + random.uniform(-0.1, 0.1), tone(3100 + random.uniform(-300, 300), 0.12, 30), 0.03, pan=random.uniform(-0.6, 0.6))
+    add(2.1, tone(880, 0.18, 22, 1320), 0.22)                        # llega el mensaje
+    add(3.05, tone(220, 0.5, 8, 180), 0.08)                          # titila la lámpara
+    # 2 · el pase: comandas que se cuelgan, la campanita que no para
+    add(4.55, whoosh(0.45, 2500, 300, 0.35), 0.3)
+    for t in (4.9, 5.3, 5.7, 6.1, 6.5):
+        add(t + 0.35, click(0.015, 0.5), 0.25, pan=-0.4 + (t - 4.9) / 2)
+        add(t + 0.35, tone(1700, 0.06, 50), 0.05)
+    for t in (6.3, 6.9, 7.5):
+        campanita(t)
+    # 3 · sube el cielo y se escribe el pedido
+    add(8.15, whoosh(0.7, 150, 2500, 0.7), 0.4)
+    chars = 43
+    for k in range(chars):
+        add(9.3 + k * 1.5 / chars + random.uniform(-0.006, 0.006), click(0.01, 0.8), 0.12 + random.uniform(0, 0.05), pan=random.uniform(-0.2, 0.2))
+    add(11.35, click(0.02, 0.3), 0.3)
+    for t, f in ((11.6, 659.25), (11.75, 783.99), (11.9, 987.77)):
+        add(t, tone(f, 0.22, 16), 0.12)
+    # 4 · la comanda se imprime y cae «¡Oído!»
+    t = 12.75
+    while t < 14.0:
+        add(t, click(0.03, 0.2), 0.09)
+        add(t, tone(310, 0.05, 60), 0.05)
+        t += 0.045
+    add(14.3, whoosh(0.5, 1200, 200, 0.3), 0.25)
+    add(14.8, thud(90, 0.5), 0.45)
+    for f, d in ((523.25, 0), (659.25, 0.04), (783.99, 0.08), (1046.5, 0.12)):
+        add(14.82 + d, tone(f, 1.4, 3.2, harm=0.15), 0.07)
+    # 5 · va en camino
+    add(15.9, whoosh(0.55, 2500, 300, 0.35), 0.3)
+    add(16.2, thud(160, 0.3), 0.3)
+    t = 16.6
+    while t < 19.2:
+        add(t, tone(440, 0.9, 4.5), 0.04)
+        t += 0.65
+    add(16.8, tone(987.77, 0.18, 14), 0.1)
+    add(19.1, tone(1318.5, 0.4, 8), 0.1)
+    # 6 · salen los platos
+    add(19.75, whoosh(0.45, 300, 2500, 0.5), 0.25)
+    campanita(20.1, 0.18)
+    for t in (20.3, 20.5, 20.7, 20.9, 21.1):
+        add(t, whoosh(0.3, 3000, 900, 0.3), 0.12, pan=-0.3)
+    # 7 · cierre
+    add(21.95, whoosh(0.7, 200, 5000, 0.8), 0.45)
+    add(22.5, thud(70, 0.8), 0.5)
+    for f, d in ((523.25, 0), (659.25, 0.05), (783.99, 0.1), (1046.5, 0.15), (1318.5, 0.2)):
+        add(22.55 + d, tone(f, 2.5, 1.8, harm=0.12), 0.06)
+    add(23.6, tone(1567.98, 0.6, 6), 0.05)
+
+
+VIDEOS = {"lanzamiento": lanzamiento, "trabajador": trabajador, "bodegon": bodegon}
 name = sys.argv[1] if len(sys.argv) > 1 else ""
 if name not in VIDEOS:
     sys.exit("uso: python3 sfx.py " + "|".join(VIDEOS))

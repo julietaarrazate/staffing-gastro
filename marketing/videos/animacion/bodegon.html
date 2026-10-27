@@ -1,0 +1,297 @@
+<!-- «Viernes, salón lleno» (9:16, 25,5 s), para comercios, con la marca celeste
+     y blanco y el filete. Bodegón dibujado sin personajes: lo cuentan los
+     objetos (la pizarra, el sifón, el mantel, la riel de comandas, la
+     campanita del pase). Un solo ámbar por escena: el botón. Los tiempos
+     (animation-delay) son segundos del video. Se renderiza con
+     `node render.mjs bodegon 30 0 25.5`. -->
+<style>
+#stage{position:fixed;left:0;top:0;width:540px;height:960px;overflow:hidden;z-index:2147483647;background:#F8FBFC;font-family:var(--font-inter),Inter,sans-serif;color:#111;-webkit-font-smoothing:antialiased}
+#stage *{box-sizing:border-box}
+#stage .abs{position:absolute}
+#stage .scene{position:absolute;inset:0;overflow:hidden}
+#stage .tit{font-family:var(--font-schibsted),var(--font-inter),sans-serif;font-weight:700;letter-spacing:-.025em;line-height:1.06;color:#111}
+#stage .mono{font-family:var(--font-dm-mono),ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase}
+#stage .c{left:0;right:0;text-align:center}
+#stage .hondo{color:#1C5478}
+#stage svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Superficies del bodegón */
+#stage .pared{background:#F8FBFC}
+#stage .azulejos{background:linear-gradient(#DEECF0 2px,transparent 2px) 0 0/45px 45px,linear-gradient(90deg,#DEECF0 2px,transparent 2px) 0 0/45px 45px,#fff}
+#stage .damero{background:repeating-conic-gradient(#1C5478 0 25%,#F8FBFC 0 50%) 0 0/70px 70px;transform:perspective(260px) rotateX(48deg);transform-origin:50% 0}
+#stage .vichy{background:repeating-linear-gradient(90deg,rgba(154,201,231,.6) 0 16px,transparent 16px 32px),repeating-linear-gradient(0deg,rgba(154,201,231,.6) 0 16px,#fff 16px 32px)}
+#stage .cielo{background:linear-gradient(#fff 0%,#DEECF0 30%,#C4E3ED 68%,#9AC9E7 100%)}
+#stage .acero{background:linear-gradient(#E5EEF1,#A9B6C2)}
+#stage .ticket{width:88px;padding:16px 6px 18px;background:#fff;font-family:var(--font-dm-mono),monospace;font-size:9.5px;line-height:1.5;letter-spacing:.03em;white-space:nowrap;color:#1C5478;text-transform:uppercase;filter:drop-shadow(0 6px 8px rgba(20,69,106,.22));
+  -webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - 6px) no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/10px 6px repeat-x;
+  mask:linear-gradient(#000 0 0) top/100% calc(100% - 6px) no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/10px 6px repeat-x;transform-origin:50% 0}
+#stage .ticket b{display:block;font-weight:500;color:#111;font-size:10px;margin-top:4px}
+#stage .ticket::before{content:"";position:absolute;left:50%;top:-4px;width:10px;height:10px;margin-left:-5px;border-radius:2px;background:#8494A3}
+#stage .plato{width:96px;height:34px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px #9AC9E7,0 6px 10px rgba(20,69,106,.18)}
+#stage .humo{width:30px;height:60px;transform-origin:50% 100%}
+
+.A{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes outfade{to{opacity:0}}
+@keyframes drift{from{transform:scale(1)}to{transform:scale(1.06)}}
+@keyframes sway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+@keyframes wipeup{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes circ{from{clip-path:circle(0% at var(--x) var(--y))}to{clip-path:circle(150% at var(--x) var(--y))}}
+@keyframes cuelga{0%{opacity:0;transform:translateX(560px) rotate(8deg)}70%{opacity:1;transform:translateX(-6px) rotate(-5deg)}85%{transform:rotate(3deg)}100%{opacity:1;transform:none}}
+@keyframes arranca{to{opacity:0;transform:translateY(-120px) rotate(-14deg)}}
+@keyframes salepl{to{opacity:0;transform:translateX(-520px)}}
+@keyframes vapor{0%{opacity:0;transform:translateY(10px) scaleY(.8)}30%{opacity:.75}100%{opacity:0;transform:translateY(-34px) scaleY(1.15)}}
+@keyframes ding{0%,100%{transform:rotate(0)}15%{transform:rotate(-16deg)}35%{transform:rotate(13deg)}55%{transform:rotate(-8deg)}75%{transform:rotate(4deg)}}
+@keyframes dingola{0%{opacity:0;transform:scale(.6)}25%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
+@keyframes titila{0%,100%{opacity:1}8%{opacity:.25}14%{opacity:1}20%{opacity:.4}26%{opacity:1}}
+@keyframes phonein{from{opacity:0;transform:translateY(360px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes press{0%,100%{transform:scale(1)}40%{transform:scale(.94)}}
+@keyframes imprime{from{clip-path:inset(0 0 100% 0);transform:translateY(-30px)}to{clip-path:inset(0 0 -20px 0);transform:none}}
+@keyframes cae{0%{opacity:0;transform:translateY(-520px) rotate(-18deg)}55%{opacity:1;transform:translateY(16px) rotate(-2deg)}75%{transform:translateY(-6px) rotate(-5deg)}100%{opacity:1;transform:rotate(-4deg)}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes pinpop{0%{opacity:0;transform:translate(-50%,-100%) scale(.2)}60%{opacity:1;transform:translate(-50%,-100%) scale(1.1)}100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+@keyframes ring{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}10%{opacity:.8}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+@keyframes cardup{from{opacity:0;transform:translateY(80px)}to{opacity:1;transform:none}}
+</style>
+
+<div id="stage">
+
+  <!-- 1 · EL SALÓN (0–4,6 s): viernes, todo lleno; llega el mensaje -->
+  <div class="scene pared" id="s1" style="animation:outfade .01s linear 4.6s forwards">
+    <div class="scene" style="animation:drift 4.6s linear 0s both;transform-origin:50% 70%">
+      <!-- moldura y lámpara -->
+      <div class="abs" style="left:0;right:0;top:206px;height:4px;background:#1C5478"></div>
+      <div class="abs" style="left:0;right:0;top:214px;height:1.5px;background:#9AC9E7"></div>
+      <div class="abs" style="left:270px;top:210px;width:0;height:0;animation:sway 3.2s ease-in-out -1.6s infinite">
+        <div class="abs" style="left:-1px;top:0;width:2px;height:92px;background:#4B5563"></div>
+        <div class="abs A" style="left:-170px;top:110px;width:340px;height:330px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,249,220,.95),rgba(255,249,220,0));animation:titila 1.3s linear 3.05s both"></div>
+        <svg class="abs" viewBox="0 0 120 54" width="120" height="54" style="left:-60px;top:88px">
+          <path d="M8 50 Q12 6 60 4 Q108 6 112 50 Z" fill="#fff" stroke="#1C5478" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M8 50 H112" stroke="#1C5478" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="60" cy="52" rx="14" ry="5" fill="#FFF9DC"/>
+        </svg>
+      </div>
+      <!-- pizarra -->
+      <div class="abs" style="left:34px;top:300px;width:184px;height:170px;border:7px solid #1C5478;border-radius:6px;background:#1C2631;padding:14px 14px;color:#EEF3F6">
+        <div class="mono" style="font-size:13px;letter-spacing:.2em;text-align:center">Hoy</div>
+        <div style="height:1.5px;background:#A9B6C2;margin:6px 26px 10px;opacity:.7"></div>
+        <div class="mono" style="font-size:11px;line-height:1.85;letter-spacing:.06em;text-transform:none">Milanesa napo<br>Vermú con sifón<br>Tortilla babé<br>Flan mixto</div>
+      </div>
+      <!-- ventana: noche azul afuera -->
+      <div class="abs" style="left:322px;top:290px;width:184px;height:184px;border:8px solid #fff;outline:3px solid #1C5478;border-radius:92px 92px 4px 4px;background:linear-gradient(#0D131A,#1C2631);overflow:hidden">
+        <div class="abs" style="left:0;right:0;bottom:0;height:70px;background:#151D26;clip-path:polygon(0 40%,18% 40%,18% 10%,40% 10%,40% 55%,60% 55%,60% 0,80% 0,80% 35%,100% 35%,100% 100%,0 100%)"></div>
+        <div class="abs" style="left:46px;top:132px;width:6px;height:6px;background:#9AC9E7;box-shadow:12px 0 #9AC9E7,64px 14px #FFF9DC,76px 14px #9AC9E7,108px -14px #FFF9DC"></div>
+        <div class="abs" style="left:-8px;right:-8px;top:50%;height:8px;background:#fff"></div>
+        <div class="abs" style="top:-8px;bottom:-8px;left:50%;width:8px;margin-left:-4px;background:#fff"></div>
+      </div>
+      <!-- zócalo de azulejos y piso damero -->
+      <div class="abs" style="left:0;right:0;top:500px;height:10px;background:#1C5478"></div>
+      <div class="abs azulejos" style="left:0;right:0;top:510px;height:190px"></div>
+      <div class="abs" style="left:-300px;right:-300px;top:700px;height:420px;overflow:hidden"><div class="damero" style="width:100%;height:100%"></div></div>
+      <!-- mesa con mantel -->
+      <div class="abs" style="left:28px;right:28px;top:742px;height:200px;border-radius:6px 6px 0 0;box-shadow:0 -2px 0 #fff,0 14px 30px rgba(20,69,106,.25)" class="vichy"><div class="vichy" style="width:100%;height:100%;border-radius:6px 6px 0 0"></div></div>
+      <!-- sifón -->
+      <svg class="abs" viewBox="0 0 70 170" width="70" height="170" style="left:70px;top:578px">
+        <path d="M22 10 h26 v18 h10 l6 8 h-16 v10 h-26 z" fill="#4B5563"/>
+        <rect x="20" y="44" width="30" height="12" rx="3" fill="#1C5478"/>
+        <path d="M14 56 h42 v104 q0 8 -8 8 h-26 q-8 0 -8 -8 z" fill="#9AC9E7" fill-opacity=".8" stroke="#1C5478" stroke-width="2.5"/>
+        <path d="M16 70 h38 M16 92 h38 M16 114 h38 M16 136 h38" stroke="#fff" stroke-width="2" opacity=".7"/>
+        <rect x="22" y="62" width="5" height="96" rx="2.5" fill="#fff" opacity=".55"/>
+      </svg>
+      <!-- plato con milanesa -->
+      <div class="abs plato" style="left:196px;top:720px;width:150px;height:40px"></div>
+      <div class="abs" style="left:222px;top:722px;width:98px;height:26px;border-radius:48% 52% 45% 55%;background:#E9B84A;box-shadow:inset 0 -4px 0 #D9A23A"></div>
+      <div class="abs" style="left:246px;top:723px;width:50px;height:12px;border-radius:50%;background:#FFF9DC"></div>
+      <!-- vermú -->
+      <svg class="abs" viewBox="0 0 50 90" width="50" height="90" style="left:378px;top:656px">
+        <path d="M8 6 h34 l-6 40 q-2 10 -11 10 q-9 0 -11 -10 z" fill="#C4E3ED" stroke="#1C5478" stroke-width="2.5"/>
+        <path d="M11 22 h28 l-4 24 q-2 7 -10 7 q-8 0 -10 -7 z" fill="#8A3F05" opacity=".85"/>
+        <circle cx="30" cy="20" r="4" fill="#DEECF0" stroke="#1C5478" stroke-width="1.5"/>
+        <path d="M25 56 v26 M12 86 h26" stroke="#1C5478" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <!-- panera -->
+      <div class="abs" style="left:440px;top:712px;width:66px;height:34px;border-radius:6px 6px 22px 22px;background:repeating-linear-gradient(90deg,#1C5478 0 3px,#fff 3px 9px);border:3px solid #1C5478"></div>
+      <div class="abs" style="left:448px;top:700px;width:24px;height:20px;border-radius:50%;background:#F6DF8C;border:2px solid #E9B84A"></div>
+      <div class="abs" style="left:470px;top:696px;width:26px;height:22px;border-radius:50%;background:#F6DF8C;border:2px solid #E9B84A"></div>
+    </div>
+
+    <div class="abs c mono hondo A" style="top:58px;font-size:14px;animation-name:fade;animation-duration:.3s;animation-delay:.1s">Viernes · 21:04</div>
+    <div class="abs c tit A" style="top:88px;font-size:44px;animation-name:up;animation-duration:.55s;animation-delay:.3s">Viernes, salón lleno</div>
+    <div class="abs c tit A" style="top:138px;font-size:44px;animation-name:up;animation-duration:.55s;animation-delay:2.9s">y se te bajó <span class="hondo">el mozo</span></div>
+
+    <!-- el mensaje -->
+    <div class="abs A" style="left:72px;right:72px;top:528px;background:#151D26;border-radius:22px 22px 22px 6px;padding:16px 20px;transform-origin:0 100%;box-shadow:0 22px 40px rgba(13,19,26,.35);animation-name:pop;animation-duration:.45s;animation-delay:2.1s">
+      <div class="mono" style="font-size:11px;color:#A9B6C2">Martín · mozo</div>
+      <div style="font-size:24px;color:#EEF3F6;margin-top:6px;font-weight:500">Perdón, hoy no llego.</div>
+      <div class="mono" style="font-size:10px;color:#8494A3;text-align:right;margin-top:4px;letter-spacing:.05em">21:03</div>
+    </div>
+  </div>
+
+  <!-- 2 · EL PASE (4,6–8,4 s): se llena la riel de comandas, suena la campanita -->
+  <div class="scene azulejos" id="s2" style="animation:fade .01s linear 4.6s both,outfade .01s linear 8.6s forwards">
+    <div class="abs" style="left:0;right:0;top:0;height:206px;background:#F8FBFC"></div>
+    <div class="abs" style="left:0;right:0;top:206px;height:4px;background:#1C5478"></div>
+    <div class="abs c tit A" style="top:88px;font-size:44px;animation-name:up;animation-duration:.5s;animation-delay:4.7s">Los platos <span class="hondo">se enfrían</span></div>
+
+    <!-- riel -->
+    <div class="abs acero" style="left:22px;right:22px;top:262px;height:12px;border-radius:6px;box-shadow:0 3px 0 #8494A3"></div>
+    <div class="abs A ticket" style="left:30px;top:270px;animation:cuelga .7s cubic-bezier(.2,.8,.2,1) 4.9s both">Mesa 4<b>2 mila napo</b><b>1 tortilla</b></div>
+    <div class="abs A ticket" style="left:128px;top:270px;animation:cuelga .7s cubic-bezier(.2,.8,.2,1) 5.3s both">Mesa 9<b>3 vermú</b><b>1 picada</b></div>
+    <div class="abs A ticket" style="left:226px;top:270px;animation:cuelga .7s cubic-bezier(.2,.8,.2,1) 5.7s both">Mesa 2<b>2 flan mixto</b></div>
+    <div class="abs A ticket" style="left:324px;top:270px;animation:cuelga .7s cubic-bezier(.2,.8,.2,1) 6.1s both">Mesa 11<b>4 ravioles</b><b>1 sifón</b></div>
+    <div class="abs A ticket" style="left:422px;top:270px;animation:cuelga .7s cubic-bezier(.2,.8,.2,1) 6.5s both">Mesa 6<b>1 bife</b><b>2 papas</b></div>
+
+    <!-- mostrador del pase -->
+    <div class="abs acero" style="left:0;right:0;top:640px;height:26px;box-shadow:0 4px 0 #8494A3"></div>
+    <div class="abs" style="left:0;right:0;top:670px;bottom:0;background:repeating-linear-gradient(90deg,#C9D3DA 0 58px,#B8C4CD 58px 60px)"></div>
+    <!-- platos con vapor -->
+    <div class="abs" style="left:34px;top:612px"><div class="plato"></div><div class="abs" style="left:20px;top:4px;width:56px;height:16px;border-radius:50%;background:#E9B84A"></div></div>
+    <div class="abs" style="left:146px;top:612px"><div class="plato"></div><div class="abs" style="left:24px;top:5px;width:48px;height:14px;border-radius:50%;background:#FFF9DC;box-shadow:inset 0 0 0 3px #F6DF8C"></div></div>
+    <div class="abs" style="left:258px;top:612px"><div class="plato"></div><div class="abs" style="left:18px;top:4px;width:60px;height:16px;border-radius:50%;background:#E9B84A"></div></div>
+    <div class="abs" style="left:370px;top:612px"><div class="plato"></div><div class="abs" style="left:26px;top:5px;width:44px;height:14px;border-radius:50%;background:#FFF9DC;box-shadow:inset 0 0 0 3px #F6DF8C"></div></div>
+    <svg class="abs humo A" viewBox="0 0 30 60" style="left:68px;top:546px;animation:vapor 1.8s ease-out 4.8s infinite both"><path d="M15 58 C5 46 25 38 15 26 C5 14 25 8 15 0" fill="none" stroke="#A9B6C2" stroke-width="3" stroke-linecap="round"/></svg>
+    <svg class="abs humo A" viewBox="0 0 30 60" style="left:180px;top:546px;animation:vapor 1.8s ease-out 5.4s infinite both"><path d="M15 58 C5 46 25 38 15 26 C5 14 25 8 15 0" fill="none" stroke="#A9B6C2" stroke-width="3" stroke-linecap="round"/></svg>
+    <svg class="abs humo A" viewBox="0 0 30 60" style="left:292px;top:546px;animation:vapor 1.8s ease-out 5.0s infinite both"><path d="M15 58 C5 46 25 38 15 26 C5 14 25 8 15 0" fill="none" stroke="#A9B6C2" stroke-width="3" stroke-linecap="round"/></svg>
+    <svg class="abs humo A" viewBox="0 0 30 60" style="left:404px;top:546px;animation:vapor 1.8s ease-out 5.7s infinite both"><path d="M15 58 C5 46 25 38 15 26 C5 14 25 8 15 0" fill="none" stroke="#A9B6C2" stroke-width="3" stroke-linecap="round"/></svg>
+    <!-- campanita -->
+    <div class="abs" style="left:476px;top:600px;width:46px;height:42px">
+      <div class="abs A" style="left:-26px;top:-30px;width:98px;height:98px;border-radius:50%;border:2.5px solid #1C5478;animation:dingola .6s ease-out 6.3s 3 both"></div>
+      <svg class="abs A" viewBox="0 0 46 42" width="46" height="42" style="transform-origin:50% 100%;animation:ding .6s ease-in-out 6.3s 3 both">
+        <circle cx="23" cy="6" r="4" fill="#4B5563"/>
+        <path d="M4 34 Q4 10 23 10 Q42 10 42 34 Z" fill="#DEECF0" stroke="#1C5478" stroke-width="2.5"/>
+        <rect x="0" y="34" width="46" height="7" rx="3" fill="#1C5478"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 3 · PEDILO COMO LO DIRÍAS (8,4–12,4 s): sube el cielo, se escribe el pedido -->
+  <div class="scene cielo A" style="animation-name:wipeup;animation-duration:.5s;animation-delay:8.2s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s3" style="animation:fade .01s linear 8.6s both,outfade .3s ease 12.3s forwards">
+    <div class="abs c tit A" style="top:70px;font-size:46px;animation-name:up;animation-duration:.5s;animation-delay:8.65s">Pedilo como<br>lo dirías</div>
+    <div class="abs A" style="left:100px;top:250px;width:340px;height:580px;background:#0D131A;border-radius:50px;padding:11px;box-shadow:0 40px 80px rgba(20,69,106,.32);animation:phonein .7s cubic-bezier(.2,.8,.2,1) 8.75s both">
+      <div style="position:relative;width:100%;height:100%;background:#F8FBFC;border-radius:40px;overflow:hidden;padding:52px 20px 20px">
+        <div class="abs" style="left:50%;top:12px;width:96px;height:26px;border-radius:20px;background:#0D131A;transform:translateX(-50%)"></div>
+        <div class="abs mono" style="left:26px;top:16px;font-size:12px;letter-spacing:0;color:#111">21:05</div>
+        <div class="tit" style="font-size:28px">Nuevo turno</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:13px;font-weight:600;color:#4B5563">
+          <span style="display:flex;width:26px;height:26px;border-radius:9px;background:#DEECF0;color:#1C5478;align-items:center;justify-content:center"><svg class="i" width="15" height="15" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></svg></span>
+          Describí el turno
+        </div>
+        <div style="margin-top:10px;background:#fff;border:1.5px solid #E5EEF1;border-radius:18px;padding:14px 15px;min-height:128px;font-size:19px;line-height:1.4;color:#111"><span id="typed"></span><span id="caret" style="display:inline-block;width:2px;height:22px;background:#1C5478;vertical-align:-3px;margin-left:1px"></span></div>
+        <div class="A" style="position:absolute;left:20px;right:20px;top:330px;animation-name:up;animation-duration:.4s;animation-delay:10.9s">
+          <div class="A" style="background:#D97706;color:#111;border-radius:16px;padding:16px;text-align:center;font-size:17px;font-weight:600;box-shadow:0 8px 18px rgba(217,119,6,.28);animation-name:press;animation-duration:.3s;animation-delay:11.35s">Publicar turno</div>
+        </div>
+        <div class="abs A" style="left:28px;right:28px;top:420px;background:#151D26;color:#EEF3F6;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;box-shadow:0 12px 30px rgba(13,19,26,.3);animation-name:pop;animation-duration:.45s;animation-delay:11.6s">
+          <span style="display:flex;width:26px;height:26px;border-radius:99px;background:#16A34A;color:#fff;align-items:center;justify-content:center"><svg class="i" width="15" height="15" viewBox="0 0 24 24" style="stroke-width:3"><path d="M20 6 9 17l-5-5"/></svg></span>
+          Turno publicado
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 · ENTRA LA COMANDA (12,4–16 s): se imprime y cae «¡Oído!» -->
+  <div class="scene" id="s4" style="animation:fade .3s ease 12.4s both,outfade .3s ease 15.9s forwards">
+    <div class="abs c tit A" style="top:88px;font-size:46px;animation-name:up;animation-duration:.5s;animation-delay:12.5s">Entra la comanda</div>
+    <div class="abs" style="left:96px;top:196px;width:348px;height:22px;border-radius:11px;background:#1C5478;box-shadow:inset 0 -6px 0 #14456A"></div>
+    <div class="abs A" style="left:110px;top:206px;width:320px;animation:imprime 1.3s cubic-bezier(.3,.6,.3,1) 12.75s both">
+      <div class="ticket" style="position:relative;width:100%;padding:28px 24px 34px;font-size:11px;filter:drop-shadow(0 26px 30px rgba(20,69,106,.28)) drop-shadow(0 0 1px rgba(20,69,106,.3));-webkit-mask-size:100% calc(100% - 9px),16px 9px;mask-size:100% calc(100% - 9px),16px 9px">
+        <div style="text-align:center;letter-spacing:.16em">Comanda · N.º 0042</div>
+        <div style="height:6px;border-top:1.5px solid #1C5478;border-bottom:1.5px solid #1C5478;margin:12px 0 16px"></div>
+        <div style="display:grid;grid-template-columns:86px 1fr;row-gap:12px;align-items:baseline">
+          <span>Puesto</span><span style="font-family:var(--font-inter),sans-serif;text-transform:none;letter-spacing:-.01em;font-size:21px;font-weight:600;color:#111">Mozo</span>
+          <span>Cuándo</span><span style="font-family:var(--font-inter),sans-serif;text-transform:none;letter-spacing:-.01em;font-size:21px;font-weight:600;color:#111">Hoy, de 21 a 2</span>
+          <span>Pago</span><span style="font-family:var(--font-inter),sans-serif;text-transform:none;letter-spacing:-.01em;font-size:21px;font-weight:600;color:#111">$ 70.000</span>
+          <span>Dónde</span><span style="font-family:var(--font-inter),sans-serif;text-transform:none;letter-spacing:-.01em;font-size:21px;font-weight:600;color:#111">Palermo</span>
+        </div>
+        <div style="height:6px;border-top:1.5px solid #1C5478;border-bottom:1.5px solid #1C5478;margin:18px 0 14px"></div>
+        <div style="height:10px;background:repeating-linear-gradient(90deg,#1C5478 0 10px,transparent 10px 14px,#9AC9E7 14px 24px,transparent 24px 28px,#D97706 28px 38px,transparent 38px 42px)"></div>
+      </div>
+    </div>
+    <img class="abs A" src="marca/oido-filete-cinta.svg" style="left:110px;top:478px;width:320px;height:auto;filter:drop-shadow(0 12px 18px rgba(20,69,106,.3));animation:cae .9s cubic-bezier(.3,.7,.3,1) 14.3s both">
+  </div>
+
+  <!-- 5 · VA EN CAMINO (16–19,8 s): el mapa de Palermo dibujado -->
+  <div class="scene" id="s5" style="background:#F8FBFC;animation:fade .3s ease 15.95s both,outfade .3s ease 19.7s forwards">
+    <svg class="abs" viewBox="0 0 540 960" width="540" height="960" style="left:0;top:0">
+      <g fill="#E5EEF1">
+        <rect x="-20" y="236" width="120" height="110" rx="8"/><rect x="122" y="236" width="120" height="110" rx="8"/><rect x="264" y="236" width="120" height="110" rx="8"/><rect x="406" y="236" width="160" height="110" rx="8"/>
+        <rect x="-20" y="368" width="120" height="110" rx="8"/><rect x="122" y="368" width="120" height="110" rx="8"/><rect x="264" y="368" width="120" height="110" rx="8"/><rect x="406" y="368" width="160" height="110" rx="8"/>
+        <rect x="-20" y="500" width="120" height="110" rx="8"/><rect x="122" y="500" width="120" height="110" rx="8"/><rect x="264" y="500" width="120" height="110" rx="8"/><rect x="406" y="500" width="160" height="110" rx="8"/>
+        <rect x="-20" y="632" width="120" height="110" rx="8"/><rect x="122" y="632" width="120" height="110" rx="8"/><rect x="264" y="632" width="120" height="110" rx="8"/><rect x="406" y="632" width="160" height="110" rx="8"/>
+      </g>
+      <rect x="406" y="500" width="160" height="110" rx="8" fill="#C4E3ED"/>
+      <path d="M-20 760 L560 300" stroke="#F8FBFC" stroke-width="26"/>
+      <g class="mono" font-family="var(--font-dm-mono),monospace" font-size="9" letter-spacing="1.5" fill="#686572">
+        <text x="140" y="361">GORRITI</text><text x="282" y="493">HONDURAS</text><text x="20" y="625">THAMES</text><text transform="translate(330 470) rotate(-38.4)">AV. SCALABRINI ORTIZ</text>
+      </g>
+      <path class="A" d="M111 300 L111 489 L253 489 L253 621 L395 621 L395 555" fill="none" stroke="#1C5478" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" style="animation-name:draw;animation-duration:2.6s;animation-delay:16.5s;animation-timing-function:cubic-bezier(.45,0,.3,1)"/>
+    </svg>
+    <div class="abs" style="left:0;right:0;top:0;height:230px;background:linear-gradient(#F8FBFC 70%,rgba(248,251,252,0))"></div>
+    <div class="abs c tit A" style="top:70px;font-size:44px;animation-name:up;animation-duration:.5s;animation-delay:16.05s">Y alguien ya<br><span class="hondo">va en camino</span></div>
+    <!-- tu bar -->
+    <div class="abs A" style="left:395px;top:555px;animation-name:pinpop;animation-duration:.45s;animation-delay:16.2s;transform:translate(-50%,-100%)">
+      <div style="background:#0D131A;color:#EEF3F6;font-size:14px;font-weight:600;padding:8px 13px;border-radius:12px;white-space:nowrap;box-shadow:0 10px 20px rgba(13,19,26,.28)">Tu bar</div>
+      <div style="width:12px;height:12px;background:#0D131A;transform:rotate(45deg);margin:-7px auto 0"></div>
+    </div>
+    <!-- quien viene -->
+    <div class="abs A" style="left:0;top:0;offset-path:path('M111 300 L111 489 L253 489 L253 621 L395 621 L395 555');offset-rotate:0deg;animation:pop .4s ease 16.3s both,travel 2.6s cubic-bezier(.45,0,.3,1) 16.5s both">
+      <div class="abs A" style="left:0;top:0;width:60px;height:60px;border-radius:99px;border:2px solid #16A34A;animation:ring 1.3s ease-out 16.6s infinite both"></div>
+      <div style="width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:99px;background:#DEECF0;color:#1C5478;border:3px solid #16A34A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 8px 16px rgba(20,69,106,.25)">LC</div>
+    </div>
+    <div class="abs A" style="left:28px;right:28px;top:790px;background:#fff;border-radius:20px;padding:16px 18px;display:flex;gap:14px;align-items:center;box-shadow:0 18px 40px rgba(20,69,106,.18);animation-name:cardup;animation-duration:.55s;animation-delay:16.8s">
+      <div style="flex:none;width:48px;height:48px;border-radius:99px;background:#DEECF0;color:#1C5478;display:flex;align-items:center;justify-content:center;font-weight:700">LC</div>
+      <div style="flex:1">
+        <div style="font-size:17px;font-weight:600">Lucía C. · moza</div>
+        <div style="font-size:14px;color:#4B5563;margin-top:3px;display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:9px;background:#16A34A"></span>Va en camino</div>
+      </div>
+      <div style="text-align:right"><div class="mono" style="font-size:10px;color:#686572">Llega en</div><div class="tit" style="font-size:28px;color:#1C5478"><span id="min">8</span> min</div></div>
+    </div>
+  </div>
+
+  <!-- 6 · SALEN LOS PLATOS (19,8–22 s): la riel se vacía -->
+  <div class="scene azulejos" id="s6" style="animation:fade .3s ease 19.75s both,outfade .01s linear 22.3s forwards">
+    <div class="abs" style="left:0;right:0;top:0;height:206px;background:#F8FBFC"></div>
+    <div class="abs" style="left:0;right:0;top:206px;height:4px;background:#1C5478"></div>
+    <div class="abs c tit A" style="top:88px;font-size:44px;animation-name:up;animation-duration:.5s;animation-delay:19.9s">Y el viernes <span class="hondo">sale</span></div>
+    <div class="abs acero" style="left:22px;right:22px;top:262px;height:12px;border-radius:6px;box-shadow:0 3px 0 #8494A3"></div>
+    <div class="abs A ticket" style="left:30px;top:270px;animation:arranca .45s ease-in 20.3s forwards">Mesa 4<b>2 mila napo</b><b>1 tortilla</b></div>
+    <div class="abs A ticket" style="left:128px;top:270px;animation:arranca .45s ease-in 20.5s forwards">Mesa 9<b>3 vermú</b><b>1 picada</b></div>
+    <div class="abs A ticket" style="left:226px;top:270px;animation:arranca .45s ease-in 20.7s forwards">Mesa 2<b>2 flan mixto</b></div>
+    <div class="abs A ticket" style="left:324px;top:270px;animation:arranca .45s ease-in 20.9s forwards">Mesa 11<b>4 ravioles</b><b>1 sifón</b></div>
+    <div class="abs A ticket" style="left:422px;top:270px;animation:arranca .45s ease-in 21.1s forwards">Mesa 6<b>1 bife</b><b>2 papas</b></div>
+    <div class="abs acero" style="left:0;right:0;top:640px;height:26px;box-shadow:0 4px 0 #8494A3"></div>
+    <div class="abs" style="left:0;right:0;top:670px;bottom:0;background:repeating-linear-gradient(90deg,#C9D3DA 0 58px,#B8C4CD 58px 60px)"></div>
+    <div class="abs A" style="left:34px;top:612px;animation:salepl .5s ease-in 20.4s forwards"><div class="plato"></div><div class="abs" style="left:20px;top:4px;width:56px;height:16px;border-radius:50%;background:#E9B84A"></div></div>
+    <div class="abs A" style="left:146px;top:612px;animation:salepl .55s ease-in 20.65s forwards"><div class="plato"></div><div class="abs" style="left:24px;top:5px;width:48px;height:14px;border-radius:50%;background:#FFF9DC;box-shadow:inset 0 0 0 3px #F6DF8C"></div></div>
+    <div class="abs A" style="left:258px;top:612px;animation:salepl .6s ease-in 20.9s forwards"><div class="plato"></div><div class="abs" style="left:18px;top:4px;width:60px;height:16px;border-radius:50%;background:#E9B84A"></div></div>
+    <div class="abs A" style="left:370px;top:612px;animation:salepl .65s ease-in 21.15s forwards"><div class="plato"></div><div class="abs" style="left:26px;top:5px;width:44px;height:14px;border-radius:50%;background:#FFF9DC;box-shadow:inset 0 0 0 3px #F6DF8C"></div></div>
+    <div class="abs" style="left:476px;top:600px;width:46px;height:42px">
+      <div class="abs A" style="left:-26px;top:-30px;width:98px;height:98px;border-radius:50%;border:2.5px solid #1C5478;animation:dingola .6s ease-out 20.1s both"></div>
+      <svg class="abs A" viewBox="0 0 46 42" width="46" height="42" style="transform-origin:50% 100%;animation:ding .6s ease-in-out 20.1s both">
+        <circle cx="23" cy="6" r="4" fill="#4B5563"/>
+        <path d="M4 34 Q4 10 23 10 Q42 10 42 34 Z" fill="#DEECF0" stroke="#1C5478" stroke-width="2.5"/>
+        <rect x="0" y="34" width="46" height="7" rx="3" fill="#1C5478"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 7 · CIERRE (22–25,5 s): el «oído» fileteado completo sobre el cielo -->
+  <div class="scene cielo A" style="--x:50%;--y:45%;animation-name:circ;animation-duration:.6s;animation-delay:22s;animation-timing-function:cubic-bezier(.7,0,.3,1)"></div>
+  <div class="scene" id="s7" style="animation:fade .01s linear 22.2s both">
+    <img class="abs A" src="marca/oido-filete.svg" style="left:30px;top:270px;width:480px;height:auto;animation-name:pop;animation-duration:.75s;animation-delay:22.3s">
+    <div class="abs c A" style="top:540px;animation-name:up;animation-duration:.5s;animation-delay:23.1s">
+      <span style="display:inline-block;background:#D97706;color:#111;font-size:20px;font-weight:600;padding:16px 34px;border-radius:999px;box-shadow:0 10px 24px rgba(217,119,6,.3)">Empezá gratis</span>
+    </div>
+    <div class="abs c mono hondo A" style="top:626px;font-size:22px;letter-spacing:.06em;text-transform:none;font-weight:500;animation-name:up;animation-duration:.5s;animation-delay:23.5s">oido.com.ar</div>
+  </div>
+
+  <!-- tratamiento común: viñeta fría y grano -->
+  <div class="scene" style="pointer-events:none;background:radial-gradient(130% 90% at 50% 45%,rgba(0,0,0,0) 62%,rgba(13,19,26,.16) 100%)"></div>
+  <svg class="abs" width="540" height="960" style="left:0;top:0;pointer-events:none;opacity:.06;mix-blend-mode:overlay">
+    <filter id="grain"><feTurbulence id="grainT" type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter>
+    <rect width="540" height="960" filter="url(#grain)"/>
+  </svg>
+</div>

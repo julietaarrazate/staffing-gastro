@@ -18,7 +18,10 @@ const ONLY = process.argv.slice(6).map(Number);
 const OUT = ONLY.length ? `shots/${NAME}` : `frames/${NAME}`;
 fs.mkdirSync(OUT, { recursive: true });
 
-const html = fs.readFileSync(`${NAME}.html`, "utf8");
+// Las piezas de la marca (el «oído» fileteado) se toman de docs/design-system/marca/
+// y entran como data URI: en la escena, `src="marca/oido-filete.svg"`.
+const html = fs.readFileSync(`${NAME}.html`, "utf8").replace(/src="marca\/([\w.-]+\.svg)"/g, (_, f) =>
+  `src="data:image/svg+xml;base64,${fs.readFileSync(`../../../docs/design-system/marca/${f}`).toString("base64")}"`);
 const seekSrc = fs.readFileSync(`${NAME}.js`, "utf8");
 // Si el video tiene guion (voz en off), la escena lo lee de window.GUION para
 // sincronizar los textos con la voz. Ver historia.guion.json.
