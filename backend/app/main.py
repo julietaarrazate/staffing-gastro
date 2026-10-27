@@ -42,6 +42,9 @@ from app.modules.subscription.api.routes import router as subscription_router
 from app.modules.support.api.routes import router as support_router
 from app.modules.upload.api.routes import router as upload_router
 from app.modules.verification.api.routes import router as verification_router
+from app.modules.verification.infrastructure.file_cleanup_job import (
+    run_evidence_file_cleanup,
+)
 from app.modules.worker.api.routes import router as worker_router
 
 
@@ -69,8 +72,10 @@ async def lifespan(_: FastAPI):
     # Promueve a admin los emails configurados en ADMIN_EMAILS (idempotente).
     await promote_configured_admins()
     # Scheduler del ciclo de vida del turno (asistencia + escalada de
-    # urgencia): no-op fuera de producción.
-    scheduler_task = start_scheduler()
+    # urgencia): no-op fuera de producción. Se le suma el reintento del
+    # borrado de documentos de verificación (ADR-0021): entra por acá para
+    # que el scheduler no importe la infraestructura de otro módulo.
+    scheduler_task = start_scheduler(extra_checks=(run_evidence_file_cleanup,))
     # Cierra la conexión ociosa del pool para que Neon pueda dormirse con
     # Render siempre prendido (`core/database.py`): no-op fuera de producción.
     idle_closer_task = start_idle_connection_closer()

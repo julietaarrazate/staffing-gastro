@@ -1,16 +1,25 @@
-"""Adaptador SQLAlchemy de `ClaimRepository`.
+"""Adaptadores SQLAlchemy de `ClaimRepository` y de la cola de borrado.
 
 Mapea el agregado `Claim` (con sus `Evidence`) a/desde las tablas
-`identity_claims` / `identity_evidences`.
+`identity_claims` / `identity_evidences`, y los archivos que una decisión
+manda a borrar a `identity_evidence_file_deletions` (ADR-0021).
 """
 
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.verification.domain.entities import Claim, Evidence
-from app.modules.verification.domain.repositories import ClaimRepository
+from app.modules.verification.domain.entities import (
+    Claim,
+    Evidence,
+    EvidenceFileDeletion,
+)
+from app.modules.verification.domain.repositories import (
+    ClaimRepository,
+    EvidenceFileDeletionRepository,
+)
 from app.modules.verification.domain.value_objects import (
     ClaimStatus,
     ClaimType,
@@ -20,6 +29,7 @@ from app.modules.verification.domain.value_objects import (
     VerificationMethod,
 )
 from app.modules.verification.infrastructure.models import (
+    EvidenceFileDeletionModel,
     IdentityClaimModel,
     IdentityEvidenceModel,
 )
@@ -98,9 +108,44 @@ def _sync_evidences(model: IdentityClaimModel, claim: Claim) -> None:
     ]
 
 
+def _deletion_to_model(deletion: EvidenceFileDeletion) -> EvidenceFileDeletionModel:
+    return EvidenceFileDeletionModel(
+        id=deletion.id,
+        public_id=deletion.file.public_id,
+        resource_type=deletion.file.resource_type,
+        file_format=deletion.file.format,
+        delivery_type=deletion.file.delivery_type,
+        requested_at=deletion.requested_at,
+        next_attempt_at=deletion.next_attempt_at,
+        attempts=deletion.attempts,
+        last_error=deletion.last_error,
+    )
+
+
+def _deletion_to_entity(model: EvidenceFileDeletionModel) -> EvidenceFileDeletion:
+    return EvidenceFileDeletion(
+        id=model.id,
+        file=EvidenceFile(
+            public_id=model.public_id,
+            resource_type=model.resource_type,
+            format=model.file_format,
+            delivery_type=model.delivery_type,
+        ),
+        requested_at=model.requested_at,
+        next_attempt_at=model.next_attempt_at,
+        attempts=model.attempts,
+        last_error=model.last_error,
+    )
+
+
 class SqlAlchemyClaimRepository(ClaimRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    def _stage_file_deletions(self, claim: Claim) -> None:
+        """Los archivos que la operación mandó a borrar entran a la cola en el
+        mismo commit que la purga del puntero (ADR-0021)."""
+        self._session.add_all(_deletion_to_model(d) for d in claim.files_to_delete)
 
     async def add(self, claim: Claim) -> Claim:
         model = IdentityClaimModel(
@@ -109,6 +154,7 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         _apply_claim_fields(model, claim)
         _sync_evidences(model, claim)
         self._session.add(model)
+        self._stage_file_deletions(claim)
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
@@ -119,6 +165,7 @@ class SqlAlchemyClaimRepository(ClaimRepository):
             raise ValueError("El claim no existe")
         _apply_claim_fields(model, claim)
         _sync_evidences(model, claim)
+        self._stage_file_deletions(claim)
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
@@ -171,3 +218,48 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         )
         result = await self._session.execute(stmt)
         return {row[0] for row in result.all()}
+
+
+class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_due(
+        self, now: datetime, ids: list[UUID] | None = None, limit: int = 100
+    ) -> list[EvidenceFileDeletion]:
+        if ids is not None and not ids:
+            return []
+        conditions = [EvidenceFileDeletionModel.next_attempt_at <= now]
+        if ids is not None:
+            conditions.append(EvidenceFileDeletionModel.id.in_(ids))
+        stmt = (
+            select(EvidenceFileDeletionModel)
+            .where(*conditions)
+            .order_by(EvidenceFileDeletionModel.requested_at)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [_deletion_to_entity(m) for m in result.scalars().all()]
+
+    async def next_attempt_at(self) -> datetime | None:
+        result = await self._session.execute(
+            select(func.min(EvidenceFileDeletionModel.next_attempt_at))
+        )
+        return result.scalar_one_or_none()
+
+    async def remove(self, deletion_id: UUID) -> None:
+        await self._session.execute(
+            delete(EvidenceFileDeletionModel).where(
+                EvidenceFileDeletionModel.id == deletion_id
+            )
+        )
+        await self._session.commit()
+
+    async def save_failure(self, deletion: EvidenceFileDeletion) -> None:
+        model = await self._session.get(EvidenceFileDeletionModel, deletion.id)
+        if model is None:  # otra pasada lo borró mientras tanto
+            return
+        model.attempts = deletion.attempts
+        model.last_error = deletion.last_error
+        model.next_attempt_at = deletion.next_attempt_at
+        await self._session.commit()

@@ -9,7 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings as app_settings
-from app.core.database import AsyncSessionLocal
+from app.core.database import sessions_like
 from app.core.ws_manager import ws_manager
 from app.modules.notification.domain.entities import Notification, PushSubscription
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
@@ -240,14 +240,6 @@ def _get_push_sender() -> PushSender:
     return NullPushSender()
 
 
-def _sessions_like(session: AsyncSession) -> async_sessionmaker[AsyncSession]:
-    """Sesiones nuevas sobre el mismo engine que `session`: en producción, el
-    de `AsyncSessionLocal`; en los tests, la base del test."""
-    if session.bind is None:
-        return AsyncSessionLocal
-    return async_sessionmaker(bind=session.bind, class_=AsyncSession, expire_on_commit=False)
-
-
 async def _schedule_pushes(session: AsyncSession, notifications: list[Notification]) -> None:
     """Busca las suscripciones push dentro del request (una consulta, barata)
     y deja los envíos para una tarea de fondo (`push_tasks.spawn_push_task`):
@@ -263,7 +255,7 @@ async def _schedule_pushes(session: AsyncSession, notifications: list[Notificati
         _deliver_pushes(
             sender,
             [(s, by_user[s.user_id]) for s in subscriptions],
-            _sessions_like(session),
+            sessions_like(session),
         )
     )
 
