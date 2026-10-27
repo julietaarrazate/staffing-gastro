@@ -308,6 +308,18 @@ export default function PrivacidadPage() {
                 hasta que lo apagues.
               </li>
               <li>
+                <strong>Avisos dentro de la app:</strong> los que ya leíste se
+                borran cuando cumplen 90 días. Los que todavía no leíste se
+                guardan mientras tu cuenta esté activa.
+              </li>
+              <li>
+                <strong>Sesiones iniciadas:</strong> el registro de cada
+                sesión (cuándo empezó y hasta cuándo vale, sin tu ubicación ni
+                tu dispositivo) se borra 7 días después de que vence. Si
+                cerrás sesión antes, queda marcada como cerrada hasta entonces,
+                para darnos cuenta si alguien intenta volver a usarla.
+              </li>
+              <li>
                 <strong>Cuenta, perfil, turnos, chats y reseñas:</strong>{" "}
                 mientras tu cuenta esté activa. Cuando la das de baja, los
                 borramos o los dejamos anónimos dentro de los 30 días.
@@ -386,7 +398,9 @@ export default function PrivacidadPage() {
               Tu contraseña se guarda cifrada con un algoritmo de una sola vía
               (nadie, ni nosotros, puede leerla), toda la comunicación entre tu
               dispositivo y nuestros servidores viaja cifrada, y los documentos
-              de verificación sólo los ve quien los revisa, antes de borrarse.
+              de verificación se guardan privados: sólo los ve quien los
+              revisa, con un link que vence a los pocos minutos, antes de
+              borrarse.
               Si alguna vez hubiera un incidente que afecte tus datos, te
               avisamos.
             </p>
