@@ -188,13 +188,13 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 - **Rotar la clave de Gemini** (estuvo expuesta en Sentry): clave nueva en
   Google AI Studio, borrar la vieja, cargarla en Render (`GEMINI_API_KEY`) y
   **borrar** el error `STAFFYA-BACKEND-7` en Sentry. Ver ítem 13.
-- **Documentos de identidad privados (ADR-0021), después del merge:** cargar
-  `CLOUDINARY_CLOUD_NAME` en Render (mismo valor que el de Vercel) y correr
-  una vez `python -m scripts.privatize_identity_evidence` (mira) y después
-  con `--apply` (pasa a privados los DNI/constancias ya subidos). Pasos en
-  el ADR, "Migración". Y decidir si al aprobar/rechazar se **borra** el
-  archivo de Cloudinary (hoy queda guardado, privado; la app dice "las
-  eliminamos").
+- **Documentos de identidad (ADR-0021), después del merge:** cargar
+  `CLOUDINARY_CLOUD_NAME` en Render (mismo valor que el de Vercel; sin ella
+  tampoco se borran los documentos al decidir) y correr una vez
+  `python -m scripts.privatize_identity_evidence` (mira) y después con
+  `--apply` (privatiza los pendientes y **borra** los DNI/constancias de
+  claims ya decididos). Comando completo en
+  [`PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md), ítem 5b.
 - **Inscribir la base en el Registro Nacional de Bases de Datos** (AAIP).
 - **Confirmar** en Render `ENVIRONMENT=production` (controla la cookie del
   refresh token, TECH_DEBT S1) y `GEMINI_API_KEY` (sin ella, "Describí el

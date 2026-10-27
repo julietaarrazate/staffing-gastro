@@ -1,6 +1,6 @@
 # ADR-0021 — Documentos de identidad privados en Cloudinary, con link que vence
 
-**Estado:** aceptado · **Fecha:** 2026-10-23 · **Complementa a:** ADR-0010 (§4, retención), ADR-0013 (constancia de AFIP)
+**Estado:** aceptado · **Fecha:** 2026-10-23 · **Ampliado:** 2026-10-23, «Borrado al decidir» · **Complementa a:** ADR-0010 (§4, retención), ADR-0013 (constancia de AFIP)
 
 ## Contexto
 
@@ -48,6 +48,9 @@ sólo el puntero en la base: el archivo seguía público
    `CloudinaryEvidenceLinkSigner` en infraestructura.
 5. **Los archivos ya subidos se pasan a privados con un script**
    (`backend/scripts/privatize_identity_evidence.py`), ver "Migración".
+6. **Al aprobar o rechazar, los archivos se borran de Cloudinary**
+   (2026-10-23, decisión de Julieta; ver «Borrado al decidir»). La política
+   de privacidad ya lo prometía ("se borran apenas se aprueba o rechaza").
 
 ### Por qué así y no otra cosa
 
@@ -82,22 +85,66 @@ parámetros se confirmaron en el **código del SDK oficial** (`cloudinary`
 - Listar por carpeta (Admin API, `resources` con `prefix` y `by_asset_folder`):
   <https://cloudinary.com/documentation/admin_api#get_resources>
 
+## Borrado al decidir (2026-10-23)
+
+Antes, decidir sólo borraba el puntero en la base (`Evidence.purge_data`) y el
+archivo quedaba en Cloudinary. Ahora:
+
+1. **El puntero pasa a una cola, en el mismo commit.** `Claim.approve`/`reject`
+   purgan la evidencia como antes, pero cada archivo que apuntaba queda en
+   `Claim.files_to_delete`, y `SqlAlchemyClaimRepository` lo guarda en
+   `identity_evidence_file_deletions` (migración `0043`) junto con la
+   decisión. Si se guardó la decisión, se guardó el pedido de borrar.
+2. **Se borra después de responder.** La ruta deja el borrado en una
+   `BackgroundTask` con sesión propia (`file_cleanup_job.delete_released_files`):
+   el admin no espera a Cloudinary, y si Cloudinary falla la decisión igual
+   sale. El borrado es `destroy` de la Upload API (`POST /<rt>/destroy` con
+   `public_id`, `type=private`, `invalidate=true`, firmado; el mismo pedido
+   que `cloudinary.uploader.destroy` del SDK 1.46.3), detrás del puerto
+   `EvidenceFileStorage` (adaptador `CloudinaryEvidenceFileStorage`).
+3. **Recién al confirmar se olvida la referencia.** `{"result": "ok"}` o
+   `{"result": "not found"}` (ya no estaba) borran la fila de la cola.
+   Cualquier otra cosa —red, credenciales, `CLOUDINARY_CLOUD_NAME` sin
+   cargar, un HTTP 404 (también es un `cloud_name` que no existe)— deja la
+   fila con `attempts`, `last_error` y `next_attempt_at`.
+4. **El scheduler reintenta.** `run_evidence_file_cleanup` es un chequeo más
+   del scheduler en proceso: reintenta lo que ya toca y devuelve la hora del
+   próximo reintento, que se espacia (15 min, 30 min, 1 h… hasta una vez por
+   día, sin rendirse). Con la cola vacía no agrega despertares (cuota de
+   Neon). Desde el quinto intento fallido el aviso sale como error (Sentry).
+   Entra al scheduler desde `app/main.py` (`extra_checks`), para que
+   `shift/application/scheduler.py` no importe la infraestructura de
+   verificación (candado de capas).
+5. **Un reenvío estando pendiente** también manda a la cola los archivos que
+   reemplaza: nadie los va a revisar.
+
+**Por qué una cola aparte y no un "pendiente" en la evidencia.** Con el
+puntero en la evidencia hasta confirmar, un trabajador rechazado que reenvía
+antes de que Cloudinary confirme pisa sus evidencias (el reenvío las
+reemplaza) y la referencia se pierde. La cola no cuelga del claim (sin FK): si
+el claim o la cuenta desaparecen, el archivo igual se borra.
+
 ## Migración (archivos ya subidos)
 
-Orden: **(1)** mergear y desplegar (Render corre la migración `0039`),
-**(2)** cargar `CLOUDINARY_CLOUD_NAME` en Render (el mismo valor que
+Orden: **(1)** mergear y desplegar (Render corre las migraciones `0039` y
+`0043`), **(2)** cargar `CLOUDINARY_CLOUD_NAME` en Render (el mismo valor que
 `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` del frontend), **(3)** correr el script.
 
 El script es **idempotente** y por defecto **no cambia nada** (dry-run):
 
-1. Para cada evidencia con URL pública todavía en la base, cambia el archivo
-   a `private` (`POST /<rt>/rename` con el mismo `public_id`,
-   `type=upload`, `to_type=private`, `invalidate=true` para sacarlo de la
-   caché del CDN) y guarda la referencia privada en la fila. Si el archivo ya
-   era privado (una corrida que se cortó), sólo actualiza la fila.
-2. Recorre `oido/identidad/` y `oido/constancias/` (Admin API, por prefijo y
-   por carpeta) y pasa a `private` los archivos que sigan públicos aunque la
-   base ya no los apunte (claims ya decididos).
+1. Para cada evidencia con URL pública todavía en la base (claims
+   pendientes), cambia el archivo a `private` (`POST /<rt>/rename` con el
+   mismo `public_id`, `type=upload`, `to_type=private`, `invalidate=true`
+   para sacarlo de la caché del CDN) y guarda la referencia privada en la
+   fila. Si el archivo ya era privado (una corrida que se cortó), sólo
+   actualiza la fila. Siguen esperando la revisión.
+2. Recorre `oido/identidad/` y `oido/constancias/` (Admin API, por prefijo
+   para cada tipo de entrega y por carpeta) y **borra** (`destroy`) los
+   archivos que ninguna evidencia de la base apunta: los de claims ya
+   decididos antes del borrado al decidir, y subidas que nunca se enviaron.
+   No toca lo que apunta una evidencia ni lo subido hace menos de 24 h
+   (puede ser de alguien completando el formulario). *Cambio del
+   2026-10-23: antes este paso los pasaba a privados.*
 
 Se corre desde una compu con el repo (Render free no tiene consola):
 
@@ -108,18 +155,24 @@ export CLOUDINARY_CLOUD_NAME='<cloud name>'
 export CLOUDINARY_API_KEY='<api key>'
 export CLOUDINARY_API_SECRET='<api secret>'
 python -m scripts.privatize_identity_evidence          # mira y lista
-python -m scripts.privatize_identity_evidence --apply  # lo hace
-python -m scripts.privatize_identity_evidence          # tiene que dar 0 y 0
+python -m scripts.privatize_identity_evidence --apply  # privatiza y borra
+python -m scripts.privatize_identity_evidence          # filas, a privado y huérfanos en 0
 ```
 
 Entre el deploy y la corrida, las evidencias viejas pendientes se siguen
 viendo en la cola: el endpoint de link devuelve su URL vieja (sin
-vencimiento) hasta que el script las migra.
+vencimiento) hasta que el script las migra. Si una de esas se decide antes de
+correr el script, su archivo queda huérfano (no tiene referencia para la
+cola) y lo borra el paso 2.
 
 ## Consecuencias
 
 - Un link filtrado de un DNI deja de servir a los 5 minutos; una URL vieja
   deja de servir apenas corre el script.
+- Al aprobar o rechazar, el archivo se borra de Cloudinary a los segundos
+  (si Cloudinary falla, en el próximo reintento). "Las eliminamos una vez
+  revisadas" y "No guardamos tu DNI" (tarjetas de verificación) pasan a ser
+  exactos.
 - `CLOUDINARY_CLOUD_NAME` pasa a ser variable del backend. Sin ella el admin
   no puede abrir las evidencias nuevas (503 con mensaje claro); nada más se
   rompe.
@@ -129,10 +182,8 @@ vencimiento) hasta que el script las migra.
 
 ## Queda abierto
 
-- **Borrar el archivo al decidir.** La app dice "las eliminamos una vez
-  revisadas" y "No guardamos tu DNI", pero al aprobar o rechazar sólo se
-  borra el puntero: el archivo queda en Cloudinary (ahora privado). Para
-  cumplir lo que dice el texto (y "olvidar la URL ≠ borrar",
-  [`IDENTITY_DATA_RETENTION.md`](../reference/IDENTITY_DATA_RETENTION.md))
-  falta llamar a `destroy` al decidir y limpiar los ya decididos. Ahora que
-  se guarda el `public_id` es un cambio chico; espera decisión de Julieta.
+- **Subidas que nunca se envían.** Si alguien sube su DNI y no envía el
+  formulario (o cambia la foto antes de enviar), el archivo queda en
+  Cloudinary sin que la base lo apunte. No hay un barrido periódico: listar
+  las carpetas usa la Admin API, que en el plan gratis tiene un tope por
+  hora. Volver a correr el script (es idempotente) los borra.

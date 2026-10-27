@@ -4,14 +4,20 @@ Orquesta sobre el puerto `ClaimRepository`. En F1 el único método de
 verificación es `admin_manual`: el trabajador presenta DNI + selfie
 (`documento_verificado`) y un admin lo aprueba o rechaza. El nivel de garantía
 resultante se calcula agregando los claims (dominio puro).
+
+Al decidir, los archivos de la evidencia se borran del storage después de
+responder (`EvidenceFileCleaner`, ADR-0021 «Borrado al decidir»).
 """
 
+import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from app.modules.verification.application.dtos import (
     ClaimSummary,
     EvidenceLink,
+    FileCleanupReport,
     IdentitySummary,
     PendingClaimItem,
     PendingEvidenceItem,
@@ -23,6 +29,8 @@ from app.modules.verification.domain.exceptions import (
 )
 from app.modules.verification.domain.repositories import (
     ClaimRepository,
+    EvidenceFileDeletionRepository,
+    EvidenceFileStorage,
     EvidenceLinkSigner,
 )
 from app.modules.verification.domain.services import (
@@ -39,6 +47,12 @@ from app.modules.verification.domain.value_objects import (
 # Cuánto dura el link de una evidencia privada (ADR-0021).
 EVIDENCE_LINK_TTL = timedelta(minutes=5)
 
+# Desde cuántos intentos fallidos un borrado deja de ser un aviso y pasa a
+# error (llega a Sentry): con los reintentos espaciados, unas 4 horas.
+FILE_DELETION_ALERT_ATTEMPTS = 5
+
+logger = logging.getLogger(__name__)
+
 
 def _now() -> datetime:
     """Timestamp de auditoría en UTC (constancia de la decisión: las fechas de auditoría van en UTC a propósito, distinto de las de negocio)."""
@@ -50,9 +64,24 @@ class VerificationService:
         self,
         claims: ClaimRepository,
         link_signer: EvidenceLinkSigner | None = None,
+        delete_files_later: Callable[[list[UUID]], None] | None = None,
     ) -> None:
+        """`delete_files_later` recibe los ids de la cola de borrado que dejó
+        una decisión o un reenvío, y los borra después de responder
+        (`EvidenceFileCleaner.run`, con su propia sesión). Sin él quedan en
+        la cola y los borra el scheduler."""
         self._claims = claims
         self._link_signer = link_signer
+        self._delete_files_later = delete_files_later
+
+    async def _save(self, claim: Claim, *, is_new: bool = False) -> Claim:
+        """Guarda el claim (con su cola de borrado, en el mismo commit) y deja
+        el borrado de los archivos para después de responder: la persona no
+        espera al storage, y si el storage falla el claim igual se guarda."""
+        saved = await (self._claims.add(claim) if is_new else self._claims.update(claim))
+        if claim.files_to_delete and self._delete_files_later is not None:
+            self._delete_files_later([d.id for d in claim.files_to_delete])
+        return saved
 
     async def submit_identity_document(
         self,
@@ -96,7 +125,7 @@ class VerificationService:
             claim = Claim(user_id=user_id, claim_type=ClaimType.DOCUMENTO_VERIFICADO)
 
         claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
-        return await (self._claims.add(claim) if is_new else self._claims.update(claim))
+        return await self._save(claim, is_new=is_new)
 
     async def submit_business_document(
         self, user_id: UUID, constancia: EvidenceFile
@@ -127,25 +156,27 @@ class VerificationService:
             claim = Claim(user_id=user_id, claim_type=ClaimType.NEGOCIO_VERIFICADO)
 
         claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
-        return await (self._claims.add(claim) if is_new else self._claims.update(claim))
+        return await self._save(claim, is_new=is_new)
 
     async def approve_claim(self, claim_id: UUID, admin_id: UUID) -> Claim:
-        """Un admin aprueba un claim pendiente (purga la evidencia sensible)."""
+        """Un admin aprueba un claim pendiente (purga la evidencia sensible y
+        borra sus archivos después de responder)."""
         claim = await self._claims.get_by_id(claim_id)
         if claim is None:
             raise ClaimNotFoundError(str(claim_id))
         claim.approve(admin_id, _now())
-        return await self._claims.update(claim)
+        return await self._save(claim)
 
     async def reject_claim(
         self, claim_id: UUID, admin_id: UUID, reason: str | None
     ) -> Claim:
-        """Un admin rechaza un claim pendiente (purga la evidencia sensible)."""
+        """Un admin rechaza un claim pendiente (purga la evidencia sensible y
+        borra sus archivos después de responder)."""
         claim = await self._claims.get_by_id(claim_id)
         if claim is None:
             raise ClaimNotFoundError(str(claim_id))
         claim.reject(admin_id, reason, _now())
-        return await self._claims.update(claim)
+        return await self._save(claim)
 
     async def list_pending(self) -> list[PendingClaimItem]:
         """Cola de revisión del admin. Dice qué evidencias hay, pero no dónde
@@ -234,4 +265,54 @@ class VerificationService:
                 )
                 for c in claims
             ],
+        )
+
+
+class EvidenceFileCleaner:
+    """Vacía la cola de borrado: borra cada archivo del storage y, recién
+    cuando el storage confirma (o dice que ya no existe), olvida la
+    referencia (ADR-0021 «Borrado al decidir»).
+
+    Corre después de responder la decisión (sólo los ids que dejó esa
+    decisión) y en el scheduler (todos los que ya toca reintentar). Que dos
+    pasadas se crucen no rompe nada: borrar dos veces da "no existe", que
+    cuenta como borrado."""
+
+    def __init__(
+        self, deletions: EvidenceFileDeletionRepository, storage: EvidenceFileStorage
+    ) -> None:
+        self._deletions = deletions
+        self._storage = storage
+
+    async def run(
+        self, ids: list[UUID] | None = None, now: datetime | None = None
+    ) -> FileCleanupReport:
+        now = now or _now()
+        deleted = failed = 0
+        for deletion in await self._deletions.list_due(now, ids):
+            try:
+                await self._storage.delete(deletion.file)
+            except Exception as exc:  # cualquier falla del storage: se reintenta
+                deletion.record_failure(f"{type(exc).__name__}: {exc}", now)
+                await self._deletions.save_failure(deletion)
+                failed += 1
+                log = (
+                    logger.error
+                    if deletion.attempts >= FILE_DELETION_ALERT_ATTEMPTS
+                    else logger.warning
+                )
+                log(
+                    "No se pudo borrar un archivo de evidencia (intento %d, "
+                    "se reintenta %s): %s",
+                    deletion.attempts,
+                    deletion.next_attempt_at.isoformat(),
+                    deletion.last_error,
+                )
+                continue
+            await self._deletions.remove(deletion.id)
+            deleted += 1
+        return FileCleanupReport(
+            deleted=deleted,
+            failed=failed,
+            next_attempt_at=await self._deletions.next_attempt_at(),
         )

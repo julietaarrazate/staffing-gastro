@@ -63,3 +63,13 @@ class PendingClaimItem:
     claim_type: ClaimType
     submitted_at: datetime | None
     evidences: list[PendingEvidenceItem]
+
+
+@dataclass
+class FileCleanupReport:
+    """Resultado de una pasada de `EvidenceFileCleaner` (ADR-0021).
+    `next_attempt_at` es cuándo toca el próximo reintento, si queda algo."""
+
+    deleted: int
+    failed: int
+    next_attempt_at: datetime | None

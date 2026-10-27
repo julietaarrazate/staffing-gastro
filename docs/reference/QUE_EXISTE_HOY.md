@@ -134,11 +134,14 @@ listados más abajo.
   validación automática contra AFIP; acá mira una persona), **no se guarda el
   número de CUIT** (la constancia se purga al decidir, como el DNI), y un
   comercio verificado **no** sube el nivel de garantía personal de su dueño.
-- **Documentos de identidad privados** (ADR-0021): DNI, selfie y constancia
-  suben a Cloudinary como `private` y la base guarda la referencia, no una
-  URL. El admin los ve con un link que vence a los 5 minutos
-  (`GET /identity/evidences/{id}/link`); nadie más los puede bajar, ni el
-  dueño. Los subidos antes se pasan a privados con
+- **Documentos de identidad privados y borrados al decidir** (ADR-0021): DNI,
+  selfie y constancia suben a Cloudinary como `private` y la base guarda la
+  referencia, no una URL. El admin los ve con un link que vence a los 5
+  minutos (`GET /identity/evidences/{id}/link`); nadie más los puede bajar,
+  ni el dueño. Al aprobar o rechazar, **los archivos se borran de
+  Cloudinary** después de responder; si Cloudinary falla, quedan en una cola
+  (`identity_evidence_file_deletions`) y el scheduler reintenta. Los subidos
+  antes se privatizan (pendientes) o se borran (ya decididos) con
   `backend/scripts/privatize_identity_evidence.py`.
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las

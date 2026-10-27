@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator
 
+import pytest
 import pytest_asyncio
 from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient, Response
@@ -17,6 +18,9 @@ from app.core.gemini import DAILY_BUDGETS
 from app.main import app
 from app.modules.identity.domain.two_factor import time_step, totp_code
 from app.modules.notification.infrastructure.push_tasks import drain_pending_pushes
+from app.modules.verification.api.dependencies import get_evidence_file_storage
+from app.modules.verification.domain.repositories import EvidenceFileStorage
+from app.modules.verification.domain.value_objects import EvidenceFile
 
 # El rate limiting de login/registro es por IP y global al proceso; los tests
 # comparten la IP del cliente ASGI, así que se desactiva salvo en el test que
@@ -74,15 +78,38 @@ async def session_factory() -> AsyncGenerator[async_sessionmaker[AsyncSession], 
     await engine.dispose()
 
 
+class FakeEvidenceFileStorage(EvidenceFileStorage):
+    """Cloudinary de mentira para el borrado de evidencias (ADR-0021): anota
+    qué se borró. Con `fail=True` falla como un Cloudinary caído."""
+
+    def __init__(self) -> None:
+        self.deleted: list[EvidenceFile] = []
+        self.fail = False
+
+    async def delete(self, file: EvidenceFile) -> None:
+        if self.fail:
+            raise RuntimeError("Cloudinary no responde")
+        self.deleted.append(file)
+
+
+@pytest.fixture
+def evidence_storage() -> FakeEvidenceFileStorage:
+    """El storage que ven las rutas de verificación: ningún test llama a
+    Cloudinary de verdad al aprobar o rechazar."""
+    return FakeEvidenceFileStorage()
+
+
 @pytest_asyncio.fixture
 async def client(
     session_factory: async_sessionmaker[AsyncSession],
+    evidence_storage: FakeEvidenceFileStorage,
 ) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
         async with session_factory() as session:
             yield session
 
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_evidence_file_storage] = lambda: evidence_storage
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

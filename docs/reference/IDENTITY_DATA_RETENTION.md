@@ -109,9 +109,10 @@ Aplicado al modelo **Claim/Evidence** ([TRUST_SYSTEM.md §3](../TRUST_SYSTEM.md)
   (sí, sólo, en la cola de revisión del admin).
 - **URLs firmadas y de vida corta** mientras la evidencia exista; nunca links
   públicos permanentes.
-- **Borrado real** del asset (no sólo olvidar la URL): requiere API firmada del
-  storage (p. ej. Cloudinary `api_secret`) — **tarea de la operadora**, hoy
-  pendiente (ver `docs/reference/PENDIENTE_OPERATIVO.md`).
+- **Borrado real** del asset (no sólo olvidar la URL): desde el 2026-10-23 la
+  app borra el archivo de Cloudinary al aprobar o rechazar (`destroy`
+  firmado, con reintentos si falla), y los de claims decididos antes se
+  borran con un script (ADR-0021, «Borrado al decidir» y "Migración").
 - **Consentimiento y transparencia**: informar qué se pide, para qué, cuánto se
   guarda y cómo se borra; registrar el consentimiento.
 
@@ -133,6 +134,7 @@ Aplicado al modelo **Claim/Evidence** ([TRUST_SYSTEM.md §3](../TRUST_SYSTEM.md)
 2. **Consentimiento específico** para verificación de identidad y biométricos.
 3. **Cifrado en reposo + borrado automático** sólo si una política antifraude
    concreta obliga a una retención temporal acotada.
-4. **Borrado real del asset** vía API firmada del storage (operadora).
+4. **Borrado real del asset** vía API firmada del storage (hecho el
+   2026-10-23, ADR-0021).
 5. **Confirmar con abogado/AAIP** el texto vigente, el registro de la base y
    los plazos antes de procesar DNIs reales.
