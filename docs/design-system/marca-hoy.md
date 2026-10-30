@@ -27,7 +27,8 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
      con menos relieve (`Letras` con `sombra={false}`);
    - `marca` (sólo la palabra): encabezado de la landing;
    - `cinta` («¡Oído!»): la comanda.
-   La miniatura para compartir todavía usa el filete anterior (pendiente).
+   La miniatura para compartir usa la `firma` (`assets/og/filete-oido.png`,
+   desde el 2026-10-30).
    No va en ningún otro lugar ni con otra palabra.
 4. **Isotipo provisorio:** el de siempre (manos y oreja, `public/logo-mark.svg`)
    en **blanco sobre azul hondo `#1C5478`** desde el 2026-10-19 (era crema
