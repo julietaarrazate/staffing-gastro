@@ -91,6 +91,8 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
 ```
 
 - **Dónde van:** `/mnt/project-files/capturas/<tema>/<pantalla>_<ancho>_<light|dark>.png`.
+  Hay entornos sin `/mnt/project-files` (visto el 2026-10-30, repo en
+  `/home/user`): ahí van al scratchpad de la sesión, y el PR dice la ruta.
   El viewport por defecto es 390×844 (un celular); para tablet,
   `page.setViewportSize({ width: 768, height: 1024 })`.
 - **Trampa de las páginas server-side** (`/turno/[id]`, `/terminos`,
@@ -106,6 +108,10 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
 
 ## 5. Git, GitHub y CI
 
+- **`gh` puede no tener sesión** (*"Failed to log in to github.com using
+  token (GH_TOKEN)"*, visto el 2026-10-30). `git push` igual anda; el PR
+  en draft y los checks se manejan con las herramientas MCP de GitHub
+  (`create_pull_request`, `pull_request_read` con `get_check_runs`).
 - **No se pueden borrar ramas remotas desde la sesión.** `git push --delete`
   corta con *"unexpected disconnect"*. Hay que pedírselo a Julieta.
 - **La plantilla de PR** está en `.github/pull_request_template.md` (desde el
