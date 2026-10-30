@@ -27,6 +27,11 @@ class NotificationService:
             raise NotificationNotFoundError(str(notification_id))
         return notification
 
+    async def mark_all_read(self, user_id: UUID) -> int:
+        """Marca leídos todos los avisos no leídos del usuario y devuelve
+        cuántos eran. Sólo toca los suyos: no hay id que adivinar."""
+        return await self._notifications.mark_all_read(user_id)
+
 
 class PushService:
     """Casos de uso de suscripciones Web Push (alta/baja del dispositivo).

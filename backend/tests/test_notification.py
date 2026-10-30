@@ -3,7 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import auth_headers
+from tests.conftest import auth_headers, make_admin
 
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:
@@ -263,3 +263,63 @@ def test_notifications_websocket_closes_after_too_many_frames():
         settings.rate_limit_enabled = False
         reset_all_rate_limiters()
         app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_mark_all_read_marks_only_my_unread(client: AsyncClient):
+    """La campanita quedaba en "9+" para siempre: cada aviso se marcaba
+    leído de a uno (pedido de Julieta, 2026-10-30). `read-all` los marca
+    todos en un solo UPDATE y no toca los de otra persona."""
+    employer_headers = await _employer_with_company(client, "n_all_emp@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "n_all_worker@staffya.com"
+    )
+    other_headers, _ = await _worker_with_profile(client, "n_all_other@staffya.com")
+
+    for _ in range(2):
+        created = await client.post(
+            "/api/v1/shifts", headers=employer_headers, json=_shift_payload()
+        )
+        shift_id = created.json()["id"]
+        await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer_headers,
+        json={"worker_profile_id": worker_profile_id},
+    )
+
+    mine = (await client.get("/api/v1/notifications", headers=worker_headers)).json()
+    assert len(mine) == 3  # dos "turno cerca" + "te asignaron"
+    # Uno ya leído de antes: no se cuenta de nuevo.
+    await client.post(f"/api/v1/notifications/{mine[0]['id']}/read", headers=worker_headers)
+
+    response = await client.post("/api/v1/notifications/read-all", headers=worker_headers)
+    assert response.status_code == 200
+    assert response.json() == {"marked": 2}
+
+    after = (await client.get("/api/v1/notifications", headers=worker_headers)).json()
+    assert len(after) == 3
+    assert all(n["read"] for n in after)
+
+    others = (await client.get("/api/v1/notifications", headers=other_headers)).json()
+    assert len(others) == 2
+    assert not any(n["read"] for n in others)
+
+    again = await client.post("/api/v1/notifications/read-all", headers=worker_headers)
+    assert again.json() == {"marked": 0}
+
+
+@pytest.mark.asyncio
+async def test_mark_all_read_requires_session(client: AsyncClient):
+    response = await client.post("/api/v1/notifications/read-all")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_admin_can_mark_all_read(client: AsyncClient, session_factory):
+    """La cuenta de Julieta es admin: con la verificación en dos pasos hecha,
+    el botón le funciona (aunque no tenga nada sin leer)."""
+    admin_headers = await make_admin(client, session_factory, "n_all_admin@staffya.com")
+    response = await client.post("/api/v1/notifications/read-all", headers=admin_headers)
+    assert response.status_code == 200
+    assert response.json() == {"marked": 0}

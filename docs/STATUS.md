@@ -165,6 +165,11 @@ Revisado contra el código y los PRs el 2026-10-03.
      inyecta `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`. Pero si
      esa variable faltara, el frontend llamaría a una API que responde 403.
      El límite de intentos con IP real ya está (etapa 3, 2026-10-15).
+13. 🟢 **Campanita en claro: no se ven las líneas entre avisos sin leer**
+    seguidos (`NotificationBell.tsx`): el tinte de no leído (`primary-tint`)
+    y la hairline (`line`) son el mismo `#deecf0`. Visto el 2026-10-30 en las
+    capturas de "Marcar todas como leídas"
+    ([historial](./historial/2026-10-30-notificaciones-marcar-todas.md)).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).

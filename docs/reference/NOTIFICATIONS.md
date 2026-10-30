@@ -31,7 +31,13 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Por usuario:** cada notificación pertenece a un usuario; sólo él la ve.
 - **Entrega en tiempo real:** se empujan por **WebSocket** (`/notifications/ws`);
   si el usuario no está conectado, quedan para consultarse.
-- **Leídas/no leídas:** se pueden marcar como leídas.
+- **Leídas/no leídas:** se marcan de a una al tocarlas, o todas juntas con
+  "Marcar todas como leídas" en el panel de la campanita
+  (`POST /notifications/read-all`).
+- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a
+  cuentas con rol trabajador y activas, las mismas que pueden salir como
+  candidatas ([MATCHING.md](./MATCHING.md)). Un perfil de trabajador
+  colgado de un admin o de un suspendido no recibe nada.
 - **No son la fuente de verdad del estado:** son un reflejo. El estado real vive
   en el turno / la reseña. (Ver nota de "eventos" abajo.)
 

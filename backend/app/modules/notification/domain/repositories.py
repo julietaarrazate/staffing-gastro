@@ -34,6 +34,11 @@ class NotificationRepository(ABC):
         """
 
     @abstractmethod
+    async def mark_all_read(self, user_id: UUID) -> int:
+        """Marca como leídas TODAS las notificaciones no leídas del usuario,
+        en una sola operación, y devuelve cuántas marcó (0 si no había)."""
+
+    @abstractmethod
     async def delete_read_before(self, cutoff: datetime) -> int:
         """Borra las notificaciones YA LEÍDAS creadas antes de `cutoff` y
         devuelve cuántas borró (retención). Las no leídas nunca se borran."""

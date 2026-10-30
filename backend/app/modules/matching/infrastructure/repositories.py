@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dt import naive as _naive
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
+from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.matching.domain.entities import CandidateProfile
 from app.modules.matching.domain.repositories import CandidateRepository
@@ -88,10 +89,17 @@ class SqlAlchemyCandidateRepository(CandidateRepository):
         # La cuenta invitado del trabajador (`GUEST_ACCESS_PIN`, "Explorar sin
         # cuenta") es un sandbox compartido, no un trabajador real: no debe
         # aparecer para un comercio/admin buscando a quién contratar.
+        # Tener un `worker_profile` no alcanza: sólo cuentas con rol
+        # trabajador y activas. Un admin con un perfil viejo de pruebas
+        # recibía los avisos de "turno cerca tuyo" (86 sin leer en la cuenta
+        # de Julieta, 2026-10-30) y podía salir como candidato; un suspendido
+        # no puede entrar, así que avisarle o recomendarlo no sirve.
         stmt = (
             select(WorkerProfileModel, UserModel.full_name)
             .join(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(WorkerProfileModel.is_available.is_(True))
+            .where(UserModel.role == UserRole.WORKER.value)
+            .where(UserModel.status == UserStatus.ACTIVE.value)
             .where(UserModel.email.notin_(GUEST_ACCOUNT_EMAILS))
         )
         if skill is not None:

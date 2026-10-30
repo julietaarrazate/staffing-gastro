@@ -89,6 +89,24 @@ export default function NotificationBell() {
     }
   }
 
+  /** Marca todo como leído de una (2026-10-30): de a uno, una cuenta con
+   *  86 avisos dejaba la campanita en "9+" para siempre. Optimista: se ve
+   *  leído al instante y, si el pedido falla, vuelven a no leídos sólo los
+   *  que se marcaron acá (un aviso que llegó por WebSocket mientras tanto
+   *  queda como está). En silencio, igual que `markAsRead`. */
+  async function markAllAsRead() {
+    const ids = new Set(notifications.filter((n) => !n.read).map((n) => n.id));
+    if (ids.size === 0) return;
+    setNotifications((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, read: true } : n)));
+    try {
+      await api.post<{ marked: number }>("/notifications/read-all", undefined, token);
+    } catch {
+      setNotifications((prev) =>
+        prev.map((n) => (ids.has(n.id) ? { ...n, read: false } : n))
+      );
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -106,8 +124,17 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
-          <div className="border-b border-line px-4 py-2 text-sm font-semibold text-ink/70">
-            Notificaciones
+          <div className="flex min-h-[44px] items-center justify-between gap-2 border-b border-line pl-4 pr-2">
+            <span className="text-sm font-semibold text-ink/70">Notificaciones</span>
+            {!loading && !error && unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="min-h-[44px] px-2 text-xs font-semibold text-primary-text underline-offset-2 hover:underline"
+              >
+                Marcar todas como leídas
+              </button>
+            )}
           </div>
           <div className="max-h-96 overflow-y-auto">
             {loading && (
