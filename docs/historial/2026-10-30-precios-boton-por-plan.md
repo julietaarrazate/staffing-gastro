@@ -1,4 +1,4 @@
-# Precios: un botón por plan que llega hasta "Mi plan" (#PR)
+# Precios: un botón por plan que llega hasta "Mi plan" (#522)
 
 **Pedido:** Julieta (2026-10-30): las tres tarjetas de precios de la landing
 (Inicial, Básico, Pro) no tenían acción. Quiere "Empezar con Inicial",
