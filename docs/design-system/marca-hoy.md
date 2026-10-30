@@ -21,7 +21,10 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
 3. **La marca es una sola: el «oído» fileteado** (`components/landing/Filete.tsx`):
    - `firma` (con adornos finos dorados): pantalla de inicio;
    - el final de la landing: la palabra grande, cortada por el borde, con el
-     Sol de Mayo saliendo detrás (como el cierre de coofounder);
+     Sol de Mayo saliendo detrás, sobre un domo de cielo que sube desde el
+     borde (degradado radial, sin franjas) y con el pie encima, sobre blanco
+     (como el cierre de coofounder). A ese tamaño va sin la sombra beige y
+     con menos relieve (`Letras` con `sombra={false}`);
    - `marca` (sólo la palabra): encabezado de la landing;
    - `cinta` («¡Oído!»): la comanda.
    La miniatura para compartir todavía usa el filete anterior (pendiente).
