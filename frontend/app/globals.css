@@ -1826,15 +1826,25 @@ body:has([data-landing]) main {
   color: #e8920f;
 }
 
-/* El final: "oído" grande y fileteado sobre el cielo y el pie en el mismo celeste. */
+/* El final: el pie sobre blanco y, abajo, un domo de cielo que sube desde el
+   borde con "oído" grande y fileteado (2026-10-30). El domo es un degradado
+   radial centrado abajo: celeste hondo en el centro del borde, que se aclara
+   hacia arriba y hacia los costados hasta el blanco del pie, así no hay
+   franja ni corte entre el pie y el cielo. */
 .landing-firma {
   overflow: hidden;
-  padding: 0 max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(180deg, var(--color-secondary) 0%, var(--color-secondary-strong) 100%);
+  padding: 24px max(16px, env(safe-area-inset-left, 0px)) 0;
+  background: radial-gradient(
+    120% 100% at 50% 100%,
+    color-mix(in oklab, var(--color-secondary-strong) 72%, var(--color-primary-text)) 0%,
+    var(--color-secondary-strong) 34%,
+    var(--color-secondary) 58%,
+    var(--color-card) 88%
+  );
 }
 .landing-firma svg {
   display: block;
-  width: min(1000px, 100%);
+  width: min(1180px, 100%);
   height: auto;
   margin: 0 auto;
 }
@@ -1844,7 +1854,7 @@ body:has([data-landing]) main {
   align-items: center;
   gap: 10px;
   padding: 28px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 100%);
+  background: var(--color-card);
   color: rgb(17 17 17 / 0.62);
   text-align: center;
 }

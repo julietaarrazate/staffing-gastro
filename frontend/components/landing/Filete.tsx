@@ -69,7 +69,7 @@ export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: 
 }
 
 /** La letra: sombra, relieve azul, canto dorado, borde, cara crema y filete interior de luz. */
-export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1 }: { x: number; y: number; tam: number; texto: string; id: string; anchor?: "start" | "middle"; e?: number }) {
+export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1, sombra = true }: { x: number; y: number; tam: number; texto: string; id: string; anchor?: "start" | "middle"; e?: number; sombra?: boolean }) {
   const t = `${id}-texto`;
   const pasos = Array.from({ length: 14 }, (_, i) => 14 - i);
   return (
@@ -86,7 +86,7 @@ export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1 }: { x: n
           <use href={`#${t}`} />
         </clipPath>
       </defs>
-      <use href={`#${t}`} x={20 * e} y={20 * e} fill={CANTO} opacity={0.5} />
+      {sombra && <use href={`#${t}`} x={20 * e} y={20 * e} fill={CANTO} opacity={0.5} />}
       {pasos.map((k) => {
         const c = k > 6 ? HONDO : HONDO_CLARO;
         return <use key={k} href={`#${t}`} x={k * e} y={k * e} fill={c} stroke={c} strokeWidth={2 * e} />;
