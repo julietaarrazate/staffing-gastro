@@ -65,6 +65,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/admin/verificacion`, `/admin/support` | Cola de DNI y constancia AFIP · tickets |
 | `/admin/metricas`, `/admin/herramientas` | Últimos 7/30 días contra el período anterior (`DeltaStatCard` en `components/admin/AdminStats.tsx`), conteos, promesa, métricas de producto y suscripciones · cuentas de prueba |
 | `/admin/leads` ("Crecimiento") | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) |
+| `/admin/seguridad` ("Seguridad") | Verificación en dos pasos de la cuenta admin (ADR-0023): el alta (QR con `components/admin/TotpQr.tsx`, clave a mano, códigos de recuperación con `RecoveryCodesPanel`), estado, códigos nuevos y cambio de celular. Una admin sin activarla sólo ve esta pantalla (`twoFactorSetupPending` en `lib/auth-context.tsx`). El paso del código en `/login` es `components/TwoFactorLoginStep.tsx`; API en `lib/two-factor.ts` |
 
 ## Dónde vive cada cosa que se busca seguido
 
@@ -95,6 +96,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Fechas de negocio en hora argentina | `backend/app/core/tz.py` |
 | Backend sólo por Cloudflare + IP real | `backend/app/core/edge.py` (`EDGE_SHARED_SECRET`, `client_ip`) |
 | Entrada del Worker del frontend y caché de `/turno/[id]` | `frontend/cloudflare/worker.mjs`, `frontend/cloudflare/turno-cache.mjs` |
+| Verificación en dos pasos del admin (TOTP, desafío del login, candado de las sesiones admin, plan B) | `backend/app/modules/identity/domain/two_factor.py`, `application/two_factor.py`, `api/dependencies.py` (`get_current_user` vs `get_current_user_allow_pending_2fa`), `backend/scripts/disable_two_factor.py`; frontend `lib/two-factor.ts` y el 403 con `code` en `lib/api.ts` (ADR-0023) |
 | Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
@@ -113,7 +115,7 @@ Esto es para saber qué existe sin abrir cada archivo.
 
 | Prefijo | Qué hay |
 |---|---|
-| `/auth` | register, login, guest, google, refresh, logout, me, forgot/reset-password, verify-email |
+| `/auth` | register, login, guest, google, refresh, logout, me, forgot/reset-password, verify-email; verificación en dos pasos del admin: `2fa` (estado), `2fa/setup`, `2fa/confirm`, `2fa/verify` (paso del código del login), `2fa/recovery-codes` |
 | `/shifts` | crear, `parse-text`, `feed`, `me`, `mine`, `events`, `{id}`, `{id}/public`; transiciones: `publish`, `cancel`, `assign`, `confirm`, `reject`, `worker-cancel`, `depart`, `en-route`, `check-in`, `start-working`, `check-out`, `no-show`, `finish`, `mark-paid`; `{id}/candidates` (matching) |
 | `/applications` | postularse a un turno, retirarse, `mine` |
 | `/matching` | búsqueda de trabajadores para el comercio |

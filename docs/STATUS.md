@@ -171,6 +171,13 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
+  generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
+  panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en
+  Administración → Seguridad, y guardar los 10 códigos de recuperación fuera
+  del celular. Pasos en
+  [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md),
+  "Verificación en dos pasos del admin".
 - **Sol de Mayo en la marca:** antes de registrar la marca con el sol del
   final de la landing, confirmar con la asesoría legal el uso de símbolos
   nacionales ([`historial/2026-10-23-landing-filete-cartel.md`](./historial/2026-10-23-landing-filete-cartel.md)).

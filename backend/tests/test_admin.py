@@ -10,15 +10,21 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.main import app
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.subscription.api.dependencies import get_billing_gateway
-from tests.conftest import TEST_GUEST_PIN
 from app.modules.subscription.infrastructure.fake_billing_gateway import (
     FakeBillingGateway,
 )
 from app.modules.subscription.infrastructure.models import SubscriptionModel
-from tests.conftest import auth_headers, login, new_client, refresh_with_cookie, register_user
+from tests.conftest import (
+    TEST_GUEST_PIN,
+    auth_headers,
+    login,
+    make_admin,
+    new_client,
+    refresh_with_cookie,
+    register_user,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -28,16 +34,8 @@ async def _make_admin(
     session_factory: async_sessionmaker[AsyncSession],
     email: str,
 ) -> dict:
-    """Registra un usuario y lo promueve a admin directamente en la DB."""
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    # Re-login para obtener un token con el rol actualizado en los claims.
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    """Admin con la verificación en dos pasos activa (obligatoria, ADR-0023)."""
+    return await make_admin(client, session_factory, email)
 
 
 async def _employer_with_company(client: AsyncClient, email: str) -> dict:

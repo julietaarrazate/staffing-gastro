@@ -28,7 +28,6 @@ from app.core.cloudinary import (
 )
 from app.core.config import settings
 from app.modules.identity.infrastructure.models import UserModel
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.verification.api.schemas import (
     SubmitBusinessDocumentInput,
     SubmitIdentityDocumentInput,
@@ -38,7 +37,7 @@ from app.modules.verification.infrastructure.models import (
     IdentityEvidenceModel,
 )
 from scripts import privatize_identity_evidence as script
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 
 
 @pytest.fixture
@@ -165,14 +164,7 @@ def test_acepta_el_public_id_con_o_sin_carpeta():
 
 
 async def _admin(client, session_factory, email: str) -> dict:
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 async def _submit_and_list(client, session_factory, worker_email, admin_email):

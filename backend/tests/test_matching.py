@@ -5,8 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.geo import haversine_km
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
-from tests.conftest import TEST_GUEST_PIN, auth_headers, login
+from tests.conftest import TEST_GUEST_PIN, auth_headers, make_admin
 
 pytestmark = pytest.mark.asyncio
 
@@ -211,14 +210,7 @@ async def test_admin_can_search_map_read_only(
     de PR #165 no alcanzaba para esto)."""
     await _worker_profile(client, "any3@staffya.com", skills=["mozo"])
 
-    await auth_headers(client, "employer", "admin_search@staffya.com")
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email("admin_search@staffya.com")
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, "admin_search@staffya.com")
-    admin_headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    admin_headers = await make_admin(client, session_factory, "admin_search@staffya.com")
 
     response = await client.get("/api/v1/matching/search", headers=admin_headers)
     assert response.status_code == 200

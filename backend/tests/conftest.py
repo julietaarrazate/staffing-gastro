@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -15,6 +16,7 @@ from app.core.config import settings
 from app.core.database import Base, get_session
 from app.core.gemini import DAILY_BUDGETS
 from app.main import app
+from app.modules.identity.domain.two_factor import time_step, totp_code
 from app.modules.notification.infrastructure.push_tasks import drain_pending_pushes
 from app.modules.verification.api.dependencies import get_evidence_file_storage
 from app.modules.verification.domain.repositories import EvidenceFileStorage
@@ -33,6 +35,12 @@ for _budget in DAILY_BUDGETS:
 # `GUEST_ACCESS_PIN`; sin ella el acceso invitado está apagado).
 TEST_GUEST_PIN = "pin-de-test-1234"
 settings.guest_access_pin = TEST_GUEST_PIN
+
+# Clave de cifrado de la verificación en dos pasos sólo para tests (en
+# producción es la env var `TWO_FACTOR_ENCRYPTION_KEY`, ADR-0023).
+# Se genera al correr: nada de claves escritas en el repo.
+TEST_TWO_FACTOR_KEY = Fernet.generate_key().decode("ascii")
+settings.two_factor_encryption_key = TEST_TWO_FACTOR_KEY
 
 # Importar modelos para registrarlos en la metadata antes de create_all
 from app.core import idempotency as idempotency_models  # noqa: F401
@@ -187,3 +195,62 @@ async def refresh_with_cookie(cookie_value: str) -> Response:
     la única forma confiable de controlar el valor exacto enviado."""
     async with new_client(cookies={"staffya_refresh": cookie_value}) as ac:
         return await ac.post("/api/v1/auth/refresh")
+
+
+# --- Admin con la verificación en dos pasos (ADR-0023) ----------------------
+# Para un admin la verificación es obligatoria: sin ella, todo endpoint
+# responde 403. Los tests que necesitan un admin usan `make_admin`, que lo
+# da de alta por la API como lo haría Julieta.
+
+
+def current_totp(secret: str, steps_ahead: int = 0) -> str:
+    """Código de la app autenticadora para `secret`, ahora (o `steps_ahead`
+    pasos de 30 s después: el anti-replay no acepta dos veces el mismo paso,
+    y la ventana deja usar el siguiente)."""
+    from datetime import datetime, timezone
+
+    return totp_code(secret, time_step(datetime.now(timezone.utc)) + steps_ahead)
+
+
+async def promote_to_admin(session_factory, email: str) -> None:
+    from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+
+    async with session_factory() as session:
+        repo = SqlAlchemyUserRepository(session)
+        user = await repo.get_by_email(email)
+        user.promote_to_admin()
+        await repo.update(user)
+
+
+async def enroll_admin(
+    client: AsyncClient,
+    session_factory,
+    email: str,
+    full_name: str = "Admin Prueba",
+) -> dict:
+    """Registra, promueve a admin y activa la verificación en dos pasos.
+    Devuelve `headers` (sesión verificada), `secret` y `recovery_codes`."""
+    await register_user(client, email=email, full_name=full_name, role="employer")
+    await promote_to_admin(session_factory, email)
+    tokens = await login(client, email)
+    pending = {"Authorization": f"Bearer {tokens['access_token']}"}
+    setup = await client.post("/api/v1/auth/2fa/setup", json={}, headers=pending)
+    assert setup.status_code == 200, setup.text
+    secret = setup.json()["secret"]
+    confirm = await client.post(
+        "/api/v1/auth/2fa/confirm", json={"code": current_totp(secret)}, headers=pending
+    )
+    assert confirm.status_code == 200, confirm.text
+    body = confirm.json()
+    return {
+        "headers": {"Authorization": f"Bearer {body['access_token']}"},
+        "secret": secret,
+        "recovery_codes": body["recovery_codes"],
+    }
+
+
+async def make_admin(
+    client: AsyncClient, session_factory, email: str, full_name: str = "Admin Prueba"
+) -> dict:
+    """Header Authorization de un admin con la verificación activa."""
+    return (await enroll_admin(client, session_factory, email, full_name))["headers"]

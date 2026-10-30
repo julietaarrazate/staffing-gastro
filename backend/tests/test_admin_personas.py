@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 
 pytestmark = pytest.mark.asyncio
 
@@ -17,14 +17,7 @@ async def _make_admin(
     session_factory: async_sessionmaker[AsyncSession],
     email: str,
 ) -> dict:
-    await auth_headers(client, "employer", email, full_name="Admin Prueba")
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 async def _user_id(session_factory, email: str) -> str:

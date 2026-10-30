@@ -166,3 +166,53 @@ class TermsAcceptance:
     channel: TermsAcceptanceChannel
     id: UUID = field(default_factory=uuid4)
     accepted_at: datetime | None = None
+
+
+@dataclass
+class UserTwoFactor:
+    """Verificación en dos pasos de una cuenta admin (ADR-0023).
+
+    `secret_encrypted` es el secreto TOTP vigente, cifrado con la clave de
+    `TWO_FACTOR_ENCRYPTION_KEY` (nunca se guarda en claro). Mientras se da de
+    alta (o se cambia de celular) el secreto nuevo espera en
+    `pending_secret_encrypted` hasta que se confirma con un código: así,
+    empezar el cambio y no terminarlo no deja a nadie afuera.
+
+    `last_used_step` es el último paso de 30 s aceptado (anti-replay): un
+    código no sirve dos veces. Fechas en UTC (auditoría)."""
+
+    user_id: UUID
+    secret_encrypted: str | None = None
+    pending_secret_encrypted: str | None = None
+    enabled_at: datetime | None = None
+    last_used_step: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    @property
+    def is_enabled(self) -> bool:
+        return self.enabled_at is not None and self.secret_encrypted is not None
+
+
+@dataclass
+class TwoFactorChallenge:
+    """Paso intermedio del login de un admin con la verificación activada:
+    la contraseña (o Google) ya se validó y falta el código. Se guarda sólo
+    el hash del token (como los de recuperación de contraseña), vence a los
+    5 minutos, sirve una vez y se quema tras `CHALLENGE_MAX_FAILED_ATTEMPTS`
+    errores."""
+
+    user_id: UUID
+    token_hash: str
+    expires_at: datetime
+    id: UUID = field(default_factory=uuid4)
+    used_at: datetime | None = None
+    failed_attempts: int = 0
+    created_at: datetime | None = None
+
+    def is_valid(self, now: datetime, max_failed_attempts: int) -> bool:
+        return (
+            self.used_at is None
+            and _naive(now) < _naive(self.expires_at)
+            and self.failed_attempts < max_failed_attempts
+        )
