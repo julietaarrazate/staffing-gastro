@@ -4,7 +4,7 @@
 # 0.115.6 permitía starlette<0.42.0 (0.41.3 instalada, vulnerable); hace
 # falta cruzar a la serie 1.x de starlette para tener los fixes, lo que
 # exige fastapi>=0.135.0 (0.130.0 todavía tope-a en starlette<1.0.0).
-fastapi==0.157.0
+fastapi==0.162.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
 pydantic-settings==2.16.1
