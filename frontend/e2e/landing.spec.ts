@@ -158,6 +158,13 @@ test("los precios salen de la API cuando contesta", async ({ page }) => {
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$21.500");
   await expect(precios).toContainText("$47.000");
+  // Cada plan lleva su botón al alta de comercio con el plan (2026-10-30).
+  for (const [nombre, code] of [["Inicial", "inicial"], ["Básico", "basico"], ["Pro", "pro"]]) {
+    await expect(precios.getByRole("link", { name: `Empezar con ${nombre}` })).toHaveAttribute(
+      "href",
+      `/register?rol=comercio&plan=${code}`
+    );
+  }
 });
 
 test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ page }) => {
@@ -166,8 +173,9 @@ test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ p
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$20.000");
   await expect(precios).toContainText("$45.000");
-  // Desde el 2026-10-18 los planes no llevan botón propio, pero sí lo que suman.
+  // Lo que suma cada plan, y su botón (sin botones del 2026-10-18 al 2026-10-30).
   await expect(precios).toContainText("Soporte por email");
+  await expect(precios.getByRole("link", { name: /^Empezar con / })).toHaveCount(3);
 });
 
 test("con el tema oscuro elegido, la landing mantiene su paleta propia", async ({ page }) => {

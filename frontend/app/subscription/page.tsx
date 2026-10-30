@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -9,8 +9,10 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { formatPlainDate, paymentReturnMessage } from "@/lib/subscription";
+import { planValido } from "@/lib/plan-elegido";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
 import PlanCard from "@/components/subscription/PlanCard";
+import PlanElegidoAviso, { type EstadoPlanElegido } from "@/components/subscription/PlanElegidoAviso";
 import { CardSkeletons, ErrorBanner, Modal, Button, Card, useToast } from "@/components/ui";
 
 type SubscribeResponse = { plan_code: string; status: string; checkout_url: string | null };
@@ -34,6 +36,12 @@ const RETURN_TONE = {
  * renovar un plan lleva a Checkout Pro (un pago por mes, sin débito
  * automático) y al volver (`?pago=ok|pendiente|error`) se muestra qué pasó.
  * Ahí aparecen también "Dar de baja" y "Arrepentirme".
+ *
+ * `?plan=<code>` (desde el 2026-10-30): el comercio llega con el plan que
+ * eligió en los precios de la landing, al terminar `/bienvenida`
+ * (`lib/plan-elegido.ts`). La tarjeta de ese plan queda resaltada y con el
+ * foco, y arriba va `PlanElegidoAviso` con la misma acción de las tarjetas.
+ * Sin `plan`, o con uno que no existe, la pantalla es la de siempre.
  */
 export default function SubscriptionPage() {
   return (
@@ -48,6 +56,9 @@ function SubscriptionContent() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const returnMessage = paymentReturnMessage(searchParams.get("pago"));
+  const planPedido = planValido(searchParams.get("plan"));
+  const tarjetaElegidaRef = useRef<HTMLDivElement>(null);
+  const yaEnfocada = useRef(false);
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -160,6 +171,30 @@ function SubscriptionContent() {
   const canCancelRenewal = paidAndActive && subscription?.renews !== false;
   const withdrawalUntil = billing ? (subscription?.withdrawal_until ?? null) : null;
 
+  // El plan elegido en la landing, si existe en el catálogo que contestó la API.
+  const elegido = planPedido ? plans.find((p) => p.code === planPedido) : undefined;
+  const estadoElegido: EstadoPlanElegido | null = !elegido
+    ? null
+    : elegido.code !== subscription?.plan_code
+      ? "elegir"
+      : billing && !paidAndActive
+        ? "pagar"
+        : "listo";
+  // Mientras el aviso tenga botón, es la única acción en ámbar: el "Pagar el
+  // mes" del estado del plan se esconde (pagaría el plan actual, no el que
+  // eligió) y las tarjetas pasan a botones sin acento.
+  const avisoConAccion = estadoElegido === "elegir" || estadoElegido === "pagar";
+
+  // Una sola vez, cuando ya están las tarjetas: el foco va a la del plan
+  // elegido. Sin mover la pantalla, para que el aviso de arriba (con la
+  // acción) siga a la vista; quien navega con teclado o lector arranca ahí.
+  const hayTarjetaElegida = !loading && !error && !!elegido;
+  useEffect(() => {
+    if (!hayTarjetaElegida || yaEnfocada.current) return;
+    yaEnfocada.current = true;
+    tarjetaElegidaRef.current?.focus({ preventScroll: true });
+  }, [hayTarjetaElegida]);
+
   return (
     // La grilla de planes ya usaba sm:grid-cols-2 lg:grid-cols-3 (docs/STATUS.md)
     // pero el contenedor se quedaba en max-w-2xl: en lg+ las 3 columnas se
@@ -182,6 +217,16 @@ function SubscriptionContent() {
 
       {!loading && !error && subscription && (
         <>
+          {elegido && estadoElegido && (
+            <PlanElegidoAviso
+              plan={elegido}
+              estado={estadoElegido}
+              billing={billing}
+              busy={subscribing && pendingPlan?.code === elegido.code}
+              onActivar={() => setPendingPlan(elegido)}
+            />
+          )}
+
           <div className="mt-5">
             <SubscriptionStatusCard
               subscription={subscription}
@@ -190,7 +235,7 @@ function SubscriptionContent() {
                 const el = document.getElementById("planes");
                 el?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              onPay={billing && currentPlan ? () => setPendingPlan(currentPlan) : undefined}
+              onPay={billing && currentPlan && !avisoConAccion ? () => setPendingPlan(currentPlan) : undefined}
             />
           </div>
 
@@ -202,17 +247,36 @@ function SubscriptionContent() {
                 : "El plan gatea cuántos turnos podés publicar por mes."}
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {plans.map((plan) => (
-                <PlanCard
-                  key={plan.code}
-                  plan={plan}
-                  isCurrent={plan.code === subscription.plan_code}
-                  currentPriceArs={currentPriceArs}
-                  busy={subscribing && pendingPlan?.code === plan.code}
-                  onSelect={() => setPendingPlan(plan)}
-                  payLabel={plan.code === subscription.plan_code ? currentPayLabel : undefined}
-                />
-              ))}
+              {plans.map((plan) => {
+                const card = (
+                  <PlanCard
+                    key={plan.code}
+                    plan={plan}
+                    isCurrent={plan.code === subscription.plan_code}
+                    currentPriceArs={currentPriceArs}
+                    busy={subscribing && pendingPlan?.code === plan.code}
+                    onSelect={() => setPendingPlan(plan)}
+                    payLabel={plan.code === subscription.plan_code ? currentPayLabel : undefined}
+                    sinAcento={avisoConAccion}
+                  />
+                );
+                if (plan.code !== elegido?.code) return card;
+                // La elegida: borde azul hondo (celeste en oscuro) que queda
+                // aunque el foco se vaya, y el foco del teclado en ella.
+                return (
+                  <div
+                    key={plan.code}
+                    ref={tarjetaElegidaRef}
+                    tabIndex={-1}
+                    data-plan-elegido={plan.code}
+                    aria-label={`Plan ${plan.name}, el que elegiste`}
+                    role="group"
+                    className="grid rounded-[var(--radius-card)] outline-2 outline-offset-4 outline-[color:var(--focus-ring)] outline-solid"
+                  >
+                    {card}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

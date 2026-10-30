@@ -30,6 +30,10 @@
  * (única exigencia real del backend); la ubicación se puede "Cargar después"
  * desde el paso 2 y completar el perfil solo se guarda con lo que haya.
  *
+ * Si eligió un plan en los precios de la landing ("Empezar con Básico",
+ * 2026-10-30, `lib/plan-elegido.ts`), termina en "Mi plan"
+ * (`/subscription?plan=<code>`) con ese plan resaltado. Si no:
+ *
  * Termina en `/shifts` (el panel, con "+ Publicar"/"+ Evento" ya visibles),
  * no en `/shifts/new` directo — probado en vivo por Julieta con una cuenta
  * invitada: el botón "Publicar mi primer turno" empujaba a publicar sin
@@ -54,6 +58,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
+import { destinoTrasBienvenida } from "@/lib/plan-elegido";
 import {
   SKILL_LABELS,
   WORKER_SKILLS,
@@ -416,13 +421,13 @@ function EmployerOnboarding() {
   async function finish() {
     if (latitude === null || longitude === null) return;
     setSaving(true);
-    if (await save(true)) router.replace("/shifts");
+    if (await save(true)) router.replace(destinoTrasBienvenida("/shifts"));
     else setSaving(false);
   }
 
   async function skipLocation() {
     setSkipping(true);
-    if (await save(false)) router.replace("/shifts");
+    if (await save(false)) router.replace(destinoTrasBienvenida("/shifts"));
     else setSkipping(false);
   }
 
@@ -434,7 +439,7 @@ function EmployerOnboarding() {
   // nombre real, ver docstring del archivo).
   async function skipAll() {
     setSkippingAll(true);
-    if (await save(false, name.trim() || "Mi comercio")) router.replace("/shifts");
+    if (await save(false, name.trim() || "Mi comercio")) router.replace(destinoTrasBienvenida("/shifts"));
     else setSkippingAll(false);
   }
 
