@@ -34,7 +34,9 @@ Independiente de las postulaciones, el motor **rankea candidatos** para un turno
 No persiste entidades; calcula un score puro y ordenable.
 
 - **Elegibilidad:** el candidato debe estar **disponible** y **tener la habilidad**
-  que pide el turno.
+  que pide el turno, y su cuenta tiene que ser de **trabajador** y estar
+  **activa** (un admin con un perfil viejo de pruebas o un suspendido no
+  salen como candidatos, ni en el mapa, ni reciben el aviso de turno cerca).
 - **Factores y pesos (por defecto):**
 
   | Factor | Peso | Idea |

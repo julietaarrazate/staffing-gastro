@@ -86,6 +86,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 |--------|------|----------|
 | GET | `/notifications` | Listar avisos del usuario — **paginado** |
 | POST | `/{notification_id}/read` | Marcar leído |
+| POST | `/read-all` | Marcar leídos todos los no leídos propios (un solo `UPDATE`); devuelve `{"marked": n}` |
 | WS | `/notifications/ws` | Avisos en vivo |
 
 ### `notification` — `/push` (Web Push, ver [ACCESO_MODERNO.md](./ACCESO_MODERNO.md))

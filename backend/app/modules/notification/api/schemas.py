@@ -23,6 +23,12 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
 
+class MarkAllReadResponse(BaseModel):
+    """Cuántos avisos pasaron de no leídos a leídos (0 si no había)."""
+
+    marked: int
+
+
 class PushSubscriptionKeys(BaseModel):
     """Mismo shape que `PushSubscriptionJSON.keys` del browser (Push API)."""
 

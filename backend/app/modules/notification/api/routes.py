@@ -23,6 +23,7 @@ from app.modules.notification.api.dependencies import (
     get_push_service,
 )
 from app.modules.notification.api.schemas import (
+    MarkAllReadResponse,
     NotificationResponse,
     PushPublicKeyResponse,
     PushSubscribeRequest,
@@ -61,6 +62,17 @@ async def my_notifications(
     offset: OffsetDep = 0,
 ):
     return await service.list_mine(current_user.id, limit=limit, offset=offset)
+
+
+@router.post(
+    "/read-all",
+    response_model=MarkAllReadResponse,
+    summary="Marcar todas mis notificaciones como leídas",
+)
+async def mark_all_as_read(
+    current_user: CurrentUserDep, service: ServiceDep
+) -> MarkAllReadResponse:
+    return MarkAllReadResponse(marked=await service.mark_all_read(current_user.id))
 
 
 @router.post(
