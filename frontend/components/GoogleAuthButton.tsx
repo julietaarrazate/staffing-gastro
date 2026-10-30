@@ -53,8 +53,10 @@ export default function GoogleAuthButton({
   onDone,
 }: {
   /** Se llama cuando la sesión queda lista. `isNewAccount` distingue "recién
-   * creada" (para mandar a completar perfil) de "ya existía" (a home). */
-  onDone: (isNewAccount: boolean) => void;
+   * creada" (para mandar a completar perfil) de "ya existía" (a home). En
+   * una cuenta nueva llega también el rol elegido (lo usa /register para el
+   * plan que se eligió en la landing, `lib/plan-elegido.ts`). */
+  onDone: (isNewAccount: boolean, role?: "worker" | "employer") => void;
 }) {
   const { loginWithGoogle } = useAuth();
   const isDark = useResolvedTheme() === "dark";
@@ -129,7 +131,7 @@ export default function GoogleAuthButton({
     setRoleLoading(role);
     try {
       const result = await loginWithGoogle(idTokenRef.current, role);
-      if (!result.requiresRole && !result.twoFactor) onDone(true);
+      if (!result.requiresRole && !result.twoFactor) onDone(true, role);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo crear la cuenta con Google"

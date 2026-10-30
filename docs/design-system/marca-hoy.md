@@ -79,8 +79,10 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
 ## Descartado
 
 La noche atada al scroll, personajes de gelatina, vidrio y burbujas, el mapa
-de puntos, paletas coral/albahaca/menta/rosa, la barra fija abajo, botones
-por plan, el cartel fileteado entero en la comanda, el modo oscuro café.
+de puntos, paletas coral/albahaca/menta/rosa, la barra fija abajo, el cartel
+fileteado entero en la comanda, el modo oscuro café. (Los botones por plan
+estuvieron acá del 2026-10-18 al 2026-10-30: volvieron, "Empezar con
+<plan>", en tinta o con borde, sin ámbar.)
 
 ## Dónde se decidió
 
