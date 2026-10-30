@@ -20,7 +20,14 @@ export default function LandingFooter() {
   return (
     <footer className="landing-pie">
       <div className="landing-pie-fila">
+        {/* Como el pie de coofounder: los caminos de la página además de los
+            legales (2026-10-30). Ayudan a moverse y a que Google entienda las
+            secciones. */}
         <nav aria-label="Pie" className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm lg:justify-start">
+          <Link href="/#precios">Precios</Link>
+          <Link href="/#trabajar">Para trabajar</Link>
+          <Link href="/#preguntas">Preguntas frecuentes</Link>
+          <Link href="/login">Ingresar</Link>
           <Link href="/terminos">Términos y condiciones</Link>
           <Link href="/privacidad">Privacidad</Link>
         </nav>
