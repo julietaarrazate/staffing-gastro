@@ -1,4 +1,4 @@
-# Campanita: "Marcar todas como leídas" y avisos de turnos sólo a trabajadores (#PR)
+# Campanita: "Marcar todas como leídas" y avisos de turnos sólo a trabajadores (#519)
 
 **Pedido:** Julieta (admin), con captura: la campanita mostraba "9+" para
 siempre. Su cuenta tenía 86 avisos sin leer, casi todos "turno cerca tuyo"
