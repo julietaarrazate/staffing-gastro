@@ -100,7 +100,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | Método | Ruta | Qué hace |
 |--------|------|----------|
 | GET | `/chats` | Inbox (conversaciones con no-leídos) |
-| GET | `/{shift_id}/messages` | Historial del turno |
+| GET | `/{shift_id}/messages` | Mensajes del hilo vigente del turno (comercio ↔ persona asignada ahora) |
 | WS | `/{shift_id}/ws` | Mensajes en vivo |
 
 ### `review` — `/reviews`
@@ -166,7 +166,9 @@ cambia.
 
 Dos canales, autenticados por token:
 
-- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — sólo participantes del turno.
+- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — sólo el comercio y la persona
+  asignada hoy; si el turno se reasigna, la conexión abierta se corta
+  ([CHAT.md](./CHAT.md)).
 - **Notificaciones:** `WS /api/v1/notifications/ws` — avisos del propio usuario.
 
 El registro de conexiones es **en memoria** (`app/core/ws_manager.py`): un solo
