@@ -657,8 +657,14 @@ function parseCsv(text) {
  */
 export function db(sql) {
   fs.appendFileSync(path.join(LOGS, "db.jsonl"), JSON.stringify({ ts: new Date().toISOString(), agent: agentName(), sql }) + "\n");
-  const out = execFileSync("psql", ["-h", "localhost", "-U", "oido", "-d", E1_DB, "-X", "-q", "--csv", "-v", "ON_ERROR_STOP=1", "-c", sql], {
-    env: { ...process.env, PGPASSWORD: "oido" },
+  // La conexión sale del mismo DATABASE_URL que usa el backend de prueba
+  // (ver _env.sh), para no repetir las credenciales de la base local acá.
+  const url = new URL((process.env.DATABASE_URL || `postgresql://oido:oido@localhost:5432/${E1_DB}`).replace("+asyncpg", ""));
+  if (!["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
+    throw new Error(`db(): DATABASE_URL apunta a '${url.hostname}', no a una base local. No se usa.`);
+  }
+  const out = execFileSync("psql", ["-h", url.hostname, "-p", url.port || "5432", "-U", decodeURIComponent(url.username), "-d", url.pathname.slice(1), "-X", "-q", "--csv", "-v", "ON_ERROR_STOP=1", "-c", sql], {
+    env: { ...process.env, PGPASSWORD: decodeURIComponent(url.password) },
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
