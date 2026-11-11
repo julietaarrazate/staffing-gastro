@@ -10,7 +10,11 @@ import { ImageResponse } from "next/og";
  *
  * Desde el 2026-10-18 sigue a la landing "cielo": la palabra "oído" fileteada (la misma de `components/landing/Filete.tsx`, guardada
  * como PNG porque satori no dibuja texto dentro de un SVG) y el tagline,
- * sobre el cielo celeste. Sin el isotipo (Julieta): el ícono ya lo muestra la
+ * sobre el cielo celeste. Desde el 2026-10-30 el PNG es la `firma` actual
+ * (letra de cartel con adornos dorados, la de la pantalla de inicio): hasta
+ * ahí seguía el filete anterior al 2026-10-23. Para regenerarlo, renderizar
+ * `<Filete palabra="oído" tam="firma" />` a 1200 px de ancho con fondo
+ * transparente (la fuente es `app/fonts/sancreek-oido.woff2`). Sin el isotipo (Julieta): el ícono ya lo muestra la
  * app y su ámbar competía con el del filete. Todo centrado: hasta el 2026-10-05 era apaisada
  * con el logo a la izquierda y una tarjeta de turno a la derecha, y en
  * WhatsApp se veía como "un pedazo recortado del ticket": WhatsApp la
@@ -28,8 +32,8 @@ const TINTA = "#111111";
 const AMBAR_TEXTO = "#b45309";
 const TAGLINE = "Personal gastronómico,";
 const TAGLINE_ACENTO = "ya.";
-/** Proporción del PNG del filete (1200 × 428). */
-const FILETE_ALTO = 428 / 1200;
+/** Proporción del PNG del filete (1200 × 609). */
+const FILETE_ALTO = 609 / 1200;
 
 export { OG_ALT, OG_SQUARE, OG_WIDE } from "./og";
 

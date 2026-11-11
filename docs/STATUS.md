@@ -27,10 +27,10 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
-   la miniatura para compartir (`lib/og-brand.tsx` + `assets/og/filete-oido.png`),
    la ficha de marca, el brand system y el paquete siguen con el filete
-   anterior. Julieta todavía duda de la letra (Sancreek) y del acento
-   (ámbar o bordó): probar antes de rehacer esas piezas.
+   anterior. La miniatura para compartir ya usa la `firma` actual
+   (2026-10-30, pedido de Julieta). Antes de rehacer el resto, confirmar con
+   ella la letra (Sancreek) y el acento (ámbar o bordó).
 Revisado contra el código y los PRs el 2026-10-03.
 
 1. 🟡 **Paleta celeste (v6) en toda la app** (pedido de Julieta,
