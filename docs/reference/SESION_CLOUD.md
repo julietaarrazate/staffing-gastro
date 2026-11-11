@@ -134,3 +134,56 @@ Antes de contestar "qué falta" o "está cerrado", volvé a leer
 `docs/STATUS.md` y el estado real de los PRs. Dos sesiones contestaron de
 memoria después de dos días, con PRs que ya estaban mergeados, y las tuvo que
 corregir otra sesión.
+
+## 7. Probar la app de punta a punta contra backend y base locales
+
+Los E2E del repo (`frontend/e2e/`) corren con toda la API simulada. Para
+recorrer un camino completo con el frontend y el backend reales conectados
+está `tools/e2e-local/` (desde el 2026-11-11, etapa 1 de la salida a beta):
+
+```bash
+tools/e2e-local/setup.sh       # venv, Postgres local, migraciones y build (idempotente)
+tools/e2e-local/start_all.sh   # simulados, backend y next start; deja todo arriba
+E1_AGENT=smoke node tools/e2e-local/smoke.mjs   # prueba de humo (borra lo que crea)
+```
+
+- El estado (logs, capturas, casilla de mails, cuentas admin de prueba) va a
+  `E1_DIR`, fuera del repo. Nada toca producción.
+- Lo que hay que saber antes de usarlo está en su `README.md`: qué exporta
+  `kit.mjs`, qué está simulado y qué no se puede probar así.
+- Desde el contenedor **no hay salida** al mapa base, al buscador de
+  direcciones, a Cloudinary, a Turnstile ni a `www.oido.com.ar`. Por eso
+  están simulados, y por eso una pantalla que dependa de ellos sale vacía
+  fuera del arnés.
+- Las páginas armadas en el servidor (`/turno/[id]`) le pegan al backend
+  local desde Node: funcionan, pero sus pedidos no pasan por el navegador.
+- Para la corrida con el límite de intentos y el tope del plan:
+  `RATE_LIMIT_ENABLED=true SUBSCRIPTIONS_ENFORCED=true tools/e2e-local/restart_backend.sh`.
+  Con el límite prendido todas las cuentas salen de `127.0.0.1`: conviene que
+  corra un solo agente.
+
+## 8. Trabajo largo con muchos subagentes: el límite de uso y los reinicios
+
+Pasó tres veces el 2026-11-11, en una prueba de 16 recorridos en paralelo:
+
+- **El límite de uso de la cuenta corta a todos los subagentes a la vez**
+  (*"You've hit your 5-hour limit"*) y el workflow devuelve vacío. Lo que
+  salvó el trabajo: cada agente lleva `NOTAS.md` y reescribe un
+  `<nombre>.parcial.json` después de cada paso, y el relanzado empieza
+  leyendo eso. Sin esa regla se pierde todo lo que no terminó.
+- **El contenedor se reinicia** y mata Postgres y los servidores; los
+  archivos del scratchpad y del worktree siguen. Antes de relanzar:
+  `pg_ctlcluster 16 main start` y `start_all.sh`.
+- **Lo que más gasta es verificar.** Sacar los repetidos entre recorridos
+  antes de verificar bajó 226 anotaciones a 144 grupos, y un problema visto
+  por dos recorridos distintos ya está corroborado. El modelo más potente
+  alcanzó para los candidatos a bloqueante y el ciclo central; los barridos
+  anchos y la verificación de graves y menores anduvieron bien en Sonnet.
+- **Un agente puede dejar en su archivo sólo un puntero** ("ver la salida
+  estructurada"). El resultado completo queda en el `journal.jsonl` del
+  workflow: se recupera de ahí.
+- `import "playwright"` no resuelve en ESM desde el scratchpad (sólo
+  `require`): usar `kit.launch()`.
+- Una regla de `.claude/settings.json` bloquea leer dentro de `.next`, y eso
+  alcanza a un `ls` de Bash sobre esa ruta. Para saber si hay build, un
+  `test -f` dentro de un script.
