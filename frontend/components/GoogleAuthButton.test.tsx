@@ -63,7 +63,8 @@ describe("GoogleAuthButton: cuenta nueva", () => {
     await user.click(screen.getByRole("button", { name: "Busco trabajo" }));
 
     expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker");
-    expect(onDone).toHaveBeenCalledWith(true);
+    // El rol viaja con `onDone` para el plan elegido en la landing (/register).
+    expect(onDone).toHaveBeenCalledWith(true, "worker");
   });
 });
 

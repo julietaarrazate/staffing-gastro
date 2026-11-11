@@ -9,6 +9,7 @@ import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
+import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
 
 type Role = "worker" | "employer";
 
@@ -34,6 +35,14 @@ function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>(() => roleFromQuery(searchParams.get("rol")) ?? "worker");
+  // `?plan=<code>`: el botón "Empezar con <plan>" de los precios de la
+  // landing. Si la cuenta nueva es de comercio, se guarda para que al
+  // terminar `/bienvenida` vaya a "Mi plan" con ese plan resaltado. Un código
+  // desconocido se ignora y el alta sigue como siempre. Quien ya tiene sesión
+  // (de trabajador o de comercio) y abre este link ve el formulario como
+  // cualquiera: la landing no se le muestra (`LandingGate`), así que el caso
+  // no sale de los precios.
+  const planElegido = planValido(searchParams.get("plan"));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -46,6 +55,7 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       await register(email, password, fullName, role);
+      if (role === "employer" && planElegido) guardarPlanElegido(planElegido);
       // `replace` para no volver a /register al ir "atrás". Los dos roles pasan
       // por el onboarding de `/bienvenida` (zona+oficio para el trabajador,
       // nombre+ubicación para el comercio) — ese componente decide qué mostrar
@@ -154,9 +164,15 @@ function RegisterForm() {
           </form>
 
           {/* Cuenta nueva por Google → onboarding. `/bienvenida` reenvía solo
-              al comercio a su panel, así que no hace falta saber el rol acá
-              (lo elige el usuario dentro del propio botón de Google). */}
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
+              al comercio a su panel (o a "Mi plan" si eligió uno en la
+              landing); el rol lo elige el usuario dentro del propio botón de
+              Google y llega acá sólo para guardar ese plan. */}
+          <GoogleAuthButton
+            onDone={(isNewAccount, nuevoRol) => {
+              if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
+              router.replace(isNewAccount ? "/bienvenida" : "/");
+            }}
+          />
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">

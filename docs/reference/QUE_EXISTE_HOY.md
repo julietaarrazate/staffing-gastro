@@ -54,6 +54,9 @@ listados más abajo.
   celular, sin tarjeta de crédito), webhook firmado, vencimiento con 3 días de
   gracia y avisos, "Dar de baja" y "Arrepentirme" en Mi plan. **Apagado**
   hasta que estén `MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`.
+  Desde el 2026-10-30 cada plan de la landing tiene su botón "Empezar con
+  <plan>": alta de comercio con el plan, onboarding y "Mi plan" con ese plan
+  resaltado y un aviso con la misma acción de las tarjetas (`lib/plan-elegido.ts`).
 - **Compartir turno por WhatsApp** (deep-link `wa.me`, Web Share API con
   fallback) + **duplicar turno** desde el panel del comercio. Página pública
   de turno sin auth para compartir. Desde 2026-07-23 el **trabajador también

@@ -17,6 +17,7 @@ export default function PlanCard({
   onSelect,
   busy,
   payLabel,
+  sinAcento = false,
 }: {
   plan: SubscriptionPlan;
   isCurrent: boolean;
@@ -26,9 +27,13 @@ export default function PlanCard({
   /** Cobro prendido (ADR-0022): el plan actual se puede pagar (o renovar)
    * desde su tarjeta con esta etiqueta. Sin esto queda "Plan actual". */
   payLabel?: string;
+  /** Con el aviso del plan elegido en la landing arriba (`PlanElegidoAviso`),
+   * ése es el único ámbar: "Mejorá tu plan" pasa a botón sin acento. */
+  sinAcento?: boolean;
 }) {
   const priceArs = typeof plan.price_ars === "string" ? Number(plan.price_ars) : plan.price_ars;
   const isUpgrade = priceArs > currentPriceArs;
+  const acento = isUpgrade && !sinAcento;
 
   return (
     <Card className={`flex flex-col p-5 ${isCurrent ? "ring-2 ring-primary" : ""}`}>
@@ -71,8 +76,8 @@ export default function PlanCard({
         ) : (
           <Button
             fullWidth
-            variant={isUpgrade ? "primary" : "surface"}
-            leftIcon={isUpgrade ? <SparklesIcon size={16} /> : undefined}
+            variant={acento ? "primary" : "surface"}
+            leftIcon={acento ? <SparklesIcon size={16} /> : undefined}
             loading={busy}
             disabled={busy}
             onClick={onSelect}
