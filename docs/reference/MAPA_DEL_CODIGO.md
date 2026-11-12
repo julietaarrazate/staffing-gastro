@@ -36,7 +36,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
 | `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados. «Marcar como pagado», «Cancelar turno» y «No se presentó» piden confirmación | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal`, `lib/use-tap-guard.ts` | `/shifts/me` |
-| `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA) | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `/shifts/parse-text` |
+| `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA). Un intento crea un solo borrador: reintentar lo retoma (y lo edita si cambió el formulario) en vez de crear otro | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `PUT /shifts/{id}`, `POST /shifts/{id}/publish`, `/shifts/parse-text` |
 | `/shifts/new-event` | Publicar varios turnos para un evento | `LocationPicker` | `/shifts/events` |
 | `/shifts/[id]/candidates` | ¿A quién elijo? Se **asigna a una persona puntual**, que después confirma o rechaza. El recomendado va en tarjeta oscura | `CandidateCard`, `candidate/GuaranteeCard`, `candidate/CandidateSignals` | `/shifts/{id}/candidates`, `/shifts/{id}/assign` |
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
