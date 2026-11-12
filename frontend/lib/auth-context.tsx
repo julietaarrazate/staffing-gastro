@@ -302,6 +302,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // se renueva. Impersonando no se registra nada (el dispositivo es de la
   // admin, no de la persona que está viendo), y al volver tampoco: su token
   // es el que ya se registró.
+  //
+  // Tampoco se adelanta a la verificación en dos pasos de la admin
+  // (ADR-0023). Con el alta pendiente no se manda: el backend lo rechazaría,
+  // y sale solo cuando `adoptSession` abre la sesión verificada (token
+  // nuevo). Si todavía no se sabe que está pendiente, sale y el backend lo
+  // rechaza sin consecuencias: el pedido no avisa al candado (ver
+  // `backgroundApi`), así que al alta, o al login, la lleva el primer pedido
+  // de una pantalla y no este.
   const pushClaimedFor = useRef<string | null>(null);
   const hasUser = user !== null;
   useEffect(() => {
@@ -310,10 +318,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!hasUser || impersonating || impersonatingRef.current) return;
+    if (twoFactorSetupPending) return;
     if (pushClaimedFor.current === token) return;
     pushClaimedFor.current = token;
     void claimPushForAccount(token);
-  }, [token, hasUser, impersonating]);
+  }, [token, hasUser, impersonating, twoFactorSetupPending]);
 
   /** Abre la sesión con los tokens de una respuesta de login. */
   async function startSession(tokens: SessionTokens) {
@@ -475,7 +484,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // `token` del contexto es el de cuando se abrió la sesión y pudo haber
     // vencido) y no se espera: si falla, el cierre sigue y el backend le pasa
     // el dispositivo a la próxima cuenta que entre acá. La suscripción del
-    // navegador y el permiso no se tocan (ver `claimPushForAccount`).
+    // navegador y el permiso no se tocan (ver `claimPushForAccount`). La
+    // respuesta llega con la sesión ya cerrada: por eso tampoco avisa al
+    // candado de dos pasos (ver `backgroundApi`).
     const leavingToken = resolveToken(token);
     if (leavingToken) releasePushFromAccount(leavingToken).catch(() => {});
     // TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly — el

@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { bindSessionToken, renewSessionToken } from "@/lib/api";
+import { api, bindSessionToken, renewSessionToken } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 // Las notificaciones de un dispositivo son de la cuenta que tiene la sesión
@@ -32,10 +32,13 @@ const TRABAJADORA: User = {
 };
 const ADMIN: User = { ...TRABAJADORA, id: "u-admin", email: "admin@example.com", role: "admin" };
 
-/** Respuestas del backend por "MÉTODO /ruta": `[status, body]`. */
-let backend: Record<string, [number, unknown?]>;
+/** Respuestas del backend por "MÉTODO /ruta": `[status, body]`, o una promesa
+ * de eso cuando la prueba decide en qué momento contesta. */
+type Reply = [number, unknown?];
+let backend: Record<string, Reply | Promise<Reply>>;
 const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
-  const [status, body] = backend[`${init.method} ${url.replace(/^.*\/api\/v1/, "")}`] ?? [404];
+  const [status, body] =
+    (await backend[`${init.method} ${url.replace(/^.*\/api\/v1/, "")}`]) ?? [404];
   return new Response(status === 204 ? null : JSON.stringify(body ?? { detail: "sin ruta" }), {
     status,
     headers: { "Content-Type": "application/json" },
@@ -215,5 +218,73 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     });
     expect(release).toHaveBeenCalledTimes(1);
     expect(release).toHaveBeenCalledWith("token-admin");
+  });
+
+  // El registro no puede adelantarse a la verificación en dos pasos de la
+  // admin (ADR-0023): mientras falta el alta o el código, el dispositivo no
+  // se registra; sale solo cuando la sesión verificada queda abierta.
+  it("admin con el alta de dos pasos pendiente: registra recién al adoptar la sesión verificada", async () => {
+    localStorage.setItem("staffya_token", "token-sin-verificar");
+    localStorage.setItem("staffya_has_session", "1");
+    // `/auth/me` tarda: una pantalla del panel ya pidió sus datos y recibió
+    // el 403 del candado antes de que llegara el usuario.
+    let answerMe!: (reply: Reply) => void;
+    backend["GET /auth/me"] = new Promise<Reply>((resolve) => (answerMe = resolve));
+    backend["GET /admin/stats"] = [
+      403,
+      { detail: { code: "two_factor_setup_required", message: "Activá la verificación" } },
+    ];
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    const auth = () => result.current;
+    await waitFor(() => expect(auth().token).toBe("token-sin-verificar"));
+    await act(async () => {
+      await api.get("/admin/stats", "token-sin-verificar").catch(() => {});
+    });
+    expect(auth().twoFactorSetupPending).toBe(true);
+    await act(async () => {
+      answerMe([200, ADMIN]);
+    });
+    await waitFor(() => expect(auth().user?.id).toBe(ADMIN.id));
+    expect(claim).not.toHaveBeenCalled();
+
+    // Terminó el alta: el backend devuelve una sesión verificada.
+    await act(async () => {
+      await auth().adoptSession({ access_token: "token-verificado", user: ADMIN });
+    });
+
+    expect(auth().twoFactorSetupPending).toBe(false);
+    expect(claim).toHaveBeenCalledTimes(1);
+    expect(claim).toHaveBeenCalledWith("token-verificado");
+  });
+
+  it("admin a la que le falta el código: registra recién cuando lo completa", async () => {
+    const auth = await mountApp();
+    backend["POST /auth/login"] = [
+      200,
+      { two_factor_required: true, challenge_token: "desafio", expires_in: 300 },
+    ];
+    await act(async () => {
+      await auth().login(ADMIN.email, "una-clave");
+    });
+    expect(auth().pendingTwoFactor).not.toBeNull();
+    expect(auth().user).toBeNull();
+    expect(claim).not.toHaveBeenCalled();
+
+    backend["POST /auth/2fa/verify"] = [
+      200,
+      {
+        access_token: "token-verificado",
+        user: ADMIN,
+        used_recovery_code: false,
+        recovery_codes_left: 8,
+      },
+    ];
+    await act(async () => {
+      await auth().completeTwoFactor("123456");
+    });
+
+    expect(claim).toHaveBeenCalledTimes(1);
+    expect(claim).toHaveBeenCalledWith("token-verificado");
   });
 });
