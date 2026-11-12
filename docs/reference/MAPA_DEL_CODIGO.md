@@ -35,7 +35,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
-| `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal` | `/shifts/me` |
+| `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados. «Marcar como pagado», «Cancelar turno» y «No se presentó» piden confirmación | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal`, `lib/use-tap-guard.ts` | `/shifts/me` |
 | `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA) | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `/shifts/parse-text` |
 | `/shifts/new-event` | Publicar varios turnos para un evento | `LocationPicker` | `/shifts/events` |
 | `/shifts/[id]/candidates` | ¿A quién elijo? Se **asigna a una persona puntual**, que después confirma o rechaza. El recomendado va en tarjeta oscura | `CandidateCard`, `candidate/GuaranteeCard`, `candidate/CandidateSignals` | `/shifts/{id}/candidates`, `/shifts/{id}/assign` |
@@ -90,6 +90,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos, reintento del borrado de documentos) | `backend/app/modules/shift/application/scheduler.py` (los chequeos de otros módulos entran por `extra_checks` desde `app/main.py`) |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |
+| Postulación: estados, retirar y volver a postularse | `backend/app/modules/application/domain/entities.py` (`ShiftApplication`, `reapply`) y `backend/app/modules/application/application/services.py` (`ApplicationService.apply`); en el frontend, qué cuenta como "ya me postulé": `frontend/lib/applications.ts` (`appliedShiftIds`, lo usan Inicio, Buscar, el Mapa y el detalle del turno) |
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |
 | "Disponible ahora" (4 h) | `AVAILABLE_NOW_TTL` en `backend/app/modules/worker/domain/entities.py`, `frontend/lib/use-available-now.ts` |
 | Pin desplazado del trabajador | `fuzz_point` en `backend/app/core/geo.py` |
@@ -99,6 +100,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Verificación en dos pasos del admin (TOTP, desafío del login, candado de las sesiones admin, plan B) | `backend/app/modules/identity/domain/two_factor.py`, `application/two_factor.py`, `api/dependencies.py` (`get_current_user` vs `get_current_user_allow_pending_2fa`), `backend/scripts/disable_two_factor.py`; frontend `lib/two-factor.ts` y el 403 con `code` en `lib/api.ts` (ADR-0023) |
 | Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
+| Guarda contra el toque de más (una acción terminó, la lista se redibujó y quedó otro botón bajo el dedo) | `frontend/lib/use-tap-guard.ts` (`useTapGuard`); hoy la usa el panel del comercio (`app/shifts/page.tsx`, `components/ShiftActions.tsx`) |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
 | Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `frontend/lib/push.ts` |
 | Gemini (modelo fijado) | `backend/app/core/gemini.py` |

@@ -15,6 +15,11 @@ import type { Shift } from "@/lib/types";
  * tenía que deducir cuál correspondía a esta altura del ciclo. Acá se muestra
  * en qué anda el turno + LA acción que le toca al comercio ahora (si le toca
  * alguna), y todo lo demás queda detrás de "Más".
+ *
+ * Esa acción ocupa siempre el mismo lugar y cambia con el estado («Cerrar
+ * turno» pasa a ser «Marcar como pagado»). Por eso los botones se apagan con
+ * `locked` (la guarda de `lib/use-tap-guard.ts`: una acción en curso o la
+ * lista recién redibujada) y no sólo mientras carga el propio.
  */
 
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
@@ -25,14 +30,22 @@ const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado"];
 export default function ShiftActions({
   shift,
   busy,
+  locked,
   onRun,
+  onMarkPaid,
   onNoShow,
   onCancel,
 }: {
   shift: Shift;
+  /** Qué botón muestra el indicador de carga (`<id>:<acción>`). */
   busy: string | null;
-  /** `candidates` no pasa por acá: es un Link, no una mutación. */
-  onRun: (id: string, action: Exclude<PrimaryAction, "candidates"> | "cancel") => void;
+  /** Hay una acción en curso o la lista se acaba de redibujar (`useTapGuard`):
+   *  ningún botón de acción de la tarjeta acepta toques. */
+  locked: boolean;
+  /** `candidates` no pasa por acá (es un Link, no una mutación) y `markPaid`
+   *  tampoco: no se puede deshacer, así que primero pide confirmación. */
+  onRun: (id: string, action: Exclude<PrimaryAction, "candidates" | "markPaid"> | "cancel") => void;
+  onMarkPaid: () => void;
   onNoShow: () => void;
   onCancel: () => void;
 }) {
@@ -67,10 +80,12 @@ export default function ShiftActions({
             size="sm"
             fullWidth
             onClick={() =>
-              onRun(shift.id, step.action as Exclude<PrimaryAction, "candidates">)
+              step.action === "markPaid"
+                ? onMarkPaid()
+                : onRun(shift.id, step.action as Exclude<PrimaryAction, "candidates" | "markPaid">)
             }
             loading={busy === `${shift.id}:${step.action}`}
-            disabled={busy !== null}
+            disabled={locked}
           >
             {step.actionLabel}
           </Button>
@@ -122,6 +137,7 @@ export default function ShiftActions({
           </MenuLink>
           {canNoShow && (
             <MenuButton
+              disabled={locked}
               onClick={() => {
                 setMenuOpen(false);
                 onNoShow();
@@ -133,7 +149,7 @@ export default function ShiftActions({
           {canCancel && (
             <MenuButton
               danger
-              disabled={busy !== null}
+              disabled={locked}
               onClick={() => {
                 setMenuOpen(false);
                 onCancel();
