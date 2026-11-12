@@ -91,7 +91,8 @@ class VerificationService:
         si no existe. Seguro ante repetición: si dos envíos casi simultáneos
         leen «no hay claim» y el segundo alta choca con la restricción única,
         se relee el claim que ganó y se reenvía sobre él por el camino normal
-        (sus archivos entran a la cola de borrado). Un solo reintento."""
+        (a la cola de borrado van sólo los archivos que el envío nuevo
+        reemplaza, no los que sigue usando). Un solo reintento."""
         for attempt in range(2):
             claim = await self._claims.get_for_user(user_id, claim_type)
             is_new = claim is None
