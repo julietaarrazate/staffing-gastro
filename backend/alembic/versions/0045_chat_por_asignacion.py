@@ -13,26 +13,35 @@ comercio es con UNA: con quien estaba asignado cuando se escribió cada mensaje.
   0040 se queda (clave foránea a `shifts`).
 
 Relleno de los mensajes que ya existían. La regla es conservadora: un mensaje
-sólo entra a un hilo si se sabe con quién se estaba hablando; si hay duda queda
-sin hilo (`NULL`) y la app no se lo muestra a nadie. No se borra nada.
+sólo entra a un hilo si hay rastro de con quién se estaba hablando EN ESE
+MENSAJE; si hay duda queda sin hilo (`NULL`) y la app no se lo muestra a nadie.
+No se borra nada.
 
 1. Mensaje escrito por un trabajador (su autor no es el comercio del turno y
    tiene perfil de trabajador): es de su propio hilo. Sólo pudo escribirlo
    mientras estaba asignado.
-2. Mensaje escrito por el comercio: entra a un hilo sólo si en los datos de ese
-   turno aparece UNA única persona con la que pudo estar hablando. Cuentan
-   como personas del turno: quienes escribieron en su chat, quien está asignado
-   hoy, quien quedó registrado como ausente (`last_no_show_worker_profile_id`)
-   y quienes tienen una postulación `aceptada` (se acepta al asignar). Si
-   aparece más de una, o ninguna, no hay forma de saber a cuál le hablaba el
-   comercio en cada mensaje (no se guardó el historial de asignaciones): queda
-   sin hilo.
+2. Mensaje escrito por el comercio: es del hilo de su destinatario, y el
+   destinatario sale del aviso que generó ese mismo mensaje. Cada mensaje dejó
+   un aviso `chat_message` a quien estaba asignado, con link `/chats/<turno>`
+   y el comienzo del texto (`_SNIPPET_MAX` de `chat/application/services.py`:
+   el texto entero hasta 80 caracteres; si no, los primeros 77 y `...`). El
+   mensaje entra al hilo de esa persona sólo si:
+   - ningún otro mensaje del comercio en ese turno tiene el mismo comienzo de
+     texto (así el aviso que coincide es, sin duda, el de este mensaje), y
+   - hay exactamente un aviso que coincide, y su destinatario es trabajador.
+   Si el aviso ya no está (la limpieza borra los leídos de más de 90 días, o
+   se borró la cuenta) o el texto se repite en el turno, queda sin hilo.
 
-Límite conocido de (2): una persona asignada directo (sin postularse), que no
-escribió y dejó el turno sin que se la marcara ausente no deja rastro. Si el
-resto del turno muestra a una sola persona, lo que el comercio le haya escrito
-a aquélla queda en el hilo de ésta. Son mensajes del comercio, nunca de otro
-trabajador: los de un trabajador siempre quedan en su propio hilo (1).
+   No alcanza con mirar quiénes pasaron por el turno: alguien asignado directo
+   desde «Recomendados» (sin postularse) que no escribió y dejó el turno sin
+   quedar ausente no deja otro rastro que esos avisos, y una regla por turno le
+   atribuiría a quien vino después lo que el comercio le escribió a aquélla.
+
+Las dos sentencias de `RELLENO` sólo tocan mensajes sin hilo y exigen rastro
+por mensaje, así que repetirlas no mueve nada que ya tenga hilo ni le da a
+nadie un mensaje que no recibió: sirven para reparar los mensajes que el
+código anterior haya escrito sin hilo durante el deploy (ver el historial
+2026-11-11-chat-por-asignacion). Fuera de ese caso no hace falta correrlas.
 
 SQL estándar a propósito (subconsultas correlacionadas, sin `UPDATE ... FROM`
 ni agregados sobre UUID): corre igual en Postgres y en el SQLite de los tests
@@ -71,30 +80,6 @@ _COMERCIO_DEL_TURNO = """
      WHERE s.id = chat_messages.shift_id
 """
 
-# (turno, usuario) de cada persona con la que el comercio pudo estar hablando.
-# `UNION` (no `UNION ALL`): una fila por persona aunque aparezca por más de un
-# camino.
-_PERSONAS_DEL_TURNO = """
-    SELECT m.shift_id AS shift_id, m.sender_user_id AS user_id
-      FROM chat_messages m
-      JOIN shifts s ON s.id = m.shift_id
-      JOIN company_profiles cp ON cp.id = s.company_id
-     WHERE m.sender_user_id <> cp.user_id
-    UNION
-    SELECT s.id, wp.user_id
-      FROM shifts s
-      JOIN worker_profiles wp ON wp.id = s.worker_profile_id
-    UNION
-    SELECT s.id, wp.user_id
-      FROM shifts s
-      JOIN worker_profiles wp ON wp.id = s.last_no_show_worker_profile_id
-    UNION
-    SELECT a.shift_id, wp.user_id
-      FROM shift_applications a
-      JOIN worker_profiles wp ON wp.id = a.worker_profile_id
-     WHERE a.status = 'aceptada'
-"""
-
 # Regla 1: lo que escribió un trabajador es de su hilo.
 _RELLENO_DEL_TRABAJADOR = f"""
 UPDATE chat_messages
@@ -107,26 +92,53 @@ UPDATE chat_messages
    )
 """
 
-# Regla 2: lo que escribió el comercio, sólo si el turno tuvo una única persona.
-_RELLENO_DEL_COMERCIO = f"""
-UPDATE chat_messages
-   SET worker_user_id = (
-       SELECT p.user_id
-         FROM ({_PERSONAS_DEL_TURNO}) p
-        WHERE p.shift_id = chat_messages.shift_id
-        LIMIT 1
-   )
- WHERE worker_user_id IS NULL
-   AND sender_user_id = ({_COMERCIO_DEL_TURNO})
-   AND (
-       SELECT COUNT(*)
-         FROM ({_PERSONAS_DEL_TURNO}) p
-        WHERE p.shift_id = chat_messages.shift_id
-   ) = 1
+# Comienzo del texto de un mensaje tal como quedó en su aviso
+# (`ChatService._notify_recipient`: hasta 80 caracteres enteros; si no, 77 y
+# `...`). Fue 80 desde que existe el chat.
+_LARGO_DEL_AVISO = 80
+
+
+def _comienzo(cuerpo: str) -> str:
+    return (
+        f"CASE WHEN LENGTH({cuerpo}) <= {_LARGO_DEL_AVISO} THEN {cuerpo} "
+        f"ELSE SUBSTR({cuerpo}, 1, {_LARGO_DEL_AVISO - 3}) || '...' END"
+    )
+
+
+# Avisos de chat que coinciden con el mensaje: los del turno (por el link),
+# dirigidos a alguien que no es el comercio, con el comienzo de su texto.
+_AVISOS_DEL_MENSAJE = f"""
+      FROM notifications n
+     WHERE n.type = 'chat_message'
+       AND n.link = '/chats/' || CAST(chat_messages.shift_id AS TEXT)
+       AND n.user_id <> chat_messages.sender_user_id
+       AND n.message = {_comienzo("chat_messages.body")}
 """
 
-# En orden: la regla 2 no depende de lo que escribió la 1 (las personas del
-# turno se calculan por autor, no por la columna nueva).
+# Regla 2: lo que escribió el comercio va al hilo del destinatario de su aviso.
+_RELLENO_DEL_COMERCIO = f"""
+UPDATE chat_messages
+   SET worker_user_id = (SELECT n.user_id {_AVISOS_DEL_MENSAJE} LIMIT 1)
+ WHERE worker_user_id IS NULL
+   AND sender_user_id = ({_COMERCIO_DEL_TURNO})
+   AND NOT EXISTS (
+       SELECT 1
+         FROM chat_messages otro
+        WHERE otro.shift_id = chat_messages.shift_id
+          AND otro.sender_user_id = chat_messages.sender_user_id
+          AND otro.id <> chat_messages.id
+          AND {_comienzo("otro.body")} = {_comienzo("chat_messages.body")}
+   )
+   AND (SELECT COUNT(*) {_AVISOS_DEL_MENSAJE}) = 1
+   AND EXISTS (
+       SELECT 1
+         FROM worker_profiles wp
+        WHERE wp.user_id = (SELECT n.user_id {_AVISOS_DEL_MENSAJE} LIMIT 1)
+   )
+"""
+
+# Independientes entre sí: ninguna lee la columna nueva salvo para no tocar lo
+# que ya tiene hilo.
 RELLENO: tuple[str, ...] = (_RELLENO_DEL_TRABAJADOR, _RELLENO_DEL_COMERCIO)
 
 
