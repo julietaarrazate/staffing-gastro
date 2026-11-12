@@ -16,7 +16,9 @@ const PROMPT_SHOWN_KEY = "staffya_push_prompt_shown";
 interface PushPromptState {
   /** Muestra el prompt si corresponde (soportado, todavía no se decidió a
    * nivel navegador, y no se le mostró antes en este dispositivo). No-op en
-   * caso contrario — seguro de llamar desde cualquier acción de negocio. */
+   * caso contrario — seguro de llamar desde cualquier acción de negocio.
+   * Tampoco hace nada mientras una admin está en «Ver como»: el dispositivo
+   * es de ella, no de la persona con cuya cuenta hizo la acción. */
   requestOptIn: () => void;
 }
 
@@ -30,11 +32,14 @@ function alreadyDecided(): boolean {
 }
 
 export function PushPromptProvider({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, impersonating } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   function requestOptIn() {
+    // En «Ver como» el `token` es el de la persona que la admin está viendo:
+    // aceptar dejaba el dispositivo de la admin a nombre de esa persona.
+    if (impersonating) return;
     if (!isPushSupported() || alreadyDecided()) return;
     setOpen(true);
   }
@@ -45,6 +50,10 @@ export function PushPromptProvider({ children }: { children: ReactNode }) {
   }
 
   async function accept() {
+    // El pedido ya estaba abierto cuando empezó «Ver como»: se cierra sin
+    // registrar nada y sin darlo por mostrado, para que se le pueda ofrecer
+    // a la admin cuando vuelva a su cuenta.
+    if (impersonating) return setOpen(false);
     if (!token) return dismiss();
     setLoading(true);
     try {
