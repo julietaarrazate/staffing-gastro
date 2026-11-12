@@ -54,8 +54,10 @@ Lo técnico:
 - Tests: `backend/tests/test_uso_del_plan_al_publicar.py` (publicar bien
   suma uno; volver a publicar, publicar un cancelado y perder la carrera no
   suman; la misma `Idempotency-Key` suma una vez; con el tope prendido los
-  intentos fallidos no gastan el cupo; un evento suma uno por puesto) y
-  `frontend/e2e/publicar-una-sola-vez.spec.ts`, con una API simulada que
+  intentos fallidos no gastan el cupo; un evento suma uno por puesto; y el
+  recorrido del reintento contra la API real: editar el borrador con
+  `PUT /shifts/{id}`, que no tenía tests ni uso en el frontend, y publicar)
+  y `frontend/e2e/publicar-una-sola-vez.spec.ts`, con una API simulada que
   guarda los turnos y trata la `Idempotency-Key` como el backend, para
   medir qué le queda al servidor y no sólo qué dice la pantalla.
 - Docs: `docs/reference/API.md` (cuándo sube `turnos_usados_mes`), la fila
