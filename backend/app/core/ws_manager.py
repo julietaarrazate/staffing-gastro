@@ -36,8 +36,14 @@ class ConnectionManager:
         """Registra la conexión sobre el hilo del turno con `worker_user_id`.
 
         Devuelve `False` (y no registra la conexión) si ya se alcanzó el
-        tope para este turno — el caller debe cerrar el WebSocket."""
-        if len(self._chat[shift_id]) >= MAX_CONNECTIONS_PER_KEY:
+        tope para este hilo — el caller debe cerrar el WebSocket. El tope es
+        por hilo, no por turno: las conexiones que quedaron abiertas sobre un
+        hilo anterior (hasta que el próximo envío las corte) no le quitan
+        lugar a quien tiene el turno ahora."""
+        on_thread = sum(
+            1 for thread in self._chat[shift_id].values() if thread == worker_user_id
+        )
+        if on_thread >= MAX_CONNECTIONS_PER_KEY:
             return False
         self._chat[shift_id][websocket] = worker_user_id
         return True

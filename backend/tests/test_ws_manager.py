@@ -69,14 +69,19 @@ def test_different_shifts_have_independent_caps():
     assert manager.connect_chat(shift_b, worker, object()) is True
 
 
-def test_the_cap_is_per_shift_across_threads():
-    """El tope sigue siendo por turno: las conexiones que quedaron abiertas
-    sobre un hilo anterior cuentan hasta que se cortan."""
+def test_the_cap_is_per_thread():
+    """El tope es por hilo: las conexiones que quedaron abiertas sobre un hilo
+    anterior (de quien ya no tiene el turno) no le quitan lugar a la persona
+    asignada ahora ni al comercio en el hilo vigente."""
     manager = ConnectionManager()
     shift_id = uuid4()
+    previous_worker, current_worker = uuid4(), uuid4()
     for _ in range(MAX_CONNECTIONS_PER_KEY):
-        assert manager.connect_chat(shift_id, uuid4(), object()) is True
-    assert manager.connect_chat(shift_id, uuid4(), object()) is False
+        assert manager.connect_chat(shift_id, previous_worker, object()) is True
+    assert manager.connect_chat(shift_id, previous_worker, object()) is False
+    for _ in range(MAX_CONNECTIONS_PER_KEY):
+        assert manager.connect_chat(shift_id, current_worker, object()) is True
+    assert manager.connect_chat(shift_id, current_worker, object()) is False
 
 
 async def test_broadcast_chat_delivers_only_to_that_thread_and_closes_the_rest():
