@@ -29,7 +29,8 @@ Staffya no tenía hasta este fix.
   ambos UTC-aware), sin truncar nunca a `.date()`. No hay "mes calendario" al que un turno de las
   22:30 ART pueda caerle del lado equivocado: el corte de período es el mismo instante exacto se
   mire desde ART o desde UTC. Se revisó también el gating de publicación
-  (`shift/application/services.py::_consume_publication_slot`) y no reintroduce el patrón. Si en
+  (`shift/application/services.py::_ensure_publication_allowed` y `_register_publication`, antes
+  `_consume_publication_slot`) y no reintroduce el patrón. Si en
   el futuro se cambia a "mes calendario" real (ver comentario `PERIOD_LENGTH` en
   `subscription/domain/entities.py`), ese cambio sí va a necesitar `hoy_art()`/`now_art()`.
 - **Frontend:** ya tenía el helper correcto desde antes (`frontend/lib/datetime.ts`, comentario

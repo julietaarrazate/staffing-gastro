@@ -629,7 +629,7 @@ async def test_subscription_stats_reports_billing_enabled_when_gateway_is_active
 async def test_subscription_stats_detects_companies_at_plan_limit(client, session_factory):
     """Plan inicial: tope 5 turnos/mes (`plans.py`). Publicar 5 alcanza el
     tope aunque `subscriptions_enforced` esté OFF (el uso se registra
-    igual, ver `ShiftService._consume_publication_slot`)."""
+    igual, ver `ShiftService._register_publication`)."""
     admin = await _make_admin(client, session_factory, "admin_sub3@test.com")
     at_limit_employer = await _employer_with_company(client, "emp_sub_limit@test.com")
     under_limit_employer = await _employer_with_company(client, "emp_sub_under@test.com")

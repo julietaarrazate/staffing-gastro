@@ -132,7 +132,9 @@ Gating al **publicar** (`POST /shifts/{id}/publish` y `/shifts/events`):
 `SUBSCRIPTIONS_ENFORCED=true` y tope agotado → **402**; con el cobro real
 exigido (además las dos credenciales de MP) y sin mes pago vigente → **402**
 "Tu plan no está activo…". `mark-paid` (pago del turno al trabajador) no
-cambia.
+cambia. El uso (`turnos_usados_mes`) sube recién cuando el turno quedó
+publicado: un `publish` que responde 400, 402, 404 o 409 no lo cambia, y
+repetirlo con la misma `Idempotency-Key` cuenta una sola vez.
 
 ## Paginación
 
