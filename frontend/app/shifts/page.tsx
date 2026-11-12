@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
@@ -200,8 +201,15 @@ function MyShiftsPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Guarda contra el toque de más (ver `lib/use-tap-guard.ts`): el botón
+  // principal de cada tarjeta está siempre en el mismo lugar y cambia de
+  // acción con el estado. Un segundo toque después de «Cerrar turno» no
+  // tiene que alcanzar a «Marcar como pagado» ni al «Cerrar turno» del turno
+  // que subió a ese lugar.
+  const tapGuard = useTapGuard();
   const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [confirmMarkPaidId, setConfirmMarkPaidId] = useState<string | null>(null);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
   // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
@@ -259,30 +267,34 @@ function MyShiftsPanel() {
   }, [hasConfirmed, load]);
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
-  // está ocupada (para loading/disabled), atrapa errores del POST (antes se
-  // dejaban sin manejar) y refresca la lista al terminar.
+  // está ocupada (para el indicador de carga), atrapa errores del POST (antes
+  // se dejaban sin manejar) y refresca la lista al terminar. Pasa por la
+  // guarda: no arranca si hay otra acción en curso, y cuando termina y la
+  // lista se redibuja deja un instante en el que ninguna otra arranca.
   async function run(id: string, action: Action) {
     if (!token) return;
     const key = `${id}:${action}`;
-    setBusy(key);
-    try {
-      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento = misma
-      // key mientras no haya terminado bien; un doble-tap sobre "Publicar"/
-      // "Cancelar" con `busy` ya deshabilitando el botón, más este header,
-      // cubre tanto el 90% cliente-side como el reintento de red server-side.
-      await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token, undefined, keyFor(key));
-      clearIdempotencyKey(key);
-      await load();
-      if (action === "publish") setJustPublishedId(id);
-    } catch (err) {
-      if (action === "publish" && isPlanLimitError(err)) {
-        setPlanLimitMessage(getErrorMessage(err));
-      } else {
-        toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+    await tapGuard.run(async () => {
+      setBusy(key);
+      try {
+        // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento = misma
+        // key mientras no haya terminado bien. La guarda frena el toque de
+        // más del lado del cliente; este header cubre el reintento de red
+        // del lado del servidor.
+        await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token, undefined, keyFor(key));
+        clearIdempotencyKey(key);
+        await load();
+        if (action === "publish") setJustPublishedId(id);
+      } catch (err) {
+        if (action === "publish" && isPlanLimitError(err)) {
+          setPlanLimitMessage(getErrorMessage(err));
+        } else {
+          toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+        }
+      } finally {
+        setBusy(null);
       }
-    } finally {
-      setBusy(null);
-    }
+    });
   }
 
   async function confirmNoShow(id: string) {
@@ -293,6 +305,20 @@ function MyShiftsPanel() {
   async function confirmCancel(id: string) {
     setConfirmCancelId(null);
     await run(id, "cancel");
+  }
+
+  // «Marcar como pagado» no se puede deshacer y le avisa al trabajador que
+  // cobró: primero se pregunta. Abrir el diálogo también pasa por la guarda,
+  // así el toque que cae justo después de «Cerrar turno» no lo abre, y el
+  // segundo toque de un doble toque no lo confirma ni lo cierra (durante ese
+  // instante el «Sí» está deshabilitado y tocar afuera no hace nada).
+  function askMarkPaid(id: string) {
+    void tapGuard.run(() => setConfirmMarkPaidId(id));
+  }
+
+  async function confirmMarkPaid(id: string) {
+    setConfirmMarkPaidId(null);
+    await run(id, "markPaid");
   }
 
   // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
@@ -330,6 +356,10 @@ function MyShiftsPanel() {
     }
     return Array.from(byId.entries()).map(([eventId, data]) => ({ eventId, ...data }));
   }, [shifts]);
+
+  const payingWorkerName = confirmMarkPaidId
+    ? shifts.find((s) => s.id === confirmMarkPaidId)?.worker_name
+    : null;
 
   // En "Todos" se listan sólo las familias con contenido (no tiene sentido
   // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
@@ -471,7 +501,9 @@ function MyShiftsPanel() {
                           <ShiftActions
                             shift={shift}
                             busy={busy}
+                            locked={tapGuard.locked}
                             onRun={run}
+                            onMarkPaid={() => askMarkPaid(shift.id)}
                             onNoShow={() => setConfirmNoShowId(shift.id)}
                             onCancel={() => setConfirmCancelId(shift.id)}
                           />
@@ -551,6 +583,31 @@ function MyShiftsPanel() {
             onClick={() => confirmCancelId && confirmCancel(confirmCancelId)}
           >
             Sí, cancelar turno
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmMarkPaidId !== null}
+        onClose={() => {
+          if (!tapGuard.locked) setConfirmMarkPaidId(null);
+        }}
+        title="¿Ya le pagaste este turno?"
+      >
+        <p className="text-sm text-ink/60">
+          Se le avisa {payingWorkerName ? `a ${payingWorkerName}` : "al trabajador"} que ya cobró
+          este turno y no vas a poder deshacerlo.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmMarkPaidId(null)}>
+            Volver
+          </Button>
+          <Button
+            size="sm"
+            disabled={tapGuard.locked}
+            onClick={() => confirmMarkPaidId && confirmMarkPaid(confirmMarkPaidId)}
+          >
+            Sí, ya le pagué
           </Button>
         </div>
       </Modal>
