@@ -30,7 +30,7 @@ class ShiftApplicationRepository(ABC):
 
     @abstractmethod
     async def update(self, application: ShiftApplication) -> ShiftApplication:
-        """Actualiza una postulación existente y la devuelve."""
+        """Actualiza una postulación existente (estado y fecha) y la devuelve."""
 
     @abstractmethod
     async def get_by_id(self, application_id: UUID) -> ShiftApplication | None:

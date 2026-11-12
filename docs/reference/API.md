@@ -71,7 +71,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 ### `application` — `/applications`
 | Método | Ruta | Qué hace |
 |--------|------|----------|
-| POST | `/applications` | Postularse a un turno |
+| POST | `/shifts/{shift_id}` | Postularse a un turno abierto (worker). Si ya tenía una postulación `retirada` a ese turno, la reactiva (misma postulación, otra vez `pendiente`); con una activa o rechazada responde 409. Tope de 5 intentos por hora por cuenta y por turno (429) |
 | GET | `/mine` | Mis postulaciones (worker) — **paginado** |
 | GET | `/shifts/{shift_id}` | Postulantes de un turno (comercio) |
 

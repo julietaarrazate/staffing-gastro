@@ -10,6 +10,7 @@ from app.modules.application.domain.exceptions import (
     ShiftNotApplicableError,
 )
 from app.modules.application.domain.repositories import ShiftApplicationRepository
+from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.domain.repositories import UserRepository
 from app.modules.notification.domain.entities import Notification
@@ -50,7 +51,14 @@ class ApplicationService:
     async def apply(
         self, worker_profile_id: UUID, shift_id: UUID
     ) -> ShiftApplication:
-        """Registra el interés de un trabajador por un turno abierto."""
+        """Registra el interés de un trabajador por un turno abierto.
+
+        Hay una sola postulación por (turno, trabajador). Si la que existe está
+        RETIRADA (la canceló el trabajador, o el sistema por la regla de doble
+        turno), postularse de nuevo la reactiva: vuelve a PENDIENTE con fecha
+        nueva y el comercio recibe el aviso como con una postulación nueva. Es
+        lo que promete la app al cancelar ("si sigue abierto, podés volver a
+        postularte"). Cualquier otro estado es `AlreadyAppliedError`."""
         shift = await self._shifts.get_by_id(shift_id)
         if shift is None or shift.status not in OPEN_STATUSES:
             raise ShiftNotApplicableError(str(shift_id))
@@ -58,15 +66,23 @@ class ApplicationService:
         existing = await self._applications.get_by_shift_and_worker(
             shift_id, worker_profile_id
         )
-        if existing is not None:
+        if existing is None:
+            application = await self._applications.add(
+                ShiftApplication(shift_id=shift_id, worker_profile_id=worker_profile_id)
+            )
+        elif existing.status == ApplicationStatus.RETIRADA:
+            existing.reapply()
+            application = await self._applications.update(existing)
+        else:
             raise AlreadyAppliedError(str(shift_id))
-
-        application = await self._applications.add(
-            ShiftApplication(shift_id=shift_id, worker_profile_id=worker_profile_id)
-        )
         logger.info(
             "application.submitted",
-            extra={"shift_id": str(shift_id), "worker_profile_id": str(worker_profile_id)},
+            extra={
+                "shift_id": str(shift_id),
+                "worker_profile_id": str(worker_profile_id),
+                # True cuando no es la primera vez: reactivó una retirada.
+                "reapplied": existing is not None,
+            },
         )
 
         company = await self._companies.get_by_id(shift.company_id)
