@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -54,8 +54,16 @@ function ShiftCandidatesContent() {
   const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
   const standout = standoutApplicant(rankedApplicants);
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
+  // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
+  // contestó bien con cero postulantes. Si ya había datos y una recarga
+  // falla, se conservan y se avisa.
+  const [appsError, setAppsError] = useState(false);
+  const [appsLoaded, setAppsLoaded] = useState(false);
+  const [loadingApps, setLoadingApps] = useState(true);
+  const [candsError, setCandsError] = useState(false);
+  const [candsLoaded, setCandsLoaded] = useState(false);
+  const [loadingCands, setLoadingCands] = useState(true);
   const [assigning, setAssigning] = useState<string | null>(null);
   // Recién asignado: su tarjeta sube arriba con la confirmación y el resto
   // se atenúa, un instante antes de volver al panel. La decisión se VE, en
@@ -83,27 +91,55 @@ function ShiftCandidatesContent() {
   }
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const load = useCallback(async () => {
+  const loadApps = useCallback(async () => {
     if (!token) return;
-    setLoading(true);
+    setLoadingApps(true);
     try {
-      const [apps, cands] = await Promise.all([
-        api.get<Applicant[]>(`/applications/shifts/${shiftId}`, token).catch(() => []),
-        api.get<CandidateMatch[]>(`/shifts/${shiftId}/candidates`, token).catch(() => []),
-      ]);
-      setApplicants(apps);
-      setCandidates(cands);
-      setError(null);
+      setApplicants(await api.get<Applicant[]>(`/applications/shifts/${shiftId}`, token));
+      setAppsLoaded(true);
+      setAppsError(false);
     } catch (err) {
-      setError(getErrorMessage(err, "Error al cargar candidatos"));
+      // Turno ajeno o inexistente (404): se comporta como siempre, sin error.
+      if (err instanceof ApiError && err.status === 404) {
+        setApplicants([]);
+        setAppsLoaded(true);
+        setAppsError(false);
+      } else {
+        setAppsError(true);
+      }
     } finally {
-      setLoading(false);
+      setLoadingApps(false);
     }
+  }, [token, shiftId]);
+
+  const loadCands = useCallback(async () => {
+    if (!token) return;
+    setLoadingCands(true);
+    try {
+      setCandidates(await api.get<CandidateMatch[]>(`/shifts/${shiftId}/candidates`, token));
+      setCandsLoaded(true);
+      setCandsError(false);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setCandidates([]);
+        setCandsLoaded(true);
+        setCandsError(false);
+      } else {
+        setCandsError(true);
+      }
+    } finally {
+      setLoadingCands(false);
+    }
+  }, [token, shiftId]);
+
+  const load = useCallback(() => {
+    loadApps();
+    loadCands();
     // Aparte de la carga principal: si falla, la pantalla igual funciona sin
     // el resumen del turno de arriba (era información nueva agregada acá, no
     // el contenido central de esta pantalla).
-    api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
-  }, [token, shiftId]);
+    if (token) api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
+  }, [loadApps, loadCands, token, shiftId]);
 
   useEffect(() => {
     load();
@@ -187,10 +223,31 @@ function ShiftCandidatesContent() {
         />
       </div>
 
-      {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {tab === "postulantes" && loadingApps && <CardSkeletons />}
+      {tab === "recomendados" && loadingCands && <CardSkeletons />}
 
-      {!loading && !error && tab === "postulantes" && (
+      {tab === "postulantes" && !loadingApps && appsError && (
+        <ErrorBanner
+          message={
+            appsLoaded
+              ? "No pudimos actualizar los postulantes. Te mostramos los que ya habían cargado."
+              : "No pudimos cargar los postulantes. Revisá tu conexión y reintentá."
+          }
+          onRetry={loadApps}
+        />
+      )}
+      {tab === "recomendados" && !loadingCands && candsError && (
+        <ErrorBanner
+          message={
+            candsLoaded
+              ? "No pudimos actualizar los recomendados. Te mostramos los que ya habían cargado."
+              : "No pudimos cargar los recomendados. Los postulantes siguen disponibles."
+          }
+          onRetry={loadCands}
+        />
+      )}
+
+      {tab === "postulantes" && !loadingApps && (appsLoaded || !appsError) && (
         <div className="mt-5">
           {applicants.length === 0 ? (
             <EmptyState
@@ -269,7 +326,7 @@ function ShiftCandidatesContent() {
         </div>
       )}
 
-      {!loading && !error && tab === "recomendados" && (
+      {tab === "recomendados" && !loadingCands && (candsLoaded || !candsError) && (
         <div className="mt-5">
           {candidates.length === 0 ? (
             <EmptyState
