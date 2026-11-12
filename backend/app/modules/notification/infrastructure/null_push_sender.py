@@ -8,7 +8,7 @@ tener las claves reales (mismo patrón que `NullEmailSender`)."""
 import logging
 
 from app.modules.notification.domain.entities import PushSubscription
-from app.modules.notification.domain.push_sender import PushSendResult, PushSender
+from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 
 logger = logging.getLogger(__name__)
 
