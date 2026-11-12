@@ -135,16 +135,15 @@ function StepDots({ active, total }: { active: number; total: number }) {
   );
 }
 
-/** El login de invitado manda a `/bienvenida?invitado=1`. Se lee al guardar
- *  (sólo en el navegador) para no exigir Suspense por `useSearchParams`. */
-function esInvitado(): boolean {
-  return new URLSearchParams(window.location.search).get("invitado") === "1";
-}
+/** Mail de la cuenta invitada del trabajador (`GUEST_ACCOUNTS` en
+ *  `backend/app/modules/identity/application/services.py`). Se decide por la
+ *  cuenta y no por la URL: una cuenta real nunca tiene que perder su perfil. */
+const GUEST_WORKER_EMAIL = "invitado.trabajador@oido.beta";
 
 type WorkerStep = "zona" | "oficio" | "detalles";
 
 function WorkerOnboarding() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<WorkerStep>("zona");
@@ -196,7 +195,7 @@ function WorkerOnboarding() {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
       } catch (err) {
         if (!(err instanceof ApiError) || err.status !== 409) throw err;
-        if (esInvitado()) {
+        if (user?.email === GUEST_WORKER_EMAIL) {
           // La cuenta invitada es una sola compartida por rol: cada ingreso con
           // PIN arranca de cero a propósito, así que acá sí se reemplaza el
           // perfil entero (el probador anterior no le deja sus datos al siguiente).

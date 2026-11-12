@@ -189,3 +189,62 @@ test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se q
   await expect(page.getByText("No disp.")).toBeVisible();
   soltarFeed();
 });
+
+test("si el guardado falla con la carga del Inicio en vuelo, la pantalla toma el perfil del servidor", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-1",
+        email: "demo@staffya.com",
+        full_name: "Mozo Demo",
+        role: "worker",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  let soltarFeed!: () => void;
+  const feedDemorado = new Promise<void>((res) => (soltarFeed = res));
+  await page.route("**/api/v1/shifts/feed**", async (route) => {
+    await feedDemorado;
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+  await page.route("**/api/v1/applications/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  // El servidor ya tiene «No disp.»; el guardado falla.
+  const enServidor = { ...EN_SERVIDOR, is_available: false };
+  let puts = 0;
+  let soltarPut!: () => void;
+  const putDemorado = new Promise<void>((res) => (soltarPut = res));
+  await page.route("**/api/v1/workers/me/profile", async (route) => {
+    if (route.request().method() === "PUT") {
+      puts += 1;
+      await putDemorado;
+      return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ detail: "Error" }) });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(enServidor) });
+  });
+
+  await page.goto("/feed");
+  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  await expect(interruptor).toBeVisible();
+  await interruptor.click();
+  await expect.poll(() => puts).toBe(1);
+
+  // La carga termina con el guardado todavía en vuelo (no aplica su perfil) y
+  // recién después el guardado falla: el perfil que trajo la carga no se pierde.
+  soltarFeed();
+  await page.waitForTimeout(500);
+  soltarPut();
+  await expect(page.getByText("No se pudo actualizar tu disponibilidad")).toBeVisible();
+  await expect(page.getByText("No disp.")).toBeVisible();
+});

@@ -1,4 +1,4 @@
-# Guardar una parte del perfil ya no pisa lo demás (foto del Perfil, interruptor «Disponible» del Inicio y bienvenida)
+# Guardar una parte del perfil ya no pisa lo demás (foto del Perfil, interruptor «Disponible» del Inicio y bienvenida) (#PR)
 
 **Pedido:** salida a beta, etapa 2 (arreglar lo que encontró la prueba de
 punta a punta y un reporte externo). Hallazgo U053 y reporte BK-676ABE51EF2C,
@@ -12,7 +12,11 @@ misma causa.
   Inicio todavía esté mostrando datos viejos.
 - Cambiar la foto desde la tarjeta del perfil ya no pisa la descripción,
   oficios, CV o disponibilidad que la persona guardó en otra pestaña o
-  dispositivo después de abrir esa página.
+  dispositivo después de abrir esa página. Si el guardado de la foto falla,
+  la tarjeta avisa «No pudimos guardar tu foto» (antes quedaba sin guardar y
+  sin aviso).
+- Volver a entrar a la bienvenida con el perfil ya creado ya no lo borra: se
+  guarda sólo lo que se completó y «Dejar para después» no escribe nada.
 
 Lo técnico:
 
@@ -35,16 +39,16 @@ Lo técnico:
   «Disponible» aunque el servidor ya tuviera «No disp.». También `origin`
   depende sólo de la zona del perfil, así tocar «Disponible» no redibuja las
   tarjetas (`originFor` acepta `Pick<WorkerProfile, "latitude"|"longitude">`).
-- Foto del Perfil: si el guardado falla, se avisa en la tarjeta (antes el
-  rechazo quedaba sin manejar).
+- Foto del Perfil: el guardado que falla se maneja y se avisa en la tarjeta
+  (antes el rechazo quedaba sin manejar); estilo `text-xs font-semibold
+  text-danger-text`. Si un reintento falla en la subida pueden verse los dos
+  avisos (el de subida y el viejo de guardado): se acepta.
 - Inicio: el perfil que devolvió el servidor al guardar se recuerda
   (`lastSavedProfile`) y es lo que se cachea si una carga en vuelo descarta
   su copia vieja; así ir a Perfil y volver durante la primera carga no deja
   el interruptor en «Disponible». Mientras el guardado está en vuelo
   (`savingProfile`) `load` tampoco aplica su perfil (sin parpadeo) y un
   segundo toque no manda otro PUT.
-- Foto del Perfil: si el guardado falla, el aviso usa el mismo estilo que el
-  error de subida de `ImageUpload` (`text-xs text-danger-text`).
 - `/bienvenida` (trabajador): si el POST da 409 (el perfil ya existe), ya no
   cae a un PUT con un payload corto que borraba descripción, CV, idiomas y
   fecha de nacimiento: guarda sólo lo que capturó el asistente con
@@ -53,12 +57,22 @@ Lo técnico:
 - **Decisión sobre la cuenta invitada:** es una sola cuenta compartida por
   rol y cada ingreso con PIN pasa por `/bienvenida`; ahí el reemplazo del
   perfil entero es lo deseado (el probador siguiente no hereda datos del
-  anterior). El login de invitado navega a `/bienvenida?invitado=1` y, con esa
-  marca, la rama 409 hace el PUT completo de antes.
-- Tests: `lib/worker-profile.test.ts`, `components/worker/WorkerGameCard.test.tsx`
-  y `e2e/inicio-disponible-perfil.spec.ts` (incluye tocar con el refresco en
-  vuelo) y `e2e/bienvenida-perfil-existente.spec.ts` (dejar para después, terminar con detalles conservando lo existente, e invitado reemplaza); los E2E fallan con el
-  código anterior.
+  anterior). Se decide por la cuenta, no por la URL: `WorkerOnboarding`
+  compara el mail con `invitado.trabajador@oido.beta` (`GUEST_ACCOUNTS` en
+  `backend/app/modules/identity/application/services.py`). Una versión previa
+  usaba `?invitado=1` en la URL y una cuenta real que la escribiera perdía el
+  perfil; se sacó la marca y el login volvió a `/bienvenida`.
+- Inicio: si la carga terminó con el guardado en vuelo y el guardado falla,
+  `toggleAvailable` vuelve a cargar para no quedarse sin el perfil que
+  descartó la carga.
+- Tests: `lib/worker-profile.test.ts`, `components/worker/WorkerGameCard.test.tsx`,
+  `e2e/inicio-disponible-perfil.spec.ts` (incluye tocar con el refresco en
+  vuelo y el guardado fallido con la carga ya terminada) y
+  `e2e/bienvenida-perfil-existente.spec.ts` (dejar para después, terminar con
+  detalles conservando lo existente, invitado reemplaza, cuenta real con
+  `?invitado=1` no reemplaza). Los E2E de perfil existente, de Inicio y los
+  unitarios fallan con el código anterior; el del invitado fija una decisión
+  (con el código anterior también pasa).
 
 **Por qué así:** un único lugar para "guardar una parte", en vez de que cada
 pantalla arme el payload. No se tocó el backend.

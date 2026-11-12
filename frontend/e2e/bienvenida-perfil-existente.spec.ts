@@ -8,7 +8,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * idiomas y fecha de nacimiento. «Dejar para después» no tiene que escribir
  * nada si el perfil ya está.
  */
-async function prepararSesion(page: Page) {
+async function prepararSesion(page: Page, email = "demo@staffya.com") {
   await skipSplash(page);
   await injectSession(page);
   await blockExternalHosts(page);
@@ -20,7 +20,7 @@ async function prepararSesion(page: Page) {
       contentType: "application/json",
       body: JSON.stringify({
         id: "user-1",
-        email: "demo@staffya.com",
+        email,
         full_name: "Mozo Demo",
         role: "worker",
         status: "activo",
@@ -140,7 +140,20 @@ test("terminar el asistente con el perfil ya creado guarda sólo lo que capturó
   expect(primero.city).not.toBe("Otra zona");
 });
 
-test("la cuenta invitada (?invitado=1) sí reemplaza el perfil: cada probador arranca de cero", async ({ page }) => {
+test("la cuenta invitada (por su mail, sin marca en la URL) reemplaza el perfil: cada probador arranca de cero", async ({ page }) => {
+  await prepararSesion(page, "invitado.trabajador@oido.beta");
+  const puts: Record<string, unknown>[] = [];
+  await mockPerfilExistente(page, puts);
+
+  await completarAsistente(page);
+
+  expect(puts).toHaveLength(1);
+  expect(puts[0]).toMatchObject({ photo_url: null, is_available: true });
+  expect(puts[0]).not.toHaveProperty("bio");
+  expect(puts[0]).not.toHaveProperty("cv_url");
+});
+
+test("una cuenta real con ?invitado=1 en la URL no reemplaza su perfil", async ({ page }) => {
   await prepararSesion(page);
   const puts: Record<string, unknown>[] = [];
   await mockPerfilExistente(page, puts);
@@ -148,7 +161,5 @@ test("la cuenta invitada (?invitado=1) sí reemplaza el perfil: cada probador ar
   await completarAsistente(page, "/bienvenida?invitado=1");
 
   expect(puts).toHaveLength(1);
-  expect(puts[0]).toMatchObject({ photo_url: null, is_available: true });
-  expect(puts[0]).not.toHaveProperty("bio");
-  expect(puts[0]).not.toHaveProperty("cv_url");
+  expect(puts[0]).toMatchObject({ bio: "Descripción guardada", cv_url: "https://cdn.example/cv.pdf" });
 });

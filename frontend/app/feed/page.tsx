@@ -243,6 +243,10 @@ function WorkerFeedPanel() {
     } catch {
       setAvailable(!next); // revertir
       toast("No se pudo actualizar tu disponibilidad", "error");
+      // Si una carga terminó con el guardado en vuelo, descartó su perfil y
+      // nadie lo volvió a aplicar: se vuelve a cargar para tomar el del servidor.
+      savingProfile.current = false;
+      void load();
     } finally {
       savingProfile.current = false;
     }
