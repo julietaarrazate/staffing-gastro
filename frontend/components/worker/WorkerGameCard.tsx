@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
-import { toWorkerProfileInput } from "@/lib/worker-profile";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerEarnings, WorkerProfile } from "@/lib/types";
 import {
@@ -100,16 +100,12 @@ export default function WorkerGameCard() {
   }, [token]);
 
   async function savePhoto(url: string) {
-    if (!token || !profile) return;
-    // Payload COMPLETO con la foto nueva: el endpoint reemplaza el perfil, no
-    // lo parchea, así que mandar sólo `photo_url` borraría skills, bio, CV y
-    // disponibilidad. `toWorkerProfileInput` es el único lugar donde vive ese
-    // mapeo, compartido con el formulario.
-    const saved = await api.put<WorkerProfile>(
-      "/workers/me/profile",
-      toWorkerProfileInput(profile, { photo_url: url }),
-      token
-    );
+    if (!token) return;
+    // El endpoint reemplaza el perfil, no lo parchea. `saveProfilePart` lee el
+    // perfil del servidor justo antes de escribir (la copia de esta pantalla
+    // puede estar vieja si la persona guardó otra cosa en otra pestaña) y
+    // manda todo con la foto nueva encima.
+    const saved = await saveProfilePart(token, { photo_url: url });
     setProfile(saved);
   }
 

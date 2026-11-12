@@ -9,6 +9,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { isTodayInArgentina } from "@/lib/datetime";
 import {
   distanceOf,
@@ -202,28 +203,19 @@ function WorkerFeedPanel() {
   }, [load]);
 
   async function toggleAvailable() {
-    if (!token || !profile) return;
+    if (!token) return;
     const next = !available;
     setAvailable(next); // optimista
     try {
-      await api.put<WorkerProfile>(
-        "/workers/me/profile",
-        {
-          photo_url: profile.photo_url,
-          birth_date: profile.birth_date,
-          city: profile.city,
-          bio: profile.bio,
-          latitude: profile.latitude,
-          longitude: profile.longitude,
-          skills: profile.skills,
-          years_experience: profile.years_experience,
-          languages: profile.languages,
-          certifications: profile.certifications,
-          cv_url: profile.cv_url,
-          is_available: next,
-        },
-        token
-      );
+      // El endpoint reemplaza el perfil: `saveProfilePart` lo lee del servidor
+      // justo antes de escribir y cambia sólo la disponibilidad. La copia de
+      // esta pantalla puede estar vieja (se pinta desde caché y se actualiza
+      // por detrás) y mandarla pisaba lo recién guardado en el perfil.
+      const saved = await saveProfilePart(token, { is_available: next });
+      setProfile(saved);
+      setAvailable(saved.is_available);
+      const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+      if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: saved });
       toast(next ? "Estás disponible" : "Te marcaste como no disponible");
     } catch {
       setAvailable(!next); // revertir
