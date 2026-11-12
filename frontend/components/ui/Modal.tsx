@@ -45,9 +45,10 @@ export default function Modal({
     <AnimatePresence>
       {open && (
         // `z-[60]`, por encima del `z-50` de `Sheet`: ambos portan a
-        // `document.body` (ver nota de arriba) y pueden coexistir de verdad
+        // `document.body` (ver nota de arriba) y podían coexistir de verdad
         // — p. ej. el modal "¡Turno publicado!" y el sheet de activar
-        // notificaciones push, disparados por la misma acción de publicar.
+        // notificaciones push, que se disparaban con la misma acción de publicar
+        // (hoy el pedido sale recién al cerrar la confirmación).
         // Antes del portal el orden salía bien de pura casualidad (el modal
         // vivía más profundo en el árbol que el sheet del prompt de push,
         // que envuelve toda la app desde el layout); con los dos en el mismo

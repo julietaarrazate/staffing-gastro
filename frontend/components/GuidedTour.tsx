@@ -45,7 +45,9 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(cardRef, activeSteps !== null);
+  // Sólo cuando la tarjeta ya está dibujada (`rect`): antes `cardRef` es null y la
+  // trampa no tomaba el foco, que quedaba en la capa de abajo (p. ej. un pedido tapado).
+  useFocusTrap(cardRef, activeSteps !== null && rect !== null);
   // Capa por encima de todas (z-[70]): Escape = «Saltar recorrido». Sin esto, el
   // Escape pasaba de largo y cerraba el pedido de notificaciones tapado debajo.
   useEscapeLayer(activeSteps !== null, finish, 70);

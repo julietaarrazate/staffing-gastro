@@ -6,7 +6,8 @@ import { useEffect, useRef } from "react";
  * Pila de capas abiertas (Modal, Sheet, visor a pantalla completa) para que
  * Escape cierre SOLO la de más arriba. Antes cada capa escuchaba Escape por su
  * cuenta en el documento y, con dos abiertas a la vez, un Escape cerraba las
- * dos. Caso real: al publicar un turno se abren juntos la confirmación
+ * dos. Caso real (ya resuelto en origen: el pedido sale recién al cerrar la
+ * confirmación): al publicar un turno se abrían juntos la confirmación
  * «¡Turno publicado!» y, debajo, el pedido de activar notificaciones; un
  * Escape cerraba ambos y el pedido quedaba registrado como rechazado sin que
  * la persona lo hubiera visto.
