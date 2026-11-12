@@ -77,6 +77,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
+| Pila de capas abiertas: Escape cierra sólo la de más arriba (la usan Modal, Sheet y `DiscoverDeck`; una capa nueva con su propio Escape tiene que usarla) | `frontend/lib/use-escape-layer.ts` |
 | Íconos (Lucide, envueltos) | `frontend/components/icons.tsx` |
 | Logo | `frontend/components/Logo.tsx` |
 | Claves de `localStorage`/`sessionStorage` (`staffya_*`) y mocks E2E | `frontend/e2e/mocks.ts` |

@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
@@ -28,20 +29,17 @@ export default function Modal({
   const reducedMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, open);
+  // Prioridad = z-index de la capa (z-[60]): Escape cierra sólo la de más arriba.
+  useEscapeLayer(open, onClose, 60);
 
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const content = (
     <AnimatePresence>
