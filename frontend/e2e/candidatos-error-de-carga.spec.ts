@@ -5,7 +5,8 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * /shifts/[id]/candidates: si la carga falla NO se muestra «Todavía nadie se
  * postuló» (el comercio podía creer que no hay candidatos y cancelar el turno).
  * Falla de postulados -> error con «Reintentar»; falla sólo de recomendados ->
- * se ven los postulados y un aviso donde irían los recomendados.
+ * se ven los postulados y un aviso discreto con reintento. El aviso de
+ * postulados se ve en las dos pestañas.
  */
 
 const EMPLOYER = {
@@ -83,18 +84,49 @@ test("postulados responde 500: error con Reintentar, nunca el vacío; al reinten
   await expect(aviso(page)).toHaveCount(0);
 });
 
-test("recomendados responde 500 con postulados bien: se ven los postulados y el aviso en Recomendados", async ({ page }) => {
+// Aviso discreto de recomendados dentro de Postulantes.
+const avisoRecs = (page: Page) => page.getByRole("status").filter({ hasText: "No pudimos cargar los recomendados" });
+
+test("recomendados responde 500 con postulados bien: se ven los postulados, un aviso discreto con reintento y el aviso completo en Recomendados", async ({ page }) => {
   await setup(page, {
     apps: () => json([APPLICANT]),
     cands: () => json({ detail: "boom" }, 500),
   });
   await page.goto("/shifts/shift-1/candidates");
   await expect(page.getByText("Lucía Postulada")).toBeVisible();
+  await expect(avisoRecs(page)).toBeVisible();
+  await expect(avisoRecs(page).getByRole("button", { name: "Reintentar" })).toBeVisible();
   await expect(aviso(page)).toHaveCount(0);
 
   await page.getByRole("button", { name: /Recomendados/ }).click();
   await expect(aviso(page)).toContainText("No pudimos cargar los recomendados");
   await expect(page.getByText("Sin recomendados por ahora")).toHaveCount(0);
+});
+
+test("entrando por ?tab=recomendados con postulados en 500: el error de postulantes se ve igual", async ({ page }) => {
+  await setup(page, {
+    apps: () => json({ detail: "boom" }, 500),
+    cands: () => json([CANDIDATE]),
+  });
+  await page.goto("/shifts/shift-1/candidates?tab=recomendados");
+  await expect(page.getByText("Mateo Sugerido")).toBeVisible();
+  await expect(aviso(page)).toContainText("No pudimos cargar los postulantes");
+});
+
+test("el error de postulados no culpa a la conexión (403 u otra falla que no es de red)", async ({ page }) => {
+  await setup(page, { apps: () => json({ detail: "x" }, 403), cands: () => json([]) });
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(aviso(page)).toContainText("No pudimos cargar los postulantes");
+  await expect(aviso(page)).not.toContainText("conexión");
+  await expect(page.getByText(VACIO)).toHaveCount(0);
+});
+
+test("turno ajeno o inexistente (404 en las dos listas): se comporta como antes, vacío y sin aviso", async ({ page }) => {
+  await setup(page, { apps: () => json({ detail: "no" }, 404), cands: () => json({ detail: "no" }, 404) });
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByText(VACIO)).toBeVisible();
+  await expect(aviso(page)).toHaveCount(0);
+  await expect(avisoRecs(page)).toHaveCount(0);
 });
 
 test("reintentar recomendados no toca los postulados ya cargados y muestra la lista al volver bien", async ({ page }) => {

@@ -4,8 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { api } from "@/lib/api";
+import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch, SKILL_LABELS, Shift } from "@/lib/types";
@@ -31,6 +31,40 @@ import { ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
+/**
+ * Carga una lista. 404 (turno ajeno o inexistente) = lista vacía, como
+ * siempre; cualquier otra falla deja `error` y conserva lo ya cargado. Una
+ * respuesta vieja que llega tarde no pisa a la más nueva.
+ */
+function useLoadedList<T>(path: string, token: string | null | undefined) {
+  const [items, setItems] = useState<T[]>([]);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const latest = useRef(0);
+  const reload = useCallback(async () => {
+    if (!token) return;
+    const mine = ++latest.current;
+    setLoading(true);
+    try {
+      const data = await api.get<T[]>(path, token);
+      if (mine !== latest.current) return;
+      setItems(data);
+      setError(false);
+    } catch (err) {
+      if (mine !== latest.current) return;
+      if (isNotFound(err)) {
+        setItems([]);
+        setError(false);
+      } else {
+        setError(true);
+      }
+    } finally {
+      if (mine === latest.current) setLoading(false);
+    }
+  }, [path, token]);
+  return { items, error, loading, reload };
+}
+
 function ShiftCandidatesContent() {
   const { token } = useRequireAuth();
   const router = useRouter();
@@ -50,20 +84,24 @@ function ShiftCandidatesContent() {
     router.replace(`/shifts/${shiftId}/candidates?tab=${next}`, { scroll: false });
   }
   const [shift, setShift] = useState<Shift | null>(null);
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
-  const standout = standoutApplicant(rankedApplicants);
-  const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
   // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
   // contestó bien con cero postulantes. Si ya había datos y una recarga
   // falla, se conservan y se avisa.
-  const [appsError, setAppsError] = useState(false);
-  const [appsLoaded, setAppsLoaded] = useState(false);
-  const [loadingApps, setLoadingApps] = useState(true);
-  const [candsError, setCandsError] = useState(false);
-  const [candsLoaded, setCandsLoaded] = useState(false);
-  const [loadingCands, setLoadingCands] = useState(true);
+  const {
+    items: applicants,
+    error: appsError,
+    loading: loadingApps,
+    reload: reloadApps,
+  } = useLoadedList<Applicant>(`/applications/shifts/${shiftId}`, token);
+  const {
+    items: candidates,
+    error: candsError,
+    loading: loadingCands,
+    reload: reloadCands,
+  } = useLoadedList<CandidateMatch>(`/shifts/${shiftId}/candidates`, token);
+  const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
+  const standout = standoutApplicant(rankedApplicants);
   const [assigning, setAssigning] = useState<string | null>(null);
   // Recién asignado: su tarjeta sube arriba con la confirmación y el resto
   // se atenúa, un instante antes de volver al panel. La decisión se VE, en
@@ -91,55 +129,14 @@ function ShiftCandidatesContent() {
   }
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const loadApps = useCallback(async () => {
-    if (!token) return;
-    setLoadingApps(true);
-    try {
-      setApplicants(await api.get<Applicant[]>(`/applications/shifts/${shiftId}`, token));
-      setAppsLoaded(true);
-      setAppsError(false);
-    } catch (err) {
-      // Turno ajeno o inexistente (404): se comporta como siempre, sin error.
-      if (err instanceof ApiError && err.status === 404) {
-        setApplicants([]);
-        setAppsLoaded(true);
-        setAppsError(false);
-      } else {
-        setAppsError(true);
-      }
-    } finally {
-      setLoadingApps(false);
-    }
-  }, [token, shiftId]);
-
-  const loadCands = useCallback(async () => {
-    if (!token) return;
-    setLoadingCands(true);
-    try {
-      setCandidates(await api.get<CandidateMatch[]>(`/shifts/${shiftId}/candidates`, token));
-      setCandsLoaded(true);
-      setCandsError(false);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setCandidates([]);
-        setCandsLoaded(true);
-        setCandsError(false);
-      } else {
-        setCandsError(true);
-      }
-    } finally {
-      setLoadingCands(false);
-    }
-  }, [token, shiftId]);
-
   const load = useCallback(() => {
-    loadApps();
-    loadCands();
+    reloadApps();
+    reloadCands();
     // Aparte de la carga principal: si falla, la pantalla igual funciona sin
     // el resumen del turno de arriba (era información nueva agregada acá, no
     // el contenido central de esta pantalla).
     if (token) api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
-  }, [loadApps, loadCands, token, shiftId]);
+  }, [reloadApps, reloadCands, token, shiftId]);
 
   useEffect(() => {
     load();
@@ -226,28 +223,42 @@ function ShiftCandidatesContent() {
       {tab === "postulantes" && loadingApps && <CardSkeletons />}
       {tab === "recomendados" && loadingCands && <CardSkeletons />}
 
-      {tab === "postulantes" && !loadingApps && appsError && (
+      {/* El aviso de postulantes va en las dos pestañas: es la lista principal
+          y el error no puede quedar escondido tras la otra pestaña. */}
+      {!loadingApps && appsError && (
         <ErrorBanner
           message={
-            appsLoaded
+            applicants.length > 0
               ? "No pudimos actualizar los postulantes. Te mostramos los que ya habían cargado."
-              : "No pudimos cargar los postulantes. Revisá tu conexión y reintentá."
+              : "No pudimos cargar los postulantes. Reintentá en un momento."
           }
-          onRetry={loadApps}
+          onRetry={reloadApps}
         />
       )}
       {tab === "recomendados" && !loadingCands && candsError && (
         <ErrorBanner
           message={
-            candsLoaded
+            candidates.length > 0
               ? "No pudimos actualizar los recomendados. Te mostramos los que ya habían cargado."
-              : "No pudimos cargar los recomendados. Los postulantes siguen disponibles."
+              : "No pudimos cargar los recomendados. Reintentá en un momento."
           }
-          onRetry={loadCands}
+          onRetry={reloadCands}
         />
       )}
+      {tab === "postulantes" && !loadingCands && candsError && (
+        <p role="status" className="mt-3 text-xs text-ink/60">
+          No pudimos cargar los recomendados.{" "}
+          <button
+            type="button"
+            onClick={reloadCands}
+            className="font-semibold underline underline-offset-2 hover:opacity-80"
+          >
+            Reintentar
+          </button>
+        </p>
+      )}
 
-      {tab === "postulantes" && !loadingApps && (appsLoaded || !appsError) && (
+      {tab === "postulantes" && !loadingApps && (!appsError || applicants.length > 0) && (
         <div className="mt-5">
           {applicants.length === 0 ? (
             <EmptyState
@@ -326,7 +337,7 @@ function ShiftCandidatesContent() {
         </div>
       )}
 
-      {tab === "recomendados" && !loadingCands && (candsLoaded || !candsError) && (
+      {tab === "recomendados" && !loadingCands && (!candsError || candidates.length > 0) && (
         <div className="mt-5">
           {candidates.length === 0 ? (
             <EmptyState
