@@ -133,7 +133,8 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 
 ## Chat — `ChatMessage`
 
-- **Propósito:** mensajería trabajador↔comercio **por turno**.
+- **Propósito:** mensajería trabajador↔comercio dentro de un turno, **una
+  conversación por turno y persona asignada**.
 - **Datos:** `shift_id`, `worker_user_id` (la persona del hilo), `sender_user_id`,
   `body`, `read`, `created_at`.
 - **Reglas:** la conversación la integran el comercio y el trabajador **asignado**

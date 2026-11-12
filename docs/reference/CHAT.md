@@ -6,9 +6,9 @@
 
 ## Qué es
 
-Un canal de mensajería simple **por turno** para que el comercio y el trabajador
-asignado coordinen los detalles (llegada, uniforme, dudas). Estilo WhatsApp: una
-conversación por turno, en tiempo real.
+Un canal de mensajería simple, dentro de un turno, para que el comercio y el
+trabajador asignado coordinen los detalles (llegada, uniforme, dudas). Estilo
+WhatsApp: una conversación por turno y persona asignada, en tiempo real.
 
 ## Reglas de negocio
 
@@ -65,8 +65,10 @@ repositorio son por hilo (`list_by_thread`, `mark_read`, `last_messages`,
 La migración `0045` agregó `chat_messages.worker_user_id` y rellenó lo que ya
 existía con una regla conservadora (detalle en el docstring de
 `backend/alembic/versions/0045_chat_por_asignacion.py`): lo que escribió un
-trabajador es de su hilo; lo que escribió el comercio entra a un hilo sólo si el
-turno tuvo una única persona; ante la duda el mensaje queda **sin hilo**
+trabajador es de su hilo; lo que escribió el comercio va al hilo de quien recibió
+el aviso `chat_message` de ese mismo mensaje (se reconoce por el link al turno y
+el comienzo del texto), sólo si ese aviso se identifica sin duda; si el aviso ya
+no está o el texto se repite en el turno, el mensaje queda **sin hilo**
 (`worker_user_id` nulo): sigue guardado y la app no se lo muestra a nadie.
 
 ## Fuera de alcance (hoy)

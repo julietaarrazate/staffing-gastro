@@ -40,10 +40,11 @@ asignado. Al reasignarse un turno, las dos cosas dejaban de coincidir.
   agrega `chat_messages.worker_user_id` (FK a `users`, `ON DELETE CASCADE`) y el
   índice `(worker_user_id, shift_id, created_at)`, y rellena lo que ya existía
   con una regla conservadora, explicada en su docstring: lo que escribió un
-  trabajador es de su hilo; lo que escribió el comercio entra a un hilo sólo si
-  en los datos del turno aparece una única persona (quienes escribieron, quien
-  está asignado, quien quedó como ausente, quienes tienen la postulación
-  aceptada); ante la duda queda sin hilo y no se le muestra a nadie.
+  trabajador es de su hilo; lo que escribió el comercio va al hilo de quien
+  recibió el aviso `chat_message` de ese mismo mensaje (link al turno y comienzo
+  del texto), sólo si ese aviso se identifica sin duda. Si el aviso ya no está
+  (la limpieza borra los leídos de más de 90 días) o el texto se repite en el
+  turno, queda sin hilo y no se le muestra a nadie.
 - Sin cambios de frontend ni de textos legales (lo que dicen `/privacidad` y
   `/terminos` sobre el chat sigue siendo cierto).
 - Tests: `backend/tests/test_chat_hilos.py` (9: los tres caminos que
@@ -51,7 +52,7 @@ asignado. Al reasignarse un turno, las dos cosas dejaban de coincidir.
   ve sólo el hilo actual, no leídos y último mensaje por hilo, marcar leído no
   toca otro hilo, retomar el propio hilo, aviso sólo a la persona del hilo y el
   WebSocket), `backend/tests/test_chat_migracion_hilos.py` (corre las mismas
-  sentencias SQL del relleno sobre ocho casos) y tres tests nuevos en
+  sentencias SQL del relleno sobre doce casos, dos veces) y tres tests nuevos en
   `backend/tests/test_ws_manager.py`. Además se corrió a mano contra un
   Postgres 16 local: los tests de chat, `alembic upgrade head` desde cero,
   `downgrade 0044` y de nuevo `upgrade head` con datos, con el mismo resultado
@@ -73,13 +74,20 @@ asignado. Al reasignarse un turno, las dos cosas dejaban de coincidir.
   soporte necesita ante un reclamo, y porque obligaría a que el módulo de turnos
   toque el chat en cada transición. Con el hilo en el mensaje, las transiciones
   de `Shift` no cambian.
-- *Relleno conservador:* no hay historial de asignaciones guardado, así que no
-  se puede reconstruir a quién le hablaba el comercio en un turno que pasó por
-  más de una persona. Se prefirió que esos mensajes del comercio dejen de verse
-  antes que mostrárselos a la persona equivocada.
+- *Relleno por mensaje, con el aviso como prueba:* no hay historial de
+  asignaciones guardado. La primera versión decidía por turno (si en el turno
+  aparecía una sola persona, todo lo del comercio era de ella), pero alguien
+  asignado directo desde «Recomendados» que no escribe ni se postula no deja
+  más rastro que los avisos que recibió, y lo que el comercio le escribió
+  terminaba en el hilo de quien vino después. El aviso de cada mensaje dice a
+  quién se le mandó; si no se lo puede identificar sin duda, el mensaje queda
+  sin hilo: se prefiere que deje de verse antes que mostrárselo a la persona
+  equivocada.
+- *Tope de conexiones por hilo:* las 8 conexiones en vivo se cuentan por hilo,
+  no por turno; las que quedaron abiertas sobre un hilo anterior no le quitan
+  lugar a quien tiene el turno ahora mientras esperan su corte.
 - *Cortar la conexión en vivo en vez de sólo filtrar:* quien ya no participa no
-  tiene por qué conservar un canal abierto (que además ocupa uno de los 8
-  lugares del turno), y para el comercio el corte es lo que dispara la recarga
+  tiene por qué conservar un canal abierto, y para el comercio el corte es lo que dispara la recarga
   al hilo vigente sin tocar el frontend.
 - *Índice con `worker_user_id` adelante:* sirve igual a las lecturas por hilo
   (siempre filtran por las dos columnas) y además cubre la clave foránea nueva;
@@ -90,11 +98,19 @@ asignado. Al reasignarse un turno, las dos cosas dejaban de coincidir.
 - El comercio no tiene una pantalla para volver a leer el hilo con una persona
   que ya no está asignada (los mensajes están guardados). Si hace falta para
   soporte, es una vista de admin aparte.
-- Límite del relleno, documentado en la migración: una persona asignada directo
-  (sin postularse), que no escribió y dejó el turno sin que se la marcara
-  ausente no deja rastro; si el resto del turno muestra a una sola persona, lo
-  que el comercio le haya escrito a aquélla queda en el hilo de ésta. Son
-  mensajes del comercio, nunca de otro trabajador.
+- Lo que el relleno deja sin hilo deja de verse para las dos partes: mensajes
+  del comercio cuyo aviso ya se borró (leídos de más de 90 días) o con un texto
+  repetido en el mismo turno (un «Hola» a dos personas). Siguen guardados.
+- **Paso de deploy.** El contenedor nuevo corre `alembic upgrade head` al
+  arrancar mientras el viejo todavía atiende: un mensaje enviado con el código
+  anterior en esa ventana queda sin hilo. Deployar en un horario sin uso. Si
+  igual entró alguno, contar los de la ventana
+  (`SELECT COUNT(*) FROM chat_messages WHERE worker_user_id IS NULL AND
+  created_at >= '<inicio del deploy>'`) y, si hay, volver a correr las dos
+  sentencias de `RELLENO` de la 0045: sólo tocan mensajes sin hilo y exigen el
+  aviso de cada mensaje, así que no mueven nada que ya tenga hilo ni le dan a
+  nadie un mensaje que no recibió (el test las corre dos veces). No escribir a
+  mano otra regla de reparación.
 - Una pestaña del comercio que quedó abierta en el chat mientras el turno se
   reasignaba desde otro lado sigue mostrando el hilo anterior hasta que llega
   el primer mensaje o "visto" del hilo nuevo (ahí se reconecta y recarga). Si
