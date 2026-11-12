@@ -158,7 +158,7 @@ export default function WorkerGameCard() {
           fallbackLabel={user?.full_name ?? "Vos"}
         />
         {photoError && (
-          <p role="alert" className="mt-2 text-sm font-semibold text-on-brand">
+          <p role="alert" className="mt-2 text-xs text-danger-text">
             {photoError}
           </p>
         )}

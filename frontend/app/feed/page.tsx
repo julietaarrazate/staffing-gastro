@@ -168,6 +168,13 @@ function WorkerFeedPanel() {
   // pedido más lento) trae una copia vieja: si el contador cambió, `load` la
   // descarta y la pantalla se queda con lo que devolvió el servidor al guardar.
   const profileSaves = useRef(0);
+  // Hay un guardado del perfil en vuelo: `load` no aplica su perfil (sería el
+  // viejo) para que el interruptor no parpadee de vuelta.
+  const savingProfile = useRef(false);
+  // Último perfil que devolvió el servidor al guardar desde acá. Sirve cuando
+  // se guardó antes de que existiera el caché de pantalla (primera carga): si
+  // `load` descarta su copia vieja, esto es lo que se cachea, no `null`.
+  const lastSavedProfile = useRef<WorkerProfile | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -190,7 +197,7 @@ function WorkerFeedPanel() {
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
-      const profFresh = profileSaves.current === savesAtStart;
+      const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
       if (prof && profFresh) {
         setProfile(prof);
         setAvailable(prof.is_available);
@@ -199,7 +206,9 @@ function WorkerFeedPanel() {
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
       if (!assistantSearch) {
-        const cachedProfile = profFresh ? prof : (getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
+        const cachedProfile = profFresh
+          ? prof
+          : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
         setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
       }
     } catch (err) {
@@ -214,9 +223,10 @@ function WorkerFeedPanel() {
   }, [load]);
 
   async function toggleAvailable() {
-    if (!token) return;
+    if (!token || savingProfile.current) return;
     const next = !available;
     setAvailable(next); // optimista
+    savingProfile.current = true;
     try {
       // El endpoint reemplaza el perfil: `saveProfilePart` lo lee del servidor
       // justo antes de escribir y cambia sólo la disponibilidad. La copia de
@@ -224,6 +234,7 @@ function WorkerFeedPanel() {
       // por detrás) y mandarla pisaba lo recién guardado en el perfil.
       const saved = await saveProfilePart(token, { is_available: next });
       profileSaves.current += 1;
+      lastSavedProfile.current = saved;
       setProfile(saved);
       setAvailable(saved.is_available);
       const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
@@ -232,6 +243,8 @@ function WorkerFeedPanel() {
     } catch {
       setAvailable(!next); // revertir
       toast("No se pudo actualizar tu disponibilidad", "error");
+    } finally {
+      savingProfile.current = false;
     }
   }
 

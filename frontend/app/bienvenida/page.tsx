@@ -135,6 +135,12 @@ function StepDots({ active, total }: { active: number; total: number }) {
   );
 }
 
+/** El login de invitado manda a `/bienvenida?invitado=1`. Se lee al guardar
+ *  (sólo en el navegador) para no exigir Suspense por `useSearchParams`. */
+function esInvitado(): boolean {
+  return new URLSearchParams(window.location.search).get("invitado") === "1";
+}
+
 type WorkerStep = "zona" | "oficio" | "detalles";
 
 function WorkerOnboarding() {
@@ -190,14 +196,22 @@ function WorkerOnboarding() {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
       } catch (err) {
         if (!(err instanceof ApiError) || err.status !== 409) throw err;
-        if (withDetails) {
+        if (esInvitado()) {
+          // La cuenta invitada es una sola compartida por rol: cada ingreso con
+          // PIN arranca de cero a propósito, así que acá sí se reemplaza el
+          // perfil entero (el probador anterior no le deja sus datos al siguiente).
+          await api.put<WorkerProfile>("/workers/me/profile", payload, token);
+        } else if (withDetails) {
           await saveProfilePart(token, {
             ...(photoUrl ? { photo_url: photoUrl } : {}),
             city: location?.city ?? null,
             latitude: location?.latitude ?? null,
             longitude: location?.longitude ?? null,
             skills,
-            years_experience: Number(yearsExperienceInput) || 0,
+            // Opcional: vacío no pisa los años que ya tenía el perfil.
+            ...(yearsExperienceInput.trim()
+              ? { years_experience: Number(yearsExperienceInput) || 0 }
+              : {}),
           });
         }
       }

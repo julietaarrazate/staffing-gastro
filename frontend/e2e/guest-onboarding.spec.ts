@@ -41,7 +41,7 @@ test("un invitado (comercio) entra por el PIN y cae en el onboarding, no directo
   await page.getByLabel("PIN de acceso").fill("3526");
   await page.getByRole("button", { name: "Entrar" }).click();
 
-  await expect(page).toHaveURL("/bienvenida");
+  await expect(page).toHaveURL("/bienvenida?invitado=1");
   // getByRole("heading", ...) en vez de getByText(...): Next.js monta su
   // propio anunciador de ruta (`#__next-route-announcer__`, aria-live) con
   // el mismo texto del <h1> mientras dura el anuncio — un getByText sin
@@ -83,7 +83,7 @@ test("un invitado (trabajador) entra por el PIN y cae en el onboarding, no direc
   await page.getByLabel("PIN de acceso").fill("3526");
   await page.getByRole("button", { name: "Entrar" }).click();
 
-  await expect(page).toHaveURL("/bienvenida");
+  await expect(page).toHaveURL("/bienvenida?invitado=1");
   // Mismo motivo que en el test de comercio (ver comentario arriba): el
   // heading, no un getByText sin acotar que también matchea el anunciador
   // de ruta de Next.js.

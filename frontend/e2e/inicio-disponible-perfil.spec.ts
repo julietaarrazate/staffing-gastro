@@ -139,7 +139,7 @@ test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se q
   // El feed (el pedido más lento de la carga del Inicio) queda demorado hasta
   // que se lo suelta: simula la conexión lenta.
   let soltarFeed!: () => void;
-  const feedDemorado = new Promise<void>((res) => (soltarFeed = res));
+  let feedDemorado = new Promise<void>((res) => (soltarFeed = res));
   await page.route("**/api/v1/shifts/feed**", async (route) => {
     await feedDemorado;
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
@@ -175,4 +175,17 @@ test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se q
   await expect(page.getByText("No disp.")).toBeVisible();
   expect(puts).toHaveLength(1);
   expect(puts[0]).toMatchObject({ is_available: false, cv_filename: "CV-Vera-Datos-2026.pdf" });
+
+  // Tocó antes de que existiera caché de pantalla (primera carga): al ir a
+  // otra pestaña y volver, el Inicio se pinta desde caché y tiene que seguir
+  // mostrando lo guardado, no una copia sin perfil.
+  await page.getByRole("link", { name: "Perfil" }).first().click();
+  await expect(page).toHaveURL("/profile");
+  // El refresco de la vuelta también queda demorado: mientras tanto sólo hay
+  // caché para pintar.
+  feedDemorado = new Promise<void>((res) => (soltarFeed = res));
+  await page.getByRole("link", { name: "Inicio" }).first().click();
+  await expect(page).toHaveURL("/feed");
+  await expect(page.getByText("No disp.")).toBeVisible();
+  soltarFeed();
 });

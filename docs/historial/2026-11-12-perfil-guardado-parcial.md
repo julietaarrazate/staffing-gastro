@@ -1,4 +1,4 @@
-# Guardar una parte del perfil ya no pisa lo demás (foto del Perfil e interruptor «Disponible» del Inicio)
+# Guardar una parte del perfil ya no pisa lo demás (foto del Perfil, interruptor «Disponible» del Inicio y bienvenida)
 
 **Pedido:** salida a beta, etapa 2 (arreglar lo que encontró la prueba de
 punta a punta y un reporte externo). Hallazgo U053 y reporte BK-676ABE51EF2C,
@@ -37,13 +37,27 @@ Lo técnico:
   tarjetas (`originFor` acepta `Pick<WorkerProfile, "latitude"|"longitude">`).
 - Foto del Perfil: si el guardado falla, se avisa en la tarjeta (antes el
   rechazo quedaba sin manejar).
+- Inicio: el perfil que devolvió el servidor al guardar se recuerda
+  (`lastSavedProfile`) y es lo que se cachea si una carga en vuelo descarta
+  su copia vieja; así ir a Perfil y volver durante la primera carga no deja
+  el interruptor en «Disponible». Mientras el guardado está en vuelo
+  (`savingProfile`) `load` tampoco aplica su perfil (sin parpadeo) y un
+  segundo toque no manda otro PUT.
+- Foto del Perfil: si el guardado falla, el aviso usa el mismo estilo que el
+  error de subida de `ImageUpload` (`text-xs text-danger-text`).
 - `/bienvenida` (trabajador): si el POST da 409 (el perfil ya existe), ya no
   cae a un PUT con un payload corto que borraba descripción, CV, idiomas y
   fecha de nacimiento: guarda sólo lo que capturó el asistente con
-  `saveProfilePart`, y «Dejar para después» no escribe nada.
+  `saveProfilePart` (los años de experiencia sólo si se completó el campo),
+  y «Dejar para después» no escribe nada.
+- **Decisión sobre la cuenta invitada:** es una sola cuenta compartida por
+  rol y cada ingreso con PIN pasa por `/bienvenida`; ahí el reemplazo del
+  perfil entero es lo deseado (el probador siguiente no hereda datos del
+  anterior). El login de invitado navega a `/bienvenida?invitado=1` y, con esa
+  marca, la rama 409 hace el PUT completo de antes.
 - Tests: `lib/worker-profile.test.ts`, `components/worker/WorkerGameCard.test.tsx`
   y `e2e/inicio-disponible-perfil.spec.ts` (incluye tocar con el refresco en
-  vuelo) y `e2e/bienvenida-perfil-existente.spec.ts`; los E2E fallan con el
+  vuelo) y `e2e/bienvenida-perfil-existente.spec.ts` (dejar para después, terminar con detalles conservando lo existente, e invitado reemplaza); los E2E fallan con el
   código anterior.
 
 **Por qué así:** un único lugar para "guardar una parte", en vez de que cada
