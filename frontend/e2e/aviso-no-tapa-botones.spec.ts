@@ -120,11 +120,20 @@ test("con el aviso de «Completamos todo» visible, un toque en «Publicar turno
   expect(pisa, "el aviso debe quedar encima del botón para que la prueba valga").toBe(true);
 
   // Toque con las coordenadas reales del botón, sin click forzado.
-  await Promise.all([
-    page.waitForRequest(
-      (req) => req.method() === "POST" && new URL(req.url()).pathname.endsWith("/api/v1/shifts")
-    ),
-    page.mouse.click(x, y),
-  ]);
-  await expect.poll(() => publicados).toBe(1);
+  const alta = page.waitForRequest(
+    (req) => req.method() === "POST" && new URL(req.url()).pathname.endsWith("/api/v1/shifts"),
+    { timeout: 5000 }
+  );
+  const publish = page.waitForRequest(
+    (req) =>
+      req.method() === "POST" &&
+      new URL(req.url()).pathname.endsWith("/api/v1/shifts/shift-aviso-1/publish"),
+    { timeout: 5000 }
+  );
+  await page.mouse.click(x, y);
+  await alta;
+  await publish;
+  expect(publicados).toBe(1);
+  // El aviso seguía en pantalla al tocar: el toque atravesó el aviso, no lo cerró.
+  await expect(aviso).toBeVisible();
 });
