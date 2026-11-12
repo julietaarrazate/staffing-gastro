@@ -50,7 +50,13 @@ class PushService:
         sesión abierta ahí: suscribir un endpoint que ya estaba a nombre de
         otra cuenta lo pasa a `user_id` (antes quedaba con la primera que lo
         activó y la siguiente persona veía sus avisos). Repetirlo para la
-        misma cuenta no cambia nada."""
+        misma cuenta no cambia nada.
+
+        Sólo si llega con las claves que ya tenía, que es lo que manda el
+        mismo navegador. Con otras claves no se toca y la respuesta es la
+        misma (no-disclosure): si no, alcanzaba con conocer el endpoint de
+        otra persona para quedárselo y cortarle los avisos, lo mismo que
+        `unsubscribe` cerró para la baja."""
         return await self._subscriptions.add(
             PushSubscription(
                 user_id=user_id,
