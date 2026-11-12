@@ -130,8 +130,9 @@ iframe de Google queda bloqueado por `default-src 'self'`.
 Tabla `push_subscriptions` (migración `0013`, verificada up/down contra
 Postgres real — ver más abajo) con las suscripciones Web Push por
 dispositivo/navegador de cada usuario. `POST /push/subscribe` (un
-`endpoint`, una fila: queda a nombre de quien lo suscribe, ver "De quién es
-el push de un dispositivo") / `DELETE /push/subscribe` gestionan el ciclo de vida;
+`endpoint`, una fila: queda a nombre de quien lo suscribe desde ese
+navegador, ver "De quién es el push de un dispositivo") /
+`DELETE /push/subscribe` gestionan el ciclo de vida;
 `GET /push/public-key` expone la clave pública VAPID (o `null` si no está
 configurada, sin autenticar — el frontend la necesita antes de decidir si
 mostrar el toggle).
@@ -173,13 +174,20 @@ avisos de la cuenta anterior después de cerrar sesión, y la cuenta siguiente
 veía el interruptor "Activadas" sin recibir nada.
 
 - **Backend.** `POST /push/subscribe` con un `endpoint` que ya existe lo deja
-  a nombre de quien lo manda, con sus claves
-  (`SqlAlchemyPushSubscriptionRepository.add`). Para la misma cuenta es
-  idempotente; si era de otra, se reasigna y la anterior deja de recibir en
-  ese dispositivo. Sigue habiendo una sola fila por `endpoint` (índice único
-  de la migración `0013`: no hizo falta otra). `DELETE` sigue borrando sólo
-  si la fila es de quien lo pide, así que una baja que llega tarde no le
-  saca el dispositivo a la cuenta que entró después.
+  a nombre de quien lo manda, **si llega con las claves que ya estaban
+  guardadas** (`PushSubscription.is_same_browser_as`, lo aplica
+  `SqlAlchemyPushSubscriptionRepository.add`). Las claves son de la
+  suscripción, no de la sesión: el mismo navegador manda siempre las mismas
+  para su `endpoint`, entre quien entre. Para la misma cuenta es idempotente;
+  si era de otra, se reasigna y la anterior deja de recibir en ese
+  dispositivo. Con otras claves no se toca nada y la respuesta es la misma
+  (201, no-disclosure): si no, alcanzaba con conocer el `endpoint` de otra
+  persona para quedárselo y cortarle los avisos, lo mismo que la revisión de
+  seguridad del 2026-10-20 cerró para la baja. Sigue habiendo una sola fila
+  por `endpoint` (índice único de la migración `0013`: no hizo falta otra).
+  `DELETE` sigue borrando sólo si la fila es de quien lo pide, así que una
+  baja que llega tarde no le saca el dispositivo a la cuenta que entró
+  después.
 - **Al abrir la sesión** (cualquier ingreso, o la sesión recuperada al abrir
   la app): si el navegador ya tiene una suscripción y el permiso está
   concedido, `claimPushForAccount` (`lib/push.ts`) la registra a nombre de la
@@ -192,25 +200,80 @@ veía el interruptor "Activadas" sin recibir nada.
 - **Al cerrar sesión:** `releasePushFromAccount` da de baja el dispositivo en
   el servidor (`DELETE /push/subscribe` con el `endpoint`) usando el access
   token vigente antes de soltarlo. No se espera: si falla, el cierre sigue y
-  la reasignación del backend lo cubre cuando entre otra cuenta. **No se
-  cancela la suscripción del navegador ni se toca el permiso** (eso lo hace
-  sólo el interruptor de Ajustes, `unsubscribeFromPush`).
+  la reasignación del backend lo cubre cuando entre otra cuenta. También
+  saca de la bandeja del sistema los avisos que el dispositivo ya había
+  mostrado (`registration.getNotifications()` y `close()`), para que quien
+  lo use después no siga leyendo su título y su texto. **No se cancela la
+  suscripción del navegador ni se toca el permiso** (eso lo hace sólo el
+  interruptor de Ajustes, `unsubscribeFromPush`).
 - **"Ver como" de admin:** mientras se impersona no se registra ni se da de
   baja nada. El dispositivo es de la admin: no tiene que recibir los avisos
   de la persona que está viendo ni perder los suyos. "Cerrar sesión"
-  impersonando sólo vuelve a la cuenta admin.
+  impersonando sólo vuelve a la cuenta admin. Tampoco se puede cambiar a
+  mano: el interruptor de Ajustes (`components/PushToggle.tsx`) queda
+  deshabilitado con una línea que lo explica, y el pedido de activar las
+  notificaciones (`requestOptIn`, `lib/push-prompt-context.tsx`) no se
+  muestra ni se da por mostrado. En los dos casos el token es el de la
+  persona vista: prenderlas dejaba el dispositivo de la admin a su nombre, y
+  apagarlas le cancelaba a la admin las suyas.
+- **Verificación en dos pasos de la admin (ADR-0023):** el registro y la
+  baja son pedidos que la app hace por su cuenta, sin que una pantalla los
+  pida, y `POST`/`DELETE /push/subscribe` responden el 403 del candado como
+  cualquier otro endpoint. Van por `backgroundApi` (`lib/api.ts`), que le
+  devuelve el error a quien llamó pero no avisa al manejador del candado: el
+  registro no lleva al alta ni cierra una sesión vieja antes de que una
+  pantalla pida algo, y la baja (que contesta con la sesión ya cerrada) no
+  devuelve al alta, o al login, a quien acaba de salir. Con el alta
+  pendiente (`twoFactorSetupPending`) el registro ni se manda. El
+  dispositivo queda registrado cuando la sesión verificada se abre
+  (`adoptSession` o `completeTwoFactor`: token nuevo, el efecto corre solo).
+- **Acceso invitado:** la sesión de invitado registra el dispositivo como
+  cualquier otra. Las cuentas invitadas son una por rol y las comparten
+  todos los que entran con el PIN, así que quien explora como invitada en un
+  navegador que ya tenía el permiso concedido recibe los avisos que generan
+  otras personas en esa cuenta, y los sigue recibiendo si cierra la pestaña
+  sin "Cerrar sesión". Es lo que dice la regla (la cuenta invitada es la que
+  tiene la sesión abierta) y es lo esperado: no registrarlo dejaría el
+  dispositivo a nombre de la cuenta real anterior cuando su baja no llegó,
+  que es peor. El frontend, además, no distingue una sesión de invitado de
+  otra.
 
-Lo que la regla **no** cubre: una sesión que vence sola (30 días sin abrir
-la app) no puede dar de baja el dispositivo, porque ya no tiene token; queda
-a nombre de esa cuenta hasta que alguien entre ahí.
+Lo que la regla **no** cubre (queda abierto):
+
+1. **Una sesión que termina sin "Cerrar sesión".** No hay token con el que
+   dar de baja, así que el dispositivo sigue recibiendo los avisos de esa
+   cuenta hasta que alguien entre ahí. Pasa cuando la sesión vence sola (30
+   días sin abrir la app) y cuando el servidor la revoca
+   (`revoke_all_for_user` sólo revoca las sesiones de refresh, no toca
+   `push_subscriptions`): contraseña restablecida, cuenta sin verificar
+   reclamada con Google, alta de la verificación en dos pasos, refresh token
+   reutilizado y suspensión desde el panel. El segundo grupo es el más
+   serio, porque la persona hizo algo a propósito para cortar el acceso.
+   Cerrarlo es trabajo de servidor, en un PR aparte: al revocar todas las
+   sesiones de una cuenta, borrar también sus suscripciones push por un
+   puerto inyectado (identity → notification). Con el registro automático
+   los dispositivos legítimos se vuelven a registrar solos al ingresar.
+2. **Una baja que no llega al cerrar sesión.** El access token venció justo
+   en ese momento (app suspendida más de 15 minutos y cierre antes de que se
+   renueve: la baja da 401 y no se reintenta), no había red, o era una admin
+   a la que el candado de dos pasos le rechazó el pedido. El cierre sigue
+   igual y el dispositivo queda a nombre de la cuenta que salió hasta que
+   entre otra en ese navegador.
 
 Tests: `backend/tests/test_push.py` (el mismo `endpoint` suscripto por dos
-cuentas queda en una fila a nombre de la última y un aviso para la primera
-ya no sale a ese dispositivo; la misma cuenta dos veces sigue siendo una
-fila), `frontend/lib/push.test.ts` (qué manda cada helper),
+cuentas desde el mismo navegador queda en una fila a nombre de la última y
+un aviso para la primera ya no sale a ese dispositivo; conocer un `endpoint`
+ajeno sin sus claves no alcanza para quedárselo; la misma cuenta dos veces
+sigue siendo una fila), `frontend/lib/push.test.ts` (qué manda cada helper,
+que no avisan al candado y que la baja cierra los avisos a la vista),
 `frontend/lib/auth-context.test.tsx` (cuándo se llaman: ingreso, sesión
-recuperada, cierre aunque la baja falle, impersonación) y
-`frontend/e2e/push-cuenta-actual.spec.ts` (el recorrido en el navegador).
+recuperada, cierre aunque la baja falle, impersonación, alta y código de
+dos pasos pendientes), `frontend/lib/auth-context.two-factor-gate.test.tsx`
+(con `lib/push` real: ni el registro ni la baja disparan el candado),
+`frontend/components/PushToggle.test.tsx`,
+`frontend/lib/push-prompt-context.test.tsx` (los dos en "Ver como") y
+`frontend/e2e/push-cuenta-actual.spec.ts` (los tres recorridos en el
+navegador: dos cuentas, "Ver como" y admin con el alta pendiente).
 
 ### Derivación de las decisiones
 
