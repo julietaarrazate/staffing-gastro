@@ -20,6 +20,11 @@ Lo técnico:
   unicidad a `ClaimAlreadyExistsError` (nuevo, en `domain/exceptions.py`) y hace
   rollback antes de devolver la sesión. Otras violaciones de integridad siguen
   subiendo como estaban.
+- `verification/domain/entities.py`: `Claim.submit` no manda a la cola de
+  borrado un archivo que las evidencias nuevas siguen usando (filtra por
+  `public_id`). Cubre el mismo cuerpo reenviado, solapado o secuencial, y el
+  caso de cambiar sólo uno de los archivos: antes los archivos vigentes se
+  borraban del storage aunque el pedido pendiente los usara.
 - Sin migración.
 
 **Por qué así:** la restricción única ya garantizaba un solo pedido; faltaba que
@@ -30,7 +35,17 @@ resultado).
 
 **Tests:** `backend/tests/test_verification_envio_repetido.py` (repositorio,
 servicio con lectura vieja para identidad y comercio, reintento que vuelve a
-fallar, y API). La base de los tests (SQLite en memoria) comparte una sola
-conexión, así que la superposición se arma a mano y no con tareas paralelas.
+fallar, API con archivos distintos y con el mismo cuerpo dos veces, otra
+violación de integridad que sigue subiendo, y dos sesiones reales). La base de
+los tests (SQLite en memoria) comparte una sola conexión, así que los tests
+con lectura vieja arman la superposición a mano; el de dos sesiones reales usa
+SQLite en archivo (dos conexiones y una barrera para que las dos lean «no hay
+pedido» antes de guardar). En `test_borrado_evidencias.py`, los de dominio del
+filtro por `public_id`. CI corre `pytest -q` sin servicio de base (SQLite), así
+que la concurrencia contra Postgres sólo se probaría a mano.
 
-**Queda abierto:** nada.
+**Queda abierto:** tres o más envíos simultáneos, o dos reenvíos simultáneos
+sobre un pedido que ya existe (dos pestañas después de un rechazo): el pedido
+queda con las evidencias de dos envíos (el admin ve dos juegos), sin error ni
+archivos sin dueño. Ya pasaba antes de este arreglo. Se resolvería leyendo el
+pedido con bloqueo de fila (`with_for_update`) al enviar, en otro PR.

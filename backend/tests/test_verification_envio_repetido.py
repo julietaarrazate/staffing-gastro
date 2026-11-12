@@ -7,11 +7,16 @@ terminar bien, con UN solo pedido pendiente que lleva las evidencias del último
 envío, y sin dejar archivos sin dueño fuera de la cola de borrado.
 """
 
+import asyncio
 from uuid import UUID, uuid4
 
 import pytest
+import pytest_asyncio
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.core.database import Base
 
 from app.modules.verification.application.services import VerificationService
 from app.modules.verification.domain.entities import Claim
@@ -199,3 +204,136 @@ async def test_api_el_segundo_envio_que_se_pisa_responde_bien(
     async with session_factory() as s:
         total = await s.scalar(select(func.count()).select_from(IdentityClaimModel))
     assert total == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("solapado", [True, False], ids=["solapado", "secuencial"])
+@pytest.mark.parametrize(
+    "ruta,payload,rol",
+    [
+        ("/api/v1/identity/me/document", _doc_payload, "worker"),
+        ("/api/v1/identity/me/business", _constancia_payload, "employer"),
+    ],
+)
+async def test_api_el_mismo_cuerpo_dos_veces_no_borra_los_archivos_vigentes(
+    client, session_factory, evidence_storage, monkeypatch, ruta, payload, rol, solapado
+):
+    """Doble toque: la subida a Cloudinary ocurre al elegir el archivo, así que
+    los dos envíos llevan los MISMOS archivos. El pedido pendiente los sigue
+    usando: ni se borran del storage ni quedan en la cola de borrado."""
+    headers = await auth_headers(client, rol, f"{rol}-mismo-{solapado}@test.com")
+    if rol == "employer":
+        await client.post(
+            "/api/v1/companies/me/profile",
+            headers=headers,
+            json={"name": "Bar Mismo", "city": "Palermo"},
+        )
+    cuerpo = payload()
+    ids = {f["public_id"] for f in cuerpo.values()}
+
+    a = await client.post(ruta, headers=headers, json=cuerpo)
+    assert a.status_code == 200, a.text
+
+    if solapado:
+        original = SqlAlchemyClaimRepository.get_for_user
+        pendientes = {"n": 1}
+
+        async def lectura_vieja(self, user_id, claim_type):
+            if pendientes["n"] > 0:
+                pendientes["n"] -= 1
+                return None
+            return await original(self, user_id, claim_type)
+
+        monkeypatch.setattr(SqlAlchemyClaimRepository, "get_for_user", lectura_vieja)
+
+    b = await client.post(ruta, headers=headers, json=cuerpo)
+    assert b.status_code == 200, b.text
+
+    async with session_factory() as s:
+        claims = (await s.execute(select(IdentityClaimModel))).scalars().all()
+    assert len(claims) == 1 and claims[0].status == ClaimStatus.PENDIENTE.value
+    assert await _evidence_ids(session_factory, claims[0].id) == ids
+    assert evidence_storage.deleted == []
+    assert await _queued(session_factory) == set()
+
+
+# --- Dos sesiones reales (dos conexiones) ------------------------------------
+
+
+class _ConBarrera(SqlAlchemyClaimRepository):
+    """Repositorio real; la primera lectura de cada envío espera a que los dos
+    hayan leído, así los dos ven «no hay pedido» antes de que cualquiera guarde."""
+
+    def __init__(self, session: AsyncSession, barrera: asyncio.Barrier) -> None:
+        super().__init__(session)
+        self._barrera = barrera
+        self._primera = True
+
+    async def get_for_user(self, user_id, claim_type):
+        found = await super().get_for_user(user_id, claim_type)
+        if self._primera:
+            self._primera = False
+            await self._barrera.wait()
+        return found
+
+
+@pytest_asyncio.fixture
+async def factory_en_archivo(tmp_path):
+    """SQLite en archivo: cada sesión tiene su propia conexión, a diferencia de
+    la base en memoria de `session_factory` (una sola conexión compartida)."""
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///{tmp_path}/envio_repetido.db",
+        connect_args={"timeout": 30},
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("vuelta", range(3))
+async def test_dos_sesiones_reales_dejan_un_solo_pedido(factory_en_archivo, vuelta):
+    user_id = uuid4()
+    envios = [(_file(), _file()), (_file(), _file())]
+    barrera = asyncio.Barrier(len(envios))
+
+    async def enviar(archivos):
+        async with factory_en_archivo() as s:
+            service = VerificationService(_ConBarrera(s, barrera))
+            return await service.submit_identity_document(user_id, *archivos)
+
+    resultados = await asyncio.gather(
+        *(enviar(a) for a in envios), return_exceptions=True
+    )
+    assert not any(isinstance(r, Exception) for r in resultados), resultados
+
+    claims = await _claims_of(factory_en_archivo, user_id)
+    assert len(claims) == 1 and claims[0].status == ClaimStatus.PENDIENTE.value
+    vigentes = await _evidence_ids(factory_en_archivo, claims[0].id)
+    en_cola = await _queued(factory_en_archivo)
+    todos = {f.public_id for e in envios for f in e}
+    assert len(vigentes) == 2
+    # Ningún archivo sin dueño, y ninguno vigente y en la cola a la vez.
+    assert vigentes | en_cola == todos
+    assert not (vigentes & en_cola)
+
+
+@pytest.mark.asyncio
+async def test_otra_violacion_de_integridad_sigue_subiendo(session_factory):
+    """Mismo `id` de claim para otro usuario: choca la clave primaria, no la
+    restricción única, y no se disfraza de ClaimAlreadyExistsError."""
+    primero = Claim(user_id=uuid4(), claim_type=ClaimType.DOCUMENTO_VERIFICADO)
+    async with session_factory() as s:
+        await SqlAlchemyClaimRepository(s).add(primero)
+    async with session_factory() as s:
+        repo = SqlAlchemyClaimRepository(s)
+        otro = Claim(
+            id=primero.id, user_id=uuid4(), claim_type=ClaimType.DOCUMENTO_VERIFICADO
+        )
+        with pytest.raises(IntegrityError):
+            await repo.add(otro)
+        # La sesión quedó usable.
+        assert await repo.get_for_user(
+            primero.user_id, ClaimType.DOCUMENTO_VERIFICADO
+        )
