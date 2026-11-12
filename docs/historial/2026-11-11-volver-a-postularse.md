@@ -19,6 +19,11 @@ vez entre sus postulantes, otra vez como pendiente.
   (`infrastructure/repositories.py`) guarda la fecha renovada. Sigue habiendo
   una sola fila por (turno, trabajador): no hizo falta migración. El evento
   `application.submitted` suma `reapplied` (verdadero cuando es una vuelta).
+- Tope: como cada postulación (también la que reactiva) le avisa al comercio,
+  `POST /applications/shifts/{id}` tiene un tope de 5 intentos por hora por
+  cuenta y por turno (`RateLimiter` en `application/api/routes.py`, la misma
+  clave por cuenta que la IA); pasado el tope responde 429. Postularse a
+  turnos distintos no cuenta contra ese tope.
 - Frontend: `appliedShiftIds` en `frontend/lib/applications.ts` es la única
   definición de "ya me postulé" (postulación `pendiente` o `aceptada`). La
   usan `app/feed/page.tsx`, `app/buscar/page.tsx`, `app/map/page.tsx` y
@@ -27,12 +32,14 @@ vez entre sus postulantes, otra vez como pendiente.
 - Tests: `backend/tests/test_application.py` (retirar y volver: misma
   postulación, pendiente, fecha nueva, aviso al comercio, una sola vez en
   postulantes; dos veces seguidas sigue siendo 409; rechazada no se reactiva;
-  turno ya asignado no acepta; retirada por la regla de doble turno),
+  turno ya asignado no acepta; retirada por la regla de doble turno; tope de
+  intentos por turno),
   `backend/tests/test_business_events.py` (`reapplied`),
   `frontend/lib/applications.test.ts`, `frontend/components/ShiftDetail.test.tsx`
   y `frontend/e2e/volver-a-postularse.spec.ts` (retirar → el turno reaparece →
   postularse de nuevo, con la API simulada).
-- Docs corregidos: `docs/foundation/DOMAIN.md` (Match), `docs/reference/MATCHING.md`
+- Docs corregidos: `docs/reference/SECURITY.md` (el tope nuevo),
+  `docs/foundation/DOMAIN.md` (Match), `docs/reference/MATCHING.md`
   y `docs/reference/WORKER.md` decían "se postula una sola vez por turno";
   `docs/reference/OBSERVABILITY.md` (`reapplied`); fila nueva en
   `docs/reference/MAPA_DEL_CODIGO.md`. En `docs/reference/API.md` la fila de
@@ -57,3 +64,7 @@ chequeando al confirmar el turno).
   postulaciones del turno, también las retiradas. Ya era así; no se tocó.
 - Las postulaciones retiradas siguen figurando en la lista de postulantes del
   comercio: es otro hallazgo de la misma prueba y va en su propio PR.
+- Si el trabajador asignado rechaza el turno o cancela su asignación, el turno
+  se reabre pero su postulación queda `aceptada`, y la app la sigue contando
+  como "ya me postulé". Viene de antes de este cambio; va en una tarea aparte
+  (decidir qué estado toma esa postulación).

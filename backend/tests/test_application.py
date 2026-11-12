@@ -568,6 +568,47 @@ async def test_cancelling_shift_rejects_pending_applicants(client: AsyncClient):
     assert await _status_of(client, worker, shift_id) == "rechazada"
 
 
+async def test_reapplying_to_the_same_shift_has_a_limit(client: AsyncClient):
+    """Postularse al mismo turno tiene un tope por cuenta en la ventana: pasado
+    el tope responde 429 y el comercio no recibe más avisos por esa persona en
+    ese turno. Postularse a OTRO turno no se ve afectado."""
+    from app.core.config import settings
+    from app.core.rate_limit import reset_all_rate_limiters
+
+    employer = await _employer_with_company(client, "emp_tope1@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    other_shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_tope1@staffya.com")
+
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        statuses = []
+        for _ in range(6):
+            applied = await client.post(
+                f"/api/v1/applications/shifts/{shift_id}", headers=worker
+            )
+            statuses.append(applied.status_code)
+            if applied.status_code == 201:
+                await client.post(
+                    f"/api/v1/applications/{applied.json()['id']}/withdraw",
+                    headers=worker,
+                )
+        other = await client.post(
+            f"/api/v1/applications/shifts/{other_shift_id}", headers=worker
+        )
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+
+    assert statuses == [201, 201, 201, 201, 201, 429]
+    assert other.status_code == 201
+    notifications = await client.get("/api/v1/notifications", headers=employer)
+    links = [n["link"] for n in notifications.json() if n["type"] == "new_applicant"]
+    assert links.count(f"/shifts/{shift_id}/candidates") == 5
+    assert links.count(f"/shifts/{other_shift_id}/candidates") == 1
+
+
 async def test_applying_notifies_company(client: AsyncClient):
     employer = await _employer_with_company(client, "emp_app8@staffya.com")
     shift_id = await _published_shift(client, employer)

@@ -3,9 +3,10 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.idempotency import IdempotencyRecorder, idempotent
+from app.core.rate_limit import RateLimiter
 from app.modules.application.api.dependencies import get_application_service
 from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
 from app.modules.application.application.services import ApplicationService
@@ -15,6 +16,8 @@ from app.modules.application.domain.exceptions import (
     InvalidApplicationTransitionError,
     ShiftNotApplicableError,
 )
+from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
+from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
 from app.modules.shift.api.schemas import ShiftResponse, without_worker_data
 from app.modules.shift.domain.entities import Shift
@@ -30,6 +33,15 @@ OffsetDep = Annotated[int, Query(ge=0)]
 # dependencia, después de `worker_profile_id`/`company_id`.
 RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
+# Tope de intentos de postularse a UN mismo turno, por cuenta (la invitada
+# compartida, por cuenta + IP: ver `per_account_quota_key`). Cada postulación
+# que entra, también la que reactiva una retirada, le avisa al comercio; el
+# tope acota esos avisos sin tocar a quien se postula a muchos turnos
+# distintos. Una respuesta repetida por idempotencia no llega acá y no cuenta.
+_apply_to_shift_rate_limit = RateLimiter(
+    max_attempts=5, window_seconds=3600, name="apply-to-shift"
+)
+
 _SHIFT_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail="Turno no encontrado o no disponible para postularse",
@@ -44,10 +56,15 @@ _SHIFT_NOT_FOUND = HTTPException(
 )
 async def apply_to_shift(
     shift_id: UUID,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     recorder: RecorderDep,
 ):
+    _apply_to_shift_rate_limit.check(
+        f"{per_account_quota_key(current_user, request)}:{shift_id}"
+    )
     try:
         application = await service.apply(worker_profile_id, shift_id)
     except ShiftNotApplicableError as exc:
