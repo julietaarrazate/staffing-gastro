@@ -36,6 +36,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
+      {/* El aviso NUNCA intercepta toques sobre lo que tapa (ni el contenedor
+          ni el cuerpo): flota a la altura de los botones de acción de los
+          asistentes y un toque en «Publicar turno» justo después de «Completar»
+          caía en el aviso y no hacía nada (U009). Se va solo a los 3,2 s, no
+          hace falta tocarlo para cerrarlo; si algún día lleva un botón de
+          acción, sólo ese botón recibe punteros (`[&_button]`). */}
       {/* role="status" + aria-live="polite": sin esto un toast (confirmación
           de acción, error de una mutación) es invisible para un usuario de
           lector de pantalla — no hay foco que mover a un elemento que
@@ -54,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.95 }}
               transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
-              className={`pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
+              className={`pointer-events-none [&_button]:pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
             >
               {/* Verde, no blanco: sobre la píldora negra el tilde en blanco
                   era un adorno más del texto. En color dice "salió bien" antes

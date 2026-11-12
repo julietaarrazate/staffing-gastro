@@ -33,4 +33,24 @@ describe("ToastProvider", () => {
     const region = screen.getByRole("status");
     await waitFor(() => expect(region).toHaveTextContent("Turno publicado"));
   });
+
+  it("ni el contenedor ni el cuerpo del aviso reciben toques: no tapan lo que hay debajo", async () => {
+    render(
+      <ToastProvider>
+        <Trigger message="Turno publicado" />
+      </ToastProvider>
+    );
+    screen.getByRole("button", { name: "disparar" }).click();
+
+    const region = screen.getByRole("status");
+    await waitFor(() => expect(region).toHaveTextContent("Turno publicado"));
+    const cuerpo = screen.getByText("Turno publicado");
+
+    expect(region.classList.contains("pointer-events-none")).toBe(true);
+    expect(cuerpo.classList.contains("pointer-events-none")).toBe(true);
+    expect(cuerpo.classList.contains("pointer-events-auto")).toBe(false);
+    // Un botón de acción dentro del aviso sí recibe toques (hoy ningún aviso
+    // lo tiene; la regla queda lista para cuando haya uno).
+    expect(cuerpo.className).toContain("[&_button]:pointer-events-auto");
+  });
 });
