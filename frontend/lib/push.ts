@@ -79,3 +79,41 @@ export async function unsubscribeFromPush(token: string): Promise<void> {
   await subscription.unsubscribe();
   await api.del("/push/subscribe", { endpoint }, token);
 }
+
+// --- El push es de la cuenta que tiene la sesión abierta -------------------
+//
+// La suscripción es del navegador, no de la persona: en un dispositivo
+// compartido (o con dos cuentas) quedaba a nombre de quien la activó primero.
+// `AuthProvider` llama a estas dos al abrir y al cerrar la sesión; ninguna
+// lanza, pide permiso ni toca la suscripción del navegador.
+
+/** Al abrir la sesión (ingreso o sesión recuperada): si este navegador ya
+ * tiene una suscripción y el permiso sigue concedido, la deja a nombre de la
+ * cuenta de `token` (`POST /push/subscribe`, que reasigna el endpoint). Así
+ * quien cerró sesión y vuelve a entrar en su celular no pierde los avisos, y
+ * el interruptor del perfil (que mira el navegador) dice la verdad. */
+export async function claimPushForAccount(token: string): Promise<boolean> {
+  try {
+    if (!isPushSupported() || Notification.permission !== "granted") return false;
+    const subscription = await getCurrentPushSubscription();
+    if (!subscription) return false;
+    await api.post("/push/subscribe", subscription.toJSON(), token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Al cerrar sesión: da de baja este dispositivo en el servidor para la
+ * cuenta de `token`, así deja de recibir sus avisos. La suscripción del
+ * navegador queda, para `claimPushForAccount` en el próximo ingreso. */
+export async function releasePushFromAccount(token: string): Promise<boolean> {
+  try {
+    const subscription = await getCurrentPushSubscription();
+    if (!subscription) return false;
+    await api.del("/push/subscribe", { endpoint: subscription.endpoint }, token);
+    return true;
+  } catch {
+    return false;
+  }
+}

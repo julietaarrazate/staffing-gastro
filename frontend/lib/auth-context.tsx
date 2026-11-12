@@ -9,9 +9,11 @@ import {
   hasBoundSession,
   isTransientFailure,
   renewSessionToken,
+  resolveToken,
   setTwoFactorGateHandler,
   setUnauthorizedHandler,
 } from "@/lib/api";
+import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
 import { clearAllCached } from "@/lib/screen-cache";
 import {
   isTwoFactorChallenge,
@@ -293,6 +295,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [token, impersonating]);
 
+  // Las notificaciones de este dispositivo son de la cuenta que tiene la
+  // sesión abierta acá. Es el único lugar que lo registra, y cubre todos los
+  // ingresos (contraseña, Google, invitado, código de admin) y la sesión
+  // recuperada al abrir la app. Una vez por sesión: `token` no cambia cuando
+  // se renueva. Impersonando no se registra nada (el dispositivo es de la
+  // admin, no de la persona que está viendo), y al volver tampoco: su token
+  // es el que ya se registró.
+  const pushClaimedFor = useRef<string | null>(null);
+  const hasUser = user !== null;
+  useEffect(() => {
+    if (!token) {
+      pushClaimedFor.current = null;
+      return;
+    }
+    if (!hasUser || impersonating || impersonatingRef.current) return;
+    if (pushClaimedFor.current === token) return;
+    pushClaimedFor.current = token;
+    void claimPushForAccount(token);
+  }, [token, hasUser, impersonating]);
+
   /** Abre la sesión con los tokens de una respuesta de login. */
   async function startSession(tokens: SessionTokens) {
     persistAccessToken(tokens.access_token);
@@ -448,6 +470,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       stopImpersonating();
       return;
     }
+    // Sin sesión, este dispositivo no recibe los avisos de la cuenta: se da
+    // de baja en el servidor antes de soltar el token. Va con el vigente (el
+    // `token` del contexto es el de cuando se abrió la sesión y pudo haber
+    // vencido) y no se espera: si falla, el cierre sigue y el backend le pasa
+    // el dispositivo a la próxima cuenta que entre acá. La suscripción del
+    // navegador y el permiso no se tocan (ver `claimPushForAccount`).
+    const leavingToken = resolveToken(token);
+    if (leavingToken) releasePushFromAccount(leavingToken).catch(() => {});
     // TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly — el
     // navegador la manda sola (`credentials: "include"`, lib/api.ts), no hay
     // que leerla ni reenviarla a mano. El backend la revoca server-side y la
