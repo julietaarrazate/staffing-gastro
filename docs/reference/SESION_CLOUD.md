@@ -102,6 +102,13 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   ningún error. Para esas pantallas hay que buildear con
   `NEXT_PUBLIC_API_URL=http://localhost:<puerto>/api/v1` y servir un mock en
   ese puerto. El `/api/v1` del final es obligatorio.
+- **Una pantalla que sale de `notFound()` se dibuja en el navegador**, no en
+  el servidor: llega un HTML vacío (`<html id="__next_error__">`) y el layout
+  se arma del lado del cliente, así que el `<script>` anti-flash del tema no
+  corre. El 2026-11-12 la captura oscura de «Este turno ya no está
+  disponible» salía idéntica a la clara, y los tests estaban en verde. En el
+  spec de captura conviene afirmar el tema antes de sacar la foto:
+  `await expect(page.locator("html")).toHaveAttribute("data-theme", theme)`.
 - **Matar el servidor:** `pkill -f "next start"` mata también la shell que lo
   corre (sale con 144). Usá `fuser -k 3100/tcp`.
 - Para recortar imágenes hace falta `pip install pillow` en el venv.
