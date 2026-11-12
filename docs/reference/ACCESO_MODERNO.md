@@ -156,7 +156,8 @@ solo lugar: `domain/push_policy.py::push_policy_for`. Turno nuevo o urgente
 cerca: 30 min, urgencia alta (pasada media hora ya suele estar cubierto).
 Lo que pide actuar sobre un turno o avisa un cambio en uno propio
 (postulación, asignación, confirmación, rechazo, cancelación, no presentado,
-llegada, salida, chat, recordatorios): 12 h, alta. Pagos, reseñas,
+salida, chat): 12 h, alta. Recordatorios de llegada y de salida y «va en
+camino» (solo valen en el momento): 30 min, alta. Pagos, reseñas,
 verificación, soporte y plan (y todo tipo sin regla): 24 h, normal. Sin
 vigencia (TTL 0, el default de `pywebpush`) el servicio push descarta el aviso
 si el celular no está conectado en ese instante. Un test recorre

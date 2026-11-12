@@ -14,6 +14,10 @@ Criterio (decisión de producto):
   probable es que ya esté cubierto: no tiene que llegar un aviso viejo.
 - Lo que pide actuar sobre un turno o avisa de un cambio en un turno propio:
   12 h, urgencia alta.
+- Avisos que solo valen en el momento (recordatorios de llegada y de salida,
+  «va en camino»): 30 min, urgencia alta. Dicen una hora sin fecha o una
+  distancia al salir: llegar horas tarde afirmaría algo que ya no es cierto
+  (y la ubicación no debe quedar guardada de más en el servicio push).
 - Todo lo demás (pagos, reseñas, verificación, soporte, plan): 24 h, normal.
 
 Un `NotificationType` nuevo tiene que quedar en `_RULES` o en
@@ -49,6 +53,8 @@ DEFAULT_PUSH_POLICY = PushPolicy(ttl_seconds=24 * _HOUR, urgency=PushUrgency.NOR
 _TURNO_CERCA = PushPolicy(ttl_seconds=30 * _MINUTE, urgency=PushUrgency.HIGH)
 _ACCION_SOBRE_TURNO = PushPolicy(ttl_seconds=12 * _HOUR, urgency=PushUrgency.HIGH)
 
+_AVISO_DEL_MOMENTO = PushPolicy(ttl_seconds=30 * _MINUTE, urgency=PushUrgency.HIGH)
+
 _N = NotificationType
 
 _RULES: dict[NotificationType, PushPolicy] = {
@@ -65,10 +71,11 @@ _RULES: dict[NotificationType, PushPolicy] = {
     _N.SHIFT_CHECKED_OUT: _ACCION_SOBRE_TURNO,
     _N.SHIFT_REOPENED: _ACCION_SOBRE_TURNO,
     _N.SHIFT_NOT_COVERED: _ACCION_SOBRE_TURNO,
-    _N.WORKER_EN_ROUTE: _ACCION_SOBRE_TURNO,
-    _N.CHECKIN_REMINDER: _ACCION_SOBRE_TURNO,
-    _N.DEPARTURE_REMINDER: _ACCION_SOBRE_TURNO,
     _N.CHAT_MESSAGE: _ACCION_SOBRE_TURNO,
+    # Solo valen en el momento: pasada media hora el texto ya no es cierto.
+    _N.WORKER_EN_ROUTE: _AVISO_DEL_MOMENTO,
+    _N.CHECKIN_REMINDER: _AVISO_DEL_MOMENTO,
+    _N.DEPARTURE_REMINDER: _AVISO_DEL_MOMENTO,
 }
 
 # Caen en `DEFAULT_PUSH_POLICY` a propósito (pagos, reseñas, verificación,

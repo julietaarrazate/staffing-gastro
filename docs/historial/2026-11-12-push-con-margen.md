@@ -15,9 +15,11 @@ textos no cambian; solo cuánto tiempo se guardan:
   aviso viejo.
 - Lo que pide actuar sobre un turno o avisa un cambio en un turno propio
   (postulación nueva, asignación, confirmación, rechazo, cancelación tardía,
-  no presentado, llegada, salida, turno reabierto, turno sin cubrir, «va en
-  camino», recordatorios de llegada y de salida, chat): 12 horas, urgencia
-  alta.
+  no presentado, salida, turno reabierto, turno sin cubrir, chat): 12 horas,
+  urgencia alta.
+- Lo que solo vale en el momento (recordatorios de llegada y de salida, «va
+  en camino»): 30 minutos, urgencia alta. Dicen una hora sin fecha o una
+  distancia al salir; llegar horas tarde afirmaría algo que ya no es cierto.
 - Pagos, reseñas, verificación, soporte y plan (y cualquier tipo sin regla):
   24 horas, urgencia normal.
 
@@ -34,6 +36,8 @@ Lo técnico:
 - `infrastructure/repositories.py::_deliver_pushes`: pasa
   `push_policy_for(notification.type)`.
 - `infrastructure/fake_push_sender.py`: registra la política recibida.
+- `infrastructure/null_push_sender.py`: acepta `policy` (la ignora) para
+  cumplir el puerto.
 - Tests: `backend/tests/test_push_policy.py` (la política por tipo; el test
   recorre `NotificationType`, así un tipo nuevo obliga a decidir; el sender
   real llama a `pywebpush.webpush` con el TTL y la cabecera que tocan) y un
@@ -52,9 +56,11 @@ vuelve a perder avisos.
   celular en modo avión un minuto, asignarle un turno y ver que el aviso
   llega al volver la señal. Acá solo se verificó, con la librería simulada,
   que se manda el TTL y la cabecera que corresponden.
-- Los recordatorios de llegada y de salida (`CHECKIN_REMINDER`,
-  `DEPARTURE_REMINDER`) quedaron en 12 h por el criterio «pide actuar sobre
-  un turno», pero un recordatorio de hace horas puede molestar: decisión de
-  producto pendiente (¿30 a 60 minutos?).
+- Los 30 minutos del grupo «solo vale en el momento» y los 12 h del grupo de
+  acción son un criterio de esta entrega: producto puede ajustarlos.
+- `SHIFT_NOT_COVERED` (12 h) y `SHIFT_PAID` (24 h, normal) se repartieron por
+  criterio propio; confirmar con producto.
+- No existe aviso de llegada: marcar la llegada no le avisa a nadie (solo hay
+  recordatorio de llegada y «va en camino»). Si se quiere, es otro cambio.
 - Los servicios push pueden acotar el TTL por su cuenta (p. ej. el tope de
   FCM es de 4 semanas; no afecta a estos valores).

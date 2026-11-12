@@ -13,8 +13,8 @@ import logging
 
 import httpx
 
-from app.core.config import Settings
 from app.core.log_privacy import mask_email
+from app.core.config import Settings
 from app.modules.notification.domain.email_sender import EmailSender
 
 logger = logging.getLogger(__name__)

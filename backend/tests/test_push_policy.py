@@ -58,13 +58,23 @@ def test_turno_cerca_vence_a_los_30_minutos_con_urgencia_alta(tipo: Notification
         _N.SHIFT_CANCELLED_LATE,
         _N.SHIFT_NO_SHOW,
         _N.SHIFT_CHECKED_OUT,
-        _N.WORKER_EN_ROUTE,
+        _N.SHIFT_REOPENED,
+        _N.SHIFT_NOT_COVERED,
         _N.CHAT_MESSAGE,
     ],
 )
 def test_aviso_sobre_un_turno_vence_a_las_12_horas_con_urgencia_alta(tipo: NotificationType):
     politica = push_policy_for(tipo)
     assert politica.ttl_seconds == 12 * 3600
+    assert politica.urgency is PushUrgency.HIGH
+
+
+@pytest.mark.parametrize(
+    "tipo", [_N.WORKER_EN_ROUTE, _N.CHECKIN_REMINDER, _N.DEPARTURE_REMINDER]
+)
+def test_aviso_que_solo_vale_en_el_momento_vence_a_los_30_minutos(tipo: NotificationType):
+    politica = push_policy_for(tipo)
+    assert politica.ttl_seconds == 30 * 60
     assert politica.urgency is PushUrgency.HIGH
 
 
@@ -132,3 +142,25 @@ async def test_sender_sin_politica_explicita_usa_el_default_nunca_ttl_0(
     llamada = await _enviar(monkeypatch)
     assert llamada["ttl"] == 24 * 3600
     assert llamada["headers"] == {"Urgency": "normal"}
+
+
+async def test_null_sender_acepta_la_politica_y_no_loguea_errores(caplog):
+    from app.modules.notification.domain.push_sender import PushSendResult
+    from app.modules.notification.infrastructure.null_push_sender import NullPushSender
+
+    with caplog.at_level("INFO"):
+        res = await NullPushSender().send(
+            _suscripcion(), title="t", body="b", url="/x",
+            policy=push_policy_for(_N.SHIFT_ASSIGNED),
+        )
+    assert res is PushSendResult.FAILED
+    assert not [r for r in caplog.records if r.levelname == "ERROR"]
+
+
+async def test_fake_sender_registra_la_politica():
+    from app.modules.notification.infrastructure.fake_push_sender import FakePushSender
+
+    fake = FakePushSender()
+    politica = push_policy_for(_N.NEW_SHIFT_NEARBY)
+    await fake.send(_suscripcion(), title="t", body="b", policy=politica)
+    assert fake.sent[0].policy == politica
