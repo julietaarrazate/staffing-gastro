@@ -188,9 +188,17 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
         result = await self._session.execute(stmt)
         existing = result.scalar_one_or_none()
         if existing is not None:
-            # Idempotente: el mismo endpoint ya está suscripto (p. ej. el
-            # usuario tocó "Activar" dos veces, o reinstaló la PWA con el
-            # mismo service worker todavía registrado).
+            # Un endpoint es un navegador, no una persona: queda a nombre de
+            # quien lo suscribe ahora, con sus claves. Para la misma cuenta
+            # es idempotente (tocó "Activar" dos veces, o el frontend lo
+            # registró solo al iniciar sesión); si era de otra cuenta
+            # (navegador compartido, dos cuentas en un dispositivo), deja de
+            # recibir los avisos de la anterior.
+            existing.user_id = subscription.user_id
+            existing.p256dh_key = subscription.p256dh_key
+            existing.auth_key = subscription.auth_key
+            await self._session.commit()
+            await self._session.refresh(existing)
             return _push_to_entity(existing)
 
         model = PushSubscriptionModel(
