@@ -129,8 +129,9 @@ iframe de Google queda bloqueado por `default-src 'self'`.
 
 Tabla `push_subscriptions` (migración `0013`, verificada up/down contra
 Postgres real — ver más abajo) con las suscripciones Web Push por
-dispositivo/navegador de cada usuario. `POST /push/subscribe` (idempotente
-por `endpoint`) / `DELETE /push/subscribe` gestionan el ciclo de vida;
+dispositivo/navegador de cada usuario. `POST /push/subscribe` (un
+`endpoint`, una fila: queda a nombre de quien lo suscribe, ver "De quién es
+el push de un dispositivo") / `DELETE /push/subscribe` gestionan el ciclo de vida;
 `GET /push/public-key` expone la clave pública VAPID (o `null` si no está
 configurada, sin autenticar — el frontend la necesita antes de decidir si
 mostrar el toggle).
@@ -157,7 +158,59 @@ Archivos clave: `domain/entities.py::PushSubscription`,
 ausencia), `infrastructure/repositories.py::_schedule_pushes` (el
 hook) y `infrastructure/push_tasks.py` (las tareas de fondo). Frontend: `public/sw.js` (service worker mínimo), `lib/push.ts`
 (helpers), `lib/push-prompt-context.tsx` (prompt de opt-in),
-`components/PushToggle.tsx` (toggle en `/profile`).
+`components/PushToggle.tsx` (toggle en `/profile/settings`) y
+`lib/auth-context.tsx` (registra y da de baja el dispositivo al abrir y
+cerrar la sesión).
+
+### De quién es el push de un dispositivo (2026-11-12)
+
+**Regla: las notificaciones de un dispositivo son de la cuenta que tiene la
+sesión abierta en ese dispositivo; sin sesión, el dispositivo no recibe
+nada.** La suscripción (el `endpoint`) es del navegador, no de la persona.
+Antes quedaba atada a quien la activó primero: en un navegador compartido, o
+con dos cuentas en el mismo celular, el dispositivo seguía mostrando los
+avisos de la cuenta anterior después de cerrar sesión, y la cuenta siguiente
+veía el interruptor "Activadas" sin recibir nada.
+
+- **Backend.** `POST /push/subscribe` con un `endpoint` que ya existe lo deja
+  a nombre de quien lo manda, con sus claves
+  (`SqlAlchemyPushSubscriptionRepository.add`). Para la misma cuenta es
+  idempotente; si era de otra, se reasigna y la anterior deja de recibir en
+  ese dispositivo. Sigue habiendo una sola fila por `endpoint` (índice único
+  de la migración `0013`: no hizo falta otra). `DELETE` sigue borrando sólo
+  si la fila es de quien lo pide, así que una baja que llega tarde no le
+  saca el dispositivo a la cuenta que entró después.
+- **Al abrir la sesión** (cualquier ingreso, o la sesión recuperada al abrir
+  la app): si el navegador ya tiene una suscripción y el permiso está
+  concedido, `claimPushForAccount` (`lib/push.ts`) la registra a nombre de la
+  cuenta actual. No pide permiso, no instala el service worker ni crea una
+  suscripción: sólo mira lo que ya hay. Se llama desde un solo lugar, un
+  efecto de `AuthProvider`, una vez por sesión (no en cada renovación del
+  access token). Por eso quien cierra sesión y vuelve a entrar en su celular
+  recupera los avisos sin hacer nada, y el interruptor de Ajustes (que mira
+  el navegador) dice la verdad.
+- **Al cerrar sesión:** `releasePushFromAccount` da de baja el dispositivo en
+  el servidor (`DELETE /push/subscribe` con el `endpoint`) usando el access
+  token vigente antes de soltarlo. No se espera: si falla, el cierre sigue y
+  la reasignación del backend lo cubre cuando entre otra cuenta. **No se
+  cancela la suscripción del navegador ni se toca el permiso** (eso lo hace
+  sólo el interruptor de Ajustes, `unsubscribeFromPush`).
+- **"Ver como" de admin:** mientras se impersona no se registra ni se da de
+  baja nada. El dispositivo es de la admin: no tiene que recibir los avisos
+  de la persona que está viendo ni perder los suyos. "Cerrar sesión"
+  impersonando sólo vuelve a la cuenta admin.
+
+Lo que la regla **no** cubre: una sesión que vence sola (30 días sin abrir
+la app) no puede dar de baja el dispositivo, porque ya no tiene token; queda
+a nombre de esa cuenta hasta que alguien entre ahí.
+
+Tests: `backend/tests/test_push.py` (el mismo `endpoint` suscripto por dos
+cuentas queda en una fila a nombre de la última y un aviso para la primera
+ya no sale a ese dispositivo; la misma cuenta dos veces sigue siendo una
+fila), `frontend/lib/push.test.ts` (qué manda cada helper),
+`frontend/lib/auth-context.test.tsx` (cuándo se llaman: ingreso, sesión
+recuperada, cierre aunque la baja falle, impersonación) y
+`frontend/e2e/push-cuenta-actual.spec.ts` (el recorrido en el navegador).
 
 ### Derivación de las decisiones
 
