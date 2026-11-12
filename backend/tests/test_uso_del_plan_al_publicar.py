@@ -161,3 +161,93 @@ async def test_un_evento_suma_un_turno_por_cada_puesto_publicado(client: AsyncCl
     assert event.status_code == 201, event.text
     assert len(event.json()["shifts"]) == 3
     assert await _turnos_usados(client, headers) == 3
+
+
+# --- El reintento del asistente de publicar -------------------------------
+# El asistente (`frontend/app/shifts/new/page.tsx`) crea un solo borrador por
+# intento: si publicar falla, el reintento edita ese borrador (si la persona
+# cambió algo) y vuelve a pedir que se publique. Estos tests recorren esos
+# mismos pedidos contra la API real.
+
+
+def _payload_del_asistente(**overrides) -> dict:
+    payload = {
+        "position": "mozo",
+        "quantity": 1,
+        "start_at": "2027-03-13T20:00:00-03:00",
+        "end_at": "2027-03-13T23:00:00-03:00",
+        "pay_amount": "15000",
+        "currency": "ARS",
+        "tips": True,
+        "meal": False,
+        "urgent": False,
+        "dress_code": None,
+        "city": "Palermo",
+        "latitude": -34.5889,
+        "longitude": -58.4306,
+    }
+    payload.update(overrides)
+    return payload
+
+
+async def _turnos_del_comercio(client: AsyncClient, headers: dict) -> list[dict]:
+    mine = await client.get("/api/v1/shifts/me", headers=headers)
+    assert mine.status_code == 200
+    return mine.json()
+
+
+async def test_el_reintento_edita_el_borrador_y_publica_un_solo_turno(client: AsyncClient):
+    employer = await _employer_with_company(client, "uso_reintento@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers={**employer, "Idempotency-Key": str(uuid.uuid4())},
+        json=_payload_del_asistente(),
+    )
+    assert created.status_code == 201
+    shift_id = created.json()["id"]
+
+    # El primer publicar no llegó. La persona sube el pago y reintenta.
+    edited = await client.put(
+        f"/api/v1/shifts/{shift_id}",
+        headers=employer,
+        json=_payload_del_asistente(pay_amount="18000"),
+    )
+    assert edited.status_code == 200
+    published = await client.post(
+        f"/api/v1/shifts/{shift_id}/publish",
+        headers={**employer, "Idempotency-Key": str(uuid.uuid4())},
+    )
+    assert published.status_code == 200
+
+    shifts = await _turnos_del_comercio(client, employer)
+    assert [(s["id"], s["status"]) for s in shifts] == [(shift_id, "publicado")]
+    assert float(shifts[0]["pay_amount"]) == 18000
+    assert await _turnos_usados(client, employer) == 1
+
+
+async def test_editar_tras_un_publicar_que_si_llego_no_publica_ni_cuenta_de_nuevo(
+    client: AsyncClient,
+):
+    """Mala señal: el publicar llegó y la respuesta se perdió. El reintento
+    (con un cambio en el formulario) edita el turno ya publicado y repite el
+    publicar con la misma clave: sigue habiendo un turno y un uso."""
+    employer = await _employer_with_company(client, "uso_reintento2@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer, json=_payload_del_asistente()
+    )
+    shift_id = created.json()["id"]
+    publish_headers = {**employer, "Idempotency-Key": str(uuid.uuid4())}
+    assert (await _publish(client, publish_headers, shift_id)).status_code == 200
+
+    edited = await client.put(
+        f"/api/v1/shifts/{shift_id}",
+        headers=employer,
+        json=_payload_del_asistente(pay_amount="18000"),
+    )
+    assert edited.status_code == 200
+    assert (await _publish(client, publish_headers, shift_id)).status_code == 200
+
+    shifts = await _turnos_del_comercio(client, employer)
+    assert [(s["id"], s["status"]) for s in shifts] == [(shift_id, "publicado")]
+    assert float(shifts[0]["pay_amount"]) == 18000
+    assert await _turnos_usados(client, employer) == 1
