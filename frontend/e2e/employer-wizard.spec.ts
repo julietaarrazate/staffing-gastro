@@ -1,12 +1,15 @@
 import { test, expect } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
+type Pagina = import("@playwright/test").Page;
+
 /**
  * Wizard de publicación de turno (R1.5b): sesión employer, se completa el
  * wizard mínimo (puesto, cantidad fija, horario, pago, ubicación) y se
  * verifica que el POST /shifts sale con quantity=1 en el body.
  */
-test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
+/** Sesión employer y todas las rutas que usa el wizard y lo que sigue. */
+async function prepararPublicacion(page: Pagina) {
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -57,7 +60,10 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   await page.route("**/api/v1/shifts/shift-new-1/candidates", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
+}
 
+/** Completa el wizard mínimo hasta dejar «Publicar turno» habilitado. */
+async function completarWizard(page: Pagina) {
   await page.goto("/shifts/new");
 
   // Paso 1: puesto (elegirlo avanza solo; ya no hay paso de cantidad).
@@ -81,6 +87,11 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   await expect(page.getByText("Elegí la zona para poder avisar a gente cerca.")).toBeVisible();
   await page.locator("select").nth(1).selectOption("Palermo");
   await expect(page.getByRole("button", { name: "Publicar turno" })).toBeEnabled();
+}
+
+test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
+  await prepararPublicacion(page);
+  await completarWizard(page);
 
   const publishRequest = page.waitForRequest(
     (req) =>
@@ -103,4 +114,26 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   // "Ver mi turno" navega a los candidatos del turno recién publicado.
   await page.getByRole("button", { name: "Ver mi turno" }).click();
   await expect(page).toHaveURL("/shifts/shift-new-1/candidates");
+});
+
+/**
+ * Escape sobre «¡Turno publicado!» cierra sólo esa capa: el pedido de activar
+ * notificaciones sigue disponible y no queda registrado como rechazado (antes un
+ * Escape cerraba las dos). Chromium sin ventana trae `Notification.permission`
+ * en "denied"; se fuerza "default" para que el pedido aparezca.
+ */
+test("Escape sobre «Turno publicado» no descarta el pedido de notificaciones", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Notification, "permission", { get: () => "default", configurable: true });
+  });
+  await prepararPublicacion(page);
+  await completarWizard(page);
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL("/shifts");
+  await expect(page.getByText("Activá las notificaciones")).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("staffya_push_prompt_shown"))).toBeNull();
 });

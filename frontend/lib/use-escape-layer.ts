@@ -16,13 +16,11 @@ import { useEffect, useRef } from "react";
  */
 
 interface Layer {
-  id: number;
   priority: number;
   close: () => void;
 }
 
 const stack: Layer[] = [];
-let nextId = 0;
 let listening = false;
 
 function topLayer(): Layer | undefined {
@@ -35,6 +33,9 @@ function topLayer(): Layer | undefined {
 
 function onKeyDown(e: KeyboardEvent) {
   if (e.key !== "Escape") return;
+  // Escape mantenido apretado: la repetición automática manda más `keydown` y
+  // el segundo cerraría la capa de abajo sin que la persona la haya visto.
+  if (e.repeat) return;
   topLayer()?.close();
 }
 
@@ -65,7 +66,7 @@ export function useEscapeLayer(open: boolean, onClose: () => void, priority = 0)
 
   useEffect(() => {
     if (!open) return;
-    const layer: Layer = { id: nextId++, priority, close: () => closeRef.current() };
+    const layer: Layer = { priority, close: () => closeRef.current() };
     register(layer);
     return () => unregister(layer);
   }, [open, priority]);

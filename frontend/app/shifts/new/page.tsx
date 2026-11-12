@@ -356,10 +356,9 @@ function NewShiftWizard() {
           keyFor(created.id)
         );
         clearIdempotencyKey(created.id);
-        // Primera acción significativa del comercio, no al aterrizar (ver
-        // docs/reference/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
-        // enterarse por push apenas alguien se postule.
-        requestOptIn();
+        // El pedido de notificaciones (requestOptIn) se hace recién al cerrar la
+        // confirmación, no junto con ella: con las dos capas abiertas a la vez las
+        // trampas de foco se pisan y Enter/Espacio descartaban el pedido sin verlo.
         // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
         // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
         setPublishedShiftId(created.id);
@@ -749,11 +748,16 @@ function NewShiftWizard() {
         onClose={() => {
           setPublishedShiftId(null);
           router.push("/shifts");
+          // Primera acción significativa del comercio, no al aterrizar (ver
+          // docs/reference/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
+          // enterarse por push apenas alguien se postule. Mismo criterio que /map.
+          requestOptIn();
         }}
         onViewShift={() => {
           const id = publishedShiftId;
           setPublishedShiftId(null);
           if (id) router.push(`/shifts/${id}/candidates`);
+          requestOptIn();
         }}
       />
     </div>

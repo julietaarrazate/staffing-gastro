@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { Button } from "@/components/ui";
 import { CloseIcon } from "@/components/icons";
 import { MOTION_UI } from "@/lib/motion";
@@ -45,6 +46,9 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   useFocusTrap(cardRef, activeSteps !== null);
+  // Capa por encima de todas (z-[70]): Escape = «Saltar recorrido». Sin esto, el
+  // Escape pasaba de largo y cerraba el pedido de notificaciones tapado debajo.
+  useEscapeLayer(activeSteps !== null, finish, 70);
 
   // Se decide una sola vez, al montar, qué pasos tienen un target real en
   // el DOM (algunos, como el filtro de urgentes, sólo existen si hay
