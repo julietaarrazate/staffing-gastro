@@ -34,10 +34,13 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Leídas/no leídas:** se marcan de a una al tocarlas, o todas juntas con
   "Marcar todas como leídas" en el panel de la campanita
   (`POST /notifications/read-all`).
-- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** el aviso (primera tanda y escalada) abre `/turno/<id>`, donde la persona se postula; los viejos guardados con `/feed` siguen yendo al Inicio. Sólo a
+- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a
   cuentas con rol trabajador y activas, las mismas que pueden salir como
   candidatas ([MATCHING.md](./MATCHING.md)). Un perfil de trabajador
   colgado de un admin o de un suspendido no recibe nada.
+- **Destino de los avisos de turno cerca:** abren `/turno/<id>`, donde la
+  persona se postula (primera tanda y escalada). Los viejos guardados con
+  `/feed` siguen yendo al Inicio.
 - **No son la fuente de verdad del estado:** son un reflejo. El estado real vive
   en el turno / la reseña. (Ver nota de "eventos" abajo.)
 
