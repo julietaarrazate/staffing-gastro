@@ -24,6 +24,7 @@ from app.modules.verification.application.dtos import (
 )
 from app.modules.verification.domain.entities import Claim, Evidence
 from app.modules.verification.domain.exceptions import (
+    ClaimAlreadyExistsError,
     ClaimNotFoundError,
     EvidenceNotFoundError,
 )
@@ -83,6 +84,27 @@ class VerificationService:
             self._delete_files_later([d.id for d in claim.files_to_delete])
         return saved
 
+    async def _submit(
+        self, user_id: UUID, claim_type: ClaimType, evidences: list[Evidence]
+    ) -> Claim:
+        """Presenta (o reenvía) evidencia sobre el claim del sujeto, creándolo
+        si no existe. Seguro ante repetición: si dos envíos casi simultáneos
+        leen «no hay claim» y el segundo alta choca con la restricción única,
+        se relee el claim que ganó y se reenvía sobre él por el camino normal
+        (sus archivos entran a la cola de borrado). Un solo reintento."""
+        for attempt in range(2):
+            claim = await self._claims.get_for_user(user_id, claim_type)
+            is_new = claim is None
+            if claim is None:
+                claim = Claim(user_id=user_id, claim_type=claim_type)
+            claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
+            try:
+                return await self._save(claim, is_new=is_new)
+            except ClaimAlreadyExistsError:
+                if attempt == 1:
+                    raise
+        raise AssertionError("inalcanzable")  # pragma: no cover
+
     async def submit_identity_document(
         self,
         user_id: UUID,
@@ -117,15 +139,9 @@ class VerificationService:
                 ),
             )
 
-        claim = await self._claims.get_for_user(
-            user_id, ClaimType.DOCUMENTO_VERIFICADO
+        return await self._submit(
+            user_id, ClaimType.DOCUMENTO_VERIFICADO, evidences
         )
-        is_new = claim is None
-        if claim is None:
-            claim = Claim(user_id=user_id, claim_type=ClaimType.DOCUMENTO_VERIFICADO)
-
-        claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
-        return await self._save(claim, is_new=is_new)
 
     async def submit_business_document(
         self, user_id: UUID, constancia: EvidenceFile
@@ -150,13 +166,7 @@ class VerificationService:
             )
         ]
 
-        claim = await self._claims.get_for_user(user_id, ClaimType.NEGOCIO_VERIFICADO)
-        is_new = claim is None
-        if claim is None:
-            claim = Claim(user_id=user_id, claim_type=ClaimType.NEGOCIO_VERIFICADO)
-
-        claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
-        return await self._save(claim, is_new=is_new)
+        return await self._submit(user_id, ClaimType.NEGOCIO_VERIFICADO, evidences)
 
     async def approve_claim(self, claim_id: UUID, admin_id: UUID) -> Claim:
         """Un admin aprueba un claim pendiente (purga la evidencia sensible y

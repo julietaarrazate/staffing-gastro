@@ -9,6 +9,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.verification.domain.entities import (
@@ -16,6 +17,7 @@ from app.modules.verification.domain.entities import (
     Evidence,
     EvidenceFileDeletion,
 )
+from app.modules.verification.domain.exceptions import ClaimAlreadyExistsError
 from app.modules.verification.domain.repositories import (
     ClaimRepository,
     EvidenceFileDeletionRepository,
@@ -147,6 +149,13 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         mismo commit que la purga del puntero (ADR-0021)."""
         self._session.add_all(_deletion_to_model(d) for d in claim.files_to_delete)
 
+    async def _exists(self, user_id: UUID, claim_type: ClaimType) -> bool:
+        stmt = select(IdentityClaimModel.id).where(
+            IdentityClaimModel.user_id == user_id,
+            IdentityClaimModel.claim_type == claim_type.value,
+        )
+        return (await self._session.execute(stmt)).first() is not None
+
     async def add(self, claim: Claim) -> Claim:
         model = IdentityClaimModel(
             id=claim.id, user_id=claim.user_id, claim_type=claim.claim_type.value
@@ -155,7 +164,16 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         _sync_evidences(model, claim)
         self._session.add(model)
         self._stage_file_deletions(claim)
-        await self._session.commit()
+        try:
+            await self._session.commit()
+        except IntegrityError:
+            await self._session.rollback()
+            # Sólo el choque de `uq_identity_claim_user_type` es un error del
+            # dominio; cualquier otra violación (p. ej. un usuario inexistente)
+            # sigue subiendo tal cual.
+            if not await self._exists(claim.user_id, claim.claim_type):
+                raise
+            raise ClaimAlreadyExistsError(str(claim.user_id)) from None
         await self._session.refresh(model)
         return _to_entity(model)
 
