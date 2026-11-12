@@ -380,7 +380,10 @@ class ShiftService:
                         type=notification_type,
                         title=title,
                         message=message,
-                        link="/feed",
+                        # Al turno, no al Inicio: con el Inicio abierto un link
+                        # a /feed no hacía nada y el turno no aparecía hasta
+                        # recargar. En /turno/{id} la persona se postula.
+                        link=f"/turno/{shift.id}",
                     )
                     for match in ranked
                 ]
