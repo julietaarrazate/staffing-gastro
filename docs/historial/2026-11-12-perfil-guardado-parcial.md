@@ -1,4 +1,4 @@
-# Guardar una parte del perfil ya no pisa lo demás (foto del Inicio e interruptor «Disponible»)
+# Guardar una parte del perfil ya no pisa lo demás (foto del Perfil e interruptor «Disponible» del Inicio)
 
 **Pedido:** salida a beta, etapa 2 (arreglar lo que encontró la prueba de
 punta a punta y un reporte externo). Hallazgo U053 y reporte BK-676ABE51EF2C,
@@ -29,9 +29,22 @@ Lo técnico:
   también actualiza su caché de pantalla).
 - `frontend/components/WorkerProfileForm.tsx` pasó al mismo helper: ya leía
   antes de guardar, el comportamiento es el mismo.
+- Inicio: una carga en vuelo no pisa un guardado posterior. `load()` descarta
+  el perfil que leyó si, mientras tanto, se guardó la disponibilidad (contador
+  `profileSaves`); sin eso, con conexión lenta la pantalla volvía a
+  «Disponible» aunque el servidor ya tuviera «No disp.». También `origin`
+  depende sólo de la zona del perfil, así tocar «Disponible» no redibuja las
+  tarjetas (`originFor` acepta `Pick<WorkerProfile, "latitude"|"longitude">`).
+- Foto del Perfil: si el guardado falla, se avisa en la tarjeta (antes el
+  rechazo quedaba sin manejar).
+- `/bienvenida` (trabajador): si el POST da 409 (el perfil ya existe), ya no
+  cae a un PUT con un payload corto que borraba descripción, CV, idiomas y
+  fecha de nacimiento: guarda sólo lo que capturó el asistente con
+  `saveProfilePart`, y «Dejar para después» no escribe nada.
 - Tests: `lib/worker-profile.test.ts`, `components/worker/WorkerGameCard.test.tsx`
-  y `e2e/inicio-disponible-perfil.spec.ts` (los dos últimos fallan con el
-  código anterior).
+  y `e2e/inicio-disponible-perfil.spec.ts` (incluye tocar con el refresco en
+  vuelo) y `e2e/bienvenida-perfil-existente.spec.ts`; los E2E fallan con el
+  código anterior.
 
 **Por qué así:** un único lugar para "guardar una parte", en vez de que cada
 pantalla arme el payload. No se tocó el backend.

@@ -55,7 +55,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { destinoTrasBienvenida } from "@/lib/plan-elegido";
@@ -171,7 +172,10 @@ function WorkerOnboarding() {
     if (!token) return false;
     setError(null);
     // El perfil todavía no existe (el usuario se acaba de registrar), pero si
-    // entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
+    // entró dos veces al onboarding puede existir (POST da 409). En ese caso
+    // NO se reemplaza el perfil con este payload corto: se guarda sólo lo que
+    // el asistente capturó, encima del perfil que ya está (`saveProfilePart`),
+    // y «Dejar para después» no escribe nada.
     const payload = {
       photo_url: withDetails ? photoUrl : null,
       city: withDetails ? (location?.city ?? null) : null,
@@ -184,8 +188,18 @@ function WorkerOnboarding() {
     try {
       try {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
-      } catch {
-        await api.put<WorkerProfile>("/workers/me/profile", payload, token);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 409) throw err;
+        if (withDetails) {
+          await saveProfilePart(token, {
+            ...(photoUrl ? { photo_url: photoUrl } : {}),
+            city: location?.city ?? null,
+            latitude: location?.latitude ?? null,
+            longitude: location?.longitude ?? null,
+            skills,
+            years_experience: Number(yearsExperienceInput) || 0,
+          });
+        }
       }
       return true;
     } catch (err) {

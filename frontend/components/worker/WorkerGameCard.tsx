@@ -81,6 +81,7 @@ export default function WorkerGameCard() {
   const [earnings, setEarnings] = useState<WorkerEarnings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -105,8 +106,15 @@ export default function WorkerGameCard() {
     // perfil del servidor justo antes de escribir (la copia de esta pantalla
     // puede estar vieja si la persona guardó otra cosa en otra pestaña) y
     // manda todo con la foto nueva encima.
-    const saved = await saveProfilePart(token, { photo_url: url });
-    setProfile(saved);
+    setPhotoError(null);
+    try {
+      const saved = await saveProfilePart(token, { photo_url: url });
+      setProfile(saved);
+    } catch {
+      // `ImageUpload` no espera este guardado: sin aviso, la foto subida
+      // quedaba sin guardar y la persona no se enteraba.
+      setPhotoError("No pudimos guardar tu foto. Probá de nuevo.");
+    }
   }
 
   if (loading) return <Skeleton className="h-72 w-full rounded-[var(--radius-card)]" />;
@@ -149,6 +157,11 @@ export default function WorkerGameCard() {
           onChange={savePhoto}
           fallbackLabel={user?.full_name ?? "Vos"}
         />
+        {photoError && (
+          <p role="alert" className="mt-2 text-sm font-semibold text-on-brand">
+            {photoError}
+          </p>
+        )}
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-on-brand/10 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}

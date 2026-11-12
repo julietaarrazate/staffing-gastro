@@ -82,4 +82,17 @@ describe("WorkerGameCard: cambiar la foto", () => {
     expect(body.skills).toEqual(["mozo", "barista"]);
     expect(body.cv_filename).toBe("CV-Vera.pdf");
   });
+
+  it("si no se puede guardar la foto, avisa", async () => {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/workers/me/earnings") throw new Error("sin ganancias");
+      return perfil();
+    });
+    put.mockRejectedValue(new Error("sin conexión"));
+
+    render(<WorkerGameCard />);
+    await userEvent.click(await screen.findByRole("button", { name: "Subir foto" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos guardar tu foto");
+  });
 });

@@ -163,6 +163,11 @@ function WorkerFeedPanel() {
   const [deckShifts, setDeckShifts] = useState<Shift[] | null>(null);
   const decidedInDeck = useRef<Set<string>>(new Set());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Cuenta los guardados del perfil hechos desde esta pantalla. Una carga que
+  // leyó el perfil ANTES de un guardado y termina DESPUÉS (el feed es el
+  // pedido más lento) trae una copia vieja: si el contador cambió, `load` la
+  // descarta y la pantalla se queda con lo que devolvió el servidor al guardar.
+  const profileSaves = useRef(0);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -174,6 +179,7 @@ function WorkerFeedPanel() {
       setLoading(true);
     }
     setError(null);
+    const savesAtStart = profileSaves.current;
     try {
       const [feed, prof, applied] = await Promise.all([
         api.get<Shift[]>(feedPathFor(assistantSearch?.positions ?? []), token),
@@ -183,14 +189,19 @@ function WorkerFeedPanel() {
       const appliedIds = new Set(applied.map((a) => a.shift_id));
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
-      if (prof) {
+      // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
+      const profFresh = profileSaves.current === savesAtStart;
+      if (prof && profFresh) {
         setProfile(prof);
         setAvailable(prof.is_available);
       }
       // No cachear resultados de una búsqueda del asistente: son la
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
-      if (!assistantSearch) setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
+      if (!assistantSearch) {
+        const cachedProfile = profFresh ? prof : (getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
+        setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
     } finally {
@@ -212,6 +223,7 @@ function WorkerFeedPanel() {
       // esta pantalla puede estar vieja (se pinta desde caché y se actualiza
       // por detrás) y mandarla pisaba lo recién guardado en el perfil.
       const saved = await saveProfilePart(token, { is_available: next });
+      profileSaves.current += 1;
       setProfile(saved);
       setAvailable(saved.is_available);
       const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
@@ -312,9 +324,16 @@ function WorkerFeedPanel() {
   // "a menos de 2 km" tiene que sacar lo que no entra) y sólo hoy si lo pidió.
   // Memorizado (como `distanceFromOrigin`): así tocar "Disponible" no vuelve
   // a ordenar ni a dibujar las tarjetas, que no cambiaron.
+  // Depende de la zona del perfil (dos números), no del objeto entero: guardar
+  // la disponibilidad cambia `profile` y no tiene que redibujar las tarjetas.
+  const profileLat = profile?.latitude ?? null;
+  const profileLng = profile?.longitude ?? null;
   const origin = useMemo(
-    () => (assistantSearch ? assistantSearch.origin : originFor(here, profile)),
-    [assistantSearch, here, profile],
+    () =>
+      assistantSearch
+        ? assistantSearch.origin
+        : originFor(here, { latitude: profileLat, longitude: profileLng }),
+    [assistantSearch, here, profileLat, profileLng],
   );
   const distanceFromOrigin = useCallback((s: Shift) => distanceOf(s, origin), [origin]);
   const visibleShifts = useMemo(() => {

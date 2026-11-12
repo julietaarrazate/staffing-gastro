@@ -54,8 +54,7 @@ describe("saveProfilePart", () => {
     expect(saved.photo_url).toBe("https://cdn.example/foto.jpg");
   });
 
-  it("el cambio parcial conserva lo del servidor aunque la copia local esté vieja", async () => {
-    const copiaVieja = perfil({ bio: "Descripción vieja", is_available: true });
+  it("manda lo que leyó del servidor con el cambio encima", async () => {
     const enServidor = perfil({ bio: "Descripción nueva", is_available: true });
     get.mockResolvedValue(enServidor);
     put.mockResolvedValue(enServidor);
@@ -65,7 +64,6 @@ describe("saveProfilePart", () => {
     const body = put.mock.calls[0][1];
     expect(body.is_available).toBe(false);
     expect(body.bio).toBe("Descripción nueva");
-    expect(body.bio).not.toBe(copiaVieja.bio);
     expect(body.cv_filename).toBe("CV-Vera.pdf");
   });
 

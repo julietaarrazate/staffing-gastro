@@ -115,3 +115,64 @@ test("tocar «Disponible» cambia sólo la disponibilidad y no pisa lo guardado 
     cv_filename: "CV-Vera-Datos-2026.pdf",
   });
 });
+
+test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se queda con lo guardado", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-1",
+        email: "demo@staffya.com",
+        full_name: "Mozo Demo",
+        role: "worker",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  // El feed (el pedido más lento de la carga del Inicio) queda demorado hasta
+  // que se lo suelta: simula la conexión lenta.
+  let soltarFeed!: () => void;
+  const feedDemorado = new Promise<void>((res) => (soltarFeed = res));
+  await page.route("**/api/v1/shifts/feed**", async (route) => {
+    await feedDemorado;
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+  await page.route("**/api/v1/applications/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  let enServidor = { ...EN_SERVIDOR };
+  const puts: Record<string, unknown>[] = [];
+  await page.route("**/api/v1/workers/me/profile", async (route) => {
+    const req = route.request();
+    if (req.method() === "PUT") {
+      const body = req.postDataJSON();
+      puts.push(body);
+      enServidor = { ...enServidor, ...body };
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(enServidor) });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(enServidor) });
+  });
+
+  await page.goto("/feed");
+  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  await expect(interruptor).toBeVisible();
+  await interruptor.click();
+  await expect(page.getByText("No disp.")).toBeVisible();
+  await expect.poll(() => puts.length).toBe(1);
+
+  // Recién ahora termina la carga que arrancó antes del toque: no puede
+  // deshacer lo guardado.
+  soltarFeed();
+  await page.waitForTimeout(500);
+  await expect(page.getByText("No disp.")).toBeVisible();
+  expect(puts).toHaveLength(1);
+  expect(puts[0]).toMatchObject({ is_available: false, cv_filename: "CV-Vera-Datos-2026.pdf" });
+});
