@@ -7,6 +7,7 @@ import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
+import { cancelConfirmCopy } from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
@@ -357,6 +358,9 @@ function MyShiftsPanel() {
     return Array.from(byId.entries()).map(([eventId, data]) => ({ eventId, ...data }));
   }, [shifts]);
 
+  const cancelCopy = cancelConfirmCopy(
+    confirmCancelId ? shifts.find((s) => s.id === confirmCancelId) : undefined
+  );
   const payingWorkerName = confirmMarkPaidId
     ? shifts.find((s) => s.id === confirmMarkPaidId)?.worker_name
     : null;
@@ -567,12 +571,12 @@ function MyShiftsPanel() {
         onClose={() => setConfirmCancelId(null)}
         title="¿Cancelar este turno?"
       >
-        <p className="text-sm text-ink/60">
-          {confirmCancelId &&
-          shifts.find((s) => s.id === confirmCancelId)?.worker_profile_id
-            ? "Ya tenés un trabajador asignado: se le avisa que el turno se cancela y no vas a poder deshacerlo."
-            : "El turno deja de estar disponible para postularse. No vas a poder deshacerlo."}
-        </p>
+        <p className="text-sm text-ink/60">{cancelCopy.body}</p>
+        {/* El costo va antes de confirmar y sólo cuando aplica (ADR-0007:
+            cancelar con el trabajador ya confirmado). */}
+        {cancelCopy.lateCancellation && (
+          <p className="mt-2 text-sm font-semibold text-ink">{cancelCopy.lateCancellation}</p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmCancelId(null)}>
             Volver

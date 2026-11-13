@@ -9,6 +9,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   shift_paid: "/my-shifts",
   shift_no_show: "/my-shifts",
   shift_cancelled_late: "/my-shifts",
+  // El comercio canceló antes de que confirmara: el turno sigue en
+  // «Asignados», marcado como cancelado.
+  shift_cancelled: "/my-shifts",
   checkin_reminder: "/my-shifts",
   departure_reminder: "/my-shifts",
   new_applicant: "/shifts",
@@ -26,6 +29,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   // Escalada automática de urgencia (ADR-0009): mismo destino que el aviso
   // común, el turno todavía no es suyo.
   urgent_shift_nearby: "/feed",
+  // Se canceló un turno al que estaba postulado: esa postulación ya no figura
+  // en ninguna lista suya, lo útil es el Inicio con los otros turnos.
+  applied_shift_cancelled: "/feed",
   chat_message: "/chats",
   review_received: "/profile",
   support_reply: "/support",

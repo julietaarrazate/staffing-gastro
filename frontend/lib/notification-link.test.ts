@@ -32,4 +32,12 @@ describe("notificationHref", () => {
   it("sin link (avisos anteriores a `link`), el de turno cerca abre el Inicio", () => {
     expect(notificationHref(aviso({ type: "urgent_shift_nearby" }))).toBe("/feed");
   });
+
+  it("el turno que el comercio canceló antes de confirmar abre «Mis turnos»", () => {
+    expect(notificationHref(aviso({ type: "shift_cancelled" }))).toBe("/my-shifts");
+  });
+
+  it("el turno cancelado al que estaba postulado abre el Inicio", () => {
+    expect(notificationHref(aviso({ type: "applied_shift_cancelled" }))).toBe("/feed");
+  });
 });

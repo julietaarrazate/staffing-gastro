@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
 import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
+import LateCancellations from "@/components/company/LateCancellations";
 import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
@@ -104,6 +105,9 @@ export default function ProfilePage() {
               <AvailableNowToggle token={token} />
             </div>
           )}
+
+          {/* Sólo con al menos una: en cero no dibuja nada. */}
+          {user.role === "employer" && <LateCancellations />}
         </div>
 
         <div>
