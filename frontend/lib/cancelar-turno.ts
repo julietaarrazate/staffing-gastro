@@ -17,7 +17,42 @@ const COMMITTED_STATUSES: readonly ShiftStatus[] = [
 /** Estados en los que todavía puede haber gente postulada esperando respuesta. */
 const OPEN_STATUSES: readonly ShiftStatus[] = ["publicado", "buscando_personal"];
 
+/** Estados terminales: ya no hay nada que cancelar (`TERMINAL_STATUSES` del backend). */
+const TERMINAL_STATUSES: readonly ShiftStatus[] = [
+  "finalizado",
+  "pagado",
+  "cancelado",
+  "no_cubierto",
+];
+
 type CancellableShift = Pick<Shift, "status" | "worker_profile_id">;
+
+/** ¿El backend todavía acepta cancelar un turno en este estado? */
+export function isCancellable(status: ShiftStatus): boolean {
+  return !TERMINAL_STATUSES.includes(status);
+}
+
+/**
+ * La tarjeta del panel con el estado recién leído de `GET /shifts/{id}`.
+ *
+ * El panel arma su lista con `GET /shifts/me`, que no trae lo mismo que el
+ * detalle: el detalle suma los datos del comercio (que en el panel propio no
+ * se muestran) y no manda `worker_name`. Se pisa todo con lo nuevo salvo esos
+ * campos; el nombre se conserva sólo si el trabajador sigue siendo el mismo.
+ */
+export function withFreshState(current: Shift, fresh: Shift): Shift {
+  return {
+    ...current,
+    ...fresh,
+    company_name: current.company_name,
+    company_logo_url: current.company_logo_url,
+    company_cover_url: current.company_cover_url,
+    worker_name:
+      fresh.worker_profile_id && fresh.worker_profile_id === current.worker_profile_id
+        ? current.worker_name
+        : null,
+  };
+}
 
 /**
  * ¿Cancelar este turno le suma una cancelación tardía al comercio? Misma

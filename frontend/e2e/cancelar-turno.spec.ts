@@ -71,9 +71,24 @@ const json = (body: unknown) => ({
   body: JSON.stringify(body),
 });
 
-/** Panel del comercio con un solo turno. Devuelve los `POST /cancel` recibidos. */
-async function mockPanel(page: Page, initial: ReturnType<typeof shift>): Promise<string[]> {
-  const current = { ...initial };
+type MockShift = ReturnType<typeof shift>;
+
+/**
+ * Panel del comercio con un solo turno. `listed` es lo que trae la lista al
+ * entrar (`GET /shifts/me`) y `server` lo que el servidor tiene ahora, que es
+ * lo que contesta la relectura al abrir el diálogo (`GET /shifts/{id}`): por
+ * defecto son iguales. Devuelve los `POST /cancel` recibidos.
+ */
+async function mockPanel(
+  page: Page,
+  listed: MockShift,
+  {
+    server = listed,
+    rereadFails = false,
+    rereadDelayMs = 0,
+  }: { server?: MockShift; rereadFails?: boolean; rereadDelayMs?: number } = {}
+): Promise<string[]> {
+  const current = { ...server };
   const cancelCalls: string[] = [];
   await injectSession(page);
   await skipSplash(page);
@@ -81,7 +96,16 @@ async function mockPanel(page: Page, initial: ReturnType<typeof shift>): Promise
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(EMPLOYER_SESSION)));
   await page.route("**/api/v1/reviews/shifts/*", (route) => route.fulfill(json([])));
-  await page.route("**/api/v1/shifts/me", (route) => route.fulfill(json([current])));
+  // La lista deja de ser vieja después de cancelar (el panel la recarga).
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill(json([cancelCalls.length > 0 ? current : listed]))
+  );
+  // El detalle no trae `worker_name` y sí los datos del comercio, como el real.
+  await page.route(/\/api\/v1\/shifts\/shift-1$/, async (route) => {
+    if (rereadDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, rereadDelayMs));
+    if (rereadFails) return route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+    return route.fulfill(json({ ...current, worker_name: undefined, company_name: "Bar Palermo" }));
+  });
   await page.route(/\/api\/v1\/shifts\/[^/]+\/cancel$/, async (route) => {
     cancelCalls.push(new URL(route.request().url()).pathname);
     current.status = "cancelado";
@@ -90,7 +114,7 @@ async function mockPanel(page: Page, initial: ReturnType<typeof shift>): Promise
   return cancelCalls;
 }
 
-async function openCancelDialog(page: Page) {
+async function openCancelDialog(page: Page, { waitForText = true } = {}) {
   await page.goto("/shifts");
   await page.getByRole("button", { name: "Más acciones" }).click();
   await page
@@ -99,8 +123,103 @@ async function openCancelDialog(page: Page) {
     .click();
   const dialog = page.getByRole("dialog", { name: "¿Cancelar este turno?" });
   await expect(dialog).toBeVisible();
+  // El texto aparece cuando terminó la relectura del turno.
+  if (waitForText) await expect(dialog.getByTestId("cancel-checking")).toHaveCount(0);
   return dialog;
 }
+
+const ASSIGNED_TEXT =
+  "Ya tenés un trabajador asignado: se le avisa que el turno se cancela y no vas a poder deshacerlo.";
+const CONFIRMED_TEXT =
+  "El trabajador ya confirmó: se le avisa que el turno se cancela y no vas a poder deshacerlo.";
+const OPEN_TEXT =
+  "El turno deja de estar disponible para postularse. Si alguien se postuló, se le avisa. No vas a poder deshacerlo.";
+
+// --- El texto sale del estado de AHORA, no del de la lista cargada -----------
+
+test("lista vieja «asignado» y el trabajador ya confirmó: avisa la cancelación tardía", async ({
+  page,
+}) => {
+  const cancelCalls = await mockPanel(page, shift({ status: "asignado" }), {
+    server: shift({ status: "confirmado" }),
+  });
+  const dialog = await openCancelDialog(page);
+
+  await expect(dialog.getByText(CONFIRMED_TEXT)).toBeVisible();
+  await expect(dialog.getByText(LATE_WARNING)).toBeVisible();
+  await expect(dialog.getByText(ASSIGNED_TEXT)).toHaveCount(0);
+  expect(cancelCalls).toEqual([]);
+
+  // La tarjeta de atrás también quedó al día, con el nombre que ya tenía.
+  await dialog.getByRole("button", { name: "Volver" }).click();
+  const card = page.locator('[data-testid="shift-card"][data-shift-id="shift-1"]');
+  await expect(card.getByText("Confirmado", { exact: true })).toBeVisible();
+  await expect(card.getByText("Bar Palermo")).toHaveCount(0);
+});
+
+test("lista vieja «confirmado» y el trabajador se bajó: no promete una cancelación tardía", async ({
+  page,
+}) => {
+  await mockPanel(page, shift({ status: "confirmado" }), {
+    server: shift({ status: "buscando_personal", worker_profile_id: null, worker_name: null }),
+  });
+  const dialog = await openCancelDialog(page);
+
+  await expect(dialog.getByText(OPEN_TEXT)).toBeVisible();
+  await expect(dialog.getByText("cancelación tardía")).toHaveCount(0);
+  await expect(dialog.getByText(CONFIRMED_TEXT)).toHaveCount(0);
+});
+
+test("mientras se relee el turno, el «Sí» está apagado y no se ve el texto viejo", async ({
+  page,
+}) => {
+  const cancelCalls = await mockPanel(page, shift({ status: "asignado" }), {
+    server: shift({ status: "confirmado" }),
+    rereadDelayMs: 1500,
+  });
+  const dialog = await openCancelDialog(page, { waitForText: false });
+  const confirm = dialog.getByRole("button", { name: "Sí, cancelar turno" });
+
+  await expect(dialog.getByTestId("cancel-checking")).toBeVisible();
+  await expect(confirm).toBeDisabled();
+  // Ni el texto del estado viejo ni el nuevo: nada que después cambie.
+  await expect(dialog.getByText(ASSIGNED_TEXT)).toHaveCount(0);
+  await expect(dialog.getByText(LATE_WARNING)).toHaveCount(0);
+
+  await expect(dialog.getByText(LATE_WARNING)).toBeVisible();
+  await expect(confirm).toBeEnabled();
+  expect(cancelCalls).toEqual([]);
+});
+
+test("si la relectura falla, vale el estado conocido y se puede cancelar igual", async ({
+  page,
+}) => {
+  const cancelCalls = await mockPanel(page, shift({ status: "asignado" }), { rereadFails: true });
+  const dialog = await openCancelDialog(page);
+
+  await expect(dialog.getByText(ASSIGNED_TEXT)).toBeVisible();
+  await expect(dialog.getByText("cancelación tardía")).toHaveCount(0);
+
+  await dialog.getByRole("button", { name: "Sí, cancelar turno" }).click();
+  await expect.poll(() => cancelCalls).toEqual(["/api/v1/shifts/shift-1/cancel"]);
+});
+
+test("si el turno ya terminó, el diálogo se cierra y la tarjeta queda al día", async ({ page }) => {
+  const cancelCalls = await mockPanel(page, shift({ status: "check_out" }), {
+    server: shift({ status: "finalizado" }),
+  });
+  await page.goto("/shifts");
+  await page.getByRole("button", { name: "Más acciones" }).click();
+  await page
+    .getByRole("dialog", { name: "Más acciones" })
+    .getByRole("button", { name: "Cancelar turno" })
+    .click();
+
+  await expect(page.getByText("Este turno ya no se puede cancelar.")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "¿Cancelar este turno?" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Marcar como pagado" })).toBeVisible();
+  expect(cancelCalls).toEqual([]);
+});
 
 for (const status of ["confirmado", "check_in"]) {
   test(`turno ${status}: la confirmación avisa la cancelación tardía antes de cancelar`, async ({
@@ -110,11 +229,7 @@ for (const status of ["confirmado", "check_in"]) {
     const dialog = await openCancelDialog(page);
 
     await expect(dialog.getByText(LATE_WARNING)).toBeVisible();
-    await expect(
-      dialog.getByText(
-        "El trabajador ya confirmó: se le avisa que el turno se cancela y no vas a poder deshacerlo."
-      )
-    ).toBeVisible();
+    await expect(dialog.getByText(CONFIRMED_TEXT)).toBeVisible();
     // Lo dice ANTES: hasta el «Sí» no salió ningún pedido.
     expect(cancelCalls).toEqual([]);
 
@@ -139,11 +254,7 @@ test("turno asignado sin confirmar: se le avisa al trabajador, sin cancelación 
   await mockPanel(page, shift({ status: "asignado" }));
   const dialog = await openCancelDialog(page);
 
-  await expect(
-    dialog.getByText(
-      "Ya tenés un trabajador asignado: se le avisa que el turno se cancela y no vas a poder deshacerlo."
-    )
-  ).toBeVisible();
+  await expect(dialog.getByText(ASSIGNED_TEXT)).toBeVisible();
   await expect(dialog.getByText("cancelación tardía")).toHaveCount(0);
 });
 
@@ -156,11 +267,7 @@ test("turno buscando personal: se avisa a quien se postuló, sin cancelación ta
   );
   const dialog = await openCancelDialog(page);
 
-  await expect(
-    dialog.getByText(
-      "El turno deja de estar disponible para postularse. Si alguien se postuló, se le avisa. No vas a poder deshacerlo."
-    )
-  ).toBeVisible();
+  await expect(dialog.getByText(OPEN_TEXT)).toBeVisible();
   await expect(dialog.getByText("cancelación tardía")).toHaveCount(0);
 });
 

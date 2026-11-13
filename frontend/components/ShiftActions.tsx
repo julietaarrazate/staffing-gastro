@@ -25,7 +25,7 @@ import type { Shift } from "@/lib/types";
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
-const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado"];
+const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado", "no_cubierto"];
 
 export default function ShiftActions({
   shift,

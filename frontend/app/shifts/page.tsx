@@ -7,7 +7,7 @@ import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
-import { cancelConfirmCopy } from "@/lib/cancelar-turno";
+import { cancelConfirmCopy, isCancellable, withFreshState } from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
@@ -25,6 +25,7 @@ import {
   ErrorBanner,
   Modal,
   SegmentedControl,
+  Skeleton,
   useToast,
 } from "@/components/ui";
 import {
@@ -165,6 +166,9 @@ export default function MyShiftsPage() {
   );
 }
 
+/** Cuánto se espera la relectura del turno al abrir «¿Cancelar este turno?». */
+const CANCEL_RECHECK_TIMEOUT_MS = 5_000;
+
 /** Cada cuánto se refresca el panel mientras alguien puede venir en camino. */
 const EN_ROUTE_REFRESH_MS = 30_000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -210,6 +214,9 @@ function MyShiftsPanel() {
   const tapGuard = useTapGuard();
   const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  // Mientras se relee el turno al abrir el diálogo de cancelar (`askCancel`).
+  const [cancelChecking, setCancelChecking] = useState(false);
+  const cancelCheckRef = useRef(0);
   const [confirmMarkPaidId, setConfirmMarkPaidId] = useState<string | null>(null);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
@@ -303,8 +310,48 @@ function MyShiftsPanel() {
     await run(id, "noShow");
   }
 
-  async function confirmCancel(id: string) {
+  // «¿Cancelar este turno?» dice a quién se le avisa y si suma una
+  // cancelación tardía, y eso depende del estado del turno AHORA, no del que
+  // tenía cuando se cargó el panel: con la lista vieja, un turno que el
+  // trabajador confirmó hace un minuto se cancelaba sin el aviso (y sumaba la
+  // tardía), y uno del que se bajó prometía una tardía que no iba a existir.
+  // Al abrir se relee ese turno; hasta que llega, el texto queda en espera y
+  // el «Sí» apagado, así no se ve un texto que después cambia por otro.
+  //
+  // Si la relectura falla (sin red, backend dormido), se muestra el texto del
+  // estado que el panel conoce y decide el servidor, como antes: no se
+  // inventa un aviso de «puede sumarte…».
+  async function askCancel(id: string) {
+    setConfirmCancelId(id);
+    if (!token) return;
+    const check = ++cancelCheckRef.current;
+    setCancelChecking(true);
+    try {
+      const fresh = await api.get<Shift>(`/shifts/${id}`, token, CANCEL_RECHECK_TIMEOUT_MS);
+      // El diálogo se cerró (o se abrió otro) mientras llegaba: no se toca nada.
+      if (cancelCheckRef.current !== check) return;
+      setShifts((prev) => prev.map((s) => (s.id === id ? withFreshState(s, fresh) : s)));
+      if (!isCancellable(fresh.status)) {
+        // Terminó, se canceló o quedó sin cubrir mientras el panel estaba
+        // abierto: la tarjeta ya muestra el estado nuevo.
+        setConfirmCancelId(null);
+        toast("Este turno ya no se puede cancelar.", "info");
+      }
+    } catch {
+      // Sin dato fresco: vale el estado conocido (ver arriba).
+    } finally {
+      if (cancelCheckRef.current === check) setCancelChecking(false);
+    }
+  }
+
+  function closeCancel() {
+    cancelCheckRef.current += 1;
+    setCancelChecking(false);
     setConfirmCancelId(null);
+  }
+
+  async function confirmCancel(id: string) {
+    closeCancel();
     await run(id, "cancel");
   }
 
@@ -509,7 +556,7 @@ function MyShiftsPanel() {
                             onRun={run}
                             onMarkPaid={() => askMarkPaid(shift.id)}
                             onNoShow={() => setConfirmNoShowId(shift.id)}
-                            onCancel={() => setConfirmCancelId(shift.id)}
+                            onCancel={() => void askCancel(shift.id)}
                           />
                           {(shift.status === "finalizado" || shift.status === "pagado") && (
                             <div className="mt-3">
@@ -568,22 +615,35 @@ function MyShiftsPanel() {
 
       <Modal
         open={confirmCancelId !== null}
-        onClose={() => setConfirmCancelId(null)}
+        onClose={closeCancel}
         title="¿Cancelar este turno?"
       >
-        <p className="text-sm text-ink/60">{cancelCopy.body}</p>
-        {/* El costo va antes de confirmar y sólo cuando aplica (ADR-0007:
-            cancelar con el trabajador ya confirmado). */}
-        {cancelCopy.lateCancellation && (
-          <p className="mt-2 text-sm font-semibold text-ink">{cancelCopy.lateCancellation}</p>
+        {cancelChecking ? (
+          // Texto en espera mientras se relee el turno (ver `askCancel`).
+          <div role="status" aria-busy="true" data-testid="cancel-checking">
+            <span className="sr-only">Revisando el estado del turno…</span>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-ink/60">{cancelCopy.body}</p>
+            {/* El costo va antes de confirmar y sólo cuando aplica (ADR-0007:
+                cancelar con el trabajador ya confirmado). */}
+            {cancelCopy.lateCancellation && (
+              <p className="mt-2 text-sm font-semibold text-ink">{cancelCopy.lateCancellation}</p>
+            )}
+          </>
         )}
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="surface" size="sm" onClick={() => setConfirmCancelId(null)}>
+          <Button variant="surface" size="sm" onClick={closeCancel}>
             Volver
           </Button>
           <Button
             variant="danger"
             size="sm"
+            disabled={cancelChecking}
             onClick={() => confirmCancelId && confirmCancel(confirmCancelId)}
           >
             Sí, cancelar turno
