@@ -450,8 +450,7 @@ class Shift:
         if _naive(now) < _naive(self.start_at):
             raise InvalidShiftTransitionError(
                 "Todavía no podés marcar la salida: el turno empieza "
-                f"{format_inicio_art(self.start_at, now)}. Si no te podés "
-                "quedar, cancelá tu asignación."
+                f"{format_inicio_art(self.start_at, now)}."
             )
         self._ensure_at_venue(latitude, longitude, "la salida")
         self.status = ShiftStatus.CHECK_OUT

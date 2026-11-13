@@ -1,4 +1,4 @@
-# El trabajador confirma antes de lo que no tiene vuelta atrás
+# El trabajador confirma antes de lo que no tiene vuelta atrás (#552)
 
 **Pedido:** clave T2a de la revisión de la etapa 2 (hallazgos U004 y U005): un toque de más en «Rechazar», «Cancelar mi asignación» o «Me fui» actuaba sin preguntar, y dos toques en «Llegué» terminaban marcando también la salida.
 
@@ -10,4 +10,4 @@
 
 **Por qué así:** el texto de cancelar dice que cuenta como cancelación porque `REPUTATION.md` (ADR-0004) la suma siempre que se cancela una asignación confirmada, y rechazar antes de confirmar no suma. No se inventó ninguna penalidad. La guarda del cliente es comodidad: la regla vive en el dominio.
 
-**Queda abierto:** los diálogos del comercio y el segundo toque sobre un diálogo que se está cerrando (`components/ui/Modal.tsx`) van en otro PR.
+**Queda abierto:** quien marcó la llegada temprano y tiene que irse antes del inicio no puede cancelar ni marcar salida hasta que el turno empieza (máximo 30 minutos); decidir si se permite cancelar desde «llegada marcada» es una decisión de producto. Además, los diálogos del comercio y el segundo toque sobre un diálogo que se está cerrando (`components/ui/Modal.tsx`) van en otro PR.

@@ -56,8 +56,48 @@ def test_formato_de_inicio_en_hora_argentina():
         "hoy a las 20:00"
     )
     assert format_inicio_art(datetime(2026, 11, 14, 23, 0, tzinfo=timezone.utc), ahora) == (
-        "el sábado 14/11 a las 20:00"
+        "mañana a las 20:00"
     )
+    assert format_inicio_art(datetime(2026, 11, 15, 23, 0, tzinfo=timezone.utc), ahora) == (
+        "el domingo 15/11 a las 20:00"
+    )
+    assert format_inicio_art(datetime(2026, 11, 21, 23, 0, tzinfo=timezone.utc), ahora) == (
+        "el sábado 21/11 a las 20:00"
+    )
+
+
+def test_formato_de_inicio_cruza_la_medianoche_argentina():
+    # 02:00 UTC del 14 es 23:00 ART del 13; "ahora" 01:00 UTC del 14 es 22:00 ART del 13.
+    ahora = datetime(2026, 11, 14, 1, 0, tzinfo=timezone.utc)
+    assert format_inicio_art(datetime(2026, 11, 14, 2, 0, tzinfo=timezone.utc), ahora) == (
+        "hoy a las 23:00"
+    )
+    # 03:30 UTC del 14 ya es 00:30 ART del 14: para quien está el 13 es mañana.
+    assert format_inicio_art(datetime(2026, 11, 14, 3, 30, tzinfo=timezone.utc), ahora) == (
+        "mañana a las 00:30"
+    )
+
+
+def test_dominio_borde_exacto_del_inicio(monkeypatch):
+    from app.modules.shift.domain import entities
+
+    inicio = datetime(2026, 11, 13, 23, 0, tzinfo=timezone.utc)
+
+    class _Reloj(datetime):
+        ahora = inicio
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.ahora
+
+    monkeypatch.setattr(entities, "datetime", _Reloj)
+    turno = _turno_con_llegada(inicio)
+    _Reloj.ahora = inicio - timedelta(seconds=1)
+    with pytest.raises(InvalidShiftTransitionError):
+        turno.check_out(-34.58, -58.43)
+    _Reloj.ahora = inicio
+    turno.check_out(-34.58, -58.43)
+    assert turno.status == ShiftStatus.CHECK_OUT
 
 
 async def test_api_salida_antes_del_inicio_rechazada_y_despues_anda(client: AsyncClient):

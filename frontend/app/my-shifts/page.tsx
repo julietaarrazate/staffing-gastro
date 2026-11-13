@@ -109,6 +109,10 @@ export default function MatchesPage() {
     id: string;
     path: "reject" | "worker-cancel" | "check-out";
   } | null>(null);
+  // Último contenido del diálogo: se conserva mientras se anima el cierre.
+  const [lastConfirmPath, setLastConfirmPath] = useState<"reject" | "worker-cancel" | "check-out">(
+    "reject"
+  );
   // Reloj para saber si el turno ya empezó ("Me fui" recién desde ahí).
   const [now, setNow] = useState(() => new Date());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
@@ -122,7 +126,10 @@ export default function MatchesPage() {
   }, []);
 
   function pedirConfirmacion(id: string, path: "reject" | "worker-cancel" | "check-out") {
-    void tapGuard.run(() => setConfirmAction({ id, path }));
+    void tapGuard.run(() => {
+      setLastConfirmPath(path);
+      setConfirmAction({ id, path });
+    });
   }
 
   useEffect(() => setHere(getStoredLocation()), []);
@@ -638,17 +645,17 @@ export default function MatchesPage() {
       <Modal
         open={confirmAction !== null}
         onClose={() => setConfirmAction(null)}
-        title={confirmAction ? CONFIRM_COPY[confirmAction.path].title : ""}
+        title={CONFIRM_COPY[lastConfirmPath].title}
       >
         <p className="text-sm text-ink/60">
-          {confirmAction ? confirmCopy(confirmAction.path) : ""}
+          {confirmCopy(lastConfirmPath)}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmAction(null)}>
             Volver
           </Button>
           <Button
-            variant="danger"
+            variant={lastConfirmPath === "check-out" ? "primary" : "danger"}
             size="sm"
             disabled={tapGuard.locked}
             onClick={() => {
@@ -660,7 +667,7 @@ export default function MatchesPage() {
               });
             }}
           >
-            {confirmAction ? CONFIRM_COPY[confirmAction.path].yes : ""}
+            {CONFIRM_COPY[lastConfirmPath].yes}
           </Button>
         </div>
       </Modal>
