@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { formatDecimal1 } from "@/lib/format";
 import {
   AwardIcon,
   CheckCircleIcon,
@@ -108,12 +109,43 @@ export function levelMeta(level: string) {
   return LEVEL_META[level] ?? LEVEL_META.bronce;
 }
 
+/** Rótulo de quien todavía no tiene historial (el mismo que usa la landing). */
+export const NEW_LABEL = "Nuevo en Oído";
+
+/**
+ * Las notas van de 1 a 5, así que `0` es el valor por defecto del backend y
+ * significa "sin reseñas" (la API no manda la cantidad). Una nota en 0 NO se
+ * muestra: ni "0,0", ni estrellas vacías. Única fuente de esta regla.
+ */
+export function hasRating(rating: number | null | undefined): rating is number {
+  return typeof rating === "number" && Number.isFinite(rating) && rating > 0;
+}
+
+/** "4.567" -> "4,6" (coma, como se escribe en AR). Sólo para notas que pasan `hasRating`. */
+export function formatRating(rating: number): string {
+  return formatDecimal1(rating);
+}
+
+/** Nota para tablas de datos (admin): "4,6" o "Sin reseñas". */
+export function formatRatingOrNone(rating: number | null | undefined): string {
+  return hasRating(rating) ? formatRating(rating) : "Sin reseñas";
+}
+
+/**
+ * ¿Hay un porcentaje de puntualidad / pago a tiempo que mostrar? Sólo si hay
+ * turnos terminados (o publicados, para un comercio): el backend guarda 0.0
+ * por default y "0 %" se leería como "siempre llega tarde".
+ */
+export function hasRate(completed: number | null | undefined): boolean {
+  return typeof completed === "number" && completed > 0;
+}
+
 /** "0.92" -> "92%" */
 export function formatPunctuality(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
-/** "4" -> "4.0", "4.567" -> "4.6" */
-export function formatRating(rating: number): string {
-  return rating.toFixed(1);
+/** Porcentaje para tablas de datos (admin): "92%" o "Sin datos". */
+export function formatRateOrNone(rate: number, completed: number | null | undefined): string {
+  return hasRate(completed) ? formatPunctuality(rate) : "Sin datos";
 }

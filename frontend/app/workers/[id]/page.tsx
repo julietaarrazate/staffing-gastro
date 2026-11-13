@@ -10,9 +10,9 @@ import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldAttachment, cldThumb } from "@/lib/cloudinary";
 import { safeHttpsUrl } from "@/lib/safe-url";
-import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
+import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, levelLabel } from "@/lib/reputation";
 import { ErrorBanner, Skeleton } from "@/components/ui";
-import StarRating from "@/components/StarRating";
+import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
 import { BriefcaseIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
 
@@ -175,9 +175,13 @@ export default function PublicWorkerProfilePage() {
         <div className="px-5 py-5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <StarRating value={Math.round(profile.rating)} size={18} />
-              <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
-              <span className="text-sm text-ink/40">· {profile.events_completed} eventos</span>
+              <RatingOrNew rating={profile.rating} />
+              {profile.events_completed > 0 && (
+                <span className="text-sm text-ink/40">
+                  {hasRating(profile.rating) ? "· " : ""}
+                  {profile.events_completed} eventos
+                </span>
+              )}
             </div>
             {user?.role === "employer" && token && (
               <FavoriteToggle workerProfileId={params.id} token={token} />
@@ -210,7 +214,9 @@ export default function PublicWorkerProfilePage() {
 
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <Metric label="Experiencia" value={`${profile.years_experience} años`} />
-            <Metric label="Puntualidad" value={formatPunctuality(profile.punctuality_rate)} />
+            {hasRate(profile.events_completed) && (
+              <Metric label="Puntualidad" value={formatPunctuality(profile.punctuality_rate)} />
+            )}
             <Metric label="Nivel" value={levelLabel(profile.level)} />
             <Metric
               label="Disponibilidad"
