@@ -56,6 +56,20 @@ No persiste entidades; calcula un score puro y ordenable.
   | Desempeño | 0.15 | trabajos completados vs. cancelaciones + no-shows |
 
   Sin geolocalización en alguna punta, la distancia puntúa **neutral (0.5)**.
+- **El radio es un límite duro** (`is_within_radius`, 2026-11-13): fuera del
+  radio el candidato no entra al ranking, por bien que puntúe en lo demás.
+  Antes el radio sólo puntuaba, y con pocos candidatos quien estaba a más de
+  1.000 km recibía «Turno cerca tuyo» y salía como recomendado. Los radios
+  son constantes del dominio (`matching/domain/value_objects.py`):
+  **25 km** (`DEFAULT_MAX_RADIUS_KM`) para el primer aviso y para los
+  recomendados que ve el comercio, **40 km** (`ESCALATION_RADIUS_KM`) para
+  la escalada a urgente. Cuando no hay distancia que medir (el trabajador no
+  tiene ubicación o el turno no tiene coordenadas) cuenta sólo si la
+  **ciudad** coincide, sin mayúsculas ni tildes (`app/core/geo.py::same_city`);
+  sin ciudad en alguna de las dos puntas, no cuenta. Vale también para los
+  favoritos del comercio: el aviso dice «cerca tuyo». El corte usa la misma
+  distancia con la que se puntúa: para el comercio, la pública (pin
+  desplazado), nunca la real.
   El desempeño (`_performance_score`) es `events_completed / (events_completed
   + cancellations + 2×no_shows)`: un no-show (**[ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)**,
   el comercio marcó "no se presentó") pesa el doble que una cancelación
