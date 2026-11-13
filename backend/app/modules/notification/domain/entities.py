@@ -1,5 +1,6 @@
 """Entidades del dominio de notificaciones."""
 
+import hmac
 from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -26,6 +27,11 @@ class Notification:
     created_at: datetime | None = None
 
 
+def _same_key(one: str, other: str) -> bool:
+    # En tiempo constante: `auth` es un secreto compartido con el navegador.
+    return hmac.compare_digest(one.encode(), other.encode())
+
+
 @dataclass
 class PushSubscription:
     """Suscripción Web Push de un dispositivo/navegador de un usuario.
@@ -43,3 +49,13 @@ class PushSubscription:
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
+
+    def is_same_browser_as(self, other: "PushSubscription") -> bool:
+        """¿Las dos salieron del mismo navegador? Las claves son de la
+        suscripción, no de la sesión: un navegador manda siempre las mismas
+        para su `endpoint`, entre quien entre. Por eso sólo quien las presenta
+        puede quedarse con una suscripción que ya existe; conocer el
+        `endpoint` de otra persona no alcanza."""
+        same_p256dh = _same_key(self.p256dh_key, other.p256dh_key)
+        same_auth = _same_key(self.auth_key, other.auth_key)
+        return self.endpoint == other.endpoint and same_p256dh and same_auth

@@ -11,12 +11,14 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.push_sender import PushSendResult
 from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.notification.infrastructure.fake_push_sender import FakePushSender
+from app.modules.notification.infrastructure.models import PushSubscriptionModel
 from app.modules.notification.infrastructure.push_tasks import (
     drain_pending_pushes,
     shutdown_pending_pushes,
@@ -121,6 +123,178 @@ async def test_push_unsubscribe_only_removes_your_own_subscription(
     async with session_factory() as session:
         remaining = await SqlAlchemyPushSubscriptionRepository(session).list_by_user(owner_id)
     assert [s.endpoint for s in remaining] == [endpoint]
+
+
+async def _filas_del_endpoint(
+    session_factory: async_sessionmaker[AsyncSession], endpoint: str
+) -> list[PushSubscriptionModel]:
+    async with session_factory() as session:
+        result = await session.execute(
+            select(PushSubscriptionModel).where(PushSubscriptionModel.endpoint == endpoint)
+        )
+        return list(result.scalars().all())
+
+
+async def test_endpoint_de_otra_cuenta_pasa_a_la_cuenta_que_lo_suscribe(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Navegador compartido (o dos cuentas en el mismo dispositivo): el
+    endpoint es del navegador, no de la persona. Si la cuenta B lo suscribe
+    después que A, pasa a ser de B: antes quedaba a nombre de A y quien usara
+    el dispositivo seguía viendo los avisos de A, mientras B no recibía nada.
+    Es el mismo navegador, así que manda el mismo endpoint con las mismas
+    claves."""
+    de_a = await auth_headers(client, "worker", "push_compartido_a@staffya.com")
+    de_b = await auth_headers(client, "employer", "push_compartido_b@staffya.com")
+    a_id = UUID((await client.get("/api/v1/auth/me", headers=de_a)).json()["id"])
+    b_id = UUID((await client.get("/api/v1/auth/me", headers=de_b)).json()["id"])
+    endpoint = "https://fcm.googleapis.com/fcm/send/navegador-compartido"
+    del_navegador = {
+        "endpoint": endpoint,
+        "keys": {"p256dh": "p-del-navegador", "auth": "auth-del-navegador"},
+    }
+
+    primero = await client.post(_SUBSCRIBE_PATH, json=del_navegador, headers=de_a)
+    assert primero.status_code == 201
+    despues = await client.post(_SUBSCRIBE_PATH, json=del_navegador, headers=de_b)
+    assert despues.status_code == 201
+
+    # Un endpoint, una fila: ahora es de B.
+    filas = await _filas_del_endpoint(session_factory, endpoint)
+    assert [(f.user_id, f.p256dh_key, f.auth_key) for f in filas] == [
+        (b_id, "p-del-navegador", "auth-del-navegador")
+    ]
+
+    fake_sender = FakePushSender()
+    monkeypatch.setattr(
+        "app.modules.notification.infrastructure.repositories._get_push_sender",
+        lambda: fake_sender,
+    )
+    async with session_factory() as session:
+        repo = SqlAlchemyNotificationRepository(session)
+        await repo.add(
+            Notification(
+                user_id=a_id,
+                type=NotificationType.SHIFT_ASSIGNED,
+                title="Aviso para A",
+                message="No tiene que salir a un dispositivo que ya es de B.",
+            )
+        )
+        await repo.add(
+            Notification(
+                user_id=b_id,
+                type=NotificationType.NEW_APPLICANT,
+                title="Aviso para B",
+                message="Sale al dispositivo donde B tiene la sesión.",
+            )
+        )
+    assert await drain_pending_pushes() == 0
+    assert [(s.user_id, s.title) for s in fake_sender.sent] == [(b_id, "Aviso para B")]
+
+    # La baja de A (p. ej. un cierre de sesión que llega tarde) no le saca el
+    # dispositivo a B.
+    baja_de_a = await client.request(
+        "DELETE", _SUBSCRIBE_PATH, json={"endpoint": endpoint}, headers=de_a
+    )
+    assert baja_de_a.status_code == 204
+    assert [f.user_id for f in await _filas_del_endpoint(session_factory, endpoint)] == [b_id]
+
+
+@pytest.mark.parametrize(
+    "claves",
+    [
+        {"p256dh": "p-inventada", "auth": "auth-inventada"},
+        {"p256dh": "p-del-navegador", "auth": "auth-inventada"},
+        {"p256dh": "p-inventada", "auth": "auth-del-navegador"},
+        {"p256dh": "p-del-navegador", "auth": "auth-ñ-inventada"},
+    ],
+    ids=["ninguna", "solo-p256dh", "solo-auth", "no-ascii"],
+)
+async def test_conocer_un_endpoint_ajeno_sin_sus_claves_no_alcanza_para_quedarselo(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+    claves: dict[str, str],
+):
+    """El mismo navegador manda siempre las mismas claves para su endpoint.
+    Quien sólo conoce el endpoint de otra persona no es ese navegador: no se
+    lo queda ni le corta los avisos (lo mismo que la revisión de seguridad del
+    2026-10-20 cerró para la baja). La respuesta no distingue el caso."""
+    de_a = await auth_headers(client, "worker", "push_duenia@staffya.com")
+    de_otra = await auth_headers(client, "employer", "push_ajena@staffya.com")
+    a_id = UUID((await client.get("/api/v1/auth/me", headers=de_a)).json()["id"])
+    otra_id = UUID((await client.get("/api/v1/auth/me", headers=de_otra)).json()["id"])
+    endpoint = "https://fcm.googleapis.com/fcm/send/celular-de-a"
+
+    alta = await client.post(
+        _SUBSCRIBE_PATH,
+        json={
+            "endpoint": endpoint,
+            "keys": {"p256dh": "p-del-navegador", "auth": "auth-del-navegador"},
+        },
+        headers=de_a,
+    )
+    assert alta.status_code == 201
+    intento = await client.post(
+        _SUBSCRIBE_PATH, json={"endpoint": endpoint, "keys": claves}, headers=de_otra
+    )
+    assert intento.status_code == 201
+    assert intento.json() == alta.json()
+
+    # Sigue siendo de A, con las claves de su navegador.
+    filas = await _filas_del_endpoint(session_factory, endpoint)
+    assert [(f.user_id, f.p256dh_key, f.auth_key) for f in filas] == [
+        (a_id, "p-del-navegador", "auth-del-navegador")
+    ]
+
+    fake_sender = FakePushSender()
+    monkeypatch.setattr(
+        "app.modules.notification.infrastructure.repositories._get_push_sender",
+        lambda: fake_sender,
+    )
+    async with session_factory() as session:
+        repo = SqlAlchemyNotificationRepository(session)
+        await repo.add(
+            Notification(
+                user_id=a_id,
+                type=NotificationType.SHIFT_ASSIGNED,
+                title="Aviso para A",
+                message="Sigue saliendo a su celular.",
+            )
+        )
+        await repo.add(
+            Notification(
+                user_id=otra_id,
+                type=NotificationType.NEW_APPLICANT,
+                title="Aviso para la otra cuenta",
+                message="No sale al celular de A.",
+            )
+        )
+    assert await drain_pending_pushes() == 0
+    assert [(s.user_id, s.title) for s in fake_sender.sent] == [(a_id, "Aviso para A")]
+
+
+async def test_la_misma_cuenta_dos_veces_sigue_siendo_una_fila(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """Al iniciar sesión el frontend registra solo la suscripción que el
+    navegador ya tiene: repetir el alta de la misma cuenta no duplica ni
+    cambia de dueño."""
+    headers = await auth_headers(client, "worker", "push_repetido@staffya.com")
+    user_id = UUID((await client.get("/api/v1/auth/me", headers=headers)).json()["id"])
+    payload = {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/mi-celular",
+        "keys": {"p256dh": "p", "auth": "a"},
+    }
+
+    for _ in range(2):
+        response = await client.post(_SUBSCRIBE_PATH, json=payload, headers=headers)
+        assert response.status_code == 201
+
+    filas = await _filas_del_endpoint(session_factory, payload["endpoint"])
+    assert [(f.user_id, f.p256dh_key, f.auth_key) for f in filas] == [(user_id, "p", "a")]
 
 
 async def test_notification_creation_sends_push_best_effort(

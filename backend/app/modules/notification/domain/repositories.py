@@ -49,11 +49,14 @@ class PushSubscriptionRepository(ABC):
 
     @abstractmethod
     async def add(self, subscription: PushSubscription) -> PushSubscription:
-        """Persiste una suscripción nueva y la devuelve.
+        """Persiste la suscripción y la devuelve. Un `endpoint`, una fila.
 
-        Idempotente por `endpoint` (ver `PushService.subscribe`): si ya existe
-        una suscripción con ese endpoint, la implementación la devuelve tal
-        cual en vez de duplicarla."""
+        Si ya existe una con ese endpoint no se duplica. Cuando la que llega
+        es del mismo navegador (`PushSubscription.is_same_browser_as`: mismas
+        claves) queda a nombre de `subscription.user_id`: para la misma cuenta
+        es idempotente; si era de otra, se reasigna. Cuando las claves no
+        coinciden no se toca nada y se devuelve la que ya estaba (ver
+        `PushService.subscribe`)."""
 
     @abstractmethod
     async def remove_by_endpoint(self, endpoint: str, *, user_id: UUID) -> None:
