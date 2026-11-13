@@ -68,7 +68,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | POST | `/{shift_id}/check-in` · `/start-working` · `/depart` · `/check-out` | Asistencia geolocalizada (check-in/out: 400 si está a > 300 m del local) |
 | POST | `/{shift_id}/finish` | Finalizar |
 | POST | `/{shift_id}/mark-paid` | Marcar pagado (ver [PAYMENTS.md](./PAYMENTS.md)) |
-| POST | `/{shift_id}/cancel` | Cancelar |
+| POST | `/{shift_id}/cancel` | Cancelar (comercio dueño; ajeno o inexistente = 404; ya terminal = 400). Avisa al asignado (`shift_cancelled_late` si había confirmado, y suma `late_cancellations`; `shift_cancelled` si no) y a cada postulación pendiente (`applied_shift_cancelled`, que pasa a `rechazada`). Ver [NOTIFICATIONS.md](./NOTIFICATIONS.md) |
 
 > `/me` y `/mine` estaban documentados al revés (fila corregida): `/me` son
 > los turnos publicados por **el comercio propio**, `/mine` los asignados

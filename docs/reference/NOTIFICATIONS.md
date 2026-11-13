@@ -23,6 +23,9 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
 | `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)); el turno vuelve a buscar personal | comercio |
+| `shift_cancelled_late` | el comercio cancela un turno con el trabajador ya confirmado o en pleno turno (cancelación tardía, [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) | trabajador asignado |
+| `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado | trabajador asignado |
+| `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
 
@@ -41,6 +44,19 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Destino de los avisos de turno cerca:** abren `/turno/<id>`, donde la
   persona se postula (primera tanda y escalada). Los viejos guardados con
   `/feed` siguen yendo al Inicio.
+- **Cancelación de un turno (2026-11-13): una persona, un aviso.** Al
+  asignado le llega `shift_cancelled_late` si ya había confirmado y
+  `shift_cancelled` si no; a cada postulación pendiente,
+  `applied_shift_cancelled` (y pasa a `rechazada`). El texto sólo nombra el
+  turno: ni el motivo ni los demás postulantes. No reciben nada quien retiró
+  su postulación, quien había quedado afuera al asignarse el turno
+  (postulación ya `rechazada`) ni el comercio. Los avisos salen después de
+  guardar la cancelación y un fallo al mandarlos no la hace fallar
+  (`ShiftService._notify_shift_cancelled`).
+- **Destino de los avisos de cancelación:** al asignado, `/my-shifts` (el
+  turno sigue en «Asignados», marcado como cancelado); al postulante,
+  `/feed`: su postulación ya no figura en ninguna lista y lo útil son los
+  otros turnos.
 - **No son la fuente de verdad del estado:** son un reflejo. El estado real vive
   en el turno / la reseña. (Ver nota de "eventos" abajo.)
 

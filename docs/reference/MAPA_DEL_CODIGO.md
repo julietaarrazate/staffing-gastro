@@ -91,6 +91,9 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |
+| A quién se avisa al cancelar un turno (asignado y postulaciones pendientes, un aviso por persona) | `ShiftService._notify_shift_cancelled`, mismo archivo; tabla por estado en [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) |
+| Texto de «¿Cancelar este turno?» y cuándo avisa la cancelación tardía | `frontend/lib/cancelar-turno.ts` (`cancelConfirmCopy`, `isLateCancellation`); el diálogo está en `app/shifts/page.tsx` |
+| Cancelaciones tardías que ve el comercio en su `/profile` (sólo con al menos una) | `frontend/components/company/LateCancellations.tsx` |
 | Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos, reintento del borrado de documentos) | `backend/app/modules/shift/application/scheduler.py` (los chequeos de otros módulos entran por `extra_checks` desde `app/main.py`) |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |

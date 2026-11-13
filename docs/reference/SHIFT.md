@@ -79,7 +79,10 @@ trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
   `CompanyProfile.late_cancellations` — efecto simétrico al `no_shows`/
   `cancellations` del trabajador. Cancelar sin que nadie llegó a
   comprometerse (borrador, publicado, buscando personal, o asignado sin
-  confirmar) no tiene este efecto.
+  confirmar) no tiene este efecto, pero igual avisa (2026-11-13): al asignado
+  sin confirmar (`shift_cancelled`) y a cada postulación pendiente
+  (`applied_shift_cancelled`), que pasa a `rechazada`. Tabla completa en
+  [NOTIFICATIONS.md](./NOTIFICATIONS.md).
 
 **Estados terminales:** `finalizado`, `pagado`, `cancelado` (no admiten más
 transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**

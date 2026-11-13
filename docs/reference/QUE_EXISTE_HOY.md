@@ -74,6 +74,12 @@ listados más abajo.
   presentó" (reabre el turno, penaliza al trabajador) y la cancelación con el
   trabajador ya comprometido avisa y penaliza al comercio
   (`late_cancellations`) — antes no hacía ninguna de las dos cosas.
+- **Cancelar un turno le avisa a quien corresponde** (2026-11-13): al
+  asignado, haya confirmado o no, y a cada persona con la postulación
+  pendiente; un aviso por persona, en la campanita y por push. La
+  confirmación del panel le dice al comercio, antes de confirmar, si suma una
+  cancelación tardía (sólo con el trabajador ya confirmado), y la cuenta se
+  ve en su `/profile`.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
   confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
   cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación
