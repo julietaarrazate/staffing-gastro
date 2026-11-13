@@ -186,8 +186,9 @@ veía el interruptor "Activadas" sin recibir nada.
   seguridad del 2026-10-20 cerró para la baja. Sigue habiendo una sola fila
   por `endpoint` (índice único de la migración `0013`: no hizo falta otra).
   `DELETE` sigue borrando sólo si la fila es de quien lo pide, así que una
-  baja que llega tarde no le saca el dispositivo a la cuenta que entró
-  después.
+  baja que llega tarde no le saca el dispositivo a **otra** cuenta que entró
+  después. A la misma cuenta sí se lo sacaría; por eso el registro espera a
+  la baja (ver "Al abrir la sesión").
 - **Al abrir la sesión** (cualquier ingreso, o la sesión recuperada al abrir
   la app): si el navegador ya tiene una suscripción y el permiso está
   concedido, `claimPushForAccount` (`lib/push.ts`) la registra a nombre de la
@@ -196,7 +197,14 @@ veía el interruptor "Activadas" sin recibir nada.
   efecto de `AuthProvider`, una vez por sesión (no en cada renovación del
   access token). Por eso quien cierra sesión y vuelve a entrar en su celular
   recupera los avisos sin hacer nada, y el interruptor de Ajustes (que mira
-  el navegador) dice la verdad.
+  el navegador) dice la verdad. **El registro sale después de la baja de la
+  sesión anterior**, si esa baja sigue en camino (el cierre no la espera):
+  si llegara antes al servidor, la baja de la misma cuenta borraría la fila
+  recién creada y Ajustes diría "Activadas" sin que llegue ningún aviso. La
+  espera tiene un tope de 10 segundos (`CLAIM_WAITS_FOR_RELEASE_MS`), para
+  que una baja colgada no deje el dispositivo a nombre de la cuenta que
+  salió mientras otra ya está adentro. Si en esa espera la sesión se vuelve
+  a cerrar, ese registro ya no se manda: llegaría después de su propia baja.
 - **Al cerrar sesión:** `releasePushFromAccount` da de baja el dispositivo en
   el servidor (`DELETE /push/subscribe` con el `endpoint`) usando el access
   token vigente antes de soltarlo. No se espera: si falla, el cierre sigue y
@@ -253,27 +261,64 @@ Lo que la regla **no** cubre (queda abierto):
    sesiones de una cuenta, borrar también sus suscripciones push por un
    puerto inyectado (identity → notification). Con el registro automático
    los dispositivos legítimos se vuelven a registrar solos al ingresar.
-2. **Una baja que no llega al cerrar sesión.** El access token venció justo
-   en ese momento (app suspendida más de 15 minutos y cierre antes de que se
-   renueve: la baja da 401 y no se reintenta), no había red, o era una admin
-   a la que el candado de dos pasos le rechazó el pedido. El cierre sigue
-   igual y el dispositivo queda a nombre de la cuenta que salió hasta que
-   entre otra en ese navegador.
+
+   **Los dispositivos donde alguien cerró sesión antes de este cambio**
+   están en la misma situación: siguen registrados a nombre de esa cuenta y
+   reciben sus avisos hasta que alguien entre ahí. No hay limpieza. Ese PR
+   de servidor puede incluir una, por única vez, al desplegar. La más simple
+   es vaciar `push_subscriptions`: el servidor no sabe en cuáles hay una
+   sesión abierta, y el registro automático repone cada dispositivo la
+   próxima vez que la app se carga con sesión. El costo es que hasta
+   entonces ese dispositivo no recibe avisos, tampoco el de quien nunca
+   cerró sesión.
+2. **Una baja o un registro que no llega.** La baja: el access token venció
+   justo al cerrar sesión (app suspendida más de 15 minutos y cierre antes
+   de que se renueve: da 401 y no se reintenta), no había red, o era una
+   admin a la que el candado de dos pasos le rechazó el pedido. El cierre
+   sigue igual y el dispositivo queda a nombre de la cuenta que salió hasta
+   que entre otra en ese navegador. El registro: si falla por un corte justo
+   al abrir la sesión, no se reintenta en esa sesión. Sólo se nota cuando
+   hacía falta crear o reasignar la fila (después de un cierre de sesión o
+   de un cambio de cuenta): Ajustes dice "Activadas" y no llega nada hasta
+   que la app se vuelve a cargar; traerla al frente no alcanza. Y dos
+   carreras que quedan sin ordenar, las dos poco probables: una baja que
+   tarda más de 10 segundos y llega después del registro de la misma cuenta
+   (termina igual que el registro que falla), y un cierre de sesión con el
+   registro de esa misma sesión todavía en camino (si el registro llega
+   después de la baja, el dispositivo queda a nombre de la cuenta que
+   salió).
+3. **El texto de `/privacidad` no cuenta esta regla.** Dice: "Notificaciones:
+   si las activás, guardamos el identificador que tu navegador nos da para
+   mandarte avisos. Se borra al desactivarlas." Con la regla, a quien entra
+   en un navegador donde otra persona ya las había activado (y a quien entra
+   como invitada) se le guarda ese identificador y se le mandan avisos ahí
+   sin que las haya activado ella; y ahora también se borra al cerrar
+   sesión. El código hace lo pedido; lo desalineado es el texto. No se tocó
+   acá porque cambiar un texto legal es decisión de Julieta. Si se ajusta,
+   va con `LEGAL_TERMS_VERSION` en
+   `backend/app/modules/identity/domain/value_objects.py` y en
+   `frontend/lib/legal.ts`, en el mismo PR. Una redacción posible:
+   "Notificaciones: si están activadas en el navegador que usás, guardamos
+   el identificador que ese navegador nos da para mandarte avisos mientras
+   tengas la sesión abierta ahí. Se borra al desactivarlas o al cerrar
+   sesión."
 
 Tests: `backend/tests/test_push.py` (el mismo `endpoint` suscripto por dos
 cuentas desde el mismo navegador queda en una fila a nombre de la última y
 un aviso para la primera ya no sale a ese dispositivo; conocer un `endpoint`
 ajeno sin sus claves no alcanza para quedárselo; la misma cuenta dos veces
 sigue siendo una fila), `frontend/lib/push.test.ts` (qué manda cada helper,
-que no avisan al candado y que la baja cierra los avisos a la vista),
+que no avisan al candado, que la baja cierra los avisos a la vista y que el
+registro sale después de la baja que sigue en camino, con tope),
 `frontend/lib/auth-context.test.tsx` (cuándo se llaman: ingreso, sesión
 recuperada, cierre aunque la baja falle, impersonación, alta y código de
 dos pasos pendientes), `frontend/lib/auth-context.two-factor-gate.test.tsx`
 (con `lib/push` real: ni el registro ni la baja disparan el candado),
 `frontend/components/PushToggle.test.tsx`,
 `frontend/lib/push-prompt-context.test.tsx` (los dos en "Ver como") y
-`frontend/e2e/push-cuenta-actual.spec.ts` (los tres recorridos en el
-navegador: dos cuentas, "Ver como" y admin con el alta pendiente).
+`frontend/e2e/push-cuenta-actual.spec.ts` (los cuatro recorridos en el
+navegador: dos cuentas, salir y volver a entrar con la baja en camino, "Ver
+como" y admin con el alta pendiente).
 
 ### Derivación de las decisiones
 
