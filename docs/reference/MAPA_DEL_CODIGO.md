@@ -21,7 +21,7 @@ servidor y no se pueden mockear con `page.route` (ver
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
 | `/feed` (Inicio) | ¿Qué turno tomo ahora? | `worker/FeedHero`, `worker/DiscoverDeck` + `worker/SwipeDeck` ("Descubrir rápido": deslizar recorre, postularse es botón), `worker/OpportunityCard`, `worker/NearbyRow`, `AIAssistantBar` | `/shifts/feed`, `/applications/mine` |
-| `/buscar` | Buscar turnos con filtros | `worker/OpportunityCard` | `/shifts/feed`, `/applications/mine` |
+| `/buscar` | Buscar turnos con filtros, de cualquier zona | `worker/OpportunityCard` | `/shifts/feed?scope=all`, `/applications/mine` |
 | `/map` | Turnos en el mapa, con el pago en el pin | `worker/MapSheet`, `lib/map/` | `/shifts/feed` |
 | `/my-shifts` | Mis turnos y en qué paso están | `ShiftCard`, `ShiftLifecycleStepper`, `worker/EnRouteToggle` ("Va en camino"), `worker/CompareShiftsModal`, `ReviewBox` | `/shifts/mine`, `/applications/mine`, `/saved-shifts` |
 | `/assistant` | Asistente de IA (lenguaje natural) | `lib/use-worker-ai-assistant.ts` | `/assistant/worker-query` |
@@ -37,7 +37,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 |---|---|---|---|
 | `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados. «Marcar como pagado», «Cancelar turno» y «No se presentó» piden confirmación | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal`, `lib/use-tap-guard.ts` | `/shifts/me` |
 | `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA). Un intento crea un solo borrador: reintentar lo retoma (y lo edita si cambió el formulario) en vez de crear otro | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `PUT /shifts/{id}`, `POST /shifts/{id}/publish`, `/shifts/parse-text` |
-| `/shifts/new-event` | Publicar varios turnos para un evento | `LocationPicker` | `/shifts/events` |
+| `/shifts/new-event` | Publicar varios turnos para un evento. Arranca en la zona del local (con «Cambiar») y sin zona no se publica: botón deshabilitado y una línea que dice qué falta | `LocationPicker`, `lib/company-place.ts` (`useCompanyPlace`, compartido con `/shifts/new`) | `/shifts/events` |
 | `/shifts/[id]/candidates` | ¿A quién elijo? Se **asigna a una persona puntual**, que después confirma o rechaza. El recomendado va en tarjeta oscura | `CandidateCard`, `candidate/GuaranteeCard`, `candidate/CandidateSignals` | `/shifts/{id}/candidates`, `/shifts/{id}/assign` |
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
 | `/favorites` | Mis trabajadores favoritos (reciben siempre el primer aviso, #399) | — | `/favorites` |
@@ -94,6 +94,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos, reintento del borrado de documentos) | `backend/app/modules/shift/application/scheduler.py` (los chequeos de otros módulos entran por `extra_checks` desde `app/main.py`) |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |
+| Qué es «cerca»: radios (25 km aviso, 40 km escalada y feed) y la regla (distancia o, sin coordenadas, misma ciudad) | Radios en `backend/app/modules/matching/domain/value_objects.py`; regla en `backend/app/core/geo.py` (`is_near`, `same_city`, `bounding_box`); avisos y recomendados en `scoring.py` (`is_within_radius`); feed en `backend/app/modules/shift/domain/nearby.py` y `ShiftService.list_feed`; desde dónde se mide un turno sin zona (el local del comercio) en `nearby.py::zone_of` y `backend/app/modules/shift/application/zones.py`; corte de la pantalla (Inicio y Mapa) en `frontend/lib/current-location.ts` (`nearbyOnly`, `NEARBY_RADIUS_KM`) |
 | Postulación: estados, retirar y volver a postularse | `backend/app/modules/application/domain/entities.py` (`ShiftApplication`, `reapply`) y `backend/app/modules/application/application/services.py` (`ApplicationService.apply`); en el frontend, qué cuenta como "ya me postulé": `frontend/lib/applications.ts` (`appliedShiftIds`, lo usan Inicio, Buscar, el Mapa y el detalle del turno) |
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |
 | "Disponible ahora" (4 h) | `AVAILABLE_NOW_TTL` en `backend/app/modules/worker/domain/entities.py`, `frontend/lib/use-available-now.ts` |

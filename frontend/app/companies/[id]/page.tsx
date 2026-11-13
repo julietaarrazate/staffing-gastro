@@ -8,8 +8,9 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
-import StarRating from "@/components/StarRating";
+import RatingOrNew from "@/components/RatingOrNew";
 import RateMeter from "@/components/RateMeter";
+import { hasPaymentRate, hasRating } from "@/lib/reputation";
 import MiniMap from "@/components/MiniMap";
 import { MapPinIcon, RouteIcon } from "@/components/icons";
 
@@ -124,9 +125,13 @@ export default function PublicCompanyProfilePage() {
 
         <div className="px-5 py-5">
           <div className="flex items-center gap-2">
-            <StarRating value={Math.round(profile.rating)} size={18} />
-            <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
-            <span className="text-sm text-ink/40">· {profile.events_published} turnos publicados</span>
+            <RatingOrNew rating={profile.rating} completed={profile.events_published} />
+            {profile.events_published > 0 && (
+              <span className="text-sm text-ink/40">
+                {hasRating(profile.rating) ? "· " : ""}
+                {profile.events_published} turnos publicados
+              </span>
+            )}
           </div>
 
           {profile.owner_full_name && (
@@ -143,13 +148,11 @@ export default function PublicCompanyProfilePage() {
             </div>
           )}
 
-          <div className="mt-5">
-            <RateMeter
-              label="Pago a tiempo"
-              rate={profile.on_time_payment_rate}
-              hasHistory={profile.events_published > 0}
-            />
-          </div>
+          {hasPaymentRate(profile.payments_recorded, profile.events_published) && (
+            <div className="mt-5">
+              <RateMeter label="Pago a tiempo" rate={profile.on_time_payment_rate} />
+            </div>
+          )}
 
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             {profile.capacity != null && (

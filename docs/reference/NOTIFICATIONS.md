@@ -34,7 +34,13 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Leídas/no leídas:** se marcan de a una al tocarlas, o todas juntas con
   "Marcar todas como leídas" en el panel de la campanita
   (`POST /notifications/read-all`).
-- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a
+- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a quien
+  está **dentro del radio** del turno (25 km en el primer aviso, 40 km en la
+  escalada; sin distancia que medir, a quien es de su misma ciudad): fuera de
+  eso no llega ni la campanita ni el push, tampoco a un favorito. El turno
+  se mide desde su zona o, si se publicó sin ninguna, desde el local del
+  comercio; el trabajador, desde la zona de su perfil o desde "Disponible
+  ahora" mientras está prendido. Y sólo a
   cuentas con rol trabajador y activas, las mismas que pueden salir como
   candidatas ([MATCHING.md](./MATCHING.md)). Un perfil de trabajador
   colgado de un admin o de un suspendido no recibe nada.

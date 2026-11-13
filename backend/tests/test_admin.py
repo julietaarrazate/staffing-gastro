@@ -16,6 +16,7 @@ from app.modules.subscription.infrastructure.fake_billing_gateway import (
     FakeBillingGateway,
 )
 from app.modules.subscription.infrastructure.models import SubscriptionModel
+from tests._turno_empezado import empezar_turno
 from tests.conftest import (
     TEST_GUEST_PIN,
     auth_headers,
@@ -264,6 +265,7 @@ async def test_admin_stats_shift_completion_rate_differs_from_assignment_rate(
         json={"worker_profile_id": profile_a.json()["id"]},
     )
     await client.post(f"/api/v1/shifts/{shift_a_id}/confirm", headers=worker_a)
+    await empezar_turno(session_factory, shift_a_id)
     await client.post(f"/api/v1/shifts/{shift_a_id}/no-show", headers=employer)
     await client.post(f"/api/v1/shifts/{shift_a_id}/cancel", headers=employer)
 
@@ -397,6 +399,7 @@ async def test_admin_stats_no_show_rate_and_worker_completion_repeat_rate(
         json={"worker_profile_id": ns_profile_id},
     )
     await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=ns_worker)
+    await empezar_turno(session_factory, shift_id)
     await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)
 
     stats = await client.get("/api/v1/admin/stats", headers=admin)

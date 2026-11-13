@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import haversine_km
+from app.core.tz import to_art
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
@@ -53,6 +54,12 @@ CHECK_RADIUS_KM = 0.3
 # dominio, y no en la UI: que la única forma de compartir posición pase por
 # esta regla es lo que hace auditable la promesa.
 EN_ROUTE_WINDOW = timedelta(hours=2)
+
+# «No se presentó» sólo se puede marcar cuando el turno ya empezó (hallazgo
+# U079): desde `start_at` + esta tolerancia, la misma tolerancia que la
+# puntualidad. Antes se aplicaba sobre un turno confirmado que empezaba mañana y penalizaba sin vuelta atrás. La
+# ausencia automática del scheduler (a las 2 h) siempre cae después.
+NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
 
 
 @dataclass
@@ -286,7 +293,7 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
         self._clear_en_route()
 
-    def no_show(self) -> None:
+    def no_show(self, now: datetime | None = None) -> None:
         """CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: el comercio marca que el
         trabajador asignado no se presentó (ADR-0007).
 
@@ -298,10 +305,22 @@ class Shift:
         cubrir el puesto. Conserva quién fue el ausente en
         `last_no_show_worker_profile_id` antes de limpiar `worker_profile_id`
         (que se libera para poder reasignar), para dejar rastro auditable en
-        el propio turno."""
+        el propio turno.
+
+        Sólo desde `NO_SHOW_EARLIEST_AFTER_START` después del inicio: antes,
+        el trabajador todavía puede llegar."""
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
                 f"No se puede marcar no-show desde el estado {self.status.value}"
+            )
+        now = now or datetime.now(timezone.utc)
+        habilitado = _naive(self.start_at) + NO_SHOW_EARLIEST_AFTER_START
+        if _naive(now) < habilitado:
+            desde = to_art(self.start_at) + NO_SHOW_EARLIEST_AFTER_START
+            raise InvalidShiftTransitionError(
+                "Todavía no podés marcar que no se presentó: se habilita el "
+                f"{desde:%d/%m} a las {desde:%H:%M} (hora de Argentina), "
+                "15 minutos después del inicio."
             )
         self.no_show_at = datetime.now(timezone.utc)
         self.last_no_show_worker_profile_id = self.worker_profile_id

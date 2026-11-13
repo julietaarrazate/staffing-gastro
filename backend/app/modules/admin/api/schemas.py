@@ -47,6 +47,7 @@ class AdminCompanySummaryResponse(BaseModel):
     rating: float = 0.0
     events_published: int = 0
     on_time_payment_rate: float = 0.0
+    payments_recorded: int = 0
     late_cancellations: int = 0
 
 

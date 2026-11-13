@@ -474,6 +474,8 @@ export interface AdminCompanySummary {
   rating: number;
   events_published: number;
   on_time_payment_rate: number;
+  /** Pagos registrados detrás de la tasa; 0 = «Pago a tiempo» sin datos. Falta en respuestas viejas/cacheadas. */
+  payments_recorded?: number;
   late_cancellations: number;
 }
 
@@ -656,6 +658,8 @@ export interface CompanyProfile {
   rating: number;
   events_published: number;
   on_time_payment_rate: number;
+  /** Pagos registrados detrás de la tasa; 0 = «Pago a tiempo» sin datos. Falta en respuestas viejas/cacheadas. */
+  payments_recorded?: number;
   late_cancellations: number;
 }
 

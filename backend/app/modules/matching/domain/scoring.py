@@ -7,7 +7,7 @@ el local queda fuera hasta que exista historial de asignaciones (Fase 3+).
 
 from collections.abc import Callable
 
-from app.core.geo import haversine_km
+from app.core.geo import haversine_km, is_near
 from app.modules.matching.domain.entities import (
     CandidateProfile,
     MatchResult,
@@ -110,6 +110,31 @@ def is_eligible(candidate: CandidateProfile, requirement: ShiftRequirement) -> b
     return candidate.is_available and requirement.position in candidate.skills
 
 
+def is_within_radius(
+    candidate: CandidateProfile,
+    requirement: ShiftRequirement,
+    distance_km: float | None,
+    max_radius_km: float,
+) -> bool:
+    """¿Está el candidato «cerca» del turno? El radio es un límite duro.
+
+    Antes el radio sólo puntuaba (fuera de él la cercanía valía 0), así que
+    con pocos candidatos quien estaba a más de 1.000 km recibía «Turno cerca
+    tuyo» igual (prueba de punta a punta, 2026-11).
+
+    - Con distancia medible: adentro del radio, borde incluido.
+    - Sin distancia (el candidato no tiene ubicación conocida o el turno no
+      tiene coordenadas): cuenta sólo si su ciudad es la del turno. Sin
+      ciudad en alguna de las dos puntas, no cuenta.
+
+    Es la misma regla que usa el feed del trabajador (`app.core.geo.is_near`).
+    `distance_km` es la MISMA distancia con la que se puntúa (`distance_fn`):
+    para lo que ve el comercio es la pública, así que el corte tampoco dice
+    nada que la distancia mostrada no diga ya.
+    """
+    return is_near(distance_km, max_radius_km, candidate.city, requirement.city)
+
+
 def rank_candidates(
     candidates: list[CandidateProfile],
     requirement: ShiftRequirement,
@@ -117,7 +142,8 @@ def rank_candidates(
     max_radius_km: float = DEFAULT_MAX_RADIUS_KM,
     distance_fn: DistanceFn = real_distance_km,
 ) -> list[MatchResult]:
-    """Filtra por elegibilidad, calcula el score y ordena de mayor a menor."""
+    """Filtra por elegibilidad y por radio, calcula el score y ordena de
+    mayor a menor."""
     results = []
     for candidate in candidates:
         if not is_eligible(candidate, requirement):
@@ -125,6 +151,10 @@ def rank_candidates(
         breakdown = score_candidate(
             candidate, requirement, weights, max_radius_km, distance_fn
         )
+        if not is_within_radius(
+            candidate, requirement, breakdown.distance_km, max_radius_km
+        ):
+            continue
         results.append(
             MatchResult(
                 profile_id=candidate.profile_id,

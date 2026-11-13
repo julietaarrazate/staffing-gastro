@@ -10,7 +10,6 @@ import { usePushPrompt } from "@/lib/push-prompt-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import {
-  CompanyProfile,
   ParsedShiftDraft,
   SKILL_LABELS,
   Shift,
@@ -28,6 +27,7 @@ import {
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
 import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import { useCompanyPlace } from "@/lib/company-place";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import ShiftDayHint from "@/components/ShiftDayHint";
@@ -51,8 +51,6 @@ import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
 // publicación (auditoría de interfaz 2026-10-11, U01).
 const STEPS = ["Puesto", "Cuándo", "Pago", "Publicar"];
-
-type CompanyPlace = { label: string; city: string; latitude: number; longitude: number };
 
 // Duplicar un turno (frontend puro, ver spec de crecimiento): movemos el
 // horario +7 días manteniendo la misma hora de pared en Argentina.
@@ -99,7 +97,7 @@ function NewShiftWizard() {
   // Dirección del local, para no pedirle la zona en cada turno (auditoría de
   // interfaz 2026-10-11, U04/B03). `changingPlace` muestra el selector para
   // publicar en otra zona.
-  const [companyPlace, setCompanyPlace] = useState<CompanyPlace | null>(null);
+  const { place: companyPlace } = useCompanyPlace(token);
   const [changingPlace, setChangingPlace] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
@@ -191,29 +189,6 @@ function NewShiftWizard() {
   // Precarga la ubicación con la del local. No pisa una ubicación ya elegida
   // (duplicar un turno trae la suya). Si el local no tiene coordenadas, el
   // último paso pide elegir la zona.
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    api
-      .get<CompanyProfile>("/companies/me/profile", token)
-      .then((company) => {
-        if (cancelled || company.latitude == null || company.longitude == null) return;
-        const place: CompanyPlace = {
-          label: company.address || company.city || company.name,
-          city: company.city ?? "",
-          latitude: company.latitude,
-          longitude: company.longitude,
-        };
-        setCompanyPlace(place);
-      })
-      .catch(() => {
-        // Sin perfil o sin red: el comercio elige la zona a mano.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
   useEffect(() => {
     if (!companyPlace || latitude != null) return;
     setCity(companyPlace.city);

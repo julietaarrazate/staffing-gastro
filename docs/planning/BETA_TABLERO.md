@@ -64,7 +64,7 @@ del tope del plan, que está apagado en la beta).
 | U070 | Los avisos al celular salen sin margen de espera: si el celular no tiene señal en ese instante, el aviso pu… | ✅ en `main` | #539 |
 | U009 | El aviso «Completamos todo…» tapa el botón «Publicar turno» unos 3 segundos | ✅ en `main` | #544 |
 | U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | 🔵 PR abierto | #547 (cambia una regla: espera el visto bueno de Julieta y la prueba en la app) |
-| U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | 🔵 PR abierto | #546 (falta la prueba en la app) |
+| U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (mergeado por Julieta el 2026-11-13 con CI y revisión en verde; queda hacerle la prueba en la app) |
 | U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ⚪ sin empezar | «pantallas al día»: diseño en las notas de la sesión |
 | U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⏸️ espera decisión | avisar al reabrir: la parte de turnos ya empezados necesita ADR; hacerlo después de #547 |
 

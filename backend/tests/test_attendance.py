@@ -340,6 +340,14 @@ async def test_mark_paid_on_time_and_late_updates_company_rate(client: AsyncClie
 
     profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
     assert profile.json()["on_time_payment_rate"] == pytest.approx(1.0)
+    # La API expone cuántos pagos hay detrás de la tasa: el front oculta «Pago
+    # a tiempo» con 0 (sin pagos, 0.0 no significa «paga tarde»).
+    assert profile.json()["payments_recorded"] == 1
+    public = await client.get(
+        f"/api/v1/companies/{profile.json()['id']}", headers=employer_headers
+    )
+    assert public.status_code == 200
+    assert public.json()["payments_recorded"] == 1
 
     # Turno 2 (mismo comercio): se paga "ahora", su fin fue hace 50hs (fuera
     # de la tolerancia de 48hs) → tarde. Promedio: (1.0 + 0.0) / 2 = 0.5.
@@ -358,6 +366,15 @@ async def test_mark_paid_on_time_and_late_updates_company_rate(client: AsyncClie
 
     profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
     assert profile.json()["on_time_payment_rate"] == pytest.approx(0.5)
+    assert profile.json()["payments_recorded"] == 2
+
+
+async def test_company_without_payments_reports_zero_payments_recorded(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "att_emp_nopay@staffya.com")
+    profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
+    assert profile.status_code == 200
+    assert profile.json()["payments_recorded"] == 0
+    assert profile.json()["on_time_payment_rate"] == 0.0
 
 
 async def test_badges_and_level_recompute_after_finish_and_worker_cancel(

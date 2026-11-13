@@ -46,7 +46,9 @@ bidireccional: comercio y trabajador se califican mutuamente.
   se incrementa cuando el **comercio** marca manualmente que el trabajador
   asignado no se presentó a un turno ya confirmado
   (`POST /shifts/{id}/no-show`, sólo alcanzable desde `CONFIRMADO`/
-  `EN_CAMINO`, antes del check-in; `WorkerProfileRepository.record_no_show`).
+  `EN_CAMINO`, antes del check-in y **recién desde 15 minutos después del
+  inicio del turno**, `NO_SHOW_EARLIEST_AFTER_START`;
+  `WorkerProfileRepository.record_no_show`).
   **Separado de `cancellations`** a propósito: no aparecer sin aviso es una
   señal peor que cancelar con anticipación, y se pondera distinto (ver
   matching abajo). No es detección automática por horario vencido (eso sigue
@@ -65,7 +67,7 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `on_time_payment_rate` — tasa de pago a tiempo. **(2026-08-02)** se
   recalcula al confirmar el pago de un turno finalizado
   (`ShiftService.mark_paid`) como promedio móvil simple sobre
-  `payments_recorded` (contador interno, no expuesto en la API — distinto de
+  `payments_recorded` (contador, **expuesto en la API** desde 2026-11-13 para que la pantalla oculte «Pago a tiempo» cuando es 0 — distinto de
   `events_published`, que cuenta turnos publicados, no pagados): a tiempo =
   `paid_at` dentro de **48 horas** de `end_at` (`PAYMENT_TOLERANCE`,
   `backend/app/modules/shift/application/services.py`). No hay un plazo de

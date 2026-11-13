@@ -10,6 +10,7 @@ import {
   BADGE_ICONS,
   BADGE_LABELS,
   formatRating,
+  hasRating,
   levelLabel,
   levelMeta,
 } from "@/lib/reputation";
@@ -166,10 +167,12 @@ export default function WorkerGameCard() {
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-on-brand/10 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
-          <StarIcon size={16} filled className="text-rating" />
-          {formatRating(profile.rating)}
-        </div>
+        {hasRating(profile.rating) && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
+            <StarIcon size={16} filled className="text-rating" />
+            {formatRating(profile.rating)}
+          </div>
+        )}
       </div>
 
       {/* Ganancias (pedido de Julieta: "un resumen de ganancias acumuladas

@@ -61,6 +61,7 @@ def _to_candidate(model: WorkerProfileModel, full_name: str) -> CandidateProfile
         position_updated_at=updated_at,
         badges=tuple(WorkerBadge(b) for b in (model.badges or [])),
         level=GamificationLevel(model.level),
+        city=model.city,
     )
 
 
