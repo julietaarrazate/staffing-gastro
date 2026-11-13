@@ -555,8 +555,11 @@ class ShiftService:
         Quien había quedado afuera al asignarse el turno (postulación ya
         rechazada) no recibe nada: su postulación no estaba viva.
 
-        Nunca propaga: el turno ya quedó cancelado y un error acá (base o
-        proveedor de push) no puede devolverle un 500 al comercio."""
+        Nunca propaga: el turno ya quedó cancelado y un error acá (la base
+        rechaza el aviso, cae el push) no puede devolverle un 500 al comercio.
+        Los dos avisos fallan por separado, y eso descansa en que el adaptador
+        de avisos deja la sesión usable cuando su escritura falla
+        (`SqlAlchemyNotificationRepository._commit_or_reset`)."""
         name = shift.title or shift.position.label
         try:
             if assigned_worker_profile_id is not None and was_committed:

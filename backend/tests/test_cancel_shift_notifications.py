@@ -8,10 +8,18 @@ con el trabajador ya comprometido.
 """
 
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.modules.application.domain.entities import ShiftApplication
+from app.modules.application.infrastructure.repositories import (
+    SqlAlchemyShiftApplicationRepository,
+)
+from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.value_objects import NotificationType, deep_link_for
 from app.modules.notification.infrastructure.fake_push_sender import FakePushSender
 from app.modules.notification.infrastructure.push_tasks import drain_pending_pushes
@@ -374,6 +382,158 @@ async def test_si_fallan_los_avisos_la_cancelacion_tardia_igual_se_cuenta(
     assert cancelled.status_code == 200
     assert cancelled.json()["status"] == "cancelado"
     assert await _late_cancellations(client, employer) == 1
+
+
+def _break_notification_insert(
+    monkeypatch: pytest.MonkeyPatch, *, methods: tuple[str, ...] = ("add", "add_many")
+) -> None:
+    """Hace fallar el INSERT del aviso EN LA BASE, con el adaptador real.
+
+    Los dos tests de arriba lanzan un `RuntimeError` antes de tocar la sesión
+    y por eso no ven el caso que importa: la base rechaza la fila (acá, título
+    nulo contra `NOT NULL`) y la sesión del pedido queda con la transacción
+    rota. Esa misma sesión la usa después la idempotencia para guardar la
+    respuesta."""
+    original_add = SqlAlchemyNotificationRepository.add
+    original_add_many = SqlAlchemyNotificationRepository.add_many
+
+    async def _add(self, notification):
+        notification.title = None
+        return await original_add(self, notification)
+
+    async def _add_many(self, notifications):
+        for notification in notifications:
+            notification.title = None
+        return await original_add_many(self, notifications)
+
+    if "add" in methods:
+        monkeypatch.setattr(SqlAlchemyNotificationRepository, "add", _add)
+    if "add_many" in methods:
+        monkeypatch.setattr(SqlAlchemyNotificationRepository, "add_many", _add_many)
+
+
+async def test_la_base_rechaza_el_aviso_al_postulante_y_la_cancelacion_responde_bien(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
+    """Con `Idempotency-Key`, como la manda siempre el panel: 200, todo
+    guardado, y el reintento devuelve la respuesta guardada (ni 500 ni 400)."""
+    employer = await _employer(client, "ca_emp15@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    ana, _ = await _worker(client, "ca_w15a@staffya.com", "Ana Gomez")
+    await _apply(client, shift_id, ana)
+    _break_notification_insert(monkeypatch)
+    key = {"Idempotency-Key": "cancelar-avisa-base-rota-postulante"}
+
+    cancelled = await _cancel(client, shift_id, employer, **key)
+
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "cancelado"
+    assert await _application_status(client, shift_id, ana) == "rechazada"
+    assert await _late_cancellations(client, employer) == 0
+    # El aviso no se guardó: es lo único que se pierde.
+    assert await _cancel_notices(client, ana) == []
+
+    retry = await _cancel(client, shift_id, employer, **key)
+    assert retry.status_code == 200, retry.text
+    assert retry.json() == cancelled.json()
+
+
+async def test_la_base_rechaza_el_aviso_al_confirmado_y_la_tardia_se_cuenta_una_vez(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
+    employer = await _employer(client, "ca_emp16@staffya.com")
+    ana, ana_profile_id = await _worker(client, "ca_w16a@staffya.com", "Ana Gomez")
+    shift_id = await _confirmed(client, employer, ana, ana_profile_id)
+    _break_notification_insert(monkeypatch)
+    key = {"Idempotency-Key": "cancelar-avisa-base-rota-confirmado"}
+
+    cancelled = await _cancel(client, shift_id, employer, **key)
+
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "cancelado"
+    assert await _late_cancellations(client, employer) == 1
+
+    retry = await _cancel(client, shift_id, employer, **key)
+    assert retry.status_code == 200, retry.text
+    assert retry.json() == cancelled.json()
+    # El reintento no vuelve a cancelar: la tardía se contó una sola vez.
+    assert await _late_cancellations(client, employer) == 1
+
+
+async def test_falla_el_aviso_al_asignado_y_el_postulante_igual_recibe_el_suyo(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Los dos avisos fallan por separado. Por la API no se llega a tener un
+    asignado y una postulación pendiente a la vez (asignar rechaza las demás),
+    así que la pendiente de Beto se guarda directo en la base: lo que se
+    prueba es que un aviso rechazado no arrastra al siguiente."""
+    employer = await _employer(client, "ca_emp17@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    ana, ana_profile_id = await _worker(client, "ca_w17a@staffya.com", "Ana Gomez")
+    beto, beto_profile_id = await _worker(client, "ca_w17b@staffya.com", "Beto Ruiz")
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": ana_profile_id},
+    )
+    assert assigned.json()["status"] == "asignado"
+    async with session_factory() as session:
+        await SqlAlchemyShiftApplicationRepository(session).add(
+            ShiftApplication(
+                shift_id=UUID(shift_id), worker_profile_id=UUID(beto_profile_id)
+            )
+        )
+    # Sólo el aviso al asignado (`add`); el de los postulantes (`add_many`) anda.
+    _break_notification_insert(monkeypatch, methods=("add",))
+
+    cancelled = await _cancel(
+        client, shift_id, employer, **{"Idempotency-Key": "cancelar-avisa-uno-falla"}
+    )
+
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "cancelado"
+    assert await _cancel_notices(client, ana) == []
+    assert [n["type"] for n in await _cancel_notices(client, beto)] == [
+        "applied_shift_cancelled"
+    ]
+    assert await _application_status(client, shift_id, beto) == "rechazada"
+
+
+async def test_el_adaptador_de_avisos_deja_la_sesion_usable_si_la_base_rechaza_la_fila(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """El arreglo vive en el adaptador, así que vale para todos los avisos (el
+    de «turno cerca» al publicar tenía el mismo agujero): después de un INSERT
+    rechazado, la misma sesión sigue sirviendo, tanto con `add` como con
+    `add_many`."""
+    headers, _ = await _worker(client, "ca_w18a@staffya.com", "Ana Gomez")
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    user_id = UUID(me.json()["id"])
+
+    def _notice(title: str | None) -> Notification:
+        return Notification(
+            user_id=user_id,
+            type=NotificationType.SHIFT_CANCELLED,
+            title=title,  # type: ignore[arg-type]
+            message="Prueba del adaptador.",
+        )
+
+    async with session_factory() as session:
+        repo = SqlAlchemyNotificationRepository(session)
+        with pytest.raises(IntegrityError):
+            await repo.add(_notice(None))
+        assert (await repo.add(_notice("Después de add"))).title == "Después de add"
+        with pytest.raises(IntegrityError):
+            await repo.add_many([_notice("Válido, cae con el lote"), _notice(None)])
+        saved = await repo.add_many([_notice("Después de add_many")])
+        assert [n.title for n in saved] == ["Después de add_many"]
+
+    listed = await client.get("/api/v1/notifications", headers=headers)
+    titles = sorted(n["title"] for n in listed.json())
+    # Del lote rechazado no quedó nada: ni la fila válida que iba con la inválida.
+    assert titles == ["Después de add", "Después de add_many"]
 
 
 async def test_push_caido_no_rompe_la_cancelacion_y_el_aviso_queda_en_la_campanita(
