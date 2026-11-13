@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -36,7 +36,7 @@ describe("ToastProvider", () => {
     await waitFor(() => expect(region).toHaveTextContent("Turno publicado"));
   });
 
-  it("ni el contenedor ni el cuerpo del aviso reciben toques: no tapan lo que hay debajo", async () => {
+  it("tocar el aviso lo cierra; el contenedor deja pasar los toques y el aviso no", async () => {
     render(
       <ToastProvider>
         <Trigger message="Turno publicado" />
@@ -48,12 +48,15 @@ describe("ToastProvider", () => {
     await waitFor(() => expect(region).toHaveTextContent("Turno publicado"));
     const cuerpo = screen.getByText("Turno publicado");
 
+    // Los huecos a los costados del aviso no tapan nada…
     expect(region.classList.contains("pointer-events-none")).toBe(true);
-    expect(cuerpo.classList.contains("pointer-events-none")).toBe(true);
-    expect(cuerpo.classList.contains("pointer-events-auto")).toBe(false);
-    // Un botón de acción dentro del aviso sí recibe toques (hoy ningún aviso
-    // lo tiene; la regla queda lista para cuando haya uno).
-    expect(cuerpo.className).toContain("[&_button]:pointer-events-auto");
+    // …pero el aviso sí recibe el toque: no lo deja pasar al botón que tapa
+    // (arriba queda sobre «Cerrar» del asistente de publicar).
+    expect(cuerpo.classList.contains("pointer-events-auto")).toBe(true);
+    expect(cuerpo.classList.contains("pointer-events-none")).toBe(false);
+
+    fireEvent.click(cuerpo);
+    await waitFor(() => expect(region).not.toHaveTextContent("Turno publicado"));
   });
 
   it("el aviso va arriba (bajo el encabezado) en todos los anchos", () => {

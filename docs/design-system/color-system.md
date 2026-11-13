@@ -131,7 +131,9 @@ encabezado; `--chrome-top` = 4rem + zona segura, `globals.css`). Nunca abajo: en
 el celular están los botones de acción («Publicar turno») y en escritorio con la
 ventana baja ese botón queda a media pantalla y un aviso abajo lo pisaba. Entra
 sólo con opacidad y escala (sin desplazamiento), `z-[60]` (sobre el encabezado y
-los sheets) y no recibe toques.
+los sheets). **Tocarlo lo cierra** y el toque no pasa a lo que tapa (arriba queda
+sobre el botón de la esquina del asistente de publicar y sobre el interruptor de
+disponibilidad); los huecos a sus costados sí dejan pasar los toques.
 
 ## Tono de banner por rubro
 

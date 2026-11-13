@@ -13,6 +13,10 @@ import {
  * encabezado, en todos los anchos, y no se cruza con el botón: ni en celular
  * (390×844) ni en escritorio con la ventana baja (1280×560, donde el botón
  * queda a media pantalla y un aviso abajo lo pisaba).
+ *
+ * Arriba queda sobre el botón redondo de la esquina del asistente. Tocar el
+ * aviso lo cierra y el toque NO pasa a ese botón: en el primer paso es
+ * «Cerrar», que saca del asistente y pierde lo cargado.
  */
 const VIEWPORTS = [
   { nombre: "celular 390×844", width: 390, height: 844 },
@@ -150,15 +154,17 @@ for (const vp of VIEWPORTS) {
       expect(avisoCaja!.x).toBeGreaterThanOrEqual(0);
       expect(avisoCaja!.x + avisoCaja!.width).toBeLessThanOrEqual(vp.width);
 
-      // Lo que queda debajo del aviso se puede tocar: el aviso no recibe punteros.
-      const x = avisoCaja!.x + avisoCaja!.width / 2;
-      const y = avisoCaja!.y + avisoCaja!.height / 2;
-      const capturaPunteros = await page.evaluate(
-        ([px, py]) =>
-          !!document.elementFromPoint(px, py)?.closest('[role="status"]'),
-        [x, y],
+      // Tocar el aviso (en su punta izquierda, sobre el tilde: debajo está el
+      // botón redondo de la esquina del asistente) lo cierra y nada más: el
+      // asistente sigue en el mismo paso y no se publicó nada.
+      await page.mouse.click(
+        avisoCaja!.x + 14,
+        avisoCaja!.y + avisoCaja!.height / 2,
       );
-      expect(capturaPunteros, "el aviso no debe capturar punteros").toBe(false);
+      await expect(aviso).toBeHidden();
+      await expect(page).toHaveURL(/\/shifts\/new$/);
+      await expect(publicar).toBeVisible();
+      expect(publicados).toBe(0);
 
       // Un toque en «Publicar turno» publica.
       const alta = page.waitForRequest(
@@ -182,3 +188,115 @@ for (const vp of VIEWPORTS) {
     });
   });
 }
+
+test.describe("primer paso del asistente, celular 390×844", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("tocar el aviso «Completamos lo que pudimos» lo cierra y no saca del asistente", async ({
+    page,
+  }) => {
+    await injectSession(page);
+    await skipSplash(page);
+    await blockExternalHosts(page);
+    await mockEmptyNotifications(page);
+
+    await page.route("**/api/v1/auth/me", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "user-2",
+          email: "demo.palermo@staffya.com",
+          full_name: "Comercio Demo",
+          role: "employer",
+          status: "activo",
+          is_active: true,
+          is_verified: true,
+        }),
+      }),
+    );
+    // La IA no entendió el puesto: el asistente se queda en el primer paso,
+    // donde el botón de la esquina es «Cerrar».
+    await page.route("**/api/v1/shifts/parse-text", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          position: null,
+          start_at: null,
+          end_at: null,
+          pay_amount: "45000",
+          urgent: false,
+          meal: false,
+          tips: false,
+          dress_code: null,
+        }),
+      }),
+    );
+    await page.route("**/api/v1/companies/me/profile", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "company-1",
+          user_id: "user-2",
+          name: "Bar Ejemplo",
+          logo_url: null,
+          category: null,
+          description: null,
+          address: "Calle Falsa 123, Palermo",
+          city: "Palermo, CABA",
+          latitude: -34.5889,
+          longitude: -58.4306,
+          capacity: null,
+          opening_hours: null,
+          rating: 0,
+          events_published: 0,
+          on_time_payment_rate: 0,
+          late_cancellations: 0,
+        }),
+      }),
+    );
+
+    await page.goto("/shifts/new");
+    const pedido = page.getByPlaceholder(
+      "Ej: necesito un mozo el sábado a la noche, se paga 45000",
+    );
+    await pedido.fill("alguien para el sábado, se paga 45000");
+    await page.getByRole("button", { name: "Completar" }).click();
+
+    const aviso = page
+      .getByRole("status")
+      .getByText("Completamos lo que pudimos — seguí desde donde quedó");
+    await expect(aviso).toBeVisible();
+    await page.waitForTimeout(600);
+    const cerrar = page.getByRole("button", { name: "Cerrar" });
+    await expect(cerrar).toBeVisible();
+
+    // El aviso tapa (en parte) el botón «Cerrar»: se toca el punto del aviso
+    // más cercano al centro de ese botón.
+    const avisoCaja = await aviso.boundingBox();
+    const cerrarCaja = await cerrar.boundingBox();
+    expect(avisoCaja).not.toBeNull();
+    expect(cerrarCaja).not.toBeNull();
+    const dentro = (v: number, min: number, max: number) =>
+      Math.min(Math.max(v, min + 2), max - 2);
+    const x = dentro(
+      cerrarCaja!.x + cerrarCaja!.width / 2,
+      avisoCaja!.x,
+      avisoCaja!.x + avisoCaja!.width,
+    );
+    const y = dentro(
+      cerrarCaja!.y + cerrarCaja!.height / 2,
+      avisoCaja!.y,
+      avisoCaja!.y + avisoCaja!.height,
+    );
+    await page.mouse.click(x, y);
+
+    // Se cerró el aviso, no el asistente: sigue en la misma pantalla con lo
+    // que la persona escribió.
+    await expect(aviso).toBeHidden();
+    await expect(page).toHaveURL(/\/shifts\/new$/);
+    await expect(pedido).toHaveValue("alguien para el sábado, se paga 45000");
+  });
+});

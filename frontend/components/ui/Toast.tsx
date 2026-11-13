@@ -33,18 +33,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 3200);
   }, []);
 
+  const dismiss = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   return (
     <ToastContext.Provider value={show}>
       {children}
-      {/* El aviso NUNCA intercepta toques (ni el contenedor ni el cuerpo) y va
-          ARRIBA en todos los anchos, debajo del encabezado (`--chrome-top`:
-          4rem + zona segura; el aviso arranca 0,5rem más abajo). Abajo caía
-          sobre «Publicar turno»: en el celular (390 px) y también en
-          escritorio con la ventana baja (~510-615 px de alto), donde el botón
-          queda a media pantalla; quien tocaba el cartel creyendo cerrarlo
-          publicaba el turno sin querer (U009). Se va solo a los 3,2 s; si algún
-          día lleva un botón de acción, sólo ese botón recibe punteros
-          (`[&_button]`). z-[60] > Navbar (z-40). */}
+      {/* El aviso va ARRIBA en todos los anchos, debajo del encabezado
+          (`--chrome-top`: 4rem + zona segura; el aviso arranca 0,5rem más
+          abajo). Abajo caía sobre «Publicar turno»: en el celular (390 px) y
+          también en escritorio con la ventana baja (~510-615 px de alto), donde
+          el botón queda a media pantalla (U009).
+          Tocar el aviso lo CIERRA y el toque no pasa a lo que tapa: arriba
+          queda sobre el botón de la esquina del asistente («Cerrar» en el
+          primer paso, que saca del asistente y pierde lo cargado) y sobre el
+          interruptor de disponibilidad del inicio; dejar pasar el toque
+          disparaba algo que no se ve. El contenedor sí deja pasar los toques
+          (los huecos a los costados no tapan nada). Se va solo a los 3,2 s.
+          z-[60] > Navbar (z-40). */}
       {/* role="status" + aria-live="polite": sin esto un toast (confirmación
           de acción, error de una mutación) es invisible para un usuario de
           lector de pantalla — no hay foco que mover a un elemento que
@@ -63,7 +70,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.95 }}
               transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
-              className={`pointer-events-none [&_button]:pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
+              onClick={() => dismiss(t.id)}
+              className={`pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
             >
               {/* Verde, no blanco: sobre la píldora negra el tilde en blanco
                   era un adorno más del texto. En color dice "salió bien" antes
