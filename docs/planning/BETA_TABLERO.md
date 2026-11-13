@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 10 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
+De 79 graves: 11 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
 que entraron con el reporte externo); U094 y U137 quedan diferidos (dependen
 del tope del plan, que está apagado en la beta).
 
@@ -72,19 +72,19 @@ del tope del plan, que está apagado en la beta).
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | 🔵 PR abierto | #552 (revisión aprobada con cambios; falta la prueba en la app) |
+| U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | 🔵 PR abierto | #552 (revisión aprobada y prueba en la app hecha; el servidor ya no deja marcar la salida antes del inicio: espera el visto bueno de Julieta) |
 | U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 3**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | 🔵 PR abierto | #549 (revisión aprobada; cambia una regla: espera el visto bueno de Julieta y la prueba en la app) |
-| U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | 🔵 PR abierto | #551 (revisión aprobada; falta la prueba en la app) |
-| U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | 🔵 PR abierto | #550 (revisión aprobada; cambia una regla: espera el visto bueno de Julieta y la prueba en la app) |
+| U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | 🔵 PR abierto | #549 (revisión aprobada y prueba en la app hecha; cambia una regla: espera el visto bueno de Julieta) |
+| U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
+| U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | 🔵 PR abierto | #550 (revisión aprobada y prueba en la app hecha; cambia una regla: espera el visto bueno de Julieta) |
 | U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⏸️ espera decisión | cancelar un turno ya trabajado: cambia el ADR-0007 |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🔵 PR abierto | #553 (en revisión; cambia una regla: espera el visto bueno de Julieta y la prueba en la app) |
+| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🔵 PR abierto | #553 (revisión y prueba en la app hechas; se están aplicando los cambios de la revisión; cambia una regla: espera el visto bueno de Julieta) |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 4**
@@ -163,7 +163,13 @@ del tope del plan, que está apagado en la beta).
   colgado.
 - El pin de trabajador en el mapa del comercio usa letra blanca fija
   (`WorkerMarker.tsx`), contra la regla de diseño.
-- Un turno «No cubierto» ofrece «Cancelar turno» y el servidor lo rechaza.
+- Un turno «No cubierto» ofrece «Cancelar turno» y el servidor lo rechaza (se
+  arregla en #553).
+- Plurales sin singular: «1 turnos», «1 turnos publicados», «1 eventos».
+- Con sesión de trabajador la app pide `/favorites` y con la de comercio
+  `/applications/mine`: el servidor responde 403 (no se ve en pantalla).
+- Tras abrir una confirmación del trabajador, durante 1 segundo los botones
+  ignoran los toques sin avisar (#552).
 - Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
   recibe tres avisos de cancelación.
 - #547 y #549 chocan en una línea de `shift/application/services.py`, y #550
@@ -197,7 +203,9 @@ del tope del plan, que está apagado en la beta).
     puede cancelar ni marcar la salida hasta que el turno empieza (#552):
     ¿se permite cancelar desde «llegada marcada»?
 12. ¿Los trabajadores ven cuántas cancelaciones tardías tiene un comercio?
-    (el dato ya viaja; ninguna pantalla lo muestra).
+    Hoy el dato viaja a cualquier usuario con sesión y ninguna pantalla lo
+    muestra: o se muestra, o se deja de mandar.
+13. #552: visto bueno a que el servidor rechace la salida antes del inicio.
 
 ### Pruebas que tiene que hacer una persona
 
