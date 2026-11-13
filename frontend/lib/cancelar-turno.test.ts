@@ -112,6 +112,13 @@ describe("withFreshState", () => {
     expect(cancelConfirmCopy(merged).lateCancellation).toBe(LATE_CANCELLATION_WARNING);
   });
 
+  it("no le suma a la tarjeta propia el sello «Comercio verificado» que trae el detalle", () => {
+    const verified = { ...detail, company_verified: true } as Shift;
+    expect(withFreshState(listed, verified).company_verified).toBeUndefined();
+    const listedUnverified = { ...listed, company_verified: false } as Shift;
+    expect(withFreshState(listedUnverified, verified).company_verified).toBe(false);
+  });
+
   it("conserva el nombre del trabajador y no suma los datos del comercio a la tarjeta", () => {
     const merged = withFreshState(listed, detail);
     expect(merged.worker_name).toBe("Juan Pérez");

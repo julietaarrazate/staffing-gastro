@@ -47,6 +47,7 @@ export function withFreshState(current: Shift, fresh: Shift): Shift {
     company_name: current.company_name,
     company_logo_url: current.company_logo_url,
     company_cover_url: current.company_cover_url,
+    company_verified: current.company_verified,
     worker_name:
       fresh.worker_profile_id && fresh.worker_profile_id === current.worker_profile_id
         ? current.worker_name
