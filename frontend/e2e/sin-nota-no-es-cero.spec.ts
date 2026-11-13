@@ -155,3 +155,49 @@ test("Buscar trabajadores: la persona nueva no muestra estrellas ni 0,0", async 
   await expect(fila("Nueva Sinhistoria")).not.toContainText("0,0");
   await expect(fila("Nueva Sinhistoria")).toContainText("0,8 km");
 });
+
+const comercio = (over: Record<string, unknown>) => ({
+  id: "c-1",
+  user_id: "user-9",
+  owner_full_name: null,
+  name: "Bar Demo",
+  logo_url: null,
+  category: "bar",
+  description: null,
+  address: null,
+  city: "Palermo",
+  latitude: null,
+  longitude: null,
+  capacity: null,
+  opening_hours: null,
+  rating: 0,
+  events_published: 0,
+  on_time_payment_rate: 0,
+  late_cancellations: 0,
+  payments_recorded: 0,
+  ...over,
+});
+
+test("perfil del comercio: con turnos pero sin pagos no hay «Pago a tiempo» ni 0 %; con pagos sí", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/v1/companies/c-nuevo", (r) =>
+    r.fulfill(json(comercio({ id: "c-nuevo", name: "Bar Nuevo", events_published: 3 })))
+  );
+  await page.route("**/api/v1/companies/c-hist", (r) =>
+    r.fulfill(
+      json(comercio({ id: "c-hist", name: "Bar Historia", rating: 4.2, events_published: 9, on_time_payment_rate: 0.9, payments_recorded: 7 }))
+    )
+  );
+
+  await page.goto("/companies/c-nuevo");
+  await expect(page.getByRole("heading", { name: "Bar Nuevo" })).toBeVisible();
+  await expect(page.getByText("Nuevo en Oído")).toBeVisible();
+  await expect(page.getByText("Pago a tiempo")).toHaveCount(0);
+  expect(await page.locator("main").innerText()).not.toMatch(/0[.,]0\b|\b0%/);
+
+  await page.goto("/companies/c-hist");
+  await expect(page.getByRole("heading", { name: "Bar Historia" })).toBeVisible();
+  await expect(page.getByText("Pago a tiempo")).toBeVisible();
+  await expect(page.getByText("90%")).toBeVisible();
+  await expect(page.getByText("4,2", { exact: true })).toBeVisible();
+});

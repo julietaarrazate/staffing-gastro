@@ -140,6 +140,18 @@ export function hasRate(completed: number | null | undefined): boolean {
   return typeof completed === "number" && completed > 0;
 }
 
+/**
+ * ¿Hay «Pago a tiempo» que mostrar? Sólo con pagos registrados
+ * (`payments_recorded > 0`). Si el campo no viene (app vieja o caché), cae al
+ * criterio anterior: turnos publicados.
+ */
+export function hasPaymentRate(
+  paymentsRecorded: number | null | undefined,
+  eventsPublished: number | null | undefined
+): boolean {
+  return typeof paymentsRecorded === "number" ? paymentsRecorded > 0 : hasRate(eventsPublished);
+}
+
 /** "0.92" -> "92%" */
 export function formatPunctuality(rate: number): string {
   return `${Math.round(rate * 100)}%`;

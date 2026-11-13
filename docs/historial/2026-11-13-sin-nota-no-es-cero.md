@@ -8,4 +8,6 @@
 
 **Tests:** `lib/reputation.test.ts`, `components/candidate/CandidateSignals.test.tsx`, `components/RatingOrNew.test.tsx` y `e2e/sin-nota-no-es-cero.spec.ts` (perfil público, candidatos, Buscar; persona nueva y con historial).
 
-**Queda abierto:** (1) un comercio con turnos publicados pero ningún pago registrado todavía muestra «Pago a tiempo» en 0 %: hace falta que el backend mande cuántos pagos hay. (2) Si el backend pasa a mandar la cantidad de reseñas, `hasRating` debería mirarla en vez del 0.
+**Pago a tiempo (segunda tanda):** el backend ahora expone `payments_recorded` (contador que ya existía) en `CompanyProfileResponse` (`company/api/schemas.py`, que cubre el perfil público y el propio) y en la ficha de admin (`admin/api/schemas.py`, `dtos.py`, `services.py`). El front muestra «Pago a tiempo» sólo con `payments_recorded > 0` (`hasPaymentRate`); si el campo no viene (app vieja o caché) cae a los turnos publicados. Admin dice «Sin pagos». Test de API en `tests/test_attendance.py` (sin pagos 0, con pagos 1 y 2, perfil público) y spec E2E del comercio.
+
+**Queda abierto:** si el backend pasa a mandar la cantidad de reseñas, `hasRating` debería usarla en lugar del 0.

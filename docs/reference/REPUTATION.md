@@ -62,7 +62,7 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `on_time_payment_rate` — tasa de pago a tiempo. **(2026-08-02)** se
   recalcula al confirmar el pago de un turno finalizado
   (`ShiftService.mark_paid`) como promedio móvil simple sobre
-  `payments_recorded` (contador interno, no expuesto en la API — distinto de
+  `payments_recorded` (contador, **expuesto en la API** desde 2026-11-13 para que la pantalla oculte «Pago a tiempo» cuando es 0 — distinto de
   `events_published`, que cuenta turnos publicados, no pagados): a tiempo =
   `paid_at` dentro de **48 horas** de `end_at` (`PAYMENT_TOLERANCE`,
   `backend/app/modules/shift/application/services.py`). No hay un plazo de

@@ -10,7 +10,7 @@ import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 import RatingOrNew from "@/components/RatingOrNew";
 import RateMeter from "@/components/RateMeter";
-import { hasRate, hasRating } from "@/lib/reputation";
+import { hasPaymentRate, hasRating } from "@/lib/reputation";
 import MiniMap from "@/components/MiniMap";
 import { MapPinIcon, RouteIcon } from "@/components/icons";
 
@@ -148,7 +148,7 @@ export default function PublicCompanyProfilePage() {
             </div>
           )}
 
-          {hasRate(profile.events_published) && (
+          {hasPaymentRate(profile.payments_recorded, profile.events_published) && (
             <div className="mt-5">
               <RateMeter label="Pago a tiempo" rate={profile.on_time_payment_rate} />
             </div>

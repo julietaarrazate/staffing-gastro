@@ -4,6 +4,7 @@ import {
   formatRateOrNone,
   formatRating,
   formatRatingOrNone,
+  hasPaymentRate,
   hasRate,
   hasRating,
 } from "./reputation";
@@ -45,5 +46,18 @@ describe("puntualidad", () => {
     expect(formatRateOrNone(0.92, 3)).toBe("92%");
     expect(formatRateOrNone(0, 2)).toBe("0%");
     expect(formatPunctuality(0.925)).toBe("93%");
+  });
+});
+
+describe("hasPaymentRate (Pago a tiempo del comercio)", () => {
+  it("sin pagos registrados no hay «Pago a tiempo», aunque haya turnos publicados", () => {
+    expect(hasPaymentRate(0, 5)).toBe(false);
+  });
+  it("con pagos registrados se muestra", () => {
+    expect(hasPaymentRate(1, 5)).toBe(true);
+  });
+  it("si el campo no viene (app vieja o caché) cae a los turnos publicados", () => {
+    expect(hasPaymentRate(undefined, 0)).toBe(false);
+    expect(hasPaymentRate(undefined, 3)).toBe(true);
   });
 });

@@ -16,7 +16,7 @@ import { STATUS_LABELS as SHIFT_STATUS_LABELS, SKILL_LABELS } from "@/lib/types"
 import type { AdminUserDetail, ShiftStatus, WorkerSkill } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { formatShiftDate } from "@/lib/datetime";
-import { formatRateOrNone, formatRatingOrNone, levelLabel } from "@/lib/reputation";
+import { formatPunctuality, formatRateOrNone, formatRatingOrNone, hasPaymentRate, levelLabel } from "@/lib/reputation";
 import {
   Avatar,
   Badge,
@@ -295,7 +295,9 @@ export default function AdminPersonPage() {
               <Fact label="Calificación" value={formatRatingOrNone(detail.company.rating)} />
               <Fact
                 label="Paga a tiempo"
-                value={formatRateOrNone(detail.company.on_time_payment_rate, detail.company.events_published)}
+                value={hasPaymentRate(detail.company.payments_recorded, detail.company.events_published)
+                    ? formatPunctuality(detail.company.on_time_payment_rate)
+                    : "Sin pagos"}
               />
               <Fact label="Cancelaciones tardías" value={detail.company.late_cancellations} />
             </div>
