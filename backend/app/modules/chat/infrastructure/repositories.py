@@ -1,7 +1,7 @@
 """Adaptador SQLAlchemy del ChatMessageRepository.
 
 Además de la mensajería 1-1 (`chat_messages`), este repo resuelve el inbox
-agregado (`list_inbox_candidates` + `last_messages` + `unread_counts_by_shift`)
+agregado (`list_inbox_candidates` + `last_messages` + `unread_counts`)
 con JOINs a `shifts`/`company_profiles`/`worker_profiles`/`users` en vez de
 una consulta por conversación (fix de P1 en `docs/audits/PERFORMANCE_REPORT.md`).
 Importar modelos de otros módulos en infraestructura para armar estos JOINs
@@ -11,11 +11,11 @@ de lectura ya es un patrón establecido en el repo (ver
 
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import ColumnElement, func, or_, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app.modules.chat.domain.entities import ChatMessage, InboxCandidate
+from app.modules.chat.domain.entities import ChatMessage, InboxCandidate, Thread
 from app.modules.chat.domain.repositories import ChatMessageRepository
 from app.modules.chat.infrastructure.models import ChatMessageModel
 from app.modules.company.infrastructure.models import CompanyProfileModel
@@ -28,10 +28,26 @@ def _to_entity(model: ChatMessageModel) -> ChatMessage:
     return ChatMessage(
         id=model.id,
         shift_id=model.shift_id,
+        worker_user_id=model.worker_user_id,
         sender_user_id=model.sender_user_id,
         body=model.body,
         read=model.read,
         created_at=model.created_at,
+    )
+
+
+def _in_thread(thread: Thread) -> ColumnElement[bool]:
+    """Filtro de un hilo. Toda lectura de mensajes pasa por acá o por
+    `_in_threads`: los mensajes sin hilo (`worker_user_id` NULL) y los de otra
+    persona que tuvo el mismo turno quedan afuera por construcción."""
+    return (ChatMessageModel.shift_id == thread.shift_id) & (
+        ChatMessageModel.worker_user_id == thread.worker_user_id
+    )
+
+
+def _in_threads(threads: list[Thread]) -> ColumnElement[bool]:
+    return tuple_(ChatMessageModel.shift_id, ChatMessageModel.worker_user_id).in_(
+        [(thread.shift_id, thread.worker_user_id) for thread in threads]
     )
 
 
@@ -43,6 +59,7 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
         model = ChatMessageModel(
             id=message.id,
             shift_id=message.shift_id,
+            worker_user_id=message.worker_user_id,
             sender_user_id=message.sender_user_id,
             body=message.body,
             read=message.read,
@@ -52,45 +69,21 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def list_by_shift(self, shift_id: UUID) -> list[ChatMessage]:
+    async def list_by_thread(self, thread: Thread) -> list[ChatMessage]:
         stmt = (
             select(ChatMessageModel)
-            .where(ChatMessageModel.shift_id == shift_id)
+            .where(_in_thread(thread))
             .order_by(ChatMessageModel.created_at.asc())
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
-    async def last_message(self, shift_id: UUID) -> ChatMessage | None:
-        stmt = (
-            select(ChatMessageModel)
-            .where(ChatMessageModel.shift_id == shift_id)
-            .order_by(ChatMessageModel.created_at.desc())
-            .limit(1)
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalars().first()
-        return _to_entity(model) if model is not None else None
-
-    async def count_unread(self, shift_id: UUID, recipient_user_id: UUID) -> int:
-        stmt = (
-            select(func.count())
-            .select_from(ChatMessageModel)
-            .where(
-                ChatMessageModel.shift_id == shift_id,
-                ChatMessageModel.sender_user_id != recipient_user_id,
-                ChatMessageModel.read.is_(False),
-            )
-        )
-        result = await self._session.execute(stmt)
-        return int(result.scalar_one())
-
-    async def mark_read(self, shift_id: UUID, recipient_user_id: UUID) -> bool:
+    async def mark_read(self, thread: Thread, reader_user_id: UUID) -> bool:
         stmt = (
             update(ChatMessageModel)
             .where(
-                ChatMessageModel.shift_id == shift_id,
-                ChatMessageModel.sender_user_id != recipient_user_id,
+                _in_thread(thread),
+                ChatMessageModel.sender_user_id != reader_user_id,
                 ChatMessageModel.read.is_(False),
             )
             .values(read=True)
@@ -156,42 +149,46 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
             ) in result.all()
         ]
 
-    async def last_messages(self, shift_ids: list[UUID]) -> dict[UUID, ChatMessage]:
-        if not shift_ids:
+    async def last_messages(self, threads: list[Thread]) -> dict[Thread, ChatMessage]:
+        if not threads:
             return {}
         # "Última fila por grupo" con ROW_NUMBER(): portable entre SQLite
         # (≥3.25) y Postgres, a diferencia de DISTINCT ON (sólo Postgres).
         row_number = (
             func.row_number()
             .over(
-                partition_by=ChatMessageModel.shift_id,
+                partition_by=(ChatMessageModel.shift_id, ChatMessageModel.worker_user_id),
                 order_by=ChatMessageModel.created_at.desc(),
             )
             .label("rn")
         )
-        subq = (
-            select(ChatMessageModel, row_number)
-            .where(ChatMessageModel.shift_id.in_(shift_ids))
-            .subquery()
-        )
+        subq = select(ChatMessageModel, row_number).where(_in_threads(threads)).subquery()
         last_message = aliased(ChatMessageModel, subq)
         stmt = select(last_message).where(subq.c.rn == 1)
         result = await self._session.execute(stmt)
-        return {m.shift_id: _to_entity(m) for m in result.scalars().all()}
+        messages = [_to_entity(m) for m in result.scalars().all()]
+        return {message.thread: message for message in messages}
 
-    async def unread_counts_by_shift(
-        self, shift_ids: list[UUID], recipient_user_id: UUID
-    ) -> dict[UUID, int]:
-        if not shift_ids:
+    async def unread_counts(
+        self, threads: list[Thread], recipient_user_id: UUID
+    ) -> dict[Thread, int]:
+        if not threads:
             return {}
         stmt = (
-            select(ChatMessageModel.shift_id, func.count())
+            select(
+                ChatMessageModel.shift_id,
+                ChatMessageModel.worker_user_id,
+                func.count(),
+            )
             .where(
-                ChatMessageModel.shift_id.in_(shift_ids),
+                _in_threads(threads),
                 ChatMessageModel.sender_user_id != recipient_user_id,
                 ChatMessageModel.read.is_(False),
             )
-            .group_by(ChatMessageModel.shift_id)
+            .group_by(ChatMessageModel.shift_id, ChatMessageModel.worker_user_id)
         )
         result = await self._session.execute(stmt)
-        return {shift_id: count for shift_id, count in result.all()}
+        return {
+            Thread(shift_id=shift_id, worker_user_id=worker_user_id): count
+            for shift_id, worker_user_id, count in result.all()
+        }

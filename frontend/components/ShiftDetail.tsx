@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage } from "@/lib/errors";
-import { SKILL_LABELS, Shift, ShiftPublic } from "@/lib/types";
+import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
@@ -98,10 +99,12 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     }
     if (user.role === "worker") {
       api
-        .get<{ shift_id: string }[]>("/applications/mine?limit=100", token)
+        .get<ShiftApplication[]>("/applications/mine?limit=100", token)
         .then((mine) => {
           if (cancelled) return;
-          setApply(mine.some((a) => a.shift_id === publicShift.id) ? "applied" : "can_apply");
+          // Sólo una postulación activa cuenta como "ya te postulaste": con
+          // la postulación retirada, el turno vuelve a ofrecer "Postularme".
+          setApply(appliedShiftIds(mine).has(publicShift.id) ? "applied" : "can_apply");
         })
         .catch(() => !cancelled && setApply("can_apply"));
     }
