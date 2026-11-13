@@ -250,11 +250,17 @@ Recomendación de quien coordina entre paréntesis.
     con 5 minutos de margen; a la hora de inicio, si no marcó la llegada, se
     le avisa al comercio y a la persona; «No se presentó» desde los 10
     minutos, y ahí el turno se reofrece como urgente. Cambia
-    `docs/reference/REPUTATION.md` y el ADR-0008.)
+    `docs/reference/REPUTATION.md` y el ADR-0008.) Julieta aclaró el mismo
+    día: lo que importa es que la persona esté en el local a horario; marcar
+    la llegada es otra cosa, y tiene que haber avisos para que nadie se
+    olvide. Desarrollo en la propuesta, §4.
 
 ### Pedidos de producto de Julieta (2026-11-13), fuera de la etapa 2
 
-No son arreglos: cada uno necesita su propuesta antes de construir nada.
+No son arreglos: cada uno necesita su propuesta antes de construir nada. La
+primera propuesta, con opciones, recomendación y orden, está en
+[`PROPUESTA_URGENTE_Y_PROGRAMADO.md`](./PROPUESTA_URGENTE_Y_PROGRAMADO.md)
+(espera a Julieta; el seguro y el cobro quedan afuera).
 
 - **Urgente y programado no se buscan igual.** El urgente, por cercanía y
   velocidad; el programado, con tiempo, por el perfil que mejor calza
