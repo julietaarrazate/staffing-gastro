@@ -76,6 +76,70 @@ Tres caminos posibles:
 Primer paso barato: cambiar el orden de la lista (no necesita datos nuevos).
 La agenda y la búsqueda por fecha son el paso grande.
 
+### 3.1 La agenda del trabajador
+
+Pedido de Julieta (2026-11-13): un calendario donde el trabajador carga días,
+horarios y barrios, pulido para que sirva de verdad, y que el comercio pueda
+filtrar también por rubro, sobre todo en eventos de mucha gente.
+
+El riesgo conocido de toda agenda en un marketplace es que nadie la mantiene
+y a las dos semanas miente. Por eso el diseño apunta a que cargarla lleve
+segundos y a que se mantenga casi sola.
+
+**Lo que carga el trabajador**
+
+- **Semana tipo:** por cada día, franjas de un toque: almuerzo (10 a 16),
+  tarde (16 a 20), noche (20 a 01), trasnoche (01 a 06), o «todo el día».
+  Franjas y no horas exactas: es lo que una persona contesta de memoria.
+- **Calendario de las próximas seis semanas:** cada día arranca como dice la
+  semana tipo; se toca para cambiar ese día («libre», franjas, «no puedo»).
+- **Zonas:** los barrios donde trabaja (varios) o «hasta X km de mi zona».
+  Son barrios, nunca una dirección.
+- **Rubros:** los puestos del perfil. No se cargan de nuevo.
+- La semana tipo y las zonas se piden en la bienvenida, con todo marcado por
+  defecto: así hay datos desde el primer día.
+
+**Lo que hace sola**
+
+- Un turno confirmado ocupa su horario; una postulación pendiente se ve como
+  «tentativo».
+- Los domingos a la tarde, un aviso: «¿Tu semana viene como siempre?», con
+  «Sí» de un toque o «Cambiar». Una agenda sin confirmar hace más de 14 días
+  pesa menos en el orden, y se dice («sin confirmar»).
+- Marcar una franja de hoy como «para urgentes» es estar **de guardia**
+  (§2): mismo dato, sin pantalla aparte.
+
+**Lo que ve el comercio**
+
+- **Antes de publicar:** «Hay 42 mozos libres ese día y horario en tu zona».
+  Si son pocos, lo sabe a tiempo (cambiar el horario, subir el pago).
+- **Buscar:** por fecha, franja, rubro y zona, con el orden de los
+  programados (§3).
+- **Eventos:** elegir varios y «Invitar a los 12» de una vez, por puesto.
+  Cada invitación la acepta la persona (se reutiliza asignar y confirmar).
+- El comercio **no ve el calendario** de nadie: sólo si esa persona figura
+  libre para ese turno.
+
+**Cuidados**
+
+- Estar libre en la agenda no obliga a aceptar: rechazar una invitación no
+  resta. Si alguien rechaza varias seguidas, la app le pregunta si quiere
+  actualizar su agenda.
+- Un turno calza con la agenda si todas las franjas que ocupa por más de una
+  hora están libres.
+
+**En tres pasos**
+
+| Paso | Qué | Tamaño |
+|---|---|---|
+| A | Cargar la agenda (semana tipo, calendario, zonas), el aviso del domingo y que el orden y las invitaciones de la app la usen | Mediano |
+| B | «Hay N libres» al publicar y la búsqueda por fecha, franja, rubro y zona | Mediano |
+| C | Invitar a varios de una vez en eventos; «de guardia» | Mediano |
+
+Módulo nuevo `availability` en el backend (reglas por día de la semana,
+excepciones por fecha), leído por `matching` a través de un puerto. Lleva
+ADR.
+
 ## 4. Puntualidad real
 
 Son dos cosas distintas y hoy están mezcladas:
@@ -158,5 +222,5 @@ la ubicación de «Va en camino» necesita revisar su ADR antes.
 | 3 | Reconfirmación 24 h y 3 h (§3 y §5) | Mediano | Antes de la beta si entra |
 | 4 | Tomar el urgente con un toque (§2) | Mediano | Primer cambio después de los graves |
 | 5 | Referencias verificadas y «Traé a tu equipo» (§6) | Mediano | Con la beta andando |
-| 6 | Agenda y búsqueda por fecha (§3) | Grande | Con la beta andando |
+| 6 | Agenda del trabajador (§3.1), en sus tres pasos | Grande | Paso A apenas cierren los graves; B y C con la beta andando |
 | 7 | Suplentes y sobrecupo de eventos (§5) | Grande | Cuando haya eventos reales |

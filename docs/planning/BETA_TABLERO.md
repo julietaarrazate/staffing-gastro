@@ -262,9 +262,10 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 | P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | ⚪ sin empezar |
 | P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | ⚪ sin empezar |
 | P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |
+| P5 | Agenda del trabajador: días, franjas, barrios y rubros; el comercio filtra por fecha, horario, rubro y zona (§3.1). Pedido expreso de Julieta | Paso A apenas cierren los graves; B y C con la beta andando | ⚪ sin empezar |
 
-Referencias verificadas, «Traé a tu equipo», la agenda con búsqueda por
-fecha y los suplentes de eventos quedan para cuando la beta esté andando.
+Referencias verificadas, «Traé a tu equipo» y los suplentes de eventos
+quedan para cuando la beta esté andando.
 Antes de P3 y P4 conviene la opinión de la asesoría de Julieta (propuesta,
 §7).
 
