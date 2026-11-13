@@ -77,10 +77,12 @@ export function originFor(
  * Ordena los turnos del más cercano al más lejano, respetando primero los
  * urgentes.
  *
- * El backend ya devuelve el feed con `urgent` primero
- * (`ShiftRepository.list_open`, `ORDER BY urgent DESC, created_at DESC`),
- * pero un reorder por distancia que no tuviera en cuenta esa prioridad la
- * pisaba en silencio — un turno urgente lejos terminaba varias tarjetas
+ * El backend ya devuelve el feed con `urgent` primero (`ShiftService.list_feed`:
+ * en el Inicio y el Mapa, urgentes, después por distancia a la zona del
+ * perfil y después el más nuevo; sin zona en el perfil, urgentes y después
+ * el más nuevo; en Buscar, `scope=all`, por distancia a secas), pero un
+ * reorder por distancia que no tuviera en cuenta esa prioridad la pisaba en
+ * silencio — un turno urgente lejos terminaba varias tarjetas
  * después de uno común y cercano (F1, auditoría de producto 2026-08-10).
  * Acá se ordena primero por urgencia y sólo entre turnos de la misma
  * urgencia se desempata por distancia, para no perder ninguna de las dos
@@ -113,8 +115,8 @@ export const NEARBY_RADIUS_KM = 40;
  *
  * El servidor ya devuelve el feed acotado a la zona del perfil. Este corte es
  * el del lado de la pantalla, que es la única que sabe desde dónde se está
- * midiendo: si el trabajador tocó "Estoy acá", el origen es ese punto (que no
- * sale del dispositivo) y no la zona del perfil.
+ * midiendo: si el trabajador tocó "Estoy acá" (Inicio) o está en el Mapa, el
+ * origen es ese punto (que no sale del dispositivo) y no la zona del perfil.
  *
  * Sin origen no hay con qué medir y no se saca nada. Un turno sin coordenadas
  * se queda por defecto (el servidor lo incluyó porque es de la misma ciudad);

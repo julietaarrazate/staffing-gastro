@@ -212,3 +212,61 @@ test("la búsqueda del asistente mide «cerca» desde la zona que se pidió", as
   expect(Number(params.get("longitude"))).toBeCloseTo(CORDOBA[1], 4);
   expect(params.getAll("positions")).toEqual(["mozo"]);
 });
+
+// --- El Mapa ----------------------------------------------------------------
+//
+// El Mapa mide desde el GPS del teléfono, pero la respuesta trae los turnos
+// cercanos a la zona del PERFIL (o, si el perfil no tiene zona, los más
+// nuevos del país). Sin el corte de la pantalla, alguien con el perfil en
+// Palermo y parado en Córdoba leía «2 turnos cerca tuyo» con tarjetas a más
+// de 640 km.
+
+test("el Mapa no llama «cerca tuyo» a los turnos que quedan lejos de donde estoy", async ({
+  page,
+  context,
+}) => {
+  // La respuesta trae lo que está cerca de la zona del perfil (Palermo)...
+  const feedRequests = await setup(page, [
+    shift("s-palermo", "Palermo", PALERMO),
+    shift("s-retiro", "Retiro", RETIRO),
+  ]);
+  // ...pero la persona está en Córdoba.
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: CORDOBA[0], longitude: CORDOBA[1] });
+
+  await page.goto("/map");
+
+  // Dice dónde mirar, en vez de ofrecer como cercano lo que queda a 640 km.
+  const empty = page.getByText("No hay turnos cerca de donde estás ahora").filter({ visible: true });
+  await expect(empty).toBeVisible();
+  await expect(page.getByText("Bar Palermo").filter({ visible: true })).toHaveCount(0);
+  await expect(page.getByText("Bar Retiro").filter({ visible: true })).toHaveCount(0);
+  await expect(page.getByText("2 turnos cerca tuyo")).toHaveCount(0);
+
+  // El GPS del mapa no sale del dispositivo: el pedido al feed es el de siempre.
+  expect(feedRequests.length).toBeGreaterThan(0);
+  for (const url of feedRequests) expect(url.search).toBe("");
+
+  await page.getByRole("button", { name: "Ver todos en Buscar" }).filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/buscar$/);
+});
+
+test("el Mapa muestra sólo los turnos que quedan cerca de donde estoy", async ({
+  page,
+  context,
+}) => {
+  // Lo que recibe alguien sin zona en el perfil: los más nuevos del país.
+  await setup(page, [
+    shift("s-cordoba", "Córdoba", CORDOBA, true),
+    shift("s-palermo", "Palermo", PALERMO),
+    shift("s-retiro", "Retiro", RETIRO),
+  ]);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: PALERMO[0], longitude: PALERMO[1] });
+
+  await page.goto("/map");
+
+  await expect(page.getByText("2 turnos cerca tuyo").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("Bar Palermo").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("Bar Córdoba")).toHaveCount(0);
+});
