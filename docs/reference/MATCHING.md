@@ -66,7 +66,9 @@ No persiste entidades; calcula un score puro y ordenable.
   la escalada a urgente. Cuando no hay distancia que medir (el trabajador no
   tiene ubicación o el turno no tiene coordenadas) cuenta sólo si la
   **ciudad** coincide, sin mayúsculas ni tildes (`app/core/geo.py::same_city`);
-  sin ciudad en alguna de las dos puntas, no cuenta. Vale también para los
+  sin ciudad en alguna de las dos puntas, no cuenta. Un turno publicado sin
+  zona (ni coordenadas ni ciudad) se mide desde el local del comercio
+  (`shift/domain/nearby.py::zone_of`), acá y en el feed. Vale también para los
   favoritos del comercio: el aviso dice «cerca tuyo». El corte usa la misma
   distancia con la que se puntúa: para el comercio, la pública (pin
   desplazado), nunca la real.

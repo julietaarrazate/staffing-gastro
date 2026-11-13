@@ -191,7 +191,9 @@ repetirlo con la misma `Idempotency-Key` cuenta una sola vez.
   **después**, sobre lo que quedó dentro del radio: cortar antes de filtrar
   llenaba la página con turnos de otra provincia. La página se llena por
   cercanía y adentro se ordena urgentes primero, después por distancia y por
-  más nuevo. Con `scope=all` la página sí sale de SQL, ordenada por una
+  más nuevo. Un turno sin zona (ni coordenadas ni ciudad) se mide desde el
+  local de su comercio; la respuesta lo sigue devolviendo sin ubicación.
+  Con `scope=all` la página sí sale de SQL, ordenada por una
   distancia aproximada (aritmética que entienden Postgres y SQLite). Sin
   zona (comercio, admin, perfil sin ciudad ni coordenadas) es el listado de
   siempre: urgentes primero y los más nuevos, paginado en SQL.

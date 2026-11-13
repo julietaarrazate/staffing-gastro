@@ -35,6 +35,14 @@ perfil (ciudad/barrio como texto + latitud/longitud opcionales).
   valor neutral (0.5). Pero para entrar hace falta ser de la **misma ciudad**
   que el turno (comparada sin mayúsculas ni tildes): sin distancia y sin
   ciudad en común no se avisa ni se muestra.
+- **Turno publicado sin zona** (ni coordenadas ni ciudad; la API lo acepta):
+  se mide desde el **local del comercio**, en el aviso, en los recomendados y
+  en el feed (`shift/domain/nearby.py::zone_of`,
+  `shift/application/zones.py`). Es sólo para medir: el turno sigue sin
+  ubicación propia en la tarjeta y en el mapa. Un turno que sí dice su ciudad
+  se compara por esa ciudad, aunque el local quede en otra. Si el comercio
+  tampoco tiene ubicación, no se le avisa a nadie y el turno sólo se ve en
+  Buscar.
 - **Feed del trabajador (Inicio y Mapa):** `GET /shifts/feed` devuelve sólo
   los turnos a **40 km** o menos de la **zona del perfil**; con el perfil sin
   coordenadas, los de su ciudad; sin zona, todos. Buscar (`scope=all`)
@@ -43,7 +51,15 @@ perfil (ciudad/barrio como texto + latitud/longitud opcionales).
   distancia exacta se mide en Python (`shift/domain/nearby.py`). La
   ubicación del momento del dispositivo ("Estoy acá", el GPS del mapa) **no
   viaja al servidor**: la pantalla hace su propio corte desde ese punto
-  (`frontend/lib/current-location.ts::nearbyOnly`).
+  (`frontend/lib/current-location.ts::nearbyOnly`), en el Inicio y en el
+  Mapa. Quien está a más de 40 km de la zona de su perfil ve esas dos
+  pantallas vacías, con el botón a Buscar.
+- **"Disponible ahora" y el feed miran lugares distintos.** Mientras está
+  prendido, el aviso «Turno cerca tuyo» y los recomendados miden desde esa
+  posición (ADR-0014); el feed sigue midiendo desde la zona del perfil. Con
+  "Disponible ahora" prendido lejos de la zona del perfil puede llegar el
+  aviso de un turno que el Inicio no lista (el aviso abre el turno igual), y
+  al revés. Unificarlo es una decisión de producto y de privacidad pendiente.
 - **Búsqueda por mapa (comercio):** el comercio explora trabajadores sobre un
   mapa por rol y radio; el orden es por **cercanía simple** (sin el scoring
   ponderado). Ver [MATCHING.md](./MATCHING.md#búsqueda-por-mapa-comercio).

@@ -25,9 +25,21 @@ más de 50 turnos abiertos uno nuevo y cercano no lo veía nadie, mientras en
   cercano un turno de otra provincia.
 - **Búsqueda del asistente** («turnos de mozo en Palermo»): mide desde la
   zona que la persona pidió, no desde la de su perfil.
+- **Mapa del trabajador con el GPS lejos de la zona.** El Mapa mide desde
+  donde está el teléfono. Ahora corta ahí también: no muestra ni cuenta como
+  «cerca tuyo» un turno a más de 40 km de ese punto. Si todo lo que llegó
+  queda lejos, lo dice («No hay turnos cerca de donde estás ahora») y ofrece
+  ir a Buscar; el vacío de siempre («No hay turnos cerca») suma el mismo
+  botón.
 - **Sin coordenadas** en alguna de las dos puntas (trabajador sin ubicación o
   turno sin coordenadas), «cerca» se decide por ciudad, comparada sin
   mayúsculas ni tildes. Sin ciudad en común, no es cerca.
+- **Turno publicado sin zona** (ni coordenadas ni ciudad; la API lo acepta y
+  el formulario de evento lo dejaba pasar): se mide desde el local del
+  comercio, en el aviso, en la escalada, en los recomendados y en el feed.
+  Sin esto, con el radio como límite duro ese turno dejaba de avisarle a todo
+  el mundo y desaparecía del Inicio y del Mapa. El turno sigue sin ubicación
+  propia: el local se usa sólo para medir.
 
 En el código:
 
@@ -39,7 +51,12 @@ En el código:
   que `rank_candidates` aplica siempre. Como ese ranking es el del aviso, el
   de la escalada y el de los recomendados, los tres quedaron cubiertos.
 - `backend/app/modules/shift/domain/nearby.py` (nuevo): `FeedOrigin`,
-  `is_nearby` y los dos órdenes del feed.
+  `is_nearby`, los dos órdenes del feed y `zone_of` (desde dónde se mide un
+  turno: su zona o, si no tiene ninguna, el local).
+  `backend/app/modules/shift/application/zones.py` (nuevo) va a buscar el
+  local; lo usan `ShiftService._notify_nearby_workers`,
+  `ShiftService.list_feed` y `MatchingService.get_top_candidates`, para que
+  los tres midan desde el mismo lugar.
 - `ShiftService.list_feed` (`shift/application/services.py`): con zona, pide
   los abiertos de una caja de coordenadas sin cortar la página
   (`ShiftRepository.list_open_unpaged`), mide la distancia exacta en Python y
@@ -48,11 +65,12 @@ En el código:
   `schemas.py`): `scope=nearby|all` (por defecto `nearby`) y
   `latitude`/`longitude` como punto de búsqueda.
 - `frontend/lib/current-location.ts`: `nearbyOnly` y `NEARBY_RADIUS_KM`.
-  `frontend/app/feed/page.tsx` y `frontend/app/buscar/page.tsx` los usan; el
-  Mapa no cambió de código, lo acota el servidor.
+  `frontend/app/feed/page.tsx`, `frontend/app/buscar/page.tsx` y
+  `frontend/app/map/page.tsx` los usan (el Mapa, desde el GPS).
 - Tests: `backend/tests/test_cerca_es_cerca.py` (feed, avisos, push,
-  escalada, recomendados), la sección «El radio es un límite duro» de
-  `test_matching_scoring.py`, `test_geo.py`,
+  escalada, recomendados, turno sin zona, «Disponible ahora»),
+  `test_shift_nearby.py` (`zone_of`), la sección «El radio es un límite
+  duro» de `test_matching_scoring.py`, `test_geo.py`,
   `frontend/lib/current-location.test.ts` y
   `frontend/e2e/cerca-es-cerca.spec.ts`.
 
@@ -62,7 +80,16 @@ En el código:
   ADR-0009): no se cambiaron. El de 40 estaba escrito como `25 × 1,6` en el
   servicio; ahora es una constante con nombre en el dominio.
 - **El feed usa el radio de la escalada (40 km)** para que la lista y el
-  aviso no se contradigan: todo lo que te pueden avisar lo ves en el Inicio.
+  aviso no se contradigan: midiendo desde la zona del perfil, todo lo que te
+  pueden avisar lo ves en el Inicio. No vale con «Disponible ahora» prendido
+  lejos de esa zona (ver «Queda abierto»).
+- **Turno sin zona: se mide desde el local, y no se rechaza.** Rechazar con
+  422 cualquier turno sin zona cambiaba el contrato de la API y no resolvía
+  los que ya están publicados, que al desplegar habrían quedado invisibles.
+  Medir desde el local al leer cubre a los dos y no toca datos. Se descartó
+  copiar la zona del local al turno al publicar: cambia lo que muestra la
+  tarjeta («Ubicación a confirmar») y le agrega al check-in una validación
+  de lugar que ese turno hoy no tiene.
 - **El servidor mide desde la zona del perfil, no desde donde está el
   teléfono.** Es lo único que ya tiene. Mandar la ubicación del momento
   («Estoy acá», el GPS del Mapa) para armar el feed sería un uso nuevo de la
@@ -90,18 +117,44 @@ afirmaba que la cercanía era «preferencia, no barrera dura»; también
 
 **Queda abierto:**
 
+- **«Disponible ahora» prendido lejos de la zona del perfil: el aviso y el
+  Inicio no coinciden.** El aviso mide desde la posición de «Disponible
+  ahora» (ADR-0014) y el feed desde la zona del perfil. Con el perfil en una
+  ciudad y «Disponible ahora» en otra, llega «Turno cerca tuyo» de un turno
+  que el Inicio no lista (el aviso abre `/turno/<id>`, así que se puede
+  postular igual), y un turno de la zona del perfil aparece en el Inicio sin
+  que le llegue aviso. Que el feed mida desde esa posición es una decisión de
+  producto y de privacidad (la pantalla tendría que medir desde ahí también,
+  y hay que ver si el texto de `/privacidad` lo cubre): no se tomó acá. El
+  comportamiento de hoy lo fija
+  `test_disponible_ahora_mueve_el_aviso_pero_no_el_feed`.
+- **Turno sin zona de un comercio que tampoco tiene ubicación.** No hay
+  contra qué medir: no se le avisa a nadie y no aparece en el Inicio ni en el
+  Mapa de quien tiene zona; sólo en Buscar. Queda un registro en el log
+  (`shift.unplaced`), pero el comercio no se entera. El formulario de evento
+  ya exige zona en otra rama (`claude/evento-con-zona`); falta decidir si la
+  API la exige para todo turno. No se contó cuántos turnos abiertos sin zona
+  hay en producción.
 - **«Estoy acá» y el GPS del Mapa lejos de la zona del perfil.** El servidor
-  sólo conoce la zona del perfil. Quien está a más de 40 km de su zona y toca
-  «Estoy acá» ve el Inicio vacío con el botón a Buscar; en el Mapa ve los
-  turnos de su zona, con la distancia real. Para que esas dos pantallas
-  traigan lo cercano al lugar donde la persona está, hay que mandar esa
-  ubicación al servidor: es una decisión de producto y de privacidad (texto
+  sólo conoce la zona del perfil. Quien está a más de 40 km de su zona ve el
+  Inicio (con «Estoy acá») y el Mapa vacíos, con el botón a Buscar. Para que
+  esas dos pantallas traigan lo cercano al lugar donde la persona está, hay
+  que mandar esa ubicación al servidor: es una decisión de producto y de
+  privacidad (texto
   de `/privacidad` y versión de términos), no un detalle técnico. El endpoint
   ya acepta el punto.
 - **Tope de 50 por pedido, sin «ver más».** En el Inicio y el Mapa quedan los
   50 más cercanos dentro del radio; en Buscar, los 50 más cercanos de todo el
   país (o los 50 más nuevos si el perfil no tiene coordenadas). No se agregó
-  paginación en las pantallas.
+  paginación en las pantallas. Consecuencia en Buscar: con más de 50 turnos
+  abiertos cerca de la zona del perfil, no llega a mostrar ninguno de otra
+  zona, y no tiene filtro de zona para pedirlos. Antes traía 50 del país
+  (urgentes y nuevos). Hasta que haya paginación o filtro por zona, Buscar
+  no cumple del todo con «mirar otras zonas» en una ciudad con mucha oferta.
+- **Mapa sin GPS.** Si la persona no da permiso de ubicación, el Mapa
+  muestra lo que mandó el servidor (lo cercano a la zona del perfil, o los 50
+  más nuevos del país si el perfil no tiene zona) bajo el título «Turnos en
+  el centro de Buenos Aires», que ya estaba y no se tocó.
 - **Sin índice nuevo.** La caja de coordenadas filtra sobre los turnos
   abiertos que todavía no empezaron (índice `(status, start_at)`). Si el
   volumen crece, conviene un índice por coordenadas.
