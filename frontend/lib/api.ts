@@ -18,10 +18,24 @@ export class ApiError extends Error {
   }
 }
 
+/** Tipos de error de validación (422) que el backend define con mensaje propio
+ * en castellano: se muestran tal cual. Los genéricos de Pydantic vienen en
+ * inglés y quedan en «Error inesperado». */
+const OWN_VALIDATION_TYPES = ["zona_requerida"];
+
 /** `detail` del backend: un texto, o `{code, message}` cuando el error trae
- * un código (los 422 de validación son una lista y quedan genéricos). */
+ * un código (los 422 de validación son una lista: sólo se lee el mensaje de
+ * los tipos propios, el resto queda genérico). */
 export function parseErrorDetail(detail: unknown): { message: string; code?: string } {
   if (typeof detail === "string") return { message: detail };
+  if (Array.isArray(detail)) {
+    for (const item of detail) {
+      const { type, msg } = (item ?? {}) as { type?: unknown; msg?: unknown };
+      if (typeof type === "string" && OWN_VALIDATION_TYPES.includes(type) && typeof msg === "string") {
+        return { message: msg };
+      }
+    }
+  }
   if (detail && typeof detail === "object" && !Array.isArray(detail)) {
     const { message, code } = detail as { message?: unknown; code?: unknown };
     if (typeof message === "string") {
