@@ -168,6 +168,9 @@ del tope del plan, que está apagado en la beta).
   `/applications/mine`: el servidor responde 403 (no se ve en pantalla).
 - Tras abrir una confirmación del trabajador, durante 1 segundo los botones
   ignoran los toques sin avisar (#552).
+- Render publica cada commit de `main` sin esperar al CI: un commit con el CI
+  en rojo llega igual a producción (pasó el 2026-11-13, con el código bien y
+  un test mal; #555).
 - Postular y asignar: si falla el guardado del aviso, la acción queda hecha
   pero la respuesta es un error (salió de la revisión de #553).
 - La puntualidad ya guardada de quien llegó temprano antes de #549 no se

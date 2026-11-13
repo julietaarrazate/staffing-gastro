@@ -33,6 +33,10 @@ receta a `docs/reference/SESION_CLOUD.md`.
 
 **Queda abierto:**
 
+- Al mergear #549 y #552 con un minuto de diferencia `main` quedó en rojo por
+  un test (el código estaba bien): se corrigió en #555 y la receta quedó en
+  `docs/reference/SESION_CLOUD.md`.
+
 - Las decisiones de Julieta y la lista de menores, en
   `docs/planning/BETA_TABLERO.md`.
 - La sesión se cortó una vez por el cupo de uso con cuatro agentes a medias
