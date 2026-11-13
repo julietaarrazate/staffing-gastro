@@ -138,6 +138,13 @@ Cosas que salieron de la revisión:
 
 **Queda abierto:**
 
+- Dos pestañas con cuentas distintas (visto en la tercera revisión; no es una
+  regresión): si en una pestaña la cuenta A cierra sesión y entra B, y después
+  alguien toca «Cerrar sesión» en otra pestaña que todavía mostraba a A, las dos
+  quedan sin sesión y la fila de B sigue: el dispositivo recibe los avisos de B
+  hasta que alguien entre. Se cierra con el cambio de servidor ya previsto (que
+  `POST /auth/logout` reciba el `endpoint` y borre la fila de la cuenta dueña de
+  la cookie de refresco).
 - Una sesión que termina sin «Cerrar sesión» no da de baja el dispositivo,
   porque no hay token con el que pedirlo: sigue recibiendo los avisos de esa
   cuenta hasta que alguien entre ahí. Pasa cuando la sesión vence sola (30
