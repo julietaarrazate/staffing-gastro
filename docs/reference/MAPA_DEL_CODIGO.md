@@ -57,7 +57,8 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/profile/settings` | Apariencia, notificaciones push, soporte, cerrar sesión |
 | `/chats`, `/chats/[shiftId]` | Chat por turno (WebSocket, `lib/useWebSocket.ts`) |
 | `/support`, `/support/[id]` | Tickets de soporte |
-| `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`) |
+| `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`). Se ve mientras el turno esté abierto a postulaciones (`lib/turno-publico.ts` lee `GET /shifts/{id}/public`: 200, 410 o 404). Si ya se tomó, se canceló o pasó la hora: «Este turno ya no está disponible» (`components/TurnoNoDisponible.tsx`, con salida según la sesión; la muestra `app/turno/[id]/not-found.tsx`). Si no existe: la «no encontrada» global (lo corta `app/turno/[id]/layout.tsx`) |
+| cualquier dirección que no existe | «No encontramos esa página», con «Volver al inicio» (`app/not-found.tsx`). También la usa todo `notFound()` sin una pantalla propia más cerca |
 | `/terminos`, `/privacidad` **SSR** | Legales. Si cambia el texto, se sube la versión (ver abajo) |
 | `/admin` ("Hoy") | Portada del admin: urgentes sin cubrir y ausencias del día, pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
 | `/admin/en-vivo` ("Turnos en vivo") | Turnos publicados sin nadie confirmado, lo más urgente primero, filtros urgentes/escalados (`?filtro=`), se actualiza cada 30 s. Cuentas en `components/admin/live.ts` |
@@ -78,6 +79,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Guardar una parte del perfil del trabajador (el `PUT /workers/me/profile` reemplaza el perfil entero) | `frontend/lib/worker-profile.ts` (`saveProfilePart`: lee el perfil del servidor y manda todo con el cambio encima); lo usan la foto, el interruptor «Disponible» del Inicio, el formulario y `/bienvenida`. No armar otro PUT a mano |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
+| Pantalla entera de «acá no hay nada» (título, una línea y salidas que son links) | `frontend/components/PaginaAviso.tsx`; la usan `app/not-found.tsx` y `TurnoNoDisponible` |
 | Íconos (Lucide, envueltos) | `frontend/components/icons.tsx` |
 | Logo | `frontend/components/Logo.tsx` |
 | Claves de `localStorage`/`sessionStorage` (`staffya_*`) y mocks E2E | `frontend/e2e/mocks.ts` |

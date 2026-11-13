@@ -12,6 +12,10 @@
   (registro, login, refresh, `/health`). Ver [SECURITY.md](./SECURITY.md).
 - **No-disclosure:** recurso ajeno o inexistente → **404** (nunca se revela que
   existe algo de otro usuario). Es una regla transversal, no por endpoint.
+  Única excepción, decidida a propósito: `GET /shifts/{id}/public` contesta
+  **410** por un turno que **ya fue público** y dejó de estar abierto (ver
+  `shift` más abajo). Revela sólo que ese link existió, que es lo que ya
+  sabe quien lo recibió.
 - **Errores:** las excepciones de dominio se mapean a HTTP en la capa `api/`
   (400/403/404/409 según el caso).
 - **Healthcheck:** `GET /health` (sin prefijo `/api/v1`) → `{"status":"ok"}`.
@@ -55,6 +59,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | GET | `/me` | Turnos publicados por el comercio propio — **paginado** |
 | GET | `/mine` | Turnos asignados al trabajador propio — **paginado** |
 | GET | `/{shift_id}` | Detalle |
+| GET | `/{shift_id}/public` | Vista pública para compartir, **sin sesión**: sólo campos seguros (`ShiftPublicResponse`). Tres respuestas, ver abajo |
 | POST | `/{shift_id}/publish` | Publicar |
 | POST | `/{shift_id}/assign` | Asignar a un trabajador |
 | POST | `/{shift_id}/confirm` · `/reject` | Trabajador confirma/rechaza |
@@ -67,6 +72,20 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 > `/me` y `/mine` estaban documentados al revés (fila corregida): `/me` son
 > los turnos publicados por **el comercio propio**, `/mine` los asignados
 > **al trabajador propio**.
+
+**`GET /shifts/{shift_id}/public`** (la que arma la página `/turno/[id]`):
+
+| Respuesta | Cuándo | Qué trae |
+|---|---|---|
+| **200** | El turno está abierto a postulaciones: `publicado` o `buscando_personal` (reabierto porque la persona asignada lo rechazó, se bajó o no se presentó) **y** todavía no llegó su hora de inicio. Es lo mismo que ofrece `/feed` | `ShiftPublicResponse` |
+| **410** | Fue público y ya no está abierto: asignado en adelante, cancelado después de publicarse, no cubierto, o con la hora de inicio pasada | Sólo `{"detail": "Este turno ya no está disponible"}`: ningún dato del turno, del comercio ni de las personas |
+| **404** | El id no existe o el turno nunca fue público (un borrador, o un borrador cancelado) | `{"detail": "Turno no encontrado"}` |
+
+El 200 y el 410 van con `Cache-Control: no-cache`: un turno abierto se cubre
+en minutos, y uno asignado puede volver a abrirse (una copia guardada del 410
+lo mostraría cerrado).
+Hasta el 2026-11-12 sólo respondía 200 en `publicado` y todo lo demás era 404
+(un turno reabierto aparecía en el Inicio y su página no abría).
 
 ### `application` — `/applications`
 | Método | Ruta | Qué hace |
