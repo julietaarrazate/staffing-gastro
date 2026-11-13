@@ -1,4 +1,4 @@
-# El aviso flotante ya no tapa los botones: va arriba en todos los anchos (hallazgo U009 de la prueba de punta a punta)
+# El aviso flotante ya no tapa los botones: va arriba en todos los anchos y se cierra al tocarlo (hallazgo U009 de la prueba de punta a punta) (#544)
 
 **Pedido:** etapa 2 de la salida a beta. En la prueba de punta a punta, al tocar «Completar» con la IA en el asistente de publicar turno, aparecía el aviso «Completamos todo — revisá la zona y publicá» justo sobre el botón «Publicar turno» (390×844) y un toque enseguida no publicaba. Segunda pasada: aun sin interceptar toques, el aviso seguía tapando el botón a la vista ~3 s, y quien tocaba el cartel creyendo cerrarlo publicaba el turno sin querer (un turno publicado avisa a la gente cercana).
 
