@@ -41,8 +41,18 @@ Técnico:
 
 - `backend/app/modules/shift/application/services.py`: `cancel_shift` guarda
   primero todo lo que cambia (turno, postulaciones, contador del comercio) y
-  después llama a `_notify_shift_cancelled`, que nunca propaga un error.
+  después llama a `_notify_shift_cancelled`, que atrapa por separado el fallo
+  del aviso al asignado y el de los postulantes.
   `_reject_pending_applicants` ahora devuelve los perfiles que rechazó.
+- `backend/app/modules/notification/infrastructure/repositories.py`
+  (`_commit_or_reset`): si la base rechaza un aviso, el adaptador deja la
+  sesión usable y propaga el error. Antes la sesión del pedido quedaba con la
+  transacción rota (`PendingRollbackError`) y lo siguiente que la usaba
+  fallaba: aunque el caso de uso atrapara el error, guardar la respuesta de
+  idempotencia daba 500 con la acción ya hecha. Lo tenían todos los avisos
+  que pasan por el adaptador (el de «turno cerca» al publicar atrapa el error
+  igual que éste), así que el arreglo vale para todos. El `rollback` no
+  deshace nada de quien llama: cada repositorio confirma su propia escritura.
 - `backend/app/modules/notification/domain/value_objects.py` y
   `push_policy.py`: los dos tipos nuevos, su destino y su vigencia (12 h,
   urgencia alta, como los demás cambios sobre un turno propio). **Sin
@@ -50,13 +60,28 @@ Técnico:
 - `frontend/lib/cancelar-turno.ts`: el texto de la confirmación y la cuenta
   de cuándo es tardía (espeja `COMMITTED_STATUSES`). El diálogo sigue en
   `frontend/app/shifts/page.tsx`.
+- El texto sale del estado de ahora, no del de la lista: al abrir el diálogo
+  se relee ese turno (`askCancel`, `GET /shifts/{id}`) y la tarjeta queda al
+  día (`withFreshState`). Con la lista vieja, un turno «asignado» que el
+  trabajador acababa de confirmar se cancelaba sin el aviso y sumaba la
+  tardía, y uno «confirmado» del que el trabajador se había bajado prometía
+  una tardía que no existía. Mientras llega la relectura el texto queda en
+  espera y el «Sí» apagado. Si el turno ya no se puede cancelar, el diálogo
+  se cierra con «Este turno ya no se puede cancelar.».
+- `frontend/components/ShiftActions.tsx`: «No cubierto» ya no ofrece
+  «Cancelar turno» (al confirmar salía el error crudo del servidor). La lista
+  queda igual a los terminales del dominio; lo único que faltaba era ese
+  estado.
 - `frontend/components/company/LateCancellations.tsx`, en
   `frontend/app/profile/page.tsx`: lee `GET /companies/me/profile`.
 - `frontend/lib/types.ts` y `frontend/lib/notification-link.ts`: registro de
   los tipos nuevos en la campanita.
 - Tests: `backend/tests/test_cancel_shift_notifications.py` (por estado, sin
-  duplicados, 404, fallo de avisos y de push),
-  `frontend/lib/cancelar-turno.test.ts` y `frontend/e2e/cancelar-turno.spec.ts`.
+  duplicados, 404, la base rechazando el aviso con `Idempotency-Key` y su
+  reintento, un aviso que falla sin arrastrar al otro, push caído),
+  `frontend/lib/cancelar-turno.test.ts`,
+  `frontend/components/ShiftActions.cancelar.test.tsx` y
+  `frontend/e2e/cancelar-turno.spec.ts` (lista vieja en los dos sentidos).
 
 **Por qué así:**
 
@@ -64,6 +89,15 @@ Técnico:
   cuenta el estado, no un plazo en horas. No se inventó ninguno.
 - Los avisos van al final y envueltos: el turno ya está cancelado, y un 500
   ahí dejaba al comercio reintentando sobre un turno que responde 400.
+  **Lo que queda garantizado:** si la base rechaza el aviso (fila inválida,
+  usuario borrado) o cae el push, la cancelación responde 200 con todo
+  guardado, y el reintento con la misma clave devuelve esa respuesta. **Lo
+  que no:** con la base caída del todo tampoco se puede guardar la respuesta
+  de idempotencia; el comercio ve un error con el turno ya cancelado y el
+  reintento responde 400.
+- Si la relectura del diálogo falla (sin red, backend dormido, 5 s de
+  espera), se muestra el texto del estado que el panel conoce y decide el
+  servidor. No se inventó un «puede sumarte una cancelación tardía».
 - El aviso al postulante lleva a `/feed` y no a `/my-shifts`: la postulación
   rechazada ya no figura en ninguna lista suya y la pestaña que abre por
   defecto («Asignados») puede quedarle vacía.
@@ -89,8 +123,12 @@ Técnico:
   pide un «cancelar evento» que hoy no está.
 - **La postulación `aceptada` del asignado** queda `aceptada` en un turno
   cancelado. No se ve en ninguna pantalla.
-- **«No cubierto»** todavía ofrece «Cancelar turno» en el panel
-  (`CANCELLABLE_EXCLUDED` de `ShiftActions.tsx`) y el backend lo rechaza con
-  400. No se tocó: ese archivo lo cambia otra rama.
+- **Entre la relectura y el «Sí»** el trabajador todavía puede confirmar o
+  bajarse: la ventana pasó de minutos a segundos, no a cero. Cerrarla del
+  todo pide que el servidor rechace una cancelación cuyo estado cambió.
+- **Una lectura por postulante** al armar los avisos
+  (`_notify_shift_cancelled` usa `get_by_id`): el puerto de perfiles no tiene
+  una lectura por lote que devuelva el usuario de cada perfil, y no se agregó
+  un método sólo por esto.
 - El segundo toque sobre el diálogo que se cierra y el historial de
   cancelaciones y ausencias del trabajador en su perfil van en otros PRs.

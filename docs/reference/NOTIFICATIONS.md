@@ -51,8 +51,13 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   turno: ni el motivo ni los demás postulantes. No reciben nada quien retiró
   su postulación, quien había quedado afuera al asignarse el turno
   (postulación ya `rechazada`) ni el comercio. Los avisos salen después de
-  guardar la cancelación y un fallo al mandarlos no la hace fallar
-  (`ShiftService._notify_shift_cancelled`).
+  guardar la cancelación (`ShiftService._notify_shift_cancelled`): si la base
+  rechaza un aviso o cae el push, la cancelación igual responde bien y el
+  otro aviso sale.
+- **Un aviso rechazado por la base no rompe la sesión del pedido
+  (2026-11-13):** el adaptador (`SqlAlchemyNotificationRepository`) la deja
+  usable y propaga el error. Vale para todos los avisos: quien atrapa el
+  error para que el aviso no rompa su acción puede seguir usando la sesión.
 - **Destino de los avisos de cancelación:** al asignado, `/my-shifts` (el
   turno sigue en «Asignados», marcado como cancelado); al postulante,
   `/feed`: su postulación ya no figura en ninguna lista y lo útil son los
