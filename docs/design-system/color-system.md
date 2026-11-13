@@ -125,6 +125,13 @@ propias del chat, badges sobre foto). El **toast** ya no lo usa: tiene su par
 oscuro se **invierte** (claro `#EEF3F6` con tinta `#0D131A`), porque un toast
 casi negro sobre el lienzo oscuro no se distinguía del fondo.
 
+**Dónde va el aviso flotante** (`components/ui/Toast.tsx`): por debajo de `md`
+(celular) **arriba**, centrado, a `calc(env(safe-area-inset-top) + 4.5rem)`
+(justo bajo el encabezado de 4rem); desde `md` **abajo** (`bottom-24`). Nunca
+abajo en celular: ahí están los botones de acción («Publicar turno»). Entra
+sólo con opacidad y escala (sin desplazamiento, vale para las dos posiciones),
+`z-[60]` (sobre el encabezado y los sheets) y no recibe toques.
+
 ## Tono de banner por rubro
 
 `SKILL_HERO_TONE` (`lib/skill-style.tsx`): el banner de una tarjeta de turno

@@ -36,12 +36,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      {/* El aviso NUNCA intercepta toques sobre lo que tapa (ni el contenedor
-          ni el cuerpo): flota a la altura de los botones de acción de los
-          asistentes y un toque en «Publicar turno» justo después de «Completar»
-          caía en el aviso y no hacía nada (U009). Se va solo a los 3,2 s, no
-          hace falta tocarlo para cerrarlo; si algún día lleva un botón de
-          acción, sólo ese botón recibe punteros (`[&_button]`). */}
+      {/* El aviso NUNCA intercepta toques (ni el contenedor ni el cuerpo) y en
+          pantallas angostas va ARRIBA, debajo del encabezado (4rem + zona
+          segura; el aviso arranca a 4,5rem): abajo, a 390 px, caía sobre
+          «Publicar turno» y quien tocaba el cartel creyendo cerrarlo publicaba
+          el turno sin querer (U009). Desde `md` los botones de acción ya no
+          están pegados al borde de abajo y queda abajo como siempre. Se va
+          solo a los 3,2 s; si algún día lleva un botón de acción, sólo ese
+          botón recibe punteros (`[&_button]`). z-[60] > Navbar (z-40). */}
       {/* role="status" + aria-live="polite": sin esto un toast (confirmación
           de acción, error de una mutación) es invisible para un usuario de
           lector de pantalla — no hay foco que mover a un elemento que
@@ -50,14 +52,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-[60] md:top-auto md:bottom-24 flex flex-col items-center gap-2 px-4"
       >
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div
               key={t.id}
-              initial={reducedMotion ? false : { opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={reducedMotion ? false : { opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.95 }}
               transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
               className={`pointer-events-none [&_button]:pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}

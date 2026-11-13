@@ -2,12 +2,12 @@ import { test, expect } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
- * El aviso flotante (toast) no intercepta toques (prueba de punta a punta
- * 2026-11, U009): al terminar «Completar» con la IA aparece el aviso
- * «Completamos todo…» a la altura del botón «Publicar turno» (390×844) y un
- * toque enseguida caía en el aviso y no publicaba.
+ * El aviso flotante (toast) no tapa los botones de acción (prueba de punta a
+ * punta 2026-11, U009): al terminar «Completar» con la IA aparecía el aviso
+ * «Completamos todo…» sobre «Publicar turno» (390×844). Ahora, en pantallas
+ * angostas, va arriba bajo el encabezado y no se cruza con el botón.
  */
-test("con el aviso de «Completamos todo» visible, un toque en «Publicar turno» publica", async ({
+test("con el aviso de «Completamos todo» visible, el aviso no tapa «Publicar turno» y un toque en el botón publica", async ({
   page,
 }) => {
   await injectSession(page);
@@ -98,8 +98,8 @@ test("con el aviso de «Completamos todo» visible, un toque en «Publicar turno
   const publicar = page.getByRole("button", { name: "Publicar turno" });
   await expect(publicar).toBeVisible();
 
-  // Hay que dejar que termine la animación de entrada del aviso (sube 20 px):
-  // recién ahí está donde se queda los ~3 s.
+  // Dejar que termine la animación de entrada (opacidad y escala): recién ahí
+  // está donde se queda los ~3 s.
   await page.waitForTimeout(600);
   await expect(aviso).toBeVisible();
 
@@ -107,19 +107,33 @@ test("con el aviso de «Completamos todo» visible, un toque en «Publicar turno
   const avisoCaja = await aviso.boundingBox();
   expect(caja).not.toBeNull();
   expect(avisoCaja).not.toBeNull();
-  const x = caja!.x + caja!.width / 2;
-  const y = caja!.y + caja!.height / 2;
 
-  // El aviso realmente cae sobre el punto del toque (si no, la prueba no
-  // prueba nada): sus cajas se pisan.
-  const pisa =
-    x >= avisoCaja!.x &&
-    x <= avisoCaja!.x + avisoCaja!.width &&
-    y >= avisoCaja!.y &&
-    y <= avisoCaja!.y + avisoCaja!.height;
-  expect(pisa, "el aviso debe quedar encima del botón para que la prueba valga").toBe(true);
+  // El aviso NO se superpone con «Publicar turno»: cajas que no se cruzan.
+  const seCruzan =
+    avisoCaja!.x < caja!.x + caja!.width &&
+    avisoCaja!.x + avisoCaja!.width > caja!.x &&
+    avisoCaja!.y < caja!.y + caja!.height &&
+    avisoCaja!.y + avisoCaja!.height > caja!.y;
+  expect(seCruzan, "el aviso no puede quedar sobre «Publicar turno»").toBe(false);
 
-  // Toque con las coordenadas reales del botón, sin click forzado.
+  // Va arriba, debajo del encabezado (Navbar, 64 px) y dentro de la pantalla.
+  const navbar = await page.locator("header").first().boundingBox();
+  expect(navbar).not.toBeNull();
+  expect(avisoCaja!.y).toBeGreaterThanOrEqual(navbar!.y + navbar!.height);
+  expect(avisoCaja!.y + avisoCaja!.height).toBeLessThan(caja!.y);
+  expect(avisoCaja!.x).toBeGreaterThanOrEqual(0);
+  expect(avisoCaja!.x + avisoCaja!.width).toBeLessThanOrEqual(390);
+
+  // Lo que queda debajo del aviso se puede tocar: el aviso no recibe punteros.
+  const x = avisoCaja!.x + avisoCaja!.width / 2;
+  const y = avisoCaja!.y + avisoCaja!.height / 2;
+  const capturaPunteros = await page.evaluate(
+    ([px, py]) => !!document.elementFromPoint(px, py)?.closest('[role="status"]'),
+    [x, y]
+  );
+  expect(capturaPunteros, "el aviso no debe capturar punteros").toBe(false);
+
+  // Un toque en «Publicar turno» publica.
   const alta = page.waitForRequest(
     (req) => req.method() === "POST" && new URL(req.url()).pathname.endsWith("/api/v1/shifts"),
     { timeout: 5000 }
@@ -130,10 +144,8 @@ test("con el aviso de «Completamos todo» visible, un toque en «Publicar turno
       new URL(req.url()).pathname.endsWith("/api/v1/shifts/shift-aviso-1/publish"),
     { timeout: 5000 }
   );
-  await page.mouse.click(x, y);
+  await publicar.click();
   await alta;
   await publish;
   expect(publicados).toBe(1);
-  // El aviso seguía en pantalla al tocar: el toque atravesó el aviso, no lo cerró.
-  await expect(aviso).toBeVisible();
 });
