@@ -97,6 +97,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   (`app/core/rate_limit.py`); superar el límite responde **429**. Configurable
   con `RATE_LIMIT_ENABLED`. Es por proceso: escalar a varios workers requeriría
   un store compartido (Redis) y un **ADR**.
+- **Tope al postularse a un mismo turno** (`POST /applications/shifts/{id}`):
+  5 intentos por hora por cuenta y por turno (la invitada compartida, por
+  cuenta + IP), con el mismo `RateLimiter`. Cada postulación, también la que
+  reactiva una retirada, le avisa al comercio; el tope acota esos avisos y no
+  afecta a quien se postula a turnos distintos.
 - **Content-Security-Policy** (R1.3, `frontend/next.config.ts`, sólo en
   producción): restringe scripts/estilos/conexiones al propio origen + backend
   + tiles vectoriales de CARTO (ADR-0001) + Cloudinary; sin `frame-ancestors`

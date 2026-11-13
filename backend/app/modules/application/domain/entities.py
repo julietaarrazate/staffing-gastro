@@ -1,7 +1,7 @@
 """Entidades del dominio de postulaciones (un trabajador se postula a un turno)."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from app.modules.application.domain.exceptions import InvalidApplicationTransitionError
@@ -15,8 +15,9 @@ class ShiftApplication:
 
     Es el lado "trabajador" del match: el trabajador se postula
     (PENDIENTE) y el comercio puede asignarle el turno (lo que la marca como
-    ACEPTADA) o seguir con otro candidato. Un trabajador se postula una sola
-    vez por turno.
+    ACEPTADA) o seguir con otro candidato. Hay una sola postulación por
+    (turno, trabajador): quien la retiró y vuelve a postularse reactiva la
+    misma (`reapply`), no crea otra.
     """
 
     shift_id: UUID
@@ -24,6 +25,8 @@ class ShiftApplication:
     status: ApplicationStatus = ApplicationStatus.PENDIENTE
 
     id: UUID = field(default_factory=uuid4)
+    # Fecha de la postulación vigente: la pone la base al crearla y la renueva
+    # `reapply()` cuando el trabajador vuelve a postularse.
     created_at: datetime | None = None
 
     def accept(self) -> None:
@@ -80,6 +83,22 @@ class ShiftApplication:
                 f"No se puede retirar una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.RETIRADA
+
+    def reapply(self) -> None:
+        """RETIRADA → PENDIENTE: el trabajador vuelve a postularse al turno.
+
+        Sólo alcanzable desde RETIRADA, que es el único estado que decide el
+        trabajador (o el auto-retiro por doble turno, que actúa en su nombre).
+        Una RECHAZADA es decisión del comercio y vuelve a PENDIENTE únicamente
+        por `restore()`, cuando el turno se reabre. La fecha se renueva: para
+        el comercio es una postulación nueva. Que el turno siga abierto lo
+        chequea `ApplicationService.apply`."""
+        if self.status != ApplicationStatus.RETIRADA:
+            raise InvalidApplicationTransitionError(
+                f"No se puede volver a postular una postulación en estado {self.status.value}"
+            )
+        self.status = ApplicationStatus.PENDIENTE
+        self.created_at = datetime.now(timezone.utc)
 
 
 @dataclass(frozen=True)
