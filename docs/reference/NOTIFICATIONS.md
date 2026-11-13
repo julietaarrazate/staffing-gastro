@@ -38,6 +38,9 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   cuentas con rol trabajador y activas, las mismas que pueden salir como
   candidatas ([MATCHING.md](./MATCHING.md)). Un perfil de trabajador
   colgado de un admin o de un suspendido no recibe nada.
+- **Destino de los avisos de turno cerca:** abren `/turno/<id>`, donde la
+  persona se postula (primera tanda y escalada). Los viejos guardados con
+  `/feed` siguen yendo al Inicio.
 - **No son la fuente de verdad del estado:** son un reflejo. El estado real vive
   en el turno / la reseña. (Ver nota de "eventos" abajo.)
 

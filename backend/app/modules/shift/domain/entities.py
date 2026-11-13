@@ -20,6 +20,7 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
+    OPEN_STATUSES,
     TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
     ShiftStatus,
@@ -172,6 +173,29 @@ class Shift:
     def ensure_editable(self) -> None:
         if not self.is_editable:
             raise ShiftNotEditableError(self.status.value)
+
+    @property
+    def was_published(self) -> bool:
+        """¿Estuvo alguna vez a la vista de quien no es parte?
+
+        Decide qué responde la página pública cuando el turno ya no está
+        abierto: «ya no disponible» si fue público, «no existe» si nunca lo
+        fue. A todo estado que no sea BORRADOR se llega pasando por PUBLICADO,
+        menos a CANCELADO, que también se alcanza desde el borrador: ahí
+        decide `published_at`. (Los turnos anteriores a ese campo no lo
+        tienen; un cancelado de esos queda como «no existe», que es lo que
+        menos revela.)"""
+        if self.published_at is not None:
+            return True
+        return self.status not in (ShiftStatus.BORRADOR, ShiftStatus.CANCELADO)
+
+    def is_open_for_applications(self, now: datetime) -> bool:
+        """¿Se puede ofrecer para postularse en `now`? Es la regla del Inicio
+        (`ShiftRepository.list_open`): estado abierto y hora de inicio todavía
+        por delante. Un turno que ya empezó sigue en PUBLICADO o
+        BUSCANDO_PERSONAL hasta que el scheduler lo resuelve como «no
+        cubierto» (ADR-0015), pero nadie puede llegar a tiempo."""
+        return self.status in OPEN_STATUSES and _naive(self.start_at) > _naive(now)
 
     def overlaps(self, other: "Shift") -> bool:
         """True si el horario de este turno se solapa con el de `other`.
