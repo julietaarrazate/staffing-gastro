@@ -8,7 +8,7 @@ import {
   StarIcon,
   type IconProps,
 } from "@/components/icons";
-import { BADGE_ICONS, badgeLabel, formatPunctuality, levelLabel } from "@/lib/reputation";
+import { BADGE_ICONS, badgeLabel, formatPunctuality, hasRate, hasRating, levelLabel, NEW_LABEL } from "@/lib/reputation";
 import { formatKm } from "@/lib/format";
 
 /**
@@ -89,16 +89,16 @@ export function CandidateStatChips({
       {/* Sin turnos hechos en Oído no hay calificación: "★ 0.0" se leía como
           una MALA nota, cuando es alguien que todavía no tuvo su primer
           turno. Se dice lo que es. */}
-      {hasHistory || signals.rating > 0 ? (
+      {hasRating(signals.rating) ? (
         <Rating value={signals.rating} className={onDark ? "text-on-brand/85" : undefined} />
       ) : (
-        <StatChip onDark={onDark}>Nuevo en Oído</StatChip>
+        !hasHistory && <StatChip onDark={onDark}>{NEW_LABEL}</StatChip>
       )}
       {signals.distance_km != null && (
         <StatChip onDark={onDark}>{formatKm(signals.distance_km)}</StatChip>
       )}
       {hasHistory && <StatChip onDark={onDark}>{signals.events_completed} turnos</StatChip>}
-      {hasHistory && signals.punctuality_rate > 0 && (
+      {hasRate(signals.events_completed) && (
         <StatChip onDark={onDark}>{formatPunctuality(signals.punctuality_rate)} puntual</StatChip>
       )}
       {signals.years_experience > 0 && (

@@ -16,7 +16,10 @@ from app.modules.matching.domain.value_objects import (
     DEFAULT_WEIGHTS,
     MatchWeights,
 )
+from app.modules.company.domain.repositories import CompanyProfileRepository
+from app.modules.shift.application.zones import measuring_zone
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
+from app.modules.shift.domain.nearby import zone_of
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -45,10 +48,15 @@ class MatchingService:
     """Servicio de aplicación para calcular el top de candidatos de un turno."""
 
     def __init__(
-        self, shifts: ShiftRepository, candidates: CandidateRepository
+        self,
+        shifts: ShiftRepository,
+        candidates: CandidateRepository,
+        companies: CompanyProfileRepository | None = None,
     ) -> None:
         self._shifts = shifts
         self._candidates = candidates
+        # Para medir desde el local un turno que no dice dónde es.
+        self._companies = companies
 
     async def get_top_candidates(
         self,
@@ -65,12 +73,21 @@ class MatchingService:
         if shift is None or shift.company_id != company_id:
             raise ShiftNotFoundError(str(shift_id))
 
+        # El turno se mide desde el mismo lugar que en el aviso y en el feed:
+        # su zona o, si no tiene ninguna, el local del comercio.
+        zone = (
+            await measuring_zone(shift, self._companies)
+            if self._companies is not None
+            else zone_of(shift)
+        )
         requirement = ShiftRequirement(
             position=shift.position,
-            latitude=shift.latitude,
-            longitude=shift.longitude,
+            latitude=zone.latitude,
+            longitude=zone.longitude,
+            city=zone.city,
         )
         candidates = await self._candidates.list_available(shift.position)
+        # Fuera del radio no se sugiere a nadie (`rank_candidates` lo corta).
         # El puntaje (y su tope por radio) usa la MISMA distancia pública que
         # se muestra: con la real, el `score` la filtraba igual — tres turnos
         # con lat/lng elegidas y Δdist = Δscore·radio/peso triangulaban el

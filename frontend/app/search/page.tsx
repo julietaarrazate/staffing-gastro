@@ -5,6 +5,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatAgo } from "@/lib/datetime";
+import { formatKm } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import Link from "next/link";
@@ -12,7 +13,7 @@ import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { SearchIcon, UsersIcon } from "@/components/icons";
 import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
-import StarRating from "@/components/StarRating";
+import RatingOrNew from "@/components/RatingOrNew";
 import BottomSheet from "@/components/BottomSheet";
 
 function WorkerRowSkeleton() {
@@ -216,11 +217,10 @@ function SearchPageContent() {
                 <div className="flex-1">
                   <p className="font-semibold text-ink">{worker.full_name}</p>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <StarRating value={Math.round(worker.rating)} size={13} />
-                    <span className="text-xs text-ink/50">{worker.rating.toFixed(1)}</span>
+                    <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink/50" />
                     {worker.distance_km != null && (
                       <span className="text-xs text-ink/40">
-                        · {worker.distance_km.toFixed(1)} km
+                        · {formatKm(worker.distance_km)}
                       </span>
                     )}
                   </div>

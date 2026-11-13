@@ -114,6 +114,7 @@ class ShiftRepository(ABC):
         urgent: bool | None = None,
         limit: int = 50,
         offset: int = 0,
+        nearest_to: tuple[float, float] | None = None,
     ) -> list[Shift]:
         """Lista los turnos abiertos del feed público, con filtros opcionales (paginado).
 
@@ -121,6 +122,34 @@ class ShiftRepository(ABC):
         ejemplo un filtro manual en la UI); `positions` filtra por varios a
         la vez (los rubros que eligió el trabajador en su perfil, para que
         el feed sólo le muestre lo que le sirve — ver `ShiftService.list_feed`).
+
+        Orden: urgentes primero y después los más nuevos. Con `nearest_to`
+        (lat, lng), en cambio, del más cercano a ese punto al más lejano
+        (distancia aproximada, alcanza para elegir la página; los turnos sin
+        coordenadas van al final): es lo que usa Buscar para que el tope de
+        la página se llene con lo que queda a mano y no con lo último que se
+        publicó en el país.
+        """
+
+    @abstractmethod
+    async def list_open_unpaged(
+        self,
+        *,
+        city: str | None = None,
+        position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
+        urgent: bool | None = None,
+        box: tuple[float, float, float, float] | None = None,
+    ) -> list[Shift]:
+        """Los turnos abiertos SIN paginar, para quien después decide en
+        Python qué queda cerca, ordena y recién ahí corta la página
+        (`ShiftService.list_feed`). Cortar antes de filtrar era el problema:
+        la página se llenaba con turnos de otra provincia.
+
+        `box` = `(lat_min, lat_max, lng_min, lng_max)` es el filtro grueso
+        (ver `app.core.geo.bounding_box`): devuelve los turnos que caen
+        adentro MÁS los que no tienen coordenadas, que no se pueden ubicar y
+        se resuelven por ciudad. Sin `box`, todos los abiertos.
         """
 
     @abstractmethod

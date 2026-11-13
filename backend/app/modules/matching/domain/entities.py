@@ -48,6 +48,10 @@ class CandidateProfile:
     # sin leerlas).
     badges: tuple[WorkerBadge, ...] = ()
     level: GamificationLevel = GamificationLevel.BRONCE
+    # Ciudad del perfil. Sólo decide si el candidato está «cerca» cuando no
+    # hay distancia que medir (él o el turno sin coordenadas, ver
+    # `scoring.is_within_radius`); no entra al puntaje.
+    city: str | None = None
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,8 @@ class ShiftRequirement:
     position: WorkerSkill
     latitude: float | None
     longitude: float | None
+    # Ciudad del turno: con qué se compara cuando no hay distancia que medir.
+    city: str | None = None
 
 
 @dataclass(frozen=True)

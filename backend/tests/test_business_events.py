@@ -11,6 +11,7 @@ import logging
 import pytest
 from httpx import AsyncClient
 
+from tests._turno_empezado import empezar_turno
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -192,7 +193,7 @@ async def test_cancel_shift_logs_shift_cancelled(client: AsyncClient, caplog):
 
 
 async def test_mark_no_show_logs_worker_no_show_with_manual_trigger(
-    client: AsyncClient, caplog
+    client: AsyncClient, caplog, session_factory
 ):
     caplog.set_level(logging.INFO)
     employer = await _employer_with_company(client, "emp_evt_noshow@staffya.com")
@@ -208,6 +209,7 @@ async def test_mark_no_show_logs_worker_no_show_with_manual_trigger(
     )
     await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker)
 
+    await empezar_turno(session_factory, shift_id)
     caplog.clear()
     await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)
 

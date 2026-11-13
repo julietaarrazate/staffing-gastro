@@ -29,7 +29,9 @@ creado**.
 ## Qué puede hacer
 
 1. **Ver oportunidades** cerca suyo (feed tipo Tinder y mapa) — sólo turnos
-   abiertos (ver [SHIFT.md](./SHIFT.md)).
+   abiertos (ver [SHIFT.md](./SHIFT.md)) y a 40 km o menos de la zona de su
+   perfil; para mirar otras zonas está Buscar, que muestra todo
+   (ver [LOCATION.md](./LOCATION.md)).
 2. **Postularse** a un turno (swipe derecha) → crea una postulación
    (ver [MATCHING.md](./MATCHING.md)). Tiene **una sola postulación por turno**;
    puede **retirarla** y, si el turno sigue abierto, **volver a postularse**.
