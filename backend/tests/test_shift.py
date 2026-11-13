@@ -1204,11 +1204,12 @@ async def test_publicar_avisa_a_los_trabajadores_cercanos(client: AsyncClient):
     )
     assert published.status_code == 200
 
-    # Al trabajador le llegó el aviso, y abre el feed (donde puede postularse).
+    # Al trabajador le llegó el aviso, y abre el turno (donde puede postularse):
+    # con el Inicio abierto, un link a /feed no hacía nada al tocarlo.
     despues = await client.get("/api/v1/notifications", headers=worker_headers)
     avisos = [n for n in despues.json() if n["type"] == "new_shift_nearby"]
     assert len(avisos) == 1
-    assert avisos[0]["link"] == "/feed"
+    assert avisos[0]["link"] == f"/turno/{shift_id}"
     assert "Bar Palermo" in avisos[0]["message"]
     # El turno de `_shift_payload` es urgente: el aviso lo dice desde la
     # primera tanda, sin esperar a la escalada automática (ADR-0009).

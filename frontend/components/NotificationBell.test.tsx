@@ -13,7 +13,8 @@ vi.mock("@/lib/api", () => ({
 }));
 vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
 vi.mock("@/lib/useWebSocket", () => ({ useWebSocket: () => undefined }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const routerPush = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
 
 function aviso(id: string, read: boolean): Notification {
   return {
@@ -40,6 +41,7 @@ async function abrirPanel() {
 beforeEach(() => {
   apiGet.mockReset();
   apiPost.mockReset();
+  routerPush.mockReset();
   apiGet.mockResolvedValue([aviso("a", false), aviso("b", false), aviso("c", true)]);
 });
 
@@ -78,5 +80,18 @@ describe("NotificationBell: marcar todas como leídas", () => {
 
     expect(await screen.findByText("Turno c")).toBeInTheDocument();
     expect(screen.queryByRole("button", BOTON)).not.toBeInTheDocument();
+  });
+});
+
+describe("NotificationBell: abrir un aviso", () => {
+  it("tocar el aviso de turno cerca navega a la página del turno", async () => {
+    apiPost.mockResolvedValue({});
+    apiGet.mockResolvedValue([{ ...aviso("a", false), link: "/turno/abc" }]);
+    render(<NotificationBell />);
+    const campana = screen.getByRole("button", { name: "Notificaciones" });
+    await waitFor(() => expect(campana).toHaveTextContent("1"));
+    fireEvent.click(campana);
+    fireEvent.click(screen.getByText("Turno a"));
+    expect(routerPush).toHaveBeenCalledWith("/turno/abc");
   });
 });

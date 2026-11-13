@@ -71,7 +71,8 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
     NotificationType.CHECKIN_REMINDER: "/my-shifts",
     NotificationType.DEPARTURE_REMINDER: "/my-shifts",
-    # Turno todavía no suyo: va al feed, donde puede verlo y postularse.
+    # Turno todavía no suyo. Los avisos nuevos traen su `link` a /turno/<id>;
+    # este destino es el de respaldo (avisos viejos sin link): el Inicio.
     NotificationType.NEW_SHIFT_NEARBY: "/feed",
     NotificationType.URGENT_SHIFT_NEARBY: "/feed",
     # Comercio

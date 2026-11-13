@@ -219,6 +219,9 @@ async def test_escalates_urgency_after_delay_without_coverage(
 
     notifications = await client.get("/api/v1/notifications", headers=worker_headers)
     assert any(n["type"] == "urgent_shift_nearby" for n in notifications.json())
+    # El aviso de la escalada también lleva al turno, no al Inicio.
+    avisos = [n for n in notifications.json() if n["type"] == "urgent_shift_nearby"]
+    assert avisos[0]["link"] == f"/turno/{shift_id}"
 
 
 async def test_does_not_escalate_twice(client, session_factory, monkeypatch):
