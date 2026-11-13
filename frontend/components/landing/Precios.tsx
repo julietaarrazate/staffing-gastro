@@ -34,7 +34,7 @@ import Reveal from "./Reveal";
 
 /** El tope del mes, dibujado: un cuadradito por turno (3, 15) o una barra
  *  llena si no hay tope. Al aparecer se van llenando de a uno. */
-function Tope({ max, destacado }: { max: number | null; destacado: boolean }) {
+function Tope({ max }: { max: number | null }) {
   if (max === null) {
     return (
       <div aria-hidden className="anim-bar h-2.5 w-full origin-left rounded-full bg-ink/80" />
@@ -45,7 +45,7 @@ function Tope({ max, destacado }: { max: number | null; destacado: boolean }) {
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
-          className={`anim-fill h-2.5 w-2.5 rounded-[3px] ${destacado ? "bg-primary" : "bg-ink/80"}`}
+          className="anim-fill h-2.5 w-2.5 rounded-[3px] bg-ink/80"
           style={{ ["--d" as string]: `${300 + i * 70}ms` }}
         />
       ))}
@@ -89,8 +89,10 @@ export default function Precios() {
             return (
               <li
                 key={p.code}
-                className={`flex flex-col rounded-[1.25rem] p-6 ${
-                  destacado ? "bg-glow shadow-[var(--shadow-float)] ring-[1.5px] ring-ink" : "bg-card ring-1 ring-line"
+                className={`flex flex-col rounded-[1.75rem] p-6 ${
+                  destacado
+                    ? "landing-plan-medio shadow-[0_44px_70px_-50px_rgb(15_58_91/0.7)] ring-[1.5px] ring-ink"
+                    : "bg-card ring-1 ring-line"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -107,7 +109,7 @@ export default function Precios() {
                   <p className="mb-2 font-mono text-caption font-medium uppercase tracking-[0.1em] text-ink-mute">
                     {p.max_turnos_mes === null ? "Turnos sin tope" : `${p.max_turnos_mes} turnos por mes`}
                   </p>
-                  <Tope max={p.max_turnos_mes} destacado={destacado} />
+                  <Tope max={p.max_turnos_mes} />
                 </div>
 
                 {extra && <p className="mt-5 border-t border-line pt-4 text-body text-ink-soft">{extra}</p>}

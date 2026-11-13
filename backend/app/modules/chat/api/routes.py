@@ -113,12 +113,15 @@ async def chat_stream(
 ):
     """Push en tiempo real de mensajes nuevos para la conversación de un turno."""
     try:
-        await service.assert_participant(current_user.id, shift_id)
+        thread = await service.assert_participant(current_user.id, shift_id)
     except ConversationNotFoundError as exc:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
 
     await websocket.accept()
-    if not ws_manager.connect_chat(shift_id, websocket):
+    # La conexión queda sobre el hilo vigente (el del comercio con la persona
+    # asignada ahora): si el turno se reasigna, `ws_manager` deja de
+    # entregarle y la corta.
+    if not ws_manager.connect_chat(shift_id, thread.worker_user_id, websocket):
         # Tope de conexiones concurrentes por turno (PRODUCTION_HARDENING.md).
         await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
         return

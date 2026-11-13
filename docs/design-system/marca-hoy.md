@@ -1,6 +1,6 @@
 # La marca hoy (ficha corta)
 
-> Estado al **2026-10-19**. Una página para arrancar sin leer el historial.
+> Estado al **2026-11-13** (la landing «con convicción»; lo demás, del 2026-10-19). Una página para arrancar sin leer el historial.
 > Brand system navegable para el diseñador (colores en los dos temas,
 > tipografía, piezas y logos en vector): https://claude.ai/artifact/J8s5yUUpW3Ufz2hbWKYYns
 > (privado: compartirlo desde su menú Share). Los vectores también están en
@@ -14,7 +14,9 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
 ## Reglas
 
 1. **Una idea por sección** en la landing: título y una cosa. Sin subtítulos,
-   etiquetas ni textos grises que repitan la imagen.
+   etiquetas ni textos grises que repitan la imagen. Vale también para lo que
+   se anima: un solo movimiento por sección (Julieta, 2026-11-13: "llamativa
+   pero clara").
 2. **Un solo ámbar por pantalla** (`--color-primary` `#D97706`, letra en
    tinta): la acción principal. Links, chips, avatares, íconos de rubro y
    pestaña activa van en celeste con azul hondo `#1C5478`.
@@ -25,7 +27,10 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
      borde (degradado radial, sin franjas) y con el pie encima, sobre blanco
      (como el cierre de coofounder). A ese tamaño va sin la sombra beige y
      con menos relieve (`Letras` con `sombra={false}`);
-   - `marca` (sólo la palabra): encabezado de la landing;
+   - en el **encabezado de la landing** va la misma letra, **plana y en azul
+     hondo** (`.landing-marca`, desde el 2026-11-13): con el relieve y el
+     dorado chocaba con el resto de la página, que es lisa. El fileteado
+     completo se ve una sola vez, al cierre;
    - `cinta` («¡Oído!»): la comanda.
    La miniatura para compartir usa la `firma` (`assets/og/filete-oido.png`,
    desde el 2026-10-30).
@@ -38,6 +43,13 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
 5. **Modo oscuro = noche azul** (lienzo `#0D131A`, tarjeta `#151D26`, grises
    fríos, brillo celeste). Nada de café ni resplandor naranja.
 6. Barra del celular (`theme-color`) blanca en claro, noche azul en oscuro.
+7. **La landing usa tres superficies con borde claro, sin degradés que se
+   lavan** (2026-11-13), en paneles con margen y esquinas redondas:
+   **cielo pleno** con nubes para abrir y cerrar, **celeste plano** para el
+   panel de la comanda y el plan del medio, y **noche azul** para «Turnos
+   cerca tuyo» (ahí se le habla a quien trabaja). El resto, blanco. El mapa
+   va en celeste, no en beige. El ámbar queda sólo en la palabra que cambia
+   del inicio.
 
 ## Paleta
 
@@ -50,6 +62,7 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
 | Celeste / fuerte / tinte | `#C4E3ED` / `#9AC9E7` / `#DEECF0` | velo celeste 12–14 % / `#9AC9E7` |
 | Azul hondo (links, letra sobre celeste) | `#1C5478` | `#9AC9E7` |
 | Ámbar (acción) / como texto | `#D97706` / `#B45309` | `#D97706` / `#E8920F` |
+| Landing (2026-11-13; variables `--l-*` en `globals.css`): cielo de arriba a abajo, celeste plano, noche, azul de la marca plana | `#6FB0DF` → `#8CC2E7` → `#B4D8EF` → `#DCEDF7`, `#E2EEF6`, `#0D131A`, `#0F3A5B` | igual (la landing es siempre clara) |
 | Filete (desde el 2026-10-23): cara crema, filete interior blanco, borde y relieve azul hondo, canto dorado; adornos finos y Sol de Mayo dorados | `#FFF9DC` → `#F2DC9A`, `#FFFFFF`, `#14456A` / `#1C5478`, `#C98A1A`; oro `#B8801F` `#E2B04A` | igual |
 
 Detalle y contrastes: [`color-system.md`](./color-system.md).
