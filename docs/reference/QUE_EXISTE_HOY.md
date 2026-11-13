@@ -71,7 +71,8 @@ listados más abajo.
   pantalla **"esto es lo que sigue"** al publicar un turno (timeline de los
   próximos pasos, se muestra cada vez que se publica).
 - **No-show + cancelación tardía** (ADR-0007): el comercio puede marcar "no se
-  presentó" (reabre el turno, penaliza al trabajador) y la cancelación con el
+  presentó" (sólo desde 15 minutos después del inicio; reabre el turno,
+  penaliza al trabajador) y la cancelación con el
   trabajador ya comprometido avisa y penaliza al comercio
   (`late_cancellations`) — antes no hacía ninguna de las dos cosas.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca

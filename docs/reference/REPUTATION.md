@@ -43,7 +43,9 @@ bidireccional: comercio y trabajador se califican mutuamente.
   se incrementa cuando el **comercio** marca manualmente que el trabajador
   asignado no se presentó a un turno ya confirmado
   (`POST /shifts/{id}/no-show`, sólo alcanzable desde `CONFIRMADO`/
-  `EN_CAMINO`, antes del check-in; `WorkerProfileRepository.record_no_show`).
+  `EN_CAMINO`, antes del check-in y **recién desde 15 minutos después del
+  inicio del turno**, `NO_SHOW_EARLIEST_AFTER_START`;
+  `WorkerProfileRepository.record_no_show`).
   **Separado de `cancellations`** a propósito: no aparecer sin aviso es una
   señal peor que cancelar con anticipación, y se pondera distinto (ver
   matching abajo). No es detección automática por horario vencido (eso sigue
