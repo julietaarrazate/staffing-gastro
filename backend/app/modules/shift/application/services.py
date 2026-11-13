@@ -39,6 +39,7 @@ from app.modules.shift.domain.exceptions import (
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
+from app.modules.subscription.domain.entities import Subscription
 from app.modules.subscription.domain.exceptions import (
     PublishingNotAllowedError,
     SubscriptionNotActiveError,
@@ -176,8 +177,8 @@ class ShiftService:
         (quantity=1, ADR-0003 intacto), todos comparten un `event_id` nuevo
         para poder verse agrupados/con su progreso de cobertura después. Cada
         turno consume su propio cupo del plan igual que si se hubiera
-        publicado uno por uno (misma lógica de `_consume_publication_slot`,
-        sin descuento por venir en tanda) — si el plan se queda sin cupo a
+        publicado uno por uno (pasa por `publish_shift`, sin descuento por
+        venir en tanda) — si el plan se queda sin cupo a
         mitad de camino, la publicación queda PARCIAL: se devuelven los que sí
         se pudieron publicar y `requested` para que el caller sepa cuántos
         faltaron."""
@@ -249,9 +250,15 @@ class ShiftService:
 
     async def publish_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._get_owned(company_id, shift_id)
-        await self._consume_publication_slot(company_id)
+        # El plan se consulta antes y se cuenta después: el uso sube recién
+        # cuando el turno quedó guardado como publicado. Antes se sumaba
+        # primero, y como cada repositorio guarda por su cuenta, un intento
+        # que fallaba acá abajo (el turno ya estaba publicado, o lo cambió
+        # otro pedido a la vez) dejaba igual un turno gastado en el plan.
+        await self._ensure_publication_allowed(company_id)
         shift.publish()
         published = await self._shifts.update(shift)
+        await self._register_publication(company_id)
         # Reputación del comercio (`events_published`, docs/reference/REPUTATION.md):
         # antes quedaba en 0 para siempre, sin cálculo automático.
         await self._companies.record_published_shift(company_id)
@@ -419,7 +426,25 @@ class ShiftService:
         )
         return updated
 
-    async def _consume_publication_slot(self, company_id: UUID) -> None:
+    async def _publication_subscription(self, company_id: UUID, now: datetime) -> Subscription:
+        """La suscripción del comercio con la ventana de uso al día. No guarda
+        nada: si la ventana venció, la nueva queda en la entidad y se persiste
+        recién cuando se cuenta una publicación."""
+        # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
+        # prendido + credenciales de Mercado Pago) un comercio nuevo arranca
+        # `pendiente`. Con el cobro apagado arranca `activa` (la beta).
+        subscription = await self._subscriptions.get_or_create(
+            company_id,
+            initial_status=(
+                SubscriptionStatus.PENDIENTE
+                if settings.billing_enforced
+                else SubscriptionStatus.ACTIVA
+            ),
+        )
+        subscription.roll_period_if_expired(now)
+        return subscription
+
+    async def _ensure_publication_allowed(self, company_id: UUID) -> None:
         """Gating de capacidad por plan (ADR-0005 Fase 1): antes de publicar
         se consulta el plan del comercio vía el puerto de dominio de
         `subscription` (`SubscriptionRepository` + config de planes —
@@ -435,26 +460,29 @@ class ShiftService:
         (default OFF): durante la beta temprana se quiere que los comercios
         publiquen libremente para generar liquidez; la mensualidad se enciende
         cuando la operadora decide monetizar (ADR-0005: "beta cerrada = primeros
-        comercios en un escalón pago"). El uso se registra igual estando OFF,
-        para tener el dato cuando se encienda."""
+        comercios en un escalón pago").
+
+        Sólo consulta: el uso lo suma `_register_publication`, después de que
+        la publicación ocurrió."""
         now = datetime.now(timezone.utc)
-        # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
-        # prendido + credenciales de Mercado Pago) publicar pide además un
-        # mes pago vigente; un comercio nuevo arranca `pendiente`. Con el
-        # cobro apagado esto no cambia nada (la beta sigue igual).
-        enforced_billing = settings.billing_enforced
-        subscription = await self._subscriptions.get_or_create(
-            company_id,
-            initial_status=(
-                SubscriptionStatus.PENDIENTE if enforced_billing else SubscriptionStatus.ACTIVA
-            ),
-        )
-        subscription.roll_period_if_expired(now)
+        subscription = await self._publication_subscription(company_id, now)
         plan = get_plan(subscription.plan_code)
-        if enforced_billing:
+        # ADR-0022: con el cobro real exigido publicar pide además un mes
+        # pago vigente. Con el cobro apagado esto no cambia nada.
+        if settings.billing_enforced:
             subscription.ensure_paid(now)
         if settings.subscriptions_enforced:
             subscription.ensure_can_publish(plan)
+
+    async def _register_publication(self, company_id: UUID) -> None:
+        """Suma al uso del plan un turno que YA quedó publicado. Se llama una
+        sola vez por publicación, después de guardar el turno: un intento que
+        no publicó nada no llega hasta acá y no cambia el contador. El uso se
+        registra también con el tope apagado, para tener el dato cuando se
+        encienda."""
+        subscription = await self._publication_subscription(
+            company_id, datetime.now(timezone.utc)
+        )
         subscription.register_publication()
         await self._subscriptions.update(subscription)
 
