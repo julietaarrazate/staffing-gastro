@@ -36,6 +36,11 @@ async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, s
     return headers, profile.json()["id"]
 
 
+def _empezo_hace_una_hora() -> str:
+    # La salida sólo se marca con el turno ya empezado.
+    return (datetime.now(timezone.utc) - timedelta(hours=1)).replace(tzinfo=None).isoformat()
+
+
 def _shift_payload(**overrides) -> dict:
     # Relativo a "ahora", no una fecha fija: un turno de este archivo tiene
     # que seguir figurando como ABIERTO (`list_open`, ADR-0015 filtra por
@@ -217,7 +222,7 @@ async def test_no_show_breaks_nunca_falto_badge(client: AsyncClient):
 
     async def _create_confirmed_shift(city: str) -> str:
         created = await client.post(
-            "/api/v1/shifts", headers=employer_headers, json=_shift_payload(city=city)
+            "/api/v1/shifts", headers=employer_headers, json=_shift_payload(city=city, start_at=_empezo_hace_una_hora())
         )
         shift_id = created.json()["id"]
         await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)

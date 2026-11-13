@@ -162,6 +162,27 @@ export function formatShiftWhen(startIso: string, endIso: string, now: Date = ne
   return `${day} · ${formatTime24(startIso)} – ${formatTime24(endIso)}`;
 }
 
+/**
+ * Cuándo empieza el turno, para una frase: "hoy a las 20:00", "mañana a las
+ * 20:00" o "el sábado 27/9 a las 20:00". Hora de Argentina, 24 h.
+ */
+export function formatShiftStartPhrase(startIso: string, now: Date = new Date()): string {
+  const key = arDateKey(new Date(startIso));
+  const hora = formatTime24(startIso);
+  if (key === arDateKey(now)) return `hoy a las ${hora}`;
+  if (key === arDateKey(new Date(now.getTime() + 86_400_000))) return `mañana a las ${hora}`;
+  const weekday = new Date(startIso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    weekday: "long",
+  });
+  const dayMonth = new Date(startIso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "numeric",
+    month: "numeric",
+  });
+  return `el ${weekday} ${dayMonth} a las ${hora}`;
+}
+
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */
 export function formatShiftRange(startIso: string, endIso: string): string {
   const date = formatShiftDate(startIso);

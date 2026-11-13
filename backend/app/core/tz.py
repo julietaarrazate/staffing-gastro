@@ -47,6 +47,16 @@ def format_turno_art(start_at: datetime, end_at: datetime) -> str:
     return f"{_DIAS[inicio.weekday()]} {inicio:%d/%m}, de {inicio:%H:%M} a {fin:%H:%M}"
 
 
+def format_inicio_art(start_at: datetime, now: datetime | None = None) -> str:
+    """Cuándo empieza un turno, para una frase: "hoy a las 20:00" o "el
+    sábado 27/09 a las 20:00", siempre en hora argentina."""
+    inicio = to_art(start_at)
+    hoy = to_art(now if now is not None else datetime.now(timezone.utc)).date()
+    if inicio.date() == hoy:
+        return f"hoy a las {inicio:%H:%M}"
+    return f"el {_DIAS[inicio.weekday()]} {inicio:%d/%m} a las {inicio:%H:%M}"
+
+
 def now_art() -> datetime:
     """Fecha y hora actual en Argentina (timezone-aware)."""
     return datetime.now(ARG_TZ)

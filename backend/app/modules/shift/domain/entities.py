@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import haversine_km
+from app.core.tz import format_inicio_art
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
@@ -445,11 +446,18 @@ class Shift:
             raise InvalidShiftTransitionError(
                 f"No se puede marcar salida desde el estado {self.status.value}"
             )
+        now = datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at):
+            raise InvalidShiftTransitionError(
+                "Todavía no podés marcar la salida: el turno empieza "
+                f"{format_inicio_art(self.start_at, now)}. Si no te podés "
+                "quedar, cancelá tu asignación."
+            )
         self._ensure_at_venue(latitude, longitude, "la salida")
         self.status = ShiftStatus.CHECK_OUT
         self.check_out_latitude = latitude
         self.check_out_longitude = longitude
-        self.check_out_at = datetime.now(timezone.utc)
+        self.check_out_at = now
 
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""
