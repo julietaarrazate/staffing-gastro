@@ -69,7 +69,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | POST | `/{shift_id}/no-show` | Comercio marca que el trabajador asignado no se presentó. Sólo desde 15 minutos después del `start_at`; antes responde **400** con el mensaje «Todavía no podés marcar que no se presentó: se habilita el DD/MM a las HH:MM (hora de Argentina)…» ([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) |
 | POST | `/{shift_id}/finish` | Finalizar |
 | POST | `/{shift_id}/mark-paid` | Marcar pagado (ver [PAYMENTS.md](./PAYMENTS.md)) |
-| POST | `/{shift_id}/cancel` | Cancelar |
+| POST | `/{shift_id}/cancel` | Cancelar (comercio dueño; ajeno o inexistente = 404; ya terminal = 400). Avisa al asignado (`shift_cancelled_late` si había confirmado, y suma `late_cancellations`; `shift_cancelled` si no) y a cada postulación pendiente (`applied_shift_cancelled`, que pasa a `rechazada`). Ver [NOTIFICATIONS.md](./NOTIFICATIONS.md) |
 
 > `/me` y `/mine` estaban documentados al revés (fila corregida): `/me` son
 > los turnos publicados por **el comercio propio**, `/mine` los asignados

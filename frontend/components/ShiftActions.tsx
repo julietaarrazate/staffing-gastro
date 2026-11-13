@@ -29,7 +29,7 @@ const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
 // puntualidad): antes, el trabajador todavía puede llegar. El servidor aplica
 // la misma regla (`Shift.no_show`); esto sólo evita ofrecer la opción antes.
 const NO_SHOW_AFTER_START_MS = 15 * 60_000;
-const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado"];
+const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado", "no_cubierto"];
 
 export default function ShiftActions({
   shift,

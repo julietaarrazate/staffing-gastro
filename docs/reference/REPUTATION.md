@@ -86,6 +86,14 @@ bidireccional: comercio y trabajador se califican mutuamente.
   el trabajador confirme no cuenta: nunca llegó a comprometerse. Efecto
   **simétrico** al `cancellations`/`no_shows` del trabajador — no se mezcla
   con `rating` (que sigue siendo sólo el promedio de reseñas).
+  **(2026-11-13)** El comercio se entera antes y después: la confirmación de
+  «Cancelar turno» del panel lo dice antes de confirmar («Te suma una
+  cancelación tardía. La ves en tu perfil.»), sólo en esos estados y con
+  alguien asignado (`frontend/lib/cancelar-turno.ts`, misma cuenta que el
+  backend: no hay plazo en horas), y la cuenta se ve en su `/profile`
+  (`components/company/LateCancellations.tsx`, sólo con al menos una). Es la
+  vista del propio comercio: al trabajador no se le muestra en ninguna
+  pantalla.
 
 ## Reglas de negocio
 

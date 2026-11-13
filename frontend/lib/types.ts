@@ -359,6 +359,8 @@ export type NotificationType =
   | "new_applicant"
   | "shift_no_show"
   | "shift_cancelled_late"
+  | "shift_cancelled"
+  | "applied_shift_cancelled"
   | "shift_not_covered"
   | "checkin_reminder"
   | "departure_reminder"
