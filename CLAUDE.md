@@ -64,6 +64,6 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 | Bugs ya resueltos / deuda vigente | `docs/BUGS.md` · `docs/TECH_DEBT.md` |
 | Bitácora de cambios (solo escribir) | `docs/historial/` |
 
-## EKP (repo hermano `julietaarrazate/ekp`, capa L5 = este repo)
+## EKP (repo hermano `julietaarrazate/ekp`)
 
-Durante el trabajo es de **solo lectura** y solo para decisiones grandes (`engines/decision-engine.md`, `domains/design|ux/`, `engines/review-engine.md`); para un bug o feature normal alcanza `docs/`. Antes de cerrar, si hubo fricción que se va a repetir (regla no escrita, trampa de un endpoint, pedido malinterpretado), se archiva **por qué fue posible** como *cycle* al final de `evolution/INTAKE.md` de EKP (append, nunca editar lo anterior) más su línea en `tasks/BACKLOG.md`, en un PR aparte (`add_repo` + clonar). Si el trabajo *es* EKP, abrir la sesión allá.
+Es de **solo lectura** y solo para decisiones grandes (`engines/decision-engine.md`, `domains/design|ux/`, `engines/review-engine.md`); para un bug o feature normal alcanza `docs/`. **No se escribe en EKP al cerrar una sesión de Oído** (decisión de Julieta, 2026-11-13): la fricción que se va a repetir se deja en este repo, como receta en `docs/reference/SESION_CLOUD.md` o como ítem del tablero o de `docs/STATUS.md`. Si el trabajo *es* EKP, abrir la sesión allá.
