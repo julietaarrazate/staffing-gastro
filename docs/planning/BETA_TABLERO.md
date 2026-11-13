@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 9 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
+De 79 graves: 20 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
 que entraron con el reporte externo); U094 y U137 quedan diferidos (dependen
 del tope del plan, que está apagado en la beta).
 
@@ -63,8 +63,8 @@ del tope del plan, que está apagado en la beta).
 | U015 | El aviso «Turno cerca tuyo» no lleva al turno: con Inicio abierto, tocarlo no hace nada | ✅ en `main` | #538 |
 | U070 | Los avisos al celular salen sin margen de espera: si el celular no tiene señal en ese instante, el aviso pu… | ✅ en `main` | #539 |
 | U009 | El aviso «Completamos todo…» tapa el botón «Publicar turno» unos 3 segundos | ✅ en `main` | #544 |
-| U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | 🔵 PR abierto | #547 (cambia una regla: espera el visto bueno de Julieta y la prueba en la app) |
-| U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (mergeado por Julieta el 2026-11-13 con CI y revisión en verde; queda hacerle la prueba en la app) |
+| U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | ✅ en `main` | #547 |
+| U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (prueba en la app hecha el 2026-11-13) |
 | U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ⚪ sin empezar | «pantallas al día»: diseño en las notas de la sesión |
 | U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⏸️ espera decisión | avisar al reabrir: la parte de turnos ya empezados necesita ADR; hacerlo después de #547 |
 
@@ -72,19 +72,19 @@ del tope del plan, que está apagado en la beta).
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | 🟡 diseñado |  |
+| U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | ✅ en `main` | #552 |
 | U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 3**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | 🟡 diseñado |  |
-| U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | 🟡 diseñado |  |
-| U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | 🟡 diseñado |  |
+| U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | ✅ en `main` | #549 |
+| U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
+| U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | ✅ en `main` | #550 |
 | U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⏸️ espera decisión | cancelar un turno ya trabajado: cambia el ADR-0007 |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🟡 diseñado |  |
+| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | ✅ en `main` | #553 |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 4**
@@ -154,19 +154,62 @@ del tope del plan, que está apagado en la beta).
 - El aviso flotante queda debajo del velo de un diálogo abierto.
 - PR viejo #421 (links de turnos reabiertos): quedó pisado por #537; cerrarlo
   o rescatar lo de «Compartir».
+- Formulario de evento: después de tocar «Cambiar» no hay forma de volver a
+  «mi local» sin recargar (prueba en la app de #546).
+- Mapa del trabajador sin permiso de ubicación: mide desde el centro de
+  Buenos Aires aunque el perfil sea de otra provincia; y el fondo del mapa
+  queda claro en el tema oscuro (prueba en la app de #547).
+- Con «Estoy acá» lejos de la zona, el subtítulo del Inicio deja un punto
+  colgado.
+- El pin de trabajador en el mapa del comercio usa letra blanca fija
+  (`WorkerMarker.tsx`), contra la regla de diseño.
+- Plurales sin singular: «1 turnos», «1 turnos publicados», «1 eventos».
+- Con sesión de trabajador la app pide `/favorites` y con la de comercio
+  `/applications/mine`: el servidor responde 403 (no se ve en pantalla).
+- Tras abrir una confirmación del trabajador, durante 1 segundo los botones
+  ignoran los toques sin avisar (#552).
+- Render publica cada commit de `main` sin esperar al CI: un commit con el CI
+  en rojo llega igual a producción (pasó el 2026-11-13, con el código bien y
+  un test mal; #555).
+- Postular y asignar: si falla el guardado del aviso, la acción queda hecha
+  pero la respuesta es un error (salió de la revisión de #553).
+- La puntualidad ya guardada de quien llegó temprano antes de #549 no se
+  recalculó (es un promedio guardado; tocar datos de producción se pregunta).
+- Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
+  recibe tres avisos de cancelación.
 
 ### Decisiones que esperan a Julieta
 
-1. #547 «cerca es cerca»: visto bueno a la regla (25 km el aviso, 40 km la
-   escalada y el Inicio; sin zona en el perfil, sólo por ciudad).
-2. Texto de `/privacidad`: sumar que el identificador del dispositivo se
+Recomendación de quien coordina entre paréntesis (2026-11-13).
+
+1. Texto de `/privacidad`: sumar que el identificador del dispositivo se
    borra también «al cerrar sesión en ese dispositivo» (#545 ya está en
-   producción). Es texto legal: sube la versión.
-3. U081: qué pasa al cancelar un turno que ya se trabajó.
-4. U072: «va en camino» cuando el trabajador lo apaga.
-5. U080: reofrecer como urgente un turno reabierto que ya empezó.
-6. Si el ingreso de invitado sigue en la beta.
-7. #527: el "sí" y qué hacer con el aviso de GitGuardian.
+   producción). Es texto legal: sube la versión. (Sí, junto con lo que salga
+   del punto 3, para pedir que se acepte una sola vez.)
+2. U081: qué pasa al cancelar un turno que ya se trabajó. (No permitirlo: con
+   la salida marcada, el comercio finaliza y paga; un problema va por soporte.)
+3. U072: «va en camino» cuando el trabajador lo apaga. (Que se apague al
+   instante también para el comercio, que vuelve a ver «Confirmado».)
+4. U080: reofrecer como urgente un turno reabierto que ya empezó. Desde #550
+   pasa siempre: la ausencia sólo se marca con el turno empezado, así que el
+   turno reabierto por ausencia nunca vuelve al Inicio. (Sí, hasta que termine
+   su horario; falta decidir si se paga el turno entero o lo que resta.)
+5. Si el ingreso de invitado sigue en la beta. (Apagarlo, salvo que se use
+   para mostrar la app.)
+6. #527: el "sí", el aviso de GitGuardian y, desde el 2026-11-13, un conflicto
+   con `main`. (Sí; marcar el aviso como dato de prueba sin reescribir el
+   historial, después de confirmar que el valor no es una clave real.)
+7. Quien marcó la llegada temprano y se tiene que ir antes del inicio no
+   puede cancelar ni marcar la salida hasta que el turno empieza (#552):
+   ¿se permite cancelar desde «llegada marcada»?
+8. ¿Los trabajadores ven cuántas cancelaciones tardías tiene un comercio?
+   Hoy el dato viaja a cualquier usuario con sesión y ninguna pantalla lo
+   muestra: o se muestra, o se deja de mandar.
+9. Los 2 trabajadores de producción sin zona en el perfil (de 7) dejaron de
+   recibir «Turno cerca tuyo» con #547 hasta que la carguen: ¿se les avisa?
+
+Los puntos 2, 3 y 4 cambian decisiones ya escritas: cada uno lleva su ADR
+antes del código.
 
 ### Pruebas que tiene que hacer una persona
 
