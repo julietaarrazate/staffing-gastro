@@ -10,9 +10,9 @@
 
 **Cómo leerlo.** Un grupo = un PR. «Quién»: **C** lo hace quien coordina
 (reglas del producto, modelo de datos, sesión), **S** va en Sonnet, **M** al
-subagente `mecanico`. ⏸️ = no se empieza hasta que Julieta conteste la
-decisión que se indica (números del tablero, «Decisiones que esperan a
-Julieta»). Las rutas de frontend son relativas a `frontend/`, las de backend a
+subagente `mecanico`. Las decisiones que el diseño necesitaba (10 a 15 del
+tablero) las tomó Julieta el 2026-11-13; su criterio: cada decisión tiene
+que servir para cubrir un puesto rápido, sobre todo en los urgentes. Las rutas de frontend son relativas a `frontend/`, las de backend a
 `backend/app/modules/`.
 
 ## Orden y choques
@@ -24,7 +24,7 @@ vez. Como mucho cuatro PRs abiertos.
 |---|---|---|
 | A (no espera nada) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
 | B | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
-| C (con decisiones) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
+| C (reglas del producto, ya decididas) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
 | D | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
 
 Archivos con más de un grupo: `app/my-shifts/page.tsx` (G1, G2, G8, G9) ·
@@ -183,7 +183,7 @@ en claro y oscuro.
 
 ## Ola C
 
-### G4 · La lista de postulantes dice quién sigue (U021, U123) — C ⏸️ decisiones 13 y 14
+### G4 · La lista de postulantes dice quién sigue (U021, U123) — C
 
 - Quien retiró su postulación no aparece
   (`application/infrastructure/repositories.py`, `list_by_shift_enriched`).
@@ -203,7 +203,7 @@ en claro y oscuro.
   qué, y que puede volver a postularse si el turno confirmado se cae.
 - Actualizar `docs/foundation/DOMAIN.md` y `NOTIFICATIONS.md`.
 
-### G6 · Cuentas suspendidas (U023, U097, U095) — C ⏸️ decisión 10
+### G6 · Cuentas suspendidas (U023, U097, U095) — C
 
 - Asignar: `assign_worker` rechaza a una persona con la cuenta no activa,
   antes de rechazar a los demás postulantes; la lista de postulantes no la
@@ -211,7 +211,7 @@ en claro y oscuro.
 - Ingreso: el 403 lleva un código; con la contraseña bien puesta dice «Tu
   cuenta está suspendida. Si creés que es un error, escribinos a
   hola@oido.com.ar». No se muestra el motivo que escribió el admin.
-- Comercio suspendido (lo que decide la 10): sus turnos abiertos salen de
+- Comercio suspendido (decisión 10): sus turnos abiertos salen de
   Inicio, Buscar, el Mapa y la página pública y no aceptan postulaciones; los
   que tienen a alguien asignado o confirmado y no empezaron se cancelan con
   aviso a esa persona, sin penalidad para nadie; el admin ve antes de
@@ -219,7 +219,7 @@ en claro y oscuro.
   turnos confirmados: el turno se reabre y se le avisa al comercio.
 - ADR nuevo (efectos de una suspensión) antes del código.
 
-### G11 · «Mi plan» durante la beta (U093, BK-898A15047291) — S ⏸️ decisión 11
+### G11 · «Mi plan» durante la beta (U093, BK-898A15047291) — S
 
 - El servidor ya sabe si el tope se exige; `/subscription` lo expone y
   `components/subscription/SubscriptionStatusCard.tsx` lo respeta: sin tope
@@ -228,7 +228,7 @@ en claro y oscuro.
 - «Pagado hasta» se vuelve a pedir al volver a la pestaña (`useLiveRefresh`
   de G1).
 
-### G14 · Fechas y duración del turno (U055, U056, U060) — C ⏸️ decisión 15
+### G14 · Fechas y duración del turno (U055, U056, U060) — C
 
 - Dominio (`shift/domain/entities.py`) y formulario con la misma regla: el
   inicio no puede haber pasado (tolerancia de 5 minutos) y la duración va
@@ -239,7 +239,7 @@ en claro y oscuro.
 - El resumen del último paso muestra siempre fecha y horario, también en
   celular. Duplicar un turno abre en el paso de la fecha, no en el último.
 
-### G25 · El evento cuenta y avisa bien (U083, U086) — C ⏸️ decisión 14
+### G25 · El evento cuenta y avisa bien (U083, U086) — C
 
 - `app/shifts/page.tsx`: el total no cuenta cancelados; «cubiertos» son los
   confirmados en adelante.

@@ -26,5 +26,12 @@ Decisiones de diseño que conviene no rediscutir:
 - Quien rechaza, cancela o falta necesita un estado propio en la postulación
   (`desasignada` con motivo): hoy queda «aceptada» y nada lo distingue.
 
-**Queda abierto:** todo el código. Los grupos G4, G6, G11, G14 y G25 esperan
-las decisiones 10 a 15; U080, U081 y U072 siguen esperando las 2, 3 y 4.
+**Decisiones:** el mismo día Julieta aceptó las recomendaciones («sí a todo
+lo que sea seguro y mejor para el sistema») y dio su criterio: cada decisión
+tiene que servir para cubrir un puesto rápido. Quedaron tomadas las 1 a 6 y
+las 10 a 15, y anotados en el tablero cinco pedidos de producto (búsqueda
+distinta para urgentes y programados, base de trabajadores con referencias,
+eventos sin bajas, seguro, cobro sin comisión).
+
+**Queda abierto:** todo el código. Esperan a Julieta las decisiones 7, 8, 9,
+16 y 17 (la 17 es la puntualidad: hoy hay 15 minutos de margen).
