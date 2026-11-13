@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setTwoFactorGateHandler } from "@/lib/api";
-import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
+import {
+  CLAIM_WAITS_FOR_RELEASE_MS,
+  claimPushForAccount,
+  releasePushFromAccount,
+} from "@/lib/push";
 
 // Las notificaciones de un dispositivo son de la cuenta que tiene la sesión
 // abierta ahí (ver docs/reference/ACCESO_MODERNO.md): al abrir la sesión se
@@ -237,6 +241,117 @@ describe("push de la cuenta que tiene la sesión abierta", () => {
       await flush();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // El cierre de sesión no espera la baja, así que puede seguir en camino
+  // cuando alguien vuelve a entrar. Si el registro nuevo le gana al servidor,
+  // la baja de la misma cuenta borra la fila recién creada: Ajustes dice
+  // "Activadas" y no llega ningún aviso. Por eso el registro sale después.
+  describe("la baja que sigue en camino cuando alguien vuelve a entrar", () => {
+    /** Las bajas que la prueba dejó sin contestar: se sueltan al terminar,
+     * para que ninguna quede en camino para la prueba siguiente. */
+    let heldBack: Array<(response: Response) => void>;
+
+    /** El servidor contesta el registro enseguida y cada baja cuando diga
+     * `answer` (`null` = no contesta hasta que la prueba la suelte). */
+    function backend(answer: (nth: number) => Promise<Response> | null) {
+      let bajas = 0;
+      fetchMock.mockImplementation((_url: string, init: RequestInit) => {
+        if (init.method !== "DELETE") return Promise.resolve(jsonResponse(201, { ok: true }));
+        return (
+          answer(++bajas) ?? new Promise<Response>((resolve) => heldBack.push(resolve))
+        );
+      });
+    }
+
+    function methodsSent() {
+      return fetchMock.mock.calls.map((call) => requestOf(call).method);
+    }
+
+    beforeEach(() => {
+      heldBack = [];
+    });
+
+    afterEach(async () => {
+      vi.useRealTimers();
+      for (const answerNow of heldBack) answerNow(jsonResponse(204));
+      await flush();
+    });
+
+    it("el registro espera a que la baja termine y sale después", async () => {
+      stubBrowser();
+      backend(() => null);
+
+      const released = releasePushFromAccount("token-de-ana");
+      const claimed = claimPushForAccount("token-nuevo-de-ana");
+      await flush();
+      expect(methodsSent()).toEqual(["DELETE"]);
+
+      heldBack[0](jsonResponse(204));
+      await expect(released).resolves.toBe(true);
+      await expect(claimed).resolves.toBe(true);
+
+      expect(methodsSent()).toEqual(["DELETE", "POST"]);
+      expect(requestOf(fetchMock.mock.calls[1]).authorization).toBe("Bearer token-nuevo-de-ana");
+    });
+
+    it("si esa baja falla, el registro sale igual", async () => {
+      stubBrowser();
+      backend(() => Promise.reject(new TypeError("Failed to fetch")));
+
+      const released = releasePushFromAccount("token-de-ana");
+      const claimed = claimPushForAccount("token-de-otra-cuenta");
+
+      await expect(released).resolves.toBe(false);
+      await expect(claimed).resolves.toBe(true);
+      expect(methodsSent()).toEqual(["DELETE", "POST"]);
+    });
+
+    it("si la baja no contesta, el registro la espera un rato y después sale", async () => {
+      vi.useFakeTimers();
+      stubBrowser();
+      backend(() => null);
+
+      void releasePushFromAccount("token-de-ana");
+      const claimed = claimPushForAccount("token-de-otra-cuenta");
+      await vi.advanceTimersByTimeAsync(CLAIM_WAITS_FOR_RELEASE_MS - 1);
+      expect(methodsSent()).toEqual(["DELETE"]);
+
+      // Con tope: una baja colgada no puede dejar el dispositivo a nombre de
+      // la cuenta que salió mientras otra ya está adentro.
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(claimed).resolves.toBe(true);
+      expect(methodsSent()).toEqual(["DELETE", "POST"]);
+    });
+
+    it("si la sesión se vuelve a cerrar mientras el registro esperaba, ese registro no sale", async () => {
+      stubBrowser();
+      backend((nth) => (nth === 1 ? null : Promise.resolve(jsonResponse(204))));
+
+      void releasePushFromAccount("token-de-ana");
+      const claimed = claimPushForAccount("token-nuevo-de-ana");
+      await flush();
+      // Entró y salió enseguida: la segunda baja sale ya, sin esperar a nadie.
+      await expect(releasePushFromAccount("token-nuevo-de-ana")).resolves.toBe(true);
+      heldBack[0](jsonResponse(204));
+
+      // Si saliera ahora, llegaría después de la baja de esa misma sesión y el
+      // dispositivo quedaría a nombre de una cuenta que ya no está.
+      await expect(claimed).resolves.toBe(false);
+      expect(methodsSent()).toEqual(["DELETE", "DELETE"]);
+    });
+
+    it("si la sesión se cierra antes de que el registro llegue a salir, no sale", async () => {
+      stubBrowser();
+      backend(() => Promise.resolve(jsonResponse(204)));
+
+      const claimed = claimPushForAccount("token-de-ana");
+      const released = releasePushFromAccount("token-de-ana");
+
+      await expect(claimed).resolves.toBe(false);
+      await expect(released).resolves.toBe(true);
+      expect(methodsSent()).toEqual(["DELETE"]);
     });
   });
 });

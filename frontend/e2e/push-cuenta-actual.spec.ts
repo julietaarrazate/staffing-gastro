@@ -68,8 +68,12 @@ function usuario(email: Email) {
 
 /** `candado`: el backend de una admin que todavía no activó la verificación
  * en dos pasos, que le contesta ese 403 a todo lo que pida con su sesión
- * menos el ingreso y el alta. */
-async function mockBackend(page: Page, { candado = false } = {}): Promise<PushCall[]> {
+ * menos el ingreso y el alta. `bajaRetenida`: la baja no contesta hasta que
+ * esa promesa se resuelva (una red trabada). */
+async function mockBackend(
+  page: Page,
+  { candado = false, bajaRetenida }: { candado?: boolean; bajaRetenida?: Promise<void> } = {}
+): Promise<PushCall[]> {
   const pushCalls: PushCall[] = [];
 
   // Lo que no importa para esta prueba (las pantallas a las que cae el
@@ -111,9 +115,9 @@ async function mockBackend(page: Page, { candado = false } = {}): Promise<PushCa
       if (request.method() === "DELETE") await new Promise((resolve) => setTimeout(resolve, 400));
       return route.fulfill(json(CANDADO_ALTA, 403));
     }
-    return request.method() === "DELETE"
-      ? route.fulfill({ status: 204 })
-      : route.fulfill(json({ ok: true }, 201));
+    if (request.method() !== "DELETE") return route.fulfill(json({ ok: true }, 201));
+    await bajaRetenida;
+    return route.fulfill({ status: 204 });
   });
 
   return pushCalls;
@@ -204,6 +208,57 @@ test("el push pasa a la cuenta que entra y se da de baja al cerrar sesión", asy
       body: SUBSCRIPTION,
     });
   expect(pushCalls).toHaveLength(4);
+});
+
+test("quien sale y vuelve a entrar con la baja todavía en camino no se queda sin avisos", async ({
+  page,
+}) => {
+  await blockExternalHosts(page);
+  await skipSplash(page);
+  let soltarLaBaja = () => {};
+  const bajaRetenida = new Promise<void>((resolve) => (soltarLaBaja = resolve));
+  const pushCalls = await mockBackend(page, { bajaRetenida });
+  await navegadorConPushActivado(page);
+  await registrarServiceWorker(page);
+  const pedidos = () => pushCalls.map((call) => `${call.method} ${call.authorization}`);
+
+  await ingresar(page, "primera@example.com");
+  await expect.poll(pedidos).toEqual(["POST Bearer token-de-la-primera"]);
+
+  // Sale: la baja queda en camino, sin contestar. De acá en más no se recarga
+  // la página, como en la app instalada.
+  await page.getByRole("link", { name: "Perfil", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes" }).click();
+  await page.evaluate(() => ((window as unknown as { sinRecargar: boolean }).sinRecargar = true));
+  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect
+    .poll(pedidos)
+    .toEqual(["POST Bearer token-de-la-primera", "DELETE Bearer token-de-la-primera"]);
+
+  // Vuelve a entrar la misma cuenta. El registro no puede llegar antes que la
+  // baja: el servidor borraría la fila recién creada y Ajustes diría
+  // «Activadas» sin que llegue nada.
+  await page.getByRole("link", { name: "Ingresar" }).first().click();
+  await page.getByPlaceholder("Email").fill("primera@example.com");
+  await page.getByPlaceholder("Contraseña").fill("una-clave-cualquiera");
+  await page.getByRole("button", { name: "Ingresar" }).click();
+  await expect(page).toHaveURL(/\/feed$/);
+  expect(
+    await page.evaluate(() => (window as unknown as { sinRecargar?: boolean }).sinRecargar)
+  ).toBe(true);
+  await page.waitForTimeout(500);
+  expect(pedidos()).toHaveLength(2);
+
+  // La baja termina y recién ahí sale el registro de la sesión nueva.
+  soltarLaBaja();
+  await expect
+    .poll(pedidos)
+    .toEqual([
+      "POST Bearer token-de-la-primera",
+      "DELETE Bearer token-de-la-primera",
+      "POST Bearer token-de-la-primera",
+    ]);
 });
 
 test("en «Ver como» el dispositivo sigue siendo de la admin y Ajustes no deja cambiarlo", async ({
