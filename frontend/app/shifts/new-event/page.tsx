@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
@@ -10,6 +11,7 @@ import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/typ
 import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
 import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import { useCompanyPlace } from "@/lib/company-place";
 import ShiftDayHint from "@/components/ShiftDayHint";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
@@ -54,6 +56,11 @@ function NewEventForm() {
   const [city, setCity] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  // Zona del local: el evento arranca ahí y se puede cambiar (igual que el
+  // asistente de turno). Sin zona no se publica: los turnos saldrían con
+  // «Ubicación a confirmar» y no se avisaría a nadie cerca (U058).
+  const { place: companyPlace, loaded: placeLoaded } = useCompanyPlace(token);
+  const [changingPlace, setChangingPlace] = useState(false);
   const [dressCode, setDressCode] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [tips, setTips] = useState(true);
@@ -100,6 +107,15 @@ function NewEventForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sólo al llegar el perfil: después, la zona la decide el comercio.
+  useEffect(() => {
+    if (!companyPlace || latitude != null) return;
+    setCity(companyPlace.city);
+    setLatitude(companyPlace.latitude);
+    setLongitude(companyPlace.longitude);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyPlace]);
+
   function updateRole(key: string, patch: Partial<RoleRow>) {
     setRoles((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
@@ -108,12 +124,19 @@ function NewEventForm() {
     setRoles((prev) => (prev.length > 1 ? prev.filter((r) => r.key !== key) : prev));
   }
 
+  const hasPlace = latitude != null && longitude != null;
+  const usingCompanyPlace =
+    !changingPlace &&
+    companyPlace != null &&
+    latitude === companyPlace.latitude &&
+    longitude === companyPlace.longitude;
   const totalRequested = roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
   const canSubmit =
     name.trim() !== "" &&
     startAt !== "" &&
     endAt !== "" &&
     endAt > startAt &&
+    hasPlace &&
     roles.every((r) => Number(r.count) >= 1 && Number(r.payAmount) > 0);
 
   async function submit() {
@@ -242,17 +265,54 @@ function NewEventForm() {
         </div>
 
         <div>
-          <LocationPicker
-            onSelect={(loc: LocationSelection) => {
-              setCity(loc.city);
-              setLatitude(loc.latitude);
-              setLongitude(loc.longitude);
-            }}
-          />
-          {city && (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
-              <MapPinIcon size={15} /> {city}
-            </p>
+          {!placeLoaded ? null : usingCompanyPlace && companyPlace ? (
+            <>
+              <p className="text-sm font-semibold text-ink/70">¿Dónde es?</p>
+              <p className="mt-1 text-sm text-ink/50">
+                En tu local. Avisamos a la gente que está cerca.
+              </p>
+              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-primary-tint px-4 py-3 ring-1 ring-primary/15">
+                <MapPinIcon size={18} className="shrink-0 text-primary-text" />
+                <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
+                  {companyPlace.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setChangingPlace(true)}
+                  className="min-h-[44px] shrink-0 px-2 text-sm font-semibold text-primary-text underline"
+                >
+                  Cambiar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <LocationPicker
+                onSelect={(loc: LocationSelection) => {
+                  setCity(loc.city);
+                  setLatitude(loc.latitude);
+                  setLongitude(loc.longitude);
+                }}
+              />
+              {hasPlace && city ? (
+                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                  <MapPinIcon size={15} /> {city}
+                </p>
+              ) : (
+                <p className="mt-3 text-sm text-ink/60">
+                  Elegí la zona del evento para poder publicar.
+                  {!companyPlace && (
+                    <>
+                      {" "}
+                      <Link href="/profile/edit" className="font-semibold text-primary-text underline">
+                        Cargar mi local
+                      </Link>{" "}
+                      para que la tome sola la próxima vez.
+                    </>
+                  )}
+                </p>
+              )}
+            </>
           )}
         </div>
 

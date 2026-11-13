@@ -37,7 +37,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 |---|---|---|---|
 | `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados. «Marcar como pagado», «Cancelar turno» y «No se presentó» piden confirmación | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal`, `lib/use-tap-guard.ts` | `/shifts/me` |
 | `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA) | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `/shifts/parse-text` |
-| `/shifts/new-event` | Publicar varios turnos para un evento | `LocationPicker` | `/shifts/events` |
+| `/shifts/new-event` | Publicar varios turnos para un evento. Arranca en la zona del local (con «Cambiar») y sin zona no se publica: botón deshabilitado y una línea que dice qué falta | `LocationPicker`, `lib/company-place.ts` (`useCompanyPlace`, compartido con `/shifts/new`) | `/shifts/events` |
 | `/shifts/[id]/candidates` | ¿A quién elijo? Se **asigna a una persona puntual**, que después confirma o rechaza. El recomendado va en tarjeta oscura | `CandidateCard`, `candidate/GuaranteeCard`, `candidate/CandidateSignals` | `/shifts/{id}/candidates`, `/shifts/{id}/assign` |
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
 | `/favorites` | Mis trabajadores favoritos (reciben siempre el primer aviso, #399) | — | `/favorites` |
