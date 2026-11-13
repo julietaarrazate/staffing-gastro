@@ -150,7 +150,10 @@ async def test_un_evento_suma_un_turno_por_cada_puesto_publicado(client: AsyncCl
             "name": "Casamiento",
             "start_at": "2026-06-28T20:00:00",
             "end_at": "2026-06-29T03:00:00",
+            # Un evento se publica con zona: ciudad y punto en el mapa.
             "city": "Palermo",
+            "latitude": -34.5889,
+            "longitude": -58.4306,
             "roles": [
                 {"position": "mozo", "count": 2, "pay_amount": "70000.00"},
                 {"position": "bartender", "count": 1, "pay_amount": "80000.00"},

@@ -173,6 +173,15 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
     expect(parseErrorDetail([{ loc: ["body"], msg: "x" }])).toEqual({ message: "Error inesperado" });
   });
 
+  it("un 422 con tipo propio del backend muestra su mensaje; los genéricos no", () => {
+    expect(
+      parseErrorDetail([{ type: "zona_requerida", loc: ["body"], msg: "Elegí la zona del evento" }])
+    ).toEqual({ message: "Elegí la zona del evento" });
+    expect(parseErrorDetail([{ type: "missing", loc: ["body", "name"], msg: "Field required" }])).toEqual({
+      message: "Error inesperado",
+    });
+  });
+
   it("un 403 del candado avisa al manejador y llega a la pantalla con su código", async () => {
     const gate = vi.fn();
     setTwoFactorGateHandler(gate);

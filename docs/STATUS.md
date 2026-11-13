@@ -26,6 +26,11 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
+- 🔴 **Salida a beta (en curso, etapa 2: arreglar los graves).** Qué está hecho,
+  qué está en curso, qué falta y qué espera una decisión de Julieta, fila por
+  fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
+  primero que se lee y lo que se edita en cada PR de la beta.
+
 0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
    la ficha de marca, el brand system y el paquete siguen con el filete
    anterior. La miniatura para compartir ya usa la `firma` actual

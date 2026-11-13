@@ -5,7 +5,8 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.modules.shift.domain.pay_benchmark import PayBand
 from app.modules.shift.domain.value_objects import ShiftStatus
@@ -189,6 +190,25 @@ class EventInput(BaseModel):
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
     description: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def _exigir_zona(self) -> "EventInput":
+        """Un evento no se publica sin zona: sin ciudad el panel y las tarjetas
+        dicen «Ubicación a confirmar», y sin coordenadas no se avisa a nadie
+        cerca (el aviso mide la distancia con ellas; la ciudad sola no entra).
+        Se piden las dos. Vive acá y no sólo en el formulario para que no
+        dependa del cliente (app, asistente, scripts)."""
+        tiene_ciudad = bool(self.city and self.city.strip())
+        tiene_coordenadas = self.latitude is not None and self.longitude is not None
+        if not (tiene_ciudad and tiene_coordenadas):
+            # PydanticCustomError y no ValueError: este último antepone
+            # «Value error, » al mensaje.
+            raise PydanticCustomError(
+                "zona_requerida",
+                "Elegí la zona del evento (provincia y barrio, o tu local con "
+                "ubicación): sin eso no podemos avisar a la gente que está cerca.",
+            )
+        return self
 
 
 class EventResponse(BaseModel):
