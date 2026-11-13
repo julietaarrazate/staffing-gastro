@@ -142,11 +142,20 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 
 ## Chat — `ChatMessage`
 
-- **Propósito:** mensajería trabajador↔comercio **por turno**.
-- **Datos:** `shift_id`, `sender_user_id`, `body`, `read`, `created_at`.
+- **Propósito:** mensajería trabajador↔comercio dentro de un turno, **una
+  conversación por turno y persona asignada**.
+- **Datos:** `shift_id`, `worker_user_id` (la persona del hilo), `sender_user_id`,
+  `body`, `read`, `created_at`.
 - **Reglas:** la conversación la integran el comercio y el trabajador **asignado**
   a ese turno; entrega en **tiempo real por WebSocket**; avisa al destinatario con
   una `Notification`.
+- **Un hilo por persona asignada:** la conversación es del comercio con **una**
+  persona, la que estaba asignada cuando se escribió cada mensaje (hilo =
+  turno + trabajador). Si el turno se reasigna, quien lo recibe arranca con el
+  hilo vacío, el comercio ve sólo el hilo con la persona asignada ahora y la
+  anterior deja de tener acceso. Los mensajes del hilo anterior se conservan,
+  pero no se le muestran a nadie que no haya sido parte. Detalle en
+  [CHAT.md](../reference/CHAT.md).
 
 ## Review — `Review`
 
