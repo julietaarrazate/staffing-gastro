@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ShiftPublic } from "@/lib/types";
+import type { ApplicationStatus, ShiftPublic } from "@/lib/types";
 import ShiftDetail from "./ShiftDetail";
 
 /**
@@ -51,7 +51,7 @@ const SHIFT: ShiftPublic = {
   urgent: false,
 };
 
-function mockGets(applications: { shift_id: string }[]) {
+function mockGets(applications: { shift_id: string; status: ApplicationStatus }[]) {
   get.mockImplementation((path: string) => {
     if (path.startsWith("/applications/mine")) return Promise.resolve(applications);
     if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT, tips: true, meal: false, dress_code: null });
@@ -90,11 +90,26 @@ describe("ShiftDetail", () => {
 
   it("si ya estaba postulado, no le ofrece postularse de nuevo", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
-    mockGets([{ shift_id: "s1" }]);
+    mockGets([{ shift_id: "s1", status: "pendiente" }]);
     render(<ShiftDetail publicShift={SHIFT} />);
 
     expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
+  it("si retiró la postulación, no dice que sigue postulado: puede postularse de nuevo", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([{ shift_id: "s1", status: "retirada" }]);
+    post.mockResolvedValue({ id: "a1", status: "pendiente" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    const apply = await screen.findByRole("button", { name: "Postularme" });
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+    await user.click(apply);
+
+    expect(post).toHaveBeenCalledWith("/applications/shifts/s1", undefined, "tok", undefined, expect.any(String));
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
   });
 
   it("sin sesión ya muestra las condiciones del turno", () => {

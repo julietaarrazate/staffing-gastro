@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -93,7 +94,7 @@ export default function BuscarPage() {
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
-      const appliedIds = new Set(applied.map((a) => a.shift_id));
+      const appliedIds = appliedShiftIds(applied);
       setShifts(feed.filter((s) => !appliedIds.has(s.id)));
       setProfile(prof);
     } catch (err) {
