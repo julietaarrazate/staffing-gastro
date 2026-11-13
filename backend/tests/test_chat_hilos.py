@@ -19,6 +19,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.main import app
 from app.modules.chat.infrastructure.models import ChatMessageModel
+from tests._turno_empezado import empezar_turno_de_la_app
 from tests.conftest import auth_headers
 from tests.test_chat import _setup_in_memory_db
 
@@ -113,6 +114,7 @@ async def _desasignar(
                 f"/api/v1/shifts/{shift_id}/worker-cancel", headers=persona.headers
             )
         else:
+            await empezar_turno_de_la_app(shift_id)
             response = await client.post(
                 f"/api/v1/shifts/{shift_id}/no-show", headers=comercio
             )

@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 11 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
+De 79 graves: 14 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
 que entraron con el reporte externo); U094 y U137 quedan diferidos (dependen
 del tope del plan, que está apagado en la beta).
 
@@ -63,7 +63,7 @@ del tope del plan, que está apagado en la beta).
 | U015 | El aviso «Turno cerca tuyo» no lleva al turno: con Inicio abierto, tocarlo no hace nada | ✅ en `main` | #538 |
 | U070 | Los avisos al celular salen sin margen de espera: si el celular no tiene señal en ese instante, el aviso pu… | ✅ en `main` | #539 |
 | U009 | El aviso «Completamos todo…» tapa el botón «Publicar turno» unos 3 segundos | ✅ en `main` | #544 |
-| U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | 🔵 PR abierto | #547 (prueba en la app hecha el 2026-11-13; cambia una regla: espera el visto bueno de Julieta) |
+| U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | ✅ en `main` | #547 |
 | U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (prueba en la app hecha el 2026-11-13) |
 | U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ⚪ sin empezar | «pantallas al día»: diseño en las notas de la sesión |
 | U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⏸️ espera decisión | avisar al reabrir: la parte de turnos ya empezados necesita ADR; hacerlo después de #547 |
@@ -72,19 +72,19 @@ del tope del plan, que está apagado en la beta).
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | 🔵 PR abierto | #552 (revisión aprobada y prueba en la app hecha; el servidor ya no deja marcar la salida antes del inicio: espera el visto bueno de Julieta) |
+| U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | 🔵 PR abierto | #552 (aprobado por Julieta el 2026-11-13; espera el CI tras traerle `main`) |
 | U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 3**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | 🔵 PR abierto | #549 (revisión aprobada y prueba en la app hecha; cambia una regla: espera el visto bueno de Julieta) |
+| U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | 🔵 PR abierto | #549 (aprobado por Julieta el 2026-11-13; espera el CI tras traerle `main`) |
 | U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
-| U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | 🔵 PR abierto | #550 (revisión aprobada y prueba en la app hecha; cambia una regla: espera el visto bueno de Julieta) |
+| U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | ✅ en `main` | #550 |
 | U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⏸️ espera decisión | cancelar un turno ya trabajado: cambia el ADR-0007 |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🔵 PR abierto | #553 (revisión y prueba en la app hechas, dos pasadas cada una; cambia una regla: espera el visto bueno de Julieta) |
+| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🔵 PR abierto | #553 (aprobado por Julieta el 2026-11-13; espera el CI tras traerle `main`) |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 4**

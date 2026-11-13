@@ -25,6 +25,7 @@ from app.modules.identity.api.dependencies import (
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.api.dependencies import (
+    FeedOriginDep,
     get_my_company_id,
     get_my_worker_profile_id,
     get_my_worker_skills,
@@ -34,6 +35,7 @@ from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
     EventInput,
     EventResponse,
+    FeedScope,
     GeoCheckRequest,
     ParsedShiftDraftResponse,
     ParseShiftTextRequest,
@@ -272,6 +274,9 @@ async def feed(
     verification: VerificationDep,
     _current_user: AuthUserDep,
     my_skills: Annotated[list[WorkerSkill] | None, Depends(get_my_worker_skills)],
+    # Desde dónde se mide «cerca»: la zona del perfil, o el punto de búsqueda
+    # (`latitude`/`longitude` en la query). Ver `get_feed_origin`.
+    origin: FeedOriginDep,
     city: Annotated[str | None, Query()] = None,
     position: Annotated[WorkerSkill | None, Query()] = None,
     # Varios puestos a la vez (asistente de IA del trabajador: "turno de
@@ -280,6 +285,9 @@ async def feed(
     # explícito. `position` (uno solo) sigue ganando si se manda junto.
     positions: Annotated[list[WorkerSkill] | None, Query()] = None,
     urgent: Annotated[bool | None, Query()] = None,
+    # «Cerca» es cerca: por defecto sólo se devuelve lo que queda dentro del
+    # radio (el Inicio y el Mapa). Buscar pide `scope=all` para ver todo.
+    scope: Annotated[FeedScope, Query()] = FeedScope.NEARBY,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
@@ -296,6 +304,8 @@ async def feed(
         urgent=urgent,
         limit=limit,
         offset=offset,
+        origin=origin,
+        nearby_only=scope is FeedScope.NEARBY,
     )
     responses = await _with_company_info(shifts, companies, verification)
     responses = await _with_pay_band(shifts, responses, service)

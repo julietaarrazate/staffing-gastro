@@ -16,7 +16,7 @@ import { STATUS_LABELS as SHIFT_STATUS_LABELS, SKILL_LABELS } from "@/lib/types"
 import type { AdminUserDetail, ShiftStatus, WorkerSkill } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { formatShiftDate } from "@/lib/datetime";
-import { formatPunctuality, formatRating, levelLabel } from "@/lib/reputation";
+import { formatPunctuality, formatRateOrNone, formatRatingOrNone, hasPaymentRate, levelLabel } from "@/lib/reputation";
 import {
   Avatar,
   Badge,
@@ -265,8 +265,8 @@ export default function AdminPersonPage() {
           <Card className="mt-2 p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Fact label="Turnos completados" value={detail.worker.events_completed} />
-              <Fact label="Calificación" value={formatRating(detail.worker.rating)} />
-              <Fact label="Puntualidad" value={formatPunctuality(detail.worker.punctuality_rate)} />
+              <Fact label="Calificación" value={formatRatingOrNone(detail.worker.rating)} />
+              <Fact label="Puntualidad" value={formatRateOrNone(detail.worker.punctuality_rate, detail.worker.events_completed)} />
               <Fact label="Nivel" value={levelLabel(detail.worker.level)} />
               <Fact label="Cancelaciones" value={detail.worker.cancellations} />
               <Fact label="No se presentó" value={detail.worker.no_shows} />
@@ -292,10 +292,12 @@ export default function AdminPersonPage() {
             </p>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Fact label="Turnos publicados" value={detail.company.events_published} />
-              <Fact label="Calificación" value={formatRating(detail.company.rating)} />
+              <Fact label="Calificación" value={formatRatingOrNone(detail.company.rating)} />
               <Fact
                 label="Paga a tiempo"
-                value={formatPunctuality(detail.company.on_time_payment_rate)}
+                value={hasPaymentRate(detail.company.payments_recorded, detail.company.events_published)
+                    ? formatPunctuality(detail.company.on_time_payment_rate)
+                    : "Sin pagos"}
               />
               <Fact label="Cancelaciones tardías" value={detail.company.late_cancellations} />
             </div>

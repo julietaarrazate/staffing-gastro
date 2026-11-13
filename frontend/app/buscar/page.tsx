@@ -83,6 +83,10 @@ export default function BuscarPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
+      // Buscar es la pantalla para mirar otras zonas: pide todo el mercado.
+      // Sin esto, el feed sólo devuelve lo que queda cerca de la zona del
+      // perfil (lo que muestran el Inicio y el Mapa).
+      params.set("scope", "all");
       // Sin rubro elegido ("Todos"): se pasan TODOS los rubros explícitos
       // como `positions`, para no caer en el default de `/shifts/feed`
       // (los rubros del perfil) — acá el propósito es ver el mercado

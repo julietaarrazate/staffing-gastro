@@ -66,6 +66,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | POST | `/{shift_id}/confirm` · `/reject` | Trabajador confirma/rechaza |
 | POST | `/{shift_id}/worker-cancel` | Trabajador cancela su asignación ya confirmada (sólo desde `confirmado`; reabre el turno — [ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)) |
 | POST | `/{shift_id}/check-in` · `/start-working` · `/depart` · `/check-out` | Asistencia geolocalizada (check-in/out: 400 si está a > 300 m del local) |
+| POST | `/{shift_id}/no-show` | Comercio marca que el trabajador asignado no se presentó. Sólo desde 15 minutos después del `start_at`; antes responde **400** con el mensaje «Todavía no podés marcar que no se presentó: se habilita el DD/MM a las HH:MM (hora de Argentina)…» ([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) |
 | POST | `/{shift_id}/finish` | Finalizar |
 | POST | `/{shift_id}/mark-paid` | Marcar pagado (ver [PAYMENTS.md](./PAYMENTS.md)) |
 | POST | `/{shift_id}/cancel` | Cancelar |
@@ -180,6 +181,24 @@ repetirlo con la misma `Idempotency-Key` cuenta una sola vez.
   de ordenar (slice en Python), porque paginar antes de ordenar por distancia
   devolvería una página con los trabajadores equivocados. Documentado en
   `matching/application/services.py`.
+- **Excepción — `/shifts/feed` cuando hay desde dónde medir.** El feed
+  acepta `scope=nearby|all` y, opcionales, `latitude`/`longitude`. Por
+  defecto (`nearby`, el Inicio y el Mapa) devuelve sólo lo que queda a 40 km
+  o menos de la zona del perfil del trabajador; `all` (Buscar) devuelve todo,
+  ordenado por distancia. `latitude`/`longitude` son un punto de búsqueda que
+  reemplaza a la zona del perfil (la zona que pide el asistente), no la
+  posición del dispositivo. Con `scope=nearby` y un trabajador con zona en
+  su perfil, el filtro grueso va en SQL (caja de coordenadas, sin `LIMIT`), la
+  distancia exacta se mide en Python y `limit`/`offset` se aplican
+  **después**, sobre lo que quedó dentro del radio: cortar antes de filtrar
+  llenaba la página con turnos de otra provincia. La página se llena por
+  cercanía y adentro se ordena urgentes primero, después por distancia y por
+  más nuevo. Un turno sin zona (ni coordenadas ni ciudad) se mide desde el
+  local de su comercio; la respuesta lo sigue devolviendo sin ubicación.
+  Con `scope=all` la página sí sale de SQL, ordenada por una
+  distancia aproximada (aritmética que entienden Postgres y SQLite). Sin
+  zona (comercio, admin, perfil sin ciudad ni coordenadas) es el listado de
+  siempre: urgentes primero y los más nuevos, paginado en SQL.
 - **`GET /admin/stats`** es la única excepción que no pagina: necesita el
   total real de usuarios para las métricas agregadas (queda como P5 de
   [PERFORMANCE_REPORT.md](../audits/PERFORMANCE_REPORT.md), no resuelto en R2.1).
