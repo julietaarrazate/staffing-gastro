@@ -195,66 +195,87 @@ estar seguro de que alguien llega en horario.
 Julieta aceptó las recomendaciones de quien coordina. Las que cambian una
 regla ya escrita (2, 3, 4 y 10) llevan su ADR antes del código.
 
-1. `/privacidad` suma que el identificador del dispositivo se borra también
+- **1.** `/privacidad` suma que el identificador del dispositivo se borra también
    «al cerrar sesión en ese dispositivo». Sube la versión; va junto con el
    texto que salga de la 3, para pedir que se acepte una sola vez.
-2. U081: un turno ya trabajado no se cancela. Con la salida marcada, el
+- **2.** U081: un turno ya trabajado no se cancela. Con la salida marcada, el
    comercio finaliza y paga; un problema va por soporte.
-3. U072: «va en camino» se apaga al instante también para el comercio, que
+- **3.** U072: «va en camino» se apaga al instante también para el comercio, que
    vuelve a ver «Confirmado».
-4. U080: un turno reabierto que ya empezó se reofrece como urgente hasta que
+- **4.** U080: un turno reabierto que ya empezó se reofrece como urgente hasta que
    termine su horario.
-5. El ingreso de invitado se apaga en la beta (vaciar `GUEST_ACCESS_PIN` en
+- **5.** El ingreso de invitado se apaga en la beta (vaciar `GUEST_ACCESS_PIN` en
    Render: lo hace Julieta o lo pide).
-6. #527 se mergea: resolver el conflicto con `main` y marcar el aviso de
+- **6.** #527 se mergea: resolver el conflicto con `main` y marcar el aviso de
    GitGuardian como dato de prueba sin reescribir el historial, después de
    confirmar que el valor no es una clave real.
-10. Cuenta suspendida (G6). Comercio: sus turnos abiertos dejan de verse y de
+- **10.** Cuenta suspendida (G6). Comercio: sus turnos abiertos dejan de verse y de
     aceptar postulaciones; los que tienen a alguien asignado o confirmado y
     no empezaron se cancelan con aviso, sin penalidad. Trabajador: sus turnos
     confirmados se reabren y se le avisa al comercio.
-11. «Mi plan» mientras no se cobra (G11): el uso sin alarma y «Durante la
+- **11.** «Mi plan» mientras no se cobra (G11): el uso sin alarma y «Durante la
     beta no hay tope de turnos»; sin «Alcanzaste el límite» ni la oferta.
-12. El trabajador ve en su propio perfil sus cancelaciones y ausencias
+- **12.** El trabajador ve en su propio perfil sus cancelaciones y ausencias
     (U089); un mensaje del admin reabre el ticket cerrado (U128); al ingresar
     con la cuenta suspendida se dice a quién escribir, sin el motivo (U095).
-13. Quien rechazó, canceló o faltó queda al final de los postulantes, con su
+- **13.** Quien rechazó, canceló o faltó queda al final de los postulantes, con su
     marca, y se puede volver a asignar; quien retiró su postulación no
     aparece (G4).
-14. Avisos: uno al trabajador cuando la app le retira postulaciones por
+- **14.** Avisos: uno al trabajador cuando la app le retira postulaciones por
     confirmar otro turno del mismo horario (U123), y uno solo por evento en
     vez de uno por puesto (U086).
-15. Un turno dura entre 1 y 16 horas (G14).
+- **15.** Un turno dura entre 1 y 16 horas (G14).
+- **7.** Quien marcó la llegada temprano y se tiene que ir antes del inicio puede
+   cancelar desde «llegada marcada»; cuenta como cancelación y el turno se
+   reofrece.
+- **8.** Las cancelaciones tardías de un comercio dejan de viajar a los demás
+   usuarios (ninguna pantalla las mostraba). Las sigue viendo el propio
+   comercio en su perfil.
+- **9.** A los 2 trabajadores de producción sin zona se les avisa con el cartel de
+   G12 y un mail.
+- **16.** Un turno reofrecido que ya empezó se paga por lo que resta, y el aviso lo
+    dice.
+- **17.** Puntualidad real (propuesta, §4): puntual es estar a la hora de inicio,
+    con 5 minutos de margen sólo para marcar; avisos 10 minutos antes, a la
+    hora y a los 5 minutos; si la persona no marcó, el comercio decide («Ya
+    llegó», a horario o tarde, o «No llegó»); «No se presentó» desde los 10
+    minutos.
+
+Julieta, el mismo día, sobre estas cinco y sobre la propuesta: «Confío en tu
+criterio y recomendación con la visión de negocio y producto». Se tomaron las
+recomendaciones de quien coordina.
 
 ### Decisiones que esperan a Julieta
 
-Recomendación de quien coordina entre paréntesis.
+Ninguna al 2026-11-13. El ingreso de invitado (decisión 5) se apaga al abrir
+la beta, en la lista de salida (etapa 5): hasta entonces sirve para mostrar y
+probar la app.
 
-7. Quien marcó la llegada temprano y se tiene que ir antes del inicio no
-   puede cancelar ni marcar la salida hasta que el turno empieza (#552):
-   ¿se permite cancelar desde «llegada marcada»? (Sí, y cuenta como
-   cancelación: el comercio se entera antes y el turno se reofrece.)
-8. ¿Los trabajadores ven cuántas cancelaciones tardías tiene un comercio?
-   Hoy el dato viaja a cualquier usuario con sesión y ninguna pantalla lo
-   muestra: o se muestra, o se deja de mandar. (Dejar de mandarlo por ahora.)
-9. Los 2 trabajadores de producción sin zona en el perfil (de 7) dejaron de
-   recibir «Turno cerca tuyo» con #547 hasta que la carguen. (Lo cubre el
-   cartel de G12; además, un mail a esas dos personas.)
-16. De la 4: un turno reofrecido que ya empezó, ¿se paga entero o lo que
-    resta? (Lo que resta, y el aviso lo dice.)
-17. Puntualidad. Hoy cuenta como puntual quien marca la llegada hasta 15
-    minutos después del inicio; el comercio puede marcar «No se presentó»
-    recién a los 15 minutos, el recordatorio a quien no llegó sale a los 20 y
-    la ausencia automática a las 2 horas. Julieta lo cuestionó el 2026-11-13:
-    el local necesita a la persona en horario. (Puntual es llegar a la hora,
-    con 5 minutos de margen; a la hora de inicio, si no marcó la llegada, se
-    le avisa al comercio y a la persona; «No se presentó» desde los 10
-    minutos, y ahí el turno se reofrece como urgente. Cambia
-    `docs/reference/REPUTATION.md` y el ADR-0008.)
+### Mejoras de producto aprobadas (2026-11-13)
+
+De [`PROPUESTA_URGENTE_Y_PROGRAMADO.md`](./PROPUESTA_URGENTE_Y_PROGRAMADO.md).
+Cada una lleva su ADR antes del código y es un PR aparte de los graves.
+
+| # | Qué | Cuándo | Estado |
+|---|---|---|---|
+| P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | ⚪ sin empezar |
+| P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | ⚪ sin empezar |
+| P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | ⚪ sin empezar |
+| P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |
+| P5 | Agenda del trabajador: días, franjas, barrios y rubros; el comercio filtra por fecha, horario, rubro y zona (§3.1). Pedido expreso de Julieta | Paso A apenas cierren los graves; B y C con la beta andando | ⚪ sin empezar |
+
+Referencias verificadas, «Traé a tu equipo» y los suplentes de eventos
+quedan para cuando la beta esté andando.
+Antes de P3 y P4 conviene la opinión de la asesoría de Julieta (propuesta,
+§7).
 
 ### Pedidos de producto de Julieta (2026-11-13), fuera de la etapa 2
 
-No son arreglos: cada uno necesita su propuesta antes de construir nada.
+No son arreglos: cada uno necesita su propuesta antes de construir nada. La
+primera propuesta, con opciones, recomendación y orden, está en
+[`PROPUESTA_URGENTE_Y_PROGRAMADO.md`](./PROPUESTA_URGENTE_Y_PROGRAMADO.md)
+(aprobada en parte, ver la tabla de arriba; el seguro y el cobro quedan
+afuera).
 
 - **Urgente y programado no se buscan igual.** El urgente, por cercanía y
   velocidad; el programado, con tiempo, por el perfil que mejor calza
