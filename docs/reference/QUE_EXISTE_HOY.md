@@ -116,6 +116,18 @@ listados más abajo.
   `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
   150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
   trabajador, mismo punto en cada render), no aleatorio en cada carga.
+- **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
+  «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
+  en la escalada a urgente), y lo mismo los recomendados que ve el comercio.
+  El Inicio y el Mapa del trabajador muestran sólo los turnos a 40 km o
+  menos de la **zona de su perfil**; Buscar muestra todo. Sin coordenadas en
+  alguna de las dos puntas se compara la ciudad, y un turno publicado sin
+  zona se mide desde el local del comercio. La zona del perfil es lo único
+  que usa el servidor para armar el feed: "Estoy acá" y el GPS del mapa
+  siguen sin salir del dispositivo (la pantalla corta desde ese punto), y
+  "Disponible ahora" sigue siendo sólo para que el comercio mida desde ahí
+  —por eso, con eso prendido lejos de la zona del perfil, el aviso y el
+  Inicio pueden no coincidir—. Detalle en `docs/reference/LOCATION.md`.
 - **Mapa con el pago en el pin** (#319) y **pago de referencia** (#332,
   ADR-0012): el marcador lleva el monto, el rubro es un punto de color, y el
   turno que **paga por encima de lo típico** para su puesto y ciudad se

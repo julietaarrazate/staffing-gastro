@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
@@ -10,7 +11,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
-import { sortByDistance } from "@/lib/current-location";
+import { nearbyOnly, sortByDistance } from "@/lib/current-location";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
@@ -160,6 +161,7 @@ function ShiftRow({
 
 export default function MapPage() {
   const { token, user } = useRequireAuth();
+  const router = useRouter();
   const { requestOptIn } = usePushPrompt();
   const toast = useToast();
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
@@ -197,6 +199,15 @@ export default function MapPage() {
   // una tarjeta cuando ella toca o desliza.
   const originRef = useRef<[number, number] | null>(null);
   const userInteractedRef = useRef(false);
+  // «Cerca tuyo» acá se mide desde donde está la persona (el GPS, que no sale
+  // del dispositivo), pero la respuesta trae los turnos cercanos a la zona
+  // de su PERFIL —o, si el perfil no tiene zona, los más nuevos del país—.
+  // Sin cortar por la distancia al GPS, alguien con el perfil en Palermo y
+  // parado en Córdoba leía «2 turnos cerca tuyo» con tarjetas a 640 km. Es el
+  // mismo corte que hace el Inicio (`nearbyOnly`). `fetchedRef` guarda lo que
+  // llegó, para saber si lo que falta es porque quedó lejos.
+  const fetchedRef = useRef<Shift[]>([]);
+  const [farFromHere, setFarFromHere] = useState(false);
   const [hasOrigin, setHasOrigin] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
   const followActive = userInteracted || !hasOrigin;
@@ -212,11 +223,16 @@ export default function MapPage() {
         originRef.current = origin;
         setCenter(origin);
         setHasOrigin(true);
-        // Si ya estaba eligiendo tarjetas, no le reordenamos la lista abajo.
-        if (!userInteractedRef.current) {
-          setShifts((prev) => sortByDistance(prev, origin));
-          setActiveIndex(0);
-        }
+        // Lo que queda lejos de acá se va siempre. El orden, en cambio, sólo
+        // se toca si todavía no estaba eligiendo tarjetas: no le reordenamos
+        // la lista abajo.
+        const reorder = !userInteractedRef.current;
+        setShifts((prev) => {
+          const near = nearbyOnly(prev, origin);
+          return reorder ? sortByDistance(near, origin) : near;
+        });
+        setFarFromHere(nearbyOnly(fetchedRef.current, origin).length < fetchedRef.current.length);
+        if (reorder) setActiveIndex(0);
       })
       .catch(() => setLocationUnavailable(true)); // fallback al Obelisco, avisado
   }, []);
@@ -230,12 +246,11 @@ export default function MapPage() {
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
       const appliedIds = appliedShiftIds(applied);
-      setShifts(
-        sortByDistance(
-          feed.filter((s) => !appliedIds.has(s.id) && s.latitude != null),
-          originRef.current
-        )
-      );
+      const fetched = feed.filter((s) => !appliedIds.has(s.id) && s.latitude != null);
+      fetchedRef.current = fetched;
+      const near = nearbyOnly(fetched, originRef.current);
+      setFarFromHere(near.length < fetched.length);
+      setShifts(sortByDistance(near, originRef.current));
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
@@ -328,7 +343,28 @@ export default function MapPage() {
     }
   }
 
-  const activeId = shifts[activeIndex]?.id ?? null;
+  // Si la lista se achicó (llegó la ubicación y sacó lo lejano) y el índice
+  // quedó afuera, la activa es la primera.
+  const activeId = (shifts[activeIndex] ?? shifts[0])?.id ?? null;
+
+  // Vacío: si había turnos y todos quedan lejos de donde está la persona, no
+  // se afirma que no hay nada: el mapa sólo trae los de la zona del perfil, y
+  // los de otras zonas se ven en Buscar.
+  const goToSearch = { label: "Ver todos en Buscar", onClick: () => router.push("/buscar") };
+  const allFarFromHere = !error && farFromHere;
+  const emptyTitle =
+    error ?? (allFarFromHere ? "No hay turnos cerca de donde estás ahora" : "No hay turnos cerca");
+  const emptySubtitle = error
+    ? "No pudimos cargar los turnos. Revisá tu conexión e intentá de nuevo."
+    : allFarFromHere
+      ? "El mapa trae los turnos de la zona de tu perfil. Los de otras zonas están en Buscar."
+      : "Aparecen en tiempo real. Volvé en un rato o mirá otras zonas en Buscar.";
+  const emptyPrimary = error
+    ? { label: "Reintentar", onClick: load }
+    : allFarFromHere
+      ? goToSearch
+      : { label: "Actualizar", onClick: load };
+  const emptySecondary = error || allFarFromHere ? undefined : goToSearch;
 
   return (
     <div className="flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
@@ -364,13 +400,10 @@ export default function MapPage() {
             <div className="px-2 py-6">
               <EmptyState
                 icon={<CalendarIcon size={28} />}
-                title={error ?? "No hay turnos cerca"}
-                subtitle={
-                  error
-                    ? "No pudimos cargar los turnos. Revisá tu conexión e intentá de nuevo."
-                    : "Aparecen en tiempo real. Volvé en un rato o ampliá tu zona."
-                }
-                primaryAction={{ label: error ? "Reintentar" : "Actualizar", onClick: load }}
+                title={emptyTitle}
+                subtitle={emptySubtitle}
+                primaryAction={emptyPrimary}
+                secondaryAction={emptySecondary}
               />
             </div>
           ) : (
@@ -438,13 +471,10 @@ export default function MapPage() {
           <div className="rounded-[var(--radius-card)] bg-card p-2 shadow-[var(--shadow-float)]">
             <EmptyState
               icon={<CalendarIcon size={28} />}
-              title={error ?? "No hay turnos cerca"}
-              subtitle={
-                error
-                  ? "No pudimos cargar los turnos. Revisá tu conexión e intentá de nuevo."
-                  : "Aparecen en tiempo real. Volvé en un rato o ampliá tu zona."
-              }
-              primaryAction={{ label: error ? "Reintentar" : "Actualizar", onClick: load }}
+              title={emptyTitle}
+              subtitle={emptySubtitle}
+              primaryAction={emptyPrimary}
+              secondaryAction={emptySecondary}
             />
           </div>
         </div>

@@ -188,7 +188,7 @@ export default function WorkerProfileForm() {
           Ubicación
         </FieldHeading>
         <p className="mt-0.5 text-xs text-ink/50">
-          Tu zona define a qué turnos te recomendamos primero (los más cercanos).
+          Tu zona define qué turnos ves en el Inicio y de cuáles te avisamos.
         </p>
         <div className="mt-2">
           <LocationPicker

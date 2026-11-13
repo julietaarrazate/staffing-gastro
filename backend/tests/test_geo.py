@@ -59,3 +59,57 @@ def test_haversine_km_matches_a_known_degree_of_latitude():
     # (a diferencia de un grado de longitud, que depende de la latitud).
     distance = haversine_km(-34.0, -58.0, -33.0, -58.0)
     assert math.isclose(distance, 111.19, abs_tol=0.5)
+
+
+# --- «Cerca»: caja de coordenadas y comparación de ciudad --------------------
+
+
+def test_bounding_box_contains_the_whole_circle():
+    """La caja es el filtro grueso que va a SQL: tiene que contener TODO el
+    círculo (después se mide la distancia exacta), sin dejar afuera a nadie
+    que esté dentro del radio en ninguna dirección."""
+    from app.core.geo import bounding_box
+
+    lat, lng, radius = -34.58, -58.43, 40.0
+    min_lat, max_lat, min_lng, max_lng = bounding_box(lat, lng, radius)
+
+    for bearing in range(0, 360, 5):
+        angle = math.radians(bearing)
+        # Punto a 39,9 km en esa dirección (proyección local, alcanza acá).
+        d_lat = (39.9 / 111.19) * math.cos(angle)
+        d_lng = (39.9 / (111.19 * math.cos(math.radians(lat)))) * math.sin(angle)
+        point = (lat + d_lat, lng + d_lng)
+        assert haversine_km(lat, lng, *point) < radius
+        assert min_lat <= point[0] <= max_lat
+        assert min_lng <= point[1] <= max_lng
+
+
+def test_bounding_box_is_not_much_bigger_than_the_circle():
+    """Y tampoco es el país entero: lo que queda en las esquinas de la caja
+    está, como mucho, a ~1,5 veces el radio."""
+    from app.core.geo import bounding_box
+
+    lat, lng, radius = -34.58, -58.43, 40.0
+    min_lat, max_lat, min_lng, max_lng = bounding_box(lat, lng, radius)
+    for corner in ((min_lat, min_lng), (min_lat, max_lng), (max_lat, min_lng), (max_lat, max_lng)):
+        assert haversine_km(lat, lng, *corner) < radius * 1.5
+
+
+def test_same_city_ignores_case_accents_and_extra_spaces():
+    from app.core.geo import same_city
+
+    assert same_city("Bahía Blanca", "bahia blanca")
+    assert same_city("  CÓRDOBA ", "Cordoba")
+    assert same_city("San  Miguel de Tucumán", "san miguel de tucuman")
+    assert not same_city("Córdoba", "Rosario")
+
+
+def test_same_city_is_false_when_either_side_is_missing():
+    """Sin ciudad no hay con qué comparar: nunca cuenta como «la misma»."""
+    from app.core.geo import same_city
+
+    assert not same_city(None, "Palermo")
+    assert not same_city("Palermo", None)
+    assert not same_city(None, None)
+    assert not same_city("", "")
+    assert not same_city("   ", "   ")
