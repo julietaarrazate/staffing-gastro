@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -247,4 +247,116 @@ test("si el guardado falla con la carga del Inicio en vuelo, la pantalla toma el
   soltarPut();
   await expect(page.getByText("No se pudo actualizar tu disponibilidad")).toBeVisible();
   await expect(page.getByText("No disp.")).toBeVisible();
+});
+
+const TURNO = {
+  id: "shift-1",
+  company_id: "company-1",
+  position: "mozo",
+  quantity: 1,
+  start_at: "2026-07-10T20:00:00-03:00",
+  end_at: "2026-07-10T23:00:00-03:00",
+  pay_amount: "15000",
+  currency: "ARS",
+  tips: true,
+  dress_code: null,
+  urgent: false,
+  address: null,
+  city: "Palermo, CABA",
+  latitude: -34.5875,
+  longitude: -58.4257,
+  title: null,
+  description: null,
+  status: "publicado",
+  worker_profile_id: null,
+  check_in_latitude: null,
+  check_in_longitude: null,
+  check_in_at: null,
+  check_out_latitude: null,
+  check_out_longitude: null,
+  check_out_at: null,
+  paid_at: null,
+  created_at: "2026-07-01T12:00:00-03:00",
+  company_name: "Bar Demo Palermo",
+  company_logo_url: null,
+};
+
+async function prepararInicioConUnTurno(page: Page) {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-1",
+        email: "demo@staffya.com",
+        full_name: "Mozo Demo",
+        role: "worker",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  await page.route("**/api/v1/applications/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+}
+
+test("si el guardado falla sin conexión, el Inicio conserva los turnos y sólo avisa el error", async ({ page }) => {
+  await prepararInicioConUnTurno(page);
+  let sinRed = false;
+  let pedidosFeed = 0;
+  await page.route("**/api/v1/shifts/feed**", (route) => {
+    pedidosFeed += 1;
+    if (sinRed) return route.abort("failed");
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([TURNO]) });
+  });
+  await page.route("**/api/v1/workers/me/profile", (route) => {
+    if (sinRed) return route.abort("failed");
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EN_SERVIDOR) });
+  });
+
+  await page.goto("/feed");
+  await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
+  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  await expect(interruptor).toBeVisible();
+  const feedAntes = pedidosFeed;
+
+  sinRed = true;
+  await interruptor.click();
+
+  await expect(page.getByText("No se pudo actualizar tu disponibilidad")).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
+  await expect(page.getByText("No se pudo cargar")).toHaveCount(0);
+  expect(pedidosFeed).toBe(feedAntes);
+  await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
+});
+
+test("si todavía no hay perfil, tocar «Disponible» explica que falta completarlo y no recarga el Inicio", async ({ page }) => {
+  await prepararInicioConUnTurno(page);
+  let pedidosFeed = 0;
+  await page.route("**/api/v1/shifts/feed**", (route) => {
+    pedidosFeed += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([TURNO]) });
+  });
+  await page.route("**/api/v1/workers/me/profile", (route) =>
+    route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "Perfil no encontrado" }) })
+  );
+
+  await page.goto("/feed");
+  await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
+  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  await expect(interruptor).toBeVisible();
+  const feedAntes = pedidosFeed;
+
+  await interruptor.click();
+
+  await expect(page.getByText("Completá tu perfil para marcarte disponible")).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(pedidosFeed).toBe(feedAntes);
+  await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
 });

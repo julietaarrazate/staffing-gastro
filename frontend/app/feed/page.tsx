@@ -240,13 +240,29 @@ function WorkerFeedPanel() {
       const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
       if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: saved });
       toast(next ? "Estás disponible" : "Te marcaste como no disponible");
-    } catch {
+    } catch (err) {
       setAvailable(!next); // revertir
+      if (err instanceof ApiError && err.status === 404) {
+        // Cerró la app en la bienvenida antes de guardar: no hay perfil que
+        // actualizar y reintentar no lo arregla.
+        toast("Completá tu perfil para marcarte disponible", "error");
+        return;
+      }
       toast("No se pudo actualizar tu disponibilidad", "error");
       // Si una carga terminó con el guardado en vuelo, descartó su perfil y
-      // nadie lo volvió a aplicar: se vuelve a cargar para tomar el del servidor.
-      savingProfile.current = false;
-      void load();
+      // nadie lo volvió a aplicar. Se relee sólo el perfil: recargar todo el
+      // Inicio fallaría igual sin conexión y taparía la lista con el error.
+      void api
+        .get<WorkerProfile>("/workers/me/profile", token)
+        .then((p) => {
+          if (savingProfile.current) return;
+          setProfile(p);
+          setAvailable(p.is_available);
+          lastSavedProfile.current = p;
+          const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+          if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: p });
+        })
+        .catch(() => {});
     } finally {
       savingProfile.current = false;
     }

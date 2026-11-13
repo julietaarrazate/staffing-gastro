@@ -56,7 +56,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { saveProfilePart } from "@/lib/worker-profile";
+import { GUEST_WORKER_EMAIL, saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { destinoTrasBienvenida } from "@/lib/plan-elegido";
@@ -134,11 +134,6 @@ function StepDots({ active, total }: { active: number; total: number }) {
     </div>
   );
 }
-
-/** Mail de la cuenta invitada del trabajador (`GUEST_ACCOUNTS` en
- *  `backend/app/modules/identity/application/services.py`). Se decide por la
- *  cuenta y no por la URL: una cuenta real nunca tiene que perder su perfil. */
-const GUEST_WORKER_EMAIL = "invitado.trabajador@oido.beta";
 
 type WorkerStep = "zona" | "oficio" | "detalles";
 

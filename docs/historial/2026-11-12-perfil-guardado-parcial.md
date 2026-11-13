@@ -62,12 +62,16 @@ Lo técnico:
   `backend/app/modules/identity/application/services.py`). Una versión previa
   usaba `?invitado=1` en la URL y una cuenta real que la escribiera perdía el
   perfil; se sacó la marca y el login volvió a `/bienvenida`.
-- Inicio: si la carga terminó con el guardado en vuelo y el guardado falla,
-  `toggleAvailable` vuelve a cargar para no quedarse sin el perfil que
-  descartó la carga.
+- Inicio: si el guardado falla, `toggleAvailable` relee sólo el perfil (no
+  recarga todo el Inicio: sin conexión la recarga también falla y tapaba la
+  lista de turnos con «No se pudo cargar»). Si no hay perfil todavía (404),
+  avisa «Completá tu perfil para marcarte disponible» y no relee nada.
+- El mail de la cuenta invitada se exporta desde `lib/worker-profile.ts` y un
+  test de vitest lo compara con `GUEST_ACCOUNTS` del backend.
 - Tests: `lib/worker-profile.test.ts`, `components/worker/WorkerGameCard.test.tsx`,
   `e2e/inicio-disponible-perfil.spec.ts` (incluye tocar con el refresco en
-  vuelo y el guardado fallido con la carga ya terminada) y
+  vuelo, el guardado fallido con la carga en vuelo, el guardado fallido sin
+  conexión que conserva los turnos y el perfil inexistente) y
   `e2e/bienvenida-perfil-existente.spec.ts` (dejar para después, terminar con
   detalles conservando lo existente, invitado reemplaza, cuenta real con
   `?invitado=1` no reemplaza). Los E2E de perfil existente, de Inicio y los
@@ -77,8 +81,13 @@ Lo técnico:
 **Por qué así:** un único lugar para "guardar una parte", en vez de que cada
 pantalla arme el payload. No se tocó el backend.
 
-**Queda abierto:** entre leer y escribir sigue habiendo una ventana de
-milisegundos en la que un guardado de otra pestaña se podría perder. El
-arreglo de fondo es un guardado parcial en el backend (PATCH que sólo cambie
-los campos enviados). Sin ítem nuevo en `STATUS.md` por pedido del
-coordinador.
+**Queda abierto:**
+- Entre leer y escribir sigue habiendo una ventana de milisegundos en la que
+  un guardado de otra pestaña se podría perder. El arreglo de fondo es un
+  guardado parcial en el backend (PATCH que sólo cambie los campos enviados).
+- El formulario completo del perfil manda la disponibilidad que cargó al
+  abrirse: desde una pestaña vieja pisa lo que se haya cambiado con el
+  interruptor del Inicio.
+- El onboarding del comercio conserva el PUT corto tras un POST fallido.
+
+Sin ítem nuevo en `STATUS.md` por pedido del coordinador.

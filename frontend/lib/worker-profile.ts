@@ -1,6 +1,12 @@
 import { api } from "@/lib/api";
 import type { WorkerProfile } from "@/lib/types";
 
+/** Mail de la cuenta invitada del trabajador (`GUEST_ACCOUNTS` en
+ *  `backend/app/modules/identity/application/services.py`). Se decide por la
+ *  cuenta y no por la URL: una cuenta real nunca tiene que perder su perfil.
+ *  `lib/worker-profile.test.ts` verifica que siga igual al del backend. */
+export const GUEST_WORKER_EMAIL = "invitado.trabajador@oido.beta";
+
 /**
  * Campos editables del perfil del trabajador, tal como los espera
  * `PUT/POST /workers/me/profile` (`WorkerProfileInput` del backend).

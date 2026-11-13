@@ -5,7 +5,9 @@ const get = vi.fn();
 const put = vi.fn();
 vi.mock("@/lib/api", () => ({ api: { get: (...a: unknown[]) => get(...a), put: (...a: unknown[]) => put(...a) } }));
 
-import { saveProfilePart } from "./worker-profile";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { GUEST_WORKER_EMAIL, saveProfilePart } from "./worker-profile";
 
 function perfil(extra: Partial<WorkerProfile> = {}): WorkerProfile {
   return {
@@ -71,5 +73,21 @@ describe("saveProfilePart", () => {
     get.mockRejectedValue(new Error("sin conexión"));
     await expect(saveProfilePart("tok", { is_available: false })).rejects.toThrow();
     expect(put).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * El mail de la cuenta invitada del trabajador está escrito en el frontend y en
+ * `GUEST_ACCOUNTS` del backend. Si se desfasan, el invitado deja de arrancar de
+ * cero en /bienvenida y el siguiente probador hereda los datos del anterior.
+ */
+describe("mail de la cuenta invitada del trabajador", () => {
+  it("coincide con el de GUEST_ACCOUNTS del backend", () => {
+    const python = readFileSync(
+      resolve(__dirname, "../../backend/app/modules/identity/application/services.py"),
+      "utf8"
+    );
+    const match = python.match(/UserRole\.WORKER:\s*\(\s*"([^"]+)"/);
+    expect(match?.[1]).toBe(GUEST_WORKER_EMAIL);
   });
 });
