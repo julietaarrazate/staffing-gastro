@@ -19,7 +19,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.main import app
 from app.modules.chat.infrastructure.models import ChatMessageModel
-from tests._turno_empezado import empezar_turno
+from tests._turno_empezado import empezar_turno_de_la_app
 from tests.conftest import auth_headers
 from tests.test_chat import _setup_in_memory_db
 
@@ -96,15 +96,6 @@ async def _asignar(client: AsyncClient, comercio: dict, shift_id: str, persona: 
     assert assigned.status_code == 200
 
 
-_FABRICA: dict = {}
-
-
-@pytest.fixture(autouse=True)
-def _guardar_fabrica_de_sesiones(session_factory):
-    """«No se presentó» exige que el turno haya empezado: el helper necesita la base."""
-    _FABRICA["sesiones"] = session_factory
-
-
 async def _desasignar(
     client: AsyncClient, camino: str, shift_id: str, comercio: dict, persona: Persona
 ):
@@ -123,7 +114,7 @@ async def _desasignar(
                 f"/api/v1/shifts/{shift_id}/worker-cancel", headers=persona.headers
             )
         else:
-            await empezar_turno(_FABRICA["sesiones"], shift_id)
+            await empezar_turno_de_la_app(shift_id)
             response = await client.post(
                 f"/api/v1/shifts/{shift_id}/no-show", headers=comercio
             )
