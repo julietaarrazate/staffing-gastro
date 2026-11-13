@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import BackgroundTasks, Depends, HTTPException, status
+from fastapi import BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -30,12 +30,14 @@ from app.modules.matching.infrastructure.repositories import (
     SqlAlchemyCandidateRepository,
 )
 from app.modules.shift.application.services import ShiftService
+from app.modules.shift.domain.nearby import FeedOrigin
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
 from app.modules.worker.api.dependencies import get_worker_service
 from app.modules.worker.application.services import WorkerProfileService
+from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.exceptions import WorkerProfileNotFoundError
 from app.modules.worker.domain.value_objects import WorkerSkill
 from app.modules.worker.infrastructure.repositories import (
@@ -99,21 +101,61 @@ async def get_my_worker_profile_id(
     return profile.id
 
 
-async def get_my_worker_skills(
+async def get_my_worker_profile_or_none(
     current_user: Annotated[User, Depends(get_current_user)],
     worker_service: Annotated[WorkerProfileService, Depends(get_worker_service)],
-) -> list[WorkerSkill] | None:
-    """Rubros del perfil del trabajador autenticado, o `None` si no aplica.
+) -> WorkerProfile | None:
+    """Perfil del trabajador autenticado, o `None` si no aplica.
 
     A diferencia de `get_my_worker_profile_id`, nunca tira error: la usa el
     feed (`GET /shifts/feed`) para filtrar por relevancia sin romperle la
     pantalla a nadie que no sea trabajador con perfil completo (comercio,
     trabajador recién registrado sin perfil todavía, etc. simplemente no
-    filtran)."""
+    filtran). FastAPI la resuelve una sola vez por pedido aunque la usen
+    varias dependencias (rubros y zona): una consulta, no dos."""
     if current_user.role != UserRole.WORKER:
         return None
     try:
-        profile = await worker_service.get_my_profile(current_user.id)
+        return await worker_service.get_my_profile(current_user.id)
     except WorkerProfileNotFoundError:
         return None
+
+
+async def get_my_worker_skills(
+    profile: Annotated[WorkerProfile | None, Depends(get_my_worker_profile_or_none)],
+) -> list[WorkerSkill] | None:
+    """Rubros del perfil del trabajador autenticado, o `None` si no aplica
+    (no es trabajador, no tiene perfil o no eligió ninguno)."""
+    if profile is None:
+        return None
     return profile.skills or None
+
+
+async def get_feed_origin(
+    profile: Annotated[WorkerProfile | None, Depends(get_my_worker_profile_or_none)],
+    latitude: Annotated[float | None, Query(ge=-90, le=90)] = None,
+    longitude: Annotated[float | None, Query(ge=-180, le=180)] = None,
+) -> FeedOrigin | None:
+    """Desde dónde se mide «cerca» en `GET /shifts/feed`.
+
+    Por defecto, la zona del perfil del trabajador (coordenadas y ciudad): la
+    zona FIJA, lo que el servidor ya tiene. Quien no es trabajador o no tiene
+    perfil no tiene origen (`None`) y ve todo, como siempre.
+
+    `latitude`/`longitude` en la query son un punto de búsqueda que reemplaza
+    a la zona del perfil: lo manda la búsqueda del asistente ("turnos en
+    Palermo") con el centro de la zona que la persona escribió. NO es para
+    la posición del dispositivo ("Estoy acá", el GPS del mapa): ésa no sale
+    del teléfono para armar el feed, y mandarla sería un uso nuevo de la
+    ubicación que `/privacidad` hoy no contempla. Tampoco entra acá
+    "Disponible ahora", que es para que el comercio mida desde ahí."""
+    if latitude is not None and longitude is not None:
+        return FeedOrigin(latitude=latitude, longitude=longitude)
+    if profile is None:
+        return None
+    return FeedOrigin(
+        latitude=profile.latitude, longitude=profile.longitude, city=profile.city
+    )
+
+
+FeedOriginDep = Annotated[FeedOrigin | None, Depends(get_feed_origin)]

@@ -253,15 +253,17 @@ def test_ranking_orders_candidates_with_different_tradeoffs():
     el score ponderado total, no un único factor.
 
     - `cerca_pero_nueva`: a 0km, sin reseñas (rating 0), sin experiencia.
-    - `lejos_pero_excelente`: fuera del radio (factor distancia 0), pero
-      máxima reputación, puntualidad, desempeño y experiencia.
+    - `lejos_pero_excelente`: casi en el borde del radio (a ~24 km, factor
+      distancia ≈ 0), pero máxima reputación, puntualidad, desempeño y
+      experiencia. No más lejos que eso: fuera del radio ya no entra al
+      ranking (ver "El radio es un límite duro", abajo).
     - `equilibrada`: valores intermedios en todos los factores.
 
     Con los pesos por defecto (distancia 0.30 / reputación 0.25 /
     experiencia 0.15 / puntualidad 0.15 / desempeño 0.15), `equilibrada`
-    (≈0.73) supera a `lejos_pero_excelente` (0.70): perder el 30% completo de
-    distancia pesa más que ganar el resto de los factores al máximo. Es el
-    comportamiento esperado del diseño (la cercanía es el factor de mayor
+    (≈0.73) supera a `lejos_pero_excelente` (≈0.71): perder casi todo el 30%
+    de distancia pesa más que ganar el resto de los factores al máximo. Es
+    el comportamiento esperado del diseño (la cercanía es el factor de mayor
     peso, ver docs/reference/MATCHING.md), no un bug.
     """
     cerca_pero_nueva = _candidate(
@@ -276,8 +278,8 @@ def test_ranking_orders_candidates_with_different_tradeoffs():
     )
     lejos_pero_excelente = _candidate(
         full_name="lejos_pero_excelente",
-        latitude=-31.4,
-        longitude=-64.2,
+        latitude=PALERMO[0] + 24 / 111.19,  # ~24 km al norte
+        longitude=PALERMO[1],
         years_experience=15,
         rating=5.0,
         punctuality_rate=1.0,
@@ -343,3 +345,145 @@ def test_ranking_uses_custom_weights_and_radius():
     )
 
     assert [r.full_name for r in ranked] == ["cerca", "lejos_mejor_calificada"]
+
+
+# --- El radio es un límite duro ---------------------------------------------
+#
+# Prueba de punta a punta (2026-11): el radio sólo puntuaba, así que con pocos
+# candidatos una trabajadora de Tucumán recibía «Turno cerca tuyo» de un bar
+# de Bahía Blanca, a más de 1.300 km. Fuera del radio no se avisa ni se
+# sugiere, por bien que puntúe el resto.
+
+BAHIA_BLANCA = (-38.7183, -62.2663)
+TUCUMAN = (-26.8083, -65.2176)
+
+
+def _fixed_distance(km: float | None):
+    """`distance_fn` que devuelve siempre `km`, para probar el borde exacto."""
+    return lambda _candidate, _requirement: km
+
+
+def test_radios_del_aviso_y_de_la_escalada():
+    """25 km en el primer aviso y 40 km en la escalada (ADR-0009)."""
+    from app.modules.matching.domain.value_objects import ESCALATION_RADIUS_KM
+
+    assert DEFAULT_MAX_RADIUS_KM == 25.0
+    assert ESCALATION_RADIUS_KM == 40.0
+
+
+def test_ranking_excludes_candidates_outside_the_radius():
+    requirement = _requirement(latitude=BAHIA_BLANCA[0], longitude=BAHIA_BLANCA[1])
+    cerca = _candidate(full_name="cerca", latitude=-38.70, longitude=-62.27)
+    lejos_pero_excelente = _candidate(
+        full_name="lejos_pero_excelente",
+        latitude=TUCUMAN[0],
+        longitude=TUCUMAN[1],
+        years_experience=15,
+        rating=5.0,
+        punctuality_rate=1.0,
+        events_completed=50,
+    )
+
+    ranked = rank_candidates([lejos_pero_excelente, cerca], requirement)
+
+    assert [r.full_name for r in ranked] == ["cerca"]
+
+
+def test_ranking_radius_boundary_is_inclusive():
+    """A exactamente el radio todavía es «cerca»; un paso más allá, no."""
+    requirement = _requirement()
+    candidate = _candidate()
+
+    en_el_borde = rank_candidates(
+        [candidate], requirement, distance_fn=_fixed_distance(DEFAULT_MAX_RADIUS_KM)
+    )
+    pasado = rank_candidates(
+        [candidate], requirement, distance_fn=_fixed_distance(DEFAULT_MAX_RADIUS_KM + 0.1)
+    )
+
+    assert len(en_el_borde) == 1
+    assert pasado == []
+
+
+def test_escalation_radius_reaches_further_but_is_also_a_hard_limit():
+    """A 30 km no entra al primer aviso y sí a la escalada; a 45 km, a ninguno."""
+    from app.modules.matching.domain.value_objects import ESCALATION_RADIUS_KM
+
+    requirement = _requirement()
+    candidate = _candidate()
+
+    assert rank_candidates([candidate], requirement, distance_fn=_fixed_distance(30.0)) == []
+    assert (
+        len(
+            rank_candidates(
+                [candidate],
+                requirement,
+                max_radius_km=ESCALATION_RADIUS_KM,
+                distance_fn=_fixed_distance(30.0),
+            )
+        )
+        == 1
+    )
+    assert (
+        rank_candidates(
+            [candidate],
+            requirement,
+            max_radius_km=ESCALATION_RADIUS_KM,
+            distance_fn=_fixed_distance(45.0),
+        )
+        == []
+    )
+
+
+def test_candidate_without_location_counts_only_if_city_matches():
+    """Sin ubicación conocida no se puede medir: cuenta sólo si su ciudad es
+    la del turno (sin mayúsculas ni tildes)."""
+    requirement = _requirement(
+        latitude=BAHIA_BLANCA[0], longitude=BAHIA_BLANCA[1], city="Bahía Blanca"
+    )
+    misma_ciudad = _candidate(
+        full_name="misma_ciudad", latitude=None, longitude=None, city="bahia blanca"
+    )
+    otra_ciudad = _candidate(
+        full_name="otra_ciudad", latitude=None, longitude=None, city="San Miguel de Tucumán"
+    )
+    sin_ciudad = _candidate(full_name="sin_ciudad", latitude=None, longitude=None, city=None)
+
+    ranked = rank_candidates([otra_ciudad, sin_ciudad, misma_ciudad], requirement)
+
+    assert [r.full_name for r in ranked] == ["misma_ciudad"]
+    # Sigue sin distancia: el factor de cercanía queda neutral, como antes.
+    assert ranked[0].distance_km is None
+
+
+def test_shift_without_coordinates_compares_city_for_everyone():
+    """Turno sin coordenadas: se compara por ciudad para todos, también para
+    quien sí tiene ubicación (no hay contra qué medirla)."""
+    requirement = _requirement(latitude=None, longitude=None, city="Bahía Blanca")
+    de_la_ciudad = _candidate(
+        full_name="de_la_ciudad",
+        latitude=BAHIA_BLANCA[0],
+        longitude=BAHIA_BLANCA[1],
+        city="Bahía Blanca",
+    )
+    de_otra = _candidate(
+        full_name="de_otra", latitude=TUCUMAN[0], longitude=TUCUMAN[1], city="Tucumán"
+    )
+
+    ranked = rank_candidates([de_otra, de_la_ciudad], requirement)
+
+    assert [r.full_name for r in ranked] == ["de_la_ciudad"]
+
+
+def test_with_a_known_distance_the_city_is_not_used():
+    """Con distancia medible manda la distancia: una ciudad mal escrita no
+    deja afuera a quien está a dos cuadras, ni mete a quien está lejos."""
+    requirement = _requirement(city="Palermo")
+    a_dos_cuadras = _candidate(full_name="a_dos_cuadras", city="Otra ciudad")
+    lejos_misma_ciudad = _candidate(
+        full_name="lejos_misma_ciudad", latitude=TUCUMAN[0], longitude=TUCUMAN[1], city="Palermo"
+    )
+
+    ranked = rank_candidates([lejos_misma_ciudad, a_dos_cuadras], requirement)
+
+    assert [r.full_name for r in ranked] == ["a_dos_cuadras"]

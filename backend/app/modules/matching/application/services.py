@@ -69,8 +69,10 @@ class MatchingService:
             position=shift.position,
             latitude=shift.latitude,
             longitude=shift.longitude,
+            city=shift.city,
         )
         candidates = await self._candidates.list_available(shift.position)
+        # Fuera del radio no se sugiere a nadie (`rank_candidates` lo corta).
         # El puntaje (y su tope por radio) usa la MISMA distancia pública que
         # se muestra: con la real, el `score` la filtraba igual — tres turnos
         # con lat/lng elegidas y Δdist = Δscore·radio/peso triangulaban el

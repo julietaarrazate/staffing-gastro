@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -9,6 +10,19 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.modules.shift.domain.pay_benchmark import PayBand
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+
+class FeedScope(str, Enum):
+    """Alcance de `GET /shifts/feed`.
+
+    - `nearby` (por defecto): sólo lo que queda cerca. Es el feed del Inicio
+      y del Mapa.
+    - `all`: todo el mercado, ordenado por distancia cuando hay desde dónde
+      medir. Es Buscar, la pantalla para mirar otras zonas.
+    """
+
+    NEARBY = "nearby"
+    ALL = "all"
 
 
 class ShiftInput(BaseModel):
