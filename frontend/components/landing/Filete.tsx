@@ -25,7 +25,22 @@ const FUENTE = "var(--font-sancreek), Georgia, serif";
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** El sol, a la manera del Sol de Mayo: rayos rectos y ondulados alternados y disco con relieve. */
-export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: number; id: string; rayos?: number }) {
+export function Sol({
+  cx,
+  cy,
+  r,
+  id,
+  rayos = 32,
+  claseRayos,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  id: string;
+  rayos?: number;
+  /** Clase para el grupo de los rayos solos (el disco y su relieve no giran). */
+  claseRayos?: string;
+}) {
   const piezas: ReactNode[] = [];
   const R1 = r * 1.08;
   const R2 = r * 1.72;
@@ -58,7 +73,7 @@ export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: 
   const relieve = Array.from({ length: 10 }, (_, i) => 10 - i);
   return (
     <g>
-      {piezas}
+      <g className={claseRayos}>{piezas}</g>
       {relieve.map((k) => (
         <circle key={k} cx={cx + k} cy={cy + k} r={r} fill={k > 5 ? HONDO : HONDO_CLARO} />
       ))}
