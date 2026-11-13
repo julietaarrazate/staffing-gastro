@@ -23,8 +23,16 @@ Comercio:   ve postulantes + recomendados ─▶ Asigna ─▶ Trabajador confir
 
 ## Postulación (`ShiftApplication`)
 
-- Un trabajador se postula **una sola vez** por turno, y sólo a **turnos abiertos**.
-- Al postularse, se **notifica al comercio** (`new_applicant`).
+- Un trabajador tiene **una sola postulación** por turno, y sólo se postula a
+  **turnos abiertos**. Con la postulación activa (`pendiente` o `aceptada`) no
+  puede postularse otra vez.
+- Si la **retiró** (o se la retiró el sistema al confirmar otro turno del mismo
+  horario) puede **volver a postularse** mientras el turno siga abierto: se
+  reactiva la misma postulación (vuelve a `pendiente`, con fecha nueva), no nace
+  otra, así que el comercio lo ve una sola vez entre sus postulantes. Una
+  `rechazada` no se reactiva por pedido del trabajador.
+- Al postularse, se **notifica al comercio** (`new_applicant`), también cuando
+  es una vuelta.
 - Estados: `pendiente`, `aceptada`, `rechazada`, `retirada`.
 - El comercio ve la lista de postulantes enriquecida (nombre, foto, rating).
 
