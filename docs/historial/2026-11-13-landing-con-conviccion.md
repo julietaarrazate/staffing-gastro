@@ -1,4 +1,4 @@
-# Landing «con convicción»: misma estructura, color decidido y más movimiento
+# Landing «con convicción»: misma estructura, color decidido y más movimiento (#543)
 
 **Pedido:** Julieta, 2026-11-13. Mandó una referencia (un inicio con cielo
 pleno, tarjetas flotando y un mosaico) porque la landing "quedó con poco
