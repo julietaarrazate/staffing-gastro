@@ -134,6 +134,10 @@ sólo con opacidad y escala (sin desplazamiento), `z-[60]` (sobre el encabezado 
 los sheets). **Tocarlo lo cierra** y el toque no pasa a lo que tapa (arriba queda
 sobre el botón de la esquina del asistente de publicar y sobre el interruptor de
 disponibilidad); los huecos a sus costados sí dejan pasar los toques.
+La salida es un fundido corto también con «reducir movimiento» (nunca
+instantánea), para que el aviso que se va reciba el segundo toque de un doble
+toque. Excepción conocida: con un Modal abierto el aviso queda debajo del velo
+(los dos `z-[60]`) y el toque lo recibe el velo, que cierra el Modal.
 
 ## Tono de banner por rubro
 

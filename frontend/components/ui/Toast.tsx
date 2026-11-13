@@ -68,7 +68,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={t.id}
               initial={reducedMotion ? false : { opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.95 }}
+              // La salida nunca es instantánea, tampoco con «reducir movimiento»
+              // (un fundido no es movimiento): el aviso que se está yendo sigue
+              // recibiendo el segundo toque de un doble toque, que si no caería
+              // sobre el botón que tapaba («Cerrar» del asistente).
+              exit={{
+                opacity: 0,
+                scale: reducedMotion ? 1 : 0.95,
+                transition: reducedMotion ? { duration: 0.3 } : undefined,
+              }}
               transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
               onClick={() => dismiss(t.id)}
               className={`pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
