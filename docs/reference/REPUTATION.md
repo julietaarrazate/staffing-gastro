@@ -25,8 +25,11 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `punctuality_rate` — tasa de puntualidad. **(R2.4)** se recalcula al
   finalizar cada turno (`ShiftService.finish`,
   `backend/app/modules/shift/application/services.py`) como promedio móvil
-  simple sobre los turnos completados: puntual = check-in dentro de **±15
-  minutos** del horario pactado (`start_at`). `finish()` sólo es alcanzable
+  simple sobre los turnos completados: puntual = check-in **hasta 15
+  minutos después** del horario pactado (`start_at`); llegar antes (la app deja
+  marcar hasta 30 min antes) siempre cuenta como puntual. La regla es la
+  función pura `arrived_on_time` en
+  `backend/app/modules/shift/domain/punctuality.py`. `finish()` sólo es alcanzable
   habiendo pasado por check-in y check-out (ver
   `Shift._transition` en `shift/domain/entities.py`), así que siempre hay un
   check-in real para evaluar.

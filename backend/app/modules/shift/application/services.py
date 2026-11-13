@@ -39,6 +39,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
+from app.modules.shift.domain.punctuality import arrived_on_time
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
@@ -55,10 +56,6 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
 
-
-# R2.4: tolerancia para considerar "puntual" un check-in respecto del
-# horario pactado (start_at). Ver docs/reference/REPUTATION.md.
-PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
 # respecto del fin del turno (end_at). No hay un plazo de pago pactado en el
@@ -1048,7 +1045,7 @@ class ShiftService:
         por check-in y check-out, ver `Shift._transition`) se actualizan las
         métricas de reputación reales del trabajador asignado:
         `events_completed` (+1) y `punctuality_rate` (promedio móvil simple
-        sobre si el check-in ocurrió dentro de la tolerancia del horario
+        sobre si el check-in fue hasta 15 min después del horario
         pactado). Mismo patrón que las notificaciones: el efecto vive dentro
         del caso de uso que cierra el ciclo, no en un job aparte.
         """
@@ -1063,15 +1060,11 @@ class ShiftService:
 
     @staticmethod
     def _was_punctual(shift: Shift) -> bool:
-        """Puntual = check-in dentro de ±15 min del horario pactado (start_at).
+        """Puntual = llegó hasta 15 min después de `start_at` (antes, siempre).
 
-        Normaliza a "naive" antes de comparar: en SQLite (tests) los
-        datetimes vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ`
-        sí lo preservan. Se asume que ambos valores están en UTC.
+        La regla vive en `shift/domain/punctuality.py`.
         """
-        if shift.check_in_at is None:
-            return False
-        return abs(_naive(shift.check_in_at) - _naive(shift.start_at)) <= PUNCTUALITY_TOLERANCE
+        return arrived_on_time(shift.check_in_at, shift.start_at)
 
     @staticmethod
     def _was_paid_on_time(shift: Shift) -> bool:
