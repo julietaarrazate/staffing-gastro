@@ -84,7 +84,7 @@ del tope del plan, que está apagado en la beta).
 | U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | 🔵 PR abierto | #550 (revisión aprobada y prueba en la app hecha; cambia una regla: espera el visto bueno de Julieta) |
 | U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⏸️ espera decisión | cancelar un turno ya trabajado: cambia el ADR-0007 |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🔵 PR abierto | #553 (revisión y prueba en la app hechas; se están aplicando los cambios de la revisión; cambia una regla: espera el visto bueno de Julieta) |
+| U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | 🔵 PR abierto | #553 (revisión y prueba en la app hechas, dos pasadas cada una; cambia una regla: espera el visto bueno de Julieta) |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ⚪ sin empezar |  |
 
 **Tanda 4**
@@ -174,7 +174,8 @@ del tope del plan, que está apagado en la beta).
   recibe tres avisos de cancelación.
 - #547 y #549 chocan en una línea de `shift/application/services.py`, y #550
   con #552 en una de `shift/domain/entities.py` (dos importaciones en el mismo
-  lugar): al mergear el primero de cada par, al otro hay que traerle `main`.
+  lugar), y #550 con #553 en `components/ShiftActions.tsx`: al mergear el
+  primero de cada par, al otro hay que traerle `main`.
 
 ### Decisiones que esperan a Julieta
 
