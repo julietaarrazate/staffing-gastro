@@ -56,20 +56,19 @@ describe("ToastProvider", () => {
     expect(cuerpo.className).toContain("[&_button]:pointer-events-auto");
   });
 
-  it("en pantallas angostas el aviso va arriba (bajo el encabezado) y desde md abajo", () => {
+  it("el aviso va arriba (bajo el encabezado) en todos los anchos", () => {
     render(
       <ToastProvider>
         <Trigger message="Turno publicado" />
       </ToastProvider>
     );
     const cls = screen.getByRole("status").className.split(/\s+/);
-    // Angosto: arriba, debajo del encabezado y de la zona segura; nunca abajo
-    // (ahí están los botones de acción: «Publicar turno»).
+    // Una sola posición: arriba, debajo del encabezado y de la zona segura.
+    // Nunca abajo, ni en celular ni en escritorio con la ventana baja (ahí
+    // «Publicar turno» queda a media pantalla y el aviso lo pisaba).
     expect(cls).toContain("top-[calc(var(--chrome-top)+0.5rem)]");
-    expect(cls).not.toContain("bottom-24");
-    // md y más ancho: como siempre, abajo.
-    expect(cls).toContain("md:top-auto");
-    expect(cls).toContain("md:bottom-24");
+    expect(cls.some((c) => c.includes("bottom-"))).toBe(false);
+    expect(cls.some((c) => c.startsWith("md:top-") || c.startsWith("md:bottom-"))).toBe(false);
     // Sigue por encima del encabezado (z-40) para no quedar tapado.
     expect(cls).toContain("z-[60]");
   });

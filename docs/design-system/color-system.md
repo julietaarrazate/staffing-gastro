@@ -125,12 +125,13 @@ propias del chat, badges sobre foto). El **toast** ya no lo usa: tiene su par
 oscuro se **invierte** (claro `#EEF3F6` con tinta `#0D131A`), porque un toast
 casi negro sobre el lienzo oscuro no se distinguía del fondo.
 
-**Dónde va el aviso flotante** (`components/ui/Toast.tsx`): por debajo de `md`
-(celular) **arriba**, centrado, a `calc(var(--chrome-top) + 0.5rem)`
-(justo bajo el encabezado; `--chrome-top` = 4rem + zona segura, `globals.css`); desde `md` **abajo** (`bottom-24`). Nunca
-abajo en celular: ahí están los botones de acción («Publicar turno»). Entra
-sólo con opacidad y escala (sin desplazamiento, vale para las dos posiciones),
-`z-[60]` (sobre el encabezado y los sheets) y no recibe toques.
+**Dónde va el aviso flotante** (`components/ui/Toast.tsx`): **arriba** en todos
+los anchos, centrado, a `calc(var(--chrome-top) + 0.5rem)` (justo bajo el
+encabezado; `--chrome-top` = 4rem + zona segura, `globals.css`). Nunca abajo: en
+el celular están los botones de acción («Publicar turno») y en escritorio con la
+ventana baja ese botón queda a media pantalla y un aviso abajo lo pisaba. Entra
+sólo con opacidad y escala (sin desplazamiento), `z-[60]` (sobre el encabezado y
+los sheets) y no recibe toques.
 
 ## Tono de banner por rubro
 

@@ -36,15 +36,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      {/* El aviso NUNCA intercepta toques (ni el contenedor ni el cuerpo) y en
-          pantallas angostas va ARRIBA, debajo del encabezado (`--chrome-top`:
-          4rem + zona segura; el aviso arranca 0,5rem más abajo): abajo, a 390 px, caía sobre
-          «Publicar turno» y quien tocaba el cartel creyendo cerrarlo publicaba
-          el turno sin querer (U009). Desde `md` no hay barra inferior y queda
-          abajo como siempre (`bottom-24`, ~21 px sobre «Publicar turno» a
-          768×1024, sin cruce). Se va
-          solo a los 3,2 s; si algún día lleva un botón de acción, sólo ese
-          botón recibe punteros (`[&_button]`). z-[60] > Navbar (z-40). */}
+      {/* El aviso NUNCA intercepta toques (ni el contenedor ni el cuerpo) y va
+          ARRIBA en todos los anchos, debajo del encabezado (`--chrome-top`:
+          4rem + zona segura; el aviso arranca 0,5rem más abajo). Abajo caía
+          sobre «Publicar turno»: en el celular (390 px) y también en
+          escritorio con la ventana baja (~510-615 px de alto), donde el botón
+          queda a media pantalla; quien tocaba el cartel creyendo cerrarlo
+          publicaba el turno sin querer (U009). Se va solo a los 3,2 s; si algún
+          día lleva un botón de acción, sólo ese botón recibe punteros
+          (`[&_button]`). z-[60] > Navbar (z-40). */}
       {/* role="status" + aria-live="polite": sin esto un toast (confirmación
           de acción, error de una mutación) es invisible para un usuario de
           lector de pantalla — no hay foco que mover a un elemento que
@@ -53,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 top-[calc(var(--chrome-top)+0.5rem)] z-[60] md:top-auto md:bottom-24 flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none fixed inset-x-0 top-[calc(var(--chrome-top)+0.5rem)] z-[60] flex flex-col items-center gap-2 px-4"
       >
         <AnimatePresence>
           {toasts.map((t) => (
