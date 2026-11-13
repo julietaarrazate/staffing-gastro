@@ -15,6 +15,8 @@ import { isTodayInArgentina } from "@/lib/datetime";
 import {
   distanceOf,
   getStoredLocation,
+  NEARBY_RADIUS_KM,
+  nearbyOnly,
   originFor,
   sortByDistance,
   type CurrentLocation,
@@ -93,10 +95,19 @@ function useAssistantSearch(): AssistantSearch | null {
   }, [searchParams]);
 }
 
-function feedPathFor(positions: string[]): string {
-  if (positions.length === 0) return "/shifts/feed";
+/** El Inicio pide el feed a secas: el servidor ya lo acota a lo que queda
+ * cerca de la zona del perfil. Una búsqueda del asistente pide todo el
+ * mercado (`scope=all`) medido desde el centro de la zona que la persona
+ * escribió, para que "turnos en Córdoba" no dependa de dónde está su perfil.
+ * Ese punto es un lugar que se pidió por nombre, no la posición del
+ * dispositivo: "Estoy acá" no viaja al servidor. */
+function feedPathFor(search: AssistantSearch | null): string {
+  if (!search) return "/shifts/feed";
   const params = new URLSearchParams();
-  positions.forEach((p) => params.append("positions", p));
+  params.set("scope", "all");
+  params.set("latitude", String(search.origin[0]));
+  params.set("longitude", String(search.origin[1]));
+  search.positions.forEach((p) => params.append("positions", p));
   return `/shifts/feed?${params.toString()}`;
 }
 
@@ -190,7 +201,7 @@ function WorkerFeedPanel() {
     const savesAtStart = profileSaves.current;
     try {
       const [feed, prof, applied] = await Promise.all([
-        api.get<Shift[]>(feedPathFor(assistantSearch?.positions ?? []), token),
+        api.get<Shift[]>(feedPathFor(assistantSearch), token),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
@@ -372,13 +383,13 @@ function WorkerFeedPanel() {
   const distanceFromOrigin = useCallback((s: Shift) => distanceOf(s, origin), [origin]);
   const visibleShifts = useMemo(() => {
     let sortedShifts = sortByDistance(shifts, origin);
-    if (assistantSearch?.radiusKm != null) {
-      const radiusKm = assistantSearch.radiusKm;
-      sortedShifts = sortedShifts.filter((s) => {
-        const d = distanceOf(s, origin);
-        return d != null && d <= radiusKm;
-      });
-    }
+    // «Cerca» es cerca: acá no se muestra nada más lejos que el radio, medido
+    // desde el mismo origen que las distancias de las tarjetas. Si se pidió
+    // un radio puntual ("a menos de 2 km"), manda ése, y lo que no se puede
+    // ubicar queda afuera.
+    sortedShifts = nearbyOnly(sortedShifts, origin, assistantSearch?.radiusKm ?? NEARBY_RADIUS_KM, {
+      keepUnlocated: !assistantSearch,
+    });
     if (assistantSearch?.todayOnly) {
       sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
     }
@@ -387,15 +398,26 @@ function WorkerFeedPanel() {
   const heroShift = visibleShifts[0];
   const restShifts = useMemo(() => visibleShifts.slice(1), [visibleShifts]);
   const isDesktop = useIsDesktop();
+  // Con "Estoy acá" lo que se muestra es lo cercano a ese punto. Si ahí no hay
+  // nada, se dice eso y se manda a Buscar, que es donde se ve todo: el Inicio
+  // sólo trae lo de la zona del perfil, así que no puede afirmar que no hay
+  // turnos en ningún lado.
+  const emptyNearHere = !assistantSearch && here !== null;
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
-    : "No hay más turnos cerca";
+    : emptyNearHere
+      ? "No hay turnos cerca de donde estás ahora"
+      : "No hay más turnos cerca";
   const emptySubtitle = assistantSearch
     ? "Probá un radio más amplio o menos puestos a la vez."
-    : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+    : emptyNearHere
+      ? "Tocá «Volver a mi zona», arriba, o mirá todos los turnos en Buscar."
+      : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
   const emptyStateAction = assistantSearch
     ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
-    : { label: "Actualizar", onClick: load };
+    : emptyNearHere
+      ? { label: "Ver todos en Buscar", onClick: () => router.push("/buscar") }
+      : { label: "Actualizar", onClick: load };
 
   const emptyState = (
     <EmptyState

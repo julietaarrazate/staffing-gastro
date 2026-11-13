@@ -99,6 +99,40 @@ export function sortByDistance(shifts: Shift[], origin: [number, number] | null)
   });
 }
 
+/**
+ * Hasta dónde llega «cerca» en el Inicio, en km. Es el mismo radio con el que
+ * el servidor arma el feed (`FEED_RADIUS_KM` en
+ * `backend/app/modules/shift/application/services.py`, el de la escalada de
+ * un turno urgente): si cambia uno, cambia el otro.
+ */
+export const NEARBY_RADIUS_KM = 40;
+
+/**
+ * Deja sólo los turnos que están cerca del origen. «Cerca tuyo» no puede
+ * mostrar un turno de otra provincia.
+ *
+ * El servidor ya devuelve el feed acotado a la zona del perfil. Este corte es
+ * el del lado de la pantalla, que es la única que sabe desde dónde se está
+ * midiendo: si el trabajador tocó "Estoy acá", el origen es ese punto (que no
+ * sale del dispositivo) y no la zona del perfil.
+ *
+ * Sin origen no hay con qué medir y no se saca nada. Un turno sin coordenadas
+ * se queda por defecto (el servidor lo incluyó porque es de la misma ciudad);
+ * con `keepUnlocated: false` se va, para cuando se pidió un radio puntual.
+ */
+export function nearbyOnly(
+  shifts: Shift[],
+  origin: [number, number] | null,
+  radiusKm: number = NEARBY_RADIUS_KM,
+  { keepUnlocated = true }: { keepUnlocated?: boolean } = {}
+): Shift[] {
+  if (!origin) return shifts;
+  return shifts.filter((shift) => {
+    const distance = distanceOf(shift, origin);
+    return distance === null ? keepUnlocated : distance <= radiusKm;
+  });
+}
+
 /** Distancia de un turno al origen, o `null` si el turno no tiene ubicación. */
 export function distanceOf(shift: Shift, origin: [number, number] | null): number | null {
   if (!origin || shift.latitude == null || shift.longitude == null) return null;
