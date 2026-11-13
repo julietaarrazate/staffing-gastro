@@ -65,7 +65,7 @@ describe("ToastProvider", () => {
     const cls = screen.getByRole("status").className.split(/\s+/);
     // Angosto: arriba, debajo del encabezado y de la zona segura; nunca abajo
     // (ahí están los botones de acción: «Publicar turno»).
-    expect(cls).toContain("top-[calc(env(safe-area-inset-top)+4.5rem)]");
+    expect(cls).toContain("top-[calc(var(--chrome-top)+0.5rem)]");
     expect(cls).not.toContain("bottom-24");
     // md y más ancho: como siempre, abajo.
     expect(cls).toContain("md:top-auto");

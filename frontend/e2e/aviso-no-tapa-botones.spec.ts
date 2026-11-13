@@ -7,6 +7,8 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * «Completamos todo…» sobre «Publicar turno» (390×844). Ahora, en pantallas
  * angostas, va arriba bajo el encabezado y no se cruza con el botón.
  */
+test.use({ viewport: { width: 390, height: 844 } });
+
 test("con el aviso de «Completamos todo» visible, el aviso no tapa «Publicar turno» y un toque en el botón publica", async ({
   page,
 }) => {

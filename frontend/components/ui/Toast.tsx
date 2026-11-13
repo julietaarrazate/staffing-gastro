@@ -37,11 +37,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={show}>
       {children}
       {/* El aviso NUNCA intercepta toques (ni el contenedor ni el cuerpo) y en
-          pantallas angostas va ARRIBA, debajo del encabezado (4rem + zona
-          segura; el aviso arranca a 4,5rem): abajo, a 390 px, caía sobre
+          pantallas angostas va ARRIBA, debajo del encabezado (`--chrome-top`:
+          4rem + zona segura; el aviso arranca 0,5rem más abajo): abajo, a 390 px, caía sobre
           «Publicar turno» y quien tocaba el cartel creyendo cerrarlo publicaba
-          el turno sin querer (U009). Desde `md` los botones de acción ya no
-          están pegados al borde de abajo y queda abajo como siempre. Se va
+          el turno sin querer (U009). Desde `md` no hay barra inferior y queda
+          abajo como siempre (`bottom-24`, ~21 px sobre «Publicar turno» a
+          768×1024, sin cruce). Se va
           solo a los 3,2 s; si algún día lleva un botón de acción, sólo ese
           botón recibe punteros (`[&_button]`). z-[60] > Navbar (z-40). */}
       {/* role="status" + aria-live="polite": sin esto un toast (confirmación
@@ -52,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-[60] md:top-auto md:bottom-24 flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none fixed inset-x-0 top-[calc(var(--chrome-top)+0.5rem)] z-[60] md:top-auto md:bottom-24 flex flex-col items-center gap-2 px-4"
       >
         <AnimatePresence>
           {toasts.map((t) => (
