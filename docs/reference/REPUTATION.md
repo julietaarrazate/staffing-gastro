@@ -25,8 +25,11 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `punctuality_rate` — tasa de puntualidad. **(R2.4)** se recalcula al
   finalizar cada turno (`ShiftService.finish`,
   `backend/app/modules/shift/application/services.py`) como promedio móvil
-  simple sobre los turnos completados: puntual = check-in dentro de **±15
-  minutos** del horario pactado (`start_at`). `finish()` sólo es alcanzable
+  simple sobre los turnos completados: puntual = check-in **hasta 15
+  minutos después** del horario pactado (`start_at`); llegar antes (la app deja
+  marcar hasta 30 min antes) siempre cuenta como puntual. La regla es la
+  función pura `arrived_on_time` en
+  `backend/app/modules/shift/domain/punctuality.py`. `finish()` sólo es alcanzable
   habiendo pasado por check-in y check-out (ver
   `Shift._transition` en `shift/domain/entities.py`), así que siempre hay un
   check-in real para evaluar.
@@ -83,6 +86,14 @@ bidireccional: comercio y trabajador se califican mutuamente.
   el trabajador confirme no cuenta: nunca llegó a comprometerse. Efecto
   **simétrico** al `cancellations`/`no_shows` del trabajador — no se mezcla
   con `rating` (que sigue siendo sólo el promedio de reseñas).
+  **(2026-11-13)** El comercio se entera antes y después: la confirmación de
+  «Cancelar turno» del panel lo dice antes de confirmar («Te suma una
+  cancelación tardía. La ves en tu perfil.»), sólo en esos estados y con
+  alguien asignado (`frontend/lib/cancelar-turno.ts`, misma cuenta que el
+  backend: no hay plazo en horas), y la cuenta se ve en su `/profile`
+  (`components/company/LateCancellations.tsx`, sólo con al menos una). Es la
+  vista del propio comercio: al trabajador no se le muestra en ninguna
+  pantalla.
 
 ## Reglas de negocio
 

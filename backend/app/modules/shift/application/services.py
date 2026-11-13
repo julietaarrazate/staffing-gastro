@@ -39,6 +39,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
+from app.modules.shift.domain.punctuality import arrived_on_time
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
@@ -55,10 +56,6 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
 
-
-# R2.4: tolerancia para considerar "puntual" un check-in respecto del
-# horario pactado (start_at). Ver docs/reference/REPUTATION.md.
-PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
 # respecto del fin del turno (end_at). No hay un plazo de pago pactado en el
@@ -533,7 +530,13 @@ class ShiftService:
         Cancelar un turno que todavía no tiene a nadie comprometido (p. ej.
         BORRADOR, PUBLICADO, BUSCANDO_PERSONAL o incluso ASIGNADO sin
         confirmar todavía) no tiene este efecto: el trabajador no llegó a
-        comprometerse."""
+        comprometerse.
+
+        A quién se avisa (T3e, ver `_notify_shift_cancelled`): al asignado,
+        haya confirmado o no, y a cada persona con la postulación pendiente.
+        Primero queda guardado todo lo que cambia (turno, postulaciones,
+        contador del comercio) y recién después salen los avisos, que no
+        pueden hacer fallar una cancelación que ya está hecha."""
         shift = await self._get_owned(company_id, shift_id)
         was_committed = shift.status in COMMITTED_STATUSES
         affected_worker_profile_id = shift.worker_profile_id
@@ -547,19 +550,99 @@ class ShiftService:
                 "was_committed": was_committed,
             },
         )
-        await self._reject_pending_applicants(shift_id)
+        applicant_profile_ids = await self._reject_pending_applicants(shift_id)
         if was_committed and affected_worker_profile_id is not None:
             await self._companies.record_late_cancellation(company_id)
-            await self._notify_worker(
-                affected_worker_profile_id,
-                NotificationType.SHIFT_CANCELLED_LATE,
-                "El comercio canceló tu turno",
-                (
-                    f"\"{updated.title or updated.position.label}\" fue cancelado por "
-                    "el comercio después de que confirmaste tu asistencia."
-                ),
-            )
+        await self._notify_shift_cancelled(
+            updated,
+            assigned_worker_profile_id=affected_worker_profile_id,
+            was_committed=was_committed,
+            applicant_profile_ids=applicant_profile_ids,
+        )
         return updated
+
+    async def _notify_shift_cancelled(
+        self,
+        shift: Shift,
+        *,
+        assigned_worker_profile_id: UUID | None,
+        was_committed: bool,
+        applicant_profile_ids: list[UUID],
+    ) -> None:
+        """Avisos de un turno que el comercio acaba de cancelar: una persona,
+        un aviso.
+
+        - Asignado que ya había confirmado (cancelación tardía, ADR-0007):
+          `SHIFT_CANCELLED_LATE`, como hasta ahora.
+        - Asignado que todavía no había confirmado: `SHIFT_CANCELLED`. Antes
+          no le llegaba nada y el panel del comercio decía «se le avisa».
+        - Cada postulación que estaba pendiente: `APPLIED_SHIFT_CANCELLED`.
+          El texto sólo nombra el turno: ni el motivo ni los demás postulantes.
+
+        Quien había quedado afuera al asignarse el turno (postulación ya
+        rechazada) no recibe nada: su postulación no estaba viva.
+
+        Nunca propaga: el turno ya quedó cancelado y un error acá (la base
+        rechaza el aviso, cae el push) no puede devolverle un 500 al comercio.
+        Los dos avisos fallan por separado, y eso descansa en que el adaptador
+        de avisos deja la sesión usable cuando su escritura falla
+        (`SqlAlchemyNotificationRepository._commit_or_reset`)."""
+        name = shift.title or shift.position.label
+        try:
+            if assigned_worker_profile_id is not None and was_committed:
+                await self._notify_worker(
+                    assigned_worker_profile_id,
+                    NotificationType.SHIFT_CANCELLED_LATE,
+                    "El comercio canceló tu turno",
+                    (
+                        f"\"{name}\" fue cancelado por "
+                        "el comercio después de que confirmaste tu asistencia."
+                    ),
+                )
+            elif assigned_worker_profile_id is not None:
+                await self._notify_worker(
+                    assigned_worker_profile_id,
+                    NotificationType.SHIFT_CANCELLED,
+                    "El comercio canceló el turno",
+                    (
+                        f"\"{name}\" se canceló antes de que confirmaras. "
+                        "Ya no tenés que responder."
+                    ),
+                )
+        except Exception:
+            logger.exception(
+                "Aviso de cancelación al asignado: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
+        try:
+            notices: list[Notification] = []
+            already_notified = {assigned_worker_profile_id}
+            for profile_id in applicant_profile_ids:
+                if profile_id in already_notified:
+                    continue
+                already_notified.add(profile_id)
+                profile = await self._workers.get_by_id(profile_id)
+                if profile is None:
+                    continue
+                notices.append(
+                    Notification(
+                        user_id=profile.user_id,
+                        type=NotificationType.APPLIED_SHIFT_CANCELLED,
+                        title="Se canceló un turno al que te postulaste",
+                        message=(
+                            f"El comercio canceló \"{name}\". Tu postulación "
+                            "quedó sin efecto: mirá otros turnos cerca."
+                        ),
+                    )
+                )
+            await self._notifications.add_many(notices)
+        except Exception:
+            logger.exception(
+                "Aviso de cancelación a postulantes: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
 
     async def mark_no_show(
         self, company_id: UUID, shift_id: UUID, *, _trigger: str = "manual"
@@ -762,7 +845,7 @@ class ShiftService:
             extra={"shift_id": str(shift_id), "worker_profile_id": str(worker_profile_id)},
         )
 
-    async def _reject_pending_applicants(self, shift_id: UUID) -> None:
+    async def _reject_pending_applicants(self, shift_id: UUID) -> list[UUID]:
         """Marca RECHAZADA las postulaciones PENDIENTE que quedan en un turno
         que dejó de estar abierto (se asignó a alguien, o el comercio lo
         canceló): antes quedaban 'pendiente' para siempre (TECH_DEBT P5).
@@ -772,13 +855,18 @@ class ShiftService:
         nunca la toca: sólo caen los NO elegidos. No se notifica al perdedor a
         propósito (evita un mensaje desalentador que además sería erróneo si el
         turno se reabre; la corrección es sólo de estado para que no quede
-        'esperando respuesta' eterno)."""
-        rejected_count = 0
+        'esperando respuesta' eterno).
+
+        Devuelve los perfiles cuya postulación acaba de rechazar: al cancelar
+        el turno sí se les avisa (`_notify_shift_cancelled`), porque un turno
+        cancelado no se reabre."""
+        rejected_profile_ids: list[UUID] = []
         for application in await self._applications.list_by_shift(shift_id):
             if application.status == ApplicationStatus.PENDIENTE:
                 application.reject()
                 await self._applications.update(application)
-                rejected_count += 1
+                rejected_profile_ids.append(application.worker_profile_id)
+        rejected_count = len(rejected_profile_ids)
         if rejected_count:
             # Un solo log agregado (no uno por postulante rechazado): son
             # rechazos automáticos del mismo evento (se cubrió el turno),
@@ -787,6 +875,7 @@ class ShiftService:
                 "application.rejected",
                 extra={"shift_id": str(shift_id), "count": rejected_count},
             )
+        return rejected_profile_ids
 
     async def _restore_rejected_applicants(self, shift_id: UUID) -> None:
         """Vuelve a PENDIENTE las postulaciones que habían quedado RECHAZADA al
@@ -1048,7 +1137,7 @@ class ShiftService:
         por check-in y check-out, ver `Shift._transition`) se actualizan las
         métricas de reputación reales del trabajador asignado:
         `events_completed` (+1) y `punctuality_rate` (promedio móvil simple
-        sobre si el check-in ocurrió dentro de la tolerancia del horario
+        sobre si el check-in fue hasta 15 min después del horario
         pactado). Mismo patrón que las notificaciones: el efecto vive dentro
         del caso de uso que cierra el ciclo, no en un job aparte.
         """
@@ -1063,15 +1152,11 @@ class ShiftService:
 
     @staticmethod
     def _was_punctual(shift: Shift) -> bool:
-        """Puntual = check-in dentro de ±15 min del horario pactado (start_at).
+        """Puntual = llegó hasta 15 min después de `start_at` (antes, siempre).
 
-        Normaliza a "naive" antes de comparar: en SQLite (tests) los
-        datetimes vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ`
-        sí lo preservan. Se asume que ambos valores están en UTC.
+        La regla vive en `shift/domain/punctuality.py`.
         """
-        if shift.check_in_at is None:
-            return False
-        return abs(_naive(shift.check_in_at) - _naive(shift.start_at)) <= PUNCTUALITY_TOLERANCE
+        return arrived_on_time(shift.check_in_at, shift.start_at)
 
     @staticmethod
     def _was_paid_on_time(shift: Shift) -> bool:

@@ -17,7 +17,7 @@ Las marcas de tiempo internas/auditoría (`created_at`/`updated_at` vía
 UTC a propósito — eso es correcto y consistente, NO usar `hoy_art()`/
 `now_art()` ahí.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 ARG_TZ = ZoneInfo("America/Argentina/Buenos_Aires")
@@ -45,6 +45,18 @@ def format_turno_art(start_at: datetime, end_at: datetime) -> str:
     inicio = to_art(start_at)
     fin = to_art(end_at)
     return f"{_DIAS[inicio.weekday()]} {inicio:%d/%m}, de {inicio:%H:%M} a {fin:%H:%M}"
+
+
+def format_inicio_art(start_at: datetime, now: datetime | None = None) -> str:
+    """Cuándo empieza un turno, para una frase: "hoy a las 20:00", "mañana a las
+    20:00" o "el sábado 27/09 a las 20:00", siempre en hora argentina."""
+    inicio = to_art(start_at)
+    hoy = to_art(now if now is not None else datetime.now(timezone.utc)).date()
+    if inicio.date() == hoy:
+        return f"hoy a las {inicio:%H:%M}"
+    if inicio.date() == hoy + timedelta(days=1):
+        return f"mañana a las {inicio:%H:%M}"
+    return f"el {_DIAS[inicio.weekday()]} {inicio:%d/%m} a las {inicio:%H:%M}"
 
 
 def now_art() -> datetime:

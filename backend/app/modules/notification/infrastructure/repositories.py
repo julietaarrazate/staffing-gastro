@@ -59,6 +59,31 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def _commit_or_reset(self) -> None:
+        """Guarda el aviso; si la base lo rechaza, deja la sesión usable y
+        propaga el error.
+
+        Un INSERT rechazado (fila inválida, usuario borrado) deja la sesión
+        con la transacción rota: todo lo que venga después por esa misma
+        sesión falla con `PendingRollbackError`. Y esa sesión es la del
+        pedido: la usan el resto del caso de uso y la idempotencia al guardar
+        la respuesta. Quien avisa sin dejar que el aviso rompa su acción
+        (cancelar un turno, publicar) atrapaba el error y terminaba igual en
+        500, con la acción ya hecha (revisión del 2026-11-13).
+
+        El `rollback` no deshace nada de quien llama: la base ya descartó esa
+        transacción al fallar, y lo anterior está confirmado (cada repositorio
+        confirma su propia escritura). Sólo devuelve la sesión a un estado en
+        el que se puede seguir trabajando."""
+        try:
+            await self._session.commit()
+        except Exception:
+            try:
+                await self._session.rollback()
+            except Exception:
+                logger.exception("Aviso: no se pudo recuperar la sesión tras el fallo")
+            raise
+
     async def add(self, notification: Notification) -> Notification:
         model = NotificationModel(
             id=notification.id,
@@ -70,7 +95,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
             link=notification.link,
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._commit_or_reset()
         await self._session.refresh(model)
         entity = _to_entity(model)
         await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
@@ -110,7 +135,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
             for n in notifications
         ]
         self._session.add_all(models)
-        await self._session.commit()
+        await self._commit_or_reset()
         entities = [_to_entity(m) for m in models]
         for entity in entities:
             await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
