@@ -503,7 +503,13 @@ class ShiftService:
         Cancelar un turno que todavía no tiene a nadie comprometido (p. ej.
         BORRADOR, PUBLICADO, BUSCANDO_PERSONAL o incluso ASIGNADO sin
         confirmar todavía) no tiene este efecto: el trabajador no llegó a
-        comprometerse."""
+        comprometerse.
+
+        A quién se avisa (T3e, ver `_notify_shift_cancelled`): al asignado,
+        haya confirmado o no, y a cada persona con la postulación pendiente.
+        Primero queda guardado todo lo que cambia (turno, postulaciones,
+        contador del comercio) y recién después salen los avisos, que no
+        pueden hacer fallar una cancelación que ya está hecha."""
         shift = await self._get_owned(company_id, shift_id)
         was_committed = shift.status in COMMITTED_STATUSES
         affected_worker_profile_id = shift.worker_profile_id
@@ -517,19 +523,96 @@ class ShiftService:
                 "was_committed": was_committed,
             },
         )
-        await self._reject_pending_applicants(shift_id)
+        applicant_profile_ids = await self._reject_pending_applicants(shift_id)
         if was_committed and affected_worker_profile_id is not None:
             await self._companies.record_late_cancellation(company_id)
-            await self._notify_worker(
-                affected_worker_profile_id,
-                NotificationType.SHIFT_CANCELLED_LATE,
-                "El comercio canceló tu turno",
-                (
-                    f"\"{updated.title or updated.position.label}\" fue cancelado por "
-                    "el comercio después de que confirmaste tu asistencia."
-                ),
-            )
+        await self._notify_shift_cancelled(
+            updated,
+            assigned_worker_profile_id=affected_worker_profile_id,
+            was_committed=was_committed,
+            applicant_profile_ids=applicant_profile_ids,
+        )
         return updated
+
+    async def _notify_shift_cancelled(
+        self,
+        shift: Shift,
+        *,
+        assigned_worker_profile_id: UUID | None,
+        was_committed: bool,
+        applicant_profile_ids: list[UUID],
+    ) -> None:
+        """Avisos de un turno que el comercio acaba de cancelar: una persona,
+        un aviso.
+
+        - Asignado que ya había confirmado (cancelación tardía, ADR-0007):
+          `SHIFT_CANCELLED_LATE`, como hasta ahora.
+        - Asignado que todavía no había confirmado: `SHIFT_CANCELLED`. Antes
+          no le llegaba nada y el panel del comercio decía «se le avisa».
+        - Cada postulación que estaba pendiente: `APPLIED_SHIFT_CANCELLED`.
+          El texto sólo nombra el turno: ni el motivo ni los demás postulantes.
+
+        Quien había quedado afuera al asignarse el turno (postulación ya
+        rechazada) no recibe nada: su postulación no estaba viva.
+
+        Nunca propaga: el turno ya quedó cancelado y un error acá (base o
+        proveedor de push) no puede devolverle un 500 al comercio."""
+        name = shift.title or shift.position.label
+        try:
+            if assigned_worker_profile_id is not None and was_committed:
+                await self._notify_worker(
+                    assigned_worker_profile_id,
+                    NotificationType.SHIFT_CANCELLED_LATE,
+                    "El comercio canceló tu turno",
+                    (
+                        f"\"{name}\" fue cancelado por "
+                        "el comercio después de que confirmaste tu asistencia."
+                    ),
+                )
+            elif assigned_worker_profile_id is not None:
+                await self._notify_worker(
+                    assigned_worker_profile_id,
+                    NotificationType.SHIFT_CANCELLED,
+                    "El comercio canceló el turno",
+                    (
+                        f"\"{name}\" se canceló antes de que confirmaras. "
+                        "Ya no tenés que responder."
+                    ),
+                )
+        except Exception:
+            logger.exception(
+                "Aviso de cancelación al asignado: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
+        try:
+            notices: list[Notification] = []
+            already_notified = {assigned_worker_profile_id}
+            for profile_id in applicant_profile_ids:
+                if profile_id in already_notified:
+                    continue
+                already_notified.add(profile_id)
+                profile = await self._workers.get_by_id(profile_id)
+                if profile is None:
+                    continue
+                notices.append(
+                    Notification(
+                        user_id=profile.user_id,
+                        type=NotificationType.APPLIED_SHIFT_CANCELLED,
+                        title="Se canceló un turno al que te postulaste",
+                        message=(
+                            f"El comercio canceló \"{name}\". Tu postulación "
+                            "quedó sin efecto: mirá otros turnos cerca."
+                        ),
+                    )
+                )
+            await self._notifications.add_many(notices)
+        except Exception:
+            logger.exception(
+                "Aviso de cancelación a postulantes: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
 
     async def mark_no_show(
         self, company_id: UUID, shift_id: UUID, *, _trigger: str = "manual"
@@ -732,7 +815,7 @@ class ShiftService:
             extra={"shift_id": str(shift_id), "worker_profile_id": str(worker_profile_id)},
         )
 
-    async def _reject_pending_applicants(self, shift_id: UUID) -> None:
+    async def _reject_pending_applicants(self, shift_id: UUID) -> list[UUID]:
         """Marca RECHAZADA las postulaciones PENDIENTE que quedan en un turno
         que dejó de estar abierto (se asignó a alguien, o el comercio lo
         canceló): antes quedaban 'pendiente' para siempre (TECH_DEBT P5).
@@ -742,13 +825,18 @@ class ShiftService:
         nunca la toca: sólo caen los NO elegidos. No se notifica al perdedor a
         propósito (evita un mensaje desalentador que además sería erróneo si el
         turno se reabre; la corrección es sólo de estado para que no quede
-        'esperando respuesta' eterno)."""
-        rejected_count = 0
+        'esperando respuesta' eterno).
+
+        Devuelve los perfiles cuya postulación acaba de rechazar: al cancelar
+        el turno sí se les avisa (`_notify_shift_cancelled`), porque un turno
+        cancelado no se reabre."""
+        rejected_profile_ids: list[UUID] = []
         for application in await self._applications.list_by_shift(shift_id):
             if application.status == ApplicationStatus.PENDIENTE:
                 application.reject()
                 await self._applications.update(application)
-                rejected_count += 1
+                rejected_profile_ids.append(application.worker_profile_id)
+        rejected_count = len(rejected_profile_ids)
         if rejected_count:
             # Un solo log agregado (no uno por postulante rechazado): son
             # rechazos automáticos del mismo evento (se cubrió el turno),
@@ -757,6 +845,7 @@ class ShiftService:
                 "application.rejected",
                 extra={"shift_id": str(shift_id), "count": rejected_count},
             )
+        return rejected_profile_ids
 
     async def _restore_rejected_applicants(self, shift_id: UUID) -> None:
         """Vuelve a PENDIENTE las postulaciones que habían quedado RECHAZADA al
