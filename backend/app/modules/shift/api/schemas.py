@@ -179,20 +179,20 @@ class EventInput(BaseModel):
 
     @model_validator(mode="after")
     def _exigir_zona(self) -> "EventInput":
-        """Un evento no se publica sin zona: sin ciudad ni coordenadas los
-        turnos salen con «Ubicación a confirmar» y no se avisa a nadie cerca.
-        Alcanza con la ciudad o con el par de coordenadas (el aviso a los
-        cercanos usa cualquiera de los dos). Vive acá y no sólo en el
-        formulario para que no dependa del cliente (app, asistente, scripts)."""
+        """Un evento no se publica sin zona: sin ciudad el panel y las tarjetas
+        dicen «Ubicación a confirmar», y sin coordenadas no se avisa a nadie
+        cerca (el aviso mide la distancia con ellas; la ciudad sola no entra).
+        Se piden las dos. Vive acá y no sólo en el formulario para que no
+        dependa del cliente (app, asistente, scripts)."""
         tiene_ciudad = bool(self.city and self.city.strip())
         tiene_coordenadas = self.latitude is not None and self.longitude is not None
-        if not (tiene_ciudad or tiene_coordenadas):
+        if not (tiene_ciudad and tiene_coordenadas):
             # PydanticCustomError y no ValueError: este último antepone
             # «Value error, » al mensaje.
             raise PydanticCustomError(
                 "zona_requerida",
-                "Elegí la zona del evento (ciudad o ubicación en el mapa): "
-                "sin eso no podemos avisar a la gente que está cerca.",
+                "Elegí la zona del evento (provincia y barrio, o tu local con "
+                "ubicación): sin eso no podemos avisar a la gente que está cerca.",
             )
         return self
 

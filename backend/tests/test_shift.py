@@ -14,6 +14,7 @@ from app.core.tz import to_art
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
+from app.modules.shift.application.services import ShiftService
 from app.modules.verification.domain.entities import Claim
 from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
 from app.modules.verification.infrastructure.repositories import SqlAlchemyClaimRepository
@@ -1165,6 +1166,8 @@ async def test_create_event_publishes_all_roles_with_shared_event_id(client: Asy
             "start_at": "2026-09-10T20:00:00",
             "end_at": "2026-09-11T02:00:00",
             "city": "Palermo",
+            "latitude": -34.5875,
+            "longitude": -58.43,
             "roles": [
                 {"position": "mozo", "count": 2, "pay_amount": "50000.00"},
                 {"position": "bartender", "count": 1, "pay_amount": "60000.00"},
@@ -1198,14 +1201,18 @@ def _event_payload(**overrides) -> dict:
 
 async def test_create_event_sin_zona_se_rechaza_con_422(client: AsyncClient):
     """Un evento sin ciudad ni coordenadas no se publica: los turnos saldrían
-    con «Ubicación a confirmar» y nadie cercano recibiría el aviso. La regla
-    vive en la API para no depender de que el formulario la respete."""
+    con «Ubicación a confirmar» y nadie cercano recibiría el aviso. Hacen falta
+    ciudad (lo que se muestra) Y coordenadas (lo que mide la cercanía): con una
+    sola el síntoma sigue. La regla vive en la API para no depender de que el
+    formulario la respete."""
     headers = await _employer_with_company(client, "evento-sin-zona@staffya.com")
     for zona in (
         {},
         {"city": None, "latitude": None, "longitude": None},
-        {"city": "   "},
-        {"latitude": -34.58},  # coordenadas a medias: tampoco alcanzan
+        {"city": "   ", "latitude": -34.58, "longitude": -58.43},  # ciudad en blanco
+        {"city": "Palermo"},  # sólo ciudad: el aviso a cercanos no tendría con qué medir
+        {"latitude": -34.58, "longitude": -58.43},  # sólo coordenadas: «Ubicación a confirmar»
+        {"city": "Palermo", "latitude": -34.58},  # coordenadas a medias
     ):
         response = await client.post(
             "/api/v1/shifts/events", headers=headers, json=_event_payload(**zona)
@@ -1219,20 +1226,32 @@ async def test_create_event_sin_zona_se_rechaza_con_422(client: AsyncClient):
     assert mine.json() == []
 
 
-async def test_create_event_con_zona_los_turnos_la_llevan_y_avisa_a_los_cercanos(
-    client: AsyncClient,
+async def test_create_event_con_zona_los_turnos_la_llevan_y_avisa_al_cercano(
+    client: AsyncClient, monkeypatch
 ):
-    worker_headers = await auth_headers(client, "worker", "cercano-evento@staffya.com")
-    await client.post(
-        "/api/v1/workers/me/profile",
-        headers=worker_headers,
-        json={
-            "city": "Palermo",
-            "skills": ["mozo"],
-            "years_experience": 3,
-            "is_available": True,
-        },
-    )
+    """Dos trabajadoras, tope de un aviso por turno: la cercana (Palermo) y una
+    lejana (Ushuaia) con mejor perfil. Si el turno no llevara la zona, la
+    cercanía quedaría neutra y el aviso iría a la de más experiencia."""
+    monkeypatch.setattr(ShiftService, "NEARBY_NOTIFICATION_LIMIT", 1)
+
+    async def trabajadora(email: str, city: str, lat: float, lng: float, years: int) -> dict:
+        headers = await auth_headers(client, "worker", email)
+        await client.post(
+            "/api/v1/workers/me/profile",
+            headers=headers,
+            json={
+                "city": city,
+                "latitude": lat,
+                "longitude": lng,
+                "skills": ["mozo"],
+                "years_experience": years,
+                "is_available": True,
+            },
+        )
+        return headers
+
+    cercana = await trabajadora("cercana-evento@staffya.com", "Palermo", -34.5890, -58.4310, 1)
+    lejana = await trabajadora("lejana-evento@staffya.com", "Ushuaia", -54.8019, -68.3030, 15)
     employer_headers = await _employer_with_company(client, "evento-zona@staffya.com")
 
     response = await client.post(
@@ -1248,9 +1267,12 @@ async def test_create_event_con_zona_los_turnos_la_llevan_y_avisa_a_los_cercanos
         assert shift["latitude"] == pytest.approx(-34.5875)
         assert shift["longitude"] == pytest.approx(-58.4300)
 
-    recibidas = await client.get("/api/v1/notifications", headers=worker_headers)
-    avisos = [n for n in recibidas.json() if n["type"] == "new_shift_nearby"]
-    assert len(avisos) == 2  # uno por turno del evento
+    async def avisos(headers: dict) -> list[dict]:
+        recibidas = await client.get("/api/v1/notifications", headers=headers)
+        return [n for n in recibidas.json() if n["type"] == "new_shift_nearby"]
+
+    assert len(await avisos(cercana)) == 2  # uno por turno del evento
+    assert await avisos(lejana) == []
 
 
 async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
@@ -1269,6 +1291,8 @@ async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
                 "start_at": "2026-09-10T20:00:00",
                 "end_at": "2026-09-11T02:00:00",
                 "city": "Palermo",
+                "latitude": -34.5875,
+                "longitude": -58.43,
                 "roles": [{"position": "mozo", "count": 7, "pay_amount": "50000.00"}],
             },
         )

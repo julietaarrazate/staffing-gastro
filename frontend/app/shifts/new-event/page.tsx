@@ -53,13 +53,14 @@ function NewEventForm() {
   const [name, setName] = useState("");
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
-  const [city, setCity] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
   // Zona del local: el evento arranca ahí y se puede cambiar (igual que el
   // asistente de turno). Sin zona no se publica: los turnos saldrían con
-  // «Ubicación a confirmar» y no se avisaría a nadie cerca (U058).
-  const { place: companyPlace, loaded: placeLoaded } = useCompanyPlace(token);
+  // «Ubicación a confirmar» y no se avisaría a nadie cerca (U058). No se copia
+  // a un estado: la zona vigente se deriva al renderizar (el local mientras no
+  // se toque «Cambiar», si no la elegida), así no hay un cuadro con el perfil
+  // cargado y la zona todavía vacía.
+  const { place: profilePlace, loaded: placeLoaded } = useCompanyPlace(token);
+  const [pickedPlace, setPickedPlace] = useState<LocationSelection | null>(null);
   const [changingPlace, setChangingPlace] = useState(false);
   const [dressCode, setDressCode] = useState("");
   const [urgent, setUrgent] = useState(false);
@@ -107,15 +108,6 @@ function NewEventForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sólo al llegar el perfil: después, la zona la decide el comercio.
-  useEffect(() => {
-    if (!companyPlace || latitude != null) return;
-    setCity(companyPlace.city);
-    setLatitude(companyPlace.latitude);
-    setLongitude(companyPlace.longitude);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyPlace]);
-
   function updateRole(key: string, patch: Partial<RoleRow>) {
     setRoles((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
@@ -124,12 +116,16 @@ function NewEventForm() {
     setRoles((prev) => (prev.length > 1 ? prev.filter((r) => r.key !== key) : prev));
   }
 
-  const hasPlace = latitude != null && longitude != null;
-  const usingCompanyPlace =
-    !changingPlace &&
-    companyPlace != null &&
-    latitude === companyPlace.latitude &&
-    longitude === companyPlace.longitude;
+  // Un local con el punto en el mapa pero sin ciudad escrita no es una zona
+  // completa: la ciudad es lo que se muestra y las coordenadas lo que mide la
+  // cercanía, y el servidor pide las dos.
+  const companyPlace = profilePlace && profilePlace.city.trim() !== "" ? profilePlace : null;
+  const usingCompanyPlace = companyPlace != null && !changingPlace;
+  const place = usingCompanyPlace ? companyPlace : pickedPlace;
+  const city = place?.city ?? "";
+  const latitude = place?.latitude ?? null;
+  const longitude = place?.longitude ?? null;
+  const hasPlace = place != null && city.trim() !== "";
   const totalRequested = roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
   const canSubmit =
     name.trim() !== "" &&
@@ -265,7 +261,11 @@ function NewEventForm() {
         </div>
 
         <div>
-          {!placeLoaded ? null : usingCompanyPlace && companyPlace ? (
+          {!placeLoaded ? (
+            // Reserva el lugar de la tarjeta del local para que lo de abajo no
+            // salte cuando llega el perfil.
+            <div className="min-h-[132px]" aria-hidden />
+          ) : usingCompanyPlace && companyPlace ? (
             <>
               <p className="text-sm font-semibold text-ink/70">¿Dónde es?</p>
               <p className="mt-1 text-sm text-ink/50">
@@ -288,13 +288,9 @@ function NewEventForm() {
           ) : (
             <>
               <LocationPicker
-                onSelect={(loc: LocationSelection) => {
-                  setCity(loc.city);
-                  setLatitude(loc.latitude);
-                  setLongitude(loc.longitude);
-                }}
+                onSelect={(loc: LocationSelection) => setPickedPlace(loc)}
               />
-              {hasPlace && city ? (
+              {hasPlace ? (
                 <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
                   <MapPinIcon size={15} /> {city}
                 </p>

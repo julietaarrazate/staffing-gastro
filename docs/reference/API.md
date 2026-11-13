@@ -51,7 +51,7 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | Método | Ruta | Transición |
 |--------|------|-----------|
 | POST | `/shifts` | Crear turno (borrador) |
-| POST | `/events` | Publicar varios turnos de un evento de una vez (un turno por persona pedida). **Exige zona**: ciudad o coordenadas; sin ninguna, 422 «Elegí la zona del evento…». Los turnos salen con esa zona y se avisa a los trabajadores cercanos |
+| POST | `/events` | Publicar varios turnos de un evento de una vez (un turno por persona pedida). **Exige zona**: ciudad **y** coordenadas (la ciudad es lo que se muestra, las coordenadas lo que mide la cercanía); si falta algo, 422 «Elegí la zona del evento…». Los turnos salen con esa zona y se avisa a los trabajadores cercanos |
 | GET | `/feed` | Feed de turnos abiertos (worker) — **paginado** |
 | GET | `/me` | Turnos publicados por el comercio propio — **paginado** |
 | GET | `/mine` | Turnos asignados al trabajador propio — **paginado** |

@@ -141,3 +141,43 @@ test("local sin coordenadas: se trata como sin zona", async ({ page }) => {
   await expect(publicar(page)).toBeDisabled();
   await expect(page.getByText("Elegí la zona del evento para poder publicar.")).toBeVisible();
 });
+
+test("local con punto en el mapa pero sin ciudad: se trata como sin zona y 'Cambiar' no deja publicar", async ({
+  page,
+}) => {
+  const publicados = await abrirFormulario(page, { ...LOCAL, city: null });
+  await completarLoDemas(page);
+  // No se publica un evento que el panel mostraría como «Ubicación a confirmar».
+  await expect(publicar(page)).toBeDisabled();
+  await expect(page.getByText("Elegí la zona del evento para poder publicar.")).toBeVisible();
+
+  await page.getByLabel("Barrio").selectOption("Palermo");
+  await publicar(page).click();
+  await expect(page.getByText("¡Evento publicado!")).toBeVisible();
+  expect(publicados[0].city).toBe("Palermo, CABA");
+});
+
+test("con local: tras 'Cambiar' y sin elegir zona, el botón queda deshabilitado", async ({ page }) => {
+  await abrirFormulario(page, LOCAL);
+  await page.getByRole("button", { name: "Cambiar" }).click();
+  await completarLoDemas(page);
+  await expect(page.getByText("Elegí la zona del evento para poder publicar.")).toBeVisible();
+  await expect(publicar(page)).toBeDisabled();
+});
+
+test("si el servidor rechaza por falta de zona, el cartel dice por qué", async ({ page }) => {
+  await abrirFormulario(page, LOCAL);
+  await page.route("**/api/v1/shifts/events", (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: "application/json",
+      body: JSON.stringify({
+        detail: [{ type: "zona_requerida", loc: ["body"], msg: "Elegí la zona del evento: sin eso no avisamos." }],
+      }),
+    })
+  );
+  await completarLoDemas(page);
+  await publicar(page).click();
+  await expect(page.getByText("Elegí la zona del evento: sin eso no avisamos.")).toBeVisible();
+  await expect(page.getByText("Error inesperado")).toHaveCount(0);
+});
