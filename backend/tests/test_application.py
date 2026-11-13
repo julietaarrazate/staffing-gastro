@@ -1,8 +1,13 @@
 """Tests de integración del módulo application (postulación a turnos)."""
 
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
 
+from app.modules.application.infrastructure.models import ShiftApplicationModel
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -266,6 +271,187 @@ async def test_cannot_withdraw_already_accepted_application(client: AsyncClient)
     assert response.status_code == 400
 
 
+# --- Volver a postularse después de retirar la postulación -----------------
+#
+# El cartel de "¿Cancelar tu postulación?" dice: "Si sigue abierto, podés
+# volver a postularte más adelante". Estos tests fijan esa promesa.
+
+
+async def _force_application(session_factory, application_id: str, **values) -> None:
+    """Escribe directo en la fila de la postulación, para armar un punto de
+    partida al que no se llega por la API (una fecha vieja, un estado que no
+    convive con un turno abierto)."""
+    async with session_factory() as session:
+        await session.execute(
+            update(ShiftApplicationModel)
+            .where(ShiftApplicationModel.id == UUID(application_id))
+            .values(**values)
+        )
+        await session.commit()
+
+
+def _as_utc_naive(value: str) -> datetime:
+    """La fecha de la respuesta, comparable: SQLite la devuelve sin zona (ya
+    en UTC) y Postgres con zona."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
+    return parsed
+
+
+async def test_worker_reapplies_after_withdrawing(client: AsyncClient, session_factory):
+    """Mientras el turno siga abierto, quien retiró su postulación puede
+    volver a postularse. No nace una segunda postulación: se reactiva la misma
+    fila (sigue habiendo una sola por turno y trabajador), que vuelve a
+    PENDIENTE con fecha nueva, y el comercio recibe el aviso como si fuera una
+    postulación nueva."""
+    employer = await _employer_with_company(client, "emp_re1@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, worker_id = await _worker_with_profile(client, "w_re1@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    application_id = applied.json()["id"]
+    # La primera postulación queda con una fecha vieja, para poder ver que
+    # volver a postularse la renueva.
+    await _force_application(
+        session_factory, application_id, created_at=datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    )
+    withdrawn = await client.post(
+        f"/api/v1/applications/{application_id}/withdraw", headers=worker
+    )
+    assert withdrawn.json()["status"] == "retirada"
+
+    again = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    assert again.status_code == 201
+    body = again.json()
+    assert body["id"] == application_id
+    assert body["status"] == "pendiente"
+    since = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=5)
+    assert _as_utc_naive(body["created_at"]) > since
+
+    # El trabajador sigue teniendo UNA postulación a ese turno, activa.
+    mine = await client.get("/api/v1/applications/mine", headers=worker)
+    to_this_shift = [a for a in mine.json() if a["shift_id"] == shift_id]
+    assert [(a["id"], a["status"]) for a in to_this_shift] == [(application_id, "pendiente")]
+
+    # El comercio la ve una sola vez entre sus postulantes, como pendiente.
+    applicants = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    rows = [a for a in applicants.json() if a["worker_profile_id"] == worker_id]
+    assert [(a["application_id"], a["status"]) for a in rows] == [(application_id, "pendiente")]
+
+    # Y se entera: un aviso por la primera postulación y otro por la vuelta.
+    notifications = await client.get("/api/v1/notifications", headers=employer)
+    new_applicant = [n for n in notifications.json() if n["type"] == "new_applicant"]
+    assert len(new_applicant) == 2
+    assert all(n["link"] == f"/shifts/{shift_id}/candidates" for n in new_applicant)
+
+
+async def test_reapplying_twice_in_a_row_is_still_a_conflict(client: AsyncClient):
+    """Reactivar no abre la puerta a postularse dos veces: con la postulación
+    otra vez PENDIENTE, un nuevo intento vuelve a ser 409."""
+    employer = await _employer_with_company(client, "emp_re2@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_re2@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    await client.post(
+        f"/api/v1/applications/{applied.json()['id']}/withdraw", headers=worker
+    )
+    again = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    assert again.status_code == 201
+
+    third = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    assert third.status_code == 409
+
+
+async def test_rejected_application_is_not_reactivated(client: AsyncClient, session_factory):
+    """Sólo se reactiva lo que retiró el propio trabajador (o el auto-retiro
+    por doble turno). Una postulación RECHAZADA no vuelve a PENDIENTE porque
+    el trabajador insista: vuelve sola si el turno se reabre (ver
+    `test_reopening_shift_restores_rejected_applicants`).
+
+    El estado se fuerza en la base porque por la API una RECHAZADA no convive
+    con un turno abierto (se rechaza al asignar o cancelar, y se restaura al
+    reabrir)."""
+    employer = await _employer_with_company(client, "emp_re3@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_re3@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    await _force_application(session_factory, applied.json()["id"], status="rechazada")
+
+    again = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    assert again.status_code == 409
+    assert await _status_of(client, worker, shift_id) == "rechazada"
+
+
+async def test_cannot_reapply_once_the_shift_is_no_longer_open(client: AsyncClient):
+    """Volver a postularse respeta la misma regla que postularse: el turno
+    tiene que seguir abierto. Si mientras tanto el comercio se lo asignó a
+    otra persona, la postulación retirada queda retirada."""
+    employer = await _employer_with_company(client, "emp_re4@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_re4@staffya.com")
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    await client.post(
+        f"/api/v1/applications/{applied.json()['id']}/withdraw", headers=worker
+    )
+    other, other_id = await _worker_with_profile(client, "w_re4_other@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=other)
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": other_id},
+    )
+    assert assigned.status_code == 200
+
+    again = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    assert again.status_code == 404
+    assert await _status_of(client, worker, shift_id) == "retirada"
+
+
+async def test_worker_reapplies_to_application_withdrawn_by_double_shift_rule(
+    client: AsyncClient,
+):
+    """Las postulaciones que el sistema retira solo al confirmar otro turno
+    del mismo horario (regla de doble turno) se reactivan igual que las que
+    retira el trabajador: si el turno confirmado se cae y el otro sigue
+    abierto, puede volver a postularse."""
+    employer = await _employer_with_company(client, "emp_re5@staffya.com")
+    worker, worker_id = await _worker_with_profile(client, "w_re5@staffya.com")
+    confirmed_id = await _published_shift(client, employer)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        # Mismo horario que el turno que va a confirmar.
+        json=_shift_payload(start_at="2026-06-28T22:00:00", end_at="2026-06-29T04:00:00"),
+    )
+    other_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{other_id}/publish", headers=employer)
+    await client.post(f"/api/v1/applications/shifts/{confirmed_id}", headers=worker)
+    applied_other = await client.post(
+        f"/api/v1/applications/shifts/{other_id}", headers=worker
+    )
+    application_id = applied_other.json()["id"]
+    await client.post(
+        f"/api/v1/shifts/{confirmed_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": worker_id},
+    )
+    confirmed = await client.post(f"/api/v1/shifts/{confirmed_id}/confirm", headers=worker)
+    assert confirmed.status_code == 200
+    assert await _status_of(client, worker, other_id) == "retirada"
+    cancelled = await client.post(f"/api/v1/shifts/{confirmed_id}/cancel", headers=employer)
+    assert cancelled.status_code == 200
+
+    again = await client.post(f"/api/v1/applications/shifts/{other_id}", headers=worker)
+
+    assert again.status_code == 201
+    assert again.json()["id"] == application_id
+    assert again.json()["status"] == "pendiente"
+
+
 async def test_assigning_applicant_accepts_their_application(client: AsyncClient):
     """Fix deuda #88: al asignar un turno al trabajador que se había
     postulado, su `ShiftApplication` pasa a ACEPTADA (antes quedaba
@@ -380,6 +566,47 @@ async def test_cancelling_shift_rejects_pending_applicants(client: AsyncClient):
     assert cancelled.status_code == 200
 
     assert await _status_of(client, worker, shift_id) == "rechazada"
+
+
+async def test_reapplying_to_the_same_shift_has_a_limit(client: AsyncClient):
+    """Postularse al mismo turno tiene un tope por cuenta en la ventana: pasado
+    el tope responde 429 y el comercio no recibe más avisos por esa persona en
+    ese turno. Postularse a OTRO turno no se ve afectado."""
+    from app.core.config import settings
+    from app.core.rate_limit import reset_all_rate_limiters
+
+    employer = await _employer_with_company(client, "emp_tope1@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    other_shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "w_tope1@staffya.com")
+
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        statuses = []
+        for _ in range(6):
+            applied = await client.post(
+                f"/api/v1/applications/shifts/{shift_id}", headers=worker
+            )
+            statuses.append(applied.status_code)
+            if applied.status_code == 201:
+                await client.post(
+                    f"/api/v1/applications/{applied.json()['id']}/withdraw",
+                    headers=worker,
+                )
+        other = await client.post(
+            f"/api/v1/applications/shifts/{other_shift_id}", headers=worker
+        )
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+
+    assert statuses == [201, 201, 201, 201, 201, 429]
+    assert other.status_code == 201
+    notifications = await client.get("/api/v1/notifications", headers=employer)
+    links = [n["link"] for n in notifications.json() if n["type"] == "new_applicant"]
+    assert links.count(f"/shifts/{shift_id}/candidates") == 5
+    assert links.count(f"/shifts/{other_shift_id}/candidates") == 1
 
 
 async def test_applying_notifies_company(client: AsyncClient):

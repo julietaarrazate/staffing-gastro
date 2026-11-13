@@ -1,10 +1,11 @@
-"""Casos de uso del módulo chat (conversación trabajador ↔ comercio por turno)."""
+"""Casos de uso del módulo chat (conversación del comercio con la persona
+asignada a un turno: un hilo por turno y trabajador, ver `Thread`)."""
 
 from uuid import UUID
 
 from app.core.ws_manager import ws_manager
 from app.modules.chat.application.dtos import ConversationSummary
-from app.modules.chat.domain.entities import ChatMessage
+from app.modules.chat.domain.entities import ChatMessage, Thread
 from app.modules.chat.domain.exceptions import (
     ConversationNotFoundError,
     EmptyMessageError,
@@ -15,7 +16,6 @@ from app.modules.identity.domain.repositories import UserRepository
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
-from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 
@@ -39,6 +39,14 @@ class ChatService:
 
     La conversación de un turno la integran el comercio y el trabajador
     asignado. No hay chat hasta que el turno tiene un trabajador asignado.
+
+    La conversación es con UNA persona: cada mensaje queda en el hilo
+    (`Thread`) del trabajador que estaba asignado cuando se escribió. Si el
+    turno se reasigna, quien lo recibe arranca con un hilo vacío, el comercio
+    ve sólo el hilo con la persona asignada ahora y la anterior deja de tener
+    acceso. Todo lo que se lee o se avisa acá (mensajes, bandeja, no leídos,
+    marcar como leído, push en vivo) es del hilo vigente, nunca del turno
+    entero.
     """
 
     def __init__(
@@ -58,9 +66,10 @@ class ChatService:
         self._notifications = notifications
 
     async def list_messages(self, user_id: UUID, shift_id: UUID) -> list[ChatMessage]:
-        """Lista los mensajes de un turno y marca como leídos los recibidos."""
-        await self._authorize(user_id, shift_id)
-        marked_something = await self._messages.mark_read(shift_id, user_id)
+        """Lista los mensajes del hilo vigente del turno y marca como leídos
+        los que el usuario recibió en ese hilo."""
+        thread, _company_user_id = await self._authorize(user_id, shift_id)
+        marked_something = await self._messages.mark_read(thread, user_id)
         if marked_something:
             # Avisa en vivo, por el mismo socket del chat, a quien tiene la
             # conversación abierta: sin esto el "visto" sólo se actualizaba
@@ -68,53 +77,65 @@ class ChatService:
             # reconectar el socket, o al mandar otro mensaje) — no en el
             # momento real en que el otro lo leyó.
             await ws_manager.broadcast_chat(
-                shift_id, {"type": "read", "reader_user_id": str(user_id)}
+                shift_id,
+                thread.worker_user_id,
+                {"type": "read", "reader_user_id": str(user_id)},
             )
-        return await self._messages.list_by_shift(shift_id)
+        return await self._messages.list_by_thread(thread)
 
     async def send_message(
         self, user_id: UUID, shift_id: UUID, body: str
     ) -> ChatMessage:
-        """Envía un mensaje en la conversación de un turno y avisa al otro."""
+        """Envía un mensaje en el hilo vigente del turno y avisa al otro."""
         body = body.strip()
         if not body:
             raise EmptyMessageError()
 
-        shift, company_user_id, worker_user_id = await self._authorize(user_id, shift_id)
+        thread, company_user_id = await self._authorize(user_id, shift_id)
         message = await self._messages.add(
-            ChatMessage(shift_id=shift_id, sender_user_id=user_id, body=body)
+            ChatMessage(
+                shift_id=shift_id,
+                worker_user_id=thread.worker_user_id,
+                sender_user_id=user_id,
+                body=body,
+            )
         )
 
         recipient_id = (
-            worker_user_id if user_id == company_user_id else company_user_id
+            thread.worker_user_id if user_id == company_user_id else company_user_id
         )
         await self._notify_recipient(recipient_id, user_id, body, shift_id)
-        await ws_manager.broadcast_chat(shift_id, _serialize_message(message))
+        await ws_manager.broadcast_chat(
+            shift_id, thread.worker_user_id, _serialize_message(message)
+        )
         return message
 
-    async def assert_participant(self, user_id: UUID, shift_id: UUID) -> None:
-        """Verifica que el usuario participe de la conversación (uso en websockets)."""
-        await self._authorize(user_id, shift_id)
+    async def assert_participant(self, user_id: UUID, shift_id: UUID) -> Thread:
+        """Verifica que el usuario participe de la conversación y devuelve el
+        hilo vigente, sobre el que queda abierta la conexión (uso en websockets)."""
+        thread, _company_user_id = await self._authorize(user_id, shift_id)
+        return thread
 
     async def list_conversations(self, user_id: UUID) -> list[ConversationSummary]:
-        """Inbox: una tarjeta por turno con mensajes en el que participa el usuario.
+        """Inbox: una tarjeta por turno en el que participa el usuario y cuyo
+        hilo vigente (el del comercio con la persona asignada hoy) tiene mensajes.
 
         Arma el inbox en 3 consultas totales en vez de una por conversación
         (fix de P1, `docs/audits/PERFORMANCE_REPORT.md`): 1) turnos + ambas
-        contrapartes posibles vía JOIN, 2) último mensaje por turno, 3) no
-        leídos por turno. Todo agregado por lote (`IN`), sin loop de `await`.
+        contrapartes posibles vía JOIN, 2) último mensaje por hilo, 3) no
+        leídos por hilo. Todo agregado por lote (`IN`), sin loop de `await`.
         """
         candidates = await self._messages.list_inbox_candidates(user_id)
-        shift_ids = [c.shift_id for c in candidates]
-        if not shift_ids:
+        threads = [c.thread for c in candidates]
+        if not threads:
             return []
 
-        last_messages = await self._messages.last_messages(shift_ids)
-        unread_counts = await self._messages.unread_counts_by_shift(shift_ids, user_id)
+        last_messages = await self._messages.last_messages(threads)
+        unread_counts = await self._messages.unread_counts(threads, user_id)
 
         summaries: list[ConversationSummary] = []
         for candidate in candidates:
-            last = last_messages.get(candidate.shift_id)
+            last = last_messages.get(candidate.thread)
             if last is None or last.created_at is None:
                 continue
 
@@ -133,7 +154,7 @@ class ChatService:
                     other_party_photo=photo,
                     last_message=last.body,
                     last_message_at=last.created_at,
-                    unread_count=unread_counts.get(candidate.shift_id, 0),
+                    unread_count=unread_counts.get(candidate.thread, 0),
                 )
             )
 
@@ -142,28 +163,24 @@ class ChatService:
 
     # --- helpers ---
 
-    async def _authorize(
-        self, user_id: UUID, shift_id: UUID
-    ) -> tuple[Shift, UUID, UUID]:
-        """Verifica que el usuario participe del turno y devuelve a sus dos partes."""
-        shift = await self._shifts.get_by_id(shift_id)
-        if shift is None:
-            raise ConversationNotFoundError(str(shift_id))
-        company_user_id, worker_user_id = await self._participants(shift)
-        # No revelamos turnos ajenos: si no sos participante, es "inexistente".
-        if user_id not in (company_user_id, worker_user_id):
-            raise ConversationNotFoundError(str(shift_id))
-        return shift, company_user_id, worker_user_id
+    async def _authorize(self, user_id: UUID, shift_id: UUID) -> tuple[Thread, UUID]:
+        """Verifica que el usuario participe HOY de la conversación del turno.
 
-    async def _participants(self, shift: Shift) -> tuple[UUID, UUID]:
-        """Devuelve (user_id del comercio, user_id del trabajador) del turno."""
-        if shift.worker_profile_id is None:
-            raise ConversationNotFoundError(str(shift.id))
+        Devuelve el hilo vigente (el del comercio con la persona asignada en
+        este momento) y el `user_id` del comercio. Quien tuvo el turno antes
+        ya no es participante: para esa persona la conversación no existe."""
+        shift = await self._shifts.get_by_id(shift_id)
+        # Sin trabajador asignado no hay con quién chatear.
+        if shift is None or shift.worker_profile_id is None:
+            raise ConversationNotFoundError(str(shift_id))
         company = await self._companies.get_by_id(shift.company_id)
         worker = await self._workers.get_by_id(shift.worker_profile_id)
         if company is None or worker is None:
-            raise ConversationNotFoundError(str(shift.id))
-        return company.user_id, worker.user_id
+            raise ConversationNotFoundError(str(shift_id))
+        # No revelamos turnos ajenos: si no sos participante, es "inexistente".
+        if user_id not in (company.user_id, worker.user_id):
+            raise ConversationNotFoundError(str(shift_id))
+        return Thread(shift_id=shift_id, worker_user_id=worker.user_id), company.user_id
 
     async def _notify_recipient(
         self, recipient_id: UUID, sender_id: UUID, body: str, shift_id: UUID

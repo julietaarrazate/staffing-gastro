@@ -90,7 +90,7 @@ Hasta el 2026-11-12 sólo respondía 200 en `publicado` y todo lo demás era 404
 ### `application` — `/applications`
 | Método | Ruta | Qué hace |
 |--------|------|----------|
-| POST | `/applications` | Postularse a un turno |
+| POST | `/shifts/{shift_id}` | Postularse a un turno abierto (worker). Si ya tenía una postulación `retirada` a ese turno, la reactiva (misma postulación, otra vez `pendiente`); con una activa o rechazada responde 409. Tope de 5 intentos por hora por cuenta y por turno (429) |
 | GET | `/mine` | Mis postulaciones (worker) — **paginado** |
 | GET | `/shifts/{shift_id}` | Postulantes de un turno (comercio) |
 
@@ -119,7 +119,7 @@ Hasta el 2026-11-12 sólo respondía 200 en `publicado` y todo lo demás era 404
 | Método | Ruta | Qué hace |
 |--------|------|----------|
 | GET | `/chats` | Inbox (conversaciones con no-leídos) |
-| GET | `/{shift_id}/messages` | Historial del turno |
+| GET | `/{shift_id}/messages` | Mensajes del hilo vigente del turno (comercio ↔ persona asignada ahora) |
 | WS | `/{shift_id}/ws` | Mensajes en vivo |
 
 ### `review` — `/reviews`
@@ -185,7 +185,9 @@ cambia.
 
 Dos canales, autenticados por token:
 
-- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — sólo participantes del turno.
+- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — sólo el comercio y la persona
+  asignada hoy; si el turno se reasigna, la conexión abierta se corta
+  ([CHAT.md](./CHAT.md)).
 - **Notificaciones:** `WS /api/v1/notifications/ws` — avisos del propio usuario.
 
 El registro de conexiones es **en memoria** (`app/core/ws_manager.py`): un solo
