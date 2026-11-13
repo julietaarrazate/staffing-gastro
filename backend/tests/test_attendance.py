@@ -261,7 +261,7 @@ async def _run_full_flow_to_finish(
 
 
 async def test_finish_with_punctual_checkin_updates_worker_metrics(client: AsyncClient):
-    """R2.4: check-in dentro de la tolerancia (±15 min) del horario pactado
+    """R2.4: check-in puntual (hasta 15 min después del horario pactado)
     suma un evento completado y deja punctuality_rate en 1.0 (primer evento)."""
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     shift_id, employer_headers, worker_headers = await _confirmed_shift(
