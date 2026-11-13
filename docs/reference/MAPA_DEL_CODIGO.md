@@ -51,7 +51,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/` | Landing sin sesión, "cielo" desde el 2026-10-18 y en paneles de tres superficies desde el 2026-11-13 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda` (con el cielo y las nubes, `Nubes`), `Comanda` con `lib/pedido-natural.ts`, `MapaCamino` (imagen real de Palermo en `public/landing/mapa-palermo.webp`, onda, relojito y la ficha de quien va en el pie), `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; el filete de "oído" en `Filete.tsx` (Sancreek local en `app/fonts/sancreek-oido.woff2`; el final usa sus `Sol` y `Letras` en `LandingFooter.tsx`); estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
 | `/historia` | La landing anterior, "la historia de un turno" (`components/landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Guardada para grabar reels; sin indexar, sin Navbar ni BottomNav |
 | `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register`; anti-robots en `TurnstileWidget` (`lib/turnstile.ts`, apagado sin clave); `/register?rol=comercio&plan=<code>` guarda el plan elegido en la landing hasta el final de `/bienvenida` (`lib/plan-elegido.ts`) |
-| `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
+| `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto). Si el perfil del trabajador ya existe (POST 409) guarda sólo lo capturado con `saveProfilePart`; sólo la cuenta invitada (`invitado.trabajador@oido.beta`) lo reemplaza entero |
 | `/profile` | Cómo te ven: vista, no formulario (#396) |
 | `/profile/edit` | Editar datos (`WorkerProfileForm` / `CompanyProfileForm`) |
 | `/profile/settings` | Apariencia, notificaciones push, soporte, cerrar sesión |
@@ -75,6 +75,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Tokens de color, sombras, anchos (`.app-container`, `.app-container-reading`) | `frontend/app/globals.css` |
 | Paleta celeste (v6) y la superficie de marca `bg-brand` | `frontend/app/globals.css`, bloque "PALETA CELESTE" (rige en `:root`) y `@utility bg-brand`; tinta sobre la marca: tokens `on-brand`, `heroInk()`/`heroTile()` en `lib/skill-style.tsx` |
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
+| Guardar una parte del perfil del trabajador (el `PUT /workers/me/profile` reemplaza el perfil entero) | `frontend/lib/worker-profile.ts` (`saveProfilePart`: lee el perfil del servidor y manda todo con el cambio encima); lo usan la foto, el interruptor «Disponible» del Inicio, el formulario y `/bienvenida`. No armar otro PUT a mano |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
 | Íconos (Lucide, envueltos) | `frontend/components/icons.tsx` |

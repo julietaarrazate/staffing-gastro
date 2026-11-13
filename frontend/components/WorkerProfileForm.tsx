@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import CvUpload from "@/components/CvUpload";
-import { toWorkerProfileInput, WorkerProfileInput } from "@/lib/worker-profile";
+import { saveProfilePart, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
@@ -136,18 +136,12 @@ export default function WorkerProfileForm() {
     setSubmitting(true);
     try {
       if (exists) {
-        // El endpoint reemplaza, no parchea (ver `toWorkerProfileInput`), y la
-        // foto se sube desde otro componente — el hero de `WorkerGameCard`,
-        // con su propia copia del perfil. Si mandáramos el `photo_url` que
-        // leímos al montar, guardar el formulario después de cambiar la foto
-        // la revertiría en silencio. Por eso se relee el perfil justo antes de
-        // guardar y los cambios del formulario van encima de ese estado.
-        const current = await api.get<WorkerProfile>("/workers/me/profile", token);
-        await api.put<WorkerProfile>(
-          "/workers/me/profile",
-          toWorkerProfileInput(current, changes),
-          token
-        );
+        // El endpoint reemplaza, no parchea, y la foto se sube desde otro
+        // componente (el hero de `WorkerGameCard`). `saveProfilePart` relee el
+        // perfil justo antes de guardar y pone los cambios del formulario
+        // encima: así guardar el formulario no revierte una foto cambiada
+        // después de abrirlo.
+        await saveProfilePart(token, changes);
       } else {
         // Todavía no hay perfil: no hay nada que preservar.
         const payload: WorkerProfileInput = {

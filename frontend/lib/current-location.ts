@@ -64,7 +64,7 @@ export function clearStoredLocation(): void {
  */
 export function originFor(
   current: CurrentLocation | null,
-  profile: WorkerProfile | null
+  profile: Pick<WorkerProfile, "latitude" | "longitude"> | null
 ): [number, number] | null {
   if (current) return [current.latitude, current.longitude];
   if (profile?.latitude != null && profile?.longitude != null) {
