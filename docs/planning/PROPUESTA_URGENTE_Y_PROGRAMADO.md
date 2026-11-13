@@ -1,7 +1,9 @@
 # Propuesta: dos carriles (urgente y programado), puntualidad real, eventos y captación
 
-**Estado:** propuesta, nada decidido. Lo que se apruebe pasa a un ADR propio
-antes del código. **Fecha:** 2026-11-13. **Pedido:** Julieta, como dueña:
+**Estado:** aprobada en parte por Julieta el 2026-11-13 («confío en tu
+criterio y recomendación»): los pasos 1 a 4 de la tabla del §8, que quedaron
+en el [tablero](./BETA_TABLERO.md) como P1 a P4. El resto sigue siendo
+propuesta. Cada parte pasa a un ADR propio antes del código. **Fecha:** 2026-11-13. **Pedido:** Julieta, como dueña:
 «abrí todas las posibilidades y da las mejores soluciones».
 
 Completa a [`PROPUESTA_COBERTURA_URGENTE.md`](./PROPUESTA_COBERTURA_URGENTE.md)

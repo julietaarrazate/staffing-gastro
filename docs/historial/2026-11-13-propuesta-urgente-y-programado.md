@@ -16,6 +16,11 @@ de nuevo lo que está. La propuesta separa llegar a horario de marcar la
 llegada, y deja la distancia como filtro, no como puntaje, en los turnos
 programados.
 
-**Queda abierto:** nada está decidido. Lo que Julieta apruebe pasa a un ADR
-antes del código. El seguro y el cobro sin comisión no son de ingeniería: uno
+**Decisión:** Julieta aprobó las recomendaciones el mismo día («confío en tu
+criterio y recomendación con la visión de negocio y producto»). Quedaron en
+el tablero como P1 a P4 (puntualidad real, orden de los postulantes en
+programados, reconfirmación, tomar el urgente con un toque) y se cerraron
+las decisiones 7, 8, 9, 16 y 17.
+
+**Queda abierto:** todo el código; cada parte lleva su ADR antes. El seguro y el cobro sin comisión no son de ingeniería: uno
 va a la asesoría y el otro necesita una comparación con números de hoy.
