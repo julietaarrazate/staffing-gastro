@@ -1,4 +1,4 @@
-# Las notificaciones push de un dispositivo son de la cuenta que tiene la sesión abierta ahí
+# Las notificaciones push de un dispositivo son de la cuenta que tiene la sesión abierta ahí (#545)
 
 **Pedido:** salida a beta, etapa 2 (arreglar lo que encontró la prueba de
 punta a punta y lo que reportó la herramienta externa Breken). Reporte
