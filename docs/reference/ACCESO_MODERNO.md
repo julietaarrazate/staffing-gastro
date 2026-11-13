@@ -151,6 +151,18 @@ revocó el permiso), la suscripción se purga sola, con una sesión de base
 propia porque la del request ya se cerró. Al apagar la app, el lifespan
 espera hasta 10 s los envíos en curso y loguea los que no terminaron.
 
+Cada aviso sale con vigencia (TTL) y urgencia según su tipo, definidas en un
+solo lugar: `domain/push_policy.py::push_policy_for`. Turno nuevo o urgente
+cerca: 30 min, urgencia alta (pasada media hora ya suele estar cubierto).
+Lo que pide actuar sobre un turno o avisa un cambio en uno propio
+(postulación, asignación, confirmación, rechazo, cancelación, no presentado,
+salida, chat): 12 h, alta. Recordatorios de llegada y de salida y «va en
+camino» (solo valen en el momento): 30 min, alta. Pagos, reseñas,
+verificación, soporte y plan (y todo tipo sin regla): 24 h, normal. Sin
+vigencia (TTL 0, el default de `pywebpush`) el servicio push descarta el aviso
+si el celular no está conectado en ese instante. Un test recorre
+`NotificationType`: un tipo nuevo obliga a decidir su regla.
+
 Archivos clave: `domain/entities.py::PushSubscription`,
 `domain/push_sender.py` (puerto), `infrastructure/webpush_sender.py`
 (adaptador real, `pywebpush`), `infrastructure/null_push_sender.py` (flag por

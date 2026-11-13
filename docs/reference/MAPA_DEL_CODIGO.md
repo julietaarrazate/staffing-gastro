@@ -36,7 +36,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
 | `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados. «Marcar como pagado», «Cancelar turno» y «No se presentó» piden confirmación | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal`, `lib/use-tap-guard.ts` | `/shifts/me` |
-| `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA) | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `/shifts/parse-text` |
+| `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA). Un intento crea un solo borrador: reintentar lo retoma (y lo edita si cambió el formulario) en vez de crear otro | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `PUT /shifts/{id}`, `POST /shifts/{id}/publish`, `/shifts/parse-text` |
 | `/shifts/new-event` | Publicar varios turnos para un evento | `LocationPicker` | `/shifts/events` |
 | `/shifts/[id]/candidates` | ¿A quién elijo? Se **asigna a una persona puntual**, que después confirma o rechaza. El recomendado va en tarjeta oscura | `CandidateCard`, `candidate/GuaranteeCard`, `candidate/CandidateSignals` | `/shifts/{id}/candidates`, `/shifts/{id}/assign` |
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
@@ -51,13 +51,14 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/` | Landing sin sesión, "cielo" desde el 2026-10-18 y en paneles de tres superficies desde el 2026-11-13 (`components/landing/`, orden en `LandingCorta.tsx`: `HeroRueda` (con el cielo y las nubes, `Nubes`), `Comanda` con `lib/pedido-natural.ts`, `MapaCamino` (imagen real de Palermo en `public/landing/mapa-palermo.webp`, onda, relojito y la ficha de quien va en el pie), `Precios`, `ParaTrabajar`, `Preguntas`, `Cierre`, `LandingFooter`; el filete de "oído" en `Filete.tsx` (Sancreek local en `app/fonts/sancreek-oido.woff2`; el final usa sus `Sol` y `Letras` en `LandingFooter.tsx`); estilos `.landing-*` en `globals.css`; fotos en `public/landing/`; la puerta con sesión en `LandingGate.tsx`; instalar en el celular: `InstalarPasos.tsx` + `lib/instalar.ts`). Con sesión redirige a la home del rol; sin sesión se ve también desde la app instalada, y "Cerrar sesión" vuelve acá |
 | `/historia` | La landing anterior, "la historia de un turno" (`components/landing/story/`, orden en `LandingStory.tsx`, motor en `useStage.ts`). Guardada para grabar reels; sin indexar, sin Navbar ni BottomNav |
 | `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` | Acceso. Google en `GoogleAuthButton`; consentimiento legal obligatorio en `/register`; anti-robots en `TurnstileWidget` (`lib/turnstile.ts`, apagado sin clave); `/register?rol=comercio&plan=<code>` guarda el plan elegido en la landing hasta el final de `/bienvenida` (`lib/plan-elegido.ts`) |
-| `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto) |
+| `/bienvenida` | Primer arranque por rol (perfil, ubicación, foto). Si el perfil del trabajador ya existe (POST 409) guarda sólo lo capturado con `saveProfilePart`; sólo la cuenta invitada (`invitado.trabajador@oido.beta`) lo reemplaza entero |
 | `/profile` | Cómo te ven: vista, no formulario (#396) |
 | `/profile/edit` | Editar datos (`WorkerProfileForm` / `CompanyProfileForm`) |
 | `/profile/settings` | Apariencia, notificaciones push, soporte, cerrar sesión |
 | `/chats`, `/chats/[shiftId]` | Chat por turno (WebSocket, `lib/useWebSocket.ts`) |
 | `/support`, `/support/[id]` | Tickets de soporte |
-| `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`) |
+| `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`). Se ve mientras el turno esté abierto a postulaciones (`lib/turno-publico.ts` lee `GET /shifts/{id}/public`: 200, 410 o 404). Si ya se tomó, se canceló o pasó la hora: «Este turno ya no está disponible» (`components/TurnoNoDisponible.tsx`, con salida según la sesión; la muestra `app/turno/[id]/not-found.tsx`). Si no existe: la «no encontrada» global (lo corta `app/turno/[id]/layout.tsx`) |
+| cualquier dirección que no existe | «No encontramos esa página», con «Volver al inicio» (`app/not-found.tsx`). También la usa todo `notFound()` sin una pantalla propia más cerca |
 | `/terminos`, `/privacidad` **SSR** | Legales. Si cambia el texto, se sube la versión (ver abajo) |
 | `/admin` ("Hoy") | Portada del admin: urgentes sin cubrir y ausencias del día, pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
 | `/admin/en-vivo` ("Turnos en vivo") | Turnos publicados sin nadie confirmado, lo más urgente primero, filtros urgentes/escalados (`?filtro=`), se actualiza cada 30 s. Cuentas en `components/admin/live.ts` |
@@ -75,8 +76,10 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Tokens de color, sombras, anchos (`.app-container`, `.app-container-reading`) | `frontend/app/globals.css` |
 | Paleta celeste (v6) y la superficie de marca `bg-brand` | `frontend/app/globals.css`, bloque "PALETA CELESTE" (rige en `:root`) y `@utility bg-brand`; tinta sobre la marca: tokens `on-brand`, `heroInk()`/`heroTile()` en `lib/skill-style.tsx` |
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
+| Guardar una parte del perfil del trabajador (el `PUT /workers/me/profile` reemplaza el perfil entero) | `frontend/lib/worker-profile.ts` (`saveProfilePart`: lee el perfil del servidor y manda todo con el cambio encima); lo usan la foto, el interruptor «Disponible» del Inicio, el formulario y `/bienvenida`. No armar otro PUT a mano |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
+| Pantalla entera de «acá no hay nada» (título, una línea y salidas que son links) | `frontend/components/PaginaAviso.tsx`; la usan `app/not-found.tsx` y `TurnoNoDisponible` |
 | Íconos (Lucide, envueltos) | `frontend/components/icons.tsx` |
 | Logo | `frontend/components/Logo.tsx` |
 | Claves de `localStorage`/`sessionStorage` (`staffya_*`) y mocks E2E | `frontend/e2e/mocks.ts` |
@@ -102,7 +105,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Guarda contra el toque de más (una acción terminó, la lista se redibujó y quedó otro botón bajo el dedo) | `frontend/lib/use-tap-guard.ts` (`useTapGuard`); hoy la usa el panel del comercio (`app/shifts/page.tsx`, `components/ShiftActions.tsx`) |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
-| Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `frontend/lib/push.ts` |
+| Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `backend/app/modules/notification/domain/push_policy.py` (vigencia y urgencia por tipo), `frontend/lib/push.ts` |
 | Gemini (modelo fijado) | `backend/app/core/gemini.py` |
 | PIN del acceso invitado | env var `GUEST_ACCESS_PIN` (`settings.guest_access_pin`, `backend/app/core/config.py`); vacía = apagado |
 | Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |

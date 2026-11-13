@@ -1,7 +1,7 @@
 """Adaptador SQLAlchemy del ShiftRepository."""
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -17,6 +17,7 @@ from app.modules.shift.domain.repositories import (
     ShiftPublicationStats,
     ShiftRepository,
     ShiftTodayCounts,
+    WorkerEarningsTotals,
 )
 from app.modules.shift.domain.value_objects import (
     OPEN_STATUSES,
@@ -214,6 +215,36 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def sum_worker_earnings(
+        self,
+        worker_profile_id: UUID,
+        statuses: frozenset[ShiftStatus],
+        *,
+        window_start: datetime,
+        window_end: datetime,
+    ) -> WorkerEarningsTotals:
+        # Los límites se pasan en UTC: así comparan igual en Postgres y en
+        # SQLite (que guarda los instantes sin zona, en UTC).
+        window_start = window_start.astimezone(timezone.utc)
+        window_end = window_end.astimezone(timezone.utc)
+        in_window = (ShiftModel.start_at >= window_start) & (ShiftModel.start_at < window_end)
+        stmt = select(
+            func.sum(ShiftModel.pay_amount),
+            func.count(ShiftModel.id),
+            func.sum(case((in_window, ShiftModel.pay_amount))),
+        ).where(
+            ShiftModel.worker_profile_id == worker_profile_id,
+            ShiftModel.status.in_([s.value for s in statuses]),
+        )
+        total, count, month = (await self._session.execute(stmt)).one()
+        # SUM sobre cero filas es NULL: se informa como 0 sin decimales, igual
+        # que antes de pasar la suma a la base.
+        return WorkerEarningsTotals(
+            total=Decimal(0) if total is None else Decimal(str(total)),
+            count=int(count),
+            in_window=Decimal(0) if month is None else Decimal(str(month)),
+        )
 
     async def list_by_worker_and_statuses(
         self, worker_profile_id: UUID, statuses: frozenset[ShiftStatus]

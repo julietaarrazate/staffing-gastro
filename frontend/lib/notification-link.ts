@@ -21,6 +21,7 @@ const BY_TYPE: Record<NotificationType, string> = {
   // confirmar, no se le avisa nada — mismo criterio que el backend
   // (`deep_link_for` en notification/domain/value_objects.py).
   shift_not_covered: "/shifts",
+  // Sólo para avisos viejos sin `link`: los nuevos traen `/turno/<id>`.
   new_shift_nearby: "/feed",
   // Escalada automática de urgencia (ADR-0009): mismo destino que el aviso
   // común, el turno todavía no es suyo.

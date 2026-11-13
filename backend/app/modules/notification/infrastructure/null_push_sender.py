@@ -8,14 +8,21 @@ tener las claves reales (mismo patrón que `NullEmailSender`)."""
 import logging
 
 from app.modules.notification.domain.entities import PushSubscription
-from app.modules.notification.domain.push_sender import PushSendResult, PushSender
+from app.modules.notification.domain.push_policy import DEFAULT_PUSH_POLICY, PushPolicy
+from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 
 logger = logging.getLogger(__name__)
 
 
 class NullPushSender(PushSender):
     async def send(
-        self, subscription: PushSubscription, *, title: str, body: str, url: str = "/"
+        self,
+        subscription: PushSubscription,
+        *,
+        title: str,
+        body: str,
+        url: str = "/",
+        policy: PushPolicy = DEFAULT_PUSH_POLICY,
     ) -> PushSendResult:
         logger.info(
             "NullPushSender: VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY no configuradas, "

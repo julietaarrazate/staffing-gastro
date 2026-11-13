@@ -3,7 +3,7 @@
 `SubscriptionRepository` también se consume desde `shift` (cruce de módulo)
 para el gating al publicar un turno — sólo este puerto de dominio se importa
 desde ahí, nunca la capa de aplicación de `subscription` (ver
-`ShiftService._consume_publication_slot`).
+`ShiftService._ensure_publication_allowed` y `_register_publication`).
 """
 
 from abc import ABC, abstractmethod

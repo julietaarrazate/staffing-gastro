@@ -55,7 +55,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { GUEST_WORKER_EMAIL, saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { destinoTrasBienvenida } from "@/lib/plan-elegido";
@@ -137,7 +138,7 @@ function StepDots({ active, total }: { active: number; total: number }) {
 type WorkerStep = "zona" | "oficio" | "detalles";
 
 function WorkerOnboarding() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<WorkerStep>("zona");
@@ -171,7 +172,10 @@ function WorkerOnboarding() {
     if (!token) return false;
     setError(null);
     // El perfil todavía no existe (el usuario se acaba de registrar), pero si
-    // entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
+    // entró dos veces al onboarding puede existir (POST da 409). En ese caso
+    // NO se reemplaza el perfil con este payload corto: se guarda sólo lo que
+    // el asistente capturó, encima del perfil que ya está (`saveProfilePart`),
+    // y «Dejar para después» no escribe nada.
     const payload = {
       photo_url: withDetails ? photoUrl : null,
       city: withDetails ? (location?.city ?? null) : null,
@@ -184,8 +188,26 @@ function WorkerOnboarding() {
     try {
       try {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
-      } catch {
-        await api.put<WorkerProfile>("/workers/me/profile", payload, token);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 409) throw err;
+        if (user?.email === GUEST_WORKER_EMAIL) {
+          // La cuenta invitada es una sola compartida por rol: cada ingreso con
+          // PIN arranca de cero a propósito, así que acá sí se reemplaza el
+          // perfil entero (el probador anterior no le deja sus datos al siguiente).
+          await api.put<WorkerProfile>("/workers/me/profile", payload, token);
+        } else if (withDetails) {
+          await saveProfilePart(token, {
+            ...(photoUrl ? { photo_url: photoUrl } : {}),
+            city: location?.city ?? null,
+            latitude: location?.latitude ?? null,
+            longitude: location?.longitude ?? null,
+            skills,
+            // Opcional: vacío no pisa los años que ya tenía el perfil.
+            ...(yearsExperienceInput.trim()
+              ? { years_experience: Number(yearsExperienceInput) || 0 }
+              : {}),
+          });
+        }
       }
       return true;
     } catch (err) {

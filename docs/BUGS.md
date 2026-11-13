@@ -29,7 +29,8 @@ Staffya no tenía hasta este fix.
   ambos UTC-aware), sin truncar nunca a `.date()`. No hay "mes calendario" al que un turno de las
   22:30 ART pueda caerle del lado equivocado: el corte de período es el mismo instante exacto se
   mire desde ART o desde UTC. Se revisó también el gating de publicación
-  (`shift/application/services.py::_consume_publication_slot`) y no reintroduce el patrón. Si en
+  (`shift/application/services.py::_ensure_publication_allowed` y `_register_publication`, antes
+  `_consume_publication_slot`) y no reintroduce el patrón. Si en
   el futuro se cambia a "mes calendario" real (ver comentario `PERIOD_LENGTH` en
   `subscription/domain/entities.py`), ese cambio sí va a necesitar `hoy_art()`/`now_art()`.
 - **Frontend:** ya tenía el helper correcto desde antes (`frontend/lib/datetime.ts`, comentario
@@ -502,3 +503,13 @@ tragado por un `.catch(() => {})` mientras la pantalla decía "compartiendo".
 no va en el estado que las pantallas usan como dependencia de sus efectos. Si una pantalla
 necesita "el token de ahora" dentro de un timer, lo pide al momento (`resolveToken`), no lo
 captura al arrancar.
+
+---
+
+## `PUT /workers/me/profile` reemplaza el perfil: payload armado a mano o con copia vieja
+
+**Patrón:** el endpoint no parchea, reemplaza (todo campo omitido vuelve a su default). Una pantalla que guarda UNA parte del perfil y arma el resto a mano, o con una copia cargada antes, borra campos (se olvidó uno, p. ej. `cv_filename`) o deshace lo que se guardó desde otra pestaña o dispositivo.
+
+- **Encontrado (2026-11):** tres veces. El formulario completo contra la foto (de ahí salió `toWorkerProfileInput`); luego la foto del Perfil y el interruptor «Disponible» del Inicio (hallazgo U053, reporte BK-676ABE51EF2C); y `/bienvenida` al reentrar con perfil existente (PUT corto tras un 409).
+- **Fix:** `saveProfilePart(token, cambios)` en `frontend/lib/worker-profile.ts` lee el perfil del servidor justo antes de escribir y manda el perfil completo con los cambios encima.
+- **Cómo evitarlo:** guardar una parte del perfil siempre con `saveProfilePart`; nunca armar el payload en la pantalla ni usar la copia en memoria. Queda abierta la ventana de milisegundos entre leer y escribir: el arreglo de fondo es un guardado parcial (PATCH) en el backend.

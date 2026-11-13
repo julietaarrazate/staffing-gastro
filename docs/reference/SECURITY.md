@@ -36,6 +36,11 @@
   primer admin sin endpoint de auto-registro.
 - **No-disclosure:** recurso ajeno o inexistente → **404**. Nunca se distingue
   "no existe" de "no es tuyo". Regla transversal de la capa `api/`.
+  - Única excepción, a propósito: la página pública de un turno
+    (`GET /shifts/{id}/public`) responde **410** cuando el turno **ya fue
+    público** y dejó de estar abierto. Sólo confirma algo que ya era público
+    (que ese turno existió) y no devuelve ningún dato suyo; un borrador o un
+    id inexistente siguen siendo 404. Detalle en [API.md](./API.md).
 
 ## Verificación en dos pasos (admin, ADR-0023)
 
