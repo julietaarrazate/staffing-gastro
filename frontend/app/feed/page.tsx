@@ -155,6 +155,11 @@ function WorkerFeedPanel() {
   const [profile, setProfile] = useState<WorkerProfile | null>(cached?.profile ?? null);
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
   const [loading, setLoading] = useState(cached === undefined);
+  // «Llegó vacío» (el servidor no devolvió ningún turno) no es lo mismo que
+  // «los vi todos» (la persona fue pasando/descartando las tarjetas): lo
+  // primero no se puede decir como si ya hubiera visto algo. El caché guarda
+  // lo que devolvió el servidor, así que vacío ahí también es «llegó vacío».
+  const [arrivedEmpty, setArrivedEmpty] = useState(cached !== undefined && cached.shifts.length === 0);
   const [error, setError] = useState<string | null>(null);
   // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
   const [decidingId, setDecidingId] = useState<string | null>(null);
@@ -208,6 +213,7 @@ function WorkerFeedPanel() {
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
+      setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
       if (prof && profFresh) {
@@ -403,21 +409,32 @@ function WorkerFeedPanel() {
   // sólo trae lo de la zona del perfil, así que no puede afirmar que no hay
   // turnos en ningún lado.
   const emptyNearHere = !assistantSearch && here !== null;
+  // Sin zona en el perfil el servidor manda todo: ahí «cerca de tu zona» sería falso.
+  const emptyNoneInZone = !assistantSearch && !emptyNearHere && arrivedEmpty && profileLat !== null && profileLng !== null;
+  const goBuscar = () => router.push("/buscar");
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
     : emptyNearHere
       ? "No hay turnos cerca de donde estás ahora"
-      : "No hay más turnos cerca";
+      : emptyNoneInZone
+        ? "Todavía no hay turnos cerca de tu zona"
+        : "No hay más turnos cerca";
   const emptySubtitle = assistantSearch
     ? "Probá un radio más amplio o menos puestos a la vez."
     : emptyNearHere
       ? "Tocá «Volver a mi zona», arriba, o mirá todos los turnos en Buscar."
-      : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+      : emptyNoneInZone
+        ? "Aparecen en tiempo real y te avisamos cuando salga uno. Mientras, podés mirar los de otras zonas en Buscar."
+        : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+  // Una sola acción primaria (ámbar) por vacío; la otra va como secundaria.
+  const verTodosEnBuscar = { label: "Ver todos en Buscar", onClick: goBuscar };
+  const actualizar = { label: "Actualizar", onClick: load };
   const emptyStateAction = assistantSearch
     ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
-    : emptyNearHere
-      ? { label: "Ver todos en Buscar", onClick: () => router.push("/buscar") }
-      : { label: "Actualizar", onClick: load };
+    : emptyNearHere || emptyNoneInZone
+      ? verTodosEnBuscar
+      : actualizar;
+  const emptySecondaryAction = assistantSearch || emptyNearHere ? undefined : emptyNoneInZone ? actualizar : verTodosEnBuscar;
 
   const emptyState = (
     <EmptyState
@@ -425,6 +442,7 @@ function WorkerFeedPanel() {
       title={emptyTitle}
       subtitle={emptySubtitle}
       primaryAction={emptyStateAction}
+      secondaryAction={emptySecondaryAction}
     />
   );
 

@@ -171,3 +171,20 @@ afirmaba que la cercanía era «preferencia, no barrera dura»; también
   aparece como postulante, no como recomendado.
 - **Aplicaciones abiertas con la versión anterior:** hasta que se actualicen,
   su Buscar pide el feed sin `scope=all` y ve sólo lo cercano.
+
+## Dos retoques de pantalla (salieron de la prueba en la app)
+
+- **Inicio vacío sin salida.** Si el servidor devuelve 0 turnos para la zona
+  del perfil, el Inicio decía «No hay más turnos cerca / Ya viste todas…»,
+  que es falso (nunca vio ninguno) y sólo dejaba «Actualizar». Ahora
+  distingue «llegó vacío» de «los agotó» (`arrivedEmpty`, sale de la
+  respuesta del feed y del caché): en el primero dice «Todavía no hay turnos
+  cerca de tu zona» y ofrece «Ver todos en Buscar» (primaria) y «Actualizar»;
+  en el segundo queda el texto de antes con «Actualizar» primaria y «Ver
+  todos en Buscar» secundaria. Sin zona en el perfil (el servidor manda todo)
+  no se dice «tu zona». «Estoy acá» y el Mapa no cambian.
+- **Ayuda de «Ubicación» en editar perfil** (`WorkerProfileForm.tsx`): decía
+  que la zona define a qué turnos «te recomendamos primero»; ahora «Tu zona
+  define qué turnos ves en el Inicio y de cuáles te avisamos.»
+- Tests: dos casos nuevos en `frontend/e2e/cerca-es-cerca.spec.ts` (llegó
+  vacío / agotó, y que el botón lleva a Buscar).

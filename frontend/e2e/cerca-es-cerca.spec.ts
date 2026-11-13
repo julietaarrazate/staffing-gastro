@@ -270,3 +270,38 @@ test("el Mapa muestra sólo los turnos que quedan cerca de donde estoy", async (
   await expect(page.getByText("Bar Palermo").filter({ visible: true })).toBeVisible();
   await expect(page.getByText("Bar Córdoba")).toHaveCount(0);
 });
+
+test("Inicio vacío porque no hay turnos en la zona: lo dice y manda a Buscar", async ({ page }) => {
+  await setup(page, []);
+
+  await page.goto("/feed");
+
+  await expect(page.getByText("Todavía no hay turnos cerca de tu zona")).toBeVisible();
+  await expect(page.getByText("Aparecen en tiempo real y te avisamos cuando salga uno.")).toBeVisible();
+  await expect(page.getByText("No hay más turnos cerca")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Actualizar" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Ver todos en Buscar" }).click();
+  await expect(page).toHaveURL(/\/buscar$/);
+});
+
+test("Inicio vacío porque ya vio todo: queda el texto de siempre y también ofrece Buscar", async ({ page }) => {
+  await setup(page, [shift("s-palermo", "Palermo", PALERMO)]);
+  // Ya se postuló al único turno que trajo el servidor: lo vio, no «no hay».
+  await page.route("**/api/v1/applications/mine", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([{ id: "a1", shift_id: "s-palermo", status: "pendiente" }]),
+    })
+  );
+
+  await page.goto("/feed");
+
+  await expect(page.getByText("No hay más turnos cerca")).toBeVisible();
+  await expect(page.getByText("Todavía no hay turnos cerca de tu zona")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Actualizar" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Ver todos en Buscar" }).click();
+  await expect(page).toHaveURL(/\/buscar$/);
+});
