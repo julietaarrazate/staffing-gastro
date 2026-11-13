@@ -153,6 +153,7 @@ class AdminCompanySummary:
     events_published: int
     on_time_payment_rate: float
     late_cancellations: int
+    payments_recorded: int = 0
 
 
 @dataclass

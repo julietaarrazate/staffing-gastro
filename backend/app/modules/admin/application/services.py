@@ -190,6 +190,7 @@ class AdminService:
                     rating=company.rating,
                     events_published=company.events_published,
                     on_time_payment_rate=company.on_time_payment_rate,
+                    payments_recorded=company.payments_recorded,
                     late_cancellations=company.late_cancellations,
                 )
                 shifts = await self._shifts.list_by_company(company.id, limit=limit)
