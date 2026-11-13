@@ -17,6 +17,8 @@ describe("hasRating", () => {
     expect(hasRating(null)).toBe(false);
     expect(hasRating(undefined)).toBe(false);
     expect(hasRating(Number.NaN)).toBe(false);
+    expect(hasRating(0.04)).toBe(false);
+    expect(hasRating(0.99)).toBe(false);
   });
   it("una nota de 1 a 5 es una nota", () => {
     expect(hasRating(1)).toBe(true);

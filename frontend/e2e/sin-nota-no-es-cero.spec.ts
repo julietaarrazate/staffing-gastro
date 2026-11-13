@@ -201,3 +201,15 @@ test("perfil del comercio: con turnos pero sin pagos no hay «Pago a tiempo» ni
   await expect(page.getByText("90%")).toBeVisible();
   await expect(page.getByText("4,2", { exact: true })).toBeVisible();
 });
+
+test("perfil público: con turnos y sin reseñas no dice «Nuevo en Oído» junto a «3 eventos»", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/v1/workers/wp-turnos", (r) =>
+    r.fulfill(json(perfil({ id: "wp-turnos", full_name: "Tomás Turnos", events_completed: 3, punctuality_rate: 1 })))
+  );
+  await page.goto("/workers/wp-turnos");
+  await expect(page.getByRole("heading", { name: /Tomás Turnos/ })).toBeVisible();
+  await expect(page.getByText("3 eventos")).toBeVisible();
+  await expect(page.getByText("Nuevo en Oído")).toHaveCount(0);
+  await expect(page.getByText("· 3 eventos")).toHaveCount(0);
+});

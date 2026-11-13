@@ -113,12 +113,12 @@ export function levelMeta(level: string) {
 export const NEW_LABEL = "Nuevo en Oído";
 
 /**
- * Las notas van de 1 a 5, así que `0` es el valor por defecto del backend y
- * significa "sin reseñas" (la API no manda la cantidad). Una nota en 0 NO se
- * muestra: ni "0,0", ni estrellas vacías. Única fuente de esta regla.
+ * Las notas van de 1 a 5, así que cualquier valor menor a 1 (el `0` por
+ * defecto del backend) significa "sin reseñas" (la API no manda la cantidad).
+ * Una nota así NO se muestra: ni "0,0", ni estrellas vacías. Única fuente de esta regla.
  */
 export function hasRating(rating: number | null | undefined): rating is number {
-  return typeof rating === "number" && Number.isFinite(rating) && rating > 0;
+  return typeof rating === "number" && Number.isFinite(rating) && rating >= 1;
 }
 
 /** "4.567" -> "4,6" (coma, como se escribe en AR). Sólo para notas que pasan `hasRating`. */

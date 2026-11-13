@@ -125,7 +125,7 @@ export default function PublicCompanyProfilePage() {
 
         <div className="px-5 py-5">
           <div className="flex items-center gap-2">
-            <RatingOrNew rating={profile.rating} />
+            <RatingOrNew rating={profile.rating} completed={profile.events_published} />
             {profile.events_published > 0 && (
               <span className="text-sm text-ink/40">
                 {hasRating(profile.rating) ? "· " : ""}

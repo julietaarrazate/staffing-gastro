@@ -10,14 +10,18 @@ import { hasRating, formatRating, NEW_LABEL } from "@/lib/reputation";
  */
 export default function RatingOrNew({
   rating,
+  completed = 0,
   size = 18,
   numberClassName = "text-sm font-semibold text-ink/75",
 }: {
   rating: number;
+  /** Turnos hechos/publicados: con historial y sin reseñas no va rótulo («Nuevo en Oído» se contradiría con «3 eventos»). */
+  completed?: number;
   size?: number;
   numberClassName?: string;
 }) {
   if (!hasRating(rating)) {
+    if (completed > 0) return null;
     return <span className={`whitespace-nowrap ${numberClassName}`}>{NEW_LABEL}</span>;
   }
   return (
