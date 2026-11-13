@@ -56,9 +56,8 @@ CHECK_RADIUS_KM = 0.3
 EN_ROUTE_WINDOW = timedelta(hours=2)
 
 # «No se presentó» sólo se puede marcar cuando el turno ya empezó (hallazgo
-# U079): desde `start_at` + esta tolerancia, la misma que usa la puntualidad
-# (`PUNCTUALITY_TOLERANCE`, application/services.py). Antes se aplicaba sobre
-# un turno confirmado que empezaba mañana y penalizaba sin vuelta atrás. La
+# U079): desde `start_at` + esta tolerancia, la misma tolerancia que la
+# puntualidad. Antes se aplicaba sobre un turno confirmado que empezaba mañana y penalizaba sin vuelta atrás. La
 # ausencia automática del scheduler (a las 2 h) siempre cae después.
 NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
 

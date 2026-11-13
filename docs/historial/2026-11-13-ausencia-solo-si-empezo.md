@@ -1,4 +1,4 @@
-# «No se presentó» sólo si el turno ya empezó (U079)
+# «No se presentó» sólo si el turno ya empezó (U079) (#550)
 
 **Pedido:** clave T3c / hallazgo U079: se podía marcar la ausencia de un turno confirmado que empezaba mañana, y penalizaba al trabajador sin vuelta atrás.
 
@@ -6,4 +6,4 @@
 
 **Por qué así:** la regla en el dominio, no sólo en la UI, para que ningún camino la saltee. Se reutilizó `InvalidShiftTransitionError` (ya es 400 con su mensaje).
 
-**Queda abierto:** (1) cancelar un turno cuyo trabajador ya terminó de trabajar (decisión de producto). (2) Avisos al reabrirse el turno. (3) Un turno reabierto por ausencia ya empezó, así que no aparece en el feed (`list_open` sólo ofrece turnos por delante, ADR-0015): decidir si hace falta otra vía para re-cubrirlo.
+**Queda abierto:** (1) cancelar un turno cuyo trabajador ya terminó de trabajar (decisión de producto). (2) Avisos al reabrirse el turno. (3) U080, espera decisión de producto: un turno reabierto por ausencia ya empezó, así que no vuelve al feed (`list_open` sólo ofrece turnos por delante, ADR-0015); decidir si hace falta otra vía para re-cubrirlo.
