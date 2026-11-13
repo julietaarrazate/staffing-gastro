@@ -12,6 +12,7 @@ from app.core.config import settings as app_settings
 from app.core.database import sessions_like
 from app.core.ws_manager import ws_manager
 from app.modules.notification.domain.entities import Notification, PushSubscription
+from app.modules.notification.domain.push_policy import push_policy_for
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 from app.modules.notification.domain.repositories import (
     NotificationRepository,
@@ -188,10 +189,23 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
         result = await self._session.execute(stmt)
         existing = result.scalar_one_or_none()
         if existing is not None:
-            # Idempotente: el mismo endpoint ya está suscripto (p. ej. el
-            # usuario tocó "Activar" dos veces, o reinstaló la PWA con el
-            # mismo service worker todavía registrado).
-            return _push_to_entity(existing)
+            # Un endpoint es un navegador, no una persona: queda a nombre de
+            # quien lo suscribe ahora. Para la misma cuenta es idempotente
+            # (tocó "Activar" dos veces, o el frontend lo registró solo al
+            # iniciar sesión); si era de otra cuenta (navegador compartido,
+            # dos cuentas en un dispositivo), deja de recibir los avisos de la
+            # anterior. Sólo si es el mismo navegador, que manda las claves
+            # que ya estaban guardadas: con otras no se toca nada.
+            current = _push_to_entity(existing)
+            if (
+                current.is_same_browser_as(subscription)
+                and existing.user_id != subscription.user_id
+            ):
+                existing.user_id = subscription.user_id
+                await self._session.commit()
+                await self._session.refresh(existing)
+                current = _push_to_entity(existing)
+            return current
 
         model = PushSubscriptionModel(
             id=subscription.id,
@@ -294,6 +308,10 @@ async def _deliver_pushes(
                     # los candidatos de ese turno) y, si no lo tiene, la
                     # pantalla genérica del tipo.
                     url=notification.link or deep_link_for(notification.type),
+                    # Vigencia y urgencia según el tipo (`push_policy`): sin
+                    # esto el servicio push descarta el aviso si el celular
+                    # no está conectado en ese instante.
+                    policy=push_policy_for(notification.type),
                 )
                 for subscription, notification in deliveries
             ),

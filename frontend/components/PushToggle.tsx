@@ -4,7 +4,7 @@
 // Mismo look & feel que las filas de acción de esa pantalla (icono + texto +
 // estado), como componente aparte porque ese `Row` es privado del archivo.
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
   getCurrentPushSubscription,
@@ -17,7 +17,8 @@ import { Spinner } from "@/components/ui";
 import IconChip from "@/components/ui/IconChip";
 
 export default function PushToggle() {
-  const { token } = useAuth();
+  const { token, impersonating } = useAuth();
+  const hintId = useId();
   const [supported] = useState(() => isPushSupported());
   const [enabled, setEnabled] = useState(false);
   // Nada que chequear si el navegador no soporta push: arranca sin "cargando".
@@ -31,8 +32,15 @@ export default function PushToggle() {
       .finally(() => setChecking(false));
   }, [supported]);
 
+  // Las notificaciones de este dispositivo son de la cuenta que tiene la
+  // sesión abierta acá. En «Ver como» el `token` es el de la persona que la
+  // admin está viendo, pero el dispositivo es de la admin: prenderlas lo
+  // dejaba a nombre de esa persona, y apagarlas le cancelaba las suyas. Queda
+  // deshabilitado y lo dice.
+  const locked = impersonating !== null;
+
   async function toggle() {
-    if (!token || loading) return;
+    if (!token || loading || locked) return;
     setLoading(true);
     try {
       if (enabled) {
@@ -50,12 +58,13 @@ export default function PushToggle() {
   // Navegador sin soporte de push (o SSR): no tiene sentido mostrar el toggle.
   if (!supported) return null;
 
-  return (
+  const row = (
     <button
       type="button"
       onClick={toggle}
-      disabled={checking || loading}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left first:rounded-t-2xl last:rounded-b-2xl hover:bg-surface disabled:opacity-70"
+      disabled={checking || loading || locked}
+      aria-describedby={locked ? hintId : undefined}
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left first:rounded-t-2xl last:rounded-b-2xl enabled:hover:bg-surface disabled:opacity-70"
     >
       <IconChip tone="cielo">
         <BellIcon size={18} />
@@ -74,5 +83,19 @@ export default function PushToggle() {
         </span>
       )}
     </button>
+  );
+
+  if (!locked) return row;
+
+  // La explicación va fuera del botón para que no se atenúe con él, alineada
+  // con el texto de la fila (16 de margen + 36 del ícono + 12 de separación).
+  return (
+    <div>
+      {row}
+      <p id={hintId} className="-mt-1.5 pb-3.5 pl-16 pr-4 text-caption text-ink-soft">
+        Mientras ves la app como otra persona no se pueden cambiar las notificaciones de este
+        dispositivo.
+      </p>
+    </div>
   );
 }

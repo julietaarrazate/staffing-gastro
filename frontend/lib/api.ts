@@ -147,9 +147,19 @@ async function request<T>(
     idempotencyKey?: string;
     /** Interno: ya se reintentó una vez tras un 401. */
     retried?: boolean;
+    /** No avisar a `onTwoFactorGate` (ver `backgroundApi`). */
+    skipTwoFactorGate?: boolean;
   } = {}
 ): Promise<T> {
-  const { token: requested, headers, timeoutMs, idempotencyKey, retried, ...rest } = options;
+  const {
+    token: requested,
+    headers,
+    timeoutMs,
+    idempotencyKey,
+    retried,
+    skipTwoFactorGate,
+    ...rest
+  } = options;
   const token = resolveToken(requested);
 
   // Timeout opcional vía AbortController: sin esto, un backend dormido
@@ -205,7 +215,7 @@ async function request<T>(
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     const { message, code } = parseErrorDetail(body?.detail ?? res.statusText);
-    if (res.status === 403 && isGateCode(code)) onTwoFactorGate?.(code);
+    if (res.status === 403 && isGateCode(code) && !skipTwoFactorGate) onTwoFactorGate?.(code);
     throw new ApiError(res.status, message, code);
   }
 
@@ -236,4 +246,29 @@ export const api = {
     request<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined, token }),
   del: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined, token }),
+};
+
+/** Pedidos que la app hace por su cuenta, sin que una pantalla los pida. Hoy
+ * son dos: registrar y dar de baja el push al abrir y cerrar la sesión
+ * (`lib/push.ts`). Salen igual que cualquier otro, con una diferencia: si el
+ * backend los frena con el candado de dos pasos de la admin, el error le
+ * llega a quien llamó pero NO se avisa a `onTwoFactorGate`. Un pedido que la
+ * persona no hizo no puede llevarla al alta ni cerrarle la sesión antes de
+ * que una pantalla pida algo, y el de la baja contesta cuando la sesión ya se
+ * cerró (mandaba al alta, o al login, a alguien que acababa de salir). */
+export const backgroundApi = {
+  post: <T>(path: string, body: unknown, token: string) =>
+    request<T>(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+      skipTwoFactorGate: true,
+    }),
+  del: <T>(path: string, body: unknown, token: string) =>
+    request<T>(path, {
+      method: "DELETE",
+      body: JSON.stringify(body),
+      token,
+      skipTwoFactorGate: true,
+    }),
 };

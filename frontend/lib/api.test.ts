@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   api,
   ApiError,
+  backgroundApi,
   bindSessionToken,
   isTransientFailure,
   NetworkError,
@@ -194,6 +195,33 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
     expect(err.code).toBe("two_factor_setup_required");
     expect(err.message).toBe("Activá la verificación");
     expect(gate).toHaveBeenCalledWith("two_factor_setup_required");
+  });
+
+  it("un pedido que la app hace por su cuenta no avisa al manejador, y el error le llega igual", async () => {
+    const gate = vi.fn();
+    setTwoFactorGateHandler(gate);
+    const candado = () =>
+      jsonResponse(403, {
+        detail: { code: "two_factor_required", message: "Volvé a ingresar" },
+      });
+    fetchMock.mockImplementation(async () => candado());
+
+    const alta = (await backgroundApi
+      .post("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
+      .catch((e) => e)) as ApiError;
+    const baja = (await backgroundApi
+      .del("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
+      .catch((e) => e)) as ApiError;
+
+    expect(alta.code).toBe("two_factor_required");
+    expect(baja.code).toBe("two_factor_required");
+    expect(fetchMock.mock.calls.map(([, init]) => (init as RequestInit).method)).toEqual([
+      "POST",
+      "DELETE",
+    ]);
+    // Nadie pidió esto desde una pantalla: no puede llevar al alta ni cerrar
+    // la sesión. El candado lo dispara el primer pedido que sí hace una.
+    expect(gate).not.toHaveBeenCalled();
   });
 
   it("otros errores con código no tocan la sesión", async () => {

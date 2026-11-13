@@ -124,7 +124,9 @@ Etapas y resultados en
   comparte por WhatsApp, y armarla tardaba entre 1,3 y 2 s. La caché usa
   como clave sólo la ruta y deja afuera RSC, lo que no sea 200 y las
   respuestas con `Set-Cookie`; la lógica está en `turno-cache.mjs`, con sus
-  tests. Si OpenNext suma Durable Objects nuevos, hay que reexportarlos ahí.
+  tests. Por eso las pantallas «Este turno ya no está disponible» y «No
+  encontramos esa página» responden 404 a propósito: no se guardan, y un
+  turno que se reabre se vuelve a ver en el momento. Si OpenNext suma Durable Objects nuevos, hay que reexportarlos ahí.
   En `workers.dev` la Cache API no guarda nada, así que ahí no se nota.
   En el panel de la zona, **Caching → Configuration → Browser Cache TTL**
   tiene que quedar en "Respect Existing Headers": si no, Cloudflare reescribe
