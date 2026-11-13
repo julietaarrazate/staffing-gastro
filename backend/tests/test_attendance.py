@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from httpx import AsyncClient
 
+from tests._turno_empezado import correr_reloj_del_turno
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -293,7 +294,27 @@ async def test_finish_with_early_checkin_counts_as_punctual(client: AsyncClient)
         end_at=(start + timedelta(hours=5)).isoformat(),
     )
 
-    await _run_full_flow_to_finish(client, shift_id, employer_headers, worker_headers)
+    await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
+    checked_in = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    assert checked_in.status_code == 200
+
+    # La salida sólo se marca con el turno empezado: pasan 25 minutos. La
+    # llegada sigue quedando 24 minutos antes del inicio.
+    await correr_reloj_del_turno(shift_id, 25)
+
+    await client.post(f"/api/v1/shifts/{shift_id}/start-working", headers=worker_headers)
+    checked_out = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-out",
+        headers=worker_headers,
+        json={"latitude": -34.59, "longitude": -58.44},
+    )
+    assert checked_out.status_code == 200
+    finished = await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=employer_headers)
+    assert finished.status_code == 200
 
     profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
     body = profile.json()
