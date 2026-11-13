@@ -191,7 +191,8 @@ test("perfil del comercio: con turnos pero sin pagos no hay «Pago a tiempo» ni
 
   await page.goto("/companies/c-nuevo");
   await expect(page.getByRole("heading", { name: "Bar Nuevo" })).toBeVisible();
-  await expect(page.getByText("Nuevo en Oído")).toBeVisible();
+  await expect(page.getByText("3 turnos publicados")).toBeVisible();
+  await expect(page.getByText("Nuevo en Oído")).toHaveCount(0);
   await expect(page.getByText("Pago a tiempo")).toHaveCount(0);
   expect(await page.locator("main").innerText()).not.toMatch(/0[.,]0\b|\b0%/);
 
