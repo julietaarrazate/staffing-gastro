@@ -47,13 +47,17 @@ descuidado.
 | BK-8E9CFE08111D | Candidatos: error de carga no es «nadie se postuló» | ✅ #542 |
 | BK-9FB6E2BC2226 | Avisos al celular: son de la cuenta con la sesión abierta | ✅ #545 |
 | BK-7DCC7E4AB945 | Las claves para no repetir un pedido se pierden al recargar | ⚪ |
-| BK-898A15047291 | «Pagado hasta» queda viejo con la pestaña abierta | ⚪ va con U093 |
+| BK-898A15047291 | «Pagado hasta» queda viejo con la pestaña abierta | 🟡 diseñado: va con U093 (G11) |
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
 De 79 graves: 20 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
 que entraron con el reporte externo); U094 y U137 quedan diferidos (dependen
 del tope del plan, que está apagado en la beta).
+
+Los grupos 🟡 tienen su diseño (qué se cambia, dónde, qué se prueba, en qué
+orden y quién) en [`BETA_DISENO_GRAVES.md`](./BETA_DISENO_GRAVES.md), con el
+mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 **Tanda 1**
 
@@ -65,15 +69,15 @@ del tope del plan, que está apagado en la beta).
 | U009 | El aviso «Completamos todo…» tapa el botón «Publicar turno» unos 3 segundos | ✅ en `main` | #544 |
 | U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | ✅ en `main` | #547 |
 | U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (prueba en la app hecha el 2026-11-13) |
-| U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ⚪ sin empezar | «pantallas al día»: diseño en las notas de la sesión |
-| U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⏸️ espera decisión | avisar al reabrir: la parte de turnos ya empezados necesita ADR; hacerlo después de #547 |
+| U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G1 · «pantallas al día» |
+| U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⚪ decidido (4), sin empezar | se reofrece como urgente hasta que termine su horario; lleva ADR. Falta saber si se paga el turno entero o lo que resta |
 
 **Tanda 2**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | ✅ en `main` | #552 |
-| U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | ⚪ sin empezar |  |
+| U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G2 |
 
 **Tanda 3**
 
@@ -82,61 +86,61 @@ del tope del plan, que está apagado en la beta).
 | U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | ✅ en `main` | #549 |
 | U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
 | U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | ✅ en `main` | #550 |
-| U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⏸️ espera decisión | cancelar un turno ya trabajado: cambia el ADR-0007 |
-| U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ⚪ sin empezar |  |
+| U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⚪ decidido (2), sin empezar | no se permite: con la salida marcada, el comercio finaliza y paga; lleva ADR (cambia el ADR-0007) |
+| U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G3 |
 | U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | ✅ en `main` | #553 |
-| U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ⚪ sin empezar |  |
+| U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G4 |
 
 **Tanda 4**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U038 | El perfil del comercio muestra «Identidad verificada» con sólo confirmar el mail (incluso con la constancia… | ⚪ sin empezar |  |
-| U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ⏸️ espera decisión | «va en camino» al apagar: modelo de privacidad |
-| U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | ⚪ sin empezar |  |
-| U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U114, U115 | Si el servidor tarda en despertar al abrir la app, la persona con sesión ve la cabecera de visitante («Ingr… (y 1 más de la misma causa) | ⚪ sin empezar |  |
+| U038 | El perfil del comercio muestra «Identidad verificada» con sólo confirmar el mail (incluso con la constancia… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G5 · un solo PR con U090 y U108 |
+| U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G5 · un solo PR con U038 |
+| U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ⚪ decidido (3), sin empezar | se apaga al instante también para el comercio; lleva ADR y, con él, el texto de `/privacidad` (decisión 1) |
+| U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G6 |
+| U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G7 · un solo PR con U114 y U115 |
+| U114, U115 | Si el servidor tarda en despertar al abrir la app, la persona con sesión ve la cabecera de visitante («Ingr… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G7 · un solo PR con U112 y U096 |
 
 **Tanda 5**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | ⚪ sin empezar | va junto con BK-898A15047291 |
+| U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G8 |
+| U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G9 |
+| U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G10 |
+| U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G11 · va junto con BK-898A15047291 |
 
 **Tanda 6**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | ⚪ sin empezar |  |
-| U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | ⚪ sin empezar |  |
-| U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | ⚪ sin empezar |  |
-| U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | ⚪ sin empezar |  |
+| U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G12 |
+| U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G13 |
+| U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G14 |
+| U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G15 |
+| U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G16 |
+| U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G17 |
 
 **Tanda 7**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | ⚪ sin empezar |  |
-| U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | ⚪ sin empezar |  |
-| U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | ⚪ sin empezar |  |
-| U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | ⚪ sin empezar |  |
-| U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | ⚪ sin empezar |  |
-| U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | ⚪ sin empezar |  |
-| U026, U075, U124 | En celular, con un nombre largo la tarjeta de candidato se sale de la pantalla y «Asignar» queda afuera (y 2 más de la misma causa) | ⚪ sin empezar |  |
-| U083, U086 | El contador del evento «N/M cubiertos» no baja al cancelar y cuenta cancelados y asignados sin confirmar (y 1 más de la misma causa) | ⚪ sin empezar |  |
+| U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G18 |
+| U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G19 |
+| U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G20 |
+| U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G21 |
+| U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G22 |
+| U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G23 |
+| U026, U075, U124 | En celular, con un nombre largo la tarjeta de candidato se sale de la pantalla y «Asignar» queda afuera (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G24 |
+| U083, U086 | El contador del evento «N/M cubiertos» no baja al cancelar y cuenta cancelados y asignados sin confirmar (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G25 |
 
 **Tanda 8**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | ⚪ sin empezar |  |
-| U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | ⚪ sin empezar |  |
+| U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G26 |
+| U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G27 |
 
 ### Lo que salió de las revisiones y no tiene hallazgo propio
 
@@ -178,38 +182,96 @@ del tope del plan, que está apagado en la beta).
 - Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
   recibe tres avisos de cancelación.
 
+### Criterio de Julieta para decidir (2026-11-13)
+
+«Sí a todo lo que sea seguro y mejor para el sistema y su lógica.» Cada
+decisión tiene que servir para **cubrir un puesto rápido**, sobre todo en los
+turnos urgentes; en los programados con anticipación se puede buscar con más
+tiempo el perfil que mejor calza, no sólo el más cercano. El local necesita
+estar seguro de que alguien llega en horario.
+
+### Decisiones tomadas el 2026-11-13
+
+Julieta aceptó las recomendaciones de quien coordina. Las que cambian una
+regla ya escrita (2, 3, 4 y 10) llevan su ADR antes del código.
+
+1. `/privacidad` suma que el identificador del dispositivo se borra también
+   «al cerrar sesión en ese dispositivo». Sube la versión; va junto con el
+   texto que salga de la 3, para pedir que se acepte una sola vez.
+2. U081: un turno ya trabajado no se cancela. Con la salida marcada, el
+   comercio finaliza y paga; un problema va por soporte.
+3. U072: «va en camino» se apaga al instante también para el comercio, que
+   vuelve a ver «Confirmado».
+4. U080: un turno reabierto que ya empezó se reofrece como urgente hasta que
+   termine su horario.
+5. El ingreso de invitado se apaga en la beta (vaciar `GUEST_ACCESS_PIN` en
+   Render: lo hace Julieta o lo pide).
+6. #527 se mergea: resolver el conflicto con `main` y marcar el aviso de
+   GitGuardian como dato de prueba sin reescribir el historial, después de
+   confirmar que el valor no es una clave real.
+10. Cuenta suspendida (G6). Comercio: sus turnos abiertos dejan de verse y de
+    aceptar postulaciones; los que tienen a alguien asignado o confirmado y
+    no empezaron se cancelan con aviso, sin penalidad. Trabajador: sus turnos
+    confirmados se reabren y se le avisa al comercio.
+11. «Mi plan» mientras no se cobra (G11): el uso sin alarma y «Durante la
+    beta no hay tope de turnos»; sin «Alcanzaste el límite» ni la oferta.
+12. El trabajador ve en su propio perfil sus cancelaciones y ausencias
+    (U089); un mensaje del admin reabre el ticket cerrado (U128); al ingresar
+    con la cuenta suspendida se dice a quién escribir, sin el motivo (U095).
+13. Quien rechazó, canceló o faltó queda al final de los postulantes, con su
+    marca, y se puede volver a asignar; quien retiró su postulación no
+    aparece (G4).
+14. Avisos: uno al trabajador cuando la app le retira postulaciones por
+    confirmar otro turno del mismo horario (U123), y uno solo por evento en
+    vez de uno por puesto (U086).
+15. Un turno dura entre 1 y 16 horas (G14).
+
 ### Decisiones que esperan a Julieta
 
-Recomendación de quien coordina entre paréntesis (2026-11-13).
+Recomendación de quien coordina entre paréntesis.
 
-1. Texto de `/privacidad`: sumar que el identificador del dispositivo se
-   borra también «al cerrar sesión en ese dispositivo» (#545 ya está en
-   producción). Es texto legal: sube la versión. (Sí, junto con lo que salga
-   del punto 3, para pedir que se acepte una sola vez.)
-2. U081: qué pasa al cancelar un turno que ya se trabajó. (No permitirlo: con
-   la salida marcada, el comercio finaliza y paga; un problema va por soporte.)
-3. U072: «va en camino» cuando el trabajador lo apaga. (Que se apague al
-   instante también para el comercio, que vuelve a ver «Confirmado».)
-4. U080: reofrecer como urgente un turno reabierto que ya empezó. Desde #550
-   pasa siempre: la ausencia sólo se marca con el turno empezado, así que el
-   turno reabierto por ausencia nunca vuelve al Inicio. (Sí, hasta que termine
-   su horario; falta decidir si se paga el turno entero o lo que resta.)
-5. Si el ingreso de invitado sigue en la beta. (Apagarlo, salvo que se use
-   para mostrar la app.)
-6. #527: el "sí", el aviso de GitGuardian y, desde el 2026-11-13, un conflicto
-   con `main`. (Sí; marcar el aviso como dato de prueba sin reescribir el
-   historial, después de confirmar que el valor no es una clave real.)
 7. Quien marcó la llegada temprano y se tiene que ir antes del inicio no
    puede cancelar ni marcar la salida hasta que el turno empieza (#552):
-   ¿se permite cancelar desde «llegada marcada»?
+   ¿se permite cancelar desde «llegada marcada»? (Sí, y cuenta como
+   cancelación: el comercio se entera antes y el turno se reofrece.)
 8. ¿Los trabajadores ven cuántas cancelaciones tardías tiene un comercio?
    Hoy el dato viaja a cualquier usuario con sesión y ninguna pantalla lo
-   muestra: o se muestra, o se deja de mandar.
+   muestra: o se muestra, o se deja de mandar. (Dejar de mandarlo por ahora.)
 9. Los 2 trabajadores de producción sin zona en el perfil (de 7) dejaron de
-   recibir «Turno cerca tuyo» con #547 hasta que la carguen: ¿se les avisa?
+   recibir «Turno cerca tuyo» con #547 hasta que la carguen. (Lo cubre el
+   cartel de G12; además, un mail a esas dos personas.)
+16. De la 4: un turno reofrecido que ya empezó, ¿se paga entero o lo que
+    resta? (Lo que resta, y el aviso lo dice.)
+17. Puntualidad. Hoy cuenta como puntual quien marca la llegada hasta 15
+    minutos después del inicio; el comercio puede marcar «No se presentó»
+    recién a los 15 minutos, el recordatorio a quien no llegó sale a los 20 y
+    la ausencia automática a las 2 horas. Julieta lo cuestionó el 2026-11-13:
+    el local necesita a la persona en horario. (Puntual es llegar a la hora,
+    con 5 minutos de margen; a la hora de inicio, si no marcó la llegada, se
+    le avisa al comercio y a la persona; «No se presentó» desde los 10
+    minutos, y ahí el turno se reofrece como urgente. Cambia
+    `docs/reference/REPUTATION.md` y el ADR-0008.)
 
-Los puntos 2, 3 y 4 cambian decisiones ya escritas: cada uno lleva su ADR
-antes del código.
+### Pedidos de producto de Julieta (2026-11-13), fuera de la etapa 2
+
+No son arreglos: cada uno necesita su propuesta antes de construir nada.
+
+- **Urgente y programado no se buscan igual.** El urgente, por cercanía y
+  velocidad; el programado, con tiempo, por el perfil que mejor calza
+  (experiencia, reputación), no sólo por distancia. Va con
+  [`PROPUESTA_COBERTURA_URGENTE.md`](./PROPUESTA_COBERTURA_URGENTE.md).
+- **Base de trabajadores con experiencia y referencias reales** para que la
+  beta arranque con calidad: cómo captarlos, cómo se cargan y verifican las
+  referencias de comercios, y tener esa base como respaldo.
+- **Eventos masivos sin bajas el día del evento:** confirmación la víspera y
+  el mismo día, suplentes, y qué pasa con quien se baja a último momento.
+- **Seguro:** quién lo tramita y quién asegura a la persona (el comercio, el
+  grupo gastronómico, ella misma). Es una consulta legal y laboral: necesita
+  a la asesoría de Julieta antes de escribir nada en la app o en los
+  términos.
+- **Cobro de la suscripción sin comisión o con la más baja:** evaluar un QR
+  de cobro propio por comercio o una transferencia con alias contra Mercado
+  Pago y otras integraciones (hoy: ADR-0022, Checkout Pro, apagado).
 
 ### Pruebas que tiene que hacer una persona
 
