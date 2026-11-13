@@ -106,7 +106,12 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
   trabajador (`worker_profile_id`).
 - Los estados terminales no cambian.
 - check-out no puede ocurrir sin check-in previo; las transiciones de asistencia
-  respetan el orden del ciclo.
+  respetan el orden del ciclo. Tampoco antes de `start_at`: se rechaza con
+  "Todavía no podés marcar la salida: el turno empieza hoy a las 20:00." (hora
+  de Argentina). Con la llegada marcada tampoco se puede cancelar la asignación
+  (`worker-cancel` es sólo desde `confirmado`). En «Mis turnos», «Me fui» no se ofrece hasta que el turno empezó.
+- Rechazar, cancelar la asignación y marcar la salida piden confirmación en la
+  pantalla del trabajador (mismo diálogo que retirar una postulación).
 - La cantidad (`quantity`) representa cuántas personas se necesitan para el
   puesto. **Decisión de producto (R1.4):** por ahora **un turno = una
   persona** — `quantity` queda capado a `1` en la API (`ShiftInput`) y en el
