@@ -39,7 +39,8 @@
 silencio. Sobre esa base, `shift/application/services.py` y
 `application/application/services.py` instrumentan los hitos del dominio:
 `shift.published`, `shift.escalated`, `shift.cancelled`, `shift.assigned`,
-`worker.no_show` (con `trigger=manual|automatic`), `application.submitted`,
+`worker.no_show` (con `trigger=manual|automatic`), `application.submitted`
+(con `reapplied=true` cuando reactiva una postulación retirada),
 `application.accepted`, `application.rejected`, `application.withdrawn`.
 Cada uno loguea `shift_id`/`worker_profile_id`/`company_id` según
 corresponda. Ver el detalle completo (fuente, señales, y las 5 métricas de
