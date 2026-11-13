@@ -121,6 +121,18 @@ function NewShiftWizard() {
   // interactúa con la pantalla (no de inmediato), a diferencia del
   // `router.push` automático que había antes.
   const [publishedShiftId, setPublishedShiftId] = useState<string | null>(null);
+
+  // Primera acción significativa del comercio, no al aterrizar (ver
+  // docs/reference/ACCESO_MODERNO.md): al salir de la confirmación «Turno publicado»
+  // se pregunta si quiere enterarse por push apenas alguien se postule. Va en la
+  // limpieza del efecto para cubrir los tres caminos (Cerrar/Escape, «Ver mi turno»
+  // y Atrás, que desmonta la pantalla sin pasar por ningún botón) y recién al
+  // cerrar: con las dos capas abiertas a la vez las trampas de foco se pisan.
+  useEffect(() => {
+    if (!publishedShiftId) return;
+    return () => requestOptIn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishedShiftId]);
   const reducedMotion = useReducedMotion();
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   // Un intento del asistente crea UN solo turno (2026-11-12). Publicar son
@@ -408,10 +420,8 @@ function NewShiftWizard() {
       clearIdempotencyKey("create-shift");
       clearIdempotencyKey(current.id);
       draft.current = null;
-      // Primera acción significativa del comercio, no al aterrizar (ver
-      // docs/reference/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
-      // enterarse por push apenas alguien se postule.
-      requestOptIn();
+      // El pedido de notificaciones no se hace acá sino al cerrar la confirmación
+      // (efecto de `publishedShiftId`, más arriba).
       // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
       // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
       setPublishedShiftId(current.id);

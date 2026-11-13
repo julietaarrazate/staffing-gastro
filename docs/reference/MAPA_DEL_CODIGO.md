@@ -79,6 +79,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Guardar una parte del perfil del trabajador (el `PUT /workers/me/profile` reemplaza el perfil entero) | `frontend/lib/worker-profile.ts` (`saveProfilePart`: lee el perfil del servidor y manda todo con el cambio encima); lo usan la foto, el interruptor «Disponible» del Inicio, el formulario y `/bienvenida`. No armar otro PUT a mano |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
+| Pila de capas abiertas: Escape cierra sólo la de más arriba (la usan Modal, Sheet, `DiscoverDeck` y `GuidedTour`, prioridad 70, donde Escape = «Saltar recorrido»; ignora la repetición de tecla; una capa nueva con su propio Escape tiene que usarla) | `frontend/lib/use-escape-layer.ts` |
 | Pantalla entera de «acá no hay nada» (título, una línea y salidas que son links) | `frontend/components/PaginaAviso.tsx`; la usan `app/not-found.tsx` y `TurnoNoDisponible` |
 | Íconos (Lucide, envueltos) | `frontend/components/icons.tsx` |
 | Logo | `frontend/components/Logo.tsx` |
