@@ -24,6 +24,7 @@ from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.application.scheduler_signal import notify_scheduler
+from app.modules.shift.application.zones import locals_of_unplaced, measuring_zone
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.pay_benchmark import (
     BENCHMARK_WINDOW_DAYS,
@@ -105,8 +106,12 @@ NOT_COVERED_GRACE_NORMAL = NO_SHOW_GRACE_PERIOD
 
 # Hasta dónde llega «cerca» en el feed del trabajador (Inicio y Mapa): el
 # mismo círculo máximo al que puede llegar un aviso de ese turno, el de la
-# escalada. Así la lista y el aviso no se contradicen: lo que te pueden
-# avisar lo ves, y lo que ves te lo podrían avisar.
+# escalada. Midiendo desde la zona del perfil, la lista y el aviso no se
+# contradicen: lo que te pueden avisar lo ves, y lo que ves te lo podrían
+# avisar. La excepción es «Disponible ahora»: mientras está prendido el
+# aviso mide desde esa posición (ADR-0014) y el feed sigue midiendo desde la
+# zona del perfil, así que puede llegar un aviso de un turno que el Inicio no
+# lista (se abre igual: el aviso lleva al turno). Ver `get_feed_origin`.
 FEED_RADIUS_KM = ESCALATION_RADIUS_KM
 
 
@@ -314,7 +319,9 @@ class ShiftService:
         «Cerca» es un límite duro: `rank_candidates` deja afuera a quien está
         más lejos que `max_radius_km` (o, sin distancia que medir, a quien no
         es de la ciudad del turno). El aviso dice «cerca tuyo»: a alguien de
-        otra provincia no se le manda, tampoco si es favorito.
+        otra provincia no se le manda, tampoco si es favorito. El turno se
+        mide desde su zona o, si no tiene ninguna, desde el local del comercio
+        (`measuring_zone`).
 
         Es el aviso que cierra el circuito del marketplace. Sin él, publicar
         no le avisaba a NADIE: el turno sólo se cubría si algún trabajador
@@ -340,13 +347,21 @@ class ShiftService:
             limit = self.NEARBY_NOTIFICATION_LIMIT
         try:
             available = await self._candidates.list_available(shift.position)
+            zone = await measuring_zone(shift, self._companies)
+            if not zone.is_known:
+                # Ni el turno ni el local dicen dónde es: no hay contra qué
+                # medir y no se le avisa a nadie. Que quede a la vista.
+                logger.warning(
+                    "shift.unplaced",
+                    extra={"shift_id": str(shift.id), "company_id": str(shift.company_id)},
+                )
             ranked_all = rank_candidates(
                 available,
                 ShiftRequirement(
                     position=shift.position,
-                    latitude=shift.latitude,
-                    longitude=shift.longitude,
-                    city=shift.city,
+                    latitude=zone.latitude,
+                    longitude=zone.longitude,
+                    city=zone.city,
                 ),
                 max_radius_km=max_radius_km,
             )
@@ -1199,13 +1214,18 @@ class ShiftService:
             # se traen los abiertos y se compara la ciudad.
             box = bounding_box(*point, FEED_RADIUS_KM) if point is not None else None
             candidates = await self._shifts.list_open_unpaged(**filters, box=box)
-            nearby = [s for s in candidates if is_nearby(s, origin, FEED_RADIUS_KM)]
+            # Los turnos que no dicen dónde son se miden desde el local del
+            # comercio, igual que en el aviso (`zone_of`).
+            locals_ = await locals_of_unplaced(candidates, self._companies)
+            nearby = [
+                s for s in candidates if is_nearby(s, origin, FEED_RADIUS_KM, locals_)
+            ]
             # El corte de la página es por CERCANÍA y recién adentro van los
             # urgentes primero. Si el corte también fuera "urgentes primero",
             # una zona con más urgentes que el tope volvería a dejar afuera al
             # turno recién publicado de la vuelta, que todavía no es urgente.
-            page = closest_first(nearby, origin)[offset : offset + limit]
-            return urgent_first(page, origin)
+            page = closest_first(nearby, origin, locals_)[offset : offset + limit]
+            return urgent_first(page, origin, locals_)
 
         if point is not None:
             page = await self._shifts.list_open(

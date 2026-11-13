@@ -148,7 +148,11 @@ async def get_feed_origin(
     la posición del dispositivo ("Estoy acá", el GPS del mapa): ésa no sale
     del teléfono para armar el feed, y mandarla sería un uso nuevo de la
     ubicación que `/privacidad` hoy no contempla. Tampoco entra acá
-    "Disponible ahora", que es para que el comercio mida desde ahí."""
+    "Disponible ahora", que es para que el comercio mida desde ahí: con eso
+    prendido lejos de la zona del perfil, el aviso (que sí mide desde esa
+    posición) y este feed miran lugares distintos. Unificarlos es una
+    decisión de producto y de privacidad pendiente; lo que hay hoy lo fija
+    `test_disponible_ahora_mueve_el_aviso_pero_no_el_feed`."""
     if latitude is not None and longitude is not None:
         return FeedOrigin(latitude=latitude, longitude=longitude)
     if profile is None:
