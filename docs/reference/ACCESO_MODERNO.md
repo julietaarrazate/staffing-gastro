@@ -202,7 +202,7 @@ se quiere PWA instalable con offline real, es un cambio aparte y explícito.
 aterrizar.** `usePushPrompt().requestOptIn()` se llama explícitamente después
 de: primera postulación exitosa del trabajador (`app/feed/page.tsx` y
 `app/map/page.tsx`, los dos flujos de "postularme") y primer turno publicado
-del comercio (`app/shifts/new/page.tsx`). `alreadyDecided()` en
+del comercio (`app/shifts/new/page.tsx`, al salir de la confirmación «Turno publicado»: Cerrar, Escape, Ver mi turno o Atrás). `alreadyDecided()` en
 `push-prompt-context.tsx` evita mostrarlo de nuevo si ya se decidió a nivel
 navegador (`Notification.permission !== "default"`) o si ya se mostró antes
 en este dispositivo (`localStorage`).

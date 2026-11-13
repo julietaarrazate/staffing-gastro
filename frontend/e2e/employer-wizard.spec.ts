@@ -214,3 +214,33 @@ test("con el recorrido encima, Enter no descarta el pedido de notificaciones", a
   expect(await clavePedido(page)).toBeNull();
   await expect(page.getByText(PEDIDO)).toBeVisible();
 });
+
+/**
+ * Lo mismo desde el paso 2 del recorrido: la tarjeta se recrea en cada paso y la
+ * trampa de foco tiene que seguir atada al recorrido, no a la tarjeta anterior.
+ */
+test("desde el paso 2 del recorrido, Tab y Enter no descartan el pedido de notificaciones", async ({ page }) => {
+  await permitirPedidoDeNotificaciones(page);
+  await prepararPublicacion(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("e2e_tour_reset")) return;
+    localStorage.removeItem("staffya_tour_employer_panel");
+    sessionStorage.setItem("e2e_tour_reset", "1");
+  });
+  await completarWizard(page);
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar" }).click();
+
+  await expect(page).toHaveURL("/shifts");
+  await expect(page.getByRole("dialog", { name: "Publicá tu primer turno" })).toBeVisible();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page.getByRole("dialog", { name: "Publicá tu primer turno" })).toHaveCount(0);
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  expect(await clavePedido(page)).toBeNull();
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+});
