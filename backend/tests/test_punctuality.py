@@ -23,3 +23,7 @@ def test_without_check_in_is_not_punctual():
 
 def test_naive_and_aware_datetimes_compare():
     assert arrived_on_time(datetime(2026, 11, 13, 19, 36), START) is True
+
+
+def test_fifteen_minutes_and_one_second_is_late():
+    assert arrived_on_time(START + timedelta(minutes=15, seconds=1), START) is False

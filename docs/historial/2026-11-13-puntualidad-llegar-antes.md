@@ -1,4 +1,4 @@
-# Llegar antes es ser puntual (T3a, hallazgo U019)
+# Llegar antes es ser puntual (#549)
 
 **Pedido:** quien marcaba la llegada 24 minutos antes quedaba como impuntual
 («Puntualidad 0 %»), aunque la app deja marcar hasta 30 minutos antes.

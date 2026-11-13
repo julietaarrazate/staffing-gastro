@@ -281,6 +281,26 @@ async def test_finish_with_punctual_checkin_updates_worker_metrics(client: Async
     assert body["punctuality_rate"] == pytest.approx(1.0)
 
 
+async def test_finish_with_early_checkin_counts_as_punctual(client: AsyncClient):
+    """U019: llegar ~24 min antes (dentro de EARLY_CHECKIN_WINDOW) es puntual."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    start = now + timedelta(minutes=24)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "att_emp5b@staffya.com",
+        "att_w5b@staffya.com",
+        start_at=start.isoformat(),
+        end_at=(start + timedelta(hours=5)).isoformat(),
+    )
+
+    await _run_full_flow_to_finish(client, shift_id, employer_headers, worker_headers)
+
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    body = profile.json()
+    assert body["events_completed"] == 1
+    assert body["punctuality_rate"] == pytest.approx(1.0)
+
+
 async def test_publish_increments_company_events_published(client: AsyncClient):
     """Reputación del comercio (docs/reference/REPUTATION.md): antes `events_published`
     quedaba en 0 para siempre, sin cálculo automático."""
