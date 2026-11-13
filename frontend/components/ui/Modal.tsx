@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
@@ -28,28 +29,26 @@ export default function Modal({
   const reducedMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, open);
+  // Prioridad = z-index de la capa (z-[60]): Escape cierra sólo la de más arriba.
+  useEscapeLayer(open, onClose, 60);
 
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const content = (
     <AnimatePresence>
       {open && (
         // `z-[60]`, por encima del `z-50` de `Sheet`: ambos portan a
-        // `document.body` (ver nota de arriba) y pueden coexistir de verdad
+        // `document.body` (ver nota de arriba) y podían coexistir de verdad
         // — p. ej. el modal "¡Turno publicado!" y el sheet de activar
-        // notificaciones push, disparados por la misma acción de publicar.
+        // notificaciones push, que se disparaban con la misma acción de publicar
+        // (hoy el pedido sale recién al cerrar la confirmación).
         // Antes del portal el orden salía bien de pura casualidad (el modal
         // vivía más profundo en el árbol que el sheet del prompt de push,
         // que envuelve toda la app desde el layout); con los dos en el mismo

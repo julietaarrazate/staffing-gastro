@@ -1041,8 +1041,28 @@ body:has([data-landing]) main {
   /* Aire entre el título de una sección y lo que muestra. */
   --aire: clamp(28px, 4vw, 48px);
   /* Las tarjetas de producto (mapa, oferta) comparten radio y sombra. */
-  --l-radio: 20px;
-  --l-sombra: 0 0 0 1px var(--color-line), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
+  --l-radio: 28px;
+  --l-sombra: 0 0 0 1px var(--color-line), 0 1px 2px rgb(20 50 70 / 0.06), 0 50px 70px -50px rgb(15 58 91 / 0.55);
+  /* Tres superficies con borde claro, sin degradés que se lavan
+     (2026-11-13): cielo pleno para abrir y cerrar, un celeste plano para
+     el panel de la comanda y el plan del medio, y la noche azul de la app
+     para quien trabaja. */
+  --l-cielo-1: #6fb0df;
+  --l-cielo-2: #8cc2e7;
+  --l-cielo-3: #b4d8ef;
+  --l-cielo-4: #dcedf7;
+  --l-tinte: #e2eef6;
+  --l-noche: #0d131a;
+  --l-hondo: #0f3a5b;
+  /* Los paneles van con margen y esquinas redondas. */
+  --l-margen: 12px;
+  --l-panel: 32px;
+}
+@media (max-width: 640px) {
+  [data-landing] {
+    --l-margen: 8px;
+    --l-panel: 26px;
+  }
 }
 .landing-tarjeta {
   border-radius: var(--l-radio);
@@ -1053,7 +1073,7 @@ body:has([data-landing]) main {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-block: clamp(52px, 7vw, 96px);
+  padding-block: clamp(64px, 9vw, 128px);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -1062,15 +1082,16 @@ body:has([data-landing]) main {
   margin-inline: auto;
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
-  font-size: clamp(2rem, 3.6vw, 3.25rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.25rem, 4.6vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   color: var(--color-ink);
   text-wrap: balance;
 }
 .landing-h2-grande {
   max-width: 15ch;
-  font-size: clamp(2.5rem, 4.8vw, 4.25rem);
+  font-size: clamp(2.6rem, 6vw, 5.5rem);
+  letter-spacing: -0.045em;
 }
 .landing-sec-cosa {
   margin-top: var(--aire);
@@ -1115,7 +1136,12 @@ body:has([data-landing]) main {
 
 /* El cierre se apoya en el cielo del final: menos aire abajo. */
 .landing-cierre {
-  padding-bottom: 0;
+  /* El cierre y la firma forman un solo panel de cielo (2026-11-13): acá la
+     mitad de arriba, `.landing-firma` la de abajo. */
+  margin: 0 var(--l-margen);
+  border-radius: var(--l-panel) var(--l-panel) 0 0;
+  background: linear-gradient(180deg, var(--l-cielo-1) 0%, var(--l-cielo-2) 100%);
+  padding-bottom: clamp(20px, 3vw, 40px);
 }
 
 /* Botones de la landing: píldora con flecha en un círculo. */
@@ -1124,13 +1150,23 @@ body:has([data-landing]) main {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  height: 50px;
-  padding: 0 22px;
+  height: 54px;
+  padding: 0 24px;
   border-radius: 999px;
   font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
-  transition: transform 0.15s;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (hover: hover) {
+  .landing-btn:hover {
+    transform: translateY(-2px);
+  }
+  .landing-btn:hover .landing-btn-flecha {
+    transform: translateX(3px);
+  }
 }
 .landing-btn:active {
   transform: translateY(1px);
@@ -1138,28 +1174,32 @@ body:has([data-landing]) main {
 .landing-btn-flecha {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-right: -12px;
+  width: 34px;
+  height: 34px;
+  margin-right: -14px;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 15px;
   background: var(--color-ink);
   color: var(--color-card);
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 /* El principal va en tinta: el ámbar queda sólo en la palabra que cambia
    (un solo acento por pantalla). */
 .landing-btn-primario {
   background: var(--color-ink);
   color: var(--color-card);
+  box-shadow: 0 16px 30px -18px rgb(14 17 22 / 0.8);
 }
 .landing-btn-primario .landing-btn-flecha {
   background: var(--color-card);
   color: var(--color-ink);
 }
 .landing-btn-borde {
-  background: rgb(255 255 255 / 0.6);
+  background: var(--color-card);
   color: var(--color-ink);
-  box-shadow: inset 0 0 0 1px rgb(17 17 17 / 0.16);
+  box-shadow:
+    inset 0 0 0 1px rgb(15 58 91 / 0.14),
+    0 16px 30px -22px rgb(15 58 91 / 0.6);
 }
 .landing-btn-tinta {
   background: var(--color-ink);
@@ -1175,15 +1215,69 @@ body:has([data-landing]) main {
 .landing-hero {
   --cw: 104px;
   --ch: 135px;
-  /* Sube debajo del encabezado transparente: el cielo llega hasta arriba. */
-  margin-top: calc(-1 * var(--lht));
+  /* Sube debajo del encabezado transparente: el cielo llega casi hasta
+     arriba. Desde el 2026-11-13 es un panel con margen y esquinas redondas,
+     de un celeste decidido que no se lava hacia el blanco; las nubes son
+     piezas aparte (HeroRueda.tsx, `Nubes`). */
+  margin: calc(var(--l-margen) - var(--lht)) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  isolation: isolate;
   padding-top: calc(var(--ch) + 96px + var(--lht));
-  padding-bottom: clamp(40px, 6vw, 96px);
-  background:
-    radial-gradient(18% 10% at 18% 14%, rgb(255 255 255 / 0.9), transparent 70%),
-    radial-gradient(22% 9% at 80% 9%, rgb(255 255 255 / 0.85), transparent 70%),
-    radial-gradient(14% 7% at 62% 24%, rgb(255 255 255 / 0.7), transparent 70%),
-    linear-gradient(180deg, var(--color-secondary-strong) 0%, var(--color-secondary) 26%, #eef6f9 46%, var(--color-card) 60%);
+  padding-bottom: clamp(56px, 7vw, 104px);
+  background: linear-gradient(180deg, var(--l-cielo-1) 0%, var(--l-cielo-2) 36%, var(--l-cielo-3) 66%, var(--l-cielo-4) 100%);
+}
+/* Nubes del inicio: un banco abajo, quieto, y dos cirros arriba que derivan
+   muy despacio. Son SVG sueltos para que el navegador los mueva como capas
+   sin volver a calcular el filtro. */
+.landing-nubes-banco {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 100%;
+  height: 46%;
+  pointer-events: none;
+}
+.landing-cirro {
+  position: absolute;
+  z-index: 0;
+  width: min(44%, 520px);
+  height: 120px;
+  pointer-events: none;
+}
+.landing-cirro-a {
+  left: 4%;
+  top: calc(var(--lht) + 2%);
+  animation: landingDerivaA 44s ease-in-out infinite alternate;
+}
+.landing-cirro-b {
+  right: 3%;
+  top: calc(var(--lht) + 5%);
+  animation: landingDerivaB 52s ease-in-out infinite alternate;
+}
+@keyframes landingDerivaA {
+  from {
+    transform: translateX(-30px);
+  }
+  to {
+    transform: translateX(70px);
+  }
+}
+@keyframes landingDerivaB {
+  from {
+    transform: translateX(40px);
+  }
+  to {
+    transform: translateX(-60px);
+  }
+}
+/* El título y los botones del inicio suben al cargar. */
+.landing-entra {
+  animation: landingRise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+.landing-entra-2 {
+  animation-delay: 0.35s;
 }
 @media (min-width: 600px) {
   .landing-hero {
@@ -1200,8 +1294,10 @@ body:has([data-landing]) main {
 .landing-rueda-marco {
   position: absolute;
   inset: 0;
-  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 180px), transparent);
-  mask-image: linear-gradient(180deg, #000 calc(100% - 180px), transparent);
+  /* Las fichas de abajo se pierden entre las nubes antes de quedar de
+     cabeza. */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 92%);
 }
 .landing-rueda {
   position: absolute;
@@ -1227,15 +1323,18 @@ body:has([data-landing]) main {
   width: var(--cw);
   height: var(--ch);
   overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 24px 40px -26px rgb(22 25 26 / 0.5);
+  border-radius: calc(var(--cw) * 0.13);
+  box-shadow:
+    0 34px 50px -26px rgb(11 45 72 / 0.6),
+    0 0 0 1px rgb(255 255 255 / 0.35);
   will-change: transform;
 }
-/* Las fotos de prueba vienen de fuentes distintas: un mismo tratamiento
-   apagado las hace parecer de una misma sesión (2026-10-23, prueba sobria). */
+/* Las fotos de prueba vienen de fuentes distintas: un mismo tratamiento las
+   hace parecer de una misma sesión (2026-10-23). Desde el 2026-11-13 es
+   apenas un toque: sobre el cielo pleno, muy apagadas se veían grises. */
 .landing-ficha img,
 .landing-foto {
-  filter: saturate(0.5) contrast(1.06);
+  filter: saturate(0.88) contrast(1.04);
 }
 .landing-palabra {
   position: relative;
@@ -1246,27 +1345,32 @@ body:has([data-landing]) main {
 /* La que sale se va primero; la nueva entra apenas después, así no se pisan. */
 .landing-palabra b {
   display: block;
-  animation: landingPalabraEntra 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+  animation: landingPalabraEntra 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s both;
 }
 .landing-palabra b.landing-palabra-sale {
   position: absolute;
   inset: 0 0 auto;
-  animation: landingPalabraSale 0.26s cubic-bezier(0.4, 0, 0.6, 1) both;
+  animation: landingPalabraSale 0.4s cubic-bezier(0.4, 0, 0.6, 1) both;
 }
+/* Un cruce: la que sale sube y se desenfoca mientras la nueva entra desde
+   abajo enfocándose (2026-11-13; antes era un salto de una línea entera). */
 @keyframes landingPalabraEntra {
   from {
     opacity: 0;
-    transform: translateY(1em);
+    transform: translateY(0.42em);
+    filter: blur(12px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
 }
 @keyframes landingPalabraSale {
   to {
     opacity: 0;
-    transform: translateY(-1em);
+    transform: translateY(-0.42em);
+    filter: blur(12px);
   }
 }
 /* Los dos caminos (inicio y cierre): en el celular, uno arriba del otro y
@@ -1289,8 +1393,11 @@ body:has([data-landing]) main {
 
 /* La comanda: banda de cielo, impresora, ticket con filete y cinta. */
 .landing-cielo {
-  /* Vuelve al blanco abajo: antes cortaba en seco contra el mapa. */
-  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 16%, var(--color-secondary) 50%, var(--color-secondary) 72%, var(--color-card) 100%);
+  /* Un panel de celeste plano con esquinas redondas (2026-11-13); antes era
+     un degradé que iba y volvía del blanco. */
+  margin: var(--l-margen) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  background: var(--l-tinte);
   padding-bottom: clamp(40px, 6vw, 88px);
 }
 .landing-campo {
@@ -1591,7 +1698,14 @@ body:has([data-landing]) main {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f6f2ec;
+  /* El mapa base es beige; se pasa a gris y se multiplica contra este
+     celeste para que hable el mismo color que el resto (2026-11-13). */
+  background: #cfe3f0;
+  isolation: isolate;
+}
+.landing-mapa-calles > img {
+  filter: grayscale(1) contrast(0.92) brightness(1.06);
+  mix-blend-mode: multiply;
 }
 .landing-mapa-credito {
   position: absolute;
@@ -1669,7 +1783,7 @@ body:has([data-landing]) main {
   }
 }
 .landing-mapa-linea {
-  stroke: var(--color-primary);
+  stroke: var(--l-hondo);
   stroke-width: 2.5;
   stroke-dasharray: 4 4;
   opacity: 0.85;
@@ -1743,9 +1857,10 @@ body:has([data-landing]) main {
   background: var(--color-secondary-text);
   color: transparent;
 }
+/* La elegida va en azul hondo: el ámbar queda sólo en la palabra del inicio. */
 .landing-mapa-persona.landing-elegida {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  color: var(--color-night);
+  background: var(--l-hondo);
+  color: #fff;
 }
 .landing-mapa-persona-pie {
   display: grid;
@@ -1754,8 +1869,8 @@ body:has([data-landing]) main {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  color: var(--color-night);
+  background: var(--l-hondo);
+  color: #fff;
   font-weight: 700;
   font-size: 12px;
   box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
@@ -1765,7 +1880,7 @@ body:has([data-landing]) main {
   inset: -8px;
   z-index: -1;
   border-radius: 50%;
-  background: rgb(217 119 6 / 0.3);
+  background: rgb(154 201 231 / 0.6);
   animation: puckHalo 2s ease-out infinite;
 }
 .landing-mapa-halo.landing-quieto {
@@ -1833,14 +1948,21 @@ body:has([data-landing]) main {
    franja ni corte entre el pie y el cielo. */
 .landing-firma {
   overflow: hidden;
+  margin: 0 var(--l-margen);
+  border-radius: 0 0 var(--l-panel) var(--l-panel);
   padding: 24px max(16px, env(safe-area-inset-left, 0px)) 0;
-  background: radial-gradient(
-    120% 100% at 50% 100%,
-    color-mix(in oklab, var(--color-secondary-strong) 72%, var(--color-primary-text)) 0%,
-    var(--color-secondary-strong) 34%,
-    var(--color-secondary) 58%,
-    var(--color-card) 88%
-  );
+  background: linear-gradient(180deg, var(--l-cielo-2) 0%, var(--l-cielo-3) 46%, #f3fafd 100%);
+}
+/* Los rayos del sol giran muy despacio detrás de la palabra. */
+.landing-sol-rayos {
+  transform-box: view-box;
+  transform-origin: 500px 175px;
+  animation: landingGira 120s linear infinite;
+}
+@keyframes landingGira {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .landing-firma svg {
   display: block;
@@ -1853,7 +1975,7 @@ body:has([data-landing]) main {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 28px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 28px max(16px, env(safe-area-inset-left, 0px));
   background: var(--color-card);
   color: rgb(17 17 17 / 0.62);
   text-align: center;
@@ -1872,6 +1994,72 @@ body:has([data-landing]) main {
   }
 }
 
+/* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
+   azul hondo (2026-11-13). El fileteado completo queda una sola vez, al
+   cierre. */
+.landing-marca {
+  display: block;
+  padding-top: 5px;
+  font-family: var(--font-sancreek), Georgia, serif;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--l-hondo);
+}
+@media (min-width: 640px) {
+  .landing-marca {
+    font-size: 2.375rem;
+  }
+}
+/* «Para trabajar»: la noche azul de la app, en un panel. */
+.landing-noche {
+  margin: 0 var(--l-margen);
+  border-radius: var(--l-panel);
+  background: var(--l-noche);
+}
+.landing-noche .landing-h2 {
+  color: #eef3f6;
+}
+.landing-noche .landing-btn-primario {
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: none;
+}
+.landing-noche .landing-btn-primario .landing-btn-flecha {
+  background: var(--color-ink);
+  color: #fff;
+}
+.landing-noche .landing-tarjeta {
+  box-shadow: 0 50px 80px -40px rgb(0 0 0 / 0.8);
+}
+.landing-flota {
+  animation: landingFlota 7s ease-in-out infinite;
+}
+@keyframes landingFlota {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.6deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(0.6deg);
+  }
+}
+/* El plan del medio: el mismo celeste plano del panel de la comanda. */
+.landing-plan-medio {
+  background: var(--l-tinte);
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-cirro,
+  .landing-entra,
+  .landing-flota,
+  .landing-sol-rayos {
+    animation: none;
+  }
+  .landing-btn,
+  .landing-btn-flecha {
+    transition: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .landing-palabra b,
   .landing-imprime .landing-comanda,

@@ -14,11 +14,33 @@ import { Degrades, Letras, Sol } from "./Filete";
  * borde del SVG en un rectángulo más claro. Ahora el degradado es un domo
  * radial (CSS) y el brillo se apaga antes del borde; la palabra va sin la
  * sombra beige y con menos relieve, que a este tamaño la volvían pesada.
+ *
+ * 2026-11-13: la firma va primero y cierra el panel de cielo que empieza en
+ * «¿Te falta alguien hoy?» (`.landing-cierre`); los links y el © quedan
+ * debajo, sobre blanco. Los rayos del sol giran muy despacio.
  */
 export default function LandingFooter() {
   const id = `pie-${useId().replace(/:/g, "")}`;
   return (
     <footer className="landing-pie">
+      {/* Desde el 2026-11-13 la firma va antes de los links: el cierre
+          («¿Te falta alguien hoy?») y la palabra grande forman un solo panel
+          de cielo, y los caminos de la página quedan debajo, sobre blanco. */}
+      <div className="landing-firma">
+        <svg aria-hidden viewBox="0 0 1000 340">
+          <Degrades id={id} />
+          <defs>
+            <radialGradient id={`${id}-brillo`} cx=".5" cy=".5" r=".5">
+              <stop offset="0" stopColor="#ffd77a" stopOpacity=".7" />
+              <stop offset=".5" stopColor="#ffe9b0" stopOpacity=".3" />
+              <stop offset="1" stopColor="#ffe9b0" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <circle cx={500} cy={175} r={170} fill={`url(#${id}-brillo)`} />
+          <Sol cx={500} cy={175} r={88} id={id} claseRayos="landing-sol-rayos" />
+          <Letras x={500} y={440} tam={380} texto="oído" id={`${id}-p`} anchor="middle" e={1.3} sombra={false} />
+        </svg>
+      </div>
       <div className="landing-pie-fila">
         {/* Como el pie de coofounder: los caminos de la página además de los
             legales (2026-10-30). Ayudan a moverse y a que Google entienda las
@@ -32,21 +54,6 @@ export default function LandingFooter() {
           <Link href="/privacidad">Privacidad</Link>
         </nav>
         <p className="text-xs">© 2026 Julieta Arrazate — Oído. Hecho en Argentina.</p>
-      </div>
-      <div className="landing-firma">
-        <svg aria-hidden viewBox="0 0 1000 340">
-          <Degrades id={id} />
-          <defs>
-            <radialGradient id={`${id}-brillo`} cx=".5" cy=".5" r=".5">
-              <stop offset="0" stopColor="#ffd77a" stopOpacity=".7" />
-              <stop offset=".5" stopColor="#ffe9b0" stopOpacity=".3" />
-              <stop offset="1" stopColor="#ffe9b0" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx={500} cy={175} r={170} fill={`url(#${id}-brillo)`} />
-          <Sol cx={500} cy={175} r={88} id={id} />
-          <Letras x={500} y={440} tam={380} texto="oído" id={`${id}-p`} anchor="middle" e={1.3} sombra={false} />
-        </svg>
       </div>
     </footer>
   );

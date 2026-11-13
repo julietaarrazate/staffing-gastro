@@ -3,12 +3,14 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { isTodayInArgentina } from "@/lib/datetime";
 import {
   distanceOf,
@@ -162,6 +164,18 @@ function WorkerFeedPanel() {
   const [deckShifts, setDeckShifts] = useState<Shift[] | null>(null);
   const decidedInDeck = useRef<Set<string>>(new Set());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Cuenta los guardados del perfil hechos desde esta pantalla. Una carga que
+  // leyó el perfil ANTES de un guardado y termina DESPUÉS (el feed es el
+  // pedido más lento) trae una copia vieja: si el contador cambió, `load` la
+  // descarta y la pantalla se queda con lo que devolvió el servidor al guardar.
+  const profileSaves = useRef(0);
+  // Hay un guardado del perfil en vuelo: `load` no aplica su perfil (sería el
+  // viejo) para que el interruptor no parpadee de vuelta.
+  const savingProfile = useRef(false);
+  // Último perfil que devolvió el servidor al guardar desde acá. Sirve cuando
+  // se guardó antes de que existiera el caché de pantalla (primera carga): si
+  // `load` descarta su copia vieja, esto es lo que se cachea, no `null`.
+  const lastSavedProfile = useRef<WorkerProfile | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -173,23 +187,31 @@ function WorkerFeedPanel() {
       setLoading(true);
     }
     setError(null);
+    const savesAtStart = profileSaves.current;
     try {
       const [feed, prof, applied] = await Promise.all([
         api.get<Shift[]>(feedPathFor(assistantSearch?.positions ?? []), token),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
-      const appliedIds = new Set(applied.map((a) => a.shift_id));
+      const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
-      if (prof) {
+      // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
+      const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
+      if (prof && profFresh) {
         setProfile(prof);
         setAvailable(prof.is_available);
       }
       // No cachear resultados de una búsqueda del asistente: son la
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
-      if (!assistantSearch) setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
+      if (!assistantSearch) {
+        const cachedProfile = profFresh
+          ? prof
+          : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
+        setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
     } finally {
@@ -202,32 +224,48 @@ function WorkerFeedPanel() {
   }, [load]);
 
   async function toggleAvailable() {
-    if (!token || !profile) return;
+    if (!token || savingProfile.current) return;
     const next = !available;
     setAvailable(next); // optimista
+    savingProfile.current = true;
     try {
-      await api.put<WorkerProfile>(
-        "/workers/me/profile",
-        {
-          photo_url: profile.photo_url,
-          birth_date: profile.birth_date,
-          city: profile.city,
-          bio: profile.bio,
-          latitude: profile.latitude,
-          longitude: profile.longitude,
-          skills: profile.skills,
-          years_experience: profile.years_experience,
-          languages: profile.languages,
-          certifications: profile.certifications,
-          cv_url: profile.cv_url,
-          is_available: next,
-        },
-        token
-      );
+      // El endpoint reemplaza el perfil: `saveProfilePart` lo lee del servidor
+      // justo antes de escribir y cambia sólo la disponibilidad. La copia de
+      // esta pantalla puede estar vieja (se pinta desde caché y se actualiza
+      // por detrás) y mandarla pisaba lo recién guardado en el perfil.
+      const saved = await saveProfilePart(token, { is_available: next });
+      profileSaves.current += 1;
+      lastSavedProfile.current = saved;
+      setProfile(saved);
+      setAvailable(saved.is_available);
+      const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+      if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: saved });
       toast(next ? "Estás disponible" : "Te marcaste como no disponible");
-    } catch {
+    } catch (err) {
       setAvailable(!next); // revertir
+      if (err instanceof ApiError && err.status === 404) {
+        // Cerró la app en la bienvenida antes de guardar: no hay perfil que
+        // actualizar y reintentar no lo arregla.
+        toast("Completá tu perfil para marcarte disponible", "error");
+        return;
+      }
       toast("No se pudo actualizar tu disponibilidad", "error");
+      // Si una carga terminó con el guardado en vuelo, descartó su perfil y
+      // nadie lo volvió a aplicar. Se relee sólo el perfil: recargar todo el
+      // Inicio fallaría igual sin conexión y taparía la lista con el error.
+      void api
+        .get<WorkerProfile>("/workers/me/profile", token)
+        .then((p) => {
+          if (savingProfile.current) return;
+          setProfile(p);
+          setAvailable(p.is_available);
+          lastSavedProfile.current = p;
+          const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+          if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: p });
+        })
+        .catch(() => {});
+    } finally {
+      savingProfile.current = false;
     }
   }
 
@@ -320,9 +358,16 @@ function WorkerFeedPanel() {
   // "a menos de 2 km" tiene que sacar lo que no entra) y sólo hoy si lo pidió.
   // Memorizado (como `distanceFromOrigin`): así tocar "Disponible" no vuelve
   // a ordenar ni a dibujar las tarjetas, que no cambiaron.
+  // Depende de la zona del perfil (dos números), no del objeto entero: guardar
+  // la disponibilidad cambia `profile` y no tiene que redibujar las tarjetas.
+  const profileLat = profile?.latitude ?? null;
+  const profileLng = profile?.longitude ?? null;
   const origin = useMemo(
-    () => (assistantSearch ? assistantSearch.origin : originFor(here, profile)),
-    [assistantSearch, here, profile],
+    () =>
+      assistantSearch
+        ? assistantSearch.origin
+        : originFor(here, { latitude: profileLat, longitude: profileLng }),
+    [assistantSearch, here, profileLat, profileLng],
   );
   const distanceFromOrigin = useCallback((s: Shift) => distanceOf(s, origin), [origin]);
   const visibleShifts = useMemo(() => {

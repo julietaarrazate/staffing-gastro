@@ -599,9 +599,9 @@ class _GatedPushSender(FakePushSender):
         super().__init__(result_override=result)
         self.gate = asyncio.Event()
 
-    async def send(self, subscription, *, title, body, url="/"):
+    async def send(self, subscription, *, title, body, url="/", **kwargs):
         await self.gate.wait()
-        return await super().send(subscription, title=title, body=body, url=url)
+        return await super().send(subscription, title=title, body=body, url=url, **kwargs)
 
 
 async def _worker_with_subscription(client: AsyncClient, email: str, endpoint: str) -> UUID:
@@ -697,3 +697,45 @@ async def test_apagado_espera_los_push_y_loguea_los_que_no_terminan(
     assert task.cancelled()
     assert "1 envío(s) de push sin terminar" in caplog.text
     assert await shutdown_pending_pushes(timeout=0.05) == 0
+
+
+async def test_el_envio_de_fondo_manda_la_politica_del_tipo(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """`_deliver_pushes` le pasa al sender la política del tipo de aviso (no el
+    default): un turno cerca vence a los 30 minutos con urgencia alta."""
+    from app.modules.notification.domain.entities import PushSubscription
+    from app.modules.notification.domain.push_policy import PushUrgency
+
+    headers = await auth_headers(client, "worker", "push-politica@staffya.com")
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    user_id = UUID(me.json()["id"])
+    async with session_factory() as session:
+        await SqlAlchemyPushSubscriptionRepository(session).add(
+            PushSubscription(
+                user_id=user_id,
+                endpoint="https://fcm.googleapis.com/fcm/send/politica",
+                p256dh_key="p",
+                auth_key="a",
+            )
+        )
+    fake_sender = FakePushSender()
+    monkeypatch.setattr(
+        "app.modules.notification.infrastructure.repositories._get_push_sender",
+        lambda: fake_sender,
+    )
+    async with session_factory() as session:
+        await SqlAlchemyNotificationRepository(session).add(
+            Notification(
+                user_id=user_id,
+                type=NotificationType.NEW_SHIFT_NEARBY,
+                title="Turno nuevo",
+                message="Cerca tuyo.",
+            )
+        )
+    await drain_pending_pushes()
+    assert len(fake_sender.sent) == 1
+    assert fake_sender.sent[0].policy.ttl_seconds == 1800
+    assert fake_sender.sent[0].policy.urgency is PushUrgency.HIGH

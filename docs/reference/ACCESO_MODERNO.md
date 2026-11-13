@@ -153,6 +153,18 @@ revocó el permiso), la suscripción se purga sola, con una sesión de base
 propia porque la del request ya se cerró. Al apagar la app, el lifespan
 espera hasta 10 s los envíos en curso y loguea los que no terminaron.
 
+Cada aviso sale con vigencia (TTL) y urgencia según su tipo, definidas en un
+solo lugar: `domain/push_policy.py::push_policy_for`. Turno nuevo o urgente
+cerca: 30 min, urgencia alta (pasada media hora ya suele estar cubierto).
+Lo que pide actuar sobre un turno o avisa un cambio en uno propio
+(postulación, asignación, confirmación, rechazo, cancelación, no presentado,
+salida, chat): 12 h, alta. Recordatorios de llegada y de salida y «va en
+camino» (solo valen en el momento): 30 min, alta. Pagos, reseñas,
+verificación, soporte y plan (y todo tipo sin regla): 24 h, normal. Sin
+vigencia (TTL 0, el default de `pywebpush`) el servicio push descarta el aviso
+si el celular no está conectado en ese instante. Un test recorre
+`NotificationType`: un tipo nuevo obliga a decidir su regla.
+
 Archivos clave: `domain/entities.py::PushSubscription`,
 `domain/push_sender.py` (puerto), `infrastructure/webpush_sender.py`
 (adaptador real, `pywebpush`), `infrastructure/null_push_sender.py` (flag por
@@ -363,7 +375,7 @@ se quiere PWA instalable con offline real, es un cambio aparte y explícito.
 aterrizar.** `usePushPrompt().requestOptIn()` se llama explícitamente después
 de: primera postulación exitosa del trabajador (`app/feed/page.tsx` y
 `app/map/page.tsx`, los dos flujos de "postularme") y primer turno publicado
-del comercio (`app/shifts/new/page.tsx`). `alreadyDecided()` en
+del comercio (`app/shifts/new/page.tsx`, al salir de la confirmación «Turno publicado»: Cerrar, Escape, Ver mi turno o Atrás). `alreadyDecided()` en
 `push-prompt-context.tsx` evita mostrarlo de nuevo si ya se decidió a nivel
 navegador (`Notification.permission !== "default"`) o si ya se mostró antes
 en este dispositivo (`localStorage`).

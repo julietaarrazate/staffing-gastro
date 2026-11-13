@@ -12,6 +12,7 @@ from app.core.config import settings as app_settings
 from app.core.database import sessions_like
 from app.core.ws_manager import ws_manager
 from app.modules.notification.domain.entities import Notification, PushSubscription
+from app.modules.notification.domain.push_policy import push_policy_for
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 from app.modules.notification.domain.repositories import (
     NotificationRepository,
@@ -307,6 +308,10 @@ async def _deliver_pushes(
                     # los candidatos de ese turno) y, si no lo tiene, la
                     # pantalla genérica del tipo.
                     url=notification.link or deep_link_for(notification.type),
+                    # Vigencia y urgencia según el tipo (`push_policy`): sin
+                    # esto el servicio push descarta el aviso si el celular
+                    # no está conectado en ese instante.
+                    policy=push_policy_for(notification.type),
                 )
                 for subscription, notification in deliveries
             ),

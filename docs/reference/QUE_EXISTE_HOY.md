@@ -59,7 +59,9 @@ listados más abajo.
   resaltado y un aviso con la misma acción de las tarjetas (`lib/plan-elegido.ts`).
 - **Compartir turno por WhatsApp** (deep-link `wa.me`, Web Share API con
   fallback) + **duplicar turno** desde el panel del comercio. Página pública
-  de turno sin auth para compartir. Desde 2026-07-23 el **trabajador también
+  de turno sin auth para compartir: se ve mientras el turno esté abierto
+  (también si se reabrió); cuando ya se tomó, se canceló o pasó la hora dice
+  «Este turno ya no está disponible» y ofrece una salida (2026-11-12). Desde 2026-07-23 el **trabajador también
   comparte** desde la tarjeta del feed (`OpportunityCard`), para pasarle un
   turno a un colega. (Distinto de la API de WhatsApp Business, que sigue
   bloqueada por cuenta/credenciales de Julieta.)
