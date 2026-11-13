@@ -1185,6 +1185,74 @@ async def test_create_event_publishes_all_roles_with_shared_event_id(client: Asy
         assert shift["event_name"] == "Boda Martínez"
 
 
+def _event_payload(**overrides) -> dict:
+    payload = {
+        "name": "Boda Martínez",
+        "start_at": "2026-09-10T20:00:00",
+        "end_at": "2026-09-11T02:00:00",
+        "roles": [{"position": "mozo", "count": 2, "pay_amount": "50000.00"}],
+    }
+    payload.update(overrides)
+    return payload
+
+
+async def test_create_event_sin_zona_se_rechaza_con_422(client: AsyncClient):
+    """Un evento sin ciudad ni coordenadas no se publica: los turnos saldrían
+    con «Ubicación a confirmar» y nadie cercano recibiría el aviso. La regla
+    vive en la API para no depender de que el formulario la respete."""
+    headers = await _employer_with_company(client, "evento-sin-zona@staffya.com")
+    for zona in (
+        {},
+        {"city": None, "latitude": None, "longitude": None},
+        {"city": "   "},
+        {"latitude": -34.58},  # coordenadas a medias: tampoco alcanzan
+    ):
+        response = await client.post(
+            "/api/v1/shifts/events", headers=headers, json=_event_payload(**zona)
+        )
+        assert response.status_code == 422, zona
+        mensaje = response.json()["detail"][0]["msg"]
+        assert mensaje.startswith("Elegí la zona del evento")
+
+    # No quedó ningún turno a medias.
+    mine = await client.get("/api/v1/shifts/me", headers=headers)
+    assert mine.json() == []
+
+
+async def test_create_event_con_zona_los_turnos_la_llevan_y_avisa_a_los_cercanos(
+    client: AsyncClient,
+):
+    worker_headers = await auth_headers(client, "worker", "cercano-evento@staffya.com")
+    await client.post(
+        "/api/v1/workers/me/profile",
+        headers=worker_headers,
+        json={
+            "city": "Palermo",
+            "skills": ["mozo"],
+            "years_experience": 3,
+            "is_available": True,
+        },
+    )
+    employer_headers = await _employer_with_company(client, "evento-zona@staffya.com")
+
+    response = await client.post(
+        "/api/v1/shifts/events",
+        headers=employer_headers,
+        json=_event_payload(city="Palermo", latitude=-34.5875, longitude=-58.4300),
+    )
+    assert response.status_code == 201
+    shifts = response.json()["shifts"]
+    assert len(shifts) == 2
+    for shift in shifts:
+        assert shift["city"] == "Palermo"
+        assert shift["latitude"] == pytest.approx(-34.5875)
+        assert shift["longitude"] == pytest.approx(-58.4300)
+
+    recibidas = await client.get("/api/v1/notifications", headers=worker_headers)
+    avisos = [n for n in recibidas.json() if n["type"] == "new_shift_nearby"]
+    assert len(avisos) == 2  # uno por turno del evento
+
+
 async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
     """Si el plan se queda sin cupo a mitad de la publicación masiva, se
     devuelve lo que sí se pudo publicar (no todo o nada)."""
