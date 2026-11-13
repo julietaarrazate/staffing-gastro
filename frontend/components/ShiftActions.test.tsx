@@ -14,19 +14,28 @@ import ShiftActions from "./ShiftActions";
 
 vi.mock("@/components/ShareShiftButton", () => ({ default: () => null }));
 
-function shift(status: ShiftStatus): Shift {
-  return { id: "turno-1", status, worker_profile_id: "wp-1" } as Shift;
+const MIN = 60_000;
+
+/** Por defecto el turno empezó hace 20 minutos (ya se puede marcar la ausencia). */
+function shift(status: ShiftStatus, startedMinutesAgo: number): Shift {
+  const start_at = new Date(Date.now() - startedMinutesAgo * MIN).toISOString();
+  return { id: "turno-1", status, worker_profile_id: "wp-1", start_at } as Shift;
 }
 
-function setup(status: ShiftStatus, { locked = false }: { locked?: boolean } = {}) {
+function setup(
+  status: ShiftStatus,
+  { locked = false, startedMinutesAgo = 20 }: { locked?: boolean; startedMinutesAgo?: number } = {},
+) {
   const handlers = {
     onRun: vi.fn(),
     onMarkPaid: vi.fn(),
     onNoShow: vi.fn(),
     onCancel: vi.fn(),
   };
-  render(<ShiftActions shift={shift(status)} busy={null} locked={locked} {...handlers} />);
-  return handlers;
+  const { unmount } = render(
+    <ShiftActions shift={shift(status, startedMinutesAgo)} busy={null} locked={locked} {...handlers} />,
+  );
+  return { ...handlers, unmount };
 }
 
 describe("ShiftActions", () => {
@@ -72,5 +81,24 @@ describe("ShiftActions", () => {
 
     expect(onNoShow).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("«No se presentó» no se ofrece en un turno que todavía no empezó ni antes de los 15 minutos", () => {
+    for (const startedMinutesAgo of [-24 * 60, -5, 0, 14]) {
+      const { unmount } = setup("confirmado", { startedMinutesAgo });
+      fireEvent.click(screen.getByRole("button", { name: "Más acciones" }));
+      expect(screen.queryByRole("button", { name: /No se presentó/ })).toBeNull();
+      expect(screen.getByRole("button", { name: "Cancelar turno" })).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("«No se presentó» aparece a los 15 minutos del inicio, también con el trabajador en camino", () => {
+    for (const status of ["confirmado", "en_camino"] as const) {
+      const { unmount } = setup(status, { startedMinutesAgo: 15 });
+      fireEvent.click(screen.getByRole("button", { name: "Más acciones" }));
+      expect(screen.getByRole("button", { name: /No se presentó/ })).toBeInTheDocument();
+      unmount();
+    }
   });
 });

@@ -21,7 +21,10 @@ async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, s
     profile = await client.post(
         "/api/v1/workers/me/profile",
         headers=headers,
-        json={"skills": ["mozo"]},
+        # Con zona, la misma del turno de `_shift_payload`: el aviso de
+        # "turno cerca tuyo" sólo le llega a quien está cerca (sin
+        # coordenadas, a quien es de la misma ciudad).
+        json={"skills": ["mozo"], "city": "Palermo"},
     )
     return headers, profile.json()["id"]
 

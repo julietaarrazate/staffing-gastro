@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
@@ -25,6 +25,10 @@ import type { Shift } from "@/lib/types";
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
+// ...y recién desde 15 minutos después del inicio (la tolerancia de la
+// puntualidad): antes, el trabajador todavía puede llegar. El servidor aplica
+// la misma regla (`Shift.no_show`); esto sólo evita ofrecer la opción antes.
+const NO_SHOW_AFTER_START_MS = 15 * 60_000;
 const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado"];
 
 export default function ShiftActions({
@@ -53,7 +57,16 @@ export default function ShiftActions({
   const step = nextStepFor(shift);
 
   const canCancel = !CANCELLABLE_EXCLUDED.includes(shift.status);
-  const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status);
+  // La hora corre mientras la tarjeta está abierta: se relee cada medio
+  // minuto para que la opción aparezca sola a los 15 minutos del inicio.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const canNoShow =
+    NO_SHOW_ELIGIBLE.includes(shift.status) &&
+    now >= new Date(shift.start_at).getTime() + NO_SHOW_AFTER_START_MS;
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
 
   return (

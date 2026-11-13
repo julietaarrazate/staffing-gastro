@@ -77,8 +77,10 @@ async def test_ranking_orders_by_score_desc(client: AsyncClient):
     shift_id = await _publish_shift(client, employer_headers)
 
     await _worker_profile(client, "near@staffya.com", years_experience=10)
+    # Más lejos pero DENTRO del radio (~15 km): fuera del radio ya no sale
+    # como recomendado (tests/test_cerca_es_cerca.py).
     await _worker_profile(
-        client, "far@staffya.com", years_experience=0, latitude=-31.4, longitude=-64.2
+        client, "far@staffya.com", years_experience=0, latitude=-34.70, longitude=-58.50
     )
 
     response = await client.get(
@@ -295,10 +297,18 @@ async def test_top_candidates_score_does_not_leak_the_real_distance():
     company_id = uuid4()
     shifts = {
         "near": SimpleNamespace(
-            company_id=company_id, position=WorkerSkill.MOZO, latitude=near[0], longitude=near[1]
+            company_id=company_id,
+            position=WorkerSkill.MOZO,
+            latitude=near[0],
+            longitude=near[1],
+            city=None,
         ),
         "far": SimpleNamespace(
-            company_id=company_id, position=WorkerSkill.MOZO, latitude=far[0], longitude=far[1]
+            company_id=company_id,
+            position=WorkerSkill.MOZO,
+            latitude=far[0],
+            longitude=far[1],
+            city=None,
         ),
     }
 

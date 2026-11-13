@@ -12,6 +12,7 @@ import pytest
 from httpx import AsyncClient
 
 from tests.conftest import auth_headers
+from tests._turno_empezado import empezar_turno
 
 pytestmark = pytest.mark.asyncio
 
@@ -93,11 +94,12 @@ async def _confirmed_shift(
 
 
 async def test_no_show_from_confirmed_reopens_shift_and_records_reputation(
-    client: AsyncClient,
+    client: AsyncClient, session_factory
 ):
     shift_id, employer_headers, worker_headers, worker_profile_id = await _confirmed_shift(
         client, "ns_emp1@staffya.com", "ns_w1@staffya.com", city="NoShowCity1"
     )
+    await empezar_turno(session_factory, shift_id)
 
     marked = await client.post(
         f"/api/v1/shifts/{shift_id}/no-show", headers=employer_headers
@@ -111,11 +113,9 @@ async def test_no_show_from_confirmed_reopens_shift_and_records_reputation(
     assert body["no_show_at"] is not None
     assert body["last_no_show_worker_profile_id"] == worker_profile_id
 
-    # Reaparece en el feed para re-buscar.
-    feed = await client.get(
-        "/api/v1/shifts/feed", headers=employer_headers, params={"city": "NoShowCity1"}
-    )
-    assert any(s["id"] == shift_id for s in feed.json())
+    # (El feed público ya no lo muestra: el turno empezó y `list_open`
+    # sólo ofrece turnos por delante, ADR-0015. El comercio lo sigue viendo
+    # en su panel como `buscando_personal`.)
 
     # (b) impacta la reputación del trabajador de forma trazable (no un
     # UPDATE a mano: pasa por WorkerProfileRepository.record_no_show).
@@ -128,11 +128,12 @@ async def test_no_show_from_confirmed_reopens_shift_and_records_reputation(
     assert any(n["type"] == "shift_no_show" for n in notifications.json())
 
 
-async def test_no_show_from_en_camino_also_allowed(client: AsyncClient):
+async def test_no_show_from_en_camino_also_allowed(client: AsyncClient, session_factory):
     shift_id, employer_headers, worker_headers, _ = await _confirmed_shift(
         client, "ns_emp2@staffya.com", "ns_w2@staffya.com"
     )
     await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
+    await empezar_turno(session_factory, shift_id)
 
     marked = await client.post(
         f"/api/v1/shifts/{shift_id}/no-show", headers=employer_headers
@@ -194,7 +195,7 @@ async def test_other_company_cannot_mark_no_show(client: AsyncClient):
     assert response.status_code == 404
 
 
-async def test_no_show_breaks_nunca_falto_badge(client: AsyncClient):
+async def test_no_show_breaks_nunca_falto_badge(client: AsyncClient, session_factory):
     """ADR-0007: un no-show rompe `nunca_falto` igual que una cancelación
     (recalculado desde cero, sin histéresis — mismo patrón que ADR-0004)."""
     employer_headers = await _employer_with_company(client, "ns_badges_emp@staffya.com")
@@ -242,6 +243,7 @@ async def test_no_show_breaks_nunca_falto_badge(client: AsyncClient):
     assert "nunca_falto" in profile.json()["badges"]
 
     shift_id = await _create_confirmed_shift("NoShowBadgesCity3")
+    await empezar_turno(session_factory, shift_id)
     marked = await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer_headers)
     assert marked.status_code == 200
 

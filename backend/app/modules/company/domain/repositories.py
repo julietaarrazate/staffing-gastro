@@ -87,7 +87,7 @@ class CompanyProfileRepository(ABC):
     @abstractmethod
     async def record_payment(self, profile_id: UUID, *, on_time: bool) -> None:
         """Recalcula `on_time_payment_rate` como promedio móvil simple sobre
-        `payments_recorded` (contador interno, no expuesto en la API).
+        `payments_recorded` (contador; la API lo expone como `payments_recorded`).
         Disparado por `ShiftService.mark_paid` — `on_time` lo decide el
         servicio comparando `paid_at` contra `end_at` con la tolerancia de
         `PAYMENT_TOLERANCE`."""
