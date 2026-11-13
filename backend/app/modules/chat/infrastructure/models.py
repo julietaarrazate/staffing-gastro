@@ -20,6 +20,17 @@ class ChatMessageModel(Base):
         nullable=False,
         # Sin índice simple: lo cubre `(shift_id, created_at)` (0041).
     )
+    # La persona del hilo (0045): el trabajador con quien el comercio estaba
+    # hablando cuando se escribió el mensaje. Junto con `shift_id` identifica
+    # la conversación: un turno reasignado tiene un hilo por cada persona que
+    # lo tuvo. NULL sólo en mensajes anteriores a la 0045 cuyo destinatario no
+    # se pudo deducir: quedan guardados, pero ninguna consulta los devuelve.
+    worker_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        GUID(),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        # Sin índice simple: lo cubre el compuesto de abajo (0045).
+    )
     sender_user_id: Mapped[uuid.UUID] = mapped_column(
         GUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -41,6 +52,16 @@ class ChatMessageModel(Base):
 # particionado por shift_id, ordenado por created_at): 0040.
 Index(
     "ix_chat_messages_shift_id_created_at",
+    ChatMessageModel.shift_id,
+    ChatMessageModel.created_at,
+)
+
+# Mensajes de un hilo en orden, último mensaje y no leídos por hilo: todas las
+# lecturas del chat filtran por (turno, persona del hilo). Con `worker_user_id`
+# adelante también sirve a la clave foránea a `users` (0045).
+Index(
+    "ix_chat_messages_worker_user_id_shift_id_created_at",
+    ChatMessageModel.worker_user_id,
     ChatMessageModel.shift_id,
     ChatMessageModel.created_at,
 )

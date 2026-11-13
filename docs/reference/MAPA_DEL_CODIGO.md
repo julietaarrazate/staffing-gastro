@@ -91,6 +91,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos, reintento del borrado de documentos) | `backend/app/modules/shift/application/scheduler.py` (los chequeos de otros módulos entran por `extra_checks` desde `app/main.py`) |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
 | Ranking de candidatos | `backend/app/modules/matching/domain/scoring.py` |
+| Postulación: estados, retirar y volver a postularse | `backend/app/modules/application/domain/entities.py` (`ShiftApplication`, `reapply`) y `backend/app/modules/application/application/services.py` (`ApplicationService.apply`); en el frontend, qué cuenta como "ya me postulé": `frontend/lib/applications.ts` (`appliedShiftIds`, lo usan Inicio, Buscar, el Mapa y el detalle del turno) |
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |
 | "Disponible ahora" (4 h) | `AVAILABLE_NOW_TTL` en `backend/app/modules/worker/domain/entities.py`, `frontend/lib/use-available-now.ts` |
 | Pin desplazado del trabajador | `fuzz_point` en `backend/app/core/geo.py` |
