@@ -124,7 +124,9 @@ describe("PushToggle: cuando activar no puede funcionar", () => {
     expect(
       screen.getByText("Instalá la app para recibir avisos."),
     ).toBeVisible();
-    expect(screen.getByText(/Compartir.*Agregar a inicio/)).toBeVisible();
+    expect(
+      screen.getByText(/Safari.*Compartir.*Agregar a inicio/),
+    ).toBeVisible();
   });
 
   it("navegador sin soporte y sin nada que hacer: no muestra la fila", () => {
@@ -170,6 +172,21 @@ describe("PushToggle: cuando activar no puede funcionar", () => {
     subscribe.mockImplementation(async () => {
       notification.permission = "denied";
       return false;
+    });
+    const toggle = await renderToggle("Desactivadas");
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(screen.getByText("Bloqueadas")).toBeVisible());
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it("si subscribe rechaza con NotAllowedError porque la persona negó el permiso, pasa a «Bloqueadas» sin aviso de falla", async () => {
+    const notification = { permission: "default" };
+    vi.stubGlobal("Notification", notification);
+    browserSubscription = null;
+    subscribe.mockImplementation(async () => {
+      notification.permission = "denied";
+      throw new DOMException("Permission denied", "NotAllowedError");
     });
     const toggle = await renderToggle("Desactivadas");
 

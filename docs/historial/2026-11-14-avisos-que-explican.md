@@ -4,8 +4,8 @@
 
 **Qué cambió:** en Ajustes → «Notificaciones push» la fila ahora es siempre verdad:
 - permiso bloqueado en el navegador: la fila deja de ser un botón, dice «Bloqueadas» y explica cómo activarlo (candado y Configuración del sitio; en la app instalada de Android, Información de la app; en iPhone, Ajustes → Notificaciones → Oído). Al volver a la pestaña se vuelve a leer el permiso;
-- iPhone sin instalar la app (Safari no tiene `PushManager`): «Sin instalar» y «Instalá la app para recibir avisos. En Safari tocá Compartir y después «Agregar a inicio»…»;
-- si activar falla (servidor sin clave VAPID, error de red), aviso flotante rojo «No pudimos activar las notificaciones…» y el interruptor sigue apagado; si la persona rechaza el permiso, la fila pasa sola a «Bloqueadas». Antes un error de red dejaba la promesa sin atrapar;
+- iPhone sin instalar la app (Safari no tiene `PushManager`): «Sin instalar» y «Instalá la app para recibir avisos. Abrí Oído en Safari (otros navegadores del iPhone no pueden instalarla), tocá Compartir y después «Agregar a inicio»…»;
+- si activar falla (servidor sin clave VAPID, error de red), aviso flotante rojo «No pudimos activar las notificaciones…» y el interruptor sigue apagado; si la persona rechaza el permiso (sea que `subscribe` devuelva `false` o rechace con `NotAllowedError`), la fila pasa sola a «Bloqueadas» sin aviso de falla. Antes un error de red dejaba la promesa sin atrapar;
 - navegador sin soporte y sin nada que hacer (compu vieja): no se muestra, como antes.
 
 Técnica: `frontend/lib/push-estado.ts` (`estadoDePush`, `comoDesbloquear`, lógica pura), `frontend/components/PushToggle.tsx` (reusa `detectarPlataforma`/`estaInstalada` de `lib/instalar.ts` y `useToast`). Pruebas: `lib/push-estado.test.ts`, `components/PushToggle.test.tsx`, `e2e/push-avisos-explica.spec.ts`.

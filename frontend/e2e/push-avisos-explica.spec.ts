@@ -89,7 +89,9 @@ test("iPhone sin instalar la app pide instalarla", async ({ browser }) => {
   await expect(
     page.getByText("Instalá la app para recibir avisos."),
   ).toBeVisible();
-  await expect(page.getByText(/Compartir.*Agregar a inicio/)).toBeVisible();
+  await expect(
+    page.getByText(/Abrí Oído en Safari.*Compartir.*Agregar a inicio/),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Notificaciones push/ }),
   ).toHaveCount(0);

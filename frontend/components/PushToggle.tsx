@@ -92,7 +92,15 @@ export default function PushToggle() {
           toast(FALLA_ACTIVAR, "error");
       }
     } catch {
-      toast(enabled ? FALLA_DESACTIVAR : FALLA_ACTIVAR, "error");
+      // Rechazar el permiso en el diálogo hace que `subscribe` rechace
+      // (NotAllowedError): ahí la fila pasa a «Bloqueadas» y no va el aviso.
+      const bloqueado =
+        typeof Notification !== "undefined" &&
+        Notification.permission === "denied";
+      if (typeof Notification !== "undefined")
+        setPermiso(Notification.permission);
+      if (!bloqueado)
+        toast(enabled ? FALLA_DESACTIVAR : FALLA_ACTIVAR, "error");
     } finally {
       setLoading(false);
     }
@@ -136,7 +144,8 @@ export default function PushToggle() {
               <strong className="font-semibold text-ink">
                 Instalá la app para recibir avisos.
               </strong>{" "}
-              En Safari tocá Compartir y después «Agregar a inicio»; abrí Oído
+              Abrí Oído en Safari (otros navegadores del iPhone no pueden
+              instalarla), tocá Compartir y después «Agregar a inicio»; abrila
               desde el ícono y activá las notificaciones acá.
             </>
           )}
