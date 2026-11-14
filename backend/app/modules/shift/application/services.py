@@ -784,6 +784,11 @@ class ShiftService:
         confirmar, no se le manda nada — no hay nada que ese trabajador tenga
         que hacer con esa noticia, el momento ya pasó."""
         shift = await self.get_shift(shift_id)
+        # Una ausencia previa (`no_show_at`, que sólo pone `Shift.no_show()`) con
+        # el turno ya sin nadie asignado: alguien había confirmado y no llegó,
+        # y nadie más lo cubrió. Decir «nadie confirmó» sería falso (U082). Si
+        # el turno se volvió a asignar después, la causa es otra: texto de siempre.
+        tras_ausencia = shift.no_show_at is not None and shift.worker_profile_id is None
         shift.mark_not_covered()
         updated = await self._shifts.update(shift)
         logger.info(
@@ -795,8 +800,13 @@ class ShiftService:
             NotificationType.SHIFT_NOT_COVERED,
             "Un turno quedó sin cubrir",
             (
-                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
-                "sin que nadie confirmara. Podés publicarlo de nuevo."
+                f"La persona confirmada no marcó su llegada a \"{updated.title or updated.position.label}\" "
+                "y no se llegó a cubrir con otra. Podés publicarlo de nuevo."
+                if tras_ausencia
+                else (
+                    f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
+                    "sin que nadie confirmara. Podés publicarlo de nuevo."
+                )
             ),
         )
         return updated

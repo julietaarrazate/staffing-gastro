@@ -19,16 +19,22 @@ escondía cancelaciones y ausencias hasta el primer turno hecho.
   turnos, aparece el tile «Ausencias» cuando hay al menos una (grilla 2x2).
   El componente sólo se usa en `/profile`: lo que ve un comercio sale de otra
   pantalla y no cambia.
-- Tests: `tests/test_scheduler.py`, `tests/test_no_show_and_late_cancellation.py`,
+- Tests: `tests/test_shift_not_covered.py`, `tests/test_scheduler.py`, `tests/test_no_show_and_late_cancellation.py`,
   `lib/notification-link.test.ts`, `components/worker/WorkerGameCard.test.tsx`.
 - Docs: `docs/reference/NOTIFICATIONS.md`.
 
 **Por qué así:** el link del aviso es uno solo; el texto menciona Soporte pero
 el destino es el perfil, así no hay dos destinos que se contradigan.
 
-**Queda abierto:** el diseño pedía un texto para el comercio («La persona
-confirmada no marcó su llegada a X» y qué pasó con el turno), pero hoy
-`mark_no_show` **no avisa al comercio** en ningún caso. Agregarlo cambia quién
-recibe qué (regla del producto): no se hizo y se consulta. Hoy el turno vuelve a
-«Buscando personal» y los postulantes rechazados se restauran. Que la ausencia
-automática coincida con el fin de la búsqueda va con U080.
+**Aviso al comercio (decisión de Julieta/coordinación):** el comercio no recibe
+aviso propio de la ausencia, y no se agrega ninguno (cambiaría quién recibe
+qué). Lo que sí se corrige es el de «no cubierto» (`mark_not_covered`, mismo
+título, tipo y destinatario): tras una ausencia decía «sin que nadie
+confirmara», que es falso. Ahora, si el turno tuvo ausencia (`no_show_at`) y
+quedó sin nadie asignado, dice «La persona confirmada no marcó su llegada a
+"X" y no se llegó a cubrir con otra. Podés publicarlo de nuevo.». Si después
+de la ausencia el turno se reasignó y no se confirmó, queda el texto de
+siempre. Tests en `tests/test_shift_not_covered.py`.
+
+**Queda abierto:** que la ausencia automática coincida con el fin de la
+búsqueda va con U080.

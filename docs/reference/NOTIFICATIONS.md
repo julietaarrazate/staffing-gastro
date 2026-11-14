@@ -41,6 +41,14 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   - Manual: título «Te marcaron como no presentado»; texto «El comercio marcó
     que no te presentaste al turno "X". Esto impacta tu reputación. Si fue un
     error, escribinos desde Soporte.»
+  - El comercio no recibe un aviso propio de la ausencia (decisión G3). Si tras
+    la ausencia el turno termina en «no cubierto» (`shift_not_covered`), su
+    aviso dice la verdad: «La persona confirmada no marcó su llegada a "X" y
+    no se llegó a cubrir con otra. Podés publicarlo de nuevo.» (mismo título,
+    tipo y destinatario). Sin ausencia previa, o si el turno se reasignó
+    después, queda el de siempre: «Se agotó el tiempo para cubrir "X" sin que
+    nadie confirmara. Podés publicarlo de nuevo.» Si tras la ausencia el turno
+    se vuelve a cubrir, no hay texto que corregir.
 - **Por usuario:** cada notificación pertenece a un usuario; sólo él la ve.
 - **Entrega en tiempo real:** se empujan por **WebSocket** (`/notifications/ws`);
   si el usuario no está conectado, quedan para consultarse.

@@ -195,6 +195,75 @@ async def test_published_never_assigned_expires_to_not_covered(client, session_f
     assert any(n["type"] == "shift_not_covered" for n in notifications.json())
 
 
+# --- Texto del aviso tras una ausencia (U082) ------------------------------
+
+def _aviso_no_cubierto(notifications) -> dict:
+    avisos = [n for n in notifications.json() if n["type"] == "shift_not_covered"]
+    assert len(avisos) == 1
+    assert avisos[0]["title"] == "Un turno quedó sin cubrir"
+    return avisos[0]
+
+
+async def test_not_covered_after_automatic_no_show_says_what_happened(
+    client, session_factory, monkeypatch
+):
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift_starting_ago(
+        client, "nc_emp7@staffya.com", "nc_w7@staffya.com",
+        ago=NOT_COVERED_GRACE_NORMAL + timedelta(minutes=1),
+    )
+
+    await scheduler.run_attendance_check()  # ausencia automática: reabre el turno
+    await scheduler.run_coverage_check()
+
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
+    assert shift.json()["status"] == "no_cubierto"
+    aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
+    assert aviso["message"].startswith("La persona confirmada no marcó su llegada a ")
+    assert aviso["message"].endswith(
+        "y no se llegó a cubrir con otra. Podés publicarlo de nuevo."
+    )
+    assert "nadie confirmara" not in aviso["message"]
+    # El trabajador sólo tiene su aviso de ausencia, nada de «no cubierto».
+    worker_notifs = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "shift_not_covered" for n in worker_notifs.json())
+
+
+async def test_not_covered_after_manual_no_show_says_what_happened(
+    client, session_factory, monkeypatch
+):
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift_starting_ago(
+        client, "nc_emp8@staffya.com", "nc_w8@staffya.com",
+        ago=NOT_COVERED_GRACE_NORMAL + timedelta(minutes=1),
+    )
+    marked = await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer_headers)
+    assert marked.status_code == 200
+
+    await scheduler.run_coverage_check()
+
+    aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
+    assert aviso["message"].startswith("La persona confirmada no marcó su llegada a ")
+    worker_notifs = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert not any(n["type"] == "shift_not_covered" for n in worker_notifs.json())
+
+
+async def test_not_covered_without_prior_no_show_keeps_the_usual_text(
+    client, session_factory, monkeypatch
+):
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    _shift_id, employer_headers, _w, _p = await _asignado_shift_starting_ago(
+        client, "nc_emp9@staffya.com", "nc_w9@staffya.com",
+        ago=NOT_COVERED_GRACE_NORMAL + timedelta(minutes=1),
+    )
+
+    await scheduler.run_coverage_check()
+
+    aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
+    assert aviso["message"].startswith("Se agotó el tiempo para cubrir ")
+    assert aviso["message"].endswith("sin que nadie confirmara. Podés publicarlo de nuevo.")
+
+
 # --- El scheduler nunca toca lo que ya está comprometido -------------------
 
 
