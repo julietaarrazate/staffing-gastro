@@ -90,15 +90,6 @@ G5 #561, G1 #560, G7 #559).
   turnos confirmados: el turno se reabre y se le avisa al comercio.
 - ADR nuevo (efectos de una suspensión) antes del código.
 
-### G11 · «Mi plan» durante la beta (U093, BK-898A15047291) — S
-
-- El servidor ya sabe si el tope se exige; `/subscription` lo expone y
-  `components/subscription/SubscriptionStatusCard.tsx` lo respeta: sin tope
-  exigido, muestra el uso sin alarma, una línea «Durante la beta no hay tope
-  de turnos», y no muestra «Alcanzaste el límite» ni la oferta de cambio.
-- «Pagado hasta» se vuelve a pedir al volver a la pestaña (`useLiveRefresh`
-  de G1).
-
 ### G14 · Fechas y duración del turno (U055, U056, U060) — C
 
 - Dominio (`shift/domain/entities.py`) y formulario con la misma regla: el

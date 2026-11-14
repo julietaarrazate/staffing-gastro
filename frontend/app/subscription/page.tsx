@@ -8,7 +8,8 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
-import { formatPlainDate, paymentReturnMessage } from "@/lib/subscription";
+import { useLiveRefresh } from "@/lib/live-refresh";
+import { formatPlainDate, limiteExigido, paymentReturnMessage } from "@/lib/subscription";
 import { planValido } from "@/lib/plan-elegido";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
 import PlanCard from "@/components/subscription/PlanCard";
@@ -70,9 +71,13 @@ function SubscriptionContent() {
   const [acting, setActing] = useState(false);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const load = useCallback(async () => {
+  // `silent` (G11, BK-898A15047291): al volver a la pestaña o a la red se
+  // vuelve a pedir sin esqueleto y, si falla, se deja lo que ya se ve.
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
     if (!token) return;
-    setLoading(true);
+    const silent = options?.silent === true;
+    if (!silent) setLoading(true);
     try {
       const [sub, plansRes] = await Promise.all([
         api.get<Subscription>("/subscription", token),
@@ -82,11 +87,13 @@ function SubscriptionContent() {
       setPlans(plansRes.plans);
       setError(null);
     } catch (err) {
-      setError(getErrorMessage(err, "No se pudo cargar tu suscripción"));
+      if (!silent) setError(getErrorMessage(err, "No se pudo cargar tu suscripción"));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [token]);
+    },
+    [token]
+  );
 
   useEffect(() => {
     load();
@@ -107,6 +114,12 @@ function SubscriptionContent() {
   }, [returnTone, token]);
 
   const billing = subscription?.billing_enabled === true;
+
+  // «Pagado hasta» no queda viejo con la pestaña abierta. En pausa mientras
+  // haya un diálogo o una acción de pago en curso.
+  useLiveRefresh(load, {
+    paused: loading || subscribing || acting || pendingPlan !== null || pendingAction !== null,
+  });
 
   async function confirmSubscribe() {
     if (!token || !pendingPlan) return;
@@ -213,7 +226,7 @@ function SubscriptionContent() {
       )}
 
       {loading && <CardSkeletons count={2} />}
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {error && <ErrorBanner message={error} onRetry={() => load()} />}
 
       {!loading && !error && subscription && (
         <>
@@ -244,7 +257,9 @@ function SubscriptionContent() {
             <p className="mt-0.5 text-sm text-ink/50">
               {billing
                 ? "Pagás mes a mes con Mercado Pago, sin débito automático. El plan define cuántos turnos podés publicar."
-                : "El plan gatea cuántos turnos podés publicar por mes."}
+                : limiteExigido(subscription)
+                  ? "El plan gatea cuántos turnos podés publicar por mes."
+                  : "Durante la beta no hay tope de turnos. Cuando empiece el cobro, el plan define cuántos podés publicar por mes."}
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {plans.map((plan) => {

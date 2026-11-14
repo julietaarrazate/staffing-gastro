@@ -6,6 +6,7 @@ import { formatArs } from "@/lib/format";
 import { Badge, Button, Card } from "@/components/ui";
 import { AlertTriangleIcon } from "@/components/icons";
 import { formatShiftDate } from "@/lib/datetime";
+import { BETA_SIN_TOPE_TEXT, limiteExigido, usoSinTopeText } from "@/lib/subscription";
 
 const STATUS_TONE: Record<string, { tone: "primary" | "secondary" | "danger" | "neutral"; label: string }> = {
   pendiente: { tone: "primary", label: "Falta pagar" },
@@ -57,8 +58,11 @@ export default function SubscriptionStatusCard({
   const unlimited = max_turnos_mes === null;
   const remaining = unlimited ? null : Math.max(max_turnos_mes - turnos_usados_mes, 0);
   const pct = unlimited ? 0 : Math.min((turnos_usados_mes / Math.max(max_turnos_mes, 1)) * 100, 100);
-  const atLimit = remaining !== null && remaining <= 0;
-  const nearLimit = remaining !== null && remaining > 0 && remaining <= LOW_REMAINING_THRESHOLD;
+  // Con el tope sin exigir (la beta, G11) el uso se cuenta pero no hay barra,
+  // ni «casi al límite», ni «alcanzaste el límite», ni oferta de cambiar de plan.
+  const conTope = limiteExigido(subscription);
+  const atLimit = conTope && remaining !== null && remaining <= 0;
+  const nearLimit = conTope && remaining !== null && remaining > 0 && remaining <= LOW_REMAINING_THRESHOLD;
 
   return (
     <Card className="p-5">
@@ -96,12 +100,15 @@ export default function SubscriptionStatusCard({
       <div className="mt-4">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold text-ink/70">
-            {unlimited
-              ? "Turnos ilimitados este mes"
-              : `${turnos_usados_mes} de ${max_turnos_mes} turnos usados`}
+            {!conTope
+              ? usoSinTopeText(turnos_usados_mes)
+              : unlimited
+                ? "Turnos ilimitados este mes"
+                : `${turnos_usados_mes} de ${max_turnos_mes} turnos usados`}
           </span>
         </div>
-        {!unlimited && (
+        {!conTope && <p className="mt-1 text-sm text-ink/60">{BETA_SIN_TOPE_TEXT}</p>}
+        {conTope && !unlimited && (
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface">
             <div
               className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-primary"}`}

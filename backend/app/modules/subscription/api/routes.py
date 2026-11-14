@@ -81,6 +81,7 @@ def _subscription_response(overview: SubscriptionOverview) -> SubscriptionRespon
         renews=subscription.renews,
         can_publish=overview.can_publish,
         withdrawal_until=overview.withdrawal_until,
+        limite_exigido=overview.limit_enforced,
     )
 
 

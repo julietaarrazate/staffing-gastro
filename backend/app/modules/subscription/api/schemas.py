@@ -24,6 +24,9 @@ class SubscriptionResponse(BaseModel):
     can_publish: bool = True
     # Último día (hora argentina) para arrepentirse; null si ya no corresponde.
     withdrawal_until: date | None = None
+    # ¿El tope de turnos se hace cumplir? En la beta es false: se publica sin
+    # tope aunque `max_turnos_mes` tenga un número; el uso se cuenta igual.
+    limite_exigido: bool = False
 
 
 class PlanResponse(BaseModel):
