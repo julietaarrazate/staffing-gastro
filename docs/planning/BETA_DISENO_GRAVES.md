@@ -65,14 +65,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 - Actualizar `docs/foundation/DOMAIN.md` y `NOTIFICATIONS.md`.
 
 
-### G25 · El evento cuenta y avisa bien (U083, U086) — C
-
-- `app/shifts/page.tsx`: el total no cuenta cancelados; «cubiertos» son los
-  confirmados en adelante.
-- `shift/application/services.py`: un solo aviso por evento y por persona
-  («Evento X: 5 puestos cerca tuyo»), y no se le avisa a quien ya está
-  confirmado en un puesto de ese evento que se pisa de horario.
-
 ## Ola D
 
 ### G15 · El asistente de publicar no pierde lo cargado (U057, U135, BK-7DCC4AB945) — S

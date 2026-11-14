@@ -13,7 +13,7 @@ from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.favorite.domain.repositories import FavoriteRepository
 from app.modules.identity.domain.repositories import UserRepository
-from app.modules.matching.domain.entities import ShiftRequirement
+from app.modules.matching.domain.entities import MatchResult, ShiftRequirement
 from app.modules.matching.domain.repositories import CandidateRepository
 from app.modules.matching.domain.scoring import DEFAULT_MAX_RADIUS_KM, rank_candidates
 from app.modules.matching.domain.value_objects import ESCALATION_RADIUS_KM
@@ -243,7 +243,11 @@ class ShiftService(AccountSuspensionEffects):
                             event_name=data.name,
                         ),
                     )
-                    published = await self.publish_shift(company_id, shift.id)
+                    # Sin aviso por puesto: sale uno solo por evento y por
+                    # persona al terminar (`_notify_event_workers`, U086).
+                    published = await self.publish_shift(
+                        company_id, shift.id, notify_nearby=False
+                    )
                     created.append(published)
         except PublishingNotAllowedError as exc:
             # Sin plan pago vigente (ADR-0022) no se publicó nada: que llegue
@@ -251,6 +255,7 @@ class ShiftService(AccountSuspensionEffects):
             if isinstance(exc, SubscriptionNotActiveError) and not created:
                 raise
             # Si no, publicación parcial: se devuelve lo que sí entró en el plan.
+        await self._notify_event_workers(created)
         return EventResult(event_id=event_id, requested=requested, shifts=created)
 
     async def update_shift(
@@ -286,7 +291,12 @@ class ShiftService(AccountSuspensionEffects):
 
         return await self._shifts.update(shift)
 
-    async def publish_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
+    async def publish_shift(
+        self, company_id: UUID, shift_id: UUID, *, notify_nearby: bool = True
+    ) -> Shift:
+        """Publica el turno. `notify_nearby=False` lo usa la publicación de un
+        evento: el aviso lo manda después `_notify_event_workers`, uno por
+        persona y no uno por puesto."""
         shift = await self._get_owned(company_id, shift_id)
         if shift.status == ShiftStatus.BORRADOR:
             validar_inicio_al_publicar(shift.start_at)
@@ -306,7 +316,8 @@ class ShiftService(AccountSuspensionEffects):
             "shift.published",
             extra={"shift_id": str(published.id), "company_id": str(company_id)},
         )
-        await self._notify_nearby_workers(published)
+        if notify_nearby:
+            await self._notify_nearby_workers(published)
         # Nueva deadline: la escalada de urgencia a los `ESCALATION_DELAY`.
         # Despierta al scheduler (que ahora duerme hasta la próxima deadline en
         # vez de sondear) para que no se pierda esa ventana. Ver
@@ -329,6 +340,165 @@ class ShiftService(AccountSuspensionEffects):
     # para quien lo vio y no se postuló es, si acaso, la señal de urgencia
     # haciendo su trabajo, no un bug.
     ESCALATION_NOTIFICATION_LIMIT = 20
+
+    async def _rank_nearby(
+        self, shift: Shift, *, max_radius_km: float, limit: int | None
+    ) -> list[MatchResult]:
+        """A quiénes se les avisa de un turno: los mejor rankeados dentro del
+        radio (hasta `limit`) más los favoritos del comercio. Sin quien ya
+        está comprometido en un puesto del mismo evento que se pisa de horario.
+        Lanza lo que lance la base: el que llama decide si lo traga."""
+        if self._candidates is None:
+            return []
+        # Se resuelve acá y no como default del parámetro para que el tope se
+        # lea al llamar (los tests lo bajan para aislar a los favoritos).
+        if limit is None:
+            limit = self.NEARBY_NOTIFICATION_LIMIT
+        available = await self._candidates.list_available(shift.position)
+        zone = await measuring_zone(shift, self._companies)
+        if not zone.is_known:
+            # Ni el turno ni el local dicen dónde es: no hay contra qué
+            # medir y no se le avisa a nadie. Que quede a la vista.
+            logger.warning(
+                "shift.unplaced",
+                extra={"shift_id": str(shift.id), "company_id": str(shift.company_id)},
+            )
+        ranked_all = rank_candidates(
+            available,
+            ShiftRequirement(
+                position=shift.position,
+                latitude=zone.latitude,
+                longitude=zone.longitude,
+                city=zone.city,
+            ),
+            max_radius_km=max_radius_km,
+        )
+        # Los favoritos del comercio entran siempre, además del tope: son
+        # los que ya le resolvieron un turno, y el que más chances tiene
+        # de cubrir el próximo rápido es alguien que ya conoce el local
+        # (en Instawork y Brigad, el 85–93% de los comercios repite
+        # trabajador). Sin esto, un favorito que no quedaba entre los
+        # mejores rankeados ni se enteraba. No hay ventana exclusiva para
+        # ellos a propósito: demoraría el aviso al resto y va contra los
+        # 10 minutos. Siguen pasando por `rank_candidates`, así que un
+        # favorito que no está disponible, no tiene el puesto o está
+        # fuera del radio no recibe nada. Es la única forma en que marcar
+        # favorito afecta algo: el ranking y la reputación siguen sin leerlo.
+        favorite_ids = (
+            await self._favorites.list_worker_ids_by_company(shift.company_id)
+            if self._favorites is not None
+            else set()
+        )
+        if shift.event_id is not None:
+            # Evento (U086): quien ya está comprometido en otro puesto del mismo
+            # evento no puede tomar éste (el horario es el mismo): sin aviso.
+            # Se saca ANTES del tope, así el lugar lo ocupa el que sigue.
+            ranked_all = [
+                m for m in ranked_all if not await self._committed_in_event(m, shift)
+            ]
+        return [m for m in ranked_all if m.profile_id in favorite_ids] + [
+            m for m in ranked_all if m.profile_id not in favorite_ids
+        ][:limit]
+
+    async def _committed_in_event(self, match: MatchResult, shift: Shift) -> bool:
+        """¿Ya está confirmada (o más adelante) en otro puesto del mismo evento
+        cuyo horario se pisa con `shift`?"""
+        committed = await self._shifts.list_by_worker_and_statuses(
+            match.profile_id, COMMITTED_STATUSES
+        )
+        return any(
+            other.event_id == shift.event_id
+            and other.id != shift.id
+            and shift.overlaps(other)
+            for other in committed
+        )
+
+    async def notify_event_escalation(self, shifts: list[Shift]) -> None:
+        """La escalada de los puestos de evento que vencieron en el mismo tick
+        (`escalate_urgency(notify=False)`): un solo aviso urgente por evento y
+        por persona, no uno por puesto (U086). Los turnos sueltos no pasan por
+        acá."""
+        by_event: dict[UUID, list[Shift]] = {}
+        for shift in shifts:
+            if shift.event_id is not None:
+                by_event.setdefault(shift.event_id, []).append(shift)
+        for group in by_event.values():
+            await self._notify_event_workers(group, escalation=True)
+
+    async def _notify_event_workers(
+        self, shifts: list[Shift], *, escalation: bool = False
+    ) -> None:
+        """Un solo aviso por evento y por persona, en vez de uno por puesto
+        (U086): «Evento X: 5 puestos cerca tuyo». Cuenta los puestos del evento
+        que le corresponden a cada persona (según su oficio y la distancia) y
+        abre el primero, donde se postula. Un evento de un solo puesto avisa
+        como un turno suelto. Best-effort, igual que `_notify_nearby_workers`."""
+        if not shifts:
+            return
+        radius = ESCALATION_RADIUS_KM if escalation else DEFAULT_MAX_RADIUS_KM
+        limit = self.ESCALATION_NOTIFICATION_LIMIT if escalation else None
+        notification_type = (
+            NotificationType.URGENT_SHIFT_NEARBY
+            if escalation
+            else NotificationType.NEW_SHIFT_NEARBY
+        )
+        if len(shifts) == 1:
+            if escalation:
+                await self._notify_nearby_workers(
+                    shifts[0],
+                    max_radius_km=radius,
+                    limit=limit,
+                    notification_type=notification_type,
+                    escalation=True,
+                )
+            else:
+                await self._notify_nearby_workers(shifts[0])
+            return
+        if self._candidates is None:
+            return
+        try:
+            per_user: dict[UUID, list[Shift]] = {}
+            for shift in shifts:
+                for match in await self._rank_nearby(
+                    shift, max_radius_km=radius, limit=limit
+                ):
+                    per_user.setdefault(match.user_id, []).append(shift)
+            if not per_user:
+                return
+            first = shifts[0]
+            company = await self._companies.get_by_id(first.company_id)
+            lugar = company.name if company is not None else "Un comercio cerca tuyo"
+            nombre = first.event_name or first.title or "Evento"
+            notifications = []
+            for user_id, mine in per_user.items():
+                n = len(mine)
+                puestos = f"{n} puesto" if n == 1 else f"{n} puestos"
+                urgent = escalation or any(s.urgent for s in mine)
+                notifications.append(
+                    Notification(
+                        user_id=user_id,
+                        type=notification_type,
+                        title=(
+                            f"¡Urgente! Evento {nombre}: {puestos} cerca tuyo"
+                            if urgent
+                            else f"Evento {nombre}: {puestos} cerca tuyo"
+                        ),
+                        message=(
+                            f"{lugar} todavía necesita cubrir {puestos} de \"{nombre}\" "
+                            "y no encuentra a nadie. Postulate ahora."
+                            if escalation
+                            else f"{lugar} busca personal para \"{nombre}\". "
+                            "Entrá y postulate antes de que lo tomen."
+                        ),
+                        link=f"/turno/{mine[0].id}",
+                    )
+                )
+            await self._notifications.add_many(notifications)
+        except Exception:
+            logger.exception(
+                "Aviso de evento: fallo inesperado, no se propaga (event_id=%s)",
+                shifts[0].event_id,
+            )
 
     async def _notify_nearby_workers(
         self,
@@ -366,53 +536,10 @@ class ShiftService(AccountSuspensionEffects):
         Best-effort a propósito: un fallo acá nunca debe impedir que un turno
         quede publicado (mismo contrato que el push en `NotificationRepository`).
         """
-        if self._candidates is None:
-            return
-        # Se resuelve acá y no como default del parámetro para que el tope se
-        # lea al llamar (los tests lo bajan para aislar a los favoritos).
-        if limit is None:
-            limit = self.NEARBY_NOTIFICATION_LIMIT
         try:
-            available = await self._candidates.list_available(shift.position)
-            zone = await measuring_zone(shift, self._companies)
-            if not zone.is_known:
-                # Ni el turno ni el local dicen dónde es: no hay contra qué
-                # medir y no se le avisa a nadie. Que quede a la vista.
-                logger.warning(
-                    "shift.unplaced",
-                    extra={"shift_id": str(shift.id), "company_id": str(shift.company_id)},
-                )
-            ranked_all = rank_candidates(
-                available,
-                ShiftRequirement(
-                    position=shift.position,
-                    latitude=zone.latitude,
-                    longitude=zone.longitude,
-                    city=zone.city,
-                ),
-                max_radius_km=max_radius_km,
+            ranked = await self._rank_nearby(
+                shift, max_radius_km=max_radius_km, limit=limit
             )
-            # Los favoritos del comercio entran siempre, además del tope: son
-            # los que ya le resolvieron un turno, y el que más chances tiene
-            # de cubrir el próximo rápido es alguien que ya conoce el local
-            # (en Instawork y Brigad, el 85–93% de los comercios repite
-            # trabajador). Sin esto, un favorito que no quedaba entre los
-            # mejores rankeados ni se enteraba. No hay ventana exclusiva para
-            # ellos a propósito: demoraría el aviso al resto y va contra los
-            # 10 minutos. Siguen pasando por `rank_candidates`, así que un
-            # favorito que no está disponible, no tiene el puesto o está
-            # fuera del radio no recibe
-            # nada. Es la única forma en que marcar favorito afecta algo: el
-            # ranking y la reputación siguen sin leerlo.
-            favorite_ids = (
-                await self._favorites.list_worker_ids_by_company(shift.company_id)
-                if self._favorites is not None
-                else set()
-            )
-            ranked = [m for m in ranked_all if m.profile_id in favorite_ids] + [
-                m for m in ranked_all if m.profile_id not in favorite_ids
-            ][:limit]
-
             if not ranked:
                 return
 
@@ -463,7 +590,7 @@ class ShiftService(AccountSuspensionEffects):
         de comercios suspendidos, ADR-0024: ver el repositorio)."""
         return await self._shifts.list_open_awaiting_escalation()
 
-    async def escalate_urgency(self, shift_id: UUID) -> Shift:
+    async def escalate_urgency(self, shift_id: UUID, *, notify: bool = True) -> Shift:
         """Escalada automática (mismo scheduler que ADR-0008): un turno que
         no se cubre rápido sube de prioridad y llega a más candidatos.
 
@@ -478,6 +605,10 @@ class ShiftService(AccountSuspensionEffects):
         shift.escalated_at = datetime.now(timezone.utc)
         updated = await self._shifts.update(shift)
         logger.info("shift.escalated", extra={"shift_id": str(updated.id)})
+        if not notify:
+            # Puesto de evento: el scheduler junta los del tick y manda un solo
+            # aviso por persona (`notify_event_escalation`).
+            return updated
         await self._notify_nearby_workers(
             updated,
             max_radius_km=ESCALATION_RADIUS_KM,
