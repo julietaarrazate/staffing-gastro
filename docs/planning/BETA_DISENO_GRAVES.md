@@ -101,24 +101,6 @@ Todo en `lib/auth-context.tsx`, `lib/use-require-auth.ts`, `lib/api.ts`.
 - Pruebas: test de la ruta de postulantes; capturas en claro y oscuro de
   Inicio, perfil del comercio y postulantes.
 
-### G3 · La ausencia automática se cuenta como fue (U082, U089) — S
-
-- `shift/application/services.py` (`mark_no_show`): con `_trigger="auto"`
-  textos propios. Trabajador: «No registramos tu llegada al turno X y quedó
-  como ausencia. Si fue un error, escribinos desde Soporte», con link a
-  `/support`. Comercio: «La persona confirmada no marcó su llegada a X», y
-  qué pasó con el turno. El texto manual también suma cómo reclamar. Mismos
-  destinatarios que hoy: sólo cambia el texto. Actualizar
-  `docs/reference/NOTIFICATIONS.md`.
-- `components/worker/WorkerGameCard.tsx`: en el perfil **propio**, las
-  cancelaciones y las ausencias se muestran cuando hay al menos una, aunque
-  todavía no haya turnos hechos (decisión 12). Lo que ve un comercio no
-  cambia.
-- El aviso de ausencia lleva al perfil, no a Matches vacío
-  (`lib/notification-link.ts`).
-- Que la ausencia automática (2 h) coincida con el fin de la búsqueda va con
-  U080 (decisión 4), no acá.
-
 ## Ola B
 
 ### G2 · Segundo toque, segunda parte (U006, U007, U008) — S

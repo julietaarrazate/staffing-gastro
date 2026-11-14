@@ -7,7 +7,8 @@ import type { Notification, NotificationType } from "@/lib/types";
 const BY_TYPE: Record<NotificationType, string> = {
   shift_assigned: "/my-shifts",
   shift_paid: "/my-shifts",
-  shift_no_show: "/my-shifts",
+  // La ausencia se ve en el perfil (ausencias y cancelaciones), no en Turnos.
+  shift_no_show: "/profile",
   shift_cancelled_late: "/my-shifts",
   // El comercio canceló antes de que confirmara: el turno sigue en
   // «Asignados», marcado como cancelado.

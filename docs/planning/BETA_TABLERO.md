@@ -18,7 +18,7 @@ descuidado.
 
 | # | Etapa | Estado |
 |---|---|---|
-| 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba y estado escrito en #527 (🔵 abierto: espera el "sí" y una decisión sobre el aviso de GitGuardian) |
+| 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ⚪ |
 | 4 | Identidad, marca e isotipo | ⚪ (la landing «con convicción» ya está en producción, #543) |
@@ -51,9 +51,9 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 20 ya están en `main` (los de la tanda 1 más U010, U011 y U053,
-que entraron con el reporte externo); U094 y U137 quedan diferidos (dependen
-del tope del plan, que está apagado en la beta).
+De 79 graves: 22 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
+(dependen del tope del plan, que está apagado en la beta).
 
 Los grupos 🟡 tienen su diseño (qué se cambia, dónde, qué se prueba, en qué
 orden y quién) en [`BETA_DISENO_GRAVES.md`](./BETA_DISENO_GRAVES.md), con el
@@ -87,7 +87,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
 | U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | ✅ en `main` | #550 |
 | U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⚪ decidido (2), sin empezar | no se permite: con la salida marcada, el comercio finaliza y paga; lleva ADR (cambia el ADR-0007) |
-| U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G3 |
+| U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ✅ en `main` | #562 |
 | U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | ✅ en `main` | #553 |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G4 |
 
@@ -181,6 +181,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   recalculó (es un promedio guardado; tocar datos de producción se pregunta).
 - Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
   recibe tres avisos de cancelación.
+- El comercio no recibe un aviso propio cuando una persona confirmada falta:
+  se entera por el panel, o por el aviso de «no cubierto» si no consigue
+  reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
 
 ### Criterio de Julieta para decidir (2026-11-13)
 
