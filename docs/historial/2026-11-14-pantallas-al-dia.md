@@ -1,4 +1,4 @@
-# Pantallas al día con los avisos (G1: U013, U014, U016)
+# Pantallas al día con los avisos (G1: U013, U014, U016; #560)
 
 **Pedido:** salida a beta, grupo G1 (`docs/planning/BETA_DISENO_GRAVES.md`). Cada
 pantalla cargaba una vez al entrar: el trabajador confirmaba y el panel del

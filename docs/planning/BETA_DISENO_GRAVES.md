@@ -34,37 +34,6 @@ G16) · `app/shifts/[id]/candidates/page.tsx` (G1, G4, G5, G24) ·
 
 ## Ola A
 
-### G1 · Pantallas al día (U013, U014, U016) — S, diseño de C
-
-Hoy cada pantalla carga una vez al entrar; el aviso que llega por la
-campanita no le avisa a nadie más, y tocarlo navega a la misma ruta sin volver
-a pedir nada.
-
-- Pieza nueva `lib/live-refresh.ts`: un avisador en memoria
-  (`emitLiveRefresh()`) y un hook `useLiveRefresh(load)` que llama
-  `load({ silent: true })` cuando (1) llega un aviso por el WebSocket de la
-  campanita, (2) la persona toca un aviso, (3) la pestaña vuelve a estar
-  visible o vuelve la conexión, (4) el WebSocket se reconecta. `silent` como
-  el del panel: sin esqueleto y sin pisar la lista con un error pasajero.
-- **Sin consulta periódica nueva** (cada pedido despierta la base, que tiene
-  cuota): el disparador es el aviso. Se conserva la de «va en camino» del
-  panel.
-- `components/NotificationBell.tsx` emite en (1) y (2). Si en alguna pantalla
-  la campanita no está montada, la suscripción al WebSocket sube a un
-  proveedor común; verificarlo antes de escribir.
-- Se suscriben: `app/shifts/page.tsx`, `app/shifts/[id]/candidates/page.tsx`,
-  `app/my-shifts/page.tsx`, `components/ShiftDetail.tsx` y
-  `app/chats/layout.tsx`.
-- Chat (U016): la lista se vuelve a pedir al mandar el primer mensaje de una
-  conversación; el encabezado de `app/chats/[shiftId]/page.tsx`, si la lista
-  no trae la conversación, pide el turno y muestra con quién es.
-- No se agregan avisos nuevos (el de «finalizado» no existe y no se suma: el
-  de «pagado» ya refresca).
-- Pruebas: unidad del hook (los cuatro disparadores, no dispara con la pestaña
-  oculta); en la app, dos sesiones: el trabajador confirma y el panel pasa
-  solo a «Confirmado»; el comercio cancela y Matches deja de ofrecer «Llegué».
-- Sumar la fila de `lib/live-refresh.ts` al mapa del código.
-
 ### G7 · La app siempre sabe si hay sesión (U112, U096, U114, U115) — C
 
 Todo en `lib/auth-context.tsx`, `lib/use-require-auth.ts`, `lib/api.ts`.
