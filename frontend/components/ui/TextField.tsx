@@ -18,6 +18,7 @@ export default function TextField({
   inputMode,
   min,
   max,
+  step,
   minLength,
   maxLength,
   error,
@@ -40,6 +41,7 @@ export default function TextField({
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel";
   min?: number;
   max?: number;
+  step?: number;
   minLength?: number;
   maxLength?: number;
   /** Mensaje de error del campo: conecta `aria-describedby`/`aria-invalid`
@@ -80,6 +82,7 @@ export default function TextField({
           spellCheck={noSpellCheck ? false : undefined}
           min={min}
           max={max}
+          step={step}
           minLength={minLength}
           maxLength={maxLength}
           aria-invalid={error ? true : undefined}

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { useToast } from "@/components/ui";
 import { CheckIcon, CloseIcon, PencilIcon } from "@/components/icons";
+import { LIMITES } from "@/lib/limites";
 
 /**
  * Nombre del usuario autenticado con edición inline (lápiz → input +
@@ -63,7 +64,7 @@ export default function EditableName({ className = "" }: { className?: string })
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          maxLength={255}
+          maxLength={LIMITES.nombre}
           disabled={saving}
           className="min-w-0 flex-1 rounded-lg border border-line bg-card px-2 py-1 text-ink outline-none focus:border-primary disabled:opacity-60"
         />

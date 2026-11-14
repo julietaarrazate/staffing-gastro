@@ -12,6 +12,7 @@ import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/u
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { normalizeUserLink } from "@/lib/safe-url";
+import { LIMITES } from "@/lib/limites";
 
 /**
  * Encabezado de sección con ícono de acento (mismo patrón que los
@@ -213,8 +214,9 @@ export default function WorkerProfileForm() {
         <TextField
           type="number"
           inputMode="numeric"
-          min={0}
-          max={80}
+          min={LIMITES.aniosExperienciaMin}
+          max={LIMITES.aniosExperienciaMax}
+          step={1}
           value={yearsExperience}
           onChange={(v) => setYearsExperience(Number(v) || 0)}
         />
@@ -266,7 +268,7 @@ export default function WorkerProfileForm() {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           rows={3}
-          maxLength={1000}
+          maxLength={LIMITES.bio}
           placeholder="Ej: Mozo con 5 años en cafeterías de especialidad, experiencia en barra y salón."
           className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
         />

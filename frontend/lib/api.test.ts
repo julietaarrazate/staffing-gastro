@@ -170,15 +170,103 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
       code: "two_factor_required",
       message: "Volvé a ingresar",
     });
-    expect(parseErrorDetail([{ loc: ["body"], msg: "x" }])).toEqual({ message: "Error inesperado" });
+    expect(parseErrorDetail([{ loc: ["body"], msg: "x" }])).toEqual({ message: "Revisá los datos." });
   });
 
-  it("un 422 con tipo propio del backend muestra su mensaje; los genéricos no", () => {
+  it("un 422 con tipo propio del backend muestra su mensaje", () => {
     expect(
       parseErrorDetail([{ type: "zona_requerida", loc: ["body"], msg: "Elegí la zona del evento" }])
     ).toEqual({ message: "Elegí la zona del evento" });
-    expect(parseErrorDetail([{ type: "missing", loc: ["body", "name"], msg: "Field required" }])).toEqual({
-      message: "Error inesperado",
+  });
+
+  // Formas copiadas de lo que devuelve FastAPI (Pydantic v2, sin `input`/`url`).
+  describe("422 de Pydantic traducido por tipo", () => {
+    const msg = (detail: unknown) => parseErrorDetail(detail).message;
+
+    it("mail sin dominio", () => {
+      expect(
+        msg([
+          {
+            type: "value_error",
+            loc: ["body", "email"],
+            msg: "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
+            ctx: { reason: "The part after the @-sign is not valid. It should have a period." },
+          },
+        ])
+      ).toBe("Mail: tiene que ser un mail válido");
+    });
+
+    it("texto largo y corto", () => {
+      expect(
+        msg([
+          { type: "string_too_long", loc: ["body", "body"], msg: "String should have at most 2000 characters", ctx: { max_length: 2000 } },
+        ])
+      ).toBe("Mensaje: máximo 2000 caracteres");
+      expect(
+        msg([
+          { type: "string_too_short", loc: ["body", "password"], msg: "String should have at least 8 characters", ctx: { min_length: 8 } },
+        ])
+      ).toBe("Contraseña: mínimo 8 caracteres");
+      expect(
+        msg([
+          { type: "string_too_short", loc: ["body", "full_name"], msg: "String should have at least 1 character", ctx: { min_length: 1 } },
+        ])
+      ).toBe("Nombre: no puede estar vacío");
+      expect(
+        msg([{ type: "string_too_short", loc: ["body", "text"], msg: "String should have at least 3 characters", ctx: { min_length: 3 } }])
+      ).toBe("Texto: mínimo 3 caracteres");
+    });
+
+    it("números: entre dos cotas cuando el campo tiene rango", () => {
+      expect(
+        msg([
+          { type: "less_than_equal", loc: ["body", "roles", 0, "count"], msg: "Input should be less than or equal to 50", ctx: { le: 50 } },
+        ])
+      ).toBe("Cantidad: entre 1 y 50");
+      expect(
+        msg([
+          { type: "greater_than_equal", loc: ["body", "years_experience"], msg: "x", ctx: { ge: 0 } },
+        ])
+      ).toBe("Años de experiencia: entre 0 y 80");
+      expect(
+        msg([{ type: "greater_than_equal", loc: ["body", "pay_amount"], msg: "x", ctx: { ge: "0" } }])
+      ).toBe("Pago: mínimo 0");
+      expect(msg([{ type: "less_than_equal", loc: ["body", "latitude"], msg: "x", ctx: { le: 90 } }])).toBe("Máximo 90");
+    });
+
+    it("falta un dato, número ilegible, fecha ilegible", () => {
+      expect(msg([{ type: "missing", loc: ["body", "email"], msg: "Field required" }])).toBe("Mail: falta completarlo");
+      expect(msg([{ type: "int_parsing", loc: ["body", "years_experience"], msg: "Input should be a valid integer, unable to parse string as an integer" }])).toBe(
+        "Años de experiencia: tiene que ser un número"
+      );
+      expect(msg([{ type: "datetime_from_date_parsing", loc: ["body", "start_at"], msg: "x", ctx: { error: "input is too short" } }])).toBe(
+        "Inicio: tiene que ser una fecha válida"
+      );
+    });
+
+    it("un validador propio en castellano (ctx.error) se muestra; el `msg` en inglés nunca", () => {
+      expect(
+        msg([
+          {
+            type: "value_error",
+            loc: ["body", "photo_url"],
+            msg: "Value error, La dirección tiene que empezar con https://",
+            ctx: { error: "La dirección tiene que empezar con https://" },
+          },
+        ])
+      ).toBe("Foto: la dirección tiene que empezar con https://");
+    });
+
+    it("varios errores se unen sin repetir; tipo desconocido es «Revisá los datos.»", () => {
+      expect(
+        msg([
+          { type: "value_error", loc: ["body", "email"], msg: "x", ctx: { reason: "r" } },
+          { type: "string_too_long", loc: ["body", "full_name"], msg: "x", ctx: { max_length: 255 } },
+        ])
+      ).toBe("Mail: tiene que ser un mail válido · Nombre: máximo 255 caracteres");
+      const raro = msg([{ type: "tipo_nuevo", loc: ["body", "x"], msg: "Some English message", input: "secreto" }]);
+      expect(raro).toBe("Revisá los datos.");
+      expect(msg([{ type: "value_error", loc: ["body", "x"], msg: "Value error, in English", ctx: {} }])).toBe("Revisá los datos.");
     });
   });
 

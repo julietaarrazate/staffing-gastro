@@ -91,8 +91,6 @@ export default function MatchesPage() {
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
-  const [lastGeoAction, setLastGeoAction] = useState<{ id: string; path: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
@@ -202,10 +200,6 @@ export default function MatchesPage() {
     if (!token) return;
     const key = `${id}:${path}`;
     setBusy(key);
-    if (geo) {
-      setGeoError(null);
-      setLastGeoAction({ id, path });
-    }
     try {
       let body: { latitude: number; longitude: number } | undefined;
       if (geo) {
@@ -217,7 +211,7 @@ export default function MatchesPage() {
         try {
           body = await getCurrentPosition();
         } catch (err) {
-          setGeoError(err instanceof Error ? err.message : "No pudimos acceder a tu ubicación.");
+          toast(err instanceof Error ? err.message : "No pudimos acceder a tu ubicación.", "error");
           return;
         }
       }
@@ -225,13 +219,10 @@ export default function MatchesPage() {
       // turno+acción) = misma key mientras no haya terminado bien.
       await api.post(`/shifts/${id}/${path}`, body, token, undefined, keyFor(key));
       clearIdempotencyKey(key);
-      if (geo) setLastGeoAction(null);
       if (path === "confirm") setJustConfirmedId(id);
       await load();
     } catch (err) {
-      const msg = getErrorMessage(err, "No se pudo completar la acción");
-      if (geo) setGeoError(msg);
-      else toast(msg, "error");
+      toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
     } finally {
       setBusy(null);
     }
@@ -350,14 +341,6 @@ export default function MatchesPage() {
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} onRetry={() => load()} />}
-      {geoError && (
-        <ErrorBanner
-          message={geoError}
-          onRetry={
-            lastGeoAction ? () => act(lastGeoAction.id, lastGeoAction.path, true) : undefined
-          }
-        />
-      )}
 
       {!loading && !error && tab === "asignados" && (
         <div className="mt-5">

@@ -46,6 +46,7 @@ import {
   WalletIcon,
 } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
+import { LIMITES } from "@/lib/limites";
 
 // Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
@@ -478,7 +479,7 @@ function NewShiftWizard() {
                       value={describeText}
                       onChange={(e) => setDescribeText(e.target.value)}
                       rows={2}
-                      maxLength={500}
+                      maxLength={LIMITES.pedidoAsistente}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
                       className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
                         speechSupported ? "pr-10" : ""
@@ -630,6 +631,7 @@ function NewShiftWizard() {
                     type="number"
                     inputMode="numeric"
                     min={0}
+                    step={1}
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
                     placeholder="48000"
@@ -663,7 +665,7 @@ function NewShiftWizard() {
                     value={dressCode}
                     onChange={setDressCode}
                     placeholder="Ej: camisa negra"
-                    maxLength={255}
+                    maxLength={LIMITES.codigoVestimenta}
                   />
                 </div>
               </div>
