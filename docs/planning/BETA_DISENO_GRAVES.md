@@ -172,15 +172,6 @@ aviso flotante.
 escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
 `components/Navbar.tsx` del trabajador.
 
-### G19 · Las tarjetas dicen quién y cuántos (U065, U024, U025) — S
-
-- `GET /applications/mine` trae el nombre del comercio (por el mismo camino
-  que `/shifts/mine`).
-- `lib/shift-next-step.ts`: «Asignado a Ana», «Beto confirmó», «Beto llegó»
-  (el nombre ya viaja).
-- `/shifts/me` suma la cantidad de postulaciones pendientes (una sola
-  consulta agrupada) y el botón dice «Elegir a alguien (2)».
-
 ### G20–G23 · Descubrir y mapas (U069, U105, U071, U073) — S, un PR cada uno
 
 - G20 `components/worker/SwipeDeck.tsx`: el toque abre el detalle sólo si no
