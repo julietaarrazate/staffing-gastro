@@ -7,11 +7,11 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useWebSocket } from "@/lib/useWebSocket";
-import { ChatMessage } from "@/lib/types";
+import { ChatMessage, SKILL_LABELS, Shift } from "@/lib/types";
 import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
 import { Avatar, ErrorBanner, MessageBubble, Skeleton } from "@/components/ui";
-import { useConversation } from "../ConversationsContext";
+import { useConversation, useConversationsControl } from "../ConversationsContext";
 
 /** Eventos que llegan por el socket de la conversación: un mensaje nuevo, o
  *  el aviso de que la otra parte ya leyó lo que le mandamos (confirmación de
@@ -37,7 +37,17 @@ export default function ConversationPage() {
   const { token, user } = useRequireAuth();
   const params = useParams<{ shiftId: string }>();
   const shiftId = params.shiftId;
-  const conversation = useConversation(shiftId);
+  const listed = useConversation(shiftId);
+  const { reload: reloadConversations, ready: conversationsReady } = useConversationsControl();
+  // U016: una conversación nueva (todavía sin mensajes) no figura en la lista
+  // del layout, y el encabezado quedaba vacío. Si la lista ya cargó y no la
+  // trae, se pide el turno para mostrar con quién es y de qué turno.
+  const [fromShift, setFromShift] = useState<{ name: string; title: string; photo: string | null } | null>(
+    null
+  );
+  const conversation = listed
+    ? { name: listed.other_party_name, title: listed.shift_title, photo: listed.other_party_photo }
+    : fromShift;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -67,6 +77,35 @@ export default function ConversationPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const role = user?.role;
+  useEffect(() => {
+    if (!token || !conversationsReady || listed) return;
+    let cancelled = false;
+    api
+      .get<Shift>(`/shifts/${shiftId}`, token)
+      .then((shift) => {
+        if (cancelled) return;
+        // El comercio chatea con quien tomó el turno; el trabajador, con el
+        // comercio. El detalle de un turno no trae el nombre del trabajador
+        // (sólo el panel `/shifts/me`), así que al comercio se le dice
+        // «Trabajador asignado» hasta que la lista traiga el nombre.
+        setFromShift({
+          name:
+            role === "employer"
+              ? shift.worker_name ?? "Trabajador asignado"
+              : shift.company_name ?? "Comercio",
+          title: shift.title ?? SKILL_LABELS[shift.position],
+          photo: role === "employer" ? null : shift.company_logo_url,
+        });
+      })
+      .catch(() => {
+        // Sin el turno, el encabezado queda como estaba: no es un error.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, shiftId, conversationsReady, listed, role]);
 
   const { status: wsStatus } = useWebSocket<ChatWsEvent>(
     token ? `/chats/${shiftId}/ws` : null,
@@ -103,9 +142,13 @@ export default function ConversationPage() {
     if (!body || !token || sending) return;
     setSending(true);
     setSendError(null);
+    // Sin mensajes todavía, el hilo no figura en la lista del layout: con el
+    // primero pasa a figurar y hay que volver a pedirla (U016).
+    const firstMessage = !listed || messages.length === 0;
     try {
       await api.post(`/chats/${shiftId}/messages`, { body }, token);
       setDraft("");
+      if (firstMessage) reloadConversations();
       await load();
     } catch (err) {
       // No borramos el draft: el usuario no debería tener que reescribir el
@@ -137,10 +180,10 @@ export default function ConversationPage() {
         </Link>
         {conversation && (
           <>
-            <Avatar src={conversation.other_party_photo} name={conversation.other_party_name} size="sm" />
+            <Avatar src={conversation.photo} name={conversation.name} size="sm" />
             <div className="min-w-0">
-              <p className="truncate text-body font-semibold text-ink">{conversation.other_party_name}</p>
-              <p className="truncate text-caption text-ink/50">{conversation.shift_title}</p>
+              <p className="truncate text-body font-semibold text-ink">{conversation.name}</p>
+              <p className="truncate text-caption text-ink/50">{conversation.title}</p>
             </div>
           </>
         )}

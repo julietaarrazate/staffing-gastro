@@ -28,6 +28,7 @@ import {
   SegmentedControl,
   useToast,
 } from "@/components/ui";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
@@ -42,10 +43,12 @@ function useLoadedList<T>(path: string, token: string | null | undefined) {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const latest = useRef(0);
-  const reload = useCallback(async () => {
+  // `silent` (recarga por un aviso, ver `lib/live-refresh.ts`): sin esqueleto
+  // y sin marcar error si falla; se conserva lo que ya se ve.
+  const reload = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
     const mine = ++latest.current;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await api.get<T[]>(path, token);
       if (mine !== latest.current) return;
@@ -56,7 +59,7 @@ function useLoadedList<T>(path: string, token: string | null | undefined) {
       if (isNotFound(err)) {
         setItems([]);
         setError(false);
-      } else {
+      } else if (!silent) {
         setError(true);
       }
     } finally {
@@ -130,9 +133,9 @@ function ShiftCandidatesContent() {
   }
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const load = useCallback(() => {
-    reloadApps();
-    reloadCands();
+  const load = useCallback(({ silent = false }: { silent?: boolean } = {}) => {
+    reloadApps({ silent });
+    reloadCands({ silent });
     // Aparte de la carga principal: si falla, la pantalla igual funciona sin
     // el resumen del turno de arriba (era información nueva agregada acá, no
     // el contenido central de esta pantalla).
@@ -142,6 +145,12 @@ function ShiftCandidatesContent() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (G1, U014): llega una postulación nueva, o se cae el
+  // turno, y la lista se actualiza sola. En pausa mientras se asigna.
+  useLiveRefresh(load, {
+    paused: loadingApps || loadingCands || assigning !== null || assignedId !== null,
+  });
 
   async function assign(profileId: string) {
     if (!token) return;
@@ -233,7 +242,7 @@ function ShiftCandidatesContent() {
               ? "No pudimos actualizar los postulantes. Te mostramos los que ya habían cargado."
               : "No pudimos cargar los postulantes. Reintentá en un momento."
           }
-          onRetry={reloadApps}
+          onRetry={() => reloadApps()}
         />
       )}
       {tab === "recomendados" && !loadingCands && candsError && (
@@ -243,7 +252,7 @@ function ShiftCandidatesContent() {
               ? "No pudimos actualizar los recomendados. Te mostramos los que ya habían cargado."
               : "No pudimos cargar los recomendados. Reintentá en un momento."
           }
-          onRetry={reloadCands}
+          onRetry={() => reloadCands()}
         />
       )}
       {tab === "postulantes" && !loadingCands && candsError && (
@@ -251,7 +260,7 @@ function ShiftCandidatesContent() {
           No pudimos cargar los recomendados.{" "}
           <button
             type="button"
-            onClick={reloadCands}
+            onClick={() => reloadCands()}
             className="font-semibold underline underline-offset-2 hover:opacity-80"
           >
             Reintentar

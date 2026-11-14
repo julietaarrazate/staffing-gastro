@@ -7,6 +7,7 @@ import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { cancelConfirmCopy, isCancellable, withFreshState } from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
@@ -226,19 +227,26 @@ function MyShiftsPanel() {
   // `ShiftPublishedNextSteps` para la justificación completa).
   const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
+  const latestLoad = useRef(0);
   // `silent`: el refresco de fondo del "va en camino" no vuelve a mostrar el
   // esqueleto de carga ni pisa la lista con un error pasajero de red.
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
+    // Último pedido gana: una respuesta vieja (una carga normal, o la de
+    // `act()`, cruzada con una silenciosa) no pisa a la más nueva.
+    const mine = ++latestLoad.current;
     if (!silent) setLoading(true);
     try {
       const data = await api.get<Shift[]>("/shifts/me", token);
+      if (mine !== latestLoad.current) return;
       setShifts(data);
       setError(null);
     } catch (err) {
-      if (!silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      if (mine === latestLoad.current && !silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
     } finally {
-      if (!silent) setLoading(false);
+      // El último pedido siempre baja el esqueleto (si uno normal quedó
+      // pisado por uno silencioso, nadie más lo bajaría).
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token]);
 
@@ -267,12 +275,28 @@ function MyShiftsPanel() {
       if (shiftsRef.current.some((s) => mayBeOnTheWay(s, now))) void load({ silent: true });
     };
     const timer = setInterval(refresh, EN_ROUTE_REFRESH_MS);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", refresh);
-    };
+    return () => clearInterval(timer);
   }, [hasConfirmed, load]);
+
+  // Al día con los avisos (G1, U013): el trabajador confirma, se baja o llega y
+  // el panel pasa solo, sin recargar. Al volver a la pestaña también (eso lo
+  // resuelve el hook; antes lo hacía acá el listener de `visibilitychange`).
+  // En pausa mientras hay un diálogo abierto o una acción en curso: la lista no
+  // se mueve debajo de lo que la persona está decidiendo.
+  // También en pausa mientras corre una carga normal (la primera, o la de
+  // `act()`): una silenciosa la pisaría por la guarda de «último pedido gana» y,
+  // si fallara, sin avisar, la pantalla quedaría sin su error ni «Reintentar».
+  useLiveRefresh(load, {
+    paused:
+      loading ||
+      busy !== null ||
+      tapGuard.locked ||
+      confirmNoShowId !== null ||
+      confirmCancelId !== null ||
+      confirmMarkPaidId !== null ||
+      planLimitMessage !== null ||
+      justPublishedId !== null,
+  });
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para el indicador de carga), atrapa errores del POST (antes

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
@@ -18,6 +18,7 @@ import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/dat
 import { formatPayAmount, payPerHour } from "@/lib/pay";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { Skeleton, useToast } from "@/components/ui";
 import DrawnCheck from "@/components/ui/DrawnCheck";
 import { shiftHeroPhoto } from "@/lib/company-photo";
@@ -81,37 +82,88 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   const isWorker = user?.role === "worker";
 
+  // El turno completo y, para el trabajador, si ya se postuló. Es lo que cambia
+  // por fuera de esta pantalla (el comercio cancela, lo cubre otra persona), así
+  // que también lo vuelve a pedir `useLiveRefresh` más abajo. `silent`: si falla
+  // no se toca nada de lo que ya se ve.
+  // Último pedido gana, y se cancela al cambiar de turno o desmontar: una
+  // respuesta vieja no pisa a una más nueva ni al turno de otra pantalla.
+  const latestLoad = useRef(0);
+  // Cuenta las veces que la persona se postuló (o empezó a hacerlo): una
+  // respuesta que salió antes nunca baja un «applied»/«applying» a «can_apply».
+  const applyEpoch = useRef(0);
+  useEffect(() => {
+    const current = latestLoad;
+    return () => {
+      current.current += 1;
+    };
+  }, [publicShift.id]);
+  // La primera carga terminó (bien o mal). Hasta entonces las recargas por
+  // avisos esperan: una silenciosa que fallara tras descartar a la primera
+  // dejaría `apply` en «unknown» (esqueleto del botón) para siempre.
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const loadState = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!token || !user) return;
+      const mine = ++latestLoad.current;
+      const epoch = applyEpoch.current;
+      const tasks: Promise<unknown>[] = [
+        api
+          .get<Shift>(`/shifts/${publicShift.id}`, token)
+          .then((shift) => {
+            if (mine === latestLoad.current) setFull(shift);
+          })
+          .catch(() => {
+            // Sin el turno completo, la vista pública alcanza: no es un error
+            // que haya que mostrarle a nadie.
+          }),
+      ];
+      if (user.role === "worker") {
+        tasks.push(
+          api
+            .get<ShiftApplication[]>("/applications/mine?limit=100", token)
+            .then((mine_) => {
+              if (mine !== latestLoad.current) return;
+              const applied = appliedShiftIds(mine_).has(publicShift.id);
+              setApply((prev) => {
+                // Se postuló (o está postulándose) después de que salió este
+                // pedido: la lista que trae puede no incluirla todavía.
+                if (epoch !== applyEpoch.current || prev === "applying") return prev;
+                return applied ? "applied" : "can_apply";
+              });
+            })
+            .catch(() => {
+              if (!silent && mine === latestLoad.current) {
+                setApply((prev) => (prev === "unknown" ? "can_apply" : prev));
+              }
+            })
+        );
+      }
+      await Promise.all(tasks);
+    },
+    [token, user, publicShift.id]
+  );
+
   useEffect(() => {
     if (!token || !user) return;
     let cancelled = false;
-    api
-      .get<Shift>(`/shifts/${publicShift.id}`, token)
-      .then((shift) => !cancelled && setFull(shift))
-      .catch(() => {
-        // Sin el turno completo, la vista pública alcanza: no es un error
-        // que haya que mostrarle a nadie.
-      });
     if (user.role === "employer") {
       api
         .get<{ id: string }>("/companies/me/profile", token)
         .then((company) => !cancelled && setMyCompanyId(company.id))
         .catch(() => {});
     }
-    if (user.role === "worker") {
-      api
-        .get<ShiftApplication[]>("/applications/mine?limit=100", token)
-        .then((mine) => {
-          if (cancelled) return;
-          // Sólo una postulación activa cuenta como "ya te postulaste": con
-          // la postulación retirada, el turno vuelve a ofrecer "Postularme".
-          setApply(appliedShiftIds(mine).has(publicShift.id) ? "applied" : "can_apply");
-        })
-        .catch(() => !cancelled && setApply("can_apply"));
-    }
+    setLoadedOnce(false);
+    void loadState().finally(() => !cancelled && setLoadedOnce(true));
     return () => {
       cancelled = true;
     };
-  }, [token, user, publicShift.id]);
+  }, [token, user, loadState]);
+
+  // Al día con los avisos (G1, U013): si el comercio canceló o lo cubrió otra
+  // persona mientras mirabas el turno, se ve sin recargar. En pausa mientras se
+  // envía la postulación.
+  useLiveRefresh(loadState, { paused: apply === "applying" || !loadedOnce });
 
   const shift: Detail = { ...publicShift, ...(full ?? {}) };
   const { Icon } = SKILL_ACCENT[shift.position];
@@ -126,6 +178,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   async function onApply() {
     if (!token) return;
+    applyEpoch.current += 1;
     setApply("applying");
     try {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token, undefined, keyFor(shift.id));

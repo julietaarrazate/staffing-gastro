@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -134,9 +135,15 @@ export default function MatchesPage() {
 
   useEffect(() => setHere(getStoredLocation()), []);
 
-  const load = useCallback(async () => {
+  const latestLoad = useRef(0);
+  // `silent` (recarga por un aviso, ver `lib/live-refresh.ts`): sin esqueleto
+  // de carga y sin pisar lo que se ve con un error pasajero.
+  const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
-    setLoading(true);
+    // Último pedido gana: una respuesta vieja (una carga normal, o la de
+    // `act()`, cruzada con una silenciosa) no pisa a la más nueva.
+    const mine = ++latestLoad.current;
+    if (!silent) setLoading(true);
     try {
       const [assigned, apps, saved, prof] = await Promise.all([
         api.get<Shift[]>("/shifts/mine", token),
@@ -144,6 +151,7 @@ export default function MatchesPage() {
         api.get<Shift[]>("/saved-shifts", token).catch(() => []),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
       ]);
+      if (mine !== latestLoad.current) return;
       setShifts(assigned);
       setApplications(apps);
       setSavedShifts(saved);
@@ -158,15 +166,37 @@ export default function MatchesPage() {
       setAppShifts(resolved);
       setError(null);
     } catch (err) {
-      setError(getErrorMessage(err, "Error al cargar tus matches"));
+      if (mine === latestLoad.current && !silent) {
+        setError(getErrorMessage(err, "Error al cargar tus matches"));
+      }
     } finally {
-      setLoading(false);
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (G1, U014): el comercio cancela y «Llegué» deja de
+  // ofrecerse sin tener que recargar. En pausa con una acción en curso o un
+  // diálogo abierto, para no pisar una baja optimista ni lo que se decide.
+  // También en pausa mientras corre una carga normal: una silenciosa la pisaría
+  // por la guarda de «último pedido gana» y, si fallara sin avisar, la pantalla
+  // quedaría sin su error ni «Reintentar».
+  useLiveRefresh(load, {
+    paused:
+      loading ||
+      busy !== null ||
+      withdrawing !== null ||
+      unsaving !== null ||
+      applyingSaved !== null ||
+      tapGuard.locked ||
+      confirmWithdrawId !== null ||
+      confirmAction !== null ||
+      justConfirmedId !== null ||
+      compareOpen,
+  });
 
   async function act(id: string, path: string, geo = false) {
     if (!token) return;
@@ -319,7 +349,7 @@ export default function MatchesPage() {
       </div>
 
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {error && <ErrorBanner message={error} onRetry={() => load()} />}
       {geoError && (
         <ErrorBanner
           message={geoError}
