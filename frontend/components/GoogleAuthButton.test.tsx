@@ -64,7 +64,7 @@ describe("GoogleAuthButton: cuenta nueva", () => {
 
     expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker");
     // El rol viaja con `onDone` para el plan elegido en la landing (/register).
-    expect(onDone).toHaveBeenCalledWith(true, "worker");
+    expect(onDone).toHaveBeenCalledWith(true, "worker", undefined);
   });
 });
 

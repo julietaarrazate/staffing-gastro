@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { ApiError } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
@@ -183,9 +184,9 @@ function RegisterForm() {
               landing); el rol lo elige el usuario dentro del propio botón de
               Google y llega acá sólo para guardar ese plan. */}
           <GoogleAuthButton
-            onDone={(isNewAccount, nuevoRol) => {
+            onDone={async (isNewAccount, nuevoRol, sesion) => {
               if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
-              router.replace(isNewAccount ? bienvenidaHref(next) : (next ?? "/"));
+              router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next));
             }}
           />
         </div>
