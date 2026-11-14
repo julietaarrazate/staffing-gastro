@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, enDias } from "./mocks";
 
 /**
  * Segundo toque, segunda parte (G2, U006–U008): un doble toque separado por
@@ -145,8 +145,8 @@ test("publicar: el segundo toque de «Continuar» no publica el turno", async ({
 
   await page.goto("/shifts/new");
   await page.getByRole("button", { name: "Mozo/a" }).click();
-  await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
-  await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByPlaceholder("48000").fill("15000");

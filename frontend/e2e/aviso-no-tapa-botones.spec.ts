@@ -1,10 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import {
-  blockExternalHosts,
-  injectSession,
-  mockEmptyNotifications,
-  skipSplash,
-} from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, isoEnDias } from "./mocks";
 
 /**
  * El aviso flotante (toast) no tapa los botones de acción (prueba de punta a
@@ -58,8 +53,8 @@ for (const vp of VIEWPORTS) {
           contentType: "application/json",
           body: JSON.stringify({
             position: "mozo",
-            start_at: "2026-08-15T20:00:00-03:00",
-            end_at: "2026-08-16T02:00:00-03:00",
+            start_at: isoEnDias(30, "20:00"),
+            end_at: isoEnDias(31, "02:00"),
             pay_amount: "45000",
             urgent: false,
             meal: false,

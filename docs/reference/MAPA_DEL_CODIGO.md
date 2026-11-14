@@ -36,7 +36,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
 | `/shifts` (Panel) | ¿Cómo van mis turnos? Familias Buscando / En marcha / Terminados / Cancelados. «Marcar como pagado», «Cancelar turno» y «No se presentó» piden confirmación | `ShiftCard` (incluye `employer/EnRouteMap`), `ShiftActions`, `ShiftPublishedNextSteps`, `subscription/PlanLimitModal`, `lib/use-tap-guard.ts` | `/shifts/me` |
-| `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA). Un intento crea un solo borrador: reintentar lo retoma (y lo edita si cambió el formulario) en vez de crear otro | `LocationPicker`, `ShiftDayHint` | `POST /shifts`, `PUT /shifts/{id}`, `POST /shifts/{id}/publish`, `/shifts/parse-text` |
+| `/shifts/new` | Publicar un turno (wizard; "Describí el turno" con IA). Un intento crea un solo borrador: reintentar lo retoma (y lo edita si cambió el formulario) en vez de crear otro. «Duplicar» abre en «Cuándo» | `LocationPicker`, `ShiftDayHint`, `lib/turno-horario.ts` | `POST /shifts`, `PUT /shifts/{id}`, `POST /shifts/{id}/publish`, `/shifts/parse-text` |
 | `/shifts/new-event` | Publicar varios turnos para un evento. Arranca en la zona del local (con «Cambiar») y sin zona no se publica: botón deshabilitado y una línea que dice qué falta | `LocationPicker`, `lib/company-place.ts` (`useCompanyPlace`, compartido con `/shifts/new`) | `/shifts/events` |
 | `/shifts/[id]/candidates` | ¿A quién elijo? Se **asigna a una persona puntual**, que después confirma o rechaza. El recomendado va en tarjeta oscura | `CandidateCard`, `candidate/GuaranteeCard`, `candidate/CandidateSignals` | `/shifts/{id}/candidates`, `/shifts/{id}/assign` |
 | `/search` | Buscar trabajadores cerca (lista y mapa) y abrir su perfil | `WorkerSearchMap`, `BottomSheet` | `/matching/search` |
@@ -89,6 +89,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Imagen de vista previa al compartir un link (WhatsApp, X) | `frontend/lib/og-brand.tsx` (la usan `app/og/oido.jpg/route.ts` y `app/twitter-image.tsx`; el filete en `assets/og/filete-oido.png`) |
 | Versión de términos y privacidad (**las dos juntas**) | `backend/app/modules/identity/domain/value_objects.py` y `frontend/lib/legal.ts` |
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
+| Horario de un turno nuevo (inicio no pasado con 5 min de tolerancia, de 1 a 16 horas; sólo al crear o cambiar el horario, no al leer) y su espejo en el formulario (el fin «de 21:00 a 02:00» se toma como día siguiente) | `backend/app/modules/shift/domain/schedule.py` (`validar_horario_nuevo`; lo llaman `ShiftService.create_shift` y `update_shift`) · `frontend/lib/turno-horario.ts` (`resolverHorario`, `diasParaDuplicar`; lo usan `app/shifts/new/page.tsx` y `new-event/page.tsx`) |
 | Textos de lo que no se puede hacer con el turno (por acción y estado, castellano de persona) | `backend/app/modules/shift/domain/mensajes.py` (`no_se_puede`) |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |

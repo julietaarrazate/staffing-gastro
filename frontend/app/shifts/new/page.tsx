@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError, isTransientFailure } from "@/lib/api";
@@ -22,8 +21,9 @@ import {
   formatDuration,
   formatShiftRange,
   localInputToArgentinaISO,
-  shiftDurationMinutes,
+  formatShiftRangeLong,
 } from "@/lib/datetime";
+import { diasParaDuplicar, resolverHorario } from "@/lib/turno-horario";
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
 import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
@@ -53,11 +53,11 @@ import { LIMITES } from "@/lib/limites";
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
 // publicación (auditoría de interfaz 2026-10-11, U01).
 const STEPS = ["Puesto", "Cuándo", "Pago", "Publicar"];
+const STEP_CUANDO = 1;
 
 // Duplicar un turno (frontend puro, ver spec de crecimiento): movemos el
-// horario +7 días manteniendo la misma hora de pared en Argentina.
-const DUPLICATE_SHIFT_OFFSET_DAYS = 7;
-
+// horario +7 días (o más, si el original es viejo: `diasParaDuplicar`)
+// manteniendo la misma hora de pared en Argentina.
 function shiftDateBy(iso: string, days: number): string {
   const date = new Date(iso);
   date.setUTCDate(date.getUTCDate() + days);
@@ -162,12 +162,9 @@ function NewShiftWizard() {
         const original = await api.get<Shift>(`/shifts/${duplicateId}`, token);
         if (cancelled) return;
         setPosition(original.position);
-        setStartAt(
-          argentinaISOToLocalInput(shiftDateBy(original.start_at, DUPLICATE_SHIFT_OFFSET_DAYS))
-        );
-        setEndAt(
-          argentinaISOToLocalInput(shiftDateBy(original.end_at, DUPLICATE_SHIFT_OFFSET_DAYS))
-        );
+        const dias = diasParaDuplicar(original.start_at);
+        setStartAt(argentinaISOToLocalInput(shiftDateBy(original.start_at, dias)));
+        setEndAt(argentinaISOToLocalInput(shiftDateBy(original.end_at, dias)));
         setPayAmount(String(original.pay_amount));
         setTips(original.tips);
         setMeal(original.meal);
@@ -176,8 +173,10 @@ function NewShiftWizard() {
         setCity(original.city ?? "");
         setLatitude(original.latitude);
         setLongitude(original.longitude);
-        setStep(STEPS.length - 1);
-        toast("Turno duplicado: revisá los datos antes de publicar");
+        // Abre en «Cuándo»: la fecha es lo único que casi seguro hay que
+        // cambiar de un turno duplicado (G14, U060); el resto ya viene cargado.
+        setStep(STEP_CUANDO);
+        toast("Turno duplicado: elegí la fecha y revisá los datos");
       } catch (err) {
         toast(getErrorMessage(err, "No se pudo duplicar el turno"), "error");
       }
@@ -221,7 +220,7 @@ function NewShiftWizard() {
     // de qué faltó, no siempre es el final.
     const startInput = draft.start_at ? argentinaISOToLocalInput(draft.start_at) : "";
     const endInput = draft.end_at ? argentinaISOToLocalInput(draft.end_at) : "";
-    const hasWhen = startInput !== "" && endInput !== "" && endInput > startInput;
+    const hasWhen = resolverHorario(startInput, endInput).valido;
     const hasPay = draft.pay_amount != null && Number(draft.pay_amount) > 0;
     if (!draft.position) setStep(0);
     else if (!hasWhen) setStep(1);
@@ -299,9 +298,12 @@ function NewShiftWizard() {
     companyPlace != null &&
     latitude === companyPlace.latitude &&
     longitude === companyPlace.longitude;
+  // El horario con la regla del servidor (inicio no pasado, 1 a 16 h) y el fin
+  // de «21:00 a 02:00» resuelto al día siguiente (G14).
+  const horario = resolverHorario(startAt, endAt);
   const canNext =
     (step === 0 && position !== null) ||
-    (step === 1 && startAt !== "" && endAt !== "" && endAt > startAt) ||
+    (step === STEP_CUANDO && horario.valido) ||
     (step === 2 && Number(payAmount) > 0) ||
     (step === 3 && hasPlace);
 
@@ -309,18 +311,29 @@ function NewShiftWizard() {
   // "no se entiende si es 1 día o más"). Se muestra en vivo en el paso "Cuándo"
   // y habilita el equivalente por hora del paso "Pago" ("¿es por hora o por
   // turno?"). Null mientras falte un extremo o el rango sea inválido.
-  const durationMinutes =
-    startAt !== "" && endAt !== ""
-      ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
-      : null;
-  // Un turno es UNA sola jornada de trabajo: un rango de más de un día es un
-  // error real (umbral 24 h), y ahí conviene publicar un evento.
+  const durationMinutes = horario.minutos;
+  // Un turno es UNA sola jornada de trabajo: de 1 a 16 horas (G14), y fuera de
+  // ese rango el mensaje aparece al lado del campo (`horario.errorFin`).
   //
   // El rango en texto ya NO se arma acá: cada campo muestra su propio día en
   // palabras (`ShiftDayHint`), que es donde se comete el error y donde hay que
   // avisarlo. `formatShiftRange` sigue usándose más abajo, en la vista previa
   // de escritorio, donde sí hace falta el rango completo en una línea.
-  const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
+  // Por qué «Continuar» está gris, en una línea sobre el botón: nunca queda
+  // gris sin decir qué falta (G14, U060). Los errores del horario además salen
+  // al lado de su campo.
+  const motivoBloqueo =
+    step === 0 && position === null
+      ? "Elegí un puesto para seguir."
+      : step === STEP_CUANDO && !horario.valido
+        ? startAt === ""
+          ? "Elegí cuándo empieza el turno para seguir."
+          : endAt === ""
+            ? "Elegí cuándo termina el turno para seguir."
+            : "Corregí el horario para seguir."
+        : step === 2 && !(Number(payAmount) > 0)
+          ? "Escribí cuánto pagás para seguir."
+          : null;
   const payPerHour =
     durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
       ? Math.round(Number(payAmount) / (durationMinutes / 60))
@@ -328,12 +341,18 @@ function NewShiftWizard() {
 
   async function publish() {
     if (!token || position === null) return;
+    // El horario se pudo volver inválido después de pasar por «Cuándo» (pasó
+    // el tiempo, o se tocó desde otro lado): se vuelve a ese paso.
+    if (!horario.valido) {
+      go(STEP_CUANDO);
+      return;
+    }
     setSubmitting(true);
     const payload = {
       position,
       quantity,
       start_at: localInputToArgentinaISO(startAt),
-      end_at: localInputToArgentinaISO(endAt),
+      end_at: localInputToArgentinaISO(horario.fin),
       pay_amount: payAmount,
       currency: "ARS",
       tips,
@@ -594,8 +613,15 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={startAt}
                       onChange={(e) => setStartAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      aria-invalid={horario.errorInicio ? true : undefined}
+                      aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
+                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
                     />
+                    {horario.errorInicio && (
+                      <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
+                        {horario.errorInicio}
+                      </p>
+                    )}
                     <ShiftDayHint value={startAt} />
                   </label>
                   <label className="flex flex-col gap-1.5">
@@ -604,9 +630,17 @@ function NewShiftWizard() {
                       type="datetime-local"
                       value={endAt}
                       onChange={(e) => setEndAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      aria-invalid={horario.errorFin ? true : undefined}
+                      aria-describedby={horario.errorFin ? "error-fin" : undefined}
+                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
                     />
-                    <ShiftDayHint value={endAt} />
+                    {horario.errorFin ? (
+                      <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
+                        {horario.errorFin}
+                      </p>
+                    ) : (
+                      <ShiftDayHint value={horario.fin} alDiaSiguiente={horario.alDiaSiguiente} />
+                    )}
                   </label>
                 </div>
                 {/* Antes este bloque repetía el rango completo en dd/mm. Ahora
@@ -618,16 +652,6 @@ function NewShiftWizard() {
                   <div className="mt-3 inline-flex items-center gap-1.5 rounded-2xl bg-surface px-4 py-3 text-sm font-semibold text-ink/80">
                     <ClockIcon size={15} className="text-ink/40" />
                     Jornada de {formatDuration(durationMinutes)}
-                  </div>
-                )}
-                {spansMultipleDays && (
-                  <div className="mt-4 rounded-2xl bg-primary-tint p-3.5 text-sm text-ink/75 ring-1 ring-primary/15">
-                    Un turno es una sola jornada, no dura varios días. Si querés
-                    cubrir <strong>varios días o varias jornadas</strong>, conviene{" "}
-                    <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
-                      publicar un evento
-                    </Link>{" "}
-                    (crea varias de una).
                   </div>
                 )}
               </div>
@@ -735,6 +759,17 @@ function NewShiftWizard() {
                 {/* Resumen */}
                 <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-ink/70">
                   <p className="font-bold text-ink">{position && SKILL_LABELS[position]}</p>
+                  {/* Siempre cuándo es, también en el celular (donde la vista
+                      previa lateral no se ve): G14, U060. */}
+                  {horario.valido && (
+                    <p className="mt-1 flex items-start gap-1.5 font-semibold text-ink/80">
+                      <CalendarIcon size={15} className="mt-0.5 shrink-0 text-ink/40" />
+                      {formatShiftRangeLong(
+                        localInputToArgentinaISO(startAt),
+                        localInputToArgentinaISO(horario.fin)
+                      )}
+                    </p>
+                  )}
                   <p className="mt-1 text-ink/50">
                     {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
                     {Number(payAmount || 0).toLocaleString("es-AR")}
@@ -750,6 +785,11 @@ function NewShiftWizard() {
 
       {/* Acción */}
       <div className="pt-3">
+        {step < STEPS.length - 1 && motivoBloqueo && (
+          <p className="mb-2 text-center text-sm text-ink/60" data-testid="motivo-continuar">
+            {motivoBloqueo}
+          </p>
+        )}
         {step < STEPS.length - 1 ? (
           <Button fullWidth size="lg" disabled={!canNext || tapGuard.locked} onClick={() => goGuarded(step + 1)}>
             Continuar
@@ -774,7 +814,7 @@ function NewShiftWizard() {
         position={position}
         quantity={quantity}
         startAt={startAt}
-        endAt={endAt}
+        endAt={horario.valido ? horario.fin : endAt}
         payAmount={payAmount}
         tips={tips}
         meal={meal}
