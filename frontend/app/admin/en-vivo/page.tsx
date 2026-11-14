@@ -177,7 +177,7 @@ export default function AdminLiveShiftsPage() {
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SegmentedControl<Filter>
-          className="overflow-x-auto sm:w-[26rem]"
+          className="no-scrollbar overflow-x-auto sm:w-[26rem]"
           value={filter}
           onChange={changeFilter}
           options={[
