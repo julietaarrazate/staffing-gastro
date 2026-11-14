@@ -75,6 +75,24 @@ export function formatShiftDayLong(iso: string): string {
   });
 }
 
+/** Sólo el día de la semana, en palabras: "sábado". */
+export function formatShiftWeekday(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, weekday: "long" });
+}
+
+/**
+ * Cuándo es el turno, en palabras, para el resumen de publicar: "sábado 20 de
+ * septiembre · 21:00 a 02:00", y si termina otro día, "sábado 20 de septiembre
+ * 21:00 → domingo 21 de septiembre 02:00".
+ */
+export function formatShiftRangeLong(startIso: string, endIso: string): string {
+  const day = formatShiftDayLong(startIso);
+  if (day === formatShiftDayLong(endIso)) {
+    return `${day} · ${formatShiftTime(startIso)} a ${formatShiftTime(endIso)}`;
+  }
+  return `${day} ${formatShiftTime(startIso)} → ${formatShiftDayLong(endIso)} ${formatShiftTime(endIso)}`;
+}
+
 /**
  * Duración del turno en minutos a partir de dos ISO (con zona). Devuelve null
  * si falta un extremo, alguno es inválido, o el fin no es posterior al inicio

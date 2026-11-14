@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, enDias } from "./mocks";
 
 type Pagina = import("@playwright/test").Page;
 
@@ -72,8 +72,8 @@ async function completarWizard(page: Pagina, opciones: { desdePanel?: boolean } 
   await page.getByRole("button", { name: "Mozo/a" }).click();
 
   // Paso 2: horario.
-  await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
-  await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 3: pago.
