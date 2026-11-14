@@ -71,8 +71,8 @@ const CARD_EXIT = { opacity: 0, scale: 0.92, transition: { duration: 0.2 } };
 /**
  * Fila de turno del panel lateral (desktop, md+): misma información que la
  * tarjeta del carrusel mobile, en formato de lista vertical de ancho
- * completo. Tocar la fila abre el detalle (revisar antes de decidir, mismo
- * criterio que en mobile); el botón de acá es el atajo de postulación
+ * completo. Tocar la fila lleva al detalle del turno (`/turno/[id]`; en mobile,
+ * la hoja del mapa), para revisar antes de decidir; el botón de acá es el atajo de postulación
  * directa. Hover resalta la fila y sincroniza el mapa (mismo pin que al
  * tocar un marcador).
  */
@@ -84,7 +84,6 @@ function ShiftRow({
   justApplied,
   disabled,
   onSelect,
-  onOpenDetail,
   onApply,
 }: {
   shift: Shift;
@@ -94,7 +93,6 @@ function ShiftRow({
   justApplied: boolean;
   disabled: boolean;
   onSelect: () => void;
-  onOpenDetail: () => void;
   onApply: () => void;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
@@ -104,17 +102,13 @@ function ShiftRow({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       onMouseEnter={onSelect}
-      onClick={onOpenDetail}
-      onKeyDown={(e) => handleCardActivate(e, onOpenDetail)}
       // Riel de color por rubro a la izquierda: estas tarjetas eran todas
       // blancas y en una lista de varias se leían iguales (Julieta,
       // 2026-08-17: "en mapa, donde se ven los turnos en blanco, también que
       // las tarjetas tengan colores"). El estado activo sigue marcándose con
       // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
-      className={`relative w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
+      className={`relative w-full rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
         active ? "border-primary/40 bg-primary-tint/60" : "border-line bg-card hover:bg-surface"
       }`}
     >
@@ -124,8 +118,17 @@ function ShiftRow({
             <Icon size={20} />
           </span>
           <div className="min-w-0">
+            {/* Link real al detalle (`/turno/[id]`), estirado sobre toda la
+                fila: se llega con Tab y Enter. El botón «Postularme» queda por
+                encima (`z-10`) y no navega. */}
             <h3 className="truncate text-sm font-extrabold leading-tight text-ink">
-              {SKILL_LABELS[shift.position]}
+              <Link
+                href={`/turno/${shift.id}`}
+                data-testid="map-row-link"
+                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary"
+              >
+                {SKILL_LABELS[shift.position]}
+              </Link>
             </h3>
             <p className="truncate text-xs font-medium text-ink/50">{shift.company_name ?? "Comercio"}</p>
           </div>
@@ -145,11 +148,7 @@ function ShiftRow({
           {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
         </p>
       </div>
-      {/* Sólo corta la propagación del click hacia la tarjeta — el botón de
-          adentro ya es interactivo/accesible por su cuenta, este div no
-          necesita semántica ni soporte de teclado propios. */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-      <div onClick={(e) => e.stopPropagation()} className="mt-3">
+      <div className="relative z-10 mt-3">
         <Button fullWidth size="sm" loading={applying} disabled={disabled} onClick={onApply}>
           Postularme
         </Button>
@@ -419,7 +418,6 @@ export default function MapPage() {
                       justApplied={justAppliedId === shift.id}
                       disabled={applyingId !== null || justAppliedId !== null}
                       onSelect={() => selectById(shift.id)}
-                      onOpenDetail={() => setPreviewShift(shift)}
                       onApply={() => apply(shift)}
                     />
                   </motion.div>
@@ -604,8 +602,8 @@ export default function MapPage() {
       </div>
       </div>
 
-      {/* Detalle del turno: se abre al tocar la tarjeta (mobile) o la fila
-          del panel lateral (desktop), para revisar antes de decidir.
+      {/* Detalle del turno: se abre al tocar la tarjeta (mobile), para
+          revisar antes de decidir (en desktop la fila lleva a `/turno/[id]`).
           Postularse sigue siendo un botón explícito acá adentro. */}
       {previewShift && (
         <Sheet

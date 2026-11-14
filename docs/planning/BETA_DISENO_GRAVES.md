@@ -95,12 +95,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
   los pasos de `/bienvenida`.
 
 
-### G18 · En compu también se llega al detalle y a Buscar (U064, U104) — S
-
-`components/worker/OpportunityCard.tsx` abre `/turno/[id]` en la grilla de
-escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
-`components/Navbar.tsx` del trabajador.
-
 ### G20–G23 · Descubrir y mapas (U069, U105, U071, U073) — S, un PR cada uno
 
 - G20 `components/worker/SwipeDeck.tsx`: el toque abre el detalle sólo si no

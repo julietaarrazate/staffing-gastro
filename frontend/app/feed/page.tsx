@@ -664,6 +664,7 @@ function WorkerFeedPanel() {
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
+                        href={`/turno/${shift.id}`}
                         applying={decidingId === shift.id}
                         locked={tapGuard.locked}
                         applied={appliedInGrid.has(shift.id)}

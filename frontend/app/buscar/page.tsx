@@ -238,6 +238,7 @@ export default function BuscarPage() {
                 <OpportunityCard
                   shift={shift}
                   distanceKm={distanceOf(shift, origin)}
+                  href={`/turno/${shift.id}`}
                   applying={decidingId === shift.id}
                   onApply={() => handleDecide(shift, "like")}
                   onPass={() => handleDecide(shift, "pass")}
