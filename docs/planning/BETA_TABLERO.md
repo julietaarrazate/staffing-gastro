@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 25 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 28 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -69,7 +69,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U009 | El aviso «Completamos todo…» tapa el botón «Publicar turno» unos 3 segundos | ✅ en `main` | #544 |
 | U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | ✅ en `main` | #547 |
 | U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (prueba en la app hecha el 2026-11-13) |
-| U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G1 · «pantallas al día» |
+| U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ✅ en `main` | #560 (prueba en la app hecha el 2026-11-14) |
 | U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⚪ decidido (4), sin empezar | se reofrece como urgente hasta que termine su horario; lleva ADR. Falta saber si se paga el turno entero o lo que resta |
 
 **Tanda 2**
@@ -181,6 +181,15 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   recalculó (es un promedio guardado; tocar datos de producción se pregunta).
 - Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
   recibe tres avisos de cancelación.
+- Panel del comercio: cuando llega un postulante el panel se vuelve a pedir
+  solo, pero la tarjeta no cambia (sigue «Elegir a alguien», sin cantidad):
+  lo que falta mostrar es de G19 (prueba en la app de #560).
+- «Mis turnos» con el cartel «¡Turno confirmado!» abierto no se actualiza
+  hasta cerrarlo (a propósito, para no pisar un diálogo): si el comercio
+  cancela justo ahí, debajo queda «Llegué» hasta tocar «Entendido».
+- Campanita: si el WebSocket se cae dos veces en menos de 30 segundos, la
+  segunda reconexión no vuelve a pedir las pantallas (tope contra el bucle
+  de recargas; salió de la revisión de #560).
 - Postulantes a 390 px: el sello «Identidad verificada» entra justo al lado
   de «Asignar»; con la letra del sistema agrandada puede no entrar (por
   debajo de 390 px ya pasa a escudo solo). Va con G24 (salió de #561).
