@@ -26,7 +26,6 @@ test("registro con un mail sin dominio dice que tiene que ser un mail válido", 
             type: "value_error",
             loc: ["body", "email"],
             msg: "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
-            ctx: { reason: "The part after the @-sign is not valid. It should have a period." },
           },
         ],
       })

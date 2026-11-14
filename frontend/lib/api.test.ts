@@ -179,24 +179,25 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
     ).toEqual({ message: "Elegí la zona del evento" });
   });
 
-  // Formas copiadas de lo que devuelve FastAPI (Pydantic v2, sin `input`/`url`).
+  // La forma que manda de verdad el backend (`backend/app/main.py`,
+  // `handle_validation_error`): `{type, loc, msg}` y, sólo si hay cotas
+  // numéricas del esquema, `ctx` con ellas. Nunca `input` ni textos en `ctx`.
   describe("422 de Pydantic traducido por tipo", () => {
     const msg = (detail: unknown) => parseErrorDetail(detail).message;
 
-    it("mail sin dominio", () => {
+    it("mail sin dominio (sin ctx: el backend no manda el motivo)", () => {
       expect(
         msg([
           {
             type: "value_error",
             loc: ["body", "email"],
             msg: "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
-            ctx: { reason: "The part after the @-sign is not valid. It should have a period." },
           },
         ])
       ).toBe("Mail: tiene que ser un mail válido");
     });
 
-    it("texto largo y corto", () => {
+    it("texto largo y corto, con las cotas que manda el backend", () => {
       expect(
         msg([
           { type: "string_too_long", loc: ["body", "body"], msg: "String should have at most 2000 characters", ctx: { max_length: 2000 } },
@@ -217,6 +218,13 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
       ).toBe("Texto: mínimo 3 caracteres");
     });
 
+    it("sin cotas (un backend viejo) no inventa: una contraseña corta no es «vacía»", () => {
+      expect(msg([{ type: "string_too_short", loc: ["body", "password"], msg: "String should have at least 8 characters" }])).toBe(
+        "Contraseña: es demasiado corto"
+      );
+      expect(msg([{ type: "string_too_long", loc: ["body", "body"], msg: "x" }])).toBe("Mensaje: es demasiado largo");
+    });
+
     it("números: entre dos cotas cuando el campo tiene rango", () => {
       expect(
         msg([
@@ -228,9 +236,7 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
           { type: "greater_than_equal", loc: ["body", "years_experience"], msg: "x", ctx: { ge: 0 } },
         ])
       ).toBe("Años de experiencia: entre 0 y 80");
-      expect(
-        msg([{ type: "greater_than_equal", loc: ["body", "pay_amount"], msg: "x", ctx: { ge: "0" } }])
-      ).toBe("Pago: mínimo 0");
+      expect(msg([{ type: "greater_than_equal", loc: ["body", "pay_amount"], msg: "x", ctx: { ge: 0 } }])).toBe("Pago: mínimo 0");
       expect(msg([{ type: "less_than_equal", loc: ["body", "latitude"], msg: "x", ctx: { le: 90 } }])).toBe("Máximo 90");
     });
 
@@ -239,12 +245,12 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
       expect(msg([{ type: "int_parsing", loc: ["body", "years_experience"], msg: "Input should be a valid integer, unable to parse string as an integer" }])).toBe(
         "Años de experiencia: tiene que ser un número"
       );
-      expect(msg([{ type: "datetime_from_date_parsing", loc: ["body", "start_at"], msg: "x", ctx: { error: "input is too short" } }])).toBe(
+      expect(msg([{ type: "datetime_from_date_parsing", loc: ["body", "start_at"], msg: "x" }])).toBe(
         "Inicio: tiene que ser una fecha válida"
       );
     });
 
-    it("un validador propio en castellano (ctx.error) se muestra; el `msg` en inglés nunca", () => {
+    it("el texto de un validador nunca se muestra, aunque llegara en `ctx`", () => {
       expect(
         msg([
           {
@@ -254,19 +260,19 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
             ctx: { error: "La dirección tiene que empezar con https://" },
           },
         ])
-      ).toBe("Foto: la dirección tiene que empezar con https://");
+      ).toBe("Revisá los datos.");
     });
 
     it("varios errores se unen sin repetir; tipo desconocido es «Revisá los datos.»", () => {
       expect(
         msg([
-          { type: "value_error", loc: ["body", "email"], msg: "x", ctx: { reason: "r" } },
+          { type: "value_error", loc: ["body", "email"], msg: "x" },
           { type: "string_too_long", loc: ["body", "full_name"], msg: "x", ctx: { max_length: 255 } },
         ])
       ).toBe("Mail: tiene que ser un mail válido · Nombre: máximo 255 caracteres");
-      const raro = msg([{ type: "tipo_nuevo", loc: ["body", "x"], msg: "Some English message", input: "secreto" }]);
+      const raro = msg([{ type: "tipo_nuevo", loc: ["body", "x"], msg: "Some English message" }]);
       expect(raro).toBe("Revisá los datos.");
-      expect(msg([{ type: "value_error", loc: ["body", "x"], msg: "Value error, in English", ctx: {} }])).toBe("Revisá los datos.");
+      expect(msg([{ type: "value_error", loc: ["body", "x"], msg: "Value error, in English" }])).toBe("Revisá los datos.");
     });
   });
 

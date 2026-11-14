@@ -211,7 +211,9 @@ export default function MatchesPage() {
         try {
           body = await getCurrentPosition();
         } catch (err) {
-          toast(err instanceof Error ? err.message : "No pudimos acceder a tu ubicación.", "error");
+          // Para resolverlo hay que ir a los permisos del navegador: el aviso
+          // queda más tiempo a la vista.
+          toast(err instanceof Error ? err.message : "No pudimos acceder a tu ubicación.", "error", 8000);
           return;
         }
       }

@@ -66,8 +66,10 @@ const num = (v: unknown): number | undefined => {
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Texto en castellano de un error de validación de Pydantic v2, por su
- * `type` (y `ctx`, que trae las cotas). Nunca usa el `msg` en inglés ni el
- * valor que mandó la persona. `null` si no se reconoce el tipo. */
+ * `type` (y `ctx`, del que el backend sólo deja pasar las cotas numéricas
+ * del esquema: `backend/app/main.py`, `_CTX_PERMITIDO`). Nunca usa el `msg`
+ * en inglés ni el valor que mandó la persona. `null` si no se reconoce el
+ * tipo. */
 function validationText(type: string, field: string | undefined, ctx: Record<string, unknown>): string | null {
   const rango = field ? RANGOS_NUMERICOS[field] : undefined;
   const entre = rango && rango.min !== undefined && rango.max !== undefined ? `Entre ${rango.min} y ${rango.max}` : null;
@@ -78,7 +80,8 @@ function validationText(type: string, field: string | undefined, ctx: Record<str
     }
     case "string_too_short": {
       const n = num(ctx.min_length);
-      return n === undefined || n <= 1 ? "No puede estar vacío" : `Mínimo ${n} caracteres`;
+      if (n === undefined) return "Es demasiado corto";
+      return n <= 1 ? "No puede estar vacío" : `Mínimo ${n} caracteres`;
     }
     case "too_long": {
       const n = num(ctx.max_length);
@@ -103,11 +106,11 @@ function validationText(type: string, field: string | undefined, ctx: Record<str
     case "missing":
       return "Falta completarlo";
     case "value_error":
-      // El mail es el único `value_error` cuyo mensaje viene de una librería
-      // (en inglés). Los validadores propios del backend explican en
-      // castellano en `ctx.error`.
+      // El texto de un validador nunca viaja (puede repetir lo que se mandó):
+      // sólo se reconoce el del mail, por el campo. El resto, «Revisá los
+      // datos.».
       if (field === "email") return "Tiene que ser un mail válido";
-      return typeof ctx.error === "string" && ctx.error ? ctx.error : null;
+      return null;
     case "int_parsing":
     case "float_parsing":
     case "decimal_parsing":

@@ -5,6 +5,7 @@ Cada módulo de dominio (identity, worker, shift, ...) registra su propio router
 
 import logging
 from contextlib import asynccontextmanager
+from decimal import Decimal
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -145,14 +146,40 @@ async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONR
     return JSONResponse(status_code=exc.status_code, content=exc.body)
 
 
+# Del contexto de un error de validación sólo salen las cotas numéricas del
+# esquema (las pone el código, no la persona): con ellas la app dice «Máximo
+# 2000 caracteres» o «Entre 1 y 50» (G8). Nunca el valor enviado, ni el texto
+# de un validador (puede repetir lo que se mandó), ni nada que no sea número.
+_CTX_PERMITIDO = frozenset(
+    {"min_length", "max_length", "ge", "le", "gt", "lt", "max_digits", "decimal_places"}
+)
+
+
+def _ctx_seguro(ctx: object) -> dict[str, int | float] | None:
+    if not isinstance(ctx, dict):
+        return None
+    filtrado = {
+        clave: valor
+        for clave, valor in ctx.items()
+        if clave in _CTX_PERMITIDO
+        and isinstance(valor, int | float | Decimal)
+        and not isinstance(valor, bool)
+    }
+    return {clave: float(v) if isinstance(v, Decimal) else v for clave, v in filtrado.items()} or None
+
+
 @app.exception_handler(RequestValidationError)
 async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
     """422 con la misma forma de siempre, sin devolver el valor enviado
-    (`input`), el contexto interno (`ctx`) ni la URL de documentación."""
-    errors = [
-        {"type": e.get("type"), "loc": e.get("loc"), "msg": e.get("msg")}
-        for e in exc.errors()
-    ]
+    (`input`) ni la URL de documentación. Del contexto (`ctx`) sólo viajan las
+    cotas numéricas del esquema (`_CTX_PERMITIDO`)."""
+    errors = []
+    for e in exc.errors():
+        error = {"type": e.get("type"), "loc": e.get("loc"), "msg": e.get("msg")}
+        ctx = _ctx_seguro(e.get("ctx"))
+        if ctx:
+            error["ctx"] = ctx
+        errors.append(error)
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 

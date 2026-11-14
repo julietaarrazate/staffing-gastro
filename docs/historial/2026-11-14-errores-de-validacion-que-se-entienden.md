@@ -10,4 +10,16 @@
 
 **Por qué así:** se traduce por tipo y no por el texto porque el `msg` de Pydantic está en inglés y puede variar. Para «Entre 1 y 50» el 422 sólo trae una cota, así que el rango del campo vive en `RANGOS_NUMERICOS`. Un `value_error` que no es de mail muestra `ctx.error`, el texto en castellano de los validadores propios del backend.
 
+**Lo que encontró la revisión independiente (arreglado acá):** el backend
+sacaba a propósito todo el `ctx` de los 422 (`backend/app/main.py`, con un
+test de seguridad que lo exigía), así que el frontend nunca recibía las cotas:
+una contraseña de 5 letras decía «no puede estar vacío». Ahora del `ctx` viajan
+**sólo las cotas numéricas del esquema** (`_CTX_PERMITIDO`: `min_length`,
+`max_length`, `ge`, `le`, `gt`, `lt`, `max_digits`, `decimal_places`), nunca el
+valor enviado ni el texto de un validador (puede repetir lo que se mandó); los
+tests de seguridad lo fijan. Por lo mismo, el texto de un `value_error` no se
+muestra (salvo el del mail, reconocido por el campo): sale «Revisá los datos.».
+Los campos de pago ya no llevan `step={1}` (el servidor acepta centavos), y el
+error de ubicación de «Llegué» queda 8 segundos a la vista en vez de 3,2.
+
 **Queda abierto:** el aviso de «Llegué» perdió el botón «Reintentar». Los mensajes de dominio del turno en castellano de persona son G9. Campos sin esquema o sin tope en el servidor (mail, idiomas, certificaciones) no tienen límite en pantalla.

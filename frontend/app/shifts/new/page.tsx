@@ -631,7 +631,6 @@ function NewShiftWizard() {
                     type="number"
                     inputMode="numeric"
                     min={0}
-                    step={1}
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
                     placeholder="48000"

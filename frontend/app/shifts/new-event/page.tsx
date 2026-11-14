@@ -388,7 +388,6 @@ function NewEventForm() {
                       type="number"
                       inputMode="numeric"
                       min={0}
-                      step={1}
                       placeholder="15000"
                       value={role.payAmount}
                       onChange={(e) => updateRole(role.key, { payAmount: e.target.value })}
