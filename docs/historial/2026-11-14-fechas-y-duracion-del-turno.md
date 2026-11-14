@@ -1,4 +1,4 @@
-# Fechas y duración del turno: inicio no pasado, de 1 a 16 horas (G14, U055, U056, U060) (#PR)
+# Fechas y duración del turno: inicio no pasado, de 1 a 16 horas (G14, U055, U056, U060) (#575)
 
 **Pedido:** salida a beta, hallazgos U055, U056 y U060: se podía publicar un turno con el inicio en el pasado (quedaba «No cubierto» a los segundos), de 5 minutos o de 30 horas; un fin «anterior» al inicio dejaba «Continuar» gris sin decir por qué; el resumen del último paso no decía cuándo era el turno en el celular y «Duplicar» abría en el último paso. Decisión 15 del tablero: un turno dura entre 1 y 16 horas.
 
