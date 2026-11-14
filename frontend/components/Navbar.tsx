@@ -2,11 +2,13 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
 import { cn } from "@/lib/cn";
+import { loginHref, nextDeCabecera, registerHref, safeNext } from "@/lib/safe-next";
 
 /**
  * Link del header de escritorio, con estado activo.
@@ -43,6 +45,36 @@ function NavLink({
       {children}
     </Link>
   );
+}
+
+/** «Ingresar» y «Crear cuenta» de la cabecera: vuelven a la pantalla en la que
+ * estaba la persona, pero sólo en las pantallas que sí vuelven
+ * (`nextDeCabecera`). Entre `/login` y `/register` se pasa el `next` que ya
+ * traían (validado: viene de la dirección). `Suspense` porque lee la query. */
+function AuthLinks({ next }: { next: string | null }) {
+  const pathname = usePathname();
+  return (
+    <>
+      <AuthLink href={loginHref({ next })} active={pathname === "/login"}>
+        Ingresar
+      </AuthLink>
+      <AuthLink href={registerHref({ next })} active={pathname === "/register"} outlined>
+        Crear cuenta
+      </AuthLink>
+    </>
+  );
+}
+
+function AuthLinksConVuelta() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  let next: string | null;
+  if (pathname === "/login" || pathname === "/register") {
+    next = safeNext(searchParams.get("next"));
+  } else {
+    next = nextDeCabecera(pathname, searchParams.toString());
+  }
+  return <AuthLinks next={next} />;
 }
 
 export default function Navbar() {
@@ -134,12 +166,9 @@ export default function Navbar() {
                   siempre en ámbar: en /login parecía el elegido e "Ingresar"
                   quedaba en blanco (Julieta, 2026-10-13). Sin ámbar acá: el
                   ámbar de la pantalla es su botón principal. */}
-              <AuthLink href="/login" active={pathname === "/login"}>
-                Ingresar
-              </AuthLink>
-              <AuthLink href="/register" active={pathname === "/register"} outlined>
-                Crear cuenta
-              </AuthLink>
+              <Suspense fallback={<AuthLinks next={null} />}>
+                <AuthLinksConVuelta />
+              </Suspense>
             </>
           )}
         </nav>

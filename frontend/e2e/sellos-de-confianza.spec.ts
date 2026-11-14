@@ -147,7 +147,7 @@ test("Inicio en celular: hero de comercio sin verificar no lleva sello", async (
   await expect(page.getByRole("img", { name: "Comercio verificado" })).toHaveCount(1);
 });
 
-test("postulantes a 360 y 320 px con nombre largo: sin desborde, con sello y sin pisar «Asignar»", async ({ page }) => {
+test("postulantes con nombre largo: el sello se adapta al ancho, sin desborde y sin pisar «Asignar»", async ({ page }) => {
   const largo = "Maximiliano Alejandro Fernandez de la Cruz Sanchez Villa";
   await base(page, EMPLOYER);
   await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
@@ -156,18 +156,33 @@ test("postulantes a 360 y 320 px con nombre largo: sin desborde, con sello y sin
   );
   await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(json([])));
 
-  for (const width of [360, 320]) {
+  // Desde 390 px el chip entero; de 360 a 389 px «Verificada» con el escudo;
+  // por debajo de 360 px el escudo solo. En los tres casos el nombre accesible
+  // es «Identidad verificada» y en el árbol hay uno solo por tarjeta.
+  const casos = [
+    { width: 390, visible: "Identidad verificada", imgs: 0 },
+    { width: 389, visible: "Verificada", imgs: 2 },
+    { width: 360, visible: "Verificada", imgs: 2 },
+    { width: 359, visible: null, imgs: 2 },
+    { width: 320, visible: null, imgs: 2 },
+  ];
+  for (const { width, visible, imgs } of casos) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/shifts/shift-1/candidates");
-    const sello = page.getByRole("img", { name: "Identidad verificada" });
-    await expect(sello).toHaveCount(2, { timeout: 15_000 });
+    await expect(page.getByText(largo, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 
+    const textoEntero = page.locator("text=Identidad verificada").locator("visible=true");
+    const textoCorto = page.getByText("Verificada", { exact: true }).locator("visible=true");
+    await expect(textoEntero).toHaveCount(visible === "Identidad verificada" ? 2 : 0);
+    await expect(textoCorto).toHaveCount(visible === "Verificada" ? 2 : 0);
+    await expect(page.getByRole("img", { name: "Identidad verificada" })).toHaveCount(imgs);
     const m = await page.evaluate(() => {
       const rect = (e: Element) => e.getBoundingClientRect();
       return {
         scrollW: document.documentElement.scrollWidth,
         cards: Array.from(document.querySelectorAll("div.no-select")).map((c) => {
-          const chip = Array.from(c.querySelectorAll('[aria-label="Identidad verificada"]'))
+          const chip = Array.from(c.querySelectorAll("span"))
+            .filter((e) => /^(Identidad )?verificada$/i.test((e.textContent ?? "").trim()) || e.getAttribute("role") === "img")
             .map(rect)
             .find((r) => r.width > 0)!;
           const btn = rect(c.querySelector("button")!);
@@ -179,7 +194,7 @@ test("postulantes a 360 y 320 px con nombre largo: sin desborde, con sello y sin
     expect(m.scrollW, `scroll horizontal a ${width}px`).toBeLessThanOrEqual(width);
     expect(m.cards).toHaveLength(2);
     for (const c of m.cards) {
-      expect(c.chipRight).toBeLessThanOrEqual(c.btnLeft);
+      expect(c.chipRight, `el sello no pisa «Asignar» a ${width}px`).toBeLessThanOrEqual(c.btnLeft);
       expect(c.btnRight).toBeLessThanOrEqual(c.cardRight);
     }
   }

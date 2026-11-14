@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { isSessionEndReason, loginHref, safeNext } from "@/lib/safe-next";
+import {
+  bienvenidaHref,
+  isLoginNotice,
+  isSessionEndReason,
+  loginHref,
+  nextDeCabecera,
+  registerHref,
+  safeNext,
+} from "@/lib/safe-next";
 
 describe("safeNext: sólo rutas internas", () => {
   it.each([
@@ -92,6 +100,19 @@ describe("loginHref", () => {
   });
 });
 
+describe("avisos del ingreso", () => {
+  it("viajan como una palabra", () => {
+    expect(loginHref({ aviso: "clave-actualizada" })).toBe("/login?aviso=clave-actualizada");
+  });
+
+  it("sólo se conocen los de la lista: un texto libre no es un aviso", () => {
+    expect(isLoginNotice("clave-actualizada")).toBe(true);
+    expect(isLoginNotice("codigo-requerido")).toBe(true);
+    expect(isLoginNotice("Tu cuenta fue bloqueada, llamá al 0800…")).toBe(false);
+    expect(isLoginNotice(null)).toBe(false);
+  });
+});
+
 describe("isSessionEndReason", () => {
   it("sólo conoce los dos motivos", () => {
     expect(isSessionEndReason("vencida")).toBe(true);
@@ -99,4 +120,55 @@ describe("isSessionEndReason", () => {
     expect(isSessionEndReason("cualquier cosa")).toBe(false);
     expect(isSessionEndReason(null)).toBe(false);
   });
+});
+
+describe("safeNext: pantallas que no son un destino", () => {
+  it.each(["/login", "/register", "/register?rol=trabajador", "/bienvenida", "/bienvenida?next=/feed"])(
+    "rechaza %s",
+    (value) => {
+      expect(safeNext(value)).toBeNull();
+    }
+  );
+});
+
+describe("registerHref", () => {
+  it("sin nada es el alta pelada", () => {
+    expect(registerHref()).toBe("/register");
+  });
+
+  it("lleva el rol y la ruta del turno", () => {
+    expect(registerHref({ rol: "trabajador", next: "/turno/abc-123" })).toBe(
+      "/register?rol=trabajador&next=%2Fturno%2Fabc-123"
+    );
+  });
+
+  it("no manda un `next` externo, raro ni la raíz", () => {
+    expect(registerHref({ rol: "trabajador", next: "https://otro.sitio" })).toBe("/register?rol=trabajador");
+    expect(registerHref({ next: "//otro.sitio" })).toBe("/register");
+    expect(registerHref({ next: "/\\otro.sitio" })).toBe("/register");
+    expect(registerHref({ next: "/" })).toBe("/register");
+    expect(registerHref({ next: "/login" })).toBe("/register");
+  });
+});
+
+describe("bienvenidaHref", () => {
+  it("lleva la ruta a la que volver y descarta lo que no es interno", () => {
+    expect(bienvenidaHref("/turno/abc-123")).toBe("/bienvenida?next=%2Fturno%2Fabc-123");
+    expect(bienvenidaHref("javascript:alert(1)")).toBe("/bienvenida");
+    expect(bienvenidaHref(null)).toBe("/bienvenida");
+  });
+});
+
+describe("nextDeCabecera", () => {
+  it("el turno público vuelve a sí mismo", () => {
+    expect(nextDeCabecera("/turno/abc-123")).toBe("/turno/abc-123");
+    expect(nextDeCabecera("/turno/abc-123", "ref=wa")).toBe("/turno/abc-123?ref=wa");
+  });
+
+  it.each(["/", "/recuperar", "/restablecer", "/verificar-email", "/terminos", "/privacidad", "/no-existe", "/turnos"])(
+    "%s no lleva `next`",
+    (ruta) => {
+      expect(nextDeCabecera(ruta)).toBeNull();
+    }
+  );
 });

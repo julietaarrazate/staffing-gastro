@@ -64,7 +64,7 @@ export default function CandidateCard({
     // `.no-select`: tarjeta de chrome (rating, chips) — mismo criterio C0 #2
     // que ShiftCard (docs/planning/PULIDO_ROADMAP.md fix 2).
     <div
-      className={`no-select overflow-hidden rounded-[var(--radius-card)] transition active:scale-[0.99] ${
+      className={`no-select min-w-0 overflow-hidden rounded-[var(--radius-card)] transition active:scale-[0.99] ${
         recommended
           ? "bg-brand shadow-[var(--shadow-float)]"
           : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
@@ -82,7 +82,7 @@ export default function CandidateCard({
       )}
 
       <div className={recommended ? "px-5 pb-5 pt-4" : "p-5"}>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <PerfilLink href={perfil}>
             <Avatar src={candidate.photo_url} name={candidate.full_name} size="lg" />
           </PerfilLink>
