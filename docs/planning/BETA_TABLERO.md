@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 48 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 67 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 

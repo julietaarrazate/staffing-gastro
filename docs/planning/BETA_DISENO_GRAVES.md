@@ -24,8 +24,8 @@ vez. Como mucho cuatro PRs abiertos.
 |---|---|---|
 | A (✅ en `main`, 2026-11-14) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
 | B (✅ en `main`, 2026-11-14) | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
-| C (reglas del producto, ya decididas) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
-| D | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
+| C (reglas del producto, ya decididas; ✅ salvo G4, 2026-11-14) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos); G4 queda para Fable |
+| D (✅ G10, G12, G17, G18, G26, G27, 2026-11-14) | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`); faltan G15 y G20–G23 |
 
 Archivos con más de un grupo: `app/my-shifts/page.tsx` (G1, G2, G8, G9) ·
 `app/shifts/new/page.tsx` (G2, G14, G15) · `lib/auth-context.tsx` (G7, G10,
