@@ -1,4 +1,4 @@
-# Sesión: tres detalles que habían quedado anotados (#PR)
+# Sesión: tres detalles que habían quedado anotados (#563)
 
 **Pedido:** Julieta, 2026-11-14: arreglar lo que la revisión de #559 (G7)
 había dejado anotado en el tablero sin arreglar.
@@ -47,4 +47,7 @@ pestaña que había quedado sin sesión (por ejemplo, después de «Salir») se
 quedaba en la landing con «Ingresar» aunque otra pestaña ya hubiera
 ingresado: ahora también arranca con esa sesión.
 
-**Queda abierto:** nada de estos tres detalles.
+**Queda abierto:** una pestaña que estaba a mitad de algo sin sesión (el
+paso del código de dos pasos, un registro a medio llenar) arranca con la
+sesión que abrió otra pestaña y pierde lo que tenía. Es lo coherente con una
+cookie que ya es de otra cuenta, pero se podría cuidar el paso del código.
