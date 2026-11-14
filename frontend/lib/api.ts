@@ -95,12 +95,34 @@ export function isTransientFailure(err: unknown): boolean {
 let sessionToken: string | null = null;
 let liveToken: string | null = null;
 let renewOnUnauthorized: (() => Promise<string | null>) | null = null;
-let renewing: Promise<string | null> | null = null;
+
+/** Cómo terminó el intento de renovar: con token nuevo; sin poder saberlo
+ * (el servidor no contestó); con un error propio de quien renueva (viendo
+ * como otra persona); o rechazado, que es una sesión que ya no existe. */
+type RenewOutcome =
+  | { kind: "renewed" }
+  | { kind: "transient" }
+  | { kind: "error"; error: ApiError }
+  | { kind: "ended" };
+let renewing: Promise<RenewOutcome> | null = null;
+
+/** Código de un 401 con la sesión terminada: nunca se muestra «No
+ * autorizado» (U112). `AuthProvider` ya dejó el contexto sin sesión y la
+ * pantalla protegida lleva al ingreso; este texto es lo que alcanza a verse
+ * mientras tanto. */
+export const SESSION_EXPIRED_CODE = "session_expired";
+export const SESSION_EXPIRED_MESSAGE = "Tu sesión venció. Volvé a ingresar.";
+/** El backend lo manda en el 403 de una cuenta suspendida (lo suma G6; hasta
+ * entonces una cuenta suspendida se trata como sesión vencida). */
+export const ACCOUNT_SUSPENDED_CODE = "account_suspended";
 
 /** Arranca (o termina, con `null`) una sesión: login, logout, impersonar. */
 export function bindSessionToken(token: string | null) {
   sessionToken = token;
   liveToken = token;
+  // La renovación que estuviera en curso era de la sesión anterior: la
+  // nueva no la comparte (si no, su resultado se leería como propio).
+  renewing = null;
 }
 
 /** Renovación del access token de la sesión en curso: no cambia su identidad. */
@@ -120,21 +142,30 @@ export function resolveToken(token: string | null | undefined): string | null {
 }
 
 /** Cómo renovar ante un 401 (lo registra `AuthProvider`). Devuelve el token
- * nuevo, o `null` si no se puede (refresh vencido, o impersonando). */
+ * nuevo, o `null` si la sesión ya no existe (refresh vencido o revocado).
+ * Si el servidor no contestó, tira ese error (no se sabe nada de la sesión);
+ * si tira un `ApiError`, es el que recibe la pantalla. */
 export function setUnauthorizedHandler(handler: (() => Promise<string | null>) | null) {
   renewOnUnauthorized = handler;
 }
 
 /** Una sola renovación a la vez: diez requests que reciben 401 juntas (la
  * PWA que vuelve de estar suspendida) comparten el mismo refresh. */
-function renewOnce(): Promise<string | null> {
-  if (!renewOnUnauthorized) return Promise.resolve(null);
+function renewOnce(handler: () => Promise<string | null>): Promise<RenewOutcome> {
   if (!renewing) {
-    renewing = renewOnUnauthorized()
-      .catch(() => null)
+    const mine: Promise<RenewOutcome> = handler()
+      .then(
+        (fresh): RenewOutcome => (fresh ? { kind: "renewed" } : { kind: "ended" }),
+        (err): RenewOutcome => {
+          if (isTransientFailure(err)) return { kind: "transient" };
+          if (err instanceof ApiError) return { kind: "error", error: err };
+          return { kind: "ended" };
+        }
+      )
       .finally(() => {
-        renewing = null;
+        if (renewing === mine) renewing = null;
       });
+    renewing = mine;
   }
   return renewing;
 }
@@ -205,11 +236,24 @@ async function request<T>(
   // el timer de renovación no llegó a correr): se renueva una vez y se
   // reintenta, en vez de mostrar "Not authenticated" hasta el próximo tick.
   // Sólo para el token de la sesión: uno ajeno no se renueva desde acá.
-  if (res.status === 401 && !retried && requested && requested === sessionToken) {
-    const fresh = await renewOnce();
-    if (fresh) {
+  if (
+    res.status === 401 &&
+    !retried &&
+    requested &&
+    requested === sessionToken &&
+    renewOnUnauthorized
+  ) {
+    const outcome = await renewOnce(renewOnUnauthorized);
+    if (outcome.kind === "renewed") {
       return request<T>(path, { ...options, retried: true });
     }
+    // No se pudo renovar. Lo que nunca sale es el «No autorizado» del
+    // servidor: o no hay conexión (y la sesión sigue), o la sesión terminó.
+    if (outcome.kind === "transient") {
+      throw new NetworkError("No se pudo conectar con el servidor.");
+    }
+    if (outcome.kind === "error") throw outcome.error;
+    throw new ApiError(401, SESSION_EXPIRED_MESSAGE, SESSION_EXPIRED_CODE);
   }
 
   if (!res.ok) {

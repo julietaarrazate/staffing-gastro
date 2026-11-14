@@ -18,7 +18,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 };
 
 export default function LandingGate() {
-  const { user, loading } = useAuth();
+  const { user, loading, reconnecting } = useAuth();
   const router = useRouter();
 
   // Si ya hay sesión, no mostramos la landing de marketing: redirigimos a la
@@ -45,6 +45,20 @@ export default function LandingGate() {
   // usuario logueado igual se va por el `useEffect` de arriba (un parpadeo
   // breve del landing es preferible a un blanco para todos los visitantes).
   if (user) return null;
+
+  // Hay una sesión guardada pero el servidor no contesta (U114): no es un
+  // visitante, así que no va la landing con «Ingresar». Estado neutro hasta
+  // que `AuthProvider` sepa quién es (reintenta solo).
+  if (reconnecting) {
+    return (
+      <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <p role="status" className="font-display text-h2 font-semibold tracking-tight text-ink">
+          Abriendo tu cuenta…
+        </p>
+        <p className="mt-2 max-w-xs text-sm text-ink/60">Puede tardar unos segundos.</p>
+      </main>
+    );
+  }
 
   return <LandingCorta />;
 }

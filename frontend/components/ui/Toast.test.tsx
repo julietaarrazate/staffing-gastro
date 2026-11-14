@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SESSION_EXPIRED_MESSAGE } from "@/lib/api";
 import { ToastProvider, useToast } from "./Toast";
 
 function Trigger({ message, tone }: { message: string; tone?: "success" | "error" | "info" }) {
@@ -14,6 +15,18 @@ function Trigger({ message, tone }: { message: string; tone?: "success" | "error
 }
 
 describe("ToastProvider", () => {
+  it("el error de «sesión vencida» no sale como aviso flotante: lo dice el ingreso", async () => {
+    render(
+      <ToastProvider>
+        <Trigger message={SESSION_EXPIRED_MESSAGE} tone="error" />
+      </ToastProvider>
+    );
+    screen.getByRole("button", { name: "disparar" }).click();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("el contenedor de toasts es una región viva anunciable por lector de pantalla", () => {
     render(
       <ToastProvider>

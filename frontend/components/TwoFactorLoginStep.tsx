@@ -16,11 +16,15 @@ import { ShieldIcon } from "@/components/icons";
 export default function TwoFactorLoginStep({
   onExpired,
   onCancel,
+  afterLogin = "/",
 }: {
   /** El desafío venció o se usó: vuelve al formulario de la contraseña. */
   onExpired: (message: string) => void;
   /** "Volver" al formulario de la contraseña. */
   onCancel: () => void;
+  /** A dónde seguir con el código aceptado (la ruta interna que el ingreso
+   * ya validó con `safeNext`; por defecto, la home del rol). */
+  afterLogin?: string;
 }) {
   const { completeTwoFactor, cancelTwoFactor } = useAuth();
   const router = useRouter();
@@ -49,7 +53,7 @@ export default function TwoFactorLoginStep({
       if (result.used_recovery_code) {
         setRecoveryLeft(result.recovery_codes_left);
       } else {
-        router.replace("/");
+        router.replace(afterLogin);
       }
     } catch (err) {
       if (err instanceof ApiError && err.code === TWO_FACTOR_CODES.challengeInvalid) {
@@ -82,7 +86,7 @@ export default function TwoFactorLoginStep({
         <Button fullWidth onClick={() => router.replace(TWO_FACTOR_PAGE)}>
           Ir a Seguridad
         </Button>
-        <Button variant="ghost" fullWidth onClick={() => router.replace("/")}>
+        <Button variant="ghost" fullWidth onClick={() => router.replace(afterLogin)}>
           Seguir al panel
         </Button>
       </div>

@@ -46,7 +46,7 @@ function NavLink({
 }
 
 export default function Navbar() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, reconnecting } = useAuth();
   const pathname = usePathname();
 
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
@@ -54,7 +54,9 @@ export default function Navbar() {
   if (pathname === "/bienvenida") return null;
   // La landing (visitante sin sesión) lleva su propio encabezado
   // (components/landing/LandingHeader.tsx). Con sesión, "/" redirige a la home del rol y este header sigue apareciendo.
-  if (pathname === "/" && !user) return null;
+  // Con una sesión guardada que todavía no se pudo confirmar tampoco va la de
+  // visitante: se ve este header, en su estado neutro.
+  if (pathname === "/" && !user && !reconnecting) return null;
   // /historia (la landing anterior, guardada para grabar reels) trae su
   // propio encabezado, con o sin sesión.
   if (pathname === "/historia") return null;
@@ -117,7 +119,15 @@ export default function Navbar() {
               Salir
             </button>
           )}
-          {!loading && !user && (
+          {/* Hay una sesión guardada y el servidor todavía no contestó (U114):
+              ni los links de la cuenta ni «Ingresar», que haría creer que la
+              sesión se perdió. `AuthProvider` reintenta solo. */}
+          {!loading && !user && reconnecting && (
+            <span role="status" className="whitespace-nowrap text-ink/60">
+              Reconectando…
+            </span>
+          )}
+          {!loading && !user && !reconnecting && (
             <>
               {/* El de la pantalla en la que estás queda marcado (celeste de
                   marca), el otro en contorno. Antes "Crear cuenta" iba

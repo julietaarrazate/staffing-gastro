@@ -9,6 +9,7 @@ import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
+import { isSessionEndReason, safeNext, SESSION_END_MESSAGES } from "@/lib/safe-next";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 function LoginForm() {
@@ -17,6 +18,12 @@ function LoginForm() {
   const searchParams = useSearchParams();
   // Mensaje opcional tras un redirect (p. ej. `/restablecer` al terminar OK).
   const infoMessage = searchParams.get("message");
+  // La sesión terminó sola (`useRequireAuth` manda acá con el motivo): se
+  // dice por qué, con un texto fijo por motivo, y al ingresar se vuelve a la
+  // ruta en la que estaba la persona, si es una ruta interna.
+  const motivo = searchParams.get("motivo");
+  const endedMessage = isSessionEndReason(motivo) ? SESSION_END_MESSAGES[motivo] : null;
+  const afterLogin = safeNext(searchParams.get("next")) ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +50,7 @@ function LoginForm() {
     // pedir el código (`pendingTwoFactor`), sin sesión todavía.
     if (outcome.twoFactor) return;
     // `replace`: "atrás" tras entrar no debe volver a /login.
-    router.replace("/");
+    router.replace(afterLogin);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -99,9 +106,23 @@ function LoginForm() {
           </p>
         )}
 
+        {endedMessage && (
+          <p
+            role="status"
+            className={`mt-4 rounded-xl px-3.5 py-2.5 text-center text-sm font-medium ${
+              motivo === "suspendida"
+                ? "bg-warning-tint text-warning-text ring-1 ring-warning/20"
+                : "bg-surface text-ink ring-1 ring-line"
+            }`}
+          >
+            {endedMessage}
+          </p>
+        )}
+
         {twoFactorOpen ? (
           <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
             <TwoFactorLoginStep
+              afterLogin={afterLogin}
               onCancel={() => setTwoFactorOpen(false)}
               onExpired={(message) => {
                 setTwoFactorOpen(false);
@@ -153,7 +174,7 @@ function LoginForm() {
             </Link>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
+          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : afterLogin)} />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">

@@ -22,7 +22,7 @@ vez. Como mucho cuatro PRs abiertos.
 
 | Ola | Grupos | Por qué en ese orden |
 |---|---|---|
-| A (no espera nada) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
+| A (✅ en `main`, 2026-11-14) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
 | B | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
 | C (reglas del producto, ya decididas) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
 | D | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
@@ -34,28 +34,8 @@ G16) · `app/shifts/[id]/candidates/page.tsx` (G1, G4, G5, G24) ·
 
 ## Ola A
 
-### G7 · La app siempre sabe si hay sesión (U112, U096, U114, U115) — C
-
-Todo en `lib/auth-context.tsx`, `lib/use-require-auth.ts`, `lib/api.ts`.
-
-- Renovación rechazada con la sesión en curso: además de borrar lo guardado,
-  el contexto queda sin `token` ni `user` y con un motivo (`vencida`, o
-  `suspendida` si el servidor lo dice, ver G6). `useRequireAuth` manda a
-  `/login?motivo=…&next=<ruta actual>` y el ingreso dice «Tu sesión venció,
-  volvé a ingresar» (o el texto de cuenta suspendida).
-- `next` sólo acepta una ruta interna (empieza con una sola `/`, sin `\` ni
-  esquema): validador nuevo `lib/safe-next.ts`, con sus tests. Acá se usa
-  sólo en el ingreso; G16 lo lleva al registro y la bienvenida.
-- Servidor dormido al abrir (U114): con `token` y sin `user` la cabecera no
-  cae a la de visitante: muestra un estado neutro «Reconectando…» y se
-  reintenta `/auth/me` solo (2 s, 5 s, 10 s, después cada 15 s con la pestaña
-  visible).
-- Cerrar sesión en una pestaña cierra las otras (U115): escuchar el evento
-  `storage` de la marca `staffya_has_session`. El token de acceso sigue
-  valiendo en el servidor hasta 15 minutos: no se cambia.
-- Un 401 que no se pudo renovar nunca se muestra como «No autorizado».
-- Pruebas: `lib/auth-context.test.tsx` (los cuatro casos); en la app, vencer
-  la sesión a mitad de publicar y cerrar sesión con dos pestañas.
+Los cuatro grupos de la ola A están en `main` desde el 2026-11-14 (G3 #562,
+G5 #561, G1 #560, G7 #559).
 
 ## Ola B
 
@@ -148,7 +128,9 @@ en claro y oscuro. La lista de postulantes de
 - Asignar: `assign_worker` rechaza a una persona con la cuenta no activa,
   antes de rechazar a los demás postulantes; la lista de postulantes no la
   muestra (mismo criterio que «Recomendados»).
-- Ingreso: el 403 lleva un código; con la contraseña bien puesta dice «Tu
+- Ingreso: el 403 lleva un código (`account_suspended`: el frontend ya lo
+  espera desde G7, en el ingreso y en la renovación, `lib/api.ts`
+  `ACCOUNT_SUSPENDED_CODE`); con la contraseña bien puesta dice «Tu
   cuenta está suspendida. Si creés que es un error, escribinos a
   hola@oido.com.ar». No se muestra el motivo que escribió el admin.
 - Comercio suspendido (decisión 10): sus turnos abiertos salen de
