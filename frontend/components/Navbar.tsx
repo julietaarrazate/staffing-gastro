@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
 import { cn } from "@/lib/cn";
-import { loginHref, registerHref, safeNext } from "@/lib/safe-next";
+import { loginHref, nextDeCabecera, registerHref, safeNext } from "@/lib/safe-next";
 
 /**
  * Link del header de escritorio, con estado activo.
@@ -48,7 +48,8 @@ function NavLink({
 }
 
 /** «Ingresar» y «Crear cuenta» de la cabecera: vuelven a la pantalla en la que
- * estaba la persona. Entre `/login` y `/register` se pasa el `next` que ya
+ * estaba la persona, pero sólo en las pantallas que sí vuelven
+ * (`nextDeCabecera`). Entre `/login` y `/register` se pasa el `next` que ya
  * traían (validado: viene de la dirección). `Suspense` porque lee la query. */
 function AuthLinks({ next }: { next: string | null }) {
   const pathname = usePathname();
@@ -71,8 +72,7 @@ function AuthLinksConVuelta() {
   if (pathname === "/login" || pathname === "/register") {
     next = safeNext(searchParams.get("next"));
   } else {
-    const query = searchParams.toString();
-    next = safeNext(query ? `${pathname}?${query}` : pathname);
+    next = nextDeCabecera(pathname, searchParams.toString());
   }
   return <AuthLinks next={next} />;
 }

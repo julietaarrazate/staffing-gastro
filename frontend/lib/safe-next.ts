@@ -81,6 +81,15 @@ export function loginHref(opts: { motivo?: SessionEndReason | null; next?: strin
   return query ? `/login?${query}` : "/login";
 }
 
+/** Qué pantallas pueden ser el destino del ingreso que se abre desde la
+ * cabecera. Un solo lugar: hoy sólo el turno público compartido (`/turno/…`).
+ * El resto (recuperar, términos, «no encontrada»…) no vuelve: tras ingresar la
+ * persona va a su inicio. Devuelve la ruta (ya validada) o `null`. */
+export function nextDeCabecera(pathname: string, search = ""): string | null {
+  if (!pathname.startsWith("/turno/")) return null;
+  return safeNext(search ? `${pathname}?${search}` : pathname);
+}
+
 /** Agrega `next` (validado, y no la raíz) a una dirección. */
 function withNext(path: string, params: URLSearchParams, next: string | null | undefined): string {
   const safe = safeNext(next);

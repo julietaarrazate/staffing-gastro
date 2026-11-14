@@ -128,3 +128,13 @@ test("un `next` externo se ignora en el alta, en el ingreso y en la bienvenida",
   await page.goto(`/login?next=${encodeURIComponent("//otro.sitio")}`);
   await expect(page.getByRole("link", { name: "Creá una" })).toHaveAttribute("href", "/register");
 });
+
+test("la cabecera sólo lleva la vuelta en /turno: en otras pantallas va sin `next`", async ({ page }) => {
+  await sinSesion(page);
+
+  for (const ruta of ["/recuperar", "/terminos", "/privacidad", "/una-pagina-que-no-existe"]) {
+    await page.goto(ruta);
+    await expect(page.getByRole("link", { name: "Crear cuenta" }).first()).toHaveAttribute("href", "/register");
+    await expect(page.getByRole("link", { name: "Ingresar", exact: true }).first()).toHaveAttribute("href", "/login");
+  }
+});

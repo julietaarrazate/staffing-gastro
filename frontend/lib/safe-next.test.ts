@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSessionEndReason, loginHref, registerHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
+import { isSessionEndReason, loginHref, registerHref, bienvenidaHref, nextDeCabecera, safeNext } from "@/lib/safe-next";
 
 describe("safeNext: sólo rutas internas", () => {
   it.each([
@@ -136,4 +136,18 @@ describe("bienvenidaHref", () => {
     expect(bienvenidaHref("javascript:alert(1)")).toBe("/bienvenida");
     expect(bienvenidaHref(null)).toBe("/bienvenida");
   });
+});
+
+describe("nextDeCabecera", () => {
+  it("el turno público vuelve a sí mismo", () => {
+    expect(nextDeCabecera("/turno/abc-123")).toBe("/turno/abc-123");
+    expect(nextDeCabecera("/turno/abc-123", "ref=wa")).toBe("/turno/abc-123?ref=wa");
+  });
+
+  it.each(["/", "/recuperar", "/restablecer", "/verificar-email", "/terminos", "/privacidad", "/no-existe", "/turnos"])(
+    "%s no lleva `next`",
+    (ruta) => {
+      expect(nextDeCabecera(ruta)).toBeNull();
+    }
+  );
 });
