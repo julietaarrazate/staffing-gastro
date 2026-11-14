@@ -16,13 +16,15 @@
  *   pantalla de la app la tiene, y al resolver los `.` y `..` de adelante
  *   (`/.//otro.sitio`, `/a/..//otro.sitio`, `/%2e//otro.sitio`) queda al
  *   inicio y vuelve a ser otro sitio;
- * - volver al propio ingreso (`/login`), que no lleva a ningún lado.
+ * - volver al propio ingreso o alta (`/login`, `/register`) o al primer
+ *   arranque (`/bienvenida`), que no llevan a ningún lado (o dan vueltas).
  *
  * Lo que se devuelve es la ruta ya resuelta, y se valida **eso**, no sólo lo
  * que entró: resolverla de nuevo tiene que dar el mismo sitio y la misma ruta.
  */
 const BASE = "https://oido.invalid";
 const MAX_LENGTH = 512;
+const SIN_VUELTA = ["/login", "/register", "/bienvenida"];
 
 export function safeNext(value: string | null | undefined): string | null {
   if (!value || value.length > MAX_LENGTH) return null;
@@ -38,7 +40,7 @@ export function safeNext(value: string | null | undefined): string | null {
   }
   // Red de seguridad: si después de resolver ya no es este sitio, afuera.
   if (url.origin !== BASE) return null;
-  if (url.pathname === "/login" || url.pathname.startsWith("/login/")) return null;
+  if (SIN_VUELTA.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))) return null;
   const resolved = `${url.pathname}${url.search}${url.hash}`;
   // Lo que sale tiene que ser tan interno como lo que entró: si al resolverlo
   // otra vez cambia de sitio o de ruta, no se usa.
@@ -77,4 +79,24 @@ export function loginHref(opts: { motivo?: SessionEndReason | null; next?: strin
   if (next && next !== "/") params.set("next", next);
   const query = params.toString();
   return query ? `/login?${query}` : "/login";
+}
+
+/** Agrega `next` (validado, y no la raíz) a una dirección. */
+function withNext(path: string, params: URLSearchParams, next: string | null | undefined): string {
+  const safe = safeNext(next);
+  if (safe && safe !== "/") params.set("next", safe);
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+/** La dirección del alta, con el rol preseleccionado y la vuelta. */
+export function registerHref(opts: { rol?: "trabajador" | "comercio" | null; next?: string | null } = {}): string {
+  const params = new URLSearchParams();
+  if (opts.rol) params.set("rol", opts.rol);
+  return withNext("/register", params, opts.next);
+}
+
+/** La dirección del primer arranque, que al terminar vuelve a `next`. */
+export function bienvenidaHref(next?: string | null): string {
+  return withNext("/bienvenida", new URLSearchParams(), next);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSessionEndReason, loginHref, safeNext } from "@/lib/safe-next";
+import { isSessionEndReason, loginHref, registerHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
 
 describe("safeNext: sólo rutas internas", () => {
   it.each([
@@ -98,5 +98,42 @@ describe("isSessionEndReason", () => {
     expect(isSessionEndReason("suspendida")).toBe(true);
     expect(isSessionEndReason("cualquier cosa")).toBe(false);
     expect(isSessionEndReason(null)).toBe(false);
+  });
+});
+
+describe("safeNext: pantallas que no son un destino", () => {
+  it.each(["/login", "/register", "/register?rol=trabajador", "/bienvenida", "/bienvenida?next=/feed"])(
+    "rechaza %s",
+    (value) => {
+      expect(safeNext(value)).toBeNull();
+    }
+  );
+});
+
+describe("registerHref", () => {
+  it("sin nada es el alta pelada", () => {
+    expect(registerHref()).toBe("/register");
+  });
+
+  it("lleva el rol y la ruta del turno", () => {
+    expect(registerHref({ rol: "trabajador", next: "/turno/abc-123" })).toBe(
+      "/register?rol=trabajador&next=%2Fturno%2Fabc-123"
+    );
+  });
+
+  it("no manda un `next` externo, raro ni la raíz", () => {
+    expect(registerHref({ rol: "trabajador", next: "https://otro.sitio" })).toBe("/register?rol=trabajador");
+    expect(registerHref({ next: "//otro.sitio" })).toBe("/register");
+    expect(registerHref({ next: "/\\otro.sitio" })).toBe("/register");
+    expect(registerHref({ next: "/" })).toBe("/register");
+    expect(registerHref({ next: "/login" })).toBe("/register");
+  });
+});
+
+describe("bienvenidaHref", () => {
+  it("lleva la ruta a la que volver y descarta lo que no es interno", () => {
+    expect(bienvenidaHref("/turno/abc-123")).toBe("/bienvenida?next=%2Fturno%2Fabc-123");
+    expect(bienvenidaHref("javascript:alert(1)")).toBe("/bienvenida");
+    expect(bienvenidaHref(null)).toBe("/bienvenida");
   });
 });

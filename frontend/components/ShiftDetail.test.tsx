@@ -71,7 +71,9 @@ describe("ShiftDetail", () => {
     render(<ShiftDetail publicShift={SHIFT} />);
 
     const link = screen.getByRole("link", { name: "Postulate en Oído" });
-    expect(link).toHaveAttribute("href", "/register?rol=trabajador");
+    // Y vuelve a este turno al terminar el alta (G16).
+    expect(link).toHaveAttribute("href", "/register?rol=trabajador&next=%2Fturno%2Fs1");
+    expect(screen.getByRole("link", { name: "Ingresá" })).toHaveAttribute("href", "/login?next=%2Fturno%2Fs1");
     expect(get).not.toHaveBeenCalled();
   });
 

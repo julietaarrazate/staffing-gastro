@@ -21,6 +21,7 @@ import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { Skeleton, useToast } from "@/components/ui";
 import DrawnCheck from "@/components/ui/DrawnCheck";
+import { loginHref, registerHref } from "@/lib/safe-next";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
@@ -428,14 +429,22 @@ function PrimaryAction({
 
   if (!loggedIn) {
     // Quien llega por un link compartido casi siempre es un trabajador: se
-    // preselecciona su rol en el registro (mismo patrón que la landing).
+    // preselecciona su rol en el registro (mismo patrón que la landing). Tanto
+    // el alta como el ingreso vuelven a este turno (`next`, U062).
+    const aca = `/turno/${shiftId}`;
     return (
       <>
-        <Link href="/register?rol=trabajador" className={PRIMARY_BUTTON}>
+        <Link href={registerHref({ rol: "trabajador", next: aca })} className={PRIMARY_BUTTON}>
           Postulate en Oído
         </Link>
         <p className="mt-2.5 text-center text-xs text-ink/45">
           Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.
+        </p>
+        <p className="mt-2 text-center text-sm text-ink/70">
+          ¿Ya tenés cuenta?{" "}
+          <Link href={loginHref({ next: aca })} className="font-semibold text-primary-text">
+            Ingresá
+          </Link>
         </p>
       </>
     );
