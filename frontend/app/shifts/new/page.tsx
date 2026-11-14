@@ -45,6 +45,7 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 
 // Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
@@ -275,9 +276,18 @@ function NewShiftWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Cambiar de paso pasa por la guarda (U006): el botón de acción ocupa
+  // siempre el mismo lugar, y el segundo toque de un doble toque sobre
+  // «Continuar» caería sobre «Publicar turno» y publicaría sin revisar.
+  const tapGuard = useTapGuard();
+
   function go(next: number) {
     setDir(next > step ? 1 : -1);
     setStep(next);
+  }
+
+  function goGuarded(next: number) {
+    void tapGuard.run(() => go(next));
   }
 
   // Sin ubicación el turno no aparece en el mapa ni se puede avisar a gente
@@ -421,7 +431,7 @@ function NewShiftWizard() {
       <div className="flex items-center gap-3">
         {step > 0 ? (
           <button
-            onClick={() => go(step - 1)}
+            onClick={() => goGuarded(step - 1)}
             aria-label="Atrás"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
           >
@@ -542,10 +552,12 @@ function NewShiftWizard() {
                         // Elegir el puesto avanza solo: el botón Continuar
                         // quedaba debajo de la grilla, fuera de pantalla en
                         // celulares (auditoría de interfaz 2026-10-11, U02).
-                        onClick={() => {
-                          setPosition(skill);
-                          go(1);
-                        }}
+                        onClick={() =>
+                          void tapGuard.run(() => {
+                            setPosition(skill);
+                            go(1);
+                          })
+                        }
                         className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
                           active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
                         }`}
@@ -736,11 +748,11 @@ function NewShiftWizard() {
       {/* Acción */}
       <div className="pt-3">
         {step < STEPS.length - 1 ? (
-          <Button fullWidth size="lg" disabled={!canNext} onClick={() => go(step + 1)}>
+          <Button fullWidth size="lg" disabled={!canNext || tapGuard.locked} onClick={() => goGuarded(step + 1)}>
             Continuar
           </Button>
         ) : (
-          <Button fullWidth size="lg" loading={submitting} disabled={!hasPlace} onClick={publish}>
+          <Button fullWidth size="lg" loading={submitting} disabled={!hasPlace || tapGuard.locked} onClick={publish}>
             Publicar turno
           </Button>
         )}

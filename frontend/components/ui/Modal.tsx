@@ -1,10 +1,28 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+
+/**
+ * Capa del diálogo. Mientras se anima el cierre (`AnimatePresence` la
+ * mantiene montada) no recibe toques: el dedo que cae sobre el botón de
+ * confirmar en ese instante lo recibiría un diálogo que ya se cerró, o,
+ * peor, la pantalla de atrás por el hueco.
+ */
+function ModalLayer({ children }: { children: ReactNode }) {
+  const isPresent = useIsPresent();
+  return (
+    <div
+      className={`fixed inset-0 z-[60] flex items-center justify-center p-5 ${isPresent ? "" : "pointer-events-none"}`}
+      aria-hidden={isPresent ? undefined : true}
+    >
+      {children}
+    </div>
+  );
+}
 
 /**
  * Diálogo centrado con backdrop (para confirmaciones). Para acciones desde
@@ -54,7 +72,7 @@ export default function Modal({
         // que envuelve toda la app desde el layout); con los dos en el mismo
         // contenedor hay que decidir la prioridad a mano: una confirmación
         // que el usuario tiene que resolver pesa más que un nudge dismisible.
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+        <ModalLayer>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -77,7 +95,7 @@ export default function Modal({
             {title && <h3 className="text-lg font-extrabold text-ink">{title}</h3>}
             <div className={title ? "mt-2" : ""}>{children}</div>
           </motion.div>
-        </div>
+        </ModalLayer>
       )}
     </AnimatePresence>
   );

@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
@@ -163,6 +164,11 @@ function WorkerFeedPanel() {
   const [error, setError] = useState<string | null>(null);
   // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  // Turnos a los que se postuló desde la grilla: la tarjeta queda en su lugar,
+  // marcada «Postulado», hasta la próxima carga (si desapareciera, las demás
+  // correrían bajo el dedo y el segundo toque caería en otra «Postularme»).
+  const [appliedInGrid, setAppliedInGrid] = useState<ReadonlySet<string>>(() => new Set());
+  const tapGuard = useTapGuard();
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
   // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
@@ -213,6 +219,10 @@ function WorkerFeedPanel() {
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
+      // La próxima carga ya trae a los postulados filtrados: la marca de la
+      // grilla termina su trabajo (y si se retiró una postulación, el turno
+      // vuelve a ofrecerse sin la marca vieja).
+      setAppliedInGrid(new Set());
       setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
@@ -345,10 +355,17 @@ function WorkerFeedPanel() {
    *  la grilla apenas se resuelve. */
   async function handleGridDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
-    setDecidingId(shift.id);
-    const ok = await onDecide(shift, decision);
-    if (ok) setShifts((prev) => prev.filter((s) => s.id !== shift.id));
-    setDecidingId(null);
+    await tapGuard.run(async () => {
+      setDecidingId(shift.id);
+      try {
+        const ok = await onDecide(shift, decision);
+        if (!ok) return;
+        if (decision === "like") setAppliedInGrid((prev) => new Set(prev).add(shift.id));
+        else setShifts((prev) => prev.filter((s) => s.id !== shift.id));
+      } finally {
+        setDecidingId(null);
+      }
+    });
   }
 
   async function onDeckApply(shift: Shift): Promise<boolean> {
@@ -584,6 +601,8 @@ function WorkerFeedPanel() {
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
                         applying={decidingId === shift.id}
+                        locked={tapGuard.locked}
+                        applied={appliedInGrid.has(shift.id)}
                         onApply={() => handleGridDecide(shift, "like")}
                         onPass={() => handleGridDecide(shift, "pass")}
                         shareable
