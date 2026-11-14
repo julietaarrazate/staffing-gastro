@@ -134,6 +134,10 @@ export interface Shift {
   /** Sólo llega en `/shifts/me` (el panel del propio comercio): el backend no
    *  lo manda en el feed ni en `/shifts/mine`, que los leen trabajadores. */
   worker_name?: string | null;
+  /** Postulaciones PENDIENTES del turno. Como `worker_name`: sólo llega en
+   *  `/shifts/me` (el comercio dueño); el feed, el turno público y las rutas
+   *  del trabajador no la mandan. Sin dato (`null`/ausente) no se muestra. */
+  pending_applicants_count?: number | null;
   /** Pago de referencia (ADR-0012): dónde cae el pago por hora de este turno
    *  respecto de lo típico para ese puesto en esa ciudad. `null` cuando no
    *  hay con qué comparar (muestra insuficiente, sin ciudad) — ahí no se

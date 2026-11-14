@@ -89,6 +89,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Imagen de vista previa al compartir un link (WhatsApp, X) | `frontend/lib/og-brand.tsx` (la usan `app/og/oido.jpg/route.ts` y `app/twitter-image.tsx`; el filete en `assets/og/filete-oido.png`) |
 | Versión de términos y privacidad (**las dos juntas**) | `backend/app/modules/identity/domain/value_objects.py` y `frontend/lib/legal.ts` |
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
+| Textos de lo que no se puede hacer con el turno (por acción y estado, castellano de persona) | `backend/app/modules/shift/domain/mensajes.py` (`no_se_puede`) |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |
 | A quién se avisa al cancelar un turno (asignado y postulaciones pendientes, un aviso por persona) | `ShiftService._notify_shift_cancelled`, mismo archivo; tabla por estado en [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) |
@@ -102,14 +103,14 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | "Va en camino" | `Shift.report_en_route_location` (dominio), `frontend/lib/use-en-route-sharing.ts`, `components/employer/EnRouteMap.tsx` |
 | "Disponible ahora" (4 h) | `AVAILABLE_NOW_TTL` en `backend/app/modules/worker/domain/entities.py`, `frontend/lib/use-available-now.ts` |
 | Pin desplazado del trabajador | `fuzz_point` en `backend/app/core/geo.py` |
-| Fechas de negocio en hora argentina | `backend/app/core/tz.py` |
+| Fechas de negocio en hora argentina; fechas y duraciones para frases (`format_inicio_art`, `format_desde_art`, `format_duracion`) | `backend/app/core/tz.py` |
 | Backend sólo por Cloudflare + IP real | `backend/app/core/edge.py` (`EDGE_SHARED_SECRET`, `client_ip`) |
 | Entrada del Worker del frontend y caché de `/turno/[id]` | `frontend/cloudflare/worker.mjs`, `frontend/cloudflare/turno-cache.mjs` |
 | Verificación en dos pasos del admin (TOTP, desafío del login, candado de las sesiones admin, plan B) | `backend/app/modules/identity/domain/two_factor.py`, `application/two_factor.py`, `api/dependencies.py` (`get_current_user` vs `get_current_user_allow_pending_2fa`), `backend/scripts/disable_two_factor.py`; frontend `lib/two-factor.ts` y el 403 con `code` en `lib/api.ts` (ADR-0023) |
 | Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Sesión: fin con motivo (`sessionEnded`), «Reconectando…» (`reconnecting`), cierre desde otra pestaña, y a dónde vuelve el ingreso, el alta y la bienvenida (`next`, sólo rutas internas; `loginHref`, `registerHref`, `bienvenidaHref`) | `frontend/lib/auth-context.tsx` (`endSession`, `restoreOnce`), `frontend/lib/safe-next.ts` (`safeNext`, `loginHref`, `registerHref`, `bienvenidaHref`, textos por motivo y avisos fijos del ingreso, `?aviso=`), `frontend/lib/use-require-auth.ts`; el 401 que no se pudo renovar en `frontend/lib/api.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
-| Guarda contra el toque de más (una acción terminó, la lista se redibujó y quedó otro botón bajo el dedo) | `frontend/lib/use-tap-guard.ts` (`useTapGuard`); hoy la usa el panel del comercio (`app/shifts/page.tsx`, `components/ShiftActions.tsx`) |
+| Guarda contra el toque de más (una acción terminó, la lista se redibujó y quedó otro botón bajo el dedo) | `frontend/lib/use-tap-guard.ts` (`useTapGuard`); la usan el panel del comercio (`app/shifts/page.tsx`, `components/ShiftActions.tsx`), el asistente de publicar (`app/shifts/new/page.tsx`), Mis turnos del trabajador (`app/my-shifts/page.tsx`), el mazo «Descubrir rápido» (`components/worker/SwipeDeck.tsx`) y la grilla del Inicio (`app/feed/page.tsx`) |
 | Pantallas al día con los avisos (la campanita avisa y la pantalla abierta vuelve a pedir lo suyo, en silencio; sin consulta periódica) | `frontend/lib/live-refresh.ts` (`emitLiveRefresh`, `useLiveRefresh(load, { paused })`); emite `components/NotificationBell.tsx`; se suscriben `app/shifts/page.tsx`, `app/shifts/[id]/candidates/page.tsx`, `app/my-shifts/page.tsx`, `components/ShiftDetail.tsx` y `app/chats/layout.tsx` |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
 | Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `backend/app/modules/notification/domain/push_policy.py` (vigencia y urgencia por tipo), `frontend/lib/push.ts`; el dispositivo se registra y se da de baja al abrir y cerrar la sesión en `frontend/lib/auth-context.tsx`, con pedidos que no avisan al candado de dos pasos (`backgroundApi` en `frontend/lib/api.ts`) |

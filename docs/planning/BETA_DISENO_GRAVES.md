@@ -39,24 +39,6 @@ G5 #561, G1 #560, G7 #559).
 
 ## Ola B
 
-### G2 · Segundo toque, segunda parte (U006, U007, U008) — S
-
-Reusar `lib/use-tap-guard.ts`; no crear otra guarda.
-
-- `app/shifts/new/page.tsx`: cambiar de paso pasa por la guarda, así
-  «Publicar turno» no acepta el toque que venía para «Continuar».
-- `components/worker/SwipeDeck.tsx`: «Postularme» pasa por la guarda (no se
-  rehabilita a los 300 ms de la animación). En la grilla de
-  `app/feed/page.tsx` la tarjeta postulada queda en su lugar, marcada
-  «Postulado», hasta la próxima carga.
-- `components/ui/Modal.tsx`: mientras el diálogo se cierra, su contenido no
-  recibe toques (vale para todos los diálogos). `withdrawApplication`
-  (`app/my-shifts/page.tsx`) ignora un segundo pedido en curso y no revierte
-  la lista si la postulación ya estaba retirada.
-- De las revisiones: los botones del trabajador que hoy ignoran el toque
-  durante 1 segundo sin avisar se ven deshabilitados (`locked`).
-- Pruebas: e2e de doble toque a 700 ms en los tres lugares.
-
 ### G8 · Errores de validación que se entienden (U030, U031) — S
 
 - `lib/api.ts` (`parseErrorDetail`): leer el detalle en forma de lista y
@@ -67,17 +49,6 @@ Reusar `lib/use-tap-guard.ts`; no crear otra guarda.
   `step`) en chat, publicar, perfil y registro.
 - `app/my-shifts/page.tsx`: el error de «Llegué» y «Me fui» sale como aviso
   flotante, no arriba de la lista.
-
-### G9 · Errores del turno en castellano de persona (U028, U029) — S
-
-- `shift/domain/entities.py`: los mensajes dejan de interpolar fechas y
-  duraciones crudas. Fechas en hora argentina («desde las 13:20 del
-  viernes»), duraciones en palabras («2 horas»); las transiciones inválidas
-  se dicen por caso («El comercio canceló este turno», «Ya lo habías
-  confirmado»). El formateo vive en `core/tz.py`.
-- Frontend: `act()` y `run()` recargan la lista también cuando fallan.
-- Pruebas: tests del dominio por mensaje (ninguno contiene `T` de fecha ni
-  `→`).
 
 ## Ola C
 
@@ -189,15 +160,6 @@ aviso flotante.
 `components/worker/OpportunityCard.tsx` abre `/turno/[id]` en la grilla de
 escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
 `components/Navbar.tsx` del trabajador.
-
-### G19 · Las tarjetas dicen quién y cuántos (U065, U024, U025) — S
-
-- `GET /applications/mine` trae el nombre del comercio (por el mismo camino
-  que `/shifts/mine`).
-- `lib/shift-next-step.ts`: «Asignado a Ana», «Beto confirmó», «Beto llegó»
-  (el nombre ya viaja).
-- `/shifts/me` suma la cantidad de postulaciones pendientes (una sola
-  consulta agrupada) y el botón dice «Elegir a alguien (2)».
 
 ### G20–G23 · Descubrir y mapas (U069, U105, U071, U073) — S, un PR cada uno
 

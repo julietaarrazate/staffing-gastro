@@ -1,4 +1,4 @@
-# G8: errores de validación que se entienden (U030, U031) (#PR)
+# G8: errores de validación que se entienden (U030, U031) (#571)
 
 **Pedido:** salida a beta, grupo G8. Los 422 de Pydantic (mail sin dominio, texto corto o largo, cantidad 51, mensaje de chat largo) salían como «Error inesperado».
 

@@ -6,6 +6,7 @@ import { Shift } from "@/lib/types";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { MOTION_UI } from "@/lib/motion";
+import { useTapGuard } from "@/lib/use-tap-guard";
 
 type Direction = 1 | -1;
 
@@ -50,6 +51,11 @@ export default function SwipeDeck({
   const [index, setIndex] = useState(0);
   // `busy` sólo cubre las animaciones (~0.2s), no la red.
   const [busy, setBusy] = useState(false);
+  // «Postularme» pasa por la guarda: al terminar la animación la carta
+  // siguiente ya está bajo el dedo, y un segundo toque (el que venía para la
+  // anterior) la postularía sin que nadie la eligiera. Un `busy` de ~0.3s no
+  // alcanza: el segundo toque llega a los 500–700 ms.
+  const tapGuard = useTapGuard();
 
   useEffect(() => {
     setDeck(shifts);
@@ -86,10 +92,13 @@ export default function SwipeDeck({
     void slide(dir, () => setIndex(safeIndex + dir));
   }
 
-  async function apply() {
+  function apply() {
     if (busy || !current) return;
-    const shift = current;
-    const at = safeIndex;
+    void tapGuard.run(() => applyCurrent(current));
+  }
+
+  async function applyCurrent(shift: Shift) {
+    const at = deck.findIndex((s) => s.id === shift.id);
     setBusy(true);
     const transition = reducedMotion ? { duration: 0 } : MOTION_UI;
     // La carta postulada sube y se va: es otro gesto que "pasar de largo",
@@ -152,7 +161,7 @@ export default function SwipeDeck({
           dragElastic={{ left: hasNext ? 0.6 : 0.15, right: hasPrev ? 0.6 : 0.15 }}
           animate={controls}
           onTap={() => {
-            if (!busy) onOpen?.(current);
+            if (!busy && !tapGuard.locked) onOpen?.(current);
           }}
           onDragEnd={(_, info) => {
             if (info.offset.x < -100 || info.velocity.x < -600) go(1);
@@ -167,7 +176,7 @@ export default function SwipeDeck({
         <button type="button" aria-label="Turno anterior" onClick={() => go(-1)} disabled={!hasPrev || busy} className={navButton}>
           <ChevronLeftIcon size={20} />
         </button>
-        <Button fullWidth onClick={apply} disabled={busy}>
+        <Button fullWidth onClick={apply} disabled={busy || tapGuard.locked}>
           Postularme
         </Button>
         <button type="button" aria-label="Turno siguiente" onClick={() => go(1)} disabled={!hasNext || busy} className={navButton}>
