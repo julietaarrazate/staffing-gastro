@@ -86,6 +86,18 @@ async function mockBackend(
     );
   });
   if (!candado) await mockEmptyNotifications(page);
+  // Las cuentas ya tienen su perfil: el ingreso lo consulta y un 404 lo
+  // mandaría a la bienvenida (G12).
+  if (!candado)
+    await page.route("**/api/v1/workers/me/profile", (route) =>
+      route.fulfill(
+        json({
+          id: "p1", full_name: "Persona", photo_url: null, birth_date: null, age: null, city: "Palermo",
+          latitude: -34.58, longitude: -58.43, bio: null, skills: ["mozo"], years_experience: 1,
+          languages: [], certifications: [], cv_url: null, cv_filename: null, is_available: true,
+        }, 200)
+      )
+    );
 
   await page.route("**/api/v1/auth/login", (route) => {
     const { email } = route.request().postDataJSON() as { email: Email };

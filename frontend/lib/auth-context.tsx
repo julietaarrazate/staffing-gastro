@@ -36,7 +36,11 @@ import { User } from "@/lib/types";
  * (ver `POST /auth/google` en el backend, docs/reference/ACCESO_MODERNO.md). */
 export type GoogleLoginResult =
   | { requiresRole: true; email: string; fullName: string }
-  | { requiresRole: false; twoFactor: boolean };
+  | { requiresRole: false; twoFactor: boolean; sesion?: SesionAbierta };
+
+/** La sesión que se acaba de abrir: lo que hace falta para decidir a dónde
+ * sigue el ingreso (¿tiene perfil?) antes de que el contexto se actualice. */
+export type SesionAbierta = { token: string; user: User };
 
 /** Resultado de `register`: `signedIn: false` = la cuenta quedó creada pero
  * el ingreso automático que sigue al alta fue frenado (límite de intentos u
@@ -46,7 +50,7 @@ export type RegisterOutcome = { signedIn: boolean };
 
 /** Resultado de `login`: `twoFactor` = la cuenta es admin con la
  * verificación en dos pasos y falta el código (`pendingTwoFactor`). */
-export type LoginOutcome = { twoFactor: boolean };
+export type LoginOutcome = { twoFactor: boolean; sesion?: SesionAbierta };
 
 interface AuthState {
   user: User | null;
@@ -656,7 +660,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token, hasUser, impersonating, twoFactorSetupPending]);
 
   /** Abre la sesión con los tokens de una respuesta de login. */
-  async function startSession(tokens: SessionTokens) {
+  async function startSession(tokens: SessionTokens): Promise<SesionAbierta> {
     sessionEpoch.current += 1;
     setReconnecting(false);
     persistAccessToken(tokens.access_token);
@@ -668,6 +672,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
     setUser(account);
     rememberSessionUser(account);
+    return { token: tokens.access_token, user: account };
   }
 
   async function login(email: string, password: string): Promise<LoginOutcome> {
@@ -678,8 +683,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPendingTwoFactor({ challengeToken: data.challenge_token });
       return { twoFactor: true };
     }
-    await startSession(data);
-    return { twoFactor: false };
+    return { twoFactor: false, sesion: await startSession(data) };
   }
 
   async function completeTwoFactor(code: string): Promise<TwoFactorVerified> {
@@ -775,8 +779,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Usuario embebido (mismo contrato que /auth/login); fallback a /auth/me si
     // no vino, por el mismo motivo de skew de deploy.
-    await startSession(data as SessionTokens);
-    return { requiresRole: false, twoFactor: false };
+    const sesion = await startSession(data as SessionTokens);
+    return { requiresRole: false, twoFactor: false, sesion };
   }
 
   async function loginAsGuest(pin: string, role: "worker" | "employer") {

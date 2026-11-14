@@ -12,6 +12,9 @@ import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
 import { saveProfilePart } from "@/lib/worker-profile";
+import { esPerfilInexistente } from "@/lib/perfil-faltante";
+import { bienvenidaHref } from "@/lib/safe-next";
+import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import { isTodayInArgentina } from "@/lib/datetime";
 import {
   distanceOf,
@@ -62,6 +65,8 @@ interface CachedFeed {
   profile: WorkerProfile | null;
 }
 const FEED_CACHE_KEY = "worker-feed";
+/** Marca interna: el perfil se pidió y el servidor dijo 404 (no existe). */
+const SIN_PERFIL = Symbol("sin-perfil");
 
 /** Búsqueda armada por el asistente de IA del trabajador (`/assistant`,
  * `lib/use-worker-ai-assistant.ts`: "búscame un turno en Palermo a menos de
@@ -162,6 +167,9 @@ function WorkerFeedPanel() {
   // lo que devolvió el servidor, así que vacío ahí también es «llegó vacío».
   const [arrivedEmpty, setArrivedEmpty] = useState(cached !== undefined && cached.shifts.length === 0);
   const [error, setError] = useState<string | null>(null);
+  // La cuenta no tiene perfil de trabajador (se cortó la bienvenida): cartel
+  // para completarlo en vez de dejar el Inicio como si nada.
+  const [sinPerfil, setSinPerfil] = useState(false);
   // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
   const [decidingId, setDecidingId] = useState<string | null>(null);
   // Turnos a los que se postuló desde la grilla: la tarjeta queda en su lugar,
@@ -222,7 +230,9 @@ function WorkerFeedPanel() {
     try {
       const [feed, prof, applied] = await Promise.all([
         api.get<Shift[]>(feedPathFor(assistantSearch), token),
-        api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
+        api
+          .get<WorkerProfile>("/workers/me/profile", token)
+          .catch((err) => (esPerfilInexistente(err) ? SIN_PERFIL : null)),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
       if (mine !== latestLoad.current) return;
@@ -236,7 +246,13 @@ function WorkerFeedPanel() {
       setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
-      if (prof && profFresh) {
+      if (prof === SIN_PERFIL) {
+        if (profFresh) {
+          setSinPerfil(true);
+          setProfile(null);
+        }
+      } else if (prof && profFresh) {
+        setSinPerfil(false);
         setProfile(prof);
         setAvailable(prof.is_available);
       }
@@ -245,7 +261,9 @@ function WorkerFeedPanel() {
       // volver a la pestaña sin más contexto.
       if (!assistantSearch && gridApplies.current === appliesAtStart) {
         const cachedProfile = profFresh
-          ? prof
+          ? prof === SIN_PERFIL
+            ? null
+            : prof
           : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
         setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
       }
@@ -468,13 +486,20 @@ function WorkerFeedPanel() {
       : actualizar;
   const emptySecondaryAction = assistantSearch || emptyNearHere ? undefined : emptyNoneInZone ? actualizar : verTodosEnBuscar;
 
-  const emptyState = (
+  // El cartel de «te falta completar…» es el único acento ámbar de la
+  // pantalla: con él a la vista, el vacío no suma otro botón primario (el
+  // principal pasa a secundario). Sin perfil, el vacío ni se muestra: «no hay
+  // más turnos» sería falso, la persona todavía no vio nada.
+  const incompleto =
+    !!profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length);
+  const hayCartel = sinPerfil || incompleto;
+  const emptyState = sinPerfil ? null : (
     <EmptyState
       icon={<EmptyFeedIllustration color="var(--color-primary)" />}
       title={emptyTitle}
       subtitle={emptySubtitle}
-      primaryAction={emptyStateAction}
-      secondaryAction={emptySecondaryAction}
+      primaryAction={hayCartel ? undefined : emptyStateAction}
+      secondaryAction={hayCartel ? emptyStateAction : emptySecondaryAction}
     />
   );
 
@@ -525,6 +550,30 @@ function WorkerFeedPanel() {
       <div className="mb-4">
         <AIAssistantBar />
       </div>
+
+      {/* Alta a medias (G12, U034, U035): sin perfil, o con el perfil pero sin
+          zona u oficio, el Inicio no puede personalizar nada. El cartel queda
+          fijo hasta que se completa (no se cierra). */}
+      {!loading && sinPerfil && (
+        <div className="-mt-1 mb-4">
+          <PerfilFaltanteCard
+            title="Te falta completar tu perfil"
+            body="Completá tu zona y tus oficios para recibir turnos."
+            actionLabel="Completar mi perfil"
+            href={bienvenidaHref("/feed")}
+          />
+        </div>
+      )}
+      {!loading && !sinPerfil && incompleto && (
+        <div className="-mt-1 mb-4">
+          <PerfilFaltanteCard
+            title="Completá tu zona y tus oficios para recibir turnos"
+            body="Sin eso te mostramos todo y no te avisamos de los turnos que te sirven."
+            actionLabel="Completar mi perfil"
+            href="/profile"
+          />
+        </div>
+      )}
 
       {assistantSearch && (
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente

@@ -6,6 +6,8 @@ import type { WorkerProfile } from "@/lib/types";
  *  cuenta y no por la URL: una cuenta real nunca tiene que perder su perfil.
  *  `lib/worker-profile.test.ts` verifica que siga igual al del backend. */
 export const GUEST_WORKER_EMAIL = "invitado.trabajador@oido.beta";
+/** Ídem, el comercio invitado. */
+export const GUEST_EMPLOYER_EMAIL = "invitado.comercio@oido.beta";
 
 /**
  * Campos editables del perfil del trabajador, tal como los espera

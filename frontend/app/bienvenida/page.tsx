@@ -56,7 +56,7 @@ import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { GUEST_WORKER_EMAIL, saveProfilePart } from "@/lib/worker-profile";
+import { GUEST_EMPLOYER_EMAIL, GUEST_WORKER_EMAIL, saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { destinoTrasBienvenida } from "@/lib/plan-elegido";
@@ -400,7 +400,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
 type EmployerStep = "nombre" | "ubicacion";
 
 function EmployerOnboarding({ next }: { next: string | null }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<EmployerStep>("nombre");
@@ -424,7 +424,11 @@ function EmployerOnboarding({ next }: { next: string | null }) {
   // `skipAll()`: necesita mandar un nombre placeholder sin esperar a que el
   // estado de `name` se actualice. Devuelve `false` si falló, para que cada
   // botón decida cómo reaccionar sin duplicar el guardado.
-  async function save(withLocation: boolean, nameOverride?: string): Promise<boolean> {
+  async function save(
+    withLocation: boolean,
+    nameOverride?: string,
+    soloSiNoExiste = false
+  ): Promise<boolean> {
     const finalName = (nameOverride ?? name).trim();
     if (!token || !finalName) return false;
     setError(null);
@@ -438,11 +442,36 @@ function EmployerOnboarding({ next }: { next: string | null }) {
     };
     try {
       // El perfil todavía no existe (el usuario se acaba de registrar), pero
-      // si entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
+      // si entró dos veces al onboarding puede existir (POST da 409). En ese
+      // caso NO se lo reemplaza con este payload corto: «Omitir por ahora»
+      // (`soloSiNoExiste`) no escribe nada, y lo demás se guarda encima del
+      // perfil que ya está (nombre, logo y, si se cargó, la ubicación).
       try {
         await api.post<CompanyProfile>("/companies/me/profile", payload, token);
-      } catch {
-        await api.put<CompanyProfile>("/companies/me/profile", payload, token);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 409) throw err;
+        if (user?.email === GUEST_EMPLOYER_EMAIL) {
+          // Cuenta invitada compartida: cada ingreso con PIN arranca de cero.
+          await api.put<CompanyProfile>("/companies/me/profile", payload, token);
+        } else if (!soloSiNoExiste) {
+          const actual = await api.get<CompanyProfile>("/companies/me/profile", token);
+          await api.put<CompanyProfile>(
+            "/companies/me/profile",
+            {
+              name: payload.name,
+              logo_url: logoUrl ?? actual.logo_url,
+              category: actual.category,
+              description: actual.description,
+              capacity: actual.capacity,
+              opening_hours: actual.opening_hours,
+              address: withLocation ? payload.address : actual.address,
+              city: withLocation ? payload.city : actual.city,
+              latitude: withLocation ? payload.latitude : actual.latitude,
+              longitude: withLocation ? payload.longitude : actual.longitude,
+            },
+            token
+          );
+        }
       }
       return true;
     } catch (err) {
@@ -477,7 +506,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
   // nombre real, ver docstring del archivo).
   async function skipAll() {
     setSkippingAll(true);
-    if (await save(false, name.trim() || "Mi comercio")) router.replace(destinoTrasBienvenida(next ?? "/shifts"));
+    if (await save(false, name.trim() || "Mi comercio", true)) router.replace(destinoTrasBienvenida(next ?? "/shifts"));
     else setSkippingAll(false);
   }
 
