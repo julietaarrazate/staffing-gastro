@@ -8,6 +8,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { useLiveRefresh } from "@/lib/live-refresh";
+import { coberturaPorEvento } from "@/lib/evento-cobertura";
 import { cancelConfirmCopy, isCancellable, withFreshState } from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
@@ -414,24 +415,10 @@ function MyShiftsPanel() {
 
   // Progreso de cobertura por evento (publicación masiva, /shifts/new-event):
   // cruza TODAS las familias — un evento de 6 roles puede tener 4 ya
-  // asignados/en marcha y 2 todavía buscando, repartidos en pestañas
-  // distintas. `covered` = ya tiene trabajador asignado (worker_profile_id),
-  // sin importar en qué paso del ciclo vaya después de eso.
-  const eventGroups = useMemo(() => {
-    const byId = new Map<string, { name: string; total: number; covered: number }>();
-    for (const shift of shifts) {
-      if (!shift.event_id) continue;
-      const entry = byId.get(shift.event_id) ?? {
-        name: shift.event_name ?? "Evento",
-        total: 0,
-        covered: 0,
-      };
-      entry.total += 1;
-      if (shift.worker_profile_id) entry.covered += 1;
-      byId.set(shift.event_id, entry);
-    }
-    return Array.from(byId.entries()).map(([eventId, data]) => ({ eventId, ...data }));
-  }, [shifts]);
+  // confirmados y 2 todavía buscando, repartidos en pestañas distintas. No
+  // cuenta los cancelados; «cubiertos» son los confirmados en adelante
+  // (`lib/evento-cobertura.ts`).
+  const eventGroups = useMemo(() => coberturaPorEvento(shifts), [shifts]);
 
   const cancelCopy = cancelConfirmCopy(
     confirmCancelId ? shifts.find((s) => s.id === confirmCancelId) : undefined
