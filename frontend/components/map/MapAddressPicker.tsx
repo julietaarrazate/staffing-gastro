@@ -121,6 +121,10 @@ export default function MapAddressPicker({
   }, []);
 
   function selectResult(result: GeocodeResult) {
+    // El cambio de texto que hace esta selección no tiene que reabrir la lista
+    // (el efecto de búsqueda se dispararía con el texto elegido). Si el texto no
+    // cambia, el efecto no corre y el flag quedaría armado para la próxima tecla.
+    if (result.address !== query) skipNextSearchRef.current = true;
     setQuery(result.address);
     setAddress(result.address);
     setCity(result.city);
