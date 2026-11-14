@@ -259,15 +259,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
       }
       // La respuesta es de la sesión que había al pedirla. Si mientras tanto
-      // cambió de manos (ingreso, salida, cierre desde otra pestaña), no se
-      // aplica: ni se guarda el token, ni se renueva, ni se da por vencida
-      // la sesión de quien entró después.
+      // cambió de manos (ingreso, salida, cierre desde otra pestaña, «ver
+      // como»), no se aplica: ni se guarda el token, ni se renueva, ni se da
+      // por vencida la sesión de quien entró después. A quien la esperaba se
+      // le contesta «sin conexión», no «tu sesión venció»: de la sesión de
+      // ahora no dice nada.
       const epoch = sessionEpoch.current;
+      const staleSession = () => new NetworkError("No se pudo conectar con el servidor.");
       const attempt: Promise<string | null> = api
         .post<{ access_token: string }>("/auth/refresh", undefined, null, REFRESH_HARD_TIMEOUT_MS)
         .then(
           (tokens) => {
-            if (sessionEpoch.current !== epoch) return null;
+            if (sessionEpoch.current !== epoch) throw staleSession();
             persistAccessToken(tokens.access_token);
             // Con una sesión en curso, sólo se renueva el token vigente; el
             // del contexto queda igual. Sin sesión (restaurando al abrir la
@@ -282,7 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // degradar sin cerrar la sesión. Sólo un rechazo real (refresh
             // vencido/revocado, 401/403) termina la sesión.
             if (isTransientFailure(err)) throw err;
-            if (sessionEpoch.current !== epoch) return null;
+            if (sessionEpoch.current !== epoch) throw staleSession();
             endSession(endReasonFrom(err));
             return null;
           }
@@ -432,9 +435,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return "none";
       }
     } catch (err) {
+      // Alguien ingresó o salió mientras esto esperaba: ya no es asunto de
+      // esta recuperación (ni siquiera para reintentar).
+      if (sessionEpoch.current !== epoch) return "none";
       // Backend dormido/caído: no cerramos sesión.
       if (isTransientFailure(err)) return "transient";
-      if (sessionEpoch.current !== epoch) return "none";
       // Cualquier otro error inesperado tampoco debe colgar la app.
       clearSession();
       setToken(null);

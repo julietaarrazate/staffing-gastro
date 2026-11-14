@@ -640,7 +640,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       backend["POST /auth/refresh"] = refresh.reply;
       let pending: Promise<unknown> = Promise.resolve();
       await act(async () => {
-        pending = api.get("/admin/stats", auth().token).catch(() => {});
+        pending = api.get("/admin/stats", auth().token).catch((err) => err);
         await vi.advanceTimersByTimeAsync(0);
       });
       backend["POST /admin/users/u-trabajadora/impersonate"] = [
@@ -651,11 +651,15 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
         await auth().impersonate(TRABAJADORA.id);
       });
 
+      let stale: unknown;
       await act(async () => {
         refresh.release([200, { access_token: "token-admin-renovado" }]);
-        await pending;
+        stale = await pending;
       });
 
+      // El pedido que la esperaba no lee «tu sesión venció»: la sesión de
+      // ahora está viva, y ese texto ni siquiera sale como aviso.
+      expect(stale).toBeInstanceOf(NetworkError);
       // Los pedidos de la persona que se está viendo salen con su token.
       expect(auth().token).toBe("token-viendo-como");
       expect(resolveToken("token-viendo-como")).toBe("token-viendo-como");
