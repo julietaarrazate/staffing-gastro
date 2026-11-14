@@ -199,3 +199,169 @@ test("si el geocoder falla, el employer puede pasar al selector manual", async (
   // El selector manual (provincia/localidad) queda visible como alternativa.
   await expect(page.locator("select").first()).toBeVisible();
 });
+
+/**
+ * Elegir un resultado cierra la lista y no dispara una búsqueda nueva (el texto
+ * que se completa con la selección no tiene que reabrir el dropdown); escribir
+ * después sí vuelve a buscar.
+ */
+test("elegir un resultado cierra la lista sin buscar de nuevo, y escribir vuelve a buscar", async ({ page }) => {
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-2",
+        email: "demo.palermo@staffya.com",
+        full_name: "Comercio Demo",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+
+  await page.route("**/api/v1/companies/me/profile", (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Perfil de comercio no encontrado" }),
+      });
+    }
+    return route.continue();
+  });
+
+  // Cuenta los pedidos al geocoder: cada búsqueda real suma uno.
+  let geocoderCalls = 0;
+  await page.route(/nominatim\.openstreetmap\.org\/search/, (route) => {
+    geocoderCalls += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify([
+        {
+          display_name: "Av. Corrientes 1234, Balvanera, CABA, Argentina",
+          lat: "-34.6045",
+          lon: "-58.3872",
+          address: { suburb: "Balvanera", city: "CABA" },
+        },
+      ]),
+    });
+  });
+
+  await page.goto("/profile/edit");
+  await expect(page.getByText("Nombre del comercio")).toBeVisible();
+
+  const searchInput = page.getByPlaceholder("Buscá la dirección de tu local");
+  const resultItem = page.getByRole("button", { name: /Av\. Corrientes 1234, Balvanera, CABA/ });
+
+  await searchInput.fill("Av. Corrientes 1234");
+  await expect(resultItem).toBeVisible();
+  expect(geocoderCalls).toBe(1);
+
+  await resultItem.click();
+  await expect(resultItem).toHaveCount(0);
+
+  // Esperamos más que el debounce (400 ms) para que una búsqueda espuria tuviera
+  // tiempo de dispararse y reabrir la lista.
+  await page.waitForTimeout(1000);
+  await expect(resultItem).toHaveCount(0);
+  expect(geocoderCalls).toBe(1);
+
+  // Escribir de nuevo sí vuelve a buscar y a mostrar resultados.
+  await searchInput.click();
+  await searchInput.press("End");
+  await searchInput.pressSequentially("x");
+  await expect(resultItem).toBeVisible();
+  expect(geocoderCalls).toBe(2);
+});
+
+/**
+ * Caso de carrera: si se escribe un carácter más (queda un debounce pendiente)
+ * y se elige un resultado antes de que venza, el timer viejo no tiene que
+ * disparar una búsqueda ni reabrir la lista encima del mapa.
+ */
+test("elegir un resultado con una búsqueda pendiente no reabre la lista", async ({ page }) => {
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-2",
+        email: "demo.palermo@staffya.com",
+        full_name: "Comercio Demo",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+
+  await page.route("**/api/v1/companies/me/profile", (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Perfil de comercio no encontrado" }),
+      });
+    }
+    return route.continue();
+  });
+
+  let geocoderCalls = 0;
+  await page.route(/nominatim\.openstreetmap\.org\/search/, (route) => {
+    geocoderCalls += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify([
+        {
+          display_name: "Av. Corrientes 1234, Balvanera, CABA, Argentina",
+          lat: "-34.6045",
+          lon: "-58.3872",
+          address: { suburb: "Balvanera", city: "CABA" },
+        },
+      ]),
+    });
+  });
+
+  await page.goto("/profile/edit");
+  await expect(page.getByText("Nombre del comercio")).toBeVisible();
+
+  const searchInput = page.getByPlaceholder("Buscá la dirección de tu local");
+  const resultItem = page.getByRole("button", { name: /Av\. Corrientes 1234, Balvanera, CABA/ });
+
+  await searchInput.fill("Av. Corrientes 12");
+  await expect(resultItem).toBeVisible();
+  expect(geocoderCalls).toBe(1);
+
+  // Un carácter más deja un debounce pendiente; el resultado se elige enseguida,
+  // sin esperar a que venza.
+  await searchInput.press("End");
+  await searchInput.pressSequentially("3");
+  await resultItem.click();
+  await expect(resultItem).toHaveCount(0);
+
+  // Esperamos más que el debounce (400 ms) para que el timer viejo tuviera
+  // tiempo de disparar.
+  // Más que el debounce (400 ms) más la espera entre pedidos del buscador
+  // (1100 ms): si el pedido de más volviera, a los 2 s ya habría salido.
+  await page.waitForTimeout(2000);
+  await expect(resultItem).toHaveCount(0);
+  expect(geocoderCalls).toBe(1);
+});
