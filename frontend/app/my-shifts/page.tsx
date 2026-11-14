@@ -181,8 +181,12 @@ export default function MatchesPage() {
   // Al día con los avisos (G1, U014): el comercio cancela y «Llegué» deja de
   // ofrecerse sin tener que recargar. En pausa con una acción en curso o un
   // diálogo abierto, para no pisar una baja optimista ni lo que se decide.
+  // También en pausa mientras corre una carga normal: una silenciosa la pisaría
+  // por la guarda de «último pedido gana» y, si fallara sin avisar, la pantalla
+  // quedaría sin su error ni «Reintentar».
   useLiveRefresh(load, {
     paused:
+      loading ||
       busy !== null ||
       withdrawing !== null ||
       unsaving !== null ||

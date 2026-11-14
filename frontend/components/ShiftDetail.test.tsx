@@ -165,3 +165,28 @@ describe("ShiftDetail: respuesta vieja de una recarga silenciosa", () => {
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
   });
 });
+
+describe("ShiftDetail: aviso durante la primera carga", () => {
+  it("la recarga espera a que termine la primera y, si ésta falla, el botón no queda en esqueleto", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    let calls = 0;
+    let fallarPrimera: (e: Error) => void = () => {};
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) {
+        calls += 1;
+        return new Promise((_, reject) => (fallarPrimera = reject));
+      }
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT });
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    render(<ShiftDetail publicShift={SHIFT} />);
+    await waitFor(() => expect(calls).toBe(1));
+
+    act(() => emitLiveRefresh());
+    await new Promise((r) => setTimeout(r, 700)); // más que el debounce
+    expect(calls).toBe(1); // la silenciosa no arrancó pisando a la primera
+
+    await act(async () => fallarPrimera(new Error("red")));
+    expect(await screen.findByRole("button", { name: "Postularme" })).toBeInTheDocument();
+  });
+});

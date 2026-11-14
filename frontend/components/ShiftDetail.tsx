@@ -98,6 +98,10 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
       current.current += 1;
     };
   }, [publicShift.id]);
+  // La primera carga terminó (bien o mal). Hasta entonces las recargas por
+  // avisos esperan: una silenciosa que fallara tras descartar a la primera
+  // dejaría `apply` en «unknown» (esqueleto del botón) para siempre.
+  const [loadedOnce, setLoadedOnce] = useState(false);
   const loadState = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       if (!token || !user) return;
@@ -149,7 +153,8 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         .then((company) => !cancelled && setMyCompanyId(company.id))
         .catch(() => {});
     }
-    void loadState();
+    setLoadedOnce(false);
+    void loadState().finally(() => !cancelled && setLoadedOnce(true));
     return () => {
       cancelled = true;
     };
@@ -158,7 +163,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   // Al día con los avisos (G1, U013): si el comercio canceló o lo cubrió otra
   // persona mientras mirabas el turno, se ve sin recargar. En pausa mientras se
   // envía la postulación.
-  useLiveRefresh(loadState, { paused: apply === "applying" });
+  useLiveRefresh(loadState, { paused: apply === "applying" || !loadedOnce });
 
   const shift: Detail = { ...publicShift, ...(full ?? {}) };
   const { Icon } = SKILL_ACCENT[shift.position];

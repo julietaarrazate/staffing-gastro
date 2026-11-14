@@ -147,7 +147,9 @@ function ShiftCandidatesContent() {
 
   // Al día con los avisos (G1, U014): llega una postulación nueva, o se cae el
   // turno, y la lista se actualiza sola. En pausa mientras se asigna.
-  useLiveRefresh(load, { paused: assigning !== null || assignedId !== null });
+  useLiveRefresh(load, {
+    paused: loadingApps || loadingCands || assigning !== null || assignedId !== null,
+  });
 
   async function assign(profileId: string) {
     if (!token) return;

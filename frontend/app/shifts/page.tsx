@@ -283,8 +283,12 @@ function MyShiftsPanel() {
   // resuelve el hook; antes lo hacía acá el listener de `visibilitychange`).
   // En pausa mientras hay un diálogo abierto o una acción en curso: la lista no
   // se mueve debajo de lo que la persona está decidiendo.
+  // También en pausa mientras corre una carga normal (la primera, o la de
+  // `act()`): una silenciosa la pisaría por la guarda de «último pedido gana» y,
+  // si fallara, sin avisar, la pantalla quedaría sin su error ni «Reintentar».
   useLiveRefresh(load, {
     paused:
+      loading ||
       busy !== null ||
       tapGuard.locked ||
       confirmNoShowId !== null ||

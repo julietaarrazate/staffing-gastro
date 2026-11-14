@@ -60,6 +60,14 @@ encabezado quedaba vacío.
   a «can_apply» (test en `ShiftDetail.test.tsx`). `app/shifts/page.tsx` y
   `app/my-shifts/page.tsx` tienen la misma guarda en `load` (el último pedido
   gana y es el único que baja el esqueleto).
+- **Una carga normal descartada por una silenciosa que falla:** el panel, Mis
+  turnos, candidatos y el detalle del turno ahora pasan `paused` mientras corre
+  la primera carga (o una carga normal), así la recarga por aviso espera y,
+  si la primera falla, se ve el error con «Reintentar» (o el botón de
+  postularse) en vez de un esqueleto o un vacío falso. Test en
+  `ShiftDetail.test.tsx`; el mecanismo común (`paused` difiere y retoma) está en
+  `live-refresh.test.tsx`. Además, `e2e/saved-shifts.spec.ts` espera el
+  `DELETE` con `expect.poll` (carrera del spec).
 
 **Queda abierto:** el encabezado del chat, cuando la lista no trae la
 conversación, le dice al comercio «Trabajador asignado» porque `GET /shifts/{id}`
