@@ -35,7 +35,7 @@ descuidado.
 | El chat es del comercio con la persona asignada | ✅ #532 |
 | Volver a postularse | ✅ #533 |
 
-### Reporte externo de pruebas (7 de 9 en `main`)
+### Reporte externo de pruebas (8 de 9 en `main`)
 
 | Reporte | Qué | Estado |
 |---|---|---|
