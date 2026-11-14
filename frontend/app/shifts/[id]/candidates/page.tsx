@@ -315,7 +315,7 @@ function ShiftCandidatesContent() {
                           </div>
                           {/* Mismo sello que en «Recomendados» (`CandidateCard`). */}
                           {a.identidad_verificada && (
-                            <IdentityVerifiedBadge verified className="mt-1" />
+                            <IdentityVerifiedBadge verified className="mt-1 whitespace-nowrap !px-2 !py-1" />
                           )}
                           <CandidateStatChips signals={a} className="mt-1" onDark={top} />
                         </div>

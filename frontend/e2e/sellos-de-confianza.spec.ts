@@ -116,3 +116,33 @@ test("los postulantes muestran «Identidad verificada» sólo con el documento a
   await expect(page.getByText("Mateo Común")).toBeVisible();
   await expect(page.getByText("Identidad verificada", { exact: true })).toHaveCount(1);
 });
+
+async function feedMovil(page: Page, shifts: unknown[]) {
+  await base(page, WORKER);
+  await page.route("**/api/v1/shifts/feed", (r) => r.fulfill(json(shifts)));
+  await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json([])));
+  await page.route("**/api/v1/saved-shifts/ids", (r) => r.fulfill(json({ shift_ids: [] })));
+  await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({}, 404)));
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card")).toBeVisible({ timeout: 15_000 });
+}
+
+test("Inicio en celular: hero de comercio verificado y «Cerca tuyo» con uno verificado y otro no", async ({ page }) => {
+  await feedMovil(page, [
+    shift("s1", "Bar Verificado", true),
+    shift("s2", "Bar Cercano Verificado", true),
+    shift("s3", "Bar Común", false),
+  ]);
+  const hero = page.getByTestId("feed-hero-card");
+  await expect(hero.getByText("Comercio verificado", { exact: true })).toHaveCount(1);
+  const cerca = page.getByTestId("feed-nearby-card");
+  await expect(cerca).toHaveCount(2);
+  await expect(cerca.filter({ hasText: "Bar Cercano Verificado" }).getByRole("img", { name: "Comercio verificado" })).toHaveCount(1);
+  await expect(cerca.filter({ hasText: "Bar Común" }).getByRole("img", { name: "Comercio verificado" })).toHaveCount(0);
+});
+
+test("Inicio en celular: hero de comercio sin verificar no lleva sello", async ({ page }) => {
+  await feedMovil(page, [shift("s1", "Bar Común", false), shift("s2", "Bar Cercano Verificado", true)]);
+  await expect(page.getByTestId("feed-hero-card").getByText("Comercio verificado")).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "Comercio verificado" })).toHaveCount(1);
+});
