@@ -140,7 +140,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G26 |
-| U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G27 |
+| U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | 🔵 PR abierto #PR | G27 |
 
 ### Lo que salió de las revisiones y no tiene hallazgo propio
 

@@ -24,6 +24,7 @@ from app.modules.support.application.services import SupportService
 from app.modules.support.domain.exceptions import (
     EmptyMessageError,
     TicketClosedError,
+    TicketNotClosedError,
     TicketNotFoundError,
 )
 from app.modules.support.domain.value_objects import TicketStatus
@@ -212,4 +213,23 @@ async def close_ticket(ticket_id: UUID, current_user: CurrentUserDep, service: S
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este ticket ya está cerrado",
+        ) from exc
+
+
+@router.post(
+    "/tickets/{ticket_id}/reopen",
+    response_model=TicketResponse,
+    summary="Reabrir un ticket cerrado (admin)",
+)
+async def reopen_ticket(ticket_id: UUID, _admin: AdminDep, service: ServiceDep):
+    # La persona no reabre sola (decisión 12): sólo el admin, con este botón
+    # o escribiéndole en el ticket cerrado.
+    try:
+        return await service.reopen_ticket(ticket_id)
+    except TicketNotFoundError as exc:
+        raise _TICKET_NOT_FOUND from exc
+    except TicketNotClosedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este ticket ya está abierto",
         ) from exc

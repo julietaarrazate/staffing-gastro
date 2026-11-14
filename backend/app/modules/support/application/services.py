@@ -56,15 +56,20 @@ class SupportService:
         if not body.strip():
             raise EmptyMessageError(ticket_id.hex)
         ticket = await self._authorized_ticket(requester_id, ticket_id, is_admin=is_admin)
-        # El admin puede seguir aclarando algo en un ticket cerrado; el
-        # usuario no puede "reabrirlo" solo mandando otro mensaje.
-        if ticket.status == TicketStatus.CERRADO and not is_admin:
-            raise TicketClosedError(str(ticket.id))
+        # Un mensaje del admin en un ticket cerrado lo reabre (la persona
+        # puede contestar); la persona no lo reabre sola mandando otro mensaje.
+        reopened = False
+        if ticket.status == TicketStatus.CERRADO:
+            if not is_admin:
+                raise TicketClosedError(str(ticket.id))
+            ticket.reopen()
+            await self._tickets.update(ticket)
+            reopened = True
         message = await self._messages.add(
             SupportMessage(ticket_id=ticket.id, sender_user_id=requester_id, body=body.strip())
         )
         if is_admin:
-            await self._notify_reply(ticket)
+            await self._notify_reply(ticket, reopened=reopened)
         return message
 
     async def get_ticket(
@@ -91,6 +96,18 @@ class SupportService:
         ticket.close()
         return await self._tickets.update(ticket)
 
+    async def reopen_ticket(self, ticket_id: UUID) -> SupportTicket:
+        """Sólo admin (la restricción de rol se aplica en la capa API).
+
+        Reabrir sin mensaje no avisa a la persona: el aviso sale cuando el
+        admin escribe.
+        """
+        ticket = await self._tickets.get_by_id(ticket_id)
+        if ticket is None:
+            raise TicketNotFoundError(str(ticket_id))
+        ticket.reopen()
+        return await self._tickets.update(ticket)
+
     async def _authorized_ticket(
         self, requester_id: UUID, ticket_id: UUID, *, is_admin: bool
     ) -> SupportTicket:
@@ -99,13 +116,19 @@ class SupportService:
             raise TicketNotFoundError(str(ticket_id))
         return ticket
 
-    async def _notify_reply(self, ticket: SupportTicket) -> None:
+    async def _notify_reply(self, ticket: SupportTicket, *, reopened: bool = False) -> None:
+        message = f'Hay una respuesta nueva en tu ticket "{ticket.subject}".'
+        if reopened:
+            message = (
+                f'Reabrimos tu ticket "{ticket.subject}" y hay una respuesta nueva. '
+                "Podés contestar."
+            )
         await self._notifications.add(
             Notification(
                 user_id=ticket.user_id,
                 type=NotificationType.SUPPORT_REPLY,
                 title="Te respondieron en soporte",
-                message=f'Hay una respuesta nueva en tu ticket "{ticket.subject}".',
+                message=message,
                 link=f"/support/{ticket.id}",
             )
         )

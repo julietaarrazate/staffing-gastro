@@ -20,6 +20,7 @@ export default function SupportTicketPage() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [reopening, setReopening] = useState(false);
   // Sugerencia interna de IA (sólo admin): resume el ticket y precarga una
   // respuesta propuesta en el campo de abajo — nunca contesta directo,
   // siempre queda a mano para revisar/editar antes de mandar.
@@ -87,6 +88,20 @@ export default function SupportTicketPage() {
       toast(getErrorMessage(err, "No se pudo cerrar el ticket"), "error");
     } finally {
       setClosing(false);
+    }
+  }
+
+  async function reopenTicket() {
+    if (!token) return;
+    setReopening(true);
+    try {
+      await api.post(`/support/tickets/${params.id}/reopen`, undefined, token);
+      toast("Ticket reabierto");
+      load();
+    } catch (err) {
+      toast(getErrorMessage(err, "No se pudo reabrir el ticket"), "error");
+    } finally {
+      setReopening(false);
     }
   }
 
@@ -169,6 +184,11 @@ export default function SupportTicketPage() {
               </p>
             </div>
           )}
+          {isAdmin && isClosed && (
+            <p className="text-sm text-ink/60">
+              Este ticket está cerrado. Si le escribís, se reabre y la persona puede contestar.
+            </p>
+          )}
           <textarea
             value={reply}
             onChange={(e) => setReply(e.target.value)}
@@ -184,6 +204,11 @@ export default function SupportTicketPage() {
             {!isClosed && (
               <Button type="button" variant="surface" onClick={closeTicket} loading={closing}>
                 Cerrar ticket
+              </Button>
+            )}
+            {isClosed && isAdmin && (
+              <Button type="button" variant="surface" onClick={reopenTicket} loading={reopening}>
+                Reabrir
               </Button>
             )}
           </div>
