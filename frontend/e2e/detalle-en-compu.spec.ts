@@ -161,6 +161,11 @@ test("mapa en compu: la fila del panel lleva al detalle y «Postularme» no nave
   await page.goto("/map");
   const link = page.getByTestId("map-row-link").first();
   await expect(link).toHaveAttribute("href", "/turno/s1", { timeout: 15_000 });
+  // «Postularme» de la fila no navega (se abre una hoja, la URL no cambia).
+  await page.getByRole("button", { name: "Postularme" }).first().click();
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/\/map$/);
+  await page.keyboard.press("Escape");
   await link.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/turno\/s1$/);

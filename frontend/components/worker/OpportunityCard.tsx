@@ -94,7 +94,7 @@ export default function OpportunityCard({
           href={href}
           data-testid="opportunity-card-link"
           aria-label={`Ver el turno de ${SKILL_LABELS[shift.position]}${shift.company_name ? ` en ${shift.company_name}` : ""}`}
-          className="absolute inset-0 z-[1] rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="absolute inset-0 z-[1] rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         />
       )}
       {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
