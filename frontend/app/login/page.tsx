@@ -10,9 +10,11 @@ import { Button, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
 import {
+  bienvenidaHref,
   isLoginNotice,
   isSessionEndReason,
   LOGIN_NOTICES,
+  registerHref,
   safeNext,
   SESSION_END_MESSAGES,
 } from "@/lib/safe-next";
@@ -32,7 +34,8 @@ function LoginForm() {
   // ruta en la que estaba la persona, si es una ruta interna.
   const motivo = searchParams.get("motivo");
   const endedMessage = isSessionEndReason(motivo) ? SESSION_END_MESSAGES[motivo] : null;
-  const afterLogin = safeNext(searchParams.get("next")) ?? "/";
+  const next = safeNext(searchParams.get("next"));
+  const afterLogin = next ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +94,7 @@ function LoginForm() {
       // (`/bienvenida`, C4): el invitado prueba la app desde cero, no
       // arranca ya adentro del panel. Va a la cuenta invitado compartida,
       // consistente con que su exploración ya es de por sí compartida.
-      router.replace("/bienvenida");
+      router.replace(bienvenidaHref(next));
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo entrar como invitado"
@@ -183,7 +186,7 @@ function LoginForm() {
             </Link>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : afterLogin)} />
+          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? bienvenidaHref(next) : afterLogin)} />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -266,7 +269,7 @@ function LoginForm() {
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿No tenés cuenta?{" "}
-          <Link href="/register" className="font-semibold text-primary-text">
+          <Link href={registerHref({ next })} className="font-semibold text-primary-text">
             Creá una
           </Link>
         </p>

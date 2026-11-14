@@ -23,8 +23,8 @@ vi.mock("@/lib/push", () => ({
   releasePushFromAccount: (...args: unknown[]) => release(...args),
 }));
 
-const reloadPage = vi.fn();
-vi.mock("@/lib/reload-page", () => ({ reloadPage: () => reloadPage() }));
+const restartAtHome = vi.fn();
+vi.mock("@/lib/restart-at-home", () => ({ restartAtHome: () => restartAtHome() }));
 
 const emitLiveRefresh = vi.fn();
 vi.mock("@/lib/live-refresh", () => ({ emitLiveRefresh: () => emitLiveRefresh() }));
@@ -94,7 +94,7 @@ beforeEach(() => {
   release.mockReset().mockResolvedValue(true);
   routerReplace.mockReset();
   emitLiveRefresh.mockReset();
-  reloadPage.mockReset();
+  restartAtHome.mockReset();
   fetchMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   localStorage.clear();
@@ -848,7 +848,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       act(() => otherTabSignsInAs(ADMIN.id));
 
-      expect(reloadPage).toHaveBeenCalledTimes(1);
+      expect(restartAtHome).toHaveBeenCalledTimes(1);
     });
 
     it("si es la misma cuenta, no pasa nada", async () => {
@@ -857,7 +857,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       act(() => otherTabSignsInAs(TRABAJADORA.id));
 
-      expect(reloadPage).not.toHaveBeenCalled();
+      expect(restartAtHome).not.toHaveBeenCalled();
       expect(auth().user?.id).toBe(TRABAJADORA.id);
     });
 
@@ -866,7 +866,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       act(() => otherTabSignsInAs(ADMIN.id));
 
-      expect(reloadPage).not.toHaveBeenCalled();
+      expect(restartAtHome).not.toHaveBeenCalled();
     });
 
     it("la sesión recuperada al abrir también deja dicho de quién es", async () => {
@@ -878,7 +878,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       expect(localStorage.getItem("staffya_session_user")).toBe(TRABAJADORA.id);
       act(() => otherTabSignsInAs(ADMIN.id));
-      expect(reloadPage).toHaveBeenCalledTimes(1);
+      expect(restartAtHome).toHaveBeenCalledTimes(1);
     });
 
     it("si ingresa mientras esta pestaña todavía se estaba abriendo, no le pisa la cuenta: se recarga ésta", async () => {
@@ -901,7 +901,45 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       expect(localStorage.getItem("staffya_session_user")).toBe(ADMIN.id);
       expect(result.current.user).toBeNull();
-      expect(reloadPage).toHaveBeenCalledTimes(1);
+      expect(restartAtHome).toHaveBeenCalledTimes(1);
+    });
+
+    it("una pestaña sin sesión arranca con la que abrió otra pestaña", async () => {
+      await mountApp();
+
+      act(() => {
+        localStorage.setItem("staffya_token", "token-otra-pestaña");
+        localStorage.setItem("staffya_has_session", "1");
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "staffya_has_session",
+            oldValue: null,
+            newValue: "1",
+            storageArea: localStorage,
+          })
+        );
+      });
+
+      expect(restartAtHome).toHaveBeenCalledTimes(1);
+    });
+
+    it("con sesión, que otra pestaña escriba la marca no reinicia nada", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "staffya_has_session",
+            oldValue: null,
+            newValue: "1",
+            storageArea: localStorage,
+          })
+        );
+      });
+
+      expect(restartAtHome).not.toHaveBeenCalled();
+      expect(auth().user?.id).toBe(TRABAJADORA.id);
     });
 
     it("al cerrar sesión se borra de quién era", async () => {
@@ -914,7 +952,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       expect(localStorage.getItem("staffya_session_user")).toBeNull();
       act(() => otherTabSignsInAs(ADMIN.id));
-      expect(reloadPage).not.toHaveBeenCalled();
+      expect(restartAtHome).not.toHaveBeenCalled();
     });
   });
 

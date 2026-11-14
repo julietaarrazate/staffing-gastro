@@ -17,7 +17,7 @@ import {
 } from "@/lib/api";
 import { emitLiveRefresh } from "@/lib/live-refresh";
 import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
-import { reloadPage } from "@/lib/reload-page";
+import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
 import {
@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem(RELOADED_FOR_KEY, owner);
     sessionEpoch.current += 1;
     clearAllCached();
-    reloadPage();
+    restartAtHome();
     return true;
   }
   // Snapshot de la sesión admin real mientras se está impersonando otro
@@ -557,8 +557,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event.storageArea !== localStorage) return;
       // Otra pestaña ingresó con OTRA cuenta: la cookie de renovación ya es
       // de esa cuenta. Esta pestaña no puede seguir como la anterior (su
-      // próxima renovación traería el token ajeno): se recarga y arranca
-      // con la sesión que hay ahora.
+      // próxima renovación traería el token ajeno): arranca de nuevo desde
+      // el inicio, con la sesión que hay ahora.
       if (
         event.key === SESSION_USER_KEY &&
         event.newValue &&
@@ -568,7 +568,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionEpoch.current += 1;
         sessionUserId.current = null;
         clearAllCached();
-        reloadPage();
+        restartAtHome();
+        return;
+      }
+      // Otra pestaña abrió una sesión y ésta no tiene ninguna (había salido,
+      // o estaba en la landing o en el ingreso): arranca con esa sesión, en
+      // vez de quedarse mostrando «Ingresar» con la cuenta ya abierta. No
+      // mientras ésta misma está ingresando.
+      if (
+        event.key === HAS_SESSION_KEY &&
+        event.newValue === "1" &&
+        !hasBoundSession() &&
+        signingIn.current === 0
+      ) {
+        sessionEpoch.current += 1;
+        clearAllCached();
+        restartAtHome();
         return;
       }
       const markGone = event.key === null || (event.key === HAS_SESSION_KEY && event.newValue === null);

@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 32 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 34 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -116,10 +116,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G12 |
-| U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G13 |
+| U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | ✅ en `main` | #564 |
 | U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G14 |
 | U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G15 |
-| U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G16 |
+| U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | ✅ en `main` | #565 (prueba en la app hecha el 2026-11-14) |
 | U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G17 |
 
 **Tanda 7**
@@ -190,6 +190,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Campanita: si el WebSocket se cae dos veces en menos de 30 segundos, la
   segunda reconexión no vuelve a pedir las pantallas (tope contra el bucle
   de recargas; salió de la revisión de #560).
+- Al pasar del registro al ingreso y volver («Ingresá» / «Creá una») se
+  pierden el rol y el plan que venían en la dirección (ya pasaba; la vuelta
+  `next` sí se conserva desde #565).
 - Postulantes a 390 px: el sello «Identidad verificada» entra justo al lado
   de «Asignar»; con la letra del sistema agrandada puede no entrar (por
   debajo de 390 px ya pasa a escudo solo). Va con G24 (salió de #561).

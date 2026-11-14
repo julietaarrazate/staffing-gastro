@@ -16,8 +16,9 @@ había dejado anotado en el tablero sin arreglar.
   una sola para todo el navegador: la pestaña que seguía mostrando la cuenta
   anterior iba a renovar con la ajena. Ahora la sesión deja dicho de qué
   cuenta es (`staffya_session_user`, el id, que no es un secreto) y la otra
-  pestaña, al enterarse por el evento `storage`, se recarga y arranca con la
-  sesión que hay (`lib/reload-page.ts`).
+  pestaña, al enterarse por el evento `storage`, arranca de nuevo desde el
+  inicio con la sesión que hay (`lib/restart-at-home.ts`): el inicio la lleva
+  a la pantalla de esa cuenta.
 - **Alta de la verificación en dos pasos.** El pedido que confirma el alta
   sale después de la renovación que estuviera en vuelo
   (`adoptSession(() => twoFactorApi.confirm(…))`, `app/admin/seguridad/page.tsx`):
@@ -38,6 +39,12 @@ otra ingresaba mientras tanto, y la que acababa de ingresar se recargaba sin
 motivo. Ahora, si la clave ya es de otra cuenta, la que se recarga es la que
 se estaba abriendo (una sola vez por cuenta).
 
-**Queda abierto:** una pestaña **sin** sesión no se entera sola de que otra
-ingresó (sigue mostrando el ingreso o la landing hasta que se navega o se
-recarga).
+**Lo que encontró la prueba en la app (arreglado acá):** la primera versión
+recargaba la pestaña en la misma dirección. Un comercio en su panel y un
+trabajador que ingresaba en otra pestaña dejaban la primera en el panel del
+comercio con «Permisos insuficientes». Ahora arranca desde el inicio. Y una
+pestaña que había quedado sin sesión (por ejemplo, después de «Salir») se
+quedaba en la landing con «Ingresar» aunque otra pestaña ya hubiera
+ingresado: ahora también arranca con esa sesión.
+
+**Queda abierto:** nada de estos tres detalles.
