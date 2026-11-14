@@ -1,4 +1,4 @@
-# Los sellos de confianza dicen la verdad (G5: U038, U090, U108)
+# Los sellos de confianza dicen la verdad (G5: U038, U090, U108; #561)
 
 **Pedido:** salida a beta, grupo G5 (`docs/planning/BETA_DISENO_GRAVES.md`): un sello de confianza sólo aparece si el dato real lo respalda.
 
