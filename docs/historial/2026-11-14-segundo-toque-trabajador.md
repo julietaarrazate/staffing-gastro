@@ -1,4 +1,4 @@
-# Segundo toque, segunda parte: publicar, postularse y retirar (G2: U006, U007, U008)
+# Segundo toque, segunda parte: publicar, postularse y retirar (G2: U006, U007, U008) (#567)
 
 **Pedido:** salida a beta, grupo G2 de `docs/planning/BETA_DISENO_GRAVES.md`. Un
 doble toque (el segundo llega a ~700 ms) no tiene que disparar la acción
