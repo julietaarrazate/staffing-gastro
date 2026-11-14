@@ -41,7 +41,11 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.punctuality import arrived_on_time
-from app.modules.shift.domain.schedule import mismo_instante, validar_horario_nuevo
+from app.modules.shift.domain.schedule import (
+    mismo_instante,
+    validar_horario_nuevo,
+    validar_inicio_al_publicar,
+)
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.suspension import (
     AccountSuspensionEffects,
@@ -52,6 +56,7 @@ from app.modules.shift.domain.suspension import (
 from app.modules.shift.domain.value_objects import (
     COMMITTED_STATUSES,
     OPEN_STATUSES,
+    ShiftStatus,
     TAKEN_NOT_STARTED_STATUSES,
 )
 from app.core.config import settings
@@ -283,6 +288,8 @@ class ShiftService(AccountSuspensionEffects):
 
     async def publish_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._get_owned(company_id, shift_id)
+        if shift.status == ShiftStatus.BORRADOR:
+            validar_inicio_al_publicar(shift.start_at)
         # El plan se consulta antes y se cuenta después: el uso sube recién
         # cuando el turno quedó guardado como publicado. Antes se sumaba
         # primero, y como cada repositorio guarda por su cuenta, un intento

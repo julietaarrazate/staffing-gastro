@@ -67,7 +67,11 @@ export function resolverHorario(inicio: string, fin: string, ahora: Date = new D
         if (minutos < TURNO_DURACION_MIN_MINUTOS) {
           errorFin = "Un turno dura al menos 1 hora.";
         } else if (minutos > TURNO_DURACION_MAX_MINUTOS) {
-          errorFin = "Un turno dura hasta 16 horas. Para cubrir más tiempo, publicá dos turnos.";
+          // Si el fin pasó solo al día siguiente y aun así no entra, lo más
+          // probable es que se escribió una hora de fin anterior por error.
+          errorFin = alDiaSiguiente
+            ? "El fin quedó antes del inicio. Elegí una hora de fin posterior al inicio."
+            : "Un turno dura hasta 16 horas. Para cubrir más tiempo, publicá dos turnos.";
         }
       }
     }

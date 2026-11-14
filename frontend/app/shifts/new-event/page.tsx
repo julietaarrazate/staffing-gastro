@@ -139,6 +139,24 @@ function NewEventForm() {
     hasPlace &&
     roles.every((r) => Number(r.count) >= 1 && Number(r.payAmount) > 0);
 
+  // Por qué «Publicar evento» está gris, en una línea sobre el botón (G14).
+  const motivoBloqueo =
+    name.trim() === ""
+      ? "Escribí el nombre del evento para publicar."
+      : startAt === ""
+        ? "Elegí cuándo empieza el evento para publicar."
+        : endAt === ""
+          ? "Elegí cuándo termina el evento para publicar."
+          : !horario.valido
+            ? "Corregí el horario para publicar."
+            : !hasPlace
+              ? "Elegí la zona del evento para publicar."
+              : !roles.every((r) => Number(r.count) >= 1)
+                ? "Cada puesto necesita al menos una persona para publicar."
+                : !roles.every((r) => Number(r.payAmount) > 0)
+                  ? "Escribí cuánto se paga en cada puesto para publicar."
+                  : null;
+
   async function submit() {
     if (!token || !canSubmit) return;
     setSubmitting(true);
@@ -433,6 +451,11 @@ function NewEventForm() {
         )}
       </div>
 
+      {!canSubmit && motivoBloqueo && (
+        <p className="mb-2 text-center text-sm text-ink/60" data-testid="motivo-publicar">
+          {motivoBloqueo}
+        </p>
+      )}
       <Button fullWidth size="lg" disabled={!canSubmit} loading={submitting} onClick={submit}>
         Publicar evento
       </Button>

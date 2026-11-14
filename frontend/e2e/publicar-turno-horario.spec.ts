@@ -152,3 +152,10 @@ test("duplicar abre en «Cuándo», con la fecha corrida a una semana que no pas
   await expect(page.getByText("Ese inicio ya pasó.")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Continuar" })).toBeEnabled();
 });
+
+test("evento: «Publicar evento» gris dice qué falta", async ({ page }) => {
+  await prepararSesion(page);
+  await page.goto("/shifts/new-event");
+  await expect(page.getByRole("button", { name: "Publicar evento" })).toBeDisabled();
+  await expect(page.getByTestId("motivo-publicar")).toHaveText("Escribí el nombre del evento para publicar.");
+});

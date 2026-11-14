@@ -45,6 +45,13 @@ describe("resolverHorario", () => {
     expect(resolverHorario("2026-11-21T10:00", "2026-11-22T02:01", AHORA).errorFin).toMatch(/hasta 16 horas/);
   });
 
+  it("si pasar al día siguiente da más de 16 horas, dice que el fin quedó antes del inicio", () => {
+    const h = resolverHorario("2026-11-21T10:00", "2026-11-21T09:00", AHORA);
+    expect(h.alDiaSiguiente).toBe(true);
+    expect(h.errorFin).toMatch(/fin quedó antes del inicio/);
+    expect(h.valido).toBe(false);
+  });
+
   it("no es válido mientras falte un extremo", () => {
     expect(resolverHorario("", "", AHORA).valido).toBe(false);
     expect(resolverHorario("2026-11-21T10:00", "", AHORA).valido).toBe(false);

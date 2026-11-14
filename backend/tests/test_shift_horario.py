@@ -202,3 +202,43 @@ async def test_evento_con_inicio_pasado_o_demasiado_largo_da_400_y_no_crea_nada(
     ok = await client.post("/api/v1/shifts/events", headers=headers, json=_evento(_en(3)))
     assert ok.status_code == 201, ok.text
     assert len(ok.json()["shifts"]) == 2
+
+
+async def test_publicar_un_borrador_cuyo_inicio_ya_paso_da_400(
+    client: AsyncClient, session_factory
+):
+    """Un borrador creado para dentro de unos minutos no se puede publicar
+    cuando su inicio ya pasó (el reintento del formulario no hace PUT)."""
+    from sqlalchemy import update
+
+    from app.modules.shift.infrastructure.models import ShiftModel
+
+    headers = await _comercio(client, "horario_publicar@staffya.com")
+    creado = await client.post("/api/v1/shifts", headers=headers, json=_payload(_en(0.05)))
+    assert creado.status_code == 201
+    shift_id = creado.json()["id"]
+
+    viejo = datetime.now(timezone.utc) - timedelta(minutes=10)
+    async with session_factory() as session:
+        await session.execute(
+            update(ShiftModel)
+            .where(ShiftModel.id == shift_id)
+            .values(start_at=viejo, end_at=viejo + timedelta(hours=8))
+        )
+        await session.commit()
+
+    r = await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    assert r.status_code == 400
+    assert "ya pasó" in r.json()["detail"]
+
+    # Dentro de la tolerancia de 5 minutos, sí se publica.
+    reciente = datetime.now(timezone.utc) - timedelta(minutes=2)
+    async with session_factory() as session:
+        await session.execute(
+            update(ShiftModel)
+            .where(ShiftModel.id == shift_id)
+            .values(start_at=reciente, end_at=reciente + timedelta(hours=8))
+        )
+        await session.commit()
+    ok = await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    assert ok.status_code == 200, ok.text

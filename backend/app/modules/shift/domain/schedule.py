@@ -64,3 +64,15 @@ def mismo_instante(a: datetime, b: datetime) -> bool:
     """Compara como instantes, no como texto: la base devuelve las fechas con o
     sin zona según el motor."""
     return _utc(a) == _utc(b)
+
+
+def validar_inicio_al_publicar(start_at: datetime, now: datetime | None = None) -> None:
+    """Al publicar, el inicio tampoco puede haber pasado (tolerancia de 5
+    minutos): un borrador creado para dentro de unos minutos no se puede
+    publicar horas después, cuando ya nadie llega. Sólo mira el inicio; la
+    duración se validó al crear o editar."""
+    ahora = _utc(now if now is not None else now_art())
+    if _utc(start_at) < ahora - TOLERANCIA_INICIO:
+        raise InvalidShiftScheduleError(
+            "El inicio de este turno ya pasó. Editá la fecha y la hora para publicarlo."
+        )

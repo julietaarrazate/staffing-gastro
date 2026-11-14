@@ -18,4 +18,6 @@
 - Los tests de otras áreas arman turnos ya empezados o con una fecha fija que el reloj dejó atrás (asistencia, scheduler, «no cubierto»). En vez de reescribir un centenar de fechas, `tests/conftest.py` deja el reloj de la regla en el año 2000 para todos salvo los que llevan la marca `regla_de_horario` (sólo `test_shift_horario.py`). Descartado: tocar cada payload, que además cambia lo que prueba cada test (turno que «ya empezó»).
 - El formulario no pisa lo que se escribió: el fin queda como lo tipeó la persona y el día siguiente se resuelve al mostrar y al enviar.
 
-**Queda abierto:** nada de este grupo. `e2e/overflow-audit.spec.ts` («encuadre 390px — worker») falló una vez con la máquina cargada (un esqueleto de la home de 508 px) y pasó solo al repetirlo: no tiene relación con el cambio.
+**Revisión independiente (misma rama):** publicar un borrador también exige que el inicio no haya pasado (`validar_inicio_al_publicar`, sólo en borrador, 400 «El inicio de este turno ya pasó…»), porque el reintento del formulario no hace PUT; un fin que pasa solo al día siguiente y aun así supera 16 horas dice «El fin quedó antes del inicio»; «Publicar evento» gris dice qué falta (`motivo-publicar`).
+
+**Queda abierto:** deuda: el reloj de la regla en los tests es un monkeypatch global en `tests/conftest.py`; lo limpio sería un reloj inyectado en `ShiftService`. `e2e/overflow-audit.spec.ts` («encuadre 390px — worker») falló una vez con la máquina cargada (un esqueleto de la home de 508 px) y pasó solo al repetirlo: no tiene relación con el cambio.
