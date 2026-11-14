@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { ApiError, isAccountSuspended } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
@@ -68,7 +69,7 @@ function LoginForm() {
     // pedir el código (`pendingTwoFactor`), sin sesión todavía.
     if (outcome.twoFactor) return;
     // `replace`: "atrás" tras entrar no debe volver a /login.
-    router.replace(afterLogin);
+    router.replace(await destinoTrasIngreso(outcome.sesion, next));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -193,7 +194,11 @@ function LoginForm() {
             </Link>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? bienvenidaHref(next) : afterLogin)} />
+          <GoogleAuthButton
+            onDone={async (isNewAccount, _rol, sesion) =>
+              router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next))
+            }
+          />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">

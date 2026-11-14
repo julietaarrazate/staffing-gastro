@@ -12,7 +12,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, type SesionAbierta } from "@/lib/auth-context";
 import { useResolvedTheme } from "@/lib/theme";
 import { ApiError, isAccountSuspended } from "@/lib/api";
 import { Button } from "@/components/ui";
@@ -57,7 +57,7 @@ export default function GoogleAuthButton({
    * creada" (para mandar a completar perfil) de "ya existía" (a home). En
    * una cuenta nueva llega también el rol elegido (lo usa /register para el
    * plan que se eligió en la landing, `lib/plan-elegido.ts`). */
-  onDone: (isNewAccount: boolean, role?: "worker" | "employer") => void;
+  onDone: (isNewAccount: boolean, role?: "worker" | "employer", sesion?: SesionAbierta) => void;
 }) {
   const { loginWithGoogle } = useAuth();
   const isDark = useResolvedTheme() === "dark";
@@ -84,7 +84,7 @@ export default function GoogleAuthButton({
       if (result.requiresRole) {
         setPendingRole({ email: result.email, fullName: result.fullName });
       } else if (!result.twoFactor) {
-        onDone(false);
+        onDone(false, undefined, result.sesion);
       }
       // Con `twoFactor` (admin con la verificación en dos pasos), /login
       // pasa a pedir el código: no hay sesión todavía.
@@ -138,7 +138,7 @@ export default function GoogleAuthButton({
     setRoleLoading(role);
     try {
       const result = await loginWithGoogle(idTokenRef.current, role);
-      if (!result.requiresRole && !result.twoFactor) onDone(true, role);
+      if (!result.requiresRole && !result.twoFactor) onDone(true, role, result.sesion);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo crear la cuenta con Google"

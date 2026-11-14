@@ -261,3 +261,90 @@ test("el ítem Soporte del perfil lleva al admin al inbox, no a sus propios tick
   await page.getByText("Soporte").click();
   await expect(page).toHaveURL("/admin/support");
 });
+
+/**
+ * U128 (G27): un ticket cerrado lo reabre el admin (botón «Reabrir» o un
+ * mensaje suyo); la persona no tiene cómo reabrirlo sola.
+ */
+const CLOSED_TICKET = { ...TICKET, status: "cerrado" };
+const FIRST_MESSAGE = {
+  id: "msg-1",
+  ticket_id: TICKET.id,
+  sender_user_id: "user-1",
+  body: "Me da error al elegir el archivo.",
+  created_at: "2026-08-10T12:00:00-03:00",
+};
+
+test("el admin reabre un ticket cerrado con el botón «Reabrir»", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, ADMIN_SESSION);
+
+  let reopened = false;
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...(reopened ? TICKET : CLOSED_TICKET),
+        messages: [FIRST_MESSAGE],
+      }),
+    })
+  );
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}/reopen`, (route) => {
+    reopened = true;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(TICKET) });
+  });
+
+  await page.goto(`/support/${TICKET.id}`);
+  await expect(page.getByText("Cerrado", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cerrar ticket" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Reabrir" }).click();
+  await expect(page.getByText("Abierto", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cerrar ticket" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reabrir" })).toHaveCount(0);
+});
+
+test("la persona ve su ticket cerrado sin forma de reabrirlo, y reabierto puede contestar", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  let reopened = false;
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...(reopened ? TICKET : CLOSED_TICKET),
+        messages: reopened
+          ? [
+              FIRST_MESSAGE,
+              {
+                id: "msg-2",
+                ticket_id: TICKET.id,
+                sender_user_id: "user-9",
+                body: "Reabrimos el ticket: probá de nuevo.",
+                created_at: "2026-08-10T12:05:00-03:00",
+              },
+            ]
+          : [FIRST_MESSAGE],
+      }),
+    })
+  );
+
+  await page.goto(`/support/${TICKET.id}`);
+  await expect(page.getByText("Este ticket está cerrado. Si necesitás algo más")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reabrir" })).toHaveCount(0);
+  await expect(page.getByPlaceholder("Escribí tu respuesta...")).toHaveCount(0);
+
+  reopened = true;
+  await page.reload();
+  await expect(page.getByText("Reabrimos el ticket: probá de nuevo.")).toBeVisible();
+  await expect(page.getByPlaceholder("Escribí tu respuesta...")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reabrir" })).toHaveCount(0);
+});

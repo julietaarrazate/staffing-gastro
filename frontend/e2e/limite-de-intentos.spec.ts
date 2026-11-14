@@ -67,6 +67,9 @@ test("ingresar desde /login?aviso=cuenta-creada sigue al next, no a /bienvenida"
       }),
     }),
   );
+  await page.route("**/api/v1/workers/me/profile", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  );
   await page.route("**/algo", (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>algo</body></html>" }),
   );

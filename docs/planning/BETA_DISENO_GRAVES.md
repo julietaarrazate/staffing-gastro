@@ -77,17 +77,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 ## Ola D
 
-### G12 · El alta que quedó a medias (U034, U035) — S
-
-- Al ingresar, si la cuenta no tiene perfil de su rol, va a `/bienvenida`.
-  Panel e Inicio muestran «Te falta completar tu comercio / tu perfil» con su
-  botón en vez del error genérico.
-- Trabajador sin zona u oficio: cartel fijo en Inicio («Completá tu zona y
-  tus oficios para recibir turnos») hasta que lo complete. Cubre también la
-  decisión 9 (los dos trabajadores sin zona).
-- De las revisiones: reentrar a la bienvenida del comercio y «Omitir por
-  ahora» no pisa el perfil que ya existe.
-
 ### G15 · El asistente de publicar no pierde lo cargado (U057, U135, BK-7DCC4AB945) — S
 
 - La respuesta de la IA completa sólo los campos que la persona no tocó, y no
@@ -121,9 +110,3 @@ escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
 día argentino. «Ausencias de hoy» lleva a su lista
 (`/admin/en-vivo?filtro=ausencias`). El buscador de Personas encuentra por
 nombre del local.
-
-### G27 · Tickets que se pueden reabrir (U128) — S
-
-`support/application/services.py`: un mensaje del admin en un ticket cerrado
-lo reabre y la persona puede contestar; el admin tiene «Reabrir». La persona
-sigue sin poder reabrirlo por su cuenta (decisión 12).
