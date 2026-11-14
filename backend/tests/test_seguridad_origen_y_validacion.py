@@ -86,10 +86,39 @@ async def test_422_sólo_devuelve_las_cotas_numéricas_del_esquema(client: Async
     assert any(e.get("ctx", {}).get("max_length") == 128 for e in errors)
 
 
-async def test_422_de_un_validador_propio_no_devuelve_su_texto_en_ctx(client: AsyncClient):
+async def test_422_de_un_mail_invalido_no_devuelve_el_motivo(client: AsyncClient):
+    """El `ctx` crudo de un mail inválido trae `reason` (texto que puede
+    repetir parte del dominio que se mandó): no tiene que viajar."""
     r = await client.post(
-        "/api/v1/auth/login", json={"email": "no-es-mail@", "password": "x"}
+        "/api/v1/auth/login", json={"email": "ana@dominio-secreto", "password": "x"}
     )
     assert r.status_code == 422
     for e in r.json()["detail"]:
-        assert "error" not in e.get("ctx", {})
+        ctx = e.get("ctx", {})
+        assert "reason" not in ctx
+        assert "error" not in ctx
+        assert all(isinstance(v, int | float) for v in ctx.values())
+    assert "dominio-secreto" not in r.text
+
+
+def test_ctx_seguro_deja_pasar_sólo_cotas_numéricas():
+    """Prueba directa del filtro con un `ctx` hostil: textos, la longitud de
+    lo que se mandó (`actual_length`), un booleano disfrazado de cota y una
+    cota como texto. Sólo sobrevive la cota numérica real."""
+    from decimal import Decimal
+
+    from app.main import _ctx_seguro
+
+    hostil = {
+        "error": "secreto",
+        "reason": "dominio privado",
+        "actual_length": 9,
+        "max_length": True,
+        "ge": "5",
+        "le": 3,
+        "gt": Decimal("0"),
+    }
+    assert _ctx_seguro(hostil) == {"le": 3, "gt": 0.0}
+    assert _ctx_seguro({"reason": "x"}) is None
+    assert _ctx_seguro(None) is None
+    assert _ctx_seguro("no es un dict") is None
