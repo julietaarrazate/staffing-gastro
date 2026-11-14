@@ -14,6 +14,7 @@ import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/dat
 import { formatPayAmount } from "@/lib/pay";
 import { rankApplicants, standoutApplicant } from "@/lib/applicants";
 import CandidateCard from "@/components/CandidateCard";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
@@ -312,6 +313,10 @@ function ShiftCandidatesContent() {
                             </Link>
                             {a.is_available && !top && <Badge tone="secondary">Disponible</Badge>}
                           </div>
+                          {/* Mismo sello que en «Recomendados» (`CandidateCard`). */}
+                          {a.identidad_verificada && (
+                            <IdentityVerifiedBadge verified className="mt-1" />
+                          )}
                           <CandidateStatChips signals={a} className="mt-1" onDark={top} />
                         </div>
                         <Button

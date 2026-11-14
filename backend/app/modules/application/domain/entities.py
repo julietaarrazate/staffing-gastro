@@ -143,3 +143,6 @@ class EnrichedApplicant:
     # esto altere el orden (la lista de postulantes no se rankea).
     badges: tuple[WorkerBadge, ...] = ()
     level: GamificationLevel = GamificationLevel.BRONCE
+    # Dueño del perfil: la API lo usa para pedir, de una vez, quiénes tienen la
+    # identidad verificada (no sale en la respuesta).
+    user_id: UUID | None = None
