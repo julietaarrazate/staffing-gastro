@@ -35,6 +35,7 @@ export default function OpportunityCard({
   applied = false,
   shareable = false,
   preview = false,
+  href,
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
@@ -62,6 +63,14 @@ export default function OpportunityCard({
    *  comercio sin link, así los buscadores no leen títulos ni links de un
    *  turno de ejemplo. */
   preview?: boolean;
+  /** Si viene, la tarjeta entera lleva al detalle (`/turno/[id]`) con un link
+   *  real, estirado sobre toda la tarjeta (`absolute inset-0`), así se llega
+   *  con Tab y Enter y lo leen los lectores de pantalla. Lo
+   *  interno (comercio, guardar, cómo llegar, compartir, postularme) queda
+   *  por encima (`z-10`) y no navega. Lo pasan las grillas de escritorio
+   *  (`/feed`, `/buscar`); el mazo mobile (`SwipeDeck`) abre el detalle por su
+   *  cuenta, con el gesto, y la landing no lleva link. */
+  href?: string;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
   const Title = preview ? "p" : "h2";
@@ -75,7 +84,19 @@ export default function OpportunityCard({
   const hasDirections = shift.latitude != null && shift.longitude != null;
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div
+      className={`relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line ${
+        href && !preview ? "transition hover:ring-primary/40" : ""
+      }`}
+    >
+      {href && !preview && (
+        <Link
+          href={href}
+          data-testid="opportunity-card-link"
+          aria-label={`Ver el turno de ${SKILL_LABELS[shift.position]}${shift.company_name ? ` en ${shift.company_name}` : ""}`}
+          className="absolute inset-0 z-[1] rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        />
+      )}
       {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
           en pantallas más bajas o con dress code largo, el cuerpo perdía esa
           pulseada y su cola (el botón de compartir) quedaba recortada en
@@ -159,7 +180,7 @@ export default function OpportunityCard({
               <Link
                 href={`/companies/${shift.company_id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
+                className="relative z-10 inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
               >
                 <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
                 <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
@@ -178,7 +199,9 @@ export default function OpportunityCard({
                 <FlameIcon size={13} /> Urgente
               </span>
             )}
-            <SaveShiftButton shiftId={shift.id} />
+            <span className="relative z-10">
+              <SaveShiftButton shiftId={shift.id} />
+            </span>
           </div>
         </div>
 
@@ -278,7 +301,7 @@ export default function OpportunityCard({
           </div>
         )}
 
-        <div className="mt-auto space-y-3 pt-2">
+        <div className="relative z-10 mt-auto space-y-3 pt-2">
           {/* "Cómo llegar" ACÁ, antes de decidir: quien ve la oferta necesita
               saber si le conviene ir ANTES de postularse, no recién cuando ya
               lo asignaron (antes sólo estaba en /my-shifts, con el turno ya
