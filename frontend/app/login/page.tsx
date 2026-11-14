@@ -35,7 +35,9 @@ function LoginForm() {
   const motivo = searchParams.get("motivo");
   const endedMessage = isSessionEndReason(motivo) ? SESSION_END_MESSAGES[motivo] : null;
   const next = safeNext(searchParams.get("next"));
-  const afterLogin = next ?? "/";
+  // Si viene de un alta cuyo ingreso automático se frenó, todavía le falta el
+  // onboarding de `/bienvenida`.
+  const afterLogin = aviso === "cuenta-creada" ? bienvenidaHref(next) : (next ?? "/");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

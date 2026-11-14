@@ -38,6 +38,12 @@ export type GoogleLoginResult =
   | { requiresRole: true; email: string; fullName: string }
   | { requiresRole: false; twoFactor: boolean };
 
+/** Resultado de `register`: `signedIn: false` = la cuenta quedó creada pero
+ * el ingreso automático que sigue al alta fue frenado (límite de intentos u
+ * otro error). La pantalla manda a `/login` con el aviso, sin cartel de error
+ * (U138, U139). */
+export type RegisterOutcome = { signedIn: boolean };
+
 /** Resultado de `login`: `twoFactor` = la cuenta es admin con la
  * verificación en dos pasos y falta el código (`pendingTwoFactor`). */
 export type LoginOutcome = { twoFactor: boolean };
@@ -52,7 +58,7 @@ interface AuthState {
     password: string,
     full_name: string,
     role: "worker" | "employer"
-  ) => Promise<void>;
+  ) => Promise<RegisterOutcome>;
   /** `role` sólo hace falta si el email es nuevo (ver `GoogleLoginResult`);
    * se ignora si el email ya tiene cuenta. */
   loginWithGoogle: (
@@ -721,7 +727,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     full_name: string,
     role: "worker" | "employer"
-  ) {
+  ): Promise<RegisterOutcome> {
     // La pantalla de registro sólo llega acá con el checkbox de términos
     // marcado, y el backend guarda la constancia (versión, medio y fecha).
     await api.post<User>("/auth/register", {
@@ -731,7 +737,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       accepted_terms: true,
     });
-    await login(email, password);
+    // Desde acá la cuenta ya existe: si el ingreso automático falla (el 429 de
+    // `/auth/login` por IP es lo más común: misma red que ya probó ingresos),
+    // el error no es del alta y no se le muestra como tal.
+    try {
+      await login(email, password);
+    } catch {
+      return { signedIn: false };
+    }
+    return { signedIn: true };
   }
 
   async function loginWithGoogle(
