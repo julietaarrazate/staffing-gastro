@@ -9,6 +9,7 @@ import {
   bindSessionToken,
   hasBoundSession,
   isTransientFailure,
+  NetworkError,
   renewSessionToken,
   resolveToken,
   setTwoFactorGateHandler,
@@ -117,6 +118,9 @@ const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const RECONNECT_DELAYS_MS = [2_000, 5_000, 10_000];
 const RECONNECT_STEADY_MS = 15_000;
 
+// Cuánto espera un ingreso o una salida a la renovación que quedó en vuelo.
+const SETTLE_REFRESH_MS = 15_000;
+
 // Tope para el chequeo de sesión al abrir la app: si el backend no responde
 // en este tiempo (cold start de Render, backend caído), no colgamos la app en
 // blanco — se degrada a mostrar el landing/login sin cerrar la sesión.
@@ -213,36 +217,103 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionEnded(reason);
   }
 
-  async function tryRefresh(timeoutMs?: number): Promise<string | null> {
+  // La renovación en vuelo, si hay una. Es una sola a la vez y **nunca se
+  // aborta**: el servidor rota la cookie al contestar, y un pedido cortado
+  // del lado del navegador puede haberse procesado igual. El próximo saldría
+  // con la cookie vieja y el servidor lo toma por un robo: cierra todas las
+  // sesiones de la cuenta. Quien no puede esperar deja de esperar
+  // (`timeoutMs`), pero el pedido sigue y el siguiente intento lo reusa.
+  const refreshInFlight = useRef<Promise<string | null> | null>(null);
+  // Ingresos en curso (ver `signIn`): mientras haya uno no arranca ninguna
+  // renovación de la sesión anterior.
+  const signingIn = useRef(0);
+
+  function tryRefresh(timeoutMs?: number): Promise<string | null> {
     // Sin esta marca no hay (o ya no hay) sesión que renovar — el refresh
     // token real vive sólo en la cookie httpOnly, invisible para JS.
     if (!localStorage.getItem(HAS_SESSION_KEY)) {
       // Con una sesión en curso y sin la marca, la cerraron desde otro lado.
       if (hasBoundSession()) endSession("vencida", { announce: false });
-      return null;
+      return Promise.resolve(null);
     }
-    try {
-      const tokens = await api.post<{ access_token: string }>(
-        "/auth/refresh",
-        undefined,
-        null,
+    if (!refreshInFlight.current) {
+      // Hay un ingreso en curso: no se sabe todavía de quién va a ser la
+      // sesión. Se contesta como «sin conexión» (no cierra nada).
+      if (signingIn.current > 0) {
+        return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+      }
+      // La respuesta es de la sesión que había al pedirla. Si mientras tanto
+      // cambió de manos (ingreso, salida, cierre desde otra pestaña), no se
+      // aplica: ni se guarda el token, ni se renueva, ni se da por vencida
+      // la sesión de quien entró después.
+      const epoch = sessionEpoch.current;
+      const attempt: Promise<string | null> = api
+        .post<{ access_token: string }>("/auth/refresh")
+        .then(
+          (tokens) => {
+            if (sessionEpoch.current !== epoch) return null;
+            persistAccessToken(tokens.access_token);
+            // Con una sesión en curso, sólo se renueva el token vigente; el
+            // del contexto queda igual. Sin sesión (restaurando al abrir la
+            // app), la renovación ES el arranque de la sesión.
+            if (hasBoundSession()) renewSessionToken(tokens.access_token);
+            else setToken(tokens.access_token);
+            return tokens.access_token;
+          },
+          (err) => {
+            // Un backend que no está (sin red, o 5xx/408/429 mientras Render
+            // arranca en frío) NO es un refresh inválido: se propaga para
+            // degradar sin cerrar la sesión. Sólo un rechazo real (refresh
+            // vencido/revocado, 401/403) termina la sesión.
+            if (isTransientFailure(err)) throw err;
+            if (sessionEpoch.current !== epoch) return null;
+            endSession(endReasonFrom(err));
+            return null;
+          }
+        )
+        .finally(() => {
+          if (refreshInFlight.current === attempt) refreshInFlight.current = null;
+        });
+      refreshInFlight.current = attempt;
+    }
+    const inFlight = refreshInFlight.current;
+    if (timeoutMs == null) return inFlight;
+    return new Promise<string | null>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new NetworkError("El servidor tardó demasiado en responder.")),
         timeoutMs
       );
-      persistAccessToken(tokens.access_token);
-      // Con una sesión en curso, sólo se renueva el token vigente; el del
-      // contexto queda igual. Sin sesión (restaurando al abrir la app), la
-      // renovación ES el arranque de la sesión.
-      if (hasBoundSession()) renewSessionToken(tokens.access_token);
-      else setToken(tokens.access_token);
-      return tokens.access_token;
-    } catch (err) {
-      // Un backend que no está (sin red, timeout, o 5xx/408/429 mientras
-      // Render arranca en frío) NO es un refresh inválido: se propaga para
-      // degradar sin cerrar la sesión. Sólo un rechazo real (refresh
-      // vencido/revocado, 401/403) devuelve null → login.
-      if (isTransientFailure(err)) throw err;
-      endSession(endReasonFrom(err));
-      return null;
+      inFlight.then(resolve, reject).finally(() => clearTimeout(timer));
+    });
+  }
+
+  /** Espera (con tope) a que termine la renovación en vuelo. */
+  async function settleRefresh() {
+    const inFlight = refreshInFlight.current;
+    if (!inFlight) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      inFlight.catch(() => null),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, SETTLE_REFRESH_MS);
+      }),
+    ]);
+    clearTimeout(timer);
+  }
+
+  /** Todo pedido que abre una sesión pasa por acá. La respuesta de una
+   * renovación trae cookie: si la de la sesión anterior llegara después de
+   * la del ingreso, el navegador se quedaría con la cookie de la cuenta
+   * anterior y la próxima renovación traería su token. Por eso primero se
+   * espera a la que esté en vuelo, y mientras dura el ingreso no arranca
+   * otra. */
+  async function signIn<T>(send: () => Promise<T>): Promise<T> {
+    signingIn.current += 1;
+    try {
+      await settleRefresh();
+      return await send();
+    } finally {
+      signingIn.current -= 1;
     }
   }
 
@@ -504,10 +575,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(email: string, password: string): Promise<LoginOutcome> {
-    const data = await api.post<SessionTokens | TwoFactorChallenge>("/auth/login", {
-      email,
-      password,
-    });
+    const data = await signIn(() =>
+      api.post<SessionTokens | TwoFactorChallenge>("/auth/login", { email, password })
+    );
     if (isTwoFactorChallenge(data)) {
       setPendingTwoFactor({ challengeToken: data.challenge_token });
       return { twoFactor: true };
@@ -521,7 +591,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new ApiError(401, "El ingreso venció. Volvé a poner tu contraseña.", TWO_FACTOR_CODES.challengeInvalid);
     }
     try {
-      const result = await twoFactorApi.verify(pendingTwoFactor.challengeToken, code);
+      const { challengeToken } = pendingTwoFactor;
+      const result = await signIn(() => twoFactorApi.verify(challengeToken, code));
       setPendingTwoFactor(null);
       setTwoFactorSetupPending(false);
       await startSession(result);
@@ -566,17 +637,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     idToken: string,
     role?: "worker" | "employer"
   ): Promise<GoogleLoginResult> {
-    const data = await api.post<
-      | { requires_role: true; email: string; full_name: string }
-      | { requires_role?: false; access_token: string; user?: User }
-      | TwoFactorChallenge
-    >("/auth/google", {
-      id_token: idToken,
-      role,
-      // El rol sólo viaja cuando se crea la cuenta, y `GoogleAuthButton` no
-      // deja elegirlo sin marcar términos y privacidad.
-      accepted_terms: role !== undefined,
-    });
+    const data = await signIn(() =>
+      api.post<
+        | { requires_role: true; email: string; full_name: string }
+        | { requires_role?: false; access_token: string; user?: User }
+        | TwoFactorChallenge
+      >("/auth/google", {
+        id_token: idToken,
+        role,
+        // El rol sólo viaja cuando se crea la cuenta, y `GoogleAuthButton` no
+        // deja elegirlo sin marcar términos y privacidad.
+        accepted_terms: role !== undefined,
+      })
+    );
 
     if ("requires_role" in data && data.requires_role) {
       return { requiresRole: true, email: data.email, fullName: data.full_name };
@@ -594,10 +667,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function loginAsGuest(pin: string, role: "worker" | "employer") {
-    const tokens = await api.post<{
-      access_token: string;
-      user?: User;
-    }>("/auth/guest", { pin, role });
+    const tokens = await signIn(() =>
+      api.post<{ access_token: string; user?: User }>("/auth/guest", { pin, role })
+    );
     await startSession(tokens);
   }
 
@@ -673,6 +745,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // y no a "/login" (Julieta, 2026-10-13): desde la app instalada era la
     // única forma de volver a verla; "Ingresar" está en su encabezado.
     router.replace("/");
+    // Si quedó una renovación en vuelo, su respuesta trae una cookie nueva y
+    // válida: la salida va después, para que el servidor revoque esa y no la
+    // anterior (si no, quedaría una sesión viva en este navegador).
+    await settleRefresh();
     try {
       await api.post("/auth/logout");
     } catch {

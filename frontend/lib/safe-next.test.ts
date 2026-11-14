@@ -32,8 +32,41 @@ describe("safeNext: sólo rutas internas", () => {
     ["el propio ingreso", "/login"],
     ["el propio ingreso con query", "/login?next=/login"],
     ["demasiado largo", `/${"a".repeat(600)}`],
+    // Al resolver los `.` y `..` la `//` queda al inicio: otro sitio.
+    ["punto y doble barra", "/.//otro.sitio"],
+    ["dos puntos y doble barra", "/..//otro.sitio"],
+    ["segmento que se cancela y doble barra", "/a/..//otro.sitio"],
+    ["punto codificado y doble barra", "/%2e//otro.sitio"],
+    ["dos puntos codificados y doble barra", "/%2e%2e//otro.sitio"],
+    ["punto codificado en mayúscula", "/%2E//otro.sitio"],
+    ["doble barra en el medio de la ruta", "/feed//otro.sitio"],
   ])("rechaza %s", (_name, value) => {
     expect(safeNext(value)).toBeNull();
+  });
+
+  it("nada de lo que devuelve resuelve a otro sitio", () => {
+    const origin = "https://www.oido.com.ar";
+    const tricky = [
+      "/.//otro.sitio",
+      "/..//otro.sitio",
+      "/a/..//otro.sitio",
+      "/%2e//otro.sitio",
+      "/././/otro.sitio",
+      "/a/b/../..//otro.sitio",
+      "/.%2F/otro.sitio",
+      "/%5Cotro.sitio",
+      "/%09/otro.sitio",
+      "/feed?x=//otro.sitio",
+      "/feed#//otro.sitio",
+      "/@otro.sitio",
+      "/feed/..%2F..%2F/otro.sitio",
+    ];
+    for (const value of tricky) {
+      const result = safeNext(value);
+      if (result === null) continue;
+      expect(new URL(result, `${origin}/login`).origin, value).toBe(origin);
+      expect(result.startsWith("//"), value).toBe(false);
+    }
   });
 
   it("rechaza null y undefined", () => {

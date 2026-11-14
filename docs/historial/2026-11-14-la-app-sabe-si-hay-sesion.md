@@ -61,6 +61,25 @@ Lo técnico:
 - El token de acceso sigue valiendo en el servidor hasta 15 minutos después
   de cerrar sesión: no se cambió (decisión del diseño).
 
+**Lo que encontró la revisión independiente (arreglado en este mismo PR):**
+
+- `safeNext` validaba lo que entraba pero devolvía la ruta ya resuelta, y
+  resolver los `.` y `..` de adelante podía dejar una `//` al inicio:
+  `/login?next=/.//otro.sitio` mandaba a otro sitio después de ingresar.
+  Ahora rechaza cualquier `//` en la ruta y valida también lo que devuelve.
+- La respuesta de una renovación se aplicaba aunque la sesión hubiera
+  cambiado de manos mientras esperaba (ingresar con otra cuenta durante la
+  reconexión, o cerrar sesión con una renovación en vuelo): podía quedar una
+  persona con el token de otra, o revivir una sesión recién cerrada. Ahora la
+  renovación es una sola a la vez, compara el contador de sesión antes de
+  aplicar nada, un ingreso espera a la que esté en vuelo (hasta 15 segundos)
+  y no arranca otra mientras dura, y la salida le avisa al servidor después
+  de que termine.
+- La renovación ya no se corta a los 12 segundos al abrir la app: el
+  servidor rota la cookie al contestar, y un pedido cortado y repetido se
+  toma por un robo y cierra todas las sesiones de la cuenta. La app deja de
+  esperar, pero el pedido sigue y los reintentos lo reusan.
+
 **Queda abierto:**
 
 - Al recuperarse la conexión, las pantallas que ya habían fallado («Error al

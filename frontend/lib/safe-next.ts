@@ -12,7 +12,14 @@
  *   también sale de la app;
  * - caracteres de control (tabulación, salto de línea): el navegador los
  *   saca antes de resolver, y `/\t/otro.sitio` termina en `//otro.sitio`;
+ * - una `//` en cualquier parte de la ruta (antes del `?` o el `#`): ninguna
+ *   pantalla de la app la tiene, y al resolver los `.` y `..` de adelante
+ *   (`/.//otro.sitio`, `/a/..//otro.sitio`, `/%2e//otro.sitio`) queda al
+ *   inicio y vuelve a ser otro sitio;
  * - volver al propio ingreso (`/login`), que no lleva a ningún lado.
+ *
+ * Lo que se devuelve es la ruta ya resuelta, y se valida **eso**, no sólo lo
+ * que entró: resolverla de nuevo tiene que dar el mismo sitio y la misma ruta.
  */
 const BASE = "https://oido.invalid";
 const MAX_LENGTH = 512;
@@ -21,7 +28,7 @@ export function safeNext(value: string | null | undefined): string | null {
   if (!value || value.length > MAX_LENGTH) return null;
   if (!value.startsWith("/") || value.startsWith("//")) return null;
   if (value.includes("\\")) return null;
-  // eslint-disable-next-line no-control-regex -- justamente se buscan los caracteres de control
+  if (value.split(/[?#]/, 1)[0].includes("//")) return null;
   if (/[\u0000-\u001f\u007f]/.test(value)) return null;
   let url: URL;
   try {
@@ -32,7 +39,17 @@ export function safeNext(value: string | null | undefined): string | null {
   // Red de seguridad: si después de resolver ya no es este sitio, afuera.
   if (url.origin !== BASE) return null;
   if (url.pathname === "/login" || url.pathname.startsWith("/login/")) return null;
-  return `${url.pathname}${url.search}${url.hash}`;
+  const resolved = `${url.pathname}${url.search}${url.hash}`;
+  // Lo que sale tiene que ser tan interno como lo que entró: si al resolverlo
+  // otra vez cambia de sitio o de ruta, no se usa.
+  if (!resolved.startsWith("/") || resolved.startsWith("//") || resolved.includes("\\")) return null;
+  try {
+    const again = new URL(resolved, BASE);
+    if (again.origin !== BASE || again.pathname !== url.pathname) return null;
+  } catch {
+    return null;
+  }
+  return resolved;
 }
 
 /** Por qué se cerró una sesión sin que la persona lo pidiera. */
