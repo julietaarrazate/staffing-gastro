@@ -52,3 +52,16 @@ export function formatPlainDate(isoDate: string): string {
   if (!y || !m || !d) return isoDate;
   return `${d}/${m}/${y}`;
 }
+
+/** Línea de la beta: mientras el tope no se exige, «Mi plan» no promete uno. */
+export const BETA_SIN_TOPE_TEXT = "Durante la beta no hay tope de turnos.";
+
+/** El tope del plan se hace cumplir salvo que el servidor diga que no. */
+export function limiteExigido(sub: { limite_exigido?: boolean }): boolean {
+  return sub.limite_exigido !== false;
+}
+
+/** «9 turnos publicados este mes»: el uso solo, sin «de N» que parezca excedido. */
+export function usoSinTopeText(usados: number): string {
+  return `${usados} ${usados === 1 ? "turno publicado" : "turnos publicados"} este mes`;
+}

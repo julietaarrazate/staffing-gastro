@@ -153,6 +153,21 @@ async def test_new_company_defaults_to_inicial_plan(client: AsyncClient):
     assert Decimal(str(body["price_ars"])) == Decimal("9900")
 
 
+async def test_get_subscription_exposes_limite_exigido(client: AsyncClient):
+    """G11: la pantalla sabe si el tope se hace cumplir. Con el tope prendido
+    es true; en la beta (apagado) es false aunque el plan tenga número, y el
+    uso se sigue contando."""
+    headers = await _employer_with_company(client, "sub_limite@staffya.com")
+    prendido = await client.get("/api/v1/subscription", headers=headers)
+    assert prendido.json()["limite_exigido"] is True
+
+    settings.subscriptions_enforced = False  # el fixture autouse lo restaura
+    apagado = await client.get("/api/v1/subscription", headers=headers)
+    body = apagado.json()
+    assert body["limite_exigido"] is False
+    assert body["max_turnos_mes"] == 5
+
+
 async def test_subscribe_with_flag_off_sets_plan_immediately(client: AsyncClient):
     """Sin credenciales de MP configuradas (flag apagado, default de test),
     `subscribe` setea el plan ya mismo: activa, período nuevo, sin checkout."""
