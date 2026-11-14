@@ -146,3 +146,41 @@ test("Inicio en celular: hero de comercio sin verificar no lleva sello", async (
   await expect(page.getByTestId("feed-hero-card").getByText("Comercio verificado")).toHaveCount(0);
   await expect(page.getByRole("img", { name: "Comercio verificado" })).toHaveCount(1);
 });
+
+test("postulantes a 360 y 320 px con nombre largo: sin desborde, con sello y sin pisar «Asignar»", async ({ page }) => {
+  const largo = "Maximiliano Alejandro Fernandez de la Cruz Sanchez Villa";
+  await base(page, EMPLOYER);
+  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
+  await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
+    r.fulfill(json([applicant("wp-1", largo, true), applicant("wp-2", largo + " Dos", true)]))
+  );
+  await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(json([])));
+
+  for (const width of [360, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/shifts/shift-1/candidates");
+    const sello = page.getByRole("img", { name: "Identidad verificada" });
+    await expect(sello).toHaveCount(2, { timeout: 15_000 });
+
+    const m = await page.evaluate(() => {
+      const rect = (e: Element) => e.getBoundingClientRect();
+      return {
+        scrollW: document.documentElement.scrollWidth,
+        cards: Array.from(document.querySelectorAll("div.no-select")).map((c) => {
+          const chip = Array.from(c.querySelectorAll('[aria-label="Identidad verificada"]'))
+            .map(rect)
+            .find((r) => r.width > 0)!;
+          const btn = rect(c.querySelector("button")!);
+          const card = rect(c);
+          return { chipRight: chip.right, btnLeft: btn.left, btnRight: btn.right, cardRight: card.right };
+        }),
+      };
+    });
+    expect(m.scrollW, `scroll horizontal a ${width}px`).toBeLessThanOrEqual(width);
+    expect(m.cards).toHaveLength(2);
+    for (const c of m.cards) {
+      expect(c.chipRight).toBeLessThanOrEqual(c.btnLeft);
+      expect(c.btnRight).toBeLessThanOrEqual(c.cardRight);
+    }
+  }
+});
