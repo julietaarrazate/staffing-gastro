@@ -14,6 +14,9 @@ export const TOKEN_KEY = "staffya_token";
 // frontend que vale la pena intentar `/auth/refresh` si el access token
 // vence, sin exponer ningún secreto.
 export const HAS_SESSION_KEY = "staffya_has_session";
+// Hay una tercera clave, `staffya_session_end`: por qué se borró la marca
+// (para las otras pestañas). La escribe y la limpia `auth-context.tsx`; los
+// specs no necesitan inyectarla.
 
 // Claves de localStorage de los mini-tours de `components/GuidedTour.tsx`
 // (uno por pantalla). `injectSession` los marca como ya vistos por

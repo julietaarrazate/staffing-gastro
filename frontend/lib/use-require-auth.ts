@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { loginHref } from "@/lib/safe-next";
 
 /**
  * Guard de sesión para pantallas protegidas. Mientras `AuthProvider` restaura
@@ -16,15 +17,26 @@ import { useAuth } from "@/lib/auth-context";
  * auditoría de producto 2026-08-09).
  */
 export function useRequireAuth() {
-  const { user, token, loading, justLoggedOut } = useAuth();
+  const { user, token, loading, justLoggedOut, sessionEnded, reconnecting } = useAuth();
   const router = useRouter();
 
   // Recién salida de la cuenta, va a la landing como el propio `logout`
   // (2026-10-13): si mandara a "/login", este redirect de la pantalla que se
   // estaba viendo le ganaba al de la salida.
+  //
+  // Si la sesión terminó sola (venció, o la cuenta quedó suspendida), el
+  // ingreso lo dice y guarda la ruta para volver (`next`). Con el servidor
+  // sin contestar (`reconnecting`) no se manda a nadie a ningún lado: la
+  // sesión sigue guardada y se está reintentando.
   useEffect(() => {
-    if (!loading && !token) router.replace(justLoggedOut ? "/" : "/login");
-  }, [loading, token, justLoggedOut, router]);
+    if (loading || token || reconnecting) return;
+    if (justLoggedOut) {
+      router.replace("/");
+      return;
+    }
+    const here = `${window.location.pathname}${window.location.search}`;
+    router.replace(loginHref({ motivo: sessionEnded, next: here }));
+  }, [loading, token, reconnecting, justLoggedOut, sessionEnded, router]);
 
   return { user, token, loading };
 }

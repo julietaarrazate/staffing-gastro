@@ -107,6 +107,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Entrada del Worker del frontend y caché de `/turno/[id]` | `frontend/cloudflare/worker.mjs`, `frontend/cloudflare/turno-cache.mjs` |
 | Verificación en dos pasos del admin (TOTP, desafío del login, candado de las sesiones admin, plan B) | `backend/app/modules/identity/domain/two_factor.py`, `application/two_factor.py`, `api/dependencies.py` (`get_current_user` vs `get_current_user_allow_pending_2fa`), `backend/scripts/disable_two_factor.py`; frontend `lib/two-factor.ts` y el 403 con `code` en `lib/api.ts` (ADR-0023) |
 | Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
+| Sesión: fin con motivo (`sessionEnded`), «Reconectando…» (`reconnecting`), cierre desde otra pestaña, y a dónde vuelve el ingreso (`next`, sólo rutas internas) | `frontend/lib/auth-context.tsx` (`endSession`, `restoreOnce`), `frontend/lib/safe-next.ts` (`safeNext`, `loginHref`, textos por motivo), `frontend/lib/use-require-auth.ts`; el 401 que no se pudo renovar en `frontend/lib/api.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Guarda contra el toque de más (una acción terminó, la lista se redibujó y quedó otro botón bajo el dedo) | `frontend/lib/use-tap-guard.ts` (`useTapGuard`); hoy la usa el panel del comercio (`app/shifts/page.tsx`, `components/ShiftActions.tsx`) |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |

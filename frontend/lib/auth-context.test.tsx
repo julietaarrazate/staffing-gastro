@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { api, bindSessionToken, renewSessionToken } from "@/lib/api";
+import { api, ApiError, bindSessionToken, NetworkError, renewSessionToken } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 // Las notificaciones de un dispositivo son de la cuenta que tiene la sesión
@@ -286,5 +286,318 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
 
     expect(claim).toHaveBeenCalledTimes(1);
     expect(claim).toHaveBeenCalledWith("token-verificado");
+  });
+});
+
+// G7: la app siempre sabe si hay sesión (U112, U096, U114, U115).
+describe("AuthProvider: la app siempre sabe si hay sesión", () => {
+  const SIN_SESION = [401, { detail: "No autorizado" }] as Reply;
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  });
+
+  function setVisibility(state: "visible" | "hidden") {
+    Object.defineProperty(document, "visibilityState", { value: state, configurable: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }
+
+  /** Otra pestaña borró la marca de sesión (los navegadores le avisan a las
+   * demás con un evento `storage`). */
+  function otherTabClearsSession() {
+    localStorage.removeItem("staffya_token");
+    localStorage.removeItem("staffya_has_session");
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "staffya_has_session",
+        oldValue: "1",
+        newValue: null,
+        storageArea: localStorage,
+      })
+    );
+  }
+
+  describe("renovación rechazada con la sesión en curso", () => {
+    it("el contexto queda sin sesión y con el motivo, y el error no es «No autorizado»", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      backend["GET /shifts/mine"] = SIN_SESION;
+      backend["POST /auth/refresh"] = SIN_SESION;
+
+      let error: unknown;
+      await act(async () => {
+        error = await api.get("/shifts/mine", auth().token).catch((err) => err);
+      });
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).message).toBe("Tu sesión venció. Volvé a ingresar.");
+      expect((error as ApiError).code).toBe("session_expired");
+      expect(auth().token).toBeNull();
+      expect(auth().user).toBeNull();
+      expect(auth().sessionEnded).toBe("vencida");
+      expect(auth().justLoggedOut).toBe(false);
+      expect(localStorage.getItem("staffya_token")).toBeNull();
+      expect(localStorage.getItem("staffya_has_session")).toBeNull();
+    });
+
+    it("si el servidor dice que la cuenta está suspendida, el motivo es ese", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      backend["GET /shifts/mine"] = SIN_SESION;
+      backend["POST /auth/refresh"] = [
+        403,
+        { detail: { code: "account_suspended", message: "Cuenta suspendida" } },
+      ];
+
+      await act(async () => {
+        await api.get("/shifts/mine", auth().token).catch(() => {});
+      });
+
+      expect(auth().token).toBeNull();
+      expect(auth().sessionEnded).toBe("suspendida");
+    });
+
+    it("si el servidor no contesta la renovación, la sesión sigue y el error es de conexión", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      backend["GET /shifts/mine"] = SIN_SESION;
+      backend["POST /auth/refresh"] = [503, { detail: "despertando" }];
+
+      let error: unknown;
+      await act(async () => {
+        error = await api.get("/shifts/mine", auth().token).catch((err) => err);
+      });
+
+      expect(error).toBeInstanceOf(NetworkError);
+      expect(auth().token).toBe("token-trabajadora");
+      expect(auth().user?.id).toBe(TRABAJADORA.id);
+      expect(auth().sessionEnded).toBeNull();
+      expect(localStorage.getItem("staffya_has_session")).toBe("1");
+    });
+
+    it("la sesión guardada que ya no sirve al abrir la app también deja el motivo", async () => {
+      localStorage.setItem("staffya_token", "token-vencido");
+      localStorage.setItem("staffya_has_session", "1");
+      backend["GET /auth/me"] = SIN_SESION;
+      backend["POST /auth/refresh"] = SIN_SESION;
+
+      const auth = await mountApp();
+
+      expect(auth().token).toBeNull();
+      expect(auth().sessionEnded).toBe("vencida");
+      expect(auth().reconnecting).toBe(false);
+    });
+
+    it("al volver a ingresar se limpia el motivo", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      backend["GET /shifts/mine"] = SIN_SESION;
+      backend["POST /auth/refresh"] = SIN_SESION;
+      await act(async () => {
+        await api.get("/shifts/mine", auth().token).catch(() => {});
+      });
+      expect(auth().sessionEnded).toBe("vencida");
+
+      await loginAs(auth, TRABAJADORA, "token-nuevo");
+
+      expect(auth().sessionEnded).toBeNull();
+      expect(auth().token).toBe("token-nuevo");
+    });
+
+    it("viendo como otra persona, un 401 no cierra la sesión de la admin ni dice «No autorizado»", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, ADMIN, "token-admin");
+      backend["POST /admin/users/u-trabajadora/impersonate"] = [
+        200,
+        { access_token: "token-viendo-como", user: TRABAJADORA },
+      ];
+      await act(async () => {
+        await auth().impersonate(TRABAJADORA.id);
+      });
+      backend["GET /shifts/mine"] = SIN_SESION;
+
+      let error: unknown;
+      await act(async () => {
+        error = await api.get("/shifts/mine", auth().token).catch((err) => err);
+      });
+
+      expect((error as ApiError).message).not.toBe("No autorizado");
+      expect((error as ApiError).code).toBe("impersonation_expired");
+      expect(requestsSent()).not.toContain("POST /auth/refresh");
+      expect(auth().sessionEnded).toBeNull();
+      expect(auth().impersonating?.adminUser.id).toBe(ADMIN.id);
+    });
+  });
+
+  describe("servidor dormido al abrir la app", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      localStorage.setItem("staffya_token", "token-guardado");
+      localStorage.setItem("staffya_has_session", "1");
+      backend["GET /auth/me"] = [503, { detail: "despertando" }];
+    });
+
+    const meRequests = () => requestsSent().filter((r) => r === "GET /auth/me").length;
+
+    it("no cae a «sin sesión»: queda reconectando, con la sesión guardada intacta", async () => {
+      const auth = await mountApp();
+
+      expect(auth().reconnecting).toBe(true);
+      expect(auth().user).toBeNull();
+      expect(auth().token).toBe("token-guardado");
+      expect(auth().sessionEnded).toBeNull();
+      expect(localStorage.getItem("staffya_has_session")).toBe("1");
+      expect(claim).not.toHaveBeenCalled();
+    });
+
+    it("reintenta solo a los 2, 5 y 10 segundos, y después cada 15", async () => {
+      await mountApp();
+      expect(meRequests()).toBe(1);
+
+      for (const [wait, expected] of [
+        [1_900, 1],
+        [200, 2],
+        [5_100, 3],
+        [10_100, 4],
+        [14_000, 4],
+        [1_100, 5],
+        [15_100, 6],
+      ]) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(wait);
+        });
+        expect(meRequests()).toBe(expected);
+      }
+    });
+
+    it("cuando el servidor despierta, la persona queda adentro y deja de reintentar", async () => {
+      const auth = await mountApp();
+      backend["GET /auth/me"] = [200, TRABAJADORA];
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_100);
+      });
+
+      expect(auth().user?.id).toBe(TRABAJADORA.id);
+      expect(auth().reconnecting).toBe(false);
+      expect(claim).toHaveBeenCalledWith("token-guardado");
+      const sent = meRequests();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(meRequests()).toBe(sent);
+    });
+
+    it("con la pestaña oculta no pide nada; al volver a verla, prueba enseguida", async () => {
+      const auth = await mountApp();
+      act(() => setVisibility("hidden"));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(meRequests()).toBe(1);
+
+      backend["GET /auth/me"] = [200, TRABAJADORA];
+      await act(async () => {
+        setVisibility("visible");
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(meRequests()).toBe(2);
+      await waitFor(() => expect(auth().user?.id).toBe(TRABAJADORA.id));
+    });
+
+    it("si mientras tanto la sesión resulta vencida, termina con el motivo", async () => {
+      const auth = await mountApp();
+      backend["GET /auth/me"] = SIN_SESION;
+      backend["POST /auth/refresh"] = SIN_SESION;
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_100);
+      });
+
+      expect(auth().reconnecting).toBe(false);
+      expect(auth().token).toBeNull();
+      expect(auth().sessionEnded).toBe("vencida");
+    });
+
+    it("si la persona ingresa mientras se reintenta, la respuesta vieja no la pisa", async () => {
+      const auth = await mountApp();
+      let wake: (reply: Reply) => void = () => {};
+      backend["GET /auth/me"] = new Promise<Reply>((resolve) => {
+        wake = resolve;
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_100);
+      });
+
+      await loginAs(auth, ADMIN, "token-admin");
+      await act(async () => {
+        wake([200, TRABAJADORA]);
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(auth().user?.id).toBe(ADMIN.id);
+      expect(auth().token).toBe("token-admin");
+      expect(auth().reconnecting).toBe(false);
+    });
+  });
+
+  describe("otra pestaña cierra la sesión", () => {
+    it("esta también queda sin sesión, como una salida, sin volver a llamar al servidor", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      fetchMock.mockClear();
+
+      act(() => otherTabClearsSession());
+
+      expect(auth().token).toBeNull();
+      expect(auth().user).toBeNull();
+      expect(auth().justLoggedOut).toBe(true);
+      expect(auth().sessionEnded).toBeNull();
+      expect(requestsSent()).toEqual([]);
+      expect(release).not.toHaveBeenCalled();
+    });
+
+    it("si a la otra se le venció, acá también se dice que venció", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+
+      act(() => {
+        localStorage.setItem("staffya_session_end", "vencida");
+        otherTabClearsSession();
+      });
+
+      expect(auth().token).toBeNull();
+      expect(auth().sessionEnded).toBe("vencida");
+      expect(auth().justLoggedOut).toBe(false);
+    });
+
+    it("sin sesión acá, el aviso de otra pestaña no hace nada", async () => {
+      const auth = await mountApp();
+
+      act(() => otherTabClearsSession());
+
+      expect(auth().justLoggedOut).toBe(false);
+      expect(auth().sessionEnded).toBeNull();
+    });
+
+    it("un cambio en otra clave no cierra nada", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "oido-theme",
+            newValue: "dark",
+            storageArea: localStorage,
+          })
+        );
+      });
+
+      expect(auth().token).toBe("token-trabajadora");
+    });
   });
 });

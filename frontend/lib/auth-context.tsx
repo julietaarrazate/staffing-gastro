@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ACCOUNT_SUSPENDED_CODE,
   api,
   ApiError,
   bindSessionToken,
@@ -14,6 +15,7 @@ import {
   setUnauthorizedHandler,
 } from "@/lib/api";
 import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
+import { isSessionEndReason, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
 import {
   isTwoFactorChallenge,
@@ -62,6 +64,16 @@ interface AuthState {
    *  pantallas protegidas (`useRequireAuth`) mandan entonces a la landing y
    *  no a "/login", para no pisar la salida (ver `logout`). */
   justLoggedOut: boolean;
+  /** No-null cuando la sesión terminó sin que la persona lo pidiera: la
+   *  renovación fue rechazada (`vencida`) o la cuenta está suspendida. Las
+   *  pantallas protegidas mandan al ingreso con ese motivo y la ruta para
+   *  volver (`useRequireAuth`). Se limpia al ingresar. */
+  sessionEnded: SessionEndReason | null;
+  /** `true` cuando hay una sesión guardada pero el servidor no contesta
+   *  (dormido, sin conexión): no se sabe todavía quién es. La cabecera
+   *  muestra «Reconectando…» en vez de la de visitante, nadie manda al
+   *  ingreso, y se reintenta solo. */
+  reconnecting: boolean;
   /** No-null mientras una admin está "viendo como" otro usuario (ver
    * `impersonate`). Sólo expone los datos de la admin real, para el banner. */
   impersonating: { adminUser: User } | null;
@@ -99,6 +111,12 @@ const AuthContext = createContext<AuthState | null>(null);
 // la sesión se mantenga abierta mientras la app esté en uso.
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
+// Con una sesión guardada y el servidor sin contestar al abrir, se vuelve a
+// probar solo: a los 2, 5 y 10 segundos, y después cada 15, siempre con la
+// pestaña a la vista (Render tarda cerca de un minuto en despertar).
+const RECONNECT_DELAYS_MS = [2_000, 5_000, 10_000];
+const RECONNECT_STEADY_MS = 15_000;
+
 // Tope para el chequeo de sesión al abrir la app: si el backend no responde
 // en este tiempo (cold start de Render, backend caído), no colgamos la app en
 // blanco — se degrada a mostrar el landing/login sin cerrar la sesión.
@@ -112,14 +130,28 @@ const AUTH_TIMEOUT_MS = 12 * 1000;
 // pena intentar `/auth/refresh` al abrir la app — sin ella, cada visita
 // anónima a la landing dispararía un refresh al pedo (la cookie httpOnly no
 // se puede leer desde JS para decidirlo de otra forma).
+const HAS_SESSION_KEY = "staffya_has_session";
+// Por qué se borró la marca, para las otras pestañas: sin esto no distinguen
+// «cerró sesión» (van a la landing) de «la sesión venció» (van al ingreso con
+// el motivo). Se escribe antes de borrar la marca y se limpia al ingresar.
+const SESSION_END_KEY = "staffya_session_end";
+
 function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
-  localStorage.setItem("staffya_has_session", "1");
+  localStorage.setItem(HAS_SESSION_KEY, "1");
+  localStorage.removeItem(SESSION_END_KEY);
+}
+
+/** Qué dice el servidor al rechazar una renovación. */
+function endReasonFrom(err: unknown): SessionEndReason {
+  return err instanceof ApiError && err.status === 403 && err.code === ACCOUNT_SUSPENDED_CODE
+    ? "suspendida"
+    : "vencida";
 }
 
 function clearSession() {
   localStorage.removeItem("staffya_token");
-  localStorage.removeItem("staffya_has_session");
+  localStorage.removeItem(HAS_SESSION_KEY);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -128,6 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [justLoggedOut, setJustLoggedOut] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState<SessionEndReason | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  // Sube cada vez que la sesión cambia de manos (ingreso, salida, fin). Una
+  // recuperación que quedó esperando al servidor compara contra esto antes
+  // de aplicar su respuesta, para no pisar a quien ingresó mientras tanto.
+  const sessionEpoch = useRef(0);
   // Snapshot de la sesión admin real mientras se está impersonando otro
   // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
   const [impersonating, setImpersonating] = useState<
@@ -148,13 +186,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function setToken(next: string | null) {
     bindSessionToken(next);
     setTokenState(next);
-    if (next) setJustLoggedOut(false);
+    if (next) {
+      setJustLoggedOut(false);
+      setSessionEnded(null);
+    }
+  }
+
+  /** La sesión terminó sin que la persona lo pidiera (renovación rechazada,
+   * cuenta suspendida): además de borrar lo guardado, el contexto queda sin
+   * `token` ni `user`. Antes sólo se borraba lo guardado y las pantallas
+   * seguían como si hubiera sesión, mostrando «No autorizado» (U112, U096).
+   * `announce: false` cuando el aviso llegó de otra pestaña, que ya lo dejó
+   * escrito. */
+  function endSession(reason: SessionEndReason, { announce = true } = {}) {
+    sessionEpoch.current += 1;
+    if (announce) localStorage.setItem(SESSION_END_KEY, reason);
+    clearSession();
+    clearAllCached();
+    impersonatingRef.current = false;
+    setImpersonating(null);
+    setTwoFactorSetupPending(false);
+    setReconnecting(false);
+    setJustLoggedOut(false);
+    setToken(null);
+    setUser(null);
+    setSessionEnded(reason);
   }
 
   async function tryRefresh(timeoutMs?: number): Promise<string | null> {
     // Sin esta marca no hay (o ya no hay) sesión que renovar — el refresh
     // token real vive sólo en la cookie httpOnly, invisible para JS.
-    if (!localStorage.getItem("staffya_has_session")) return null;
+    if (!localStorage.getItem(HAS_SESSION_KEY)) {
+      // Con una sesión en curso y sin la marca, la cerraron desde otro lado.
+      if (hasBoundSession()) endSession("vencida", { announce: false });
+      return null;
+    }
     try {
       const tokens = await api.post<{ access_token: string }>(
         "/auth/refresh",
@@ -175,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // degradar sin cerrar la sesión. Sólo un rechazo real (refresh
       // vencido/revocado, 401/403) devuelve null → login.
       if (isTransientFailure(err)) throw err;
-      clearSession();
+      endSession(endReasonFrom(err));
       return null;
     }
   }
@@ -186,7 +252,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // token de la admin real, no del usuario que se está viendo.
   useEffect(() => {
     setUnauthorizedHandler(() =>
-      impersonatingRef.current ? Promise.resolve(null) : tryRefresh()
+      impersonatingRef.current
+        ? Promise.reject(
+            new ApiError(
+              401,
+              "Se venció el tiempo de «ver como». Volvé a tu cuenta y entrá de nuevo.",
+              "impersonation_expired"
+            )
+          )
+        : tryRefresh()
     );
     return () => setUnauthorizedHandler(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `tryRefresh` sólo usa setters estables y localStorage
@@ -218,68 +292,160 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setTwoFactorGateHandler(null);
   }, [router]);
 
-  useEffect(() => {
-    async function restoreSession() {
-      const storedAccess = localStorage.getItem("staffya_token");
-      const hasSession = localStorage.getItem("staffya_has_session");
+  /** Recupera la sesión guardada. `none`: no hay (o ya no sirve); `ok`: hay y
+   * se sabe quién es; `transient`: hay, pero el servidor no contestó. No toca
+   * `loading` ni `reconnecting`: eso lo decide quien llama. */
+  async function restoreOnce(): Promise<"ok" | "none" | "transient"> {
+    const epoch = sessionEpoch.current;
+    const storedAccess = localStorage.getItem("staffya_token");
+    const hasSession = localStorage.getItem(HAS_SESSION_KEY);
 
-      // Sin la marca de sesión no hay (30 días vencidos, cookie borrada, o
-      // nunca hubo login) nada que restaurar: a login, sin intentar nada
-      // más. Si quedó un access token huérfano, lo limpiamos.
-      if (!hasSession) {
-        if (storedAccess) clearSession();
-        setLoading(false);
-        return;
-      }
-
-      // Con refresh token disponible, intentamos restaurar en silencio:
-      // primero probamos el access token si lo tenemos (evita un round-trip
-      // extra cuando todavía es válido); si falta o venció, refrescamos.
-      // Todo el bloque va bajo un guard de `isTransientFailure`: si el backend
-      // no responde o responde 5xx, se degrada a app deslogueada SIN cerrar la sesión (los
-      // tokens siguen guardados y un reload reintenta cuando el server
-      // despierte) — en vez de quedar en blanco esperando para siempre.
-      try {
-        if (storedAccess) {
-          setToken(storedAccess);
-          try {
-            setUser(await api.get<User>("/auth/me", storedAccess, AUTH_TIMEOUT_MS));
-            setLoading(false);
-            return;
-          } catch (err) {
-            if (isTransientFailure(err)) throw err;
-            // Access token vencido/inválido (ApiError): seguimos al refresh.
-          }
-        }
-
-        const refreshed = await tryRefresh(AUTH_TIMEOUT_MS);
-        if (!refreshed) {
-          // Refresh ausente/realmente vencido (no red): a login.
-          clearSession();
-          setToken(null);
-          setLoading(false);
-          return;
-        }
-        try {
-          setUser(await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS));
-        } catch (err) {
-          if (isTransientFailure(err)) throw err;
-          clearSession();
-          setToken(null);
-        }
-        setLoading(false);
-      } catch (err) {
-        // Backend dormido/caído: no cerramos sesión, sólo dejamos de cargar.
-        if (!isTransientFailure(err)) {
-          // Cualquier otro error inesperado tampoco debe colgar la app.
-          clearSession();
-          setToken(null);
-        }
-        setLoading(false);
-      }
+    // Sin la marca de sesión no hay (30 días vencidos, cookie borrada, o
+    // nunca hubo login) nada que restaurar: a login, sin intentar nada
+    // más. Si quedó un access token huérfano, lo limpiamos.
+    if (!hasSession) {
+      if (storedAccess) clearSession();
+      return "none";
     }
 
-    restoreSession();
+    // Con refresh token disponible, intentamos restaurar en silencio:
+    // primero probamos el access token si lo tenemos (evita un round-trip
+    // extra cuando todavía es válido); si falta o venció, refrescamos.
+    // Todo el bloque va bajo un guard de `isTransientFailure`: si el backend
+    // no responde o responde 5xx, NO se cierra la sesión (los tokens siguen
+    // guardados) y se reintenta solo (ver el efecto de `reconnecting`).
+    try {
+      if (storedAccess) {
+        setToken(storedAccess);
+        try {
+          const me = await api.get<User>("/auth/me", storedAccess, AUTH_TIMEOUT_MS);
+          if (sessionEpoch.current !== epoch) return "ok";
+          setUser(me);
+          return "ok";
+        } catch (err) {
+          if (isTransientFailure(err)) throw err;
+          // Alguien ingresó o cerró la sesión mientras esto esperaba (o la
+          // renovación ya la dio por terminada): no se toca nada más.
+          if (sessionEpoch.current !== epoch) return "none";
+          // Access token vencido/inválido (ApiError): seguimos al refresh.
+        }
+      }
+
+      const refreshed = await tryRefresh(AUTH_TIMEOUT_MS);
+      if (sessionEpoch.current !== epoch) return refreshed ? "ok" : "none";
+      if (!refreshed) {
+        // Refresh ausente/realmente vencido (no red): a login.
+        clearSession();
+        setToken(null);
+        return "none";
+      }
+      try {
+        const me = await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS);
+        if (sessionEpoch.current !== epoch) return "ok";
+        setUser(me);
+        return "ok";
+      } catch (err) {
+        if (isTransientFailure(err)) throw err;
+        if (sessionEpoch.current !== epoch) return "none";
+        clearSession();
+        setToken(null);
+        return "none";
+      }
+    } catch (err) {
+      // Backend dormido/caído: no cerramos sesión.
+      if (isTransientFailure(err)) return "transient";
+      if (sessionEpoch.current !== epoch) return "none";
+      // Cualquier otro error inesperado tampoco debe colgar la app.
+      clearSession();
+      setToken(null);
+      return "none";
+    }
+  }
+
+  useEffect(() => {
+    restoreOnce().then((result) => {
+      // Servidor dormido al abrir (U114): la app deja de esperar, pero queda
+      // dicho que hay una sesión por confirmar. Antes caía a la cabecera de
+      // visitante («Ingresar», «Crear cuenta») con la sesión intacta.
+      if (result === "transient") setReconnecting(true);
+      setLoading(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez, al abrir la app
+  }, []);
+
+  // Mientras no se sabe quién es, se vuelve a probar solo. Con la pestaña
+  // oculta no se pide nada: se retoma al volver a verla o al volver la
+  // conexión.
+  useEffect(() => {
+    if (!reconnecting) return;
+    let cancelled = false;
+    let running = false;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    function schedule() {
+      timer = setTimeout(run, RECONNECT_DELAYS_MS[attempt] ?? RECONNECT_STEADY_MS);
+    }
+    async function run() {
+      if (cancelled || running) return;
+      if (document.visibilityState !== "visible") return;
+      running = true;
+      const result = await restoreOnce();
+      running = false;
+      if (cancelled) return;
+      if (result === "transient") {
+        attempt += 1;
+        schedule();
+      } else {
+        setReconnecting(false);
+      }
+    }
+    function onWake() {
+      if (document.visibilityState !== "visible") return;
+      clearTimeout(timer);
+      void run();
+    }
+
+    schedule();
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("online", onWake);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("online", onWake);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `restoreOnce` sólo usa setters estables, refs y localStorage
+  }, [reconnecting]);
+
+  // Cerrar sesión en una pestaña cierra las otras (U115). La marca de sesión
+  // es de todo el navegador; cuando otra pestaña la borra, ésta deja de tener
+  // sesión también, sin volver a llamar al servidor (ya lo hizo la otra). Si
+  // la otra dejó escrito un motivo, la sesión terminó sola y acá se cuenta
+  // igual; si no, fue «Cerrar sesión».
+  useEffect(() => {
+    function onStorage(event: StorageEvent) {
+      if (event.storageArea !== localStorage) return;
+      const markGone = event.key === null || (event.key === HAS_SESSION_KEY && event.newValue === null);
+      if (!markGone || !hasBoundSession()) return;
+      const reason = localStorage.getItem(SESSION_END_KEY);
+      if (isSessionEndReason(reason)) {
+        endSession(reason, { announce: false });
+        return;
+      }
+      sessionEpoch.current += 1;
+      clearAllCached();
+      impersonatingRef.current = false;
+      setImpersonating(null);
+      setTwoFactorSetupPending(false);
+      setReconnecting(false);
+      setJustLoggedOut(true);
+      setToken(null);
+      setUser(null);
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sólo setters estables, refs y localStorage
   }, []);
 
   useEffect(() => {
@@ -326,6 +492,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** Abre la sesión con los tokens de una respuesta de login. */
   async function startSession(tokens: SessionTokens) {
+    sessionEpoch.current += 1;
+    setReconnecting(false);
     persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
     // Fast path: el usuario viene embebido en la respuesta del login → sin un
@@ -430,9 +598,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       access_token: string;
       user?: User;
     }>("/auth/guest", { pin, role });
-    persistAccessToken(tokens.access_token);
-    setToken(tokens.access_token);
-    setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
+    await startSession(tokens);
   }
 
   async function impersonate(userId: string) {
@@ -493,9 +659,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // navegador la manda sola (`credentials: "include"`, lib/api.ts), no hay
     // que leerla ni reenviarla a mano. El backend la revoca server-side y la
     // limpia en la respuesta.
+    sessionEpoch.current += 1;
     clearSession();
     clearAllCached();
     setJustLoggedOut(true);
+    setSessionEnded(null);
+    setReconnecting(false);
     setTwoFactorSetupPending(false);
     setToken(null);
     setUser(null);
@@ -526,6 +695,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginAsGuest,
         logout,
         justLoggedOut,
+        sessionEnded,
+        reconnecting,
         updateFullName,
         impersonating: impersonating ? { adminUser: impersonating.adminUser } : null,
         impersonate,
