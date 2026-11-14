@@ -1,4 +1,4 @@
-# El buscador de direcciones se cierra al elegir (U036, G13)
+# El buscador de direcciones se cierra al elegir (U036, G13) (#564)
 
 **Pedido:** tablero de la beta, grupo G13 (U036). Al elegir una dirección del buscador del alta de comercio, la lista de resultados volvía a abrirse y tapaba el mapa y el pin.
 
