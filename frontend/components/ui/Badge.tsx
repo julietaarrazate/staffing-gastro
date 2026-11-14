@@ -30,16 +30,20 @@ export default function Badge({
   tone = "neutral",
   icon,
   className,
+  dense = false,
 }: {
   children: ReactNode;
   tone?: Tone;
   icon?: ReactNode;
   className?: string;
+  /** Más chica (menos relleno), para columnas angostas. */
+  dense?: boolean;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold",
+        "inline-flex items-center gap-1 rounded-full text-xs font-bold",
+        dense ? "px-2 py-1" : "px-3 py-1.5",
         TONES[tone],
         className
       )}

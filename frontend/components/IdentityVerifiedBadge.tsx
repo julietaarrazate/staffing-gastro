@@ -16,26 +16,55 @@ import { ShieldIcon } from "@/components/icons";
 export default function IdentityVerifiedBadge({
   verified,
   className,
-  compact = false,
+  responsive = false,
 }: {
   verified: boolean;
   className?: string;
-  /** Sólo el escudo, para columnas angostas; el nombre accesible sigue completo. */
-  compact?: boolean;
+  /**
+   * Para columnas angostas (la fila del postulante, junto a «Asignar»): desde
+   * 390 px el chip entero «Identidad verificada»; de 360 a 389 px el escudo
+   * con «Verificada»; por debajo de 360 px sólo el escudo. Se alterna con CSS
+   * (`display: none` saca del árbol de accesibilidad), así que a cada ancho
+   * hay un solo sello, y su nombre accesible es siempre «Identidad verificada».
+   */
+  responsive?: boolean;
 }) {
   if (!verified) return null;
-  if (compact) {
+  if (!responsive) {
     return (
-      <span role="img" aria-label="Identidad verificada" title="Identidad verificada" className="inline-flex">
-        <Badge tone="trust" icon={<ShieldIcon size={13} />} className={className}>
+      <Badge tone="trust" icon={<ShieldIcon size={13} />} className={className}>
+        Identidad verificada
+      </Badge>
+    );
+  }
+  const escudo = <ShieldIcon size={13} />;
+  return (
+    <span className={className}>
+      <span className="hidden min-[390px]:inline-flex">
+        <Badge tone="trust" dense icon={escudo} className="whitespace-nowrap">
+          Identidad verificada
+        </Badge>
+      </span>
+      <span
+        role="img"
+        aria-label="Identidad verificada"
+        title="Identidad verificada"
+        className="hidden min-[360px]:inline-flex min-[390px]:hidden"
+      >
+        <Badge tone="trust" dense icon={escudo} className="whitespace-nowrap">
+          Verificada
+        </Badge>
+      </span>
+      <span
+        role="img"
+        aria-label="Identidad verificada"
+        title="Identidad verificada"
+        className="inline-flex min-[360px]:hidden"
+      >
+        <Badge tone="trust" dense icon={escudo}>
           {null}
         </Badge>
       </span>
-    );
-  }
-  return (
-    <Badge tone="trust" icon={<ShieldIcon size={13} />} className={className}>
-      Identidad verificada
-    </Badge>
+    </span>
   );
 }

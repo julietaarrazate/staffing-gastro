@@ -68,9 +68,9 @@ function LiveShiftCard({ shift }: { shift: LiveShift }) {
     .filter(Boolean)
     .join(" · ");
   return (
-    <Card className="p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="flex min-w-0 items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-ink">
             {shift.title || SKILL_LABELS[shift.position] || "Turno"}
           </p>
@@ -177,7 +177,7 @@ export default function AdminLiveShiftsPage() {
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SegmentedControl<Filter>
-          className="sm:w-[26rem]"
+          className="overflow-x-auto sm:w-[26rem]"
           value={filter}
           onChange={changeFilter}
           options={[
@@ -212,9 +212,9 @@ export default function AdminLiveShiftsPage() {
             subtitle={EMPTY_TEXT[filter].subtitle}
           />
         ) : (
-          <ul className="grid gap-3" aria-label="Turnos sin cubrir">
+          <ul className="grid grid-cols-1 gap-3" aria-label="Turnos sin cubrir">
             {board.shifts.map((shift) => (
-              <li key={shift.id}>
+              <li key={shift.id} className="min-w-0">
                 <LiveShiftCard shift={shift} />
               </li>
             ))}

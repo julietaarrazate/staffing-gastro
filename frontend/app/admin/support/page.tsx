@@ -79,20 +79,20 @@ export default function AdminSupportPage() {
       )}
 
       {!loading && !error && tickets.length > 0 && (
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
           {tickets.map((t) => (
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="block rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
+              className="block min-w-0 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
             >
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate font-semibold text-ink">{t.subject}</p>
-                <Badge tone={t.status === "abierto" ? "secondary" : "neutral"}>
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <p className="min-w-0 truncate font-semibold text-ink">{t.subject}</p>
+                <Badge className="shrink-0" tone={t.status === "abierto" ? "secondary" : "neutral"}>
                   {t.status === "abierto" ? "Abierto" : "Cerrado"}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-ink/50">
+              <p className="mt-1 break-words text-sm text-ink/50">
                 {t.user_full_name} · {t.user_role === "worker" ? "Trabajador" : "Comercio"} ·{" "}
                 {TICKET_CATEGORY_LABELS[t.category]}
               </p>
