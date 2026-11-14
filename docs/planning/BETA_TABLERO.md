@@ -144,6 +144,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 ### Lo que salió de las revisiones y no tiene hallazgo propio
 
+- `POST /shifts/events` no tiene clave de idempotencia: un reintento publica
+  el evento dos veces (G25, #577).
+- En el contador del evento, «no cubierto» sigue sumando al total (G25, #577).
 - El mismo patrón «un error de carga se muestra como lista vacía» en Inicio,
   Buscar, Matches, Mapa y la bandeja del admin.
 - El alta del comercio: reentrar y «Omitir por ahora» pisa el perfil.

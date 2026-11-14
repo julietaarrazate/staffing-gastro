@@ -138,3 +138,44 @@ async def test_no_se_avisa_del_puesto_que_se_pisa_con_el_que_ya_confirmo(
 
     assert len(await _avisos(client, libre, "urgent_shift_nearby")) == 1
     assert await _avisos(client, confirmada, "urgent_shift_nearby") == []
+
+
+async def test_la_escalada_avisa_una_sola_vez_por_evento_y_persona(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch,
+):
+    """3 mozos + 2 bartenders sin cubrir: la persona que es mozo y bartender
+    recibe un solo «¡Urgente!» con los 5 puestos, y cada puesto sube a urgente."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    ambos, _ = await _worker(client, "esc_ambos@staffya.com", ["mozo", "bartender"])
+    mozo, _ = await _worker(client, "esc_mozo@staffya.com", ["mozo"])
+    employer = await _employer(client, "esc_bar@staffya.com")
+    evento = await _publish_event(
+        client,
+        employer,
+        [
+            {"position": "mozo", "count": 3, "pay_amount": "50000.00"},
+            {"position": "bartender", "count": 2, "pay_amount": "60000.00"},
+        ],
+    )
+
+    async with session_factory() as session:
+        for s in evento["shifts"]:
+            model = await session.get(ShiftModel, UUID(s["id"]))
+            model.published_at = datetime.now(timezone.utc) - ESCALATION_DELAY - timedelta(minutes=1)
+        await session.commit()
+    await scheduler.run_escalation_check()
+
+    de_ambos = await _avisos(client, ambos, "urgent_shift_nearby")
+    assert len(de_ambos) == 1
+    assert de_ambos[0]["title"] == "¡Urgente! Evento Boda Martínez: 5 puestos cerca tuyo"
+    assert de_ambos[0]["link"].removeprefix("/turno/") in {s["id"] for s in evento["shifts"]}
+    de_mozo = await _avisos(client, mozo, "urgent_shift_nearby")
+    assert [a["title"] for a in de_mozo] == ["¡Urgente! Evento Boda Martínez: 3 puestos cerca tuyo"]
+
+    async with session_factory() as session:
+        for s in evento["shifts"]:
+            model = await session.get(ShiftModel, UUID(s["id"]))
+            assert model.urgent is True
+            assert model.escalated_at is not None

@@ -374,29 +374,45 @@ class ShiftService(AccountSuspensionEffects):
             if self._favorites is not None
             else set()
         )
-        ranked = [m for m in ranked_all if m.profile_id in favorite_ids] + [
+        if shift.event_id is not None:
+            # Evento (U086): quien ya está comprometido en otro puesto del mismo
+            # evento no puede tomar éste (el horario es el mismo): sin aviso.
+            # Se saca ANTES del tope, así el lugar lo ocupa el que sigue.
+            ranked_all = [
+                m for m in ranked_all if not await self._committed_in_event(m, shift)
+            ]
+        return [m for m in ranked_all if m.profile_id in favorite_ids] + [
             m for m in ranked_all if m.profile_id not in favorite_ids
         ][:limit]
-        if shift.event_id is None:
-            return ranked
-        # Evento (U086): quien ya está comprometido en otro puesto del mismo
-        # evento no puede tomar éste (el horario es el mismo): sin aviso.
-        free: list[MatchResult] = []
-        for match in ranked:
-            committed = await self._shifts.list_by_worker_and_statuses(
-                match.profile_id, COMMITTED_STATUSES
-            )
-            if any(
-                other.event_id == shift.event_id
-                and other.id != shift.id
-                and shift.overlaps(other)
-                for other in committed
-            ):
-                continue
-            free.append(match)
-        return free
 
-    async def _notify_event_workers(self, shifts: list[Shift]) -> None:
+    async def _committed_in_event(self, match: MatchResult, shift: Shift) -> bool:
+        """¿Ya está confirmada (o más adelante) en otro puesto del mismo evento
+        cuyo horario se pisa con `shift`?"""
+        committed = await self._shifts.list_by_worker_and_statuses(
+            match.profile_id, COMMITTED_STATUSES
+        )
+        return any(
+            other.event_id == shift.event_id
+            and other.id != shift.id
+            and shift.overlaps(other)
+            for other in committed
+        )
+
+    async def notify_event_escalation(self, shifts: list[Shift]) -> None:
+        """La escalada de los puestos de evento que vencieron en el mismo tick
+        (`escalate_urgency(notify=False)`): un solo aviso urgente por evento y
+        por persona, no uno por puesto (U086). Los turnos sueltos no pasan por
+        acá."""
+        by_event: dict[UUID, list[Shift]] = {}
+        for shift in shifts:
+            if shift.event_id is not None:
+                by_event.setdefault(shift.event_id, []).append(shift)
+        for group in by_event.values():
+            await self._notify_event_workers(group, escalation=True)
+
+    async def _notify_event_workers(
+        self, shifts: list[Shift], *, escalation: bool = False
+    ) -> None:
         """Un solo aviso por evento y por persona, en vez de uno por puesto
         (U086): «Evento X: 5 puestos cerca tuyo». Cuenta los puestos del evento
         que le corresponden a cada persona (según su oficio y la distancia) y
@@ -404,8 +420,24 @@ class ShiftService(AccountSuspensionEffects):
         como un turno suelto. Best-effort, igual que `_notify_nearby_workers`."""
         if not shifts:
             return
+        radius = ESCALATION_RADIUS_KM if escalation else DEFAULT_MAX_RADIUS_KM
+        limit = self.ESCALATION_NOTIFICATION_LIMIT if escalation else None
+        notification_type = (
+            NotificationType.URGENT_SHIFT_NEARBY
+            if escalation
+            else NotificationType.NEW_SHIFT_NEARBY
+        )
         if len(shifts) == 1:
-            await self._notify_nearby_workers(shifts[0])
+            if escalation:
+                await self._notify_nearby_workers(
+                    shifts[0],
+                    max_radius_km=radius,
+                    limit=limit,
+                    notification_type=notification_type,
+                    escalation=True,
+                )
+            else:
+                await self._notify_nearby_workers(shifts[0])
             return
         if self._candidates is None:
             return
@@ -413,7 +445,7 @@ class ShiftService(AccountSuspensionEffects):
             per_user: dict[UUID, list[Shift]] = {}
             for shift in shifts:
                 for match in await self._rank_nearby(
-                    shift, max_radius_km=DEFAULT_MAX_RADIUS_KM, limit=None
+                    shift, max_radius_km=radius, limit=limit
                 ):
                     per_user.setdefault(match.user_id, []).append(shift)
             if not per_user:
@@ -426,18 +458,21 @@ class ShiftService(AccountSuspensionEffects):
             for user_id, mine in per_user.items():
                 n = len(mine)
                 puestos = f"{n} puesto" if n == 1 else f"{n} puestos"
-                urgent = any(s.urgent for s in mine)
+                urgent = escalation or any(s.urgent for s in mine)
                 notifications.append(
                     Notification(
                         user_id=user_id,
-                        type=NotificationType.NEW_SHIFT_NEARBY,
+                        type=notification_type,
                         title=(
                             f"¡Urgente! Evento {nombre}: {puestos} cerca tuyo"
                             if urgent
                             else f"Evento {nombre}: {puestos} cerca tuyo"
                         ),
                         message=(
-                            f"{lugar} busca personal para \"{nombre}\". "
+                            f"{lugar} todavía necesita cubrir {puestos} de \"{nombre}\" "
+                            "y no encuentra a nadie. Postulate ahora."
+                            if escalation
+                            else f"{lugar} busca personal para \"{nombre}\". "
                             "Entrá y postulate antes de que lo tomen."
                         ),
                         link=f"/turno/{mine[0].id}",
@@ -540,7 +575,7 @@ class ShiftService(AccountSuspensionEffects):
         de comercios suspendidos, ADR-0024: ver el repositorio)."""
         return await self._shifts.list_open_awaiting_escalation()
 
-    async def escalate_urgency(self, shift_id: UUID) -> Shift:
+    async def escalate_urgency(self, shift_id: UUID, *, notify: bool = True) -> Shift:
         """Escalada automática (mismo scheduler que ADR-0008): un turno que
         no se cubre rápido sube de prioridad y llega a más candidatos.
 
@@ -555,6 +590,10 @@ class ShiftService(AccountSuspensionEffects):
         shift.escalated_at = datetime.now(timezone.utc)
         updated = await self._shifts.update(shift)
         logger.info("shift.escalated", extra={"shift_id": str(updated.id)})
+        if not notify:
+            # Puesto de evento: el scheduler junta los del tick y manda un solo
+            # aviso por persona (`notify_event_escalation`).
+            return updated
         await self._notify_nearby_workers(
             updated,
             max_radius_km=ESCALATION_RADIUS_KM,

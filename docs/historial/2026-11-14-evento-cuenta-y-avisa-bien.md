@@ -9,9 +9,11 @@ cancelados y «cubiertos» son los confirmados en adelante (un asignado que no
 confirmó no cuenta); un evento con todos los puestos cancelados no muestra
 contador (`frontend/lib/evento-cobertura.ts`, usado por `app/shifts/page.tsx`).
 Al publicar un evento, cada persona recibe un solo aviso «Evento X: N puestos
-cerca tuyo» (`ShiftService._notify_event_workers`), y la escalada no avisa a
-quien ya está confirmado en otro puesto del mismo evento que se pisa de
-horario. `publish_shift` recibe `notify_nearby` para que `create_event` junte
+cerca tuyo» (`ShiftService._notify_event_workers`), y lo mismo en la escalada
+urgente: el scheduler sube cada puesto a urgente y manda un solo «¡Urgente!» por
+evento y persona (`notify_event_escalation`). Ninguno de los dos avisa a quien ya
+está confirmado en otro puesto del mismo evento que se pisa de horario, y eso se
+filtra antes del tope. `publish_shift` recibe `notify_nearby` para que `create_event` junte
 los avisos; el ranking quedó en `_rank_nearby`, compartido con el aviso de un
 turno suelto.
 
@@ -21,4 +23,4 @@ puesto que le toca, porque no hay pantalla de evento para el trabajador. La
 exclusión por solapamiento se limita al mismo evento (lo pedido); un
 solapamiento con turnos de otros comercios no cambia.
 
-**Queda abierto:** la escalada sigue siendo un aviso por puesto.
+**Queda abierto:** `POST /shifts/events` no tiene clave de idempotencia (un reintento duplica el evento); «no cubierto» sigue sumando al total del contador.
