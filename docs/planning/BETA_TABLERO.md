@@ -108,7 +108,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 |---|---|---|---|
 | U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | ✅ en `main` | #571 (prueba en la app hecha el 2026-11-14) |
 | U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | ✅ en `main` | #569 (prueba en la app hecha el 2026-11-14) |
-| U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | 🔵 PR abierto #574 | G10 |
+| U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | ✅ en `main` | #574 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | ✅ en `main` | #570 (prueba en la app hecha el 2026-11-14) |
 
 **Tanda 6**
@@ -120,7 +120,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G14 |
 | U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G15 |
 | U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | ✅ en `main` | #565 (prueba en la app hecha el 2026-11-14) |
-| U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G17 |
+| U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | ✅ en `main` | #573 (revisión independiente y prueba en la app hechas el 2026-11-14; el permiso concedido no se puede probar sin pantalla) |
 
 **Tanda 7**
 

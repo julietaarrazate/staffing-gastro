@@ -123,11 +123,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
   `sessionStorage` (se borran al publicar y al cerrar sesión). Lo mismo para
   los pasos de `/bienvenida`.
 
-### G17 · El interruptor de avisos explica (U054) — S
-
-`components/PushToggle.tsx`: bloqueado en el navegador → cómo activarlo; sin
-soporte (iPhone sin instalar) → «Instalá la app para recibir avisos»; falla →
-aviso flotante.
 
 ### G18 · En compu también se llega al detalle y a Buscar (U064, U104) — S
 
