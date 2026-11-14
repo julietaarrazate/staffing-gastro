@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
+from app.modules.company.api.dependencies import get_company_repository
+from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.application.api.dependencies import get_application_service
 from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
 from app.modules.application.application.services import ApplicationService
@@ -30,6 +32,7 @@ ServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
 # Idempotencia (product/IDEMPOTENCIA_SPEC.md): último parámetro de
@@ -112,6 +115,8 @@ async def withdraw_application(
 async def my_applications(
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
+    companies: CompaniesDep,
+    verification: VerificationDep,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
@@ -121,6 +126,15 @@ async def my_applications(
     enriched = await service.list_my_applications(
         worker_profile_id, limit=limit, offset=offset
     )
+    # Nombre/logo del comercio de cada turno: el mismo que el trabajador ya ve
+    # en el turno (`/shifts/mine`, el detalle) y resuelto igual, con UN
+    # `list_by_ids` para todos los comercios de la página.
+    company_ids = list({s.company_id for _, s in enriched if s is not None})
+    companies_by_id = await companies.list_by_ids(company_ids)
+    owner_ids = [c.user_id for c in companies_by_id.values()]
+    verified_owner_ids = (
+        await verification.verified_business_user_ids(owner_ids) if owner_ids else set()
+    )
     return [
         ApplicationResponse(
             id=application.id,
@@ -128,18 +142,32 @@ async def my_applications(
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
             created_at=application.created_at,
-            shift=_shift_for_applicant(shift, worker_profile_id),
+            shift=_shift_for_applicant(
+                shift, worker_profile_id, companies_by_id, verified_owner_ids
+            ),
         )
         for application, shift in enriched
     ]
 
 
-def _shift_for_applicant(shift: Shift | None, worker_profile_id: UUID) -> ShiftResponse | None:
+def _shift_for_applicant(
+    shift: Shift | None,
+    worker_profile_id: UUID,
+    companies_by_id: dict,
+    verified_owner_ids: set,
+) -> ShiftResponse | None:
     """Postularse no te hace parte del turno: si lo tomó otro, el postulante
-    no ve quién ni dónde está (su postulación rechazada sigue en la lista)."""
+    no ve quién ni dónde está (su postulación rechazada sigue en la lista).
+    El comercio sí se ve: es el mismo dato público del turno."""
     if shift is None:
         return None
     response = ShiftResponse.model_validate(shift)
+    company = companies_by_id.get(shift.company_id)
+    if company:
+        response.company_name = company.name
+        response.company_logo_url = company.logo_url
+        response.company_cover_url = company.cover_photo_url
+        response.company_verified = company.user_id in verified_owner_ids
     if shift.worker_profile_id != worker_profile_id:
         return without_worker_data(response)
     return response

@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import haversine_km
-from app.core.tz import format_inicio_art, to_art
+from app.core.tz import format_desde_art, format_duracion, format_inicio_art
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
@@ -19,6 +19,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotEditableError,
     WorkerTooFarFromShiftError,
 )
+from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
     OPEN_STATUSES,
@@ -179,7 +180,7 @@ class Shift:
 
     def ensure_editable(self) -> None:
         if not self.is_editable:
-            raise ShiftNotEditableError(self.status.value)
+            raise ShiftNotEditableError("Este turno ya no se puede editar.")
 
     @property
     def was_published(self) -> bool:
@@ -216,12 +217,14 @@ class Shift:
     def publish(self) -> None:
         """BORRADOR → PUBLICADO. Arranca el reloj de la métrica de cobertura
         (`published_at`, ver arriba)."""
-        self._transition(ShiftStatus.BORRADOR, ShiftStatus.PUBLICADO)
+        self._transition(ShiftStatus.BORRADOR, ShiftStatus.PUBLICADO, "publicar")
         self.published_at = datetime.now(timezone.utc)
 
     def start_searching(self) -> None:
         """PUBLICADO → BUSCANDO_PERSONAL."""
-        self._transition(ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
+        self._transition(
+            ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL, "buscar"
+        )
 
     def assign(self, worker_profile_id: UUID) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato.
@@ -232,7 +235,7 @@ class Shift:
         candidato, no cuántas veces hizo falta reintentar."""
         if self.status not in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL):
             raise InvalidShiftTransitionError(
-                f"No se puede asignar un turno en estado {self.status.value}"
+                no_se_puede("asignar", self.status)
             )
         self.worker_profile_id = worker_profile_id
         self.status = ShiftStatus.ASIGNADO
@@ -253,13 +256,13 @@ class Shift:
                 raise OverlappingShiftError(
                     "Ya tenés un turno confirmado que se superpone con este horario."
                 )
-        self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO)
+        self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO, "confirmar")
 
     def reject(self) -> None:
         """ASIGNADO → BUSCANDO_PERSONAL: el trabajador asignado rechaza el turno."""
         if self.status != ShiftStatus.ASIGNADO:
             raise InvalidShiftTransitionError(
-                f"No se puede rechazar un turno en estado {self.status.value}"
+                no_se_puede("rechazar", self.status)
             )
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
@@ -269,7 +272,7 @@ class Shift:
         """Cancela el turno desde cualquier estado no terminal (comercio, terminal)."""
         if self.is_terminal:
             raise InvalidShiftTransitionError(
-                f"No se puede cancelar un turno en estado {self.status.value}"
+                no_se_puede("cancelar", self.status)
             )
         self.status = ShiftStatus.CANCELADO
         self._clear_en_route()
@@ -287,7 +290,7 @@ class Shift:
         """
         if self.status != ShiftStatus.CONFIRMADO:
             raise InvalidShiftTransitionError(
-                f"No se puede cancelar la asignación desde el estado {self.status.value}"
+                no_se_puede("cancelar_asistencia", self.status)
             )
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
@@ -311,16 +314,16 @@ class Shift:
         el trabajador todavía puede llegar."""
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
-                f"No se puede marcar no-show desde el estado {self.status.value}"
+                no_se_puede("no_se_presento", self.status)
             )
         now = now or datetime.now(timezone.utc)
         habilitado = _naive(self.start_at) + NO_SHOW_EARLIEST_AFTER_START
         if _naive(now) < habilitado:
-            desde = to_art(self.start_at) + NO_SHOW_EARLIEST_AFTER_START
             raise InvalidShiftTransitionError(
-                "Todavía no podés marcar que no se presentó: se habilita el "
-                f"{desde:%d/%m} a las {desde:%H:%M} (hora de Argentina), "
-                "15 minutos después del inicio."
+                "Todavía no podés marcar que no se presentó: se habilita "
+                f"{format_desde_art(habilitado, now)}, "
+                f"{format_duracion(NO_SHOW_EARLIEST_AFTER_START)} después de "
+                "que empieza el turno."
             )
         self.no_show_at = datetime.now(timezone.utc)
         self.last_no_show_worker_profile_id = self.worker_profile_id
@@ -347,7 +350,7 @@ class Shift:
         que eso cuente en contra de nadie."""
         if self.status not in UNCOVERED_ELIGIBLE_STATUSES:
             raise InvalidShiftTransitionError(
-                f"No se puede marcar como no cubierto desde el estado {self.status.value}"
+                no_se_puede("no_cubierto", self.status)
             )
         if self.worker_profile_id is not None:
             self.last_no_show_worker_profile_id = self.worker_profile_id
@@ -362,7 +365,7 @@ class Shift:
         CHECK_IN sin pasar por acá. Se conserva sólo por compatibilidad con
         turnos que ya estaban en EN_CAMINO al desplegar el cambio — la UI
         actual no ofrece este botón."""
-        self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO)
+        self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO, "salir")
 
     def report_en_route_location(self, latitude: float, longitude: float) -> None:
         """El trabajador asignado comparte dónde está mientras viaja al turno.
@@ -382,14 +385,15 @@ class Shift:
         """
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
-                "Sólo se puede compartir la ubicación de camino a un turno "
-                f"confirmado, no en estado {self.status.value}"
+                no_se_puede("compartir_ubicacion", self.status)
             )
         now = datetime.now(timezone.utc)
-        if _naive(now) < _naive(self.start_at) - EN_ROUTE_WINDOW:
+        habilitado = _naive(self.start_at) - EN_ROUTE_WINDOW
+        if _naive(now) < habilitado:
             raise InvalidShiftTransitionError(
-                "Todavía falta para el turno: la ubicación se comparte recién "
-                f"desde {EN_ROUTE_WINDOW} antes del inicio."
+                "Todavía falta para el turno: podés compartir tu ubicación "
+                f"{format_desde_art(habilitado, now)} "
+                f"({format_duracion(EN_ROUTE_WINDOW)} antes de que empiece)."
             )
         self.en_route_latitude = latitude
         self.en_route_longitude = longitude
@@ -418,7 +422,7 @@ class Shift:
             return
         meters = round(distance_km * 1000)
         raise WorkerTooFarFromShiftError(
-            f"Tenés que estar en el local para marcar {action} (estás a {meters} m)."
+            f"Tenés que estar en el local para marcar {action} (estás a {meters} metros)."
         )
 
     def check_in(self, latitude: float, longitude: float) -> None:
@@ -433,13 +437,16 @@ class Shift:
         ya estaban a mitad de camino."""
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
-                f"No se puede marcar llegada desde el estado {self.status.value}"
+                no_se_puede("llegada", self.status)
             )
         now = datetime.now(timezone.utc)
-        if _naive(now) < _naive(self.start_at) - EARLY_CHECKIN_WINDOW:
+        habilitado = _naive(self.start_at) - EARLY_CHECKIN_WINDOW
+        if _naive(now) < habilitado:
             raise InvalidShiftTransitionError(
-                "Todavía no se puede marcar llegada: el turno empieza el "
-                f"{self.start_at.isoformat()}."
+                "Todavía no podés marcar tu llegada: se habilita "
+                f"{format_desde_art(habilitado, now)} "
+                f"({format_duracion(EARLY_CHECKIN_WINDOW)} antes de que "
+                "empiece el turno)."
             )
         self._ensure_at_venue(latitude, longitude, "la llegada")
         self.status = ShiftStatus.CHECK_IN
@@ -453,7 +460,7 @@ class Shift:
 
         Paso opcional (ADR-0008): mismo criterio que `depart()`, se conserva
         sólo por compatibilidad — la UI actual no ofrece este botón."""
-        self._transition(ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO)
+        self._transition(ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO, "empezar")
 
     def check_out(self, latitude: float, longitude: float) -> None:
         """CHECK_IN/TRABAJANDO → CHECK_OUT: el trabajador termina y marca su
@@ -462,7 +469,7 @@ class Shift:
         por compatibilidad."""
         if self.status not in (ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO):
             raise InvalidShiftTransitionError(
-                f"No se puede marcar salida desde el estado {self.status.value}"
+                no_se_puede("salida", self.status)
             )
         now = datetime.now(timezone.utc)
         if _naive(now) < _naive(self.start_at):
@@ -478,16 +485,16 @@ class Shift:
 
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""
-        self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO)
+        self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO, "cerrar")
 
     def mark_paid(self) -> None:
         """FINALIZADO → PAGADO: el comercio confirma que pagó el turno."""
-        self._transition(ShiftStatus.FINALIZADO, ShiftStatus.PAGADO)
+        self._transition(ShiftStatus.FINALIZADO, ShiftStatus.PAGADO, "pagar")
         self.paid_at = datetime.now(timezone.utc)
 
-    def _transition(self, expected: ShiftStatus, target: ShiftStatus) -> None:
+    def _transition(
+        self, expected: ShiftStatus, target: ShiftStatus, accion: str
+    ) -> None:
         if self.status != expected:
-            raise InvalidShiftTransitionError(
-                f"Transición inválida: {self.status.value} → {target.value}"
-            )
+            raise InvalidShiftTransitionError(no_se_puede(accion, self.status))
         self.status = target

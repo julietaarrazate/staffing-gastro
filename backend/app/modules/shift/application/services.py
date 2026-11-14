@@ -1279,6 +1279,11 @@ class ShiftService:
     ) -> list[Shift]:
         return await self._shifts.list_by_company(company_id, limit=limit, offset=offset)
 
+    async def pending_applicant_counts(self, shifts: list[Shift]) -> dict[UUID, int]:
+        """Cuántas postulaciones PENDIENTES tiene cada turno (una sola consulta
+        agrupada para toda la página). Sólo para el panel del comercio dueño."""
+        return await self._applications.count_pending_by_shift_ids([s.id for s in shifts])
+
     async def list_worker_shifts(
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Shift]:

@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
@@ -163,6 +164,11 @@ function WorkerFeedPanel() {
   const [error, setError] = useState<string | null>(null);
   // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  // Turnos a los que se postuló desde la grilla: la tarjeta queda en su lugar,
+  // marcada «Postulado», hasta la próxima carga (si desapareciera, las demás
+  // correrían bajo el dedo y el segundo toque caería en otra «Postularme»).
+  const [appliedInGrid, setAppliedInGrid] = useState<ReadonlySet<string>>(() => new Set());
+  const tapGuard = useTapGuard();
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
   // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
@@ -193,8 +199,17 @@ function WorkerFeedPanel() {
   // `load` descarta su copia vieja, esto es lo que se cachea, no `null`.
   const lastSavedProfile = useRef<WorkerProfile | null>(null);
 
+  // Último pedido gana: una carga vieja que termina tarde no pisa a la nueva.
+  const latestLoad = useRef(0);
+  // Cuenta las postulaciones hechas desde la grilla. Una carga que empezó
+  // antes de postularse trae al turno todavía sin postular: no tiene que
+  // borrar la marca «Postulado» ni volver a ofrecerlo.
+  const gridApplies = useRef(0);
+
   const load = useCallback(async () => {
     if (!token) return;
+    const mine = ++latestLoad.current;
+    const appliesAtStart = gridApplies.current;
     // Una búsqueda del asistente siempre recarga (no hay caché previo que
     // sirva para una consulta puntual) y siempre bloquea con esqueleto —
     // fuera de eso, sólo bloqueamos en la primera carga real; si ya hay algo
@@ -210,9 +225,14 @@ function WorkerFeedPanel() {
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
+      if (mine !== latestLoad.current) return;
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
+      // La próxima carga ya trae a los postulados filtrados: la marca de la
+      // grilla termina su trabajo (y si se retiró una postulación, el turno
+      // vuelve a ofrecerse sin la marca vieja).
+      if (gridApplies.current === appliesAtStart) setAppliedInGrid(new Set());
       setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
@@ -223,16 +243,18 @@ function WorkerFeedPanel() {
       // No cachear resultados de una búsqueda del asistente: son la
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
-      if (!assistantSearch) {
+      if (!assistantSearch && gridApplies.current === appliesAtStart) {
         const cachedProfile = profFresh
           ? prof
           : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
         setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+      if (mine === latestLoad.current) {
+        setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+      }
     } finally {
-      setLoading(false);
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token, assistantSearch]);
 
@@ -345,10 +367,20 @@ function WorkerFeedPanel() {
    *  la grilla apenas se resuelve. */
   async function handleGridDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
-    setDecidingId(shift.id);
-    const ok = await onDecide(shift, decision);
-    if (ok) setShifts((prev) => prev.filter((s) => s.id !== shift.id));
-    setDecidingId(null);
+    await tapGuard.run(async () => {
+      setDecidingId(shift.id);
+      try {
+        const ok = await onDecide(shift, decision);
+        if (!ok) return;
+        if (decision === "like") {
+          gridApplies.current += 1;
+          setAppliedInGrid((prev) => new Set(prev).add(shift.id));
+        }
+        else setShifts((prev) => prev.filter((s) => s.id !== shift.id));
+      } finally {
+        setDecidingId(null);
+      }
+    });
   }
 
   async function onDeckApply(shift: Shift): Promise<boolean> {
@@ -584,6 +616,8 @@ function WorkerFeedPanel() {
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
                         applying={decidingId === shift.id}
+                        locked={tapGuard.locked}
+                        applied={appliedInGrid.has(shift.id)}
                         onApply={() => handleGridDecide(shift, "like")}
                         onPass={() => handleGridDecide(shift, "pass")}
                         shareable

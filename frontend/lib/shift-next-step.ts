@@ -70,6 +70,60 @@ const NEXT_STEP: Record<ShiftStatus, NextStep> = {
   no_cubierto: { hint: "No se cubrió a tiempo.", action: null },
 };
 
+/** Largo máximo del nombre en la línea: un nombre larguísimo no tiene que
+ *  romper la tarjeta de 390 px. */
+const MAX_NAME_CHARS = 18;
+
+/**
+ * Primer nombre listo para una línea ("Ana María Pérez" → "Ana"). Devuelve
+ * `null` cuando no hay nombre usable (vacío, sólo espacios, no es texto), y la
+ * línea cae a su versión sin nombre. Corta con «…» lo larguísimo.
+ */
+export function firstNameOf(fullName: string | null | undefined): string | null {
+  if (typeof fullName !== "string") return null;
+  const first = fullName.trim().split(/\s+/)[0] ?? "";
+  if (!first) return null;
+  const chars = Array.from(first);
+  return chars.length > MAX_NAME_CHARS ? `${chars.slice(0, MAX_NAME_CHARS).join("")}…` : first;
+}
+
+/** Línea de "qué pasa" por estado, con el nombre de la persona cuando se
+ *  sabe ("Ana va en camino al local.") y sin él cuando no ("Va en camino…"). */
+function hintWithWorker(status: ShiftStatus, name: string | null): string | null {
+  switch (status) {
+    case "asignado":
+      return name
+        ? `Asignado a ${name}. Esperando que confirme su asistencia.`
+        : "Esperando que confirme su asistencia.";
+    case "confirmado":
+      return name
+        ? `${name} confirmó. Te avisamos cuando salga para allá.`
+        : "Confirmó. Te avisamos cuando salga para allá.";
+    case "en_camino":
+      return name ? `${name} va en camino al local.` : "Va en camino al local.";
+    case "check_in":
+      return name ? `${name} llegó al local.` : "Llegó al local.";
+    case "trabajando":
+      return name ? `${name} está trabajando ahora.` : "Trabajando ahora.";
+    case "check_out":
+      return name ? `${name} terminó de trabajar.` : "Terminó de trabajar.";
+    default:
+      return null;
+  }
+}
+
+/** «Elegir a alguien» con cuántas personas se postularon: «(2)». Con una sola
+ *  queda «(1)» — misma forma siempre, para que el botón no cambie de frase
+ *  según la cifra. Con cero (o sin dato) va sin cifra. */
+function candidatesLabel(count: number | null | undefined): string {
+  return typeof count === "number" && count > 0 ? `Elegir a alguien (${count})` : "Elegir a alguien";
+}
+
 export function nextStepFor(shift: Shift): NextStep {
-  return NEXT_STEP[shift.status] ?? { hint: "", action: null };
+  const base = NEXT_STEP[shift.status] ?? { hint: "", action: null };
+  const hint = hintWithWorker(shift.status, firstNameOf(shift.worker_name));
+  if (base.action === "candidates") {
+    return { ...base, actionLabel: candidatesLabel(shift.pending_applicants_count) };
+  }
+  return hint === null ? base : { ...base, hint };
 }

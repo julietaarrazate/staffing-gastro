@@ -323,6 +323,10 @@ function MyShiftsPanel() {
         } else {
           toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
         }
+        // También al fallar: el turno pudo cambiar (el trabajador se bajó, ya
+        // estaba cancelado) y la pantalla no puede seguir ofreciendo el
+        // botón. Silenciosa: sin esqueleto, y si falla no pisa el aviso.
+        await load({ silent: true });
       } finally {
         setBusy(null);
       }

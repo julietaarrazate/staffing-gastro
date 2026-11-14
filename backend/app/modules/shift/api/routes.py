@@ -336,9 +336,12 @@ async def my_shifts(
     shifts = await service.list_company_shifts(company_id, limit=limit, offset=offset)
     assigned_ids = list({s.worker_profile_id for s in shifts if s.worker_profile_id})
     names = await workers.names_by_profile_ids(assigned_ids)
+    # Postulaciones pendientes de toda la página en UNA consulta agrupada.
+    pending = await service.pending_applicant_counts(shifts)
     responses = []
     for shift in shifts:
         response = ShiftResponse.model_validate(shift)
+        response.pending_applicants_count = pending.get(shift.id, 0)
         if shift.worker_profile_id:
             response.worker_name = names.get(shift.worker_profile_id)
         responses.append(response)
