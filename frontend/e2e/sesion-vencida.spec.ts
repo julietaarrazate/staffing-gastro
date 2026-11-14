@@ -61,6 +61,8 @@ test("sesión vencida: lleva al ingreso con el motivo y, al ingresar, vuelve a l
   await expect(page).toHaveURL(/\/login\?motivo=vencida&next=%2Fshifts%3Ffamilia%3Dbuscando$/);
   await expect(page.getByRole("status").filter({ hasText: "Tu sesión venció" })).toBeVisible();
   await expect(page.getByText("No autorizado")).toHaveCount(0);
+  // Lo dice una sola vez: el ingreso, no además un aviso flotante.
+  await expect(page.getByText(/Tu sesión venció/)).toHaveCount(1);
 
   await page.getByLabel("Email").fill(EMPLOYER.email);
   await page.getByRole("textbox", { name: "Contraseña" }).fill("una-clave-cualquiera");

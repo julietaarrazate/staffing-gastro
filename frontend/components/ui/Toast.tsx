@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { CheckCircleIcon } from "@/components/icons";
+import { SESSION_EXPIRED_MESSAGE } from "@/lib/api";
 
 type ToastTone = "success" | "error" | "info";
 type ToastItem = { id: number; message: string; tone: ToastTone };
@@ -26,6 +27,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const reducedMotion = useReducedMotion();
 
   const show = useCallback((message: string, tone: ToastTone = "success") => {
+    // La sesión venció a mitad de una acción: la pantalla manda el error del
+    // pedido al aviso flotante, pero la app ya está yendo al ingreso, que lo
+    // dice en su lugar. Sin esto se veían los dos, y el flotante tapaba el
+    // título del ingreso (prueba en la app de G7).
+    if (message === SESSION_EXPIRED_MESSAGE) return;
     const id = nextId.current++;
     setToasts((prev) => [...prev, { id, message, tone }]);
     setTimeout(() => {
