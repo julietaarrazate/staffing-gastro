@@ -97,14 +97,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
   `sessionStorage` (se borran al publicar y al cerrar sesión). Lo mismo para
   los pasos de `/bienvenida`.
 
-### G10 · Límite de intentos sin mensajes falsos (U138, U139) — S
-
-- `lib/auth-context.tsx`, `app/register/page.tsx`: si el alta salió bien y el
-  ingreso automático fue frenado, va a `/login` con «Tu cuenta ya está
-  creada: ingresá en un minuto», sin cartel de error.
-- `app/recuperar/page.tsx`, `app/verificar-email/page.tsx`: un 429 dice
-  «Demasiados intentos, esperá un minuto»; lo demás sigue sin revelar si el
-  mail existe.
 
 ### G18 · En compu también se llega al detalle y a Buscar (U064, U104) — S
 

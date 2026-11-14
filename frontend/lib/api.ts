@@ -204,6 +204,16 @@ function isGateCode(code: string | undefined): code is TwoFactorGateCode {
  * token sea inválido. */
 export class NetworkError extends Error {}
 
+/** Texto fijo para el 429 de las pantallas que no revelan nada de la cuenta
+ * (recuperar, verificar email): el límite es por conexión, no dice nada del mail. */
+export const RATE_LIMITED_MESSAGE = "Demasiados intentos, esperá un minuto.";
+
+/** El backend frenó el pedido por el límite de intentos (HTTP 429, ver
+ * `core/rate_limit.py`). */
+export function isRateLimited(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 429;
+}
+
 /** El backend no está disponible por un rato: sin conexión, timeout, o un
  * 5xx/408/429 (Render responde 502-504 mientras arranca en frío). Eso no dice
  * nada de la validez del token, así que nunca debe cerrar la sesión: sólo

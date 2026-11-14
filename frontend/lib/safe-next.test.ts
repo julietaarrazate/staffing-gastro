@@ -105,9 +105,16 @@ describe("avisos del ingreso", () => {
     expect(loginHref({ aviso: "clave-actualizada" })).toBe("/login?aviso=clave-actualizada");
   });
 
+  it("el alta con ingreso frenado conserva el next", () => {
+    expect(loginHref({ aviso: "cuenta-creada", next: "/turno/abc" })).toBe(
+      "/login?aviso=cuenta-creada&next=%2Fturno%2Fabc"
+    );
+  });
+
   it("sólo se conocen los de la lista: un texto libre no es un aviso", () => {
     expect(isLoginNotice("clave-actualizada")).toBe(true);
     expect(isLoginNotice("codigo-requerido")).toBe(true);
+    expect(isLoginNotice("cuenta-creada")).toBe(true);
     expect(isLoginNotice("Tu cuenta fue bloqueada, llamá al 0800…")).toBe(false);
     expect(isLoginNotice(null)).toBe(false);
   });
