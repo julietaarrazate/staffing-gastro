@@ -401,6 +401,8 @@ async def create_event(
                 description=payload.description,
             ),
         )
+    except InvalidShiftScheduleError as exc:
+        raise _bad_request(str(exc)) from exc
     except PublishingNotAllowedError as exc:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)

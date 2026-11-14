@@ -13,6 +13,7 @@ import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/lib/use-ai-as
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { useCompanyPlace } from "@/lib/company-place";
 import ShiftDayHint from "@/components/ShiftDayHint";
+import { resolverHorario } from "@/lib/turno-horario";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 import { LIMITES } from "@/lib/limites";
@@ -128,11 +129,13 @@ function NewEventForm() {
   const longitude = place?.longitude ?? null;
   const hasPlace = place != null && city.trim() !== "";
   const totalRequested = roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
+  // Misma regla que /shifts/new y que el servidor (G14): cada puesto del
+  // evento es un turno, así que el inicio no puede haber pasado y la jornada
+  // dura de 1 a 16 horas; «de 21:00 a 02:00» termina al día siguiente.
+  const horario = resolverHorario(startAt, endAt);
   const canSubmit =
     name.trim() !== "" &&
-    startAt !== "" &&
-    endAt !== "" &&
-    endAt > startAt &&
+    horario.valido &&
     hasPlace &&
     roles.every((r) => Number(r.count) >= 1 && Number(r.payAmount) > 0);
 
@@ -149,7 +152,7 @@ function NewEventForm() {
         {
           name,
           start_at: localInputToArgentinaISO(startAt),
-          end_at: localInputToArgentinaISO(endAt),
+          end_at: localInputToArgentinaISO(horario.fin),
           city: city || null,
           latitude,
           longitude,
@@ -245,8 +248,15 @@ function NewEventForm() {
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-invalid={horario.errorInicio ? true : undefined}
+              aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
+              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
             />
+            {horario.errorInicio && (
+              <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
+                {horario.errorInicio}
+              </p>
+            )}
             <ShiftDayHint value={startAt} />
           </label>
           <label className="flex flex-1 flex-col gap-1.5">
@@ -255,9 +265,17 @@ function NewEventForm() {
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-invalid={horario.errorFin ? true : undefined}
+              aria-describedby={horario.errorFin ? "error-fin" : undefined}
+              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
             />
-            <ShiftDayHint value={endAt} />
+            {horario.errorFin ? (
+              <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
+                {horario.errorFin}
+              </p>
+            ) : (
+              <ShiftDayHint value={horario.fin} alDiaSiguiente={horario.alDiaSiguiente} />
+            )}
           </label>
         </div>
 

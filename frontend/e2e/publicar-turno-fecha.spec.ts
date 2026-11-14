@@ -49,6 +49,9 @@ async function irAlPasoCuando(page: Page, tema: "light" | "dark") {
       body: JSON.stringify(EMPLOYER),
     })
   );
+  // Reloj fijo: el formulario rechaza un inicio que ya pasó (G14), y los días en
+  // palabras de abajo son de una fecha concreta.
+  await page.clock.setFixedTime(new Date("2026-09-01T12:00:00-03:00"));
   await page.goto("/shifts/new");
   await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
 
@@ -140,6 +143,9 @@ test("evento: la fecha también se lee en oscuro y confirma el día", async ({ p
       body: JSON.stringify(EMPLOYER),
     })
   );
+  // Reloj fijo: el formulario rechaza un inicio que ya pasó (G14), y los días en
+  // palabras de abajo son de una fecha concreta.
+  await page.clock.setFixedTime(new Date("2026-09-01T12:00:00-03:00"));
   await page.goto("/shifts/new-event");
   await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
 

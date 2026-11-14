@@ -1,6 +1,7 @@
 """Fixtures de pytest: base de datos SQLite en memoria y cliente HTTP async."""
 
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -254,3 +255,19 @@ async def make_admin(
 ) -> dict:
     """Header Authorization de un admin con la verificación activa."""
     return (await enroll_admin(client, session_factory, email, full_name))["headers"]
+
+
+@pytest.fixture(autouse=True)
+def _reloj_de_la_regla_de_horario(request, monkeypatch):
+    """La regla de horario de un turno NUEVO (G14: inicio no pasado, 1 a 16 h,
+    `shift/domain/schedule.py`) mira el reloj. Muchos tests de otras áreas
+    arman turnos que ya empezaron (o con una fecha fija que el reloj dejó
+    atrás) para probar asistencia, el scheduler o el "no cubierto"; a ellos la
+    regla no les incumbe, así que su reloj queda en el año 2000. Sólo
+    `tests/test_shift_horario.py` (marca `regla_de_horario`) usa el reloj real."""
+    if request.node.get_closest_marker("regla_de_horario"):
+        return
+    monkeypatch.setattr(
+        "app.modules.shift.domain.schedule.now_art",
+        lambda: datetime(2000, 1, 1, tzinfo=timezone.utc),
+    )

@@ -98,6 +98,12 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
   pagado`, más `cancelado`.
 - **Reglas / invariantes:**
   - `start_at < end_at` (horario válido).
+  - **Al crear** un turno (y al cambiar su horario al editarlo): el inicio no
+    puede haber pasado (tolerancia de 5 minutos) y la duración va de 1 a 16
+    horas (`shift/domain/schedule.py`; el formulario aplica la misma regla en
+    `frontend/lib/turno-horario.ts`). Un turno ya creado puede tener otro
+    horario: la regla no corre al leerlo ni al operarlo. Los turnos de un
+    evento pasan por la misma regla.
   - Sólo editable/cancelable por su comercio dueño.
   - Aparece en el **feed** sólo si está en estados abiertos
     (`publicado`/`buscando_personal`, `OPEN_STATUSES`).

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, enDias, isoEnDias } from "./mocks";
 
 /**
  * Turno por texto libre (P2, auditoría de producto 2026-08-10): el comercio
@@ -38,8 +38,8 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
       contentType: "application/json",
       body: JSON.stringify({
         position: "mozo",
-        start_at: "2026-08-15T20:00:00-03:00",
-        end_at: "2026-08-16T02:00:00-03:00",
+        start_at: isoEnDias(30, "20:00"),
+        end_at: isoEnDias(31, "02:00"),
         pay_amount: "45000",
         urgent: false,
         meal: false,
@@ -145,8 +145,8 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   };
   expect(body.latitude).toBe(-34.5889);
   expect(body.longitude).toBe(-58.4306);
-  expect(body.start_at).toContain("2026-08-15T20:00");
-  expect(body.end_at).toContain("2026-08-16T02:00");
+  expect(body.start_at).toContain(enDias(30, "20:00"));
+  expect(body.end_at).toContain(enDias(31, "02:00"));
   expect(body.pay_amount).toBe("45000");
 });
 

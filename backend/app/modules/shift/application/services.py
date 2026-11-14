@@ -40,6 +40,7 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.punctuality import arrived_on_time
+from app.modules.shift.domain.schedule import mismo_instante, validar_horario_nuevo
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
@@ -155,6 +156,7 @@ class ShiftService:
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
+        validar_horario_nuevo(data.start_at, data.end_at)
         shift = Shift(
             company_id=company_id,
             position=data.position,
@@ -238,6 +240,12 @@ class ShiftService:
         shift = await self._get_owned(company_id, shift_id)
         shift.ensure_editable()
 
+        # La regla de horario de un turno nuevo (inicio no pasado, 1 a 16 h)
+        # sólo corre si se cambia el horario: reenviar el mismo de un borrador
+        # cuyo inicio ya pasó no puede fallar por eso.
+        inicio_igual = mismo_instante(shift.start_at, data.start_at)
+        if not (inicio_igual and mismo_instante(shift.end_at, data.end_at)):
+            validar_horario_nuevo(data.start_at, data.end_at, validar_inicio=not inicio_igual)
         shift.position = data.position
         shift.quantity = data.quantity
         shift.start_at = data.start_at
