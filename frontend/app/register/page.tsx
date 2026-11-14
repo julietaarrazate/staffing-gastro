@@ -11,6 +11,7 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 import { loginHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
 import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
+import { LIMITES } from "@/lib/limites";
 
 type Role = "worker" | "employer";
 
@@ -102,6 +103,7 @@ function RegisterForm() {
               onChange={setFullName}
               placeholder="Nombre completo"
               required
+              maxLength={LIMITES.nombre}
             />
             <TextField
               type="email"
@@ -122,7 +124,8 @@ function RegisterForm() {
               onChange={setPassword}
               placeholder="Contraseña (mín. 8 caracteres)"
               required
-              minLength={8}
+              minLength={LIMITES.contrasenaMin}
+              maxLength={LIMITES.contrasenaMax}
             />
             <label className="flex items-start gap-2.5 text-sm text-ink/70">
               <input

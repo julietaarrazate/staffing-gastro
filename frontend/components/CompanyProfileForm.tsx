@@ -13,6 +13,7 @@ import CoverPhotoUpload from "@/components/CoverPhotoUpload";
 import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
 import IconChip from "@/components/ui/IconChip";
+import { LIMITES } from "@/lib/limites";
 
 // maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
 // mapa, no con la página (medido 2026-10-22, ver historial).
@@ -131,7 +132,7 @@ export default function CompanyProfileForm() {
         value={name}
         onChange={setName}
         required
-        maxLength={255}
+        maxLength={LIMITES.nombreComercio}
       />
       <CoverPhotoUpload value={coverUrl} onChange={setCoverUrl} />
       <div>

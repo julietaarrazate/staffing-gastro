@@ -35,7 +35,7 @@ descuidado.
 | El chat es del comercio con la persona asignada | ✅ #532 |
 | Volver a postularse | ✅ #533 |
 
-### Reporte externo de pruebas (7 de 9 en `main`)
+### Reporte externo de pruebas (8 de 9 en `main`)
 
 | Reporte | Qué | Estado |
 |---|---|---|
@@ -47,11 +47,11 @@ descuidado.
 | BK-8E9CFE08111D | Candidatos: error de carga no es «nadie se postuló» | ✅ #542 |
 | BK-9FB6E2BC2226 | Avisos al celular: son de la cuenta con la sesión abierta | ✅ #545 |
 | BK-7DCC7E4AB945 | Las claves para no repetir un pedido se pierden al recargar | ⚪ |
-| BK-898A15047291 | «Pagado hasta» queda viejo con la pestaña abierta | 🟡 diseñado: va con U093 (G11) |
+| BK-898A15047291 | «Pagado hasta» queda viejo con la pestaña abierta | ✅ #570 |
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 45 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 48 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -106,10 +106,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G8 |
+| U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | ✅ en `main` | #571 (prueba en la app hecha el 2026-11-14) |
 | U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | ✅ en `main` | #569 (prueba en la app hecha el 2026-11-14) |
 | U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G10 |
-| U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G11 · va junto con BK-898A15047291 |
+| U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | ✅ en `main` | #570 (prueba en la app hecha el 2026-11-14) |
 
 **Tanda 6**
 
@@ -204,6 +204,51 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
+
+### Hallazgos nuevos de la prueba en la app (2026-11-14)
+
+- **Grave: el pago con coma se multiplica por 100.** En publicar (y en el
+  evento), escribir «15000,50» deja el campo en «1500050» y el turno se
+  publica con $1.500.050, sin aviso: el campo es `type="number"` y el
+  navegador descarta la coma. Ya pasaba antes de #571; se vio en su prueba en
+  la app. Falta verificarlo en un celular con teclado en castellano y
+  decidir el arreglo (campo de texto con formato de pesos, o aceptar la coma
+  como decimal).
+- **Menor: la distancia de «Llegué» sale en metros crudos** («estás a 274732
+  metros»): conviene kilómetros arriba de 1000 m (#569).
+- **Menor: en «Editar perfil», «años de experiencia» mayor a 80** frena con el
+  aviso nativo del navegador (en inglés en algunos), no con uno propio.
+
+### Para revisar con Fable (anotado el 2026-11-14)
+
+La sesión del 2026-11-14 siguió con Opus 5.5 cuando se acabó el cupo de
+Fable. Lo que sigue quedó para hacerlo o revisarlo con Fable, porque cambia
+el modelo del dominio, un ADR vigente o un texto legal:
+
+- **G4** (U021, U123): estado nuevo `desasignada` de la postulación, con
+  migración. Toca cómo se asigna y se reasigna un turno.
+- **U080, U081 y U072** (decisiones 2, 3, 4 y 16): cambian el ADR-0007 y el
+  ADR-0008, y U072 cambia el texto de `/privacidad` (sube la versión, junto
+  con la decisión 1).
+- **P1 a P5**, las mejoras de producto aprobadas.
+- **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), lo más
+  delicado de lo que se hizo con Opus.
+- **Pasada por clase de error** (propuesta del 2026-11-14): el reporte
+  externo de Breken encontró en una lectura del código 9 errores que la prueba
+  de punta a punta no vio (claves que se pierden al recargar, datos viejos con
+  la pestaña abierta, guardados que pisan otros datos). La etapa 1 recorrió
+  la app como una persona, las revisiones miran sólo el diff de cada PR, y los
+  e2e simulan la API a mano (en G8 los tests pasaban con un 422 que el
+  servidor nunca manda). Propuesta: un agente por clase (concurrencia e
+  idempotencia; estado viejo con la pestaña abierta; sesión; escrituras que
+  pisan; fechas y zona horaria; privacidad entre roles) sobre las áreas de la
+  beta (turno, postulación, sesión, pagos, avisos), cada hallazgo verificado
+  antes de entrar acá. Y tests de contrato: los mocks del frontend armados
+  con respuestas reales del backend.
+- **«Mi plan» con el cobro prendido y el tope apagado** (una configuración
+  intermedia que la beta no usa): la tarjeta dice «Durante la beta no hay
+  tope» y el subtítulo de los planes habla del cobro (salió de la revisión de
+  #570).
 
 ### Criterio de Julieta para decidir (2026-11-13)
 

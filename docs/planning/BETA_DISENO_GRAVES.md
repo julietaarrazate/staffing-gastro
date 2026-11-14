@@ -23,7 +23,7 @@ vez. Como mucho cuatro PRs abiertos.
 | Ola | Grupos | Por qué en ese orden |
 |---|---|---|
 | A (✅ en `main`, 2026-11-14) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
-| B | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
+| B (✅ en `main`, 2026-11-14) | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
 | C (reglas del producto, ya decididas) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
 | D | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
 
@@ -39,16 +39,8 @@ G5 #561, G1 #560, G7 #559).
 
 ## Ola B
 
-### G8 · Errores de validación que se entienden (U030, U031) — S
-
-- `lib/api.ts` (`parseErrorDetail`): leer el detalle en forma de lista y
-  traducirlo por tipo («Máximo 2000 caracteres», «Tiene que ser un mail
-  válido», «Entre 1 y 50»), con el nombre del campo en castellano; si no se
-  reconoce, «Revisá los datos».
-- Los campos llevan los mismos límites que el servidor (`maxLength`, `max`,
-  `step`) en chat, publicar, perfil y registro.
-- `app/my-shifts/page.tsx`: el error de «Llegué» y «Me fui» sale como aviso
-  flotante, no arriba de la lista.
+Los seis grupos de la ola B están en `main` desde el 2026-11-14 (G13 #564,
+G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 ## Ola C
 
@@ -89,15 +81,6 @@ G5 #561, G1 #560, G7 #559).
   suspender cuántos turnos toca. Simétrico al suspender a un trabajador con
   turnos confirmados: el turno se reabre y se le avisa al comercio.
 - ADR nuevo (efectos de una suspensión) antes del código.
-
-### G11 · «Mi plan» durante la beta (U093, BK-898A15047291) — S
-
-- El servidor ya sabe si el tope se exige; `/subscription` lo expone y
-  `components/subscription/SubscriptionStatusCard.tsx` lo respeta: sin tope
-  exigido, muestra el uso sin alarma, una línea «Durante la beta no hay tope
-  de turnos», y no muestra «Alcanzaste el límite» ni la oferta de cambio.
-- «Pagado hasta» se vuelve a pedir al volver a la pestaña (`useLiveRefresh`
-  de G1).
 
 ### G14 · Fechas y duración del turno (U055, U056, U060) — C
 
