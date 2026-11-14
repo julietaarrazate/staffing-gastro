@@ -1,4 +1,4 @@
-# La portada del admin cuenta lo de hoy (G26: U125, U126, U127) (#PRNUM)
+# La portada del admin cuenta lo de hoy (G26: U125, U126, U127) (#580)
 
 **Pedido:** salida a beta, grupo G26. «Urgentes sin cubrir» de la portada del
 admin sumaba urgentes de cualquier día; «Ausencias de hoy» llevaba a una lista
