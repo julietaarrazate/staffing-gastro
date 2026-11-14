@@ -1,4 +1,4 @@
-# Las tarjetas dicen quién y cuántos (G19: U065, U024, U025)
+# Las tarjetas dicen quién y cuántos (G19: U065, U024, U025) (#568)
 
 **Pedido:** salida a beta, grupo G19. En Matches → Postulaciones las tarjetas no
 decían de qué comercio era el turno; en el panel del comercio el siguiente paso
