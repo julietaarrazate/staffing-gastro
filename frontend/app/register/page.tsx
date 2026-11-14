@@ -60,8 +60,15 @@ function RegisterForm() {
     setError(null);
     setSubmitting(true);
     try {
-      await register(email, password, fullName, role);
+      const { signedIn } = await register(email, password, fullName, role);
       if (role === "employer" && planElegido) guardarPlanElegido(planElegido);
+      if (!signedIn) {
+        // La cuenta se creó pero el ingreso automático fue frenado: sin cartel
+        // de error, al ingreso con el aviso. El plan ya quedó guardado y el
+        // `next` viaja; al ingresar, `/login` sigue por `/bienvenida`.
+        router.replace(loginHref({ aviso: "cuenta-creada", next }));
+        return;
+      }
       // `replace` para no volver a /register al ir "atrás". Los dos roles pasan
       // por el onboarding de `/bienvenida` (zona+oficio para el trabajador,
       // nombre+ubicación para el comercio) — ese componente decide qué mostrar
