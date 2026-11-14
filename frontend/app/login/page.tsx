@@ -9,7 +9,15 @@ import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
-import { bienvenidaHref, isSessionEndReason, registerHref, safeNext, SESSION_END_MESSAGES } from "@/lib/safe-next";
+import {
+  bienvenidaHref,
+  isLoginNotice,
+  isSessionEndReason,
+  LOGIN_NOTICES,
+  registerHref,
+  safeNext,
+  SESSION_END_MESSAGES,
+} from "@/lib/safe-next";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 function LoginForm() {
@@ -17,7 +25,10 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Mensaje opcional tras un redirect (p. ej. `/restablecer` al terminar OK).
-  const infoMessage = searchParams.get("message");
+  // Texto fijo por aviso: lo que venga en la dirección y no esté en la lista
+  // no se muestra.
+  const aviso = searchParams.get("aviso");
+  const infoMessage = isLoginNotice(aviso) ? LOGIN_NOTICES[aviso] : null;
   // La sesión terminó sola (`useRequireAuth` manda acá con el motivo): se
   // dice por qué, con un texto fijo por motivo, y al ingresar se vuelve a la
   // ruta en la que estaba la persona, si es una ruta interna.

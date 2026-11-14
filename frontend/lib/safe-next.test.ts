@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { isSessionEndReason, loginHref, registerHref, bienvenidaHref, nextDeCabecera, safeNext } from "@/lib/safe-next";
+import {
+  bienvenidaHref,
+  isLoginNotice,
+  isSessionEndReason,
+  loginHref,
+  nextDeCabecera,
+  registerHref,
+  safeNext,
+} from "@/lib/safe-next";
 
 describe("safeNext: sólo rutas internas", () => {
   it.each([
@@ -89,6 +97,19 @@ describe("loginHref", () => {
   it("no manda un `next` que no sea interno, ni la raíz", () => {
     expect(loginHref({ motivo: "vencida", next: "//otro.sitio" })).toBe("/login?motivo=vencida");
     expect(loginHref({ next: "/" })).toBe("/login");
+  });
+});
+
+describe("avisos del ingreso", () => {
+  it("viajan como una palabra", () => {
+    expect(loginHref({ aviso: "clave-actualizada" })).toBe("/login?aviso=clave-actualizada");
+  });
+
+  it("sólo se conocen los de la lista: un texto libre no es un aviso", () => {
+    expect(isLoginNotice("clave-actualizada")).toBe(true);
+    expect(isLoginNotice("codigo-requerido")).toBe(true);
+    expect(isLoginNotice("Tu cuenta fue bloqueada, llamá al 0800…")).toBe(false);
+    expect(isLoginNotice(null)).toBe(false);
   });
 });
 

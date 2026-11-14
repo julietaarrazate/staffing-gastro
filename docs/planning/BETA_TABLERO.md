@@ -190,12 +190,6 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Campanita: si el WebSocket se cae dos veces en menos de 30 segundos, la
   segunda reconexión no vuelve a pedir las pantallas (tope contra el bucle
   de recargas; salió de la revisión de #560).
-- Sesión (salió de la revisión de #559): el alta de la verificación en dos
-  pasos no espera a una renovación en vuelo (si coinciden, la admin tiene que
-  ingresar de nuevo); si en otra pestaña se ingresa con otra cuenta, ésta no
-  se entera hasta su próxima renovación; y `/login?message=…` muestra el
-  texto que venga en la dirección (conviene pasarlo a motivos fijos, como
-  `?motivo=`).
 - Al pasar del registro al ingreso y volver («Ingresá» / «Creá una») se
   pierden el rol y el plan que venían en la dirección (ya pasaba; la vuelta
   `next` sí se conserva desde #565).
