@@ -52,7 +52,8 @@ def test_dominio_rechaza_la_ausencia_antes_de_los_15_minutos(now):
         turno.no_show(now)
 
     # Hora de Argentina, formato de persona (no ISO, no UTC).
-    assert "09/03 a las 20:15" in str(exc.value)
+    assert "desde las 20:15 de " in str(exc.value)
+    assert "23:15" not in str(exc.value)
     assert "T" not in str(exc.value).replace("Todavía", "")
     # Sin efectos: sigue confirmado y sin penalidad registrada.
     assert turno.status == ShiftStatus.CONFIRMADO
@@ -89,7 +90,9 @@ async def test_api_rechaza_con_la_hora_y_no_penaliza_antes_de_empezar(
     assert marked.status_code == 400
     detalle = marked.json()["detail"]
     assert detalle.startswith("Todavía no podés marcar que no se presentó")
-    assert "(hora de Argentina), 15 minutos después del inicio." in detalle
+    assert "se habilita desde las " in detalle
+    assert detalle.endswith("15 minutos después de que empieza el turno.")
+    assert "T" not in detalle.replace("Todavía", "")  # sin fecha ISO
 
     perfil = await client.get("/api/v1/workers/me/profile", headers=worker)
     assert perfil.json()["no_shows"] == 0

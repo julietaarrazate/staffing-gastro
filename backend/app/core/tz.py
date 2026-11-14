@@ -59,6 +59,47 @@ def format_inicio_art(start_at: datetime, now: datetime | None = None) -> str:
     return f"el {_DIAS[inicio.weekday()]} {inicio:%d/%m} a las {inicio:%H:%M}"
 
 
+def format_duracion(value: timedelta) -> str:
+    """Una duración en palabras: "2 horas", "45 minutos", "1 hora y 30
+    minutos", "1 día". Redondea hacia arriba al minuto (nadie lee segundos en
+    un aviso de "todavía falta") y nunca devuelve algo como "PT2H" ni
+    "2:00:00"."""
+    minutos = max(0, -(-int(value.total_seconds()) // 60))
+    if minutos == 0:
+        return "menos de un minuto"
+    dias, resto = divmod(minutos, 24 * 60)
+    horas, mins = divmod(resto, 60)
+    partes = []
+    if dias:
+        partes.append(f"{dias} día" + ("s" if dias != 1 else ""))
+    if horas:
+        partes.append(f"{horas} hora" + ("s" if horas != 1 else ""))
+    if mins:
+        partes.append(f"{mins} minuto" + ("s" if mins != 1 else ""))
+    if len(partes) == 1:
+        return partes[0]
+    return ", ".join(partes[:-1]) + " y " + partes[-1]
+
+
+def format_desde_art(momento: datetime, now: datetime | None = None) -> str:
+    """Desde cuándo se habilita algo, para una frase, en hora argentina:
+    "desde las 13:20 de hoy", "desde las 13:20 de mañana", "desde las 13:20
+    del viernes" (dentro de la semana) o "desde las 13:20 del viernes 27/11"
+    (más lejos, para que "viernes" no sea ambiguo)."""
+    cuando = to_art(momento)
+    hoy = to_art(now if now is not None else datetime.now(timezone.utc)).date()
+    dias = (cuando.date() - hoy).days
+    hora = f"{cuando:%H:%M}"
+    if dias == 0:
+        return f"desde las {hora} de hoy"
+    if dias == 1:
+        return f"desde las {hora} de mañana"
+    dia = _DIAS[cuando.weekday()]
+    if 1 < dias < 7:
+        return f"desde las {hora} del {dia}"
+    return f"desde las {hora} del {dia} {cuando:%d/%m}"
+
+
 def now_art() -> datetime:
     """Fecha y hora actual en Argentina (timezone-aware)."""
     return datetime.now(ARG_TZ)

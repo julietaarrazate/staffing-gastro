@@ -232,6 +232,10 @@ export default function MatchesPage() {
       const msg = getErrorMessage(err, "No se pudo completar la acción");
       if (geo) setGeoError(msg);
       else toast(msg, "error");
+      // También al fallar: el turno pudo cambiar (el comercio lo canceló, ya
+      // estaba confirmado) y la pantalla no puede seguir ofreciendo el botón.
+      // Silenciosa: sin esqueleto, y si falla no pisa el aviso de arriba.
+      await load({ silent: true });
     } finally {
       setBusy(null);
     }
