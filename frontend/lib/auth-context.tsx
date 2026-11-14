@@ -152,6 +152,8 @@ const SESSION_END_KEY = "staffya_session_end";
 // ésta, que sigue mostrando la anterior, renovaría con la ajena. Con esta
 // clave se entera (evento `storage`) y se recarga.
 const SESSION_USER_KEY = "staffya_session_user";
+// Para qué cuenta ya se recargó esta pestaña (ver `sessionMovedOn`).
+const RELOADED_FOR_KEY = "staffya_reloaded_for";
 
 function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
@@ -191,6 +193,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function rememberSessionUser(account: User) {
     sessionUserId.current = account.id;
     localStorage.setItem(SESSION_USER_KEY, account.id);
+  }
+
+  /** Al recuperar la sesión guardada: si mientras se esperaba al servidor
+   * otra pestaña ingresó con otra cuenta, la sesión del navegador ya es de
+   * esa cuenta y lo que contestó el servidor es de la anterior. No se pisa
+   * la clave (la otra pestaña se recargaría sin motivo): se recarga ésta.
+   * Una sola vez por cuenta, por si la clave hubiera quedado vieja. */
+  function sessionMovedOn(me: User): boolean {
+    const owner = localStorage.getItem(SESSION_USER_KEY);
+    if (!owner || owner === me.id) return false;
+    if (sessionStorage.getItem(RELOADED_FOR_KEY) === owner) return false;
+    sessionStorage.setItem(RELOADED_FOR_KEY, owner);
+    sessionEpoch.current += 1;
+    clearAllCached();
+    reloadPage();
+    return true;
   }
   // Snapshot de la sesión admin real mientras se está impersonando otro
   // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
@@ -420,6 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const me = await api.get<User>("/auth/me", storedAccess, AUTH_TIMEOUT_MS);
           if (sessionEpoch.current !== epoch) return "ok";
+          if (sessionMovedOn(me)) return "none";
           setUser(me);
           rememberSessionUser(me);
           return "ok";
@@ -443,6 +462,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const me = await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS);
         if (sessionEpoch.current !== epoch) return "ok";
+        if (sessionMovedOn(me)) return "none";
         setUser(me);
         rememberSessionUser(me);
         return "ok";

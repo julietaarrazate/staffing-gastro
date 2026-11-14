@@ -98,6 +98,7 @@ beforeEach(() => {
   fetchMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   localStorage.clear();
+  sessionStorage.clear();
   backend = { "POST /auth/logout": [204] };
 });
 
@@ -877,6 +878,29 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       expect(localStorage.getItem("staffya_session_user")).toBe(TRABAJADORA.id);
       act(() => otherTabSignsInAs(ADMIN.id));
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+    });
+
+    it("si ingresa mientras esta pestaña todavía se estaba abriendo, no le pisa la cuenta: se recarga ésta", async () => {
+      localStorage.setItem("staffya_token", "token-guardado");
+      localStorage.setItem("staffya_has_session", "1");
+      localStorage.setItem("staffya_session_user", TRABAJADORA.id);
+      let answer: (reply: Reply) => void = () => {};
+      backend["GET /auth/me"] = new Promise<Reply>((resolve) => {
+        answer = resolve;
+      });
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+      // La otra pestaña ingresa con otra cuenta antes de que conteste.
+      localStorage.setItem("staffya_token", "token-admin");
+      localStorage.setItem("staffya_session_user", ADMIN.id);
+      await act(async () => {
+        answer([200, TRABAJADORA]);
+      });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(localStorage.getItem("staffya_session_user")).toBe(ADMIN.id);
+      expect(result.current.user).toBeNull();
       expect(reloadPage).toHaveBeenCalledTimes(1);
     });
 

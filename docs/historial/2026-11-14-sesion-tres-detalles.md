@@ -32,6 +32,12 @@ había dejado anotado en el tablero sin arreglar.
   ese pedido lleva el token de la sesión y, si venció, necesita renovarlo.
   Alcanza con esperar a la renovación en vuelo antes de mandarlo.
 
+**Lo que encontró la revisión independiente (arreglado acá):** una pestaña
+que todavía se estaba abriendo podía pisar la clave con su cuenta vieja si
+otra ingresaba mientras tanto, y la que acababa de ingresar se recargaba sin
+motivo. Ahora, si la clave ya es de otra cuenta, la que se recarga es la que
+se estaba abriendo (una sola vez por cuenta).
+
 **Queda abierto:** una pestaña **sin** sesión no se entera sola de que otra
 ingresó (sigue mostrando el ingreso o la landing hasta que se navega o se
 recarga).

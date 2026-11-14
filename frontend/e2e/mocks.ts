@@ -18,6 +18,8 @@ export const HAS_SESSION_KEY = "staffya_has_session";
 // otras pestañas y que los specs no necesitan inyectar:
 // `staffya_session_end` (por qué se borró la marca) y `staffya_session_user`
 // (el id de la cuenta dueña de la sesión, que no es un secreto).
+// En `sessionStorage`, `staffya_reloaded_for` evita recargar dos veces la
+// misma pestaña por la misma cuenta.
 
 // Claves de localStorage de los mini-tours de `components/GuidedTour.tsx`
 // (uno por pantalla). `injectSession` los marca como ya vistos por
