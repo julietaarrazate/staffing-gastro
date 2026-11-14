@@ -1,4 +1,4 @@
-# Errores del turno en castellano de persona (G9, U028 y U029)
+# Errores del turno en castellano de persona (G9, U028 y U029) (#569)
 
 **Pedido:** salida a beta (G9). Los errores del turno decían «el turno empieza el 2026-11-13T16:…» (ISO, en UTC, tres horas corrida) y, en las transiciones inválidas, nombres de estados internos con flechas.
 
