@@ -1,4 +1,4 @@
-# Tarjetas que se salen de la pantalla con un nombre largo (G24: U026, U075, U124)
+# Tarjetas que se salen de la pantalla con un nombre largo (G24: U026, U075, U124) (#566)
 
 **Pedido:** Julieta, salida a beta (G24). En celular, con un nombre largo, la
 tarjeta se salía de la pantalla y el botón quedaba afuera. Más un ajuste del

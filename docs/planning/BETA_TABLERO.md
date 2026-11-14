@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 34 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 37 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -132,7 +132,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G21 |
 | U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G22 |
 | U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G23 |
-| U026, U075, U124 | En celular, con un nombre largo la tarjeta de candidato se sale de la pantalla y «Asignar» queda afuera (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G24 |
+| U026, U075, U124 | En celular, con un nombre largo la tarjeta de candidato se sale de la pantalla y «Asignar» queda afuera (y 2 más de la misma causa) | ✅ en `main` | #566 (prueba en la app hecha el 2026-11-14) |
 | U083, U086 | El contador del evento «N/M cubiertos» no baja al cancelar y cuenta cancelados y asignados sin confirmar (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G25 |
 
 **Tanda 8**
@@ -199,9 +199,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Al pasar del registro al ingreso y volver («Ingresá» / «Creá una») se
   pierden el rol y el plan que venían en la dirección (ya pasaba; la vuelta
   `next` sí se conserva desde #565).
-- Postulantes a 390 px: el sello «Identidad verificada» entra justo al lado
-  de «Asignar»; con la letra del sistema agrandada puede no entrar (por
-  debajo de 390 px ya pasa a escudo solo). Va con G24 (salió de #561).
+- A 320 px (prueba en la app de #566): en candidatos la pestaña activa
+  «Recomendados (10)» sobresale ~9 px de su carril, y en «Turnos en vivo» el
+  selector corta «Escalad…» (se puede deslizar). La página no se ensancha.
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).

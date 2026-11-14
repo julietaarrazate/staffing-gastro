@@ -79,16 +79,6 @@ Reusar `lib/use-tap-guard.ts`; no crear otra guarda.
 - Pruebas: tests del dominio por mensaje (ninguno contiene `T` de fecha ni
   `→`).
 
-### G24 · Tarjetas que se salen de la pantalla (U026, U075, U124) — M
-
-`min-w-0` (y `grid-cols-1` donde falta) en
-`app/shifts/[id]/candidates/page.tsx`, `components/CandidateCard.tsx`,
-`app/chats/layout.tsx`, `app/admin/en-vivo/page.tsx` y
-`app/admin/support/page.tsx`. Capturas a 390 px con un nombre de 60 letras,
-en claro y oscuro. La lista de postulantes de
-`app/shifts/[id]/candidates/page.tsx` ya no se sale con un nombre largo
-(`min-w-0`, #561): ahí falta sólo verificarlo.
-
 ## Ola C
 
 ### G4 · La lista de postulantes dice quién sigue (U021, U123) — C
