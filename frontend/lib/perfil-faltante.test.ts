@@ -8,7 +8,7 @@ vi.mock("@/lib/api", async (orig) => {
   return { ...real, api: { get: (...a: unknown[]) => get(...a) } };
 });
 
-import { destinoTrasIngreso, esComercioSinPerfil, faltaPerfil } from "./perfil-faltante";
+import { comercioSinPerfilTras400, destinoTrasIngreso, faltaPerfil } from "./perfil-faltante";
 
 const usuario = (role: User["role"]) => ({ id: "u", role }) as User;
 
@@ -60,10 +60,20 @@ describe("destinoTrasIngreso", () => {
   });
 });
 
-describe("esComercioSinPerfil", () => {
-  it("es el 400 con el texto del backend, no cualquier 400", () => {
-    expect(esComercioSinPerfil(new ApiError(400, "Primero creá tu perfil de comercio para publicar turnos"))).toBe(true);
-    expect(esComercioSinPerfil(new ApiError(400, "Otra cosa"))).toBe(false);
-    expect(esComercioSinPerfil(new ApiError(500, "Primero creá tu perfil de comercio"))).toBe(false);
+describe("comercioSinPerfilTras400", () => {
+  beforeEach(() => get.mockReset());
+
+  it("un 400 se confirma con el perfil: 404 = falta; con perfil, es otro error", async () => {
+    get.mockRejectedValueOnce(new ApiError(404, "x"));
+    expect(await comercioSinPerfilTras400(new ApiError(400, "cualquier texto"), "t")).toBe(true);
+    expect(get).toHaveBeenLastCalledWith("/companies/me/profile", "t");
+    get.mockResolvedValueOnce({});
+    expect(await comercioSinPerfilTras400(new ApiError(400, "Primero creá tu perfil de comercio"), "t")).toBe(false);
+  });
+
+  it("lo que no es un 400 no consulta nada", async () => {
+    expect(await comercioSinPerfilTras400(new ApiError(500, "boom"), "t")).toBe(false);
+    expect(await comercioSinPerfilTras400(new Error("offline"), "t")).toBe(false);
+    expect(get).not.toHaveBeenCalled();
   });
 });

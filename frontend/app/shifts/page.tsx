@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
-import { esComercioSinPerfil } from "@/lib/perfil-faltante";
+import { comercioSinPerfilTras400 } from "@/lib/perfil-faltante";
 import { bienvenidaHref } from "@/lib/safe-next";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -249,10 +249,14 @@ function MyShiftsPanel() {
       setError(null);
       setSinPerfil(false);
     } catch (err) {
-      if (mine === latestLoad.current && esComercioSinPerfil(err)) {
+      // Un 400 puede ser «todavía no creaste tu comercio»: se confirma con el
+      // perfil antes de decirlo.
+      const sin = mine === latestLoad.current && (await comercioSinPerfilTras400(err, token));
+      if (mine !== latestLoad.current) return;
+      if (sin) {
         setSinPerfil(true);
         setError(null);
-      } else if (mine === latestLoad.current && !silent) {
+      } else if (!silent) {
         setError(getErrorMessage(err, "Error al cargar tus turnos"));
       }
     } finally {

@@ -25,9 +25,12 @@ export function esPerfilInexistente(err: unknown): boolean {
   return err instanceof ApiError && err.status === 404;
 }
 
-/** El panel del comercio sin perfil responde 400 con este texto fijo. */
-export function esComercioSinPerfil(err: unknown): boolean {
-  return err instanceof ApiError && err.status === 400 && /perfil de comercio/i.test(err.message);
+/** El panel del comercio sin perfil responde 400, pero un 400 solo no alcanza
+ * para decirlo (no se compara el texto del mensaje): se confirma preguntando
+ * por el perfil, como `faltaPerfil`. */
+export async function comercioSinPerfilTras400(err: unknown, token: string): Promise<boolean> {
+  if (!(err instanceof ApiError) || err.status !== 400) return false;
+  return faltaPerfil(token, "employer");
 }
 
 /** `true` si la cuenta es de un rol con perfil y todavía no lo creó. */

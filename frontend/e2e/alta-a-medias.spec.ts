@@ -137,6 +137,7 @@ test.describe("Inicio y panel", () => {
     await injectSession(page);
     await base(page, "employer");
     await page.route("**/api/v1/shifts/me", (r) => r.fulfill(PANEL_SIN_COMERCIO));
+    await page.route("**/api/v1/companies/me/profile", (r) => r.fulfill(SIN_PERFIL_COMERCIO));
     await page.goto("/shifts");
     const cartel = page.getByTestId("perfil-faltante");
     await expect(cartel.getByRole("heading", { name: "Te falta completar tu comercio" })).toBeVisible();
@@ -145,6 +146,34 @@ test.describe("Inicio y panel", () => {
     await cartel.getByRole("link", { name: "Completar mi comercio" }).click();
     await expect(page).toHaveURL(/\/bienvenida\?next=%2Fshifts$/);
   });
+});
+
+test("un 400 del panel con el perfil creado sigue siendo un error con Reintentar", async ({ page }) => {
+  await injectSession(page);
+  await base(page, "employer");
+  await page.route("**/api/v1/shifts/me", (r) => r.fulfill(json(400, { detail: "Otro problema" })));
+  await page.route("**/api/v1/companies/me/profile", (r) => r.fulfill(json(200, { id: "c1", name: "Bar" })));
+  await page.goto("/shifts");
+  await expect(page.getByText("Otro problema")).toBeVisible();
+  await expect(page.getByTestId("perfil-faltante")).toHaveCount(0);
+});
+
+test("Inicio sin perfil no muestra «No hay más turnos»; sin zona hay un solo botón ámbar", async ({ page }) => {
+  await injectSession(page);
+  await base(page, "worker");
+  await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(SIN_PERFIL_TRABAJADOR));
+  await page.goto("/feed");
+  await expect(page.getByTestId("perfil-faltante")).toBeVisible();
+  await expect(page.getByText(/No hay más turnos/)).toHaveCount(0);
+
+  await page.route("**/api/v1/workers/me/profile", (r) =>
+    r.fulfill(json(200, { ...PERFIL_TRABAJADOR, latitude: null, longitude: null, skills: [] })),
+  );
+  await page.goto("/feed");
+  await expect(page.getByText(/No hay más turnos/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Actualizar" })).toBeVisible();
+  // El «Actualizar» del vacío ya no es el botón primario (ámbar).
+  await expect(page.getByRole("button", { name: "Actualizar" })).not.toHaveClass(/bg-primary/);
 });
 
 test.describe("la bienvenida del comercio con el perfil ya creado", () => {

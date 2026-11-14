@@ -486,13 +486,20 @@ function WorkerFeedPanel() {
       : actualizar;
   const emptySecondaryAction = assistantSearch || emptyNearHere ? undefined : emptyNoneInZone ? actualizar : verTodosEnBuscar;
 
-  const emptyState = (
+  // El cartel de «te falta completar…» es el único acento ámbar de la
+  // pantalla: con él a la vista, el vacío no suma otro botón primario (el
+  // principal pasa a secundario). Sin perfil, el vacío ni se muestra: «no hay
+  // más turnos» sería falso, la persona todavía no vio nada.
+  const incompleto =
+    !!profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length);
+  const hayCartel = sinPerfil || incompleto;
+  const emptyState = sinPerfil ? null : (
     <EmptyState
       icon={<EmptyFeedIllustration color="var(--color-primary)" />}
       title={emptyTitle}
       subtitle={emptySubtitle}
-      primaryAction={emptyStateAction}
-      secondaryAction={emptySecondaryAction}
+      primaryAction={hayCartel ? undefined : emptyStateAction}
+      secondaryAction={hayCartel ? emptyStateAction : emptySecondaryAction}
     />
   );
 
@@ -557,7 +564,7 @@ function WorkerFeedPanel() {
           />
         </div>
       )}
-      {!loading && !sinPerfil && profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length) && (
+      {!loading && !sinPerfil && incompleto && (
         <div className="-mt-1 mb-4">
           <PerfilFaltanteCard
             title="Completá tu zona y tus oficios para recibir turnos"
