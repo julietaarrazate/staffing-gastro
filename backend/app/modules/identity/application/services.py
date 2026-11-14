@@ -328,6 +328,13 @@ class IdentityService:
             raise InvalidTokenError()
         if session.is_revoked:
             await self._sessions.revoke_all_for_user(session.user_id)
+            # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
+            # quien vuelve con la suya tiene que enterarse de que la cuenta está
+            # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
+            # sesión ya era de esta persona: no se le revela nada nuevo.
+            owner = await self._users.get_by_id(session.user_id)
+            if owner is not None and not owner.is_active:
+                raise InactiveUserError()
             raise RefreshTokenRevokedError()
 
         user = await self._users.get_by_id(session.user_id)

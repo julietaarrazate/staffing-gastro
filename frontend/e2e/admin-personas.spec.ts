@@ -80,6 +80,10 @@ const json = (body: unknown) => ({
   body: JSON.stringify(body),
 });
 
+// Ana está asignada o confirmada en dos turnos que no empezaron: si se la
+// suspende, vuelven a buscar personal (ADR-0024).
+const ANA_PREVIEW = { hidden: 0, cancelled: 0, reopened: 2 };
+
 async function setup(page: Page, queries: string[] = [], actions: string[] = []) {
   await injectSession(page);
   await skipSplash(page);
@@ -106,7 +110,10 @@ async function setup(page: Page, queries: string[] = [], actions: string[] = [])
   });
   await page.route("**/api/v1/admin/users/u-ana", (route) => route.fulfill(json(ANA_DETAIL)));
   await page.route("**/api/v1/admin/users/u-ana/*", (route) => {
-    actions.push(new URL(route.request().url()).pathname.split("/").pop() ?? "");
+    const action = new URL(route.request().url()).pathname.split("/").pop() ?? "";
+    // Mirar la vista previa no es una acción: no cambia nada.
+    if (action === "suspension-preview") return route.fulfill(json(ANA_PREVIEW));
+    actions.push(action);
     return route.fulfill(json({ ...ANA, is_verified: true }));
   });
 }
@@ -161,6 +168,12 @@ test("suspender pide confirmación antes de actuar", async ({ page }) => {
   await page.goto("/admin/personas/u-ana");
   await page.getByRole("button", { name: "Suspender", exact: true }).click();
   await expect(page.getByText("¿Suspender a Ana Mozo?")).toBeVisible();
+  // Antes de confirmar se ve qué les pasa a sus turnos.
+  await expect(
+    page.getByText(
+      "2 turnos suyos vuelven a buscar personal. Le avisamos a cada comercio, sin sumarle una cancelación."
+    )
+  ).toBeVisible();
   await page.getByRole("button", { name: "Volver" }).click();
   expect(actions).toEqual([]);
 
@@ -169,7 +182,44 @@ test("suspender pide confirmación antes de actuar", async ({ page }) => {
   await expect.poll(() => actions).toEqual(["suspend"]);
 });
 
+test("mientras cuenta los turnos no se puede confirmar, y si no puede contarlos lo dice", async ({
+  page,
+}) => {
+  await setup(page);
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/api/v1/admin/users/u-ana/suspension-preview", async (route) => {
+    await held;
+    return route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+  });
+  await page.goto("/admin/personas/u-ana");
+  await page.getByRole("button", { name: "Suspender", exact: true }).click();
+  await expect(page.getByText("Contando sus turnos…")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sí, suspender" })).toBeDisabled();
+  release();
+  await expect(page.getByText("No pudimos contar sus turnos.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sí, suspender" })).toBeEnabled();
+});
+
 for (const theme of ["light", "dark"] as const) {
+  test(`captura del diálogo de suspender con sus turnos en ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setTheme(page, theme);
+    await setup(page);
+    await page.route("**/api/v1/admin/users/u-ana/suspension-preview", (route) =>
+      route.fulfill(json({ hidden: 3, cancelled: 1, reopened: 0 }))
+    );
+    await page.goto("/admin/personas/u-ana");
+    await page.getByRole("button", { name: "Suspender", exact: true }).click();
+    await expect(page.getByText("Se ocultan 3 turnos abiertos", { exact: false })).toBeVisible();
+    // La foto, con el diálogo ya entrado (no a mitad de la animación).
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => a.playState !== "running")
+    );
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await page.screenshot({ path: `test-results/admin-suspender-${theme}.png` });
+  });
+
   test(`capturas de Personas y la ficha en ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await setTheme(page, theme);

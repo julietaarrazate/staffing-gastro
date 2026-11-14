@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ACCOUNT_SUSPENDED_CODE,
   api,
   ApiError,
   bindSessionToken,
   hasBoundSession,
+  isAccountSuspended,
   isTransientFailure,
   NetworkError,
   renewSessionToken,
@@ -163,9 +163,7 @@ function persistAccessToken(access: string) {
 
 /** Qué dice el servidor al rechazar una renovación. */
 function endReasonFrom(err: unknown): SessionEndReason {
-  return err instanceof ApiError && err.status === 403 && err.code === ACCOUNT_SUSPENDED_CODE
-    ? "suspendida"
-    : "vencida";
+  return isAccountSuspended(err) ? "suspendida" : "vencida";
 }
 
 function clearSession() {

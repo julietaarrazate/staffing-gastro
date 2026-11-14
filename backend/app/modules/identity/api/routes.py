@@ -211,6 +211,23 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
         ) from exc
 
 
+ACCOUNT_SUSPENDED_CODE = "account_suspended"
+ACCOUNT_SUSPENDED_MESSAGE = (
+    "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar"
+)
+
+
+def _account_suspended() -> HTTPException:
+    """403 de una cuenta que no está activa (ADR-0024, punto 8), con el
+    código que espera el frontend (`lib/api.ts`, `ACCOUNT_SUSPENDED_CODE`).
+    Sólo sale con la contraseña (o la sesión, o Google) correcta: a quien no
+    la sabe se le contesta lo de siempre. Nunca lleva el motivo de la admin."""
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={"code": ACCOUNT_SUSPENDED_CODE, "message": ACCOUNT_SUSPENDED_MESSAGE},
+    )
+
+
 @router.post(
     "/login",
     summary="Iniciar sesión",
@@ -242,10 +259,7 @@ async def login(
         ) from exc
     except InactiveUserError as exc:
         logger.warning("login rechazado (cuenta inactiva) ip=%s", _client_ip(request))
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta no está activa",
-        ) from exc
+        raise _account_suspended() from exc
     if isinstance(tokens, TwoFactorChallengeIssued):
         return _challenge_response(tokens)
     _set_refresh_cookie(response, tokens.refresh_token)
@@ -333,10 +347,7 @@ async def google_auth(
             detail="Google no verificó este email",
         ) from exc
     except InactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta no está activa",
-        ) from exc
+        raise _account_suspended() from exc
 
     if isinstance(result, GoogleRoleRequired):
         return GoogleRoleRequiredResponse(email=result.email, full_name=result.full_name)
@@ -377,10 +388,7 @@ async def refresh(service: ServiceDep, request: Request, response: Response) -> 
             detail="Refresh token inválido",
         ) from exc
     except InactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta no está activa",
-        ) from exc
+        raise _account_suspended() from exc
     _set_refresh_cookie(response, tokens.refresh_token)
     return TokenResponse(**tokens.__dict__)
 
@@ -655,9 +663,7 @@ async def two_factor_verify(
     except TwoFactorNotConfiguredError as exc:
         raise _two_factor_http_error(exc) from exc
     except InactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="La cuenta no está activa"
-        ) from exc
+        raise _account_suspended() from exc
     _set_refresh_cookie(response, tokens.refresh_token)
     return TwoFactorVerifyResponse(
         **tokens.__dict__,

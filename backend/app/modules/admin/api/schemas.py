@@ -22,6 +22,19 @@ class AdminUserResponse(BaseModel):
     photo_url: str | None = None
 
 
+class SuspensionPreviewResponse(BaseModel):
+    """Cuántos turnos toca suspender una cuenta (ADR-0024): lo que se oculta
+    (turnos abiertos del comercio), lo que se cancela con aviso (turnos del
+    comercio con alguien asignado o confirmado) y lo que se reabre con aviso
+    (turnos del trabajador)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    hidden: int
+    cancelled: int
+    reopened: int
+
+
 class AdminWorkerSummaryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

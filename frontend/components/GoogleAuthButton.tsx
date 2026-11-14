@@ -14,8 +14,9 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useResolvedTheme } from "@/lib/theme";
-import { ApiError } from "@/lib/api";
+import { ApiError, isAccountSuspended } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { SESSION_END_MESSAGES } from "@/lib/safe-next";
 
 /**
  * El botón de Google (widget de Google Identity Services, fuera de nuestro
@@ -88,7 +89,13 @@ export default function GoogleAuthButton({
       // Con `twoFactor` (admin con la verificación en dos pasos), /login
       // pasa a pedir el código: no hay sesión todavía.
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo continuar con Google");
+      setError(
+        isAccountSuspended(err)
+          ? SESSION_END_MESSAGES.suspendida
+          : err instanceof ApiError
+            ? err.message
+            : "No se pudo continuar con Google"
+      );
     }
   }
 

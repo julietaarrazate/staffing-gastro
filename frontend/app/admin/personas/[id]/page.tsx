@@ -13,7 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { STATUS_LABELS as SHIFT_STATUS_LABELS, SKILL_LABELS } from "@/lib/types";
-import type { AdminUserDetail, ShiftStatus, WorkerSkill } from "@/lib/types";
+import type { AdminUserDetail, ShiftStatus, SuspensionPreview, WorkerSkill } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { formatShiftDate } from "@/lib/datetime";
 import { formatPunctuality, formatRateOrNone, formatRatingOrNone, hasPaymentRate, levelLabel } from "@/lib/reputation";
@@ -29,7 +29,12 @@ import {
 } from "@/components/ui";
 import { CheckCircleIcon, ChevronLeftIcon, EyeIcon, UsersIcon } from "@/components/icons";
 import { SectionLabel } from "@/components/admin/AdminStats";
-import { ROLE_LABELS, STATUS_LABELS, TICKET_STATUS_LABELS } from "@/components/admin/people";
+import {
+  ROLE_LABELS,
+  STATUS_LABELS,
+  TICKET_STATUS_LABELS,
+  suspensionImpactLines,
+} from "@/components/admin/people";
 
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -55,6 +60,10 @@ export default function AdminPersonPage() {
   // Suspender y hacer admin piden confirmación: con la ficha a mano, un toque
   // de más le corta el acceso a alguien o le da el panel entero.
   const [confirm, setConfirm] = useState<"suspend" | "promote" | null>(null);
+  // Qué les pasa a sus turnos si se suspende (ADR-0024): se pide al abrir el
+  // diálogo, para que la admin lo vea antes de confirmar.
+  const [preview, setPreview] = useState<SuspensionPreview | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -83,6 +92,17 @@ export default function AdminPersonPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  function askSuspend() {
+    if (!token || !detail) return;
+    setPreview(null);
+    setPreviewFailed(false);
+    setConfirm("suspend");
+    api
+      .get<SuspensionPreview>(`/admin/users/${detail.user.id}/suspension-preview`, token)
+      .then(setPreview)
+      .catch(() => setPreviewFailed(true));
   }
 
   async function handleImpersonate() {
@@ -203,7 +223,7 @@ export default function AdminPersonPage() {
             variant="danger"
             disabled={busy !== null || isMe}
             loading={busy === "suspend"}
-            onClick={() => setConfirm("suspend")}
+            onClick={askSuspend}
           >
             {isMe ? "Sos vos" : "Suspender"}
           </Button>
@@ -241,6 +261,25 @@ export default function AdminPersonPage() {
             ? "No va a poder entrar a la app hasta que la reactives."
             : "Va a ver y manejar todo el panel de administración, como vos."}
         </p>
+        {confirm === "suspend" && (
+          <div className="mt-3 rounded-xl bg-surface p-3.5 ring-1 ring-line" aria-live="polite">
+            <p className="text-xs font-semibold text-ink/60">Sus turnos</p>
+            {preview ? (
+              <ul className="mt-1.5 flex flex-col gap-1.5 text-sm text-ink">
+                {suspensionImpactLines(preview).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : previewFailed ? (
+              <p className="mt-1.5 text-sm text-danger-text">
+                No pudimos contar sus turnos. Si la suspendés igual, se cancelan o reabren
+                los que correspondan.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-sm text-ink/60">Contando sus turnos…</p>
+            )}
+          </div>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirm(null)}>
             Volver
@@ -248,6 +287,8 @@ export default function AdminPersonPage() {
           <Button
             variant={confirm === "suspend" ? "danger" : "dark"}
             size="sm"
+            // Primero se ve qué toca: mientras se cuenta, no se confirma.
+            disabled={confirm === "suspend" && preview === null && !previewFailed}
             onClick={() => {
               const action = confirm;
               setConfirm(null);

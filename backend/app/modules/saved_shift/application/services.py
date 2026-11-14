@@ -40,6 +40,12 @@ class SavedShiftService:
             shift.status in OPEN_STATUSES or shift.worker_profile_id == worker_profile_id
         ):
             raise ShiftNotSavableError(str(shift_id))
+        # Un turno abierto de un comercio suspendido no se muestra (ADR-0024):
+        # tampoco se guarda.
+        if shift.worker_profile_id != worker_profile_id and (
+            await self._shifts.companies_with_inactive_account([shift.company_id])
+        ):
+            raise ShiftNotSavableError(str(shift_id))
 
         existing = await self._saved_shifts.get_by_worker_and_shift(
             worker_profile_id, shift_id
@@ -77,6 +83,16 @@ class SavedShiftService:
         # Un borrador nunca fue público: si quedó guardado de antes de que
         # `save` mirara el estado, no se lista.
         shifts = [s for s in shifts if s.status != ShiftStatus.BORRADOR]
+        # Los turnos de un comercio suspendido dejan de verse (ADR-0024), salvo
+        # el que tiene asignado esta misma persona.
+        inactive = await self._shifts.companies_with_inactive_account(
+            list({s.company_id for s in shifts})
+        )
+        shifts = [
+            s
+            for s in shifts
+            if s.company_id not in inactive or s.worker_profile_id == worker_profile_id
+        ]
         # Por fecha del turno (el más próximo primero), no por cuándo se
         # guardó — es lo que sirve para planificar. Los turnos sin horario
         # cargado (no debería pasar en la práctica) quedan al final.

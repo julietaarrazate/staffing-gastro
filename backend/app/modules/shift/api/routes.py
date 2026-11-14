@@ -49,6 +49,7 @@ from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
+    AssigneeUnavailableError,
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
@@ -453,6 +454,9 @@ async def get_shift(
         # para quien no es parte. (`/public` contesta 410 «ya no disponible»
         # en ese caso; acá sigue siendo 404.)
         raise _not_found()
+    if not await service.company_account_active(shift.company_id):
+        # Comercio suspendido (ADR-0024): su turno abierto no se muestra.
+        raise _not_found()
     return without_worker_data(response)
 
 
@@ -476,7 +480,8 @@ async def get_shift_public(
       PUBLICADO, y un turno reabierto (la persona asignada lo rechazó, se bajó
       o no se presentó) aparecía en el Inicio pero su página no abría.
     - **410** «ya no disponible» si fue público y ya no está abierto (tomado,
-      cancelado, no cubierto o con la hora pasada). Sólo el mensaje: ningún
+      cancelado, no cubierto o con la hora pasada), o si el comercio tiene la
+      cuenta suspendida (ADR-0024). Sólo el mensaje: ningún
       dato del turno, del comercio ni de las personas.
     - **404** si nunca fue público (un borrador) o el id no existe, para no
       revelar nada de un turno que nadie tenía por qué conocer.
@@ -491,6 +496,10 @@ async def get_shift_public(
     if not shift.was_published:
         raise _not_found()
     if not shift.is_open_for_applications(datetime.now(timezone.utc)):
+        raise _no_longer_available()
+    if not await service.company_account_active(shift.company_id):
+        # Comercio suspendido (ADR-0024): como un turno que ya no está, sin
+        # decir por qué. Si la cuenta se reactiva, vuelve a dar 200.
         raise _no_longer_available()
     company = await companies.get_by_id(shift.company_id)
     # Sin caché en el navegador ni en cachés intermedias (2026-10-23): un
@@ -601,6 +610,13 @@ async def assign_worker(
     except AssigneeNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Trabajador no encontrado"
+        ) from exc
+    except AssigneeUnavailableError as exc:
+        # Cuenta suspendida (ADR-0024). Al comercio no se le dice el motivo:
+        # sólo que esa persona no puede tomar el turno y qué hacer.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Esta persona no puede tomar turnos por ahora. Elegí a otra.",
         ) from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc

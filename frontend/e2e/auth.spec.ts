@@ -4,6 +4,7 @@ import {
   HAS_SESSION_KEY,
   injectSession,
   mockEmptyNotifications,
+  setTheme,
 } from "./mocks";
 
 /**
@@ -53,6 +54,48 @@ test("un worker puede loguearse y sale de /login", async ({ page }) => {
   // Un worker logueado no ve la landing: se lo redirige a su home (/feed).
   await expect(page).toHaveURL(/\/feed$/);
 });
+
+/**
+ * Cuenta suspendida (ADR-0024): con la contraseña correcta, el backend
+ * contesta 403 con `account_suspended`. El ingreso lo dice con el mismo
+ * aviso que cuando la sesión termina por eso, sin el motivo de la admin.
+ */
+for (const theme of ["light", "dark"] as const) {
+  test(`con la cuenta suspendida, el ingreso lo dice (${theme})`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setTheme(page, theme);
+    await blockExternalHosts(page);
+    await mockEmptyNotifications(page);
+    await page.route("**/api/v1/auth/login", (route) =>
+      route.fulfill({
+        status: 403,
+        contentType: "application/json",
+        body: JSON.stringify({
+          detail: {
+            code: "account_suspended",
+            message:
+              "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar",
+          },
+        }),
+      })
+    );
+
+    await page.goto("/login");
+    await page.getByPlaceholder("Email").fill("ana.mozo@mail.com");
+    await page.getByPlaceholder("Contraseña").fill("staffyaDemo123");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+
+    await expect(
+      page.getByRole("alert").filter({
+        hasText:
+          "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar.",
+      })
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await page.screenshot({ path: `test-results/login-suspendida-${theme}.png` });
+  });
+}
 
 /**
  * Login persistente (sesión de 30 días): si el access token guardado ya

@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { ApiError } from "@/lib/api";
+import { ApiError, isAccountSuspended } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
@@ -39,6 +39,11 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // La contraseña era la correcta y la cuenta está suspendida (ADR-0024): se
+  // dice con el mismo aviso que cuando la sesión termina por eso.
+  const [suspended, setSuspended] = useState(false);
+  const notice = suspended ? SESSION_END_MESSAGES.suspendida : endedMessage;
+  const noticeIsSuspension = suspended || motivo === "suspendida";
   const [submitting, setSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileReset, setTurnstileReset] = useState(0);
@@ -57,6 +62,7 @@ function LoginForm() {
 
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
+    setSuspended(false);
     const outcome = await login(emailToUse, passwordToUse);
     // Admin con la verificación en dos pasos: esta misma pantalla pasa a
     // pedir el código (`pendingTwoFactor`), sin sesión todavía.
@@ -71,7 +77,8 @@ function LoginForm() {
     try {
       await doLogin(email, password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");
+      if (isAccountSuspended(err)) setSuspended(true);
+      else setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");
       // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
       setTurnstileReset((n) => n + 1);
     } finally {
@@ -118,16 +125,16 @@ function LoginForm() {
           </p>
         )}
 
-        {endedMessage && (
+        {notice && (
           <p
-            role="status"
+            role={suspended ? "alert" : "status"}
             className={`mt-4 rounded-xl px-3.5 py-2.5 text-center text-sm font-medium ${
-              motivo === "suspendida"
+              noticeIsSuspension
                 ? "bg-warning-tint text-warning-text ring-1 ring-warning/20"
                 : "bg-surface text-ink ring-1 ring-line"
             }`}
           >
-            {endedMessage}
+            {notice}
           </p>
         )}
 
