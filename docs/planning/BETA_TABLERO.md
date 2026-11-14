@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 37 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 45 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -77,7 +77,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | ✅ en `main` | #552 |
-| U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G2 |
+| U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | ✅ en `main` | #567 (prueba en la app hecha el 2026-11-14) |
 
 **Tanda 3**
 
@@ -107,7 +107,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G8 |
-| U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G9 |
+| U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | ✅ en `main` | #569 (prueba en la app hecha el 2026-11-14) |
 | U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G10 |
 | U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G11 · va junto con BK-898A15047291 |
 
@@ -127,7 +127,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G18 |
-| U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G19 |
+| U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | ✅ en `main` | #568 (prueba en la app hecha el 2026-11-14) |
 | U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G20 |
 | U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G21 |
 | U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G22 |
@@ -170,8 +170,12 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Plurales sin singular: «1 turnos», «1 turnos publicados», «1 eventos».
 - Con sesión de trabajador la app pide `/favorites` y con la de comercio
   `/applications/mine`: el servidor responde 403 (no se ve en pantalla).
-- Tras abrir una confirmación del trabajador, durante 1 segundo los botones
-  ignoran los toques sin avisar (#552).
+- Tras abrir un diálogo de confirmación, durante 1 segundo sus botones se ven
+  deshabilitados (es la guarda del toque de más, #552 y #567); un toque
+  rápido ahí no hace nada.
+- Grilla del Inicio a 1280 px: con un comercio de nombre largo, la cabecera
+  de la tarjeta («Parrilla y Vermute… Urgente…») se encima (prueba en la app
+  de #567).
 - Render publica cada commit de `main` sin esperar al CI: un commit con el CI
   en rojo llega igual a producción (pasó el 2026-11-13, con el código bien y
   un test mal; #555).
@@ -181,9 +185,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   recalculó (es un promedio guardado; tocar datos de producción se pregunta).
 - Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
   recibe tres avisos de cancelación.
-- Panel del comercio: cuando llega un postulante el panel se vuelve a pedir
-  solo, pero la tarjeta no cambia (sigue «Elegir a alguien», sin cantidad):
-  lo que falta mostrar es de G19 (prueba en la app de #560).
+- El comercio no recibe ningún aviso cuando el trabajador marca la llegada:
+  el panel lo muestra recién con la consulta de «va en camino» (cada 30 s;
+  23 s en la prueba en la app de #568). Sumar el aviso es decidir quién
+  recibe qué.
 - «Mis turnos» con el cartel «¡Turno confirmado!» abierto no se actualiza
   hasta cerrarlo (a propósito, para no pisar un diálogo): si el comercio
   cancela justo ahí, debajo queda «Llegué» hasta tocar «Entendido».

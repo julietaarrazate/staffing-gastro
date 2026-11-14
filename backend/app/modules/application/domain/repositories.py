@@ -77,6 +77,12 @@ class ShiftApplicationRepository(ABC):
         de doble turno)."""
 
     @abstractmethod
+    async def count_pending_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
+        """Postulaciones PENDIENTE de cada turno, en UNA consulta agrupada.
+        Los turnos sin pendientes no aparecen en el resultado (equivalen a 0).
+        No cuenta retiradas, rechazadas ni la aceptada."""
+
+    @abstractmethod
     async def count_application_stats(self) -> ApplicationStats:
         """Cuenta postulaciones totales y aceptadas (`application_to_acceptance_rate`,
         panel de admin) — agregado en SQL, no una lista de filas."""

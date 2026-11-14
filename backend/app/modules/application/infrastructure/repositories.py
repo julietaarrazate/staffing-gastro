@@ -202,6 +202,20 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         result = await self._session.execute(stmt)
         return {shift_id: count for shift_id, count in result.all()}
 
+    async def count_pending_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
+        if not shift_ids:
+            return {}
+        stmt = (
+            select(ShiftApplicationModel.shift_id, func.count())
+            .where(
+                ShiftApplicationModel.shift_id.in_(shift_ids),
+                ShiftApplicationModel.status == ApplicationStatus.PENDIENTE.value,
+            )
+            .group_by(ShiftApplicationModel.shift_id)
+        )
+        result = await self._session.execute(stmt)
+        return {shift_id: count for shift_id, count in result.all()}
+
     async def count_created_by_period(
         self, *, previous_start: datetime, current_start: datetime, end: datetime
     ) -> tuple[int, int]:
