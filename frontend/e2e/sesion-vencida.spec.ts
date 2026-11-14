@@ -110,11 +110,14 @@ test("servidor dormido al abrir: «Reconectando…», sin cabecera de visitante,
   await expect(header.getByRole("link", { name: "Crear cuenta" })).toHaveCount(0);
   // Nadie la mandó al ingreso: la sesión sigue guardada.
   await expect(page).toHaveURL(/\/shifts$/);
+  await expect(page.getByText("Error al cargar tus turnos")).toBeVisible();
 
   awake = true;
 
   // El primer reintento es a los 2 segundos.
   await expect(header.getByRole("status")).toHaveCount(0, { timeout: 10_000 });
   await expect(page.getByRole("navigation").getByRole("link", { name: "Panel" })).toBeVisible();
+  // Y el panel se vuelve a pedir solo, sin tocar «Reintentar».
+  await expect(page.getByText("Error al cargar tus turnos")).toHaveCount(0, { timeout: 10_000 });
   await expect(page).toHaveURL(/\/shifts$/);
 });

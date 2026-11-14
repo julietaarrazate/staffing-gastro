@@ -15,6 +15,7 @@ import {
   setTwoFactorGateHandler,
   setUnauthorizedHandler,
 } from "@/lib/api";
+import { emitLiveRefresh } from "@/lib/live-refresh";
 import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
 import { isSessionEndReason, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
@@ -477,6 +478,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         schedule();
       } else {
         setReconnecting(false);
+        // Las pantallas que cargaron con el servidor dormido quedaron con su
+        // error («Error al cargar tus turnos»): ahora que contesta, se les
+        // avisa para que vuelvan a pedir lo suyo sin que nadie toque
+        // «Reintentar» (prueba en la app de G7).
+        if (result === "ok") emitLiveRefresh();
       }
     }
     function onWake() {

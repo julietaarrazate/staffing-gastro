@@ -23,6 +23,9 @@ vi.mock("@/lib/push", () => ({
   releasePushFromAccount: (...args: unknown[]) => release(...args),
 }));
 
+const emitLiveRefresh = vi.fn();
+vi.mock("@/lib/live-refresh", () => ({ emitLiveRefresh: () => emitLiveRefresh() }));
+
 const routerReplace = vi.fn();
 vi.mock("next/navigation", () => {
   const router = { replace: (...args: unknown[]) => routerReplace(...args) };
@@ -87,6 +90,7 @@ beforeEach(() => {
   claim.mockReset().mockResolvedValue(true);
   release.mockReset().mockResolvedValue(true);
   routerReplace.mockReset();
+  emitLiveRefresh.mockReset();
   fetchMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   localStorage.clear();
@@ -498,6 +502,8 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       expect(auth().user?.id).toBe(TRABAJADORA.id);
       expect(auth().reconnecting).toBe(false);
       expect(claim).toHaveBeenCalledWith("token-guardado");
+      // Las pantallas que habían fallado se vuelven a pedir solas, una vez.
+      expect(emitLiveRefresh).toHaveBeenCalledTimes(1);
       const sent = meRequests();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(60_000);
@@ -536,6 +542,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       expect(auth().reconnecting).toBe(false);
       expect(auth().token).toBeNull();
       expect(auth().sessionEnded).toBe("vencida");
+      expect(emitLiveRefresh).not.toHaveBeenCalled();
     });
 
     it("si la persona ingresa mientras se reintenta, la respuesta vieja no la pisa", async () => {

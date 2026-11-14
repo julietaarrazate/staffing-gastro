@@ -59,6 +59,9 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   otro código sin avisar (visto el 2026-11-13 con cinco worktrees a la vez).
   Con más de un worktree, cada uno corre sus specs con un config temporal
   fuera de git, en un puerto propio y con `reuseExistingServer: false`.
+  Ese config tiene que estar **adentro de `frontend/`** (sin commitear, por
+  ejemplo `frontend/pw-local.config.ts`): desde el scratchpad no resuelve
+  `@playwright/test` (lo redescubrieron cuatro agentes el 2026-11-14).
 - **Con varias ramas en paralelo, probá el merge entre ellas antes de pedir
   el "sí".** Dos PRs que agregan una importación en el mismo lugar chocan
   aunque no tengan nada que ver; se ve con un `git merge --no-commit` local y
@@ -180,6 +183,15 @@ E1_AGENT=smoke node tools/e2e-local/smoke.mjs   # prueba de humo (borra lo que c
   fuera del arnés.
 - Las páginas armadas en el servidor (`/turno/[id]`) le pegan al backend
   local desde Node: funcionan, pero sus pedidos no pasan por el navegador.
+- **Si el árbol cambió después de levantar la pila** (un merge, un commit
+  nuevo), el backend y el frontend siguen corriendo el código viejo sin
+  avisar: `restart_backend.sh`, y `setup.sh --build` + `stop_all.sh frontend`
+  + `start_all.sh` para el frontend. El 2026-11-14 una prueba leyó un texto
+  ya corregido porque el backend había arrancado diez minutos antes del
+  merge.
+- Para probar varios PRs juntos antes de mergearlos: un worktree aparte con
+  las ramas mergeadas en local (sin pushear) y el arnés corriendo sobre ese
+  árbol.
 - Para la corrida con el límite de intentos y el tope del plan:
   `RATE_LIMIT_ENABLED=true SUBSCRIPTIONS_ENFORCED=true tools/e2e-local/restart_backend.sh`.
   Con el límite prendido todas las cuentas salen de `127.0.0.1`: conviene que

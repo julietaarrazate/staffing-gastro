@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 28 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 32 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -99,8 +99,8 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | ✅ en `main` | #561 |
 | U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ⚪ decidido (3), sin empezar | se apaga al instante también para el comercio; lleva ADR y, con él, el texto de `/privacidad` (decisión 1) |
 | U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G6 |
-| U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G7 · un solo PR con U114 y U115 |
-| U114, U115 | Si el servidor tarda en despertar al abrir la app, la persona con sesión ve la cabecera de visitante («Ingr… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G7 · un solo PR con U112 y U096 |
+| U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | ✅ en `main` | #559 (prueba en la app hecha el 2026-11-14) |
+| U114, U115 | Si el servidor tarda en despertar al abrir la app, la persona con sesión ve la cabecera de visitante («Ingr… (y 1 más de la misma causa) | ✅ en `main` | #559 (prueba en la app hecha el 2026-11-14) |
 
 **Tanda 5**
 
@@ -190,6 +190,12 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Campanita: si el WebSocket se cae dos veces en menos de 30 segundos, la
   segunda reconexión no vuelve a pedir las pantallas (tope contra el bucle
   de recargas; salió de la revisión de #560).
+- Sesión (salió de la revisión de #559): el alta de la verificación en dos
+  pasos no espera a una renovación en vuelo (si coinciden, la admin tiene que
+  ingresar de nuevo); si en otra pestaña se ingresa con otra cuenta, ésta no
+  se entera hasta su próxima renovación; y `/login?message=…` muestra el
+  texto que venga en la dirección (conviene pasarlo a motivos fijos, como
+  `?motivo=`).
 - Postulantes a 390 px: el sello «Identidad verificada» entra justo al lado
   de «Asignar»; con la letra del sistema agrandada puede no entrar (por
   debajo de 390 px ya pasa a escudo solo). Va con G24 (salió de #561).

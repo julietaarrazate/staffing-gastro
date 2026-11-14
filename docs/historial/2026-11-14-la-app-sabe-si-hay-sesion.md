@@ -1,4 +1,4 @@
-# La app siempre sabe si hay sesión (G7: U112, U096, U114, U115)
+# La app siempre sabe si hay sesión (G7: U112, U096, U114, U115; #559)
 
 **Pedido:** salida a beta, etapa 2, grupo G7 del diseño de los graves
 (`docs/planning/BETA_DISENO_GRAVES.md`). Cuatro hallazgos de la prueba de
@@ -88,11 +88,24 @@ Lo técnico:
   segundos que había quedado en el primer arreglo. «Ver como» también cuenta
   como cambio de sesión.
 
+**Lo que encontró la prueba en la app (arreglado en este mismo PR):**
+
+- Al vencer la sesión a mitad de publicar, el error del pedido salía además
+  como aviso flotante, encima del título del ingreso: ese texto ya no sale
+  como aviso flotante (`components/ui/Toast.tsx`), lo dice sólo el ingreso.
+- Al despertar el servidor la cabecera se recuperaba, pero el panel quedaba
+  con «Error al cargar tus turnos» hasta tocar «Reintentar»: ahora, cuando la
+  sesión se recupera, se avisa a las pantallas con `emitLiveRefresh()` (la
+  pieza de G1) y se vuelven a pedir solas.
+
 **Queda abierto:**
 
-- Al recuperarse la conexión, las pantallas que ya habían fallado («Error al
-  cargar tus turnos») no se vuelven a pedir solas hasta que entre G1
-  (`lib/live-refresh.ts`).
+- La salida le avisa al servidor recién cuando termina la renovación que
+  estuviera en vuelo (hasta 90 segundos). Si la persona cierra la app en ese
+  rato, el aviso no sale y la cookie sigue valiendo en el servidor hasta su
+  vencimiento; en el navegador la sesión queda cerrada igual.
+- El tope de 90 segundos de la renovación cubre hasta que llegan los
+  encabezados de la respuesta, no la lectura del cuerpo.
 - `next` sólo se usa en el ingreso; el registro, Google con cuenta nueva y
   la bienvenida son G16.
 - Si en otra pestaña se ingresa con **otra** cuenta, ésta no se entera hasta
