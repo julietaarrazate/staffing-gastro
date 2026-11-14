@@ -219,6 +219,18 @@ el modelo del dominio, un ADR vigente o un texto legal:
 - **P1 a P5**, las mejoras de producto aprobadas.
 - **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), lo más
   delicado de lo que se hizo con Opus.
+- **Pasada por clase de error** (propuesta del 2026-11-14): el reporte
+  externo de Breken encontró en una lectura del código 9 errores que la prueba
+  de punta a punta no vio (claves que se pierden al recargar, datos viejos con
+  la pestaña abierta, guardados que pisan otros datos). La etapa 1 recorrió
+  la app como una persona, las revisiones miran sólo el diff de cada PR, y los
+  e2e simulan la API a mano (en G8 los tests pasaban con un 422 que el
+  servidor nunca manda). Propuesta: un agente por clase (concurrencia e
+  idempotencia; estado viejo con la pestaña abierta; sesión; escrituras que
+  pisan; fechas y zona horaria; privacidad entre roles) sobre las áreas de la
+  beta (turno, postulación, sesión, pagos, avisos), cada hallazgo verificado
+  antes de entrar acá. Y tests de contrato: los mocks del frontend armados
+  con respuestas reales del backend.
 - **«Mi plan» con el cobro prendido y el tope apagado** (una configuración
   intermedia que la beta no usa): la tarjeta dice «Durante la beta no hay
   tope» y el subtítulo de los planes habla del cobro (salió de la revisión de
