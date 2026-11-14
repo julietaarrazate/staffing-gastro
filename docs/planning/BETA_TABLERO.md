@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 37 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 40 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -77,7 +77,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U004, U005 | Dos toques en «Llegué» marcan también «Me fui»: el turno queda terminado al llegar (y 1 más de la misma causa) | ✅ en `main` | #552 |
-| U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G2 |
+| U006, U007, U008 | En celular, dos toques en «Continuar» del paso de pago publican el turno sin mostrar el último paso (y 2 más de la misma causa) | ✅ en `main` | #567 (prueba en la app hecha el 2026-11-14) |
 
 **Tanda 3**
 
@@ -170,8 +170,12 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Plurales sin singular: «1 turnos», «1 turnos publicados», «1 eventos».
 - Con sesión de trabajador la app pide `/favorites` y con la de comercio
   `/applications/mine`: el servidor responde 403 (no se ve en pantalla).
-- Tras abrir una confirmación del trabajador, durante 1 segundo los botones
-  ignoran los toques sin avisar (#552).
+- Tras abrir un diálogo de confirmación, durante 1 segundo sus botones se ven
+  deshabilitados (es la guarda del toque de más, #552 y #567); un toque
+  rápido ahí no hace nada.
+- Grilla del Inicio a 1280 px: con un comercio de nombre largo, la cabecera
+  de la tarjeta («Parrilla y Vermute… Urgente…») se encima (prueba en la app
+  de #567).
 - Render publica cada commit de `main` sin esperar al CI: un commit con el CI
   en rojo llega igual a producción (pasó el 2026-11-13, con el código bien y
   un test mal; #555).

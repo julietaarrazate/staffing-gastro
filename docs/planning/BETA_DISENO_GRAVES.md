@@ -39,24 +39,6 @@ G5 #561, G1 #560, G7 #559).
 
 ## Ola B
 
-### G2 · Segundo toque, segunda parte (U006, U007, U008) — S
-
-Reusar `lib/use-tap-guard.ts`; no crear otra guarda.
-
-- `app/shifts/new/page.tsx`: cambiar de paso pasa por la guarda, así
-  «Publicar turno» no acepta el toque que venía para «Continuar».
-- `components/worker/SwipeDeck.tsx`: «Postularme» pasa por la guarda (no se
-  rehabilita a los 300 ms de la animación). En la grilla de
-  `app/feed/page.tsx` la tarjeta postulada queda en su lugar, marcada
-  «Postulado», hasta la próxima carga.
-- `components/ui/Modal.tsx`: mientras el diálogo se cierra, su contenido no
-  recibe toques (vale para todos los diálogos). `withdrawApplication`
-  (`app/my-shifts/page.tsx`) ignora un segundo pedido en curso y no revierte
-  la lista si la postulación ya estaba retirada.
-- De las revisiones: los botones del trabajador que hoy ignoran el toque
-  durante 1 segundo sin avisar se ven deshabilitados (`locked`).
-- Pruebas: e2e de doble toque a 700 ms en los tres lugares.
-
 ### G8 · Errores de validación que se entienden (U030, U031) — S
 
 - `lib/api.ts` (`parseErrorDetail`): leer el detalle en forma de lista y

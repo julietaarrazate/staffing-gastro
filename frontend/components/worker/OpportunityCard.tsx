@@ -6,7 +6,7 @@ import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar, Badge } from "@/components/ui";
-import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
+import { CheckIcon, ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
@@ -31,6 +31,8 @@ export default function OpportunityCard({
   onApply,
   onPass,
   applying = false,
+  locked = false,
+  applied = false,
   shareable = false,
   preview = false,
 }: {
@@ -44,6 +46,12 @@ export default function OpportunityCard({
   onApply?: () => void;
   onPass?: () => void;
   applying?: boolean;
+  /** La pantalla está asentándose tras una acción (`useTapGuard`): los
+   *  botones se ven deshabilitados, sin el giro de «enviando». */
+  locked?: boolean;
+  /** Ya se postuló desde esta tarjeta: queda en su lugar, marcada
+   *  «Postulado», en vez de desaparecer y correr las demás bajo el dedo. */
+  applied?: boolean;
   /** Botón "Compartir" al lado de "Cómo llegar", para pasarle el turno a un
    *  colega (Web Share nativo en el celu, `wa.me` de respaldo). Sólo en las
    *  grillas (`/buscar`, feed de escritorio), donde la tarjeta tiene alto
@@ -329,17 +337,22 @@ export default function OpportunityCard({
                   type="button"
                   aria-label="No, gracias"
                   onClick={onPass}
-                  disabled={applying}
+                  disabled={applying || locked || applied}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-danger-text disabled:opacity-50"
                 >
                   <CloseIcon size={18} />
                 </button>
               )}
-              {onApply && (
-                <Button fullWidth size="sm" loading={applying} disabled={applying} onClick={onApply}>
-                  Postularme
-                </Button>
-              )}
+              {onApply &&
+                (applied ? (
+                  <p className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-success-tint text-sm font-semibold text-success-text">
+                    <CheckIcon size={16} /> Postulado
+                  </p>
+                ) : (
+                  <Button fullWidth size="sm" loading={applying} disabled={applying || locked} onClick={onApply}>
+                    Postularme
+                  </Button>
+                ))}
             </div>
           )}
         </div>
