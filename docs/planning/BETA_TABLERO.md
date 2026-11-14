@@ -120,7 +120,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G14 |
 | U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G15 |
 | U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | ✅ en `main` | #565 (prueba en la app hecha el 2026-11-14) |
-| U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G17 |
+| U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | 🔵 PR abierto #573 | G17 |
 
 **Tanda 7**
 

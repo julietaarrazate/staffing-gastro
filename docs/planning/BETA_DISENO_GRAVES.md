@@ -114,12 +114,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
   «Demasiados intentos, esperá un minuto»; lo demás sigue sin revelar si el
   mail existe.
 
-### G17 · El interruptor de avisos explica (U054) — S
-
-`components/PushToggle.tsx`: bloqueado en el navegador → cómo activarlo; sin
-soporte (iPhone sin instalar) → «Instalá la app para recibir avisos»; falla →
-aviso flotante.
-
 ### G18 · En compu también se llega al detalle y a Buscar (U064, U104) — S
 
 `components/worker/OpportunityCard.tsx` abre `/turno/[id]` en la grilla de
