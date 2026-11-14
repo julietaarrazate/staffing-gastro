@@ -1,4 +1,4 @@
-# Límite de intentos sin mensajes falsos (#PRNUM)
+# Límite de intentos sin mensajes falsos (#574)
 
 **Pedido:** G10 de la salida a beta (U138, U139). Al registrarse desde una conexión que ya había llegado al límite de ingresos, la cuenta se creaba pero la pantalla decía «Demasiados intentos» como si el alta hubiera fallado; en `/recuperar` y `/verificar-email` un 429 se ocultaba o se mostraba como «enlace inválido».
 
