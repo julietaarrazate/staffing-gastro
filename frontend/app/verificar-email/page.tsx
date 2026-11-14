@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, isRateLimited, RATE_LIMITED_MESSAGE } from "@/lib/api";
 import { Button, TextField } from "@/components/ui";
 
 type Status = "verifying" | "success" | "error" | "no-token";
@@ -15,6 +15,7 @@ function VerificarEmailContent() {
   const [resendEmail, setResendEmail] = useState("");
   const [resendSubmitting, setResendSubmitting] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [limited, setLimited] = useState(false);
   const requested = useRef(false);
 
   useEffect(() => {
@@ -23,19 +24,29 @@ function VerificarEmailContent() {
     api
       .post("/auth/verify-email", { token })
       .then(() => setStatus("success"))
-      .catch(() => setStatus("error"));
+      .catch((err) => {
+        if (isRateLimited(err)) setLimited(true);
+        setStatus("error");
+      });
   }, [token]);
 
   async function handleResend(e: React.FormEvent) {
     e.preventDefault();
     setResendSubmitting(true);
+    setLimited(false);
+    let sentOk = true;
     try {
       await api.post("/auth/resend-verification", { email: resendEmail });
-    } catch {
-      // Anti-enumeración: no distinguimos el resultado, mismo criterio que /recuperar.
+    } catch (err) {
+      // Anti-enumeración: sólo el límite de intentos se distingue (es por
+      // conexión); el resto, mismo criterio que /recuperar.
+      if (isRateLimited(err)) {
+        sentOk = false;
+        setLimited(true);
+      }
     } finally {
       setResendSubmitting(false);
-      setResendSent(true);
+      if (sentOk) setResendSent(true);
     }
   }
 
@@ -70,8 +81,10 @@ function VerificarEmailContent() {
 
           {status === "error" && (
             <div>
-              <p className="text-sm text-danger-text">
-                El enlace es inválido o venció. Pedí uno nuevo con tu email.
+              <p role="alert" className="text-sm text-danger-text">
+                {limited
+                  ? RATE_LIMITED_MESSAGE
+                  : "El enlace es inválido o venció. Pedí uno nuevo con tu email."}
               </p>
               {resendSent ? (
                 <p className="mt-4 text-center text-sm font-medium text-success-text">
