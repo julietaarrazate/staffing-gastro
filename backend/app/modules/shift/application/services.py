@@ -41,6 +41,11 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.punctuality import arrived_on_time
+from app.modules.shift.domain.schedule import (
+    mismo_instante,
+    validar_horario_nuevo,
+    validar_inicio_al_publicar,
+)
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.suspension import (
     AccountSuspensionEffects,
@@ -51,6 +56,7 @@ from app.modules.shift.domain.suspension import (
 from app.modules.shift.domain.value_objects import (
     COMMITTED_STATUSES,
     OPEN_STATUSES,
+    ShiftStatus,
     TAKEN_NOT_STARTED_STATUSES,
 )
 from app.core.config import settings
@@ -170,6 +176,7 @@ class ShiftService(AccountSuspensionEffects):
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
+        validar_horario_nuevo(data.start_at, data.end_at)
         shift = Shift(
             company_id=company_id,
             position=data.position,
@@ -258,6 +265,12 @@ class ShiftService(AccountSuspensionEffects):
         shift = await self._get_owned(company_id, shift_id)
         shift.ensure_editable()
 
+        # La regla de horario de un turno nuevo (inicio no pasado, 1 a 16 h)
+        # sólo corre si se cambia el horario: reenviar el mismo de un borrador
+        # cuyo inicio ya pasó no puede fallar por eso.
+        inicio_igual = mismo_instante(shift.start_at, data.start_at)
+        if not (inicio_igual and mismo_instante(shift.end_at, data.end_at)):
+            validar_horario_nuevo(data.start_at, data.end_at, validar_inicio=not inicio_igual)
         shift.position = data.position
         shift.quantity = data.quantity
         shift.start_at = data.start_at
@@ -285,6 +298,8 @@ class ShiftService(AccountSuspensionEffects):
         evento: el aviso lo manda después `_notify_event_workers`, uno por
         persona y no uno por puesto."""
         shift = await self._get_owned(company_id, shift_id)
+        if shift.status == ShiftStatus.BORRADOR:
+            validar_inicio_al_publicar(shift.start_at)
         # El plan se consulta antes y se cuenta después: el uso sube recién
         # cuando el turno quedó guardado como publicado. Antes se sumaba
         # primero, y como cada repositorio guarda por su cuenta, un intento

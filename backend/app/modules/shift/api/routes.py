@@ -402,6 +402,8 @@ async def create_event(
                 description=payload.description,
             ),
         )
+    except InvalidShiftScheduleError as exc:
+        raise _bad_request(str(exc)) from exc
     except PublishingNotAllowedError as exc:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
@@ -559,7 +561,7 @@ async def publish_shift(
         shift = await service.publish_shift(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
-    except InvalidShiftTransitionError as exc:
+    except (InvalidShiftTransitionError, InvalidShiftScheduleError) as exc:
         raise _bad_request(str(exc)) from exc
     except PublishingNotAllowedError as exc:
         raise HTTPException(

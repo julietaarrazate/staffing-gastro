@@ -168,7 +168,7 @@ class Shift:
     def _validate_schedule(self) -> None:
         if self.end_at <= self.start_at:
             raise InvalidShiftScheduleError(
-                "El horario de fin debe ser posterior al de inicio"
+                "El turno tiene que terminar después de empezar."
             )
 
     @property
