@@ -1,4 +1,4 @@
-# «Mi plan» durante la beta: el uso sin alarma y sin tope inventado (G11, U093, BK-898A15047291)
+# «Mi plan» durante la beta: el uso sin alarma y sin tope inventado (G11, U093, BK-898A15047291) (#570)
 
 **Pedido:** salida a beta, grupo G11. Con el cobro apagado (`SUBSCRIPTIONS_ENFORCED=false`) «Mi plan» decía «9 de 5 turnos usados», «Alcanzaste el límite» y ofrecía cambiar de plan por el tope, y nada se frena. Además «Pagado hasta» quedaba viejo con la pestaña abierta.
 
