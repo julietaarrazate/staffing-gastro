@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
+import { comercioSinPerfilTras400 } from "@/lib/perfil-faltante";
+import { bienvenidaHref } from "@/lib/safe-next";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
@@ -13,6 +15,7 @@ import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
+import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
@@ -203,6 +206,9 @@ function MyShiftsPanel() {
     return isTab(fromUrl) ? fromUrl : "todos";
   });
   const [error, setError] = useState<string | null>(null);
+  // La cuenta del comercio todavía no tiene perfil (se cortó la bienvenida):
+  // en vez del error del backend, el cartel que lleva a completarlo.
+  const [sinPerfil, setSinPerfil] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
@@ -241,8 +247,18 @@ function MyShiftsPanel() {
       if (mine !== latestLoad.current) return;
       setShifts(data);
       setError(null);
+      setSinPerfil(false);
     } catch (err) {
-      if (mine === latestLoad.current && !silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      // Un 400 puede ser «todavía no creaste tu comercio»: se confirma con el
+      // perfil antes de decirlo.
+      const sin = mine === latestLoad.current && (await comercioSinPerfilTras400(err, token));
+      if (mine !== latestLoad.current) return;
+      if (sin) {
+        setSinPerfil(true);
+        setError(null);
+      } else if (!silent) {
+        setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      }
     } finally {
       // El último pedido siempre baja el esqueleto (si uno normal quedó
       // pisado por uno silencioso, nadie más lo bajaría).
@@ -463,6 +479,17 @@ function MyShiftsPanel() {
           pestañas; Favoritos y Mi plan siguen a un toque desde Perfil. Queda
           Publicar como la acción, Evento al lado como variante, y el
           asistente. */}
+      {sinPerfil && !loading && (
+        <PerfilFaltanteCard
+          title="Te falta completar tu comercio"
+          body="Cargá el nombre y la ubicación para publicar turnos y que te encuentren los candidatos."
+          actionLabel="Completar mi comercio"
+          href={bienvenidaHref("/shifts")}
+        />
+      )}
+
+      {!sinPerfil && (
+        <>
       <div className="mt-4 flex gap-2">
         <Link
           href="/shifts/new"
@@ -483,13 +510,16 @@ function MyShiftsPanel() {
         <AIAssistantBar />
       </div>
 
+        </>
+      )}
+
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={() => load()} />}
+      {error && !sinPerfil && <ErrorBanner message={error} onRetry={() => load()} />}
 
       {/* Primera experiencia (Parte B): CTA imposible de errar + qué va a
           pasar en 3 pasos concretos. Reusa el `EmptyState` de marca (mismo
           componente que usan los estados vacíos por familia, abajo). */}
-      {!loading && !error && shifts.length === 0 && (
+      {!loading && !error && !sinPerfil && shifts.length === 0 && (
         <EmptyState
           icon={<EmptyPanelIllustration color="var(--color-primary)" />}
           title="Publicá tu primer turno"
@@ -501,7 +531,7 @@ function MyShiftsPanel() {
         />
       )}
 
-      {!loading && !error && eventGroups.length > 0 && (
+      {!loading && !error && !sinPerfil && eventGroups.length > 0 && (
         <div className="mt-4 space-y-2">
           {eventGroups.map((event) => (
             <div
@@ -523,7 +553,7 @@ function MyShiftsPanel() {
         </div>
       )}
 
-      {!loading && !error && shifts.length > 0 && (
+      {!loading && !error && !sinPerfil && shifts.length > 0 && (
         <>
           {/* Control segmentado por familia de estado. En 390px de ancho 5
               segmentos con conteo no entran sin achicar el texto a ilegible
