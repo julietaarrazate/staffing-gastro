@@ -86,11 +86,6 @@ link de turno sin sesión, registrarse y terminar en ese turno.
 - Pruebas: tests del dominio por mensaje (ninguno contiene `T` de fecha ni
   `→`).
 
-### G13 · El buscador de direcciones se cierra al elegir (U036) — M
-
-`components/map/MapAddressPicker.tsx`: `selectResult` marca
-`skipNextSearchRef`. Con test.
-
 ### G24 · Tarjetas que se salen de la pantalla (U026, U075, U124) — M
 
 `min-w-0` (y `grid-cols-1` donde falta) en
