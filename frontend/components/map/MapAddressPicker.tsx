@@ -85,12 +85,14 @@ export default function MapAddressPicker({
   );
 
   useEffect(() => {
+    // Lo pendiente se cancela siempre (también cuando la selección se salta la
+    // búsqueda); si no, un timer viejo dispara igual y reabre la lista encima.
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
     if (skipNextSearchRef.current) {
       skipNextSearchRef.current = false;
       return;
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    abortRef.current?.abort();
 
     // Query corta: no se dispara pedido ni se resetea estado acá (evita
     // setState síncrono en el cuerpo del efecto) — el render ya oculta el
