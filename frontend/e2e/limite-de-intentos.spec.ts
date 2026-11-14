@@ -41,6 +41,46 @@ test("alta bien hecha con el ingreso automático frenado: va a /login con el avi
   expect(registered).toBe(1);
 });
 
+test("ingresar desde /login?aviso=cuenta-creada sigue al next, no a /bienvenida", async ({ page }) => {
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await skipSplash(page);
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ access_token: "e2e-access-token", token_type: "bearer" }),
+    }),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-1",
+        email: "vieja@staffya.com",
+        full_name: "Cuenta Vieja",
+        role: "worker",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    }),
+  );
+  await page.route("**/algo", (route) =>
+    route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>algo</body></html>" }),
+  );
+
+  await page.goto("/login?aviso=cuenta-creada&next=%2Falgo");
+  await expect(page.getByText("Tu cuenta ya está creada: ingresá en un minuto.")).toBeVisible();
+  await page.getByPlaceholder("Email").fill("vieja@staffya.com");
+  await page.getByPlaceholder("Contraseña").fill("unaClaveLarga1");
+  await page.getByRole("button", { name: "Ingresar" }).click();
+
+  await expect(page).toHaveURL(/\/algo$/);
+  await expect(page).not.toHaveURL(/bienvenida/);
+});
+
 test("si el alta misma falla con 429, sigue mostrando el error y no manda al ingreso", async ({ page }) => {
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
