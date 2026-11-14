@@ -1,4 +1,4 @@
-# El interruptor de avisos explica por qué no anda (G17, U054) (#PR)
+# El interruptor de avisos explica por qué no anda (G17, U054) (#573)
 
 **Pedido:** salida a beta, hallazgo U054: con las notificaciones bloqueadas, en un iPhone sin la app instalada o cuando la suscripción fallaba, el interruptor de Ajustes no hacía nada ni decía por qué.
 
