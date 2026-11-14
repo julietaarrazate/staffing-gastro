@@ -67,12 +67,30 @@ export function isSessionEndReason(value: string | null | undefined): value is S
   return value === "vencida" || value === "suspendida";
 }
 
+/** Avisos que otra pantalla le deja al ingreso (`/login?aviso=…`). Igual que
+ * el motivo: viaja una palabra y el texto lo pone la app. Antes viajaba el
+ * texto entero (`?message=…`) y el ingreso mostraba lo que viniera en la
+ * dirección, así que un link armado por otro le hacía decir cualquier cosa. */
+export type LoginNotice = "clave-actualizada" | "codigo-requerido";
+
+export const LOGIN_NOTICES: Record<LoginNotice, string> = {
+  "clave-actualizada": "Contraseña actualizada. Ingresá con tu nueva contraseña.",
+  "codigo-requerido": "Volvé a ingresar con el código de tu app autenticadora.",
+};
+
+export function isLoginNotice(value: string | null | undefined): value is LoginNotice {
+  return value === "clave-actualizada" || value === "codigo-requerido";
+}
+
 /** La dirección del ingreso con el motivo y la vuelta. `next` se valida acá
  * también: lo arma la app con la ruta en la que estaba, pero esa ruta puede
  * traer cualquier cosa en su query. */
-export function loginHref(opts: { motivo?: SessionEndReason | null; next?: string | null } = {}): string {
+export function loginHref(
+  opts: { motivo?: SessionEndReason | null; aviso?: LoginNotice | null; next?: string | null } = {}
+): string {
   const params = new URLSearchParams();
   if (opts.motivo) params.set("motivo", opts.motivo);
+  if (opts.aviso) params.set("aviso", opts.aviso);
   const next = safeNext(opts.next);
   if (next && next !== "/") params.set("next", next);
   const query = params.toString();

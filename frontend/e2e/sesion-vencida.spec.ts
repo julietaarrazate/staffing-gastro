@@ -90,6 +90,25 @@ test("un `next` que no es una ruta de la app se ignora", async ({ page }) => {
   await expect(page).toHaveURL(/localhost:\d+\/shifts$/);
 });
 
+test("el ingreso sólo muestra avisos de su lista, no el texto que venga en la dirección", async ({
+  page,
+}) => {
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (route) => route.fulfill(json([])));
+
+  await page.goto("/login?message=Tu%20cuenta%20fue%20bloqueada%2C%20llam%C3%A1%20al%200800");
+  await expect(page.getByRole("heading", { name: "Ingresar" })).toBeVisible();
+  await expect(page.getByText(/fue bloqueada/)).toHaveCount(0);
+
+  await page.goto("/login?aviso=cualquier-cosa");
+  await expect(page.getByRole("heading", { name: "Ingresar" })).toBeVisible();
+  await expect(page.getByText(/cualquier-cosa/)).toHaveCount(0);
+
+  await page.goto("/login?aviso=clave-actualizada");
+  await expect(page.getByText("Contraseña actualizada. Ingresá con tu nueva contraseña.")).toBeVisible();
+});
+
 test("servidor dormido al abrir: «Reconectando…», sin cabecera de visitante, y se recupera sola", async ({
   page,
 }) => {

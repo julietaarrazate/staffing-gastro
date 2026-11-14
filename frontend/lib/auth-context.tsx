@@ -17,7 +17,8 @@ import {
 } from "@/lib/api";
 import { emitLiveRefresh } from "@/lib/live-refresh";
 import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
-import { isSessionEndReason, type SessionEndReason } from "@/lib/safe-next";
+import { reloadPage } from "@/lib/reload-page";
+import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
 import {
   isTwoFactorChallenge,
@@ -103,7 +104,7 @@ interface AuthState {
   twoFactorSetupPending: boolean;
   setTwoFactorSetupPending: (pending: boolean) => void;
   /** Adopta la sesión verificada que devuelve el alta de la verificación. */
-  adoptSession: (tokens: SessionTokens) => Promise<void>;
+  adoptSession: <T extends SessionTokens>(open: () => Promise<T>) => Promise<T>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -145,6 +146,12 @@ const HAS_SESSION_KEY = "staffya_has_session";
 // «cerró sesión» (van a la landing) de «la sesión venció» (van al ingreso con
 // el motivo). Se escribe antes de borrar la marca y se limpia al ingresar.
 const SESSION_END_KEY = "staffya_session_end";
+// De qué cuenta es la sesión de este navegador (su id, que no es un
+// secreto). La cookie de renovación es una sola para todas las pestañas: si
+// otra pestaña ingresa con otra cuenta, la cookie pasa a ser de esa cuenta y
+// ésta, que sigue mostrando la anterior, renovaría con la ajena. Con esta
+// clave se entera (evento `storage`) y se recarga.
+const SESSION_USER_KEY = "staffya_session_user";
 
 function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
@@ -162,6 +169,7 @@ function endReasonFrom(err: unknown): SessionEndReason {
 function clearSession() {
   localStorage.removeItem("staffya_token");
   localStorage.removeItem(HAS_SESSION_KEY);
+  localStorage.removeItem(SESSION_USER_KEY);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -176,6 +184,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // recuperación que quedó esperando al servidor compara contra esto antes
   // de aplicar su respuesta, para no pisar a quien ingresó mientras tanto.
   const sessionEpoch = useRef(0);
+  // La cuenta dueña de la sesión de esta pestaña (la admin, si está viendo
+  // como otra persona). Ver `SESSION_USER_KEY`.
+  const sessionUserId = useRef<string | null>(null);
+
+  function rememberSessionUser(account: User) {
+    sessionUserId.current = account.id;
+    localStorage.setItem(SESSION_USER_KEY, account.id);
+  }
   // Snapshot de la sesión admin real mientras se está impersonando otro
   // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
   const [impersonating, setImpersonating] = useState<
@@ -210,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * escrito. */
   function endSession(reason: SessionEndReason, { announce = true } = {}) {
     sessionEpoch.current += 1;
+    sessionUserId.current = null;
     if (announce) localStorage.setItem(SESSION_END_KEY, reason);
     clearSession();
     clearAllCached();
@@ -369,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Recarga completa: el guard de las pantallas protegidas no le gana
       // al mensaje, y no queda nada de la sesión vieja en memoria.
       window.location.replace(
-        `/login?message=${encodeURIComponent("Volvé a ingresar con el código de tu app autenticadora.")}`
+        loginHref({ aviso: "codigo-requerido" })
       );
     });
     return () => setTwoFactorGateHandler(null);
@@ -404,6 +421,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const me = await api.get<User>("/auth/me", storedAccess, AUTH_TIMEOUT_MS);
           if (sessionEpoch.current !== epoch) return "ok";
           setUser(me);
+          rememberSessionUser(me);
           return "ok";
         } catch (err) {
           if (isTransientFailure(err)) throw err;
@@ -426,6 +444,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const me = await api.get<User>("/auth/me", refreshed, AUTH_TIMEOUT_MS);
         if (sessionEpoch.current !== epoch) return "ok";
         setUser(me);
+        rememberSessionUser(me);
         return "ok";
       } catch (err) {
         if (isTransientFailure(err)) throw err;
@@ -516,6 +535,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function onStorage(event: StorageEvent) {
       if (event.storageArea !== localStorage) return;
+      // Otra pestaña ingresó con OTRA cuenta: la cookie de renovación ya es
+      // de esa cuenta. Esta pestaña no puede seguir como la anterior (su
+      // próxima renovación traería el token ajeno): se recarga y arranca
+      // con la sesión que hay ahora.
+      if (
+        event.key === SESSION_USER_KEY &&
+        event.newValue &&
+        sessionUserId.current &&
+        event.newValue !== sessionUserId.current
+      ) {
+        sessionEpoch.current += 1;
+        sessionUserId.current = null;
+        clearAllCached();
+        reloadPage();
+        return;
+      }
       const markGone = event.key === null || (event.key === HAS_SESSION_KEY && event.newValue === null);
       if (!markGone || !hasBoundSession()) return;
       const reason = localStorage.getItem(SESSION_END_KEY);
@@ -524,6 +559,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       sessionEpoch.current += 1;
+      sessionUserId.current = null;
       clearAllCached();
       impersonatingRef.current = false;
       setImpersonating(null);
@@ -590,7 +626,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // `GET /auth/me` extra (un round-trip menos al backend al entrar). Fallback
     // al /auth/me sólo si no vino `user` — cubre el skew de deploy (frontend
     // nuevo contra backend viejo que todavía no lo embebe) y no rompe el login.
-    setUser(tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token)));
+    const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
+    setUser(account);
+    rememberSessionUser(account);
   }
 
   async function login(email: string, password: string): Promise<LoginOutcome> {
@@ -628,10 +666,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPendingTwoFactor(null);
   }
 
-  async function adoptSession(tokens: SessionTokens) {
+  /** `open` es el pedido que devuelve la sesión verificada (confirmar el alta
+   * de los dos pasos). Sale después de la renovación que estuviera en vuelo:
+   * su respuesta trae la cookie de la sesión anterior, y si llegara después
+   * de la del alta, la próxima renovación volvería a la sesión sin verificar
+   * (y la admin tendría que ingresar de nuevo). No pasa por `signIn`: este
+   * pedido lleva el token de la sesión y, si venció, necesita renovarlo. */
+  async function adoptSession<T extends SessionTokens>(open: () => Promise<T>): Promise<T> {
+    await settleRefresh();
+    const tokens = await open();
     leavingForReauth.current = false;
     setTwoFactorSetupPending(false);
     await startSession(tokens);
+    return tokens;
   }
 
   async function register(
@@ -755,6 +802,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // que leerla ni reenviarla a mano. El backend la revoca server-side y la
     // limpia en la respuesta.
     sessionEpoch.current += 1;
+    sessionUserId.current = null;
     clearSession();
     clearAllCached();
     setJustLoggedOut(true);

@@ -23,6 +23,9 @@ vi.mock("@/lib/push", () => ({
   releasePushFromAccount: (...args: unknown[]) => release(...args),
 }));
 
+const reloadPage = vi.fn();
+vi.mock("@/lib/reload-page", () => ({ reloadPage: () => reloadPage() }));
+
 const emitLiveRefresh = vi.fn();
 vi.mock("@/lib/live-refresh", () => ({ emitLiveRefresh: () => emitLiveRefresh() }));
 
@@ -91,6 +94,7 @@ beforeEach(() => {
   release.mockReset().mockResolvedValue(true);
   routerReplace.mockReset();
   emitLiveRefresh.mockReset();
+  reloadPage.mockReset();
   fetchMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   localStorage.clear();
@@ -270,7 +274,7 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
 
     // Terminó el alta: el backend devuelve una sesión verificada.
     await act(async () => {
-      await auth().adoptSession({ access_token: "token-verificado", user: ADMIN });
+      await auth().adoptSession(async () => ({ access_token: "token-verificado", user: ADMIN }));
     });
 
     expect(auth().twoFactorSetupPending).toBe(false);
@@ -818,6 +822,115 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       expect(result.current.user?.id).toBe(TRABAJADORA.id);
       expect(result.current.token).toBe("token-renovado");
       expect(result.current.reconnecting).toBe(false);
+    });
+  });
+
+  describe("otra pestaña ingresa con otra cuenta", () => {
+    /** Lo que hace otra pestaña al abrir una sesión: guarda de quién es. */
+    function otherTabSignsInAs(userId: string | null) {
+      const oldValue = localStorage.getItem("staffya_session_user");
+      if (userId) localStorage.setItem("staffya_session_user", userId);
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "staffya_session_user",
+          oldValue,
+          newValue: userId,
+          storageArea: localStorage,
+        })
+      );
+    }
+
+    it("esta pestaña se recarga: su cookie de renovación ya es de la otra cuenta", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      expect(localStorage.getItem("staffya_session_user")).toBe(TRABAJADORA.id);
+
+      act(() => otherTabSignsInAs(ADMIN.id));
+
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+    });
+
+    it("si es la misma cuenta, no pasa nada", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+
+      act(() => otherTabSignsInAs(TRABAJADORA.id));
+
+      expect(reloadPage).not.toHaveBeenCalled();
+      expect(auth().user?.id).toBe(TRABAJADORA.id);
+    });
+
+    it("sin sesión acá, no se recarga", async () => {
+      await mountApp();
+
+      act(() => otherTabSignsInAs(ADMIN.id));
+
+      expect(reloadPage).not.toHaveBeenCalled();
+    });
+
+    it("la sesión recuperada al abrir también deja dicho de quién es", async () => {
+      localStorage.setItem("staffya_token", "token-guardado");
+      localStorage.setItem("staffya_has_session", "1");
+      backend["GET /auth/me"] = [200, TRABAJADORA];
+
+      await mountApp();
+
+      expect(localStorage.getItem("staffya_session_user")).toBe(TRABAJADORA.id);
+      act(() => otherTabSignsInAs(ADMIN.id));
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+    });
+
+    it("al cerrar sesión se borra de quién era", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+
+      await act(async () => {
+        await auth().logout();
+      });
+
+      expect(localStorage.getItem("staffya_session_user")).toBeNull();
+      act(() => otherTabSignsInAs(ADMIN.id));
+      expect(reloadPage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("alta de los dos pasos (adoptSession)", () => {
+    it("el pedido del alta sale después de la renovación que estuviera en vuelo", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const auth = await mountApp();
+      await loginAs(auth, ADMIN, "token-admin");
+      let releaseRefresh: (reply: Reply) => void = () => {};
+      backend["GET /admin/stats"] = SIN_SESION;
+      backend["POST /auth/refresh"] = new Promise<Reply>((resolve) => {
+        releaseRefresh = resolve;
+      });
+      let pending: Promise<unknown> = Promise.resolve();
+      await act(async () => {
+        pending = api.get("/admin/stats", auth().token).catch(() => {});
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      const order: string[] = [];
+      let adopting: Promise<unknown> = Promise.resolve();
+      await act(async () => {
+        adopting = auth().adoptSession(async () => {
+          order.push("alta");
+          return { access_token: "token-verificado", user: ADMIN };
+        });
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
+      expect(order).toEqual([]);
+
+      await act(async () => {
+        backend["GET /admin/stats"] = [200, {}];
+        releaseRefresh([200, { access_token: "token-admin-renovado" }]);
+        await pending;
+        await adopting;
+      });
+
+      expect(order).toEqual(["alta"]);
+      expect(auth().token).toBe("token-verificado");
+      expect(resolveToken("token-verificado")).toBe("token-verificado");
     });
   });
 

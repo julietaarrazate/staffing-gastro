@@ -190,12 +190,6 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - Campanita: si el WebSocket se cae dos veces en menos de 30 segundos, la
   segunda reconexión no vuelve a pedir las pantallas (tope contra el bucle
   de recargas; salió de la revisión de #560).
-- Sesión (salió de la revisión de #559): el alta de la verificación en dos
-  pasos no espera a una renovación en vuelo (si coinciden, la admin tiene que
-  ingresar de nuevo); si en otra pestaña se ingresa con otra cuenta, ésta no
-  se entera hasta su próxima renovación; y `/login?message=…` muestra el
-  texto que venga en la dirección (conviene pasarlo a motivos fijos, como
-  `?motivo=`).
 - Postulantes a 390 px: el sello «Identidad verificada» entra justo al lado
   de «Asignar»; con la letra del sistema agrandada puede no entrar (por
   debajo de 390 px ya pasa a escudo solo). Va con G24 (salió de #561).
