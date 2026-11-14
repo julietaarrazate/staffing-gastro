@@ -359,7 +359,9 @@ test("elegir un resultado con una búsqueda pendiente no reabre la lista", async
 
   // Esperamos más que el debounce (400 ms) para que el timer viejo tuviera
   // tiempo de disparar.
-  await page.waitForTimeout(1000);
+  // Más que el debounce (400 ms) más la espera entre pedidos del buscador
+  // (1100 ms): si el pedido de más volviera, a los 2 s ya habría salido.
+  await page.waitForTimeout(2000);
   await expect(resultItem).toHaveCount(0);
   expect(geocoderCalls).toBe(1);
 });
