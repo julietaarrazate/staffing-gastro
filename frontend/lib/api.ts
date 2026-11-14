@@ -120,6 +120,9 @@ export const ACCOUNT_SUSPENDED_CODE = "account_suspended";
 export function bindSessionToken(token: string | null) {
   sessionToken = token;
   liveToken = token;
+  // La renovación que estuviera en curso era de la sesión anterior: la
+  // nueva no la comparte (si no, su resultado se leería como propio).
+  renewing = null;
 }
 
 /** Renovación del access token de la sesión en curso: no cambia su identidad. */
@@ -150,7 +153,7 @@ export function setUnauthorizedHandler(handler: (() => Promise<string | null>) |
  * PWA que vuelve de estar suspendida) comparten el mismo refresh. */
 function renewOnce(handler: () => Promise<string | null>): Promise<RenewOutcome> {
   if (!renewing) {
-    renewing = handler()
+    const mine: Promise<RenewOutcome> = handler()
       .then(
         (fresh): RenewOutcome => (fresh ? { kind: "renewed" } : { kind: "ended" }),
         (err): RenewOutcome => {
@@ -160,8 +163,9 @@ function renewOnce(handler: () => Promise<string | null>): Promise<RenewOutcome>
         }
       )
       .finally(() => {
-        renewing = null;
+        if (renewing === mine) renewing = null;
       });
+    renewing = mine;
   }
   return renewing;
 }

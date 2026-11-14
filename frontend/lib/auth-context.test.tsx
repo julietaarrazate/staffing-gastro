@@ -44,8 +44,17 @@ const ADMIN: User = { ...TRABAJADORA, id: "u-admin", email: "admin@example.com",
 type Reply = [number, unknown?];
 let backend: Record<string, Reply | Promise<Reply>>;
 const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+  // Como el navegador: un pedido cortado (el tope de `request`) no contesta.
+  const aborted = new Promise<never>((_, reject) => {
+    init.signal?.addEventListener("abort", () =>
+      reject(Object.assign(new Error("aborted"), { name: "AbortError" }))
+    );
+  });
   const [status, body] =
-    (await backend[`${init.method} ${url.replace(/^.*\/api\/v1/, "")}`]) ?? [404];
+    (await Promise.race([
+      backend[`${init.method} ${url.replace(/^.*\/api\/v1/, "")}`],
+      aborted,
+    ])) ?? [404];
   return new Response(status === 204 ? null : JSON.stringify(body ?? { detail: "sin ruta" }), {
     status,
     headers: { "Content-Type": "application/json" },
@@ -584,21 +593,25 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       return { auth, refresh };
     }
 
-    /** Ingresa otra cuenta mientras la renovación sigue sin contestar: el
-     * ingreso la espera un rato y sigue. */
-    async function loginWhileRefreshHangs(auth: App) {
+    it("si la renovación anterior nunca contesta, el ingreso sale cuando llega a su tope y esa respuesta ya no cuenta", async () => {
+      const { auth, refresh } = await reconnectingWithRefreshInFlight();
       backend["POST /auth/login"] = [200, { access_token: "token-admin", user: ADMIN }];
+
+      let entering: Promise<unknown> = Promise.resolve();
       await act(async () => {
-        const entering = auth().login(ADMIN.email, "una-clave");
-        await vi.advanceTimersByTimeAsync(15_100);
+        entering = auth().login(ADMIN.email, "una-clave");
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      // Un arranque en frío dura cerca de un minuto: todavía espera.
+      expect(requestsSent()).not.toContain("POST /auth/login");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_100);
         await entering;
       });
       expect(auth().user?.id).toBe(ADMIN.id);
-    }
-
-    it("si contesta bien después de que ingresó otra cuenta, su token no se usa", async () => {
-      const { auth, refresh } = await reconnectingWithRefreshInFlight();
-      await loginWhileRefreshHangs(auth);
+      // Mientras duró el ingreso no salió otra renovación.
+      expect(requestsSent().filter((r) => r === "POST /auth/refresh")).toHaveLength(1);
 
       await act(async () => {
         refresh.release([200, { access_token: "token-de-la-cuenta-anterior" }]);
@@ -607,23 +620,79 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       expect(auth().user?.id).toBe(ADMIN.id);
       expect(auth().token).toBe("token-admin");
+      expect(auth().sessionEnded).toBeNull();
       expect(resolveToken("token-admin")).toBe("token-admin");
       expect(localStorage.getItem("staffya_token")).toBe("token-admin");
     });
 
-    it("si contesta que venció después de que ingresó otra cuenta, no la echa", async () => {
-      const { auth, refresh } = await reconnectingWithRefreshInFlight();
-      await loginWhileRefreshHangs(auth);
-
+    it("la renovación de la admin que quedó en vuelo no se aplica al pasar a «ver como»", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, ADMIN, "token-admin");
+      const refresh = deferred();
+      backend["GET /admin/stats"] = SIN_SESION;
+      backend["POST /auth/refresh"] = refresh.reply;
+      let pending: Promise<unknown> = Promise.resolve();
       await act(async () => {
-        refresh.release(SIN_SESION);
+        pending = api.get("/admin/stats", auth().token).catch(() => {});
         await vi.advanceTimersByTimeAsync(0);
       });
+      backend["POST /admin/users/u-trabajadora/impersonate"] = [
+        200,
+        { access_token: "token-viendo-como", user: TRABAJADORA },
+      ];
+      await act(async () => {
+        await auth().impersonate(TRABAJADORA.id);
+      });
 
-      expect(auth().user?.id).toBe(ADMIN.id);
-      expect(auth().token).toBe("token-admin");
+      await act(async () => {
+        refresh.release([200, { access_token: "token-admin-renovado" }]);
+        await pending;
+      });
+
+      // Los pedidos de la persona que se está viendo salen con su token.
+      expect(auth().token).toBe("token-viendo-como");
+      expect(resolveToken("token-viendo-como")).toBe("token-viendo-como");
+      expect(auth().user?.id).toBe(TRABAJADORA.id);
+    });
+
+    it("una renovación de otra sesión todavía en vuelo no se reusa ni se lee como sesión vencida", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, ADMIN, "token-admin");
+      const refresh = deferred();
+      backend["GET /admin/stats"] = SIN_SESION;
+      backend["POST /auth/refresh"] = refresh.reply;
+      let pending: Promise<unknown> = Promise.resolve();
+      await act(async () => {
+        pending = api.get("/admin/stats", auth().token).catch(() => {});
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      backend["POST /admin/users/u-trabajadora/impersonate"] = [
+        200,
+        { access_token: "token-viendo-como", user: TRABAJADORA },
+      ];
+      await act(async () => {
+        await auth().impersonate(TRABAJADORA.id);
+      });
+      // Vuelve a su cuenta (otra vez sesión de la admin, pero ya es otra
+      // «mano») y un pedido suyo da 401 con la renovación vieja en vuelo.
+      await act(async () => {
+        auth().stopImpersonating();
+      });
+      let error: unknown;
+      await act(async () => {
+        error = await api.get("/admin/stats", auth().token).catch((err) => err);
+      });
+
+      expect(error).toBeInstanceOf(NetworkError);
       expect(auth().sessionEnded).toBeNull();
-      expect(localStorage.getItem("staffya_has_session")).toBe("1");
+      expect(auth().user?.id).toBe(ADMIN.id);
+      expect(requestsSent().filter((r) => r === "POST /auth/refresh")).toHaveLength(1);
+
+      await act(async () => {
+        refresh.release([200, { access_token: "token-admin-renovado" }]);
+        await pending;
+      });
+      expect(auth().user?.id).toBe(ADMIN.id);
     });
 
     it("el ingreso espera a la renovación en vuelo antes de salir", async () => {

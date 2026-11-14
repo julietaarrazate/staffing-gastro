@@ -72,13 +72,21 @@ Lo técnico:
   reconexión, o cerrar sesión con una renovación en vuelo): podía quedar una
   persona con el token de otra, o revivir una sesión recién cerrada. Ahora la
   renovación es una sola a la vez, compara el contador de sesión antes de
-  aplicar nada, un ingreso espera a la que esté en vuelo (hasta 15 segundos)
-  y no arranca otra mientras dura, y la salida le avisa al servidor después
-  de que termine.
+  aplicar nada, un ingreso espera a la que esté en vuelo y no arranca otra
+  mientras dura, y la salida le avisa al servidor después de que termine.
 - La renovación ya no se corta a los 12 segundos al abrir la app: el
   servidor rota la cookie al contestar, y un pedido cortado y repetido se
   toma por un robo y cierra todas las sesiones de la cuenta. La app deja de
-  esperar, pero el pedido sigue y los reintentos lo reusan.
+  esperar, pero el pedido sigue y los reintentos lo reusan. Tiene un tope
+  propio de 90 segundos (más que un arranque en frío), para que un pedido
+  colgado no bloquee las renovaciones siguientes.
+- Segunda pasada: una sesión nueva podía reusar la renovación en vuelo de la
+  anterior y leer su resultado como «Tu sesión venció». La renovación en
+  vuelo queda atada a su sesión (en `auth-context.tsx` y en `api.ts`): la de
+  otra sesión no se reusa y se contesta como «sin conexión». El ingreso y la
+  salida esperan a que termine (o llegue a su tope), sin el corte de 15
+  segundos que había quedado en el primer arreglo. «Ver como» también cuenta
+  como cambio de sesión.
 
 **Queda abierto:**
 
@@ -90,3 +98,8 @@ Lo técnico:
 - Si en otra pestaña se ingresa con **otra** cuenta, ésta no se entera hasta
   su próxima renovación.
 - `/login?message=…` sigue mostrando el texto que venga en la dirección.
+- El alta de la verificación en dos pasos (`adoptSession`) recibe sus
+  tokens de un pedido que no pasa por `signIn`: si justo hay una renovación
+  de la sesión anterior en vuelo, su cookie puede llegar después y la
+  próxima renovación mandaría a la admin a ingresar de nuevo con su código.
+  Se arregla sola al reingresar.

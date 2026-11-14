@@ -118,8 +118,13 @@ const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const RECONNECT_DELAYS_MS = [2_000, 5_000, 10_000];
 const RECONNECT_STEADY_MS = 15_000;
 
-// Cuánto espera un ingreso o una salida a la renovación que quedó en vuelo.
-const SETTLE_REFRESH_MS = 15_000;
+// Tope de una renovación. No es el de «cuánto espera la app» (eso es
+// `AUTH_TIMEOUT_MS`): es cuándo se da por muerto el pedido. Tiene que ser
+// más largo que un arranque en frío del servidor (cerca de un minuto),
+// porque cortar una renovación que el servidor sí procesó deja al navegador
+// con la cookie vieja (ver `tryRefresh`). Sin tope, un pedido colgado (el
+// celular que vuelve de estar suspendido) bloquearía todas las siguientes.
+const REFRESH_HARD_TIMEOUT_MS = 90_000;
 
 // Tope para el chequeo de sesión al abrir la app: si el backend no responde
 // en este tiempo (cold start de Render, backend caído), no colgamos la app en
@@ -217,13 +222,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionEnded(reason);
   }
 
-  // La renovación en vuelo, si hay una. Es una sola a la vez y **nunca se
-  // aborta**: el servidor rota la cookie al contestar, y un pedido cortado
-  // del lado del navegador puede haberse procesado igual. El próximo saldría
-  // con la cookie vieja y el servidor lo toma por un robo: cierra todas las
-  // sesiones de la cuenta. Quien no puede esperar deja de esperar
-  // (`timeoutMs`), pero el pedido sigue y el siguiente intento lo reusa.
-  const refreshInFlight = useRef<Promise<string | null> | null>(null);
+  // La renovación en vuelo, si hay una, y de qué sesión es. Es una sola a la
+  // vez y **no se corta a los pocos segundos**: el servidor rota la cookie
+  // al contestar, y un pedido cortado del lado del navegador puede haberse
+  // procesado igual. El próximo saldría con la cookie vieja y el servidor lo
+  // toma por un robo: cierra todas las sesiones de la cuenta. Quien no puede
+  // esperar deja de esperar (`timeoutMs`), pero el pedido sigue (hasta
+  // `REFRESH_HARD_TIMEOUT_MS`) y el siguiente intento lo reusa.
+  const refreshInFlight = useRef<{ epoch: number; promise: Promise<string | null> } | null>(
+    null
+  );
   // Ingresos en curso (ver `signIn`): mientras haya uno no arranca ninguna
   // renovación de la sesión anterior.
   const signingIn = useRef(0);
@@ -235,6 +243,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Con una sesión en curso y sin la marca, la cerraron desde otro lado.
       if (hasBoundSession()) endSession("vencida", { announce: false });
       return Promise.resolve(null);
+    }
+    // La que está en vuelo es de otra sesión (la que había antes de un
+    // ingreso o una salida): no sirve para ésta, y hasta que no termine no
+    // sale otra (dos a la vez se pisan la cookie). Se contesta como «sin
+    // conexión», nunca como sesión terminada.
+    if (refreshInFlight.current && refreshInFlight.current.epoch !== sessionEpoch.current) {
+      return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
     }
     if (!refreshInFlight.current) {
       // Hay un ingreso en curso: no se sabe todavía de quién va a ser la
@@ -248,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // la sesión de quien entró después.
       const epoch = sessionEpoch.current;
       const attempt: Promise<string | null> = api
-        .post<{ access_token: string }>("/auth/refresh")
+        .post<{ access_token: string }>("/auth/refresh", undefined, null, REFRESH_HARD_TIMEOUT_MS)
         .then(
           (tokens) => {
             if (sessionEpoch.current !== epoch) return null;
@@ -272,11 +287,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         )
         .finally(() => {
-          if (refreshInFlight.current === attempt) refreshInFlight.current = null;
+          if (refreshInFlight.current?.promise === attempt) refreshInFlight.current = null;
         });
-      refreshInFlight.current = attempt;
+      refreshInFlight.current = { epoch, promise: attempt };
     }
-    const inFlight = refreshInFlight.current;
+    const inFlight = refreshInFlight.current.promise;
     if (timeoutMs == null) return inFlight;
     return new Promise<string | null>((resolve, reject) => {
       const timer = setTimeout(
@@ -287,18 +302,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  /** Espera (con tope) a que termine la renovación en vuelo. */
+  /** Espera a que termine la renovación en vuelo (contesta o llega a su
+   * tope). Su respuesta trae cookie: lo que venga después tiene que salir
+   * después. */
   async function settleRefresh() {
-    const inFlight = refreshInFlight.current;
-    if (!inFlight) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    await Promise.race([
-      inFlight.catch(() => null),
-      new Promise((resolve) => {
-        timer = setTimeout(resolve, SETTLE_REFRESH_MS);
-      }),
-    ]);
-    clearTimeout(timer);
+    await refreshInFlight.current?.promise.catch(() => null);
   }
 
   /** Todo pedido que abre una sesión pasa por acá. La respuesta de una
@@ -680,6 +688,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       undefined,
       token
     );
+    // Una renovación de la admin que quedó en vuelo no se aplica sobre la
+    // sesión de la persona que pasa a ver (saldría con el token de la admin).
+    sessionEpoch.current += 1;
     setImpersonating({ adminToken: token, adminUser: user });
     impersonatingRef.current = true;
     // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
@@ -691,6 +702,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function stopImpersonating() {
     if (!impersonating) return;
+    sessionEpoch.current += 1;
     impersonatingRef.current = false;
     clearAllCached();
     // El token de la admin pudo haber vencido durante la impersonación (el
