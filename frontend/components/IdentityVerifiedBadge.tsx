@@ -16,11 +16,23 @@ import { ShieldIcon } from "@/components/icons";
 export default function IdentityVerifiedBadge({
   verified,
   className,
+  compact = false,
 }: {
   verified: boolean;
   className?: string;
+  /** Sólo el escudo, para columnas angostas; el nombre accesible sigue completo. */
+  compact?: boolean;
 }) {
   if (!verified) return null;
+  if (compact) {
+    return (
+      <span role="img" aria-label="Identidad verificada" title="Identidad verificada" className="inline-flex">
+        <Badge tone="trust" icon={<ShieldIcon size={13} />} className={className}>
+          {null}
+        </Badge>
+      </span>
+    );
+  }
   return (
     <Badge tone="trust" icon={<ShieldIcon size={13} />} className={className}>
       Identidad verificada

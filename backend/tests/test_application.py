@@ -626,3 +626,34 @@ async def test_applying_notifies_company(client: AsyncClient):
     assert notif["title"] == "1 postulante para Mozo/a"
     assert "Test User" in notif["message"]
     assert "Mozo/a" in notif["message"]
+
+
+async def test_applicants_flag_verified_identity(client: AsyncClient, session_factory):
+    """El comercio ve `identidad_verificada` sólo en quien tiene el documento
+    aprobado; el otro postulante sale sin sello."""
+    from tests.conftest import make_admin
+    from tests.test_verification import _doc_payload
+
+    employer = await _employer_with_company(client, "emp_app_idv@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    verified_worker, verified_id = await _worker_with_profile(client, "w_idv_ok@staffya.com")
+    plain_worker, plain_id = await _worker_with_profile(client, "w_idv_no@staffya.com")
+    for headers in (verified_worker, plain_worker):
+        await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=headers)
+
+    # Un mail confirmado o un documento pendiente no cuentan: sin sello todavía.
+    await client.post(
+        "/api/v1/identity/me/document", headers=verified_worker, json=_doc_payload()
+    )
+    before = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    assert all(a["identidad_verificada"] is False for a in before.json())
+
+    admin = await make_admin(client, session_factory, "admin_app_idv@staffya.com")
+    pending = await client.get("/api/v1/identity/claims/pending", headers=admin)
+    claim_id = pending.json()[0]["claim_id"]
+    approve = await client.post(f"/api/v1/identity/claims/{claim_id}/approve", headers=admin)
+    assert approve.status_code == 200
+
+    after = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    by_worker = {a["worker_profile_id"]: a["identidad_verificada"] for a in after.json()}
+    assert by_worker == {verified_id: True, plain_id: False}

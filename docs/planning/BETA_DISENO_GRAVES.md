@@ -88,19 +88,6 @@ Todo en `lib/auth-context.tsx`, `lib/use-require-auth.ts`, `lib/api.ts`.
 - Pruebas: `lib/auth-context.test.tsx` (los cuatro casos); en la app, vencer
   la sesión a mitad de publicar y cerrar sesión con dos pestañas.
 
-### G5 · Los sellos de confianza dicen la verdad (U038, U090, U108) — S
-
-- `app/profile/page.tsx`: dejar de pasar `user.is_verified` (mail confirmado)
-  a `IdentityVerifiedBadge`. Comercio: sólo «Comercio verificado» con la
-  constancia aprobada. Trabajador: sólo con la identidad verificada.
-- `components/worker/OpportunityCard.tsx`: mostrar el sello con
-  `shift.company_verified` (el dato ya viaja), igual que `ShiftCard`.
-- `application/api/schemas.py` (`ApplicantResponse`) suma
-  `identidad_verificada`, calculada como en `matching/api/routes.py` (por
-  puerto, sin importar el otro módulo por dentro); `CandidateCard` la muestra.
-- Pruebas: test de la ruta de postulantes; capturas en claro y oscuro de
-  Inicio, perfil del comercio y postulantes.
-
 ## Ola B
 
 ### G2 · Segundo toque, segunda parte (U006, U007, U008) — S
@@ -161,7 +148,9 @@ link de turno sin sesión, registrarse y terminar en ese turno.
 `app/shifts/[id]/candidates/page.tsx`, `components/CandidateCard.tsx`,
 `app/chats/layout.tsx`, `app/admin/en-vivo/page.tsx` y
 `app/admin/support/page.tsx`. Capturas a 390 px con un nombre de 60 letras,
-en claro y oscuro.
+en claro y oscuro. La lista de postulantes de
+`app/shifts/[id]/candidates/page.tsx` ya no se sale con un nombre largo
+(`min-w-0`, #561): ahí falta sólo verificarlo.
 
 ## Ola C
 

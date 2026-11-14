@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 22 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 25 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -95,8 +95,8 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U038 | El perfil del comercio muestra «Identidad verificada» con sólo confirmar el mail (incluso con la constancia… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G5 · un solo PR con U090 y U108 |
-| U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G5 · un solo PR con U038 |
+| U038 | El perfil del comercio muestra «Identidad verificada» con sólo confirmar el mail (incluso con la constancia… | ✅ en `main` | #561 |
+| U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | ✅ en `main` | #561 |
 | U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ⚪ decidido (3), sin empezar | se apaga al instante también para el comercio; lleva ADR y, con él, el texto de `/privacidad` (decisión 1) |
 | U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G6 |
 | U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G7 · un solo PR con U114 y U115 |
@@ -181,6 +181,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   recalculó (es un promedio guardado; tocar datos de producción se pregunta).
 - Evento: no existe cancelar varios turnos a la vez; quien se postuló a tres
   recibe tres avisos de cancelación.
+- Postulantes a 390 px: el sello «Identidad verificada» entra justo al lado
+  de «Asignar»; con la letra del sistema agrandada puede no entrar (por
+  debajo de 390 px ya pasa a escudo solo). Va con G24 (salió de #561).
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).

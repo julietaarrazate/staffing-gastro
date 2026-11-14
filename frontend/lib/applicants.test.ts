@@ -17,6 +17,7 @@ function applicant(overrides: Partial<Applicant>): Applicant {
     years_experience: 0,
     badges: [],
     level: "bronce",
+    identidad_verificada: false,
     ...overrides,
   };
 }
