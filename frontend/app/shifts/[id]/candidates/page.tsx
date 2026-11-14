@@ -286,7 +286,7 @@ function ShiftCandidatesContent() {
                   Oído" de la otra pestaña: UNA acción principal, no tres
                   empatadas. La Garantía va DESPUÉS de la lista: antes ocupaba
                   la mitad de la pantalla antes del primer postulante. */}
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {shownApplicants.map((a) => {
                   const top = standout?.application_id === a.application_id;
                   return (
@@ -324,17 +324,9 @@ function ShiftCandidatesContent() {
                           </div>
                           {/* Mismo sello que en «Recomendados» (`CandidateCard`). */}
                           {a.identidad_verificada && (
-                            <>
-                              {/* El texto entero necesita ~150 px de columna: a partir
-                                  de 390 px de pantalla entra junto a «Asignar»; por
-                                  debajo, sólo el escudo (mismo nombre accesible). */}
-                              <span className="hidden min-[390px]:block">
-                                <IdentityVerifiedBadge verified className="mt-1 whitespace-nowrap !px-2 !py-1" />
-                              </span>
-                              <span className="mt-1 block min-[390px]:hidden">
-                                <IdentityVerifiedBadge verified compact className="!px-2 !py-1" />
-                              </span>
-                            </>
+                            // Desde 390 px el chip entero; de 360 a 389 px
+                            // «Verificada»; por debajo, sólo el escudo.
+                            <IdentityVerifiedBadge verified responsive className="mt-1 block" />
                           )}
                           <CandidateStatChips signals={a} className="mt-1" onDark={top} />
                         </div>
@@ -371,14 +363,14 @@ function ShiftCandidatesContent() {
             />
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {shownCandidates.map((candidate) => (
                   <motion.div
                     key={candidate.profile_id}
                     layout={!reducedMotion}
                     animate={settle(candidate.profile_id)}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="relative rounded-[var(--radius-card)]"
+                    className="relative min-w-0 rounded-[var(--radius-card)]"
                   >
                     <CandidateCard
                       candidate={candidate}
