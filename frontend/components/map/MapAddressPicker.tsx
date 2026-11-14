@@ -85,12 +85,14 @@ export default function MapAddressPicker({
   );
 
   useEffect(() => {
+    // Lo pendiente se cancela siempre (también cuando la selección se salta la
+    // búsqueda); si no, un timer viejo dispara igual y reabre la lista encima.
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
     if (skipNextSearchRef.current) {
       skipNextSearchRef.current = false;
       return;
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    abortRef.current?.abort();
 
     // Query corta: no se dispara pedido ni se resetea estado acá (evita
     // setState síncrono en el cuerpo del efecto) — el render ya oculta el
@@ -121,6 +123,10 @@ export default function MapAddressPicker({
   }, []);
 
   function selectResult(result: GeocodeResult) {
+    // El cambio de texto que hace esta selección no tiene que reabrir la lista
+    // (el efecto de búsqueda se dispararía con el texto elegido). Si el texto no
+    // cambia, el efecto no corre y el flag quedaría armado para la próxima tecla.
+    if (result.address !== query) skipNextSearchRef.current = true;
     setQuery(result.address);
     setAddress(result.address);
     setCity(result.city);
