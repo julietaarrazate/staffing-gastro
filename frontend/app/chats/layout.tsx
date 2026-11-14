@@ -107,7 +107,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
 
         <div className="flex-1 space-y-3 px-4 pb-6">
           {loading && (
-            <div className="grid gap-3" aria-hidden>
+            <div className="grid grid-cols-1 gap-3" aria-hidden>
               <ConversationRowSkeleton />
               <ConversationRowSkeleton />
               <ConversationRowSkeleton />
@@ -122,7 +122,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
             />
           )}
 
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {conversations.map((c) => (
               <Link
                 key={c.shift_id}
@@ -132,7 +132,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                     prev.map((p) => (p.shift_id === c.shift_id ? { ...p, unread_count: 0 } : p))
                   )
                 }
-                className={`flex items-center gap-3 rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-soft)] ring-1 transition hover:shadow-md ${
+                className={`flex min-w-0 items-center gap-3 rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-soft)] ring-1 transition hover:shadow-md ${
                   c.shift_id === activeShiftId
                     ? "bg-primary-tint ring-primary/40"
                     : "bg-card ring-line"
@@ -152,7 +152,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center justify-between gap-2">
                     <h3 className="truncate font-bold text-ink">{c.other_party_name}</h3>
                     <span className="shrink-0 text-xs text-ink/40">
                       {timeAgo(c.last_message_at)}

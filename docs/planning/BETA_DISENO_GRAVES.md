@@ -39,31 +39,6 @@ G5 #561, G1 #560, G7 #559).
 
 ## Ola B
 
-### G2 · Segundo toque, segunda parte (U006, U007, U008) — S
-
-Reusar `lib/use-tap-guard.ts`; no crear otra guarda.
-
-- `app/shifts/new/page.tsx`: cambiar de paso pasa por la guarda, así
-  «Publicar turno» no acepta el toque que venía para «Continuar».
-- `components/worker/SwipeDeck.tsx`: «Postularme» pasa por la guarda (no se
-  rehabilita a los 300 ms de la animación). En la grilla de
-  `app/feed/page.tsx` la tarjeta postulada queda en su lugar, marcada
-  «Postulado», hasta la próxima carga.
-- `components/ui/Modal.tsx`: mientras el diálogo se cierra, su contenido no
-  recibe toques (vale para todos los diálogos). `withdrawApplication`
-  (`app/my-shifts/page.tsx`) ignora un segundo pedido en curso y no revierte
-  la lista si la postulación ya estaba retirada.
-- De las revisiones: los botones del trabajador que hoy ignoran el toque
-  durante 1 segundo sin avisar se ven deshabilitados (`locked`).
-- Pruebas: e2e de doble toque a 700 ms en los tres lugares.
-
-### G16 · Volver a donde iba (U062) — S
-
-`next` (validado con `lib/safe-next.ts` de G7) viaja por `/login`,
-`/register`, Google y `/bienvenida`; lo pasan `components/ShiftDetail.tsx`
-(«Ingresá para postularte») y `useRequireAuth`. Prueba en la app: abrir un
-link de turno sin sesión, registrarse y terminar en ese turno.
-
 ### G8 · Errores de validación que se entienden (U030, U031) — S
 
 - `lib/api.ts` (`parseErrorDetail`): leer el detalle en forma de lista y
@@ -85,21 +60,6 @@ link de turno sin sesión, registrarse y terminar en ese turno.
 - Frontend: `act()` y `run()` recargan la lista también cuando fallan.
 - Pruebas: tests del dominio por mensaje (ninguno contiene `T` de fecha ni
   `→`).
-
-### G13 · El buscador de direcciones se cierra al elegir (U036) — M
-
-`components/map/MapAddressPicker.tsx`: `selectResult` marca
-`skipNextSearchRef`. Con test.
-
-### G24 · Tarjetas que se salen de la pantalla (U026, U075, U124) — M
-
-`min-w-0` (y `grid-cols-1` donde falta) en
-`app/shifts/[id]/candidates/page.tsx`, `components/CandidateCard.tsx`,
-`app/chats/layout.tsx`, `app/admin/en-vivo/page.tsx` y
-`app/admin/support/page.tsx`. Capturas a 390 px con un nombre de 60 letras,
-en claro y oscuro. La lista de postulantes de
-`app/shifts/[id]/candidates/page.tsx` ya no se sale con un nombre largo
-(`min-w-0`, #561): ahí falta sólo verificarlo.
 
 ## Ola C
 
