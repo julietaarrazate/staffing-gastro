@@ -57,13 +57,6 @@ Reusar `lib/use-tap-guard.ts`; no crear otra guarda.
   durante 1 segundo sin avisar se ven deshabilitados (`locked`).
 - Pruebas: e2e de doble toque a 700 ms en los tres lugares.
 
-### G16 · Volver a donde iba (U062) — S
-
-`next` (validado con `lib/safe-next.ts` de G7) viaja por `/login`,
-`/register`, Google y `/bienvenida`; lo pasan `components/ShiftDetail.tsx`
-(«Ingresá para postularte») y `useRequireAuth`. Prueba en la app: abrir un
-link de turno sin sesión, registrarse y terminar en ese turno.
-
 ### G8 · Errores de validación que se entienden (U030, U031) — S
 
 - `lib/api.ts` (`parseErrorDetail`): leer el detalle en forma de lista y

@@ -1,4 +1,4 @@
-# Volver a donde iba: `next` por el alta, la bienvenida y la cabecera (G16, U062)
+# Volver a donde iba: `next` por el alta, la bienvenida y la cabecera (G16, U062) (#565)
 
 **Pedido:** salida a beta, hallazgo U062: quien llega por un link (un turno compartido, por ejemplo) y tiene que ingresar o registrarse terminaba en la home en vez de en lo que iba a ver.
 
