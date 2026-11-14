@@ -127,6 +127,19 @@ async def test_no_show_from_confirmed_reopens_shift_and_records_reputation(
     notifications = await client.get("/api/v1/notifications", headers=worker_headers)
     assert any(n["type"] == "shift_no_show" for n in notifications.json())
 
+    # U089: el texto manual también dice cómo reclamar, el aviso lleva al
+    # perfil, y el comercio no recibe un aviso de este tipo (mismos
+    # destinatarios que antes).
+    aviso = next(n for n in notifications.json() if n["type"] == "shift_no_show")
+    assert aviso["title"] == "Te marcaron como no presentado"
+    assert aviso["message"].startswith("El comercio marcó que no te presentaste al turno ")
+    assert aviso["message"].endswith(
+        "Esto impacta tu reputación. Si fue un error, escribinos desde Soporte."
+    )
+    assert aviso["link"] == "/profile"
+    del_comercio = await client.get("/api/v1/notifications", headers=employer_headers)
+    assert not any(n["type"] == "shift_no_show" for n in del_comercio.json())
+
 
 async def test_no_show_from_en_camino_also_allowed(client: AsyncClient, session_factory):
     shift_id, employer_headers, worker_headers, _ = await _confirmed_shift(

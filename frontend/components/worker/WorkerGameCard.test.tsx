@@ -96,3 +96,46 @@ describe("WorkerGameCard: cambiar la foto", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos guardar tu foto");
   });
 });
+
+describe("WorkerGameCard: cancelaciones y ausencias en el perfil propio", () => {
+  beforeEach(() => get.mockReset());
+
+  function conPerfil(p: WorkerProfile) {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/workers/me/earnings") throw new Error("sin ganancias");
+      return p;
+    });
+  }
+
+  it("sin turnos hechos pero con 1 ausencia y 1 cancelación, las muestra", async () => {
+    conPerfil(perfil({ events_completed: 0, no_shows: 1, cancellations: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Ausencias")).toBeInTheDocument();
+    expect(screen.getByText("Cancelaciones")).toBeInTheDocument();
+    expect(screen.getByText("Tu reputación arranca con tu primer turno.")).toBeInTheDocument();
+    // Sin historia no aparece el resto de la tarjeta.
+    expect(screen.queryByText("Turnos")).not.toBeInTheDocument();
+  });
+
+  it("sin turnos y sin faltas, sigue el mensaje de siempre y nada más", async () => {
+    conPerfil(perfil());
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Tu reputación arranca con tu primer turno.")).toBeInTheDocument();
+    expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cancelaciones")).not.toBeInTheDocument();
+  });
+
+  it("con turnos hechos y una ausencia, la suma a los demás datos", async () => {
+    conPerfil(perfil({ events_completed: 3, no_shows: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Ausencias")).toBeInTheDocument();
+    expect(screen.getByText("Turnos")).toBeInTheDocument();
+  });
+
+  it("con turnos hechos y sin ausencias, queda como antes (sin «Ausencias»)", async () => {
+    conPerfil(perfil({ events_completed: 3 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Cancelaciones")).toBeInTheDocument();
+    expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
+  });
+});

@@ -681,15 +681,30 @@ class ShiftService:
         await self._restore_rejected_applicants(shift_id)
         if absent_worker_profile_id is not None:
             await self._workers.record_no_show(absent_worker_profile_id)
+            nombre = updated.title or updated.position.label
+            if _trigger == "automatic":
+                # Nadie lo marcó: el sistema no vio su llegada. Se le cuenta
+                # como fue (U082/U089) y se le dice cómo reclamar.
+                title = "No registramos tu llegada"
+                message = (
+                    f"No registramos tu llegada al turno \"{nombre}\" y quedó "
+                    "como ausencia. Si fue un error, escribinos desde Soporte."
+                )
+            else:
+                title = "Te marcaron como no presentado"
+                message = (
+                    f"El comercio marcó que no te presentaste al turno "
+                    f"\"{nombre}\". Esto impacta tu reputación. "
+                    "Si fue un error, escribinos desde Soporte."
+                )
+            # El aviso tiene un solo destino: el perfil, donde se ve la
+            # ausencia. «Soporte» queda como texto, no como segundo link.
             await self._notify_worker(
                 absent_worker_profile_id,
                 NotificationType.SHIFT_NO_SHOW,
-                "Te marcaron como no presentado",
-                (
-                    f"El comercio marcó que no te presentaste al turno "
-                    f"\"{updated.title or updated.position.label}\". "
-                    "Esto impacta tu reputación."
-                ),
+                title,
+                message,
+                link="/profile",
             )
         return updated
 

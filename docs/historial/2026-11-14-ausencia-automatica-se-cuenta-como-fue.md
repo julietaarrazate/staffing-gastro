@@ -1,0 +1,34 @@
+# La ausencia automática se cuenta como fue (G3, U082/U089)
+
+**Pedido:** salida a beta, grupo G3. Hoy el aviso de ausencia decía siempre
+«El comercio marcó que no te presentaste», aun cuando nadie lo marcó y fue el
+sistema; no decía cómo reclamar; llevaba a una pantalla vacía; y el perfil
+escondía cancelaciones y ausencias hasta el primer turno hecho.
+
+**Qué cambió:**
+- `backend/app/modules/shift/application/services.py` (`mark_no_show`): con
+  `_trigger="automatic"` el trabajador recibe «No registramos tu llegada al
+  turno "X" y quedó como ausencia. Si fue un error, escribinos desde Soporte.»;
+  el texto manual suma «Si fue un error, escribinos desde Soporte.». Mismos
+  destinatarios y mismo disparo que antes; la penalidad no cambia.
+- El aviso lleva al perfil: `link="/profile"` explícito, más
+  `notification/domain/value_objects.py` (push) y `frontend/lib/notification-link.ts`
+  (avisos viejos sin link) en `/profile` en vez de `/my-shifts`.
+- `frontend/components/worker/WorkerGameCard.tsx` (perfil propio): sin turnos
+  hechos, si hay al menos una cancelación o ausencia se muestran las dos; con
+  turnos, aparece el tile «Ausencias» cuando hay al menos una (grilla 2x2).
+  El componente sólo se usa en `/profile`: lo que ve un comercio sale de otra
+  pantalla y no cambia.
+- Tests: `tests/test_scheduler.py`, `tests/test_no_show_and_late_cancellation.py`,
+  `lib/notification-link.test.ts`, `components/worker/WorkerGameCard.test.tsx`.
+- Docs: `docs/reference/NOTIFICATIONS.md`.
+
+**Por qué así:** el link del aviso es uno solo; el texto menciona Soporte pero
+el destino es el perfil, así no hay dos destinos que se contradigan.
+
+**Queda abierto:** el diseño pedía un texto para el comercio («La persona
+confirmada no marcó su llegada a X» y qué pasó con el turno), pero hoy
+`mark_no_show` **no avisa al comercio** en ningún caso. Agregarlo cambia quién
+recibe qué (regla del producto): no se hizo y se consulta. Hoy el turno vuelve a
+«Buscando personal» y los postulantes rechazados se restauran. Que la ausencia
+automática coincida con el fin de la búsqueda va con U080.

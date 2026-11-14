@@ -24,6 +24,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
 | `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)); el turno vuelve a buscar personal | comercio |
 | `shift_cancelled_late` | el comercio cancela un turno con el trabajador ya confirmado o en pleno turno (cancelación tardía, [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) | trabajador asignado |
+| `shift_no_show` | el comercio marca «No se presentó» (`manual`) o el sistema no vio su llegada pasado el plazo (`automatic`, scheduler de asistencia, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)); el turno vuelve a buscar personal | trabajador ausente (el comercio no recibe aviso de este tipo); abre `/profile` |
 | `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
@@ -31,6 +32,15 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 
 ## Reglas de negocio
 
+- **Ausencia (`shift_no_show`), textos (U082/U089).** Mismo destinatario en los dos
+  casos; cambia lo que se cuenta. El aviso tiene un solo destino, el perfil
+  (`/profile`, donde se ve la ausencia); «Soporte» queda como texto, no como link.
+  - Automática: título «No registramos tu llegada»; texto «No registramos tu
+    llegada al turno "X" y quedó como ausencia. Si fue un error, escribinos
+    desde Soporte.»
+  - Manual: título «Te marcaron como no presentado»; texto «El comercio marcó
+    que no te presentaste al turno "X". Esto impacta tu reputación. Si fue un
+    error, escribinos desde Soporte.»
 - **Por usuario:** cada notificación pertenece a un usuario; sólo él la ve.
 - **Entrega en tiempo real:** se empujan por **WebSocket** (`/notifications/ws`);
   si el usuario no está conectado, quedan para consultarse.
