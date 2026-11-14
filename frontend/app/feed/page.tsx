@@ -199,8 +199,17 @@ function WorkerFeedPanel() {
   // `load` descarta su copia vieja, esto es lo que se cachea, no `null`.
   const lastSavedProfile = useRef<WorkerProfile | null>(null);
 
+  // Último pedido gana: una carga vieja que termina tarde no pisa a la nueva.
+  const latestLoad = useRef(0);
+  // Cuenta las postulaciones hechas desde la grilla. Una carga que empezó
+  // antes de postularse trae al turno todavía sin postular: no tiene que
+  // borrar la marca «Postulado» ni volver a ofrecerlo.
+  const gridApplies = useRef(0);
+
   const load = useCallback(async () => {
     if (!token) return;
+    const mine = ++latestLoad.current;
+    const appliesAtStart = gridApplies.current;
     // Una búsqueda del asistente siempre recarga (no hay caché previo que
     // sirva para una consulta puntual) y siempre bloquea con esqueleto —
     // fuera de eso, sólo bloqueamos en la primera carga real; si ya hay algo
@@ -216,13 +225,14 @@ function WorkerFeedPanel() {
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
+      if (mine !== latestLoad.current) return;
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
       // La próxima carga ya trae a los postulados filtrados: la marca de la
       // grilla termina su trabajo (y si se retiró una postulación, el turno
       // vuelve a ofrecerse sin la marca vieja).
-      setAppliedInGrid(new Set());
+      if (gridApplies.current === appliesAtStart) setAppliedInGrid(new Set());
       setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
@@ -233,16 +243,18 @@ function WorkerFeedPanel() {
       // No cachear resultados de una búsqueda del asistente: son la
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
-      if (!assistantSearch) {
+      if (!assistantSearch && gridApplies.current === appliesAtStart) {
         const cachedProfile = profFresh
           ? prof
           : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
         setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+      if (mine === latestLoad.current) {
+        setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+      }
     } finally {
-      setLoading(false);
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token, assistantSearch]);
 
@@ -360,7 +372,10 @@ function WorkerFeedPanel() {
       try {
         const ok = await onDecide(shift, decision);
         if (!ok) return;
-        if (decision === "like") setAppliedInGrid((prev) => new Set(prev).add(shift.id));
+        if (decision === "like") {
+          gridApplies.current += 1;
+          setAppliedInGrid((prev) => new Set(prev).add(shift.id));
+        }
         else setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       } finally {
         setDecidingId(null);

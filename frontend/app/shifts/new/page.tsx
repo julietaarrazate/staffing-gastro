@@ -432,8 +432,9 @@ function NewShiftWizard() {
         {step > 0 ? (
           <button
             onClick={() => goGuarded(step - 1)}
+            disabled={tapGuard.locked}
             aria-label="Atrás"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -441,7 +442,7 @@ function NewShiftWizard() {
           <button
             onClick={() => router.push("/shifts")}
             aria-label="Cerrar"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -549,6 +550,7 @@ function NewShiftWizard() {
                       <motion.button
                         key={skill}
                         whileTap={{ scale: 0.95 }}
+                        disabled={tapGuard.locked}
                         // Elegir el puesto avanza solo: el botón Continuar
                         // quedaba debajo de la grilla, fuera de pantalla en
                         // celulares (auditoría de interfaz 2026-10-11, U02).
@@ -558,7 +560,7 @@ function NewShiftWizard() {
                             go(1);
                           })
                         }
-                        className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
+                        className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition disabled:opacity-60 ${
                           active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
                         }`}
                       >

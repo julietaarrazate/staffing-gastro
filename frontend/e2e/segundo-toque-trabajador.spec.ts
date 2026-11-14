@@ -244,40 +244,77 @@ test("postularse en la grilla: la tarjeta queda en su lugar, «Postulado», y un
   await expect(cards.nth(1).getByRole("button", { name: "Postularme" })).toBeEnabled();
 });
 
-test("retirar una postulación: el doble toque en «Sí, cancelar» manda un solo pedido", async ({ page }) => {
-  await prepararTrabajador(page);
-  const retiradas: string[] = [];
-  const apps = [
-    { id: "app-1", shift_id: "shift-1", worker_profile_id: "profile-1", status: "pendiente", created_at: "2026-07-02T10:00:00-03:00", shift: shift("shift-1", "Bar Uno") },
-    { id: "app-2", shift_id: "shift-2", worker_profile_id: "profile-1", status: "pendiente", created_at: "2026-07-02T10:00:00-03:00", shift: shift("shift-2", "Bar Dos") },
-  ];
-  await page.route(/\/api\/v1\/applications\/mine(\?.*)?$/, (route) =>
-    route.fulfill(json(apps.filter((a) => !retiradas.includes(a.id))))
-  );
-  await page.route("**/api/v1/applications/*/withdraw", async (route) => {
-    const id = route.request().url().split("/").slice(-2)[0];
-    // El servidor real contesta 400 al segundo retiro de la misma postulación.
-    if (retiradas.includes(id)) return route.fulfill(json({ detail: "Ya estaba retirada" }, 400));
-    retiradas.push(id);
-    await new Promise((r) => setTimeout(r, 900));
-    return route.fulfill(json({ ...apps.find((a) => a.id === id), status: "retirada" }));
-  });
+const APPS = () => [
+  { id: "app-1", shift_id: "shift-1", worker_profile_id: "profile-1", status: "pendiente", created_at: "2026-07-02T10:00:00-03:00", shift: shift("shift-1", "Bar Uno") },
+  { id: "app-2", shift_id: "shift-2", worker_profile_id: "profile-1", status: "pendiente", created_at: "2026-07-02T10:00:00-03:00", shift: shift("shift-2", "Bar Dos") },
+];
 
+async function abrirRetiro(page: Page) {
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: "Postulaciones (2)" }).click();
   await page.getByRole("button", { name: "Cancelar postulación" }).first().click();
   const dialog = page.getByRole("dialog", { name: "¿Cancelar tu postulación?" });
-  // El diálogo recién abierto tampoco acepta toques un instante (se ve deshabilitado).
-  await expect(dialog.getByRole("button", { name: "Sí, cancelar" })).toBeDisabled();
   await expect(dialog.getByRole("button", { name: "Sí, cancelar" })).toBeEnabled();
-  const { x, y } = await centro(page, dialog.getByRole("button", { name: "Sí, cancelar" }));
+  return dialog;
+}
+
+test("un diálogo que se cierra se traga el toque: la pantalla de atrás no lo recibe", async ({ page }) => {
+  await prepararTrabajador(page);
+  await page.route(/\/api\/v1\/applications\/mine(\?.*)?$/, (route) => route.fulfill(json(APPS())));
+  const dialog = await abrirRetiro(page);
+  const { x, y } = await centro(page, dialog.getByRole("button", { name: "Volver" }));
+  // Un botón de la pantalla de atrás, justo bajo «Volver» (el diálogo está encima, z-[60]).
+  await page.evaluate(([cx, cy]) => {
+    const b = document.createElement("button");
+    b.id = "sonda";
+    b.style.cssText = `position:fixed;left:${cx - 40}px;top:${cy - 20}px;width:80px;height:40px;z-index:1`;
+    (window as unknown as { __sonda: number }).__sonda = 0;
+    b.addEventListener("click", () => ((window as unknown as { __sonda: number }).__sonda += 1));
+    document.body.appendChild(b);
+  }, [x, y]);
+  // Doble toque seguido: el primero cierra, el segundo cae mientras el diálogo sale.
   await page.mouse.click(x, y);
-  await page.waitForTimeout(700);
   await page.mouse.click(x, y);
-  await expect(page.getByText("Cancelaste tu postulación")).toBeVisible();
-  await page.waitForTimeout(500);
-  expect(retiradas).toEqual(["app-1"]);
-  // La otra postulación sigue en la lista, y no se abrió otro diálogo.
-  await expect(page.getByRole("button", { name: "Cancelar postulación" })).toHaveCount(1);
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __sonda: number }).__sonda)).toBe(0);
+});
+
+test("retirar: si el servidor dice que ya no estaba pendiente (400), no vuelve a mostrarla y recarga", async ({ page }) => {
+  await prepararTrabajador(page);
+  let cargas = 0;
+  let retirada = false;
+  await page.route(/\/api\/v1\/applications\/mine(\?.*)?$/, (route) => {
+    cargas += 1;
+    return route.fulfill(json(APPS().filter((a) => !(retirada && a.id === "app-1"))));
+  });
+  await page.route("**/api/v1/applications/app-1/withdraw", (route) => {
+    retirada = true; // se retiró desde otro lado
+    return route.fulfill(json({ detail: "Ya estaba retirada" }, 400));
+  });
+  const dialog = await abrirRetiro(page);
+  const antes = cargas;
+  await dialog.getByRole("button", { name: "Sí, cancelar" }).click();
+  await expect(page.getByText("Ya estaba retirada")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancelar postulación" })).toHaveCount(1);
+  await expect.poll(() => cargas).toBeGreaterThan(antes);
+  await expect(page.getByText("Bar Uno")).toHaveCount(0);
+});
+
+test("retirar: con otro error la postulación vuelve a su lugar, no al principio", async ({ page }) => {
+  await prepararTrabajador(page);
+  await page.route(/\/api\/v1\/applications\/mine(\?.*)?$/, (route) => route.fulfill(json(APPS())));
+  await page.route("**/api/v1/applications/app-2/withdraw", (route) =>
+    route.fulfill(json({ detail: "Error del servidor" }, 500))
+  );
+  await page.goto("/my-shifts");
+  await page.getByRole("button", { name: "Postulaciones (2)" }).click();
+  await page.getByRole("button", { name: "Cancelar postulación" }).nth(1).click();
+  const dialog = page.getByRole("dialog", { name: "¿Cancelar tu postulación?" });
+  await expect(dialog.getByRole("button", { name: "Sí, cancelar" })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Sí, cancelar" }).click();
+  await expect(page.getByText("Error del servidor")).toBeVisible();
+  const empresas = page.locator("text=/^Bar (Uno|Dos)$/");
+  await expect(empresas).toHaveCount(2);
+  await expect(empresas.nth(0)).toHaveText("Bar Uno");
+  await expect(empresas.nth(1)).toHaveText("Bar Dos");
 });

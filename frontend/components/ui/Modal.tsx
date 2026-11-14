@@ -8,17 +8,37 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
  * Capa del diálogo. Mientras se anima el cierre (`AnimatePresence` la
- * mantiene montada) no recibe toques: el dedo que cae sobre el botón de
- * confirmar en ese instante lo recibiría un diálogo que ya se cerró, o,
- * peor, la pantalla de atrás por el hueco.
+ * mantiene montada) sigue recibiendo los toques y se los TRAGA: con
+ * `pointer-events: none` el toque atravesaría el hueco y activaría lo que hay
+ * en la pantalla de atrás, en el mismo punto (un doble toque en «Confirmar»
+ * tocaría otro botón). El velo de salida no cierra nada y el diálogo queda
+ * `inert`: sin foco ni clics (el toque cae en el velo, que lo absorbe).
  */
-function ModalLayer({ children }: { children: ReactNode }) {
+function ModalLayer({
+  onClose,
+  reducedMotion,
+  children,
+}: {
+  onClose: () => void;
+  reducedMotion: boolean | null;
+  children: ReactNode;
+}) {
   const isPresent = useIsPresent();
+  const layerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const dialog = layerRef.current?.querySelector<HTMLElement>('[role="dialog"]');
+    if (dialog) dialog.inert = !isPresent;
+  }, [isPresent]);
   return (
-    <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center p-5 ${isPresent ? "" : "pointer-events-none"}`}
-      aria-hidden={isPresent ? undefined : true}
-    >
+    <div ref={layerRef} className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={reducedMotion ? { duration: 0 } : undefined}
+        onClick={isPresent ? onClose : undefined}
+        className="absolute inset-0 bg-black/40"
+      />
       {children}
     </div>
   );
@@ -72,15 +92,7 @@ export default function Modal({
         // que envuelve toda la app desde el layout); con los dos en el mismo
         // contenedor hay que decidir la prioridad a mano: una confirmación
         // que el usuario tiene que resolver pesa más que un nudge dismisible.
-        <ModalLayer>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={reducedMotion ? { duration: 0 } : undefined}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/40"
-          />
+        <ModalLayer onClose={onClose} reducedMotion={reducedMotion}>
           <motion.div
             ref={dialogRef}
             role="dialog"

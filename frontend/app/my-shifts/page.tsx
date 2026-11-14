@@ -246,7 +246,8 @@ export default function MatchesPage() {
     withdrawingRef.current = true;
     setConfirmWithdrawId(null);
     setWithdrawing(applicationId);
-    const removed = applications.find((a) => a.id === applicationId);
+    const removedAt = applications.findIndex((a) => a.id === applicationId);
+    const removed = applications[removedAt];
     // Optimista: la sacamos de la lista ya (el usuario no espera al servidor
     // para dejar de ver la postulación que acaba de cancelar).
     setApplications((prev) => prev.filter((a) => a.id !== applicationId));
@@ -260,9 +261,13 @@ export default function MatchesPage() {
         // La lista se pone al día con lo que dice el servidor.
         void load({ silent: true });
       } else if (removed) {
-        // No se pudo cancelar de verdad: vuelve a su lugar, sin pisar otros
+        // No se pudo cancelar de verdad: vuelve a su lugar (mismo índice), sin pisar otros
         // cambios de la lista.
-        setApplications((prev) => (prev.some((a) => a.id === removed.id) ? prev : [removed, ...prev]));
+        setApplications((prev) =>
+          prev.some((a) => a.id === removed.id)
+            ? prev
+            : [...prev.slice(0, removedAt), removed, ...prev.slice(removedAt)]
+        );
       }
       toast(getErrorMessage(err, "No se pudo cancelar la postulación"), "error");
     } finally {
