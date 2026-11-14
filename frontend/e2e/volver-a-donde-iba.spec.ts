@@ -44,7 +44,7 @@ async function sinSesion(page: Page) {
   await page.route("**/api/v1/workers/me/profile", (route) =>
     route.request().method() === "POST"
       ? route.fulfill(json({ id: "p1" }, 201))
-      : route.fulfill(json({}, 404))
+      : route.fulfill(json({ latitude: -34.6, longitude: -58.4, skills: ["mozo"], is_available: true }))
   );
   await page.route("**/api/v1/shifts/feed", (route) => route.fulfill(json([])));
   await page.route("**/api/v1/applications/mine", (route) => route.fulfill(json([])));
