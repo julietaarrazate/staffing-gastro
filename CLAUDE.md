@@ -37,7 +37,7 @@ Backend `pytest -q`. Frontend `npx tsc --noEmit`, `npm run lint`, `npm run test:
 
 - Rama de feature, commits descriptivos, **PR en draft**, merge con **squash**, **no `git add -A`**.
 - Secuencia acordada con Julieta (no repreguntar): **CI y Security en verde (corrida real) → captura claro y oscuro si hay UI → "sí" de Julieta → squash merge y avisar qué quedó en producción.** Nunca mergear en rojo ni tocar el pipeline para que dé verde.
-- **Permiso permanente (Julieta, 2026-11-13):** un arreglo con CI y Security en verde, **revisión independiente aprobada** y **prueba en la app** (entorno local, [`tools/e2e-local`](./tools/e2e-local/README.md) cuando esté en `main`) se mergea sin esperar el "sí" y se le avisa después, con capturas si toca pantalla. **Se pregunta antes** si toca textos legales, precios o planes, datos de producción, o cambia una regla del producto (quién ve o recibe qué, penalidades, plazos); ante la duda, se pregunta.
+- **Permiso permanente (Julieta, 2026-11-13):** un arreglo con CI y Security en verde, **revisión independiente aprobada** y **prueba en la app** (entorno local, [`tools/e2e-local`](./tools/e2e-local/README.md)) se mergea sin esperar el "sí" y se le avisa después, con capturas si toca pantalla. **Se pregunta antes** si toca textos legales, precios o planes, datos de producción, o cambia una regla del producto (quién ve o recibe qué, penalidades, plazos); ante la duda, se pregunta.
 
 ## No hacer
 
