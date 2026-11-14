@@ -64,24 +64,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
   qué, y que puede volver a postularse si el turno confirmado se cae.
 - Actualizar `docs/foundation/DOMAIN.md` y `NOTIFICATIONS.md`.
 
-### G6 · Cuentas suspendidas (U023, U097, U095) — C
-
-- Asignar: `assign_worker` rechaza a una persona con la cuenta no activa,
-  antes de rechazar a los demás postulantes; la lista de postulantes no la
-  muestra (mismo criterio que «Recomendados»).
-- Ingreso: el 403 lleva un código (`account_suspended`: el frontend ya lo
-  espera desde G7, en el ingreso y en la renovación, `lib/api.ts`
-  `ACCOUNT_SUSPENDED_CODE`); con la contraseña bien puesta dice «Tu
-  cuenta está suspendida. Si creés que es un error, escribinos a
-  hola@oido.com.ar». No se muestra el motivo que escribió el admin.
-- Comercio suspendido (decisión 10): sus turnos abiertos salen de
-  Inicio, Buscar, el Mapa y la página pública y no aceptan postulaciones; los
-  que tienen a alguien asignado o confirmado y no empezaron se cancelan con
-  aviso a esa persona, sin penalidad para nadie; el admin ve antes de
-  suspender cuántos turnos toca. Simétrico al suspender a un trabajador con
-  turnos confirmados: el turno se reabre y se le avisa al comercio.
-- ADR nuevo (efectos de una suspensión) antes del código.
-
 ### G14 · Fechas y duración del turno (U055, U056, U060) — C
 
 - Dominio (`shift/domain/entities.py`) y formulario con la misma regla: el

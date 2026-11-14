@@ -5,6 +5,7 @@ Reutiliza los puertos `UserRepository` (identity) y `ShiftRepository`
 moderación de usuarios y el cálculo de métricas agregadas.
 """
 
+import logging
 import secrets
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -82,6 +83,8 @@ def _rate_pct(numerator: int, denominator: int) -> float | None:
     """`%` de dos conteos, o `None` sin muestra — nunca un `%` sobre cero
     casos (mismo criterio que `pct_filled_under_10_min`, ya existente)."""
     return (numerator / denominator) * 100 if denominator else None
+
+logger = logging.getLogger(__name__)
 
 
 class AdminService:
@@ -472,8 +475,10 @@ class AdminService:
         avisos. Van primero a propósito: los repositorios guardan cada cambio
         por separado (no hay una transacción que los abarque), así que si un
         efecto falla la cuenta queda sin suspender, la admin ve el error y al
-        repetir siguen los turnos que faltaban. Nunca queda una cuenta
-        suspendida con turnos colgados."""
+        repetir siguen los turnos que faltaban. Después de marcarla corre una
+        segunda pasada: mientras corría la primera la cuenta seguía activa y
+        alguien pudo asignar un turno. Nunca queda una cuenta suspendida con
+        turnos colgados."""
         if actor.id == user_id:
             raise CannotModifySelfError()
         user = await self._get(user_id)
@@ -482,6 +487,21 @@ class AdminService:
         user.suspend()
         updated = await self._users.update(user)
         await self._sessions.revoke_all_for_user(user_id)
+        if self._suspension_effects is not None:
+            # Segunda pasada, ya con la cuenta suspendida: levanta lo que se
+            # haya tomado en el intervalo (un comercio que asignó, o alguien
+            # que asignó a este trabajador, mientras corría la primera). Es
+            # idempotente; si falla, la cuenta ya quedó suspendida y lo que
+            # quede lo resuelve el flujo normal del turno, así que no se
+            # propaga.
+            try:
+                await self._suspension_effects.apply_account_suspension(user.id)
+            except Exception:
+                logger.exception(
+                    "Segunda pasada de efectos de suspensión: fallo inesperado "
+                    "(user_id=%s)",
+                    user_id,
+                )
         return updated
 
     async def suspension_preview(self, user_id: UUID) -> SuspensionImpact:

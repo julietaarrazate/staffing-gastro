@@ -30,12 +30,15 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
 1. **Sus turnos abiertos dejan de verse y de aceptar postulaciones.** Salen del
    Inicio, Buscar, el Mapa y la página pública del turno (que responde como
    un turno que ya no está disponible). No se cancelan ni se borran: si la
-   cuenta se reactiva y el turno sigue vigente, vuelve a verse.
+   cuenta se reactiva y el turno sigue vigente, vuelve a verse. Tampoco
+   aparecen en «Guardados» ni se pueden guardar.
 2. **Los turnos con alguien asignado o confirmado que todavía no empezaron se
    cancelan**, con aviso a esa persona. La cancelación **no cuenta como
    tardía ni penaliza a nadie**: no la decidió el comercio ni el trabajador.
 3. **Los que ya empezaron no se tocan** (llegada marcada, trabajando o con la
-   salida marcada): el trabajo ya está ocurriendo; se termina y se paga como
+   salida marcada, o con la hora de inicio ya pasada aunque nadie haya
+   marcado la llegada: puede haber alguien trabajando; siguen su curso, con
+   la llegada o la ausencia automática): el trabajo ya está ocurriendo; se termina y se paga como
    siempre, y un problema va por soporte.
 4. **La admin ve antes de confirmar la suspensión cuántos turnos toca** (cuántos
    se ocultan y cuántos se cancelan con aviso).
@@ -60,7 +63,11 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
    que escribió la admin. La renovación de una sesión abierta responde lo
    mismo, y la app lleva al ingreso con ese texto (`lib/api.ts`,
    `ACCOUNT_SUSPENDED_CODE`, desde #559).
-9. **Reactivar** devuelve la cuenta a como estaba: lo oculto vuelve a verse si
+9. **Dos pasadas.** Los efectos se aplican antes de marcar la cuenta (si
+   fallan, la cuenta queda activa y la admin repite) y otra vez después de
+   marcarla y revocar sus sesiones: mientras corría la primera la cuenta
+   seguía activa y alguien pudo asignar un turno. Son idempotentes.
+10. **Reactivar** devuelve la cuenta a como estaba: lo oculto vuelve a verse si
    sigue vigente; lo cancelado o reabierto no se deshace.
 
 ## Consecuencias

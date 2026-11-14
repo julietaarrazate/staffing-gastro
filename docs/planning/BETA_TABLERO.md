@@ -98,7 +98,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U038 | El perfil del comercio muestra «Identidad verificada» con sólo confirmar el mail (incluso con la constancia… | ✅ en `main` | #561 |
 | U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | ✅ en `main` | #561 |
 | U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ⚪ decidido (3), sin empezar | se apaga al instante también para el comercio; lleva ADR y, con él, el texto de `/privacidad` (decisión 1) |
-| U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G6 |
+| U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | ✅ en `main` | #572 (ADR-0024; revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | ✅ en `main` | #559 (prueba en la app hecha el 2026-11-14) |
 | U114, U115 | Si el servidor tarda en despertar al abrir la app, la persona con sesión ve la cabecera de visitante («Ingr… (y 1 más de la misma causa) | ✅ en `main` | #559 (prueba en la app hecha el 2026-11-14) |
 
@@ -204,6 +204,11 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
+- Suspender a un trabajador: si al reabrir su turno falla la vuelta a
+  pendiente de los demás postulantes, al repetir ese turno ya no entra y
+  quedan rechazados (raro; salió de la revisión de #572).
+- El detalle de un turno cancelado por la suspensión del comercio dice «El
+  comercio canceló este turno.» (el aviso sí es neutro; #572).
 
 ### Hallazgos nuevos de la prueba en la app (2026-11-14)
 
@@ -232,7 +237,8 @@ el modelo del dominio, un ADR vigente o un texto legal:
   con la decisión 1).
 - **P1 a P5**, las mejoras de producto aprobadas.
 - **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), lo más
-  delicado de lo que se hizo con Opus.
+  delicado de lo que se hizo con Opus. Ya tuvo una revisión independiente
+  (con Opus) y su prueba en la app antes del merge (#572).
 - **Pasada por clase de error** (propuesta del 2026-11-14): el reporte
   externo de Breken encontró en una lectura del código 9 errores que la prueba
   de punta a punta no vio (claves que se pierden al recargar, datos viejos con

@@ -1116,16 +1116,19 @@ class ShiftService(AccountSuspensionEffects):
             taken = await self._shifts.list_by_company_and_statuses(
                 company.id, TAKEN_NOT_STARTED_STATUSES
             )
-            hidden = shifts_hidden_by_company_suspension(
-                open_shifts, datetime.now(timezone.utc)
+            now = datetime.now(timezone.utc)
+            hidden = shifts_hidden_by_company_suspension(open_shifts, now)
+            impact += SuspensionImpact(
+                hidden=len(hidden), cancelled=len(shifts_taken_not_started(taken, now))
             )
-            impact += SuspensionImpact(hidden=len(hidden), cancelled=len(taken))
         worker = await self._workers.get_by_user_id(user_id)
         if worker is not None:
             taken = await self._shifts.list_by_worker_and_statuses(
                 worker.id, TAKEN_NOT_STARTED_STATUSES
             )
-            impact += SuspensionImpact(reopened=len(shifts_taken_not_started(taken)))
+            impact += SuspensionImpact(
+                reopened=len(shifts_taken_not_started(taken, datetime.now(timezone.utc)))
+            )
         return impact
 
     async def apply_account_suspension(self, user_id: UUID) -> SuspensionImpact:
@@ -1138,8 +1141,8 @@ class ShiftService(AccountSuspensionEffects):
         - Trabajador: sus turnos asignados o confirmados que no empezaron se
           reabren, con aviso al comercio y sin sumarle una cancelación.
 
-        La admin lo llama ANTES de marcar la cuenta como suspendida
-        (`AdminService.suspend_user`). Cada turno se guarda por separado,
+        La admin lo llama antes de marcar la cuenta como suspendida y otra
+        vez después (`AdminService.suspend_user`). Cada turno se guarda por separado,
         como en el resto de los casos de uso; si uno falla, la cuenta queda
         sin suspender y la admin puede repetir: los turnos ya resueltos no
         vuelven a entrar (ya no están en esos estados) y siguen los que
@@ -1152,7 +1155,7 @@ class ShiftService(AccountSuspensionEffects):
             taken = await self._shifts.list_by_company_and_statuses(
                 company.id, TAKEN_NOT_STARTED_STATUSES
             )
-            for shift in shifts_taken_not_started(taken):
+            for shift in shifts_taken_not_started(taken, datetime.now(timezone.utc)):
                 await self._cancel_for_company_suspension(shift)
                 cancelled += 1
         worker = await self._workers.get_by_user_id(user_id)
@@ -1160,7 +1163,7 @@ class ShiftService(AccountSuspensionEffects):
             taken = await self._shifts.list_by_worker_and_statuses(
                 worker.id, TAKEN_NOT_STARTED_STATUSES
             )
-            for shift in shifts_taken_not_started(taken):
+            for shift in shifts_taken_not_started(taken, datetime.now(timezone.utc)):
                 await self._reopen_for_worker_suspension(shift)
                 reopened += 1
         return SuspensionImpact(hidden=hidden_count, cancelled=cancelled, reopened=reopened)

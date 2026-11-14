@@ -10,7 +10,8 @@ Quién avisa a quién y en qué orden se guarda lo decide el caso de uso
   tienen a alguien asignado o confirmado y no empezaron se cancelan.
 - **Trabajador suspendido:** sus turnos asignados o confirmados que no
   empezaron se reabren.
-- Lo que ya empezó (llegada marcada en adelante) no se toca.
+- Lo que ya empezó (llegada marcada en adelante, o con la hora de inicio
+  ya pasada) no se toca.
 
 El puerto `AccountSuspensionEffects` es por donde otro módulo (la
 administración) pide la vista previa y los efectos, sin conocer el caso de
@@ -21,6 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from app.core.dt import naive
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.value_objects import TAKEN_NOT_STARTED_STATUSES
 
@@ -53,11 +55,20 @@ def shifts_hidden_by_company_suspension(shifts: list[Shift], now: datetime) -> l
     return [s for s in shifts if s.is_open_for_applications(now)]
 
 
-def shifts_taken_not_started(shifts: list[Shift]) -> list[Shift]:
+def shifts_taken_not_started(shifts: list[Shift], now: datetime) -> list[Shift]:
     """Los turnos con alguien asignado o confirmado que todavía no empezaron:
     los que se cancelan (comercio suspendido) o se reabren (trabajador
-    suspendido)."""
-    return [s for s in shifts if s.status in TAKEN_NOT_STARTED_STATUSES]
+    suspendido).
+
+    «No empezó» pide las dos cosas: la llegada sin marcar (el estado) y la
+    hora de inicio por delante. Un turno confirmado cuya hora ya pasó puede
+    tener a alguien trabajando sin haber marcado la llegada: cancelarlo le
+    borraría un turno trabajado, y reabrirlo le diría al comercio «elegí a
+    otra persona» por un horario que ya corre. Esos siguen su curso (llegada,
+    o la ausencia automática del programador)."""
+    return [
+        s for s in shifts if s.status in TAKEN_NOT_STARTED_STATUSES and naive(s.start_at) > naive(now)
+    ]
 
 
 class AccountSuspensionEffects(ABC):
@@ -70,5 +81,5 @@ class AccountSuspensionEffects(ABC):
     @abstractmethod
     async def apply_account_suspension(self, user_id: UUID) -> SuspensionImpact:
         """Cancela o reabre lo que corresponde y avisa a cada persona afectada.
-        Se llama ANTES de marcar la cuenta como suspendida (ver
-        `AdminService.suspend_user`)."""
+        Se llama antes de marcar la cuenta como suspendida y otra vez
+        después (ver `AdminService.suspend_user`): es idempotente."""

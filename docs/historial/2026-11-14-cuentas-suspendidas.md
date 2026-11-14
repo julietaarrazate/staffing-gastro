@@ -59,7 +59,12 @@ error genérico. La especificación es
   marca la cuenta. Si un efecto falla, la cuenta queda activa y la admin ve el
   error; al repetir, los turnos ya resueltos no vuelven a entrar y siguen los
   que faltaban. Nunca queda una cuenta suspendida con turnos colgados (hay un
-  test que lo fija).
+  test que lo fija). Después de marcarla corre una segunda pasada, porque
+  durante la primera la cuenta seguía activa y se podía asignar (lo encontró
+  la revisión independiente, con un test).
+- *«No empezó» mira también la hora:* un turno confirmado cuya hora ya pasó,
+  sin llegada marcada, no se cancela ni se reabre (puede haber alguien
+  trabajando). Salió de la revisión.
 - *Ocultar en la consulta y no después:* la página del feed sale entera y el
   feed no suma un viaje a la base (el test de consultas constantes del feed
   sigue en su número).
@@ -72,5 +77,21 @@ error genérico. La especificación es
 
 - Las postulaciones pendientes de un trabajador suspendido no se retiran: se
   ocultan de la lista y del contador, y vuelven a verse si se lo reactiva.
-- Un turno guardado («Guardados») de un comercio suspendido sigue en la lista
-  del trabajador; al abrirlo da «no encontrado» y no acepta postulación.
+- Si al reabrir un turno de un trabajador suspendido falla la vuelta a
+  pendiente de los demás postulantes, al repetir ese turno ya no entra (ya
+  cambió de estado): quedan rechazados. Raro, sin test; anotado en
+  `docs/STATUS.md`.
+- La postulación del trabajador suspendido queda «aceptada» en el turno
+  reabierto, igual que tras `worker_cancel`: lo resuelve G4 (estado
+  `desasignada`).
+- El detalle del turno cancelado por suspensión dice «El comercio canceló
+  este turno.» (texto menor; el aviso sí es neutro).
+
+**Prueba en la app** (`tools/e2e-local`, Postgres, 2026-11-14): vista previa
+(2 ocultos, 1 cancelado), feed sin sus turnos, página pública 410, postular
+404, cancelado sin sumar cancelaciones, aviso al trabajador, 403 con el texto
+sólo con la contraseña correcta (mal puesta: 401), repetir la suspensión sin
+aviso duplicado, reactivar vuelve a mostrar lo oculto; del lado trabajador,
+turno reabierto, postulante vuelto a pendiente, aviso al comercio, 409 al
+asignar a un suspendido y fuera de la lista. Diálogo de la admin y login en
+claro y oscuro a 390 px.

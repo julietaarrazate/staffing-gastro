@@ -89,6 +89,13 @@ class ShiftRepository(ABC):
         """Busca un turno por su id."""
 
     @abstractmethod
+    async def companies_with_inactive_account(
+        self, company_ids: Sequence[UUID]
+    ) -> set[UUID]:
+        """De estos comercios, los que tienen la cuenta suspendida (ADR-0024):
+        sus turnos abiertos no se muestran a quien no es parte."""
+
+    @abstractmethod
     async def list_by_ids(self, shift_ids: Sequence[UUID]) -> list[Shift]:
         """Trae varios turnos por id en UNA query (`WHERE id IN (...)`).
 

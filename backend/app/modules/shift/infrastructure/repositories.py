@@ -201,6 +201,22 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         model = await self._session.get(ShiftModel, shift_id, populate_existing=True)
         return _to_entity(model) if model else None
 
+    async def companies_with_inactive_account(
+        self, company_ids: Sequence[UUID]
+    ) -> set[UUID]:
+        if not company_ids:
+            return set()
+        stmt = (
+            select(CompanyProfileModel.id)
+            .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+            .where(
+                CompanyProfileModel.id.in_(list(company_ids)),
+                UserModel.status != UserStatus.ACTIVE.value,
+            )
+        )
+        result = await self._session.execute(stmt)
+        return set(result.scalars().all())
+
     async def list_by_ids(self, shift_ids: Sequence[UUID]) -> list[Shift]:
         # Sin ids no hay query: `IN ()` es SQL inválido y además evita un
         # round-trip inútil a la base remota.

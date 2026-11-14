@@ -626,6 +626,101 @@ async def test_si_falla_un_efecto_la_cuenta_no_queda_suspendida_y_se_puede_repet
         assert len(await _notices(client, worker, "shift_cancelled")) == 1
 
 
+async def _move_start_to_past(session_factory, shift_id: str) -> None:
+    """Corre el inicio del turno a hace 10 minutos (sin llegada marcada)."""
+    from sqlalchemy import update
+
+    from app.modules.shift.infrastructure.models import ShiftModel
+
+    async with session_factory() as session:
+        await session.execute(
+            update(ShiftModel)
+            .where(ShiftModel.id == UUID(shift_id))
+            .values(start_at=datetime.now(timezone.utc) - timedelta(minutes=10))
+        )
+        await session.commit()
+
+
+async def test_lo_que_se_asigna_mientras_corren_los_efectos_tambien_se_resuelve(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    """Mientras corre la primera pasada la cuenta sigue activa: si el comercio
+    asigna justo ahí, la segunda pasada (con la cuenta ya suspendida) cancela
+    ese turno y no queda colgado."""
+    admin = await make_admin(client, session_factory, "g6_admin20@staffya.com")
+    employer = await _employer(client, "g6_emp20@staffya.com")
+    ana, ana_id = await _worker(client, "g6_ana20@staffya.com", "Ana Gomez")
+    shift_id = await _published(client, employer, minutes=120)
+    await _apply(client, shift_id, ana)
+
+    original = ShiftService.apply_account_suspension
+    calls = {"n": 0}
+
+    async def asigna_en_el_intervalo(self, user_id):
+        result = await original(self, user_id)
+        calls["n"] += 1
+        if calls["n"] == 1:
+            await _assign(client, shift_id, employer, ana_id)
+        return result
+
+    monkeypatch.setattr(ShiftService, "apply_account_suspension", asigna_en_el_intervalo)
+    assert (await _suspend(client, admin, "g6_emp20@staffya.com")).status_code == 200
+
+    assert calls["n"] == 2
+    assert (await _shift(client, shift_id, admin))["status"] == "cancelado"
+    assert len(await _notices(client, ana, "shift_cancelled")) == 1
+
+
+async def test_un_turno_tomado_cuya_hora_ya_paso_no_se_cancela_ni_se_reabre(
+    client: AsyncClient, session_factory
+):
+    """«No empezó» también pide la hora por delante: con la hora ya corrida
+    puede haber alguien trabajando sin haber marcado la llegada."""
+    admin = await make_admin(client, session_factory, "g6_admin21@staffya.com")
+    employer = await _employer(client, "g6_emp21@staffya.com")
+    ana, ana_id = await _worker(client, "g6_ana21@staffya.com", "Ana Gomez")
+    beto, beto_id = await _worker(client, "g6_beto21@staffya.com", "Beto Ruiz")
+    of_company = await _confirmed(client, employer, ana, ana_id)
+    of_worker = await _confirmed(client, employer, beto, beto_id)
+    await _move_start_to_past(session_factory, of_company)
+    await _move_start_to_past(session_factory, of_worker)
+
+    assert (await _preview(client, admin, "g6_beto21@staffya.com"))["reopened"] == 0
+    assert (await _suspend(client, admin, "g6_beto21@staffya.com")).status_code == 200
+    assert (await _shift(client, of_worker, admin))["status"] == "confirmado"
+
+    assert (await _preview(client, admin, "g6_emp21@staffya.com"))["cancelled"] == 0
+    assert (await _suspend(client, admin, "g6_emp21@staffya.com")).status_code == 200
+    assert (await _shift(client, of_company, admin))["status"] == "confirmado"
+    assert await _notices(client, ana, "shift_cancelled") == []
+
+
+async def test_comercio_suspendido_sus_turnos_salen_de_guardados_y_no_se_guardan(
+    client: AsyncClient, session_factory
+):
+    admin = await make_admin(client, session_factory, "g6_admin22@staffya.com")
+    employer = await _employer(client, "g6_emp22@staffya.com")
+    ana, _ = await _worker(client, "g6_ana22@staffya.com", "Ana Gomez")
+    beto, _ = await _worker(client, "g6_beto22@staffya.com", "Beto Ruiz")
+    shift_id = await _published(client, employer, minutes=120)
+    assert (await client.put(f"/api/v1/saved-shifts/{shift_id}", headers=ana)).status_code == 200
+
+    assert (await _suspend(client, admin, "g6_emp22@staffya.com")).status_code == 200
+
+    saved = await client.get("/api/v1/saved-shifts", headers=ana)
+    assert saved.status_code == 200
+    assert [s["id"] for s in saved.json()] == []
+    assert (await client.put(f"/api/v1/saved-shifts/{shift_id}", headers=beto)).status_code == 404
+
+    # Al reactivar, el guardado vuelve a aparecer.
+    user_id = await _user_id(client, admin, "g6_emp22@staffya.com")
+    assert (
+        await client.post(f"/api/v1/admin/users/{user_id}/activate", headers=admin)
+    ).status_code == 200
+    saved = await client.get("/api/v1/saved-shifts", headers=ana)
+    assert [s["id"] for s in saved.json()] == [shift_id]
+
+
 # --- 6. Reactivar --------------------------------------------------------------
 
 
