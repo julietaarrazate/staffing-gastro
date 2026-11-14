@@ -1,11 +1,10 @@
 """Casos de uso del módulo worker (perfil del trabajador)."""
 
 from dataclasses import dataclass
-from datetime import timezone
 from decimal import Decimal
 from uuid import UUID
 
-from app.core.tz import ARG_TZ, now_art
+from app.core.tz import now_art
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.application.dtos import WorkerProfileData
@@ -20,13 +19,7 @@ from app.modules.worker.domain.repositories import WorkerProfileRepository
 # en el sistema — mismo criterio que `shifts_together` en
 # `favorite/infrastructure/repositories.py`, que junta FINALIZADO/PAGADO
 # como "turno completado" sin distinguir si ya se marcó el pago.
-_EARNED_STATUSES = (ShiftStatus.FINALIZADO.value, ShiftStatus.PAGADO.value)
-
-# Tope de turnos considerados al sumar ganancias — mismo criterio que
-# `AssistantService._LOOKUP_LIMIT`: un trabajador de la beta no se acerca a
-# este volumen; de sobrarse, mejor señal de que hace falta un agregado en
-# SQL que fallar en silencio.
-_EARNINGS_LOOKUP_LIMIT = 500
+_EARNED_STATUSES = frozenset({ShiftStatus.FINALIZADO, ShiftStatus.PAGADO})
 
 
 @dataclass(frozen=True)
@@ -106,23 +99,25 @@ class WorkerProfileService:
         if profile is None:
             raise WorkerProfileNotFoundError(str(user_id))
 
-        shifts = await self._shifts.list_by_worker(profile.id, limit=_EARNINGS_LOOKUP_LIMIT)
-        earned = [s for s in shifts if s.status.value in _EARNED_STATUSES]
-
+        # Mes calendario actual en hora argentina: [día 1 00:00, día 1 del mes
+        # siguiente 00:00). La suma corre en la base, sin tope de filas.
         today = now_art()
-        total = Decimal(0)
-        this_month = Decimal(0)
-        for shift in earned:
-            total += shift.pay_amount
-            start_at_art = shift.start_at
-            if start_at_art.tzinfo is None:
-                start_at_art = start_at_art.replace(tzinfo=timezone.utc)
-            start_at_art = start_at_art.astimezone(ARG_TZ)
-            if start_at_art.year == today.year and start_at_art.month == today.month:
-                this_month += shift.pay_amount
-
+        month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month_start = (
+            month_start.replace(year=month_start.year + 1, month=1)
+            if month_start.month == 12
+            else month_start.replace(month=month_start.month + 1)
+        )
+        totals = await self._shifts.sum_worker_earnings(
+            profile.id,
+            _EARNED_STATUSES,
+            window_start=month_start,
+            window_end=next_month_start,
+        )
         return WorkerEarningsSummary(
-            total_earned=total, this_month_earned=this_month, shifts_completed=len(earned)
+            total_earned=totals.total,
+            this_month_earned=totals.in_window,
+            shifts_completed=totals.count,
         )
 
 

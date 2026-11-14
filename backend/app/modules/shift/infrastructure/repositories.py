@@ -1,7 +1,8 @@
 """Adaptador SQLAlchemy del ShiftRepository."""
 
+import math
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from app.modules.shift.domain.repositories import (
     ShiftPublicationStats,
     ShiftRepository,
     ShiftTodayCounts,
+    WorkerEarningsTotals,
 )
 from app.modules.shift.domain.value_objects import (
     OPEN_STATUSES,
@@ -215,6 +217,36 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def sum_worker_earnings(
+        self,
+        worker_profile_id: UUID,
+        statuses: frozenset[ShiftStatus],
+        *,
+        window_start: datetime,
+        window_end: datetime,
+    ) -> WorkerEarningsTotals:
+        # Los límites se pasan en UTC: así comparan igual en Postgres y en
+        # SQLite (que guarda los instantes sin zona, en UTC).
+        window_start = window_start.astimezone(timezone.utc)
+        window_end = window_end.astimezone(timezone.utc)
+        in_window = (ShiftModel.start_at >= window_start) & (ShiftModel.start_at < window_end)
+        stmt = select(
+            func.sum(ShiftModel.pay_amount),
+            func.count(ShiftModel.id),
+            func.sum(case((in_window, ShiftModel.pay_amount))),
+        ).where(
+            ShiftModel.worker_profile_id == worker_profile_id,
+            ShiftModel.status.in_([s.value for s in statuses]),
+        )
+        total, count, month = (await self._session.execute(stmt)).one()
+        # SUM sobre cero filas es NULL: se informa como 0 sin decimales, igual
+        # que antes de pasar la suma a la base.
+        return WorkerEarningsTotals(
+            total=Decimal(0) if total is None else Decimal(str(total)),
+            count=int(count),
+            in_window=Decimal(0) if month is None else Decimal(str(month)),
+        )
+
     async def list_by_worker_and_statuses(
         self, worker_profile_id: UUID, statuses: frozenset[ShiftStatus]
     ) -> list[Shift]:
@@ -353,16 +385,16 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             completed=row.completed or 0,
         )
 
-    async def list_open(
-        self,
+    @staticmethod
+    def _open_stmt(
         *,
-        city: str | None = None,
-        position: WorkerSkill | None = None,
-        positions: list[WorkerSkill] | None = None,
-        urgent: bool | None = None,
-        limit: int = 50,
-        offset: int = 0,
-    ) -> list[Shift]:
+        city: str | None,
+        position: WorkerSkill | None,
+        positions: list[WorkerSkill] | None,
+        urgent: bool | None,
+    ):
+        """Los turnos abiertos que todavía no empezaron, con los filtros del
+        feed. Lo comparten `list_open` (paginado) y `list_open_unpaged`."""
         stmt = select(ShiftModel).where(
             ShiftModel.status.in_([s.value for s in OPEN_STATUSES]),
             # Un turno cuya hora ya pasó no tiene sentido ofrecerlo para
@@ -392,12 +424,71 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             stmt = stmt.where(ShiftModel.position.in_([p.value for p in positions]))
         if urgent is not None:
             stmt = stmt.where(ShiftModel.urgent.is_(urgent))
-        # Urgentes primero, luego los más recientes.
-        stmt = (
-            stmt.order_by(ShiftModel.urgent.desc(), ShiftModel.created_at.desc())
-            .limit(limit)
-            .offset(offset)
+        return stmt
+
+    async def list_open(
+        self,
+        *,
+        city: str | None = None,
+        position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
+        urgent: bool | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        nearest_to: tuple[float, float] | None = None,
+    ) -> list[Shift]:
+        stmt = self._open_stmt(
+            city=city, position=position, positions=positions, urgent=urgent
         )
+        if nearest_to is not None:
+            # Del más cercano al más lejano, en SQL y con aritmética que
+            # entienden Postgres y SQLite (sin PostGIS ni funciones propias
+            # de un motor): distancia en grados al cuadrado, con la longitud
+            # achicada por el coseno de la latitud del origen. No es la
+            # distancia exacta, pero ordena bien cerca del origen, que es
+            # donde se decide qué entra en la página; quien llama la mide
+            # exacta después. `IS NULL` da falso para los que tienen
+            # coordenadas: van antes que los que no se pueden ubicar.
+            lat, lng = nearest_to
+            lng_scale = math.cos(math.radians(lat)) ** 2
+            d_lat = ShiftModel.latitude - lat
+            d_lng = ShiftModel.longitude - lng
+            stmt = stmt.order_by(
+                or_(ShiftModel.latitude.is_(None), ShiftModel.longitude.is_(None)),
+                (d_lat * d_lat + d_lng * d_lng * lng_scale).asc(),
+                ShiftModel.created_at.desc(),
+            )
+        else:
+            # Urgentes primero, luego los más recientes.
+            stmt = stmt.order_by(ShiftModel.urgent.desc(), ShiftModel.created_at.desc())
+        result = await self._session.execute(stmt.limit(limit).offset(offset))
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_open_unpaged(
+        self,
+        *,
+        city: str | None = None,
+        position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
+        urgent: bool | None = None,
+        box: tuple[float, float, float, float] | None = None,
+    ) -> list[Shift]:
+        stmt = self._open_stmt(
+            city=city, position=position, positions=positions, urgent=urgent
+        )
+        if box is not None:
+            lat_min, lat_max, lng_min, lng_max = box
+            stmt = stmt.where(
+                or_(
+                    ShiftModel.latitude.between(lat_min, lat_max)
+                    & ShiftModel.longitude.between(lng_min, lng_max),
+                    ShiftModel.latitude.is_(None),
+                    ShiftModel.longitude.is_(None),
+                )
+            )
+        # Sin LIMIT a propósito (ver el puerto). Orden estable para que el
+        # resultado no dependa del motor.
+        stmt = stmt.order_by(ShiftModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 

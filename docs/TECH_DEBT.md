@@ -134,7 +134,7 @@ fecha de esta auditoría (2026-07-02).
 > `WorkerProfileRepository.record_completed_shift(profile_id, punctual=...)`
 > (nuevo puerto + adaptador en `worker/infrastructure/repositories.py`) al
 > cerrar con éxito un turno (siempre pasó por check-in/check-out). Puntual =
-> check-in dentro de ±15 min de `start_at` (promedio móvil simple). Tests en
+> check-in hasta 15 min después de `start_at` (antes, siempre) (promedio móvil simple). Tests en
 > `backend/tests/test_attendance.py`
 > (`test_finish_with_punctual_checkin_updates_worker_metrics`,
 > `test_finish_with_late_checkin_does_not_count_as_punctual`).

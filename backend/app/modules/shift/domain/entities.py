@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import haversine_km
+from app.core.tz import format_inicio_art, to_art
 from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
@@ -20,6 +21,7 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
+    OPEN_STATUSES,
     TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
     ShiftStatus,
@@ -52,6 +54,12 @@ CHECK_RADIUS_KM = 0.3
 # dominio, y no en la UI: que la única forma de compartir posición pase por
 # esta regla es lo que hace auditable la promesa.
 EN_ROUTE_WINDOW = timedelta(hours=2)
+
+# «No se presentó» sólo se puede marcar cuando el turno ya empezó (hallazgo
+# U079): desde `start_at` + esta tolerancia, la misma tolerancia que la
+# puntualidad. Antes se aplicaba sobre un turno confirmado que empezaba mañana y penalizaba sin vuelta atrás. La
+# ausencia automática del scheduler (a las 2 h) siempre cae después.
+NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
 
 
 @dataclass
@@ -173,6 +181,29 @@ class Shift:
         if not self.is_editable:
             raise ShiftNotEditableError(self.status.value)
 
+    @property
+    def was_published(self) -> bool:
+        """¿Estuvo alguna vez a la vista de quien no es parte?
+
+        Decide qué responde la página pública cuando el turno ya no está
+        abierto: «ya no disponible» si fue público, «no existe» si nunca lo
+        fue. A todo estado que no sea BORRADOR se llega pasando por PUBLICADO,
+        menos a CANCELADO, que también se alcanza desde el borrador: ahí
+        decide `published_at`. (Los turnos anteriores a ese campo no lo
+        tienen; un cancelado de esos queda como «no existe», que es lo que
+        menos revela.)"""
+        if self.published_at is not None:
+            return True
+        return self.status not in (ShiftStatus.BORRADOR, ShiftStatus.CANCELADO)
+
+    def is_open_for_applications(self, now: datetime) -> bool:
+        """¿Se puede ofrecer para postularse en `now`? Es la regla del Inicio
+        (`ShiftRepository.list_open`): estado abierto y hora de inicio todavía
+        por delante. Un turno que ya empezó sigue en PUBLICADO o
+        BUSCANDO_PERSONAL hasta que el scheduler lo resuelve como «no
+        cubierto» (ADR-0015), pero nadie puede llegar a tiempo."""
+        return self.status in OPEN_STATUSES and _naive(self.start_at) > _naive(now)
+
     def overlaps(self, other: "Shift") -> bool:
         """True si el horario de este turno se solapa con el de `other`.
 
@@ -262,7 +293,7 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
         self._clear_en_route()
 
-    def no_show(self) -> None:
+    def no_show(self, now: datetime | None = None) -> None:
         """CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: el comercio marca que el
         trabajador asignado no se presentó (ADR-0007).
 
@@ -274,10 +305,22 @@ class Shift:
         cubrir el puesto. Conserva quién fue el ausente en
         `last_no_show_worker_profile_id` antes de limpiar `worker_profile_id`
         (que se libera para poder reasignar), para dejar rastro auditable en
-        el propio turno."""
+        el propio turno.
+
+        Sólo desde `NO_SHOW_EARLIEST_AFTER_START` después del inicio: antes,
+        el trabajador todavía puede llegar."""
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
                 f"No se puede marcar no-show desde el estado {self.status.value}"
+            )
+        now = now or datetime.now(timezone.utc)
+        habilitado = _naive(self.start_at) + NO_SHOW_EARLIEST_AFTER_START
+        if _naive(now) < habilitado:
+            desde = to_art(self.start_at) + NO_SHOW_EARLIEST_AFTER_START
+            raise InvalidShiftTransitionError(
+                "Todavía no podés marcar que no se presentó: se habilita el "
+                f"{desde:%d/%m} a las {desde:%H:%M} (hora de Argentina), "
+                "15 minutos después del inicio."
             )
         self.no_show_at = datetime.now(timezone.utc)
         self.last_no_show_worker_profile_id = self.worker_profile_id
@@ -421,11 +464,17 @@ class Shift:
             raise InvalidShiftTransitionError(
                 f"No se puede marcar salida desde el estado {self.status.value}"
             )
+        now = datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at):
+            raise InvalidShiftTransitionError(
+                "Todavía no podés marcar la salida: el turno empieza "
+                f"{format_inicio_art(self.start_at, now)}."
+            )
         self._ensure_at_venue(latitude, longitude, "la salida")
         self.status = ShiftStatus.CHECK_OUT
         self.check_out_latitude = latitude
         self.check_out_longitude = longitude
-        self.check_out_at = datetime.now(timezone.utc)
+        self.check_out_at = now
 
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""

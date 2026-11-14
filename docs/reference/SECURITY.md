@@ -36,6 +36,11 @@
   primer admin sin endpoint de auto-registro.
 - **No-disclosure:** recurso ajeno o inexistente → **404**. Nunca se distingue
   "no existe" de "no es tuyo". Regla transversal de la capa `api/`.
+  - Única excepción, a propósito: la página pública de un turno
+    (`GET /shifts/{id}/public`) responde **410** cuando el turno **ya fue
+    público** y dejó de estar abierto. Sólo confirma algo que ya era público
+    (que ese turno existió) y no devuelve ningún dato suyo; un borrador o un
+    id inexistente siguen siendo 404. Detalle en [API.md](./API.md).
 
 ## Verificación en dos pasos (admin, ADR-0023)
 
@@ -97,6 +102,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   (`app/core/rate_limit.py`); superar el límite responde **429**. Configurable
   con `RATE_LIMIT_ENABLED`. Es por proceso: escalar a varios workers requeriría
   un store compartido (Redis) y un **ADR**.
+- **Tope al postularse a un mismo turno** (`POST /applications/shifts/{id}`):
+  5 intentos por hora por cuenta y por turno (la invitada compartida, por
+  cuenta + IP), con el mismo `RateLimiter`. Cada postulación, también la que
+  reactiva una retirada, le avisa al comercio; el tope acota esos avisos y no
+  afecta a quien se postula a turnos distintos.
 - **Content-Security-Policy** (R1.3, `frontend/next.config.ts`, sólo en
   producción): restringe scripts/estilos/conexiones al propio origen + backend
   + tiles vectoriales de CARTO (ADR-0001) + Cloudinary; sin `frame-ancestors`

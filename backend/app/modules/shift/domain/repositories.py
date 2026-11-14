@@ -52,6 +52,17 @@ class ShiftPeriodStats:
     avg_minutes_to_cover: float | None
 
 
+@dataclass(frozen=True)
+class WorkerEarningsTotals:
+    """Lo ganado por un trabajador, sumado en la base (sin tope de filas):
+    total histórico, cantidad de turnos ganados y lo ganado dentro de la
+    ventana pedida (el mes, para el resumen del perfil)."""
+
+    total: Decimal
+    count: int
+    in_window: Decimal
+
+
 @dataclass
 class ShiftTodayCounts:
     """Lo que la portada "Hoy" del panel de admin pide mirar ya: turnos
@@ -103,6 +114,7 @@ class ShiftRepository(ABC):
         urgent: bool | None = None,
         limit: int = 50,
         offset: int = 0,
+        nearest_to: tuple[float, float] | None = None,
     ) -> list[Shift]:
         """Lista los turnos abiertos del feed público, con filtros opcionales (paginado).
 
@@ -110,6 +122,34 @@ class ShiftRepository(ABC):
         ejemplo un filtro manual en la UI); `positions` filtra por varios a
         la vez (los rubros que eligió el trabajador en su perfil, para que
         el feed sólo le muestre lo que le sirve — ver `ShiftService.list_feed`).
+
+        Orden: urgentes primero y después los más nuevos. Con `nearest_to`
+        (lat, lng), en cambio, del más cercano a ese punto al más lejano
+        (distancia aproximada, alcanza para elegir la página; los turnos sin
+        coordenadas van al final): es lo que usa Buscar para que el tope de
+        la página se llene con lo que queda a mano y no con lo último que se
+        publicó en el país.
+        """
+
+    @abstractmethod
+    async def list_open_unpaged(
+        self,
+        *,
+        city: str | None = None,
+        position: WorkerSkill | None = None,
+        positions: list[WorkerSkill] | None = None,
+        urgent: bool | None = None,
+        box: tuple[float, float, float, float] | None = None,
+    ) -> list[Shift]:
+        """Los turnos abiertos SIN paginar, para quien después decide en
+        Python qué queda cerca, ordena y recién ahí corta la página
+        (`ShiftService.list_feed`). Cortar antes de filtrar era el problema:
+        la página se llenaba con turnos de otra provincia.
+
+        `box` = `(lat_min, lat_max, lng_min, lng_max)` es el filtro grueso
+        (ver `app.core.geo.bounding_box`): devuelve los turnos que caen
+        adentro MÁS los que no tienen coordenadas, que no se pueden ubicar y
+        se resuelven por ciudad. Sin `box`, todos los abiertos.
         """
 
     @abstractmethod
@@ -117,6 +157,20 @@ class ShiftRepository(ABC):
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Shift]:
         """Lista los turnos asignados a un trabajador (más recientes primero, paginado)."""
+
+    @abstractmethod
+    async def sum_worker_earnings(
+        self,
+        worker_profile_id: UUID,
+        statuses: frozenset[ShiftStatus],
+        *,
+        window_start: datetime,
+        window_end: datetime,
+    ) -> WorkerEarningsTotals:
+        """Suma `pay_amount` de los turnos del trabajador en `statuses`, en
+        la base y sin tope de filas: total, cantidad y lo que cae en
+        `[window_start, window_end)` según `start_at`. Los límites son
+        instantes (con zona): quien llama decide a qué hora local cortan."""
 
     @abstractmethod
     async def list_by_worker_and_statuses(

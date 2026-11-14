@@ -23,6 +23,9 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
 | `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)); el turno vuelve a buscar personal | comercio |
+| `shift_cancelled_late` | el comercio cancela un turno con el trabajador ya confirmado o en pleno turno (cancelación tardía, [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) | trabajador asignado |
+| `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado | trabajador asignado |
+| `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
 
@@ -34,10 +37,37 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Leídas/no leídas:** se marcan de a una al tocarlas, o todas juntas con
   "Marcar todas como leídas" en el panel de la campanita
   (`POST /notifications/read-all`).
-- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a
+- **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a quien
+  está **dentro del radio** del turno (25 km en el primer aviso, 40 km en la
+  escalada; sin distancia que medir, a quien es de su misma ciudad): fuera de
+  eso no llega ni la campanita ni el push, tampoco a un favorito. El turno
+  se mide desde su zona o, si se publicó sin ninguna, desde el local del
+  comercio; el trabajador, desde la zona de su perfil o desde "Disponible
+  ahora" mientras está prendido. Y sólo a
   cuentas con rol trabajador y activas, las mismas que pueden salir como
   candidatas ([MATCHING.md](./MATCHING.md)). Un perfil de trabajador
   colgado de un admin o de un suspendido no recibe nada.
+- **Destino de los avisos de turno cerca:** abren `/turno/<id>`, donde la
+  persona se postula (primera tanda y escalada). Los viejos guardados con
+  `/feed` siguen yendo al Inicio.
+- **Cancelación de un turno (2026-11-13): una persona, un aviso.** Al
+  asignado le llega `shift_cancelled_late` si ya había confirmado y
+  `shift_cancelled` si no; a cada postulación pendiente,
+  `applied_shift_cancelled` (y pasa a `rechazada`). El texto sólo nombra el
+  turno: ni el motivo ni los demás postulantes. No reciben nada quien retiró
+  su postulación, quien había quedado afuera al asignarse el turno
+  (postulación ya `rechazada`) ni el comercio. Los avisos salen después de
+  guardar la cancelación (`ShiftService._notify_shift_cancelled`): si la base
+  rechaza un aviso o cae el push, la cancelación igual responde bien y el
+  otro aviso sale.
+- **Un aviso rechazado por la base no rompe la sesión del pedido
+  (2026-11-13):** el adaptador (`SqlAlchemyNotificationRepository`) la deja
+  usable y propaga el error. Vale para todos los avisos: quien atrapa el
+  error para que el aviso no rompa su acción puede seguir usando la sesión.
+- **Destino de los avisos de cancelación:** al asignado, `/my-shifts` (el
+  turno sigue en «Asignados», marcado como cancelado); al postulante,
+  `/feed`: su postulación ya no figura en ninguna lista y lo útil son los
+  otros turnos.
 - **No son la fuente de verdad del estado:** son un reflejo. El estado real vive
   en el turno / la reseña. (Ver nota de "eventos" abajo.)
 

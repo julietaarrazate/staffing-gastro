@@ -60,6 +60,11 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         if model is None:
             raise ValueError(f"Postulación {application.id} no encontrada")
         model.status = application.status.value
+        # La fecha sólo cambia cuando el trabajador vuelve a postularse
+        # (`ShiftApplication.reapply`); en el resto de las transiciones es la
+        # misma que se leyó y no se reescribe.
+        if application.created_at is not None:
+            model.created_at = application.created_at
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)

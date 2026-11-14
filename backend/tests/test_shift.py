@@ -14,6 +14,8 @@ from app.core.tz import to_art
 from app.main import app
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
+from app.modules.shift.application import scheduler
+from app.modules.shift.application.services import NOT_COVERED_GRACE_NORMAL, ShiftService
 from app.modules.verification.domain.entities import Claim
 from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
 from app.modules.verification.infrastructure.repositories import SqlAlchemyClaimRepository
@@ -966,14 +968,16 @@ async def test_public_shift_in_draft_returns_404(client: AsyncClient):
     assert response.status_code == 404
 
 
-async def test_public_shift_cancelled_returns_404(client: AsyncClient):
-    headers = await _employer_with_company(client, "emp_pub3@staffya.com")
+async def test_public_shift_cancelled_draft_returns_404(client: AsyncClient):
+    """Un borrador que se canceló sin publicarse nunca estuvo a la vista: sigue
+    siendo 404, igual que un id que no existe."""
+    headers = await _employer_with_company(client, "emp_pub2b@staffya.com")
     created = await client.post(
         "/api/v1/shifts", headers=headers, json=_shift_payload()
     )
     shift_id = created.json()["id"]
-    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
-    await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
+    cancelled = await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
+    assert cancelled.json()["status"] == "cancelado"
 
     response = await client.get(f"/api/v1/shifts/{shift_id}/public")
     assert response.status_code == 404
@@ -982,6 +986,122 @@ async def test_public_shift_cancelled_returns_404(client: AsyncClient):
 async def test_public_shift_nonexistent_id_returns_404(client: AsyncClient):
     response = await client.get(f"/api/v1/shifts/{uuid4()}/public")
     assert response.status_code == 404
+
+
+def _assert_no_longer_available(response) -> None:
+    """«Ya no disponible»: 410 y nada más que el mensaje. Ni un dato del
+    turno, del comercio o de quien lo tomó; y sin caché, porque un turno
+    asignado puede volver a abrirse."""
+    assert response.status_code == 410
+    assert response.json() == {"detail": "Este turno ya no está disponible"}
+    assert response.headers["cache-control"] == "no-cache"
+
+
+async def test_public_shift_reopened_is_visible(client: AsyncClient):
+    """Un turno reabierto (la persona asignada lo rechazó) vuelve a buscar
+    gente: el Inicio lo ofrece, así que su página pública tiene que abrirse.
+    Antes sólo respondía en PUBLICADO y el turno reabierto daba 404."""
+    employer_headers = await _employer_with_company(client, "emp_pub4@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_pub4@staffya.com"
+    )
+    shift_id = await _assigned_shift(client, employer_headers, worker_profile_id)
+    rejected = await client.post(
+        f"/api/v1/shifts/{shift_id}/reject", headers=worker_headers
+    )
+    assert rejected.json()["status"] == "buscando_personal"
+
+    response = await client.get(f"/api/v1/shifts/{shift_id}/public")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == shift_id
+    assert body["company_name"] == "Bar Palermo"
+    # La vista pública sigue sin decir nada de quién lo había tomado.
+    assert "worker_profile_id" not in body
+    assert "status" not in body
+
+    # Y es el mismo turno que ofrece el Inicio.
+    other_headers, _ = await _worker_with_profile(client, "w_pub4b@staffya.com")
+    feed = await client.get("/api/v1/shifts/feed", headers=other_headers)
+    assert shift_id in [s["id"] for s in feed.json()]
+
+
+async def test_public_shift_assigned_is_no_longer_available(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "emp_pub5@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "w_pub5@staffya.com"
+    )
+    shift_id = await _assigned_shift(client, employer_headers, worker_profile_id)
+
+    _assert_no_longer_available(await client.get(f"/api/v1/shifts/{shift_id}/public"))
+
+    # Confirmado (ya tomado del todo) responde lo mismo.
+    confirmed = await client.post(
+        f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers
+    )
+    assert confirmed.json()["status"] == "confirmado"
+    _assert_no_longer_available(await client.get(f"/api/v1/shifts/{shift_id}/public"))
+
+
+async def test_public_shift_cancelled_is_no_longer_available(client: AsyncClient):
+    headers = await _employer_with_company(client, "emp_pub3@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=headers, json=_shift_payload()
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
+
+    _assert_no_longer_available(await client.get(f"/api/v1/shifts/{shift_id}/public"))
+
+
+async def test_public_shift_past_start_is_no_longer_available(client: AsyncClient):
+    """Publicado y con la hora ya pasada: el Inicio dejó de ofrecerlo
+    (`list_open`), así que la página pública tampoco lo muestra como abierto,
+    aunque el scheduler todavía no lo haya pasado a «no cubierto»."""
+    headers = await _employer_with_company(client, "emp_pub6@staffya.com")
+    start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=5)
+    end = start + timedelta(hours=6)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=headers,
+        json=_shift_payload(start_at=start.isoformat(), end_at=end.isoformat()),
+    )
+    shift_id = created.json()["id"]
+    published = await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    assert published.json()["status"] == "publicado"
+
+    _assert_no_longer_available(await client.get(f"/api/v1/shifts/{shift_id}/public"))
+
+
+async def test_public_shift_not_covered_is_no_longer_available(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    """Pasada la gracia, el scheduler lo resuelve como «no cubierto» (ADR-0015):
+    fue público y ya no está abierto."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    headers = await _employer_with_company(client, "emp_pub7@staffya.com")
+    start = (
+        datetime.now(timezone.utc).replace(tzinfo=None)
+        - NOT_COVERED_GRACE_NORMAL
+        - timedelta(minutes=1)
+    )
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=headers,
+        json=_shift_payload(
+            start_at=start.isoformat(),
+            end_at=(start + timedelta(hours=6)).isoformat(),
+            urgent=False,
+        ),
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=headers)
+    await scheduler.run_coverage_check()
+    resolved = await client.get(f"/api/v1/shifts/{shift_id}", headers=headers)
+    assert resolved.json()["status"] == "no_cubierto"
+
+    _assert_no_longer_available(await client.get(f"/api/v1/shifts/{shift_id}/public"))
 
 
 async def test_assign_worker_sends_acceptance_email(
@@ -1084,11 +1204,12 @@ async def test_publicar_avisa_a_los_trabajadores_cercanos(client: AsyncClient):
     )
     assert published.status_code == 200
 
-    # Al trabajador le llegó el aviso, y abre el feed (donde puede postularse).
+    # Al trabajador le llegó el aviso, y abre el turno (donde puede postularse):
+    # con el Inicio abierto, un link a /feed no hacía nada al tocarlo.
     despues = await client.get("/api/v1/notifications", headers=worker_headers)
     avisos = [n for n in despues.json() if n["type"] == "new_shift_nearby"]
     assert len(avisos) == 1
-    assert avisos[0]["link"] == "/feed"
+    assert avisos[0]["link"] == f"/turno/{shift_id}"
     assert "Bar Palermo" in avisos[0]["message"]
     # El turno de `_shift_payload` es urgente: el aviso lo dice desde la
     # primera tanda, sin esperar a la escalada automática (ADR-0009).
@@ -1165,6 +1286,8 @@ async def test_create_event_publishes_all_roles_with_shared_event_id(client: Asy
             "start_at": "2026-09-10T20:00:00",
             "end_at": "2026-09-11T02:00:00",
             "city": "Palermo",
+            "latitude": -34.5875,
+            "longitude": -58.43,
             "roles": [
                 {"position": "mozo", "count": 2, "pay_amount": "50000.00"},
                 {"position": "bartender", "count": 1, "pay_amount": "60000.00"},
@@ -1185,6 +1308,93 @@ async def test_create_event_publishes_all_roles_with_shared_event_id(client: Asy
         assert shift["event_name"] == "Boda Martínez"
 
 
+def _event_payload(**overrides) -> dict:
+    payload = {
+        "name": "Boda Martínez",
+        "start_at": "2026-09-10T20:00:00",
+        "end_at": "2026-09-11T02:00:00",
+        "roles": [{"position": "mozo", "count": 2, "pay_amount": "50000.00"}],
+    }
+    payload.update(overrides)
+    return payload
+
+
+async def test_create_event_sin_zona_se_rechaza_con_422(client: AsyncClient):
+    """Un evento sin ciudad ni coordenadas no se publica: los turnos saldrían
+    con «Ubicación a confirmar» y nadie cercano recibiría el aviso. Hacen falta
+    ciudad (lo que se muestra) Y coordenadas (lo que mide la cercanía): con una
+    sola el síntoma sigue. La regla vive en la API para no depender de que el
+    formulario la respete."""
+    headers = await _employer_with_company(client, "evento-sin-zona@staffya.com")
+    for zona in (
+        {},
+        {"city": None, "latitude": None, "longitude": None},
+        {"city": "   ", "latitude": -34.58, "longitude": -58.43},  # ciudad en blanco
+        {"city": "Palermo"},  # sólo ciudad: el aviso a cercanos no tendría con qué medir
+        {"latitude": -34.58, "longitude": -58.43},  # sólo coordenadas: «Ubicación a confirmar»
+        {"city": "Palermo", "latitude": -34.58},  # coordenadas a medias
+    ):
+        response = await client.post(
+            "/api/v1/shifts/events", headers=headers, json=_event_payload(**zona)
+        )
+        assert response.status_code == 422, zona
+        mensaje = response.json()["detail"][0]["msg"]
+        assert mensaje.startswith("Elegí la zona del evento")
+
+    # No quedó ningún turno a medias.
+    mine = await client.get("/api/v1/shifts/me", headers=headers)
+    assert mine.json() == []
+
+
+async def test_create_event_con_zona_los_turnos_la_llevan_y_avisa_al_cercano(
+    client: AsyncClient, monkeypatch
+):
+    """Dos trabajadoras, tope de un aviso por turno: la cercana (Palermo) y una
+    lejana (Ushuaia) con mejor perfil. Si el turno no llevara la zona, la
+    cercanía quedaría neutra y el aviso iría a la de más experiencia."""
+    monkeypatch.setattr(ShiftService, "NEARBY_NOTIFICATION_LIMIT", 1)
+
+    async def trabajadora(email: str, city: str, lat: float, lng: float, years: int) -> dict:
+        headers = await auth_headers(client, "worker", email)
+        await client.post(
+            "/api/v1/workers/me/profile",
+            headers=headers,
+            json={
+                "city": city,
+                "latitude": lat,
+                "longitude": lng,
+                "skills": ["mozo"],
+                "years_experience": years,
+                "is_available": True,
+            },
+        )
+        return headers
+
+    cercana = await trabajadora("cercana-evento@staffya.com", "Palermo", -34.5890, -58.4310, 1)
+    lejana = await trabajadora("lejana-evento@staffya.com", "Ushuaia", -54.8019, -68.3030, 15)
+    employer_headers = await _employer_with_company(client, "evento-zona@staffya.com")
+
+    response = await client.post(
+        "/api/v1/shifts/events",
+        headers=employer_headers,
+        json=_event_payload(city="Palermo", latitude=-34.5875, longitude=-58.4300),
+    )
+    assert response.status_code == 201
+    shifts = response.json()["shifts"]
+    assert len(shifts) == 2
+    for shift in shifts:
+        assert shift["city"] == "Palermo"
+        assert shift["latitude"] == pytest.approx(-34.5875)
+        assert shift["longitude"] == pytest.approx(-58.4300)
+
+    async def avisos(headers: dict) -> list[dict]:
+        recibidas = await client.get("/api/v1/notifications", headers=headers)
+        return [n for n in recibidas.json() if n["type"] == "new_shift_nearby"]
+
+    assert len(await avisos(cercana)) == 2  # uno por turno del evento
+    assert await avisos(lejana) == []
+
+
 async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
     """Si el plan se queda sin cupo a mitad de la publicación masiva, se
     devuelve lo que sí se pudo publicar (no todo o nada)."""
@@ -1201,6 +1411,8 @@ async def test_create_event_partial_when_plan_runs_out(client: AsyncClient):
                 "start_at": "2026-09-10T20:00:00",
                 "end_at": "2026-09-11T02:00:00",
                 "city": "Palermo",
+                "latitude": -34.5875,
+                "longitude": -58.43,
                 "roles": [{"position": "mozo", "count": 7, "pay_amount": "50000.00"}],
             },
         )

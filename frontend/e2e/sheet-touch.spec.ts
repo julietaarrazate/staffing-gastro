@@ -67,6 +67,10 @@ async function mockEmployerShifts(page: Page) {
   await page.route("**/api/v1/shifts/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([SHIFT]) })
   );
+  // «Cancelar turno» relee el turno al abrir su confirmación.
+  await page.route("**/api/v1/shifts/shift-1", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SHIFT) })
+  );
 }
 
 test("toque real en la X del Sheet 'Más acciones' lo cierra (dentro de un Card con whileTap)", async ({ page }) => {

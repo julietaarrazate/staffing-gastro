@@ -6,6 +6,8 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
+import { useTapGuard } from "@/lib/use-tap-guard";
+import { formatShiftStartPhrase } from "@/lib/datetime";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import {
@@ -52,6 +54,21 @@ const APPLICATION_LABELS: Record<string, string> = {
   retirada: "Retiraste la postulación",
 };
 
+const CONFIRM_COPY = {
+  reject: { title: "¿Rechazar este turno?", yes: "Sí, rechazar" },
+  "worker-cancel": { title: "¿Cancelar tu asignación?", yes: "Sí, cancelar" },
+  "check-out": { title: "¿Marcar tu salida?", yes: "Sí, me fui" },
+} as const;
+
+// La consecuencia en una línea (docs/reference/REPUTATION.md: sólo cancelar
+// una asignación ya confirmada suma una cancelación; rechazar antes de
+// confirmar no).
+function confirmCopy(path: "reject" | "worker-cancel" | "check-out"): string {
+  if (path === "reject") return "El comercio va a buscar a otra persona para este turno.";
+  if (path === "check-out") return "Das el turno por terminado. No se puede deshacer.";
+  return "El comercio va a buscar a otra persona y esto cuenta como una cancelación en tu reputación.";
+}
+
 export default function MatchesPage() {
   const { token } = useRequireAuth();
   const toast = useToast();
@@ -86,7 +103,34 @@ export default function MatchesPage() {
   // lista en silencio. Julieta: "seguí por ahí" con las 2 ilustraciones que
   // faltaban del set.
   const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
+  // Acción del trabajador que pide confirmación antes de mandarse (no tiene
+  // vuelta atrás): rechazar, cancelar la asignación, marcar la salida.
+  const [confirmAction, setConfirmAction] = useState<{
+    id: string;
+    path: "reject" | "worker-cancel" | "check-out";
+  } | null>(null);
+  // Último contenido del diálogo: se conserva mientras se anima el cierre.
+  const [lastConfirmPath, setLastConfirmPath] = useState<"reject" | "worker-cancel" | "check-out">(
+    "reject"
+  );
+  // Reloj para saber si el turno ya empezó ("Me fui" recién desde ahí).
+  const [now, setNow] = useState(() => new Date());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Un toque que cae sobre un botón recién aparecido no cuenta (U004): tras
+  // "Llegué" la lista se redibuja y "Me fui" queda justo bajo el dedo.
+  const tapGuard = useTapGuard();
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  function pedirConfirmacion(id: string, path: "reject" | "worker-cancel" | "check-out") {
+    void tapGuard.run(() => {
+      setLastConfirmPath(path);
+      setConfirmAction({ id, path });
+    });
+  }
 
   useEffect(() => setHere(getStoredLocation()), []);
 
@@ -321,9 +365,9 @@ export default function MatchesPage() {
                     <Button
                       size="sm"
                       variant="surface"
-                      onClick={() => act(shift.id, "reject")}
+                      onClick={() => pedirConfirmacion(shift.id, "reject")}
                       loading={busy === `${shift.id}:reject`}
-                      disabled={busy !== null}
+                      disabled={busy !== null || tapGuard.locked}
                     >
                       Rechazar
                     </Button>
@@ -338,20 +382,20 @@ export default function MatchesPage() {
                         "Llegué" marca la ubicación real directo. */}
                     <Button
                       size="sm"
-                      onClick={() => act(shift.id, "check-in", true)}
+                      onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
                       leftIcon={<MapPinIcon size={16} />}
                       loading={busy === `${shift.id}:check-in`}
-                      disabled={busy !== null}
+                      disabled={busy !== null || tapGuard.locked}
                     >
                       Llegué
                     </Button>
                     <Button
                       size="sm"
                       variant="surface"
-                      onClick={() => act(shift.id, "worker-cancel")}
+                      onClick={() => pedirConfirmacion(shift.id, "worker-cancel")}
                       leftIcon={<CloseIcon size={16} />}
                       loading={busy === `${shift.id}:worker-cancel`}
-                      disabled={busy !== null}
+                      disabled={busy !== null || tapGuard.locked}
                     >
                       Cancelar mi asignación
                     </Button>
@@ -370,33 +414,41 @@ export default function MatchesPage() {
                 {shift.status === "en_camino" && (
                   <Button
                     size="sm"
-                    onClick={() => act(shift.id, "check-in", true)}
+                    onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
                     leftIcon={<MapPinIcon size={16} />}
                     loading={busy === `${shift.id}:check-in`}
-                    disabled={busy !== null}
+                    disabled={busy !== null || tapGuard.locked}
                   >
                     Marcar llegada
                   </Button>
                 )}
-                {shift.status === "check_in" && (
-                  <Button
-                    size="sm"
-                    onClick={() => act(shift.id, "check-out", true)}
-                    leftIcon={<MapPinIcon size={16} />}
-                    loading={busy === `${shift.id}:check-out`}
-                    disabled={busy !== null}
-                  >
-                    Me fui
-                  </Button>
-                )}
+                {shift.status === "check_in" &&
+                  (new Date(shift.start_at) > now ? (
+                    // Llegó temprano: la salida no tiene sentido antes de
+                    // que empiece el turno (el servidor también la rechaza).
+                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
+                      <CheckIcon size={16} /> Llegada marcada · el turno empieza{" "}
+                      {formatShiftStartPhrase(shift.start_at, now)}
+                    </p>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => pedirConfirmacion(shift.id, "check-out")}
+                      leftIcon={<MapPinIcon size={16} />}
+                      loading={busy === `${shift.id}:check-out`}
+                      disabled={busy !== null || tapGuard.locked}
+                    >
+                      Me fui
+                    </Button>
+                  ))}
                 {/* Legacy (ADR-0008): idem, para turnos ya en "trabajando". */}
                 {shift.status === "trabajando" && (
                   <Button
                     size="sm"
-                    onClick={() => act(shift.id, "check-out", true)}
+                    onClick={() => pedirConfirmacion(shift.id, "check-out")}
                     leftIcon={<MapPinIcon size={16} />}
                     loading={busy === `${shift.id}:check-out`}
-                    disabled={busy !== null}
+                    disabled={busy !== null || tapGuard.locked}
                   >
                     Marcar salida
                   </Button>
@@ -584,6 +636,38 @@ export default function MatchesPage() {
             onClick={() => confirmWithdrawId && withdrawApplication(confirmWithdrawId)}
           >
             Sí, cancelar
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Acciones sin vuelta atrás del trabajador (U005): misma confirmación
+          que retirar una postulación. */}
+      <Modal
+        open={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        title={CONFIRM_COPY[lastConfirmPath].title}
+      >
+        <p className="text-sm text-ink/60">
+          {confirmCopy(lastConfirmPath)}
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmAction(null)}>
+            Volver
+          </Button>
+          <Button
+            variant={lastConfirmPath === "check-out" ? "primary" : "danger"}
+            size="sm"
+            disabled={tapGuard.locked}
+            onClick={() => {
+              if (!confirmAction) return;
+              const { id, path } = confirmAction;
+              void tapGuard.run(async () => {
+                setConfirmAction(null);
+                await act(id, path, path === "check-out");
+              });
+            }}
+          >
+            {CONFIRM_COPY[lastConfirmPath].yes}
           </Button>
         </div>
       </Modal>

@@ -1,16 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, isTransientFailure } from "@/lib/api";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import {
-  CompanyProfile,
   ParsedShiftDraft,
   SKILL_LABELS,
   Shift,
@@ -28,6 +27,7 @@ import {
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
 import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import { useCompanyPlace } from "@/lib/company-place";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import ShiftDayHint from "@/components/ShiftDayHint";
@@ -51,8 +51,6 @@ import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
 // publicación (auditoría de interfaz 2026-10-11, U01).
 const STEPS = ["Puesto", "Cuándo", "Pago", "Publicar"];
-
-type CompanyPlace = { label: string; city: string; latitude: number; longitude: number };
 
 // Duplicar un turno (frontend puro, ver spec de crecimiento): movemos el
 // horario +7 días manteniendo la misma hora de pared en Argentina.
@@ -99,7 +97,7 @@ function NewShiftWizard() {
   // Dirección del local, para no pedirle la zona en cada turno (auditoría de
   // interfaz 2026-10-11, U04/B03). `changingPlace` muestra el selector para
   // publicar en otra zona.
-  const [companyPlace, setCompanyPlace] = useState<CompanyPlace | null>(null);
+  const { place: companyPlace } = useCompanyPlace(token);
   const [changingPlace, setChangingPlace] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
@@ -121,8 +119,35 @@ function NewShiftWizard() {
   // interactúa con la pantalla (no de inmediato), a diferencia del
   // `router.push` automático que había antes.
   const [publishedShiftId, setPublishedShiftId] = useState<string | null>(null);
+
+  // Primera acción significativa del comercio, no al aterrizar (ver
+  // docs/reference/ACCESO_MODERNO.md): al salir de la confirmación «Turno publicado»
+  // se pregunta si quiere enterarse por push apenas alguien se postule. Va en la
+  // limpieza del efecto para cubrir los tres caminos (Cerrar/Escape, «Ver mi turno»
+  // y Atrás, que desmonta la pantalla sin pasar por ningún botón) y recién al
+  // cerrar: con las dos capas abiertas a la vez las trampas de foco se pisan.
+  useEffect(() => {
+    if (!publishedShiftId) return;
+    return () => requestOptIn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishedShiftId]);
   const reducedMotion = useReducedMotion();
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Un intento del asistente crea UN solo turno (2026-11-12). Publicar son
+  // dos pedidos (crear el borrador y publicarlo) y cualquiera puede fallar o
+  // perder la respuesta. Antes el asistente se olvidaba del borrador apenas
+  // lo creaba, así que reintentar creaba otro: dos turnos iguales publicados,
+  // o uno publicado y un borrador suelto en el panel. Ahora, mientras la
+  // persona siga acá, el reintento retoma donde quedó:
+  //  - `draft`: el borrador ya creado y los datos que tiene guardados
+  //    (`saved`; `null` si una edición quedó sin respuesta y no se sabe).
+  //  - `pendingCreate`: el pedido de crear que quedó sin respuesta. Se repite
+  //    TAL CUAL (misma key, mismo cuerpo) para que el servidor devuelva el
+  //    borrador si lo había creado; con el cuerpo cambiado respondería 422
+  //    ("misma clave, pedido distinto"). Lo que cambió en el formulario va
+  //    después, como edición del borrador.
+  const draft = useRef<{ id: string; saved: string | null } | null>(null);
+  const pendingCreate = useRef<Record<string, unknown> | null>(null);
 
   // Duplicar: precarga el wizard con los datos del turno original (fechas
   // +7 días, misma hora) y lo deja listo en el último paso para revisar y
@@ -164,29 +189,6 @@ function NewShiftWizard() {
   // Precarga la ubicación con la del local. No pisa una ubicación ya elegida
   // (duplicar un turno trae la suya). Si el local no tiene coordenadas, el
   // último paso pide elegir la zona.
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    api
-      .get<CompanyProfile>("/companies/me/profile", token)
-      .then((company) => {
-        if (cancelled || company.latitude == null || company.longitude == null) return;
-        const place: CompanyPlace = {
-          label: company.address || company.city || company.name,
-          city: company.city ?? "",
-          latitude: company.latitude,
-          longitude: company.longitude,
-        };
-        setCompanyPlace(place);
-      })
-      .catch(() => {
-        // Sin perfil o sin red: el comercio elige la zona a mano.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
   useEffect(() => {
     if (!companyPlace || latitude != null) return;
     setCity(companyPlace.city);
@@ -316,64 +318,97 @@ function NewShiftWizard() {
   async function publish() {
     if (!token || position === null) return;
     setSubmitting(true);
+    const payload = {
+      position,
+      quantity,
+      start_at: localInputToArgentinaISO(startAt),
+      end_at: localInputToArgentinaISO(endAt),
+      pay_amount: payAmount,
+      currency: "ARS",
+      tips,
+      meal,
+      urgent,
+      dress_code: dressCode || null,
+      city: city || null,
+      latitude,
+      longitude,
+    };
     try {
-      // Idempotencia (D3, auditoría de producto/UI 2026-08-09): antes sólo
-      // el POST de publicación estaba protegido — un reintento tras un
-      // timeout/corte de red que sí llegó a crear el turno duplicaba el
-      // turno al reintentar desde cero. Key estable por intento del wizard
-      // (no por-turno: el turno todavía no existe en el primer intento).
-      const created = await api.post<{ id: string }>(
-        "/shifts",
-        {
-          position,
-          quantity,
-          start_at: localInputToArgentinaISO(startAt),
-          end_at: localInputToArgentinaISO(endAt),
-          pay_amount: payAmount,
-          currency: "ARS",
-          tips,
-          meal,
-          urgent,
-          dress_code: dressCode || null,
-          city: city || null,
-          latitude,
-          longitude,
-        },
+      let current = draft.current;
+      if (!current) {
+        // Idempotencia (D3, auditoría de producto/UI 2026-08-09): key estable
+        // por intento del asistente (no por-turno: el turno todavía no existe
+        // en el primer intento). Un reintento tras un corte que sí llegó a
+        // crear el turno recibe el mismo borrador, no uno nuevo.
+        const createBody = pendingCreate.current ?? payload;
+        pendingCreate.current = createBody;
+        let created: { id: string };
+        try {
+          created = await api.post<{ id: string }>(
+            "/shifts",
+            createBody,
+            token,
+            undefined,
+            keyFor("create-shift")
+          );
+        } catch (err) {
+          // Sin respuesta (o 409 "en curso") no se sabe si el borrador se
+          // creó: el pedido queda pendiente para repetirlo igual. Un rechazo
+          // del servidor (datos inválidos) sí es definitivo: no creó nada, y
+          // el próximo intento tiene que salir con el formulario corregido.
+          const unresolved =
+            isTransientFailure(err) || (err instanceof ApiError && err.status === 409);
+          if (!unresolved) {
+            pendingCreate.current = null;
+            clearIdempotencyKey("create-shift");
+          }
+          throw err;
+        }
+        current = { id: created.id, saved: JSON.stringify(createBody) };
+        draft.current = current;
+        pendingCreate.current = null;
+      }
+      // Si la persona cambió algo después de un intento que no terminó, el
+      // borrador se pone al día antes de publicar: se publica lo que está
+      // viendo en el resumen, no lo que había cuando se creó.
+      const wanted = JSON.stringify(payload);
+      if (current.saved !== wanted) {
+        // Hasta que el servidor confirme no se sabe qué quedó guardado: si la
+        // respuesta se pierde, el próximo intento vuelve a guardar.
+        current.saved = null;
+        await api.put(`/shifts/${current.id}`, payload, token);
+        current.saved = wanted;
+      }
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): protege el POST de
+      // publicación en sí (el borrador ya tiene un id propio, así que la key
+      // es por-turno). Si el primer publicar llegó y se perdió la respuesta,
+      // el servidor devuelve la que ya dio en vez de publicar de nuevo.
+      await api.post(
+        `/shifts/${current.id}/publish`,
+        undefined,
         token,
         undefined,
-        keyFor("create-shift")
+        keyFor(current.id)
       );
+      // Recién acá terminó el intento: las keys y el borrador se sueltan
+      // cuando todo el paso salió bien, no entre un pedido y el otro.
       clearIdempotencyKey("create-shift");
-      try {
-        // Idempotencia (product/IDEMPOTENCIA_SPEC.md): protege el POST de
-        // publicación en sí (el turno recién creado ya tiene un id propio,
-        // así que la key es por-turno).
-        await api.post(
-          `/shifts/${created.id}/publish`,
-          undefined,
-          token,
-          undefined,
-          keyFor(created.id)
-        );
-        clearIdempotencyKey(created.id);
-        // Primera acción significativa del comercio, no al aterrizar (ver
-        // docs/reference/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
-        // enterarse por push apenas alguien se postule.
-        requestOptIn();
-        // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
-        // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
-        setPublishedShiftId(created.id);
-      } catch (err) {
-        // El turno ya quedó creado como borrador: se puede publicar más tarde
-        // desde el panel una vez que se mejore el plan (ver /shifts).
-        if (isPlanLimitError(err)) {
-          setPlanLimitMessage(getErrorMessage(err));
-        } else {
-          toast(getErrorMessage(err, "No se pudo publicar"), "error");
-        }
-      }
+      clearIdempotencyKey(current.id);
+      draft.current = null;
+      // El pedido de notificaciones no se hace acá sino al cerrar la confirmación
+      // (efecto de `publishedShiftId`, más arriba).
+      // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
+      // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
+      setPublishedShiftId(current.id);
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "No se pudo publicar", "error");
+      // El 402 sólo lo da publicar (tope o plan sin pagar): el turno ya quedó
+      // creado como borrador y se puede publicar más tarde desde el panel una
+      // vez que se mejore el plan (ver /shifts).
+      if (isPlanLimitError(err)) {
+        setPlanLimitMessage(getErrorMessage(err));
+      } else {
+        toast(getErrorMessage(err, "No se pudo publicar"), "error");
+      }
     } finally {
       setSubmitting(false);
     }

@@ -113,13 +113,22 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 - **Propósito:** el "match" tiene **dos lados**:
   - **Lado trabajador:** `ShiftApplication` — el worker se **postula** a un turno
     abierto (swipe derecha). Estados `ApplicationStatus`: `pendiente`, `aceptada`,
-    `rechazada`, `retirada`. Único por (turno, trabajador).
+    `rechazada`, `retirada`. Único por (turno, trabajador): hay una sola fila,
+    que cambia de estado.
   - **Lado comercio:** la **asignación** — el comercio elige un postulante (o un
     candidato recomendado por `matching`) y asigna el turno; el worker confirma o
     rechaza. Se materializa en `Shift.worker_profile_id` + estado
     `asignado`/`confirmado`.
-- **Invariante:** un trabajador se postula una sola vez por turno; sólo se puede
-  postular a turnos abiertos.
+- **Invariante:** un trabajador tiene a lo sumo **una postulación por turno**;
+  sólo se puede postular a turnos abiertos. Con una postulación activa
+  (`pendiente` o `aceptada`) no puede postularse otra vez.
+- **Volver a postularse:** una postulación `retirada` (la canceló el trabajador,
+  o el sistema al confirmar otro turno del mismo horario) se **reactiva** si el
+  trabajador se postula de nuevo y el turno sigue abierto: la misma postulación
+  vuelve a `pendiente` con fecha nueva (`ShiftApplication.reapply`) y el comercio
+  recibe el aviso como con una postulación nueva. Una `rechazada` no se reactiva
+  así: es decisión del comercio y vuelve a `pendiente` sola si el turno se
+  reabre.
 - No hay una entidad `Match` única: el match es la conjunción postulación +
   asignación + confirmación. Ver [MATCHING.md](../reference/MATCHING.md) (Fase 2).
 
@@ -133,11 +142,20 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 
 ## Chat — `ChatMessage`
 
-- **Propósito:** mensajería trabajador↔comercio **por turno**.
-- **Datos:** `shift_id`, `sender_user_id`, `body`, `read`, `created_at`.
+- **Propósito:** mensajería trabajador↔comercio dentro de un turno, **una
+  conversación por turno y persona asignada**.
+- **Datos:** `shift_id`, `worker_user_id` (la persona del hilo), `sender_user_id`,
+  `body`, `read`, `created_at`.
 - **Reglas:** la conversación la integran el comercio y el trabajador **asignado**
   a ese turno; entrega en **tiempo real por WebSocket**; avisa al destinatario con
   una `Notification`.
+- **Un hilo por persona asignada:** la conversación es del comercio con **una**
+  persona, la que estaba asignada cuando se escribió cada mensaje (hilo =
+  turno + trabajador). Si el turno se reasigna, quien lo recibe arranca con el
+  hilo vacío, el comercio ve sólo el hilo con la persona asignada ahora y la
+  anterior deja de tener acceso. Los mensajes del hilo anterior se conservan,
+  pero no se le muestran a nadie que no haya sido parte. Detalle en
+  [CHAT.md](../reference/CHAT.md).
 
 ## Review — `Review`
 

@@ -25,8 +25,11 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `punctuality_rate` — tasa de puntualidad. **(R2.4)** se recalcula al
   finalizar cada turno (`ShiftService.finish`,
   `backend/app/modules/shift/application/services.py`) como promedio móvil
-  simple sobre los turnos completados: puntual = check-in dentro de **±15
-  minutos** del horario pactado (`start_at`). `finish()` sólo es alcanzable
+  simple sobre los turnos completados: puntual = check-in **hasta 15
+  minutos después** del horario pactado (`start_at`); llegar antes (la app deja
+  marcar hasta 30 min antes) siempre cuenta como puntual. La regla es la
+  función pura `arrived_on_time` en
+  `backend/app/modules/shift/domain/punctuality.py`. `finish()` sólo es alcanzable
   habiendo pasado por check-in y check-out (ver
   `Shift._transition` en `shift/domain/entities.py`), así que siempre hay un
   check-in real para evaluar.
@@ -43,7 +46,9 @@ bidireccional: comercio y trabajador se califican mutuamente.
   se incrementa cuando el **comercio** marca manualmente que el trabajador
   asignado no se presentó a un turno ya confirmado
   (`POST /shifts/{id}/no-show`, sólo alcanzable desde `CONFIRMADO`/
-  `EN_CAMINO`, antes del check-in; `WorkerProfileRepository.record_no_show`).
+  `EN_CAMINO`, antes del check-in y **recién desde 15 minutos después del
+  inicio del turno**, `NO_SHOW_EARLIEST_AFTER_START`;
+  `WorkerProfileRepository.record_no_show`).
   **Separado de `cancellations`** a propósito: no aparecer sin aviso es una
   señal peor que cancelar con anticipación, y se pondera distinto (ver
   matching abajo). No es detección automática por horario vencido (eso sigue
@@ -62,7 +67,7 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `on_time_payment_rate` — tasa de pago a tiempo. **(2026-08-02)** se
   recalcula al confirmar el pago de un turno finalizado
   (`ShiftService.mark_paid`) como promedio móvil simple sobre
-  `payments_recorded` (contador interno, no expuesto en la API — distinto de
+  `payments_recorded` (contador, **expuesto en la API** desde 2026-11-13 para que la pantalla oculte «Pago a tiempo» cuando es 0 — distinto de
   `events_published`, que cuenta turnos publicados, no pagados): a tiempo =
   `paid_at` dentro de **48 horas** de `end_at` (`PAYMENT_TOLERANCE`,
   `backend/app/modules/shift/application/services.py`). No hay un plazo de
@@ -81,6 +86,14 @@ bidireccional: comercio y trabajador se califican mutuamente.
   el trabajador confirme no cuenta: nunca llegó a comprometerse. Efecto
   **simétrico** al `cancellations`/`no_shows` del trabajador — no se mezcla
   con `rating` (que sigue siendo sólo el promedio de reseñas).
+  **(2026-11-13)** El comercio se entera antes y después: la confirmación de
+  «Cancelar turno» del panel lo dice antes de confirmar («Te suma una
+  cancelación tardía. La ves en tu perfil.»), sólo en esos estados y con
+  alguien asignado (`frontend/lib/cancelar-turno.ts`, misma cuenta que el
+  backend: no hay plazo en horas), y la cuenta se ve en su `/profile`
+  (`components/company/LateCancellations.tsx`, sólo con al menos una). Es la
+  vista del propio comercio: al trabajador no se le muestra en ninguna
+  pantalla.
 
 ## Reglas de negocio
 

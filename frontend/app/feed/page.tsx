@@ -3,16 +3,20 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { isTodayInArgentina } from "@/lib/datetime";
 import {
   distanceOf,
   getStoredLocation,
+  NEARBY_RADIUS_KM,
+  nearbyOnly,
   originFor,
   sortByDistance,
   type CurrentLocation,
@@ -91,10 +95,19 @@ function useAssistantSearch(): AssistantSearch | null {
   }, [searchParams]);
 }
 
-function feedPathFor(positions: string[]): string {
-  if (positions.length === 0) return "/shifts/feed";
+/** El Inicio pide el feed a secas: el servidor ya lo acota a lo que queda
+ * cerca de la zona del perfil. Una búsqueda del asistente pide todo el
+ * mercado (`scope=all`) medido desde el centro de la zona que la persona
+ * escribió, para que "turnos en Córdoba" no dependa de dónde está su perfil.
+ * Ese punto es un lugar que se pidió por nombre, no la posición del
+ * dispositivo: "Estoy acá" no viaja al servidor. */
+function feedPathFor(search: AssistantSearch | null): string {
+  if (!search) return "/shifts/feed";
   const params = new URLSearchParams();
-  positions.forEach((p) => params.append("positions", p));
+  params.set("scope", "all");
+  params.set("latitude", String(search.origin[0]));
+  params.set("longitude", String(search.origin[1]));
+  search.positions.forEach((p) => params.append("positions", p));
   return `/shifts/feed?${params.toString()}`;
 }
 
@@ -142,6 +155,11 @@ function WorkerFeedPanel() {
   const [profile, setProfile] = useState<WorkerProfile | null>(cached?.profile ?? null);
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
   const [loading, setLoading] = useState(cached === undefined);
+  // «Llegó vacío» (el servidor no devolvió ningún turno) no es lo mismo que
+  // «los vi todos» (la persona fue pasando/descartando las tarjetas): lo
+  // primero no se puede decir como si ya hubiera visto algo. El caché guarda
+  // lo que devolvió el servidor, así que vacío ahí también es «llegó vacío».
+  const [arrivedEmpty, setArrivedEmpty] = useState(cached !== undefined && cached.shifts.length === 0);
   const [error, setError] = useState<string | null>(null);
   // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
   const [decidingId, setDecidingId] = useState<string | null>(null);
@@ -162,6 +180,18 @@ function WorkerFeedPanel() {
   const [deckShifts, setDeckShifts] = useState<Shift[] | null>(null);
   const decidedInDeck = useRef<Set<string>>(new Set());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Cuenta los guardados del perfil hechos desde esta pantalla. Una carga que
+  // leyó el perfil ANTES de un guardado y termina DESPUÉS (el feed es el
+  // pedido más lento) trae una copia vieja: si el contador cambió, `load` la
+  // descarta y la pantalla se queda con lo que devolvió el servidor al guardar.
+  const profileSaves = useRef(0);
+  // Hay un guardado del perfil en vuelo: `load` no aplica su perfil (sería el
+  // viejo) para que el interruptor no parpadee de vuelta.
+  const savingProfile = useRef(false);
+  // Último perfil que devolvió el servidor al guardar desde acá. Sirve cuando
+  // se guardó antes de que existiera el caché de pantalla (primera carga): si
+  // `load` descarta su copia vieja, esto es lo que se cachea, no `null`.
+  const lastSavedProfile = useRef<WorkerProfile | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -173,23 +203,32 @@ function WorkerFeedPanel() {
       setLoading(true);
     }
     setError(null);
+    const savesAtStart = profileSaves.current;
     try {
       const [feed, prof, applied] = await Promise.all([
-        api.get<Shift[]>(feedPathFor(assistantSearch?.positions ?? []), token),
+        api.get<Shift[]>(feedPathFor(assistantSearch), token),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
-      const appliedIds = new Set(applied.map((a) => a.shift_id));
+      const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
-      if (prof) {
+      setArrivedEmpty(feed.length === 0);
+      // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
+      const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
+      if (prof && profFresh) {
         setProfile(prof);
         setAvailable(prof.is_available);
       }
       // No cachear resultados de una búsqueda del asistente: son la
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
-      if (!assistantSearch) setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
+      if (!assistantSearch) {
+        const cachedProfile = profFresh
+          ? prof
+          : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
+        setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
     } finally {
@@ -202,32 +241,48 @@ function WorkerFeedPanel() {
   }, [load]);
 
   async function toggleAvailable() {
-    if (!token || !profile) return;
+    if (!token || savingProfile.current) return;
     const next = !available;
     setAvailable(next); // optimista
+    savingProfile.current = true;
     try {
-      await api.put<WorkerProfile>(
-        "/workers/me/profile",
-        {
-          photo_url: profile.photo_url,
-          birth_date: profile.birth_date,
-          city: profile.city,
-          bio: profile.bio,
-          latitude: profile.latitude,
-          longitude: profile.longitude,
-          skills: profile.skills,
-          years_experience: profile.years_experience,
-          languages: profile.languages,
-          certifications: profile.certifications,
-          cv_url: profile.cv_url,
-          is_available: next,
-        },
-        token
-      );
+      // El endpoint reemplaza el perfil: `saveProfilePart` lo lee del servidor
+      // justo antes de escribir y cambia sólo la disponibilidad. La copia de
+      // esta pantalla puede estar vieja (se pinta desde caché y se actualiza
+      // por detrás) y mandarla pisaba lo recién guardado en el perfil.
+      const saved = await saveProfilePart(token, { is_available: next });
+      profileSaves.current += 1;
+      lastSavedProfile.current = saved;
+      setProfile(saved);
+      setAvailable(saved.is_available);
+      const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+      if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: saved });
       toast(next ? "Estás disponible" : "Te marcaste como no disponible");
-    } catch {
+    } catch (err) {
       setAvailable(!next); // revertir
+      if (err instanceof ApiError && err.status === 404) {
+        // Cerró la app en la bienvenida antes de guardar: no hay perfil que
+        // actualizar y reintentar no lo arregla.
+        toast("Completá tu perfil para marcarte disponible", "error");
+        return;
+      }
       toast("No se pudo actualizar tu disponibilidad", "error");
+      // Si una carga terminó con el guardado en vuelo, descartó su perfil y
+      // nadie lo volvió a aplicar. Se relee sólo el perfil: recargar todo el
+      // Inicio fallaría igual sin conexión y taparía la lista con el error.
+      void api
+        .get<WorkerProfile>("/workers/me/profile", token)
+        .then((p) => {
+          if (savingProfile.current) return;
+          setProfile(p);
+          setAvailable(p.is_available);
+          lastSavedProfile.current = p;
+          const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+          if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: p });
+        })
+        .catch(() => {});
+    } finally {
+      savingProfile.current = false;
     }
   }
 
@@ -320,20 +375,27 @@ function WorkerFeedPanel() {
   // "a menos de 2 km" tiene que sacar lo que no entra) y sólo hoy si lo pidió.
   // Memorizado (como `distanceFromOrigin`): así tocar "Disponible" no vuelve
   // a ordenar ni a dibujar las tarjetas, que no cambiaron.
+  // Depende de la zona del perfil (dos números), no del objeto entero: guardar
+  // la disponibilidad cambia `profile` y no tiene que redibujar las tarjetas.
+  const profileLat = profile?.latitude ?? null;
+  const profileLng = profile?.longitude ?? null;
   const origin = useMemo(
-    () => (assistantSearch ? assistantSearch.origin : originFor(here, profile)),
-    [assistantSearch, here, profile],
+    () =>
+      assistantSearch
+        ? assistantSearch.origin
+        : originFor(here, { latitude: profileLat, longitude: profileLng }),
+    [assistantSearch, here, profileLat, profileLng],
   );
   const distanceFromOrigin = useCallback((s: Shift) => distanceOf(s, origin), [origin]);
   const visibleShifts = useMemo(() => {
     let sortedShifts = sortByDistance(shifts, origin);
-    if (assistantSearch?.radiusKm != null) {
-      const radiusKm = assistantSearch.radiusKm;
-      sortedShifts = sortedShifts.filter((s) => {
-        const d = distanceOf(s, origin);
-        return d != null && d <= radiusKm;
-      });
-    }
+    // «Cerca» es cerca: acá no se muestra nada más lejos que el radio, medido
+    // desde el mismo origen que las distancias de las tarjetas. Si se pidió
+    // un radio puntual ("a menos de 2 km"), manda ése, y lo que no se puede
+    // ubicar queda afuera.
+    sortedShifts = nearbyOnly(sortedShifts, origin, assistantSearch?.radiusKm ?? NEARBY_RADIUS_KM, {
+      keepUnlocated: !assistantSearch,
+    });
     if (assistantSearch?.todayOnly) {
       sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
     }
@@ -342,15 +404,37 @@ function WorkerFeedPanel() {
   const heroShift = visibleShifts[0];
   const restShifts = useMemo(() => visibleShifts.slice(1), [visibleShifts]);
   const isDesktop = useIsDesktop();
+  // Con "Estoy acá" lo que se muestra es lo cercano a ese punto. Si ahí no hay
+  // nada, se dice eso y se manda a Buscar, que es donde se ve todo: el Inicio
+  // sólo trae lo de la zona del perfil, así que no puede afirmar que no hay
+  // turnos en ningún lado.
+  const emptyNearHere = !assistantSearch && here !== null;
+  // Sin zona en el perfil el servidor manda todo: ahí «cerca de tu zona» sería falso.
+  const emptyNoneInZone = !assistantSearch && !emptyNearHere && arrivedEmpty && profileLat !== null && profileLng !== null;
+  const goBuscar = () => router.push("/buscar");
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
-    : "No hay más turnos cerca";
+    : emptyNearHere
+      ? "No hay turnos cerca de donde estás ahora"
+      : emptyNoneInZone
+        ? "Todavía no hay turnos cerca de tu zona"
+        : "No hay más turnos cerca";
   const emptySubtitle = assistantSearch
     ? "Probá un radio más amplio o menos puestos a la vez."
-    : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+    : emptyNearHere
+      ? "Tocá «Volver a mi zona», arriba, o mirá todos los turnos en Buscar."
+      : emptyNoneInZone
+        ? "Aparecen en tiempo real y te avisamos cuando salga uno. Mientras, podés mirar los de otras zonas en Buscar."
+        : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+  // Una sola acción primaria (ámbar) por vacío; la otra va como secundaria.
+  const verTodosEnBuscar = { label: "Ver todos en Buscar", onClick: goBuscar };
+  const actualizar = { label: "Actualizar", onClick: load };
   const emptyStateAction = assistantSearch
     ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
-    : { label: "Actualizar", onClick: load };
+    : emptyNearHere || emptyNoneInZone
+      ? verTodosEnBuscar
+      : actualizar;
+  const emptySecondaryAction = assistantSearch || emptyNearHere ? undefined : emptyNoneInZone ? actualizar : verTodosEnBuscar;
 
   const emptyState = (
     <EmptyState
@@ -358,6 +442,7 @@ function WorkerFeedPanel() {
       title={emptyTitle}
       subtitle={emptySubtitle}
       primaryAction={emptyStateAction}
+      secondaryAction={emptySecondaryAction}
     />
   );
 

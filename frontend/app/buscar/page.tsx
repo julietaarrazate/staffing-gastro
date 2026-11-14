@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -82,6 +83,10 @@ export default function BuscarPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
+      // Buscar es la pantalla para mirar otras zonas: pide todo el mercado.
+      // Sin esto, el feed sólo devuelve lo que queda cerca de la zona del
+      // perfil (lo que muestran el Inicio y el Mapa).
+      params.set("scope", "all");
       // Sin rubro elegido ("Todos"): se pasan TODOS los rubros explícitos
       // como `positions`, para no caer en el default de `/shifts/feed`
       // (los rubros del perfil) — acá el propósito es ver el mercado
@@ -93,7 +98,7 @@ export default function BuscarPage() {
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
-      const appliedIds = new Set(applied.map((a) => a.shift_id));
+      const appliedIds = appliedShiftIds(applied);
       setShifts(feed.filter((s) => !appliedIds.has(s.id)));
       setProfile(prof);
     } catch (err) {

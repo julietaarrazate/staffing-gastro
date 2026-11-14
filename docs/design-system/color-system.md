@@ -125,6 +125,20 @@ propias del chat, badges sobre foto). El **toast** ya no lo usa: tiene su par
 oscuro se **invierte** (claro `#EEF3F6` con tinta `#0D131A`), porque un toast
 casi negro sobre el lienzo oscuro no se distinguía del fondo.
 
+**Dónde va el aviso flotante** (`components/ui/Toast.tsx`): **arriba** en todos
+los anchos, centrado, a `calc(var(--chrome-top) + 0.5rem)` (justo bajo el
+encabezado; `--chrome-top` = 4rem + zona segura, `globals.css`). Nunca abajo: en
+el celular están los botones de acción («Publicar turno») y en escritorio con la
+ventana baja ese botón queda a media pantalla y un aviso abajo lo pisaba. Entra
+sólo con opacidad y escala (sin desplazamiento), `z-[60]` (sobre el encabezado y
+los sheets). **Tocarlo lo cierra** y el toque no pasa a lo que tapa (arriba queda
+sobre el botón de la esquina del asistente de publicar y sobre el interruptor de
+disponibilidad); los huecos a sus costados sí dejan pasar los toques.
+La salida es un fundido corto también con «reducir movimiento» (nunca
+instantánea), para que el aviso que se va reciba el segundo toque de un doble
+toque. Excepción conocida: con un Modal abierto el aviso queda debajo del velo
+(los dos `z-[60]`) y el toque lo recibe el velo, que cierra el Modal.
+
 ## Tono de banner por rubro
 
 `SKILL_HERO_TONE` (`lib/skill-style.tsx`): el banner de una tarjeta de turno

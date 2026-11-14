@@ -53,6 +53,22 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   de tocar código hay que correr `npm run build` antes de `npm run test:e2e`.
 - `mapa-worker` falla siempre en la sesión porque no hay salida a los tiles
   de OSM. En CI pasa.
+- **`playwright.config.ts` fija el puerto 3100 con `reuseExistingServer`.** Si
+  en 3100 ya corre otra cosa (el entorno de `tools/e2e-local`, o el servidor
+  de otro worktree), `npm run test:e2e` se engancha a ese servidor y prueba
+  otro código sin avisar (visto el 2026-11-13 con cinco worktrees a la vez).
+  Con más de un worktree, cada uno corre sus specs con un config temporal
+  fuera de git, en un puerto propio y con `reuseExistingServer: false`.
+- **Con varias ramas en paralelo, probá el merge entre ellas antes de pedir
+  el "sí".** Dos PRs que agregan una importación en el mismo lugar chocan
+  aunque no tengan nada que ver; se ve con un `git merge --no-commit` local y
+  se evita un ciclo de CI por par.
+- **Que dos ramas no choquen en el texto no alcanza: corré los tests sobre
+  todas juntas antes de mergear la segunda.** El 2026-11-13 #549 y #552
+  pasaron su CI por separado, se mergearon con un minuto de diferencia y
+  `main` quedó en rojo: un test de una marcaba la salida antes del inicio, que
+  la otra pasó a rechazar (#555). Tras cada merge, a la rama que sigue se le
+  trae `main` y se espera su CI, aunque el merge sea limpio.
 - `npm run lint` da **0 errores y unos mil warnings**. Es lo normal; CI
   falla sólo con errores.
 - Si el build falla bajando Google Fonts por el proxy, probá
@@ -102,6 +118,13 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   ningún error. Para esas pantallas hay que buildear con
   `NEXT_PUBLIC_API_URL=http://localhost:<puerto>/api/v1` y servir un mock en
   ese puerto. El `/api/v1` del final es obligatorio.
+- **Una pantalla que sale de `notFound()` se dibuja en el navegador**, no en
+  el servidor: llega un HTML vacío (`<html id="__next_error__">`) y el layout
+  se arma del lado del cliente, así que el `<script>` anti-flash del tema no
+  corre. El 2026-11-12 la captura oscura de «Este turno ya no está
+  disponible» salía idéntica a la clara, y los tests estaban en verde. En el
+  spec de captura conviene afirmar el tema antes de sacar la foto:
+  `await expect(page.locator("html")).toHaveAttribute("data-theme", theme)`.
 - **Matar el servidor:** `pkill -f "next start"` mata también la shell que lo
   corre (sale con 144). Usá `fuser -k 3100/tcp`.
 - Para recortar imágenes hace falta `pip install pillow` en el venv.

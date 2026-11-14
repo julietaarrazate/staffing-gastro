@@ -12,6 +12,10 @@
   (registro, login, refresh, `/health`). Ver [SECURITY.md](./SECURITY.md).
 - **No-disclosure:** recurso ajeno o inexistente → **404** (nunca se revela que
   existe algo de otro usuario). Es una regla transversal, no por endpoint.
+  Única excepción, decidida a propósito: `GET /shifts/{id}/public` contesta
+  **410** por un turno que **ya fue público** y dejó de estar abierto (ver
+  `shift` más abajo). Revela sólo que ese link existió, que es lo que ya
+  sabe quien lo recibió.
 - **Errores:** las excepciones de dominio se mapean a HTTP en la capa `api/`
   (400/403/404/409 según el caso).
 - **Healthcheck:** `GET /health` (sin prefijo `/api/v1`) → `{"status":"ok"}`.
@@ -51,27 +55,44 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | Método | Ruta | Transición |
 |--------|------|-----------|
 | POST | `/shifts` | Crear turno (borrador) |
+| POST | `/events` | Publicar varios turnos de un evento de una vez (un turno por persona pedida). **Exige zona**: ciudad **y** coordenadas (la ciudad es lo que se muestra, las coordenadas lo que mide la cercanía); si falta algo, 422 «Elegí la zona del evento…». Los turnos salen con esa zona y se avisa a los trabajadores cercanos |
 | GET | `/feed` | Feed de turnos abiertos (worker) — **paginado** |
 | GET | `/me` | Turnos publicados por el comercio propio — **paginado** |
 | GET | `/mine` | Turnos asignados al trabajador propio — **paginado** |
 | GET | `/{shift_id}` | Detalle |
+| GET | `/{shift_id}/public` | Vista pública para compartir, **sin sesión**: sólo campos seguros (`ShiftPublicResponse`). Tres respuestas, ver abajo |
 | POST | `/{shift_id}/publish` | Publicar |
 | POST | `/{shift_id}/assign` | Asignar a un trabajador |
 | POST | `/{shift_id}/confirm` · `/reject` | Trabajador confirma/rechaza |
 | POST | `/{shift_id}/worker-cancel` | Trabajador cancela su asignación ya confirmada (sólo desde `confirmado`; reabre el turno — [ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)) |
 | POST | `/{shift_id}/check-in` · `/start-working` · `/depart` · `/check-out` | Asistencia geolocalizada (check-in/out: 400 si está a > 300 m del local) |
+| POST | `/{shift_id}/no-show` | Comercio marca que el trabajador asignado no se presentó. Sólo desde 15 minutos después del `start_at`; antes responde **400** con el mensaje «Todavía no podés marcar que no se presentó: se habilita el DD/MM a las HH:MM (hora de Argentina)…» ([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) |
 | POST | `/{shift_id}/finish` | Finalizar |
 | POST | `/{shift_id}/mark-paid` | Marcar pagado (ver [PAYMENTS.md](./PAYMENTS.md)) |
-| POST | `/{shift_id}/cancel` | Cancelar |
+| POST | `/{shift_id}/cancel` | Cancelar (comercio dueño; ajeno o inexistente = 404; ya terminal = 400). Avisa al asignado (`shift_cancelled_late` si había confirmado, y suma `late_cancellations`; `shift_cancelled` si no) y a cada postulación pendiente (`applied_shift_cancelled`, que pasa a `rechazada`). Ver [NOTIFICATIONS.md](./NOTIFICATIONS.md) |
 
 > `/me` y `/mine` estaban documentados al revés (fila corregida): `/me` son
 > los turnos publicados por **el comercio propio**, `/mine` los asignados
 > **al trabajador propio**.
 
+**`GET /shifts/{shift_id}/public`** (la que arma la página `/turno/[id]`):
+
+| Respuesta | Cuándo | Qué trae |
+|---|---|---|
+| **200** | El turno está abierto a postulaciones: `publicado` o `buscando_personal` (reabierto porque la persona asignada lo rechazó, se bajó o no se presentó) **y** todavía no llegó su hora de inicio. Es lo mismo que ofrece `/feed` | `ShiftPublicResponse` |
+| **410** | Fue público y ya no está abierto: asignado en adelante, cancelado después de publicarse, no cubierto, o con la hora de inicio pasada | Sólo `{"detail": "Este turno ya no está disponible"}`: ningún dato del turno, del comercio ni de las personas |
+| **404** | El id no existe o el turno nunca fue público (un borrador, o un borrador cancelado) | `{"detail": "Turno no encontrado"}` |
+
+El 200 y el 410 van con `Cache-Control: no-cache`: un turno abierto se cubre
+en minutos, y uno asignado puede volver a abrirse (una copia guardada del 410
+lo mostraría cerrado).
+Hasta el 2026-11-12 sólo respondía 200 en `publicado` y todo lo demás era 404
+(un turno reabierto aparecía en el Inicio y su página no abría).
+
 ### `application` — `/applications`
 | Método | Ruta | Qué hace |
 |--------|------|----------|
-| POST | `/applications` | Postularse a un turno |
+| POST | `/shifts/{shift_id}` | Postularse a un turno abierto (worker). Si ya tenía una postulación `retirada` a ese turno, la reactiva (misma postulación, otra vez `pendiente`); con una activa o rechazada responde 409. Tope de 5 intentos por hora por cuenta y por turno (429) |
 | GET | `/mine` | Mis postulaciones (worker) — **paginado** |
 | GET | `/shifts/{shift_id}` | Postulantes de un turno (comercio) |
 
@@ -93,14 +114,14 @@ Publicación y **ciclo de vida** del turno (ver [SHIFT.md](./SHIFT.md)):
 | Método | Ruta | Qué hace |
 |--------|------|----------|
 | GET | `/push/public-key` | Clave pública VAPID (sin autenticar; `null` = push desactivado en el servidor) |
-| POST | `/push/subscribe` | Suscribir este dispositivo (idempotente por `endpoint`) |
-| DELETE | `/push/subscribe` | Desuscribir este dispositivo |
+| POST | `/push/subscribe` | Suscribir este dispositivo a nombre de la cuenta que lo pide. Un `endpoint`, una fila: repetirlo es idempotente y, si el `endpoint` era de otra cuenta, se reasigna sólo cuando llega con las claves ya guardadas (el mismo navegador); con otras claves no cambia nada y responde igual |
+| DELETE | `/push/subscribe` | Desuscribir este dispositivo (sólo si es de quien lo pide; si no, no hace nada) |
 
 ### `chat` — `/chats`
 | Método | Ruta | Qué hace |
 |--------|------|----------|
 | GET | `/chats` | Inbox (conversaciones con no-leídos) |
-| GET | `/{shift_id}/messages` | Historial del turno |
+| GET | `/{shift_id}/messages` | Mensajes del hilo vigente del turno (comercio ↔ persona asignada ahora) |
 | WS | `/{shift_id}/ws` | Mensajes en vivo |
 
 ### `review` — `/reviews`
@@ -132,7 +153,9 @@ Gating al **publicar** (`POST /shifts/{id}/publish` y `/shifts/events`):
 `SUBSCRIPTIONS_ENFORCED=true` y tope agotado → **402**; con el cobro real
 exigido (además las dos credenciales de MP) y sin mes pago vigente → **402**
 "Tu plan no está activo…". `mark-paid` (pago del turno al trabajador) no
-cambia.
+cambia. El uso (`turnos_usados_mes`) sube recién cuando el turno quedó
+publicado: un `publish` que responde 400, 402, 404 o 409 no lo cambia, y
+repetirlo con la misma `Idempotency-Key` cuenta una sola vez.
 
 ## Paginación
 
@@ -158,6 +181,24 @@ cambia.
   de ordenar (slice en Python), porque paginar antes de ordenar por distancia
   devolvería una página con los trabajadores equivocados. Documentado en
   `matching/application/services.py`.
+- **Excepción — `/shifts/feed` cuando hay desde dónde medir.** El feed
+  acepta `scope=nearby|all` y, opcionales, `latitude`/`longitude`. Por
+  defecto (`nearby`, el Inicio y el Mapa) devuelve sólo lo que queda a 40 km
+  o menos de la zona del perfil del trabajador; `all` (Buscar) devuelve todo,
+  ordenado por distancia. `latitude`/`longitude` son un punto de búsqueda que
+  reemplaza a la zona del perfil (la zona que pide el asistente), no la
+  posición del dispositivo. Con `scope=nearby` y un trabajador con zona en
+  su perfil, el filtro grueso va en SQL (caja de coordenadas, sin `LIMIT`), la
+  distancia exacta se mide en Python y `limit`/`offset` se aplican
+  **después**, sobre lo que quedó dentro del radio: cortar antes de filtrar
+  llenaba la página con turnos de otra provincia. La página se llena por
+  cercanía y adentro se ordena urgentes primero, después por distancia y por
+  más nuevo. Un turno sin zona (ni coordenadas ni ciudad) se mide desde el
+  local de su comercio; la respuesta lo sigue devolviendo sin ubicación.
+  Con `scope=all` la página sí sale de SQL, ordenada por una
+  distancia aproximada (aritmética que entienden Postgres y SQLite). Sin
+  zona (comercio, admin, perfil sin ciudad ni coordenadas) es el listado de
+  siempre: urgentes primero y los más nuevos, paginado en SQL.
 - **`GET /admin/stats`** es la única excepción que no pagina: necesita el
   total real de usuarios para las métricas agregadas (queda como P5 de
   [PERFORMANCE_REPORT.md](../audits/PERFORMANCE_REPORT.md), no resuelto en R2.1).
@@ -166,7 +207,9 @@ cambia.
 
 Dos canales, autenticados por token:
 
-- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — sólo participantes del turno.
+- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — sólo el comercio y la persona
+  asignada hoy; si el turno se reasigna, la conexión abierta se corta
+  ([CHAT.md](./CHAT.md)).
 - **Notificaciones:** `WS /api/v1/notifications/ws` — avisos del propio usuario.
 
 El registro de conexiones es **en memoria** (`app/core/ws_manager.py`): un solo

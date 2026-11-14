@@ -9,8 +9,9 @@
 1. **Leé lo mínimo, una vez.** Orden de arranque: este archivo → `docs/STATUS.md` → `docs/reference/MAPA_DEL_CODIGO.md` (antes de `grep`, y antes de proponer una función nueva). Después, solo los archivos que la tarea toca, con `Grep`/`Glob` primero y `Read` por rango de líneas. No releas lo que ya leíste en la sesión.
 2. **No leas esto** salvo que la tarea lo pida: `docs/historial/` (bitácora, solo se *escribe*), `docs/audits/`, `docs/mockups/`, `docs/fundraising/`, `marketing/` (42 MB de videos), lockfiles, `node_modules/`, capturas e imágenes. `.claude/settings.json` ya bloquea la lectura de las más pesadas.
 3. **Tests proporcionales:** solo los del área tocada mientras iterás; la suite completa una vez, antes de pedir el merge. Capturas en los dos temas solo si el cambio es visual.
-4. **Modelos:** quien orquesta (Opus) diseña lo complejo; el trabajo diario va en Sonnet; lo mecánico (renombres, capturas, bumps, copys, búsquedas) se delega al subagente `mecanico` (Haiku, ver `.claude/agents/`). Subagentes solo si paralelizar ahorra de verdad, con brief corto y rutas exactas.
+4. **Modelos (acordado con Julieta, 2026-11-13):** quien coordina (el modelo más capaz) diseña, decide y hace lo delicado (pagos, privacidad, reglas del producto, arquitectura); los arreglos del día a día y las revisiones de cambios de pantalla van en Sonnet; lo mecánico (renombres, capturas, bumps, copys, búsquedas) se delega al subagente `mecanico` (Haiku, ver `.claude/agents/`). Nadie revisa su propio trabajo: cada arreglo lo revisa otro agente que intenta romperlo. Esfuerzo alto, no máximo, salvo auditorías o diseño difícil. Subagentes solo si paralelizar ahorra de verdad, con brief corto y rutas exactas; pocos a la vez y terminando lo empezado: si se corta el cupo de uso se pierde lo que estaba a medias.
 5. **Respuestas cortas**, sin repetir contexto ni entregables que nadie pidió.
+6. **Una conversación por etapa o por tanda.** Una sesión larga relee todo su contexto en cada paso. Al cerrar una tanda se deja el estado escrito ([tablero de la beta](./docs/planning/BETA_TABLERO.md), `docs/STATUS.md`, historial) y se le avisa a Julieta que conviene abrir una sesión nueva; la nueva arranca de esos archivos, no de la conversación anterior.
 
 ## Protocolo de sesión (obligatorio)
 
@@ -36,6 +37,7 @@ Backend `pytest -q`. Frontend `npx tsc --noEmit`, `npm run lint`, `npm run test:
 
 - Rama de feature, commits descriptivos, **PR en draft**, merge con **squash**, **no `git add -A`**.
 - Secuencia acordada con Julieta (no repreguntar): **CI y Security en verde (corrida real) → captura claro y oscuro si hay UI → "sí" de Julieta → squash merge y avisar qué quedó en producción.** Nunca mergear en rojo ni tocar el pipeline para que dé verde.
+- **Permiso permanente (Julieta, 2026-11-13):** un arreglo con CI y Security en verde, **revisión independiente aprobada** y **prueba en la app** (entorno local, [`tools/e2e-local`](./tools/e2e-local/README.md)) se mergea sin esperar el "sí" y se le avisa después, con capturas si toca pantalla. **Se pregunta antes** si toca textos legales, precios o planes, datos de producción, o cambia una regla del producto (quién ve o recibe qué, penalidades, plazos); ante la duda, se pregunta.
 
 ## No hacer
 
@@ -52,6 +54,7 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 | Necesito… | Archivo |
 |---|---|
 | Qué está abierto / qué sigue | `docs/STATUS.md` |
+| Salida a beta: qué está hecho, en curso y pendiente | `docs/planning/BETA_TABLERO.md` |
 | La marca hoy (paleta, tipografía, filete, isotipo) | `docs/design-system/marca-hoy.md` |
 | Ubicar pantalla o pieza de código | `docs/reference/MAPA_DEL_CODIGO.md` |
 | Funcionalidades vigentes y contexto de producto | `docs/reference/QUE_EXISTE_HOY.md` |
@@ -61,6 +64,6 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 | Bugs ya resueltos / deuda vigente | `docs/BUGS.md` · `docs/TECH_DEBT.md` |
 | Bitácora de cambios (solo escribir) | `docs/historial/` |
 
-## EKP (repo hermano `julietaarrazate/ekp`, capa L5 = este repo)
+## EKP (repo hermano `julietaarrazate/ekp`)
 
-Durante el trabajo es de **solo lectura** y solo para decisiones grandes (`engines/decision-engine.md`, `domains/design|ux/`, `engines/review-engine.md`); para un bug o feature normal alcanza `docs/`. Antes de cerrar, si hubo fricción que se va a repetir (regla no escrita, trampa de un endpoint, pedido malinterpretado), se archiva **por qué fue posible** como *cycle* al final de `evolution/INTAKE.md` de EKP (append, nunca editar lo anterior) más su línea en `tasks/BACKLOG.md`, en un PR aparte (`add_repo` + clonar). Si el trabajo *es* EKP, abrir la sesión allá.
+Es de **solo lectura** y solo para decisiones grandes (`engines/decision-engine.md`, `domains/design|ux/`, `engines/review-engine.md`); para un bug o feature normal alcanza `docs/`. **No se escribe en EKP al cerrar una sesión de Oído** (decisión de Julieta, 2026-11-13): la fricción que se va a repetir se deja en este repo, como receta en `docs/reference/SESION_CLOUD.md` o como ítem del tablero o de `docs/STATUS.md`. Si el trabajo *es* EKP, abrir la sesión allá.

@@ -1,4 +1,11 @@
+import { api } from "@/lib/api";
 import type { WorkerProfile } from "@/lib/types";
+
+/** Mail de la cuenta invitada del trabajador (`GUEST_ACCOUNTS` en
+ *  `backend/app/modules/identity/application/services.py`). Se decide por la
+ *  cuenta y no por la URL: una cuenta real nunca tiene que perder su perfil.
+ *  `lib/worker-profile.test.ts` verifica que siga igual al del backend. */
+export const GUEST_WORKER_EMAIL = "invitado.trabajador@oido.beta";
 
 /**
  * Campos editables del perfil del trabajador, tal como los espera
@@ -30,10 +37,10 @@ export interface WorkerProfileInput {
  * encima.
  *
  * Existe para que el "reemplaza, no parchea" de arriba deje de ser una trampa:
- * hay dos lugares que guardan el perfil (el formulario completo y el avatar
- * del hero, que sube la foto sola), y sin esto cada uno arma su propio payload
- * a mano. El día que se agregue un campo editable, el que se olvide de sumarlo
- * lo borraría en silencio cada vez que guarde. Acá se agrega una vez.
+ * el día que se agregue un campo editable, un payload armado a mano que se
+ * olvide de sumarlo lo borraría en silencio cada vez que guarde. Acá se
+ * agrega una vez. Para guardar una parte del perfil desde una pantalla, usar
+ * `saveProfilePart` (que además lee el perfil fresco del servidor).
  */
 export function toWorkerProfileInput(
   profile: WorkerProfile,
@@ -55,4 +62,31 @@ export function toWorkerProfileInput(
     is_available: profile.is_available,
     ...changes,
   };
+}
+
+/**
+ * Guarda UNA parte del perfil sin pisar el resto.
+ *
+ * Lee el perfil del servidor justo antes de escribir y manda el perfil
+ * completo con `changes` encima. No se usa la copia que la pantalla cargó al
+ * montarse: puede estar vieja (la persona guardó otra cosa en otra pestaña o
+ * dispositivo, o la pantalla se pintó desde caché y todavía se está
+ * actualizando) y mandarla deshace esos cambios en silencio.
+ *
+ * Devuelve lo que respondió el servidor: la pantalla se queda con eso.
+ *
+ * Límite conocido: entre el GET y el PUT hay una ventana de milisegundos en
+ * la que otro guardado se puede perder. El arreglo de fondo es un guardado
+ * parcial en el backend (ver `docs/historial/2026-11-12-perfil-guardado-parcial.md`).
+ */
+export async function saveProfilePart(
+  token: string | null,
+  changes: Partial<WorkerProfileInput>
+): Promise<WorkerProfile> {
+  const current = await api.get<WorkerProfile>("/workers/me/profile", token);
+  return api.put<WorkerProfile>(
+    "/workers/me/profile",
+    toWorkerProfileInput(current, changes),
+    token
+  );
 }

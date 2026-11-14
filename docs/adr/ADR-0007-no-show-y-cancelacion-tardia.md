@@ -149,3 +149,7 @@ al recorrer el flujo (ver `STATUS.md`/reporte del batch).
 - ⚠️ Mismo aviso que ADR-0004: código que asuma que `CONFIRMADO`/`EN_CAMINO`
   sólo avanzan hacia adelante debe considerar también el retroceso a
   `BUSCANDO_PERSONAL` por no-show (además de por `worker_cancel`/`reject`).
+
+## Actualización 2026-11-13 (#550)
+
+El no-show manual sólo se puede marcar desde 15 minutos después del inicio del turno (`Shift.no_show()`); antes responde 400 con la hora en que se habilita. La ausencia automática (ADR-0008) no cambia. Consecuencia: un turno reabierto por ausencia siempre ya empezó, así que no vuelve al feed (ADR-0015); re-ofrecerlo es una decisión pendiente (hallazgo U080).

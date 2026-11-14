@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
-import { toWorkerProfileInput } from "@/lib/worker-profile";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerEarnings, WorkerProfile } from "@/lib/types";
 import {
   BADGE_ICONS,
   BADGE_LABELS,
   formatRating,
+  hasRating,
   levelLabel,
   levelMeta,
 } from "@/lib/reputation";
@@ -81,6 +82,7 @@ export default function WorkerGameCard() {
   const [earnings, setEarnings] = useState<WorkerEarnings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -100,17 +102,20 @@ export default function WorkerGameCard() {
   }, [token]);
 
   async function savePhoto(url: string) {
-    if (!token || !profile) return;
-    // Payload COMPLETO con la foto nueva: el endpoint reemplaza el perfil, no
-    // lo parchea, así que mandar sólo `photo_url` borraría skills, bio, CV y
-    // disponibilidad. `toWorkerProfileInput` es el único lugar donde vive ese
-    // mapeo, compartido con el formulario.
-    const saved = await api.put<WorkerProfile>(
-      "/workers/me/profile",
-      toWorkerProfileInput(profile, { photo_url: url }),
-      token
-    );
-    setProfile(saved);
+    if (!token) return;
+    // El endpoint reemplaza el perfil, no lo parchea. `saveProfilePart` lee el
+    // perfil del servidor justo antes de escribir (la copia de esta pantalla
+    // puede estar vieja si la persona guardó otra cosa en otra pestaña) y
+    // manda todo con la foto nueva encima.
+    setPhotoError(null);
+    try {
+      const saved = await saveProfilePart(token, { photo_url: url });
+      setProfile(saved);
+    } catch {
+      // `ImageUpload` no espera este guardado: sin aviso, la foto subida
+      // quedaba sin guardar y la persona no se enteraba.
+      setPhotoError("No pudimos guardar tu foto. Probá de nuevo.");
+    }
   }
 
   if (loading) return <Skeleton className="h-72 w-full rounded-[var(--radius-card)]" />;
@@ -153,14 +158,21 @@ export default function WorkerGameCard() {
           onChange={savePhoto}
           fallbackLabel={user?.full_name ?? "Vos"}
         />
+        {photoError && (
+          <p role="alert" className="mt-2 text-xs font-semibold text-danger-text">
+            {photoError}
+          </p>
+        )}
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-on-brand/10 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
-          <StarIcon size={16} filled className="text-rating" />
-          {formatRating(profile.rating)}
-        </div>
+        {hasRating(profile.rating) && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
+            <StarIcon size={16} filled className="text-rating" />
+            {formatRating(profile.rating)}
+          </div>
+        )}
       </div>
 
       {/* Ganancias (pedido de Julieta: "un resumen de ganancias acumuladas

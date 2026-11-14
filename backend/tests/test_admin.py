@@ -16,6 +16,7 @@ from app.modules.subscription.infrastructure.fake_billing_gateway import (
     FakeBillingGateway,
 )
 from app.modules.subscription.infrastructure.models import SubscriptionModel
+from tests._turno_empezado import empezar_turno
 from tests.conftest import (
     TEST_GUEST_PIN,
     auth_headers,
@@ -264,6 +265,7 @@ async def test_admin_stats_shift_completion_rate_differs_from_assignment_rate(
         json={"worker_profile_id": profile_a.json()["id"]},
     )
     await client.post(f"/api/v1/shifts/{shift_a_id}/confirm", headers=worker_a)
+    await empezar_turno(session_factory, shift_a_id)
     await client.post(f"/api/v1/shifts/{shift_a_id}/no-show", headers=employer)
     await client.post(f"/api/v1/shifts/{shift_a_id}/cancel", headers=employer)
 
@@ -397,6 +399,7 @@ async def test_admin_stats_no_show_rate_and_worker_completion_repeat_rate(
         json={"worker_profile_id": ns_profile_id},
     )
     await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=ns_worker)
+    await empezar_turno(session_factory, shift_id)
     await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)
 
     stats = await client.get("/api/v1/admin/stats", headers=admin)
@@ -629,7 +632,7 @@ async def test_subscription_stats_reports_billing_enabled_when_gateway_is_active
 async def test_subscription_stats_detects_companies_at_plan_limit(client, session_factory):
     """Plan inicial: tope 5 turnos/mes (`plans.py`). Publicar 5 alcanza el
     tope aunque `subscriptions_enforced` esté OFF (el uso se registra
-    igual, ver `ShiftService._consume_publication_slot`)."""
+    igual, ver `ShiftService._register_publication`)."""
     admin = await _make_admin(client, session_factory, "admin_sub3@test.com")
     at_limit_employer = await _employer_with_company(client, "emp_sub_limit@test.com")
     under_limit_employer = await _employer_with_company(client, "emp_sub_under@test.com")

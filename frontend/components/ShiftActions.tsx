@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
@@ -15,24 +15,41 @@ import type { Shift } from "@/lib/types";
  * tenía que deducir cuál correspondía a esta altura del ciclo. Acá se muestra
  * en qué anda el turno + LA acción que le toca al comercio ahora (si le toca
  * alguna), y todo lo demás queda detrás de "Más".
+ *
+ * Esa acción ocupa siempre el mismo lugar y cambia con el estado («Cerrar
+ * turno» pasa a ser «Marcar como pagado»). Por eso los botones se apagan con
+ * `locked` (la guarda de `lib/use-tap-guard.ts`: una acción en curso o la
+ * lista recién redibujada) y no sólo mientras carga el propio.
  */
 
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
-const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado"];
+// ...y recién desde 15 minutos después del inicio (la tolerancia de la
+// puntualidad): antes, el trabajador todavía puede llegar. El servidor aplica
+// la misma regla (`Shift.no_show`); esto sólo evita ofrecer la opción antes.
+const NO_SHOW_AFTER_START_MS = 15 * 60_000;
+const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado", "no_cubierto"];
 
 export default function ShiftActions({
   shift,
   busy,
+  locked,
   onRun,
+  onMarkPaid,
   onNoShow,
   onCancel,
 }: {
   shift: Shift;
+  /** Qué botón muestra el indicador de carga (`<id>:<acción>`). */
   busy: string | null;
-  /** `candidates` no pasa por acá: es un Link, no una mutación. */
-  onRun: (id: string, action: Exclude<PrimaryAction, "candidates"> | "cancel") => void;
+  /** Hay una acción en curso o la lista se acaba de redibujar (`useTapGuard`):
+   *  ningún botón de acción de la tarjeta acepta toques. */
+  locked: boolean;
+  /** `candidates` no pasa por acá (es un Link, no una mutación) y `markPaid`
+   *  tampoco: no se puede deshacer, así que primero pide confirmación. */
+  onRun: (id: string, action: Exclude<PrimaryAction, "candidates" | "markPaid"> | "cancel") => void;
+  onMarkPaid: () => void;
   onNoShow: () => void;
   onCancel: () => void;
 }) {
@@ -40,7 +57,16 @@ export default function ShiftActions({
   const step = nextStepFor(shift);
 
   const canCancel = !CANCELLABLE_EXCLUDED.includes(shift.status);
-  const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status);
+  // La hora corre mientras la tarjeta está abierta: se relee cada medio
+  // minuto para que la opción aparezca sola a los 15 minutos del inicio.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const canNoShow =
+    NO_SHOW_ELIGIBLE.includes(shift.status) &&
+    now >= new Date(shift.start_at).getTime() + NO_SHOW_AFTER_START_MS;
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
 
   return (
@@ -67,10 +93,12 @@ export default function ShiftActions({
             size="sm"
             fullWidth
             onClick={() =>
-              onRun(shift.id, step.action as Exclude<PrimaryAction, "candidates">)
+              step.action === "markPaid"
+                ? onMarkPaid()
+                : onRun(shift.id, step.action as Exclude<PrimaryAction, "candidates" | "markPaid">)
             }
             loading={busy === `${shift.id}:${step.action}`}
-            disabled={busy !== null}
+            disabled={locked}
           >
             {step.actionLabel}
           </Button>
@@ -122,6 +150,7 @@ export default function ShiftActions({
           </MenuLink>
           {canNoShow && (
             <MenuButton
+              disabled={locked}
               onClick={() => {
                 setMenuOpen(false);
                 onNoShow();
@@ -133,7 +162,7 @@ export default function ShiftActions({
           {canCancel && (
             <MenuButton
               danger
-              disabled={busy !== null}
+              disabled={locked}
               onClick={() => {
                 setMenuOpen(false);
                 onCancel();

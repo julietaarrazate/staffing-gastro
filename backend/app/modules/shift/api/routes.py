@@ -1,5 +1,6 @@
 """Rutas HTTP del módulo shift (publicación y ciclo de vida del turno)."""
 
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -24,6 +25,7 @@ from app.modules.identity.api.dependencies import (
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
 from app.modules.shift.api.dependencies import (
+    FeedOriginDep,
     get_my_company_id,
     get_my_worker_profile_id,
     get_my_worker_skills,
@@ -33,6 +35,7 @@ from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
     EventInput,
     EventResponse,
+    FeedScope,
     GeoCheckRequest,
     ParsedShiftDraftResponse,
     ParseShiftTextRequest,
@@ -54,7 +57,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
     WorkerTooFarFromShiftError,
 )
-from app.modules.shift.domain.value_objects import OPEN_STATUSES, ShiftStatus
+from app.modules.shift.domain.value_objects import OPEN_STATUSES
 from app.modules.subscription.domain.exceptions import PublishingNotAllowedError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -183,6 +186,17 @@ def _not_found() -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno no encontrado")
 
 
+def _no_longer_available() -> HTTPException:
+    """«Ya no disponible» de la página pública: el turno fue público y dejó de
+    estar abierto. `no-cache` explícito: un 410 se puede guardar por defecto
+    en cachés intermedias, y un turno asignado puede volver a abrirse."""
+    return HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Este turno ya no está disponible",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
 @router.post(
     "",
     response_model=ShiftResponse,
@@ -260,6 +274,9 @@ async def feed(
     verification: VerificationDep,
     _current_user: AuthUserDep,
     my_skills: Annotated[list[WorkerSkill] | None, Depends(get_my_worker_skills)],
+    # Desde dónde se mide «cerca»: la zona del perfil, o el punto de búsqueda
+    # (`latitude`/`longitude` en la query). Ver `get_feed_origin`.
+    origin: FeedOriginDep,
     city: Annotated[str | None, Query()] = None,
     position: Annotated[WorkerSkill | None, Query()] = None,
     # Varios puestos a la vez (asistente de IA del trabajador: "turno de
@@ -268,6 +285,9 @@ async def feed(
     # explícito. `position` (uno solo) sigue ganando si se manda junto.
     positions: Annotated[list[WorkerSkill] | None, Query()] = None,
     urgent: Annotated[bool | None, Query()] = None,
+    # «Cerca» es cerca: por defecto sólo se devuelve lo que queda dentro del
+    # radio (el Inicio y el Mapa). Buscar pide `scope=all` para ver todo.
+    scope: Annotated[FeedScope, Query()] = FeedScope.NEARBY,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
@@ -284,6 +304,8 @@ async def feed(
         urgent=urgent,
         limit=limit,
         offset=offset,
+        origin=origin,
+        nearby_only=scope is FeedScope.NEARBY,
     )
     responses = await _with_company_info(shifts, companies, verification)
     responses = await _with_pay_band(shifts, responses, service)
@@ -425,7 +447,8 @@ async def get_shift(
         return response
     if shift.status not in OPEN_STATUSES:
         # No-disclosure: un turno ajeno que ya no está abierto no existe
-        # para quien no es parte (mismo criterio que `/public`).
+        # para quien no es parte. (`/public` contesta 410 «ya no disponible»
+        # en ese caso; acá sigue siendo 404.)
         raise _not_found()
     return without_worker_data(response)
 
@@ -433,26 +456,43 @@ async def get_shift(
 @router.get(
     "/{shift_id}/public",
     response_model=ShiftPublicResponse,
-    summary="Ver un turno publicado sin autenticación (para compartir por WhatsApp/redes)",
+    summary="Ver un turno abierto sin autenticación (para compartir por WhatsApp/redes)",
+    responses={
+        404: {"description": "El turno no existe o nunca fue público"},
+        410: {"description": "Fue público y ya no está abierto a postulaciones"},
+    },
 )
 async def get_shift_public(
     shift_id: UUID, service: ServiceDep, companies: CompaniesDep, response: Response
 ):
-    """Sin auth. Sólo turnos en estado PUBLICADO; cualquier otro estado (o id
-    inexistente) devuelve 404 para no filtrar la existencia/estado interno del
-    turno. Expone únicamente campos seguros (ver `ShiftPublicResponse`): nada
+    """Sin auth. Tres respuestas:
+
+    - **200** mientras el turno está abierto a postulaciones: PUBLICADO o
+      BUSCANDO_PERSONAL (`OPEN_STATUSES`) y con la hora de inicio por delante.
+      Es lo mismo que ofrece el Inicio. Hasta el 2026-11-12 sólo respondía en
+      PUBLICADO, y un turno reabierto (la persona asignada lo rechazó, se bajó
+      o no se presentó) aparecía en el Inicio pero su página no abría.
+    - **410** «ya no disponible» si fue público y ya no está abierto (tomado,
+      cancelado, no cubierto o con la hora pasada). Sólo el mensaje: ningún
+      dato del turno, del comercio ni de las personas.
+    - **404** si nunca fue público (un borrador) o el id no existe, para no
+      revelar nada de un turno que nadie tenía por qué conocer.
+
+    El 200 expone únicamente campos seguros (ver `ShiftPublicResponse`): nada
     de contacto del comercio, postulantes, ni ids internos más allá del
     propio turno."""
     try:
         shift = await service.get_shift(shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
-    if shift.status != ShiftStatus.PUBLICADO:
+    if not shift.was_published:
         raise _not_found()
+    if not shift.is_open_for_applications(datetime.now(timezone.utc)):
+        raise _no_longer_available()
     company = await companies.get_by_id(shift.company_id)
     # Sin caché en el navegador ni en cachés intermedias (2026-10-23): un
     # turno publicado se puede cubrir en minutos y desde ahí tiene que dar
-    # 404; una copia vieja mostraría como abierto un turno ya tomado. La
+    # 410; una copia vieja mostraría como abierto un turno ya tomado. La
     # página que se comparte ya tiene su caché corta en el borde, que sabe
     # renovarse y borrar la copia cuando el turno deja de dar 200
     # (`frontend/cloudflare/turno-cache.mjs`).

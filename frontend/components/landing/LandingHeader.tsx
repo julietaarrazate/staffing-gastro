@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
-import Filete from "./Filete";
 import { useHeroAtras } from "./useHeroAtras";
 
 /**
@@ -39,11 +38,15 @@ export default function LandingHeader({ heroCtaId }: { heroCtaId: string }) {
       )}
     >
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
-        {/* La marca es una sola (2026-10-19): el "oído" fileteado de la
-            miniatura y del final, acá sin adornos. El isotipo queda como
-            ícono de la app (pantalla de inicio, pestaña del navegador). */}
+        {/* La marca es una sola (2026-10-19): la letra del "oído" fileteado.
+            Desde el 2026-11-13 acá va plana, en azul hondo: con el relieve y
+            el dorado chocaba con el resto de la página, que es lisa. El
+            fileteado completo queda una sola vez, al cierre. El isotipo sigue
+            como ícono de la app (pantalla de inicio, pestaña del navegador). */}
         <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center">
-          <Filete palabra="oído" tam="marca" className="h-10 w-auto sm:h-12" />
+          <span aria-hidden className="landing-marca">
+            oído
+          </span>
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-1 text-sm font-semibold">
           <Link

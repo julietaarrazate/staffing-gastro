@@ -20,6 +20,11 @@ class NotificationType(str, Enum):
     # tardía del comercio.
     SHIFT_NO_SHOW = "shift_no_show"
     SHIFT_CANCELLED_LATE = "shift_cancelled_late"
+    # El comercio canceló un turno sin nadie comprometido todavía (T3e): al
+    # asignado que no había confirmado, y a cada persona con la postulación
+    # pendiente. No es cancelación tardía: no le cuesta nada al comercio.
+    SHIFT_CANCELLED = "shift_cancelled"
+    APPLIED_SHIFT_CANCELLED = "applied_shift_cancelled"
     # ADR-0015: el sistema resolvió solo un turno cuyo período de gracia se
     # agotó sin llegar a CONFIRMADO. Distinto de SHIFT_NO_SHOW/CANCELLED_LATE
     # a propósito: ninguno de esos dos es la causa, no hay culpa que avisar.
@@ -69,11 +74,17 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_PAID: "/my-shifts",
     NotificationType.SHIFT_NO_SHOW: "/my-shifts",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
+    # El turno cancelado sigue en «Asignados», con su sello de cancelado.
+    NotificationType.SHIFT_CANCELLED: "/my-shifts",
     NotificationType.CHECKIN_REMINDER: "/my-shifts",
     NotificationType.DEPARTURE_REMINDER: "/my-shifts",
-    # Turno todavía no suyo: va al feed, donde puede verlo y postularse.
+    # Turno todavía no suyo. Los avisos nuevos traen su `link` a /turno/<id>;
+    # este destino es el de respaldo (avisos viejos sin link): el Inicio.
     NotificationType.NEW_SHIFT_NEARBY: "/feed",
     NotificationType.URGENT_SHIFT_NEARBY: "/feed",
+    # La postulación a un turno cancelado ya no figura en ninguna lista suya:
+    # lo útil es el Inicio, con los otros turnos a los que puede postularse.
+    NotificationType.APPLIED_SHIFT_CANCELLED: "/feed",
     # Comercio
     NotificationType.NEW_APPLICANT: "/shifts",
     NotificationType.SHIFT_CONFIRMED: "/shifts",

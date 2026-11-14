@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
-from app.core.geo import haversine_km
+from app.core.geo import bounding_box, haversine_km
 from app.core.tz import ARG_TZ, format_turno_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.value_objects import ApplicationStatus
@@ -16,6 +16,7 @@ from app.modules.identity.domain.repositories import UserRepository
 from app.modules.matching.domain.entities import ShiftRequirement
 from app.modules.matching.domain.repositories import CandidateRepository
 from app.modules.matching.domain.scoring import DEFAULT_MAX_RADIUS_KM, rank_candidates
+from app.modules.matching.domain.value_objects import ESCALATION_RADIUS_KM
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import render_shift_accepted_email_html
 from app.modules.notification.domain.entities import Notification
@@ -23,6 +24,7 @@ from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.application.scheduler_signal import notify_scheduler
+from app.modules.shift.application.zones import locals_of_unplaced, measuring_zone
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.pay_benchmark import (
     BENCHMARK_WINDOW_DAYS,
@@ -36,9 +38,12 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
+from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
+from app.modules.shift.domain.punctuality import arrived_on_time
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
 from app.core.config import settings
+from app.modules.subscription.domain.entities import Subscription
 from app.modules.subscription.domain.exceptions import (
     PublishingNotAllowedError,
     SubscriptionNotActiveError,
@@ -51,10 +56,6 @@ from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
 
-
-# R2.4: tolerancia para considerar "puntual" un check-in respecto del
-# horario pactado (start_at). Ver docs/reference/REPUTATION.md.
-PUNCTUALITY_TOLERANCE = timedelta(minutes=15)
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
 # respecto del fin del turno (end_at). No hay un plazo de pago pactado en el
@@ -99,6 +100,16 @@ ESCALATION_DELAY = timedelta(minutes=8)
 # check-in/confirmación demorados.
 NOT_COVERED_GRACE_URGENT = timedelta(minutes=30)
 NOT_COVERED_GRACE_NORMAL = NO_SHOW_GRACE_PERIOD
+
+# Hasta dónde llega «cerca» en el feed del trabajador (Inicio y Mapa): el
+# mismo círculo máximo al que puede llegar un aviso de ese turno, el de la
+# escalada. Midiendo desde la zona del perfil, la lista y el aviso no se
+# contradicen: lo que te pueden avisar lo ves, y lo que ves te lo podrían
+# avisar. La excepción es «Disponible ahora»: mientras está prendido el
+# aviso mide desde esa posición (ADR-0014) y el feed sigue midiendo desde la
+# zona del perfil, así que puede llegar un aviso de un turno que el Inicio no
+# lista (se abre igual: el aviso lleva al turno). Ver `get_feed_origin`.
+FEED_RADIUS_KM = ESCALATION_RADIUS_KM
 
 
 class ShiftService:
@@ -176,8 +187,8 @@ class ShiftService:
         (quantity=1, ADR-0003 intacto), todos comparten un `event_id` nuevo
         para poder verse agrupados/con su progreso de cobertura después. Cada
         turno consume su propio cupo del plan igual que si se hubiera
-        publicado uno por uno (misma lógica de `_consume_publication_slot`,
-        sin descuento por venir en tanda) — si el plan se queda sin cupo a
+        publicado uno por uno (pasa por `publish_shift`, sin descuento por
+        venir en tanda) — si el plan se queda sin cupo a
         mitad de camino, la publicación queda PARCIAL: se devuelven los que sí
         se pudieron publicar y `requested` para que el caller sepa cuántos
         faltaron."""
@@ -249,9 +260,15 @@ class ShiftService:
 
     async def publish_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         shift = await self._get_owned(company_id, shift_id)
-        await self._consume_publication_slot(company_id)
+        # El plan se consulta antes y se cuenta después: el uso sube recién
+        # cuando el turno quedó guardado como publicado. Antes se sumaba
+        # primero, y como cada repositorio guarda por su cuenta, un intento
+        # que fallaba acá abajo (el turno ya estaba publicado, o lo cambió
+        # otro pedido a la vez) dejaba igual un turno gastado en el plan.
+        await self._ensure_publication_allowed(company_id)
         shift.publish()
         published = await self._shifts.update(shift)
+        await self._register_publication(company_id)
         # Reputación del comercio (`events_published`, docs/reference/REPUTATION.md):
         # antes quedaba en 0 para siempre, sin cálculo automático.
         await self._companies.record_published_shift(company_id)
@@ -274,14 +291,14 @@ class ShiftService:
     NEARBY_NOTIFICATION_LIMIT = 10
 
     # Escalada (`escalate_urgency`): círculo más amplio que la primera tanda
-    # —más candidatos y más radio— a propósito. No hay forma de excluir a
+    # —más candidatos y más radio (`ESCALATION_RADIUS_KM`, 40 km contra 25,
+    # los dos en el dominio de matching)— a propósito. No hay forma de excluir a
     # quienes ya recibieron el primer aviso (`Notification` no tiene
     # `shift_id`, ver `notification/domain/entities.py`), así que puede haber
     # solapamiento; se acepta como costo menor: un recordatorio duplicado
     # para quien lo vio y no se postuló es, si acaso, la señal de urgencia
     # haciendo su trabajo, no un bug.
     ESCALATION_NOTIFICATION_LIMIT = 20
-    ESCALATION_RADIUS_KM = DEFAULT_MAX_RADIUS_KM * 1.6
 
     async def _notify_nearby_workers(
         self,
@@ -295,6 +312,13 @@ class ShiftService:
         """Avisa del turno a los trabajadores mejor rankeados cerca (mismo
         ranking que ve el comercio en "candidatos": cercanía, reputación,
         puntualidad y desempeño).
+
+        «Cerca» es un límite duro: `rank_candidates` deja afuera a quien está
+        más lejos que `max_radius_km` (o, sin distancia que medir, a quien no
+        es de la ciudad del turno). El aviso dice «cerca tuyo»: a alguien de
+        otra provincia no se le manda, tampoco si es favorito. El turno se
+        mide desde su zona o, si no tiene ninguna, desde el local del comercio
+        (`measuring_zone`).
 
         Es el aviso que cierra el circuito del marketplace. Sin él, publicar
         no le avisaba a NADIE: el turno sólo se cubría si algún trabajador
@@ -320,12 +344,21 @@ class ShiftService:
             limit = self.NEARBY_NOTIFICATION_LIMIT
         try:
             available = await self._candidates.list_available(shift.position)
+            zone = await measuring_zone(shift, self._companies)
+            if not zone.is_known:
+                # Ni el turno ni el local dicen dónde es: no hay contra qué
+                # medir y no se le avisa a nadie. Que quede a la vista.
+                logger.warning(
+                    "shift.unplaced",
+                    extra={"shift_id": str(shift.id), "company_id": str(shift.company_id)},
+                )
             ranked_all = rank_candidates(
                 available,
                 ShiftRequirement(
                     position=shift.position,
-                    latitude=shift.latitude,
-                    longitude=shift.longitude,
+                    latitude=zone.latitude,
+                    longitude=zone.longitude,
+                    city=zone.city,
                 ),
                 max_radius_km=max_radius_km,
             )
@@ -337,7 +370,8 @@ class ShiftService:
             # mejores rankeados ni se enteraba. No hay ventana exclusiva para
             # ellos a propósito: demoraría el aviso al resto y va contra los
             # 10 minutos. Siguen pasando por `rank_candidates`, así que un
-            # favorito que no está disponible o no tiene el puesto no recibe
+            # favorito que no está disponible, no tiene el puesto o está
+            # fuera del radio no recibe
             # nada. Es la única forma en que marcar favorito afecta algo: el
             # ranking y la reputación siguen sin leerlo.
             favorite_ids = (
@@ -380,7 +414,10 @@ class ShiftService:
                         type=notification_type,
                         title=title,
                         message=message,
-                        link="/feed",
+                        # Al turno, no al Inicio: con el Inicio abierto un link
+                        # a /feed no hacía nada y el turno no aparecía hasta
+                        # recargar. En /turno/{id} la persona se postula.
+                        link=f"/turno/{shift.id}",
                     )
                     for match in ranked
                 ]
@@ -412,14 +449,32 @@ class ShiftService:
         logger.info("shift.escalated", extra={"shift_id": str(updated.id)})
         await self._notify_nearby_workers(
             updated,
-            max_radius_km=self.ESCALATION_RADIUS_KM,
+            max_radius_km=ESCALATION_RADIUS_KM,
             limit=self.ESCALATION_NOTIFICATION_LIMIT,
             notification_type=NotificationType.URGENT_SHIFT_NEARBY,
             escalation=True,
         )
         return updated
 
-    async def _consume_publication_slot(self, company_id: UUID) -> None:
+    async def _publication_subscription(self, company_id: UUID, now: datetime) -> Subscription:
+        """La suscripción del comercio con la ventana de uso al día. No guarda
+        nada: si la ventana venció, la nueva queda en la entidad y se persiste
+        recién cuando se cuenta una publicación."""
+        # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
+        # prendido + credenciales de Mercado Pago) un comercio nuevo arranca
+        # `pendiente`. Con el cobro apagado arranca `activa` (la beta).
+        subscription = await self._subscriptions.get_or_create(
+            company_id,
+            initial_status=(
+                SubscriptionStatus.PENDIENTE
+                if settings.billing_enforced
+                else SubscriptionStatus.ACTIVA
+            ),
+        )
+        subscription.roll_period_if_expired(now)
+        return subscription
+
+    async def _ensure_publication_allowed(self, company_id: UUID) -> None:
         """Gating de capacidad por plan (ADR-0005 Fase 1): antes de publicar
         se consulta el plan del comercio vía el puerto de dominio de
         `subscription` (`SubscriptionRepository` + config de planes —
@@ -435,26 +490,29 @@ class ShiftService:
         (default OFF): durante la beta temprana se quiere que los comercios
         publiquen libremente para generar liquidez; la mensualidad se enciende
         cuando la operadora decide monetizar (ADR-0005: "beta cerrada = primeros
-        comercios en un escalón pago"). El uso se registra igual estando OFF,
-        para tener el dato cuando se encienda."""
+        comercios en un escalón pago").
+
+        Sólo consulta: el uso lo suma `_register_publication`, después de que
+        la publicación ocurrió."""
         now = datetime.now(timezone.utc)
-        # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
-        # prendido + credenciales de Mercado Pago) publicar pide además un
-        # mes pago vigente; un comercio nuevo arranca `pendiente`. Con el
-        # cobro apagado esto no cambia nada (la beta sigue igual).
-        enforced_billing = settings.billing_enforced
-        subscription = await self._subscriptions.get_or_create(
-            company_id,
-            initial_status=(
-                SubscriptionStatus.PENDIENTE if enforced_billing else SubscriptionStatus.ACTIVA
-            ),
-        )
-        subscription.roll_period_if_expired(now)
+        subscription = await self._publication_subscription(company_id, now)
         plan = get_plan(subscription.plan_code)
-        if enforced_billing:
+        # ADR-0022: con el cobro real exigido publicar pide además un mes
+        # pago vigente. Con el cobro apagado esto no cambia nada.
+        if settings.billing_enforced:
             subscription.ensure_paid(now)
         if settings.subscriptions_enforced:
             subscription.ensure_can_publish(plan)
+
+    async def _register_publication(self, company_id: UUID) -> None:
+        """Suma al uso del plan un turno que YA quedó publicado. Se llama una
+        sola vez por publicación, después de guardar el turno: un intento que
+        no publicó nada no llega hasta acá y no cambia el contador. El uso se
+        registra también con el tope apagado, para tener el dato cuando se
+        encienda."""
+        subscription = await self._publication_subscription(
+            company_id, datetime.now(timezone.utc)
+        )
         subscription.register_publication()
         await self._subscriptions.update(subscription)
 
@@ -472,7 +530,13 @@ class ShiftService:
         Cancelar un turno que todavía no tiene a nadie comprometido (p. ej.
         BORRADOR, PUBLICADO, BUSCANDO_PERSONAL o incluso ASIGNADO sin
         confirmar todavía) no tiene este efecto: el trabajador no llegó a
-        comprometerse."""
+        comprometerse.
+
+        A quién se avisa (T3e, ver `_notify_shift_cancelled`): al asignado,
+        haya confirmado o no, y a cada persona con la postulación pendiente.
+        Primero queda guardado todo lo que cambia (turno, postulaciones,
+        contador del comercio) y recién después salen los avisos, que no
+        pueden hacer fallar una cancelación que ya está hecha."""
         shift = await self._get_owned(company_id, shift_id)
         was_committed = shift.status in COMMITTED_STATUSES
         affected_worker_profile_id = shift.worker_profile_id
@@ -486,19 +550,99 @@ class ShiftService:
                 "was_committed": was_committed,
             },
         )
-        await self._reject_pending_applicants(shift_id)
+        applicant_profile_ids = await self._reject_pending_applicants(shift_id)
         if was_committed and affected_worker_profile_id is not None:
             await self._companies.record_late_cancellation(company_id)
-            await self._notify_worker(
-                affected_worker_profile_id,
-                NotificationType.SHIFT_CANCELLED_LATE,
-                "El comercio canceló tu turno",
-                (
-                    f"\"{updated.title or updated.position.label}\" fue cancelado por "
-                    "el comercio después de que confirmaste tu asistencia."
-                ),
-            )
+        await self._notify_shift_cancelled(
+            updated,
+            assigned_worker_profile_id=affected_worker_profile_id,
+            was_committed=was_committed,
+            applicant_profile_ids=applicant_profile_ids,
+        )
         return updated
+
+    async def _notify_shift_cancelled(
+        self,
+        shift: Shift,
+        *,
+        assigned_worker_profile_id: UUID | None,
+        was_committed: bool,
+        applicant_profile_ids: list[UUID],
+    ) -> None:
+        """Avisos de un turno que el comercio acaba de cancelar: una persona,
+        un aviso.
+
+        - Asignado que ya había confirmado (cancelación tardía, ADR-0007):
+          `SHIFT_CANCELLED_LATE`, como hasta ahora.
+        - Asignado que todavía no había confirmado: `SHIFT_CANCELLED`. Antes
+          no le llegaba nada y el panel del comercio decía «se le avisa».
+        - Cada postulación que estaba pendiente: `APPLIED_SHIFT_CANCELLED`.
+          El texto sólo nombra el turno: ni el motivo ni los demás postulantes.
+
+        Quien había quedado afuera al asignarse el turno (postulación ya
+        rechazada) no recibe nada: su postulación no estaba viva.
+
+        Nunca propaga: el turno ya quedó cancelado y un error acá (la base
+        rechaza el aviso, cae el push) no puede devolverle un 500 al comercio.
+        Los dos avisos fallan por separado, y eso descansa en que el adaptador
+        de avisos deja la sesión usable cuando su escritura falla
+        (`SqlAlchemyNotificationRepository._commit_or_reset`)."""
+        name = shift.title or shift.position.label
+        try:
+            if assigned_worker_profile_id is not None and was_committed:
+                await self._notify_worker(
+                    assigned_worker_profile_id,
+                    NotificationType.SHIFT_CANCELLED_LATE,
+                    "El comercio canceló tu turno",
+                    (
+                        f"\"{name}\" fue cancelado por "
+                        "el comercio después de que confirmaste tu asistencia."
+                    ),
+                )
+            elif assigned_worker_profile_id is not None:
+                await self._notify_worker(
+                    assigned_worker_profile_id,
+                    NotificationType.SHIFT_CANCELLED,
+                    "El comercio canceló el turno",
+                    (
+                        f"\"{name}\" se canceló antes de que confirmaras. "
+                        "Ya no tenés que responder."
+                    ),
+                )
+        except Exception:
+            logger.exception(
+                "Aviso de cancelación al asignado: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
+        try:
+            notices: list[Notification] = []
+            already_notified = {assigned_worker_profile_id}
+            for profile_id in applicant_profile_ids:
+                if profile_id in already_notified:
+                    continue
+                already_notified.add(profile_id)
+                profile = await self._workers.get_by_id(profile_id)
+                if profile is None:
+                    continue
+                notices.append(
+                    Notification(
+                        user_id=profile.user_id,
+                        type=NotificationType.APPLIED_SHIFT_CANCELLED,
+                        title="Se canceló un turno al que te postulaste",
+                        message=(
+                            f"El comercio canceló \"{name}\". Tu postulación "
+                            "quedó sin efecto: mirá otros turnos cerca."
+                        ),
+                    )
+                )
+            await self._notifications.add_many(notices)
+        except Exception:
+            logger.exception(
+                "Aviso de cancelación a postulantes: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
 
     async def mark_no_show(
         self, company_id: UUID, shift_id: UUID, *, _trigger: str = "manual"
@@ -701,7 +845,7 @@ class ShiftService:
             extra={"shift_id": str(shift_id), "worker_profile_id": str(worker_profile_id)},
         )
 
-    async def _reject_pending_applicants(self, shift_id: UUID) -> None:
+    async def _reject_pending_applicants(self, shift_id: UUID) -> list[UUID]:
         """Marca RECHAZADA las postulaciones PENDIENTE que quedan en un turno
         que dejó de estar abierto (se asignó a alguien, o el comercio lo
         canceló): antes quedaban 'pendiente' para siempre (TECH_DEBT P5).
@@ -711,13 +855,18 @@ class ShiftService:
         nunca la toca: sólo caen los NO elegidos. No se notifica al perdedor a
         propósito (evita un mensaje desalentador que además sería erróneo si el
         turno se reabre; la corrección es sólo de estado para que no quede
-        'esperando respuesta' eterno)."""
-        rejected_count = 0
+        'esperando respuesta' eterno).
+
+        Devuelve los perfiles cuya postulación acaba de rechazar: al cancelar
+        el turno sí se les avisa (`_notify_shift_cancelled`), porque un turno
+        cancelado no se reabre."""
+        rejected_profile_ids: list[UUID] = []
         for application in await self._applications.list_by_shift(shift_id):
             if application.status == ApplicationStatus.PENDIENTE:
                 application.reject()
                 await self._applications.update(application)
-                rejected_count += 1
+                rejected_profile_ids.append(application.worker_profile_id)
+        rejected_count = len(rejected_profile_ids)
         if rejected_count:
             # Un solo log agregado (no uno por postulante rechazado): son
             # rechazos automáticos del mismo evento (se cubrió el turno),
@@ -726,6 +875,7 @@ class ShiftService:
                 "application.rejected",
                 extra={"shift_id": str(shift_id), "count": rejected_count},
             )
+        return rejected_profile_ids
 
     async def _restore_rejected_applicants(self, shift_id: UUID) -> None:
         """Vuelve a PENDIENTE las postulaciones que habían quedado RECHAZADA al
@@ -987,7 +1137,7 @@ class ShiftService:
         por check-in y check-out, ver `Shift._transition`) se actualizan las
         métricas de reputación reales del trabajador asignado:
         `events_completed` (+1) y `punctuality_rate` (promedio móvil simple
-        sobre si el check-in ocurrió dentro de la tolerancia del horario
+        sobre si el check-in fue hasta 15 min después del horario
         pactado). Mismo patrón que las notificaciones: el efecto vive dentro
         del caso de uso que cierra el ciclo, no en un job aparte.
         """
@@ -1002,15 +1152,11 @@ class ShiftService:
 
     @staticmethod
     def _was_punctual(shift: Shift) -> bool:
-        """Puntual = check-in dentro de ±15 min del horario pactado (start_at).
+        """Puntual = llegó hasta 15 min después de `start_at` (antes, siempre).
 
-        Normaliza a "naive" antes de comparar: en SQLite (tests) los
-        datetimes vuelven sin tzinfo; en Postgres las columnas `TIMESTAMPTZ`
-        sí lo preservan. Se asume que ambos valores están en UTC.
+        La regla vive en `shift/domain/punctuality.py`.
         """
-        if shift.check_in_at is None:
-            return False
-        return abs(_naive(shift.check_in_at) - _naive(shift.start_at)) <= PUNCTUALITY_TOLERANCE
+        return arrived_on_time(shift.check_in_at, shift.start_at)
 
     @staticmethod
     def _was_paid_on_time(shift: Shift) -> bool:
@@ -1122,15 +1268,59 @@ class ShiftService:
         urgent: bool | None = None,
         limit: int = 50,
         offset: int = 0,
+        origin: FeedOrigin | None = None,
+        nearby_only: bool = False,
     ) -> list[Shift]:
-        return await self._shifts.list_open(
-            city=city,
-            position=position,
-            positions=positions,
-            urgent=urgent,
-            limit=limit,
-            offset=offset,
-        )
+        """Turnos abiertos para el trabajador.
+
+        `origin` es desde dónde se mide «cerca» (la zona de su perfil, o el
+        punto de una búsqueda). `nearby_only` es el feed del Inicio y del
+        Mapa: sólo lo que queda dentro de `FEED_RADIUS_KM`. Sin él es Buscar,
+        la pantalla para mirar otras zonas: se muestra todo, ordenado por
+        distancia cuando hay desde dónde medir.
+
+        Antes esto era siempre "los 50 más nuevos del país, urgentes
+        primero". Como todo turno sin cubrir pasa a urgente a los
+        `ESCALATION_DELAY`, con más de 50 abiertos uno nuevo y cercano quedaba
+        afuera de la página, y en «Cerca tuyo» aparecía uno de otra provincia.
+        """
+        filters = {
+            "city": city,
+            "position": position,
+            "positions": positions,
+            "urgent": urgent,
+        }
+        point = origin.point if origin is not None else None
+
+        if nearby_only and origin is not None and origin.is_known:
+            # Filtro grueso en SQL (caja de coordenadas) y sin cortar la
+            # página todavía; la distancia exacta y el corte van después.
+            # Sin punto (perfil con ciudad pero sin coordenadas) no hay caja:
+            # se traen los abiertos y se compara la ciudad.
+            box = bounding_box(*point, FEED_RADIUS_KM) if point is not None else None
+            candidates = await self._shifts.list_open_unpaged(**filters, box=box)
+            # Los turnos que no dicen dónde son se miden desde el local del
+            # comercio, igual que en el aviso (`zone_of`).
+            locals_ = await locals_of_unplaced(candidates, self._companies)
+            nearby = [
+                s for s in candidates if is_nearby(s, origin, FEED_RADIUS_KM, locals_)
+            ]
+            # El corte de la página es por CERCANÍA y recién adentro van los
+            # urgentes primero. Si el corte también fuera "urgentes primero",
+            # una zona con más urgentes que el tope volvería a dejar afuera al
+            # turno recién publicado de la vuelta, que todavía no es urgente.
+            page = closest_first(nearby, origin, locals_)[offset : offset + limit]
+            return urgent_first(page, origin, locals_)
+
+        if point is not None:
+            page = await self._shifts.list_open(
+                **filters, limit=limit, offset=offset, nearest_to=point
+            )
+            return closest_first(page, origin)
+
+        # Sin desde dónde medir (no es trabajador, o su perfil no tiene zona):
+        # como siempre, urgentes primero y después los más nuevos.
+        return await self._shifts.list_open(**filters, limit=limit, offset=offset)
 
     async def pay_bands(self, shifts: list[Shift]) -> dict[UUID, PayBand]:
         """Banda de pago de cada turno contra la referencia del mercado

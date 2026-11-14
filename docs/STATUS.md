@@ -26,19 +26,10 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
-**Primero — 🔴 Salida a beta en seis etapas** (pedido de Julieta,
-2026-11-11). **Etapa 1, hecha:** prueba de punta a punta sin arreglar nada.
-Quedaron 142 problemas distintos (3 bloqueantes, 79 graves, 60 menores),
-cada uno con captura, pasos y archivo y línea. La lista está en un documento
-privado de Julieta, porque el repo es público y hay hallazgos de privacidad:
-https://claude.ai/artifact/Fg8FYTDexBaVDi49rCZ1Rh (se lee con la herramienta
-de artifacts). **Sigue la etapa 2:** arreglar primero los bloqueantes y
-después los graves, un problema por PR con su test, y al terminar repetir
-los caminos A, B y C con el entorno de `tools/e2e-local/`. No se pasa a la
-etapa 3 con un bloqueante abierto. Además queda, del lado de Julieta, la
-lista de pruebas en un celular real que está en el mismo documento. Detalle
-en
-[`historial/2026-11-11-beta-etapa1-prueba-de-punta-a-punta.md`](./historial/2026-11-11-beta-etapa1-prueba-de-punta-a-punta.md).
+- 🔴 **Salida a beta (en curso, etapa 2: arreglar los graves).** Qué está hecho,
+  qué está en curso, qué falta y qué espera una decisión de Julieta, fila por
+  fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
+  primero que se lee y lo que se edita en cada PR de la beta.
 
 0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
    la ficha de marca, el brand system y el paquete siguen con el filete
