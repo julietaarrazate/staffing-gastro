@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
@@ -135,6 +136,18 @@ export default function WorkerGameCard() {
   // persona que no cuentan (U082/U089). Sólo se ven acá, en el perfil propio:
   // lo que ve un comercio sale de otra pantalla y no cambia.
   const hasStrikes = profile.cancellations > 0 || profile.no_shows > 0;
+  // Si una no corresponde, el camino es Soporte: un toque, no «buscalo en Ajustes».
+  const supportLine = (
+    <p className="px-4 pb-4 text-center text-xs text-ink/60">
+      ¿Alguna no corresponde? Escribinos a{" "}
+      <Link
+        href="/support"
+        className="font-semibold text-primary-text underline underline-offset-2"
+      >
+        Soporte
+      </Link>
+    </p>
+  );
   const absenceTile = (
     <StatTile
       icon={<ClockIcon size={16} />}
@@ -269,6 +282,7 @@ export default function WorkerGameCard() {
             tone="cielo"
           />
         </div>
+        {hasStrikes && <div className="-mt-2">{supportLine}</div>}
 
         {/* Insignias */}
         <div className="px-4 pb-3">
@@ -300,11 +314,12 @@ export default function WorkerGameCard() {
             Tu reputación arranca con tu primer turno.
           </p>
           {hasStrikes && (
-            <div className="grid grid-cols-2 gap-2.5 px-4 pb-4">
+            <div className="grid grid-cols-2 gap-2.5 px-4 pb-3">
               {cancellationTile}
               {absenceTile}
             </div>
           )}
+          {hasStrikes && supportLine}
         </>
       )}
 

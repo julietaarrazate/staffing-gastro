@@ -43,12 +43,15 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
     error, escribinos desde Soporte.»
   - El comercio no recibe un aviso propio de la ausencia (decisión G3). Si tras
     la ausencia el turno termina en «no cubierto» (`shift_not_covered`), su
-    aviso dice la verdad: «La persona confirmada no marcó su llegada a "X" y
-    no se llegó a cubrir con otra. Podés publicarlo de nuevo.» (mismo título,
-    tipo y destinatario). Sin ausencia previa, o si el turno se reasignó
-    después, queda el de siempre: «Se agotó el tiempo para cubrir "X" sin que
-    nadie confirmara. Podés publicarlo de nuevo.» Si tras la ausencia el turno
-    se vuelve a cubrir, no hay texto que corregir.
+    aviso dice la verdad: «"X" quedó sin cubrir: una persona confirmada no se
+    presentó y no se consiguió reemplazo a tiempo. Podés publicarlo de nuevo.»
+    (mismo título, tipo y destinatario). Vale en todos los caminos con ausencia
+    (`no_show_at` no se limpia): sin reemplazo, o con un reemplazo que no
+    confirmó o canceló. Sin ausencia previa queda el de siempre: «Se agotó el
+    tiempo para cubrir "X" sin que nadie confirmara. Podés publicarlo de nuevo.»
+    Si tras la ausencia el turno se vuelve a cubrir, no hay texto que corregir.
+  - En el perfil propio, con al menos una ausencia o cancelación se ve «¿Alguna
+    no corresponde? Escribinos a Soporte» (link a `/support`).
 - **Por usuario:** cada notificación pertenece a un usuario; sólo él la ve.
 - **Entrega en tiempo real:** se empujan por **WebSocket** (`/notifications/ws`);
   si el usuario no está conectado, quedan para consultarse.

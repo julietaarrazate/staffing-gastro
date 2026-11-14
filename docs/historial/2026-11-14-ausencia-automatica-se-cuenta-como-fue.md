@@ -30,11 +30,19 @@ el destino es el perfil, así no hay dos destinos que se contradigan.
 aviso propio de la ausencia, y no se agrega ninguno (cambiaría quién recibe
 qué). Lo que sí se corrige es el de «no cubierto» (`mark_not_covered`, mismo
 título, tipo y destinatario): tras una ausencia decía «sin que nadie
-confirmara», que es falso. Ahora, si el turno tuvo ausencia (`no_show_at`) y
-quedó sin nadie asignado, dice «La persona confirmada no marcó su llegada a
-"X" y no se llegó a cubrir con otra. Podés publicarlo de nuevo.». Si después
-de la ausencia el turno se reasignó y no se confirmó, queda el texto de
-siempre. Tests en `tests/test_shift_not_covered.py`.
+confirmara», que es falso. Ahora, si el turno tuvo ausencia (`no_show_at`),
+dice «"X" quedó sin cubrir: una persona confirmada no se presentó y no se
+consiguió reemplazo a tiempo. Podés publicarlo de nuevo.». La revisión
+independiente mostró que una primera versión («La persona confirmada no marcó
+su llegada…», condicionada a que no hubiera nadie asignado) mentía si A falta,
+B lo reemplaza, confirma y cancela: `no_show_at` no se limpia nunca, así que el
+texto actual es el que vale en todos los caminos con ausencia. Tests en
+`tests/test_shift_not_covered.py` (sin reemplazo, reemplazo sin confirmar,
+reemplazo que canceló).
+
+**Soporte en un toque:** el perfil propio muestra, con al menos una ausencia o
+cancelación, «¿Alguna no corresponde? Escribinos a Soporte» con link a
+`/support` (`WorkerGameCard.tsx`).
 
 **Queda abierto:** que la ausencia automática coincida con el fin de la
 búsqueda va con U080.

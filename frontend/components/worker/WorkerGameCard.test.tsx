@@ -138,4 +138,24 @@ describe("WorkerGameCard: cancelaciones y ausencias en el perfil propio", () => 
     expect(await screen.findByText("Cancelaciones")).toBeInTheDocument();
     expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
   });
+
+  it("con al menos una ausencia o cancelación, ofrece escribir a Soporte en un toque", async () => {
+    conPerfil(perfil({ no_shows: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText(/¿Alguna no corresponde\?/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Soporte" })).toHaveAttribute("href", "/support");
+  });
+
+  it("con turnos hechos y una cancelación, también", async () => {
+    conPerfil(perfil({ events_completed: 3, cancellations: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByRole("link", { name: "Soporte" })).toHaveAttribute("href", "/support");
+  });
+
+  it("sin ausencias ni cancelaciones no aparece", async () => {
+    conPerfil(perfil({ events_completed: 3 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Turnos")).toBeInTheDocument();
+    expect(screen.queryByText(/¿Alguna no corresponde\?/)).not.toBeInTheDocument();
+  });
 });
