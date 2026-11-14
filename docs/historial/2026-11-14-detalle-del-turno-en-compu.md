@@ -1,4 +1,4 @@
-# En compu también se llega al detalle del turno y a Buscar (G18)
+# En compu también se llega al detalle del turno y a Buscar (G18, #579)
 
 **Pedido:** salida a beta, U064 y U104: en escritorio, en Buscar y en el Mapa
 no había cómo abrir `/turno/[id]`; uno se postulaba sin leer la descripción. Y

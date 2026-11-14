@@ -126,7 +126,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G18 |
+| U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | 🔵 PR abierto #579 | G18 |
 | U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | ✅ en `main` | #568 (prueba en la app hecha el 2026-11-14) |
 | U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G20 |
 | U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G21 |
