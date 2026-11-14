@@ -18,7 +18,7 @@ descuidado.
 
 | # | Etapa | Estado |
 |---|---|---|
-| 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba y estado escrito en #527 (🔵 abierto: espera el "sí" y una decisión sobre el aviso de GitGuardian) |
+| 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ⚪ |
 | 4 | Identidad, marca e isotipo | ⚪ (la landing «con convicción» ya está en producción, #543) |
