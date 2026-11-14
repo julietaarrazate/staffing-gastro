@@ -108,9 +108,3 @@ escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
 día argentino. «Ausencias de hoy» lleva a su lista
 (`/admin/en-vivo?filtro=ausencias`). El buscador de Personas encuentra por
 nombre del local.
-
-### G27 · Tickets que se pueden reabrir (U128) — S
-
-`support/application/services.py`: un mensaje del admin en un ticket cerrado
-lo reabre y la persona puede contestar; el admin tiene «Reabrir». La persona
-sigue sin poder reabrirlo por su cuenta (decisión 12).

@@ -115,7 +115,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | 🔵 PR abierto #578 | G12 (el mail de la decisión 9 a los 2 trabajadores sin zona sigue pendiente, es de Julieta) |
+| U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | ✅ en `main` | #578 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | ✅ en `main` | #564 |
 | U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | ✅ en `main` | #575 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G15 |
@@ -140,7 +140,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
 | U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G26 |
-| U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G27 |
+| U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | ✅ en `main` | #576 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 
 ### Lo que salió de las revisiones y no tiene hallazgo propio
 

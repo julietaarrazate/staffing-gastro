@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from app.modules.support.domain.exceptions import TicketClosedError
+from app.modules.support.domain.exceptions import TicketClosedError, TicketNotClosedError
 from app.modules.support.domain.value_objects import TicketCategory, TicketStatus
 
 
@@ -30,6 +30,12 @@ class SupportTicket:
         if self.status == TicketStatus.CERRADO:
             raise TicketClosedError(str(self.id))
         self.status = TicketStatus.CERRADO
+
+    def reopen(self) -> None:
+        """Sólo lo dispara un admin (decisión 12): la persona no reabre sola."""
+        if self.status != TicketStatus.CERRADO:
+            raise TicketNotClosedError(str(self.id))
+        self.status = TicketStatus.ABIERTO
 
 
 @dataclass
