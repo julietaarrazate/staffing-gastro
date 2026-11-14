@@ -1,4 +1,4 @@
-# El evento cuenta y avisa bien (#PR)
+# El evento cuenta y avisa bien (#577)
 
 **Pedido:** G25 de la salida a beta (U083, U086): el contador «N/M cubiertos»
 del evento no bajaba al cancelar y contaba mal, y publicar un evento mandaba
