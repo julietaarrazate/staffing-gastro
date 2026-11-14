@@ -64,16 +64,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
   qué, y que puede volver a postularse si el turno confirmado se cae.
 - Actualizar `docs/foundation/DOMAIN.md` y `NOTIFICATIONS.md`.
 
-### G14 · Fechas y duración del turno (U055, U056, U060) — C
-
-- Dominio (`shift/domain/entities.py`) y formulario con la misma regla: el
-  inicio no puede haber pasado (tolerancia de 5 minutos) y la duración va
-  entre el mínimo y el máximo que se decidan; mensaje al lado del campo.
-- Fin anterior al inicio con la misma fecha: se toma como el día siguiente y
-  se dice («Termina el sábado a las 02:00», `components/ShiftDayHint.tsx`);
-  «Continuar» nunca queda gris sin explicación.
-- El resumen del último paso muestra siempre fecha y horario, también en
-  celular. Duplicar un turno abre en el paso de la fecha, no en el último.
 
 ### G25 · El evento cuenta y avisa bien (U083, U086) — C
 

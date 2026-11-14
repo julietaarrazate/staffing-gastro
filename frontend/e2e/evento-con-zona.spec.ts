@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, enDias } from "./mocks";
 
 /**
  * Publicar para un evento (`/shifts/new-event`) no sale sin zona.
@@ -74,8 +74,8 @@ async function abrirFormulario(page: Page, perfil: Cuerpo | null) {
 async function completarLoDemas(page: Page) {
   await page.getByLabel("Nombre del evento").fill("Boda Martínez");
   const campos = page.locator('input[type="datetime-local"]');
-  await campos.nth(0).fill("2027-03-20T21:00");
-  await campos.nth(1).fill("2027-03-21T04:00");
+  await campos.nth(0).fill(enDias(30, "21:00"));
+  await campos.nth(1).fill(enDias(31, "04:00"));
   await page.getByPlaceholder("15000").fill("30000");
 }
 
