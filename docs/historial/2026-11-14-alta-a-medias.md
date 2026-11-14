@@ -1,4 +1,4 @@
-# G12: el alta que quedó a medias (U034, U035) (#PRN)
+# G12: el alta que quedó a medias (U034, U035) (#578)
 
 **Pedido:** salida a beta, grupo G12 (`docs/planning/BETA_DISENO_GRAVES.md`, decisión 9 del tablero). Si se corta la bienvenida, la cuenta queda sin perfil y nada guiaba a completarlo; el panel del comercio mostraba el error crudo del backend.
 
