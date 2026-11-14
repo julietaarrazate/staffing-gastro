@@ -99,12 +99,12 @@ export default function AdminTodayPage() {
                 action="Ver en vivo"
               />
               <PendingCard
-                href="/admin/en-vivo"
+                href="/admin/en-vivo?filtro=ausencias"
                 icon={<AlertTriangleIcon size={14} />}
                 label="Ausencias de hoy"
                 count={inbox.noShowsToday === null ? null : String(inbox.noShowsToday)}
                 doneLabel="Ninguna"
-                action="Ver turnos en vivo"
+                action="Ver ausencias"
               />
             </>
           ) : (

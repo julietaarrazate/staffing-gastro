@@ -60,6 +60,14 @@ async def test_search_by_name_or_email_case_insensitive(client, session_factory)
     by_email = await client.get("/api/v1/admin/users?q=BODEGON@", headers=p["admin"])
     assert [u["full_name"] for u in by_email.json()] == ["Pepe Bodegón"]
 
+    # Por nombre del local (el dueño figura con su nombre propio).
+    by_company = await client.get("/api/v1/admin/users?q=don%20PEPE", headers=p["admin"])
+    assert [u["email"] for u in by_company.json()] == ["bodegon@staffya.com"]
+
+    # El local se suma al resto de los filtros: un trabajador no aparece.
+    as_worker = await client.get("/api/v1/admin/users?q=don%20pepe&role=worker", headers=p["admin"])
+    assert as_worker.json() == []
+
     # `%` no es comodín: no trae a todos.
     wildcard = await client.get("/api/v1/admin/users?q=%25", headers=p["admin"])
     assert wildcard.json() == []

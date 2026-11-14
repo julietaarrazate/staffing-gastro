@@ -576,6 +576,8 @@ export interface LiveShift {
   minutes_open: number;
   /** Postulaciones no retiradas. */
   applications: number;
+  /** Cuándo se marcó la ausencia (sólo si el turno tuvo una). */
+  no_show_at?: string | null;
 }
 
 export interface LiveShiftsBoard {
@@ -584,6 +586,8 @@ export interface LiveShiftsBoard {
   total: number;
   urgent: number;
   escalated: number;
+  /** Ausencias del día argentino de hoy. */
+  no_shows?: number;
   shifts: LiveShift[];
 }
 

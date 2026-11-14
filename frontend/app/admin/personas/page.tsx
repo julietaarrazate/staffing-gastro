@@ -98,7 +98,7 @@ export default function AdminPeoplePage() {
     <div>
       <AdminHeading
         title="Personas"
-        subtitle="Buscá a alguien por nombre o email y abrí su ficha."
+        subtitle="Buscá a alguien por nombre, email o nombre del local y abrí su ficha."
       />
 
       <label className="mt-5 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
@@ -107,8 +107,8 @@ export default function AdminPeoplePage() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Nombre o email"
-          aria-label="Buscar por nombre o email"
+          placeholder="Nombre, email o local"
+          aria-label="Buscar por nombre, email o nombre del local"
           maxLength={100}
           className="w-full bg-transparent text-sm text-ink placeholder:text-ink/40 focus:outline-none"
         />

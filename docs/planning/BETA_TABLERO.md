@@ -133,17 +133,20 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G22 |
 | U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G23 |
 | U026, U075, U124 | En celular, con un nombre largo la tarjeta de candidato se sale de la pantalla y «Asignar» queda afuera (y 2 más de la misma causa) | ✅ en `main` | #566 (prueba en la app hecha el 2026-11-14) |
-| U083, U086 | El contador del evento «N/M cubiertos» no baja al cancelar y cuenta cancelados y asignados sin confirmar (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G25 |
+| U083, U086 | El contador del evento «N/M cubiertos» no baja al cancelar y cuenta cancelados y asignados sin confirmar (y 1 más de la misma causa) | ✅ en `main` | #577 (revisión independiente y prueba en la app hechas el 2026-11-14; en el arnés las cuentas nuevas no reciben avisos de cercanía, los cubren los tests) |
 
 **Tanda 8**
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G26 |
+| U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | ✅ en `main` | #580 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | ✅ en `main` | #576 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 
 ### Lo que salió de las revisiones y no tiene hallazgo propio
 
+- `POST /shifts/events` no tiene clave de idempotencia: un reintento publica
+  el evento dos veces (G25, #577).
+- En el contador del evento, «no cubierto» sigue sumando al total (G25, #577).
 - El mismo patrón «un error de carga se muestra como lista vacía» en Inicio,
   Buscar, Matches, Mapa y la bandeja del admin.
 - El alta del comercio: reentrar y «Omitir por ahora» pisa el perfil.
@@ -209,6 +212,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   quedan rechazados (raro; salió de la revisión de #572).
 - El detalle de un turno cancelado por la suspensión del comercio dice «El
   comercio canceló este turno.» (el aviso sí es neutro; #572).
+- Admin: la tarjeta «Urgentes sin cubrir» cuenta los urgentes abiertos que
+  empiezan hoy (día argentino), pero la lista a la que lleva
+  (`/admin/en-vivo?filtro=urgentes`) muestra también asignados y de otros
+  días: los números pueden no coincidir (salió de la revisión de #580).
 
 ### Hallazgos nuevos de la prueba en la app (2026-11-14)
 

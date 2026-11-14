@@ -256,14 +256,29 @@ async def run_escalation_check() -> datetime | None:
         now = _naive(datetime.now(timezone.utc))
         shifts = await service.list_shifts_awaiting_escalation()
         next_deadline: datetime | None = None
+        event_shifts: list[Shift] = []
         for shift in shifts:
             if shift.published_at is None:
                 continue
             escalate_at = _naive(shift.published_at) + ESCALATION_DELAY
             if now >= escalate_at:
-                await _act(service.escalate_urgency, shift.id)
+                if shift.event_id is None:
+                    await _act(service.escalate_urgency, shift.id)
+                else:
+                    # Cada puesto sube a urgente, pero el aviso sale una sola
+                    # vez por evento y por persona (U086), al terminar la pasada.
+                    try:
+                        event_shifts.append(
+                            await service.escalate_urgency(shift.id, notify=False)
+                        )
+                    except (ShiftConcurrentModificationError, InvalidShiftTransitionError) as exc:
+                        logger.info(
+                            "scheduler.skipped",
+                            extra={"shift_id": str(shift.id), "reason": type(exc).__name__},
+                        )
             else:
                 next_deadline = _earlier(next_deadline, escalate_at)
+        await service.notify_event_escalation(event_shifts)
         return next_deadline
 
 

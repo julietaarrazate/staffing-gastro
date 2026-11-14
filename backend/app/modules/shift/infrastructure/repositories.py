@@ -558,11 +558,28 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_no_shows(
+        self, *, day_start: datetime, day_end: datetime, limit: int = 200
+    ) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(ShiftModel.no_show_at >= day_start, ShiftModel.no_show_at < day_end)
+            .order_by(ShiftModel.no_show_at.desc())
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def count_today(self, *, day_start: datetime, day_end: datetime) -> ShiftTodayCounts:
+        # "De hoy" = el turno EMPIEZA en el día argentino [day_start, day_end):
+        # un urgente de ayer o de mañana no es de la portada de hoy. Un turno
+        # que cruza la medianoche cuenta en el día en que empieza.
         urgent_open = (
             ShiftModel.status.in_([s.value for s in OPEN_STATUSES])
             & ShiftModel.urgent.is_(True)
             & ShiftModel.published_at.is_not(None)
+            & (ShiftModel.start_at >= day_start)
+            & (ShiftModel.start_at < day_end)
         )
         no_show_today = (ShiftModel.no_show_at >= day_start) & (ShiftModel.no_show_at < day_end)
         stmt = select(

@@ -1391,7 +1391,9 @@ async def test_create_event_con_zona_los_turnos_la_llevan_y_avisa_al_cercano(
         recibidas = await client.get("/api/v1/notifications", headers=headers)
         return [n for n in recibidas.json() if n["type"] == "new_shift_nearby"]
 
-    assert len(await avisos(cercana)) == 2  # uno por turno del evento
+    # Uno solo por evento (U086), que cuenta los dos puestos.
+    cerca = await avisos(cercana)
+    assert [a["title"] for a in cerca] == ["Evento Boda Martínez: 2 puestos cerca tuyo"]
     assert await avisos(lejana) == []
 
 

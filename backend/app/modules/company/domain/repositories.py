@@ -69,6 +69,13 @@ class CompanyProfileRepository(ABC):
         puede hacer la única comprobación que importa."""
 
     @abstractmethod
+    async def user_ids_by_name_search(self, search: str, *, limit: int = 200) -> list[UUID]:
+        """Ids de usuario de los comercios cuyo nombre contiene `search` (sin
+        distinguir mayúsculas; `%` y `_` van literales). Lo usa el buscador de
+        "Personas" del admin: el dueño de un local suele figurar con su nombre
+        propio y no con el del local."""
+
+    @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
 
