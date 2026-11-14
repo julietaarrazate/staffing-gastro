@@ -51,7 +51,7 @@ descuidado.
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 46 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 48 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -106,7 +106,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G8 |
+| U030, U031 | Los errores de validación salen como «Error inesperado» (mail sin dominio, texto corto, cantidad 51, mensaj… (y 1 más de la misma causa) | ✅ en `main` | #571 (prueba en la app hecha el 2026-11-14) |
 | U028, U029 | Mensajes de error con la fecha en formato técnico y tres horas corrida («el turno empieza el 2026-11-13T16:… (y 1 más de la misma causa) | ✅ en `main` | #569 (prueba en la app hecha el 2026-11-14) |
 | U138, U139 | Registrarse cuando la conexión ya llegó al límite de ingresos: la cuenta se crea, la pantalla dice «Demasia… (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G10 |
 | U093 | «Mi plan» con el cobro apagado: «9 de 5 turnos usados», «Alcanzaste el límite», «cambiá por $20.000/mes», a… | ✅ en `main` | #570 (prueba en la app hecha el 2026-11-14) |
@@ -204,6 +204,20 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
+
+### Hallazgos nuevos de la prueba en la app (2026-11-14)
+
+- **Grave: el pago con coma se multiplica por 100.** En publicar (y en el
+  evento), escribir «15000,50» deja el campo en «1500050» y el turno se
+  publica con $1.500.050, sin aviso: el campo es `type="number"` y el
+  navegador descarta la coma. Ya pasaba antes de #571; se vio en su prueba en
+  la app. Falta verificarlo en un celular con teclado en castellano y
+  decidir el arreglo (campo de texto con formato de pesos, o aceptar la coma
+  como decimal).
+- **Menor: la distancia de «Llegué» sale en metros crudos** («estás a 274732
+  metros»): conviene kilómetros arriba de 1000 m (#569).
+- **Menor: en «Editar perfil», «años de experiencia» mayor a 80** frena con el
+  aviso nativo del navegador (en inglés en algunos), no con uno propio.
 
 ### Para revisar con Fable (anotado el 2026-11-14)
 

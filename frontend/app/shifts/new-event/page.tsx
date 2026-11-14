@@ -15,6 +15,7 @@ import { useCompanyPlace } from "@/lib/company-place";
 import ShiftDayHint from "@/components/ShiftDayHint";
 import { Button, TextField, Toggle, useToast } from "@/components/ui";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
+import { LIMITES } from "@/lib/limites";
 
 interface RoleRow {
   key: string;
@@ -229,7 +230,7 @@ function NewEventForm() {
           value={name}
           onChange={setName}
           placeholder="Ej: Boda Martínez"
-          maxLength={200}
+          maxLength={LIMITES.nombreEvento}
         />
 
         {/* Mismo eco que en /shifts/new (ShiftDayHint): el input nativo
@@ -317,7 +318,7 @@ function NewEventForm() {
           value={dressCode}
           onChange={setDressCode}
           placeholder="Ej: camisa negra"
-          maxLength={255}
+          maxLength={LIMITES.codigoVestimenta}
         />
 
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:gap-x-6 lg:gap-y-3">
@@ -373,7 +374,9 @@ function NewEventForm() {
                     <input
                       type="number"
                       inputMode="numeric"
-                      min={1}
+                      min={LIMITES.cantidadRolMin}
+                      max={LIMITES.cantidadRolMax}
+                      step={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
                       className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"

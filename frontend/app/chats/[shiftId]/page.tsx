@@ -12,6 +12,7 @@ import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
 import { Avatar, ErrorBanner, MessageBubble, Skeleton } from "@/components/ui";
 import { useConversation, useConversationsControl } from "../ConversationsContext";
+import { LIMITES } from "@/lib/limites";
 
 /** Eventos que llegan por el socket de la conversación: un mensaje nuevo, o
  *  el aviso de que la otra parte ya leyó lo que le mandamos (confirmación de
@@ -249,6 +250,7 @@ export default function ConversationPage() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Escribí un mensaje..."
+          maxLength={LIMITES.mensajeChat}
           className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink focus:border-primary focus:outline-none"
         />
         <button

@@ -75,6 +75,7 @@ import Logo from "@/components/Logo";
 import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { LIMITES } from "@/lib/limites";
 
 // maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
 // mapa, no con la página (medido 2026-10-22, ver historial).
@@ -368,8 +369,9 @@ function WorkerOnboarding({ next }: { next: string | null }) {
               type="number"
               inputMode="numeric"
               placeholder="0"
-              min={0}
-              max={80}
+              min={LIMITES.aniosExperienciaMin}
+              max={LIMITES.aniosExperienciaMax}
+              step={1}
               value={yearsExperienceInput}
               onChange={(v) => setYearsExperienceInput(v.replace(/[^0-9]/g, "").slice(0, 2))}
             />

@@ -15,7 +15,11 @@ const TONE_STYLES: Record<ToastTone, string> = {
   info: "bg-toast text-toast-ink",
 };
 
-const ToastContext = createContext<((message: string, tone?: ToastTone) => void) | null>(null);
+/** `durationMs`: cuánto queda a la vista (3,2 s si no se dice). Para un
+ * error que la persona tiene que leer con calma y hacer algo afuera de la app
+ * (activar la ubicación en el navegador), más. */
+type ShowToast = (message: string, tone?: ToastTone, durationMs?: number) => void;
+const ToastContext = createContext<ShowToast | null>(null);
 
 /**
  * Provider de toasts/snackbars. Envuelve la app una vez y se usa con
@@ -26,7 +30,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const nextId = useRef(0);
   const reducedMotion = useReducedMotion();
 
-  const show = useCallback((message: string, tone: ToastTone = "success") => {
+  const show = useCallback<ShowToast>((message, tone = "success", durationMs = 3200) => {
     // La sesión venció a mitad de una acción: la pantalla manda el error del
     // pedido al aviso flotante, pero la app ya está yendo al ingreso, que lo
     // dice en su lugar. Sin esto se veían los dos, y el flotante tapaba el
@@ -36,7 +40,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, message, tone }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3200);
+    }, durationMs);
   }, []);
 
   const dismiss = useCallback((id: number) => {
