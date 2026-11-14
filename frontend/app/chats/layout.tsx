@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
@@ -9,7 +9,8 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { Conversation } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MessageIcon } from "@/components/icons";
-import { ConversationsContext } from "./ConversationsContext";
+import { ConversationsContext, ConversationsControlContext } from "./ConversationsContext";
+import { useLiveRefresh } from "@/lib/live-refresh";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -49,20 +50,40 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(() => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    api
-      .get<Conversation[]>("/chats", token)
-      .then(setConversations)
-      .catch((err) => setError(getErrorMessage(err, "Error al cargar tus mensajes")))
-      .finally(() => setLoading(false));
-  }, [token]);
+  // `silent` (recarga por un aviso o por el primer mensaje de una conversación):
+  // sin esqueleto y sin pisar la lista con un error pasajero.
+  const load = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!token) return;
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const data = await api.get<Conversation[]>("/chats", token);
+        setConversations(data);
+        setError(null);
+      } catch (err) {
+        if (!silent) setError(getErrorMessage(err, "Error al cargar tus mensajes"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (G1): un mensaje nuevo (o una conversación nueva)
+  // aparece en la lista sin recargar.
+  useLiveRefresh(load);
+  const reloadSilently = useCallback(() => void load({ silent: true }), [load]);
+  const control = useMemo(
+    () => ({ reload: reloadSilently, ready: !loading }),
+    [reloadSilently, loading]
+  );
 
   const isIndex = pathname === "/chats";
   // Al entrar a una conversación ya se marcó como leída del lado del backend
@@ -92,7 +113,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
               <ConversationRowSkeleton />
             </div>
           )}
-          {!loading && error && <ErrorBanner message={error} onRetry={load} />}
+          {!loading && error && <ErrorBanner message={error} onRetry={() => load()} />}
           {!loading && conversations.length === 0 && !error && (
             <EmptyState
               icon={<MessageIcon size={28} />}
@@ -161,7 +182,9 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
           sabe cuántas conversaciones hay. */}
       <div className={`min-w-0 flex-1 flex-col md:flex ${isIndex ? "hidden" : "flex"}`}>
         <ConversationsContext.Provider value={conversations}>
-          {isIndex && !loading && !error && conversations.length === 0 ? null : children}
+          <ConversationsControlContext.Provider value={control}>
+            {isIndex && !loading && !error && conversations.length === 0 ? null : children}
+          </ConversationsControlContext.Provider>
         </ConversationsContext.Provider>
       </div>
     </div>

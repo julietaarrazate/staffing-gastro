@@ -109,6 +109,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Turnstile (anti-robots en login y registro) | `backend/app/core/turnstile.py` y `frontend/lib/turnstile.ts` |
 | Idempotencia de mutaciones | `backend/app/core/idempotency.py` y `frontend/lib/idempotency.ts` |
 | Guarda contra el toque de más (una acción terminó, la lista se redibujó y quedó otro botón bajo el dedo) | `frontend/lib/use-tap-guard.ts` (`useTapGuard`); hoy la usa el panel del comercio (`app/shifts/page.tsx`, `components/ShiftActions.tsx`) |
+| Pantallas al día con los avisos (la campanita avisa y la pantalla abierta vuelve a pedir lo suyo, en silencio; sin consulta periódica) | `frontend/lib/live-refresh.ts` (`emitLiveRefresh`, `useLiveRefresh(load, { paused })`); emite `components/NotificationBell.tsx`; se suscriben `app/shifts/page.tsx`, `app/shifts/[id]/candidates/page.tsx`, `app/my-shifts/page.tsx`, `components/ShiftDetail.tsx` y `app/chats/layout.tsx` |
 | Mails (textos) y envío | `backend/app/modules/notification/domain/email_templates.py`, `infrastructure/resend_email_sender.py` |
 | Push | `backend/app/modules/notification/infrastructure/webpush_sender.py`, `backend/app/modules/notification/domain/push_policy.py` (vigencia y urgencia por tipo), `frontend/lib/push.ts`; el dispositivo se registra y se da de baja al abrir y cerrar la sesión en `frontend/lib/auth-context.tsx`, con pedidos que no avisan al candado de dos pasos (`backgroundApi` en `frontend/lib/api.ts`) |
 | Gemini (modelo fijado) | `backend/app/core/gemini.py` |

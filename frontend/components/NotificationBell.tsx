@@ -7,6 +7,7 @@ import { notificationHref } from "@/lib/notification-link";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
+import { emitLiveRefresh } from "@/lib/live-refresh";
 import { Notification } from "@/lib/types";
 import { Skeleton } from "@/components/ui";
 
@@ -29,6 +30,9 @@ export default function NotificationBell() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  // La primera apertura del socket coincide con la carga inicial; desde la
+  // segunda es una reconexión (ver `useWebSocket`).
+  const hasOpenedOnce = useRef(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -44,11 +48,29 @@ export default function NotificationBell() {
     load();
   }, [load]);
 
-  useWebSocket<Notification>(token ? "/notifications/ws" : null, token, (notification) => {
-    setNotifications((prev) =>
-      prev.some((n) => n.id === notification.id) ? prev : [notification, ...prev]
-    );
-  });
+  // La campanita es la única que escucha los avisos (está en el `Navbar` del
+  // layout raíz, o sea en toda pantalla con sesión). Cada aviso nuevo y cada
+  // reconexión le avisan a las pantallas abiertas (`lib/live-refresh.ts`) para
+  // que se pongan al día solas (G1, U013).
+  useWebSocket<Notification>(
+    token ? "/notifications/ws" : null,
+    token,
+    (notification) => {
+      setNotifications((prev) =>
+        prev.some((n) => n.id === notification.id) ? prev : [notification, ...prev]
+      );
+      emitLiveRefresh();
+    },
+    () => {
+      if (!hasOpenedOnce.current) {
+        hasOpenedOnce.current = true;
+        return;
+      }
+      // Reconexión: pudo haber pasado algo mientras el socket estaba caído.
+      load();
+      emitLiveRefresh();
+    }
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -70,7 +92,12 @@ export default function NotificationBell() {
   function openNotification(notification: Notification) {
     setOpen(false);
     void markAsRead(notification);
-    router.push(notificationHref(notification));
+    const href = notificationHref(notification);
+    router.push(href);
+    // Si el aviso lleva a la pantalla en la que ya está, `push` no vuelve a
+    // pedir nada y la pantalla se queda con lo de antes (G1, U013/U014). Si
+    // lleva a otra, esa carga sola al abrirse.
+    if (href.split(/[?#]/)[0] === window.location.pathname) emitLiveRefresh();
   }
 
   async function markAsRead(notification: Notification) {

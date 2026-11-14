@@ -7,6 +7,7 @@ import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { cancelConfirmCopy, isCancellable, withFreshState } from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
@@ -267,12 +268,24 @@ function MyShiftsPanel() {
       if (shiftsRef.current.some((s) => mayBeOnTheWay(s, now))) void load({ silent: true });
     };
     const timer = setInterval(refresh, EN_ROUTE_REFRESH_MS);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", refresh);
-    };
+    return () => clearInterval(timer);
   }, [hasConfirmed, load]);
+
+  // Al día con los avisos (G1, U013): el trabajador confirma, se baja o llega y
+  // el panel pasa solo, sin recargar. Al volver a la pestaña también (eso lo
+  // resuelve el hook; antes lo hacía acá el listener de `visibilitychange`).
+  // En pausa mientras hay un diálogo abierto o una acción en curso: la lista no
+  // se mueve debajo de lo que la persona está decidiendo.
+  useLiveRefresh(load, {
+    paused:
+      busy !== null ||
+      tapGuard.locked ||
+      confirmNoShowId !== null ||
+      confirmCancelId !== null ||
+      confirmMarkPaidId !== null ||
+      planLimitMessage !== null ||
+      justPublishedId !== null,
+  });
 
   // Helper único para las acciones de estado del turno: registra qué tarjeta
   // está ocupada (para el indicador de carga), atrapa errores del POST (antes
