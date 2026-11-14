@@ -69,6 +69,9 @@ class SubscriptionOverview:
     billing_enabled: bool
     can_publish: bool
     withdrawal_until: date | None
+    # ¿El tope de turnos del plan se hace cumplir? (`subscriptions_enforced`,
+    # la misma bandera que lee `ShiftService` al publicar.) En la beta es false.
+    limit_enforced: bool = False
 
 
 @dataclass
@@ -129,6 +132,7 @@ class SubscriptionService:
             billing_enabled=billing,
             can_publish=can_publish,
             withdrawal_until=withdrawal_until,
+            limit_enforced=settings.subscriptions_enforced,
         )
 
     @staticmethod

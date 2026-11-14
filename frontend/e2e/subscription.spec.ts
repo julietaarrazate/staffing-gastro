@@ -373,3 +373,91 @@ test("publicar sin plan pago: modal propio con CTA a pagar", async ({ page }) =>
   await expect(page.getByText("Activá tu plan para publicar")).toBeVisible();
   await expect(page.getByRole("button", { name: "Ir a pagar el mes" })).toBeVisible();
 });
+
+const SUB_BASE = {
+  plan_code: "inicial",
+  status: "activa",
+  period_end: "2026-12-01T00:00:00Z",
+  price_ars: 9900,
+  max_turnos_mes: 5,
+  turnos_usados_mes: 9,
+};
+
+test("G11 · con el tope sin exigir (beta): uso sin alarma, línea de la beta y sin oferta", async ({ page }) => {
+  await mockAuthAndSession(page);
+  await mockPlans(page);
+  await page.route("**/api/v1/subscription", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...SUB_BASE, limite_exigido: false }),
+    })
+  );
+
+  await page.goto("/subscription");
+
+  await expect(page.getByText("9 turnos publicados este mes")).toBeVisible();
+  await expect(page.getByText("Durante la beta no hay tope de turnos.", { exact: true })).toBeVisible();
+  await expect(page.getByText("9 de 5 turnos usados")).toHaveCount(0);
+  await expect(page.getByText(/Alcanzaste el límite/)).toHaveCount(0);
+  await expect(page.getByText(/Te quedan/)).toHaveCount(0);
+  // Las tarjetas de planes siguen con su propio botón: el de la oferta por el
+  // tope (el que acompaña al aviso) es el que no tiene que estar.
+  await expect(page.getByText(/Alcanzaste|Te quedan/)).toHaveCount(0);
+});
+
+test("G11 · con el tope exigido: todo como siempre", async ({ page }) => {
+  await mockAuthAndSession(page);
+  await mockPlans(page);
+  await page.route("**/api/v1/subscription", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...SUB_BASE, turnos_usados_mes: 5, limite_exigido: true }),
+    })
+  );
+
+  await page.goto("/subscription");
+
+  await expect(page.getByText("5 de 5 turnos usados")).toBeVisible();
+  await expect(page.getByText(/Alcanzaste el límite/)).toBeVisible();
+  await expect(
+    page.getByText(/Alcanzaste el límite/).locator("xpath=../..").getByRole("button", { name: "Mejorá tu plan" })
+  ).toBeVisible();
+  await expect(page.getByText("Durante la beta no hay tope de turnos.")).toHaveCount(0);
+});
+
+test("G11 · «Pagado hasta» se vuelve a pedir al volver a la pestaña, sin esqueleto", async ({ page }) => {
+  await mockAuthAndSession(page);
+  await mockPlans(page);
+  let pagadoHasta = "2026-12-10T12:00:00Z";
+  await page.route("**/api/v1/subscription", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...SUB_BASE,
+        turnos_usados_mes: 1,
+        billing_enabled: true,
+        paid_until: pagadoHasta,
+        renews: true,
+        can_publish: true,
+        limite_exigido: true,
+      }),
+    })
+  );
+
+  await page.goto("/subscription");
+  await expect(page.getByText(/Pagado hasta el/)).toContainText("10");
+
+  pagadoHasta = "2027-01-09T12:00:00Z";
+  // Volver a la pestaña: la página estuvo oculta y vuelve a verse.
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect(page.getByText(/Pagado hasta el/)).toContainText("9");
+  await expect(page.getByText(/Pagado hasta el/)).toContainText("2027");
+});

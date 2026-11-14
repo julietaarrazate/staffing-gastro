@@ -635,6 +635,9 @@ export interface Subscription {
   renews?: boolean;
   /** Si hoy puede publicar turnos por el plan (pago y vigente). */
   can_publish?: boolean;
+  /** ¿El tope de turnos se hace cumplir? En la beta es false: el uso se
+   * cuenta pero no hay tope (G11). Ausente = como si se exigiera. */
+  limite_exigido?: boolean;
   /** Último día (AAAA-MM-DD, hora argentina) para arrepentirse; null si no aplica. */
   withdrawal_until?: string | null;
 }

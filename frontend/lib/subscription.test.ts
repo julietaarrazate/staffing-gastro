@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatPlainDate, isInactivePlanMessage, paymentReturnMessage } from "@/lib/subscription";
+import {
+  BETA_SIN_TOPE_TEXT,
+  formatPlainDate,
+  isInactivePlanMessage,
+  limiteExigido,
+  paymentReturnMessage,
+  usoSinTopeText,
+} from "@/lib/subscription";
 
 describe("paymentReturnMessage", () => {
   it("tiene un mensaje claro para cada vuelta de Mercado Pago", () => {
@@ -27,5 +34,20 @@ describe("isInactivePlanMessage", () => {
 describe("formatPlainDate", () => {
   it("formatea la fecha sin correrla por zona horaria", () => {
     expect(formatPlainDate("2026-11-01")).toBe("1/11/2026");
+  });
+});
+
+describe("tope de turnos (G11)", () => {
+  it("se exige salvo que el servidor diga false", () => {
+    expect(limiteExigido({ limite_exigido: false })).toBe(false);
+    expect(limiteExigido({ limite_exigido: true })).toBe(true);
+    expect(limiteExigido({})).toBe(true);
+  });
+
+  it("el uso sin tope no parece excedido", () => {
+    expect(usoSinTopeText(9)).toBe("9 turnos publicados este mes");
+    expect(usoSinTopeText(1)).toBe("1 turno publicado este mes");
+    expect(usoSinTopeText(0)).toBe("0 turnos publicados este mes");
+    expect(BETA_SIN_TOPE_TEXT).toBe("Durante la beta no hay tope de turnos.");
   });
 });
