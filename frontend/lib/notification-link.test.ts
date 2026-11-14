@@ -40,4 +40,9 @@ describe("notificationHref", () => {
   it("el turno cancelado al que estaba postulado abre el Inicio", () => {
     expect(notificationHref(aviso({ type: "applied_shift_cancelled" }))).toBe("/feed");
   });
+
+  it("el aviso de ausencia abre el perfil, con o sin link guardado", () => {
+    expect(notificationHref(aviso({ type: "shift_no_show" }))).toBe("/profile");
+    expect(notificationHref(aviso({ type: "shift_no_show", link: "/profile" }))).toBe("/profile");
+  });
 });

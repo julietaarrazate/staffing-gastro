@@ -116,6 +116,37 @@ async def test_marks_no_show_after_grace_period(client, session_factory, monkeyp
     assert any(n["type"] == "shift_no_show" for n in notifications.json())
 
 
+async def test_auto_no_show_tells_the_worker_what_happened_and_nobody_else(
+    client, session_factory, monkeypatch
+):
+    """U082/U089: la ausencia automática se cuenta como fue (nadie la marcó),
+    lleva al perfil y dice cómo reclamar; sólo cambia el texto, no quién la
+    recibe: el comercio sigue sin aviso de este tipo."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift_starting_ago(
+        client,
+        "sched_emp3b@staffya.com",
+        "sched_w3b@staffya.com",
+        ago=NO_SHOW_GRACE_PERIOD + timedelta(minutes=1),
+    )
+
+    await scheduler.run_attendance_check()
+
+    worker_notifs = (await client.get("/api/v1/notifications", headers=worker_headers)).json()
+    avisos = [n for n in worker_notifs if n["type"] == "shift_no_show"]
+    assert len(avisos) == 1
+    assert avisos[0]["title"] == "No registramos tu llegada"
+    assert avisos[0]["message"].startswith("No registramos tu llegada al turno ")
+    assert avisos[0]["message"].endswith(
+        "y quedó como ausencia. Si fue un error, escribinos desde Soporte."
+    )
+    assert "El comercio" not in avisos[0]["message"]
+    assert avisos[0]["link"] == "/profile"
+
+    employer_notifs = (await client.get("/api/v1/notifications", headers=employer_headers)).json()
+    assert not any(n["type"] == "shift_no_show" for n in employer_notifs)
+
+
 async def test_does_not_touch_shift_that_already_checked_in(client, session_factory, monkeypatch):
     monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
     shift_id, _employer_headers, worker_headers = await _confirmed_shift_starting_ago(

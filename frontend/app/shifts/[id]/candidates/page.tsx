@@ -14,6 +14,7 @@ import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/dat
 import { formatPayAmount } from "@/lib/pay";
 import { rankApplicants, standoutApplicant } from "@/lib/applicants";
 import CandidateCard from "@/components/CandidateCard";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
@@ -287,7 +288,7 @@ function ShiftCandidatesContent() {
                       transition={{ duration: 0.3, ease: "easeOut" }}
                       // `.no-select`: fila de chrome (rating, chips), mismo criterio
                       // C0 #2 que ShiftCard/CandidateCard.
-                      className={`no-select relative rounded-[var(--radius-card)] p-4 ${
+                      className={`no-select relative min-w-0 rounded-[var(--radius-card)] p-4 ${
                         top
                           ? "bg-secondary shadow-[var(--shadow-float)]"
                           : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
@@ -306,12 +307,26 @@ function ShiftCandidatesContent() {
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <Link
                               href={`/workers/${a.worker_profile_id}`}
-                              className={`truncate font-semibold ${top ? "text-on-brand" : "text-ink"}`}
+                              className={`min-w-0 truncate font-semibold ${top ? "text-on-brand" : "text-ink"}`}
                             >
                               {a.full_name}
                             </Link>
                             {a.is_available && !top && <Badge tone="secondary">Disponible</Badge>}
                           </div>
+                          {/* Mismo sello que en «Recomendados» (`CandidateCard`). */}
+                          {a.identidad_verificada && (
+                            <>
+                              {/* El texto entero necesita ~150 px de columna: a partir
+                                  de 390 px de pantalla entra junto a «Asignar»; por
+                                  debajo, sólo el escudo (mismo nombre accesible). */}
+                              <span className="hidden min-[390px]:block">
+                                <IdentityVerifiedBadge verified className="mt-1 whitespace-nowrap !px-2 !py-1" />
+                              </span>
+                              <span className="mt-1 block min-[390px]:hidden">
+                                <IdentityVerifiedBadge verified compact className="!px-2 !py-1" />
+                              </span>
+                            </>
+                          )}
                           <CandidateStatChips signals={a} className="mt-1" onDark={top} />
                         </div>
                         <Button

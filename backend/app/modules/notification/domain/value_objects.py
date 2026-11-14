@@ -72,7 +72,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # Trabajador
     NotificationType.SHIFT_ASSIGNED: "/my-shifts",
     NotificationType.SHIFT_PAID: "/my-shifts",
-    NotificationType.SHIFT_NO_SHOW: "/my-shifts",
+    NotificationType.SHIFT_NO_SHOW: "/profile",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
     # El turno cancelado sigue en «Asignados», con su sello de cancelado.
     NotificationType.SHIFT_CANCELLED: "/my-shifts",

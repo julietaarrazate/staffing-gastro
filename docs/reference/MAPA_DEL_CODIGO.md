@@ -118,6 +118,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
 | Documentos de identidad privados (subida firmada `private`, link que vence, borrado al decidir con reintentos, migración de los viejos) | `backend/app/core/cloudinary.py`, `backend/app/modules/verification/infrastructure/evidence_link_signer.py`, `.../infrastructure/evidence_file_storage.py` y `file_cleanup_job.py` (borrado y reintento del scheduler), `backend/scripts/privatize_identity_evidence.py` (ADR-0021) |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
+| Probar la app de punta a punta en local: backend y base reales, terceros simulados, kit de Playwright para dos sesiones a la vez | `tools/e2e-local/` (`README.md`; receta en [`SESION_CLOUD.md`](./SESION_CLOUD.md) §7) |
 
 ## Endpoints por módulo (`/api/v1/…`)
 

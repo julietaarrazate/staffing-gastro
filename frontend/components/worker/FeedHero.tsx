@@ -8,7 +8,8 @@ import { cldThumb } from "@/lib/cloudinary";
 import { formatShiftWhen } from "@/lib/datetime";
 import { formatPayShort } from "@/lib/pay";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
-import { ChevronRightIcon, ClockIcon, FlameIcon, StarIcon, WalletIcon } from "@/components/icons";
+import { ChevronRightIcon, ClockIcon, FlameIcon, ShieldIcon, StarIcon, WalletIcon } from "@/components/icons";
+import { Badge } from "@/components/ui";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 
 /**
@@ -85,6 +86,14 @@ function FeedHero({ shift }: { shift: Shift }) {
         <div className="min-w-0">
           <h2 className={`truncate font-display text-h1 font-medium ${ink.strong}`}>{label}</h2>
           {where && <p className={`mt-0.5 truncate text-sm ${ink.soft}`}>{where}</p>}
+          {/* ADR-0011 / G5: el mismo sello que `ShiftCard` y `OpportunityCard`.
+              El chip trae su propia superficie, así que no depende de la tinta
+              del hero (foto o marca) ni suma un acento. */}
+          {shift.company_verified && (
+            <Badge tone="trust" icon={<ShieldIcon size={11} />} className="mt-1.5 shadow-sm">
+              Comercio verificado
+            </Badge>
+          )}
           <div className={`mt-2 space-y-1 text-caption ${ink.softer}`}>
             <p className="flex items-center gap-1.5">
               <ClockIcon size={14} className={`shrink-0 ${ink.icon}`} />

@@ -40,3 +40,6 @@ class ApplicantResponse(BaseModel):
     years_experience: int = 0
     badges: list[WorkerBadge] = []
     level: GamificationLevel = GamificationLevel.BRONCE
+    # Sello «Identidad verificada» (documento aprobado por un admin), el mismo
+    # que en los recomendados. Se completa en la ruta, por puerto.
+    identidad_verificada: bool = False

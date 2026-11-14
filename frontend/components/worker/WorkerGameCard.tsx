@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
@@ -21,6 +22,7 @@ import {
   AwardIcon,
   BriefcaseIcon,
   CheckCircleIcon,
+  ClockIcon,
   StarIcon,
   WalletIcon,
   XCircleIcon,
@@ -129,6 +131,39 @@ export default function WorkerGameCard() {
   // puntualidad "Sin datos", 0 turnos, 0 cancelaciones y "todavía no tenés
   // insignias": una pantalla entera diciéndole lo que no tiene.
   const hasHistory = profile.events_completed > 0;
+  // Las cancelaciones y las ausencias no esperan al primer turno hecho: son
+  // parte de la reputación desde que existen, y esconderlas le hace creer a la
+  // persona que no cuentan (U082/U089). Sólo se ven acá, en el perfil propio:
+  // lo que ve un comercio sale de otra pantalla y no cambia.
+  const hasStrikes = profile.cancellations > 0 || profile.no_shows > 0;
+  // Si una no corresponde, el camino es Soporte: un toque, no «buscalo en Ajustes».
+  const supportLine = (
+    <p className="px-4 pb-4 text-center text-xs text-ink/60">
+      ¿Alguna no corresponde? Escribinos a{" "}
+      <Link
+        href="/support"
+        className="font-semibold text-primary-text underline underline-offset-2"
+      >
+        Soporte
+      </Link>
+    </p>
+  );
+  const absenceTile = (
+    <StatTile
+      icon={<ClockIcon size={16} />}
+      value={String(profile.no_shows)}
+      label="Ausencias"
+      tone="trust"
+    />
+  );
+  const cancellationTile = (
+    <StatTile
+      icon={<XCircleIcon size={16} />}
+      value={String(profile.cancellations)}
+      label="Cancelaciones"
+      tone="trust"
+    />
+  );
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -225,19 +260,21 @@ export default function WorkerGameCard() {
         {/* Stats, un acento por tile y los tres distintos: manteca en el dato
             operativo (turnos), petróleo en el de fiabilidad (cancelaciones),
             celeste en lo que acumula confianza (experiencia). */}
-        <div className="grid grid-cols-3 gap-2.5 p-4">
+        {/* Con ausencias, cuatro tiles en 2x2: en 390 px cuatro columnas no
+            entran con el rótulo «Cancelaciones». */}
+        <div
+          className={`grid gap-2.5 p-4 ${
+            profile.no_shows > 0 ? "grid-cols-2" : "grid-cols-3"
+          }`}
+        >
           <StatTile
             icon={<BriefcaseIcon size={16} />}
             value={String(profile.events_completed)}
             label="Turnos"
             tone="manteca"
           />
-          <StatTile
-            icon={<XCircleIcon size={16} />}
-            value={String(profile.cancellations)}
-            label="Cancelaciones"
-            tone="trust"
-          />
+          {cancellationTile}
+          {profile.no_shows > 0 && absenceTile}
           <StatTile
             icon={<CheckCircleIcon size={16} />}
             value={String(profile.years_experience)}
@@ -245,6 +282,7 @@ export default function WorkerGameCard() {
             tone="cielo"
           />
         </div>
+        {hasStrikes && <div className="-mt-2">{supportLine}</div>}
 
         {/* Insignias */}
         <div className="px-4 pb-3">
@@ -271,9 +309,18 @@ export default function WorkerGameCard() {
         </div>
         </>
       ) : (
-        <p className="px-5 py-4 text-center text-sm text-ink/55">
-          Tu reputación arranca con tu primer turno.
-        </p>
+        <>
+          <p className="px-5 py-4 text-center text-sm text-ink/55">
+            Tu reputación arranca con tu primer turno.
+          </p>
+          {hasStrikes && (
+            <div className="grid grid-cols-2 gap-2.5 px-4 pb-3">
+              {cancellationTile}
+              {absenceTile}
+            </div>
+          )}
+          {hasStrikes && supportLine}
+        </>
       )}
 
       {/* Rubros */}

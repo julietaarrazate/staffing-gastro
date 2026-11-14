@@ -401,6 +401,8 @@ export interface Applicant {
   years_experience: number;
   badges: string[];
   level: string;
+  /** Documento aprobado por un admin (mismo sello que en los recomendados). */
+  identidad_verificada: boolean;
 }
 
 export interface Review {
