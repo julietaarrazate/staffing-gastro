@@ -1,4 +1,4 @@
-# La ausencia automática se cuenta como fue (G3, U082/U089)
+# La ausencia automática se cuenta como fue (G3, U082/U089; #562)
 
 **Pedido:** salida a beta, grupo G3. Hoy el aviso de ausencia decía siempre
 «El comercio marcó que no te presentaste», aun cuando nadie lo marcó y fue el
