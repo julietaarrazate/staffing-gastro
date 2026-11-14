@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Shift } from "@/lib/types";
 import SwipeDeck from "./SwipeDeck";
@@ -56,5 +56,18 @@ describe("SwipeDeck", () => {
     await userEvent.click(screen.getByRole("button", { name: "Postularme" }));
     await waitFor(() => expect(onApply).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByTestId("swipe-deck-position")).toHaveTextContent("1 de 3"));
+  });
+
+  it("un segundo toque en «Postularme» no postula la carta que quedó debajo", async () => {
+    const onApply = renderDeck();
+    const boton = screen.getByRole("button", { name: "Postularme" });
+    await userEvent.click(boton);
+    await waitFor(() => expect(screen.getByTestId("swipe-deck-position")).toHaveTextContent("1 de 2"));
+    // Pasaron las animaciones, pero la pantalla todavía se está asentando.
+    expect(boton).toBeDisabled();
+    fireEvent.click(boton);
+    await userEvent.click(boton);
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("swipe-deck-position")).toHaveTextContent("1 de 2");
   });
 });

@@ -53,13 +53,14 @@
  */
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { GUEST_WORKER_EMAIL, saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
 import { destinoTrasBienvenida } from "@/lib/plan-elegido";
+import { loginHref, safeNext } from "@/lib/safe-next";
 import {
   SKILL_LABELS,
   WORKER_SKILLS,
@@ -88,17 +89,30 @@ const MapAddressPicker = dynamic(() => import("@/components/map/MapAddressPicker
 });
 
 export default function BienvenidaPage() {
+  // `useSearchParams` pide un `Suspense` para que la página se arme igual.
+  return (
+    <Suspense>
+      <Bienvenida />
+    </Suspense>
+  );
+}
+
+function Bienvenida() {
   const { token, user, loading: authLoading } = useAuth();
   const router = useRouter();
+  // `?next=`: a dónde volver al terminar (el turno compartido desde el que
+  // se registró). Viene de la dirección: sólo se usa si es una ruta interna.
+  // Va por la dirección y no por el almacenamiento: no hay nada que limpiar.
+  const next = safeNext(useSearchParams().get("next"));
 
   useEffect(() => {
     if (authLoading) return;
-    if (!token) router.replace("/login");
-  }, [authLoading, token, router]);
+    if (!token) router.replace(loginHref({ next }));
+  }, [authLoading, token, router, next]);
 
   if (authLoading || !token || !user) return null;
-  if (user.role === "employer") return <EmployerOnboarding />;
-  return <WorkerOnboarding />;
+  if (user.role === "employer") return <EmployerOnboarding next={next} />;
+  return <WorkerOnboarding next={next} />;
 }
 
 /** Envoltorio común: mismo fondo, logo y layout que ambos onboardings comparten.
@@ -137,7 +151,7 @@ function StepDots({ active, total }: { active: number; total: number }) {
 
 type WorkerStep = "zona" | "oficio" | "detalles";
 
-function WorkerOnboarding() {
+function WorkerOnboarding({ next }: { next: string | null }) {
   const { token, user } = useAuth();
   const router = useRouter();
 
@@ -222,7 +236,7 @@ function WorkerOnboarding() {
     // comercio lo ve con menos contexto al postularse.
     if (!location || skills.length === 0) return;
     setSaving(true);
-    if (await save(true)) router.replace("/feed");
+    if (await save(true)) router.replace(next ?? "/feed");
     else setSaving(false);
   }
 
@@ -232,7 +246,7 @@ function WorkerOnboarding() {
   // cercanía hasta que complete el perfil, pero no se lo deja trabado acá.
   async function skipAll() {
     setSkippingAll(true);
-    if (await save(false)) router.replace("/feed");
+    if (await save(false)) router.replace(next ?? "/feed");
     else setSkippingAll(false);
   }
 
@@ -383,7 +397,7 @@ function WorkerOnboarding() {
 
 type EmployerStep = "nombre" | "ubicacion";
 
-function EmployerOnboarding() {
+function EmployerOnboarding({ next }: { next: string | null }) {
   const { token } = useAuth();
   const router = useRouter();
 
@@ -443,13 +457,13 @@ function EmployerOnboarding() {
   async function finish() {
     if (latitude === null || longitude === null) return;
     setSaving(true);
-    if (await save(true)) router.replace(destinoTrasBienvenida("/shifts"));
+    if (await save(true)) router.replace(destinoTrasBienvenida(next ?? "/shifts"));
     else setSaving(false);
   }
 
   async function skipLocation() {
     setSkipping(true);
-    if (await save(false)) router.replace(destinoTrasBienvenida("/shifts"));
+    if (await save(false)) router.replace(destinoTrasBienvenida(next ?? "/shifts"));
     else setSkipping(false);
   }
 
@@ -461,7 +475,7 @@ function EmployerOnboarding() {
   // nombre real, ver docstring del archivo).
   async function skipAll() {
     setSkippingAll(true);
-    if (await save(false, name.trim() || "Mi comercio")) router.replace(destinoTrasBienvenida("/shifts"));
+    if (await save(false, name.trim() || "Mi comercio")) router.replace(destinoTrasBienvenida(next ?? "/shifts"));
     else setSkippingAll(false);
   }
 

@@ -241,11 +241,17 @@ export default function MatchesPage() {
     }
   }
 
+  // Un pedido de retiro a la vez: el segundo toque del mismo botón (o el de
+  // otro retiro) no manda otro pedido mientras el primero está en curso.
+  const withdrawingRef = useRef(false);
+
   async function withdrawApplication(applicationId: string) {
-    if (!token) return;
+    if (!token || withdrawingRef.current) return;
+    withdrawingRef.current = true;
     setConfirmWithdrawId(null);
     setWithdrawing(applicationId);
-    const previous = applications;
+    const removedAt = applications.findIndex((a) => a.id === applicationId);
+    const removed = applications[removedAt];
     // Optimista: la sacamos de la lista ya (el usuario no espera al servidor
     // para dejar de ver la postulación que acaba de cancelar).
     setApplications((prev) => prev.filter((a) => a.id !== applicationId));
@@ -253,9 +259,23 @@ export default function MatchesPage() {
       await api.post(`/applications/${applicationId}/withdraw`, undefined, token);
       toast("Cancelaste tu postulación");
     } catch (err) {
-      setApplications(previous); // revertir: no se pudo cancelar de verdad
+      const yaNoEstaPendiente = err instanceof ApiError && (err.status === 400 || err.status === 404);
+      if (yaNoEstaPendiente) {
+        // Ya estaba retirada (o decidida): volver a mostrarla sería mentir.
+        // La lista se pone al día con lo que dice el servidor.
+        void load({ silent: true });
+      } else if (removed) {
+        // No se pudo cancelar de verdad: vuelve a su lugar (mismo índice), sin pisar otros
+        // cambios de la lista.
+        setApplications((prev) =>
+          prev.some((a) => a.id === removed.id)
+            ? prev
+            : [...prev.slice(0, removedAt), removed, ...prev.slice(removedAt)]
+        );
+      }
       toast(getErrorMessage(err, "No se pudo cancelar la postulación"), "error");
     } finally {
+      withdrawingRef.current = false;
       setWithdrawing(null);
     }
   }
@@ -532,9 +552,9 @@ export default function MatchesPage() {
                       size="sm"
                       variant="surface"
                       leftIcon={<CloseIcon size={16} />}
-                      onClick={() => setConfirmWithdrawId(application.id)}
+                      onClick={() => void tapGuard.run(() => setConfirmWithdrawId(application.id))}
                       loading={withdrawing === application.id}
-                      disabled={withdrawing !== null}
+                      disabled={withdrawing !== null || tapGuard.locked}
                     >
                       Cancelar postulación
                     </Button>
@@ -667,7 +687,12 @@ export default function MatchesPage() {
           <Button
             variant="danger"
             size="sm"
-            onClick={() => confirmWithdrawId && withdrawApplication(confirmWithdrawId)}
+            disabled={tapGuard.locked || withdrawing !== null}
+            onClick={() => {
+              if (!confirmWithdrawId) return;
+              const id = confirmWithdrawId;
+              void tapGuard.run(() => withdrawApplication(id));
+            }}
           >
             Sí, cancelar
           </Button>

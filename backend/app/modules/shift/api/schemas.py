@@ -127,6 +127,10 @@ class ShiftResponse(BaseModel):
     # quién tomó cada turno. Hoy lo usa "va en camino" para decir "Juan va en
     # camino" en vez del genérico.
     worker_name: str | None = None
+    # Postulaciones PENDIENTES del turno. Como `worker_name`: se completa SÓLO
+    # en `/shifts/me` (el comercio dueño) y es `None` en el feed, el turno
+    # público y `/shifts/mine`; `without_worker_data` también lo borra.
+    pending_applicants_count: int | None = None
     # ADR-0011: claim `negocio_verificado` del dueño del comercio
     # (`CompanyProfile.user_id`) — no hay flujo de envío/revisión de
     # evidencias de negocio todavía, así que hoy siempre da `False`; el
@@ -139,6 +143,7 @@ class ShiftResponse(BaseModel):
 WORKER_DATA_FIELDS = (
     "worker_profile_id",
     "worker_name",
+    "pending_applicants_count",
     "en_route_latitude",
     "en_route_longitude",
     "en_route_at",

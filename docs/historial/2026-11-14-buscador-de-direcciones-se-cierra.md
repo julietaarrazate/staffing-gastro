@@ -1,0 +1,9 @@
+# El buscador de direcciones se cierra al elegir (U036, G13) (#564)
+
+**Pedido:** tablero de la beta, grupo G13 (U036). Al elegir una dirección del buscador del alta de comercio, la lista de resultados volvía a abrirse y tapaba el mapa y el pin.
+
+**Qué cambió:** al elegir un resultado, la lista queda cerrada y no sale una búsqueda nueva; escribir después sigue buscando normal. Cambio en `frontend/components/map/MapAddressPicker.tsx` (`selectResult` marca `skipNextSearchRef` cuando el texto que pone la selección es distinto al del buscador, para que el efecto de búsqueda no se dispare con ese cambio). Test e2e nuevo en `frontend/e2e/company-map-address.spec.ts`: elegir un resultado no dispara otro pedido al geocoder y la lista no reaparece; escribir una letra sí vuelve a buscar. Revisión independiente: si había un debounce pendiente (un carácter más escrito) y se elegía antes de que venciera, el timer viejo reabría la lista; el efecto ahora cancela el timer y el abort antes de decidir si busca (mismo archivo; test e2e "elegir un resultado con una búsqueda pendiente no reabre la lista").
+
+**Por qué así:** el ref `skipNextSearchRef` ya existía para evitar la búsqueda al precargar la dirección guardada; se reutiliza en vez de agregar estado nuevo. La condición `result.address !== query` evita dejar el flag armado cuando la selección no cambia el texto (si no, el efecto no corre, el flag queda puesto y la próxima búsqueda real se salta). No se agregó test unitario: el componente no tenía `MapAddressPicker.test.tsx` y su comportamiento depende del efecto de búsqueda con el geocoder mockeado, así que va en el e2e que ya lo cubre.
+
+**Queda abierto:** nada del bug. El e2e corre contra `next start` con la API mockeada (CI lo corre en el workflow normal); no se verificó en el navegador con captura de pantalla real del alta.

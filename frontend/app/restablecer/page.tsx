@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { loginHref } from "@/lib/safe-next";
 import { Button, TextField } from "@/components/ui";
 
 function RestablecerForm() {
@@ -31,7 +32,7 @@ function RestablecerForm() {
     setSubmitting(true);
     try {
       await api.post("/auth/reset-password", { token, new_password: password });
-      router.push("/login?message=" + encodeURIComponent("Contraseña actualizada. Ingresá con tu nueva contraseña."));
+      router.push(loginHref({ aviso: "clave-actualizada" }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo restablecer la contraseña");
     } finally {
