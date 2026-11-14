@@ -1,4 +1,4 @@
-# Tickets de soporte que se pueden reabrir (G27, U128) (#PR)
+# Tickets de soporte que se pueden reabrir (G27, U128) (#576)
 
 **Pedido:** salida a beta, hallazgo U128 y decisión 12 del tablero: los tickets cerrados no se podían reabrir, y un mensaje del admin en un ticket cerrado le llegaba a la persona sin que ella pudiera contestar.
 
