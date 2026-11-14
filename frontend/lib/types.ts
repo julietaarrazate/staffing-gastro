@@ -502,6 +502,16 @@ export interface AdminUserDetail {
   tickets: { id: string; subject: string; status: string; created_at: string | null }[];
 }
 
+/** Cuántos turnos toca suspender una cuenta (ADR-0024), antes de confirmar. */
+export interface SuspensionPreview {
+  /** Turnos abiertos del comercio que dejan de verse (vuelven si se reactiva). */
+  hidden: number;
+  /** Turnos del comercio con alguien asignado o confirmado: se cancelan con aviso. */
+  cancelled: number;
+  /** Turnos del trabajador que vuelven a buscar personal, con aviso al comercio. */
+  reopened: number;
+}
+
 export interface TestAccount {
   id: string;
   email: string;

@@ -19,6 +19,7 @@ from app.modules.admin.api.schemas import (
     LiveShiftsResponse,
     PeriodMetricsResponse,
     PlatformStatsResponse,
+    SuspensionPreviewResponse,
     SubscriptionStatsResponse,
     TestAccountResponse,
     TodayCountsResponse,
@@ -161,6 +162,20 @@ async def suspend_user(user_id: UUID, current: AdminDep, service: ServiceDep):
         ) from exc
     logger.warning("admin suspend_user: admin=%s target=%s", current.id, user_id)
     return result
+
+
+@router.get(
+    "/users/{user_id}/suspension-preview",
+    response_model=SuspensionPreviewResponse,
+    summary="Cuántos turnos toca suspender a un usuario (sin cambiar nada)",
+)
+async def suspension_preview(user_id: UUID, current: AdminDep, service: ServiceDep):
+    try:
+        return await service.suspension_preview(user_id)
+    except TargetUserNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
+        ) from exc
 
 
 @router.post(

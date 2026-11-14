@@ -67,9 +67,11 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
 
 - La suspensión pasa a tener efectos sobre turnos ajenos (los de quien había
   confirmado o el comercio que esperaba): por eso cada efecto lleva su aviso.
-- `assign_worker`, el feed, la búsqueda, el mapa, la página pública y las
-  postulaciones consultan si la cuenta del comercio está activa. El cruce
-  entre módulos va por puerto inyectado, como el resto.
+- `assign_worker` consulta si la cuenta del trabajador está activa; el feed,
+  la búsqueda, el mapa, la escalada de urgencia, la página pública y las
+  postulaciones, si lo está la del comercio. El cruce entre módulos va por
+  puerto inyectado, como el resto (la administración pide los efectos por
+  `AccountSuspensionEffects`, que implementa el caso de uso de turnos).
 - Los avisos nuevos se suman a `docs/reference/NOTIFICATIONS.md`.
 
 ## Descartado

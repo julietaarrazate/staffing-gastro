@@ -118,6 +118,10 @@ class ShiftRepository(ABC):
     ) -> list[Shift]:
         """Lista los turnos abiertos del feed público, con filtros opcionales (paginado).
 
+        Sólo turnos de comercios con la cuenta activa: los de un comercio
+        suspendido no se ofrecen (ADR-0024). Va en la misma consulta, para
+        que la página salga entera y sin un viaje más a la base.
+
         `position` filtra por un rubro puntual (override explícito, por
         ejemplo un filtro manual en la UI); `positions` filtra por varios a
         la vez (los rubros que eligió el trabajador en su perfil, para que
@@ -150,6 +154,7 @@ class ShiftRepository(ABC):
         (ver `app.core.geo.bounding_box`): devuelve los turnos que caen
         adentro MÁS los que no tienen coordenadas, que no se pueden ubicar y
         se resuelven por ciudad. Sin `box`, todos los abiertos.
+        Sin comercios suspendidos, como `list_open`.
         """
 
     @abstractmethod
@@ -182,6 +187,15 @@ class ShiftRepository(ABC):
         al confirmar un turno (regla de doble turno, `COMMITTED_STATUSES`)."""
 
     @abstractmethod
+    async def list_by_company_and_statuses(
+        self, company_id: UUID, statuses: frozenset[ShiftStatus]
+    ) -> list[Shift]:
+        """Turnos de un comercio en alguno de los estados dados, sin paginar.
+
+        Uso interno (no expuesto por API): qué turnos toca la suspensión del
+        comercio (ADR-0024)."""
+
+    @abstractmethod
     async def list_awaiting_checkin(self) -> list[Shift]:
         """Turnos CONFIRMADO/EN_CAMINO (todavía sin check-in), sin paginar.
 
@@ -208,7 +222,8 @@ class ShiftRepository(ABC):
         Uso interno (no expuesto por API): el scheduler los recorre para
         decidir —comparando `published_at` en Python, mismo criterio que el
         resto de los chequeos del scheduler— si ya toca escalar la urgencia
-        (`ShiftService.escalate_urgency`)."""
+        (`ShiftService.escalate_urgency`). Sin los de comercios suspendidos
+        (ADR-0024): están ocultos y escalar avisaría de un turno que nadie ve."""
 
     @abstractmethod
     async def list_awaiting_coverage_check(self) -> list[Shift]:

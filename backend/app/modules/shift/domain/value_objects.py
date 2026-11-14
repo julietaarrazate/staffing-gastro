@@ -90,3 +90,16 @@ UNCOVERED_ELIGIBLE_STATUSES: frozenset[ShiftStatus] = frozenset(
         ShiftStatus.ASIGNADO,
     }
 )
+
+# Turnos con alguien asignado o confirmado que todavía no empezaron (nadie
+# marcó la llegada). Son los que toca la suspensión de una cuenta (ADR-0024):
+# si se suspende el comercio, se cancelan; si se suspende el trabajador, se
+# reabren. EN_CAMINO («salí») cuenta como no empezado: la llegada no está
+# marcada. CHECK_IN en adelante ya empezó y no se toca.
+TAKEN_NOT_STARTED_STATUSES: frozenset[ShiftStatus] = frozenset(
+    {
+        ShiftStatus.ASIGNADO,
+        ShiftStatus.CONFIRMADO,
+        ShiftStatus.EN_CAMINO,
+    }
+)
