@@ -50,17 +50,6 @@ G5 #561, G1 #560, G7 #559).
 - `app/my-shifts/page.tsx`: el error de «Llegué» y «Me fui» sale como aviso
   flotante, no arriba de la lista.
 
-### G9 · Errores del turno en castellano de persona (U028, U029) — S
-
-- `shift/domain/entities.py`: los mensajes dejan de interpolar fechas y
-  duraciones crudas. Fechas en hora argentina («desde las 13:20 del
-  viernes»), duraciones en palabras («2 horas»); las transiciones inválidas
-  se dicen por caso («El comercio canceló este turno», «Ya lo habías
-  confirmado»). El formateo vive en `core/tz.py`.
-- Frontend: `act()` y `run()` recargan la lista también cuando fallan.
-- Pruebas: tests del dominio por mensaje (ninguno contiene `T` de fecha ni
-  `→`).
-
 ## Ola C
 
 ### G4 · La lista de postulantes dice quién sigue (U021, U123) — C
