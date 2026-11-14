@@ -119,6 +119,7 @@ def test_ctx_seguro_deja_pasar_sólo_cotas_numéricas():
         "gt": Decimal("0"),
     }
     assert _ctx_seguro(hostil) == {"le": 3, "gt": 0.0}
+    assert _ctx_seguro({"le": float("inf"), "ge": float("nan"), "lt": 10}) == {"lt": 10}
     assert _ctx_seguro({"reason": "x"}) is None
     assert _ctx_seguro(None) is None
     assert _ctx_seguro("no es un dict") is None

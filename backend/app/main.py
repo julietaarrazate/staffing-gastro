@@ -4,6 +4,7 @@ Cada módulo de dominio (identity, worker, shift, ...) registra su propio router
 """
 
 import logging
+import math
 from contextlib import asynccontextmanager
 from decimal import Decimal
 
@@ -165,7 +166,9 @@ def _ctx_seguro(ctx: object) -> dict[str, int | float] | None:
         and isinstance(valor, int | float | Decimal)
         and not isinstance(valor, bool)
     }
-    return {clave: float(v) if isinstance(v, Decimal) else v for clave, v in filtrado.items()} or None
+    numeros = {clave: float(v) if isinstance(v, Decimal) else v for clave, v in filtrado.items()}
+    # Una cota infinita o `nan` no se puede escribir en JSON: el 422 sería un 500.
+    return {clave: v for clave, v in numeros.items() if math.isfinite(v)} or None
 
 
 @app.exception_handler(RequestValidationError)
