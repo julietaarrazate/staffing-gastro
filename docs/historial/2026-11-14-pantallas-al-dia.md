@@ -43,6 +43,24 @@ encabezado quedaba vacío.
 - **Pausa en vez de descartar:** lo que llega durante un diálogo o una acción
   queda pendiente y se pide al soltarse.
 
+**Ajustes tras la revisión independiente (PR #560):**
+- **Bucle de recargas con el socket que abre y cierra enseguida** (el backend
+  acepta y cierra con 1013/1008): `useWebSocket.ts` reiniciaba el backoff en
+  cada `onopen`, así que reintentaba cada ~1 s para siempre y, con G1, cada
+  reapertura recargaba todas las pantallas. Ahora el backoff sólo se reinicia
+  al cerrarse una conexión que vivió al menos 5 s (`WS_STABLE_AFTER_MS`); una
+  que abre y cierra enseguida sigue creciendo hasta los 15 s. En
+  `NotificationBell.tsx` una reapertura sólo recarga la campanita y emite si
+  pasaron 30 s desde la última que lo hizo (`RECONNECT_REFRESH_MIN_GAP_MS`), y
+  la «primera apertura» se reinicia al cambiar el token. Tests en
+  `lib/useWebSocket.test.tsx` y `components/NotificationBell.reconexion.test.tsx`.
+- **Respuestas viejas pisando a las nuevas:** `ShiftDetail.tsx` ahora cancela
+  al cambiar de turno o desmontar, aplica «último pedido gana» y una lista de
+  postulaciones que salió antes de postularse nunca baja de «applied»/«applying»
+  a «can_apply» (test en `ShiftDetail.test.tsx`). `app/shifts/page.tsx` y
+  `app/my-shifts/page.tsx` tienen la misma guarda en `load` (el último pedido
+  gana y es el único que baja el esqueleto).
+
 **Queda abierto:** el encabezado del chat, cuando la lista no trae la
 conversación, le dice al comercio «Trabajador asignado» porque `GET /shifts/{id}`
 no incluye el nombre del trabajador (sólo `/shifts/me`); mostrar el nombre

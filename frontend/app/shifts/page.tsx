@@ -227,19 +227,26 @@ function MyShiftsPanel() {
   // `ShiftPublishedNextSteps` para la justificación completa).
   const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
+  const latestLoad = useRef(0);
   // `silent`: el refresco de fondo del "va en camino" no vuelve a mostrar el
   // esqueleto de carga ni pisa la lista con un error pasajero de red.
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
+    // Último pedido gana: una respuesta vieja (una carga normal, o la de
+    // `act()`, cruzada con una silenciosa) no pisa a la más nueva.
+    const mine = ++latestLoad.current;
     if (!silent) setLoading(true);
     try {
       const data = await api.get<Shift[]>("/shifts/me", token);
+      if (mine !== latestLoad.current) return;
       setShifts(data);
       setError(null);
     } catch (err) {
-      if (!silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      if (mine === latestLoad.current && !silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
     } finally {
-      if (!silent) setLoading(false);
+      // El último pedido siempre baja el esqueleto (si uno normal quedó
+      // pisado por uno silencioso, nadie más lo bajaría).
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token]);
 

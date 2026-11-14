@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
@@ -135,10 +135,14 @@ export default function MatchesPage() {
 
   useEffect(() => setHere(getStoredLocation()), []);
 
+  const latestLoad = useRef(0);
   // `silent` (recarga por un aviso, ver `lib/live-refresh.ts`): sin esqueleto
   // de carga y sin pisar lo que se ve con un error pasajero.
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
+    // Último pedido gana: una respuesta vieja (una carga normal, o la de
+    // `act()`, cruzada con una silenciosa) no pisa a la más nueva.
+    const mine = ++latestLoad.current;
     if (!silent) setLoading(true);
     try {
       const [assigned, apps, saved, prof] = await Promise.all([
@@ -147,6 +151,7 @@ export default function MatchesPage() {
         api.get<Shift[]>("/saved-shifts", token).catch(() => []),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
       ]);
+      if (mine !== latestLoad.current) return;
       setShifts(assigned);
       setApplications(apps);
       setSavedShifts(saved);
@@ -161,9 +166,11 @@ export default function MatchesPage() {
       setAppShifts(resolved);
       setError(null);
     } catch (err) {
-      if (!silent) setError(getErrorMessage(err, "Error al cargar tus matches"));
+      if (mine === latestLoad.current && !silent) {
+        setError(getErrorMessage(err, "Error al cargar tus matches"));
+      }
     } finally {
-      if (!silent) setLoading(false);
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token]);
 

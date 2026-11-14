@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApplicationStatus, ShiftPublic } from "@/lib/types";
 import ShiftDetail from "./ShiftDetail";
+import { emitLiveRefresh } from "@/lib/live-refresh";
 
 /**
  * La acción del detalle de turno cambia según quién lo mira. El bug que motivó
@@ -130,5 +131,37 @@ describe("ShiftDetail", () => {
     render(<ShiftDetail publicShift={SHIFT} />);
 
     await waitFor(() => expect(screen.getByText("Traer delantal")).toBeInTheDocument());
+  });
+});
+
+describe("ShiftDetail: respuesta vieja de una recarga silenciosa", () => {
+  it("una lista de postulaciones que salió antes de postularse no vuelve a ofrecer «Postularme»", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    let calls = 0;
+    let soltarVieja: (value: unknown[]) => void = () => {};
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) {
+        calls += 1;
+        // La 1ª (carga inicial) contesta ya; la 2ª (recarga por un aviso) queda en vuelo.
+        return calls === 1 ? Promise.resolve([]) : new Promise((resolve) => (soltarVieja = resolve));
+      }
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT });
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    post.mockResolvedValue({ id: "a1" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+    const boton = await screen.findByRole("button", { name: "Postularme" });
+
+    act(() => emitLiveRefresh());
+    await waitFor(() => expect(calls).toBe(2), { timeout: 3000 });
+
+    await user.click(boton);
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
+
+    // Llega la respuesta vieja, sin la postulación: no pisa lo ya hecho.
+    await act(async () => soltarVieja([]));
+    expect(screen.getByText("Ya te postulaste")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
   });
 });

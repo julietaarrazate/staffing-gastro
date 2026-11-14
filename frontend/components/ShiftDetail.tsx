@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
@@ -86,13 +86,29 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   // por fuera de esta pantalla (el comercio cancela, lo cubre otra persona), así
   // que también lo vuelve a pedir `useLiveRefresh` más abajo. `silent`: si falla
   // no se toca nada de lo que ya se ve.
+  // Último pedido gana, y se cancela al cambiar de turno o desmontar: una
+  // respuesta vieja no pisa a una más nueva ni al turno de otra pantalla.
+  const latestLoad = useRef(0);
+  // Cuenta las veces que la persona se postuló (o empezó a hacerlo): una
+  // respuesta que salió antes nunca baja un «applied»/«applying» a «can_apply».
+  const applyEpoch = useRef(0);
+  useEffect(() => {
+    const current = latestLoad;
+    return () => {
+      current.current += 1;
+    };
+  }, [publicShift.id]);
   const loadState = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       if (!token || !user) return;
+      const mine = ++latestLoad.current;
+      const epoch = applyEpoch.current;
       const tasks: Promise<unknown>[] = [
         api
           .get<Shift>(`/shifts/${publicShift.id}`, token)
-          .then((shift) => setFull(shift))
+          .then((shift) => {
+            if (mine === latestLoad.current) setFull(shift);
+          })
           .catch(() => {
             // Sin el turno completo, la vista pública alcanza: no es un error
             // que haya que mostrarle a nadie.
@@ -102,13 +118,20 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         tasks.push(
           api
             .get<ShiftApplication[]>("/applications/mine?limit=100", token)
-            .then((mine) => {
-              // Sólo una postulación activa cuenta como "ya te postulaste": con
-              // la postulación retirada, el turno vuelve a ofrecer "Postularme".
-              setApply(appliedShiftIds(mine).has(publicShift.id) ? "applied" : "can_apply");
+            .then((mine_) => {
+              if (mine !== latestLoad.current) return;
+              const applied = appliedShiftIds(mine_).has(publicShift.id);
+              setApply((prev) => {
+                // Se postuló (o está postulándose) después de que salió este
+                // pedido: la lista que trae puede no incluirla todavía.
+                if (epoch !== applyEpoch.current || prev === "applying") return prev;
+                return applied ? "applied" : "can_apply";
+              });
             })
             .catch(() => {
-              if (!silent) setApply("can_apply");
+              if (!silent && mine === latestLoad.current) {
+                setApply((prev) => (prev === "unknown" ? "can_apply" : prev));
+              }
             })
         );
       }
@@ -150,6 +173,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   async function onApply() {
     if (!token) return;
+    applyEpoch.current += 1;
     setApply("applying");
     try {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token, undefined, keyFor(shift.id));

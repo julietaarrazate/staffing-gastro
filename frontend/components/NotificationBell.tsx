@@ -11,6 +11,9 @@ import { emitLiveRefresh } from "@/lib/live-refresh";
 import { Notification } from "@/lib/types";
 import { Skeleton } from "@/components/ui";
 
+/** Piso entre dos recargas por reconexión del socket. */
+export const RECONNECT_REFRESH_MIN_GAP_MS = 30_000;
+
 function NotificationRowSkeleton() {
   return (
     <div className="flex items-center gap-2 border-b border-line px-4 py-3" aria-hidden>
@@ -33,6 +36,17 @@ export default function NotificationBell() {
   // La primera apertura del socket coincide con la carga inicial; desde la
   // segunda es una reconexión (ver `useWebSocket`).
   const hasOpenedOnce = useRef(false);
+  // Última vez que una reapertura valió como «reconexión» (recargar y emitir).
+  // Un socket que abre y se cierra enseguida (el backend acepta y cierra con
+  // 1013/1008) reabre cada pocos segundos: sin este piso sería una recarga de
+  // toda pantalla por cada reapertura, o sea una consulta periódica.
+  const lastReconnectAt = useRef(0);
+  useEffect(() => {
+    // Otra sesión (salir y entrar sin desmontar la campanita): vuelve a ser la
+    // primera apertura.
+    hasOpenedOnce.current = false;
+    lastReconnectAt.current = 0;
+  }, [token]);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -67,6 +81,9 @@ export default function NotificationBell() {
         return;
       }
       // Reconexión: pudo haber pasado algo mientras el socket estaba caído.
+      const now = Date.now();
+      if (now - lastReconnectAt.current < RECONNECT_REFRESH_MIN_GAP_MS) return;
+      lastReconnectAt.current = now;
       load();
       emitLiveRefresh();
     }
