@@ -5,6 +5,7 @@ Reutiliza los puertos `UserRepository` (identity) y `ShiftRepository`
 moderación de usuarios y el cálculo de métricas agregadas.
 """
 
+import logging
 import secrets
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -42,6 +43,7 @@ from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
+from app.modules.shift.domain.suspension import AccountSuspensionEffects, SuspensionImpact
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
 from app.modules.subscription.domain.repositories import SubscriptionRepository
@@ -82,6 +84,8 @@ def _rate_pct(numerator: int, denominator: int) -> float | None:
     casos (mismo criterio que `pct_filled_under_10_min`, ya existente)."""
     return (numerator / denominator) * 100 if denominator else None
 
+logger = logging.getLogger(__name__)
+
 
 class AdminService:
     """Servicio de aplicación con los casos de uso del panel de administración."""
@@ -97,7 +101,12 @@ class AdminService:
         billing: BillingGateway,
         sessions: RefreshSessionRepository,
         tickets: SupportTicketRepository,
+        # Efectos de una suspensión sobre los turnos (ADR-0024), por puerto
+        # del módulo de turnos. Sin él (tests que no lo necesitan), suspender
+        # sólo cambia el estado de la cuenta, como antes.
+        suspension_effects: AccountSuspensionEffects | None = None,
     ) -> None:
+        self._suspension_effects = suspension_effects
         self._users = users
         self._shifts = shifts
         self._workers = workers
@@ -459,17 +468,54 @@ class AdminService:
         chequean en vivo contra la DB), pero las filas de sesión seguían sin
         marcarse revocadas — si el usuario se reactivaba después, sus
         sesiones viejas (posiblemente el dispositivo que motivó la
-        suspensión) volvían a funcionar solas, sin pedir un login nuevo."""
+        suspensión) volvían a funcionar solas, sin pedir un login nuevo.
+
+        Antes de marcarla, los efectos sobre sus turnos (ADR-0024): se cancelan
+        los tomados de un comercio y se reabren los de un trabajador, con sus
+        avisos. Van primero a propósito: los repositorios guardan cada cambio
+        por separado (no hay una transacción que los abarque), así que si un
+        efecto falla la cuenta queda sin suspender, la admin ve el error y al
+        repetir siguen los turnos que faltaban. Después de marcarla corre una
+        segunda pasada: mientras corría la primera la cuenta seguía activa y
+        alguien pudo asignar un turno. Nunca queda una cuenta suspendida con
+        turnos colgados."""
         if actor.id == user_id:
             raise CannotModifySelfError()
         user = await self._get(user_id)
+        if self._suspension_effects is not None:
+            await self._suspension_effects.apply_account_suspension(user.id)
         user.suspend()
         updated = await self._users.update(user)
         await self._sessions.revoke_all_for_user(user_id)
+        if self._suspension_effects is not None:
+            # Segunda pasada, ya con la cuenta suspendida: levanta lo que se
+            # haya tomado en el intervalo (un comercio que asignó, o alguien
+            # que asignó a este trabajador, mientras corría la primera). Es
+            # idempotente; si falla, la cuenta ya quedó suspendida y lo que
+            # quede lo resuelve el flujo normal del turno, así que no se
+            # propaga.
+            try:
+                await self._suspension_effects.apply_account_suspension(user.id)
+            except Exception:
+                logger.exception(
+                    "Segunda pasada de efectos de suspensión: fallo inesperado "
+                    "(user_id=%s)",
+                    user_id,
+                )
         return updated
 
+    async def suspension_preview(self, user_id: UUID) -> SuspensionImpact:
+        """Cuántos turnos tocaría suspender esta cuenta (ADR-0024, punto 4):
+        lo ve la admin en el diálogo, antes de confirmar. No cambia nada."""
+        user = await self._get(user_id)
+        if self._suspension_effects is None:
+            return SuspensionImpact()
+        return await self._suspension_effects.preview_account_suspension(user.id)
+
     async def activate_user(self, user_id: UUID) -> User:
-        """Reactiva a un usuario suspendido."""
+        """Reactiva a un usuario suspendido. No toca turnos (ADR-0024, punto
+        9): lo que estaba oculto vuelve a verse solo si sigue vigente, y lo
+        cancelado o reabierto no se deshace."""
         user = await self._get(user_id)
         user.activate()
         return await self._users.update(user)

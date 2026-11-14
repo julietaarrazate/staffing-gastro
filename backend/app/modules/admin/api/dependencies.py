@@ -15,6 +15,8 @@ from app.modules.identity.infrastructure.repositories import (
     SqlAlchemyRefreshSessionRepository,
     SqlAlchemyUserRepository,
 )
+from app.modules.shift.api.dependencies import get_shift_service
+from app.modules.shift.application.services import ShiftService
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.api.dependencies import get_billing_gateway
 from app.modules.subscription.domain.billing_gateway import BillingGateway
@@ -28,6 +30,9 @@ from app.modules.worker.infrastructure.repositories import SqlAlchemyWorkerProfi
 def get_admin_service(
     session: Annotated[AsyncSession, Depends(get_session)],
     billing: Annotated[BillingGateway, Depends(get_billing_gateway)],
+    # Misma sesión que el resto: FastAPI resuelve `get_session` una sola vez
+    # por pedido.
+    shift_service: Annotated[ShiftService, Depends(get_shift_service)],
 ) -> AdminService:
     return AdminService(
         SqlAlchemyUserRepository(session),
@@ -39,4 +44,7 @@ def get_admin_service(
         billing,
         SqlAlchemyRefreshSessionRepository(session),
         SqlAlchemySupportTicketRepository(session),
+        # Puerto `AccountSuspensionEffects` (ADR-0024): lo implementa el caso
+        # de uso de turnos.
+        suspension_effects=shift_service,
     )

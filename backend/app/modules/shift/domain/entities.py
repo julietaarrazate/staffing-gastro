@@ -23,6 +23,7 @@ from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
     OPEN_STATUSES,
+    TAKEN_NOT_STARTED_STATUSES,
     TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
     ShiftStatus,
@@ -292,6 +293,21 @@ class Shift:
             raise InvalidShiftTransitionError(
                 no_se_puede("cancelar_asistencia", self.status)
             )
+        self.worker_profile_id = None
+        self.status = ShiftStatus.BUSCANDO_PERSONAL
+        self._clear_en_route()
+
+    def release_worker(self) -> None:
+        """ASIGNADO/CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: la persona
+        asignada ya no puede tomar el turno porque su cuenta se suspendió
+        (ADR-0024, punto 5).
+
+        Reabre igual que `worker_cancel()`, pero no lo decidió nadie del
+        turno: el caso de uso no le suma una cancelación a nadie. Sólo antes
+        de la llegada (`TAKEN_NOT_STARTED_STATUSES`): un turno que ya empezó
+        no se toca."""
+        if self.status not in TAKEN_NOT_STARTED_STATUSES:
+            raise InvalidShiftTransitionError(no_se_puede("liberar", self.status))
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
         self._clear_en_route()

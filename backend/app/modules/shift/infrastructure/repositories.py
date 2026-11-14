@@ -10,6 +10,9 @@ from sqlalchemy import case, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.exc import StaleDataError
 
+from app.modules.company.infrastructure.models import CompanyProfileModel
+from app.modules.identity.domain.value_objects import UserStatus
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.shift.domain.pay_benchmark import hourly_rate
@@ -136,6 +139,22 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.escalated_at = shift.escalated_at
 
 
+def _from_active_company():
+    """Condición «el comercio del turno tiene la cuenta activa» (ADR-0024):
+    los turnos abiertos de un comercio suspendido no se ofrecen ni se escalan.
+
+    Lectura que cruza con perfiles de comercio y usuarios, el mismo patrón que
+    los candidatos de `matching` (sólo cuentas activas). Va como subconsulta
+    en la misma sentencia: no suma un viaje a la base y la página paginada
+    sale entera. Los comercios suspendidos son pocos."""
+    inactive = (
+        select(CompanyProfileModel.id)
+        .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+        .where(UserModel.status != UserStatus.ACTIVE.value)
+    )
+    return ShiftModel.company_id.not_in(inactive)
+
+
 class SqlAlchemyShiftRepository(ShiftRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -181,6 +200,22 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         # sin esto, decidía sobre un turno que un usuario ya había cambiado.
         model = await self._session.get(ShiftModel, shift_id, populate_existing=True)
         return _to_entity(model) if model else None
+
+    async def companies_with_inactive_account(
+        self, company_ids: Sequence[UUID]
+    ) -> set[UUID]:
+        if not company_ids:
+            return set()
+        stmt = (
+            select(CompanyProfileModel.id)
+            .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+            .where(
+                CompanyProfileModel.id.in_(list(company_ids)),
+                UserModel.status != UserStatus.ACTIVE.value,
+            )
+        )
+        result = await self._session.execute(stmt)
+        return set(result.scalars().all())
 
     async def list_by_ids(self, shift_ids: Sequence[UUID]) -> list[Shift]:
         # Sin ids no hay query: `IN ()` es SQL inválido y además evita un
@@ -257,6 +292,16 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_by_company_and_statuses(
+        self, company_id: UUID, statuses: frozenset[ShiftStatus]
+    ) -> list[Shift]:
+        stmt = select(ShiftModel).where(
+            ShiftModel.company_id == company_id,
+            ShiftModel.status.in_([s.value for s in statuses]),
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_awaiting_checkin(self) -> list[Shift]:
         stmt = select(ShiftModel).where(
             ShiftModel.status.in_(
@@ -284,6 +329,9 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             ShiftModel.status.in_([s.value for s in OPEN_STATUSES]),
             ShiftModel.published_at.is_not(None),
             ShiftModel.escalated_at.is_(None),
+            # Oculto mientras el comercio está suspendido (ADR-0024): escalar
+            # avisaría de un turno que nadie puede ver. Si se reactiva, entra.
+            _from_active_company(),
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
@@ -424,7 +472,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             stmt = stmt.where(ShiftModel.position.in_([p.value for p in positions]))
         if urgent is not None:
             stmt = stmt.where(ShiftModel.urgent.is_(urgent))
-        return stmt
+        return stmt.where(_from_active_company())
 
     async def list_open(
         self,

@@ -62,6 +62,11 @@ class ApplicationService:
         shift = await self._shifts.get_by_id(shift_id)
         if shift is None or shift.status not in OPEN_STATUSES:
             raise ShiftNotApplicableError(str(shift_id))
+        company = await self._companies.get_by_id(shift.company_id)
+        if not await self._account_active(company.user_id if company else None):
+            # Comercio suspendido (ADR-0024): su turno está oculto y no acepta
+            # postulaciones. Mismo error que un turno que no está abierto.
+            raise ShiftNotApplicableError(str(shift_id))
 
         existing = await self._applications.get_by_shift_and_worker(
             shift_id, worker_profile_id
@@ -85,10 +90,15 @@ class ApplicationService:
             },
         )
 
-        company = await self._companies.get_by_id(shift.company_id)
         if company is not None:
             await self._notify_new_applicant(company.user_id, shift, worker_profile_id)
         return application
+
+    async def _account_active(self, user_id: UUID | None) -> bool:
+        if user_id is None:
+            return False
+        user = await self._users.get_by_id(user_id)
+        return user is not None and user.is_active
 
     async def _notify_new_applicant(
         self, company_user_id: UUID, shift: Shift, worker_profile_id: UUID
@@ -128,7 +138,10 @@ class ApplicationService:
         self, company_id: UUID, shift_id: UUID
     ) -> list[EnrichedApplicant]:
         """Lista los postulantes a un turno propio del comercio, ya enriquecidos
-        con los datos del trabajador (sin N+1, ver P2 en PERFORMANCE_REPORT.md)."""
+        con los datos del trabajador (sin N+1, ver P2 en PERFORMANCE_REPORT.md).
+
+        Sin las cuentas suspendidas (ADR-0024): no se las puede asignar, el
+        mismo criterio que «Recomendados» (lo filtra la consulta)."""
         shift = await self._shifts.get_by_id(shift_id)
         # No-disclosure: turno ajeno o inexistente se trata igual (404).
         if shift is None or shift.company_id != company_id:

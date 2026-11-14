@@ -204,6 +204,16 @@ function isGateCode(code: string | undefined): code is TwoFactorGateCode {
  * token sea inválido. */
 export class NetworkError extends Error {}
 
+/** Texto fijo para el 429 de las pantallas que no revelan nada de la cuenta
+ * (recuperar, verificar email): el límite es por conexión, no dice nada del mail. */
+export const RATE_LIMITED_MESSAGE = "Demasiados intentos, esperá un minuto.";
+
+/** El backend frenó el pedido por el límite de intentos (HTTP 429, ver
+ * `core/rate_limit.py`). */
+export function isRateLimited(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 429;
+}
+
 /** El backend no está disponible por un rato: sin conexión, timeout, o un
  * 5xx/408/429 (Render responde 502-504 mientras arranca en frío). Eso no dice
  * nada de la validez del token, así que nunca debe cerrar la sesión: sólo
@@ -249,9 +259,14 @@ let renewing: Promise<RenewOutcome> | null = null;
  * mientras tanto. */
 export const SESSION_EXPIRED_CODE = "session_expired";
 export const SESSION_EXPIRED_MESSAGE = "Tu sesión venció. Volvé a ingresar.";
-/** El backend lo manda en el 403 de una cuenta suspendida (lo suma G6; hasta
- * entonces una cuenta suspendida se trata como sesión vencida). */
+/** El backend lo manda en el 403 de una cuenta suspendida, al ingresar (con
+ * la contraseña correcta, o con Google) y al renovar la sesión (ADR-0024). */
 export const ACCOUNT_SUSPENDED_CODE = "account_suspended";
+
+/** ¿El servidor rechazó porque la cuenta está suspendida? */
+export function isAccountSuspended(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && err.code === ACCOUNT_SUSPENDED_CODE;
+}
 
 /** Arranca (o termina, con `null`) una sesión: login, logout, impersonar. */
 export function bindSessionToken(token: string | null) {

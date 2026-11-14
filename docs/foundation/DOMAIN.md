@@ -41,6 +41,11 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     `ADMIN_EMAILS`.
   - El `User` es la identidad; el **perfil** (worker o company) es una entidad
     aparte ligada por `user_id`.
+  - Una cuenta **suspendida** no entra ni renueva la sesión: con la contraseña
+    correcta (o Google, o una sesión que tenía) responde 403 `account_suspended`,
+    sin el motivo; con la contraseña mal, lo de siempre. Suspender tiene
+    efectos sobre turnos ajenos ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md),
+    ver Shift).
 
 ## Worker — `WorkerProfile`
 
@@ -108,6 +113,13 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
   - Aparece en el **feed** sólo si está en estados abiertos
     (`publicado`/`buscando_personal`, `OPEN_STATUSES`).
   - `reject` de un asignado vuelve el turno a `buscando_personal`.
+  - **Cuenta suspendida ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)):**
+    los turnos abiertos de un comercio suspendido no aparecen en el feed, en la
+    página pública ni aceptan postulaciones (no cambian de estado: vuelven a
+    verse si se reactiva); los suyos `asignado`/`confirmado`/`en_camino` se
+    cancelan sin cancelación tardía. Los de un trabajador suspendido en esos
+    estados vuelven a `buscando_personal` (`release_worker`) sin sumarle una
+    cancelación. Desde `check_in` no se toca nada.
   - `cancelado`, `finalizado`, `pagado` son **terminales**.
   - check-in/check-out capturan geolocalización y exigen estar a ≤ 300 m del
     local del turno (`CHECK_RADIUS_KM`); si el turno no tiene coordenadas no se
@@ -126,7 +138,9 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     rechaza. Se materializa en `Shift.worker_profile_id` + estado
     `asignado`/`confirmado`.
 - **Invariante:** un trabajador tiene a lo sumo **una postulación por turno**;
-  sólo se puede postular a turnos abiertos. Con una postulación activa
+  sólo se puede postular a turnos abiertos (y de un comercio con la cuenta
+  activa). No se puede asignar a una cuenta suspendida, y la lista de
+  postulantes no la muestra ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)). Con una postulación activa
   (`pendiente` o `aceptada`) no puede postularse otra vez.
 - **Volver a postularse:** una postulación `retirada` (la canceló el trabajador,
   o el sistema al confirmar otro turno del mismo horario) se **reactiva** si el

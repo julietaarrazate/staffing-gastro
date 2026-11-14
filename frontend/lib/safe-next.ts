@@ -73,15 +73,16 @@ export function isSessionEndReason(value: string | null | undefined): value is S
  * el motivo: viaja una palabra y el texto lo pone la app. Antes viajaba el
  * texto entero (`?message=…`) y el ingreso mostraba lo que viniera en la
  * dirección, así que un link armado por otro le hacía decir cualquier cosa. */
-export type LoginNotice = "clave-actualizada" | "codigo-requerido";
+export type LoginNotice = "clave-actualizada" | "codigo-requerido" | "cuenta-creada";
 
 export const LOGIN_NOTICES: Record<LoginNotice, string> = {
   "clave-actualizada": "Contraseña actualizada. Ingresá con tu nueva contraseña.",
   "codigo-requerido": "Volvé a ingresar con el código de tu app autenticadora.",
+  "cuenta-creada": "Tu cuenta ya está creada: ingresá en un minuto.",
 };
 
 export function isLoginNotice(value: string | null | undefined): value is LoginNotice {
-  return value === "clave-actualizada" || value === "codigo-requerido";
+  return value === "clave-actualizada" || value === "codigo-requerido" || value === "cuenta-creada";
 }
 
 /** La dirección del ingreso con el motivo y la vuelta. `next` se valida acá
