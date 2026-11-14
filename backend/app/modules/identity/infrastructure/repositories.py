@@ -1,5 +1,6 @@
 """Adaptador de persistencia: implementación SQLAlchemy de los repos de identity."""
 
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -111,18 +112,20 @@ class SqlAlchemyUserRepository(UserRepository):
         role: UserRole | None = None,
         status: UserStatus | None = None,
         verified: bool | None = None,
+        also_user_ids: Sequence[UUID] = (),
     ) -> list[User]:
         stmt = select(UserModel).order_by(desc(UserModel.created_at)).offset(offset)
         if search:
             # `%` y `_` del texto se escapan: son comodines de LIKE.
             escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             pattern = f"%{escaped.lower()}%"
-            stmt = stmt.where(
-                or_(
-                    func.lower(UserModel.full_name).like(pattern, escape="\\"),
-                    func.lower(UserModel.email).like(pattern, escape="\\"),
-                )
-            )
+            matches = [
+                func.lower(UserModel.full_name).like(pattern, escape="\\"),
+                func.lower(UserModel.email).like(pattern, escape="\\"),
+            ]
+            if also_user_ids:
+                matches.append(UserModel.id.in_(list(also_user_ids)))
+            stmt = stmt.where(or_(*matches))
         if role is not None:
             stmt = stmt.where(UserModel.role == role.value)
         if status is not None:

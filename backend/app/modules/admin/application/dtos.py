@@ -209,6 +209,7 @@ class LiveShiftRow:
     published_at: datetime
     minutes_open: int
     applications: int
+    no_show_at: datetime | None = None
 
 
 @dataclass
@@ -221,6 +222,7 @@ class LiveShiftsBoard:
     urgent: int
     escalated: int
     shifts: list[LiveShiftRow]
+    no_shows: int = 0
 
 
 @dataclass

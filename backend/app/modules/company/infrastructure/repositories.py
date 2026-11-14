@@ -109,6 +109,16 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         result = await self._session.execute(stmt)
         return {row[0]: row[1] for row in result.all()}
 
+    async def user_ids_by_name_search(self, search: str, *, limit: int = 200) -> list[UUID]:
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = (
+            select(CompanyProfileModel.user_id)
+            .where(func.lower(CompanyProfileModel.name).like(f"%{escaped.lower()}%", escape="\\"))
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [row[0] for row in result.all()]
+
     async def names_by_user_ids(self, user_ids: list[UUID]) -> dict[UUID, str]:
         if not user_ids:
             return {}

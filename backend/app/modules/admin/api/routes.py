@@ -68,8 +68,11 @@ async def live_shifts(
     service: ServiceDep,
     urgent: bool = False,
     escalated: bool = False,
+    no_shows: bool = False,
 ):
-    return await service.list_live_shifts(urgent_only=urgent, escalated_only=escalated)
+    return await service.list_live_shifts(
+        urgent_only=urgent, escalated_only=escalated, no_shows_only=no_shows
+    )
 
 
 @router.get(

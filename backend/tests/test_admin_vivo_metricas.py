@@ -208,15 +208,25 @@ async def test_live_shifts_query_count_is_constant(client, session_factory):
 async def test_today_counts_urgent_uncovered_and_no_shows(client, session_factory):
     admin = await _make_admin(client, session_factory, "hoy_admin@test.com")
     employer = await _employer(client, "hoy_emp@test.com", "Bar Hoy")
+    day_start, _ = day_bounds(datetime.now(UTC))
+    hoy_noche = day_start + timedelta(hours=23)  # 20:00 ART de hoy
 
-    await _published_shift(client, employer, urgent=True)
+    urgente = await _published_shift(client, employer, urgent=True)
+    await _set(session_factory, urgente, start_at=hoy_noche, end_at=hoy_noche + timedelta(hours=4))
     escalado = await _published_shift(client, employer)
-    await _set(session_factory, escalado, urgent=True, escalated_at=_ago(2))
+    await _set(
+        session_factory,
+        escalado,
+        urgent=True,
+        escalated_at=_ago(2),
+        start_at=hoy_noche,
+        end_at=hoy_noche + timedelta(hours=4),
+    )
     await _published_shift(client, employer)  # no urgente: no cuenta
     asignado = await _published_shift(client, employer, urgent=True)
-    await _set(session_factory, asignado, status="asignado")  # ya tiene a alguien
+    # ya tiene a alguien
+    await _set(session_factory, asignado, status="asignado", start_at=hoy_noche)
 
-    day_start, _ = day_bounds(datetime.now(UTC))
     hoy = await _published_shift(client, employer)
     await _set(session_factory, hoy, no_show_at=day_start + timedelta(minutes=1))
     ayer = await _published_shift(client, employer)
@@ -225,6 +235,63 @@ async def test_today_counts_urgent_uncovered_and_no_shows(client, session_factor
     resp = await client.get("/api/v1/admin/today", headers=admin)
     assert resp.status_code == 200
     assert resp.json() == {"urgent_uncovered": 2, "no_shows_today": 1}
+
+
+async def test_today_urgent_counts_only_shifts_starting_on_the_argentine_day(
+    client, session_factory
+):
+    """Un urgente de ayer o de mañana no es de la portada de hoy. El corte es
+    la medianoche ART (03:00 UTC), no la UTC: los bordes se prueban a uno y a
+    cero minutos de cada lado. Un turno que cruza la medianoche cuenta en el
+    día en que empieza."""
+    admin = await _make_admin(client, session_factory, "hoy_borde_admin@test.com")
+    employer = await _employer(client, "hoy_borde_emp@test.com", "Bar Borde")
+    day_start, day_end = day_bounds(datetime.now(UTC))
+    assert day_start.hour == 3 and day_end - day_start == timedelta(days=1)  # 00:00 ART
+
+    async def urgente(start: datetime) -> None:
+        shift_id = await _published_shift(client, employer, urgent=True)
+        await _set(
+            session_factory, shift_id, start_at=start, end_at=start + timedelta(hours=6)
+        )
+
+    async def contados() -> int:
+        resp = await client.get("/api/v1/admin/today", headers=admin)
+        return resp.json()["urgent_uncovered"]
+
+    await urgente(day_start - timedelta(days=1))  # ayer
+    await urgente(day_start - timedelta(minutes=1))  # 23:59 ART de ayer (cruza a hoy)
+    await urgente(day_end)  # 00:00 ART de mañana
+    await urgente(day_end + timedelta(days=1))  # pasado mañana
+    assert await contados() == 0
+
+    await urgente(day_start)  # 00:00 ART de hoy
+    await urgente(day_end - timedelta(minutes=1))  # 23:59 ART de hoy (cruza a mañana)
+    assert await contados() == 2
+
+
+async def test_live_shifts_no_shows_filter_lists_todays_absences(client, session_factory):
+    admin = await _make_admin(client, session_factory, "aus_admin@test.com")
+    employer = await _employer(client, "aus_emp@test.com", "Bar Ausencias")
+    day_start, _ = day_bounds(datetime.now(UTC))
+
+    hoy = await _published_shift(client, employer, title="Faltó hoy")
+    await _set(session_factory, hoy, no_show_at=day_start + timedelta(minutes=5))
+    ayer = await _published_shift(client, employer, title="Faltó ayer")
+    await _set(session_factory, ayer, no_show_at=day_start - timedelta(minutes=5))
+    await _published_shift(client, employer, title="Sin ausencia")
+
+    resp = await client.get("/api/v1/admin/live-shifts?no_shows=true", headers=admin)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [s["title"] for s in body["shifts"]] == ["Faltó hoy"]
+    assert body["shifts"][0]["no_show_at"] is not None
+    assert body["no_shows"] == 1
+    assert body["total"] == 3  # los totales siguen siendo los de la lista en vivo
+
+    todos = (await client.get("/api/v1/admin/live-shifts", headers=admin)).json()
+    assert todos["no_shows"] == 1
+    assert len(todos["shifts"]) == 3
 
 
 async def test_day_bounds_cut_at_argentina_midnight():
