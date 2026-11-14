@@ -107,11 +107,29 @@ const SHIFTS = [
   }),
 ];
 
+const AUSENTE = liveShift({
+  id: "s4",
+  title: "Mozo para el almuerzo",
+  company_name: "Bodegón Don Pepe",
+  minutes_open: 95,
+  no_show_at: agoMinutes(30),
+});
+
 function board(filter: string | null) {
-  const shifts = SHIFTS.filter((s) =>
-    filter === "urgent" ? s.urgent : filter === "escalated" ? s.escalated : true
-  );
-  return { generated_at: new Date().toISOString(), total: 3, urgent: 2, escalated: 1, shifts };
+  const shifts =
+    filter === "no_shows"
+      ? [AUSENTE]
+      : SHIFTS.filter((s) =>
+          filter === "urgent" ? s.urgent : filter === "escalated" ? s.escalated : true
+        );
+  return {
+    generated_at: new Date().toISOString(),
+    total: 3,
+    urgent: 2,
+    escalated: 1,
+    no_shows: 1,
+    shifts,
+  };
 }
 
 function period(days: number) {
@@ -185,7 +203,9 @@ async function mockLive(page: Page): Promise<string[]> {
       ? "urgent"
       : url.searchParams.has("escalated")
         ? "escalated"
-        : null;
+        : url.searchParams.has("no_shows")
+          ? "no_shows"
+          : null;
     return route.fulfill(json(board(filter)));
   });
   return calls;
@@ -260,6 +280,24 @@ test("Hoy suma urgentes sin cubrir y ausencias del día", async ({ page }) => {
   await urgentes.click();
   await expect(page).toHaveURL("/admin/en-vivo?filtro=urgentes");
   await expect(page.getByRole("list", { name: "Turnos sin cubrir" }).getByRole("listitem")).toHaveCount(2);
+});
+
+test("Ausencias de hoy lleva a su lista, con la hora de la ausencia", async ({ page }) => {
+  await mockAdmin(page);
+  const calls = await mockLive(page);
+  await page.goto("/admin");
+
+  await page.getByRole("link", { name: /Ausencias de hoy/ }).click();
+  await expect(page).toHaveURL("/admin/en-vivo?filtro=ausencias");
+  await expect(page.getByRole("button", { name: "Ausencias (1)" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  const list = page.getByRole("list", { name: "Turnos sin cubrir" });
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await expect(list.getByRole("listitem").first()).toContainText("Mozo para el almuerzo");
+  await expect(list.getByRole("listitem").first()).toContainText("ausencia");
+  expect(calls.at(-1)).toBe("?no_shows=true");
 });
 
 test("Métricas compara el período con el anterior y cambia a 30 días", async ({ page }) => {

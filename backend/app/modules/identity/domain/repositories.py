@@ -5,6 +5,7 @@ concretas (adaptadores) viven en la capa de infraestructura.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -64,8 +65,13 @@ class UserRepository(ABC):
         role: UserRole | None = None,
         status: UserStatus | None = None,
         verified: bool | None = None,
+        also_user_ids: Sequence[UUID] = (),
     ) -> list[User]:
         """Lista usuarios (más recientes primero).
+
+        `also_user_ids`: con `search`, suma a los que coinciden por nombre o
+        email estos usuarios (los que el caso de uso encontró por otro dato,
+        p. ej. el nombre del local); el resto de los filtros sigue valiendo.
 
         Filtros opcionales del buscador de "Personas" (panel de admin):
         `search` busca en nombre y email sin distinguir mayúsculas; `role`,

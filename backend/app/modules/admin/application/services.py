@@ -133,13 +133,17 @@ class AdminService:
         """Lista usuarios paginados (más recientes primero), con los filtros
         del buscador de "Personas" y la foto de perfil (trabajador) o logo
         (comercio) resuelta en 2 consultas batch en vez de una por fila."""
+        term = search.strip() if search else None
+        # También por nombre del local: el dueño suele figurar con su nombre.
+        by_company = await self._companies.user_ids_by_name_search(term) if term else []
         users = await self._users.list_all(
             limit=limit,
             offset=offset,
-            search=search.strip() if search else None,
+            search=term,
             role=role,
             status=status,
             verified=verified,
+            also_user_ids=by_company,
         )
         return await self._rows(users)
 
@@ -307,19 +311,29 @@ class AdminService:
         *,
         urgent_only: bool = False,
         escalated_only: bool = False,
+        no_shows_only: bool = False,
         now: datetime | None = None,
     ) -> LiveShiftsBoard:
         """"Turnos en vivo": publicados y sin nadie confirmado, con los
         minutos que llevan sin cubrir, el comercio y cuántas postulaciones
-        tienen. Tres consultas fijas (turnos, comercios, postulaciones),
-        sin importar cuántos turnos haya."""
+        tienen. Cuatro consultas fijas (turnos en vivo, ausencias de hoy,
+        comercios, postulaciones), sin importar cuántos turnos haya.
+
+        Con `no_shows_only` la lista son las ausencias del día argentino de
+        hoy (las mismas que cuenta la portada), estén o no cubiertas de
+        nuevo; los totales son siempre los de la lista en vivo."""
         now = now or now_art()
-        shifts = await self._shifts.list_live(limit=self.LIVE_SHIFTS_LIMIT)
+        live = await self._shifts.list_live(limit=self.LIVE_SHIFTS_LIMIT)
+        day_start, day_end = day_bounds(now)
+        absent = await self._shifts.list_no_shows(
+            day_start=day_start, day_end=day_end, limit=self.LIVE_SHIFTS_LIMIT
+        )
+        shifts = list({s.id: s for s in [*live, *absent]}.values())
         companies = await self._companies.list_by_ids(list({s.company_id for s in shifts}))
         applications = await self._applications.count_active_by_shift_ids([s.id for s in shifts])
 
-        rows = [
-            LiveShiftRow(
+        def _row(s) -> LiveShiftRow:
+            return LiveShiftRow(
                 id=s.id,
                 title=s.title,
                 position=s.position.value,
@@ -336,21 +350,26 @@ class AdminService:
                     int((now - to_art(s.published_at)).total_seconds() // 60), 0
                 ),
                 applications=applications.get(s.id, 0),
+                no_show_at=s.no_show_at,
             )
-            for s in shifts
-            if s.published_at is not None
-        ]
-        filtered = [
-            r
-            for r in rows
-            if (not urgent_only or r.urgent) and (not escalated_only or r.escalated)
-        ]
+
+        rows = [_row(s) for s in live if s.published_at is not None]
+        absent_rows = [_row(s) for s in absent if s.published_at is not None]
+        if no_shows_only:
+            shown = absent_rows
+        else:
+            shown = [
+                r
+                for r in rows
+                if (not urgent_only or r.urgent) and (not escalated_only or r.escalated)
+            ]
         return LiveShiftsBoard(
             generated_at=now,
             total=len(rows),
             urgent=sum(1 for r in rows if r.urgent),
             escalated=sum(1 for r in rows if r.escalated),
-            shifts=filtered,
+            no_shows=len(absent_rows),
+            shifts=shown,
         )
 
     async def get_today_counts(self, *, now: datetime | None = None) -> TodayCounts:

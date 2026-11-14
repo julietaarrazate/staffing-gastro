@@ -283,10 +283,18 @@ class ShiftRepository(ABC):
         publicado sin cubrir. Una sola consulta, acotada a `limit`."""
 
     @abstractmethod
+    async def list_no_shows(
+        self, *, day_start: datetime, day_end: datetime, limit: int = 200
+    ) -> list[Shift]:
+        """Turnos con `no_show_at` en `[day_start, day_end)` (las ausencias de
+        hoy de la portada), la más reciente primero. Una consulta, acotada."""
+
+    @abstractmethod
     async def count_today(
         self, *, day_start: datetime, day_end: datetime
     ) -> ShiftTodayCounts:
-        """Urgentes sin cubrir (abiertos, `urgent`) y no-shows con
+        """Urgentes sin cubrir (abiertos, `urgent`, con `start_at` en
+        `[day_start, day_end)`) y no-shows con
         `no_show_at` en `[day_start, day_end)` — el día de negocio lo arma
         quien llama con `hoy_art()`. Una sola consulta con SUM/CASE."""
 

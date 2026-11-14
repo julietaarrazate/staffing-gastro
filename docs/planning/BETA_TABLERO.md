@@ -139,7 +139,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 | Hallazgos | Qué es | Estado | Dónde / nota |
 |---|---|---|---|
-| U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G26 |
+| U125, U126, U127 | «Urgentes sin cubrir» en la portada del admin cuenta urgentes de cualquier día, no sólo de hoy (y 2 más de la misma causa) | ✅ en `main` | #580 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U128 | Los tickets no se pueden reabrir, y un mensaje del admin en un ticket cerrado le llega a la persona sin que… | ✅ en `main` | #576 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 
 ### Lo que salió de las revisiones y no tiene hallazgo propio
@@ -212,6 +212,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   quedan rechazados (raro; salió de la revisión de #572).
 - El detalle de un turno cancelado por la suspensión del comercio dice «El
   comercio canceló este turno.» (el aviso sí es neutro; #572).
+- Admin: la tarjeta «Urgentes sin cubrir» cuenta los urgentes abiertos que
+  empiezan hoy (día argentino), pero la lista a la que lleva
+  (`/admin/en-vivo?filtro=urgentes`) muestra también asignados y de otros
+  días: los números pueden no coincidir (salió de la revisión de #580).
 
 ### Hallazgos nuevos de la prueba en la app (2026-11-14)
 

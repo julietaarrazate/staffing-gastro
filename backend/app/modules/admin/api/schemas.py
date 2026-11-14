@@ -179,6 +179,7 @@ class LiveShiftResponse(BaseModel):
     published_at: datetime
     minutes_open: int
     applications: int
+    no_show_at: datetime | None = None
 
 
 class LiveShiftsResponse(BaseModel):
@@ -190,6 +191,7 @@ class LiveShiftsResponse(BaseModel):
     total: int
     urgent: int
     escalated: int
+    no_shows: int = 0
     shifts: list[LiveShiftResponse]
 
 

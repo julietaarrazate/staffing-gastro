@@ -127,11 +127,11 @@ test("busca por nombre, filtra por rol y abre la ficha", async ({ page }) => {
   await expect(page.getByText("Pepe Bodegón")).toBeVisible();
   await expect(page.getByText("Suspendido", { exact: true })).toBeVisible();
 
-  await page.getByLabel("Buscar por nombre o email").fill("ana");
+  await page.getByLabel("Buscar por nombre, email o nombre del local").fill("ana");
   await expect(page.getByText("Pepe Bodegón")).toHaveCount(0);
   await expect.poll(() => queries.some((q) => q.includes("q=ana"))).toBe(true);
 
-  await page.getByLabel("Buscar por nombre o email").fill("");
+  await page.getByLabel("Buscar por nombre, email o nombre del local").fill("");
   await page.getByRole("button", { name: "Comercios" }).click();
   await expect(page.getByText("Ana Mozo")).toHaveCount(0);
   await expect.poll(() => queries.some((q) => q.includes("role=employer"))).toBe(true);

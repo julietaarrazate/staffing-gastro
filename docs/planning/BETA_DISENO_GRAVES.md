@@ -93,10 +93,3 @@ escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
   encuadre sigue a los dos puntos en cada actualización.
 - G23 `app/search/page.tsx`: parte del local (`lib/company-place.ts`) y lo
   dice («Desde tu local»).
-
-### G26 · La portada del admin cuenta lo de hoy (U125, U126, U127) — S
-
-`shift/infrastructure/repositories.py`: «urgentes sin cubrir» filtra por el
-día argentino. «Ausencias de hoy» lleva a su lista
-(`/admin/en-vivo?filtro=ausencias`). El buscador de Personas encuentra por
-nombre del local.
