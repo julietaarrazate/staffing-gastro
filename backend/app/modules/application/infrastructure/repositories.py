@@ -146,6 +146,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 years_experience=worker.years_experience,
                 badges=tuple(WorkerBadge(b) for b in (worker.badges or [])),
                 level=GamificationLevel(worker.level),
+                user_id=worker.user_id,
             )
             for application, worker, full_name in result.all()
         ]

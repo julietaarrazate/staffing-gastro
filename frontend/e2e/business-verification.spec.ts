@@ -114,9 +114,26 @@ test("verificado muestra el sello y ya no pide nada", async ({ page }) => {
 
   await page.goto("/profile");
 
-  await expect(
-    page.getByText("Comercio verificado", { exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  // Dos veces a propósito: el sello del encabezado y el de la tarjeta.
+  await expect(page.getByText("Comercio verificado", { exact: true })).toHaveCount(2, {
+    timeout: 15_000,
+  });
   await expect(page.getByRole("button", { name: /Subir constancia/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Enviar a revisión/ })).toHaveCount(0);
+});
+
+test("mail confirmado sin constancia aprobada no muestra ningún sello (G5)", async ({
+  page,
+}) => {
+  // La sesión trae `is_verified: true` (mail confirmado): antes eso pintaba
+  // «Identidad verificada» en el perfil del comercio.
+  await setup(page, [businessClaim("pendiente")]);
+
+  await page.goto("/profile");
+
+  await expect(page.getByText(/Estamos revisando tu constancia/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("Comercio verificado")).toHaveCount(0);
+  await expect(page.getByText("Identidad verificada")).toHaveCount(0);
 });

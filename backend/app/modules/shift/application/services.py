@@ -681,15 +681,30 @@ class ShiftService:
         await self._restore_rejected_applicants(shift_id)
         if absent_worker_profile_id is not None:
             await self._workers.record_no_show(absent_worker_profile_id)
+            nombre = updated.title or updated.position.label
+            if _trigger == "automatic":
+                # Nadie lo marcó: el sistema no vio su llegada. Se le cuenta
+                # como fue (U082/U089) y se le dice cómo reclamar.
+                title = "No registramos tu llegada"
+                message = (
+                    f"No registramos tu llegada al turno \"{nombre}\" y quedó "
+                    "como ausencia. Si fue un error, escribinos desde Soporte."
+                )
+            else:
+                title = "Te marcaron como no presentado"
+                message = (
+                    f"El comercio marcó que no te presentaste al turno "
+                    f"\"{nombre}\". Esto impacta tu reputación. "
+                    "Si fue un error, escribinos desde Soporte."
+                )
+            # El aviso tiene un solo destino: el perfil, donde se ve la
+            # ausencia. «Soporte» queda como texto, no como segundo link.
             await self._notify_worker(
                 absent_worker_profile_id,
                 NotificationType.SHIFT_NO_SHOW,
-                "Te marcaron como no presentado",
-                (
-                    f"El comercio marcó que no te presentaste al turno "
-                    f"\"{updated.title or updated.position.label}\". "
-                    "Esto impacta tu reputación."
-                ),
+                title,
+                message,
+                link="/profile",
             )
         return updated
 
@@ -769,6 +784,12 @@ class ShiftService:
         confirmar, no se le manda nada — no hay nada que ese trabajador tenga
         que hacer con esa noticia, el momento ya pasó."""
         shift = await self.get_shift(shift_id)
+        # Una ausencia previa (`no_show_at`, que sólo pone `Shift.no_show()` y
+        # nunca se limpia) hace falso decir «nadie confirmó» (U082). El texto de
+        # la ausencia vale en todos los caminos: aun si después se asignó a otra
+        # persona y no llegó a confirmar o canceló, igual hubo alguien confirmado
+        # que no se presentó y no se consiguió reemplazo a tiempo.
+        tras_ausencia = shift.no_show_at is not None
         shift.mark_not_covered()
         updated = await self._shifts.update(shift)
         logger.info(
@@ -780,8 +801,14 @@ class ShiftService:
             NotificationType.SHIFT_NOT_COVERED,
             "Un turno quedó sin cubrir",
             (
-                f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
-                "sin que nadie confirmara. Podés publicarlo de nuevo."
+                f"\"{updated.title or updated.position.label}\" quedó sin cubrir: una "
+                "persona confirmada no se presentó y no se consiguió reemplazo a "
+                "tiempo. Podés publicarlo de nuevo."
+                if tras_ausencia
+                else (
+                    f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
+                    "sin que nadie confirmara. Podés publicarlo de nuevo."
+                )
             ),
         )
         return updated

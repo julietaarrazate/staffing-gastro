@@ -21,12 +21,15 @@ from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
 from app.modules.shift.api.schemas import ShiftResponse, without_worker_data
 from app.modules.shift.domain.entities import Shift
+from app.modules.verification.api.dependencies import get_verification_service
+from app.modules.verification.application.services import VerificationService
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 ServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
+VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
 # Idempotencia (product/IDEMPOTENCIA_SPEC.md): último parámetro de
@@ -151,6 +154,7 @@ async def shift_applicants(
     shift_id: UUID,
     company_id: CompanyIdDep,
     service: ServiceDep,
+    verification: VerificationDep,
 ):
     try:
         applicants = await service.list_applicants(company_id, shift_id)
@@ -158,7 +162,11 @@ async def shift_applicants(
         raise _SHIFT_NOT_FOUND from exc
 
     # Enriquecido ya viene resuelto del repo (JOIN, sin N+1): sólo se mapea
-    # al esquema de respuesta (mismo shape que antes).
+    # al esquema de respuesta. «Identidad verificada» (dominio Identity, por
+    # puerto, igual que en matching) se pide en UNA consulta para todos.
+    verified = await verification.verified_user_ids(
+        [a.user_id for a in applicants if a.user_id is not None]
+    )
     return [
         ApplicantResponse(
             application_id=applicant.application_id,
@@ -174,6 +182,7 @@ async def shift_applicants(
             years_experience=applicant.years_experience,
             badges=list(applicant.badges),
             level=applicant.level,
+            identidad_verificada=applicant.user_id in verified,
         )
         for applicant in applicants
     ]

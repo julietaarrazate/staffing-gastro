@@ -5,8 +5,8 @@ import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { formatPayAmount, payPerHour } from "@/lib/pay";
-import { Avatar } from "@/components/ui";
-import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon } from "@/components/icons";
+import { Avatar, Badge } from "@/components/ui";
+import { ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
@@ -141,21 +141,29 @@ export default function OpportunityCard({
             el título de abajo — bug real reportado por Julieta con captura,
             "Catering Puerto Madero" pisando "Personal de eventos", 2026-07-29). */}
         <div className="relative flex items-center justify-between gap-2 p-3.5">
-          {preview ? (
-            <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm">
-              <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
-              <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
-            </span>
-          ) : (
-            <Link
-              href={`/companies/${shift.company_id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
-            >
-              <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
-              <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
-            </Link>
-          )}
+          <div className="flex min-w-0 flex-col items-start gap-1.5">
+            {preview ? (
+              <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm">
+                <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
+                <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+              </span>
+            ) : (
+              <Link
+                href={`/companies/${shift.company_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
+              >
+                <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
+                <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
+              </Link>
+            )}
+            {/* ADR-0011: el mismo sello que `ShiftCard`; el dato ya viaja. */}
+            {shift.company_verified && (
+              <Badge tone="trust" icon={<ShieldIcon size={11} />} className="shadow-sm">
+                Comercio verificado
+              </Badge>
+            )}
+          </div>
           <div className="flex shrink-0 items-center gap-2">
             {shift.urgent && (
               <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-danger-text shadow-sm">

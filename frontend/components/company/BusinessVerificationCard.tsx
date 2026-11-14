@@ -36,7 +36,12 @@ const MAX_SIZE_MB = 10;
  * `admin_manual`), no se valida el CUIT contra AFIP. Mismo criterio que el
  * mail de verificación de identidad del trabajador.
  */
-export default function BusinessVerificationCard() {
+export default function BusinessVerificationCard({
+  onVerifiedChange,
+}: {
+  /** Avisa si la constancia está aprobada (para el sello del encabezado del perfil). */
+  onVerifiedChange?: (verified: boolean) => void;
+} = {}) {
   const { token } = useAuth();
   const [summary, setSummary] = useState<IdentitySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +70,11 @@ export default function BusinessVerificationCard() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!summary) return;
+    onVerifiedChange?.(businessClaim(summary)?.status === "verificada");
+  }, [summary, onVerifiedChange]);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

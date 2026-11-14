@@ -96,3 +96,66 @@ describe("WorkerGameCard: cambiar la foto", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos guardar tu foto");
   });
 });
+
+describe("WorkerGameCard: cancelaciones y ausencias en el perfil propio", () => {
+  beforeEach(() => get.mockReset());
+
+  function conPerfil(p: WorkerProfile) {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/workers/me/earnings") throw new Error("sin ganancias");
+      return p;
+    });
+  }
+
+  it("sin turnos hechos pero con 1 ausencia y 1 cancelación, las muestra", async () => {
+    conPerfil(perfil({ events_completed: 0, no_shows: 1, cancellations: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Ausencias")).toBeInTheDocument();
+    expect(screen.getByText("Cancelaciones")).toBeInTheDocument();
+    expect(screen.getByText("Tu reputación arranca con tu primer turno.")).toBeInTheDocument();
+    // Sin historia no aparece el resto de la tarjeta.
+    expect(screen.queryByText("Turnos")).not.toBeInTheDocument();
+  });
+
+  it("sin turnos y sin faltas, sigue el mensaje de siempre y nada más", async () => {
+    conPerfil(perfil());
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Tu reputación arranca con tu primer turno.")).toBeInTheDocument();
+    expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cancelaciones")).not.toBeInTheDocument();
+  });
+
+  it("con turnos hechos y una ausencia, la suma a los demás datos", async () => {
+    conPerfil(perfil({ events_completed: 3, no_shows: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Ausencias")).toBeInTheDocument();
+    expect(screen.getByText("Turnos")).toBeInTheDocument();
+  });
+
+  it("con turnos hechos y sin ausencias, queda como antes (sin «Ausencias»)", async () => {
+    conPerfil(perfil({ events_completed: 3 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Cancelaciones")).toBeInTheDocument();
+    expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
+  });
+
+  it("con al menos una ausencia o cancelación, ofrece escribir a Soporte en un toque", async () => {
+    conPerfil(perfil({ no_shows: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText(/¿Alguna no corresponde\?/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Soporte" })).toHaveAttribute("href", "/support");
+  });
+
+  it("con turnos hechos y una cancelación, también", async () => {
+    conPerfil(perfil({ events_completed: 3, cancellations: 1 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByRole("link", { name: "Soporte" })).toHaveAttribute("href", "/support");
+  });
+
+  it("sin ausencias ni cancelaciones no aparece", async () => {
+    conPerfil(perfil({ events_completed: 3 }));
+    render(<WorkerGameCard />);
+    expect(await screen.findByText("Turnos")).toBeInTheDocument();
+    expect(screen.queryByText(/¿Alguna no corresponde\?/)).not.toBeInTheDocument();
+  });
+});

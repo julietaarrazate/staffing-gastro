@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
@@ -7,16 +8,16 @@ import BusinessVerificationCard from "@/components/company/BusinessVerificationC
 import LateCancellations from "@/components/company/LateCancellations";
 import EditableName from "@/components/EditableName";
 import WorkerGameCard from "@/components/worker/WorkerGameCard";
-import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
+import { Badge, Skeleton } from "@/components/ui";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import { Row, RowGroup } from "@/components/profile/ProfileParts";
-import { Skeleton } from "@/components/ui";
 import { shareBusinessInvite } from "@/lib/business-invite";
 import {
   BuildingIcon,
   CreditCardIcon,
   HeartIcon,
   PencilIcon,
+  ShieldIcon,
   SettingsIcon,
   ShareIcon,
 } from "@/components/icons";
@@ -31,6 +32,9 @@ import {
  */
 export default function ProfilePage() {
   const { user, token, loading } = useAuth();
+  // La tarjeta de verificación ya pide `/identity/me`: avisa acá si la
+  // constancia está aprobada, sin pedirlo dos veces.
+  const [comercioVerificado, setComercioVerificado] = useState(false);
 
   if (loading) {
     // Mismo estilo de skeleton que el resto de la app (batch C3,
@@ -83,7 +87,14 @@ export default function ProfilePage() {
                   <span className="inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
                     {user.role === "admin" ? "Administrador" : "Comercio"}
                   </span>
-                  <IdentityVerifiedBadge verified={user.is_verified} />
+                  {/* Antes: `user.is_verified` (mail confirmado) con el texto
+                      «Identidad verificada». Ahora sólo con la constancia
+                      aprobada (claim `negocio_verificado`, G5). */}
+                  {user.role === "employer" && comercioVerificado && (
+                    <Badge tone="trust" icon={<ShieldIcon size={13} />}>
+                      Comercio verificado
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -96,7 +107,7 @@ export default function ProfilePage() {
               pieza de confianza, no una tarjeta de contenido más. */}
           {user.role !== "admin" && (
             <div className="mt-4 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
-              {user.role === "worker" ? <IdentityVerificationCard /> : <BusinessVerificationCard />}
+              {user.role === "worker" ? <IdentityVerificationCard /> : <BusinessVerificationCard onVerifiedChange={setComercioVerificado} />}
             </div>
           )}
 

@@ -7,7 +7,7 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatShiftWhen } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
-import { ChevronRightIcon, FlameIcon } from "@/components/icons";
+import { ChevronRightIcon, FlameIcon, ShieldIcon } from "@/components/icons";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 
 function formatDistance(km: number): string {
@@ -58,7 +58,23 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
         )}
       </div>
       <p className="mt-2 truncate text-sm font-semibold text-ink">{SKILL_LABELS[shift.position]}</p>
-      {where && <p className="truncate text-xs text-ink/55">{where}</p>}
+      {(where || shift.company_verified) && (
+        <p className="flex items-center gap-1 text-xs text-ink/55">
+          {/* Forma compacta (156 px no alcanzan para el texto): sello de
+              `company_verified` con nombre accesible completo. */}
+          {shift.company_verified && (
+            <span
+              role="img"
+              aria-label="Comercio verificado"
+              title="Comercio verificado"
+              className="inline-flex shrink-0 text-cielo-text"
+            >
+              <ShieldIcon size={13} />
+            </span>
+          )}
+          <span className="truncate">{where}</span>
+        </p>
+      )}
       <p className="mt-0.5 truncate text-xs text-ink/55">{formatShiftWhen(shift.start_at, shift.end_at)}</p>
       <p className="mt-0.5 text-sm font-bold text-ink">{formatPayAmount(shift)}</p>
     </Link>

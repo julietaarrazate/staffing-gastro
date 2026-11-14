@@ -88,37 +88,6 @@ Todo en `lib/auth-context.tsx`, `lib/use-require-auth.ts`, `lib/api.ts`.
 - Pruebas: `lib/auth-context.test.tsx` (los cuatro casos); en la app, vencer
   la sesión a mitad de publicar y cerrar sesión con dos pestañas.
 
-### G5 · Los sellos de confianza dicen la verdad (U038, U090, U108) — S
-
-- `app/profile/page.tsx`: dejar de pasar `user.is_verified` (mail confirmado)
-  a `IdentityVerifiedBadge`. Comercio: sólo «Comercio verificado» con la
-  constancia aprobada. Trabajador: sólo con la identidad verificada.
-- `components/worker/OpportunityCard.tsx`: mostrar el sello con
-  `shift.company_verified` (el dato ya viaja), igual que `ShiftCard`.
-- `application/api/schemas.py` (`ApplicantResponse`) suma
-  `identidad_verificada`, calculada como en `matching/api/routes.py` (por
-  puerto, sin importar el otro módulo por dentro); `CandidateCard` la muestra.
-- Pruebas: test de la ruta de postulantes; capturas en claro y oscuro de
-  Inicio, perfil del comercio y postulantes.
-
-### G3 · La ausencia automática se cuenta como fue (U082, U089) — S
-
-- `shift/application/services.py` (`mark_no_show`): con `_trigger="auto"`
-  textos propios. Trabajador: «No registramos tu llegada al turno X y quedó
-  como ausencia. Si fue un error, escribinos desde Soporte», con link a
-  `/support`. Comercio: «La persona confirmada no marcó su llegada a X», y
-  qué pasó con el turno. El texto manual también suma cómo reclamar. Mismos
-  destinatarios que hoy: sólo cambia el texto. Actualizar
-  `docs/reference/NOTIFICATIONS.md`.
-- `components/worker/WorkerGameCard.tsx`: en el perfil **propio**, las
-  cancelaciones y las ausencias se muestran cuando hay al menos una, aunque
-  todavía no haya turnos hechos (decisión 12). Lo que ve un comercio no
-  cambia.
-- El aviso de ausencia lleva al perfil, no a Matches vacío
-  (`lib/notification-link.ts`).
-- Que la ausencia automática (2 h) coincida con el fin de la búsqueda va con
-  U080 (decisión 4), no acá.
-
 ## Ola B
 
 ### G2 · Segundo toque, segunda parte (U006, U007, U008) — S
@@ -179,7 +148,9 @@ link de turno sin sesión, registrarse y terminar en ese turno.
 `app/shifts/[id]/candidates/page.tsx`, `components/CandidateCard.tsx`,
 `app/chats/layout.tsx`, `app/admin/en-vivo/page.tsx` y
 `app/admin/support/page.tsx`. Capturas a 390 px con un nombre de 60 letras,
-en claro y oscuro.
+en claro y oscuro. La lista de postulantes de
+`app/shifts/[id]/candidates/page.tsx` ya no se sale con un nombre largo
+(`min-w-0`, #561): ahí falta sólo verificarlo.
 
 ## Ola C
 
