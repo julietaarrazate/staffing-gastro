@@ -35,13 +35,24 @@ from app.modules.shift.domain.pay_benchmark import (
 )
 from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
+    AssigneeUnavailableError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.punctuality import arrived_on_time
 from app.modules.shift.domain.repositories import ShiftRepository
-from app.modules.shift.domain.value_objects import COMMITTED_STATUSES
+from app.modules.shift.domain.suspension import (
+    AccountSuspensionEffects,
+    SuspensionImpact,
+    shifts_hidden_by_company_suspension,
+    shifts_taken_not_started,
+)
+from app.modules.shift.domain.value_objects import (
+    COMMITTED_STATUSES,
+    OPEN_STATUSES,
+    TAKEN_NOT_STARTED_STATUSES,
+)
 from app.core.config import settings
 from app.modules.subscription.domain.entities import Subscription
 from app.modules.subscription.domain.exceptions import (
@@ -112,8 +123,12 @@ NOT_COVERED_GRACE_NORMAL = NO_SHOW_GRACE_PERIOD
 FEED_RADIUS_KM = ESCALATION_RADIUS_KM
 
 
-class ShiftService:
-    """Servicio de aplicación para gestionar turnos."""
+class ShiftService(AccountSuspensionEffects):
+    """Servicio de aplicación para gestionar turnos.
+
+    También implementa el puerto `AccountSuspensionEffects` (ADR-0024): la
+    administración le pide por ahí qué pasa con los turnos de una cuenta que
+    va a suspender, sin importar este caso de uso."""
 
     def __init__(
         self,
@@ -429,7 +444,8 @@ class ShiftService:
             )
 
     async def list_shifts_awaiting_escalation(self) -> list[Shift]:
-        """Turnos abiertos sin escalar, para el scheduler de urgencia."""
+        """Turnos abiertos sin escalar, para el scheduler de urgencia (sin los
+        de comercios suspendidos, ADR-0024: ver el repositorio)."""
         return await self._shifts.list_open_awaiting_escalation()
 
     async def escalate_urgency(self, shift_id: UUID) -> Shift:
@@ -833,8 +849,15 @@ class ShiftService:
         revierten (`_restore_rejected_applicants`)."""
         shift = await self._get_owned(company_id, shift_id)
         # Un perfil inexistente antes terminaba en error de FK (500).
-        if await self._workers.get_by_id(worker_profile_id) is None:
+        profile = await self._workers.get_by_id(worker_profile_id)
+        if profile is None:
             raise AssigneeNotFoundError()
+        # Cuenta suspendida (ADR-0024): no podría entrar a confirmar y el
+        # turno quedaría «Esperando que confirme» para siempre. Se corta acá,
+        # antes de tocar el turno y a los demás postulantes.
+        user = await self._users.get_by_id(profile.user_id)
+        if user is None or not user.is_active:
+            raise AssigneeUnavailableError()
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(
@@ -1069,6 +1092,145 @@ class ShiftService:
             link=f"/shifts/{updated.id}/candidates",
         )
         return updated
+
+    # --- Suspensión de una cuenta (ADR-0024) ---------------------------------
+
+    async def company_account_active(self, company_id: UUID) -> bool:
+        """¿La cuenta dueña de este comercio está activa? Con la cuenta
+        suspendida, sus turnos no se muestran a quien no es parte (ADR-0024)."""
+        company = await self._companies.get_by_id(company_id)
+        if company is None:
+            return False
+        user = await self._users.get_by_id(company.user_id)
+        return user is not None and user.is_active
+
+    async def preview_account_suspension(self, user_id: UUID) -> SuspensionImpact:
+        """Cuántos turnos tocaría suspender esta cuenta, sin cambiar nada. Lo
+        ve la admin antes de confirmar (ADR-0024, punto 4)."""
+        impact = SuspensionImpact()
+        company = await self._companies.get_by_user_id(user_id)
+        if company is not None:
+            open_shifts = await self._shifts.list_by_company_and_statuses(
+                company.id, OPEN_STATUSES
+            )
+            taken = await self._shifts.list_by_company_and_statuses(
+                company.id, TAKEN_NOT_STARTED_STATUSES
+            )
+            now = datetime.now(timezone.utc)
+            hidden = shifts_hidden_by_company_suspension(open_shifts, now)
+            impact += SuspensionImpact(
+                hidden=len(hidden), cancelled=len(shifts_taken_not_started(taken, now))
+            )
+        worker = await self._workers.get_by_user_id(user_id)
+        if worker is not None:
+            taken = await self._shifts.list_by_worker_and_statuses(
+                worker.id, TAKEN_NOT_STARTED_STATUSES
+            )
+            impact += SuspensionImpact(
+                reopened=len(shifts_taken_not_started(taken, datetime.now(timezone.utc)))
+            )
+        return impact
+
+    async def apply_account_suspension(self, user_id: UUID) -> SuspensionImpact:
+        """Lo que la suspensión le hace a los turnos de esta cuenta (ADR-0024).
+
+        - Comercio: los turnos con alguien asignado o confirmado que no
+          empezaron se cancelan, con aviso a esa persona y sin cancelación
+          tardía. Los abiertos no se tocan: se ocultan solos mientras la
+          cuenta no esté activa (`ids_with_inactive_account`).
+        - Trabajador: sus turnos asignados o confirmados que no empezaron se
+          reabren, con aviso al comercio y sin sumarle una cancelación.
+
+        La admin lo llama antes de marcar la cuenta como suspendida y otra
+        vez después (`AdminService.suspend_user`). Cada turno se guarda por separado,
+        como en el resto de los casos de uso; si uno falla, la cuenta queda
+        sin suspender y la admin puede repetir: los turnos ya resueltos no
+        vuelven a entrar (ya no están en esos estados) y siguen los que
+        faltaban. Los avisos no hacen fallar nada."""
+        hidden_count = (await self.preview_account_suspension(user_id)).hidden
+        cancelled = 0
+        reopened = 0
+        company = await self._companies.get_by_user_id(user_id)
+        if company is not None:
+            taken = await self._shifts.list_by_company_and_statuses(
+                company.id, TAKEN_NOT_STARTED_STATUSES
+            )
+            for shift in shifts_taken_not_started(taken, datetime.now(timezone.utc)):
+                await self._cancel_for_company_suspension(shift)
+                cancelled += 1
+        worker = await self._workers.get_by_user_id(user_id)
+        if worker is not None:
+            taken = await self._shifts.list_by_worker_and_statuses(
+                worker.id, TAKEN_NOT_STARTED_STATUSES
+            )
+            for shift in shifts_taken_not_started(taken, datetime.now(timezone.utc)):
+                await self._reopen_for_worker_suspension(shift)
+                reopened += 1
+        return SuspensionImpact(hidden=hidden_count, cancelled=cancelled, reopened=reopened)
+
+    async def _cancel_for_company_suspension(self, shift: Shift) -> None:
+        """Cancela un turno tomado de un comercio suspendido. A diferencia de
+        `cancel_shift`, no es cancelación tardía: no la decidió el comercio
+        (no se llama a `record_late_cancellation`)."""
+        assigned = shift.worker_profile_id
+        shift.cancel()
+        updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.cancelled_by_suspension",
+            extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+        )
+        if assigned is None:
+            return
+        name = updated.title or updated.position.label
+        try:
+            await self._notify_worker(
+                assigned,
+                NotificationType.SHIFT_CANCELLED,
+                "Se canceló un turno tuyo",
+                (
+                    f"\"{name}\" se canceló. Ya no tenés que ir ni responder, y "
+                    "no cuenta en tu reputación. Mirá otros turnos cerca."
+                ),
+                link="/feed",
+            )
+        except Exception:
+            logger.exception(
+                "Aviso de turno cancelado por suspensión: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                updated.id,
+            )
+
+    async def _reopen_for_worker_suspension(self, shift: Shift) -> None:
+        """Reabre un turno de un trabajador suspendido, como `worker_cancel`
+        (vuelve a buscar personal y los demás postulantes vuelven a estar en
+        carrera), pero sin `record_cancellation`: la medida es la
+        suspensión, no una cancelación suya."""
+        shift.release_worker()
+        updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.reopened_by_suspension",
+            extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+        )
+        await self._restore_rejected_applicants(updated.id)
+        name = updated.title or updated.position.label
+        try:
+            await self._notify_company(
+                updated.company_id,
+                NotificationType.SHIFT_REOPENED,
+                "Tu turno volvió a buscar personal",
+                (
+                    f"La persona asignada a \"{name}\" ya no puede tomarlo. "
+                    "El turno volvió a buscar personal: elegí a otra persona "
+                    "entre los postulantes."
+                ),
+                link=f"/shifts/{updated.id}/candidates",
+            )
+        except Exception:
+            logger.exception(
+                "Aviso de turno reabierto por suspensión: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                updated.id,
+            )
 
     async def depart(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
         """El trabajador asignado marca que salió hacia el turno."""

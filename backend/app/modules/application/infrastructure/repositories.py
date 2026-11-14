@@ -9,7 +9,7 @@ el perfil y el usuario de cada postulante con un único JOIN (fix de P2 en
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.application.domain.entities import (
@@ -23,6 +23,7 @@ from app.modules.application.domain.repositories import (
 )
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.infrastructure.models import ShiftApplicationModel
+from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
@@ -128,6 +129,9 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             )
             .outerjoin(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(ShiftApplicationModel.shift_id == shift_id)
+            # Cuenta suspendida: no se muestra (ADR-0024, mismo criterio que
+            # «Recomendados»). Sin usuario resuelto sigue el fallback de arriba.
+            .where(or_(UserModel.id.is_(None), UserModel.status == UserStatus.ACTIVE.value))
             .order_by(ShiftApplicationModel.created_at.desc())
         )
         result = await self._session.execute(stmt)
@@ -205,11 +209,19 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
     async def count_pending_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
         if not shift_ids:
             return {}
+        # Mismas filas que la lista de postulantes (`list_by_shift_enriched`):
+        # sin perfil no cuenta, y una cuenta suspendida tampoco (ADR-0024).
         stmt = (
             select(ShiftApplicationModel.shift_id, func.count())
+            .join(
+                WorkerProfileModel,
+                WorkerProfileModel.id == ShiftApplicationModel.worker_profile_id,
+            )
+            .outerjoin(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(
                 ShiftApplicationModel.shift_id.in_(shift_ids),
                 ShiftApplicationModel.status == ApplicationStatus.PENDIENTE.value,
+                or_(UserModel.id.is_(None), UserModel.status == UserStatus.ACTIVE.value),
             )
             .group_by(ShiftApplicationModel.shift_id)
         )

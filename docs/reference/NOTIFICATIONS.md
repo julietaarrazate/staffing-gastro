@@ -22,10 +22,10 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_rejected` | el trabajador rechaza la asignación | comercio |
 | `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
-| `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)); el turno vuelve a buscar personal | comercio |
+| `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)), o se suspende la cuenta de la persona asignada o confirmada ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)); el turno vuelve a buscar personal | comercio |
 | `shift_cancelled_late` | el comercio cancela un turno con el trabajador ya confirmado o en pleno turno (cancelación tardía, [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) | trabajador asignado |
 | `shift_no_show` | el comercio marca «No se presentó» (`manual`) o el sistema no vio su llegada pasado el plazo (`automatic`, scheduler de asistencia, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)); el turno vuelve a buscar personal | trabajador ausente (el comercio no recibe aviso de este tipo); abre `/profile` |
-| `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado | trabajador asignado |
+| `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado, o el turno se cancela porque se suspendió la cuenta del comercio ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)) | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
@@ -81,6 +81,23 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   guardar la cancelación (`ShiftService._notify_shift_cancelled`): si la base
   rechaza un aviso o cae el push, la cancelación igual responde bien y el
   otro aviso sale.
+- **Suspensión de una cuenta (2026-11-14, [ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)).**
+  Ningún texto dice el motivo ni que la otra cuenta está «suspendida»: dice
+  qué pasó con el turno y qué sigue. Salen después de guardar cada turno y no
+  hacen fallar la suspensión (`ShiftService._cancel_for_company_suspension`,
+  `_reopen_for_worker_suspension`).
+  - Comercio suspendido, a la persona asignada o confirmada en un turno que
+    no empezó (`shift_cancelled`, abre `/feed`): título «Se canceló un turno
+    tuyo»; texto «"X" se canceló. Ya no tenés que ir ni responder, y no cuenta
+    en tu reputación. Mirá otros turnos cerca.» Nunca `shift_cancelled_late`:
+    no es cancelación tardía.
+  - Trabajador suspendido, al comercio de cada turno suyo que no empezó
+    (`shift_reopened`, abre `/shifts/<id>/candidates`): título «Tu turno volvió
+    a buscar personal»; texto «La persona asignada a "X" ya no puede tomarlo.
+    El turno volvió a buscar personal: elegí a otra persona entre los
+    postulantes.»
+  - Los turnos abiertos de un comercio suspendido sólo se ocultan: nadie
+    recibe aviso, y tampoco se escalan (sin `urgent_shift_nearby`).
 - **Un aviso rechazado por la base no rompe la sesión del pedido
   (2026-11-13):** el adaptador (`SqlAlchemyNotificationRepository`) la deja
   usable y propaga el error. Vale para todos los avisos: quien atrapa el

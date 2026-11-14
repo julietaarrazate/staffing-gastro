@@ -259,9 +259,14 @@ let renewing: Promise<RenewOutcome> | null = null;
  * mientras tanto. */
 export const SESSION_EXPIRED_CODE = "session_expired";
 export const SESSION_EXPIRED_MESSAGE = "Tu sesión venció. Volvé a ingresar.";
-/** El backend lo manda en el 403 de una cuenta suspendida (lo suma G6; hasta
- * entonces una cuenta suspendida se trata como sesión vencida). */
+/** El backend lo manda en el 403 de una cuenta suspendida, al ingresar (con
+ * la contraseña correcta, o con Google) y al renovar la sesión (ADR-0024). */
 export const ACCOUNT_SUSPENDED_CODE = "account_suspended";
+
+/** ¿El servidor rechazó porque la cuenta está suspendida? */
+export function isAccountSuspended(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && err.code === ACCOUNT_SUSPENDED_CODE;
+}
 
 /** Arranca (o termina, con `null`) una sesión: login, logout, impersonar. */
 export function bindSessionToken(token: string | null) {
