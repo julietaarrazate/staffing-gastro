@@ -68,6 +68,21 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   cuentas con rol trabajador y activas, las mismas que pueden salir como
   candidatas ([MATCHING.md](./MATCHING.md)). Un perfil de trabajador
   colgado de un admin o de un suspendido no recibe nada.
+- **Evento publicado (2026-11-14, U086): un aviso por persona, no uno por
+  puesto.** Al publicar un evento (`ShiftService.create_event`) cada persona
+  recibe un solo `new_shift_nearby`: «Evento X: 5 puestos cerca tuyo» (con
+  «¡Urgente!» si algún puesto lo es), con la cuenta de los puestos que le
+  tocan por oficio y distancia; abre `/turno/<id>` del primero. Mismo radio,
+  tope por puesto, favoritos y «Disponible ahora» que un turno suelto
+  (`_rank_nearby`); un evento de un solo puesto avisa como turno suelto. La
+  escalada (`urgent_shift_nearby`) también es uno solo por evento y por
+  persona: el scheduler sube cada puesto a urgente (`escalate_urgency(notify=False)`)
+  y al terminar la pasada `ShiftService.notify_event_escalation` manda «¡Urgente!
+  Evento X: N puestos cerca tuyo» con el radio y el tope de la escalada, abriendo
+  el primer puesto que le toca. Los turnos sueltos siguen con un aviso por turno.
+  Ni el aviso de publicación ni el de la escalada le llegan a quien ya está
+  confirmado (o más adelante) en otro puesto del mismo evento cuyo horario se
+  pisa; eso se saca antes del tope, así el lugar lo ocupa el que sigue.
 - **Destino de los avisos de turno cerca:** abren `/turno/<id>`, donde la
   persona se postula (primera tanda y escalada). Los viejos guardados con
   `/feed` siguen yendo al Inicio.
