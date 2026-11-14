@@ -9,6 +9,7 @@ import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
+import { loginHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
 import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
 
 type Role = "worker" | "employer";
@@ -25,12 +26,16 @@ function roleFromQuery(value: string | null): Role | null {
 function RegisterForm() {
   const { register, pendingTwoFactor } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // A dónde volver al terminar el alta (un turno compartido, por ejemplo).
+  // Viene de la dirección: se valida acá y de nuevo en cada `href`/`replace`
+  // que arma `lib/safe-next.ts`.
+  const next = safeNext(searchParams.get("next"));
   // "Continuar con Google" con una cuenta admin que tiene la verificación en
   // dos pasos: el código se pide en /login (ADR-0023).
   useEffect(() => {
-    if (pendingTwoFactor) router.replace("/login");
-  }, [pendingTwoFactor, router]);
-  const searchParams = useSearchParams();
+    if (pendingTwoFactor) router.replace(loginHref({ next }));
+  }, [pendingTwoFactor, router, next]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,7 +65,7 @@ function RegisterForm() {
       // por el onboarding de `/bienvenida` (zona+oficio para el trabajador,
       // nombre+ubicación para el comercio) — ese componente decide qué mostrar
       // según `user.role`.
-      router.replace("/bienvenida");
+      router.replace(bienvenidaHref(next));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
       // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
@@ -170,14 +175,14 @@ function RegisterForm() {
           <GoogleAuthButton
             onDone={(isNewAccount, nuevoRol) => {
               if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
-              router.replace(isNewAccount ? "/bienvenida" : "/");
+              router.replace(isNewAccount ? bienvenidaHref(next) : (next ?? "/"));
             }}
           />
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿Ya tenés cuenta?{" "}
-          <Link href="/login" className="font-semibold text-primary-text">
+          <Link href={loginHref({ next })} className="font-semibold text-primary-text">
             Ingresá
           </Link>
         </p>
