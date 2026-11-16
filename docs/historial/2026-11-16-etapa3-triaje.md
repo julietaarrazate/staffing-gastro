@@ -1,4 +1,4 @@
-# Etapa 3: triaje de los 60 menores (#PR)
+# Etapa 3: triaje de los 60 menores (#591)
 
 **Pedido:** Julieta, 2026-11-16: pasar a los menores de la etapa 3 después
 de la tanda del pago con coma.
