@@ -128,7 +128,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 |---|---|---|---|
 | U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | ✅ en `main` | #579 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | ✅ en `main` | #568 (prueba en la app hecha el 2026-11-14) |
-| U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G20 |
+| U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | ✅ en `main` | #583 (revisión independiente hecha el 2026-11-16; probado con e2e en Chromium real, gesto a 390 px) |
 | U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G21 |
 | U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G22 |
 | U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G23 |
@@ -212,6 +212,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   quedan rechazados (raro; salió de la revisión de #572).
 - El detalle de un turno cancelado por la suspensión del comercio dice «El
   comercio canceló este turno.» (el aviso sí es neutro; #572).
+- «Descubrir rápido»: el toque y el arrastre de la tarjeta sólo se cubren con
+  e2e; no hay test unitario del gesto (jsdom no dispara los de motion; salió
+  de la revisión de #583).
 - Admin: la tarjeta «Urgentes sin cubrir» cuenta los urgentes abiertos que
   empiezan hoy (día argentino), pero la lista a la que lleva
   (`/admin/en-vivo?filtro=urgentes`) muestra también asignados y de otros
