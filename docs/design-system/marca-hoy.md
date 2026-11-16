@@ -71,7 +71,7 @@ Detalle y contrastes: [`color-system.md`](./color-system.md).
 
 | Familia | Uso |
 |---|---|
-| **Schibsted Grotesk** | Títulos de la landing y de pantalla (desde el 2026-10-18; antes Bricolage, "muy infantil") |
+| **Young Serif** | Títulos de la landing y de pantalla (desde el 2026-11-16: el medidor marcó la letra neutra de Schibsted Grotesk, que regía desde el 2026-10-18; un solo peso) |
 | **Inter** | Texto, botones, inputs |
 | **DM Mono** | Rótulos de la comanda, horarios |
 | **Sancreek** | Sólo la palabra «oído» fileteada (letra de cartel con espolones, desde el 2026-10-23; recorte local de 1,5 KB) |

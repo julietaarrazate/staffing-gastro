@@ -367,14 +367,23 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Tipografía (todas libres): Schibsted Grotesk para títulos de pantalla
-     (font-display, desde el 2026-10-18); Fraunces sólo para el wordmark
+  /* Tipografía (todas libres): Young Serif para títulos de pantalla
+     (font-display, desde el 2026-11-16; un solo peso); Fraunces sólo para el wordmark
      (font-serif); Inter para texto y encabezados de sección; DM Mono cargada
      para datos (los precios no la usan, decisión de Julieta). */
   --font-sans: var(--font-inter);
-  --font-display: var(--font-schibsted);
+  --font-display: var(--font-young-serif), ui-serif, Georgia, serif;
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-dm-mono);
+}
+
+/* Young Serif tiene un solo peso (400). Sin esto, `font-semibold`/`font-bold`
+ * sobre `font-display` (y el 500-700 de las reglas de la landing) harían que
+ * el navegador fabrique una negrita falsa. Va sin capa para ganarle a las
+ * utilidades de Tailwind; `font-synthesis-weight` se hereda a los hijos. */
+.font-display {
+  font-weight: 400;
+  font-synthesis-weight: none;
 }
 
 /* ===========================================================================
@@ -1080,8 +1089,9 @@ body:has([data-landing]) main {
 .landing-h2 {
   max-width: 16ch;
   margin-inline: auto;
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis-weight: none;
   font-size: clamp(2.25rem, 4.6vw, 4rem);
   line-height: 1.04;
   letter-spacing: -0.04em;
@@ -1918,8 +1928,9 @@ body:has([data-landing]) main {
 }
 .landing-mapa-eta {
   margin-left: auto;
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis-weight: none;
   font-size: 24px;
   letter-spacing: -0.03em;
   white-space: nowrap;
