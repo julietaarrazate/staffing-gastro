@@ -81,5 +81,3 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 - G21 `app/map/page.tsx`, `components/worker/MapSheet.tsx`: la cámara deja
   libre el alto de la hoja.
-- G23 `app/search/page.tsx`: parte del local (`lib/company-place.ts`) y lo
-  dice («Desde tu local»).
