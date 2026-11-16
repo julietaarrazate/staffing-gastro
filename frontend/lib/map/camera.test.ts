@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { vi } from "vitest";
 import type { MapRef } from "@vis.gl/react-maplibre";
-import { applyBottomPadding, easeToPoint, sheetBottomPadding } from "./camera";
+import { applyBottomPadding, clearFlightOnGestureOrEnd, easeToPoint, sheetBottomPadding } from "./camera";
 
 describe("sheetBottomPadding", () => {
   it("deja libre el alto visible de la hoja", () => {
@@ -48,5 +48,33 @@ describe("padding de la hoja y vuelos", () => {
     expect(call.center).toEqual([-58.4, -34.5]);
     expect(call.zoom).toBe(14);
     expect(call.padding.bottom).toBe(120);
+  });
+});
+
+describe("clearFlightOnGestureOrEnd", () => {
+  function emitterMap() {
+    const handlers: Record<string, ((e: object) => void)[]> = {};
+    return {
+      on: (n: string, h: (e: object) => void) => (handlers[n] ??= []).push(h),
+      off: (n: string, h: (e: object) => void) => {
+        handlers[n] = (handlers[n] ?? []).filter((x) => x !== h);
+      },
+      emit: (n: string, e: object = {}) => (handlers[n] ?? []).forEach((h) => h(e)),
+    };
+  }
+
+  it("limpia al terminar un movimiento y al empezar un gesto de la persona, no un vuelo programático", () => {
+    const m = emitterMap();
+    const onStop = vi.fn();
+    const off = clearFlightOnGestureOrEnd(m as unknown as MapRef, onStop);
+    m.emit("movestart", {}); // vuelo programático: no limpia
+    expect(onStop).not.toHaveBeenCalled();
+    m.emit("movestart", { originalEvent: {} }); // dedo / inercia / pellizco
+    expect(onStop).toHaveBeenCalledTimes(1);
+    m.emit("moveend");
+    expect(onStop).toHaveBeenCalledTimes(2);
+    off();
+    m.emit("moveend");
+    expect(onStop).toHaveBeenCalledTimes(2);
   });
 });

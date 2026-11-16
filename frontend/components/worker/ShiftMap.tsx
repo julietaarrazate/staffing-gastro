@@ -10,6 +10,7 @@ import ClusterMarker from "@/components/map/ClusterMarker";
 import { buildShiftClusterIndex, isCluster, type ShiftClusterFeature } from "@/lib/map/clustering";
 import {
   applyBottomPadding,
+  clearFlightOnGestureOrEnd,
   easeToPoint,
   flyToPoint,
   type LastFlight,
@@ -89,8 +90,18 @@ export default function ShiftMap({
   useEffect(() => {
     paddingRef.current = bottomPadding;
     if (!ready || !mapRef.current) return;
-    applyBottomPadding(mapRef.current, bottomPadding, lastFlightRef.current);
+    const flight = lastFlightRef.current;
+    // El `jumpTo` dispara `moveend` y limpiaría el ref: si se reanudó el vuelo,
+    // se vuelve a anotar (su propio `moveend` lo limpiará al llegar).
+    if (applyBottomPadding(mapRef.current, bottomPadding, flight)) lastFlightRef.current = flight;
   }, [bottomPadding, ready]);
+  // Sólo se reanuda un vuelo programático que de verdad está en curso.
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    return clearFlightOnGestureOrEnd(mapRef.current, () => {
+      lastFlightRef.current = null;
+    });
+  }, [ready]);
   // Con `reuseMaps` el mapa vuelve al pool: sin esto otra pantalla heredaría
   // el padding de esta.
   useEffect(

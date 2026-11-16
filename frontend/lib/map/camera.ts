@@ -96,12 +96,32 @@ export function applyBottomPadding(
   map: MapRef | null | undefined,
   bottom: number,
   lastFlight?: LastFlight | null
-): void {
-  if (!map) return;
+): boolean {
+  if (!map) return false;
   const moving = map.isMoving();
   map.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom } });
-  if (!moving || !lastFlight) return;
+  if (!moving || !lastFlight) return false;
   const options = { ...lastFlight.options, bottomPadding: bottom };
   if (lastFlight.kind === "fly") flyToPoint(map, lastFlight.center, options);
   else easeToPoint(map, lastFlight.center, options);
+  return true;
+}
+
+/**
+ * Llama a `onStop` cuando ya no hay un vuelo programático que reanudar: al
+ * terminar cualquier movimiento (`moveend`) y al empezar uno de la persona
+ * (`movestart` con `originalEvent`: arrastre, inercia, pellizco). Sin esto,
+ * cambiar la hoja de snap con el mapa en movimiento por un gesto lo devolvía
+ * solo al destino del último vuelo. Devuelve la función para desuscribir.
+ */
+export function clearFlightOnGestureOrEnd(map: MapRef, onStop: () => void): () => void {
+  const onStart = (e: { originalEvent?: unknown }) => {
+    if (e.originalEvent) onStop();
+  };
+  map.on("movestart", onStart);
+  map.on("moveend", onStop);
+  return () => {
+    map.off("movestart", onStart);
+    map.off("moveend", onStop);
+  };
 }
