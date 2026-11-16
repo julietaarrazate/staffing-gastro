@@ -62,6 +62,11 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   Ese config tiene que estar **adentro de `frontend/`** (sin commitear, por
   ejemplo `frontend/pw-local.config.ts`): desde el scratchpad no resuelve
   `@playwright/test` (lo redescubrieron cuatro agentes el 2026-11-14).
+- **Un subagente que arregla un área corre la suite e2e COMPLETA antes del
+  push, no sólo los specs del área.** El 2026-11-16, tres de cinco PRs (G15,
+  G20, G23) pasaron sus specs y cayeron en CI por specs de otras pantallas que
+  esperaban la URL exacta `/shifts/new` o no simulaban un pedido nuevo. Cada
+  vuelta de CI son ~5 minutos.
 - **Con varias ramas en paralelo, probá el merge entre ellas antes de pedir
   el "sí".** Dos PRs que agregan una importación en el mismo lugar chocan
   aunque no tengan nada que ver; se ve con un `git merge --no-commit` local y
