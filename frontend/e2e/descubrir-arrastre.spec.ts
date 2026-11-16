@@ -109,6 +109,17 @@ test.describe("Descubrir rápido: toque vs arrastre", () => {
     await expect(page).toHaveURL(/\/turno\/s1$/);
   });
 
+  test("con la página scrolleada, un toque quieto igual abre el detalle", async ({ page }) => {
+    await abrirMazo(page);
+    await page.evaluate(() => {
+      document.body.style.minHeight = "3000px";
+      window.scrollTo(0, 400);
+    });
+    const box = (await page.getByTestId("swipe-deck-card").boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.45);
+    await expect(page).toHaveURL(/\/turno\/s1$/);
+  });
+
   test("con el teclado se llega al detalle por el botón", async ({ page }) => {
     const dialog = await abrirMazo(page);
     await dialog.getByRole("button", { name: "Ver el detalle del turno" }).focus();

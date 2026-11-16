@@ -182,7 +182,11 @@ export default function SwipeDeck({
           dragElastic={{ left: hasNext ? 0.6 : 0.15, right: hasPrev ? 0.6 : 0.15 }}
           animate={controls}
           onPointerDownCapture={(e) => {
-            downAt.current = { x: e.clientX, y: e.clientY };
+            // Un segundo dedo no reinicia el gesto en curso. Se mide en
+            // coordenadas de PÁGINA, igual que `info.point` de motion: con
+            // la pantalla scrolleada, clientX/Y daría un "arrastre" falso.
+            if (!e.isPrimary) return;
+            downAt.current = { x: e.pageX, y: e.pageY };
             dragged.current = false;
           }}
           onDragStart={() => {
