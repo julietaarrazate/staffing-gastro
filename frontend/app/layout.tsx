@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Schibsted_Grotesk, DM_Mono } from "next/font/google";
+import { Inter, Young_Serif, DM_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
@@ -50,13 +50,15 @@ const sancreek = localFont({
   adjustFontFallback: "Times New Roman",
 });
 
-// Schibsted Grotesk: títulos de pantalla y titulares de la landing
-// (`font-display`), desde el 2026-10-18. Libre (OFL). Reemplaza a Bricolage
-// Grotesque (2026-10-12), que Julieta veía "muy infantil para Oído" y que
-// además usa Pasito.
-const schibsted = Schibsted_Grotesk({
-  variable: "--font-schibsted",
+// Young Serif: títulos de pantalla y titulares de la landing (`font-display`),
+// desde el 2026-11-16. Libre (OFL). Reemplaza a Schibsted Grotesk (2026-10-18):
+// el medidor de diseño marcó la letra de los títulos como neutra, sin voz.
+// Tiene un solo peso (400): globals.css apaga la negrita sintética.
+const youngSerif = Young_Serif({
+  variable: "--font-young-serif",
   subsets: ["latin"],
+  weight: "400",
+  display: "swap",
 });
 
 // DM Mono (board v5.0): datos y precios — el precio de un turno, horarios,
@@ -137,7 +139,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${schibsted.variable} ${dmMono.variable} ${sancreek.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${youngSerif.variable} ${dmMono.variable} ${sancreek.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la

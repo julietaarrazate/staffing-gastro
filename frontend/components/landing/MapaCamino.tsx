@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
-import { StarIcon } from "@/components/icons";
+import { StarIcon } from "./iconos";
 import { cn } from "@/lib/cn";
 import { formatDecimal1 } from "@/lib/format";
 import { CANDIDATES, DISTANCIA_M, LOCAL, RELOJ } from "./fixtures";

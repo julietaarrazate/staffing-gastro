@@ -7,12 +7,24 @@ paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
 
 | Familia | Rol | Token / utilidad |
 |---|---|---|
-| **Schibsted Grotesk** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing | `--font-schibsted` → `font-display` |
+| **Young Serif** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing. Un solo peso (400) | `--font-young-serif` → `font-display` |
 | **Fraunces** (serif) | Sólo el wordmark "oído" (logo). Desde 2026-10-23 es un recorte local con los glifos "o í d O" (`frontend/app/fonts/fraunces-oido.woff2`, 2 KB): otra palabra en `font-serif` cae a la serif de respaldo (ver comentario en `app/layout.tsx` para regenerarlo) | `--font-fraunces` → `font-serif` |
 | **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
 | **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 
-## Cambio de títulos a Schibsted Grotesk (2026-10-18)
+## Cambio de títulos a Young Serif (2026-11-16)
+
+El medidor de diseño marcó la letra de los títulos (Schibsted Grotesk) como
+neutra: una grotesca más, sin voz. Pasan a **Young Serif** (libre, OFL), una
+serif con cuerpo y algo de cartel de diario que se lleva con el filete. Mismo
+rol, `font-display`; el texto, los botones, los inputs (Inter), los datos
+(DM Mono) y el wordmark no cambian. Tiene **un solo peso**: `globals.css`
+fuerza `font-weight: 400` y `font-synthesis-weight: none` sobre `.font-display`
+y sobre las reglas de la landing que usan `var(--font-display)`, así que
+`font-semibold`/`font-bold` en un título no fabrican una negrita falsa. Como
+es más ancha que Schibsted, hay que mirar los títulos a 320 y 390 px.
+
+## Cambio de títulos a Schibsted Grotesk (2026-10-18, reemplazado)
 
 Julieta veía Bricolage Grotesque "muy infantil para Oído", sobre todo al lado
 del filete porteño de la landing, y además es la fuente de títulos de Pasito.
