@@ -79,8 +79,6 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 ### G20–G23 · Descubrir y mapas (U069, U105, U071, U073) — S, un PR cada uno
 
-- G20 `components/worker/SwipeDeck.tsx`: el toque abre el detalle sólo si no
-  hubo arrastre.
 - G21 `app/map/page.tsx`, `components/worker/MapSheet.tsx`: la cámara deja
   libre el alto de la hoja.
 - G22 `components/map/MapView.tsx`, `components/employer/EnRouteMap.tsx`: el
