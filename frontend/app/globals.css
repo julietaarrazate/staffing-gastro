@@ -370,6 +370,13 @@
 .font-display {
   font-weight: 400;
   font-synthesis-weight: none;
+  /* Cifras de caja alta. Young Serif trae las cifras old-style por defecto
+   * («$45.000» se ve con el 4 y el 5 colgando bajo la línea) y la fuente sí
+   * incluye la feature `lnum`. Va como font-feature-settings y no como
+   * font-variant-numeric para no pisar `tabular-nums` de Tailwind, que usa
+   * ese mismo shorthand. Las reglas de la landing que setean
+   * `var(--font-display)` a mano repiten la línea. */
+  font-feature-settings: "lnum" 1;
 }
 
 /* ===========================================================================
@@ -1078,6 +1085,7 @@ body:has([data-landing]) main {
   font-family: var(--font-display);
   font-weight: 400;
   font-synthesis-weight: none;
+  font-feature-settings: "lnum" 1;
   font-size: clamp(2.25rem, 4.6vw, 4rem);
   line-height: 1.04;
   letter-spacing: -0.04em;
@@ -1917,6 +1925,7 @@ body:has([data-landing]) main {
   font-family: var(--font-display);
   font-weight: 400;
   font-synthesis-weight: none;
+  font-feature-settings: "lnum" 1;
   font-size: 24px;
   letter-spacing: -0.03em;
   white-space: nowrap;
