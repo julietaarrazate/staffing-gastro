@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useAnimationControls, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { Shift } from "@/lib/types";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
@@ -9,6 +9,19 @@ import { MOTION_UI } from "@/lib/motion";
 import { useTapGuard } from "@/lib/use-tap-guard";
 
 type Direction = 1 | -1;
+
+/** Cuánto puede moverse el dedo (o el mouse) para que siga siendo un toque. */
+export const TAP_SLOP_PX = 8;
+
+/** `true` si entre apoyar y soltar hubo un arrastre y no un toque. */
+export function huboArrastre(
+  start: { x: number; y: number } | null,
+  end: { x: number; y: number },
+  slop = TAP_SLOP_PX,
+): boolean {
+  if (!start) return false;
+  return Math.hypot(end.x - start.x, end.y - start.y) > slop;
+}
 
 /**
  * Mazo de "Descubrir rápido": deslizar RECORRE, postularse es un botón.
@@ -22,9 +35,12 @@ type Direction = 1 | -1;
  * acción que compromete, y es explícita ("Postularme", debajo de la tarjeta).
  * No hay "descartar": el que no te sirve, lo pasás de largo.
  *
- * Tocar la tarjeta (sin arrastrar) abre el detalle del turno — `onTap` de
- * motion distingue tap de arrastre por diseño. Las flechas y el teclado
- * (← →) hacen lo mismo que el gesto, así el mazo se usa sin puntero.
+ * Tocar la tarjeta (sin arrastrar) abre el detalle del turno. Un arrastre de
+ * más de `TAP_SLOP_PX` NUNCA cuenta como toque, aunque no llegue al umbral de
+ * swipe: la tarjeta vuelve a su lugar y no se abre nada (U069: deslizar abría
+ * el detalle en vez de pasar a la siguiente). Las flechas y el teclado
+ * (← →) hacen lo mismo que el gesto, y un botón sólo para teclado y lector
+ * de pantalla abre el detalle, así el mazo se usa sin puntero.
  */
 export default function SwipeDeck({
   shifts,
@@ -61,6 +77,11 @@ export default function SwipeDeck({
     setDeck(shifts);
     setIndex(0);
   }, [shifts]);
+
+  // Dónde se apoyó el puntero y si la tarjeta llegó a arrastrarse: el toque
+  // sólo abre el detalle si no hubo ninguna de las dos cosas.
+  const downAt = useRef<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 0, 220], [-8, 0, 8]);
@@ -160,7 +181,18 @@ export default function SwipeDeck({
           // En los bordes del mazo la carta se resiste: no hay nada del otro lado.
           dragElastic={{ left: hasNext ? 0.6 : 0.15, right: hasPrev ? 0.6 : 0.15 }}
           animate={controls}
-          onTap={() => {
+          onPointerDownCapture={(e) => {
+            downAt.current = { x: e.clientX, y: e.clientY };
+            dragged.current = false;
+          }}
+          onDragStart={() => {
+            dragged.current = true;
+          }}
+          onTap={(e, info) => {
+            const arrastro = dragged.current || huboArrastre(downAt.current, info.point);
+            downAt.current = null;
+            dragged.current = false;
+            if (arrastro) return;
             if (!busy && !tapGuard.locked) onOpen?.(current);
           }}
           onDragEnd={(_, info) => {
@@ -170,6 +202,18 @@ export default function SwipeDeck({
         >
           {renderCard(current)}
         </motion.div>
+
+        {/* Para teclado y lector de pantalla: la tarjeta es un gesto, esto es
+            el camino sin puntero al detalle. Invisible hasta recibir foco. */}
+        {onOpen && (
+          <button
+            type="button"
+            onClick={() => onOpen(current)}
+            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-1/2 focus-visible:top-2 focus-visible:z-20 focus-visible:-translate-x-1/2 focus-visible:rounded-full focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-caption focus-visible:font-semibold focus-visible:text-ink focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            Ver el detalle del turno
+          </button>
+        )}
       </div>
 
       <div className="mt-3 flex items-center gap-3">
