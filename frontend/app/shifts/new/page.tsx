@@ -138,6 +138,10 @@ function NewShiftWizard() {
   // interactúa con la pantalla (no de inmediato), a diferencia del
   // `router.push` automático que había antes.
   const [publishedShiftId, setPublishedShiftId] = useState<string | null>(null);
+  // Una vez publicado, este montaje no vuelve a guardar el borrador: cerrar la
+  // confirmación pone `publishedShiftId` en null antes de desmontar, y sin esto
+  // el formulario del turno ya publicado se reescribiría en sessionStorage.
+  const yaPublicado = useRef(false);
 
   // Primera acción significativa del comercio, no al aterrizar (ver
   // docs/reference/ACCESO_MODERNO.md): al salir de la confirmación «Turno publicado»
@@ -256,7 +260,7 @@ function NewShiftWizard() {
     };
   }
   useEffect(() => {
-    if (!hidratado || publishedShiftId) return;
+    if (!hidratado || publishedShiftId || yaPublicado.current) return;
     guardarBorradorTurno(instantanea());
     // `instantanea` lee estos mismos valores.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -594,6 +598,7 @@ function NewShiftWizard() {
       // (efecto de `publishedShiftId`, más arriba).
       // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
       // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
+      yaPublicado.current = true;
       setPublishedShiftId(current.id);
     } catch (err) {
       // El borrador que se retomó tras una recarga ya no existe en el servidor

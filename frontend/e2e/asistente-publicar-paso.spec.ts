@@ -242,6 +242,47 @@ test("bienvenida: una dirección con ?paso= no saltea el primer paso", async ({ 
   await expect(page.getByRole("button", { name: "Continuar" })).toBeDisabled();
 });
 
+async function publicarDesdeCero(page: Page) {
+  await preparar(page);
+  await page.route("**/api/v1/shifts", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    return route.fulfill(json({ id: "turno-1", status: "borrador" }, 201));
+  });
+  await page.route("**/api/v1/shifts/turno-1/publish", (route) =>
+    route.fulfill(json({ id: "turno-1", status: "publicado" }))
+  );
+  await page.goto("/shifts/new");
+  await page.getByRole("button", { name: "Mozo/a" }).click();
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.locator("select").nth(1).selectOption("Palermo");
+  await botonPublicar(page).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+}
+
+const claves = (page: Page) =>
+  page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("staffya:borrador:")));
+
+test("al cerrar la confirmación no queda el turno publicado como borrador", async ({ page }) => {
+  await publicarDesdeCero(page);
+  expect(await claves(page)).toEqual([]);
+  await page.getByRole("button", { name: "Cerrar" }).click();
+  await expect(page).toHaveURL(/\/shifts$/);
+  await page.waitForTimeout(500);
+  expect(await claves(page)).toEqual([]);
+});
+
+test("con «Ver mi turno» no queda el turno publicado como borrador", async ({ page }) => {
+  await publicarDesdeCero(page);
+  await page.getByRole("button", { name: "Ver mi turno" }).click();
+  await expect(page).toHaveURL(/\/shifts\/turno-1\/candidates$/);
+  await page.waitForTimeout(500);
+  expect(await claves(page)).toEqual([]);
+});
+
 test("publicado desde un enlace directo (sin historial previo): «Atrás» sale al panel y no deja pasos a la vista", async ({
   page,
 }) => {
