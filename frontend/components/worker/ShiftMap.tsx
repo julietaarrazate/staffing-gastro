@@ -8,7 +8,12 @@ import RadiusRing from "@/components/map/RadiusRing";
 import ShiftMarker from "@/components/map/ShiftMarker";
 import ClusterMarker from "@/components/map/ClusterMarker";
 import { buildShiftClusterIndex, isCluster, type ShiftClusterFeature } from "@/lib/map/clustering";
-import { easeToPoint, flyToPoint } from "@/lib/map/camera";
+import {
+  createBottomPaddingApplier,
+  easeToPoint,
+  flyToPoint,
+  type BottomPaddingApplier,
+} from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
 import { Shift } from "@/lib/types";
 
@@ -36,6 +41,7 @@ export default function ShiftMap({
   activeId,
   onSelect,
   followActive,
+  bottomPadding = 0,
 }: {
   shifts: Shift[];
   center: [number, number];
@@ -45,6 +51,9 @@ export default function ShiftMap({
    * se queda en la persona y recién sigue a una tarjeta cuando ella toca o
    * desliza (o cuando no hay GPS, ver `app/map/page.tsx`). */
   followActive: boolean;
+  /** Alto en px que la hoja de tarjetas tapa abajo (mobile). La cámara lo deja
+   * libre para que el encuadre y los vuelos caigan arriba de la hoja. */
+  bottomPadding?: number;
 }) {
   const mapRef = useRef<MapRef | null>(null);
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -71,6 +80,38 @@ export default function ShiftMap({
     setViewport({ bbox: boundsToBbox(map), zoom: event.viewState.zoom });
   }, []);
 
+  // Padding inferior = alto de la hoja. Va ANTES de los efectos de vuelo (el
+  // orden de los efectos es el del archivo). Con el mapa quieto se aplica en el
+  // momento; en movimiento, al `moveend` (ver `createBottomPaddingApplier`). Todo
+  // vuelo programático sale con el padding vigente (`paddingRef`).
+  const paddingRef = useRef(bottomPadding);
+  const applierRef = useRef<BottomPaddingApplier | null>(null);
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    const applier = createBottomPaddingApplier(mapRef.current);
+    applierRef.current = applier;
+    return () => {
+      applier.cancel();
+      applierRef.current = null;
+    };
+  }, [ready]);
+  useEffect(() => {
+    paddingRef.current = bottomPadding;
+    applierRef.current?.apply(bottomPadding);
+  }, [bottomPadding, ready]);
+  // Con `reuseMaps` el mapa vuelve al pool: sin esto otra pantalla heredaría
+  // el padding de esta.
+  useEffect(
+    () => () => {
+      try {
+        mapRef.current?.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom: 0 } });
+      } catch {
+        // el mapa ya se destruyó
+      }
+    },
+    []
+  );
+
   // Apertura: cuando se detecta la ubicación real (el `center` pasa de CABA
   // al usuario), volamos con una curva suave. Sólo la primera vez.
   useEffect(() => {
@@ -78,7 +119,8 @@ export default function ShiftMap({
     const [initLat, initLng] = initialCenterRef.current;
     if (center[0] === initLat && center[1] === initLng) return;
     hasCenteredOnUserRef.current = true;
-    flyToPoint(mapRef.current, center, { zoom: 14, duration: 1400 });
+    const options = { zoom: 14, duration: 1400, bottomPadding: paddingRef.current };
+    flyToPoint(mapRef.current, center, options);
   }, [center, ready]);
 
   const active = shifts.find((s) => s.id === activeId);
@@ -101,7 +143,8 @@ export default function ShiftMap({
   // (auditoría de interfaz 2026-10-11, B02).
   useEffect(() => {
     if (!followActive || !mapRef.current || activeLat == null || activeLng == null) return;
-    easeToPoint(mapRef.current, [activeLat, activeLng], { zoom: 15, duration: 450 });
+    const options = { zoom: 15, duration: 450, bottomPadding: paddingRef.current };
+    easeToPoint(mapRef.current, [activeLat, activeLng], options);
   }, [activeLat, activeLng, ready, followActive]);
 
   const clusterIndex = useMemo(() => buildShiftClusterIndex(shifts), [shifts]);
@@ -126,7 +169,8 @@ export default function ShiftMap({
     (clusterId: number, lng: number, lat: number) => {
       if (!mapRef.current) return;
       const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), 18);
-      easeToPoint(mapRef.current, [lat, lng], { zoom: expansionZoom, duration: 600 });
+      const options = { zoom: expansionZoom, duration: 600, bottomPadding: paddingRef.current };
+      easeToPoint(mapRef.current, [lat, lng], options);
     },
     [clusterIndex]
   );
