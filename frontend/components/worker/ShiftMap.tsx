@@ -8,7 +8,7 @@ import RadiusRing from "@/components/map/RadiusRing";
 import ShiftMarker from "@/components/map/ShiftMarker";
 import ClusterMarker from "@/components/map/ClusterMarker";
 import { buildShiftClusterIndex, isCluster, type ShiftClusterFeature } from "@/lib/map/clustering";
-import { easeToPoint, flyToPoint } from "@/lib/map/camera";
+import { easeToPoint, flyToPoint, setBottomPadding } from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
 import { Shift } from "@/lib/types";
 
@@ -36,6 +36,7 @@ export default function ShiftMap({
   activeId,
   onSelect,
   followActive,
+  bottomPadding = 0,
 }: {
   shifts: Shift[];
   center: [number, number];
@@ -45,6 +46,9 @@ export default function ShiftMap({
    * se queda en la persona y recién sigue a una tarjeta cuando ella toca o
    * desliza (o cuando no hay GPS, ver `app/map/page.tsx`). */
   followActive: boolean;
+  /** Alto en px que la hoja de tarjetas tapa abajo (mobile). La cámara lo deja
+   * libre para que el encuadre y los vuelos caigan arriba de la hoja. */
+  bottomPadding?: number;
 }) {
   const mapRef = useRef<MapRef | null>(null);
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -70,6 +74,28 @@ export default function ShiftMap({
     const map = event.target as unknown as MapRef;
     setViewport({ bbox: boundsToBbox(map), zoom: event.viewState.zoom });
   }, []);
+
+  // Padding inferior = alto de la hoja. Va ANTES de los efectos de vuelo (el
+  // orden de los efectos es el del archivo) para que el primer vuelo ya use el
+  // centro visual correcto. La primera vez salta; después acompaña al snap.
+  const paddingAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    setBottomPadding(mapRef.current, bottomPadding, { animate: paddingAppliedRef.current });
+    paddingAppliedRef.current = true;
+  }, [bottomPadding, ready]);
+  // Con `reuseMaps` el mapa vuelve al pool: sin esto otra pantalla heredaría
+  // el padding de esta.
+  useEffect(
+    () => () => {
+      try {
+        mapRef.current?.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom: 0 } });
+      } catch {
+        // el mapa ya se destruyó
+      }
+    },
+    []
+  );
 
   // Apertura: cuando se detecta la ubicación real (el `center` pasa de CABA
   // al usuario), volamos con una curva suave. Sólo la primera vez.

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { sheetBottomPadding } from "@/lib/map/camera";
 
 /**
  * Alturas del sheet como fracción del contenedor: a la altura de la tarjeta /
@@ -26,10 +27,17 @@ const MAX_SNAP: SnapIndex = 2;
 export default function MapSheet({
   children,
   containerRef,
+  onVisibleHeightChange,
 }: {
   children: ReactNode;
   containerRef: RefObject<HTMLElement | null>;
+  /**
+   * Alto en px que la cámara debe dejar libre abajo por la hoja (su alto
+   * visible, con tope; 0 si no se ve: en desktop va `md:hidden`).
+   */
+  onVisibleHeightChange?: (px: number) => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
   // Arranca en el snap más chico (a la altura de la tarjeta): el mapa queda
   // lo más visible posible por defecto; antes arrancaba en el intermedio
@@ -45,6 +53,16 @@ export default function MapSheet({
     observer.observe(el);
     return () => observer.disconnect();
   }, [containerRef]);
+
+  // Avisa cuánto del mapa tapa la hoja ahora (snap actual). Se re-mide cuando
+  // cambia el snap o el contenedor; `offsetHeight` es 0 si el wrapper está en
+  // `display:none` (desktop). Se ignora el arrastre en curso: el padding sigue
+  // al snap al que la hoja se asienta.
+  useEffect(() => {
+    const visible = panelRef.current && panelRef.current.offsetHeight > 0 ? sheetBottomPadding(containerHeight, SNAPS[snap]) : 0;
+    onVisibleHeightChange?.(visible);
+  }, [snap, containerHeight, onVisibleHeightChange]);
+  useEffect(() => () => onVisibleHeightChange?.(0), [onVisibleHeightChange]);
 
   const offsetFor = (i: SnapIndex) => containerHeight * (SNAPS[MAX_SNAP] - SNAPS[i]);
   // Antes de medir el contenedor el sheet ya se pinta con su tamaño y posición
@@ -72,6 +90,7 @@ export default function MapSheet({
 
   return (
     <motion.div
+      ref={panelRef}
       drag={containerHeight > 0 ? "y" : false}
       dragElastic={0.12}
       dragConstraints={{ top: 0, bottom: maxDrag }}
