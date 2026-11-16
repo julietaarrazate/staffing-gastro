@@ -230,13 +230,12 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 ### Hallazgos nuevos de la prueba en la app (2026-11-14)
 
-- **Grave: el pago con coma se multiplica por 100.** En publicar (y en el
-  evento), escribir «15000,50» deja el campo en «1500050» y el turno se
-  publica con $1.500.050, sin aviso: el campo es `type="number"` y el
-  navegador descarta la coma. Ya pasaba antes de #571; se vio en su prueba en
-  la app. Falta verificarlo en un celular con teclado en castellano y
-  decidir el arreglo (campo de texto con formato de pesos, o aceptar la coma
-  como decimal).
+- ✅ **Grave: el pago con coma se multiplicaba por 100** (#PR). «15000,50»
+  publicaba $1.500.050. Ahora el monto es en pesos enteros: campo de texto
+  con teclado numérico, el punto separa miles, la coma es decimal y se
+  redondea al peso, y al salir se ve «15.001» (`lib/pesos.ts`,
+  `components/ui/PesosInput.tsx`, en publicar y en el evento). Falta mirarlo
+  en un celular real con teclado en castellano.
 - **Menor: la distancia de «Llegué» sale en metros crudos** («estás a 274732
   metros»): conviene kilómetros arriba de 1000 m (#569).
 - **Menor: en «Editar perfil», «años de experiencia» mayor a 80** frena con el

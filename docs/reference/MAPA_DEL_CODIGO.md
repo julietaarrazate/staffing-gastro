@@ -90,6 +90,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Versión de términos y privacidad (**las dos juntas**) | `backend/app/modules/identity/domain/value_objects.py` y `frontend/lib/legal.ts` |
 | Ciclo de vida del turno (estados y guards) | `backend/app/modules/shift/domain/entities.py` |
 | Horario de un turno nuevo (inicio no pasado con 5 min de tolerancia, de 1 a 16 horas; sólo al crear o cambiar el horario, no al leer) y su espejo en el formulario (el fin «de 21:00 a 02:00» se toma como día siguiente) | `backend/app/modules/shift/domain/schedule.py` (`validar_horario_nuevo`; lo llaman `ShiftService.create_shift` y `update_shift`) · `frontend/lib/turno-horario.ts` (`resolverHorario`, `diasParaDuplicar`; lo usan `app/shifts/new/page.tsx` y `new-event/page.tsx`) |
+| Monto en pesos enteros de los formularios de pago (la coma es decimal y redondea al peso, el punto separa miles; al salir del campo «15.001») | `frontend/lib/pesos.ts` (`leerPesos`, `formatearPesos`, `pesosDesdeApi`) · `frontend/components/ui/PesosInput.tsx` (lo usan `app/shifts/new/page.tsx` y `new-event/page.tsx`) |
 | Textos de lo que no se puede hacer con el turno (por acción y estado, castellano de persona) | `backend/app/modules/shift/domain/mensajes.py` (`no_se_puede`) |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |

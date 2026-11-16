@@ -66,11 +66,11 @@ test("recargar conserva el paso y lo cargado; una dirección vieja no saltea pas
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "¿Cuánto pagás?" })).toBeVisible();
-  await expect(page.getByPlaceholder("48000")).toHaveValue("15000");
+  await expect(page.getByPlaceholder("48.000")).toHaveValue("15.000");
 
   // El botón «Atrás» de la pantalla vuelve por el historial.
   await page.getByRole("button", { name: "Atrás" }).click();
@@ -108,7 +108,7 @@ test("se pierde la respuesta de crear y se recarga: el reintento usa la misma cl
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await botonPublicar(page).click();
@@ -151,7 +151,7 @@ test("borrador retomado cuyo turno ya no existe (404): el siguiente intento crea
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await botonPublicar(page).click();
@@ -208,7 +208,7 @@ test.describe("«Describí el turno» con una IA lenta", () => {
     await expect(page.getByRole("heading", { name: "¿Cuándo?" })).toBeVisible();
     await expect(page.locator('input[type="datetime-local"]').first()).toHaveValue(enDias(30, "20:00"));
     await page.getByRole("button", { name: "Continuar" }).click();
-    await expect(page.getByPlaceholder("48000")).toHaveValue("45000");
+    await expect(page.getByPlaceholder("48.000")).toHaveValue("45.000");
     await page.getByRole("button", { name: "Continuar" }).click();
     // El resumen sigue con el puesto de la persona, no el de la IA.
     await expect(page.getByText("Cocinero/a").first()).toBeVisible();
@@ -256,7 +256,7 @@ async function publicarDesdeCero(page: Page) {
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await botonPublicar(page).click();
@@ -300,7 +300,7 @@ test("publicado desde un enlace directo (sin historial previo): «Atrás» sale 
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await botonPublicar(page).click();
