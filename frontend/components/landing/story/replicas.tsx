@@ -4,7 +4,7 @@ import { forwardRef, type CSSProperties, type ReactNode } from "react";
 import { motion, type MotionValue } from "motion/react";
 import { cn } from "@/lib/cn";
 import { LogoGlyph, LogoMark } from "@/components/Logo";
-import { CheckCircleIcon, StarIcon } from "@/components/icons";
+import { StarIcon } from "../iconos";
 import { Spinner } from "@/components/ui";
 import { PEDIDO, PEDIDO_PARTES } from "./fixtures";
 
@@ -278,7 +278,6 @@ export function ToastLine({ children, className }: { children: ReactNode; classN
         className
       )}
     >
-      <CheckCircleIcon size={18} className="shrink-0 text-success" />
       <span>{children}</span>
     </div>
   );

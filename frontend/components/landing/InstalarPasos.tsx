@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IosShareIcon, MoreVerticalIcon, SmartphoneIcon, SquarePlusIcon } from "@/components/icons";
+import { IosShareIcon, MoreVerticalIcon, SquarePlusIcon } from "./iconos";
 import { useInstalar, type EstadoInstalar } from "@/lib/instalar";
 
 /**
@@ -43,7 +43,6 @@ function Pasos({ estado }: { estado: EstadoInstalar }) {
                 onClick={() => void instalar()}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-night px-6 text-base font-semibold text-white transition duration-200 active:scale-[0.96] hover:brightness-150"
               >
-                <SmartphoneIcon size={18} aria-hidden />
                 Instalar Oído
               </button>,
               <>Abrí Oído desde el ícono nuevo</>,
@@ -91,8 +90,7 @@ function Pasos({ estado }: { estado: EstadoInstalar }) {
         </>
       )}
       {plataforma === "compu" && (
-        <p className="flex items-start gap-3 text-body text-ink-soft sm:col-span-2">
-          <SmartphoneIcon size={20} aria-hidden className="mt-0.5 shrink-0 text-primary-text" />
+        <p className="text-body text-ink-soft sm:col-span-2">
           Entrá a oido.com.ar desde el celular y seguí estos pasos.
         </p>
       )}

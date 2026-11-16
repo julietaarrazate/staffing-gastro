@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { formatArs } from "@/lib/format";
-import { CheckIcon } from "@/components/icons";
 import type { SubscriptionPlan } from "@/lib/types";
 
 /**
@@ -122,10 +121,9 @@ export default function Carta() {
                 <Tope max={p.max_turnos_mes} destacado={destacado} />
               </div>
 
-              <ul className="mt-6 space-y-2.5 border-t border-line pt-5">
+              <ul className="mt-6 divide-y divide-line border-t border-line">
                 {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-body text-ink-soft">
-                    <CheckIcon size={16} className="mt-0.5 shrink-0 text-secondary-text" aria-hidden />
+                  <li key={f} className="py-2.5 text-body text-ink-soft">
                     {f}
                   </li>
                 ))}

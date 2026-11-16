@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform }
 import { cn } from "@/lib/cn";
 import ShiftCard from "@/components/ShiftCard";
 import { DrawnCheck } from "@/components/ui";
-import { MapPinIcon } from "@/components/icons";
+import { MapPinIcon } from "../iconos";
 import { estimateArrivalMin } from "@/lib/map/travel-time";
 import type { RelojKey } from "./fixtures";
 import { PushNotice, StreetGrid } from "./replicas";

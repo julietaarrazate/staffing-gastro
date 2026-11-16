@@ -5,15 +5,7 @@ import { useInView } from "motion/react";
 import Badge from "@/components/ui/Badge";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { Avatar } from "@/components/ui";
-import {
-  CalendarIcon,
-  FlameIcon,
-  GlassIcon,
-  MapPinIcon,
-  ShieldIcon,
-  StarIcon,
-  XCircleIcon,
-} from "@/components/icons";
+import { StarIcon } from "../iconos";
 import { formatDecimal1 } from "@/lib/format";
 import { BARRIO, CANDIDATES, LOCAL as LOCAL_NOMBRE } from "./fixtures";
 import { setReloj } from "./relojStore";
@@ -60,16 +52,16 @@ export default function Confianza() {
           titulo="Si tenés un local"
           ficha={<FichaTrabajador />}
           reglas={[
-            { icon: <XCircleIcon size={18} />, texto: "¿No vino? Lo marcás y elegís a otra persona sin volver a publicar." },
-            { icon: <FlameIcon size={18} />, texto: "¿Nadie lo toma? A los 8 minutos pasa a urgente y le llega a más gente." },
+            { texto: "¿No vino? Lo marcás y elegís a otra persona sin volver a publicar." },
+            { texto: "¿Nadie lo toma? A los 8 minutos pasa a urgente y le llega a más gente." },
           ]}
         />
         <Lado
           titulo="Si trabajás"
           ficha={<FichaComercio />}
           reglas={[
-            { icon: <MapPinIcon size={18} />, texto: "Tu ubicación, sólo cuando la prendés vos. Nunca el recorrido." },
-            { icon: <CalendarIcon size={18} />, texto: "Confirmás un turno y se bajan solas las postulaciones que se pisan." },
+            { texto: "Tu ubicación, sólo cuando la prendés vos. Nunca el recorrido." },
+            { texto: "Confirmás un turno y se bajan solas las postulaciones que se pisan." },
           ]}
         />
       </div>
@@ -84,7 +76,7 @@ function Lado({
 }: {
   titulo: string;
   ficha: ReactNode;
-  reglas: { icon: ReactNode; texto: string }[];
+  reglas: { texto: string }[];
 }) {
   return (
     <div className="flex flex-col">
@@ -94,10 +86,7 @@ function Lado({
       <div className="mt-4 flex-1">{ficha}</div>
       <ul className="mt-5 grid gap-3">
         {reglas.map((r) => (
-          <li key={r.texto} className="flex items-start gap-3 text-body text-ink">
-            <span aria-hidden className="mt-0.5 shrink-0 text-ink-mute">
-              {r.icon}
-            </span>
+          <li key={r.texto} className="border-l-2 border-line pl-4 text-body text-ink">
             {r.texto}
           </li>
         ))}
@@ -150,16 +139,14 @@ function FichaComercio() {
   return (
     <div className="h-full rounded-[var(--radius-card)] bg-glow p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
       <div className="flex items-center gap-3">
-        <span aria-hidden className="grid size-16 shrink-0 place-items-center rounded-[var(--radius-card)] bg-card ring-1 ring-line">
-          <GlassIcon size={26} className="text-ink" />
-        </span>
+        <Avatar src={null} name={LOCAL_NOMBRE} size="lg" />
         <div className="min-w-0">
           <p className="font-display text-xl font-semibold text-ink">{LOCAL_NOMBRE}</p>
           <p className="text-sm text-ink-mute">Bar · {BARRIO}</p>
         </div>
       </div>
       <div className="mt-4">
-        <Badge tone="trust" icon={<ShieldIcon size={11} />}>
+        <Badge tone="trust">
           Comercio verificado
         </Badge>
       </div>
