@@ -159,7 +159,7 @@ async function llegarAPublicar(page: Page) {
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await expect(botonPublicar(page)).toBeEnabled();
@@ -174,7 +174,7 @@ async function intentarYFallar(page: Page, aviso: string | RegExp = "No se pudo 
 
 async function cambiarElPago(page: Page, monto: string) {
   await page.getByRole("button", { name: "Atrás" }).click();
-  await page.getByPlaceholder("48000").fill(monto);
+  await page.getByPlaceholder("48.000").fill(monto);
   await page.getByRole("button", { name: "Continuar" }).click();
   await expect(botonPublicar(page)).toBeEnabled();
 }

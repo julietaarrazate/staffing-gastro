@@ -14,7 +14,8 @@ import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { useCompanyPlace } from "@/lib/company-place";
 import ShiftDayHint from "@/components/ShiftDayHint";
 import { resolverHorario } from "@/lib/turno-horario";
-import { Button, TextField, Toggle, useToast } from "@/components/ui";
+import { Button, PesosInput, TextField, Toggle, useToast } from "@/components/ui";
+import { pesosDesdeApi } from "@/lib/pesos";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 import { LIMITES } from "@/lib/limites";
 
@@ -92,7 +93,7 @@ function NewEventForm() {
             newRole({
               position: role.position as WorkerSkill,
               count: String(role.quantity),
-              payAmount: draft.pay_amount ?? "",
+              payAmount: pesosDesdeApi(draft.pay_amount),
             })
           )
         );
@@ -400,7 +401,7 @@ function NewEventForm() {
                   )}
                 </div>
                 <div className="mt-2 flex gap-2">
-                  {/* min-w-0: sin esto, dos <input type="number"> flex-1 no se
+                  {/* min-w-0: sin esto, los dos campos flex-1 (Cantidad y Pago c/u) no se
                       achican por debajo de su ancho intrínseco (con spinner
                       nativo, ~170px+) y desbordan el contenedor en viewports
                       angostos (confirmado con Playwright, hallazgo E1 de la
@@ -420,13 +421,10 @@ function NewEventForm() {
                   </label>
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-xs font-semibold text-ink/50">Pago c/u</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      placeholder="15000"
+                    <PesosInput
+                      placeholder="15.000"
                       value={role.payAmount}
-                      onChange={(e) => updateRole(role.key, { payAmount: e.target.value })}
+                      onChange={(monto) => updateRole(role.key, { payAmount: monto })}
                       className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </label>

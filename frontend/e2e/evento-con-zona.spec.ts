@@ -76,7 +76,7 @@ async function completarLoDemas(page: Page) {
   const campos = page.locator('input[type="datetime-local"]');
   await campos.nth(0).fill(enDias(30, "21:00"));
   await campos.nth(1).fill(enDias(31, "04:00"));
-  await page.getByPlaceholder("15000").fill("30000");
+  await page.getByPlaceholder("15.000").fill("30000");
 }
 
 const publicar = (page: Page) => page.getByRole("button", { name: "Publicar evento" });
@@ -93,6 +93,20 @@ test("con local cargado: toma su zona, la muestra y publica con ella", async ({ 
   await expect(page.getByText("¡Evento publicado!")).toBeVisible();
   expect(publicados).toHaveLength(1);
   expect(publicados[0]).toMatchObject({ city: "Palermo", latitude: -34.5875, longitude: -58.43 });
+});
+
+test("el pago de cada puesto con coma se redondea al peso", async ({ page }) => {
+  const publicados = await abrirFormulario(page, LOCAL);
+  await completarLoDemas(page);
+  const pago = page.getByPlaceholder("15.000");
+  await pago.fill("");
+  await pago.pressSequentially("15000,50");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.001");
+  await publicar(page).click();
+
+  await expect(page.getByText("¡Evento publicado!")).toBeVisible();
+  expect(publicados[0]).toMatchObject({ roles: [{ pay_amount: "15001" }] });
 });
 
 test("con local cargado: se puede cambiar la zona y se publica la elegida", async ({ page }) => {
