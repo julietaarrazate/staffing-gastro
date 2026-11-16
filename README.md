@@ -54,7 +54,7 @@ Para desarrollo local del frontend ver [`frontend/README.md`](./frontend/README.
   Cloudinary (imágenes), Mercado Pago (suscripción), Google Identity Services
   (login), Web Push/VAPID (notificaciones), Resend (email transaccional)
 - **Mobile (futuro):** React Native
-- **Infra:** Docker · Render · Vercel · Neon · GitHub Actions (CI) · dominio `oido.com.ar` en Vercel
+- **Infra:** Docker · Render · Cloudflare Workers · Neon · GitHub Actions (CI) · dominio `oido.com.ar` en Cloudflare
 
 > `docker-compose.yml` incluye imágenes de Redis y PostGIS para desarrollo
 > local, pero **el código no las usa hoy** (rate limiting en memoria, sin
