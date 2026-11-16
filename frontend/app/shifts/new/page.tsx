@@ -41,7 +41,8 @@ import { useCompanyPlace } from "@/lib/company-place";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import ShiftDayHint from "@/components/ShiftDayHint";
-import { Button, OidoLoader, TextField, Toggle, useToast } from "@/components/ui";
+import { Button, OidoLoader, PesosInput, TextField, Toggle, useToast } from "@/components/ui";
+import { pesosDesdeApi } from "@/lib/pesos";
 import { LogoGlyph } from "@/components/Logo";
 import {
   CalendarIcon,
@@ -186,7 +187,7 @@ function NewShiftWizard() {
         const dias = diasParaDuplicar(original.start_at);
         setStartAt(argentinaISOToLocalInput(shiftDateBy(original.start_at, dias)));
         setEndAt(argentinaISOToLocalInput(shiftDateBy(original.end_at, dias)));
-        setPayAmount(String(original.pay_amount));
+        setPayAmount(pesosDesdeApi(original.pay_amount));
         setTips(original.tips);
         setMeal(original.meal);
         setUrgent(original.urgent);
@@ -277,7 +278,7 @@ function NewShiftWizard() {
         position: parsed.position,
         startAt: parsed.start_at ? argentinaISOToLocalInput(parsed.start_at) : "",
         endAt: parsed.end_at ? argentinaISOToLocalInput(parsed.end_at) : "",
-        payAmount: parsed.pay_amount,
+        payAmount: pesosDesdeApi(parsed.pay_amount),
         tips: parsed.tips,
         meal: parsed.meal,
         urgent: parsed.urgent,
@@ -385,7 +386,7 @@ function NewShiftWizard() {
     setPosition(b.position);
     setStartAt(b.startAt);
     setEndAt(b.endAt);
-    setPayAmount(b.payAmount);
+    setPayAmount(pesosDesdeApi(b.payAmount));
     setTips(b.tips);
     setMeal(b.meal);
     setUrgent(b.urgent);
@@ -853,16 +854,14 @@ function NewShiftWizard() {
                 </p>
                 <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
                   <span className="text-2xl font-bold text-ink/40">$</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
+                  <PesosInput
+                    aria-label="Pago por la jornada, en pesos"
                     value={payAmount}
-                    onChange={(e) => {
+                    onChange={(monto) => {
                       tocar("payAmount");
-                      setPayAmount(e.target.value);
+                      setPayAmount(monto);
                     }}
-                    placeholder="48000"
+                    placeholder="48.000"
                     className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>

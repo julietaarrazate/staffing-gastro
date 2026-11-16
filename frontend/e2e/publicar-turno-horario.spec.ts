@@ -111,7 +111,7 @@ test("el resumen del último paso dice fecha y horario en el celular, y se publi
   await campos(page).nth(0).fill(enDias(3, "21:00"));
   await campos(page).nth(1).fill(enDias(3, "02:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByText("¿Dónde es?")).toBeVisible();
   // 390 px: la vista previa lateral (lg+) no se ve, el resumen sí.
