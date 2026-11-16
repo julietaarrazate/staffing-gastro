@@ -18,9 +18,7 @@ tecleado; al salir, «15.001». Las reglas están en `frontend/lib/pesos.ts`:
   «15000.5») o varias comas no se adivinan: el campo queda en rojo
   (`aria-invalid`) y el formulario no deja seguir.
   Más de 10 cifras enteras tampoco (el backend guarda `Numeric(12, 2)`).
-- `formatearPesos`: «15001» → «15.001». Con el foco el campo muestra el
-  número sin puntos («15001»), así borrar una cifra en el medio de «1.500»
-  no deja un «1.50» ilegible (sugerencia de la revisión independiente).
+- `formatearPesos`: «15001» → «15.001».
 - `pesosDesdeApi`: lo que llega de la API, de la IA o de un borrador
   guardado («15000.00», con punto decimal) se pasa a pesos enteros antes de
   entrar al formulario (duplicar turno, «Describí el turno», borrador
@@ -43,7 +41,12 @@ puede escribir, y está bien porque el monto es entero.
 con `"15001"`) y en `evento-con-zona.spec.ts` (el pago del puesto llega como
 `"15001"`); los specs que buscaban el placeholder «48000» se actualizaron.
 
-**Revisión independiente:** sin bloqueantes. Quedan como mejora el aviso
+**Revisión independiente:** sin bloqueantes. Sugirió mostrar el número sin
+puntos al enfocar, para que borrar una cifra en el medio de «1.500» no deje
+un «1.50» ilegible. Se probó y se descartó: cambiar el texto en el foco
+pierde la selección, y lo que se escribe después se pega al final («15.001»
++ «15.00» → «1500115.00»; lo agarró la suite e2e). Quedan como mejora la
+fricción de ese «1.50» en rojo hasta completar el grupo, el aviso
 genérico «Escribí cuánto pagás» cuando lo escrito no se puede leer (sólo lo
 marca el rojo y `aria-invalid`) y el «$0» del resumen mientras se escribe
 un monto a medias.
