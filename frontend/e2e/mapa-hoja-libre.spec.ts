@@ -106,3 +106,47 @@ test("en el celular el pin del turno activo queda arriba de la hoja de tarjetas"
     )
     .toBe(true);
 });
+
+test("al pasar de celular a escritorio y volver, el padding de la hoja sigue a la hoja", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+      : route.continue()
+  );
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/shifts/feed", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([SHIFT]) })
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(WORKER_SESSION) })
+  );
+  await page.goto("/map");
+
+  const pin = page.getByRole("button", { name: /^Turno de mozo/ }).first();
+  const canvas = page.locator(".maplibregl-canvas").first();
+  await expect(pin).toBeVisible({ timeout: 20_000 });
+
+  // Desvío vertical del pin respecto del centro del mapa, ya asentada la cámara.
+  const desvio = async () => {
+    const p = await pin.boundingBox();
+    const c = await canvas.boundingBox();
+    if (!p || !c) return Number.NaN;
+    return p.y + p.height / 2 - (c.y + c.height / 2);
+  };
+
+  // Celular: el pin está bien arriba del centro (la hoja ocupa abajo).
+  await expect.poll(async () => (await desvio()) < -60, { timeout: 10_000 }).toBe(true);
+
+  // Escritorio: la hoja está oculta, no tiene que quedar padding.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(async () => Math.abs(await desvio()) <= 60, { timeout: 10_000 }).toBe(true);
+
+  // Y de vuelta al celular, la hoja visible vuelve a dejar su franja libre.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await desvio()) < -60, { timeout: 10_000 }).toBe(true);
+});

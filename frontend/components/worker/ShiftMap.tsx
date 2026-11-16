@@ -8,7 +8,12 @@ import RadiusRing from "@/components/map/RadiusRing";
 import ShiftMarker from "@/components/map/ShiftMarker";
 import ClusterMarker from "@/components/map/ClusterMarker";
 import { buildShiftClusterIndex, isCluster, type ShiftClusterFeature } from "@/lib/map/clustering";
-import { easeToPoint, flyToPoint, setBottomPadding } from "@/lib/map/camera";
+import {
+  applyBottomPadding,
+  easeToPoint,
+  flyToPoint,
+  type LastFlight,
+} from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
 import { Shift } from "@/lib/types";
 
@@ -76,13 +81,15 @@ export default function ShiftMap({
   }, []);
 
   // Padding inferior = alto de la hoja. Va ANTES de los efectos de vuelo (el
-  // orden de los efectos es el del archivo) para que el primer vuelo ya use el
-  // centro visual correcto. La primera vez salta; después acompaña al snap.
-  const paddingAppliedRef = useRef(false);
+  // orden de los efectos es el del archivo). Se aplica sin animar; si había un
+  // vuelo en curso se reanuda hacia el mismo destino (ver `applyBottomPadding`),
+  // y todo vuelo nuevo sale con el padding vigente (`paddingRef`).
+  const paddingRef = useRef(bottomPadding);
+  const lastFlightRef = useRef<LastFlight | null>(null);
   useEffect(() => {
+    paddingRef.current = bottomPadding;
     if (!ready || !mapRef.current) return;
-    setBottomPadding(mapRef.current, bottomPadding, { animate: paddingAppliedRef.current });
-    paddingAppliedRef.current = true;
+    applyBottomPadding(mapRef.current, bottomPadding, lastFlightRef.current);
   }, [bottomPadding, ready]);
   // Con `reuseMaps` el mapa vuelve al pool: sin esto otra pantalla heredaría
   // el padding de esta.
@@ -104,7 +111,9 @@ export default function ShiftMap({
     const [initLat, initLng] = initialCenterRef.current;
     if (center[0] === initLat && center[1] === initLng) return;
     hasCenteredOnUserRef.current = true;
-    flyToPoint(mapRef.current, center, { zoom: 14, duration: 1400 });
+    const options = { zoom: 14, duration: 1400, bottomPadding: paddingRef.current };
+    lastFlightRef.current = { kind: "fly", center, options };
+    flyToPoint(mapRef.current, center, options);
   }, [center, ready]);
 
   const active = shifts.find((s) => s.id === activeId);
@@ -127,7 +136,9 @@ export default function ShiftMap({
   // (auditoría de interfaz 2026-10-11, B02).
   useEffect(() => {
     if (!followActive || !mapRef.current || activeLat == null || activeLng == null) return;
-    easeToPoint(mapRef.current, [activeLat, activeLng], { zoom: 15, duration: 450 });
+    const options = { zoom: 15, duration: 450, bottomPadding: paddingRef.current };
+    lastFlightRef.current = { kind: "ease", center: [activeLat, activeLng], options };
+    easeToPoint(mapRef.current, [activeLat, activeLng], options);
   }, [activeLat, activeLng, ready, followActive]);
 
   const clusterIndex = useMemo(() => buildShiftClusterIndex(shifts), [shifts]);
@@ -152,7 +163,9 @@ export default function ShiftMap({
     (clusterId: number, lng: number, lat: number) => {
       if (!mapRef.current) return;
       const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), 18);
-      easeToPoint(mapRef.current, [lat, lng], { zoom: expansionZoom, duration: 600 });
+      const options = { zoom: expansionZoom, duration: 600, bottomPadding: paddingRef.current };
+      lastFlightRef.current = { kind: "ease", center: [lat, lng], options };
+      easeToPoint(mapRef.current, [lat, lng], options);
     },
     [clusterIndex]
   );

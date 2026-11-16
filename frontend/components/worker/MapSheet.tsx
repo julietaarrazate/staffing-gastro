@@ -54,14 +54,23 @@ export default function MapSheet({
     return () => observer.disconnect();
   }, [containerRef]);
 
-  // Avisa cuánto del mapa tapa la hoja ahora (snap actual). Se re-mide cuando
-  // cambia el snap o el contenedor; `offsetHeight` es 0 si el wrapper está en
-  // `display:none` (desktop). Se ignora el arrastre en curso: el padding sigue
-  // al snap al que la hoja se asienta.
+  // ¿Se ve la hoja? En desktop el wrapper es `md:hidden` (display:none) y el
+  // panel mide 0. Se observa el propio panel: al cruzar el breakpoint `md` (o
+  // girar el celular) el ResizeObserver avisa y se re-mide.
+  const [shown, setShown] = useState(false);
   useEffect(() => {
-    const visible = panelRef.current && panelRef.current.offsetHeight > 0 ? sheetBottomPadding(containerHeight, SNAPS[snap]) : 0;
-    onVisibleHeightChange?.(visible);
-  }, [snap, containerHeight, onVisibleHeightChange]);
+    const el = panelRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setShown(el.offsetHeight > 0));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Avisa cuánto del mapa tapa la hoja ahora (snap asentado). Se ignora el
+  // arrastre en curso: el padding sigue al snap al que la hoja se asienta.
+  useEffect(() => {
+    onVisibleHeightChange?.(shown ? sheetBottomPadding(containerHeight, SNAPS[snap]) : 0);
+  }, [snap, containerHeight, shown, onVisibleHeightChange]);
   useEffect(() => () => onVisibleHeightChange?.(0), [onVisibleHeightChange]);
 
   const offsetFor = (i: SnapIndex) => containerHeight * (SNAPS[MAX_SNAP] - SNAPS[i]);

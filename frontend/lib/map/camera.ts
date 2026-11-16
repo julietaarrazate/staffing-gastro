@@ -16,18 +16,25 @@ function prefersReducedMotion(): boolean {
 interface CameraOptions {
   zoom?: number;
   duration?: number;
+  /** Padding inferior (px) con el que termina el vuelo: el de la hoja vigente. */
+  bottomPadding?: number;
+}
+
+function paddingOpt(bottom: number | undefined) {
+  return bottom == null ? {} : { padding: { top: 0, left: 0, right: 0, bottom } };
 }
 
 /** Vuelo largo con curva (apertura de pantalla, "centrarme"). */
 export function flyToPoint(
   map: MapRef | null | undefined,
   center: [number, number],
-  { zoom, duration = 1400 }: CameraOptions = {}
+  { zoom, duration = 1400, bottomPadding }: CameraOptions = {}
 ): void {
   if (!map) return;
   map.flyTo({
     center: [center[1], center[0]],
     zoom,
+    ...paddingOpt(bottomPadding),
     duration: prefersReducedMotion() ? 0 : duration,
     curve: 1.42,
     essential: true,
@@ -38,12 +45,13 @@ export function flyToPoint(
 export function easeToPoint(
   map: MapRef | null | undefined,
   center: [number, number],
-  { zoom, duration = 500 }: CameraOptions = {}
+  { zoom, duration = 500, bottomPadding }: CameraOptions = {}
 ): void {
   if (!map) return;
   map.easeTo({
     center: [center[1], center[0]],
     zoom,
+    ...paddingOpt(bottomPadding),
     duration: prefersReducedMotion() ? 0 : duration,
     essential: true,
   });
@@ -70,20 +78,30 @@ export function sheetBottomPadding(
   return Math.round(containerHeight * fraction);
 }
 
+/** Último vuelo pedido a la cámara, para reanudarlo si el padding lo corta. */
+export interface LastFlight {
+  kind: "fly" | "ease";
+  center: [number, number];
+  options: CameraOptions;
+}
+
 /**
- * Aplica el padding inferior sin cambiar centro ni zoom. `animate: false` lo
- * salta directo (primera vez, antes de cualquier vuelo); si no, lo acompaña
- * con una transición corta cuando la hoja cambia de alto.
+ * Aplica el padding inferior sin animar. En MapLibre `jumpTo` (y cualquier
+ * `easeTo`, aun con duración 0) corta el vuelo en curso, y sin `center` el
+ * destino pasaría a ser el centro actual: el vuelo no llegaría a su turno. Por
+ * eso, si el mapa se estaba moviendo, se reanuda el último vuelo hacia el MISMO
+ * destino y con el padding nuevo (los vuelos nuevos ya salen con el vigente).
  */
-export function setBottomPadding(
+export function applyBottomPadding(
   map: MapRef | null | undefined,
   bottom: number,
-  { animate = true }: { animate?: boolean } = {}
+  lastFlight?: LastFlight | null
 ): void {
   if (!map) return;
-  map.easeTo({
-    padding: { top: 0, left: 0, right: 0, bottom },
-    duration: animate && !prefersReducedMotion() ? 300 : 0,
-    essential: true,
-  });
+  const moving = map.isMoving();
+  map.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom } });
+  if (!moving || !lastFlight) return;
+  const options = { ...lastFlight.options, bottomPadding: bottom };
+  if (lastFlight.kind === "fly") flyToPoint(map, lastFlight.center, options);
+  else easeToPoint(map, lastFlight.center, options);
 }
