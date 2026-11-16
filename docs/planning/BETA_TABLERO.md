@@ -20,7 +20,7 @@ descuidado.
 |---|---|---|
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
-| 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ⚪ |
+| 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | 🟡 triaje hecho (2026-11-16): ver abajo |
 | 4 | Identidad, marca e isotipo | ⚪ (la landing «con convicción» ya está en producción, #543) |
 | 5 | Lista de salida a beta | ⚪ |
 | 6 | SEO y GEO | ⚪ |
@@ -404,6 +404,44 @@ afuera).
 - La ubicación real de un celular en la calle («Disponible ahora», «Va en
   camino», el Mapa).
 - La landing nueva en un celular modesto: que el movimiento no se trabe.
+
+## Etapa 3
+
+Triaje completo (estado, tipo, evidencia en el código y archivos de cada
+grupo) en [`BETA_ETAPA3_TRIAJE.md`](./BETA_ETAPA3_TRIAJE.md). De los 60
+menores: 5 ya resueltos por los arreglos de la etapa 2 (U059, U116, U117,
+U121, U087), 2 parciales (U130, U133), 10 esperan una decisión de Julieta y
+2 quedan fuera (U141 va con el tope del plan, apagado en la beta; U102 se
+cierra al apagar el ingreso de invitado, decisión 5).
+
+**Arreglos, un PR por grupo** (⚪ todos sin empezar):
+
+| Grupo | Hallazgos | Tanda |
+|---|---|---|
+| A · Perfil del comercio | U119, U136 | 1 |
+| B · Dirección, zona y mapa | U037, U040, U048, U049, U107 | 1 |
+| C · Alta y verificación de mail | U041, U042, U043, U122 | 1 |
+| F · Chat y soporte | U012, U017, U092, U099, U130 (U110 aparte: lleva migración) | 1 |
+| G · Candidatos, perfil y Buscar | U022, U027, U074 | 1 |
+| I · Subidas de archivos y perfil del trabajador | U051, U052, U091 | 1 |
+| K · Detalles sueltos de pantalla | U044, U046, U047, U061 | 1 |
+| D · Mensajes de error y de límites | U113, U144 | 2 |
+| L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 |
+| M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 |
+| H · Matches del trabajador | U066, U068, U088 | 3 |
+| N · Guardas de rol y 2FA de admin | U098, U133 | 3 |
+| E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) |
+
+Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
+triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
+entran a la etapa 3 con estos.
+
+**Esperan una decisión de Julieta:** U018 (aviso al trabajador al finalizar
+el turno), U039 (Google sobre una cuenta con mail sin confirmar), U084
+(cancelar un evento entero), U101 (verificación de edad o corregir el texto
+legal), U106 (asistente y verificación: implementar o corregir el doc), U109
+(dorso del DNI), U111 (calificación definitiva o editable), U140, U142 y U143
+(tope del plan). Las preguntas con opciones están en el triaje.
 
 ## Cómo se trabaja (acordado con Julieta el 2026-11-13)
 
