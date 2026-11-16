@@ -170,7 +170,7 @@ export default function ShiftMap({
       if (!mapRef.current) return;
       const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), 18);
       const options = { zoom: expansionZoom, duration: 600, bottomPadding: paddingRef.current };
-        easeToPoint(mapRef.current, [lat, lng], options);
+      easeToPoint(mapRef.current, [lat, lng], options);
     },
     [clusterIndex]
   );
