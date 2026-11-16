@@ -1,17 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatAgo } from "@/lib/datetime";
 import { formatKm } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useCompanyPlace } from "@/lib/company-place";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
-import { SearchIcon, UsersIcon } from "@/components/icons";
+import { MapPinIcon, SearchIcon, UsersIcon } from "@/components/icons";
 import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import RatingOrNew from "@/components/RatingOrNew";
 import BottomSheet from "@/components/BottomSheet";
@@ -51,9 +52,28 @@ export default function SearchPage() {
 }
 
 function SearchPageContent() {
-  const { token } = useRequireAuth();
+  const { user, token } = useRequireAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const [geoCenter, setGeoCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  // Comercio: la búsqueda parte de su local (U073), no del Obelisco ni de
+  // donde esté el celular. Sin local cargado no se busca desde ningún lado en
+  // silencio: la pantalla lo dice y lleva a completarlo.
+  const isEmployer = user?.role === "employer";
+  const { place: companyPlace, loaded: placeLoaded } = useCompanyPlace(isEmployer ? token : null);
+  const origin: "esperando" | "local" | "sin-local" | "cerca" = !user
+    ? "esperando"
+    : !isEmployer
+      ? "cerca"
+      : !placeLoaded
+        ? "esperando"
+        : companyPlace
+          ? "local"
+          : "sin-local";
+  const originLat = origin === "local" && companyPlace ? companyPlace.latitude : geoCenter[0];
+  const originLng = origin === "local" && companyPlace ? companyPlace.longitude : geoCenter[1];
+  // Memoizado: el efecto de búsqueda depende de la identidad del centro.
+  const center = useMemo<[number, number]>(() => [originLat, originLng], [originLat, originLng]);
   // Precargable por URL (?skill=mozo): el asistente de IA (buscar_candidatos)
   // te trae directo con el filtro ya puesto.
   const [skill, setSkill] = useState<WorkerSkill | "">(() => {
@@ -77,17 +97,26 @@ function SearchPageContent() {
   const searchSeq = useRef(0);
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    // El trabajador (y el admin) siguen midiendo desde donde están; el comercio
+    // mide desde su local y no le pide la ubicación al navegador.
+    if (origin !== "cerca" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setCenter([pos.coords.latitude, pos.coords.longitude]),
+      (pos) => setGeoCenter([pos.coords.latitude, pos.coords.longitude]),
       () => {
         // Sin permiso o sin soporte: nos quedamos con el centro por defecto.
       }
     );
-  }, []);
+  }, [origin]);
 
   async function search() {
     if (!token) return;
+    if (origin === "esperando" || origin === "sin-local") {
+      if (origin === "sin-local") {
+        setWorkers([]);
+        setLoading(false);
+      }
+      return;
+    }
     const seq = ++searchSeq.current;
     setLoading(true);
     setError(null);
@@ -115,7 +144,7 @@ function SearchPageContent() {
   useEffect(() => {
     search();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, center]);
+  }, [token, center, origin]);
 
   const filterControls = (
     <div className="flex items-center gap-2 rounded-full bg-white/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
@@ -151,15 +180,45 @@ function SearchPageContent() {
     </div>
   );
 
-  const countLabel = loading
+  const sinLocal = origin === "sin-local";
+  const countLabel = sinLocal
+    ? "Falta la ubicación de tu local"
+    : loading
     ? "Buscando..."
     : `${workers.length} trabajador${workers.length === 1 ? "" : "es"} disponible${
         workers.length === 1 ? "" : "s"
       } en el radio seleccionado`;
 
+  // Desde dónde se mide, dicho en pantalla (el comercio no debería adivinarlo).
+  const originNote =
+    origin === "local" && companyPlace ? (
+      <p
+        data-testid="search-origin"
+        className="flex items-center gap-1.5 text-xs font-medium text-ink/60"
+      >
+        <MapPinIcon size={13} className="shrink-0 text-primary-text" />
+        <span className="min-w-0 truncate">
+          Desde tu local · {companyPlace.label}
+        </span>
+      </p>
+    ) : sinLocal ? (
+      // En mobile el sheet arranca replegado y el botón del estado vacío queda
+      // abajo: el acceso a completar el local también va en el encabezado.
+      <Link href="/profile/edit" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-primary-text underline">
+        Completar ubicación del local
+      </Link>
+    ) : null;
+
   const workerList = (
     <>
-      {!loading && workers.length === 0 ? (
+      {sinLocal ? (
+        <EmptyState
+          icon={<MapPinIcon size={28} />}
+          title="Tu local no tiene ubicación"
+          subtitle="Para buscar gente cerca necesitamos saber dónde queda. Completá la dirección de tu local y medimos desde ahí."
+          primaryAction={{ label: "Completar ubicación", onClick: () => router.push("/profile/edit") }}
+        />
+      ) : !loading && workers.length === 0 ? (
         <EmptyState
           icon={<UsersIcon size={28} />}
           title="Nadie por acá todavía"
@@ -276,6 +335,7 @@ function SearchPageContent() {
           )}
         </div>
         <p className="px-5 pt-4 text-sm font-semibold text-ink/75">{countLabel}</p>
+        {originNote && <div className="px-5 pt-1">{originNote}</div>}
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">{workerList}</div>
       </aside>
 
@@ -295,7 +355,12 @@ function SearchPageContent() {
 
         {/* BottomSheet: sólo mobile — en desktop la lista vive en el panel. */}
         <div className="md:hidden">
-          <BottomSheet header={<p className="px-4 pb-2 text-sm font-semibold text-ink/75">{countLabel}</p>}>
+          <BottomSheet header={
+              <div className="px-4 pb-2">
+                <p className="text-sm font-semibold text-ink/75">{countLabel}</p>
+                {originNote && <div className="mt-0.5">{originNote}</div>}
+              </div>
+            }>
             {workerList}
           </BottomSheet>
         </div>
