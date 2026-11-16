@@ -138,6 +138,19 @@ test("candidatos: la persona nueva dice «Nuevo en Oído» y la veterana muestra
 
 test("Buscar trabajadores: la persona nueva no muestra estrellas ni 0,0", async ({ page }) => {
   await setup(page);
+  // Con local cargado el comercio busca desde ahí (U073).
+  await page.route("**/api/v1/companies/me/profile", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "company-1", user_id: "user-1", name: "Bar Central", logo_url: null, category: null,
+        description: null, address: "Honduras 5200", city: "Palermo", latitude: -34.5875,
+        longitude: -58.4257, capacity: null, opening_hours: null, rating: 4.5, events_published: 0,
+        on_time_payment_rate: 1, late_cancellations: 0,
+      }),
+    })
+  );
   await page.route("**/api/v1/matching/search**", (r) =>
     r.fulfill(
       json([
