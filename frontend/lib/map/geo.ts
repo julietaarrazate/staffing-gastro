@@ -20,6 +20,29 @@ export function haversineKm(a: [number, number], b: [number, number]): number {
 }
 
 /**
+ * Caja `[[oeste, sur], [este, norte]]` (en `[lng, lat]`, lista para
+ * `fitBounds`) que contiene todos los puntos `[lat, lng]`. Con un solo punto,
+ * o con puntos juntos, la caja degenera en un punto: quien la use tiene que
+ * poner un `maxZoom` para no acercarse de más.
+ */
+export function boundsOf(points: [number, number][]): [[number, number], [number, number]] {
+  let w = Infinity;
+  let s = Infinity;
+  let e = -Infinity;
+  let n = -Infinity;
+  for (const [lat, lng] of points) {
+    w = Math.min(w, lng);
+    e = Math.max(e, lng);
+    s = Math.min(s, lat);
+    n = Math.max(n, lat);
+  }
+  return [
+    [w, s],
+    [e, n],
+  ];
+}
+
+/**
  * Genera el anillo (polígono) de un círculo geográfico aproximado alrededor
  * de `center`, en coordenadas `[lng, lat]` listas para GeoJSON. Se usa para
  * `RadiusRing` como capa `fill`/`line`, que así escala solo con el zoom del
