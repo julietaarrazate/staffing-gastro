@@ -35,7 +35,7 @@ descuidado.
 | El chat es del comercio con la persona asignada | ✅ #532 |
 | Volver a postularse | ✅ #533 |
 
-### Reporte externo de pruebas (8 de 9 en `main`)
+### Reporte externo de pruebas (9 de 9 en `main`)
 
 | Reporte | Qué | Estado |
 |---|---|---|
@@ -46,12 +46,12 @@ descuidado.
 | BK-0C3A2D8D7EE2 | Escape cierra una sola ventana | ✅ #541 |
 | BK-8E9CFE08111D | Candidatos: error de carga no es «nadie se postuló» | ✅ #542 |
 | BK-9FB6E2BC2226 | Avisos al celular: son de la cuenta con la sesión abierta | ✅ #545 |
-| BK-7DCC7E4AB945 | Las claves para no repetir un pedido se pierden al recargar | ⚪ |
+| BK-7DCC7E4AB945 | Las claves para no repetir un pedido se pierden al recargar | ✅ #584 |
 | BK-898A15047291 | «Pagado hasta» queda viejo con la pestaña abierta | ✅ #570 |
 
 ### Graves, agrupados por causa (un grupo, un PR)
 
-De 79 graves: 67 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
+De 79 graves: 73 ya están en `main` (los marcados ✅ abajo, más U010, U011 y
 U053, que entraron con el reporte externo); U094 y U137 quedan diferidos
 (dependen del tope del plan, que está apagado en la beta).
 
@@ -118,7 +118,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | ✅ en `main` | #578 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | ✅ en `main` | #564 |
 | U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | ✅ en `main` | #575 (revisión independiente y prueba en la app hechas el 2026-11-14) |
-| U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | 🟡 diseñado | [diseño](./BETA_DISENO_GRAVES.md), G15 |
+| U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | ✅ en `main` | #584 (cuatro revisiones independientes hechas el 2026-11-16; suite e2e completa en verde) |
 | U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | ✅ en `main` | #565 (prueba en la app hecha el 2026-11-14) |
 | U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | ✅ en `main` | #573 (revisión independiente y prueba en la app hechas el 2026-11-14; el permiso concedido no se puede probar sin pantalla) |
 
@@ -215,6 +215,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - «Descubrir rápido»: el toque y el arrastre de la tarjeta sólo se cubren con
   e2e; no hay test unitario del gesto (jsdom no dispara los de motion; salió
   de la revisión de #583).
+- Asistente de publicar (#584): el formulario de evento (`/shifts/new-event`)
+  todavía no guarda el borrador ni el paso; y el botón «Atrás» de la
+  pantalla agrega una entrada al historial, así que «Atrás» del navegador
+  después de usarlo vuelve al paso que se dejó.
 - Mapa del trabajador: si la hoja cambia de altura mientras la cámara se
   mueve, el encuadre se acomoda de golpe al terminar el movimiento (no se
   desliza); y los grupos de pines cuentan con `getBounds()`, que no descuenta
