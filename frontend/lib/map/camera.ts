@@ -78,50 +78,62 @@ export function sheetBottomPadding(
   return Math.round(containerHeight * fraction);
 }
 
-/** Último vuelo pedido a la cámara, para reanudarlo si el padding lo corta. */
-export interface LastFlight {
-  kind: "fly" | "ease";
-  center: [number, number];
-  options: CameraOptions;
+export interface BottomPaddingApplier {
+  /** Pide el padding inferior: en el momento si el mapa está quieto; si no, al `moveend`. */
+  apply(bottom: number): void;
+  /** Cancela el listener pendiente (cleanup al desmontar). */
+  cancel(): void;
 }
 
 /**
- * Aplica el padding inferior sin animar. En MapLibre `jumpTo` (y cualquier
- * `easeTo`, aun con duración 0) corta el vuelo en curso, y sin `center` el
- * destino pasaría a ser el centro actual: el vuelo no llegaría a su turno. Por
- * eso, si el mapa se estaba moviendo, se reanuda el último vuelo hacia el MISMO
- * destino y con el padding nuevo (los vuelos nuevos ya salen con el vigente).
+ * Aplica el padding inferior de la hoja sin cortar nada. En MapLibre `jumpTo`
+ * (y cualquier `easeTo`) detiene el vuelo o el gesto en curso, y su `moveend`
+ * síncrono es una carrera para quien lleve estado de vuelos. Por eso: con el
+ * mapa quieto se salta en el momento; con el mapa en movimiento se guarda el
+ * ÚLTIMO valor pedido y se aplica al `moveend`, con un solo listener a la vez.
+ * Los vuelos programáticos ya llevan el padding vigente en sus opciones.
  */
-export function applyBottomPadding(
-  map: MapRef | null | undefined,
-  bottom: number,
-  lastFlight?: LastFlight | null
-): boolean {
-  if (!map) return false;
-  const moving = map.isMoving();
-  map.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom } });
-  if (!moving || !lastFlight) return false;
-  const options = { ...lastFlight.options, bottomPadding: bottom };
-  if (lastFlight.kind === "fly") flyToPoint(map, lastFlight.center, options);
-  else easeToPoint(map, lastFlight.center, options);
-  return true;
-}
+export function createBottomPaddingApplier(map: MapRef): BottomPaddingApplier {
+  let pending: number | null = null;
+  let listening = false;
 
-/**
- * Llama a `onStop` cuando ya no hay un vuelo programático que reanudar: al
- * terminar cualquier movimiento (`moveend`) y al empezar uno de la persona
- * (`movestart` con `originalEvent`: arrastre, inercia, pellizco). Sin esto,
- * cambiar la hoja de snap con el mapa en movimiento por un gesto lo devolvía
- * solo al destino del último vuelo. Devuelve la función para desuscribir.
- */
-export function clearFlightOnGestureOrEnd(map: MapRef, onStop: () => void): () => void {
-  const onStart = (e: { originalEvent?: unknown }) => {
-    if (e.originalEvent) onStop();
+  const jump = (bottom: number) =>
+    map.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom } });
+
+  const arm = () => {
+    if (listening) return;
+    listening = true;
+    map.once("moveend", flush);
   };
-  map.on("movestart", onStart);
-  map.on("moveend", onStop);
-  return () => {
-    map.off("movestart", onStart);
-    map.off("moveend", onStop);
+
+  // El `jumpTo` de acá dispara su propio `moveend`, pero el listener ya se
+  // consumió (`once`) y `listening` está en false: no entra en bucle.
+  function flush() {
+    listening = false;
+    if (pending == null) return;
+    if (map.isMoving()) {
+      arm();
+      return;
+    }
+    const bottom = pending;
+    pending = null;
+    jump(bottom);
+  }
+
+  return {
+    apply(bottom) {
+      pending = bottom;
+      if (map.isMoving()) {
+        arm();
+        return;
+      }
+      pending = null;
+      jump(bottom);
+    },
+    cancel() {
+      if (listening) map.off("moveend", flush);
+      listening = false;
+      pending = null;
+    },
   };
 }

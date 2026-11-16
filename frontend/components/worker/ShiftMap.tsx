@@ -9,11 +9,10 @@ import ShiftMarker from "@/components/map/ShiftMarker";
 import ClusterMarker from "@/components/map/ClusterMarker";
 import { buildShiftClusterIndex, isCluster, type ShiftClusterFeature } from "@/lib/map/clustering";
 import {
-  applyBottomPadding,
-  clearFlightOnGestureOrEnd,
+  createBottomPaddingApplier,
   easeToPoint,
   flyToPoint,
-  type LastFlight,
+  type BottomPaddingApplier,
 } from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
 import { Shift } from "@/lib/types";
@@ -82,26 +81,24 @@ export default function ShiftMap({
   }, []);
 
   // Padding inferior = alto de la hoja. Va ANTES de los efectos de vuelo (el
-  // orden de los efectos es el del archivo). Se aplica sin animar; si había un
-  // vuelo en curso se reanuda hacia el mismo destino (ver `applyBottomPadding`),
-  // y todo vuelo nuevo sale con el padding vigente (`paddingRef`).
+  // orden de los efectos es el del archivo). Con el mapa quieto se aplica en el
+  // momento; en movimiento, al `moveend` (ver `createBottomPaddingApplier`). Todo
+  // vuelo programático sale con el padding vigente (`paddingRef`).
   const paddingRef = useRef(bottomPadding);
-  const lastFlightRef = useRef<LastFlight | null>(null);
+  const applierRef = useRef<BottomPaddingApplier | null>(null);
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    const applier = createBottomPaddingApplier(mapRef.current);
+    applierRef.current = applier;
+    return () => {
+      applier.cancel();
+      applierRef.current = null;
+    };
+  }, [ready]);
   useEffect(() => {
     paddingRef.current = bottomPadding;
-    if (!ready || !mapRef.current) return;
-    const flight = lastFlightRef.current;
-    // El `jumpTo` dispara `moveend` y limpiaría el ref: si se reanudó el vuelo,
-    // se vuelve a anotar (su propio `moveend` lo limpiará al llegar).
-    if (applyBottomPadding(mapRef.current, bottomPadding, flight)) lastFlightRef.current = flight;
+    applierRef.current?.apply(bottomPadding);
   }, [bottomPadding, ready]);
-  // Sólo se reanuda un vuelo programático que de verdad está en curso.
-  useEffect(() => {
-    if (!ready || !mapRef.current) return;
-    return clearFlightOnGestureOrEnd(mapRef.current, () => {
-      lastFlightRef.current = null;
-    });
-  }, [ready]);
   // Con `reuseMaps` el mapa vuelve al pool: sin esto otra pantalla heredaría
   // el padding de esta.
   useEffect(
@@ -123,7 +120,6 @@ export default function ShiftMap({
     if (center[0] === initLat && center[1] === initLng) return;
     hasCenteredOnUserRef.current = true;
     const options = { zoom: 14, duration: 1400, bottomPadding: paddingRef.current };
-    lastFlightRef.current = { kind: "fly", center, options };
     flyToPoint(mapRef.current, center, options);
   }, [center, ready]);
 
@@ -148,7 +144,6 @@ export default function ShiftMap({
   useEffect(() => {
     if (!followActive || !mapRef.current || activeLat == null || activeLng == null) return;
     const options = { zoom: 15, duration: 450, bottomPadding: paddingRef.current };
-    lastFlightRef.current = { kind: "ease", center: [activeLat, activeLng], options };
     easeToPoint(mapRef.current, [activeLat, activeLng], options);
   }, [activeLat, activeLng, ready, followActive]);
 
@@ -175,8 +170,7 @@ export default function ShiftMap({
       if (!mapRef.current) return;
       const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), 18);
       const options = { zoom: expansionZoom, duration: 600, bottomPadding: paddingRef.current };
-      lastFlightRef.current = { kind: "ease", center: [lat, lng], options };
-      easeToPoint(mapRef.current, [lat, lng], options);
+        easeToPoint(mapRef.current, [lat, lng], options);
     },
     [clusterIndex]
   );
