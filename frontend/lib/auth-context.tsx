@@ -20,6 +20,7 @@ import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
 import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
+import { borrarBorradores } from "@/lib/almacen-sesion";
 import {
   isTwoFactorChallenge,
   TWO_FACTOR_CODES,
@@ -180,6 +181,8 @@ function clearSession() {
   localStorage.removeItem("staffya_token");
   localStorage.removeItem(HAS_SESSION_KEY);
   localStorage.removeItem(SESSION_USER_KEY);
+  // Borradores de la pestaña (publicar, bienvenida): no pasan a la próxima cuenta.
+  borrarBorradores();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

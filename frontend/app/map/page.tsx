@@ -189,6 +189,8 @@ export default function MapPage() {
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   const carouselRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Alto que la hoja de tarjetas tapa del mapa (mobile): la cámara lo deja libre.
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   // El mapa abre en la persona y ordena las tarjetas por cercanía a ella,
   // igual que /feed y /buscar (auditoría de interfaz 2026-10-11, B02).
@@ -436,6 +438,7 @@ export default function MapPage() {
         activeId={activeId}
         onSelect={selectById}
         followActive={followActive}
+        bottomPadding={sheetHeight}
       />
 
       {/* Encabezado flotante (sólo mobile: en desktop el conteo ya está en el
@@ -477,7 +480,7 @@ export default function MapPage() {
           </div>
         </div>
       ) : (
-        <MapSheet containerRef={containerRef}>
+        <MapSheet containerRef={containerRef} onVisibleHeightChange={setSheetHeight}>
           <div
             ref={carouselRef}
             onScroll={onCarouselScroll}

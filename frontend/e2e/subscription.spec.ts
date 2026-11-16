@@ -162,7 +162,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await expect(page.getByText("Llegaste al límite de 15 turnos de tu plan Básico este mes.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Mejorá tu plan" })).toBeVisible();
   // Sigue en /shifts/new: no navega hasta que el usuario elija qué hacer.
-  await expect(page).toHaveURL("/shifts/new");
+  await expect(page).toHaveURL(/\/shifts\/new(\?paso=\d)?$/);
 
   await page.screenshot({ path: "/tmp/sub-fe-limit-reached.png", fullPage: true });
 });

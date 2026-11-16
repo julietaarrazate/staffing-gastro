@@ -19,10 +19,11 @@
  * colectivo, no de un ruteo (ver `estimateArrivalMin`).
  */
 
-import { useMemo } from "react";
-import { Layer, Marker, Source } from "@vis.gl/react-maplibre";
+import { useEffect, useMemo, useState } from "react";
+import { Layer, Marker, Source, type MapRef } from "@vis.gl/react-maplibre";
 import MapView from "@/components/map/MapView";
 import { formatAgo } from "@/lib/datetime";
+import { fitPoints } from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateArrivalMin } from "@/lib/map/travel-time";
 import { formatKm } from "@/lib/format";
@@ -53,16 +54,26 @@ export default function EnRouteMap({
   );
   const arrivalMin = estimateArrivalMin(distanceKm);
 
-  // Encuadre: el punto medio entre los dos, para que ninguno quede fuera.
+  // Encuadre inicial (antes del `load`): el punto medio y un zoom por
+  // distancia. Es sólo el arranque; el encuadre real lo hace `fitPoints` abajo.
   const center: [number, number] = [
     (venueLatitude + workerLatitude) / 2,
     (venueLongitude + workerLongitude) / 2,
   ];
 
-  // Zoom por distancia. Con dos puntos fijos alcanza una tabla corta y evita
-  // el `fitBounds` (que necesita el ref del mapa y un efecto para algo que no
-  // cambia mientras el thumbnail está montado).
   const zoom = distanceKm > 8 ? 10 : distanceKm > 3 ? 11.5 : distanceKm > 1 ? 13 : 14;
+
+  // El trabajador se mueve: en cada posición nueva el encuadre vuelve a
+  // incluir los dos puntos (antes quedaba fijo en el de la primera, y a más de
+  // ~3 km el punto salía del recuadro). El mapa no es interactivo, así que no
+  // hay una vista manual a la que respetarle.
+  const [map, setMap] = useState<MapRef | null>(null);
+  useEffect(() => {
+    fitPoints(map, [
+      [venueLatitude, venueLongitude],
+      [workerLatitude, workerLongitude],
+    ]);
+  }, [map, venueLatitude, venueLongitude, workerLatitude, workerLongitude]);
 
   const line = useMemo<GeoJSON.Feature<GeoJSON.LineString>>(
     () => ({
@@ -85,6 +96,7 @@ export default function EnRouteMap({
         center={center}
         zoom={zoom}
         interactive={false}
+        onLoad={setMap}
         attribution={false}
         className="h-36 w-full"
       >
