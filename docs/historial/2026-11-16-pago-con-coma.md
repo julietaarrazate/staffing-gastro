@@ -17,7 +17,10 @@ tecleado; al salir, «15.001». Las reglas están en `frontend/lib/pesos.ts`:
   Un punto que no separa un grupo de tres cifras («15.00», «1.5»,
   «15000.5») o varias comas no se adivinan: el campo queda en rojo
   (`aria-invalid`) y el formulario no deja seguir.
-- `formatearPesos`: «15001» → «15.001».
+  Más de 10 cifras enteras tampoco (el backend guarda `Numeric(12, 2)`).
+- `formatearPesos`: «15001» → «15.001». Con el foco el campo muestra el
+  número sin puntos («15001»), así borrar una cifra en el medio de «1.500»
+  no deja un «1.50» ilegible (sugerencia de la revisión independiente).
 - `pesosDesdeApi`: lo que llega de la API, de la IA o de un borrador
   guardado («15000.00», con punto decimal) se pasa a pesos enteros antes de
   entrar al formulario (duplicar turno, «Describí el turno», borrador
@@ -39,6 +42,11 @@ puede escribir, y está bien porque el monto es entero.
 `employer-wizard.spec.ts` (coma, punto ambiguo, resumen y cuerpo del POST
 con `"15001"`) y en `evento-con-zona.spec.ts` (el pago del puesto llega como
 `"15001"`); los specs que buscaban el placeholder «48000» se actualizaron.
+
+**Revisión independiente:** sin bloqueantes. Quedan como mejora el aviso
+genérico «Escribí cuánto pagás» cuando lo escrito no se puede leer (sólo lo
+marca el rojo y `aria-invalid`) y el «$0» del resumen mientras se escribe
+un monto a medias.
 
 **Queda abierto:** verlo en un celular real con teclado en castellano (el
 e2e corre en Chromium de escritorio). El backend sigue aceptando decimales en

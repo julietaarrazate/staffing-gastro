@@ -14,6 +14,10 @@
 
 const FORMATO = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
 
+/** El backend guarda `Numeric(12, 2)`: 10 cifras enteras como mucho. Más que
+ *  eso no es un pago, es un error de tipeo (y el servidor lo rechazaría). */
+const MAX_CIFRAS = 10;
+
 /**
  * Lee lo que escribió la persona y devuelve el monto canónico, o `null` si el
  * texto no es un monto (entonces el formulario no deja seguir).
@@ -21,6 +25,7 @@ const FORMATO = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
  * - «15000» → «15000»; «15.000» → «15000»; «$ 15.000» → «15000»
  * - «15000,50» → «15001»; «15.000,49» → «15000» (al peso, la mitad sube)
  * - «» → «» (vacío no es un error: todavía no escribió nada)
+ * - más de 10 cifras enteras → `null` (el backend no lo guarda)
  * - «15.00», «1.5», «1,000,000», «15a» → `null`: un punto que no separa un
  *   grupo de tres cifras no es de miles, y adivinar ahí es justo el error que
  *   se está arreglando.
@@ -37,7 +42,8 @@ export function leerPesos(texto: string): string | null {
   // strings y BigInt para no perder precisión ni redondear de más con floats.
   const sube = decimales !== "" && Number(decimales[0]) >= 5;
   const pesos = BigInt(entero === "" ? "0" : entero) + (sube ? BigInt(1) : BigInt(0));
-  return pesos.toString();
+  const canonico = pesos.toString();
+  return canonico.length > MAX_CIFRAS ? null : canonico;
 }
 
 /** Monto canónico formateado para mostrar en el campo: «15001» → «15.001». */
@@ -54,6 +60,6 @@ export function formatearPesos(canonico: string): string {
 export function pesosDesdeApi(valor: string | number | null | undefined): string {
   if (valor === null || valor === undefined || valor === "") return "";
   const n = Number(valor);
-  if (!Number.isFinite(n) || n < 0) return "";
+  if (!Number.isFinite(n) || n < 0 || n >= 10 ** MAX_CIFRAS) return "";
   return String(Math.round(n));
 }

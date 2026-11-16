@@ -28,8 +28,12 @@ describe("leerPesos", () => {
     }
   );
 
-  it("no pierde precisión con montos enormes", () => {
-    expect(leerPesos("9.007.199.254.740.993,5")).toBe("9007199254740994");
+  it("hasta 10 cifras enteras, como guarda el backend", () => {
+    expect(leerPesos("9.999.999.999")).toBe("9999999999");
+    expect(leerPesos("9.999.999.999,4")).toBe("9999999999");
+    expect(leerPesos("9.999.999.999,5")).toBeNull();
+    expect(leerPesos("10.000.000.000")).toBeNull();
+    expect(leerPesos("0015000")).toBe("15000");
   });
 });
 
@@ -63,5 +67,6 @@ describe("pesosDesdeApi", () => {
     expect(pesosDesdeApi("")).toBe("");
     expect(pesosDesdeApi("abc")).toBe("");
     expect(pesosDesdeApi("-5")).toBe("");
+    expect(pesosDesdeApi(1e30)).toBe("");
   });
 });
