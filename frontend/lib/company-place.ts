@@ -29,7 +29,9 @@ export function companyPlaceFromProfile(
  * Lee el perfil del comercio una vez por sesión de pantalla. `loaded` pasa a
  * true cuando terminó el pedido (con o sin local): sirve para no mostrar el
  * pedido de elegir zona mientras todavía se está buscando el local. Sin perfil
- * o sin red, `place` queda en `null` y el comercio elige la zona a mano.
+ * o sin red, `place` queda en `null` y `error` en true: el asistente y el
+ * evento lo tratan como «sin local» (el comercio elige la zona a mano), pero
+ * `/search` muestra el error con `retry`, porque ahí «sin local» no busca.
  */
 export function useCompanyPlace(token: string | null): {
   place: CompanyPlace | null;
