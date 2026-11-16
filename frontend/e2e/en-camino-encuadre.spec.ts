@@ -55,6 +55,30 @@ async function expectAmbosAdentro(page: Page) {
   }
 }
 
+async function prepararComercio(page: Page, obtenerTurno: () => ReturnType<typeof turno>) {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-1",
+        email: "demo.comercio@staffya.com",
+        full_name: "Comercio Demo",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([obtenerTurno()]) })
+  );
+}
+
 test("el encuadre sigue al trabajador: a 6 km y después a 12 km se ven los dos", async ({ page }) => {
   await injectSession(page);
   await blockExternalHosts(page);
@@ -89,5 +113,23 @@ test("el encuadre sigue al trabajador: a 6 km y después a 12 km se ven los dos"
   turnoActual = turno(VENUE.lat - 0.108, VENUE.lng + 0.05); // ~12 km
   await page.clock.runFor(31_000);
   await expect(page.getByText(/a 12[,.]\d km/)).toBeVisible({ timeout: 10_000 });
+  await expectAmbosAdentro(page);
+});
+
+test("al salir y volver (mapa reciclado) el encuadre sigue incluyendo a los dos", async ({ page }) => {
+  // `MapView` usa `reuseMaps`: al volver a la pantalla el `load` del mapa
+  // reciclado llega antes que la referencia, y `EnRouteMap` no recibía el
+  // mapa para encuadrar (salió de la revisión de G22).
+  await prepararComercio(page, () => turno(VENUE.lat - 0.054, VENUE.lng));
+  await page.goto("/shifts");
+  await expect(page.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 15_000 });
+  await expectAmbosAdentro(page);
+
+  // Navegación del lado del cliente a otra pantalla y vuelta.
+  await page.locator('a[href="/chats"]:visible').first().click();
+  await expect(page).toHaveURL(/\/chats/);
+  await page.locator('a[href="/shifts"]:visible').first().click();
+  await expect(page).toHaveURL(/\/shifts$/);
+  await expect(page.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 15_000 });
   await expectAmbosAdentro(page);
 });
