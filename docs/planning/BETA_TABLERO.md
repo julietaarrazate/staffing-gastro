@@ -240,7 +240,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 
 ### Hallazgos nuevos de la prueba en la app (2026-11-14)
 
-- ✅ **Grave: el pago con coma se multiplicaba por 100** (#PR). «15000,50»
+- ✅ **Grave: el pago con coma se multiplicaba por 100** (#590). «15000,50»
   publicaba $1.500.050. Ahora el monto es en pesos enteros: campo de texto
   con teclado numérico, el punto separa miles, la coma es decimal y se
   redondea al peso, y al salir se ve «15.001» (`lib/pesos.ts`,

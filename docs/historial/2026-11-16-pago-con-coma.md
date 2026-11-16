@@ -1,4 +1,4 @@
-# El pago con coma ya no se multiplica por 100 (#PR)
+# El pago con coma ya no se multiplica por 100 (#590)
 
 **Pedido:** grave de la prueba en la app del 2026-11-14 (tablero, «Hallazgos
 nuevos»). En publicar turno y en el evento, escribir «15000,50» dejaba el
