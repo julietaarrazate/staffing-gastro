@@ -16,6 +16,13 @@ const eslintConfig = defineConfig([
   // `eslint-config-next` — registrarlo de nuevo con el mismo nombre rompe
   // ESLint flat config ("Cannot redefine plugin").
   { rules: jsxA11y.flatConfigs.recommended.rules },
+  // Un <label> que envuelve un componente de campo propio cuenta como
+  // asociado: la regla sólo reconoce <input> nativos si no se le dice.
+  {
+    rules: {
+      "jsx-a11y/label-has-associated-control": ["error", { controlComponents: ["PesosInput"], depth: 3 }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

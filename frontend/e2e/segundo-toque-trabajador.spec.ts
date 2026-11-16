@@ -149,7 +149,7 @@ test("publicar: el segundo toque de «Continuar» no publica el turno", async ({
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
@@ -158,7 +158,7 @@ test("publicar: el segundo toque de «Continuar» no publica el turno", async ({
   // Vuelve al paso del pago, con todo lo cargado, y toca «Continuar» dos veces.
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: "Atrás" }).click();
-  await expect(page.getByPlaceholder("48000")).toBeVisible();
+  await expect(page.getByPlaceholder("48.000")).toBeVisible();
   await page.waitForTimeout(1200);
   const { x, y } = await centro(page, page.getByRole("button", { name: "Continuar" }));
   await page.mouse.click(x, y);
