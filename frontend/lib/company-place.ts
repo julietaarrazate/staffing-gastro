@@ -31,26 +31,38 @@ export function companyPlaceFromProfile(
  * pedido de elegir zona mientras todavía se está buscando el local. Sin perfil
  * o sin red, `place` queda en `null` y el comercio elige la zona a mano.
  */
-export function useCompanyPlace(token: string | null): { place: CompanyPlace | null; loaded: boolean } {
+export function useCompanyPlace(token: string | null): {
+  place: CompanyPlace | null;
+  loaded: boolean;
+  /** true si el pedido falló: «no sé dónde está el local», distinto de «no tiene». */
+  error: boolean;
+  retry: () => void;
+} {
   const [place, setPlace] = useState<CompanyPlace | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
+    setError(false);
+    setLoaded(false);
     api
       .get<CompanyProfile>("/companies/me/profile", token)
       .then((company) => {
         if (!cancelled) setPlace(companyPlaceFromProfile(company));
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
       .finally(() => {
         if (!cancelled) setLoaded(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, attempt]);
 
-  return { place, loaded };
+  return { place, loaded, error, retry: () => setAttempt((n) => n + 1) };
 }

@@ -23,6 +23,14 @@ local cargado con celular en otro lado, sin local, no comercio). Los specs
 `available-now` y `search-sheet-overscroll` ahora mockean el perfil del
 comercio con local.
 
+**Revisión (mismo PR):** si `/companies/me/profile` falla, ya no dice «sin
+local»: `useCompanyPlace` expone además `error` y `retry` (aditivo; `/shifts/new`
+y `/shifts/new-event` no cambian) y `/search` muestra `ErrorBanner` con
+«Reintentar» y no busca. «Sin local» sólo si el pedido salió bien y no hay
+coordenadas. El punto azul de origen (`UserPuck` en `WorkerSearchMap`) ahora
+sólo se dibuja con origen real (`showOrigin`): no en espera, sin local ni error.
+E2E nuevo con el perfil en 500.
+
 **Por qué así:** medir en silencio desde el Obelisco devolvía resultados que el
 comercio leía como «cerca de mi local». Se descartó ofrecer «usar mi
 ubicación» como alternativa sin local: mezclaría dos orígenes en una pantalla

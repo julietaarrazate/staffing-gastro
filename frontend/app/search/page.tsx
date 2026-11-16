@@ -60,14 +60,16 @@ function SearchPageContent() {
   // donde esté el celular. Sin local cargado no se busca desde ningún lado en
   // silencio: la pantalla lo dice y lleva a completarlo.
   const isEmployer = user?.role === "employer";
-  const { place: companyPlace, loaded: placeLoaded } = useCompanyPlace(isEmployer ? token : null);
-  const origin: "esperando" | "local" | "sin-local" | "cerca" = !user
+  const { place: companyPlace, loaded: placeLoaded, error: placeError, retry: retryPlace } = useCompanyPlace(isEmployer ? token : null);
+  const origin: "esperando" | "local" | "sin-local" | "error" | "cerca" = !user
     ? "esperando"
     : !isEmployer
       ? "cerca"
       : !placeLoaded
         ? "esperando"
-        : companyPlace
+        : placeError
+          ? "error"
+          : companyPlace
           ? "local"
           : "sin-local";
   const originLat = origin === "local" && companyPlace ? companyPlace.latitude : geoCenter[0];
@@ -110,8 +112,8 @@ function SearchPageContent() {
 
   async function search() {
     if (!token) return;
-    if (origin === "esperando" || origin === "sin-local") {
-      if (origin === "sin-local") {
+    if (origin === "esperando" || origin === "sin-local" || origin === "error") {
+      if (origin === "sin-local" || origin === "error") {
         setWorkers([]);
         setLoading(false);
       }
@@ -181,7 +183,10 @@ function SearchPageContent() {
   );
 
   const sinLocal = origin === "sin-local";
-  const countLabel = sinLocal
+  const placeFailed = origin === "error";
+  const countLabel = placeFailed
+    ? "No pudimos ubicar tu local"
+    : sinLocal
     ? "Falta la ubicación de tu local"
     : loading
     ? "Buscando..."
@@ -209,9 +214,16 @@ function SearchPageContent() {
       </Link>
     ) : null;
 
+  // Falló el pedido del local: no es «sin local». Se dice y se puede reintentar.
+  const placeBanner = placeFailed ? (
+    <div className="-mt-4">
+      <ErrorBanner message="No pudimos cargar la ubicación de tu local." onRetry={retryPlace} />
+    </div>
+  ) : null;
+
   const workerList = (
     <>
-      {sinLocal ? (
+      {placeFailed ? null : sinLocal ? (
         <EmptyState
           icon={<MapPinIcon size={28} />}
           title="Tu local no tiene ubicación"
@@ -328,6 +340,7 @@ function SearchPageContent() {
       <aside className="hidden w-full max-w-[400px] shrink-0 flex-col overflow-hidden border-r border-line bg-card md:flex">
         <div className="border-b border-line px-4 py-3">
           {filterControls}
+          {placeBanner}
           {error && (
             <div className="mt-2">
               <ErrorBanner message={error} onRetry={search} />
@@ -341,11 +354,12 @@ function SearchPageContent() {
 
       {/* Mapa + overlays mobile */}
       <div className="relative h-full flex-1 overflow-hidden">
-        <WorkerSearchMap center={center} workers={workers} className="absolute inset-0 h-full w-full" />
+        <WorkerSearchMap center={center} workers={workers} showOrigin={origin === "local" || origin === "cerca"} className="absolute inset-0 h-full w-full" />
 
         {/* Filtros flotantes: sólo mobile (en desktop ya están en el panel). */}
         <div className="absolute inset-x-0 top-0 z-10 p-3 md:hidden">
           {filterControls}
+          {placeBanner}
           {error && (
             <div className="mt-2">
               <ErrorBanner message={error} onRetry={search} />

@@ -143,3 +143,29 @@ test("quien no es comercio y comparte ubicación sigue midiendo desde donde est�
   await expect(page.getByTestId("search-origin")).toHaveCount(0);
   await context.close();
 });
+
+test("si el perfil del comercio falla no dice «sin local»: muestra el error, reintenta y busca desde el local", async ({
+  page,
+}) => {
+  await prepare(page);
+  const searches = await mockSearch(page, "employer", true);
+  let fail = true;
+  await page.route("**/api/v1/companies/me/profile", (route) =>
+    fail
+      ? route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ detail: "boom" }) })
+      : route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(companyProfile(true)) })
+  );
+  await page.goto("/search");
+
+  await expect(page.getByText("No pudimos cargar la ubicación de tu local.").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("Tu local no tiene ubicación")).toHaveCount(0);
+  await expect(page.getByText("Falta la ubicación de tu local")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  expect(searches).toHaveLength(0);
+
+  fail = false;
+  await page.getByRole("button", { name: "Reintentar" }).filter({ visible: true }).click();
+  await expect(page.getByText("Desde tu local · Honduras 5200, Palermo").first()).toBeAttached();
+  await expect.poll(() => searches.length).toBeGreaterThan(0);
+  expect(Number(searches[0].searchParams.get("latitude"))).toBeCloseTo(LOCAL.lat, 4);
+});
