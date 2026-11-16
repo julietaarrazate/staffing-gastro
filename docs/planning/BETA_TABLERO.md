@@ -118,7 +118,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U034, U035 | Si se corta la bienvenida (recarga, atrás, cerrar) la cuenta queda sin perfil y nada guía a completarlo; el… (y 1 más de la misma causa) | ✅ en `main` | #578 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U036 | Al elegir una dirección del buscador, la lista se vuelve a abrir y tapa el mapa y el pin | ✅ en `main` | #564 |
 | U055, U056, U060 | Se puede publicar un turno con fecha pasada (queda «No cubierto» a los segundos), de 5 minutos o de 30 horas (y 2 más de la misma causa) | ✅ en `main` | #575 (revisión independiente y prueba en la app hechas el 2026-11-14) |
-| U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | ✅ en `main` | #584 (cuatro revisiones independientes hechas el 2026-11-16; suite e2e completa en verde) |
+| U057, U135 | «Describí el turno» con la IA lenta pisa lo que la persona ya cargó a mano (y 1 más de la misma causa) | ✅ en `main` | #584 (prueba en la app hecha el 2026-11-16; cuatro revisiones independientes hechas el 2026-11-16; suite e2e completa en verde) |
 | U062 | Quien llega por un link (compartido o interno) y tiene que entrar o registrarse no vuelve a donde iba | ✅ en `main` | #565 (prueba en la app hecha el 2026-11-14) |
 | U054 | Con las notificaciones bloqueadas o si fallan, el interruptor de push no hace nada ni explica por qué | ✅ en `main` | #573 (revisión independiente y prueba en la app hechas el 2026-11-14; el permiso concedido no se puede probar sin pantalla) |
 
@@ -128,10 +128,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 |---|---|---|---|
 | U064, U104 | En compu, en Buscar y en el Mapa no se puede abrir el detalle del turno: uno se postula sin ver la descripc… (y 1 más de la misma causa) | ✅ en `main` | #579 (revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U065, U024, U025 | En Matches → Postulaciones las tarjetas no dicen de qué comercio es cada turno (y 2 más de la misma causa) | ✅ en `main` | #568 (prueba en la app hecha el 2026-11-14) |
-| U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | ✅ en `main` | #583 (revisión independiente hecha el 2026-11-16; probado con e2e en Chromium real, gesto a 390 px) |
-| U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | ✅ en `main` | #582 (tres revisiones independientes hechas el 2026-11-16; probado con e2e: hoja a 390 px y cruce a 1280 px) |
-| U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | ✅ en `main` | #581 (revisión independiente hecha el 2026-11-16; probado con e2e en Chromium, sin el arnés: «va en camino» necesita una ubicación que se mueva) |
-| U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | ✅ en `main` | #585 (revisión independiente hecha el 2026-11-16; probado con e2e: con local, sin local, perfil en 500 y trabajador) |
+| U069 | En «Descubrir rápido», deslizar la tarjeta abre el detalle en vez de pasar al siguiente | ✅ en `main` | #583 (prueba en la app hecha el 2026-11-16; revisión independiente hecha el 2026-11-16; probado con e2e en Chromium real, gesto a 390 px) |
+| U105 | Mapa en celular: la hoja de tarjetas tapa los pines; al abrir sólo asoma la punta de un pin | ✅ en `main` | #582 (prueba en la app hecha el 2026-11-16; tres revisiones independientes hechas el 2026-11-16; probado con e2e: hoja a 390 px y cruce a 1280 px) |
+| U071 | Mapa «va en camino»: el encuadre no sigue al trabajador y el punto queda cortado; a más de ~3 km no se ve n… | ✅ en `main` | #581 (prueba en la app hecha el 2026-11-16; revisión independiente hecha el 2026-11-16; probado con e2e en Chromium, sin el arnés: «va en camino» necesita una ubicación que se mueva) |
+| U073 | «Buscar trabajadores cerca» no parte del local: mide desde el Obelisco o desde donde esté el celular | ✅ en `main` | #585 (prueba en la app hecha el 2026-11-16; revisión independiente hecha el 2026-11-16; probado con e2e: con local, sin local, perfil en 500 y trabajador) |
 | U026, U075, U124 | En celular, con un nombre largo la tarjeta de candidato se sale de la pantalla y «Asignar» queda afuera (y 2 más de la misma causa) | ✅ en `main` | #566 (prueba en la app hecha el 2026-11-14) |
 | U083, U086 | El contador del evento «N/M cubiertos» no baja al cancelar y cuenta cancelados y asignados sin confirmar (y 1 más de la misma causa) | ✅ en `main` | #577 (revisión independiente y prueba en la app hechas el 2026-11-14; en el arnés las cuentas nuevas no reciben avisos de cercanía, los cubren los tests) |
 
@@ -227,6 +227,16 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   empiezan hoy (día argentino), pero la lista a la que lleva
   (`/admin/en-vivo?filtro=urgentes`) muestra también asignados y de otros
   días: los números pueden no coincidir (salió de la revisión de #580).
+
+- G15 (#584), visto en la prueba en la app: si la persona pone el inicio a
+  mano y la IA lenta propone otro día, la IA completa sólo el fin y queda
+  antes del inicio. La pantalla lo marca («El fin tiene que ser después del
+  inicio») y no deja seguir, así que no se publica nada roto.
+- «Buscar trabajadores cerca» (#585) en celular, comercio sin local: con la
+  hoja baja, el botón «Completar ubicación» del cuerpo queda detrás de la
+  barra inferior. El link del encabezado sí se alcanza.
+- Mapa del trabajador (#582): con la hoja estirada al máximo, tapa los pines.
+  Es lo esperable al agrandarla a propósito; se anota por si molesta.
 
 ### Hallazgos nuevos de la prueba en la app (2026-11-14)
 
