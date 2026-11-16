@@ -1,4 +1,5 @@
 import type { MapRef } from "@vis.gl/react-maplibre";
+import { boundsOf } from "@/lib/map/geo";
 
 /**
  * Helpers de cámara sobre la instancia real de MapLibre (`flyTo`/`easeTo`),
@@ -136,4 +137,24 @@ export function createBottomPaddingApplier(map: MapRef): BottomPaddingApplier {
       pending = null;
     },
   };
+}
+
+/**
+ * Encuadra todos los puntos `[lat, lng]` con margen (el marcador y su halo no
+ * quedan cortados) y un zoom máximo (dos puntos casi juntos no acercan la
+ * cámara hasta que el mapa deja de tener referencias). Sirve para mapas
+ * chicos y no interactivos como `EnRouteMap`, donde nadie mueve la vista.
+ */
+export function fitPoints(
+  map: MapRef | null | undefined,
+  points: [number, number][],
+  { padding = 32, maxZoom = 16, duration = 500 }: { padding?: number; maxZoom?: number; duration?: number } = {}
+): void {
+  if (!map || points.length === 0) return;
+  map.fitBounds(boundsOf(points), {
+    padding,
+    maxZoom,
+    duration: prefersReducedMotion() ? 0 : duration,
+    essential: true,
+  });
 }

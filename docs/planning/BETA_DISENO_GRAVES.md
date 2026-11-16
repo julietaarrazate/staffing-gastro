@@ -79,7 +79,5 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 ### G20–G23 · Descubrir y mapas (U069, U105, U071, U073) — S, un PR cada uno
 
-- G22 `components/map/MapView.tsx`, `components/employer/EnRouteMap.tsx`: el
-  encuadre sigue a los dos puntos en cada actualización.
 - G23 `app/search/page.tsx`: parte del local (`lib/company-place.ts`) y lo
   dice («Desde tu local»).
