@@ -81,7 +81,7 @@ export function MartinBubble({ typing, className }: { typing: boolean; className
   return (
     <div
       className={cn(
-        "w-[min(300px,calc(100vw-32px))] rounded-[22px_22px_22px_6px] bg-[var(--burbuja)] px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
+        "w-[min(300px,calc(100vw-32px))] rounded-[var(--radius-card)_var(--radius-card)_var(--radius-card)_var(--radius-chip)] bg-[var(--burbuja)] px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
         className
       )}
     >

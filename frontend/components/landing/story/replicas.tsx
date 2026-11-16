@@ -54,7 +54,7 @@ export const DescribeBox = forwardRef<
         key={i}
         data-parte={i}
         className={cn(
-          "rounded-[4px] transition-[background-color,box-shadow] duration-400",
+          "rounded-[var(--radius-chip)] transition-[background-color,box-shadow] duration-400",
           marked && "bg-manteca shadow-[0_0_0_2px_var(--color-manteca)]"
         )}
       >
@@ -66,11 +66,11 @@ export const DescribeBox = forwardRef<
   if (cursor < shown.length) segments.push(shown.slice(cursor));
 
   return (
-    <div ref={ref} style={style} className={cn("rounded-3xl bg-surface p-4 ring-1 ring-line", className)}>
+    <div ref={ref} style={style} className={cn("rounded-[var(--radius-card)] bg-surface p-4 ring-1 ring-line", className)}>
       <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
         <LogoGlyph size={14} color="var(--color-primary)" /> Describilo y lo completamos
       </p>
-      <div className="mt-2 min-h-[4.25rem] rounded-2xl bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink ring-1 ring-line">
+      <div className="mt-2 min-h-[4.25rem] rounded-[var(--radius-card)] bg-card px-3.5 py-2.5 text-sm leading-relaxed text-ink ring-1 ring-line">
         {chars === 0 && !caret ? (
           <span className="text-ink-mute">Ej: necesito un mozo el sábado a la noche, se paga 45000</span>
         ) : (
@@ -114,7 +114,7 @@ export const DescribeBox = forwardRef<
 export function PricePin({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <div style={style} className={className}>
-      <div className="relative flex w-max items-center gap-1.5 rounded-full border-2 border-white bg-primary px-2.5 py-1.5 text-xs font-bold tabular-nums text-night shadow-[var(--shadow-primary)]">
+      <div className="relative flex w-max items-center gap-1.5 rounded-[var(--radius-chip)] border-2 border-white bg-primary px-2.5 py-1.5 text-xs font-bold tabular-nums text-night shadow-[var(--shadow-primary)]">
         <span className="absolute -bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-primary" />
         <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-night" />
         <span className="relative">$70.000</span>
@@ -149,7 +149,7 @@ export function WorkerPin({
     <span className="relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-primary to-primary-strong shadow-[0_4px_10px_rgba(17,17,20,0.22)]">
       <span className="text-sm font-bold text-night">{inicial}</span>
       {rating != null && (
-        <span className="absolute -bottom-1.5 -right-2 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-px text-metadata font-bold leading-tight text-white shadow-sm">
+        <span className="absolute -bottom-1.5 -right-2 flex items-center gap-0.5 rounded-[var(--radius-chip)] border border-white bg-night px-1 py-px text-metadata font-bold leading-tight text-white shadow-sm">
           <StarIcon size={9} filled className="text-rating" />
           {rating.toLocaleString("es-AR", { minimumFractionDigits: 1 })}
         </span>
@@ -256,7 +256,7 @@ export function PushNotice({
   return (
     <div
       style={style}
-      className={cn("rounded-[1.25rem] bg-card p-3 shadow-[var(--shadow-float)] ring-1 ring-black/5", className)}
+      className={cn("rounded-[var(--radius-card)] bg-card p-3 shadow-[var(--shadow-float)] ring-1 ring-black/5", className)}
     >
       <div className="flex items-center gap-2">
         <LogoMark size={20} />
@@ -274,7 +274,7 @@ export function ToastLine({ children, className }: { children: ReactNode; classN
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 rounded-full bg-toast px-4 py-3 text-sm font-semibold text-toast-ink shadow-[var(--shadow-float)]",
+        "inline-flex items-center gap-2 rounded-[var(--radius-btn)] bg-toast px-4 py-3 text-sm font-semibold text-toast-ink shadow-[var(--shadow-float)]",
         className
       )}
     >

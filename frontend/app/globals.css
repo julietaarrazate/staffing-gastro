@@ -26,24 +26,19 @@
   --foreground: #111111; /* Tinta primaria */
   --line: #ece7dd; /* borde 1px, hairline cálido que se lee sobre el blanco */
 
-  /* Radios — alineados a la maqueta aprobada (2026-09).
-   *
-   * Los cuatro valores estaban 4-6px POR ENCIMA de la dirección Híbrido
-   * (`docs/design/mockups/09-hibrido-app.html`, la referencia que Julieta fijó
-   * como fuente de verdad). Medido clase por clase contra esa maqueta:
-   * `.card`/`.nav`/`.d-hero` = 20px (acá había 24), `.btn-primary`/`.pub` =
-   * 15px (acá 20), `.sheet` = 22px (acá 28). Toda la app venía sistemáticamente
-   * más redondeada que su propia maqueta — el motivo de fondo de que las
-   * pantallas "no terminaran de parecerse" aunque el color ya estuviera bien.
-   *
-   * `--radius-chip` es el peldaño que faltaba: la maqueta da 12px a toda
-   * miniatura (`.thumb`, `.t-thumb`, `.rc-thumb`, `.park`), un rol que en el
-   * código caía en `rounded-2xl` (16px de Tailwind) — un valor de fuera del
-   * sistema, elegido por defecto y no por diseño.
-   *
-   * `--radius-input` se deja en 18px: la maqueta no muestra un campo de
-   * formulario del que sacar el número (18px es lo que usan `.id-card` y
-   * `.biz-header`), y bajarlo por simetría sería inventar. */
+  /* Radios — escala del 2026-11-16: chip 4 / botón 6 / input 6 / card 8 /
+   * sheet 14. El medidor de diseño marcó que todo estaba redondeado igual
+   * (16-32px) y que todo era una tarjeta; la escala anterior (card 16, botón
+   * 12, input 12, sheet 18) venía del board v5.0. Ahora las esquinas son
+   * chicas y se leen como filete, no como burbuja. Sólo es círculo
+   * (`rounded-full`) lo que de verdad lo es: avatares, puntos, insignias
+   * redondas. Chips, botones y cajas usan estos tokens, no `rounded-2xl`. */
+  --radius-chip: 0.25rem; /* 4px — miniaturas, íconos cuadrados, chips y etiquetas */
+  --radius-btn: 0.375rem; /* 6px */
+  --radius-input: 0.375rem; /* 6px */
+  --radius-card: 0.5rem; /* 8px */
+  --radius-sheet: 0.875rem; /* 14px */
+
   /* Anchos de contenedor (fase K). `--app-frame` es el ancho del header, y
    * por lo tanto EL MARCO de la app: ninguna pantalla lo excede, porque
    * contenido más ancho que el chrome que lo enmarca se lee como roto.
@@ -51,15 +46,6 @@
    * mitad de las pantallas. Ver `.app-container` más abajo. */
   --app-frame: 64rem; /* 1024px — el marco: header y contenido comparten ancho */
   --app-reading: 42rem; /* 672px — lectura larga (legales), medida de línea */
-
-  /* Radios — board v5.0 (Formas y radios): card 16 / botón 12 / input 12 /
-   * badge 99 (pill). El sheet sube apenas sobre la card (18) y el chip toma el
-   * radio de botón (12). Antes card20/btn15/input18. */
-  --radius-card: 1rem; /* 16px */
-  --radius-btn: 0.75rem; /* 12px */
-  --radius-input: 0.75rem; /* 12px */
-  --radius-sheet: 1.125rem; /* 18px */
-  --radius-chip: 0.75rem; /* 12px — miniaturas, íconos cuadrados, chips chicos */
 
   /* Sombras suaves: las cards flotan, nunca sombras pesadas. Con el lienzo
    * blanco (pivot 2026-09-20) la tarjeta ya no contrasta por color contra el
@@ -1050,7 +1036,7 @@ body:has([data-landing]) main {
   /* Aire entre el título de una sección y lo que muestra. */
   --aire: clamp(28px, 4vw, 48px);
   /* Las tarjetas de producto (mapa, oferta) comparten radio y sombra. */
-  --l-radio: 28px;
+  --l-radio: 12px;
   --l-sombra: 0 0 0 1px var(--color-line), 0 1px 2px rgb(20 50 70 / 0.06), 0 50px 70px -50px rgb(15 58 91 / 0.55);
   /* Tres superficies con borde claro, sin degradés que se lavan
      (2026-11-13): cielo pleno para abrir y cerrar, un celeste plano para
@@ -1065,12 +1051,12 @@ body:has([data-landing]) main {
   --l-hondo: #0f3a5b;
   /* Los paneles van con margen y esquinas redondas. */
   --l-margen: 12px;
-  --l-panel: 32px;
+  --l-panel: 12px;
 }
 @media (max-width: 640px) {
   [data-landing] {
     --l-margen: 8px;
-    --l-panel: 26px;
+    --l-panel: 10px;
   }
 }
 .landing-tarjeta {
@@ -1154,7 +1140,7 @@ body:has([data-landing]) main {
   padding-bottom: clamp(20px, 3vw, 40px);
 }
 
-/* Botones de la landing: píldora con flecha en un círculo. */
+/* Botones de la landing: radio de botón, con la flecha en un círculo. */
 .landing-btn {
   display: inline-flex;
   align-items: center;
@@ -1162,7 +1148,7 @@ body:has([data-landing]) main {
   gap: 12px;
   height: 54px;
   padding: 0 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-btn);
   font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
@@ -1333,7 +1319,7 @@ body:has([data-landing]) main {
   width: var(--cw);
   height: var(--ch);
   overflow: hidden;
-  border-radius: calc(var(--cw) * 0.13);
+  border-radius: var(--radius-card);
   box-shadow:
     0 34px 50px -26px rgb(11 45 72 / 0.6),
     0 0 0 1px rgb(255 255 255 / 0.35);
@@ -1415,7 +1401,7 @@ body:has([data-landing]) main {
   align-items: center;
   gap: 10px;
   padding: 8px 8px 8px 24px;
-  border-radius: 30px;
+  border-radius: var(--radius-card);
   background: var(--color-card);
   box-shadow: 0 0 0 1.5px rgb(17 17 17 / 0.85), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
   text-align: left;
@@ -1453,7 +1439,7 @@ body:has([data-landing]) main {
   .landing-campo {
     align-items: flex-end;
     padding: 10px 8px 10px 18px;
-    border-radius: 26px;
+    border-radius: var(--radius-card);
   }
   .landing-campo .landing-btn {
     width: 44px;
@@ -1484,7 +1470,7 @@ body:has([data-landing]) main {
   width: min(420px, 92%);
   height: 58px;
   margin-top: var(--aire);
-  border-radius: 18px 18px 10px 10px;
+  border-radius: var(--radius-card) var(--radius-card) var(--radius-chip) var(--radius-chip);
   background: linear-gradient(180deg, #26303a, #12171c);
   box-shadow: 0 22px 34px -18px rgb(18 23 28 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
@@ -1504,7 +1490,7 @@ body:has([data-landing]) main {
   right: 10%;
   bottom: 9px;
   height: 7px;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: #05080a;
   box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.8);
 }
@@ -1723,7 +1709,7 @@ body:has([data-landing]) main {
   bottom: 4px;
   z-index: 4;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: rgb(255 255 255 / 0.75);
   color: rgb(17 17 17 / 0.6);
   font-size: 9px;
@@ -1737,7 +1723,7 @@ body:has([data-landing]) main {
   display: inline-flex;
   align-items: center;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: rgb(255 255 255 / 0.92);
   box-shadow: 0 0 0 1px var(--color-line);
   color: var(--color-ink);
@@ -1811,13 +1797,13 @@ body:has([data-landing]) main {
   width: 14px;
   height: 14px;
   border: 2px solid #fff;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: var(--color-night);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
 }
 .landing-mapa-local span {
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--color-ink);
   color: var(--color-card);
   font-family: var(--font-dm-mono), ui-monospace, monospace;

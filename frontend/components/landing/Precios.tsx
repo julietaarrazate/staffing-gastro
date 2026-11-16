@@ -37,7 +37,7 @@ import Reveal from "./Reveal";
 function Tope({ max }: { max: number | null }) {
   if (max === null) {
     return (
-      <div aria-hidden className="anim-bar h-2.5 w-full origin-left rounded-full bg-ink/80" />
+      <div aria-hidden className="anim-bar h-2.5 w-full origin-left rounded-[var(--radius-chip)] bg-ink/80" />
     );
   }
   return (
@@ -45,7 +45,7 @@ function Tope({ max }: { max: number | null }) {
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
-          className="anim-fill h-2.5 w-2.5 rounded-[3px] bg-ink/80"
+          className="anim-fill h-2.5 w-2.5 rounded-[var(--radius-chip)] bg-ink/80"
           style={{ ["--d" as string]: `${300 + i * 70}ms` }}
         />
       ))}
@@ -89,7 +89,7 @@ export default function Precios() {
             return (
               <li
                 key={p.code}
-                className={`flex flex-col rounded-[1.75rem] p-6 ${
+                className={`flex flex-col rounded-[var(--radius-card)] p-6 ${
                   destacado
                     ? "landing-plan-medio shadow-[0_44px_70px_-50px_rgb(15_58_91/0.7)] ring-[1.5px] ring-ink"
                     : "bg-card ring-1 ring-line"

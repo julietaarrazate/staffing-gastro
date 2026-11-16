@@ -126,7 +126,7 @@ function FichaTrabajador() {
         <IdentityVerifiedBadge verified />
       </div>
       {/* La barrita del plan Pro (Carta): ámbar a celeste, como divisor. */}
-      <div aria-hidden className="mt-4 h-1.5 w-full rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <div aria-hidden className="mt-4 h-1.5 w-full rounded-[var(--radius-chip)] bg-gradient-to-r from-primary to-secondary-strong" />
       <dl className="mt-4 grid grid-cols-3 divide-x divide-line text-center">
         {datos.map((d) => (
           <div key={d.k}>
@@ -150,7 +150,7 @@ function FichaComercio() {
   return (
     <div className="h-full rounded-[var(--radius-card)] bg-glow p-5 shadow-[var(--shadow-float)] ring-1 ring-line">
       <div className="flex items-center gap-3">
-        <span aria-hidden className="grid size-16 shrink-0 place-items-center rounded-2xl bg-card ring-1 ring-line">
+        <span aria-hidden className="grid size-16 shrink-0 place-items-center rounded-[var(--radius-card)] bg-card ring-1 ring-line">
           <GlassIcon size={26} className="text-ink" />
         </span>
         <div className="min-w-0">
@@ -166,7 +166,7 @@ function FichaComercio() {
       {/* Mismo tratamiento que los precios de los planes (Carta): número en
           tinta, sin bloque de color, para no cargar de celeste la sección. */}
       {/* La barrita del plan Pro (Carta): ámbar a celeste, como divisor. */}
-      <div aria-hidden className="mt-4 h-1.5 w-full rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <div aria-hidden className="mt-4 h-1.5 w-full rounded-[var(--radius-chip)] bg-gradient-to-r from-primary to-secondary-strong" />
       <div className="mt-4">
         <p className="font-mono text-label font-medium uppercase tracking-[0.12em] text-ink-mute">Te paga directo</p>
         <p className="mt-1 flex items-baseline gap-1">

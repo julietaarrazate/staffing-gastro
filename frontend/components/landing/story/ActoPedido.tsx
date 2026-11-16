@@ -315,7 +315,7 @@ export function ActoPedido() {
         {/* Mapa (debajo de todo: la tarjeta se achica encima de él) */}
         <motion.div
           style={{ opacity: mapOpacity, left: L.map.x, top: L.map.y, width: L.map.w, height: L.map.h }}
-          className={cn("absolute", !L.map.bleed && "overflow-hidden rounded-[1.75rem]")}
+          className={cn("absolute", !L.map.bleed && "overflow-hidden rounded-[var(--radius-card)]")}
           aria-hidden
         >
           <motion.div style={{ clipPath: reveal }} className="absolute inset-0 bg-[var(--mapa)]">
@@ -423,7 +423,7 @@ export function ActoPedido() {
           <motion.span
             key={f.key}
             aria-hidden
-            className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-[4px] bg-manteca px-0.5 text-sm font-semibold text-ink shadow-[0_6px_16px_rgba(17,17,17,0.18)]"
+            className="pointer-events-none absolute left-0 top-0 z-30 whitespace-nowrap rounded-[var(--radius-chip)] bg-manteca px-0.5 text-sm font-semibold text-ink shadow-[0_6px_16px_rgba(17,17,17,0.18)]"
             initial={{ x: f.fx, y: f.fy, opacity: 1, scale: 1 }}
             animate={{ x: f.tx, y: f.ty, opacity: [1, 1, 0], scale: [1, 1.08, 1] }}
             transition={{ duration: 0.6133, delay: f.delay, ease: [0.2, 0.8, 0.2, 1], opacity: { times: [0, 0.8, 1], duration: 0.6667, delay: f.delay } }}
@@ -435,7 +435,7 @@ export function ActoPedido() {
           <motion.span
             key={g.key}
             aria-hidden
-            className="pointer-events-none absolute z-30 rounded-md bg-manteca/70 mix-blend-multiply"
+            className="pointer-events-none absolute z-30 rounded-[var(--radius-chip)] bg-manteca/70 mix-blend-multiply"
             style={{ left: g.x, top: g.y, width: g.w, height: g.h }}
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
@@ -618,7 +618,7 @@ export function ActoPedidoStatic() {
           </div>
         </StaticFrame>
         <StaticFrame reloj="avisado" item={NARRACION[1]} label="Lo que ve tu bar">
-          <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-[1.75rem] bg-[var(--mapa)]" aria-hidden>
+          <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-[var(--radius-card)] bg-[var(--mapa)]" aria-hidden>
             <StreetGrid />
             {[0.32, 0.52, 0.72].map((r) => (
               <span

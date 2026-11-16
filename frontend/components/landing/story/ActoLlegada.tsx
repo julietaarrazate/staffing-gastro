@@ -322,7 +322,7 @@ function EnRouteMapReplica({
           />
         </svg>
         <span
-          className="absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-[4px] border-2 border-white bg-night shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+          className="absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-chip)] border-2 border-white bg-night shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
           style={{ left: `${LOCAL.x * 100}%`, top: `${LOCAL.y * 100}%` }}
         />
         <motion.span

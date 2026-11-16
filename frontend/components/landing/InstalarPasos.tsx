@@ -126,7 +126,7 @@ function Icono({ children }: { children: ReactNode }) {
   return (
     <span
       aria-hidden
-      className="mx-0.5 inline-grid size-7 translate-y-[0.35em] place-items-center rounded-lg bg-surface text-primary-text ring-1 ring-line"
+      className="mx-0.5 inline-grid size-7 translate-y-[0.35em] place-items-center rounded-[var(--radius-chip)] bg-surface text-primary-text ring-1 ring-line"
     >
       {children}
     </span>
