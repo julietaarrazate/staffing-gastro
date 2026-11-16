@@ -241,3 +241,32 @@ test("bienvenida: una dirección con ?paso= no saltea el primer paso", async ({ 
   await expect(page).not.toHaveURL(/paso=oficio/);
   await expect(page.getByRole("button", { name: "Continuar" })).toBeDisabled();
 });
+
+test("publicado desde un enlace directo (sin historial previo): «Atrás» sale al panel y no deja pasos a la vista", async ({
+  page,
+}) => {
+  await preparar(page);
+  await page.route("**/api/v1/shifts", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    return route.fulfill(json({ id: "turno-1", status: "borrador" }, 201));
+  });
+  await page.route("**/api/v1/shifts/turno-1/publish", (route) =>
+    route.fulfill(json({ id: "turno-1", status: "publicado" }))
+  );
+
+  await page.goto("/shifts/new");
+  await page.getByRole("button", { name: "Mozo/a" }).click();
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.locator("select").nth(1).selectOption("Palermo");
+  await botonPublicar(page).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/shifts$/);
+  await expect(page.getByText("¡Turno publicado!")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /¿Cuánto pagás\?|¿Cuándo\?|¿Dónde es\?/ })).toHaveCount(0);
+});

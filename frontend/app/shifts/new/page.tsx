@@ -99,10 +99,6 @@ function NewShiftWizard() {
   // Campos que la persona tocó a mano: la IA no los pisa (G15, U057/U135).
   const tocados = useRef<Set<CampoTurno>>(new Set());
   const [hidratado, setHidratado] = useState(false);
-  // Pasos que se empujaron al historial: «Atrás» del asistente usa el historial
-  // si el paso anterior es el de arriba de la pila, y así no queda un bucle.
-  const pila = useRef<number[]>([]);
-  const saliendo = useRef(false);
   const [dir, setDir] = useState(1);
   const [position, setPosition] = useState<WorkerSkill | null>(null);
   // Por ahora, un turno = una persona (R1.4): la cantidad queda fija.
@@ -412,17 +408,10 @@ function NewShiftWizard() {
   useEffect(() => {
     if (!hidratado || pasoUrl === step) return;
     // Con el turno ya publicado «Atrás» no vuelve a un paso del asistente: se
-    // sale de todo el recorrido de pasos de una vez, a la pantalla de donde se
-    // vino (al desmontar se ofrece el aviso de notificaciones).
+    // va al panel (adonde lleva «Ver mi turno»), sin depender del largo del
+    // historial. Al desmontar se ofrece el aviso de notificaciones.
     if (publishedShiftId) {
-      if (saliendo.current) return;
-      if (pila.current.length > 0) {
-        saliendo.current = true;
-        window.history.go(-pila.current.length);
-      } else {
-        // Tras una recarga no se sabe cuántos pasos hay detrás: se retrocede de a uno.
-        router.back();
-      }
+      router.replace("/shifts");
       return;
     }
     const paso = pasoAlcanzable(pasoUrl, [
@@ -432,8 +421,6 @@ function NewShiftWizard() {
     ]);
     setDir(paso > step ? 1 : -1);
     setStep(paso);
-    if (pila.current[pila.current.length - 1] === paso) pila.current.pop();
-    else pila.current.push(step);
     if (paso !== pasoUrl) router.replace(urlDePaso(BASE_URL, paso), { scroll: false });
     // Sólo reacciona a un cambio de la dirección.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -451,22 +438,12 @@ function NewShiftWizard() {
     if (reemplazar) {
       router.replace(url, { scroll: false });
     } else {
-      pila.current.push(step);
       router.push(url, { scroll: false });
     }
   }
 
   function goGuarded(next: number) {
     void tapGuard.run(() => go(next));
-  }
-
-  // «Atrás» de la pantalla: si el paso anterior es el que dejamos en el
-  // historial, se vuelve por ahí (así «Atrás» del navegador no vuelve a avanzar).
-  function atras() {
-    void tapGuard.run(() => {
-      if (pila.current[pila.current.length - 1] === step - 1) router.back();
-      else go(step - 1, true);
-    });
   }
 
   // Sin ubicación el turno no aparece en el mapa ni se puede avisar a gente
@@ -650,7 +627,7 @@ function NewShiftWizard() {
       <div className="flex items-center gap-3">
         {step > 0 ? (
           <button
-            onClick={atras}
+            onClick={() => goGuarded(step - 1)}
             disabled={tapGuard.locked}
             aria-label="Atrás"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
