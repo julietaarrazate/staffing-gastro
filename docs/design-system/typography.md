@@ -24,6 +24,13 @@ y sobre las reglas de la landing que usan `var(--font-display)`, así que
 `font-semibold`/`font-bold` en un título no fabrican una negrita falsa. Como
 es más ancha que Schibsted, hay que mirar los títulos a 320 y 390 px.
 
+**Cifras de caja alta (2026-11-16).** Young Serif trae las cifras old-style
+por defecto (los 3, 4, 5, 7 y 9 bajan de la línea: «$45.000» se veía
+descolgado). La fuente incluye la feature `lnum`, así que `.font-display` y
+las reglas de `globals.css` que usan `var(--font-display)` a mano llevan
+`font-feature-settings: "lnum" 1`. No usar `font-variant-numeric` para esto:
+choca con `tabular-nums` de Tailwind.
+
 ## Cambio de títulos a Schibsted Grotesk (2026-10-18, reemplazado)
 
 Julieta veía Bricolage Grotesque "muy infantil para Oído", sobre todo al lado
