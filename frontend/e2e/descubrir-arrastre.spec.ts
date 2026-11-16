@@ -95,11 +95,17 @@ test.describe("Descubrir rápido: toque vs arrastre", () => {
     await page.waitForTimeout(600);
     await expect(dialog.getByTestId("swipe-deck-position")).toHaveText("1 de 3");
     await expect(page).toHaveURL(/\/feed$/);
-    // La tarjeta volvió a su lugar.
-    const card = await page.getByTestId("swipe-deck-card").boundingBox();
-    const dlg = await dialog.boundingBox();
-    expect(Math.abs(card!.x - (await page.getByTestId("swipe-deck-card").evaluate((e) => e.parentElement!.getBoundingClientRect().x)))).toBeLessThan(2);
-    expect(dlg).toBeTruthy();
+    // La tarjeta volvió a su lugar. La vuelta es un resorte: se espera a que
+    // se asiente en vez de medir una sola vez (en CI quedó a 2,03 px a los 600 ms).
+    await expect
+      .poll(
+        () =>
+          page
+            .getByTestId("swipe-deck-card")
+            .evaluate((e) => Math.abs(e.getBoundingClientRect().x - e.parentElement!.getBoundingClientRect().x)),
+        { timeout: 3_000 }
+      )
+      .toBeLessThan(1);
   });
 
   test("un toque quieto abre el detalle", async ({ page }) => {
