@@ -102,6 +102,7 @@ function NewShiftWizard() {
   // Pasos que se empujaron al historial: «Atrás» del asistente usa el historial
   // si el paso anterior es el de arriba de la pila, y así no queda un bucle.
   const pila = useRef<number[]>([]);
+  const saliendo = useRef(false);
   const [dir, setDir] = useState(1);
   const [position, setPosition] = useState<WorkerSkill | null>(null);
   // Por ahora, un turno = una persona (R1.4): la cantidad queda fija.
@@ -410,6 +411,20 @@ function NewShiftWizard() {
   // El navegador cambió el paso (Atrás/Adelante): la pantalla lo sigue.
   useEffect(() => {
     if (!hidratado || pasoUrl === step) return;
+    // Con el turno ya publicado «Atrás» no vuelve a un paso del asistente: se
+    // sale de todo el recorrido de pasos de una vez, a la pantalla de donde se
+    // vino (al desmontar se ofrece el aviso de notificaciones).
+    if (publishedShiftId) {
+      if (saliendo.current) return;
+      if (pila.current.length > 0) {
+        saliendo.current = true;
+        window.history.go(-pila.current.length);
+      } else {
+        // Tras una recarga no se sabe cuántos pasos hay detrás: se retrocede de a uno.
+        router.back();
+      }
+      return;
+    }
     const paso = pasoAlcanzable(pasoUrl, [
       position !== null,
       horario.valido,

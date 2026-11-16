@@ -28,8 +28,13 @@ export type CampoTurno =
   | "dressCode"
   | "place";
 
-/** La idempotencia del backend dura 24 h: pasadas 12 h el intento se descarta. */
-export const VIGENCIA_INTENTO_MS = 12 * 60 * 60 * 1000;
+/**
+ * Cuánto recuerda el backend una `Idempotency-Key`. TIENE QUE COINCIDIR con
+ * `_TTL` de `backend/app/core/idempotency.py` (24 h): si se descartan las keys
+ * antes, un reintento de algo que sí se publicó crearía otro turno; si después,
+ * se reusaría una key que el servidor ya olvidó.
+ */
+export const VIGENCIA_INTENTO_MS = 24 * 60 * 60 * 1000;
 
 export interface BorradorTurno {
   /** Cuenta dueña: un borrador ajeno no se usa. */
@@ -78,7 +83,11 @@ export function leerBorradorTurno(
 ): BorradorTurno | null {
   const b = leerSesion<Partial<BorradorTurno>>(CLAVE_BORRADOR_TURNO);
   if (!b || typeof b !== "object") return null;
-  if ((b.owner ?? null) !== owner) return null;
+  if ((b.owner ?? null) !== owner) {
+    // Borrador de otra cuenta: no se usa y sus keys tampoco.
+    borrarSesion(CLAVE_KEYS_TURNO);
+    return null;
+  }
   const position =
     b.position == null
       ? null
@@ -104,7 +113,7 @@ export function leerBorradorTurno(
     b.servidor && esTexto(b.servidor.id)
       ? { id: b.servidor.id, saved: esTexto(b.servidor.saved) ? b.servidor.saved : null }
       : null;
-  // Intento viejo (sin fecha o pasadas 12 h): la clave guardada ya puede no
+  // Intento viejo (sin fecha o pasadas 24 h): la clave guardada ya puede no
   // valer en el servidor. Se conserva el formulario, no el intento.
   const desde = typeof b.intentoDesde === "number" ? b.intentoDesde : null;
   const vencido = (servidor !== null || b.pendingCreate) && (desde === null || ahora - desde > VIGENCIA_INTENTO_MS);

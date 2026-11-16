@@ -159,7 +159,7 @@ for (const vp of VIEWPORTS) {
         avisoCaja!.y + avisoCaja!.height / 2,
       );
       await expect(aviso).toBeHidden({ timeout: 1500 });
-      await expect(page).toHaveURL(/\/shifts\/new$/);
+      await expect(page).toHaveURL(/\/shifts\/new(\?paso=3)?$/);
       await expect(publicar).toBeVisible();
       expect(publicados).toBe(0);
 
@@ -298,7 +298,7 @@ async function sigueEnElAsistente(
   pedido: Locator,
 ) {
   await expect(aviso).toBeHidden({ timeout: 1500 });
-  await expect(page).toHaveURL(/\/shifts\/new$/);
+  await expect(page).toHaveURL(/\/shifts\/new(\?paso=3)?$/);
   await expect(pedido).toHaveValue(ESCRITO);
 }
 
