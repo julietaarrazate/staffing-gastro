@@ -1,4 +1,4 @@
-# Landing: cifras de caja alta en los títulos serif (#PR)
+# Landing: cifras de caja alta en los títulos serif (#589)
 
 **Pedido:** al pasar los títulos a Young Serif (#586), «$45.000» y los demás
 montos de la landing se veían con cifras old-style, con el 4 y el 5 colgando
