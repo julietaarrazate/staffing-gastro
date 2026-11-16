@@ -198,6 +198,16 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   // reintentar sobre la misma instancia no sirve, el estilo ya falló en ella.
   const [intento, setIntento] = useState(0);
 
+  // `onLoad` se avisa desde un efecto y no dentro del evento `load`: en un mapa
+  // reciclado (`reuseMaps`) ese evento llega antes de que React asigne
+  // `mapRef.current`, y quien esperaba el `MapRef` (el encuadre de
+  // `EnRouteMap`, U071) no se enteraba nunca al volver a una pantalla.
+  const onLoadRef = useRef(onLoad);
+  onLoadRef.current = onLoad;
+  useEffect(() => {
+    if (loaded && mapRef.current) onLoadRef.current?.(mapRef.current);
+  }, [loaded, intento]);
+
   useEffect(() => {
     if (loaded) return;
     const id = setTimeout(() => setFalloCarga(true), TIMEOUT_CARGA_MS);
@@ -235,7 +245,6 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
             syncCamera(e.target, center, zoom);
             setLoaded(true);
             setFalloCarga(false);
-            if (mapRef.current) onLoad?.(mapRef.current);
           }}
           onMoveEnd={onMoveEnd}
         >
