@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   CLAVE_BORRADOR_TURNO,
+  CLAVE_KEYS_TURNO,
   guardarBorradorTurno,
   leerBorradorTurno,
   mezclarConIA,
@@ -35,8 +36,23 @@ describe("borrador del turno en sessionStorage", () => {
 
   it("sobrevive a una recarga y es de una sola cuenta", () => {
     guardarBorradorTurno(base);
-    expect(leerBorradorTurno("u1")).toEqual(base);
+    expect(leerBorradorTurno("u1")).toMatchObject(base);
     expect(leerBorradorTurno("otra")).toBeNull();
+  });
+
+  it("pasadas 12 h descarta el turno del servidor, el pedido pendiente y las keys, y conserva el formulario", () => {
+    const t0 = 1_000_000;
+    guardarBorradorTurno(base, t0);
+    window.sessionStorage.setItem(CLAVE_KEYS_TURNO, "{}");
+    // Editar el formulario no renueva el intento.
+    guardarBorradorTurno({ ...base, payAmount: "50000" }, t0 + 5 * 3600_000);
+    const vigente = leerBorradorTurno("u1", t0 + 11 * 3600_000);
+    expect(vigente?.servidor).toEqual(base.servidor);
+    const viejo = leerBorradorTurno("u1", t0 + 13 * 3600_000);
+    expect(viejo?.servidor).toBeNull();
+    expect(viejo?.pendingCreate).toBeNull();
+    expect(viejo?.payAmount).toBe("50000");
+    expect(window.sessionStorage.getItem(CLAVE_KEYS_TURNO)).toBeNull();
   });
 
   it("un borrador corrupto no rompe: se ignora", () => {

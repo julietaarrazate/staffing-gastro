@@ -28,6 +28,9 @@ export type CampoTurno =
   | "dressCode"
   | "place";
 
+/** La idempotencia del backend dura 24 h: pasadas 12 h el intento se descarta. */
+export const VIGENCIA_INTENTO_MS = 12 * 60 * 60 * 1000;
+
 export interface BorradorTurno {
   /** Cuenta dueña: un borrador ajeno no se usa. */
   owner: string | null;
@@ -48,14 +51,19 @@ export interface BorradorTurno {
   servidor: { id: string; saved: string | null } | null;
   /** Pedido de crear que quedó sin respuesta (se repite tal cual). */
   pendingCreate: Record<string, unknown> | null;
+  /** Desde cuándo existe el intento de publicar (turno creado o pedido pendiente). */
+  intentoDesde?: number | null;
 }
 
 const esTexto = (v: unknown): v is string => typeof v === "string";
 const esBool = (v: unknown): v is boolean => typeof v === "boolean";
 const esNumOnull = (v: unknown): v is number | null => v === null || typeof v === "number";
 
-export function guardarBorradorTurno(b: BorradorTurno): void {
-  guardarSesion(CLAVE_BORRADOR_TURNO, b);
+export function guardarBorradorTurno(b: BorradorTurno, ahora: number = Date.now()): void {
+  const hayIntento = b.servidor !== null || b.pendingCreate !== null;
+  const previo = leerSesion<{ intentoDesde?: unknown }>(CLAVE_BORRADOR_TURNO)?.intentoDesde;
+  const intentoDesde = hayIntento ? (typeof previo === "number" ? previo : ahora) : null;
+  guardarSesion(CLAVE_BORRADOR_TURNO, { ...b, intentoDesde });
 }
 
 export function borrarBorradorTurno(): void {
@@ -64,7 +72,10 @@ export function borrarBorradorTurno(): void {
 }
 
 /** Lee el borrador; `null` si no hay, está corrupto o es de otra cuenta. */
-export function leerBorradorTurno(owner: string | null): BorradorTurno | null {
+export function leerBorradorTurno(
+  owner: string | null,
+  ahora: number = Date.now()
+): BorradorTurno | null {
   const b = leerSesion<Partial<BorradorTurno>>(CLAVE_BORRADOR_TURNO);
   if (!b || typeof b !== "object") return null;
   if ((b.owner ?? null) !== owner) return null;
@@ -93,6 +104,11 @@ export function leerBorradorTurno(owner: string | null): BorradorTurno | null {
     b.servidor && esTexto(b.servidor.id)
       ? { id: b.servidor.id, saved: esTexto(b.servidor.saved) ? b.servidor.saved : null }
       : null;
+  // Intento viejo (sin fecha o pasadas 12 h): la clave guardada ya puede no
+  // valer en el servidor. Se conserva el formulario, no el intento.
+  const desde = typeof b.intentoDesde === "number" ? b.intentoDesde : null;
+  const vencido = (servidor !== null || b.pendingCreate) && (desde === null || ahora - desde > VIGENCIA_INTENTO_MS);
+  if (vencido) borrarSesion(CLAVE_KEYS_TURNO);
   return {
     owner,
     position,
@@ -108,9 +124,10 @@ export function leerBorradorTurno(owner: string | null): BorradorTurno | null {
     longitude: b.longitude ?? null,
     describeText: esTexto(b.describeText) ? b.describeText : "",
     tocados: Array.isArray(b.tocados) ? (b.tocados.filter(esTexto) as CampoTurno[]) : [],
-    servidor,
+    servidor: vencido ? null : servidor,
     pendingCreate:
-      b.pendingCreate && typeof b.pendingCreate === "object" ? b.pendingCreate : null,
+      !vencido && b.pendingCreate && typeof b.pendingCreate === "object" ? b.pendingCreate : null,
+    intentoDesde: vencido ? null : desde,
   };
 }
 

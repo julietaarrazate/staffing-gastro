@@ -355,6 +355,7 @@ function NewShiftWizard() {
     if (hidratado || !user) return;
     setHidratado(true);
     if (searchParams.get("ai") === "1") {
+      borrarBorradorTurno();
       let raw: string | null = null;
       try {
         raw = sessionStorage.getItem(AI_SHIFT_DRAFT_STORAGE_KEY);
@@ -607,6 +608,10 @@ function NewShiftWizard() {
       // (se borró o se publicó desde otro lado): el próximo intento crea uno.
       if (err instanceof ApiError && err.status === 404 && draft.current) {
         clearIdempotencyKey(draft.current.id);
+        // También la key y el pedido de crear: con la misma key el servidor
+        // devolvería la respuesta guardada, con el id muerto, y daría 404 sin fin.
+        clearIdempotencyKey("create-shift");
+        pendingCreate.current = null;
         draft.current = null;
         guardarBorradorTurno(instantanea());
       }

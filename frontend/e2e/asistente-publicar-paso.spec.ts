@@ -127,6 +127,49 @@ test("se pierde la respuesta de crear y se recarga: el reintento usa la misma cl
   expect(await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("staffya:borrador:")))).toEqual([]);
 });
 
+test("borrador retomado cuyo turno ya no existe (404): el siguiente intento crea uno nuevo con otra clave y publica", async ({
+  page,
+}) => {
+  await preparar(page);
+  const creates: { clave: string | null }[] = [];
+  let publishes = 0;
+  await page.route("**/api/v1/shifts", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    creates.push({ clave: route.request().headers()["idempotency-key"] ?? null });
+    return route.fulfill(json({ id: `turno-${creates.length}`, status: "borrador" }, 201));
+  });
+  await page.route(/\/api\/v1\/shifts\/turno-\d+\/publish$/, (route) => {
+    const id = new URL(route.request().url()).pathname.split("/").at(-2);
+    publishes++;
+    if (publishes === 1) return route.abort("failed");
+    if (id === "turno-1") return route.fulfill(json({ detail: "Turno no encontrado" }, 404));
+    return route.fulfill(json({ id, status: "publicado" }));
+  });
+
+  await page.goto("/shifts/new");
+  await page.getByRole("button", { name: "Mozo/a" }).click();
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.locator("select").nth(1).selectOption("Palermo");
+  await botonPublicar(page).click();
+  await expect(page.getByText("No se pudo publicar").first()).toBeVisible();
+
+  await page.reload();
+  await expect(botonPublicar(page)).toBeEnabled();
+  await botonPublicar(page).click(); // 404: el turno retomado no existe
+  await expect(page.getByText("Turno no encontrado").first()).toBeVisible();
+  await expect(botonPublicar(page)).toBeEnabled();
+  await botonPublicar(page).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+
+  expect(creates).toHaveLength(2);
+  expect(creates[1].clave).toBeTruthy();
+  expect(creates[1].clave).not.toBe(creates[0].clave);
+});
+
 test.describe("«Describí el turno» con una IA lenta", () => {
   async function conIALenta(page: Page) {
     await preparar(page);
