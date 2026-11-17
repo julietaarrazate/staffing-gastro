@@ -78,7 +78,7 @@ function AuthLinksConVuelta() {
 }
 
 export default function Navbar() {
-  const { user, logout, loading, reconnecting } = useAuth();
+  const { user, logout, loading, reconnecting, twoFactorSetupPending } = useAuth();
   const pathname = usePathname();
 
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
@@ -124,7 +124,7 @@ export default function Navbar() {
               <NavLink href="/profile">Mi comercio</NavLink>
             </>
           )}
-          {!loading && user?.role === "admin" && (
+          {!loading && user?.role === "admin" && !twoFactorSetupPending && (
             <>
               {/* `replace` como todos: era el ÚNICO link de sección sin él,
                   aunque la barra inferior sí navega a `/admin` con replace.
@@ -136,7 +136,7 @@ export default function Navbar() {
               <NavLink href="/search">Buscar</NavLink>
             </>
           )}
-          {!loading && user && <NotificationBell />}
+          {!loading && user && !twoFactorSetupPending && <NotificationBell />}
           {/* Sólo "Salir", sin el nombre: con el nombre completo del comercio
               ("Salir (Parrilla y Vermutería Don Julián)") el header no entraba
               en una tablet y los links pasaban a dos líneas hasta los ~1000px.

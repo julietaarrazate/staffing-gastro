@@ -193,7 +193,7 @@ function mayBeOnTheWay(shift: Shift, now: number): boolean {
 }
 
 function MyShiftsPanel() {
-  const { token, user } = useRequireAuth();
+  const { token, user } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const firstName = user?.full_name?.split(" ")[0];
   const toast = useToast();

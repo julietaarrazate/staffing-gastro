@@ -10,7 +10,7 @@ import { Avatar, Badge, Button, CardSkeletons, EmptyState, ErrorBanner, useToast
 import { HeartIcon } from "@/components/icons";
 
 export default function FavoritesPage() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["employer"] });
   const toast = useToast();
   const [favorites, setFavorites] = useState<FavoriteWorker[]>([]);
   const [error, setError] = useState<string | null>(null);

@@ -72,3 +72,55 @@ describe("useRequireAuth: a dónde manda una pantalla protegida sin sesión", ()
     expect(replace).toHaveBeenCalledWith("/login?next=%2Fshifts%2Fnew%3Fdesde%3Dpanel");
   });
 });
+
+describe("useRequireAuth: guarda por rol (U098)", () => {
+  const CON_SESION = { ...SIN_SESION, token: "t" };
+
+  it("sin `roles` no mira el rol: se comporta como siempre", () => {
+    auth = { ...CON_SESION, user: { id: "u", role: "worker" } };
+    const { result } = renderHook(() => useRequireAuth());
+    expect(replace).not.toHaveBeenCalled();
+    expect(result.current.token).toBe("t");
+    expect(result.current.allowed).toBe(true);
+  });
+
+  it("con un rol permitido deja pasar y conserva el token", () => {
+    auth = { ...CON_SESION, user: { id: "u", role: "employer" } };
+    const { result } = renderHook(() => useRequireAuth({ roles: ["employer"] }));
+    expect(replace).not.toHaveBeenCalled();
+    expect(result.current.token).toBe("t");
+    expect(result.current.allowed).toBe(true);
+  });
+
+  it("con un rol no permitido manda a la home de su rol y no entrega el token", () => {
+    auth = { ...CON_SESION, user: { id: "u", role: "worker" } };
+    const { result } = renderHook(() => useRequireAuth({ roles: ["employer"] }));
+    expect(replace).toHaveBeenCalledWith("/feed");
+    expect(result.current.token).toBeNull();
+    expect(result.current.allowed).toBe(false);
+  });
+
+  it("un comercio en una pantalla de trabajador va a /shifts; un admin, a /admin", () => {
+    auth = { ...CON_SESION, user: { id: "u", role: "employer" } };
+    renderHook(() => useRequireAuth({ roles: ["worker"] }));
+    expect(replace).toHaveBeenCalledWith("/shifts");
+    replace.mockReset();
+    auth = { ...CON_SESION, user: { id: "u", role: "admin" } };
+    renderHook(() => useRequireAuth({ roles: ["worker"] }));
+    expect(replace).toHaveBeenCalledWith("/admin");
+  });
+
+  it("mientras se restaura la sesión no redirige, aunque el rol no coincida", () => {
+    auth = { ...CON_SESION, loading: true, user: { id: "u", role: "worker" } };
+    const { result } = renderHook(() => useRequireAuth({ roles: ["employer"] }));
+    expect(replace).not.toHaveBeenCalled();
+    expect(result.current.token).toBe("t");
+  });
+
+  it("con el usuario todavía sin cargar no decide nada", () => {
+    auth = { ...CON_SESION, user: null };
+    renderHook(() => useRequireAuth({ roles: ["employer"] }));
+    expect(replace).not.toHaveBeenCalled();
+  });
+});
+
