@@ -139,6 +139,18 @@ class SubscriptionService:
     def list_plans() -> list[Plan]:
         return list_plans()
 
+    async def register_chosen_plan(self, company_id: UUID, plan_code: str) -> None:
+        """Guarda el plan que el comercio eligió en los precios de la landing
+        (medición de la beta, M6). Sólo la primera vez; las siguientes no
+        cambian nada. No toca el plan vigente ni lo que ve el comercio."""
+        get_plan(plan_code)  # UnknownPlanError si no existe
+        subscription = await self._subscriptions.get_or_create(
+            company_id, initial_status=self._initial_status()
+        )
+        # UPDATE condicional en la base: la primera elección gana aunque la
+        # entidad leída arriba no la viera (pedidos simultáneos).
+        await self._subscriptions.set_chosen_plan(subscription.company_id, plan_code, datetime.now(UTC))
+
     # --- Elegir plan / pagar -------------------------------------------------
 
     async def subscribe(
