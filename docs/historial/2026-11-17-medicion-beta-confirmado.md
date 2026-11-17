@@ -59,6 +59,8 @@ persona acepte y vaya. Ítems M1 a M5 de «Antes de abrir: medir la beta» en
   general sólo con promedio y % en menos de 10 min, evita mezclar turnos
   publicados con días de anticipación con los de último momento.
 
+**Ajuste tras la revisión independiente:** «vuelven a publicar» cuenta sólo la cohorte madura, los comercios cuya primera confirmación fue hace 30 días o más. Un comercio cubierto ayer todavía puede volver; contarlo como «no volvió» bajaba el porcentaje por lo nueva que es la muestra.
+
 **Queda abierto:** M6 (plan elegido y compromiso de pago) y M7 (serie semanal
 o CSV para el deck) del tablero. `docs/audits/` conserva las definiciones
 viejas (`first_assigned_at`, `employer_repeat_rate`) como registro de la

@@ -70,9 +70,10 @@ class ShiftPeriodStats:
 
 @dataclass
 class ShiftReturnStats:
-    """«Comercios que vuelven a publicar»: de los comercios con al menos un
-    turno cubierto (`sample_size`), cuántos publicaron otro turno dentro de
-    los `window_days` siguientes a su primera confirmación (`returned`)."""
+    """«Comercios que vuelven a publicar»: de los comercios cuya primera
+    confirmación fue hace al menos `window_days` (`sample_size`: la cohorte
+    que ya tuvo la ventana entera), cuántos publicaron otro turno dentro de
+    los `window_days` siguientes a esa confirmación (`returned`)."""
 
     sample_size: int
     returned: int
@@ -353,6 +354,7 @@ class ShiftRepository(ABC):
         *,
         exclude_company_emails: frozenset[str] = frozenset(),
         window_days: int = 30,
+        now: datetime | None = None,
     ) -> ShiftReturnStats:
         """Comercios que vuelven a publicar: ver `ShiftReturnStats`. Sin los
         comercios de `exclude_company_emails`."""

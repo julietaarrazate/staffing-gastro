@@ -276,9 +276,10 @@ async def test_cuentas_de_prueba_e_invitadas_no_cuentan(client, session_factory)
     assert stats["avg_time_to_fill_minutes"] == pytest.approx(5.0, abs=0.1)
     assert stats["shift_assignment_rate_sample_size"] == 1
     assert stats["shift_completion_rate_sample_size"] == 1
-    # Sólo el comercio real entra en la muestra de «vuelven a publicar».
-    assert stats["employer_return_30d_sample_size"] == 1
-    assert stats["employer_return_30d_rate_pct"] == pytest.approx(0.0)
+    # Todos se cubrieron hace menos de 30 días: todavía no entran en la
+    # muestra de «vuelven a publicar» (la exclusión de ésa se prueba abajo).
+    assert stats["employer_return_30d_sample_size"] == 0
+    assert stats["employer_return_30d_rate_pct"] is None
 
 
 # --- M5: comercios que vuelven a publicar (30 días) --------------------------
@@ -315,6 +316,18 @@ async def test_comercios_que_vuelven_a_publicar_en_30_dias(client, session_facto
     s5 = await _published_shift(client, solo_uno)
     await _cubrir(session_factory, s5, published=t0, minutes=5)
 
+    # La cuenta de prueba vuelve a publicar, pero no entra en la muestra.
+    prueba = await _employer(client, TEST_EMPLOYER_EMAIL, "Prueba · Comercio")
+    p1 = await _published_shift(client, prueba)
+    await _cubrir(session_factory, p1, published=t0, minutes=5)
+    p2 = await _published_shift(client, prueba)
+    await _set(session_factory, p2, published_at=t0 + timedelta(days=5))
+
+    # Cubierto hace 5 días y sin otro turno: todavía puede volver, no cuenta.
+    reciente = await _employer(client, "mb_vuelve_reciente@test.com", "Bar Reciente")
+    s6 = await _published_shift(client, reciente)
+    await _cubrir(session_factory, s6, published=datetime.now(UTC) - timedelta(days=5), minutes=5)
+
     stats = (await client.get("/api/v1/admin/stats", headers=admin)).json()
     assert stats["employer_return_30d_sample_size"] == 3  # vuelve, tarde, solo_uno
     assert stats["employer_return_30d_rate_pct"] == pytest.approx(33.33, abs=0.1)
@@ -326,7 +339,7 @@ async def test_publicar_antes_de_la_primera_confirmacion_no_cuenta_como_volver(
 ):
     admin = await _make_admin(client, session_factory, "mb_antes_admin@test.com")
     employer = await _employer(client, "mb_antes_emp@test.com", "Bar Antes")
-    t0 = datetime.now(UTC) - timedelta(days=20)
+    t0 = datetime.now(UTC) - timedelta(days=40)
     # Dos turnos publicados juntos; el primero se confirma, pero el otro se
     # publicó ANTES de esa confirmación: no es «volver».
     a = await _published_shift(client, employer)

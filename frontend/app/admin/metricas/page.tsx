@@ -313,8 +313,8 @@ export default function AdminMetricsPage() {
                 pct={stats.employer_return_30d_rate_pct}
                 caption={sampleCaption(
                   stats.employer_return_30d_sample_size,
-                  "comercio con un turno cubierto",
-                  "comercios con un turno cubierto"
+                  "comercio con su primer turno cubierto hace más de 30 días",
+                  "comercios con su primer turno cubierto hace más de 30 días"
                 )}
               />
             </div>

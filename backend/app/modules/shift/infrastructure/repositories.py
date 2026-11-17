@@ -717,6 +717,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         *,
         exclude_company_emails: frozenset[str] = frozenset(),
         window_days: int = 30,
+        now: datetime | None = None,
     ) -> ShiftReturnStats:
         # Una fila por turno publicado (comercio, publicado, primera
         # confirmación) y el cálculo en Python: «publicó otro después de que
@@ -742,9 +743,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     first_covered[company_id] = confirmed
 
         horizon = timedelta(days=window_days)
+        # Sólo la cohorte madura: un comercio cuya primera confirmación fue
+        # hace menos de `window_days` todavía no tuvo la ventana entera para
+        # volver, y contarlo como «no volvió» bajaría el % por lo nuevo de la
+        # muestra, no por falta de vuelta.
+        cutoff = _utc_naive(now or datetime.now(timezone.utc)) - horizon
+        mature = {cid: t0 for cid, t0 in first_covered.items() if t0 <= cutoff}
         returned = sum(
             1
-            for company_id, t0 in first_covered.items()
+            for company_id, t0 in mature.items()
             if any(t0 < p <= t0 + horizon for p in publications[company_id])
         )
-        return ShiftReturnStats(sample_size=len(first_covered), returned=returned)
+        return ShiftReturnStats(sample_size=len(mature), returned=returned)
