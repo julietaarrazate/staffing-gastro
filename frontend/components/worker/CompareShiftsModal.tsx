@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { formatShiftRange } from "@/lib/datetime";
 import { distanceOf } from "@/lib/current-location";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatMoney, formatPayAmount, payPerHour } from "@/lib/pay";
 import { formatDistance } from "@/lib/format";
 
 /**
@@ -56,7 +56,7 @@ export default function CompareShiftsModal({
                         Por hora
                       </p>
                       <p className="font-semibold text-ink">
-                        {formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })}
+                        {formatMoney(perHour, shift.currency)}
                       </p>
                     </div>
                   )}

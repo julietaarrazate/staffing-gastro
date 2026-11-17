@@ -208,7 +208,7 @@ function NewEventForm() {
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
           </h1>
           <p className="mt-2 text-ink/60">
-            {result.shifts.length === 1 ? "Se publicó 1" : `Se publicaron ${result.shifts.length}`} de {plural(result.requested, "turno", "turnos")}.
+            {result.shifts.length === 1 ? "Se publicó" : "Se publicaron"} {result.shifts.length} de {plural(result.requested, "turno", "turnos")}.
           </p>
           {missing > 0 && (
             <p className="mt-3 max-w-xs rounded-2xl bg-primary-tint p-3 text-sm text-primary-text">

@@ -166,7 +166,7 @@ test("Buscar trabajadores: la persona nueva no muestra estrellas ni 0,0", async 
   await expect(page.getByText("Nuevo en Oído").filter({ visible: true })).toHaveCount(1);
   await expect(page.getByText("4,6").filter({ visible: true }).first()).toBeVisible();
   await expect(fila("Nueva Sinhistoria")).not.toContainText("0,0");
-  await expect(fila("Nueva Sinhistoria")).toContainText("0,8 km");
+  await expect(fila("Nueva Sinhistoria")).toContainText("800 m");
 });
 
 const comercio = (over: Record<string, unknown>) => ({

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatMoney, formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar, Badge } from "@/components/ui";
 import { CheckIcon, ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
@@ -268,7 +268,7 @@ export default function OpportunityCard({
           <p className="text-price font-extrabold tracking-tight text-ink">{formatPayAmount(shift)}</p>
           {perHour && (
             <p className="text-xs font-medium text-ink/50">
-              ≈ {formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora
+              ≈ {formatMoney(perHour, shift.currency)} por hora
             </p>
           )}
         </div>

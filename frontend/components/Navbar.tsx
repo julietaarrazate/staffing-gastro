@@ -118,7 +118,7 @@ export default function Navbar() {
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <NavLink href="/shifts">Mis turnos</NavLink>
+              <NavLink href="/shifts">Panel</NavLink>
               <NavLink href="/search">Buscar</NavLink>
               <NavLink href="/favorites">Favoritos</NavLink>
               <NavLink href="/chats">Mensajes</NavLink>

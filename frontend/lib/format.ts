@@ -28,7 +28,8 @@ export function formatKm(km: number): string {
  * ("800 m"), desde 1 km con un decimal y coma ("1,5 km").
  */
 export function formatDistance(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)} m` : formatKm(km);
+  const metros = Math.round(km * 1000);
+  return metros < 1000 ? `${metros} m` : formatKm(km);
 }
 
 /**
@@ -37,5 +38,6 @@ export function formatDistance(km: number): string {
  * a mano «{n} turnos» y terminar en «1 turnos».
  */
 export function plural(n: number, uno: string, varios: string): string {
-  return `${n} ${n === 1 ? uno : varios}`;
+  const cantidad = Number.isFinite(n) ? n : 0;
+  return `${Number.isInteger(cantidad) ? cantidad : cantidad.toLocaleString("es-AR")} ${cantidad === 1 ? uno : varios}`;
 }

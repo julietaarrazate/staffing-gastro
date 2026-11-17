@@ -122,6 +122,6 @@ test("sin el cobro activo, el MRR muestra $0 real y el potencial como dato secun
   await page.goto("/admin/metricas");
 
   await expect(page.getByText("Cobro no activado")).toBeVisible();
-  await expect(page.getByText("$0")).toBeVisible();
+  await expect(page.getByText("$0", { exact: true })).toBeVisible();
   await expect(page.getByText("Potencial si se cobrara: $65.000")).toBeVisible();
 });

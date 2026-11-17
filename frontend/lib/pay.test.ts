@@ -17,6 +17,14 @@ describe("payPerHour", () => {
   });
 });
 
+describe("formatPayAmount con montos raros", () => {
+  it("redondea a pesos enteros y un monto inválido no es «$NaN»", () => {
+    expect(formatPayAmount({ pay_amount: "42000.60", currency: "ARS" })).toBe("$42.001");
+    expect(formatPayAmount({ pay_amount: "abc", currency: "ARS" })).toBe("—");
+    expect(formatPayAmount({ pay_amount: "", currency: "USD" })).toBe("—");
+  });
+});
+
 describe("formatPayAmount / formatPayShort", () => {
   it("pesos con signo $ y separador de miles argentino", () => {
     expect(formatPayAmount({ pay_amount: "42000", currency: "ARS" })).toBe("$42.000");

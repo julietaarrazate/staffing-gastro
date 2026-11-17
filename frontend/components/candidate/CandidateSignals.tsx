@@ -9,7 +9,7 @@ import {
   type IconProps,
 } from "@/components/icons";
 import { BADGE_ICONS, badgeLabel, formatPunctuality, hasRate, hasRating, levelLabel, NEW_LABEL } from "@/lib/reputation";
-import { formatKm, plural } from "@/lib/format";
+import { formatDistance, plural } from "@/lib/format";
 
 /**
  * Señales legibles de un candidato/postulante, para que el comercio vea *por
@@ -42,7 +42,7 @@ interface Reason {
 export function topReasons(s: CandidateSignals, max = 3): Reason[] {
   const reasons: Reason[] = [];
   if (s.distance_km != null && s.distance_km <= 3) {
-    reasons.push({ Icon: MapPinIcon, label: `A ${formatKm(s.distance_km)} del local` });
+    reasons.push({ Icon: MapPinIcon, label: `A ${formatDistance(s.distance_km)} del local` });
   }
   if (s.events_completed >= 3 && s.punctuality_rate >= 0.9) {
     reasons.push({ Icon: ClockIcon, label: `Muy puntual (${formatPunctuality(s.punctuality_rate)})` });
@@ -95,7 +95,7 @@ export function CandidateStatChips({
         !hasHistory && <StatChip onDark={onDark}>{NEW_LABEL}</StatChip>
       )}
       {signals.distance_km != null && (
-        <StatChip onDark={onDark}>{formatKm(signals.distance_km)}</StatChip>
+        <StatChip onDark={onDark}>{formatDistance(signals.distance_km)}</StatChip>
       )}
       {hasHistory && <StatChip onDark={onDark}>{plural(signals.events_completed, "turno", "turnos")}</StatChip>}
       {hasRate(signals.events_completed) && (

@@ -14,8 +14,7 @@ minúscula. Más el pendiente de la tanda 2: el mensaje de sin conexión de
 - **Plata con «$»**, punto de miles, sin decimales: `formatArs` y
   `formatPayAmount` (ya existían). Salió «ARS» de `/map`, del comparador de
   turnos guardados, del asistente de publicar (resumen y «por hora»),
-  `/admin/metricas`, `shift-share.ts` (su texto de difusión ahora dice
-  «Pago: $48.000», no «$$»), `WorkerGameCard` y `pedido-natural`.
+  `/admin/metricas`, `shift-share.ts` (el texto de difusión sale con el mismo `formatArs`; con un monto inválido omite la línea «Pago» en vez de poner «$0»), `WorkerGameCard` y `pedido-natural`.
 - **Distancia con coma**: `formatDistance` nuevo en `lib/format.ts` (metros
   bajo 1 km, si no `formatKm`); reemplaza tres copias locales con
   `toFixed(1)` (`NearbyRow`, `CompareShiftsModal`, `OpportunityCard`) y los
@@ -46,5 +45,14 @@ regla (`services.py` usa `$15.000`, coma en km, plurales y `.label`).
 `lib/datetime.test.ts` (24 h y medianoche); specs e2e que esperaban
 «ARS 45.000», «4.1 km» o el texto viejo del límite, actualizados.
 
-**Queda abierto:** el comercio ve «Mis turnos» en la barra de escritorio y
-«Panel» en la de abajo; no es parte de este grupo.
+- **Más ajustes tras la revisión:** `formatDistance` redondea primero a
+  metros (0,9996 km es «1,0 km», no «1000 m») y se usa también en `/search`,
+  `CandidateSignals`, `EnRouteMap` y la landing; `plural()` tolera NaN/∞
+  (0) y decimales; `formatPayAmount`/`formatMoney` (`lib/pay.ts`) redondean a
+  pesos enteros y un monto inválido es «—», nunca «$NaN»; `/landing` y planes
+  dicen «1 turno por mes»; `lib/errors.ts` importa `NO_CONNECTION_MESSAGE`.
+- **Decisión de producto:** la pantalla `/shifts` del comercio se llama
+  **«Panel»** en todos lados: barra de escritorio (antes «Mis turnos») y el
+  link de vuelta de candidatos, ahora «Volver al panel».
+
+**Queda abierto:** nada de este grupo.

@@ -255,9 +255,6 @@ export function withRetryAfter(message: string, retryAfter: string | null): stri
   return `${message.replace(/\s*[.]?\s*$/, "")}. Esperá ${waitText(secs)} y volvé a probar.`;
 }
 
-/** Texto fijo para el 429 de las pantallas que no revelan nada de la cuenta
- * (recuperar, verificar email): el límite es por conexión, no dice nada del mail. */
-
 /** El backend frenó el pedido por el límite de intentos (HTTP 429, ver
  * `core/rate_limit.py`). */
 export function isRateLimited(err: unknown): boolean {

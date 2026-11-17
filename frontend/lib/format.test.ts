@@ -28,7 +28,8 @@ describe("formatArs", () => {
 describe("formatDistance", () => {
   it("bajo 1 km en metros redondeados", () => {
     expect(formatDistance(0.8)).toBe("800 m");
-    expect(formatDistance(0.9996)).toBe("1000 m");
+    expect(formatDistance(0.9996)).toBe("1,0 km");
+    expect(formatDistance(0.9994)).toBe("999 m");
   });
 
   it("desde 1 km con un decimal y coma, nunca punto", () => {
@@ -42,5 +43,12 @@ describe("plural", () => {
     expect(plural(1, "turno", "turnos")).toBe("1 turno");
     expect(plural(0, "turno", "turnos")).toBe("0 turnos");
     expect(plural(2, "postulación", "postulaciones")).toBe("2 postulaciones");
+  });
+
+  it("un número raro no imprime NaN ni undefined", () => {
+    expect(plural(NaN, "turno", "turnos")).toBe("0 turnos");
+    expect(plural(Infinity, "turno", "turnos")).toBe("0 turnos");
+    expect(plural(1.5, "turno", "turnos")).toBe("1,5 turnos");
+    expect(plural(1500, "turno", "turnos")).toBe("1500 turnos");
   });
 });

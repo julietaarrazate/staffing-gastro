@@ -26,12 +26,13 @@ export function buildShiftSummary(shift: ShareableShift): string {
   const date = formatShiftDate(shift.start_at);
   const start = formatShiftTime(shift.start_at);
   const end = formatShiftTime(shift.end_at);
-  const amount = formatArs(Number(shift.pay_amount));
+  const monto = Number(shift.pay_amount);
+  const pago = shift.pay_amount !== "" && Number.isFinite(monto) ? ` Pago: ${formatArs(monto)}.` : "";
   const lugar = [shift.company_name, shift.city].filter(Boolean).join(", ");
 
   return (
     `Buscamos ${SKILL_LABELS[shift.position]} para el ${date} de ${start} a ${end}` +
-    `${lugar ? ` en ${lugar}` : ""}. Pago: ${amount}.`
+    `${lugar ? ` en ${lugar}` : ""}.${pago}`
   );
 }
 
