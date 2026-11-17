@@ -87,8 +87,7 @@ export default function PrivacidadPage() {
                 contraseña de Google.
               </li>
               <li>
-                <strong>Perfil:</strong> foto, fecha de nacimiento (para
-                confirmar que sos mayor de edad), ciudad, domicilio
+                <strong>Perfil:</strong> foto, ciudad, domicilio
                 aproximado, presentación, posiciones en las que trabajás, años
                 de experiencia, idiomas, certificaciones y, si lo subís, tu
                 CV.
@@ -139,6 +138,11 @@ export default function PrivacidadPage() {
 
             <p className="font-semibold text-ink">Para todos</p>
             <ul className="ml-5 list-disc space-y-1.5">
+              <li>
+                <strong>Fecha de nacimiento:</strong> te la pedimos al crear
+                la cuenta, sólo para confirmar que sos mayor de 18 años. No
+                aparece en tu perfil ni la ve nadie más.
+              </li>
               <li>
                 <strong>Constancia de aceptación:</strong> cuándo aceptaste
                 estos términos y esta política, qué versión y si fue con tu
@@ -437,8 +441,10 @@ export default function PrivacidadPage() {
 
           <Section title="Menores de edad">
             <p>
-              Oído es sólo para mayores de 18 años. Si detectamos una cuenta
-              de un menor, la damos de baja y borramos sus datos.
+              Oído es sólo para mayores de 18 años. Al crear la cuenta te
+              pedimos tu fecha de nacimiento, y si sos menor no la creamos.
+              Si igual detectamos una cuenta de un menor, la damos de baja y
+              borramos sus datos.
             </p>
           </Section>
 

@@ -69,6 +69,7 @@ await step("registro de comercio por la UI → /bienvenida", async () => {
   await page.goto("/register?rol=comercio");
   c.mark("form");
   await page.locator('input[name="name"]').fill("Bar Humo E1");
+  await page.locator('input[name="bday"]').fill("1990-01-01");
   await page.locator('input[name="email"]').fill(comercioEmail);
   await page.locator('input[name="new-password"]').fill("E1-prueba-1234");
   await page.locator('input[type="checkbox"]').check();

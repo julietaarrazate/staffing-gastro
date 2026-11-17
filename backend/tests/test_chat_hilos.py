@@ -315,6 +315,7 @@ def _registrar(client: TestClient, email: str, nombre: str, role: str) -> tuple[
             "full_name": nombre,
             "role": role,
             "accepted_terms": True,
+        "birth_date": "1995-05-20",
         },
     )
     assert registered.status_code == 201

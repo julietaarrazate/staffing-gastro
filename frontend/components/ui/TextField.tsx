@@ -39,8 +39,9 @@ export default function TextField({
   required?: boolean;
   leftIcon?: ReactNode;
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel";
-  min?: number;
-  max?: number;
+  /** Número, o `AAAA-MM-DD` en un campo `type="date"`. */
+  min?: number | string;
+  max?: number | string;
   step?: number;
   minLength?: number;
   maxLength?: number;

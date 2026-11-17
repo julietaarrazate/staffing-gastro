@@ -4,7 +4,7 @@ Definen el contrato de la API (request/response) — separados de los DTOs
 de aplicación y de las entidades de dominio.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Annotated
 from uuid import UUID
@@ -44,6 +44,10 @@ class RegisterRequest(BaseModel):
     # El checkbox de términos y privacidad. Tiene que llegar en True: la ruta
     # rechaza el alta sin él y guarda la constancia (`TermsAcceptance`).
     accepted_terms: bool = False
+    # U101: obligatoria (la ruta responde 422 con un texto claro si falta o si
+    # la persona es menor de 18). Opcional en el esquema para que el mensaje
+    # sea ése y no el genérico de Pydantic.
+    birth_date: date | None = None
 
     @field_validator("full_name")
     @classmethod
@@ -140,6 +144,8 @@ class GoogleAuthRequest(BaseModel):
     role: RegisterableRole | None = None
     # Obligatorio en True cuando viene `role`, o sea cuando se crea la cuenta.
     accepted_terms: bool = False
+    # Igual que en el registro con email: obligatoria al crear la cuenta (U101).
+    birth_date: date | None = None
 
 
 class GoogleRoleRequiredResponse(BaseModel):

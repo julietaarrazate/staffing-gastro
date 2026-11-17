@@ -1528,6 +1528,18 @@ class ShiftService(AccountSuspensionEffects):
             await self._workers.record_completed_shift(
                 updated.worker_profile_id, punctual=self._was_punctual(updated)
             )
+            # U018: al cerrar el turno el trabajador ya puede calificar al
+            # comercio. `/my-shifts` no toma el id del turno por la URL: abre
+            # la lista, donde el turno cerrado trae su caja de calificación.
+            company = await self._companies.get_by_id(updated.company_id)
+            company_name = (company.name if company is not None else None) or "el comercio"
+            await self._notify_worker(
+                updated.worker_profile_id,
+                NotificationType.SHIFT_FINISHED,
+                "Cerró tu turno",
+                f"Calificá a {company_name} por el turno \"{updated.title or updated.position.label}\".",
+                link=f"/my-shifts?turno={updated.id}",
+            )
         return updated
 
     @staticmethod

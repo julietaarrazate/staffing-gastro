@@ -38,6 +38,8 @@ test("registro con un mail sin dominio dice que tiene que ser un mail válido", 
   await expect(page.getByPlaceholder("Contraseña (mín. 8 caracteres)")).toHaveAttribute("maxlength", "128");
 
   await page.getByPlaceholder("Nombre completo").fill("Lucía Gómez");
+
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("lucia@bar");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("clave-larga-123");
   await page.getByRole("checkbox").check();

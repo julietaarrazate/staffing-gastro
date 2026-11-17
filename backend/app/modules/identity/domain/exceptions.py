@@ -75,6 +75,21 @@ class GoogleEmailNotVerifiedError(IdentityError):
     en falso): no alcanza como prueba de identidad."""
 
 
+# --- Edad mínima en el alta (U101) -----------------------------------------
+
+
+class BirthDateRequiredError(IdentityError):
+    """El alta pública llegó sin fecha de nacimiento."""
+
+
+class BirthDateInvalidError(IdentityError):
+    """La fecha de nacimiento es futura o de hace más de cien años."""
+
+
+class UnderageError(IdentityError):
+    """La persona tiene menos de 18 años: Oído no le crea la cuenta."""
+
+
 # --- Verificación en dos pasos (ADR-0023) ---------------------------------
 
 

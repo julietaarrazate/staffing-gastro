@@ -5,7 +5,7 @@ La persistencia se hace mediante un mapeo en la capa de infraestructura.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
@@ -27,6 +27,11 @@ class User:
     id: UUID = field(default_factory=uuid4)
     status: UserStatus = UserStatus.ACTIVE
     is_verified: bool = False
+    # Fecha de nacimiento declarada en el alta (U101). Privada: sólo sirve
+    # para no dejar entrar a menores de 18; no se muestra a nadie. Las
+    # cuentas creadas antes de 2026-11 y las internas (invitadas, seed) no
+    # la tienen.
+    birth_date: date | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

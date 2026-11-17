@@ -82,6 +82,7 @@ def test_aviso_que_solo_vale_en_el_momento_vence_a_los_30_minutos(tipo: Notifica
     "tipo",
     [
         _N.SHIFT_PAID,
+        _N.SHIFT_FINISHED,
         _N.REVIEW_RECEIVED,
         _N.VERIFICATION_DECIDED,
         _N.SUPPORT_REPLY,
