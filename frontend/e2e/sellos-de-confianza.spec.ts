@@ -104,7 +104,9 @@ test("el feed muestra «Comercio verificado» sólo en el turno del comercio ver
 
 test("los postulantes muestran «Identidad verificada» sólo con el documento aprobado", async ({ page }) => {
   await base(page, EMPLOYER);
-  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
+  await page.route("**/api/v1/shifts/shift-1", (r) =>
+    r.fulfill(json({ id: "shift-1", position: "mozo", status: "publicado", start_at: "2026-12-10T20:00:00-03:00", end_at: "2026-12-10T23:00:00-03:00", pay_amount: "50000", currency: "ARS", tips: false }))
+  );
   await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
     r.fulfill(json([applicant("wp-1", "Lucía Verificada", true), applicant("wp-2", "Mateo Común", false)]))
   );
@@ -150,7 +152,9 @@ test("Inicio en celular: hero de comercio sin verificar no lleva sello", async (
 test("postulantes con nombre largo: el sello se adapta al ancho, sin desborde y sin pisar «Asignar»", async ({ page }) => {
   const largo = "Maximiliano Alejandro Fernandez de la Cruz Sanchez Villa";
   await base(page, EMPLOYER);
-  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
+  await page.route("**/api/v1/shifts/shift-1", (r) =>
+    r.fulfill(json({ id: "shift-1", position: "mozo", status: "publicado", start_at: "2026-12-10T20:00:00-03:00", end_at: "2026-12-10T23:00:00-03:00", pay_amount: "50000", currency: "ARS", tips: false }))
+  );
   await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
     r.fulfill(json([applicant("wp-1", largo, true), applicant("wp-2", largo + " Dos", true)]))
   );

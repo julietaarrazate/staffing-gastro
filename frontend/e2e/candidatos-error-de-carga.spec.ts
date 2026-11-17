@@ -58,7 +58,9 @@ async function setup(
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(EMPLOYER)));
-  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
+  await page.route("**/api/v1/shifts/shift-1", (r) =>
+    r.fulfill(json({ id: "shift-1", position: "mozo", status: "publicado", start_at: "2026-12-10T20:00:00-03:00", end_at: "2026-12-10T23:00:00-03:00", pay_amount: "50000", currency: "ARS", tips: false }))
+  );
   await page.route("**/api/v1/applications/shifts/shift-1", (r) => r.fulfill(opts.apps()));
   await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(opts.cands()));
 }
