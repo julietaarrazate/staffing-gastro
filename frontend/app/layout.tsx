@@ -21,31 +21,16 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Fraunces: serif del wordmark "oído" (`font-serif`). Hasta el 2026-10-12
-// también era la de los títulos; Julieta la cambió en los títulos porque se
-// sentía genérica y dejó el logo como estaba.
-// Desde el 2026-10-23 es un recorte local del mismo archivo que servía Google
-// (Fraunces variable, eje wght 100–900, OFL) con sólo los glifos "o í d O":
-// 2 KB precargados en vez de 36 KB, y el wordmark se dibuja igual. Si el
-// wordmark usa otra letra, regenerarlo con fonttools sobre el latin de Google:
-//   pyftsubset Fraunces-latin.woff2 --text="oídO" --layout-features='*' \
-//     --flavor=woff2 --output-file=app/fonts/fraunces-oido.woff2
-// (una letra que no esté cae a la serif de respaldo, no se rompe nada).
-const fraunces = localFont({
-  src: "./fonts/fraunces-oido.woff2",
-  variable: "--font-fraunces",
-  weight: "100 900",
-  adjustFontFallback: "Times New Roman",
-});
-
-// Sancreek (OFL): la letra de cartel del «oído» fileteado
-// (components/landing/Filete.tsx), desde el 2026-10-23. Recorte local con
-// sólo "o í d O ¡ !" (1,5 KB); si el filete usa otra palabra, regenerarlo:
-//   pyftsubset Sancreek.ttf --text="oídO¡!" --layout-features='*' \
-//     --flavor=woff2 --output-file=app/fonts/sancreek-oido.woff2
-const sancreek = localFont({
-  src: "./fonts/sancreek-oido.woff2",
-  variable: "--font-sancreek",
+// Shrikhand (OFL): la letra del «oído» (fileteado en components/landing/
+// Filete.tsx, plano en el encabezado de la landing y de la app), desde el
+// 2026-11-17 (antes Sancreek). Gorda e inclinada, como la letra fantasía del
+// fileteado. Recorte local con sólo "o í d O ¡ !" (1,5 KB); si la marca usa
+// otra palabra, regenerarlo:
+//   pyftsubset Shrikhand-Regular.ttf --text="oídO¡!" --layout-features='*' \
+//     --flavor=woff2 --output-file=app/fonts/shrikhand-oido.woff2
+const shrikhand = localFont({
+  src: "./fonts/shrikhand-oido.woff2",
+  variable: "--font-shrikhand",
   weight: "400",
   adjustFontFallback: "Times New Roman",
 });
@@ -139,7 +124,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${fraunces.variable} ${youngSerif.variable} ${dmMono.variable} ${sancreek.variable} h-full antialiased`}
+      className={`${inter.variable} ${youngSerif.variable} ${dmMono.variable} ${shrikhand.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">
         {/* Anti-flash: fija data-theme antes del primer paint según la

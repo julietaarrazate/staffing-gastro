@@ -52,6 +52,9 @@ anterior).
 | `iconography.md` | ⏳ pendiente (Lucide; auditoría en el pase de componentes) |
 | `components.md` | ⏳ pendiente (pase de componentes: ShiftCard/VenueCard/WorkerCard…) |
 | [`motion.md`](./motion.md) | ✅ reglas + piezas (2026-09-23) |
+| [`marca/`](./marca/) | ✅ vectores de la marca (letra a trazos) y manual en PDF (2026-11-17) |
+| [`fotos-landing.md`](./fotos-landing.md) | ✅ qué foto va en cada lugar de la landing (2026-11-17) |
+| [`direccion-relieve.md`](./direccion-relieve.md) | 🟡 dirección en prueba, elegida para seguir (2026-11-17) |
 | `accessibility.md` | ⏳ pendiente |
 | `ux-principles.md` | ⏳ pendiente |
 

@@ -1,5 +1,5 @@
-// Regenera los íconos raster desde los SVG de marca (public/logo-mark.svg y
-// public/logo-maskable.svg). Correr a mano después de tocar el logo:
+// Regenera los íconos raster desde los SVG de marca. Correr a mano después de
+// tocar el logo:
 //   node scripts/build-icons.mjs
 //
 // Existe porque los PNG y el favicon.ico se rasterizaban una vez y se
@@ -7,12 +7,19 @@
 // viejo durante semanas (el .ico, además, porque `sharp` no escribe ICO).
 // El .ico se arma a mano: un ICO puede contener PNG tal cual (Vista+ y todos
 // los navegadores), así que alcanza con un encabezado + un directorio.
+// Desde el 2026-11-17 el ícono es «oí» en Shrikhand (vectores fuente en
+// docs/design-system/marca/): fileteado con relieve en los grandes
+// (logo-mark.svg), plano en el favicon (logo-mark-chico.svg: a 16–48 px el
+// relieve se empasta) y en silueta blanca para el badge de las
+// notificaciones de Android (logo-figure.svg: Android usa sólo el alfa).
 import { readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
 const pub = new URL("../public/", import.meta.url);
 const mark = await readFile(new URL("logo-mark.svg", pub));
+const chico = await readFile(new URL("logo-mark-chico.svg", pub));
 const maskable = await readFile(new URL("logo-maskable.svg", pub));
+const silueta = await readFile(new URL("logo-figure.svg", pub));
 
 const png = (svg, size) => sharp(svg, { density: 384 }).resize(size, size).png().toBuffer();
 
@@ -21,12 +28,13 @@ for (const [file, svg, size] of [
   ["icon-512.png", mark, 512],
   ["apple-icon.png", mark, 180],
   ["icon-maskable-512.png", maskable, 512],
+  ["badge-96.png", silueta, 96],
 ]) {
   await writeFile(new URL(file, pub), await png(svg, size));
 }
 
 const sizes = [16, 32, 48];
-const images = await Promise.all(sizes.map((s) => png(mark, s)));
+const images = await Promise.all(sizes.map((s) => png(chico, s)));
 const header = Buffer.alloc(6);
 header.writeUInt16LE(0, 0); // reservado
 header.writeUInt16LE(1, 2); // tipo 1 = ícono
@@ -46,4 +54,4 @@ const entries = sizes.map((s, i) => {
   return e;
 });
 await writeFile(new URL("favicon.ico", pub), Buffer.concat([header, ...entries, ...images]));
-console.log("íconos regenerados: icon-192/512, apple-icon, icon-maskable-512, favicon.ico (16/32/48)");
+console.log("íconos regenerados: icon-192/512, apple-icon, icon-maskable-512, badge-96, favicon.ico (16/32/48)");
