@@ -85,6 +85,15 @@ class ShiftRepository(ABC):
         """Actualiza un turno existente y lo devuelve."""
 
     @abstractmethod
+    async def mark_departure_reminder_sent(
+        self, shift_id: UUID, sent_at: datetime
+    ) -> None:
+        """Registra que se mandó el recordatorio de salida SIN subir la
+        `version` del turno (ADR-0016): es una marca del sistema, no una
+        decisión de nadie, y no debe invalidar la lectura que tiene el
+        cliente (p. ej. quien está por tocar «Confirmar»)."""
+
+    @abstractmethod
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         """Busca un turno por su id."""
 

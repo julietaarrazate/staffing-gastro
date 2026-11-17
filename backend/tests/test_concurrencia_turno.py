@@ -155,3 +155,32 @@ async def test_scheduler_skips_a_shift_it_lost_and_keeps_going(error):
     await scheduler._act(action, some_id)  # no propaga
 
     assert calls == [some_id]
+
+
+async def test_departure_reminder_does_not_invalidate_the_clients_version(
+    client: AsyncClient, session_factory
+):
+    """U103: el recordatorio de salida lo manda el scheduler; si subía la
+    versión, un «Confirmar» pegado daba «El turno cambió mientras tanto»."""
+    shift_id, _employer, _worker, _ = await _assigned_shift(client, "conc5")
+
+    async with session_factory() as session_a, session_factory() as session_b:
+        repo_a = SqlAlchemyShiftRepository(session_a)
+        repo_b = SqlAlchemyShiftRepository(session_b)
+        by_worker = await repo_a.get_by_id(UUID(shift_id))  # lectura previa del cliente
+
+        reminded = await scheduler._build_service(session_b).send_departure_reminder(
+            UUID(shift_id)
+        )
+        assert reminded.departure_reminder_sent_at is not None
+        assert reminded.version == by_worker.version
+
+        by_worker.confirm([])
+        saved = await repo_a.update(by_worker)  # no levanta conflicto
+
+    assert saved.status == ShiftStatus.CONFIRMADO
+    # La marca del recordatorio quedó guardada (idempotencia del scheduler).
+    async with session_factory() as session:
+        again = await SqlAlchemyShiftRepository(session).get_by_id(UUID(shift_id))
+    # ...y el «Confirmar» con la lectura previa no la pisó.
+    assert again.departure_reminder_sent_at is not None

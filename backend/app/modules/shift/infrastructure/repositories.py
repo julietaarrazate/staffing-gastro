@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import case, extract, func, or_, select
+from sqlalchemy import case, extract, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -113,6 +113,7 @@ def _to_entity(model: ShiftModel) -> Shift:
 
 
 def _apply_fields(model: ShiftModel, shift: Shift) -> None:
+    same_worker = model.worker_profile_id == shift.worker_profile_id
     for name in _EDITABLE_FIELDS:
         value = getattr(shift, name)
         if name == "position":
@@ -133,7 +134,16 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
-    model.departure_reminder_sent_at = shift.departure_reminder_sent_at
+    # La marca del recordatorio de salida la escribe el scheduler sin subir la
+    # versión (`mark_departure_reminder_sent`, U103), así que una entidad leída
+    # antes llega con None: no la pisamos mientras siga asignada la misma
+    # persona. Si cambió o se desasignó, el reseteo del dominio sí va.
+    if not (
+        shift.departure_reminder_sent_at is None
+        and model.departure_reminder_sent_at is not None
+        and same_worker
+    ):
+        model.departure_reminder_sent_at = shift.departure_reminder_sent_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
     model.escalated_at = shift.escalated_at
@@ -193,6 +203,19 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         # uso parte de la versión nueva, no de la que ya se consumió.
         shift.version = model.version
         return _to_entity(model)
+
+    async def mark_departure_reminder_sent(
+        self, shift_id: UUID, sent_at: datetime
+    ) -> None:
+        # UPDATE masivo (Core): no pasa por `version_id_col`, así que no sube
+        # la versión. ADR-0016, consecuencias: no genera conflictos falsos.
+        await self._session.execute(
+            update(ShiftModel)
+            .where(ShiftModel.id == shift_id)
+            .values(departure_reminder_sent_at=sent_at)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
 
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         # `populate_existing`: siempre lo que hay en la base, no la copia del

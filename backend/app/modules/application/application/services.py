@@ -23,6 +23,16 @@ from app.modules.worker.domain.repositories import WorkerProfileRepository
 
 logger = logging.getLogger(__name__)
 
+# Límites de las columnas de `notifications` (title String(255), message
+# String(500)): un nombre o título larguísimo no debe romper la postulación
+# DESPUÉS de haberla guardado.
+_NOTIF_TITLE_MAX = 255
+_NOTIF_MESSAGE_MAX = 500
+
+
+def _clip(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
 
 class ApplicationService:
     """Gestiona las postulaciones de trabajadores a turnos abiertos.
@@ -119,8 +129,8 @@ class ApplicationService:
             Notification(
                 user_id=company_user_id,
                 type=NotificationType.NEW_APPLICANT,
-                title=title,
-                message=message,
+                title=_clip(title, _NOTIF_TITLE_MAX),
+                message=_clip(message, _NOTIF_MESSAGE_MAX),
                 # Abre los postulantes de ESE turno (donde están las tarjetas
                 # de cada candidato y el link a su perfil), no el panel general.
                 link=f"/shifts/{shift.id}/candidates",

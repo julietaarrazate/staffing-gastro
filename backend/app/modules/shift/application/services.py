@@ -903,8 +903,11 @@ class ShiftService(AccountSuspensionEffects):
         ubicación sigue siendo un toque del trabajador, esto sólo le recuerda
         que existe. Idempotente vía `departure_reminder_sent_at`."""
         shift = await self.get_shift(shift_id)
-        shift.departure_reminder_sent_at = datetime.now(timezone.utc)
-        updated = await self._shifts.update(shift)
+        sent_at = datetime.now(timezone.utc)
+        # Marca de sistema: no sube la versión del turno (ADR-0016), así un
+        # «Confirmar» con la versión previa no da «El turno cambió».
+        await self._shifts.mark_departure_reminder_sent(shift.id, sent_at)
+        updated = await self.get_shift(shift_id)
         if updated.worker_profile_id is not None:
             start_utc = updated.start_at
             if start_utc.tzinfo is None:  # SQLite (tests) devuelve naive, en UTC
