@@ -44,9 +44,11 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    La miniatura para compartir usa la `firma` (`assets/og/filete-oido.png`,
    desde el 2026-10-30).
    No va en ningún otro lugar ni con otra palabra.
-4. **El ícono es «oí»** (desde el 2026-11-17; reemplaza a las manos y la
-   oreja, que en chico se parecían al ícono de Bachero): las dos primeras
-   letras de la marca, que además dicen «te escuché». Crema sobre azul hondo
+4. **El ícono es «oí», provisorio** (desde el 2026-11-17; reemplaza a las
+   manos y la oreja, que en chico se parecían al ícono de Bachero): las dos
+   primeras letras de la marca, que además dicen «te escuché». Es una
+   solución tipográfica mientras se diseña un isotipo propio (Julieta,
+   2026-11-17: «hay que hacer uno, no ese genérico»; ver Pendiente). Crema sobre azul hondo
    `#1C5478`. **Fileteado** (relieve azul y canto dorado) en los tamaños
    grandes: app en el celular, Apple, arranque de Android, `public/logo-mark.svg`
    y `logo-maskable.svg`. **Plano** de 48 px para abajo (pestaña, encabezado
@@ -105,6 +107,9 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
 
 ## Pendiente
 
+- **Isotipo propio**, no tipográfico: dibujado para Oído (idealmente por un
+  fileteador o un ilustrador), que funcione en 16 px y se distinga del de
+  Bachero. Hasta entonces, «oí».
 - **Llevar la dirección «con relieve» a la app** (Julieta, 2026-11-17: la sombra
   dura azul hondo del filete como profundidad de la interfaz), pantalla por
   pantalla: [`direccion-relieve.md`](./direccion-relieve.md).

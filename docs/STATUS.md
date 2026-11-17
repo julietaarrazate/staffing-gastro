@@ -34,7 +34,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   primero que se lee y lo que se edita en cada PR de la beta.
 
 0. 🟡 **Marca: Shrikhand e ícono «oí» (beta, etapa 4).** Julieta eligió el
-   2026-11-17 la letra Shrikhand y seguir con el ámbar; la app, la landing,
+   2026-11-17 la letra Shrikhand y seguir con el ámbar. El «oí» es
+   provisorio: falta **diseñar un isotipo propio** (Julieta: «no ese
+   genérico»). La app, la landing,
    los íconos, la miniatura, los vectores y el manual en PDF de
    `design-system/marca/` y el brand system navegable ya están
    ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). Sigue

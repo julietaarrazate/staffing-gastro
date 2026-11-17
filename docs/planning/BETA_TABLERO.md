@@ -21,7 +21,7 @@ descuidado.
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | 🟡 triaje hecho (2026-11-16): ver abajo |
-| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, ícono «oí», miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622. Sigue la dirección «con relieve» en la app, pantalla por pantalla (ver STATUS, ítem 0) |
+| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, ícono «oí», miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622. Siguen el isotipo propio (el «oí» es provisorio) y la dirección «con relieve» en la app, pantalla por pantalla (ver STATUS, ítem 0) |
 | 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta») |
 | 6 | SEO y GEO | ⚪ |
 

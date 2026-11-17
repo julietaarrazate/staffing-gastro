@@ -68,7 +68,8 @@ El Sol de Mayo del final de la landing queda como estaba hasta que Julieta
 confirme con la asesoría legal el uso de símbolos nacionales; no se usó en
 ninguna pieza nueva.
 
-**Queda abierto:** llevar la dirección
+**Queda abierto:** el isotipo propio (Julieta, al ver el «oí»: «hay que
+hacer uno, no ese genérico»; el «oí» queda como provisorio); llevar la dirección
 «con relieve» a la app (prueba en
 https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan, Julieta eligió seguir con
 ella), pantalla por pantalla; que la comanda deje de parecer un ticket; las
