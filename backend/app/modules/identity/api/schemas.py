@@ -25,6 +25,17 @@ class RegisterableRole(str, Enum):
     EMPLOYER = "employer"
 
 
+def _reject_repeated_char(value: str) -> str:
+    """Regla mínima de clave, la misma en registro y reset: un único carácter
+    repetido («aaaaaaaa», «11111111») no cuenta como clave."""
+    if len(set(value)) == 1:
+        raise ValueError(
+            "La contraseña no puede ser un solo carácter repetido. "
+            "Combiná letras y números."
+        )
+    return value
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -33,6 +44,16 @@ class RegisterRequest(BaseModel):
     # El checkbox de términos y privacidad. Tiene que llegar en True: la ruta
     # rechaza el alta sin él y guarda la constancia (`TermsAcceptance`).
     accepted_terms: bool = False
+
+    @field_validator("full_name")
+    @classmethod
+    def _name_not_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Escribí tu nombre")
+        return stripped
+
+    _password_rule = field_validator("password")(_reject_repeated_char)
 
 
 class UpdateMeRequest(BaseModel):
@@ -75,6 +96,7 @@ class ResetPasswordRequest(BaseModel):
     # Misma regla que el registro (`RegisterRequest.password`): no se
     # inventan reglas nuevas para el reset.
     new_password: str = Field(min_length=8, max_length=128)
+    _password_rule = field_validator("new_password")(_reject_repeated_char)
 
 
 class VerifyEmailRequest(BaseModel):
