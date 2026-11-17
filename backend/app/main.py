@@ -112,6 +112,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # El navegador sólo deja leer Retry-After (429) si se expone.
+    expose_headers=["Retry-After"],
 )
 
 # Headers de seguridad en cada respuesta; HSTS sólo en producción (HTTPS).
