@@ -148,6 +148,12 @@ async def test_cannot_review_twice(client: AsyncClient):
         json={"rating": 1},
     )
     assert second.status_code == 409
+    assert "definitiva" in second.json()["detail"]
+    # La primera calificación queda intacta (no se pisa ni se edita).
+    reviews = await client.get(
+        f"/api/v1/reviews/shifts/{shift_id}", headers=employer_headers
+    )
+    assert [r["rating"] for r in reviews.json()] == [5]
 
 
 async def test_cannot_review_before_shift_closed(client: AsyncClient):
