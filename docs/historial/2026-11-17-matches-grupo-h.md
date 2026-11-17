@@ -54,6 +54,23 @@ un turno cerrado leía «esperando respuesta».
   con un anillo (sin animación propia). Si el turno no está en la lista, no
   pasa nada. `notificationHref` ya respetaba el `link` guardado.
 
+- **Revisión de la segunda vuelta.** El ámbar sigue lo que el backend deja
+  hacer: más de 2 h antes (`EN_ROUTE_WINDOW`) ninguno; de 2 h a 30 min
+  (`EARLY_CHECKIN_WINDOW`, `EARLY_CHECKIN_WINDOW_MS` en la página) «Voy en
+  camino» si no está compartiendo; desde 30 min «Llegué». Antes de los 30 min
+  «Llegué» va deshabilitado con «Se habilita 30 min antes del turno.».
+  `?turno=` se lee con `useSearchParams` (página envuelta en `Suspense`, como
+  pide Next para rutas prerenderizadas), así reacciona estando ya en Matches;
+  al procesarlo (con la lista cargada, y no si la carga falló) se saca de la
+  URL con `router.replace`, sin historial. El resaltado tiene estado y
+  temporizador propios (`highlightId`): una recarga de `shifts` no lo corta.
+  El círculo de comparar y el ícono «compartiendo» pasan a `bg-primary-text
+  text-card` (sólido en los dos temas: azul hondo con tilde blanco en claro,
+  celeste con tilde de noche en oscuro; medido en pantalla a 360 px: tilde
+  contra círculo 7,75 y 6,61, círculo contra tarjeta 8,03 y 8,06, contra el
+  banner 4,42 y 3,90) y el círculo se movió a la esquina derecha para no
+  tapar la píldora del comercio.
+
 **Por qué así:** el orden va en SQL y no en Python para que la paginación sea
 coherente; los estados «activos» son los no terminales
 (`TERMINAL_STATUSES`). El subtítulo «Terminados» reusa el estilo de los

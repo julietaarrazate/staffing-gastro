@@ -145,20 +145,37 @@ test("quitar una postulación abierta sigue diciendo «Cancelaste tu postulació
 const esAmbar = (loc: import("@playwright/test").Locator) =>
   loc.evaluate((el) => el.className.split(/\s+/).includes("bg-primary"));
 
-test("turno confirmado: un solo botón ámbar por tarjeta, el que corresponde ahora", async ({ page }) => {
+test("turno confirmado: el ámbar va en la acción que se puede usar ahora (tres tramos)", async ({ page, context }) => {
   await page.setViewportSize({ width: 360, height: 740 });
-  const pronto = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: -34.58, longitude: -58.42 });
+  const en = (min: number) => new Date(Date.now() + min * 60 * 1000).toISOString();
   await abrir(page, [], [
-    shift({ id: "pronto", status: "confirmado", start_at: pronto, company_name: "Café Belgrano", worker_profile_id: "p" }),
     shift({ id: "lejos", status: "confirmado", start_at: isoEnDias(2), company_name: "Bar Demo", worker_profile_id: "p" }),
+    shift({ id: "camino", status: "confirmado", start_at: en(60), company_name: "Café Belgrano", worker_profile_id: "p" }),
+    shift({ id: "ahora", status: "confirmado", start_at: en(10), company_name: "Bodegón Sur", worker_profile_id: "p" }),
   ]);
-  const tarjeta = (id: string) => page.locator(`#turno-${id}`);
-  // Falta 1 h: ya se puede avisar que va en camino, esa es la acción de ahora.
-  expect(await esAmbar(tarjeta("pronto").getByRole("button", { name: "Voy en camino" }))).toBe(true);
-  expect(await esAmbar(tarjeta("pronto").getByRole("button", { name: "Llegué" }))).toBe(false);
-  // Faltan 2 días: «Voy en camino» todavía no corresponde.
-  expect(await esAmbar(tarjeta("lejos").getByRole("button", { name: "Voy en camino" }))).toBe(false);
-  expect(await esAmbar(tarjeta("lejos").getByRole("button", { name: "Llegué" }))).toBe(true);
+  await page.route("**/api/v1/shifts/*/en-route", (r) => r.fulfill(json({})));
+  const boton = (id: string, name: string) => page.locator(`#turno-${id}`).getByRole("button", { name });
+  // Más de 2 h antes: ninguno en ámbar y «Llegué» deshabilitado con su pista.
+  expect(await esAmbar(boton("lejos", "Voy en camino"))).toBe(false);
+  expect(await esAmbar(boton("lejos", "Llegué"))).toBe(false);
+  await expect(boton("lejos", "Llegué")).toBeDisabled();
+  await expect(page.locator("#turno-lejos").getByText("Se habilita 30 min antes del turno.")).toBeVisible();
+  // De 2 h a 30 min: «Voy en camino» ámbar; «Llegué» sigue deshabilitado.
+  expect(await esAmbar(boton("camino", "Voy en camino"))).toBe(true);
+  expect(await esAmbar(boton("camino", "Llegué"))).toBe(false);
+  await expect(boton("camino", "Llegué")).toBeDisabled();
+  // Ya compartiendo: ninguno en ámbar.
+  await boton("camino", "Voy en camino").click();
+  await expect(boton("camino", "Dejar de compartir")).toBeVisible();
+  expect(await esAmbar(boton("camino", "Dejar de compartir"))).toBe(false);
+  expect(await esAmbar(boton("camino", "Llegué"))).toBe(false);
+  // Desde 30 min antes: «Llegué» ámbar y habilitado, sin pista.
+  expect(await esAmbar(boton("ahora", "Llegué"))).toBe(true);
+  await expect(boton("ahora", "Llegué")).toBeEnabled();
+  expect(await esAmbar(boton("ahora", "Voy en camino"))).toBe(false);
+  await expect(page.locator("#turno-ahora").getByText("Se habilita 30 min antes del turno.")).toHaveCount(0);
 });
 
 test("comparar: el círculo de selección usa el color de marca, no el ámbar", async ({ page }) => {
@@ -183,6 +200,27 @@ test("?turno= abre Asignados, baja a esa tarjeta y la resalta", async ({ page })
   const tarjeta = page.locator("#turno-turno-7");
   await expect(tarjeta).toHaveClass(/ring-primary-text/);
   await expect(tarjeta).toBeInViewport();
+  // El parámetro se saca de la URL: una recarga no vuelve a saltar.
+  await expect(page).toHaveURL(/\/my-shifts$/);
+  await expect(tarjeta).not.toHaveClass(/ring-primary-text/, { timeout: 6000 });
+});
+
+test("?turno= estando ya en Matches (aviso tocado desde la campanita) salta otra vez", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  const muchos = Array.from({ length: 8 }, (_, i) =>
+    shift({ id: `turno-${i}`, status: "confirmado", start_at: isoEnDias(2 + i), worker_profile_id: "p", company_name: `Local ${i}` }),
+  );
+  await abrir(page, [], muchos, [], "/my-shifts?turno=turno-7");
+  await expect(page.locator("#turno-turno-7")).toHaveClass(/ring-primary-text/);
+  await expect(page).toHaveURL(/\/my-shifts$/);
+  // Mismo recorrido que la navegación de la campanita: cambia sólo la query.
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    window.history.pushState(null, "", "/my-shifts?turno=turno-6");
+  });
+  await expect(page.locator("#turno-turno-6")).toHaveClass(/ring-primary-text/);
+  await expect(page.locator("#turno-turno-6")).toBeInViewport();
+  await expect(page).toHaveURL(/\/my-shifts$/);
 });
 
 test("?turno= con un turno que no está en la lista no pasa nada", async ({ page }) => {

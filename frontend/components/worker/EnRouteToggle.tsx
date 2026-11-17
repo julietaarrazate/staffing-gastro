@@ -40,7 +40,7 @@ export default function EnRouteToggle({
         <span
           aria-hidden
           className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-            sharing ? "bg-secondary text-on-brand" : "bg-card text-ink/45"
+            sharing ? "bg-primary-text text-card" : "bg-card text-ink/45"
           }`}
         >
           <MapPinIcon size={15} />

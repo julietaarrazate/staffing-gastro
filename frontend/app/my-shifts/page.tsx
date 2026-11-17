@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
@@ -59,6 +60,9 @@ const APPLICATION_LABELS: Record<string, string> = {
 // abierto (U088). Si el turno se cerró sin llegar a nadie, decirlo.
 // Ventana en que el backend acepta «va en camino» (EN_ROUTE_WINDOW).
 const EN_ROUTE_WINDOW_MS = 2 * 60 * 60 * 1000;
+// Desde cuándo el backend deja marcar la llegada: espeja EARLY_CHECKIN_WINDOW
+// (backend/app/modules/shift/domain/entities.py).
+const EARLY_CHECKIN_WINDOW_MS = 30 * 60 * 1000;
 const OPEN_SHIFT_STATUSES = ["publicado", "buscando_personal"];
 
 function closedShiftLabel(status: string): string {
@@ -86,6 +90,15 @@ function confirmCopy(path: "reject" | "worker-cancel" | "check-out"): string {
 }
 
 export default function MatchesPage() {
+  // `useSearchParams` pide Suspense en las rutas prerenderizadas.
+  return (
+    <Suspense fallback={<div className="app-container px-4 pb-10 pt-6" />}>
+      <MatchesContent />
+    </Suspense>
+  );
+}
+
+function MatchesContent() {
   const { token } = useRequireAuth({ roles: ["worker"] });
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("asignados");
@@ -106,7 +119,11 @@ export default function MatchesPage() {
   const [sharingIds, setSharingIds] = useState<Set<string>>(() => new Set());
   // Turno resaltado un momento al abrir con `?turno=` (recordatorios).
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const turnoParamHandled = useRef(false);
+  const turnoHandledRef = useRef<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const turnoParam = searchParams.get("turno");
   const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
@@ -196,34 +213,41 @@ export default function MatchesPage() {
     load();
   }, [load]);
 
-  // Recordatorios (`/my-shifts?turno=<id>`): abre «Asignados», baja a esa
-  // tarjeta y la resalta un momento. Si el turno no está en la lista, nada.
-  // Una sola vez: una recarga posterior no vuelve a mover la pantalla.
+  // Recordatorios (`/my-shifts?turno=<id>`): con la lista ya cargada, abre
+  // «Asignados» y resalta esa tarjeta (si el turno no está, no pasa nada).
+  // Después saca el parámetro de la URL (sin sumar historial): una recarga no
+  // vuelve a saltar y el mismo aviso funciona otra vez. Si la carga falló no
+  // se da por procesado: se reintenta cuando la lista llegue.
   useEffect(() => {
-    if (loading || turnoParamHandled.current) return;
-    turnoParamHandled.current = true;
-    let turno: string | null = null;
-    try {
-      turno = new URLSearchParams(window.location.search).get("turno");
-    } catch {
+    if (!turnoParam) {
+      turnoHandledRef.current = null;
       return;
     }
-    if (!turno || !shifts.some((s) => s.id === turno)) return;
-    setTab("asignados");
-    const id = turno;
-    const raf = requestAnimationFrame(() => {
-      const el = document.getElementById(`turno-${id}`);
-      if (!el) return;
+    if (loading || error || turnoHandledRef.current === turnoParam) return;
+    turnoHandledRef.current = turnoParam;
+    if (shifts.some((s) => s.id === turnoParam)) {
+      setTab("asignados");
+      setHighlightId(turnoParam);
+    }
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete("turno");
+    const qs = rest.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [turnoParam, loading, error, shifts, router, pathname, searchParams]);
+
+  // Resaltado: baja a la tarjeta (ya dibujada en «Asignados») y la deja
+  // marcada 3,5 s. Su temporizador sólo se corta al cambiar de resaltado o al
+  // salir: una recarga silenciosa de `shifts` no lo toca.
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = document.getElementById(`turno-${highlightId}`);
+    if (el) {
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
-      setHighlightId(id);
-    });
+    }
     const t = setTimeout(() => setHighlightId(null), 3500);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(t);
-    };
-  }, [loading, shifts]);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   // Al día con los avisos (G1, U014): el comercio cancela y «Llegué» deja de
   // ofrecerse sin tener que recargar. En pausa con una acción en curso o un
@@ -387,15 +411,18 @@ export default function MatchesPage() {
     }
   }
 
-  // Un solo ámbar por tarjeta: en un turno confirmado, «Voy en camino» es la
-  // acción de ahora desde 2 h antes del inicio (la ventana del backend) y
-  // mientras no esté compartiendo; en cualquier otro momento lo es «Llegué».
-  function enRouteIsNext(shift: Shift) {
-    if (sharingIds.has(shift.id)) return false;
-    return now.getTime() >= new Date(shift.start_at).getTime() - EN_ROUTE_WINDOW_MS;
+  // Un solo ámbar por tarjeta, el de la acción que se puede usar ahora (el
+  // backend sólo acepta «va en camino» desde 2 h antes y la llegada desde
+  // 30 min antes): más de 2 h, ninguno; de 2 h a 30 min, «Voy en camino» (si
+  // todavía no comparte); desde 30 min, «Llegué».
+  function arrivalPhase(shift: Shift): "lejos" | "en_camino" | "llegada" {
+    const faltan = new Date(shift.start_at).getTime() - now.getTime();
+    if (faltan <= EARLY_CHECKIN_WINDOW_MS) return "llegada";
+    if (faltan <= EN_ROUTE_WINDOW_MS) return "en_camino";
+    return "lejos";
   }
 
-  function setEnRouteSharing(shiftId: string, on: boolean) {
+  const setEnRouteSharing = useCallback((shiftId: string, on: boolean) => {
     setSharingIds((prev) => {
       if (prev.has(shiftId) === on) return prev;
       const next = new Set(prev);
@@ -403,7 +430,7 @@ export default function MatchesPage() {
       else next.delete(shiftId);
       return next;
     });
-  }
+  }, []);
 
   function renderAssigned(shift: Shift) {
     return (
@@ -456,11 +483,11 @@ export default function MatchesPage() {
                         "Llegué" marca la ubicación real directo. */}
                     <Button
                       size="sm"
-                      variant={enRouteIsNext(shift) ? "surface" : "primary"}
+                      variant={arrivalPhase(shift) === "llegada" ? "primary" : "surface"}
                       onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
                       leftIcon={<MapPinIcon size={16} />}
                       loading={busy === `${shift.id}:check-in`}
-                      disabled={busy !== null || tapGuard.locked}
+                      disabled={busy !== null || tapGuard.locked || arrivalPhase(shift) !== "llegada"}
                     >
                       Llegué
                     </Button>
@@ -476,6 +503,9 @@ export default function MatchesPage() {
                     </Button>
                   </div>
                 )}
+                {shift.status === "confirmado" && arrivalPhase(shift) !== "llegada" && (
+                  <p className="mt-2 text-xs text-ink/60">Se habilita 30 min antes del turno.</p>
+                )}
                 {/* "Va en camino": debajo de "Llegué" y sólo con el turno
                     confirmado. El backend además exige estar dentro de las 2h
                     previas al inicio, así que en un turno de mañana el botón
@@ -484,7 +514,7 @@ export default function MatchesPage() {
                   <EnRouteToggle
                     shiftId={shift.id}
                     token={token}
-                    prominent={enRouteIsNext(shift)}
+                    prominent={arrivalPhase(shift) === "en_camino"}
                     onSharingChange={(on) => setEnRouteSharing(shift.id, on)}
                   />
                 )}
@@ -732,8 +762,8 @@ export default function MatchesPage() {
                           disabled={!selected && selectedForCompare.length >= MAX_COMPARE}
                           aria-pressed={selected}
                           aria-label={selected ? "Sacar de la comparación" : "Sumar a la comparación"}
-                          className={`absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-card transition disabled:opacity-40 ${
-                            selected ? "bg-secondary text-on-brand" : "bg-card/95 text-ink/40 shadow-sm"
+                          className={`absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-card transition disabled:opacity-40 ${
+                            selected ? "bg-primary-text text-card" : "bg-card/95 text-ink/40 shadow-sm"
                           }`}
                         >
                           {selected ? <CheckIcon size={14} /> : null}
