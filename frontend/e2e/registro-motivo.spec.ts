@@ -61,5 +61,7 @@ test("sin sesión, el botón sigue siendo Ingresar y va a /login", async ({ page
     route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   );
   await page.goto("/verificar-email?token=abc");
-  await expect(page.getByRole("link", { name: "Ingresar" })).toHaveAttribute("href", "/login");
+  const boton = page.getByRole("button", { name: "Ingresar", exact: true });
+  await expect(boton).toBeVisible();
+  await expect(page.locator("a[href='/login']").filter({ has: boton })).toHaveCount(1);
 });

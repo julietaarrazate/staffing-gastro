@@ -25,6 +25,17 @@ class RegisterableRole(str, Enum):
     EMPLOYER = "employer"
 
 
+def _reject_repeated_char(value: str) -> str:
+    """Regla mínima de clave, la misma en registro y reset: un único carácter
+    repetido («aaaaaaaa», «11111111») no cuenta como clave."""
+    if len(set(value)) == 1:
+        raise ValueError(
+            "La contraseña no puede ser un solo carácter repetido. "
+            "Combiná letras y números."
+        )
+    return value
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -42,17 +53,7 @@ class RegisterRequest(BaseModel):
             raise ValueError("Escribí tu nombre")
         return stripped
 
-    @field_validator("password")
-    @classmethod
-    def _password_not_one_char(cls, value: str) -> str:
-        # Sólo la regla mínima: una clave de un único carácter repetido
-        # («aaaaaaaa», «11111111») no cuenta como clave.
-        if len(set(value)) == 1:
-            raise ValueError(
-                "La contraseña no puede ser un solo carácter repetido. "
-                "Combiná letras y números."
-            )
-        return value
+    _password_rule = field_validator("password")(_reject_repeated_char)
 
 
 class UpdateMeRequest(BaseModel):
@@ -95,6 +96,7 @@ class ResetPasswordRequest(BaseModel):
     # Misma regla que el registro (`RegisterRequest.password`): no se
     # inventan reglas nuevas para el reset.
     new_password: str = Field(min_length=8, max_length=128)
+    _password_rule = field_validator("new_password")(_reject_repeated_char)
 
 
 class VerifyEmailRequest(BaseModel):

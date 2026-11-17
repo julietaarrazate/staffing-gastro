@@ -237,3 +237,12 @@ async def test_reset_password_revokes_active_refresh_sessions(
     # endpoint no la toca).
     refreshed = await client.post("/api/v1/auth/refresh")
     assert refreshed.status_code == 401
+
+
+async def test_reset_rechaza_clave_de_un_solo_caracter_repetido(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "token-de-prueba", "new_password": "aaaaaaaa"},
+    )
+    assert response.status_code == 422
+    assert "un solo carácter repetido" in response.text

@@ -75,8 +75,6 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       const { signedIn } = await register(email, password, fullName.trim(), role);
-      // La cuenta ya existe y el mail de confirmación salió: /bienvenida lo avisa.
-      guardarAvisoMail();
       if (role === "employer" && planElegido) guardarPlanElegido(planElegido);
       if (!signedIn) {
         // La cuenta se creó pero el ingreso automático fue frenado: sin cartel
@@ -85,6 +83,8 @@ function RegisterForm() {
         router.replace(loginHref({ aviso: "cuenta-creada", next }));
         return;
       }
+      // Ingresó: /bienvenida avisa (una vez) que salió el mail de confirmación.
+      guardarAvisoMail();
       // `replace` para no volver a /register al ir "atrás". Los dos roles pasan
       // por el onboarding de `/bienvenida` (zona+oficio para el trabajador,
       // nombre+ubicación para el comercio) — ese componente decide qué mostrar
