@@ -528,7 +528,13 @@ function EmployerOnboarding({ next }: { next: string | null }) {
         if (!(err instanceof ApiError) || err.status !== 409) throw err;
         if (user?.email === GUEST_EMPLOYER_EMAIL) {
           // Cuenta invitada compartida: cada ingreso con PIN arranca de cero.
-          await api.put<CompanyProfile>("/companies/me/profile", payload, token);
+          // Rubro, descripción, capacidad y horarios en null explícito: la
+          // edición es parcial, y acá sí se quiere vaciarlos.
+          await api.put<CompanyProfile>(
+            "/companies/me/profile",
+            { ...payload, category: null, description: null, capacity: null, opening_hours: null },
+            token
+          );
         } else if (!soloSiNoExiste) {
           const actual = await api.get<CompanyProfile>("/companies/me/profile", token);
           await api.put<CompanyProfile>(

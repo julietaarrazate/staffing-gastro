@@ -54,13 +54,17 @@ def _apply(profile: CompanyProfile, data: CompanyProfileData) -> None:
     """Vuelca los datos editables sobre la entidad (sin tocar métricas)."""
     profile.name = data.name
     profile.logo_url = data.logo_url
-    profile.category = data.category
-    profile.description = data.description
+    if data.category is not UNSET:
+        profile.category = data.category
+    if data.description is not UNSET:
+        profile.description = data.description
     profile.address = data.address
     profile.city = data.city
     profile.latitude = data.latitude
     profile.longitude = data.longitude
-    profile.capacity = data.capacity
-    profile.opening_hours = data.opening_hours
+    if data.capacity is not UNSET:
+        profile.capacity = data.capacity
+    if data.opening_hours is not UNSET:
+        profile.opening_hours = data.opening_hours
     if data.cover_photo_url is not UNSET:
         profile.cover_photo_url = data.cover_photo_url

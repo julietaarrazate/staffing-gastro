@@ -14,8 +14,9 @@ class CompanyProfileInput(BaseModel):
 
     name: str = Field(min_length=1, max_length=255)
     logo_url: HttpsUrl | None = None
-    # Opcional y "sólo si viene": omitirlo NO borra la foto (ver
-    # `CompanyProfileData.cover_photo_url`); mandar null sí la saca.
+    # Actualización parcial: `cover_photo_url`, `category`, `description`,
+    # `capacity` y `opening_hours` son «sólo si vienen»: omitirlos NO los borra
+    # (ver `CompanyProfileData`); mandarlos en null sí los vacía.
     cover_photo_url: HttpsUrl | None = None
     category: CompanyCategory | None = None
     description: str | None = Field(default=None, max_length=1000)
