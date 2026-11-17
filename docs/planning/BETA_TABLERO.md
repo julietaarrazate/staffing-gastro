@@ -470,15 +470,27 @@ turno no se recupera después.
 |---|---|---|---|
 | Todos | Los conteos de **usuarios** excluyen las cuentas de prueba y las invitadas (`AdminService.get_stats`) | M1 · Las métricas de **turnos y comercios** no las excluyen: `count_period_stats`, `list_recently_filled`, `count_publication_stats` (`shift/infrastructure/repositories.py`) y `count_engagement_stats` (`company/`). Un turno publicado con «Ver como» o con la cuenta invitada del PIN cuenta como real. Excluirlas en las cuatro consultas | ⚪ |
 | Locales activos | «Comercios activos» = con al menos un turno publicado **en toda la historia**; «Comercios» = todos los que tienen perfil | M2 · Comercios distintos que publicaron en los últimos 7/30 días (y cuántos con al menos un turno cubierto), con el período anterior al lado, en `period-metrics` | ⚪ |
-| Turnos cubiertos | Sí, por 7/30 días (`period-metrics`) | M3 · «Cubierto» hoy es `first_assigned_at`: **el comercio eligió a alguien**, no que la persona confirmó ni que fue. Un turno rechazado o con ausencia queda contado como cubierto. Guardar cuándo confirma la persona (`Shift.confirm` no guarda la hora) y mostrar cubierto = confirmado; dejar «elegido» como dato aparte | ⚪ |
-| Tiempo de publicar a cubrir | Promedio y % en menos de 10 min por 7/30 días, medido de `published_at` a `first_assigned_at` | M4 · (a) medirlo hasta la confirmación (depende de M3); (b) separar los turnos para hoy o urgentes de los publicados con días de anticipación: uno publicado el lunes para el sábado no puede «cubrirse en 10 minutos» y mezclarlos ensucia la promesa; (c) mostrar la mediana además del promedio, que un solo turno lento mueve mucho | ⚪ |
+| Turnos cubiertos | Sí, por 7/30 días (`period-metrics`) | M3 · «Cubierto» hoy es `first_assigned_at`: **el comercio eligió a alguien**, no que la persona confirmó ni que fue. Un turno rechazado o con ausencia queda contado como cubierto. Guardar cuándo confirma la persona (`Shift.confirm` no guarda la hora) y contar como cubierto el turno **confirmado**. Sumar **cumplido** = hubo check-in en el local (`Shift.check_in`, ya con ubicación), mostrado como % de los cubiertos. «Elegido por el comercio» queda como dato interno del embudo (ver la definición abajo) | ⚪ |
+| Tiempo de publicar a cubrir | Promedio y % en menos de 10 min por 7/30 días, medido de `published_at` a `first_assigned_at` | M4 · (a) medirlo de `published_at` a la **primera confirmación** (depende de M3); (b) separar los turnos para hoy o urgentes de los publicados con días de anticipación: uno publicado el lunes para el sábado no puede «cubrirse en 10 minutos» y mezclarlos ensucia la promesa; (c) mostrar la mediana además del promedio, que un solo turno lento mueve mucho | ⚪ |
 | Locales que repiten | «Comercios que repiten» = 2 o más turnos **publicados** / 1 o más, sin período (`events_published`) | M5 · Repetir después de que funcionó: de los comercios con un turno cubierto, cuántos publican otro dentro de los 30 días. Por período | ⚪ |
 | Locales que pagan o se comprometen | «Ingreso mensual recurrente» muestra 0 con el cobro apagado y aparte «Potencial si se cobrara». Con el cobro apagado toda suscripción se crea `activa` (`SubscriptionService`, línea 115), así que el potencial cuenta a todos los comercios | M6 · (a) El plan que el comercio elige en la landing vive sólo en el navegador (`lib/plan-elegido.ts`) y se borra al llegar a «Mi plan»: guardarlo en el servidor al darse de alta. (b) El compromiso de pago («precio fundador») no se registra en ningún lado: sumar un estado en Crecimiento (`lead`, hoy nuevo → … → alta) o un campo en la suscripción. (c) Al prender Mercado Pago, contar como «pagan» sólo los comercios con un pago aprobado | ⚪ |
 | Para el deck | `period-metrics` sólo compara 7/30 días contra el período anterior; el ingreso es una foto sin historia | M7 · Una serie semanal desde el día 1 de la beta (o un CSV desde el admin) para la lámina de tracción. Puede esperar a después de M1-M6 | ⚪ |
 
-M3 y M4 tocan la promesa central («cubrir un turno en menos de 10 minutos»):
-qué cuenta como cubierto es una regla del producto, así que la definición la
-confirma Julieta antes de programarla.
+**Qué cuenta como cubierto (Julieta, 2026-11-17).** Un turno no está cubierto
+porque el comercio eligió a alguien: falta que la otra parte acepte y vaya.
+Se mide en dos pasos:
+
+1. **Cubierto = la persona confirmó.** El tiempo de la promesa («menos de 10
+   minutos») va de que se publica a la primera confirmación. No se mide
+   hasta la llegada porque depende de la hora del turno (uno publicado a las
+   18 para las 21 no puede «llegar» en 10 minutos).
+2. **Cumplido = hizo check-in en el local.** Es la prueba de que el turno se
+   hizo; se muestra como % de los cubiertos.
+
+«Va en camino» no sirve de criterio porque es opcional (lo prende la
+persona). «Elegido por el comercio» queda como dato interno, para ver dónde
+se traba el embudo (elegir rápido y confirmar lento es un problema del lado
+de quien trabaja).
 
 ## Cómo se trabaja (acordado con Julieta el 2026-11-13)
 

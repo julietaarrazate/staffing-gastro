@@ -17,5 +17,9 @@ confirmó; y el potencial de cobro cuenta a todos los comercios porque, con el
 cobro apagado, toda suscripción nace activa. El compromiso de pago y el plan
 elegido en la landing no se guardan en ningún lado.
 
-**Queda abierto:** M1-M7 en el tablero. M3 y M4 (qué cuenta como «cubierto»)
-esperan la definición de Julieta.
+**Decisión de Julieta (2026-11-17):** cubierto = la persona confirmó (no que
+el comercio eligió), y se suma «cumplido» = hubo check-in en el local. La
+promesa de los 10 minutos se mide hasta la primera confirmación. Detalle en
+el tablero.
+
+**Queda abierto:** M1-M7 en el tablero, para antes de abrir la beta.
