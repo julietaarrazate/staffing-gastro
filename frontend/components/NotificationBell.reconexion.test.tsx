@@ -15,7 +15,7 @@ vi.mock("@/lib/useWebSocket", () => ({
 }));
 const emit = vi.fn();
 vi.mock("@/lib/live-refresh", () => ({ emitLiveRefresh: () => emit() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/feed" }));
 
 beforeEach(() => {
   vi.useFakeTimers();
