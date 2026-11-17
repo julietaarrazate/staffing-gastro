@@ -26,7 +26,11 @@ function NotificationRowSkeleton() {
 }
 
 export default function NotificationBell() {
-  const { token } = useAuth();
+  const { token: sessionToken, twoFactorSetupPending } = useAuth();
+  // Con el alta de 2FA del admin pendiente (ADR-0023) el backend rechaza los
+  // pedidos de la campanita: sin token no carga ni abre el socket y no se
+  // dibuja (U133).
+  const token = twoFactorSetupPending ? null : sessionToken;
   const router = useRouter();
   const pathname = usePathname();
   const [notifications, setNotifications] = useState<Notification[]>([]);

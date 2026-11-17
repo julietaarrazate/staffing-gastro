@@ -74,7 +74,7 @@ function useLoadedList<T>(path: string, token: string | null | undefined) {
 }
 
 function ShiftCandidatesContent() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const toast = useToast();
   const params = useParams<{ id: string }>();
