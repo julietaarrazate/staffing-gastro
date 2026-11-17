@@ -414,7 +414,7 @@ U121, U087), 2 parciales (U130, U133), 10 esperan una decisión de Julieta y
 2 quedan fuera (U141 va con el tope del plan, apagado en la beta; U102 se
 cierra al apagar el ingreso de invitado, decisión 5).
 
-**Arreglos, un PR por grupo** (tandas 1 y 2 en `main` el 2026-11-17, con
+**Arreglos, un PR por grupo** (tandas 1, 2 y 3 en `main` el 2026-11-17, con
 revisión independiente de cada PR; el resto ⚪ sin empezar):
 
 | Grupo | Hallazgos | Tanda | Estado |
@@ -429,8 +429,8 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 | D · Mensajes de error y de límites | U113, U144 | 2 | ✅ #606 |
 | L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 | ✅ #604 |
 | M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 | ✅ #605 |
-| H · Matches del trabajador | U066, U068, U088 | 3 | ⚪ |
-| N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ⚪ |
+| H · Matches del trabajador | U066, U068, U088 | 3 | ✅ #609 |
+| N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ✅ #608 |
 | E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) | ⚪ |
 
 **Lo que dejó abierto la tanda 1** (⚪):
@@ -444,8 +444,6 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 - La «Garantía Oído» sigue visible en Candidatos de un turno cerrado (#598).
 - Inputs a 16 px en celular (#600, para que iOS no haga zoom al enfocar):
   mirar en un iPhone real que ningún formulario quede apretado.
-- U068 (visual, grupo H) se confirma renderizado en claro y oscuro en la
-  tanda 3.
 
 **Lo que dejó abierto la tanda 2** (⚪):
 
@@ -464,6 +462,22 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
   Un registro propio de ausencias lo resolvería; hoy no hace falta.
 - «Turnos en vivo» ordena urgentes, escalados y lo más reciente primero; con
   más de 200, lo que queda afuera es lo más viejo (y el aviso lo dice).
+
+**Lo que dejó abierto la tanda 3** (⚪):
+
+- Matches (#609): «Quitar de la lista» en una postulación a un turno cerrado
+  usa el retiro de siempre, y el aviso dice «Cancelaste tu postulación»
+  (impreciso para un turno que ya se cerró; va bien con el grupo E). Los
+  recordatorios de llegada y de salida llevan a Matches, sin ancla al turno.
+- Un solo ámbar por pantalla, todavía no en Matches: en modo comparar
+  conviven el círculo ámbar de selección y cada «Postularme», y en
+  «Asignados» «Llegué», «Voy en camino» y el paso actual (ya estaba así).
+- A 360 px la barra de abajo del trabajador (seis pestañas) corta «Perfil»
+  en el borde derecho (ya estaba así).
+- Admin con el alta de 2FA pendiente (#608): la campanita hace un único
+  `GET /notifications` en la primera carga, antes de que el primer 403 marque
+  el alta pendiente; cortarlo pide tocar `auth-context.tsx`. `/feed` y
+  `/search` siguen sin guarda de rol (no dan el síntoma de U098).
 
 Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
