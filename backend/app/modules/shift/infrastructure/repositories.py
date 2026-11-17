@@ -137,7 +137,9 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     # La marca del recordatorio de salida la escribe el scheduler sin subir la
     # versión (`mark_departure_reminder_sent`, U103), así que una entidad leída
     # antes llega con None: no la pisamos mientras siga asignada la misma
-    # persona. Si cambió o se desasignó, el reseteo del dominio sí va.
+    # persona. Si cambió o se desasignó, el reseteo del dominio sí va. Tras
+    # un check-in o una cancelación (misma persona) la marca queda: el turno
+    # ya no es CONFIRMADO y el scheduler no lo vuelve a mirar.
     if not (
         shift.departure_reminder_sent_at is None
         and model.departure_reminder_sent_at is not None
@@ -205,17 +207,29 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         return _to_entity(model)
 
     async def mark_departure_reminder_sent(
-        self, shift_id: UUID, sent_at: datetime
-    ) -> None:
+        self, shift_id: UUID, worker_profile_id: UUID, sent_at: datetime
+    ) -> bool:
         # UPDATE masivo (Core): no pasa por `version_id_col`, así que no sube
-        # la versión. ADR-0016, consecuencias: no genera conflictos falsos.
-        await self._session.execute(
+        # la versión (ADR-0016: no genera conflictos falsos). Como la versión
+        # ya no corta la carrera con el scheduler, el WHERE la corta: sólo se
+        # marca si el turno sigue asignado/confirmado a la misma persona, sin marca
+        # previa y sin «Va en camino». Dos pasadas a la vez: una sola gana.
+        result = await self._session.execute(
             update(ShiftModel)
-            .where(ShiftModel.id == shift_id)
+            .where(
+                ShiftModel.id == shift_id,
+                ShiftModel.worker_profile_id == worker_profile_id,
+                ShiftModel.status.in_(
+                    [ShiftStatus.ASIGNADO.value, ShiftStatus.CONFIRMADO.value]
+                ),
+                ShiftModel.departure_reminder_sent_at.is_(None),
+                ShiftModel.en_route_at.is_(None),
+            )
             .values(departure_reminder_sent_at=sent_at)
             .execution_options(synchronize_session=False)
         )
         await self._session.commit()
+        return result.rowcount == 1
 
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         # `populate_existing`: siempre lo que hay en la base, no la copia del
