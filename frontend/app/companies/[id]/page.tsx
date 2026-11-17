@@ -100,7 +100,7 @@ export default function PublicCompanyProfilePage() {
         className={`overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line ${hasCoords ? "lg:col-span-2" : ""}`}
       >
         <div
-          className={`relative w-full bg-gradient-to-br from-primary to-primary-strong ${hasImage ? "h-56" : "flex min-h-56 flex-col"}`}
+          className={`relative w-full bg-gradient-to-br from-primary to-primary-strong ${hasImage ? "h-56" : "flex min-h-56 flex-col justify-end"}`}
         >
           {/* Foto del local primero; el logo estirado queda de respaldo. */}
           {hasImage ? (
@@ -112,14 +112,16 @@ export default function PublicCompanyProfilePage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            // Sin foto: la inicial arriba y el nombre debajo, en el flujo (no encima),
+            // Sin foto: la inicial y el nombre juntos abajo, en el flujo (no encima),
             // así un nombre de varios renglones no la tapa y la tarjeta crece.
             <div className="flex w-full items-center justify-center pt-5 text-5xl font-bold text-night/85">
               {profile.name.charAt(0).toUpperCase()}
             </div>
           )}
+          {/* Letra blanca sobre el velo negro (no sobre la marca): `on-brand` es tinta en
+              claro y sobre el ámbar sin velo no alcanza en oscuro; mismo criterio que ShiftCard. */}
           <div
-            className={`inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 ${hasImage ? "absolute" : "mt-auto"}`}
+            className={`inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 ${hasImage ? "absolute" : ""}`}
           >
             <h1 className="font-display text-h1 font-semibold text-white drop-shadow-sm">{profile.name}</h1>
             {profile.city && (

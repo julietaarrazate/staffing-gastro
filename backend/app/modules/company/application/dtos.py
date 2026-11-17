@@ -31,8 +31,8 @@ class CompanyProfileData:
     longitude: float | None = None
     capacity: int | None | _Unset = UNSET
     opening_hours: str | None | _Unset = UNSET
-    # UNSET por default: la edición del perfil es de reemplazo total, y hay
-    # escritores que no conocen este campo (el onboarding de /bienvenida, la
+    # UNSET por default: la edición del perfil es parcial (lo que el pedido no
+    # trae no se toca), y hay escritores que no conocen este campo (el onboarding de /bienvenida, la
     # siembra de fotos, y cualquier versión vieja de la PWA cacheada en un
     # celular). Si lo reemplazaran con None, borrarían la foto del local sin
     # que nadie lo pidiera. Sólo se toca cuando el pedido lo trae — incluido
