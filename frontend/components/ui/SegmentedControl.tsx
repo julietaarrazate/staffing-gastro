@@ -50,7 +50,7 @@ export default function SegmentedControl<T extends string>({
             // Debajo de `sm`, 13 px y menos relleno (como el control de iOS):
             // con 14 px las tres pestañas de Matches entraban en 360 px con
             // la fuente local y se pasaban 4 px con la de CI (#609).
-            className="relative min-w-0 flex-auto whitespace-nowrap rounded-full px-1.5 py-2 sm:px-3 text-[13px] sm:text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="relative min-w-0 flex-auto whitespace-nowrap rounded-full px-1.5 py-2 sm:px-3 text-caption sm:text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {active && (
               <motion.span
