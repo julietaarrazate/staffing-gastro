@@ -34,7 +34,7 @@ def _phone_digits(phone: str) -> int:
 @dataclass(frozen=True)
 class SurveyResponse:
     """Una respuesta a la encuesta pública. No guarda IP ni cuenta: sólo lo
-    que la persona contestó y, si quiso, cómo escribirle (ADR-0024)."""
+    que la persona contestó y, si quiso, cómo escribirle (ADR-0025)."""
 
     id: UUID
     local_kind: LocalKind

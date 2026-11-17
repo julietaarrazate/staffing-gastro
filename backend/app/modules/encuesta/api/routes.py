@@ -2,7 +2,7 @@
 
 `POST /encuesta` es público (sin cuenta, para compartir por WhatsApp); el
 resto es sólo admin. Sin IP guardada: la IP sólo cuenta contra el límite de
-pedidos, en memoria (ADR-0024).
+pedidos, en memoria (ADR-0025).
 """
 
 from dataclasses import asdict

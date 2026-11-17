@@ -1,4 +1,4 @@
-"""encuesta para locales (ADR-0024)
+"""encuesta para locales (ADR-0025)
 
 - `survey_responses`: una fila por respuesta a la encuesta pública. Sin IP.
   El contacto (`contact_name`, `business_name`, `phone`, `email`) es opcional,

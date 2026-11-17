@@ -1,4 +1,4 @@
-"""Retención de la encuesta (ADR-0024): a los 12 meses se borra el contacto.
+"""Retención de la encuesta (ADR-0025): a los 12 meses se borra el contacto.
 
 Un chequeo del scheduler en proceso, inyectado desde `app/main.py` por
 `extra_checks` (el scheduler no importa la infraestructura de otros módulos).

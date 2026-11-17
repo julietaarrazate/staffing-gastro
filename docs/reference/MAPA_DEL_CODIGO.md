@@ -59,13 +59,14 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/support`, `/support/[id]` | Tickets de soporte |
 | `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`). Se ve mientras el turno esté abierto a postulaciones (`lib/turno-publico.ts` lee `GET /shifts/{id}/public`: 200, 410 o 404). Si ya se tomó, se canceló o pasó la hora: «Este turno ya no está disponible» (`components/TurnoNoDisponible.tsx`, con salida según la sesión; la muestra `app/turno/[id]/not-found.tsx`). Si no existe: la «no encontrada» global (lo corta `app/turno/[id]/layout.tsx`) |
 | cualquier dirección que no existe | «No encontramos esa página», con «Volver al inicio» (`app/not-found.tsx`). También la usa todo `notFound()` sin una pantalla propia más cerca |
+| `/encuesta` | Encuesta pública para locales (~3 min, se comparte por WhatsApp con `?ref=` para saber qué grupo la trajo): una pregunta por pantalla, sin sesión, sin barras de la app y fuera de los buscadores (ADR-0025). Cielo de la landing arriba, opciones grandes, contacto opcional con consentimiento. Borrador en `sessionStorage`; clave de reintento por envío | `components/encuesta/` (`EncuestaForm`, `Opciones`), `lib/encuesta.ts` (opciones, pasos, qué falta, cuerpo del pedido) | `POST /encuesta` |
 | `/terminos`, `/privacidad` **SSR** | Legales. Si cambia el texto, se sube la versión (ver abajo) |
 | `/admin` ("Hoy") | Portada del admin: urgentes sin cubrir y ausencias del día, pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
 | `/admin/en-vivo` ("Turnos en vivo") | Turnos publicados sin nadie confirmado, lo más urgente primero, filtros urgentes/escalados/ausencias de hoy (`?filtro=`; la portada «Ausencias de hoy» entra por `?filtro=ausencias`), se actualiza cada 30 s. Cuentas en `components/admin/live.ts` |
 | `/admin/personas`, `/admin/personas/[id]` | Buscador y filtros de usuarios · ficha con perfil, turnos, tickets y acciones de moderación (`components/admin/people.ts`) |
 | `/admin/verificacion`, `/admin/support` | Cola de DNI y constancia AFIP · tickets |
 | `/admin/metricas`, `/admin/herramientas` | Últimos 7/30 días contra el período anterior (`DeltaStatCard` en `components/admin/AdminStats.tsx`), conteos, promesa, métricas de producto y suscripciones · cuentas de prueba |
-| `/admin/leads` ("Crecimiento") | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) |
+| `/admin/leads` ("Crecimiento") | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) · sección «Encuesta» (`components/admin/EncuestaPanel.tsx`): resumen (total, con contacto, distribuciones, mediana del pago) y locales que dejaron contacto (ADR-0025) |
 | `/admin/seguridad` ("Seguridad") | Verificación en dos pasos de la cuenta admin (ADR-0023): el alta (QR con `components/admin/TotpQr.tsx`, clave a mano, códigos de recuperación con `RecoveryCodesPanel`), estado, códigos nuevos y cambio de celular. Una admin sin activarla sólo ve esta pantalla (`twoFactorSetupPending` en `lib/auth-context.tsx`). El paso del código en `/login` es `components/TwoFactorLoginStep.tsx`; API en `lib/two-factor.ts` |
 
 ## Dónde vive cada cosa que se busca seguido
@@ -123,6 +124,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Recorte de datos del trabajador en un turno ajeno | `without_worker_data` en `backend/app/modules/shift/api/schemas.py` |
 | Datos demo | `backend/scripts/seed_demo_data.py` y `backend/scripts/startup_seed.py` |
 | Documentos de identidad privados (subida firmada `private`, link que vence, borrado al decidir con reintentos, migración de los viejos) | `backend/app/core/cloudinary.py`, `backend/app/modules/verification/infrastructure/evidence_link_signer.py`, `.../infrastructure/evidence_file_storage.py` y `file_cleanup_job.py` (borrado y reintento del scheduler), `backend/scripts/privatize_identity_evidence.py` (ADR-0021) |
+| Encuesta para locales: respuestas, regla de contacto/consentimiento, resumen con mediana, borrado del contacto a los 12 meses (chequeo del scheduler, inyectado desde `app/main.py`) | `backend/app/modules/encuesta/` (`domain/entities.py`, `infrastructure/retention_job.py`); ADR-0025 |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 | Probar la app de punta a punta en local: backend y base reales, terceros simulados, kit de Playwright para dos sesiones a la vez | `tools/e2e-local/` (`README.md`; receta en [`SESION_CLOUD.md`](./SESION_CLOUD.md) §7) |
 
@@ -146,3 +148,4 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/assistant` | IA del comercio (`query`) y del trabajador (`worker-query`) |
 | `/admin` | stats, `today`, `live-shifts?urgent=&escalated=`, `period-metrics?period=7\|30` (cortes en días argentinos, `admin/application/periods.py`), usuarios (`users?q=&role=&status=&verified=`), ficha `users/{id}`, suspender y reactivar (`users/{id}/suspend`, `/activate`) con la vista previa de qué turnos toca (`users/{id}/suspension-preview`, ADR-0024), cuentas de prueba, suscripciones |
 | `/admin/leads` | comercios a captar: listar, `summary`, `barrios`, `import` (OpenStreetMap), `PATCH {id}` (módulo `lead`) |
+| `/encuesta`, `/admin/encuesta` | encuesta para locales (módulo `encuesta`): `POST /encuesta` público (límite por IP, honeypot, `Idempotency-Key`), admin: lista paginada (`?with_contact=`) y `summary` |

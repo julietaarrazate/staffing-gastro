@@ -1,6 +1,6 @@
 "use client";
 
-// Encuesta para locales (ADR-0024), dentro de «Crecimiento»: el resumen de lo
+// Encuesta para locales (ADR-0025), dentro de «Crecimiento»: el resumen de lo
 // que contestaron y la lista de quienes dejaron cómo escribirles. Sólo lectura.
 
 import { useCallback, useEffect, useState } from "react";

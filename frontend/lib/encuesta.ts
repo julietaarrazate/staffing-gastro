@@ -1,5 +1,5 @@
 /**
- * Encuesta para locales (`/encuesta`, ADR-0024): las opciones de cada
+ * Encuesta para locales (`/encuesta`, ADR-0025): las opciones de cada
  * pregunta, los pasos, qué falta para avanzar y el cuerpo del pedido. Todo
  * puro, sin React: lo usa la pantalla pública (`components/encuesta/`) y el
  * panel de admin (`components/admin/EncuestaPanel.tsx`).

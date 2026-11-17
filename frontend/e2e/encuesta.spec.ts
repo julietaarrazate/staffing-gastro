@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, skipSplash } from "./mocks";
 
 /**
- * Encuesta para locales (`/encuesta`, ADR-0024): pública, sin sesión, una
+ * Encuesta para locales (`/encuesta`, ADR-0025): pública, sin sesión, una
  * pregunta por pantalla. API mockeada.
  */
 

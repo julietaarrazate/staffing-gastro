@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
-/** «Crecimiento» → Encuesta (ADR-0024): resumen y locales con contacto. API mockeada. */
+/** «Crecimiento» → Encuesta (ADR-0025): resumen y locales con contacto. API mockeada. */
 
 const ADMIN = {
   id: "admin-1",

@@ -36,7 +36,7 @@ interface Borrador {
 }
 
 /**
- * La encuesta para locales (`/encuesta`, ADR-0024): una pregunta por pantalla,
+ * La encuesta para locales (`/encuesta`, ADR-0025): una pregunta por pantalla,
  * pensada para el celular y para abrirse desde un link de WhatsApp, sin
  * sesión. Lo que se contesta se guarda en la pestaña hasta enviar (un toque
  * al «atrás» del teléfono no lo pierde).
