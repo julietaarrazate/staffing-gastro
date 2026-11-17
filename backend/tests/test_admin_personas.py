@@ -2,6 +2,7 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
@@ -106,6 +107,103 @@ async def test_worker_detail_has_profile_and_tickets(client, session_factory):
     assert body["recent_shifts"] == []
     assert [t["subject"] for t in body["tickets"]] == ["No me llegan avisos"]
     assert body["tickets"][0]["status"] == "abierto"
+
+
+async def test_worker_detail_lists_shift_where_the_worker_was_absent(client, session_factory):
+    """`no_show()` desasigna al trabajador; la ficha igual tiene que mostrar
+    ese turno (si no, "No se presentó 1" convive con "Todavía no tiene
+    turnos")."""
+    from datetime import UTC, datetime, timedelta
+    from uuid import UUID
+
+    from app.modules.shift.infrastructure.models import ShiftModel
+    from app.modules.worker.infrastructure.models import WorkerProfileModel
+
+    p = await _people(client, session_factory)
+    worker_id = await _user_id(session_factory, "ana.mozo@staffya.com")
+    start = datetime.now(UTC) + timedelta(days=1)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=p["employer"],
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": start.isoformat(),
+            "end_at": (start + timedelta(hours=6)).isoformat(),
+            "pay_amount": "70000.00",
+            "city": "Palermo",
+            "title": "Cena donde faltó",
+        },
+    )
+    shift_id = created.json()["id"]
+    async with session_factory() as session:
+        profile_id = (
+            await session.execute(
+                select(WorkerProfileModel.id).where(WorkerProfileModel.user_id == UUID(worker_id))
+            )
+        ).scalar_one()
+        model = await session.get(ShiftModel, UUID(shift_id))
+        model.worker_profile_id = None
+        model.last_no_show_worker_profile_id = profile_id
+        model.no_show_at = datetime.now(UTC)
+        await session.commit()
+
+    body = (await client.get(f"/api/v1/admin/users/{worker_id}", headers=p["admin"])).json()
+    assert [(s["title"], s["absent"]) for s in body["recent_shifts"]] == [
+        ("Cena donde faltó", True)
+    ]
+
+
+async def test_worker_detail_does_not_accuse_when_shift_expired_unconfirmed(
+    client, session_factory
+):
+    """`mark_not_covered()` guarda a quien estaba asignado sin confirmar: esa
+    persona no faltó, y la ficha no dice «No se presentó»."""
+    from datetime import UTC, datetime, timedelta
+    from uuid import UUID
+
+    from app.modules.shift.infrastructure.models import ShiftModel
+    from app.modules.worker.infrastructure.models import WorkerProfileModel
+
+    p = await _people(client, session_factory)
+    worker_id = await _user_id(session_factory, "ana.mozo@staffya.com")
+    start = datetime.now(UTC) + timedelta(days=1)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=p["employer"],
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": start.isoformat(),
+            "end_at": (start + timedelta(hours=6)).isoformat(),
+            "pay_amount": "70000.00",
+            "city": "Palermo",
+            "title": "Vencido sin confirmar",
+        },
+    )
+    shift_id = created.json()["id"]
+    async with session_factory() as session:
+        profile_id = (
+            await session.execute(
+                select(WorkerProfileModel.id).where(WorkerProfileModel.user_id == UUID(worker_id))
+            )
+        ).scalar_one()
+        model = await session.get(ShiftModel, UUID(shift_id))
+        model.status = "asignado"
+        model.worker_profile_id = profile_id
+        from app.modules.shift.infrastructure.repositories import _to_entity
+
+        shift = _to_entity(model)
+        shift.mark_not_covered()
+        model.status = shift.status.value
+        model.worker_profile_id = shift.worker_profile_id
+        model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
+        await session.commit()
+
+    body = (await client.get(f"/api/v1/admin/users/{worker_id}", headers=p["admin"])).json()
+    assert [(s["title"], s["status"], s["absent"]) for s in body["recent_shifts"]] == [
+        ("Vencido sin confirmar", "no_cubierto", False)
+    ]
 
 
 async def test_company_detail_has_company_summary(client, session_factory):

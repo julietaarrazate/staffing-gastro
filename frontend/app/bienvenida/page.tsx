@@ -102,7 +102,7 @@ export default function BienvenidaPage() {
 }
 
 function Bienvenida() {
-  const { token, user, loading: authLoading } = useAuth();
+  const { token, user, loading: authLoading, reconnecting } = useAuth();
   const router = useRouter();
   // `?next=`: a dónde volver al terminar (el turno compartido desde el que
   // se registró). Viene de la dirección: sólo se usa si es una ruta interna.
@@ -110,9 +110,10 @@ function Bienvenida() {
   const next = safeNext(useSearchParams().get("next"));
 
   useEffect(() => {
-    if (authLoading) return;
+    // Con el servidor dormido hay sesión por confirmar: no se manda al ingreso.
+    if (authLoading || reconnecting) return;
     if (!token) router.replace(loginHref({ next }));
-  }, [authLoading, token, router, next]);
+  }, [authLoading, reconnecting, token, router, next]);
 
   if (authLoading || !token || !user) return null;
   if (user.role === "employer") return <EmployerOnboarding next={next} />;
