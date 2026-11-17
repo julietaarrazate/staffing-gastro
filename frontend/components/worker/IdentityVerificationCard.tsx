@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { uploadIdentityImage, type PrivateFileRef } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
+import { checkUploadFile } from "@/lib/upload-validation";
 import {
   documentClaim,
   type IdentitySummary,
@@ -45,6 +46,11 @@ function DocSlot({
     e.target.value = "";
     if (!file) return;
     setError(null);
+    const problem = checkUploadFile(file, "image");
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setUploading(true);
     try {
       if (!token) throw new Error("Tu sesión venció. Volvé a entrar para subir la foto.");
@@ -100,7 +106,7 @@ function DocSlot({
         onChange={handleFile}
         className="hidden"
       />
-      {error && <p className="mt-1 text-center text-xs text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-center text-xs text-danger-text">{error}</p>}
     </div>
   );
 }
@@ -204,7 +210,7 @@ export default function IdentityVerificationCard() {
               Estamos revisando tu documento. Te avisamos apenas esté listo.
             </p>
           ) : status === "rechazada" ? (
-            <p className="mt-1 text-sm text-danger">
+            <p className="mt-1 text-sm font-medium text-danger-text">
               {claim?.rejection_reason
                 ? `Rechazada: ${claim.rejection_reason}. Podés reenviar.`
                 : "No pudimos verificarla. Probá con fotos más nítidas."}
@@ -240,7 +246,7 @@ export default function IdentityVerificationCard() {
             privadas: las ve una persona de nuestro equipo mientras revisa, y
             las eliminamos una vez revisadas (Ley 25.326).
           </p>
-          {submitError && <p className="mt-2 text-sm text-danger">{submitError}</p>}
+          {submitError && <p role="alert" className="mt-2 text-sm text-danger-text">{submitError}</p>}
           <Button
             onClick={handleSubmit}
             disabled={!dniFront || !selfie || submitting}
