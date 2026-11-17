@@ -95,7 +95,7 @@ def main() -> int:
         password = f"E1-Admin{n}-{secrets.token_hex(4)}"
         res = client.post(
             f"{API}/auth/register",
-            json={"email": email, "password": password, "full_name": f"Admin E1 {n}", "role": "worker", "accepted_terms": True},
+            json={"email": email, "password": password, "full_name": f"Admin E1 {n}", "role": "worker", "accepted_terms": True, "birth_date": "1990-01-01"},
         )
         if res.status_code == 409:
             print(f"  ✗ {email} ya existe en la base pero no está en admin.json: no sé su contraseña.")
