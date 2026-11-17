@@ -232,6 +232,7 @@ test("si el servidor no registra el plan elegido en el alta, la bienvenida sigue
   await page.route("**/api/v1/subscription/plan-elegido", (route) => route.fulfill(json({}, 500)));
   await page.goto("/register?rol=comercio&plan=pro");
   await page.getByPlaceholder("Nombre completo").fill("Dueña Nueva");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("nuevo.bodegon@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
   await page.getByRole("checkbox").check();
