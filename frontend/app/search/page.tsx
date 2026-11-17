@@ -74,7 +74,17 @@ export default function SearchPage() {
 // ubicación del navegador ni busca) mientras redirige a la home de su rol.
 function SearchGuard() {
   const { allowed, user } = useRequireAuth({ roles: ["employer", "admin"] });
-  return allowed && user ? <SearchPageContent /> : null;
+  if (!allowed) return null;
+  if (!user) {
+    return (
+      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-3 px-4 pb-8 pt-4 md:max-w-5xl">
+        <WorkerRowSkeleton />
+        <WorkerRowSkeleton />
+        <WorkerRowSkeleton />
+      </div>
+    );
+  }
+  return <SearchPageContent />;
 }
 
 function SearchPageContent() {

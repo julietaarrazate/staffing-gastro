@@ -20,7 +20,7 @@ function me(role: string) {
   };
 }
 
-async function setup(page: Page, role: string) {
+async function setup(page: Page, role: string, demoraMeMs = 0) {
   // Cuenta las veces que algo le pide la ubicación al navegador.
   await page.addInitScript(() => {
     (window as unknown as { __geo: number }).__geo = 0;
@@ -42,9 +42,10 @@ async function setup(page: Page, role: string) {
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   const pedidos: string[] = [];
-  await page.route("**/api/v1/**", (route) => {
+  await page.route("**/api/v1/**", async (route) => {
     const url = route.request().url();
     if (url.includes("/auth/me")) {
+      if (demoraMeMs) await new Promise((r) => setTimeout(r, demoraMeMs));
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(me(role)) });
     }
     pedidos.push(url);
@@ -107,5 +108,22 @@ for (const role of ["employer", "admin"]) {
     await page.goto("/search");
     await busca;
     await expect(page).toHaveURL(/\/search/);
+  });
+}
+
+// Con el backend dormido `/auth/me` tarda: mientras el rol no se conoce se ve
+// el esqueleto (no una pantalla en blanco), sin pedir datos ni ubicación.
+for (const [ruta, role, pedido] of [
+  ["/feed", "worker", /\/shifts\/feed/],
+  ["/search", "employer", /\/matching\/search/],
+] as const) {
+  test(`${ruta} con /auth/me demorado muestra el esqueleto y no pide datos hasta saber el rol`, async ({ page }) => {
+    const { pedidos, geo } = await setup(page, role, 1500);
+    await page.goto(ruta);
+    await expect(page.getByTestId("guarda-cargando")).toBeVisible();
+    expect(pedidos.filter((u) => pedido.test(u))).toHaveLength(0);
+    expect(await geo()).toBe(0);
+    await expect(page.getByTestId("guarda-cargando")).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`${ruta}$`));
   });
 }
