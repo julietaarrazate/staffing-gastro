@@ -14,7 +14,7 @@ import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, level
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
-import { BriefcaseIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
 
 /** Botón "Favorito" (comercio → trabajador), sólo visible para empleadores
  * (el propio trabajador no ve ni sabe quién lo favoriteó — bookmark privado
@@ -144,6 +144,15 @@ export default function PublicWorkerProfilePage() {
 
   return (
     <div className="app-container px-4 py-8">
+      {/* Se llega desde Candidatos, Buscar, Favoritos o un chat: «volver»
+          retrocede a donde estaba la persona. */}
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
+      >
+        <ChevronLeftIcon size={16} /> Volver
+      </button>
       {/* En lg+ las reseñas pasan a una columna secundaria al lado (mismo
           criterio que /profile, docs/STATUS.md): es contenido de largo
           variable que antes quedaba apilado debajo de la tarjeta principal,

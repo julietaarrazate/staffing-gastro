@@ -50,6 +50,7 @@ export default function CandidateCard({
   disabled,
   recommended = false,
   preview = false,
+  canAssign = true,
 }: {
   candidate: CandidateMatch;
   onAssign: () => void;
@@ -58,6 +59,8 @@ export default function CandidateCard({
   /** Como imagen (la landing): el nombre y la foto sin link al perfil, que
    *  sería de una persona de ejemplo. */
   preview?: boolean;
+  /** Falso cuando el turno ya no admite asignar: se oculta «Asignar». */
+  canAssign?: boolean;
 }) {
   const perfil = preview ? null : `/workers/${candidate.profile_id}`;
   return (
@@ -102,16 +105,18 @@ export default function CandidateCard({
 
         {recommended ? <RecommendationReasons signals={candidate} onDark /> : null}
 
-        <Button
-          fullWidth
-          className="mt-4"
-          variant={recommended ? "primary" : "surface"}
-          onClick={onAssign}
-          loading={disabled}
-          disabled={disabled}
-        >
-          Asignar
-        </Button>
+        {canAssign && (
+          <Button
+            fullWidth
+            className="mt-4"
+            variant={recommended ? "primary" : "surface"}
+            onClick={onAssign}
+            loading={disabled}
+            disabled={disabled}
+          >
+            Asignar
+          </Button>
+        )}
       </div>
     </div>
   );
