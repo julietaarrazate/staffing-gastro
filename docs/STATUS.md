@@ -26,7 +26,7 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
-- 🔴 **Salida a beta (en curso, etapa 2: arreglar los graves).** Qué está hecho,
+- 🔴 **Salida a beta (en curso, etapa 3: que nada se vea descuidado).** Qué está hecho,
   qué está en curso, qué falta y qué espera una decisión de Julieta, fila por
   fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
   primero que se lee y lo que se edita en cada PR de la beta.
