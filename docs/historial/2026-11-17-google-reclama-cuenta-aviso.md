@@ -5,7 +5,7 @@ cuenta que existía con contraseña y mail sin confirmar, la cuenta se reclama
 sin avisarle a nadie. Decisión: sigue reclamándose, y se avisa al mail de la
 cuenta.
 
-**Qué cambió:** al reclamar, la dirección de la cuenta recibe «Entraron a tu
+**Qué cambió:** al reclamar, la dirección de la cuenta recibe «Se entró a tu
 cuenta de Oído con Google»: se entró con Google con ese mail; como no estaba
 confirmado, la contraseña anterior dejó de servir y se cerraron las sesiones;
 desde ahora se entra con Google o se vuelve a tener contraseña desde

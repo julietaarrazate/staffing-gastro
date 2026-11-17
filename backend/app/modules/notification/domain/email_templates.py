@@ -338,10 +338,10 @@ def render_google_claimed_account_email_html(full_name: str, recover_link: str) 
     con contraseña no quede sin entender por qué ya no entra."""
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Hola {escape(full_name)},</p>
-    <p style="margin:0 0 12px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Alguien entró a Oído con Google usando este mail.</p>
+    <p style="margin:0 0 12px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Se entró a Oído con la cuenta de Google de este mail, por primera vez.</p>
     <p style="margin:0 0 12px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Como el mail de esta cuenta nunca se había confirmado, la contraseña anterior dejó de servir y se cerraron las sesiones que estaban abiertas.</p>
-    <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Desde ahora se entra con Google. Si preferís volver a tener contraseña, podés elegir una nueva con «Olvidé mi contraseña».</p>
-    {_cta_button("Elegir una contraseña", recover_link)}
+    <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Desde ahora se entra con Google. Si preferís volver a tener contraseña, pedila desde «¿Olvidaste tu contraseña?» y te mandamos un link para elegir una nueva.</p>
+    {_cta_button("Recuperar mi contraseña", recover_link)}
     <p style="margin:20px 0 0;font-family:Inter,Arial,sans-serif;font-size:12px;line-height:1.6;color:{_TINTA_APAGADA};text-align:center;">Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br>
       <a href="{recover_link}" style="color:{_TEXTO_DESTACADO};word-break:break-all;">{recover_link}</a>
     </p>
@@ -349,12 +349,12 @@ def render_google_claimed_account_email_html(full_name: str, recover_link: str) 
     <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:1.6;color:{_TINTA_APAGADA};"><strong style="color:{_TINTA_SUAVE};">¿No fuiste vos?</strong> Escribinos a <a href="mailto:hola@oido.com.ar" style="color:{_TEXTO_DESTACADO};">hola@oido.com.ar</a> y lo revisamos.</p>
     """
     return _shell(
-        preheader="Entraron a tu cuenta con Google. La contraseña anterior dejó de servir.",
+        preheader="Se entró a tu cuenta con Google. La contraseña anterior dejó de servir.",
         eyebrow="SEGURIDAD DE TU CUENTA",
-        title_html="Entraron a tu cuenta con Google",
+        title_html="Se entró a tu cuenta con Google",
         subtitle_html="",
         body_html=body,
-        footer_note="Recibís este mail porque alguien entró con Google a la cuenta de este mail.",
+        footer_note="Recibís este mail porque se entró con Google a la cuenta de este mail.",
     )
 
 

@@ -296,7 +296,7 @@ class IdentityService:
         Ahora la cuenta queda de quien probó el email: se marca verificada, la
         contraseña anterior deja de servir y se cierran todas las sesiones
         abiertas. Si era la misma persona, pierde la contraseña que nunca
-        confirmó y la recupera con "Olvidé mi contraseña". Desde 2026-11-17
+        confirmó y la recupera con "¿Olvidaste tu contraseña?". Desde 2026-11-17
         se avisa además por mail a la dirección de la cuenta (U039)."""
         user.verify()
         user.hashed_password = await _google_local_password()
@@ -316,7 +316,7 @@ class IdentityService:
         try:
             await self._email_sender.send(
                 to=user.email,
-                subject="Entraron a tu cuenta de Oído con Google",
+                subject="Se entró a tu cuenta de Oído con Google",
                 html=html,
             )
         except Exception:
@@ -712,7 +712,7 @@ async def _google_local_password() -> str:
     un secreto aleatorio de 32 bytes que nunca se persiste ni se revela.
     Nadie puede loguearse con contraseña porque nadie conoce el secreto —
     el efecto es el mismo que "sin contraseña", sin tocar el esquema.
-    El usuario puede pedir "Olvidé mi contraseña" más adelante y setear una
+    El usuario puede pedir "¿Olvidaste tu contraseña?" más adelante y setear una
     propia sin cambios adicionales (el flujo de reset ya no le importa el
     hash anterior). Ver docs/reference/ACCESO_MODERNO.md.
     """

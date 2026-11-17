@@ -272,7 +272,7 @@ async def test_reclamar_una_cuenta_sin_confirmar_avisa_por_mail(client: AsyncCli
         response = await client.post("/api/v1/auth/google", json={"id_token": "tok"})
         assert response.status_code == 200
         assert [e.to for e in fake.sent] == ["reclamada@gmail.com"]
-        assert fake.sent[0].subject == "Entraron a tu cuenta de Oído con Google"
+        assert fake.sent[0].subject == "Se entró a tu cuenta de Oído con Google"
         assert "/recuperar" in fake.sent[0].html
         assert "hola@oido.com.ar" in fake.sent[0].html
 
