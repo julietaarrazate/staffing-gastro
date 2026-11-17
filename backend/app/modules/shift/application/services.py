@@ -894,7 +894,7 @@ class ShiftService(AccountSuspensionEffects):
                     "para confirmar que estás en el lugar."
                 ),
                 # «Llegué» vive en Matches > Asignados (U066).
-                link="/my-shifts",
+                link=f"/my-shifts?turno={updated.id}",
             )
         return updated
 
@@ -928,7 +928,7 @@ class ShiftService(AccountSuspensionEffects):
                     "sepa que estás llegando."
                 ),
                 # «Va en camino» vive en Matches > Asignados (U066).
-                link="/my-shifts",
+                link=f"/my-shifts?turno={updated.id}",
             )
         return updated
 

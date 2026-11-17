@@ -67,7 +67,7 @@ async def test_asignados_lists_pending_first_by_start_and_finished_last(
     assert [s["id"] for s in listed.json()] == [soon, late, cancelled, paid_new, paid_old]
 
 
-async def test_the_checkin_and_departure_reminders_link_to_the_assigned_tab(
+async def test_the_checkin_and_departure_reminders_open_the_specific_shift_in_matches(
     client: AsyncClient, session_factory
 ):
     employer = await _employer_with_company(client, "recordatorio_emp@staffya.com")
@@ -82,5 +82,5 @@ async def test_the_checkin_and_departure_reminders_link_to_the_assigned_tab(
 
     listed = await client.get("/api/v1/notifications", headers=worker)
     by_type = {n["type"]: n for n in listed.json()}
-    assert by_type["checkin_reminder"]["link"] == "/my-shifts"
-    assert by_type["departure_reminder"]["link"] == "/my-shifts"
+    assert by_type["checkin_reminder"]["link"] == f"/my-shifts?turno={shift_id}"
+    assert by_type["departure_reminder"]["link"] == f"/my-shifts?turno={shift_id}"

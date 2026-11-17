@@ -44,6 +44,7 @@ async function abrir(
   guardados: unknown[] = saved,
   asignados: unknown[] = assigned,
   postulaciones: unknown[] = apps,
+  url = "/my-shifts",
 ) {
   await injectSession(page);
   await skipSplash(page);
@@ -54,7 +55,7 @@ async function abrir(
   await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json(postulaciones)));
   await page.route("**/api/v1/saved-shifts", (r) => r.request().method() === "GET" ? r.fulfill(json(guardados)) : r.continue());
   await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({ id: "p", user_id: "u", full_name: "Mozo", skills: ["mozo"], latitude: -34.58, longitude: -58.42, city: "Palermo", badges: [], level: "plata", rating: 4.5 })));
-  await page.goto("/my-shifts");
+  await page.goto(url);
   await page.getByRole("heading", { name: "Matches" }).waitFor();
 }
 
@@ -121,4 +122,71 @@ test("postulación a un turno cerrado dice que se cerró, no «esperando respues
   await expect(page.getByText("El comercio canceló el turno")).toBeVisible();
   // La pestaña sólo cuenta la que sigue abierta.
   await expect(page.getByRole("button", { name: "Postulaciones (1)" })).toBeVisible();
+});
+
+test("quitar una postulación de un turno cerrado avisa «Quitamos…», no «Cancelaste»", async ({ page }) => {
+  await abrir(page);
+  await page.route("**/api/v1/applications/*/withdraw", (r) => r.fulfill(json({})));
+  await page.getByRole("button", { name: /^Postulaciones/ }).click();
+  await page.getByRole("button", { name: "Quitar de la lista" }).first().click();
+  await expect(page.getByText("Quitamos la postulación de tu lista")).toBeVisible();
+  await expect(page.getByText("Cancelaste tu postulación")).toHaveCount(0);
+});
+
+test("quitar una postulación abierta sigue diciendo «Cancelaste tu postulación»", async ({ page }) => {
+  await abrir(page);
+  await page.route("**/api/v1/applications/*/withdraw", (r) => r.fulfill(json({})));
+  await page.getByRole("button", { name: /^Postulaciones/ }).click();
+  await page.getByRole("button", { name: "Cancelar postulación" }).click();
+  await page.getByRole("button", { name: "Sí, cancelar" }).click();
+  await expect(page.getByText("Cancelaste tu postulación")).toBeVisible();
+});
+
+const esAmbar = (loc: import("@playwright/test").Locator) =>
+  loc.evaluate((el) => el.className.split(/\s+/).includes("bg-primary"));
+
+test("turno confirmado: un solo botón ámbar por tarjeta, el que corresponde ahora", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  const pronto = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  await abrir(page, [], [
+    shift({ id: "pronto", status: "confirmado", start_at: pronto, company_name: "Café Belgrano", worker_profile_id: "p" }),
+    shift({ id: "lejos", status: "confirmado", start_at: isoEnDias(2), company_name: "Bar Demo", worker_profile_id: "p" }),
+  ]);
+  const tarjeta = (id: string) => page.locator(`#turno-${id}`);
+  // Falta 1 h: ya se puede avisar que va en camino, esa es la acción de ahora.
+  expect(await esAmbar(tarjeta("pronto").getByRole("button", { name: "Voy en camino" }))).toBe(true);
+  expect(await esAmbar(tarjeta("pronto").getByRole("button", { name: "Llegué" }))).toBe(false);
+  // Faltan 2 días: «Voy en camino» todavía no corresponde.
+  expect(await esAmbar(tarjeta("lejos").getByRole("button", { name: "Voy en camino" }))).toBe(false);
+  expect(await esAmbar(tarjeta("lejos").getByRole("button", { name: "Llegué" }))).toBe(true);
+});
+
+test("comparar: el círculo de selección usa el color de marca, no el ámbar", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await abrir(page);
+  await page.getByRole("button", { name: /^Guardados/ }).click();
+  await page.getByRole("button", { name: "Comparar" }).click();
+  const circulos = page.getByRole("button", { name: "Sumar a la comparación" });
+  await circulos.nth(0).click();
+  await circulos.nth(0).click();
+  const elegido = page.getByRole("button", { name: "Sacar de la comparación" }).first();
+  await expect(elegido).toHaveAttribute("aria-pressed", "true");
+  expect(await esAmbar(elegido)).toBe(false);
+});
+
+test("?turno= abre Asignados, baja a esa tarjeta y la resalta", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  const muchos = Array.from({ length: 8 }, (_, i) =>
+    shift({ id: `turno-${i}`, status: "confirmado", start_at: isoEnDias(2 + i), worker_profile_id: "p", company_name: `Local ${i}` }),
+  );
+  await abrir(page, [], muchos, [], "/my-shifts?turno=turno-7");
+  const tarjeta = page.locator("#turno-turno-7");
+  await expect(tarjeta).toHaveClass(/ring-primary-text/);
+  await expect(tarjeta).toBeInViewport();
+});
+
+test("?turno= con un turno que no está en la lista no pasa nada", async ({ page }) => {
+  await abrir(page, [], assigned, [], "/my-shifts?turno=no-existe");
+  await expect(page.getByRole("heading", { name: "Matches" })).toBeVisible();
+  await expect(page.locator("[class*='ring-primary-text']")).toHaveCount(0);
 });

@@ -38,10 +38,26 @@ un turno cerrado leía «esperando respuesta».
   (el mismo retiro de siempre). La pestaña cuenta sólo las que siguen abiertas.
   La API ya devolvía el turno embebido: no cambió quién ve qué.
 
+- **Segunda vuelta (U088, ámbar, recordatorios).** «Quitar de la lista» en
+  un turno cerrado avisa «Quitamos la postulación de tu lista» (en una
+  abierta sigue «Cancelaste tu postulación»). Un solo ámbar por tarjeta: en un
+  turno confirmado, «Voy en camino» es el ámbar desde 2 h antes del inicio
+  (la ventana del backend) y mientras no esté compartiendo; antes, o ya
+  compartiendo, lo es «Llegué», y el otro va en `surface`
+  (`EnRouteToggle` recibe `prominent` y avisa `onSharingChange`; el ícono de
+  «compartiendo» pasa a `bg-secondary`). El círculo de selección del modo
+  comparar usa `bg-secondary text-on-brand` (celeste en claro, vidrio en
+  oscuro) en vez del ámbar. El paso actual del `ShiftLifecycleStepper` no se
+  tocó. Los recordatorios de llegada y de salida guardan
+  `/my-shifts?turno=<id>`; Matches abre «Asignados», baja a esa tarjeta
+  (`#turno-<id>`, scroll suave salvo `prefers-reduced-motion`) y la resalta 3,5 s
+  con un anillo (sin animación propia). Si el turno no está en la lista, no
+  pasa nada. `notificationHref` ya respetaba el `link` guardado.
+
 **Por qué así:** el orden va en SQL y no en Python para que la paginación sea
 coherente; los estados «activos» son los no terminales
 (`TERMINAL_STATUSES`). El subtítulo «Terminados» reusa el estilo de los
 rótulos chicos de la app, sin componente nuevo.
 
-**Queda abierto:** nada de este grupo. El recordatorio no abre la tarjeta del
-turno concreto (la pantalla no tiene anclas por turno).
+**Queda abierto:** nada de este grupo. Los recordatorios ya enviados
+(con `link="/my-shifts"`) siguen abriendo Matches sin resaltar un turno.

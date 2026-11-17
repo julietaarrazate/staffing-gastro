@@ -11,6 +11,7 @@
  * comparte y cuándo se corta, en vez de un "compartir ubicación" a secas.
  */
 
+import { useEffect } from "react";
 import { MapPinIcon } from "@/components/icons";
 import { Button, ErrorBanner } from "@/components/ui";
 import { useEnRouteSharing } from "@/lib/use-en-route-sharing";
@@ -18,11 +19,20 @@ import { useEnRouteSharing } from "@/lib/use-en-route-sharing";
 export default function EnRouteToggle({
   shiftId,
   token,
+  prominent = true,
+  onSharingChange,
 }: {
   shiftId: string;
   token: string | null;
+  /** `false` cuando otra acción de la tarjeta es la principal (un solo ámbar). */
+  prominent?: boolean;
+  onSharingChange?: (sharing: boolean) => void;
 }) {
   const { sharing, error, starting, start, stop } = useEnRouteSharing(shiftId, token);
+
+  useEffect(() => {
+    onSharingChange?.(sharing);
+  }, [sharing, onSharingChange]);
 
   return (
     <div className="mt-3 rounded-[var(--radius-card)] bg-surface p-3.5 ring-1 ring-line">
@@ -30,7 +40,7 @@ export default function EnRouteToggle({
         <span
           aria-hidden
           className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-            sharing ? "bg-primary text-night" : "bg-card text-ink/45"
+            sharing ? "bg-secondary text-on-brand" : "bg-card text-ink/45"
           }`}
         >
           <MapPinIcon size={15} />
@@ -54,7 +64,7 @@ export default function EnRouteToggle({
       )}
 
       <Button
-        variant={sharing ? "surface" : "primary"}
+        variant={sharing || !prominent ? "surface" : "primary"}
         size="sm"
         fullWidth
         loading={starting}
