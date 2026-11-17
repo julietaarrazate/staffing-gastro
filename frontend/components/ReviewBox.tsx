@@ -122,6 +122,9 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
         rows={2}
         className="mt-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-sm"
       />
+      <p className="mt-2 text-xs text-ink/60">
+        Una vez enviada, la calificación no se puede cambiar ni borrar.
+      </p>
       {error && <p className="mt-1 text-sm text-danger-text">{error}</p>}
       <div className="mt-2">
         <Button type="submit" size="sm" loading={submitting} disabled={rating === 0 || submitting}>

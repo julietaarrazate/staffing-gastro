@@ -360,6 +360,7 @@ export type NotificationType =
   | "shift_rejected"
   | "shift_checked_out"
   | "shift_paid"
+  | "shift_finished"
   | "shift_reopened"
   | "chat_message"
   | "review_received"
