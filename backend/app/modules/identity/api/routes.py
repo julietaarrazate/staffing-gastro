@@ -14,7 +14,6 @@ from app.core.turnstile import require_turnstile
 from app.modules.identity.api.dependencies import (
     get_current_session,
     get_current_user,
-    get_current_user_allow_pending_2fa,
     get_identity_service,
     get_two_factor_service,
     two_factor_gate_error,
@@ -26,6 +25,7 @@ from app.modules.identity.api.schemas import (
     GoogleRoleRequiredResponse,
     GuestLoginRequest,
     LoginRequest,
+    MeResponse,
     RecoveryCodesResponse,
     RegisterRequest,
     ResendVerificationRequest,
@@ -417,15 +417,21 @@ async def logout(service: ServiceDep, request: Request, response: Response) -> N
 
 @router.get(
     "/me",
-    response_model=UserResponse,
+    response_model=MeResponse,
     summary="Datos del usuario autenticado",
 )
 async def me(
-    current_user: Annotated[User, Depends(get_current_user_allow_pending_2fa)],
-) -> User:
+    session: Annotated[AuthenticatedSession, Depends(get_current_session)],
+) -> MeResponse:
     # También para un admin sin la verificación en dos pasos: el frontend
-    # necesita saber quién es para llevarlo a activarla (ADR-0023).
-    return current_user
+    # necesita saber quién es para llevarlo a activarla (ADR-0023), y si le
+    # falta activarla, para no pedirle nada más que el alta.
+    return MeResponse.model_validate(
+        {
+            **UserResponse.model_validate(session.user).model_dump(),
+            "two_factor_setup_required": session.gate is AdminGate.SETUP_REQUIRED,
+        }
+    )
 
 
 @router.patch(

@@ -67,7 +67,10 @@ ese alcance y no cambian.
 8. **Nadie queda afuera al prenderla.** Un admin sin la verificación entra
    con la contraseña como siempre, pero sólo puede activarla; el frontend
    ve el 403 con `two_factor_setup_required` y lo lleva a
-   `/admin/seguridad`. Al confirmar el alta se cierran **todas** las demás
+   `/admin/seguridad`. Para no esperar a ese 403, el login y `GET /auth/me`
+   traen además `two_factor_setup_required: true` (sin migración: sale del
+   mismo cálculo del candado), y el frontend marca el alta pendiente al abrir
+   la sesión. Al confirmar el alta se cierran **todas** las demás
    sesiones de la cuenta (las abiertas antes, en otros dispositivos o de
    alguien con la contraseña, nunca pasaron por un código) y se emite una
    sesión verificada. **Las sesiones abiertas al deployar** quedan en ese
