@@ -39,5 +39,6 @@ U110 (0050) se numeraron al mergear, en ese orden. Cada PR trajo `main` y
 esperó su CI después del merge anterior.
 
 **Queda abierto:** en el tablero («Para revisar con Fable», etapas 4 a 6) y
-en STATUS. Propuesto sin decidir: pasar a TypeScript 7 (compilador en Go) en
-un PR aparte, después de la beta o en la etapa 5.
+en STATUS. Julieta pidió anotar en la etapa 5 el paso a TypeScript 7
+(compilador en Go, unas 10 veces más rápido): no cambia nada para los usuarios
+y acelera CI y el editor.
