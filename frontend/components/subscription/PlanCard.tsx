@@ -36,10 +36,12 @@ export default function PlanCard({
   const acento = isUpgrade && !sinAcento;
 
   return (
-    <Card className={`flex flex-col p-5 ${isCurrent ? "ring-2 ring-primary" : ""}`}>
+    <Card className="flex flex-col p-5">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-lg font-extrabold text-ink">{plan.name}</h3>
-        {isCurrent && <Badge tone="primary">Tu plan actual</Badge>}
+        {/* Un solo indicador del plan actual (la etiqueta) y en neutro: el ámbar
+            de la pantalla es el botón de acción y el azul, el plan elegido. */}
+        {isCurrent && <Badge tone="neutral">Tu plan actual</Badge>}
       </div>
 
       <p className="mt-2 flex items-baseline gap-1">
