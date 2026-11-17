@@ -167,6 +167,7 @@ listados más abajo.
   (`identity_evidence_file_deletions`) y el scheduler reintenta. Los subidos
   antes se privatizan (pendientes) o se borran (ya decididos) con
   `backend/scripts/privatize_identity_evidence.py`.
+- **Encuesta para locales** (`/encuesta`, ADR-0025): pública y sin cuenta, mide cómo usan personal eventual los locales y junta interesados en la beta. Módulo propio (no un lead), sin IP guardada, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento, guardado mientras dure la beta y el lanzamiento, que la admin borra por respuesta («Borrar contacto») o de todas con `backend/scripts/clear_survey_contacts.py` (el nombre del local queda); el resumen cuenta sólo dueños y encargados; los resultados están en `/admin/leads` → «Encuesta».
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito.

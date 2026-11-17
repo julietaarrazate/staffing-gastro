@@ -195,6 +195,29 @@ export default function PrivacidadPage() {
             </p>
           </Section>
 
+          <Section title="Encuesta para locales">
+            <p>
+              Si completás la encuesta para locales sin tener cuenta en Oído,
+              guardamos tus respuestas sobre cómo trabaja tu local: tu
+              rol, el nombre del
+              local, el tipo de local, el barrio, cuántas veces sumás
+              personal eventual, para qué puestos, cómo lo conseguís, cuánto
+              pagás por jornada y cómo preferirías pagar. Sólo si nos los
+              dejás, guardamos también tu nombre y un teléfono o email. Usamos las
+              respuestas para entender el sector y definir el producto y sus
+              precios, y el contacto únicamente para invitarte a la beta y
+              escribirte sobre Oído. No compartimos estos datos ni los usamos
+              para publicidad de terceros. Guardamos el contacto mientras dure la
+              beta y el lanzamiento de Oído, y lo borramos antes si nos lo
+              pedís escribiendo a{" "}
+              <a href={`mailto:${LEGAL_OWNER.email}`} className={LINK}>
+                {LEGAL_OWNER.email}
+              </a>
+              ; las respuestas sin contacto pueden quedar como estadística
+              anónima.
+            </p>
+          </Section>
+
           <Section title="Para qué los usamos">
             <ul className="ml-5 list-disc space-y-1.5">
               <li>Crear y mantener tu cuenta.</li>
@@ -318,6 +341,12 @@ export default function PrivacidadPage() {
                 tu dispositivo) se borra 7 días después de que vence. Si
                 cerrás sesión antes, queda marcada como cerrada hasta entonces,
                 para darnos cuenta si alguien intenta volver a usarla.
+              </li>
+              <li>
+                <strong>Encuesta para locales:</strong> las respuestas, sin
+                plazo. El nombre, teléfono y email que hayas dejado, mientras
+                dure la beta y el lanzamiento de Oído, o hasta que nos pidas
+                borrarlos.
               </li>
               <li>
                 <strong>Cuenta, perfil, turnos, chats y reseñas:</strong>{" "}

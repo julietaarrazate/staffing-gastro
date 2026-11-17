@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminHeading } from "@/components/admin/AdminStats";
+import EncuestaPanel from "@/components/admin/EncuestaPanel";
 import type { Lead, LeadImportResult, LeadStatus, LeadSummary } from "@/lib/types";
 import {
   LEAD_KIND_LABELS,
@@ -27,6 +28,7 @@ import {
   CardSkeletons,
   EmptyState,
   ErrorBanner,
+  SegmentedControl,
   useToast,
 } from "@/components/ui";
 import {
@@ -40,7 +42,37 @@ type Filter = LeadStatus | "todos";
 const SELECT_CLASS =
   "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40";
 
+type Seccion = "comercios" | "encuesta";
+
 export default function AdminLeadsPage() {
+  // «Crecimiento» tiene dos secciones: la lista de comercios a captar y los
+  // resultados de la encuesta para locales (ADR-0024).
+  const [seccion, setSeccion] = useState<Seccion>("comercios");
+  return (
+    <div>
+      <AdminHeading
+        title={seccion === "comercios" ? "Comercios a captar" : "Encuesta para locales"}
+        subtitle={
+          seccion === "comercios"
+            ? "Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
+            : "Cómo usan personal eventual los locales y quiénes quieren la beta."
+        }
+      />
+      <SegmentedControl
+        className="mt-4 max-w-sm"
+        value={seccion}
+        onChange={setSeccion}
+        options={[
+          { value: "comercios", label: "Comercios" },
+          { value: "encuesta", label: "Encuesta" },
+        ]}
+      />
+      {seccion === "comercios" ? <ComerciosACaptar /> : <EncuestaPanel />}
+    </div>
+  );
+}
+
+function ComerciosACaptar() {
   // El control de acceso lo hace `app/admin/layout.tsx`.
   const { user, token } = useAuth();
   const toast = useToast();
@@ -143,11 +175,6 @@ export default function AdminLeadsPage() {
 
   return (
     <div>
-      <AdminHeading
-        title="Comercios a captar"
-        subtitle="Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
-      />
-
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <select
           aria-label="Barrio"

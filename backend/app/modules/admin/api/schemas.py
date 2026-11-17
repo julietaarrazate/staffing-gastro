@@ -147,8 +147,8 @@ class PlatformStatsResponse(BaseModel):
     worker_completion_repeat_sample_size: int
     worker_completion_repeat_rate_pct: float | None
 
-    employer_repeat_sample_size: int
-    employer_repeat_rate_pct: float | None
+    employer_return_30d_sample_size: int
+    employer_return_30d_rate_pct: float | None
 
 
 class SubscriptionStatsResponse(BaseModel):
@@ -218,6 +218,13 @@ class PeriodSummaryResponse(BaseModel):
     covered_under_10_min_pct: float | None = None
     avg_minutes_to_cover: float | None = None
     applications: int
+    median_minutes_to_cover: float | None = None
+    short_notice_covered: int = 0
+    short_notice_under_10_min_pct: float | None = None
+    fulfilled: int = 0
+    fulfilled_pct: float | None = None
+    active_companies: int = 0
+    companies_with_covered: int = 0
 
 
 class PeriodMetricsResponse(BaseModel):
