@@ -152,7 +152,7 @@ test("Buscar recuerda rol y radio al volver y el radio dice «km»", async ({ pa
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json({ ...EMPLOYER, role: "worker" })));
+  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json({ ...EMPLOYER, role: "admin" })));
   await page.route("**/api/v1/matching/search**", (r) => r.fulfill(json([])));
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/search");

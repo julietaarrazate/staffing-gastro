@@ -69,7 +69,8 @@ export default function SearchPage() {
 }
 
 function SearchPageContent() {
-  const { user, token } = useRequireAuth();
+  // Comercio y admin: son los que el backend deja buscar (`EmployerOrAdminDep`).
+  const { user, token } = useRequireAuth({ roles: ["employer", "admin"] });
   const router = useRouter();
   const searchParams = useSearchParams();
   const [geoCenter, setGeoCenter] = useState<[number, number]>(DEFAULT_CENTER);

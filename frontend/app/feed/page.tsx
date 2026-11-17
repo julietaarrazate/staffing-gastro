@@ -147,7 +147,7 @@ export default function WorkerHomePage() {
 }
 
 function WorkerFeedPanel() {
-  const { token, user } = useRequireAuth();
+  const { token, user } = useRequireAuth({ roles: ["worker"] });
   const router = useRouter();
   const assistantSearch = useAssistantSearch();
   const { requestOptIn } = usePushPrompt();

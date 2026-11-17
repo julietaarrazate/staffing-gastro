@@ -11,7 +11,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 const OBELISCO = { lat: -34.6037, lng: -58.3816 };
 const LOCAL = { lat: -34.5875, lng: -58.4257 };
 
-function session(role: "employer" | "worker") {
+function session(role: "employer" | "admin") {
   return {
     id: "user-1",
     email: "demo@staffya.com",
@@ -58,7 +58,7 @@ function companyProfile(withPlace: boolean) {
   };
 }
 
-async function mockSearch(page: Page, role: "employer" | "worker", withPlace: boolean) {
+async function mockSearch(page: Page, role: "employer" | "admin", withPlace: boolean) {
   const searches: URL[] = [];
   await page.route("**/api/v1/auth/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(session(role)) })
@@ -128,14 +128,14 @@ test("el comercio sin local cargado ve el aviso, no se busca desde el Obelisco y
   await expect(page).toHaveURL(/\/profile\/edit/);
 });
 
-test("quien no es comercio y comparte ubicación sigue midiendo desde donde está", async ({ browser }) => {
+test("quien no es comercio (admin) y comparte ubicación sigue midiendo desde donde está", async ({ browser }) => {
   const context = await browser.newContext({
     geolocation: { latitude: -31.4, longitude: -64.18 },
     permissions: ["geolocation"],
   });
   const page = await context.newPage();
   await prepare(page);
-  const searches = await mockSearch(page, "worker", true);
+  const searches = await mockSearch(page, "admin", true);
   await page.goto("/search");
   await expect
     .poll(() => searches.some((u) => Math.abs(Number(u.searchParams.get("latitude")) - -31.4) < 0.001))
