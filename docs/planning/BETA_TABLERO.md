@@ -22,7 +22,7 @@ descuidado.
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | 🟡 triaje hecho (2026-11-16): ver abajo |
 | 4 | Identidad, marca e isotipo | ⚪ (la landing «con convicción» ya está en producción, #543) |
-| 5 | Lista de salida a beta | ⚪ |
+| 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta») |
 | 6 | SEO y GEO | ⚪ |
 
 ## Etapa 2
@@ -457,6 +457,28 @@ el turno), U039 (Google sobre una cuenta con mail sin confirmar), U084
 legal), U106 (asistente y verificación: implementar o corregir el doc), U109
 (dorso del DNI), U111 (calificación definitiva o editable), U140, U142 y U143
 (tope del plan). Las preguntas con opciones están en el triaje.
+
+## Antes de abrir: medir la beta (anotado el 2026-11-17)
+
+Los KRs del trimestre (objetivo 1: «demostrar que Oído funciona con locales
+reales») alimentan la lámina de tracción del deck. Se revisó qué registra hoy
+la app y qué muestra `/admin/metricas`. **No se programó nada:** son ítems
+para hacer antes de abrir la beta, porque lo que no se mide desde el primer
+turno no se recupera después.
+
+| KR | Qué hay hoy | Qué falta | Estado |
+|---|---|---|---|
+| Todos | Los conteos de **usuarios** excluyen las cuentas de prueba y las invitadas (`AdminService.get_stats`) | M1 · Las métricas de **turnos y comercios** no las excluyen: `count_period_stats`, `list_recently_filled`, `count_publication_stats` (`shift/infrastructure/repositories.py`) y `count_engagement_stats` (`company/`). Un turno publicado con «Ver como» o con la cuenta invitada del PIN cuenta como real. Excluirlas en las cuatro consultas | ⚪ |
+| Locales activos | «Comercios activos» = con al menos un turno publicado **en toda la historia**; «Comercios» = todos los que tienen perfil | M2 · Comercios distintos que publicaron en los últimos 7/30 días (y cuántos con al menos un turno cubierto), con el período anterior al lado, en `period-metrics` | ⚪ |
+| Turnos cubiertos | Sí, por 7/30 días (`period-metrics`) | M3 · «Cubierto» hoy es `first_assigned_at`: **el comercio eligió a alguien**, no que la persona confirmó ni que fue. Un turno rechazado o con ausencia queda contado como cubierto. Guardar cuándo confirma la persona (`Shift.confirm` no guarda la hora) y mostrar cubierto = confirmado; dejar «elegido» como dato aparte | ⚪ |
+| Tiempo de publicar a cubrir | Promedio y % en menos de 10 min por 7/30 días, medido de `published_at` a `first_assigned_at` | M4 · (a) medirlo hasta la confirmación (depende de M3); (b) separar los turnos para hoy o urgentes de los publicados con días de anticipación: uno publicado el lunes para el sábado no puede «cubrirse en 10 minutos» y mezclarlos ensucia la promesa; (c) mostrar la mediana además del promedio, que un solo turno lento mueve mucho | ⚪ |
+| Locales que repiten | «Comercios que repiten» = 2 o más turnos **publicados** / 1 o más, sin período (`events_published`) | M5 · Repetir después de que funcionó: de los comercios con un turno cubierto, cuántos publican otro dentro de los 30 días. Por período | ⚪ |
+| Locales que pagan o se comprometen | «Ingreso mensual recurrente» muestra 0 con el cobro apagado y aparte «Potencial si se cobrara». Con el cobro apagado toda suscripción se crea `activa` (`SubscriptionService`, línea 115), así que el potencial cuenta a todos los comercios | M6 · (a) El plan que el comercio elige en la landing vive sólo en el navegador (`lib/plan-elegido.ts`) y se borra al llegar a «Mi plan»: guardarlo en el servidor al darse de alta. (b) El compromiso de pago («precio fundador») no se registra en ningún lado: sumar un estado en Crecimiento (`lead`, hoy nuevo → … → alta) o un campo en la suscripción. (c) Al prender Mercado Pago, contar como «pagan» sólo los comercios con un pago aprobado | ⚪ |
+| Para el deck | `period-metrics` sólo compara 7/30 días contra el período anterior; el ingreso es una foto sin historia | M7 · Una serie semanal desde el día 1 de la beta (o un CSV desde el admin) para la lámina de tracción. Puede esperar a después de M1-M6 | ⚪ |
+
+M3 y M4 tocan la promesa central («cubrir un turno en menos de 10 minutos»):
+qué cuenta como cubierto es una regla del producto, así que la definición la
+confirma Julieta antes de programarla.
 
 ## Cómo se trabaja (acordado con Julieta el 2026-11-13)
 
