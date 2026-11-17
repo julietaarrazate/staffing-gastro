@@ -113,7 +113,11 @@ async def test_api_salida_antes_del_inicio_rechazada_y_despues_anda(client: Asyn
     assert llegada.status_code == 200
     salida = await client.post(f"/api/v1/shifts/{shift_id}/check-out", headers=worker, json=AQUI)
     assert salida.status_code in (400, 409, 422)
-    assert "el turno empieza hoy a las" in salida.text or "el turno empieza el" in salida.text
+    # Inicio a +20 min: entre las 23:40 y las 00:00 de Argentina cae mañana.
+    assert any(
+        f"el turno empieza {cuando}" in salida.text
+        for cuando in ("hoy a las", "mañana a las", "el")
+    )
     # Sigue con la llegada marcada.
     mios = await client.get("/api/v1/shifts/mine", headers=worker)
     assert [s["status"] for s in mios.json() if s["id"] == shift_id] == ["check_in"]
