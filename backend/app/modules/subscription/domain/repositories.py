@@ -8,6 +8,7 @@ desde ahí, nunca la capa de aplicación de `subscription` (ver
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from app.modules.subscription.domain.entities import Subscription, SubscriptionPayment
@@ -46,9 +47,29 @@ class SubscriptionRepository(ABC):
         vencimiento tiene que mirar)."""
 
     @abstractmethod
-    async def count_by_plan_and_status(self) -> list[tuple[str, str, int]]:
+    async def count_by_plan_and_status(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> list[tuple[str, str, int]]:
         """Conteo agregado `(plan_code, status, cantidad)` de las suscripciones
-        que ya tienen fila (panel de admin, MRR)."""
+        que ya tienen fila (panel de admin, MRR), sin los comercios con esos
+        emails (cuentas de prueba e invitadas)."""
+
+    @abstractmethod
+    async def set_chosen_plan(self, company_id: UUID, plan_code: str, at: datetime) -> bool:
+        """Guarda el plan elegido al darse de alta sólo si todavía no hay uno
+        (`UPDATE ... WHERE chosen_plan_code IS NULL`: la primera gana de verdad,
+        aun con pedidos simultáneos). Devuelve si lo guardó. `update()` no
+        escribe estas columnas."""
+
+    @abstractmethod
+    async def set_payment_commitment(
+        self, company_id: UUID, plan_code: str, price_ars: Decimal, at: datetime
+    ) -> None:
+        """Escribe sólo las 3 columnas del compromiso de pago."""
+
+    @abstractmethod
+    async def clear_payment_commitment(self, company_id: UUID) -> None:
+        """Borra sólo las 3 columnas del compromiso de pago."""
 
     @abstractmethod
     async def list_for_metrics(
@@ -58,7 +79,13 @@ class SubscriptionRepository(ABC):
         esos emails (cuentas de prueba e invitadas; medición de la beta, M6)."""
 
     @abstractmethod
-    async def count_at_plan_limit(self, limits: dict[str, int], *, now: datetime) -> int:
+    async def count_at_plan_limit(
+        self,
+        limits: dict[str, int],
+        *,
+        now: datetime,
+        exclude_company_emails: frozenset[str] = frozenset(),
+    ) -> int:
         """Cuenta comercios cuyo `turnos_usados_mes` ya alcanzó el tope de su
         plan, sólo con la ventana de uso vigente (auditoría 2026-08-15, F3)."""
 

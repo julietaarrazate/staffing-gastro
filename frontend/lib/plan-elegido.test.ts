@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { api } from "@/lib/api";
 import { RESPALDO } from "@/components/landing/planes";
 import {
   PLANES_CONOCIDOS,
@@ -10,6 +11,8 @@ import {
   urlAltaConPlan,
   urlMiPlan,
 } from "./plan-elegido";
+
+vi.mock("@/lib/api", () => ({ api: { post: vi.fn() } }));
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -68,6 +71,17 @@ describe("el plan guardado durante el alta", () => {
     guardarPlanElegido("basico");
     expect(destinoTrasBienvenida("/shifts")).toBe("/subscription?plan=basico");
     expect(destinoTrasBienvenida("/shifts")).toBe("/shifts");
+  });
+
+  it("al terminar la bienvenida avisa el plan al servidor, sin esperar y sin romper si falla", () => {
+    vi.mocked(api.post).mockRejectedValue(new Error("caído"));
+    guardarPlanElegido("pro");
+    expect(destinoTrasBienvenida("/shifts", "tok")).toBe("/subscription?plan=pro");
+    expect(api.post).toHaveBeenCalledWith("/subscription/plan-elegido", { plan_code: "pro" }, "tok");
+    // Sin plan guardado no hay nada que avisar.
+    vi.mocked(api.post).mockClear();
+    expect(destinoTrasBienvenida("/shifts", "tok")).toBe("/shifts");
+    expect(api.post).not.toHaveBeenCalled();
   });
 
   it("sin plan elegido, el destino de siempre", () => {

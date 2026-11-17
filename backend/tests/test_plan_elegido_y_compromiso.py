@@ -295,3 +295,115 @@ async def test_mrr_con_cobro_prendido_cuenta_solo_meses_pagos(client, session_fa
     assert body["billing_enabled"] is True
     # Sólo el comercio con el mes vigente: básico $20.000.
     assert Decimal(str(body["mrr_ars"])) == Decimal("20000")
+
+
+# --- Carreras de actualización perdida ---------------------------------
+
+
+async def _company_id(session_factory, email: str):
+    async with session_factory() as session:
+        user = await SqlAlchemyUserRepository(session).get_by_email(email)
+        return (
+            await session.execute(
+                select(CompanyProfileModel.id).where(CompanyProfileModel.user_id == user.id)
+            )
+        ).scalar_one()
+
+
+async def test_update_con_entidad_vieja_no_borra_el_compromiso(client, session_factory):
+    from app.modules.subscription.infrastructure.repositories import (
+        SqlAlchemySubscriptionRepository,
+    )
+
+    emp = await _employer(client, "emp_race1@test.com")
+    await client.post("/api/v1/subscription/plan-elegido", headers=emp, json={"plan_code": "pro"})
+    company_id = await _company_id(session_factory, "emp_race1@test.com")
+
+    async with session_factory() as session:
+        vieja = await SqlAlchemySubscriptionRepository(session).get_by_company_id(company_id)
+    assert vieja.payment_commitment_at is None
+
+    # Mientras tanto la admin registra el compromiso.
+    async with session_factory() as session:
+        await SqlAlchemySubscriptionRepository(session).set_payment_commitment(
+            company_id, "basico", Decimal("15000"), NOW
+        )
+
+    # Un webhook / cambio de plan guarda la entidad leída antes.
+    vieja.plan_code = "basico"
+    vieja.chosen_plan_code = "inicial"  # ni siquiera esto se escribe por update()
+    async with session_factory() as session:
+        await SqlAlchemySubscriptionRepository(session).update(vieja)
+
+    async with session_factory() as session:
+        actual = await SqlAlchemySubscriptionRepository(session).get_by_company_id(company_id)
+    assert actual.plan_code == "basico"
+    assert actual.payment_commitment_plan_code == "basico"
+    assert actual.payment_commitment_price_ars == Decimal("15000")
+    assert actual.chosen_plan_code == "pro"
+
+
+async def test_la_segunda_eleccion_no_pisa_la_primera_aunque_no_la_viera(client, session_factory):
+    from app.modules.subscription.infrastructure.repositories import (
+        SqlAlchemySubscriptionRepository,
+    )
+
+    await _employer(client, "emp_race2@test.com")
+    company_id = await _company_id(session_factory, "emp_race2@test.com")
+    async with session_factory() as session:
+        repo = SqlAlchemySubscriptionRepository(session)
+        await repo.get_or_create(company_id)
+        assert await repo.set_chosen_plan(company_id, "basico", NOW) is True
+    async with session_factory() as session:
+        repo = SqlAlchemySubscriptionRepository(session)
+        assert await repo.set_chosen_plan(company_id, "pro", NOW + timedelta(hours=1)) is False
+        actual = await repo.get_by_company_id(company_id)
+    assert actual.chosen_plan_code == "basico"
+    assert actual.chosen_plan_at is not None
+
+
+# --- Un solo universo en las métricas de suscripción -----------------------
+
+
+async def _stats(client, admin, *, billing: bool) -> dict:
+    app.dependency_overrides[get_billing_gateway] = lambda: FakeBillingGateway(enabled_=billing)
+    try:
+        return (await client.get("/api/v1/admin/subscription-stats", headers=admin)).json()
+    finally:
+        app.dependency_overrides.pop(get_billing_gateway, None)
+
+
+async def test_toda_la_seccion_excluye_cuentas_de_prueba_con_cobro_apagado_y_prendido(
+    client, session_factory
+):
+    admin = await make_admin(client, session_factory, "admin_univ@test.com")
+    real = await _employer(client, "emp_univ_real@test.com")
+    prueba = await _employer(client, "prueba.comercio@oido.beta")
+    invitada = await _employer(client, "invitado.comercio@oido.beta")
+
+    for headers in (real, prueba):
+        await client.post(
+            "/api/v1/subscription/subscribe", headers=headers, json={"plan_code": "pro"}
+        )
+    # La de prueba llega al tope de su plan inicial / está paga: no debe contar.
+    now = datetime.now(UTC)
+    async with session_factory() as session:
+        for email in ("emp_univ_real@test.com", "prueba.comercio@oido.beta"):
+            company_id = await _company_id(session_factory, email)
+            sub = (
+                await session.execute(
+                    select(SubscriptionModel).where(SubscriptionModel.company_id == company_id)
+                )
+            ).scalar_one()
+            sub.paid_until = now + timedelta(days=5)
+            sub.turnos_usados_mes = 999
+        await session.commit()
+
+    for billing in (False, True):
+        body = await _stats(client, admin, billing=billing)
+        # Sólo el comercio real: mismo denominador en toda la sección.
+        assert body["companies_by_plan"].get("pro", 0) == 1, billing
+        assert body["total_companies"] == 1, billing
+        assert sum(body["companies_by_plan"].values()) == body["total_companies"], billing
+        assert Decimal(str(body["mrr_ars"])) == Decimal("45000"), billing
+        assert body["companies_at_plan_limit"] == 0, billing

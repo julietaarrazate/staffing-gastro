@@ -147,8 +147,9 @@ class SubscriptionService:
         subscription = await self._subscriptions.get_or_create(
             company_id, initial_status=self._initial_status()
         )
-        if subscription.register_chosen_plan(plan_code, datetime.now(UTC)):
-            await self._subscriptions.update(subscription)
+        # UPDATE condicional en la base: la primera elección gana aunque la
+        # entidad leída arriba no la viera (pedidos simultáneos).
+        await self._subscriptions.set_chosen_plan(subscription.company_id, plan_code, datetime.now(UTC))
 
     # --- Elegir plan / pagar -------------------------------------------------
 

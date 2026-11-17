@@ -313,14 +313,17 @@ class AdminService:
         `InvalidPaymentCommitmentError`."""
         get_plan(plan_code)
         sub = await self._company_subscription(user_id)
+        # La entidad valida el precio; se escribe sólo el compromiso (un
+        # `update()` entero pisaría cambios concurrentes de otro pedido).
         sub.register_payment_commitment(plan_code, price_ars, datetime.now(timezone.utc))
-        await self._subscriptions.update(sub)
+        await self._subscriptions.set_payment_commitment(
+            sub.company_id, plan_code, sub.payment_commitment_price_ars, sub.payment_commitment_at
+        )
         return await self._subscription_summary(sub.company_id)
 
     async def clear_payment_commitment(self, user_id: UUID) -> AdminSubscriptionSummary:
         sub = await self._company_subscription(user_id)
-        sub.clear_payment_commitment()
-        await self._subscriptions.update(sub)
+        await self._subscriptions.clear_payment_commitment(sub.company_id)
         return await self._subscription_summary(sub.company_id)
 
     async def get_stats(self) -> PlatformStats:
@@ -556,8 +559,13 @@ class AdminService:
         ver `SubscriptionRepository`) está implícitamente en el plan por defecto — se
         suma ahí usando el total real de comercios como denominador, en vez
         de sólo contar filas existentes (subestimaría ese plan)."""
-        plan_status_counts = await self._subscriptions.count_by_plan_and_status()
-        total_companies = await self._companies.count_total()
+        # Un solo universo: toda la sección excluye las cuentas de prueba e
+        # invitadas, igual que las métricas de turnos (M1).
+        excluded = GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        plan_status_counts = await self._subscriptions.count_by_plan_and_status(
+            exclude_company_emails=excluded
+        )
+        total_companies = await self._companies.count_total(exclude_user_emails=excluded)
 
         companies_by_plan: dict[str, int] = {}
         subscribed_total = 0
@@ -569,9 +577,7 @@ class AdminService:
                 mrr += get_plan(plan_code).price_ars * count
 
         # Medición de la beta (M6): sin cuentas de prueba ni invitadas.
-        rows = await self._subscriptions.list_for_metrics(
-            exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
-        )
+        rows = await self._subscriptions.list_for_metrics(exclude_company_emails=excluded)
         now = datetime.now(timezone.utc)
         chosen_by_plan: dict[str, int] = {}
         committed = 0
@@ -602,7 +608,7 @@ class AdminService:
 
         limits = {plan.code: plan.max_turnos_mes for plan in list_plans() if plan.max_turnos_mes is not None}
         companies_at_plan_limit = await self._subscriptions.count_at_plan_limit(
-            limits, now=datetime.now(timezone.utc)
+            limits, now=datetime.now(timezone.utc), exclude_company_emails=excluded
         )
 
         return SubscriptionStats(
