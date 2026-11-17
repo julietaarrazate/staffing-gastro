@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
-import { Applicant, CandidateMatch, SKILL_LABELS, Shift } from "@/lib/types";
+import { Applicant, CandidateMatch, SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
@@ -29,9 +29,13 @@ import {
   useToast,
 } from "@/components/ui";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
+import { ChevronLeftIcon, ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
+
+// Mismos estados desde los que el servidor deja asignar (`Shift.assign`).
+// Mientras el turno no cargó se asume asignable (el servidor igual decide).
+const ASSIGNABLE_STATUSES = ["publicado", "buscando_personal"];
 
 /**
  * Carga una lista. 404 (turno ajeno o inexistente) = lista vacía, como
@@ -88,6 +92,9 @@ function ShiftCandidatesContent() {
     router.replace(`/shifts/${shiftId}/candidates?tab=${next}`, { scroll: false });
   }
   const [shift, setShift] = useState<Shift | null>(null);
+  const [shiftError, setShiftError] = useState(false);
+  // Sin el estado del turno no se ofrece «Asignar»: se carga o se reintenta.
+  const canAssign = shift !== null && ASSIGNABLE_STATUSES.includes(shift.status);
   // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
   // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
   // contestó bien con cero postulantes. Si ya había datos y una recarga
@@ -139,7 +146,17 @@ function ShiftCandidatesContent() {
     // Aparte de la carga principal: si falla, la pantalla igual funciona sin
     // el resumen del turno de arriba (era información nueva agregada acá, no
     // el contenido central de esta pantalla).
-    if (token) api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
+    if (token) {
+      api
+        .get<Shift>(`/shifts/${shiftId}`, token)
+        .then((data) => {
+          setShift(data);
+          setShiftError(false);
+        })
+        .catch(() => {
+          if (!silent) setShiftError(true);
+        });
+    }
   }, [reloadApps, reloadCands, token, shiftId]);
 
   useEffect(() => {
@@ -178,10 +195,32 @@ function ShiftCandidatesContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
+      <Link
+        href="/shifts"
+        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
+      >
+        <ChevronLeftIcon size={16} /> Mis turnos
+      </Link>
       <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Candidatos</h1>
       <p className="mt-0.5 text-sm text-ink/50">
-        Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano.
+        {canAssign
+          ? "Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano."
+          : "Estos son los candidatos de este turno."}
       </p>
+      {!shift && shiftError && (
+        <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
+      )}
+      {!canAssign && shift && (
+        <p
+          role="status"
+          data-testid="candidatos-turno-cerrado"
+          className="mt-3 rounded-[var(--radius-card)] bg-surface p-3.5 text-sm text-ink/75 ring-1 ring-line"
+        >
+          {shift.status === "asignado"
+            ? "Este turno ya tiene a alguien asignado: no se puede asignar a otra persona."
+            : `Este turno está ${STATUS_LABELS[shift.status as keyof typeof STATUS_LABELS]?.toLowerCase() ?? shift.status}: ya no se puede asignar a nadie.`}
+        </p>
+      )}
 
       {/* Recordatorio de PARA QUÉ turno son estos candidatos: un comercio con
           varios turnos abiertos podía llegar acá (desde el panel, un link
@@ -330,15 +369,17 @@ function ShiftCandidatesContent() {
                           )}
                           <CandidateStatChips signals={a} className="mt-1" onDark={top} />
                         </div>
-                        <Button
-                          size="sm"
-                          variant={top || !standout ? "primary" : "surface"}
-                          onClick={() => assign(a.worker_profile_id)}
-                          loading={assigning === a.worker_profile_id}
-                          disabled={assigning !== null}
-                        >
-                          Asignar
-                        </Button>
+                        {canAssign && (
+                          <Button
+                            size="sm"
+                            variant={top || !standout ? "primary" : "surface"}
+                            onClick={() => assign(a.worker_profile_id)}
+                            loading={assigning === a.worker_profile_id}
+                            disabled={assigning !== null}
+                          >
+                            Asignar
+                          </Button>
+                        )}
                       </div>
                       {assignedId === a.worker_profile_id && <ConfirmOverlay label="Asignado" detail={a.full_name} />}
                     </motion.div>
@@ -376,6 +417,7 @@ function ShiftCandidatesContent() {
                       candidate={candidate}
                       recommended={candidate.profile_id === candidates[0]?.profile_id}
                       disabled={assigning !== null}
+                      canAssign={canAssign}
                       onAssign={() => assign(candidate.profile_id)}
                     />
                     {assignedId === candidate.profile_id && (
