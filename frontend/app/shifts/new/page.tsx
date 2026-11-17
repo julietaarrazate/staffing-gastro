@@ -86,7 +86,7 @@ export default function NewShiftPage() {
 }
 
 function NewShiftWizard() {
-  const { token, user } = useRequireAuth();
+  const { token, user } = useRequireAuth({ roles: ["employer"] });
   const owner = user?.id ?? null;
   const { requestOptIn } = usePushPrompt();
   const router = useRouter();

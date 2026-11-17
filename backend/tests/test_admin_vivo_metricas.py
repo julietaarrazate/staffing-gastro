@@ -138,7 +138,7 @@ async def test_live_shifts_lists_uncovered_most_urgent_first(client, session_fac
     assert resp.status_code == 200
     body = resp.json()
     titles = [s["title"] for s in body["shifts"]]
-    assert titles == ["Escalado", "Urgente del comercio", "Viejo sin cubrir", "Nuevo sin cubrir"]
+    assert titles == ["Escalado", "Urgente del comercio", "Nuevo sin cubrir", "Viejo sin cubrir"]
     assert (body["total"], body["urgent"], body["escalated"]) == (4, 2, 1)
 
     by_title = {s["title"]: s for s in body["shifts"]}
@@ -148,6 +148,31 @@ async def test_live_shifts_lists_uncovered_most_urgent_first(client, session_fac
     assert 39 <= by_title["Viejo sin cubrir"]["minutes_open"] <= 41
     assert by_title["Escalado"]["escalated"] is True
     assert by_title["Urgente del comercio"]["escalated"] is False
+
+
+async def test_live_shifts_cap_keeps_recent_and_totals_cover_everything(
+    client, session_factory, monkeypatch
+):
+    """Con más turnos que el tope se muestran los más recientes, pero los
+    totales y `shown_live` dicen la verdad (la pantalla avisa que faltan)."""
+    from app.modules.admin.application.services import AdminService
+
+    monkeypatch.setattr(AdminService, "LIVE_SHIFTS_LIMIT", 2)
+    admin = await _make_admin(client, session_factory, "vivo_tope_admin@test.com")
+    employer = await _employer(client, "vivo_tope@test.com", "Bar Tope")
+    viejo = await _published_shift(client, employer, title="Muy viejo")
+    medio = await _published_shift(client, employer, title="Medio")
+    nuevo = await _published_shift(client, employer, title="Recien publicado", urgent=True)
+    nuevo2 = await _published_shift(client, employer, title="Otro reciente")
+    await _set(session_factory, viejo, published_at=_ago(90))
+    await _set(session_factory, medio, published_at=_ago(30))
+    await _set(session_factory, nuevo, published_at=_ago(2))
+    await _set(session_factory, nuevo2, published_at=_ago(1))
+
+    body = (await client.get("/api/v1/admin/live-shifts", headers=admin)).json()
+    assert [s["title"] for s in body["shifts"]] == ["Recien publicado", "Otro reciente"]
+    assert (body["total"], body["urgent"], body["escalated"]) == (4, 1, 0)
+    assert (body["shown_live"], body["limit"]) == (2, 2)
 
 
 async def test_live_shifts_includes_assigned_not_confirmed(client, session_factory):

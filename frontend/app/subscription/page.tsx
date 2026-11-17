@@ -53,7 +53,7 @@ export default function SubscriptionPage() {
 }
 
 function SubscriptionContent() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["employer"] });
   const toast = useToast();
   const searchParams = useSearchParams();
   const returnMessage = paymentReturnMessage(searchParams.get("pago"));

@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.edge import client_ip
 from app.core.origin import require_allowed_origin
 from app.core.log_privacy import email_log_key
-from app.core.rate_limit import RateLimiter
+from app.core.rate_limit import RateLimiter, retry_after_headers
 from app.core.turnstile import require_turnstile
 from app.modules.identity.api.dependencies import (
     get_current_session,
@@ -659,6 +659,7 @@ async def two_factor_verify(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Demasiados códigos incorrectos. Esperá 15 minutos y volvé a probar.",
+            headers=retry_after_headers(15 * 60),
         ) from exc
     except TwoFactorNotConfiguredError as exc:
         raise _two_factor_http_error(exc) from exc

@@ -167,6 +167,8 @@ class AdminShiftRow:
     start_at: datetime
     status: str
     pay_amount: Decimal
+    # La persona de la ficha faltó a este turno (ya no figura como asignada).
+    absent: bool = False
 
 
 @dataclass
@@ -224,6 +226,10 @@ class LiveShiftsBoard:
     escalated: int
     shifts: list[LiveShiftRow]
     no_shows: int = 0
+    # Cuántos turnos en vivo hay en total (sin filtros) y cuántos entran en
+    # la lista: si `total_live > shown_live`, la pantalla avisa que faltan.
+    shown_live: int = 0
+    limit: int = 0
 
 
 @dataclass

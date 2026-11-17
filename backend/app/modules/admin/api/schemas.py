@@ -73,6 +73,7 @@ class AdminShiftRowResponse(BaseModel):
     start_at: datetime
     status: str
     pay_amount: Decimal
+    absent: bool = False
 
 
 class AdminTicketRowResponse(BaseModel):
@@ -192,6 +193,8 @@ class LiveShiftsResponse(BaseModel):
     urgent: int
     escalated: int
     no_shows: int = 0
+    shown_live: int = 0
+    limit: int = 0
     shifts: list[LiveShiftResponse]
 
 
