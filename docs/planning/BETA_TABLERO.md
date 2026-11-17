@@ -414,8 +414,8 @@ U121, U087), 2 parciales (U130, U133), 10 esperan una decisión de Julieta y
 2 quedan fuera (U141 va con el tope del plan, apagado en la beta; U102 se
 cierra al apagar el ingreso de invitado, decisión 5).
 
-**Arreglos, un PR por grupo** (tanda 1 en `main` el 2026-11-17, con revisión
-independiente de cada PR; el resto ⚪ sin empezar):
+**Arreglos, un PR por grupo** (tandas 1 y 2 en `main` el 2026-11-17, con
+revisión independiente de cada PR; el resto ⚪ sin empezar):
 
 | Grupo | Hallazgos | Tanda | Estado |
 |---|---|---|---|
@@ -426,9 +426,9 @@ independiente de cada PR; el resto ⚪ sin empezar):
 | G · Candidatos, perfil y Buscar | U022, U027, U074 | 1 | ✅ #598 |
 | I · Subidas de archivos y perfil del trabajador | U051, U052, U091 | 1 | ✅ #599 |
 | K · Detalles sueltos de pantalla | U044, U046, U047, U061 | 1 | ✅ #600 |
-| D · Mensajes de error y de límites | U113, U144 | 2 | ⚪ |
-| L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 | ⚪ |
-| M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 | ⚪ |
+| D · Mensajes de error y de límites | U113, U144 | 2 | ✅ #606 |
+| L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 | ✅ #604 |
+| M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 | ✅ #605 |
 | H · Matches del trabajador | U066, U068, U088 | 3 | ⚪ |
 | N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ⚪ |
 | E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) | ⚪ |
@@ -446,6 +446,24 @@ independiente de cada PR; el resto ⚪ sin empezar):
   mirar en un iPhone real que ningún formulario quede apretado.
 - U068 (visual, grupo H) se confirma renderizado en claro y oscuro en la
   tanda 3.
+
+**Lo que dejó abierto la tanda 2** (⚪):
+
+- Avisos con nombres o títulos largos: U118 se arregló sólo en el aviso de
+  nuevo postulante. «Nuevo mensaje de …» (chat) y «… salió para tu local»
+  pueden pasar los 255 caracteres del título y dar error después de guardar.
+  Recortar en un solo lugar (entidad o repositorio de avisos), no en cada
+  servicio; los tests corren sobre SQLite, que no hace cumplir el largo.
+- Textos de «sin conexión»: `frontend/lib/auth-context.tsx` todavía dice «No
+  se pudo conectar con el servidor.» (compuesto queda «No se pudo X: no se
+  pudo conectar…»), y `/recuperar` y `/verificar-email` tienen su propio
+  «esperá un minuto». Unificar con el texto de #606 (va bien con el grupo E).
+- Ficha de persona (admin): si dos personas faltan al mismo turno, sólo queda
+  la última (`last_no_show_worker_profile_id` guarda una); y un turno que
+  vence sin cubrir se muestra «No cubierto», aunque antes alguien haya faltado.
+  Un registro propio de ausencias lo resolvería; hoy no hace falta.
+- «Turnos en vivo» ordena urgentes, escalados y lo más reciente primero; con
+  más de 200, lo que queda afuera es lo más viejo (y el aviso lo dice).
 
 Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
