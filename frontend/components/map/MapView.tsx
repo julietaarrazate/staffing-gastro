@@ -99,6 +99,13 @@ export function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
   }
 }
 
+/** Carteles de `cooperativeGestures` en español (MapLibre los trae en inglés). */
+export const MAP_LOCALE_ES = {
+  "CooperativeGesturesHandler.WindowsHelpText": "Usá Ctrl + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MacHelpText": "Usá ⌘ + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa",
+};
+
 // Mismo problema que arriba, pero con `cooperativeGestures` — el gesto que
 // exige dos dedos para panear un mapa embebido en una página con scroll
 // (reporte real de Julieta, ver el prop más abajo). `cooperativeGestures` es
@@ -113,13 +120,6 @@ export function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
 // mapa reciclado queda con la protección apagada aunque el prop diga
 // `true` — un dedo vuelve a panear el mapa en vez de scrollear la página.
 // Mismo mecanismo de sincronización manual en cada `load` que `interactive`.
-/** Carteles de `cooperativeGestures` en español (MapLibre los trae en inglés). */
-export const MAP_LOCALE_ES = {
-  "CooperativeGesturesHandler.WindowsHelpText": "Usá Ctrl + scroll para acercar o alejar el mapa",
-  "CooperativeGesturesHandler.MacHelpText": "Usá ⌘ + scroll para acercar o alejar el mapa",
-  "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa",
-};
-
 export function syncCooperativeGestures(raw: unknown, cooperativeGestures: boolean) {
   const handler = (raw as { cooperativeGestures?: { enable(): void; disable(): void } })
     .cooperativeGestures;

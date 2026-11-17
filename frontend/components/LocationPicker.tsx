@@ -61,6 +61,22 @@ export function nearestLocality(
     : null;
 }
 
+/** Nombre de zona para un punto de GPS: el barrio elegido si el GPS queda a ≤50 km de él; si no, el más cercano. */
+export function resolveGpsLocality(
+  provinceIdx: number,
+  localityName: string,
+  lat: number,
+  lng: number
+): { provinceIdx: number; localityName: string } | null {
+  const chosen = localityName
+    ? PROVINCES[provinceIdx]?.localities.find((l) => l.name === localityName)
+    : undefined;
+  if (chosen && haversineKm([lat, lng], [chosen.lat, chosen.lng]) <= MAX_NAME_DISTANCE_KM) {
+    return { provinceIdx, localityName };
+  }
+  return nearestLocality(lat, lng);
+}
+
 // Mismo tratamiento que `TextField` del design system (alto de toque 48px,
 // radio y anillo por token): antes usaba grises/naranjas crudos y quedaba
 // visiblemente distinto a los demás campos de la app.
@@ -118,9 +134,9 @@ export default function LocationPicker({
       const { latitude, longitude } = await getCurrentPosition();
       // Nunca se guarda «Mi ubicación actual» como nombre de zona: se usa el
       // barrio/ciudad elegido o, si no hay, el más cercano al GPS.
-      const named = localityName
-        ? { provinceIdx, localityName }
-        : nearestLocality(latitude, longitude);
+      // El barrio elegido/guardado sólo vale si el GPS está cerca de él: con
+      // «Palermo» guardado y el GPS en Rosario se nombra por cercanía.
+      const named = resolveGpsLocality(provinceIdx, localityName, latitude, longitude);
       if (!named) {
         setGeoStatus("error");
         setGeoMsg("No pudimos ponerle nombre a tu zona: elegí tu provincia y barrio o ciudad.");
