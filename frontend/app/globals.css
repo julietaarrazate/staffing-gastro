@@ -2035,6 +2035,22 @@ body:has([data-landing]) main {
     font-size: 2.375rem;
   }
 }
+/* Encuesta para locales (`/encuesta`): el cielo de la landing como panel de
+   arriba, con la pregunta adentro. Va siempre en claro (`data-theme="light"`
+   en el elemento): el cielo no se vuelve noche en el modo oscuro, y adentro la
+   tinta es la de claro. */
+.encuesta-cielo {
+  margin: var(--l-margen) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  padding: max(20px, env(safe-area-inset-top, 0px)) 20px 28px;
+  background: linear-gradient(180deg, var(--l-cielo-1) 0%, var(--l-cielo-2) 55%, var(--l-cielo-3) 100%);
+  color: var(--color-ink);
+}
+@media (min-width: 640px) {
+  .encuesta-cielo {
+    padding: 28px 32px 36px;
+  }
+}
 /* «Para trabajar»: la noche azul de la app, en un panel. */
 .landing-noche {
   margin: 0 var(--l-margen);
