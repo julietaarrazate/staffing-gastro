@@ -17,6 +17,16 @@ describe("getErrorMessage", () => {
     );
   });
 
+  it("un fallback que termina en «…», «?» o «!» no lleva «:» detrás", () => {
+    const err = new TypeError("Failed to fetch");
+    expect(getErrorMessage(err, "Cargando tus turnos…")).toBe(
+      "Cargando tus turnos… No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
+    );
+    expect(getErrorMessage(err, "¡Ups!")).toBe(
+      "¡Ups! No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
+    );
+  });
+
   it("NetworkError: sin conexión vs timeout se distinguen", () => {
     expect(getErrorMessage(new NetworkError("El servidor tardó demasiado en responder."))).toBe(
       "El servidor tardó demasiado en responder."

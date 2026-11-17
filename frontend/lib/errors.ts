@@ -22,6 +22,8 @@ export function getErrorMessage(err: unknown, fallback?: string): string {
         : null;
   if (sinRed) {
     if (!fallback) return sinRed;
+    // «Cargando…» o «¿Seguro?» no admiten «:» detrás: ahí van como dos frases.
+    if (/[…?!]\s*$/.test(fallback)) return `${fallback.trim()} ${sinRed}`;
     const accion = fallback.replace(/[\s.:]+$/, "");
     return `${accion}: ${sinRed.charAt(0).toLowerCase()}${sinRed.slice(1)}`;
   }

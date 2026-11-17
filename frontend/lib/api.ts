@@ -446,7 +446,9 @@ async function request<T>(
     // No se pudo renovar. Lo que nunca sale es el «No autorizado» del
     // servidor: o no hay conexión (y la sesión sigue), o la sesión terminó.
     if (outcome.kind === "transient") {
-      throw new NetworkError("No se pudo conectar con el servidor.");
+      throw new NetworkError(
+        "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
+      );
     }
     if (outcome.kind === "error") throw outcome.error;
     throw new ApiError(401, SESSION_EXPIRED_MESSAGE, SESSION_EXPIRED_CODE);
