@@ -92,7 +92,9 @@ function ShiftCandidatesContent() {
     router.replace(`/shifts/${shiftId}/candidates?tab=${next}`, { scroll: false });
   }
   const [shift, setShift] = useState<Shift | null>(null);
-  const canAssign = !shift || ASSIGNABLE_STATUSES.includes(shift.status);
+  const [shiftError, setShiftError] = useState(false);
+  // Sin el estado del turno no se ofrece «Asignar»: se carga o se reintenta.
+  const canAssign = shift !== null && ASSIGNABLE_STATUSES.includes(shift.status);
   // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
   // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
   // contestó bien con cero postulantes. Si ya había datos y una recarga
@@ -144,7 +146,17 @@ function ShiftCandidatesContent() {
     // Aparte de la carga principal: si falla, la pantalla igual funciona sin
     // el resumen del turno de arriba (era información nueva agregada acá, no
     // el contenido central de esta pantalla).
-    if (token) api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
+    if (token) {
+      api
+        .get<Shift>(`/shifts/${shiftId}`, token)
+        .then((data) => {
+          setShift(data);
+          setShiftError(false);
+        })
+        .catch(() => {
+          if (!silent) setShiftError(true);
+        });
+    }
   }, [reloadApps, reloadCands, token, shiftId]);
 
   useEffect(() => {
@@ -195,14 +207,18 @@ function ShiftCandidatesContent() {
           ? "Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano."
           : "Estos son los candidatos de este turno."}
       </p>
+      {!shift && shiftError && (
+        <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
+      )}
       {!canAssign && shift && (
         <p
           role="status"
           data-testid="candidatos-turno-cerrado"
           className="mt-3 rounded-[var(--radius-card)] bg-surface p-3.5 text-sm text-ink/75 ring-1 ring-line"
         >
-          Este turno está {STATUS_LABELS[shift.status as keyof typeof STATUS_LABELS]?.toLowerCase() ?? shift.status}:
-          ya no se puede asignar a nadie.
+          {shift.status === "asignado"
+            ? "Este turno ya tiene a alguien asignado: no se puede asignar a otra persona."
+            : `Este turno está ${STATUS_LABELS[shift.status as keyof typeof STATUS_LABELS]?.toLowerCase() ?? shift.status}: ya no se puede asignar a nadie.`}
         </p>
       )}
 

@@ -151,7 +151,7 @@ function SearchPageContent() {
   }, [origin]);
 
   async function search() {
-    if (!token) return;
+    if (!token || !filtersRestored) return;
     if (origin === "esperando" || origin === "sin-local" || origin === "error") {
       if (origin === "sin-local" || origin === "error") {
         setWorkers([]);

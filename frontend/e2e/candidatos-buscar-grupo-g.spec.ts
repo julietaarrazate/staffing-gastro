@@ -164,3 +164,40 @@ test("Buscar recuerda rol y radio al volver y el radio dice «km»", async ({ pa
   await expect(aside.locator("select")).toHaveValue("barista");
   await expect(aside.locator("input[type=number]")).toHaveValue("30");
 });
+
+test("perfil sin historial: «Volver» lleva a Buscar", async ({ page }) => {
+  await setupCandidatos(page, "publicado");
+  await page.route("**/api/v1/workers/wp-1", (r) =>
+    r.fulfill(json({ id: "wp-1", user_id: "u-9", full_name: "Lucía Postulada", photo_url: null, city: "Palermo", skills: ["mozo"], years_experience: 3, is_available: true, rating: "4.8", events_completed: 12, punctuality_rate: "0.95", badges: [], level: "bronce", languages: [], certifications: [], bio: null, cv_url: null, cv_filename: null, birth_date: null, age: null, latitude: null, longitude: null, cancellations: 0, no_shows: 0, identidad_verificada: false }))
+  );
+  await page.route("**/api/v1/favorites/**", (r) => r.fulfill(json({ is_favorite: false })));
+  await page.route("**/api/v1/reviews/**", (r) => r.fulfill(json([])));
+  await page.route("**/api/v1/matching/search**", (r) => r.fulfill(json([])));
+  await page.route("**/api/v1/companies/me/profile", (r) => r.fulfill(json({}, 404)));
+  // Entrada directa: el navegador reporta una sola entrada de historial.
+  await page.addInitScript(() => {
+    Object.defineProperty(History.prototype, "length", { get: () => 1 });
+  });
+  await page.goto("/workers/wp-1");
+  await page.getByRole("button", { name: "Volver" }).click();
+  await expect(page).toHaveURL(/\/search/);
+});
+
+test("turno asignado: el aviso dice que ya tiene a alguien", async ({ page }) => {
+  await setupCandidatos(page, "asignado");
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByTestId("candidatos-turno-cerrado")).toContainText("ya tiene a alguien asignado");
+  await expect(page.getByRole("button", { name: "Asignar" })).toHaveCount(0);
+});
+
+test("falla el GET del turno: sin «Asignar» y con error y reintento", async ({ page }) => {
+  await setupCandidatos(page, "publicado");
+  let falla = true;
+  await page.route("**/api/v1/shifts/shift-1", (r) => (falla ? r.fulfill(json({ detail: "x" }, 500)) : r.fulfill(json(shift("publicado")))));
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByText("No pudimos cargar el estado del turno")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Asignar" })).toHaveCount(0);
+  falla = false;
+  await page.getByRole("button", { name: "Reintentar" }).first().click();
+  await expect(page.getByRole("button", { name: "Asignar" }).first()).toBeVisible();
+});
