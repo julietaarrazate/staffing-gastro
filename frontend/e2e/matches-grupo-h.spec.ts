@@ -231,5 +231,9 @@ test("?turno= estando ya en Matches (aviso tocado desde la campanita) salta otra
 test("?turno= con un turno que no está en la lista no pasa nada", async ({ page }) => {
   await abrir(page, [], assigned, [], "/my-shifts?turno=no-existe");
   await expect(page.getByRole("heading", { name: "Matches" })).toBeVisible();
-  await expect(page.locator("[class*='ring-primary-text']:not([aria-current='step'])")).toHaveCount(0);
+  // Ninguna tarjeta (`#turno-…`) lleva el token exacto del resaltado en su classList.
+  const resaltadas = await page
+    .locator("[id^='turno-']")
+    .evaluateAll((els) => els.filter((el) => el.classList.contains("ring-primary-text")).length);
+  expect(resaltadas).toBe(0);
 });

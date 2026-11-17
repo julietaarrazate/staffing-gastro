@@ -141,13 +141,21 @@ function useIsDesktop(): boolean {
 export default function WorkerHomePage() {
   return (
     <Suspense fallback={null}>
-      <WorkerFeedPanel />
+      <FeedGuard />
     </Suspense>
   );
 }
 
+// Hasta conocer el rol no se monta nada. La guarda de rol va por fuera del panel: con otro rol el panel ni se monta,
+// así que no pinta el feed cacheado, no pide nada ni la ubicación del navegador
+// mientras la guarda redirige a la home de su rol.
+function FeedGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["worker"] });
+  return allowed && user ? <WorkerFeedPanel /> : null;
+}
+
 function WorkerFeedPanel() {
-  const { token, user } = useRequireAuth({ roles: ["worker"] });
+  const { token, user } = useRequireAuth();
   const router = useRouter();
   const assistantSearch = useAssistantSearch();
   const { requestOptIn } = usePushPrompt();

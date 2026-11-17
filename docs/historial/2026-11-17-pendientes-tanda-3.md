@@ -30,6 +30,19 @@
   que corre en el mismo commit que habilita el botón. Sin reintentos ni
   esperas fijas.
 
+**Tras la revisión independiente:** la guarda de `/feed` y `/search` va en un
+componente por fuera de la pantalla (`FeedGuard`, `SearchGuard`): con otro rol
+(o sin conocer todavía el rol) la pantalla no se monta, así que no sale el
+pedido del feed ni la búsqueda, no se pide la ubicación del navegador ni se
+pinta el feed cacheado; además el efecto de geolocalización de `/search` sale
+sin `token`. El spec de guardas afirma todo eso (con un contador sobre
+`navigator.geolocation`) y suma admin en `/feed` → `/admin`. `SwipeDeck.test.tsx`
+tiene un caso determinista de la flecha (MutationObserver sobre el botón que se
+habilita; falla con `useEffect`, pasa con `useLayoutEffect`). El spec de
+Matches busca el token exacto en el `classList` de la tarjeta, y el del
+indicador mide colores calculados del paso actual y del completado en claro y
+oscuro.
+
 **Por qué así:** tokens y no literales; la regla (un ámbar por pantalla, lo
 actual en azul, deshabilitado sin opacidad) quedó escrita en
 `docs/design-system/marca-hoy.md`. El deshabilitado de `surface` queda en 4,8

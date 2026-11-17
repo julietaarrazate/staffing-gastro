@@ -63,14 +63,22 @@ export default function SearchPage() {
   // useSearchParams exige un boundary de Suspense en build estático.
   return (
     <Suspense fallback={null}>
-      <SearchPageContent />
+      <SearchGuard />
     </Suspense>
   );
 }
 
+// Comercio y admin: son los que el backend deja buscar (`EmployerOrAdminDep`).
+// Hasta conocer el rol no se monta nada (así no sale ningún pedido de más).
+// La guarda va por fuera: con otro rol la pantalla ni se monta (no pide la
+// ubicación del navegador ni busca) mientras redirige a la home de su rol.
+function SearchGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["employer", "admin"] });
+  return allowed && user ? <SearchPageContent /> : null;
+}
+
 function SearchPageContent() {
-  // Comercio y admin: son los que el backend deja buscar (`EmployerOrAdminDep`).
-  const { user, token } = useRequireAuth({ roles: ["employer", "admin"] });
+  const { user, token } = useRequireAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [geoCenter, setGeoCenter] = useState<[number, number]>(DEFAULT_CENTER);
@@ -142,14 +150,14 @@ function SearchPageContent() {
   useEffect(() => {
     // El trabajador (y el admin) siguen midiendo desde donde están; el comercio
     // mide desde su local y no le pide la ubicación al navegador.
-    if (origin !== "cerca" || !navigator.geolocation) return;
+    if (!token || origin !== "cerca" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setGeoCenter([pos.coords.latitude, pos.coords.longitude]),
       () => {
         // Sin permiso o sin soporte: nos quedamos con el centro por defecto.
       }
     );
-  }, [origin]);
+  }, [origin, token]);
 
   async function search() {
     if (!token || !filtersRestored) return;
