@@ -79,13 +79,3 @@ class ReferenceLookup(ABC):
     @abstractmethod
     async def worker_applied_to(self, shift_id: UUID, worker_profile_id: UUID) -> bool:
         """¿Se postuló alguna vez a este turno (cualquier estado de la postulación)?"""
-
-    @abstractmethod
-    async def worker_has_shift_with_company(
-        self, worker_profile_id: UUID, company_id: UUID
-    ) -> bool:
-        """¿Se postuló o fue asignado a algún turno de este comercio?"""
-
-    @abstractmethod
-    async def company_has_public_open_shift(self, company_id: UUID) -> bool:
-        """¿El comercio tiene hoy algún turno abierto que cualquiera ve?"""

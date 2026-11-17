@@ -205,8 +205,8 @@ class SupportService:
 
         - Turno: lo puede atar el comercio dueño; y un trabajador si fue asignado,
           se postuló, o es un turno abierto que ve en el Inicio.
-        - Comercio: su propia cuenta; o el trabajador que se postuló/fue
-          asignado a un turno suyo, o ve hoy un turno abierto suyo.
+        - Comercio: su propia cuenta; o cualquier trabajador (el perfil público
+          del comercio lo ve cualquier sesión).
         - Con las dos referencias, el comercio tiene que ser el del turno. Con
           sólo el turno, el comercio se completa solo.
         """
@@ -214,14 +214,14 @@ class SupportService:
         if shift_id is not None:
             shift = await self._references.get_shift_facts(shift_id)
             if shift is None or not await self._can_reference_shift(user_id, shift):
-                raise ReferenceNotFoundError(shift_id.hex)
+                raise ReferenceNotFoundError("turno")
             if company_id is not None and company_id != shift.company_id:
-                raise ReferenceNotFoundError(company_id.hex)
+                raise ReferenceNotFoundError("comercio")
             company_id = shift.company_id
         elif company_id is not None:
             company = await self._references.get_company_facts(company_id)
             if company is None or not await self._can_reference_company(user_id, company):
-                raise ReferenceNotFoundError(company_id.hex)
+                raise ReferenceNotFoundError("comercio")
         return shift_id, company_id
 
     async def _can_reference_shift(self, user_id: UUID, shift: ShiftFacts) -> bool:
@@ -237,11 +237,7 @@ class SupportService:
     async def _can_reference_company(self, user_id: UUID, company: CompanyFacts) -> bool:
         if company.user_id == user_id:
             return True
-        worker_profile_id = await self._references.worker_profile_id_of(user_id)
-        if worker_profile_id is None:
-            return False
-        if await self._references.worker_has_shift_with_company(worker_profile_id, company.id):
-            return True
-        return company.account_active and await self._references.company_has_public_open_shift(
-            company.id
-        )
+        # Un trabajador puede reportar cualquier comercio que vería en su perfil
+        # público (`GET /companies/{id}` lo muestra a cualquier sesión, sin
+        # filtrar por suspensión), así que atarlo no revela nada.
+        return await self._references.worker_profile_id_of(user_id) is not None

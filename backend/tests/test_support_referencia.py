@@ -8,7 +8,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 
+from tests.conftest import auth_headers
 from tests.test_admin import _make_admin
 from tests.test_attendance import _employer_with_company, _worker_with_profile
 
@@ -136,21 +138,20 @@ async def test_employer_ties_own_shift_but_not_someone_elses_open_one(client: As
 async def test_company_reference_rules(client: AsyncClient):
     employer = await _employer_with_company(client, "sref_e5@staffya.com")
     quiet_employer = await _employer_with_company(client, "sref_e5b@staffya.com")
-    await _published_shift(client, employer)
     company_id = await _company_id(client, employer)
     quiet_company_id = await _company_id(client, quiet_employer)
     worker, _ = await _worker_with_profile(client, "sref_w5@staffya.com")
 
-    # El trabajador ve un turno abierto de ese comercio: puede atarlo.
+    # Un trabajador ata cualquier comercio que ve en su perfil público.
     created = await _ticket(client, worker, company_id=company_id, category="comercio")
     assert created.status_code == 201
     assert created.json()["company_id"] == company_id
     assert created.json()["shift_id"] is None
-    # Un comercio sin ningún turno relacionado con él: 404.
-    assert (await _ticket(client, worker, company_id=quiet_company_id)).status_code == 404
+    assert (await _ticket(client, worker, company_id=quiet_company_id)).status_code == 201
     # Un comercio ata el suyo, no el de otro.
     assert (await _ticket(client, employer, company_id=company_id)).status_code == 201
     assert (await _ticket(client, employer, company_id=quiet_company_id)).status_code == 404
+    # Inexistente: 404.
     assert (await _ticket(client, worker, company_id=str(uuid.uuid4()))).status_code == 404
 
 
@@ -201,3 +202,125 @@ async def test_admin_sees_the_reference_with_the_company_account(
     assert row["shift_id"] == shift_id
     assert row["shift_title"] == "Mozo para el sábado"
     assert row["company_name"] == "Bar Palermo"
+
+
+async def test_foreign_draft_gives_404(client: AsyncClient):
+    employer = await _employer_with_company(client, "sref_e9@staffya.com")
+    created = await client.post("/api/v1/shifts", headers=employer, json=_future_payload())
+    draft_id = created.json()["id"]
+    worker, _ = await _worker_with_profile(client, "sref_w9@staffya.com")
+
+    assert (await _ticket(client, worker, shift_id=draft_id)).status_code == 404
+    # El dueño sí puede atar su propio borrador.
+    assert (await _ticket(client, employer, shift_id=draft_id)).status_code == 201
+
+
+async def test_open_shift_whose_start_has_passed_gives_404_to_unrelated_worker(
+    client: AsyncClient,
+):
+    employer = await _employer_with_company(client, "sref_e10@staffya.com")
+    past = (datetime.now(timezone.utc) - timedelta(days=2)).replace(tzinfo=None, microsecond=0)
+    shift_id = await _published_shift(
+        client,
+        employer,
+        start_at=past.isoformat(),
+        end_at=(past + timedelta(hours=6)).isoformat(),
+    )
+    worker, _ = await _worker_with_profile(client, "sref_w10@staffya.com")
+
+    assert (await _ticket(client, worker, shift_id=shift_id)).status_code == 404
+
+
+async def test_open_shift_of_a_suspended_company_gives_404(client: AsyncClient, session_factory):
+    employer = await _employer_with_company(client, "sref_e11@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "sref_w11@staffya.com")
+    admin = await _make_admin(client, session_factory, "sref_admin11@staffya.com")
+    users = await client.get(
+        "/api/v1/admin/users", headers=admin, params={"q": "sref_e11@staffya.com"}
+    )
+    user_id = next(u["id"] for u in users.json() if u["email"] == "sref_e11@staffya.com")
+    suspended = await client.post(f"/api/v1/admin/users/{user_id}/suspend", headers=admin)
+    assert suspended.status_code == 200
+
+    assert (await _ticket(client, worker, shift_id=shift_id)).status_code == 404
+
+
+async def test_assigned_worker_can_tie_a_shift_that_is_no_longer_open(client: AsyncClient):
+    employer = await _employer_with_company(client, "sref_e12@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, profile_id = await _worker_with_profile(client, "sref_w12@staffya.com")
+    assigned = await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": profile_id},
+    )
+    assert assigned.status_code == 200
+
+    assert (await _ticket(client, worker, shift_id=shift_id)).status_code == 201
+
+
+async def test_get_reference_gives_the_same_404_body_as_the_post(client: AsyncClient):
+    worker, _ = await _worker_with_profile(client, "sref_w13@staffya.com")
+    missing = str(uuid.uuid4())
+
+    got = await client.get(f"/api/v1/support/reference?shift_id={missing}", headers=worker)
+    posted = await _ticket(client, worker, shift_id=missing)
+
+    assert got.status_code == posted.status_code == 404
+    assert got.json() == posted.json()
+
+
+async def test_mismatched_shift_and_company_give_the_same_404_in_get_and_post(
+    client: AsyncClient,
+):
+    employer = await _employer_with_company(client, "sref_e14@staffya.com")
+    other_employer = await _employer_with_company(client, "sref_e14b@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    other_company_id = await _company_id(client, other_employer)
+    worker, _ = await _worker_with_profile(client, "sref_w14@staffya.com")
+    missing = await client.get(
+        f"/api/v1/support/reference?shift_id={uuid.uuid4()}", headers=worker
+    )
+
+    got = await client.get(
+        f"/api/v1/support/reference?shift_id={shift_id}&company_id={other_company_id}",
+        headers=worker,
+    )
+    posted = await _ticket(client, worker, shift_id=shift_id, company_id=other_company_id)
+
+    assert got.status_code == posted.status_code == 404
+    assert got.json() == posted.json() == missing.json()
+
+
+async def test_worker_without_profile_ties_nothing(client: AsyncClient):
+    employer = await _employer_with_company(client, "sref_e15@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    company_id = await _company_id(client, employer)
+    no_profile = await auth_headers(client, "worker", "sref_w15@staffya.com")
+
+    assert (await _ticket(client, no_profile, shift_id=shift_id)).status_code == 404
+    assert (await _ticket(client, no_profile, company_id=company_id)).status_code == 404
+    # Sin referencia, abre como siempre.
+    assert (await _ticket(client, no_profile)).status_code == 201
+
+
+async def test_ticket_whose_reference_became_null_still_opens(
+    client: AsyncClient, session_factory
+):
+    employer = await _employer_with_company(client, "sref_e16@staffya.com")
+    shift_id = await _published_shift(client, employer)
+    worker, _ = await _worker_with_profile(client, "sref_w16@staffya.com")
+    created = (await _ticket(client, worker, shift_id=shift_id)).json()
+    # Lo que deja `ON DELETE SET NULL` al borrarse el turno y el comercio.
+    async with session_factory() as session:
+        await session.execute(
+            text("UPDATE support_tickets SET shift_id = NULL, company_id = NULL")
+        )
+        await session.commit()
+
+    detail = await client.get(f"/api/v1/support/tickets/{created['id']}", headers=worker)
+
+    assert detail.status_code == 200
+    assert detail.json()["references"] == {"shift": None, "company": None}
+    assert (await _ticket(client, worker)).status_code == 201

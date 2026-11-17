@@ -308,7 +308,14 @@ function SupportContent() {
             <Button type="button" variant="surface" fullWidth onClick={() => setShowNew(false)}>
               Cancelar
             </Button>
-            <Button type="submit" fullWidth loading={submitting}>
+            {/* Hasta que el servidor confirma el turno o comercio, no se manda:
+                si no, el ticket saldría sin la referencia. */}
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              disabled={Boolean(reference) && !refInfo && !refMissing}
+            >
               Enviar
             </Button>
           </div>

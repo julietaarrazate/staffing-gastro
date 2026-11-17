@@ -1,4 +1,4 @@
-# U110: reportar un turno o un comercio desde soporte (#PR)
+# U110: reportar un turno o un comercio desde soporte (#623)
 
 **Pedido:** triaje de la etapa 3 de la beta (U110): un ticket de soporte no se
 podía atar a un turno ni a un comercio, y la persona tenía que describir de
@@ -30,8 +30,9 @@ company y worker es el puerto `ReferenceLookup` (sólo hechos).
 - Turno: el comercio dueño; un trabajador asignado, que se postuló (cualquier
   estado de la postulación) o ante un turno abierto público (publicado o
   buscando personal, con inicio por delante y cuenta del comercio activa).
-- Comercio: su propia cuenta; un trabajador que se postuló o fue asignado a un
-  turno suyo, o que hoy ve un turno abierto suyo (con la cuenta activa).
+- Comercio: su propia cuenta; y cualquier trabajador, porque el perfil público
+  (`GET /companies/{id}`) lo ve cualquier sesión y no filtra por suspensión.
+  Un comercio no puede atar a otro.
 - Turno y comercio juntos: el comercio tiene que ser el del turno; con sólo el
   turno, el comercio se completa solo.
 - Todo lo demás, inexistente o ajeno, da el mismo 404 («No encontramos ese
@@ -40,9 +41,9 @@ company y worker es el puerto `ReferenceLookup` (sólo hechos).
 **Por qué así:** ninguna tabla ni dominio nuevos de moderación (sigue sin
 haber señal de abuso que lo justifique): sólo una categoría más y dos columnas.
 La regla en el caso de uso y no en el adaptador para que se pueda leer y
-testear sin base. El perfil del comercio lo lee cualquier sesión, pero atarlo a
-un ticket exige relación con él (turno o turno abierto) para no dejar
-adivinar ids.
+testear sin base. Atar un comercio no exige relación con él: su perfil público ya
+lo lee cualquier sesión (404 si no existe), así que restringirlo no protegía
+nada y hacía fallar el link del perfil.
 
 **Queda abierto:**
 - El link del admin al turno va a `/turno/[id]`, que para un turno ya no abierto

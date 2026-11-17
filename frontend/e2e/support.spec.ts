@@ -628,3 +628,39 @@ test("el admin ve el turno y el comercio del ticket, con link", async ({ page })
     "/admin/personas/user-77"
   );
 });
+
+test("«Enviar» espera a que se confirme el turno antes de mandar el ticket", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/v1/support/reference?**", async (route) => {
+    await gate;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        shift: { id: SHIFT_ID, title: "Mozo para el sábado", start_at: "2026-08-15T20:00:00-03:00", company_name: "Bar Palermo" },
+        company: null,
+      }),
+    });
+  });
+  await page.route("**/api/v1/support/tickets/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+
+  await page.goto(`/support?categoria=turno&turno=${SHIFT_ID}`);
+  const dialog = page.getByRole("dialog", { name: "Nuevo ticket de soporte" });
+  await dialog.getByLabel("Asunto").fill("Turno raro");
+  await dialog.getByLabel("Contanos qué pasa").fill("Pasó algo.");
+  await expect(dialog.getByRole("button", { name: "Enviar" })).toBeDisabled();
+
+  release();
+  await expect(dialog.getByTestId("ticket-reference")).toContainText("Mozo para el sábado");
+  await expect(dialog.getByRole("button", { name: "Enviar" })).toBeEnabled();
+});

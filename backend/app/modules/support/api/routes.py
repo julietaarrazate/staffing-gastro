@@ -49,6 +49,8 @@ OffsetDep = Annotated[int, Query(ge=0)]
 _create_ticket_rate_limit = RateLimiter(
     max_attempts=10, window_seconds=3600, name="support_create_ticket"
 )
+# Confirmar qué se va a atar (U110): más holgado que crear, pero con tope.
+_reference_rate_limit = RateLimiter(max_attempts=60, window_seconds=3600, name="support_reference")
 _send_message_rate_limit = RateLimiter(
     max_attempts=30, window_seconds=60, name="support_send_message"
 )
@@ -140,6 +142,7 @@ async def get_reference(
     company_id: UUID | None = None,
 ):
     # Mismas reglas y mismo 404 que al crear el ticket: ajeno = inexistente.
+    _reference_rate_limit.check(str(current_user.id))
     try:
         refs = await service.resolve_references(
             current_user.id, shift_id=shift_id, company_id=company_id
