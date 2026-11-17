@@ -14,7 +14,10 @@ vi.mock("@/lib/api", () => ({
 vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
 vi.mock("@/lib/useWebSocket", () => ({ useWebSocket: () => undefined }));
 const routerPush = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPush }),
+  usePathname: () => "/feed",
+}));
 
 function aviso(id: string, read: boolean): Notification {
   return {
