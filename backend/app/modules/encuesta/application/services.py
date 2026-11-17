@@ -1,10 +1,10 @@
 """Casos de uso de la encuesta para locales."""
 
-from datetime import datetime, timezone
+from uuid import UUID
 
 from app.modules.encuesta.domain.entities import SurveyResponse, SurveySummary, summarize
+from app.modules.encuesta.domain.exceptions import SurveyNotFoundError
 from app.modules.encuesta.domain.repositories import SurveyRepository
-from app.modules.encuesta.domain.value_objects import CONTACT_RETENTION
 
 
 class SurveyService:
@@ -28,8 +28,14 @@ class SurveyService:
     async def summary(self) -> SurveySummary:
         return summarize(await self._surveys.list_all())
 
-    async def purge_expired_contacts(self, now: datetime | None = None) -> int:
-        """A los 12 meses se borra el contacto; las respuestas quedan como
-        estadística anónima."""
-        now = now or datetime.now(timezone.utc)
-        return await self._surveys.purge_contact_before(now - CONTACT_RETENTION)
+    async def clear_contact(self, survey_id: UUID) -> SurveyResponse:
+        """Borra el contacto de una respuesta (nombre, teléfono y email) y deja
+        el resto como estadística. Idempotente: si ya no tenía, no cambia nada."""
+        if not await self._surveys.clear_contact(survey_id):
+            raise SurveyNotFoundError(survey_id)
+        return await self._surveys.get_by_id(survey_id)  # type: ignore[return-value]
+
+    async def clear_all_contacts(self) -> int:
+        """Borra el contacto de TODAS las respuestas, para cuando terminan la
+        beta y el lanzamiento (ADR-0025). Devuelve cuántas tenían."""
+        return await self._surveys.clear_all_contacts()

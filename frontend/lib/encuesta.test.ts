@@ -14,6 +14,15 @@ import {
 const r = (extra: Partial<Respuestas>): Respuestas => ({ ...RESPUESTAS_VACIAS, ...extra });
 
 describe("faltaEnPaso", () => {
+  it("el rol, el nombre del local y el barrio son obligatorios", () => {
+    expect(faltaEnPaso("rol", r({}))).toMatch(/Elegí/);
+    expect(faltaEnPaso("rol", r({ respondentRole: "dueno" }))).toBeNull();
+    expect(faltaEnPaso("local", r({ businessName: "  " }))).toMatch(/nombre del local/);
+    expect(faltaEnPaso("local", r({ businessName: "Lo de Ana" }))).toBeNull();
+    expect(faltaEnPaso("barrio", r({}))).toMatch(/barrio/);
+    expect(faltaEnPaso("barrio", r({ barrio: "Palermo" }))).toBeNull();
+  });
+
   it("las preguntas de una opción piden elegir", () => {
     expect(faltaEnPaso("tipo", r({}))).toMatch(/Elegí/);
     expect(faltaEnPaso("tipo", r({ localKind: "bar" }))).toBeNull();
@@ -21,8 +30,8 @@ describe("faltaEnPaso", () => {
     expect(faltaEnPaso("mes_fuerte", r({ eventualsPeak: "0" }))).toBeNull();
   });
 
-  it("barrio, puestos, canales y ausencia son opcionales", () => {
-    for (const paso of ["barrio", "puestos", "canales", "ausencia"] as const) {
+  it("puestos, canales y ausencia son opcionales", () => {
+    for (const paso of ["puestos", "canales", "ausencia"] as const) {
       expect(faltaEnPaso(paso, r({}))).toBeNull();
     }
   });
@@ -46,8 +55,10 @@ describe("faltaEnPaso", () => {
   });
 
   it("cualquier dato de contacto exige el consentimiento", () => {
-    expect(faltaEnPaso("contacto", r({ businessName: "Lo de Ana" }))).toMatch(/aceptás/);
-    expect(faltaEnPaso("contacto", r({ businessName: "Lo de Ana", consent: true }))).toBeNull();
+    expect(faltaEnPaso("contacto", r({ contactName: "Ana" }))).toMatch(/aceptás/);
+    expect(faltaEnPaso("contacto", r({ contactName: "Ana", consent: true }))).toBeNull();
+    // El nombre del local es obligatorio y no es un dato de contacto.
+    expect(faltaEnPaso("contacto", r({ businessName: "Lo de Ana" }))).toBeNull();
   });
 
   it("avisa de un teléfono o un email que no sirven", () => {
@@ -60,6 +71,8 @@ describe("armarPedido", () => {
   it("manda lo contestado y deja afuera lo vacío", () => {
     const body = armarPedido(
       r({
+        respondentRole: "encargado",
+        businessName: " Lo de Ana ",
         localKind: "bar",
         teamModel: "mixto",
         eventualsNormal: "1-3",
@@ -72,6 +85,8 @@ describe("armarPedido", () => {
       "grupo-palermo"
     );
     expect(body).toMatchObject({
+      respondent_role: "encargado",
+      business_name: "Lo de Ana",
       local_kind: "bar",
       barrio: "Palermo",
       pay_per_shift_ars: 40000,

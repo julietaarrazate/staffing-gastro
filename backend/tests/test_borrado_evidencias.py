@@ -371,12 +371,7 @@ def test_main_le_pasa_el_reintento_del_borrado_al_scheduler():
 
     from app import main
 
-    # El reintento del borrado de documentos entra por `extra_checks`, junto con
-    # el borrado del contacto de la encuesta (ADR-0025).
-    assert (
-        "extra_checks=(run_evidence_file_cleanup, run_survey_retention)"
-        in inspect.getsource(main.lifespan)
-    )
+    assert "extra_checks=(run_evidence_file_cleanup,)" in inspect.getsource(main.lifespan)
 
 
 # --- Adaptador de Cloudinary ---------------------------------------------------

@@ -15,6 +15,7 @@ const ADMIN = {
 
 const RESUMEN = {
   total: 42,
+  deciders: 30,
   with_contact: 9,
   team_model: { equipo_fijo: 10, por_turno: 12, mixto: 20 },
   eventuals_normal_month: { "0": 4, "1-3": 18, "4-10": 15, mas_de_10: 5 },
@@ -28,6 +29,8 @@ const ITEMS = [
   {
     id: "s-1",
     created_at: "2026-11-20T15:00:00Z",
+    respondent_role: "encargado",
+    business_name: "Lo de Ana",
     local_kind: "bar",
     barrio: "Palermo",
     team_model: "mixto",
@@ -40,7 +43,6 @@ const ITEMS = [
     pricing_preference: "por_turno",
     wants_beta: true,
     contact_name: "Ana Pérez",
-    business_name: "Lo de Ana",
     phone: "+54 11 5555-0000",
     email: "ana@lodeana.com",
     consent_at: "2026-11-20T15:00:00Z",
@@ -66,7 +68,7 @@ async function mockAdmin(page: Page, vacia = false) {
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(vacia ? { ...RESUMEN, total: 0, with_contact: 0, pay_per_shift_median_ars: null, pay_per_shift_samples: 0 } : RESUMEN),
+      body: JSON.stringify(vacia ? { ...RESUMEN, total: 0, deciders: 0, with_contact: 0, pay_per_shift_median_ars: null, pay_per_shift_samples: 0 } : RESUMEN),
     })
   );
   await page.route(/\/api\/v1\/admin\/encuesta\?.*/, (route) =>
@@ -86,6 +88,8 @@ test("muestra el resumen y los locales que dejaron contacto", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Encuesta para locales" })).toBeVisible();
   const resumen = page.getByRole("region", { name: "Resumen de la encuesta" });
   await expect(resumen.getByText("42", { exact: true })).toBeVisible();
+  await expect(resumen.getByText("De dueños y encargados", { exact: true })).toBeVisible();
+  await expect(resumen.getByText("30", { exact: true }).first()).toBeVisible();
   await expect(resumen.getByText("Con contacto para la beta")).toBeVisible();
   await expect(resumen.getByText("$ 42.000").or(resumen.getByText("$42.000"))).toBeVisible();
   await expect(resumen.getByText("Un poco de cada uno")).toBeVisible();
@@ -94,7 +98,37 @@ test("muestra el resumen y los locales que dejaron contacto", async ({ page }) =
   await expect(lista.getByText("Lo de Ana")).toBeVisible();
   await expect(lista.getByRole("link", { name: "ana@lodeana.com" })).toHaveAttribute("href", "mailto:ana@lodeana.com");
   await expect(lista.getByText("Quiere la beta")).toBeVisible();
+  await expect(lista.getByText(/Encargado o encargada/)).toBeVisible();
   await expect(lista.getByText("ref: grupo-palermo")).toBeVisible();
+});
+
+test("«Borrar contacto» pide confirmar en la página y saca a la persona de la lista", async ({ page }) => {
+  await mockAdmin(page);
+  let borrado = false;
+  await page.route("**/api/v1/admin/encuesta/s-1/borrar-contacto", (route) => {
+    borrado = true;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...ITEMS[0], contact_name: null, phone: null, email: null }),
+    });
+  });
+  page.on("dialog", (d) => {
+    throw new Error(`no debe usar un diálogo del navegador: ${d.message()}`);
+  });
+  await page.goto("/admin/leads");
+  await page.getByRole("button", { name: "Encuesta" }).click();
+  await page.getByRole("button", { name: "Borrar contacto de Lo de Ana" }).click();
+  const confirmar = page.getByRole("group", { name: /Confirmar el borrado del contacto de Lo de Ana/ });
+  await expect(confirmar).toContainText("Queda la respuesta como estadística");
+  expect(borrado).toBe(false);
+  // Cancelar no borra.
+  await confirmar.getByRole("button", { name: "Cancelar" }).click();
+  expect(borrado).toBe(false);
+  await page.getByRole("button", { name: "Borrar contacto de Lo de Ana" }).click();
+  await confirmar.getByRole("button", { name: "Borrar contacto" }).click();
+  await expect(page.getByText("Todavía nadie dejó su contacto")).toBeVisible();
+  expect(borrado).toBe(true);
 });
 
 test("sin respuestas no inventa números", async ({ page }) => {

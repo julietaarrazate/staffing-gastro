@@ -1,7 +1,7 @@
 """Puerto de persistencia de la encuesta."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from uuid import UUID
 
 from app.modules.encuesta.domain.entities import SurveyResponse
 
@@ -10,6 +10,10 @@ class SurveyRepository(ABC):
     @abstractmethod
     async def get_by_client_key(self, client_key: str) -> SurveyResponse | None:
         """La respuesta ya guardada con esa clave de reintento, si hay."""
+
+    @abstractmethod
+    async def get_by_id(self, survey_id: UUID) -> SurveyResponse | None:
+        """La respuesta con ese id, si existe."""
 
     @abstractmethod
     async def add(self, response: SurveyResponse) -> bool:
@@ -27,6 +31,10 @@ class SurveyRepository(ABC):
         """Todas las respuestas (para el resumen)."""
 
     @abstractmethod
-    async def purge_contact_before(self, cutoff: datetime) -> int:
-        """Borra nombre, teléfono y email (el nombre del local queda) de las respuestas anteriores a
-        `cutoff`. Devuelve cuántas tenían contacto."""
+    async def clear_contact(self, survey_id: UUID) -> bool:
+        """Borra nombre, teléfono y email de esa respuesta (el nombre del local
+        queda). Idempotente. `False` si la respuesta no existe."""
+
+    @abstractmethod
+    async def clear_all_contacts(self) -> int:
+        """Lo mismo para todas. Devuelve cuántas tenían contacto."""

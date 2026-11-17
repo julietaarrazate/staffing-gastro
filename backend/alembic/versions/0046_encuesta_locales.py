@@ -2,10 +2,11 @@
 
 - `survey_responses`: una fila por respuesta a la encuesta pública. Sin IP.
   `business_name` y `barrio` son obligatorios y `business_name` queda al
-  purgar (es un comercio, no una persona). El contacto (`contact_name`,
+  borrar el contacto (es un comercio, no una persona). El contacto (`contact_name`,
   `phone`, `email`) es opcional,
-  exige `consent_at` y se borra a los 12 meses (`created_at`); la respuesta
-  queda como estadística anónima.
+  exige `consent_at` y se borra por respuesta (admin) o de todas juntas
+  (`scripts/clear_survey_contacts.py`); la respuesta queda como estadística
+  anónima.
 - `client_key` único: la clave de reintento del cliente (un reintento no
   duplica).
 

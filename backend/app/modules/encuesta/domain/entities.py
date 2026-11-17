@@ -152,12 +152,6 @@ class SurveyResponse:
             response = replace(response, consent_at=now)
         return response
 
-    def without_contact(self) -> "SurveyResponse":
-        """La misma respuesta como estadística anónima (retención a 12 meses)."""
-        return replace(
-            self, contact_name=None, phone=None, email=None
-        )
-
 
 @dataclass(frozen=True)
 class SurveySummary:

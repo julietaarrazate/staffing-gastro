@@ -12,6 +12,7 @@ import {
   EVENTUAL_RANGES,
   LOCAL_KINDS,
   PRICING_PREFERENCES,
+  RESPONDENT_ROLES,
   ROLES,
   TEAM_MODELS,
   etiquetaDe,
@@ -52,6 +53,29 @@ export default function EncuestaPanel() {
     cargar();
   }, [cargar]);
 
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState(false);
+
+  /** Borra el contacto de una respuesta: ya no es «con contacto», así que sale
+   * de la lista y el resumen se vuelve a pedir. */
+  const borrarContacto = async (id: string) => {
+    if (!token || !lista) return;
+    setBorrando(true);
+    try {
+      await api.post(`/admin/encuesta/${id}/borrar-contacto`, undefined, token);
+      setLista({ items: lista.items.filter((r) => r.id !== id), total: Math.max(0, lista.total - 1) });
+      setConfirmando(null);
+      api
+        .get<EncuestaResumen>("/admin/encuesta/summary", token)
+        .then(setResumen)
+        .catch(() => undefined);
+    } catch (err) {
+      setError(getErrorMessage(err, "No se pudo borrar el contacto"));
+    } finally {
+      setBorrando(false);
+    }
+  };
+
   const verMas = async () => {
     if (!token || !lista) return;
     setCargandoMas(true);
@@ -82,8 +106,9 @@ export default function EncuestaPanel() {
   return (
     <div className="mt-5 space-y-8">
       <section aria-label="Resumen de la encuesta">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <StatCard label="Respuestas" value={resumen.total} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Respuestas en total" value={resumen.total} />
+          <StatCard label="De dueños y encargados" value={resumen.deciders} />
           <StatCard label="Con contacto para la beta" value={resumen.with_contact} />
           <StatCard
             label={
@@ -99,7 +124,11 @@ export default function EncuestaPanel() {
           />
         </div>
 
-        <div className="mt-6 grid gap-x-10 gap-y-6 md:grid-cols-2">
+        <p className="mt-6 text-sm text-ink/60">
+          Las distribuciones y la mediana del pago cuentan sólo las {resumen.deciders} respuestas de
+          dueños y encargados, que son quienes deciden.
+        </p>
+        <div className="mt-4 grid gap-x-10 gap-y-6 md:grid-cols-2">
           <Distribucion titulo="Cómo arman el equipo" conteo={resumen.team_model} opciones={TEAM_MODELS} />
           <Distribucion
             titulo="Eventuales en un mes normal"
@@ -130,12 +159,11 @@ export default function EncuestaPanel() {
             {lista.items.map((r) => (
               <li key={r.id} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 p-4">
                 <div className="min-w-0">
-                  <p className="font-semibold text-ink">
-                    {r.business_name || r.contact_name || "Sin nombre"}
-                  </p>
+                  <p className="font-semibold text-ink">{r.business_name}</p>
                   <p className="mt-0.5 text-sm text-ink/60">
                     {[
-                      r.business_name && r.contact_name ? r.contact_name : null,
+                      r.contact_name,
+                      etiquetaDe(RESPONDENT_ROLES, r.respondent_role),
                       etiquetaDe(LOCAL_KINDS, r.local_kind),
                       r.barrio,
                     ]
@@ -172,6 +200,36 @@ export default function EncuestaPanel() {
                   {r.wants_beta && <Badge tone="secondary">Quiere la beta</Badge>}
                   <span>{new Date(r.created_at).toLocaleDateString("es-AR")}</span>
                   {r.source && <span className="font-mono">ref: {r.source}</span>}
+                </div>
+                <div className="w-full pt-2">
+                  {confirmando === r.id ? (
+                    <div
+                      role="group"
+                      aria-label={`Confirmar el borrado del contacto de ${r.business_name}`}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] bg-surface p-3 text-sm text-ink"
+                    >
+                      <span className="font-medium">
+                        ¿Borrar el contacto de {r.business_name}? Queda la respuesta como estadística.
+                      </span>
+                      <span className="flex gap-2">
+                        <Button size="sm" variant="surface" onClick={() => setConfirmando(null)} disabled={borrando}>
+                          Cancelar
+                        </Button>
+                        <Button size="sm" variant="dark" onClick={() => borrarContacto(r.id)} loading={borrando}>
+                          Borrar contacto
+                        </Button>
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmando(r.id)}
+                      aria-label={`Borrar contacto de ${r.business_name}`}
+                      className="text-sm font-semibold text-danger-text underline underline-offset-2"
+                    >
+                      Borrar contacto
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

@@ -29,7 +29,8 @@ class SurveyResponseModel(Base):
     last_absence_outcome: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     pricing_preference: Mapped[str] = mapped_column(String(20), nullable=False)
     wants_beta: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    # Contacto: opcional y con retención de 12 meses (ADR-0025).
+    # Contacto: opcional; se guarda mientras dure la beta y el lanzamiento y se borra
+    # por respuesta (admin) o de todas juntas (script) (ADR-0025).
     contact_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)

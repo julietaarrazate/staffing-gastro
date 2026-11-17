@@ -5,6 +5,10 @@ class EncuestaError(Exception):
     """Base del módulo encuesta."""
 
 
+class SurveyNotFoundError(EncuestaError):
+    """La respuesta no existe."""
+
+
 class InvalidSurveyError(EncuestaError):
     """La respuesta rompe una regla de la encuesta. El mensaje es para la
     persona que la completa: va tal cual en el 422."""

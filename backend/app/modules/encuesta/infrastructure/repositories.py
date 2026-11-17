@@ -1,6 +1,6 @@
 """Adaptador SQLAlchemy del SurveyRepository."""
 
-from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -82,6 +82,10 @@ class SqlAlchemySurveyRepository(SurveyRepository):
         )
         return _to_entity(model) if model else None
 
+    async def get_by_id(self, survey_id: UUID) -> SurveyResponse | None:
+        model = await self._session.get(SurveyResponseModel, survey_id)
+        return _to_entity(model) if model else None
+
     async def add(self, response: SurveyResponse) -> bool:
         self._session.add(_to_model(response))
         try:
@@ -112,11 +116,22 @@ class SqlAlchemySurveyRepository(SurveyRepository):
         result = await self._session.execute(select(SurveyResponseModel))
         return [_to_entity(m) for m in result.scalars().all()]
 
-    async def purge_contact_before(self, cutoff: datetime) -> int:
+    async def clear_contact(self, survey_id: UUID) -> bool:
+        if await self._session.get(SurveyResponseModel, survey_id) is None:
+            return False
+        await self._session.execute(
+            update(SurveyResponseModel)
+            .where(SurveyResponseModel.id == survey_id)
+            .values(contact_name=None, phone=None, email=None)
+        )
+        await self._session.commit()
+        return True
+
+    async def clear_all_contacts(self) -> int:
         has_contact = or_(*(column.is_not(None) for column in _CONTACT))
         result = await self._session.execute(
             update(SurveyResponseModel)
-            .where(SurveyResponseModel.created_at < cutoff, has_contact)
+            .where(has_contact)
             .values(contact_name=None, phone=None, email=None)
         )
         await self._session.commit()

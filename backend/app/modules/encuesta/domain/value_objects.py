@@ -1,6 +1,5 @@
 """Value objects de la encuesta para locales: las opciones de cada pregunta."""
 
-from datetime import timedelta
 from enum import Enum
 
 
@@ -79,6 +78,3 @@ class PricingPreference(str, Enum):
 # inflación mueve el piso): sólo corta typos y bromas, no opina del precio.
 PAY_PER_SHIFT_MIN_ARS = 5_000
 PAY_PER_SHIFT_MAX_ARS = 1_000_000
-
-# A los 12 meses de la encuesta se borra el contacto (política de privacidad).
-CONTACT_RETENTION = timedelta(days=365)

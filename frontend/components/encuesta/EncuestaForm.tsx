@@ -14,6 +14,7 @@ import {
   LOCAL_KINDS,
   PASOS,
   PRICING_PREFERENCES,
+  RESPONDENT_ROLES,
   RESPUESTAS_VACIAS,
   ROLES,
   TEAM_MODELS,
@@ -213,6 +214,26 @@ function Pregunta({
   set: <K extends keyof Respuestas>(clave: K, valor: Respuestas[K]) => void;
 }) {
   switch (paso) {
+    case "rol":
+      return (
+        <OpcionUnica
+          nombre={TITULOS.rol}
+          opciones={RESPONDENT_ROLES}
+          valor={r.respondentRole}
+          onChange={(v) => set("respondentRole", v)}
+        />
+      );
+    case "local":
+      return (
+        <TextField
+          label="Nombre del local"
+          name="organization"
+          autoComplete="organization"
+          value={r.businessName}
+          onChange={(v) => set("businessName", v)}
+          maxLength={160}
+        />
+      );
     case "tipo":
       return (
         <OpcionUnica
@@ -232,6 +253,7 @@ function Pregunta({
           placeholder="Palermo, Caballito, Microcentro…"
           maxLength={80}
           autoComplete="off"
+          required
         />
       );
     case "equipo":
@@ -342,14 +364,6 @@ function Contacto({
         maxLength={120}
       />
       <TextField
-        label="Nombre del local"
-        name="organization"
-        autoComplete="organization"
-        value={r.businessName}
-        onChange={(v) => set("businessName", v)}
-        maxLength={160}
-      />
-      <TextField
         label="Teléfono"
         name="tel"
         type="tel"
@@ -377,8 +391,8 @@ function Contacto({
           className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary-text)]"
         />
         <span>
-          Acepto que Oído guarde estos datos para escribirme sobre la beta. Los borramos a los 12
-          meses. Mirá la{" "}
+          Acepto que Oído guarde estos datos para escribirme sobre la beta. Los guardamos mientras
+          dure la beta y el lanzamiento, y los borramos antes si lo pedís. Mirá la{" "}
           <Link
             href="/privacidad"
             target="_blank"

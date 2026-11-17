@@ -1,7 +1,6 @@
 """Tests de la encuesta para locales: dominio, POST público, admin, resumen y
-retención a los 12 meses."""
+borrado del contacto."""
 
-from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
@@ -21,7 +20,6 @@ from app.modules.encuesta.domain.value_objects import (
     TeamModel,
 )
 from app.modules.encuesta.infrastructure.models import SurveyResponseModel
-from app.modules.encuesta.infrastructure.retention_job import run_survey_retention
 from tests.conftest import auth_headers, make_admin
 
 pytestmark = pytest.mark.asyncio
@@ -272,44 +270,84 @@ async def test_admin_summary(client, session_factory):
     assert s["pay_per_shift_median_ars"] == 40000 and s["pay_per_shift_samples"] == 2
 
 
-# --- retención -------------------------------------------------------------
+# --- borrar el contacto ----------------------------------------------------
+
+CONTACT = dict(
+    contact_name="Ana", phone="11 5555-0000", email="a@b.com", consent=True, wants_beta=True
+)
 
 
-async def test_purge_after_12_months_keeps_statistics(client, session_factory):
-    now = datetime(2027, 12, 1, tzinfo=timezone.utc)
-    contact = dict(
-        contact_name="Ana", phone="11 5555-0000",
-        email="a@b.com", consent=True, wants_beta=True,
-    )
-    old = _domain(now=now - timedelta(days=366), **contact)
-    recent = _domain(now=now - timedelta(days=100), **contact)
+async def _add(session_factory, **extra) -> SurveyResponse:
     from app.modules.encuesta.infrastructure.repositories import SqlAlchemySurveyRepository
 
+    response = _domain(**extra)
     async with session_factory() as s:
-        repo = SqlAlchemySurveyRepository(s)
-        await repo.add(old)
-        await repo.add(recent)
-    await run_survey_retention(session_factory, now, force=True)
-    async with session_factory() as s:
-        rows = {r.id: r for r in (await s.execute(select(SurveyResponseModel))).scalars()}
-    purged = rows[old.id]
-    assert (purged.contact_name, purged.phone, purged.email) == (None,) * 3
-    assert purged.business_name == "Lo de Ana" and purged.barrio == "Palermo"
-    assert purged.team_model == "mixto"
-    assert purged.pricing_preference == "por_turno" and purged.local_kind == "bar"
-    kept = rows[recent.id]
-    assert kept.phone == "11 5555-0000" and kept.email == "a@b.com"
+        await SqlAlchemySurveyRepository(s).add(response)
+    return response
 
 
-async def test_purge_is_idempotent_and_reports_count(session_factory):
+async def _row(session_factory, survey_id) -> SurveyResponseModel:
+    async with session_factory() as s:
+        return await s.get(SurveyResponseModel, survey_id)
+
+
+async def test_admin_clears_one_contact_and_keeps_the_rest(client, session_factory):
+    admin = await make_admin(client, session_factory, "admin@x.com")
+    mine = await _add(session_factory, **CONTACT)
+    other = await _add(session_factory, **CONTACT)
+    url = f"/api/v1/admin/encuesta/{mine.id}/borrar-contacto"
+    res = await client.post(url, headers=admin)
+    assert res.status_code == 200
+    body = res.json()
+    assert (body["contact_name"], body["phone"], body["email"]) == (None, None, None)
+    assert body["business_name"] == "Lo de Ana" and body["pricing_preference"] == "por_turno"
+    row = await _row(session_factory, mine.id)
+    assert (row.contact_name, row.phone, row.email) == (None, None, None)
+    assert row.business_name == "Lo de Ana" and row.team_model == "mixto"
+    assert (await _row(session_factory, other.id)).phone == "11 5555-0000"
+    # Idempotente: repetirlo da lo mismo.
+    assert (await client.post(url, headers=admin)).status_code == 200
+    # Ya no cuenta como «con contacto».
+    summary = (await client.get("/api/v1/admin/encuesta/summary", headers=admin)).json()
+    assert summary["with_contact"] == 1
+
+
+async def test_clear_contact_unknown_is_404_and_admin_only(client, session_factory):
+    admin = await make_admin(client, session_factory, "admin@x.com")
+    mine = await _add(session_factory, **CONTACT)
+    ghost = "00000000-0000-0000-0000-000000000000"
+    res = await client.post(f"/api/v1/admin/encuesta/{ghost}/borrar-contacto", headers=admin)
+    assert res.status_code == 404
+    url = f"/api/v1/admin/encuesta/{mine.id}/borrar-contacto"
+    employer = await auth_headers(client, "employer", "local@x.com")
+    assert (await client.post(url, headers=employer)).status_code == 403
+    assert (await client.post(url)).status_code in (401, 403)
+    assert (await _row(session_factory, mine.id)).email == "a@b.com"
+
+
+async def test_service_clears_every_contact_and_is_idempotent(session_factory):
     from app.modules.encuesta.application.services import SurveyService
     from app.modules.encuesta.infrastructure.repositories import SqlAlchemySurveyRepository
 
-    now = datetime(2027, 12, 1, tzinfo=timezone.utc)
+    a = await _add(session_factory, **CONTACT)
+    b = await _add(session_factory, email="solo@mail.com", consent=True)
+    c = await _add(session_factory)  # sin contacto
     async with session_factory() as s:
-        repo = SqlAlchemySurveyRepository(s)
-        await repo.add(_domain(now=now - timedelta(days=400), email="a@b.com", consent=True))
-        await repo.add(_domain(now=now - timedelta(days=400)))
-        service = SurveyService(repo)
-        assert await service.purge_expired_contacts(now) == 1
-        assert await service.purge_expired_contacts(now) == 0
+        service = SurveyService(SqlAlchemySurveyRepository(s))
+        assert await service.clear_all_contacts() == 2
+        assert await service.clear_all_contacts() == 0
+    for r in (a, b, c):
+        row = await _row(session_factory, r.id)
+        assert (row.contact_name, row.phone, row.email) == (None, None, None)
+        assert row.business_name == "Lo de Ana" and row.local_kind == "bar"
+
+
+async def test_script_dry_run_counts_and_apply_clears(session_factory):
+    from scripts.clear_survey_contacts import run
+
+    await _add(session_factory, **CONTACT)
+    await _add(session_factory)
+    assert await run(session_factory, apply=False) == 1
+    assert await run(session_factory, apply=False) == 1  # no cambió nada
+    assert await run(session_factory, apply=True) == 1
+    assert await run(session_factory, apply=False) == 0

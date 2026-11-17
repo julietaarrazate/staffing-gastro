@@ -26,6 +26,21 @@ async function preparar(page: Page, onPost?: (body: Record<string, unknown>, hea
 const aviso = (page: Page) => page.locator("p[role=alert]");
 const siguiente = (page: Page) => page.getByRole("button", { name: "Siguiente" });
 
+/** Rol, nombre del local, barrio y tipo: los cuatro primeros pasos. */
+async function llenarInicio(page: Page, tipo: string) {
+  await expect(async () => {
+    await page.getByRole("radio", { name: "Dueño o dueña" }).click();
+    await siguiente(page).click();
+    await expect(page.getByLabel("Nombre del local")).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await page.getByLabel("Nombre del local").fill("Lo de Ana");
+  await siguiente(page).click();
+  await page.getByLabel("Barrio").fill("Palermo");
+  await siguiente(page).click();
+  await page.getByRole("radio", { name: tipo, exact: true }).click();
+  await siguiente(page).click();
+}
+
 test("se completa de punta a punta sin sesión y manda todo en un pedido", async ({ page }) => {
   let body: Record<string, unknown> | null = null;
   let key: string | undefined;
@@ -35,18 +50,29 @@ test("se completa de punta a punta sin sesión y manda todo en un pedido", async
   });
   await page.goto("/encuesta?ref=Grupo-Palermo");
 
-  await expect(page.getByRole("heading", { name: "¿Qué tipo de local tenés?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "¿Cuál es tu rol en el local?" })).toBeVisible();
   // Sin elegir no se avanza, y dice por qué.
   // El primer toque puede llegar antes de que la página termine de cargar.
   await expect(async () => {
     await siguiente(page).click();
     await expect(aviso(page)).toContainText("Elegí una opción", { timeout: 1000 });
   }).toPass();
-  await page.getByRole("radio", { name: "Bar", exact: true }).click();
+  await page.getByRole("radio", { name: "Encargado o encargada" }).click();
   await siguiente(page).click();
 
+  // El nombre del local y el barrio son obligatorios.
+  await expect(page.getByRole("heading", { name: "¿Cómo se llama el local?" })).toBeVisible();
+  await siguiente(page).click();
+  await expect(aviso(page)).toContainText("nombre del local");
+  await page.getByLabel("Nombre del local").fill("Lo de Ana");
+  await siguiente(page).click();
   await expect(page.getByRole("heading", { name: "¿En qué barrio está?" })).toBeVisible();
+  await siguiente(page).click();
+  await expect(aviso(page)).toContainText("barrio");
   await page.getByLabel("Barrio").fill("Palermo");
+  await siguiente(page).click();
+
+  await page.getByRole("radio", { name: "Bar", exact: true }).click();
   await siguiente(page).click();
 
   await page.getByRole("radio", { name: "Un poco de cada uno" }).click();
@@ -85,6 +111,8 @@ test("se completa de punta a punta sin sesión y manda todo en un pedido", async
   await expect(page.getByText("Te vamos a escribir apenas abramos la beta.")).toBeVisible();
 
   expect(body).toMatchObject({
+    respondent_role: "encargado",
+    business_name: "Lo de Ana",
     local_kind: "bar",
     barrio: "Palermo",
     team_model: "mixto",
@@ -109,13 +137,12 @@ test("el contacto es opcional y Atrás conserva lo contestado", async ({ page })
     body = b;
   });
   await page.goto("/encuesta");
-  await page.getByRole("radio", { name: "Café" }).click();
+  await llenarInicio(page, "Café");
+  await page.getByRole("button", { name: "Atrás" }).click();
+  await page.getByRole("button", { name: "Atrás" }).click();
+  await expect(page.getByLabel("Barrio")).toHaveValue("Palermo");
   await siguiente(page).click();
-  await siguiente(page).click(); // barrio: opcional
-  await page.getByRole("button", { name: "Atrás" }).click();
-  await page.getByRole("button", { name: "Atrás" }).click();
   await expect(page.getByRole("radio", { name: "Café" })).toHaveAttribute("aria-checked", "true");
-  await siguiente(page).click();
   await siguiente(page).click();
   await page.getByRole("radio", { name: "Un equipo fijo" }).click();
   await siguiente(page).click();
@@ -130,7 +157,7 @@ test("el contacto es opcional y Atrás conserva lo contestado", async ({ page })
   await page.getByRole("button", { name: "Enviar respuestas" }).click();
   await expect(page.getByRole("heading", { name: "¡Gracias!" })).toBeVisible();
   await expect(page.getByText("Tus respuestas nos ayudan")).toBeVisible();
-  expect(body).toMatchObject({ local_kind: "cafe", wants_beta: false, consent: false });
+  expect(body).toMatchObject({ respondent_role: "dueno", business_name: "Lo de Ana", local_kind: "cafe", wants_beta: false, consent: false });
   expect(body).not.toHaveProperty("phone");
 });
 
@@ -147,9 +174,7 @@ test("un error del servidor se muestra y deja reintentar con la misma clave", as
       : route.fulfill({ status: 201, contentType: "application/json", body: '{"received":true}' });
   });
   await page.goto("/encuesta");
-  await page.getByRole("radio", { name: "Bar", exact: true }).click();
-  await siguiente(page).click();
-  await siguiente(page).click();
+  await llenarInicio(page, "Bar");
   await page.getByRole("radio", { name: "Un equipo fijo" }).click();
   await siguiente(page).click();
   await page.getByRole("radio", { name: "Ninguna" }).click();
@@ -171,7 +196,7 @@ test("un error del servidor se muestra y deja reintentar con la misma clave", as
 test("a 390 px no hay scroll horizontal y no hay barras de la app", async ({ page }) => {
   await preparar(page);
   await page.goto("/encuesta");
-  await expect(page.getByRole("heading", { name: "¿Qué tipo de local tenés?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "¿Cuál es tu rol en el local?" })).toBeVisible();
   const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(ancho).toBeLessThanOrEqual(390);
   await expect(page.getByRole("navigation")).toHaveCount(0);

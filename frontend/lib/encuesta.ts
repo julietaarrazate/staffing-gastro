@@ -7,6 +7,7 @@
 
 export type Opcion<T extends string> = { valor: T; etiqueta: string };
 
+export type RespondentRole = "dueno" | "encargado" | "trabajo_en_el_local" | "otro";
 export type LocalKind = "restaurante" | "bar" | "cafe" | "comida_rapida" | "heladeria" | "otro";
 export type TeamModel = "equipo_fijo" | "por_turno" | "mixto";
 export type EventualRange = "0" | "1-3" | "4-10" | "mas_de_10";
@@ -28,6 +29,13 @@ export type AbsenceOutcome =
   | "perdi_ventas"
   | "otro";
 export type PricingPreference = "mensualidad" | "por_turno" | "no_se";
+
+export const RESPONDENT_ROLES: Opcion<RespondentRole>[] = [
+  { valor: "dueno", etiqueta: "Dueño o dueña" },
+  { valor: "encargado", etiqueta: "Encargado o encargada" },
+  { valor: "trabajo_en_el_local", etiqueta: "Trabajo en el local" },
+  { valor: "otro", etiqueta: "Otro" },
+];
 
 export const LOCAL_KINDS: Opcion<LocalKind>[] = [
   { valor: "restaurante", etiqueta: "Restaurante" },
@@ -94,6 +102,8 @@ export const PAGO_MIN = 5_000;
 export const PAGO_MAX = 1_000_000;
 
 export interface Respuestas {
+  respondentRole: RespondentRole | null;
+  businessName: string;
   localKind: LocalKind | null;
   barrio: string;
   teamModel: TeamModel | null;
@@ -107,13 +117,14 @@ export interface Respuestas {
   pricing: PricingPreference | null;
   wantsBeta: boolean;
   contactName: string;
-  businessName: string;
   phone: string;
   email: string;
   consent: boolean;
 }
 
 export const RESPUESTAS_VACIAS: Respuestas = {
+  respondentRole: null,
+  businessName: "",
   localKind: null,
   barrio: "",
   teamModel: null,
@@ -126,15 +137,16 @@ export const RESPUESTAS_VACIAS: Respuestas = {
   pricing: null,
   wantsBeta: false,
   contactName: "",
-  businessName: "",
   phone: "",
   email: "",
   consent: false,
 };
 
 export type PasoId =
-  | "tipo"
+  | "rol"
+  | "local"
   | "barrio"
+  | "tipo"
   | "equipo"
   | "mes_normal"
   | "mes_fuerte"
@@ -147,8 +159,10 @@ export type PasoId =
 
 /** Un paso por pantalla, en el orden en que se preguntan. */
 export const PASOS: PasoId[] = [
-  "tipo",
+  "rol",
+  "local",
   "barrio",
+  "tipo",
   "equipo",
   "mes_normal",
   "mes_fuerte",
@@ -161,6 +175,8 @@ export const PASOS: PasoId[] = [
 ];
 
 export const TITULOS: Record<PasoId, string> = {
+  rol: "¿Cuál es tu rol en el local?",
+  local: "¿Cómo se llama el local?",
   tipo: "¿Qué tipo de local tenés?",
   barrio: "¿En qué barrio está?",
   equipo: "¿Cómo armás tu equipo?",
@@ -176,7 +192,7 @@ export const TITULOS: Record<PasoId, string> = {
 
 /** Ayuda corta bajo el título; los pasos de varias opciones lo avisan. */
 export const AYUDAS: Partial<Record<PasoId, string>> = {
-  barrio: "Es opcional.",
+  local: "Lo usamos para no contar dos veces a un mismo local.",
   puestos: "Podés marcar más de uno.",
   canales: "Podés marcar más de uno.",
   ausencia: "Podés marcar más de una.",
@@ -192,6 +208,14 @@ export function pagoComoNumero(pago: string): number | null {
 /** Qué le falta a la persona para pasar de este paso; «null» si puede seguir. */
 export function faltaEnPaso(paso: PasoId, r: Respuestas): string | null {
   switch (paso) {
+    case "rol":
+      return r.respondentRole ? null : "Elegí una opción para seguir.";
+    case "local":
+      if (r.businessName.trim() === "") return "Escribí el nombre del local para seguir.";
+      return null;
+    case "barrio":
+      if (r.barrio.trim() === "") return "Escribí el barrio para seguir.";
+      return null;
     case "tipo":
       return r.localKind ? null : "Elegí una opción para seguir.";
     case "equipo":
@@ -218,7 +242,7 @@ export function faltaEnPaso(paso: PasoId, r: Respuestas): string | null {
 }
 
 export function tieneContacto(r: Respuestas): boolean {
-  return [r.contactName, r.businessName, r.phone, r.email].some((v) => v.trim() !== "");
+  return [r.contactName, r.phone, r.email].some((v) => v.trim() !== "");
 }
 
 function faltaEnContacto(r: Respuestas): string | null {
@@ -251,8 +275,10 @@ export function limpiarRef(ref: string | null | undefined): string | null {
 export function armarPedido(r: Respuestas, source: string | null, honeypot = "") {
   const texto = (v: string) => (v.trim() === "" ? undefined : v.trim());
   return {
+    respondent_role: r.respondentRole,
+    business_name: r.businessName.trim(),
+    barrio: r.barrio.trim(),
     local_kind: r.localKind,
-    barrio: texto(r.barrio),
     team_model: r.teamModel,
     eventuals_normal_month: r.eventualsNormal,
     eventuals_peak_month: r.eventualsPeak,
@@ -263,7 +289,6 @@ export function armarPedido(r: Respuestas, source: string | null, honeypot = "")
     pricing_preference: r.pricing,
     wants_beta: r.wantsBeta,
     contact_name: texto(r.contactName),
-    business_name: texto(r.businessName),
     phone: texto(r.phone),
     email: texto(r.email),
     consent: tieneContacto(r) && r.consent,
@@ -277,8 +302,10 @@ export function armarPedido(r: Respuestas, source: string | null, honeypot = "")
 export interface EncuestaRespuesta {
   id: string;
   created_at: string;
+  respondent_role: RespondentRole;
+  business_name: string;
   local_kind: LocalKind;
-  barrio: string | null;
+  barrio: string;
   team_model: TeamModel;
   eventuals_normal_month: EventualRange;
   eventuals_peak_month: EventualRange;
@@ -289,7 +316,6 @@ export interface EncuestaRespuesta {
   pricing_preference: PricingPreference;
   wants_beta: boolean;
   contact_name: string | null;
-  business_name: string | null;
   phone: string | null;
   email: string | null;
   consent_at: string | null;
@@ -302,7 +328,10 @@ export interface EncuestaLista {
 }
 
 export interface EncuestaResumen {
+  /** Todas las respuestas. */
   total: number;
+  /** Las de dueño o encargado: sobre ellas van las distribuciones y la mediana. */
+  deciders: number;
   with_contact: number;
   team_model: Record<string, number>;
   eventuals_normal_month: Record<string, number>;

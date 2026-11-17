@@ -7,6 +7,7 @@ pedidos, en memoria (ADR-0025).
 
 from dataclasses import asdict
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
@@ -21,7 +22,7 @@ from app.modules.encuesta.api.schemas import (
 )
 from app.modules.encuesta.application.services import SurveyService
 from app.modules.encuesta.domain.entities import SurveyResponse
-from app.modules.encuesta.domain.exceptions import InvalidSurveyError
+from app.modules.encuesta.domain.exceptions import InvalidSurveyError, SurveyNotFoundError
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
@@ -92,3 +93,18 @@ async def list_responses(
 )
 async def summary(_: AdminDep, service: ServiceDep):
     return SurveySummaryResponse(**asdict(await service.summary()))
+
+
+@admin_router.post(
+    "/{survey_id}/borrar-contacto",
+    response_model=SurveyResponseOut,
+    summary="Borrar el contacto de una respuesta (queda como estadística)",
+)
+async def clear_contact(survey_id: UUID, _: AdminDep, service: ServiceDep):
+    try:
+        response = await service.clear_contact(survey_id)
+    except SurveyNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Respuesta no encontrada"
+        ) from exc
+    return _to_out(response)
