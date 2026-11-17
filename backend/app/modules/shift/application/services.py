@@ -893,6 +893,8 @@ class ShiftService(AccountSuspensionEffects):
                     f"Marcá tu llegada en \"{updated.title or updated.position.label}\" "
                     "para confirmar que estás en el lugar."
                 ),
+                # «Llegué» vive en Matches > Asignados (U066).
+                link=f"/my-shifts?turno={updated.id}",
             )
         return updated
 
@@ -925,6 +927,8 @@ class ShiftService(AccountSuspensionEffects):
                     "Cuando salgas, tocá \"Va en camino\" para que el comercio "
                     "sepa que estás llegando."
                 ),
+                # «Va en camino» vive en Matches > Asignados (U066).
+                link=f"/my-shifts?turno={updated.id}",
             )
         return updated
 
