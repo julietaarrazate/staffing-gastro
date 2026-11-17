@@ -11,8 +11,13 @@ import {
  * con más turnos que el tope (U129), ficha de persona (U132, U134).
  */
 
+// Ids con forma de UUID generados en tiempo de ejecución (sin literales: gitleaks).
+const ADMIN_ID = crypto.randomUUID();
+const WORKER_ID = crypto.randomUUID();
+const ADMIN_TOKEN = "e2e-fake-access-token";
+
 const ADMIN = {
-  id: "admin-1",
+  id: ADMIN_ID,
   email: "julietaarrazate@gmail.com",
   full_name: "Julieta Arrazate",
   role: "admin",
@@ -22,7 +27,7 @@ const ADMIN = {
 };
 
 const WORKER_VIEW = {
-  id: "test-worker-1",
+  id: WORKER_ID,
   email: "prueba.trabajador@oido.beta",
   full_name: "Prueba · Trabajador con nombre largo",
   role: "worker",
@@ -50,23 +55,51 @@ async function base(page: Page) {
   await page.route("**/api/v1/applications/mine", (route) => route.fulfill(json([])));
 }
 
-test("«Ver como»: el cartel muestra el nombre en un celular y sobrevive a recargar", async ({
+function markImpersonation(page: Page, adminId: string, userId: string) {
+  return page.addInitScript(
+    ({ adminId, userId }) => {
+      if (!sessionStorage.getItem("staffya_impersonating")) {
+        sessionStorage.setItem("staffya_impersonating", JSON.stringify({ adminId, userId }));
+      }
+    },
+    { adminId, userId }
+  );
+}
+
+test("«Ver como»: el cartel muestra el nombre en un celular y al recargar en una ruta de trabajador no hay 403 ni pantalla de admin", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await base(page);
   let impersonations = 0;
-  await page.route("**/api/v1/admin/users/test-worker-1/impersonate", (route) => {
+  await page.route(`**/api/v1/admin/users/${WORKER_ID}/impersonate`, async (route) => {
     impersonations += 1;
+    // Tarda: en ese lapso la admin recuperada no puede asomar.
+    await new Promise((r) => setTimeout(r, 600));
     return route.fulfill(json({ access_token: "e2e-impersonated-token", user: WORKER_VIEW }));
   });
-  await page.route("**/api/v1/admin/test-accounts", (route) => route.fulfill(json([])));
+  await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json([])));
+  await page.route("**/api/v1/saved-shifts", (route) => route.fulfill(json([])));
 
-  await page.goto("/");
-  // Sin pantalla de herramientas mockeada completa: se dispara la marca como
-  // lo hace `impersonate` y se recarga, que es lo que rompía.
-  await page.evaluate(() => sessionStorage.setItem("staffya_impersonating", "test-worker-1"));
-  await page.reload();
+  // Pedidos con el token de la admin a algo que no sea sesión: no debería haber.
+  const withAdminToken: string[] = [];
+  const forbidden: string[] = [];
+  page.on("request", (req) => {
+    const url = req.url();
+    if (
+      req.headers()["authorization"] === `Bearer ${ADMIN_TOKEN}` &&
+      url.includes("/api/v1/") &&
+      !/\/api\/v1\/(auth\/|admin\/users\/[^/]+\/impersonate)/.test(url)
+    ) {
+      withAdminToken.push(url);
+    }
+  });
+  page.on("response", (res) => {
+    if (res.status() === 403) forbidden.push(res.url());
+  });
+
+  await markImpersonation(page, ADMIN_ID, WORKER_ID);
+  await page.goto("/my-shifts");
 
   const banner = page.getByRole("status").filter({ hasText: "Viendo como" });
   await expect(banner).toContainText("Prueba · Trabajador con nombre largo");
@@ -74,13 +107,42 @@ test("«Ver como»: el cartel muestra el nombre en un celular y sobrevive a reca
   await expect(name).toBeVisible();
   expect((await name.boundingBox())!.width).toBeGreaterThan(60);
   expect(impersonations).toBe(1);
+  await expect(page.getByText("Permisos insuficientes")).toHaveCount(0);
+  expect(withAdminToken).toEqual([]);
+  expect(forbidden).toEqual([]);
+});
+
+test("«Ver como»: una marca de otra admin, o con ids que no son UUID, se descarta", async ({
+  page,
+}) => {
+  await base(page);
+  let impersonations = 0;
+  await page.route("**/api/v1/admin/users/**/impersonate", (route) => {
+    impersonations += 1;
+    return route.fulfill(json({ access_token: "x", user: WORKER_VIEW }));
+  });
+  await page.route("**/api/v1/admin/**", (route) => route.fulfill(json([])));
+  await markImpersonation(page, crypto.randomUUID(), WORKER_ID);
+  await page.goto("/admin");
+  await expect(page.getByText("Viendo como")).toHaveCount(0);
+  expect(await page.evaluate(() => sessionStorage.getItem("staffya_impersonating"))).toBeNull();
+
+  await page.evaluate(() =>
+    sessionStorage.setItem(
+      "staffya_impersonating",
+      JSON.stringify({ adminId: "../x", userId: "no-es-uuid" })
+    )
+  );
+  await page.reload();
+  await expect(page.getByText("Viendo como")).toHaveCount(0);
+  expect(impersonations).toBe(0);
 });
 
 test("«Ver como»: si la persona ya no se puede ver, vuelve limpio al panel de admin", async ({
   page,
 }) => {
   await base(page);
-  await page.route("**/api/v1/admin/users/test-worker-1/impersonate", (route) =>
+  await page.route(`**/api/v1/admin/users/${WORKER_ID}/impersonate`, (route) =>
     route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -91,9 +153,8 @@ test("«Ver como»: si la persona ya no se puede ver, vuelve limpio al panel de 
     if (route.request().url().includes("impersonate")) return route.fallback();
     return route.fulfill(json([]));
   });
-  await page.goto("/");
-  await page.evaluate(() => sessionStorage.setItem("staffya_impersonating", "test-worker-1"));
-  await page.reload();
+  await markImpersonation(page, ADMIN_ID, WORKER_ID);
+  await page.goto("/my-shifts");
   await expect(page).toHaveURL(/\/admin/);
   await expect(page.getByText("Permisos insuficientes")).toHaveCount(0);
   await expect(page.getByText("Viendo como")).toHaveCount(0);
@@ -137,6 +198,29 @@ test("«Turnos en vivo» avisa cuando hay más turnos de los que se muestran", a
   await page.goto("/admin/en-vivo");
   await expect(page.getByText("Mostrando 200 de 253 turnos en vivo")).toBeVisible();
   await expect(page.getByRole("button", { name: /Todos \(253\)/ })).toBeVisible();
+});
+
+test("«Turnos en vivo» no avisa si la lista no llegó al tope aunque los totales sean mayores", async ({
+  page,
+}) => {
+  await base(page);
+  await page.route("**/api/v1/admin/live-shifts**", (route) =>
+    route.fulfill(
+      json({
+        generated_at: new Date().toISOString(),
+        total: 5,
+        urgent: 0,
+        escalated: 0,
+        no_shows: 0,
+        shown_live: 3,
+        limit: 200,
+        shifts: [liveShift(1)],
+      })
+    )
+  );
+  await page.goto("/admin/en-vivo");
+  await expect(page.getByText("Turno 1")).toBeVisible();
+  await expect(page.getByText(/Mostrando \d+ de/)).toHaveCount(0);
 });
 
 test("«Turnos en vivo» no avisa nada si entran todos", async ({ page }) => {

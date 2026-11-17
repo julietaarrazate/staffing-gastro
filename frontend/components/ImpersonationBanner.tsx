@@ -23,7 +23,7 @@ export default function ImpersonationBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-start justify-between gap-3 bg-night px-4 py-2 text-sm text-white"
+      className="flex items-start justify-between gap-3 border-b-2 border-on-brand-label bg-secondary px-4 py-2 text-sm text-on-brand"
     >
       {/* Texto corrido que parte línea: antes `truncate` en el <strong>
           lo dejaba sin ancho y en el celular el nombre desaparecía (U131). */}
@@ -36,7 +36,7 @@ export default function ImpersonationBanner() {
       <button
         type="button"
         onClick={stopImpersonating}
-        className="shrink-0 self-center rounded-full bg-white/15 px-3 py-1 font-semibold transition hover:bg-white/25 active:scale-95"
+        className="shrink-0 self-center rounded-full bg-on-brand/15 px-3 py-1 font-semibold transition hover:bg-on-brand/25 active:scale-95"
       >
         Volver a admin
       </button>

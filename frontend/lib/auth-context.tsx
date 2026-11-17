@@ -173,20 +173,44 @@ const RELOADED_FOR_KEY = "staffya_reloaded_for";
 // sesión que se recupera es la de la admin (cookie de renovación) y, si esta
 // marca está, se vuelve a pedir "ver como" con ese token de admin (U131).
 const IMPERSONATING_KEY = "staffya_impersonating";
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function rememberImpersonation(userId: string) {
+/** La marca guarda quién es la admin (`adminId`) y a quién ve (`userId`): si
+ * en esta pestaña cambia la admin, la marca de la anterior no se usa. */
+function rememberImpersonation(adminId: string, userId: string) {
   try {
-    sessionStorage.setItem(IMPERSONATING_KEY, userId);
+    sessionStorage.setItem(IMPERSONATING_KEY, JSON.stringify({ adminId, userId }));
   } catch {
     /* sin sessionStorage: al recargar se vuelve a la cuenta admin */
   }
 }
 
-function pendingImpersonation(): string | null {
+/** La marca pendiente, o `null` si no hay o no tiene forma válida (los ids se
+ * interpolan en una ruta: sólo pasan si parecen un UUID). */
+function pendingImpersonation(): { adminId: string; userId: string } | null {
   try {
-    return sessionStorage.getItem(IMPERSONATING_KEY);
+    const raw = sessionStorage.getItem(IMPERSONATING_KEY);
+    if (!raw) return null;
+    const mark = JSON.parse(raw) as { adminId?: unknown; userId?: unknown };
+    if (
+      typeof mark.adminId === "string" &&
+      typeof mark.userId === "string" &&
+      UUID_SHAPE.test(mark.adminId) &&
+      UUID_SHAPE.test(mark.userId)
+    ) {
+      return { adminId: mark.adminId, userId: mark.userId };
+    }
   } catch {
-    return null;
+    /* marca ilegible: se descarta */
+  }
+  return null;
+}
+
+function hasImpersonationMark(): boolean {
+  try {
+    return sessionStorage.getItem(IMPERSONATING_KEY) !== null;
+  } catch {
+    return false;
   }
 }
 
@@ -236,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // La cuenta que se acaba de recuperar al abrir la app (ver `resumeImpersonation`).
   const restoredAccount = useRef<User | null>(null);
+  const [resuming, setResuming] = useState(false);
 
   function rememberSessionUser(account: User) {
     restoredAccount.current = account;
@@ -417,8 +442,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // guardado que ya venció. Impersonando no se renueva: el refresh traería un
   // token de la admin real, no del usuario que se está viendo.
   useEffect(() => {
-    setUnauthorizedHandler(() =>
-      impersonatingRef.current
+    setUnauthorizedHandler(() => {
+      // Vencida la sesión «ver como», recargar no la estira: se borra la marca.
+      if (impersonatingRef.current) forgetImpersonation();
+      return impersonatingRef.current
         ? Promise.reject(
             new ApiError(
               401,
@@ -426,8 +453,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               "impersonation_expired"
             )
           )
-        : tryRefresh()
-    );
+        : tryRefresh();
+    });
     return () => setUnauthorizedHandler(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `tryRefresh` sólo usa setters estables y localStorage
   }, []);
@@ -547,7 +574,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionEpoch.current += 1;
     setImpersonating({ adminToken, adminUser });
     impersonatingRef.current = true;
-    rememberImpersonation(userId);
+    rememberImpersonation(adminUser.id, userId);
     // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
     // el feed o el perfil de la admin como si fueran del usuario impersonado.
     clearAllCached();
@@ -562,23 +589,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * limpio a la sesión de la admin, sin error y sin quedar en una pantalla
    * de otro rol. */
   async function resumeImpersonation(result: "ok" | "none" | "transient") {
-    const targetId = pendingImpersonation();
-    if (!targetId) return;
-    const admin = restoredAccount.current;
-    const adminToken = localStorage.getItem("staffya_token");
-    if (result !== "ok" || !admin || admin.role !== "admin" || !adminToken) {
-      forgetImpersonation();
-      return;
-    }
     try {
-      await enterImpersonation(adminToken, admin, targetId);
-    } catch {
-      forgetImpersonation();
-      router.replace("/admin");
+      if (!hasImpersonationMark()) return;
+      const mark = pendingImpersonation();
+      const admin = restoredAccount.current;
+      const adminToken = localStorage.getItem("staffya_token");
+      if (
+        !mark ||
+        result !== "ok" ||
+        !admin ||
+        admin.role !== "admin" ||
+        admin.id !== mark.adminId ||
+        !adminToken
+      ) {
+        forgetImpersonation();
+        return;
+      }
+      try {
+        await enterImpersonation(adminToken, admin, mark.userId);
+      } catch {
+        forgetImpersonation();
+        router.replace("/admin");
+      }
+    } finally {
+      setResuming(false);
     }
   }
 
   useEffect(() => {
+    // Con una marca de «ver como» pendiente, la cuenta de la admin que se
+    // recupera no se muestra: hasta resolver, `token` y `user` salen vacíos y
+    // la app sigue cargando (si no, las pantallas del otro rol pedían con el
+    // token de la admin y daban 403).
+    if (hasImpersonationMark()) setResuming(true);
     restoreOnce().then(async (result) => {
       // Servidor dormido al abrir (U114): la app deja de esperar, pero queda
       // dicho que hay una sesión por confirmar. Antes caía a la cabecera de
@@ -607,6 +650,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled || running) return;
       if (document.visibilityState !== "visible") return;
       running = true;
+      if (hasImpersonationMark()) setResuming(true);
       const result = await restoreOnce();
       running = false;
       if (cancelled) return;
@@ -959,9 +1003,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        token,
-        loading,
+        // Con «ver como» por retomar no se asoma la cuenta de la admin.
+        user: resuming ? null : user,
+        token: resuming ? null : token,
+        loading: loading || (resuming && !reconnecting),
         login,
         register,
         loginWithGoogle,

@@ -42,6 +42,7 @@ from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
 from app.modules.shift.domain.suspension import AccountSuspensionEffects, SuspensionImpact
 from app.modules.subscription.domain.billing_gateway import BillingGateway
@@ -226,10 +227,16 @@ class AdminService:
                     start_at=s.start_at,
                     status=s.status.value,
                     pay_amount=s.pay_amount,
+                    # `mark_not_covered()` también guarda quién estaba asignado
+                    # sin confirmar (no faltó): en NO_CUBIERTO el campo es
+                    # ambiguo, así que ahí no se acusa y la ficha muestra el
+                    # estado ("No cubierto"). Sólo `no_show()` deja el turno
+                    # en otro estado con ese campo cargado.
                     absent=(
                         worker_profile_id is not None
                         and s.worker_profile_id != worker_profile_id
                         and s.last_no_show_worker_profile_id == worker_profile_id
+                        and s.status != ShiftStatus.NO_CUBIERTO
                     ),
                 )
                 for s in shifts

@@ -10,4 +10,12 @@
 
 **Por qué así:** sobre U131, el token impersonado sigue sin guardarse en ningún lado; sólo se guarda el id de la persona en `sessionStorage` (no es un secreto, dura lo que la pestaña). Re-pedir «ver como» exige una sesión admin válida y queda en el log de auditoría del backend, así que no abre nada nuevo. Se descartó guardar el token impersonado (menos seguro). Sobre U129, se prefirió «más reciente primero» porque lo que se pierde con tope debe ser lo viejo, y el aviso lo dice.
 
+**Correcciones de la revisión independiente:**
+- U132: `mark_not_covered()` también guarda al asignado sin confirmar en `last_no_show_worker_profile_id`, así que en NO_CUBIERTO el campo es ambiguo (podía no haber faltado, o ser otra persona tras una ausencia anterior). Ahí la ficha no acusa: `absent` es falso y se ve el estado «No cubierto». Test con `mark_not_covered`.
+- U131: mientras hay una marca pendiente `token`, `user` y `loading` del contexto no exponen a la admin recuperada (antes `/my-shifts` pedía con su token y daba 403); la marca guarda `{adminId, userId}` y sólo se usa si `adminId` es la cuenta recuperada; ambos ids deben tener forma de UUID antes de interpolarse en la ruta; `impersonation_expired` borra la marca. E2E que carga `/my-shifts` y verifica que no hay pedidos con token de admin ni 403.
+- U129: el aviso sólo sale con `shown_live >= limit` (las dos consultas pueden ver datos distintos).
+- Cartel: `bg-secondary text-on-brand` con borde inferior `border-on-brand-label` (sin `text-white`), separado del encabezado en claro y oscuro.
+
+**Límite conocido:** si una misma persona o dos faltan al mismo turno, `last_no_show_worker_profile_id` sólo guarda la última ausencia; la ficha de la anterior no la muestra.
+
 **Queda abierto:** nada. Con más de 200 turnos en vivo la lista sigue acotada (a propósito); el aviso lo hace visible.

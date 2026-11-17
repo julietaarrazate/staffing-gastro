@@ -245,7 +245,7 @@ export default function AdminLiveShiftsPage() {
         </div>
       )}
 
-      {board && filter !== "ausencias" && (board.shown_live ?? board.total) < board.total && (
+      {board && filter !== "ausencias" && board.limit != null && board.limit > 0 && (board.shown_live ?? 0) >= board.limit && (board.shown_live ?? 0) < board.total && (
         <p
           role="status"
           className="mt-4 rounded-xl bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text ring-1 ring-warning/20"
