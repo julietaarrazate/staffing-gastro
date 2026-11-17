@@ -84,6 +84,8 @@ export default function CompanyProfileForm() {
     e.preventDefault();
     setError(null);
     setSaved(false);
+    // Rubro, descripción, capacidad y horarios no se editan acá y no se mandan:
+    // el backend trata lo que no vino como «no tocar» (actualización parcial).
     const payload = {
       name,
       logo_url: logoUrl,

@@ -21,14 +21,16 @@ class CompanyProfileData:
 
     name: str
     logo_url: str | None = None
-    category: CompanyCategory | None = None
-    description: str | None = None
+    # Rubro, descripción, capacidad y horarios: UNSET = «el pedido no los trajo»
+    # (actualización parcial, no se borran). null explícito sí los vacía.
+    category: CompanyCategory | None | _Unset = UNSET
+    description: str | None | _Unset = UNSET
     address: str | None = None
     city: str | None = None
     latitude: float | None = None
     longitude: float | None = None
-    capacity: int | None = None
-    opening_hours: str | None = None
+    capacity: int | None | _Unset = UNSET
+    opening_hours: str | None | _Unset = UNSET
     # UNSET por default: la edición del perfil es de reemplazo total, y hay
     # escritores que no conocen este campo (el onboarding de /bienvenida, la
     # siembra de fotos, y cualquier versión vieja de la PWA cacheada en un

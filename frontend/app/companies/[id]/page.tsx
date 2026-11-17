@@ -84,6 +84,7 @@ export default function PublicCompanyProfilePage() {
   if (!profile) return null;
 
   const hasCoords = profile.latitude != null && profile.longitude != null;
+  const hasImage = Boolean(profile.cover_photo_url || profile.logo_url);
 
   return (
     <div className="app-container px-4 py-8">
@@ -98,9 +99,11 @@ export default function PublicCompanyProfilePage() {
       <div
         className={`overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line ${hasCoords ? "lg:col-span-2" : ""}`}
       >
-        <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
+        <div
+          className={`relative w-full bg-gradient-to-br from-primary to-primary-strong ${hasImage ? "h-56" : "flex min-h-56 flex-col"}`}
+        >
           {/* Foto del local primero; el logo estirado queda de respaldo. */}
-          {profile.cover_photo_url || profile.logo_url ? (
+          {hasImage ? (
             <img
               src={cldThumb(profile.cover_photo_url || profile.logo_url, 800)}
               alt={profile.name}
@@ -109,11 +112,15 @@ export default function PublicCompanyProfilePage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-night/85">
+            // Sin foto: la inicial arriba y el nombre debajo, en el flujo (no encima),
+            // así un nombre de varios renglones no la tapa y la tarjeta crece.
+            <div className="flex w-full items-center justify-center pt-5 text-5xl font-bold text-night/85">
               {profile.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
+          <div
+            className={`inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 ${hasImage ? "absolute" : "mt-auto"}`}
+          >
             <h1 className="font-display text-h1 font-semibold text-white drop-shadow-sm">{profile.name}</h1>
             {profile.city && (
               <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
