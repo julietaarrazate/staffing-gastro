@@ -151,12 +151,14 @@ async def test_admin_stats_compute_coverage_metric(client, session_factory):
     shift1_id = created1.json()["id"]
     await client.post(f"/api/v1/shifts/{shift1_id}/publish", headers=employer_headers)
     await _backdate_published_at(session_factory, shift1_id, 5)
-    _, worker1_profile_id = await _worker_with_profile(client, "w_cov1@test.com")
+    worker1, worker1_profile_id = await _worker_with_profile(client, "w_cov1@test.com")
     await client.post(
         f"/api/v1/shifts/{shift1_id}/assign",
         headers=employer_headers,
         json={"worker_profile_id": worker1_profile_id},
     )
+    # «Cubierto» = la persona confirmó (no alcanza con que la elijan).
+    await client.post(f"/api/v1/shifts/{shift1_id}/confirm", headers=worker1)
 
     # Turno 2: se cubre ~30 min después (fuera de la promesa).
     created2 = await client.post(
@@ -165,12 +167,14 @@ async def test_admin_stats_compute_coverage_metric(client, session_factory):
     shift2_id = created2.json()["id"]
     await client.post(f"/api/v1/shifts/{shift2_id}/publish", headers=employer_headers)
     await _backdate_published_at(session_factory, shift2_id, 30)
-    _, worker2_profile_id = await _worker_with_profile(client, "w_cov2@test.com")
+    worker2, worker2_profile_id = await _worker_with_profile(client, "w_cov2@test.com")
     await client.post(
         f"/api/v1/shifts/{shift2_id}/assign",
         headers=employer_headers,
         json={"worker_profile_id": worker2_profile_id},
     )
+    # «Cubierto» = la persona confirmó (no alcanza con que la elijan).
+    await client.post(f"/api/v1/shifts/{shift2_id}/confirm", headers=worker2)
 
     # Turno 3: publicado pero todavía sin cubrir — no debe entrar en la
     # muestra (nada que promediar todavía).
@@ -284,33 +288,6 @@ async def test_admin_stats_shift_completion_rate_differs_from_assignment_rate(
     assert body["shift_assignment_rate_pct"] == pytest.approx(100.0, abs=1)
     assert body["shift_completion_rate_sample_size"] == 2
     assert body["shift_completion_rate_pct"] == pytest.approx(50.0, abs=1)
-
-
-async def test_admin_stats_employer_repeat_rate(client, session_factory):
-    """`employer_repeat_rate`: un comercio que publica 2+ turnos cuenta como
-    "recurrente"; uno que publica sólo 1, no."""
-    admin = await _make_admin(client, session_factory, "admin_repeat_emp@test.com")
-    repeat_employer = await _employer_with_company(client, "emp_repeat@test.com")
-    once_employer = await _employer_with_company(client, "emp_once@test.com")
-
-    for _ in range(2):
-        created = await client.post(
-            "/api/v1/shifts", headers=repeat_employer, json=_shift_payload()
-        )
-        await client.post(
-            f"/api/v1/shifts/{created.json()['id']}/publish", headers=repeat_employer
-        )
-    created_once = await client.post(
-        "/api/v1/shifts", headers=once_employer, json=_shift_payload()
-    )
-    await client.post(
-        f"/api/v1/shifts/{created_once.json()['id']}/publish", headers=once_employer
-    )
-
-    stats = await client.get("/api/v1/admin/stats", headers=admin)
-    body = stats.json()
-    assert body["employer_repeat_sample_size"] == 2  # 2 comercios con >=1 turno
-    assert body["employer_repeat_rate_pct"] == pytest.approx(50.0, abs=1)  # 1 de 2 repite
 
 
 async def _worker_with_profile_palermo(

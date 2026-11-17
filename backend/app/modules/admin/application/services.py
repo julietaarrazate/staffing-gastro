@@ -72,6 +72,10 @@ TEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
     email for email, _ in TEST_ACCOUNTS.values()
 )
 
+# «Comercios que vuelven a publicar»: días desde la primera confirmación en
+# los que otro turno publicado cuenta como «volvió».
+EMPLOYER_RETURN_WINDOW_DAYS = 30
+
 
 async def _local_password() -> str:
     """Contraseña local irrecuperable: nadie puede iniciar sesión en la
@@ -238,25 +242,32 @@ class AdminService:
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma, incluida la promesa
         central del negocio ("cubrir un puesto en <10 minutos", ver
-        `Shift.published_at`/`first_assigned_at`).
+        `Shift.published_at`/`first_confirmed_at`: «cubierto» es que la
+        persona confirmó).
 
         Los conteos de usuarios se calculan en SQL (`UserRepository.count_stats`,
         PRODUCTION_HARDENING.md P5) — antes traía toda la tabla `users` y
         contaba en Python en cada carga del panel de admin."""
-        counts = await self._users.count_stats(
-            exclude_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        # Cuentas de prueba e invitadas: fuera de usuarios, turnos y comercios.
+        excluded = GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        counts = await self._users.count_stats(exclude_emails=excluded)
+        filled_shifts = await self._shifts.list_recently_filled(
+            exclude_company_emails=excluded
         )
-        filled_shifts = await self._shifts.list_recently_filled()
         minutes = [
-            (_naive(s.first_assigned_at) - _naive(s.published_at)).total_seconds() / 60
+            (_naive(s.first_confirmed_at) - _naive(s.published_at)).total_seconds() / 60
             for s in filled_shifts
-            if s.published_at is not None and s.first_assigned_at is not None
+            if s.published_at is not None and s.first_confirmed_at is not None
         ]
 
-        publication_stats = await self._shifts.count_publication_stats()
+        publication_stats = await self._shifts.count_publication_stats(
+            exclude_company_emails=excluded
+        )
         application_stats = await self._applications.count_application_stats()
         worker_stats = await self._workers.count_engagement_stats()
-        company_stats = await self._companies.count_engagement_stats()
+        return_stats = await self._shifts.count_return_stats(
+            exclude_company_emails=excluded, window_days=EMPLOYER_RETURN_WINDOW_DAYS
+        )
 
         no_show_sample_size = (
             worker_stats.completed_total
@@ -295,11 +306,8 @@ class AdminService:
             worker_completion_repeat_rate_pct=_rate_pct(
                 worker_stats.workers_with_2plus_events, worker_stats.workers_with_1plus_events
             ),
-            employer_repeat_sample_size=company_stats.companies_with_1plus_shifts,
-            employer_repeat_rate_pct=_rate_pct(
-                company_stats.companies_with_2plus_shifts,
-                company_stats.companies_with_1plus_shifts,
-            ),
+            employer_return_30d_sample_size=return_stats.sample_size,
+            employer_return_30d_rate_pct=_rate_pct(return_stats.returned, return_stats.sample_size),
         )
 
     # Tope de "Turnos en vivo": más que esto no se mira en una pantalla, y
@@ -394,7 +402,9 @@ class AdminService:
             "current_start": bounds.current_start,
             "end": bounds.end,
         }
-        current, previous = await self._shifts.count_period_stats(**window)
+        current, previous = await self._shifts.count_period_stats(
+            **window, exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        )
         apps_current, apps_previous = await self._applications.count_created_by_period(**window)
 
         def _summary(
@@ -409,6 +419,15 @@ class AdminService:
                 covered_under_10_min_pct=_rate_pct(s.covered_under_10_min, s.covered),
                 avg_minutes_to_cover=s.avg_minutes_to_cover,
                 applications=apps,
+                median_minutes_to_cover=s.median_minutes_to_cover,
+                short_notice_covered=s.short_notice_covered,
+                short_notice_under_10_min_pct=_rate_pct(
+                    s.short_notice_under_10_min, s.short_notice_covered
+                ),
+                fulfilled=s.fulfilled,
+                fulfilled_pct=_rate_pct(s.fulfilled, s.covered),
+                active_companies=s.active_companies,
+                companies_with_covered=s.companies_with_covered,
             )
 
         return PeriodMetrics(

@@ -52,8 +52,9 @@ class PlatformStats:
     verified: int
 
     # Promesa central del negocio ("cubrir un puesto en menos de 10
-    # minutos", PRODUCT.md): tiempo entre publicar un turno y encontrar el
-    # primer candidato. `None` si todavía no hay muestra (sin backfill,
+    # minutos", PRODUCT.md): tiempo entre publicar un turno y la primera
+    # CONFIRMACIÓN de la persona (`Shift.first_confirmed_at`, Julieta
+    # 2026-11-17; antes se medía hasta que el comercio eligió). `None` si todavía no hay muestra (sin backfill,
     # sólo cuenta turnos publicados después de la migración 0020).
     coverage_sample_size: int
     avg_time_to_fill_minutes: float | None
@@ -96,12 +97,12 @@ class PlatformStats:
     worker_completion_repeat_sample_size: int
     worker_completion_repeat_rate_pct: float | None
 
-    # Más cercana a "recurrencia de uso" que la de arriba: `events_published`
-    # se incrementa en CADA publicación (no requiere que el turno se cubra),
-    # así que el denominador es "comercios que publicaron >=1 vez" — más
-    # inclusivo que el de trabajadores. Igual sin ventana temporal (all-time).
-    employer_repeat_sample_size: int
-    employer_repeat_rate_pct: float | None
+    # «Comercios que vuelven a publicar»: de los comercios con al menos un
+    # turno cubierto (la persona confirmó), cuántos publicaron otro dentro de
+    # los 30 días de su primera confirmación. Reemplaza al viejo
+    # `employer_repeat_*` (2+ turnos publicados, sin importar si se cubrió).
+    employer_return_30d_sample_size: int
+    employer_return_30d_rate_pct: float | None
 
 
 @dataclass
@@ -246,6 +247,16 @@ class PeriodSummary:
     covered_under_10_min_pct: float | None
     avg_minutes_to_cover: float | None
     applications: int
+    # Medición de la beta (M2-M4): ver `ShiftPeriodStats`. «Cubierto» = la
+    # persona confirmó; «cumplido» = cubierto y con check-in; «aviso corto» =
+    # el turno empieza dentro de las 24 h de publicado.
+    median_minutes_to_cover: float | None = None
+    short_notice_covered: int = 0
+    short_notice_under_10_min_pct: float | None = None
+    fulfilled: int = 0
+    fulfilled_pct: float | None = None
+    active_companies: int = 0
+    companies_with_covered: int = 0
 
 
 @dataclass

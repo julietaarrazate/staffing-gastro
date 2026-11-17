@@ -19,9 +19,9 @@ class ShiftPublicationStats:
     propósito (docs/audits/ETAPA1_QUALITY_REVIEW.md §1.1):
 
     - `assigned`: turnos que alguna vez tuvieron `first_assigned_at` seteado
-      (mismo criterio que `time_to_cover`/`list_recently_filled` — "el
-      matching encontró a alguien", sin importar qué pasó después: un turno
-      asignado→no-show→cancelado cuenta acá).
+      ("el comercio eligió a alguien", sin importar qué pasó después: un
+      turno asignado→no-show→cancelado cuenta acá). Dato interno del embudo:
+      NO es «cubierto» (eso es `first_confirmed_at`, ver `ShiftPeriodStats`).
     - `completed`: turnos cuyo `status` ACTUAL es `FINALIZADO` o `PAGADO`
       (`Shift.finish()`/`Shift.mark_paid()`, estados ya existentes del
       dominio — ningún estado nuevo). Mide cobertura real de punta a punta.
@@ -29,9 +29,8 @@ class ShiftPublicationStats:
     La brecha entre `assigned/published` y `completed/published` es la
     señal útil: cuánto de lo "encontrado" efectivamente se trabajó.
     Calculado con `SUM(CASE...)` en SQL (mismo patrón que `UserCounts` de
-    identity), no trayendo filas a Python. Reutiliza `published_at`/
-    `first_assigned_at`/`status` (todas ya existentes) — sin columnas
-    nuevas, sin migración."""
+    identity), no trayendo filas a Python. Excluye los turnos de las cuentas
+    de prueba e invitadas (`exclude_company_emails`)."""
 
     published: int
     assigned: int
@@ -42,14 +41,41 @@ class ShiftPublicationStats:
 class ShiftPeriodStats:
     """Turnos publicados en un período (`published_at` dentro de la ventana)
     y cuántos de ésos se cubrieron, para "Métricas" con período del panel
-    de admin. Mismo criterio de "cubierto" que `ShiftPublicationStats`:
-    tiene `first_assigned_at`. `avg_minutes_to_cover` es `None` sin turnos
-    cubiertos (nunca un promedio sobre cero casos)."""
+    de admin.
+
+    Definiciones (Julieta, 2026-11-17, docs/planning/BETA_TABLERO.md):
+    - **cubierto** = la persona confirmó (`first_confirmed_at`), ya no que el
+      comercio eligió (`first_assigned_at`).
+    - **cumplido** = cubierto y con `check_in_at` (hubo llegada al local).
+    - minutos hasta cubrir = `first_confirmed_at - published_at`.
+    - **aviso corto** = `start_at - published_at <= 24 h`.
+
+    `avg_minutes_to_cover` y `median_minutes_to_cover` son `None` sin turnos
+    cubiertos (nunca un número sobre cero casos).
+    `active_companies`: comercios distintos que publicaron en la ventana;
+    `companies_with_covered`: de ésos, los que tuvieron al menos un turno
+    cubierto."""
 
     published: int
     covered: int
     covered_under_10_min: int
     avg_minutes_to_cover: float | None
+    median_minutes_to_cover: float | None
+    short_notice_covered: int
+    short_notice_under_10_min: int
+    fulfilled: int
+    active_companies: int
+    companies_with_covered: int
+
+
+@dataclass
+class ShiftReturnStats:
+    """«Comercios que vuelven a publicar»: de los comercios con al menos un
+    turno cubierto (`sample_size`), cuántos publicaron otro turno dentro de
+    los `window_days` siguientes a su primera confirmación (`returned`)."""
+
+    sample_size: int
+    returned: int
 
 
 @dataclass(frozen=True)
@@ -213,10 +239,14 @@ class ShiftRepository(ABC):
         recordatorio de check-in o marcar no-show automático."""
 
     @abstractmethod
-    async def list_recently_filled(self, *, limit: int = 500) -> list[Shift]:
-        """Turnos con `published_at` Y `first_assigned_at` seteados (los que
-        aportan dato a la métrica de tiempo de cobertura), más recientes
-        primero, acotado a `limit`.
+    async def list_recently_filled(
+        self, *, exclude_company_emails: frozenset[str] = frozenset(), limit: int = 500
+    ) -> list[Shift]:
+        """Turnos con `published_at` Y `first_confirmed_at` seteados (los
+        cubiertos: los que aportan dato a la métrica de tiempo de cobertura),
+        más recientes primero, acotado a `limit`. Sin los turnos de comercios
+        cuyo email está en `exclude_company_emails` (cuentas de prueba e
+        invitadas).
 
         Uso interno (no expuesto por API): `AdminService.get_stats` calcula
         el promedio y el % cubierto en <10 min sobre esta muestra."""
@@ -268,9 +298,13 @@ class ShiftRepository(ABC):
         """
 
     @abstractmethod
-    async def count_publication_stats(self) -> ShiftPublicationStats:
-        """Cuenta turnos publicados y turnos cubiertos (`shift_fill_rate`,
-        panel de admin) — agregado en SQL, no una lista de filas."""
+    async def count_publication_stats(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> ShiftPublicationStats:
+        """Cuenta turnos publicados, asignados y completados
+        (`shift_assignment_rate`/`shift_completion_rate`, panel de admin) —
+        agregado en SQL, no una lista de filas. Sin los turnos de
+        `exclude_company_emails`."""
 
     @abstractmethod
     async def list_live(self, *, limit: int = 200) -> list[Shift]:
@@ -300,9 +334,25 @@ class ShiftRepository(ABC):
 
     @abstractmethod
     async def count_period_stats(
-        self, *, previous_start: datetime, current_start: datetime, end: datetime
+        self,
+        *,
+        previous_start: datetime,
+        current_start: datetime,
+        end: datetime,
+        exclude_company_emails: frozenset[str] = frozenset(),
     ) -> tuple[ShiftPeriodStats, ShiftPeriodStats]:
         """`(actual, anterior)`: turnos publicados en `[current_start, end)`
-        y en `[previous_start, current_start)`. Los dos períodos salen de UNA
-        consulta (SUM/CASE por ventana), así la comparación no duplica
-        round-trips."""
+        y en `[previous_start, current_start)`, sin los de comercios cuyo
+        email está en `exclude_company_emails`. Los agregados salen de UNA
+        consulta (SUM/CASE por ventana) y la mediana de otra, así la
+        comparación no suma round-trips según el volumen."""
+
+    @abstractmethod
+    async def count_return_stats(
+        self,
+        *,
+        exclude_company_emails: frozenset[str] = frozenset(),
+        window_days: int = 30,
+    ) -> ShiftReturnStats:
+        """Comercios que vuelven a publicar: ver `ShiftReturnStats`. Sin los
+        comercios de `exclude_company_emails`."""

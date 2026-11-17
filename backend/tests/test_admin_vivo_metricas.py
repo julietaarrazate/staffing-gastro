@@ -335,18 +335,18 @@ async def test_period_metrics_compare_current_and_previous(client, session_facto
     # Período actual: 3 publicados, 2 cubiertos (a los 5 y a los 25 min).
     rapido = await _published_shift(client, employer)
     await _set(
-        session_factory, rapido, published_at=cur, first_assigned_at=cur + timedelta(minutes=5)
+        session_factory, rapido, published_at=cur, first_confirmed_at=cur + timedelta(minutes=5)
     )
     lento = await _published_shift(client, employer)
     await _set(
-        session_factory, lento, published_at=cur, first_assigned_at=cur + timedelta(minutes=25)
+        session_factory, lento, published_at=cur, first_confirmed_at=cur + timedelta(minutes=25)
     )
     abierto = await _published_shift(client, employer)
     await _set(session_factory, abierto, published_at=cur)
     # Período anterior: 1 publicado, cubierto a los 8 min.
     viejo = await _published_shift(client, employer)
     await _set(
-        session_factory, viejo, published_at=prev, first_assigned_at=prev + timedelta(minutes=8)
+        session_factory, viejo, published_at=prev, first_confirmed_at=prev + timedelta(minutes=8)
     )
     # Fuera de los dos períodos: no cuenta.
     fuera = await _published_shift(client, employer)
