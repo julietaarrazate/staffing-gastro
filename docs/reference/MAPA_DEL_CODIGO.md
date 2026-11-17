@@ -95,8 +95,8 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Textos de lo que no se puede hacer con el turno (por acción y estado, castellano de persona) | `backend/app/modules/shift/domain/mensajes.py` (`no_se_puede`) |
 | Casos de uso del turno (publicar, asignar, check-in…) | `backend/app/modules/shift/application/services.py` |
 | A quién se avisa al publicar (top 10 + favoritos) | `ShiftService._notify_nearby_workers`, mismo archivo |
-| A quién se avisa al cancelar un turno (asignado y postulaciones pendientes, un aviso por persona) | `ShiftService._notify_shift_cancelled`, mismo archivo; tabla por estado en [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) |
-| Texto de «¿Cancelar este turno?» y cuándo avisa la cancelación tardía | `frontend/lib/cancelar-turno.ts` (`cancelConfirmCopy`, `isLateCancellation`); el diálogo está en `app/shifts/page.tsx` y al abrirse relee el turno (`askCancel`), para decidir el texto con el estado de ahora |
+| A quién se avisa al cancelar un turno (asignado y postulaciones pendientes, un aviso por persona); cancelar un evento entero es lo mismo puesto por puesto (`ShiftService.cancel_event`, U084) | `ShiftService._notify_shift_cancelled`, mismo archivo; tabla por estado en [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) |
+| Texto de «¿Cancelar este turno?» y «¿Cancelar el evento entero?», y cuándo avisa la cancelación tardía | `frontend/lib/cancelar-turno.ts` (`cancelConfirmCopy`, `cancelEventConfirmCopy`, `isLateCancellation`); el diálogo está en `app/shifts/page.tsx` y al abrirse relee el turno (`askCancel`), para decidir el texto con el estado de ahora |
 | Cancelaciones tardías que ve el comercio en su `/profile` (sólo con al menos una) | `frontend/components/company/LateCancellations.tsx` |
 | Tareas periódicas (recordatorios, no-show, urgencia, "no cubierto", retención de sesiones y avisos, reintento del borrado de documentos) | `backend/app/modules/shift/application/scheduler.py` (los chequeos de otros módulos entran por `extra_checks` desde `app/main.py`) |
 | Pago de referencia y "paga por debajo" (ADR-0012) | `backend/app/modules/shift/domain/pay_benchmark.py` |
@@ -136,7 +136,7 @@ Esto es para saber qué existe sin abrir cada archivo.
 | Prefijo | Qué hay |
 |---|---|
 | `/auth` | register, login, guest, google, refresh, logout, me, forgot/reset-password, verify-email; verificación en dos pasos del admin: `2fa` (estado), `2fa/setup`, `2fa/confirm`, `2fa/verify` (paso del código del login), `2fa/recovery-codes` |
-| `/shifts` | crear, `parse-text`, `feed`, `me`, `mine`, `events`, `{id}`, `{id}/public`; transiciones: `publish`, `cancel`, `assign`, `confirm`, `reject`, `worker-cancel`, `depart`, `en-route`, `check-in`, `start-working`, `check-out`, `no-show`, `finish`, `mark-paid`; `{id}/candidates` (matching) |
+| `/shifts` | crear, `parse-text`, `feed`, `me`, `mine`, `events`, `{id}`, `{id}/public`; transiciones: `publish`, `cancel`, `assign`, `confirm`, `reject`, `worker-cancel`, `depart`, `en-route`, `check-in`, `start-working`, `check-out`, `no-show`, `finish`, `mark-paid`; `{id}/candidates` (matching); `events/{event_id}/cancel` (cancelar los puestos que quedan de un evento) |
 | `/applications` | postularse a un turno, retirarse, `mine` |
 | `/matching` | búsqueda de trabajadores para el comercio |
 | `/workers`, `/companies` | perfil propio (`me/profile`), perfil público; `workers/me/earnings`, `workers/me/available-now` |
