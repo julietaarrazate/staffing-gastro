@@ -195,6 +195,27 @@ export default function PrivacidadPage() {
             </p>
           </Section>
 
+          <Section title="Encuesta para locales">
+            <p>
+              Si completás la encuesta para locales sin tener cuenta en Oído,
+              guardamos tus respuestas sobre cómo trabaja tu local: tipo de
+              local, barrio, cuántas veces sumás personal eventual, para qué
+              puestos, cómo lo conseguís, cuánto pagás por jornada y cómo
+              preferirías pagar. Sólo si nos los dejás, guardamos también tu
+              nombre, el del local y un teléfono o email. Usamos las
+              respuestas para entender el sector y definir el producto y sus
+              precios, y el contacto únicamente para invitarte a la beta y
+              escribirte sobre Oído. No compartimos estos datos ni los usamos
+              para publicidad de terceros. Borramos el contacto a los 12 meses
+              de la encuesta, o antes si nos lo pedís escribiendo a{" "}
+              <a href={`mailto:${LEGAL_OWNER.email}`} className={LINK}>
+                {LEGAL_OWNER.email}
+              </a>
+              ; las respuestas sin contacto pueden quedar como estadística
+              anónima.
+            </p>
+          </Section>
+
           <Section title="Para qué los usamos">
             <ul className="ml-5 list-disc space-y-1.5">
               <li>Crear y mantener tu cuenta.</li>
