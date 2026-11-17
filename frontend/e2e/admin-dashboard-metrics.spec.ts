@@ -96,11 +96,13 @@ test("el panel de admin muestra admins/verificados y las 6 métricas de producto
   await expect(page.getByText("Postulaciones aceptadas")).toBeVisible();
   await expect(page.getByText("No-shows")).toBeVisible();
   await expect(page.getByText("Trabajadores que repiten")).toBeVisible();
-  await expect(page.getByText("Comercios que repiten")).toBeVisible();
+  await expect(page.getByText("Comercios que vuelven a publicar (30 días)")).toBeVisible();
 
   await expect(page.getByText("70%")).toBeVisible();
   await expect(page.getByText("Sobre 10 turnos publicados").first()).toBeVisible();
-  await expect(page.getByText("Sobre 4 comercios activos")).toBeVisible();
+  await expect(
+    page.getByText("Sobre 4 comercios con su primer turno cubierto hace más de 30 días")
+  ).toBeVisible();
 });
 
 test("sin muestra todavía, una métrica de producto muestra un guion en vez de 0%", async ({

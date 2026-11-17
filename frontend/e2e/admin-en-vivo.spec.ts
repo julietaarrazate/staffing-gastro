@@ -146,8 +146,15 @@ function period(days: number) {
       shifts_covered: days === 7 ? 9 : 30,
       covered_pct: 75,
       covered_under_10_min_pct: 67,
-      avg_minutes_to_cover: 9,
+      avg_minutes_to_cover: 11,
       applications: days === 7 ? 30 : 95,
+      median_minutes_to_cover: 9,
+      short_notice_covered: days === 7 ? 6 : 20,
+      short_notice_under_10_min_pct: 67,
+      fulfilled: days === 7 ? 8 : 27,
+      fulfilled_pct: 89,
+      active_companies: days === 7 ? 5 : 12,
+      companies_with_covered: days === 7 ? 4 : 10,
     },
     previous: {
       start: iso(prevStart),
@@ -156,8 +163,15 @@ function period(days: number) {
       shifts_covered: days === 7 ? 6 : 28,
       covered_pct: 75,
       covered_under_10_min_pct: 50,
-      avg_minutes_to_cover: 12,
+      avg_minutes_to_cover: 14,
       applications: days === 7 ? 40 : 0,
+      median_minutes_to_cover: 12,
+      short_notice_covered: days === 7 ? 4 : 18,
+      short_notice_under_10_min_pct: 50,
+      fulfilled: days === 7 ? 5 : 25,
+      fulfilled_pct: 83,
+      active_companies: days === 7 ? 4 : 12,
+      companies_with_covered: days === 7 ? 3 : 10,
     },
   };
 }
@@ -308,8 +322,10 @@ test("Métricas compara el período con el anterior y cambia a 30 días", async 
   await expect(card("Turnos publicados")).toContainText("12");
   await expect(card("Turnos publicados")).toContainText("↑ 50 %");
   await expect(card("Turnos publicados")).toContainText("antes 8");
-  // Tiempo hasta cubrir: bajar de 12 a 9 min es bueno (verde).
-  await expect(card("Tiempo hasta cubrir").getByText("↓ 25 %")).toHaveClass(/text-success-text/);
+  // Mediana hasta confirmar: bajar de 12 a 9 min es bueno (verde).
+  await expect(card("Mediana hasta confirmar").getByText("↓ 25 %")).toHaveClass(/text-success-text/);
+  await expect(card("Locales activos")).toContainText("5");
+  await expect(card("Locales activos")).toContainText("4 con un turno cubierto");
   // Postulaciones: bajar de 40 a 30 es malo (rojo).
   await expect(card("Postulaciones").getByText("↓ 25 %")).toHaveClass(/text-danger-text/);
   await expect(page.getByText("Período: 17/10 al 23/10")).toBeVisible();
