@@ -20,14 +20,16 @@ export default function SegmentedControl<T extends string>({
   onChange,
   className,
 }: {
-  options: { value: T; label: string }[];
+  // `count`: cuántos hay, como numerito aparte (más angosto que «(3)» pegado
+  // al texto: tres pestañas con cantidad entran en 360 px sin scroll).
+  options: { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
   className?: string;
 }) {
   const id = useId();
   return (
-    <div className={cn("flex gap-1 rounded-full bg-surface p-1 ring-1 ring-line", className)}>
+    <div className={cn("flex gap-0.5 sm:gap-1 rounded-full bg-surface p-1 ring-1 ring-line", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -35,6 +37,7 @@ export default function SegmentedControl<T extends string>({
             key={o.value}
             type="button"
             aria-pressed={active}
+            aria-label={o.count ? `${o.label} (${o.count})` : undefined}
             onClick={() => onChange(o.value)}
             // `whitespace-nowrap`: sin esto una etiqueta larga
             // ("Postulaciones (1)" en /my-shifts) envuelve a dos líneas y,
@@ -44,7 +47,10 @@ export default function SegmentedControl<T extends string>({
             // diferente"). Con nowrap todos miden una línea; si la suma no
             // entra, el contenedor de la página ya scrollea en horizontal
             // (ver `overflow-x-auto` en my-shifts/shifts).
-            className="relative flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            // Debajo de `sm`, 13 px y menos relleno (como el control de iOS):
+            // con 14 px las tres pestañas de Matches entraban en 360 px con
+            // la fuente local y se pasaban 4 px con la de CI (#609).
+            className="relative min-w-0 flex-auto whitespace-nowrap rounded-full px-1 py-2 sm:px-3 text-caption sm:text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {active && (
               <motion.span
@@ -53,8 +59,19 @@ export default function SegmentedControl<T extends string>({
                 className="absolute inset-0 rounded-full bg-raised shadow-[var(--shadow-soft)]"
               />
             )}
-            <span className={cn("relative z-10 transition-colors", active ? "text-ink" : "text-ink/60")}>
-              {o.label}
+            {/* Último recurso si igual no entra (contadores de tres cifras,
+                celulares de 320 px): se recorta el nombre con «…» y el número
+                queda a la vista; la pista nunca desborda la pantalla. */}
+            <span
+              className={cn(
+                "relative z-10 flex min-w-0 items-baseline justify-center transition-colors",
+                active ? "text-ink" : "text-ink/60",
+              )}
+            >
+              <span className="truncate">{o.label}</span>
+              {o.count ? (
+                <span className="ml-0.5 shrink-0 text-xs font-bold tabular-nums opacity-80 sm:ml-1">{o.count}</span>
+              ) : null}
             </span>
           </button>
         );

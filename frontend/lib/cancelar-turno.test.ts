@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cancelConfirmCopy,
+  cancelEventConfirmCopy,
   isCancellable,
   isLateCancellation,
   LATE_CANCELLATION_WARNING,
@@ -138,5 +139,37 @@ describe("withFreshState", () => {
   it("si ahora es otro trabajador, no se le pone el nombre del anterior", () => {
     const other = { ...detail, worker_profile_id: "wp-2" } as Shift;
     expect(withFreshState(listed, other).worker_name).toBeNull();
+  });
+});
+
+describe("cancelEventConfirmCopy (U084)", () => {
+  const puesto = (status: ShiftStatus, worker: string | null = null) => ({ status, worker_profile_id: worker });
+
+  it("cuenta sólo lo que se puede cancelar y suma una tardía por confirmado", () => {
+    const copy = cancelEventConfirmCopy([
+      puesto("confirmado", "w1"),
+      puesto("en_camino", "w2"),
+      puesto("buscando_personal"),
+      puesto("cancelado"),
+      puesto("finalizado", "w3"),
+    ]);
+    expect(copy.count).toBe(3);
+    expect(copy.body).toBe(
+      "Se cancelan los 3 puestos que quedan del evento. A quien esté asignado o se haya postulado se le avisa. No vas a poder deshacerlo."
+    );
+    expect(copy.lateCancellation).toBe(
+      "2 personas ya confirmaron: te suma 2 cancelaciones tardías. Las ves en tu perfil."
+    );
+  });
+
+  it("un solo puesto, sin nadie: sin aviso ni tardía", () => {
+    const copy = cancelEventConfirmCopy([puesto("borrador"), puesto("cancelado")]);
+    expect(copy.count).toBe(1);
+    expect(copy.body).toBe("Se cancela el puesto que queda del evento. No vas a poder deshacerlo.");
+    expect(copy.lateCancellation).toBeNull();
+  });
+
+  it("nada para cancelar", () => {
+    expect(cancelEventConfirmCopy([puesto("pagado", "w1")]).count).toBe(0);
   });
 });

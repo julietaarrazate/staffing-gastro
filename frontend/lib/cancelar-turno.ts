@@ -103,3 +103,34 @@ export function cancelConfirmCopy(shift: CancellableShift | undefined): CancelCo
     lateCancellation: null,
   };
 }
+
+/**
+ * Texto de «¿Cancelar el evento entero?» (U084). Mismas reglas que cancelar
+ * cada puesto (`ShiftService.cancel_event` lo hace puesto por puesto): se
+ * cancelan los que todavía se pueden cancelar, a cada asignado o postulado se
+ * le avisa, y cada puesto con alguien ya confirmado suma su cancelación tardía.
+ */
+export function cancelEventConfirmCopy(puestos: readonly CancellableShift[]): CancelConfirmCopy & {
+  /** Cuántos puestos se cancelan; 0 = no queda nada para cancelar. */
+  count: number;
+} {
+  const pendientes = puestos.filter((p) => isCancellable(p.status));
+  const count = pendientes.length;
+  const tardias = pendientes.filter(isLateCancellation).length;
+  const conAlguien = pendientes.some(
+    (p) => Boolean(p.worker_profile_id) || OPEN_STATUSES.includes(p.status)
+  );
+  const cuales =
+    count === 1 ? "Se cancela el puesto que queda" : `Se cancelan los ${count} puestos que quedan`;
+  const aviso = conAlguien ? " A quien esté asignado o se haya postulado se le avisa." : "";
+  return {
+    count,
+    body: `${cuales} del evento.${aviso} No vas a poder deshacerlo.`,
+    lateCancellation:
+      tardias === 0
+        ? null
+        : tardias === 1
+          ? "Una persona ya confirmó: te suma una cancelación tardía. La ves en tu perfil."
+          : `${tardias} personas ya confirmaron: te suma ${tardias} cancelaciones tardías. Las ves en tu perfil.`,
+  };
+}

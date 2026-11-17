@@ -216,6 +216,15 @@ class EventInput(BaseModel):
         return self
 
 
+class EventCancelResponse(BaseModel):
+    """Resultado de cancelar un evento entero (U084): los puestos que se
+    cancelaron ahora. Los que ya habían terminado o estaban cancelados no
+    vienen."""
+
+    event_id: UUID
+    cancelled: list[ShiftResponse]
+
+
 class EventResponse(BaseModel):
     """Resultado de publicar un evento: `requested` vs. la cantidad real de
     `shifts` — si son distintos, el plan del comercio se quedó sin cupo a
