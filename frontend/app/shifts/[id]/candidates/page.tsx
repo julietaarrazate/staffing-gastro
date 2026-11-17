@@ -95,6 +95,9 @@ function ShiftCandidatesContent() {
   const [shiftError, setShiftError] = useState(false);
   // Sin el estado del turno no se ofrece «Asignar»: se carga o se reintenta.
   const canAssign = shift !== null && ASSIGNABLE_STATUSES.includes(shift.status);
+  // La garantía le habla a quien todavía elige: con el turno cerrado no aplica.
+  // Si el estado no cargó (shift null) no se sabe, y se deja como estaba.
+  const mostrarGarantia = shift === null || canAssign;
   // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
   // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
   // contestó bien con cero postulantes. Si ya había datos y una recarga
@@ -386,9 +389,11 @@ function ShiftCandidatesContent() {
                   );
                 })}
               </div>
-              <div className="mt-4">
-                <GuaranteeCard />
-              </div>
+              {mostrarGarantia && (
+                <div className="mt-4">
+                  <GuaranteeCard />
+                </div>
+              )}
             </>
           )}
         </div>
@@ -426,9 +431,11 @@ function ShiftCandidatesContent() {
                   </motion.div>
                 ))}
               </div>
-              <div className="mt-4">
-                <GuaranteeCard />
-              </div>
+              {mostrarGarantia && (
+                <div className="mt-4">
+                  <GuaranteeCard />
+                </div>
+              )}
             </>
           )}
         </div>

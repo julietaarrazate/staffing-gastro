@@ -326,3 +326,67 @@ async def test_admin_can_mark_all_read(client: AsyncClient, session_factory):
     response = await client.post("/api/v1/notifications/read-all", headers=admin_headers)
     assert response.status_code == 200
     assert response.json() == {"marked": 0}
+
+
+def test_notification_entity_clips_long_title_and_message():
+    """El tope de las columnas (255 / 500) se hace cumplir en la entidad, para
+    todo aviso: SQLite no lo exige y Postgres rechaza el INSERT."""
+    from uuid import uuid4
+
+    from app.modules.notification.domain.entities import Notification
+    from app.modules.notification.domain.value_objects import NotificationType
+
+    largo = Notification(
+        user_id=uuid4(),
+        type=NotificationType.CHAT_MESSAGE,
+        title="T" * 400,
+        message="M" * 900,
+    )
+    assert len(largo.title) == 255 and largo.title.endswith("…")
+    assert len(largo.message) == 500 and largo.message.endswith("…")
+
+    corto = Notification(
+        user_id=uuid4(), type=NotificationType.CHAT_MESSAGE, title="Hola", message="Qué tal"
+    )
+    assert (corto.title, corto.message) == ("Hola", "Qué tal")
+
+
+@pytest.mark.asyncio
+async def test_repository_stores_long_notification_clipped(session_factory):
+    """Lo guardado (la fila) no pasa los topes de la columna: SQLite no los
+    hace cumplir, así que se mide el largo del valor, no un error de la base."""
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from app.modules.notification.domain.entities import Notification
+    from app.modules.notification.domain.value_objects import NotificationType
+    from app.modules.notification.infrastructure.models import NotificationModel
+    from app.modules.notification.infrastructure.repositories import (
+        SqlAlchemyNotificationRepository,
+    )
+    from app.modules.identity.infrastructure.models import UserModel
+
+    user_id = uuid4()
+    async with session_factory() as session:
+        session.add(
+            UserModel(
+                id=user_id,
+                email="notif_clip@staffya.com",
+                hashed_password="x",
+                full_name="Persona",
+                role="employer",
+            )
+        )
+        await session.commit()
+        await SqlAlchemyNotificationRepository(session).add(
+            Notification(
+                user_id=user_id,
+                type=NotificationType.CHAT_MESSAGE,
+                title="Nuevo mensaje de " + "N" * 400,
+                message="M" * 900,
+            )
+        )
+        row = (await session.execute(select(NotificationModel))).scalars().one()
+    assert len(row.title) == 255 and row.title.endswith("…")
+    assert len(row.message) == 500 and row.message.endswith("…")

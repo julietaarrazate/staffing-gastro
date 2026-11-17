@@ -60,7 +60,7 @@ siguen válidos; los tokens soft/mute son la versión nombrada del board.)*
 |---|---|---|---|---|
 | success | `#16A34A` | `#F0FDF4` | `#15803D` | Disponible, confirmado, éxito. |
 | warning | `#F59E0B` | `#FFFBEB` | `#92660A` | Cerca del límite, atención. |
-| danger | `#EF4444` | `#FEF2F2` | `#D73D3D` | Error, cancelado, no-show. |
+| danger | `#EF4444` | `#FEF2F2` | `#C22F2F` | Error, cancelado, no-show. |
 | info | `#3B82F6` | `#DBEAFE` | `#1D4ED8` | Informativo, "va en camino", tips. |
 
 ## Modo oscuro

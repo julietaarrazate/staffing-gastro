@@ -262,7 +262,7 @@ agrega una variante accesible para el rol de texto.
 | `--color-success` | `#22C55E` | **Superficie** de éxito | — |
 | `--color-success-text` | **`#17853F`** | **Texto** de éxito sobre claro | Sobre blanco: **4.71** ✅ |
 | `--color-danger` | `#EF4444` | **Superficie** de error | — |
-| `--color-danger-text` | **`#D73D3D`** | **Texto** de error sobre claro | Sobre blanco: **4.54** ✅ |
+| `--color-danger-text` | **`#C22F2F`** | **Texto** de error sobre claro | Sobre blanco: **5.61** ✅ |
 
 **Los tres valores nuevos (`#C65300`, `#17853F`, `#D73D3D`) no son
 arbitrarios:** son el resultado de oscurecer progresivamente cada color de
