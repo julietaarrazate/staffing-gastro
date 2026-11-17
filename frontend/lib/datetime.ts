@@ -43,6 +43,15 @@ export function formatShiftDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE });
 }
 
+/** "17/11": día y mes en hora argentina. */
+export function formatDayMonth(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
 /**
  * La hora de un turno, SIEMPRE en 24 h ("20:00", nunca "08:00 p. m."): es la
  * única función de hora de la app. Con `hourCycle: "h23"` explícito no depende

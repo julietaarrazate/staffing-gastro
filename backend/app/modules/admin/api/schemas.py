@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
@@ -85,6 +85,36 @@ class AdminTicketRowResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class AdminCommitmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    at: datetime
+    plan_code: str
+    plan_name: str
+    price_ars: Decimal
+
+
+class AdminSubscriptionSummaryResponse(BaseModel):
+    """Bloque «Plan» de la ficha de un comercio."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    plan_code: str
+    plan_name: str
+    chosen_plan_code: str | None = None
+    chosen_plan_name: str | None = None
+    chosen_plan_at: datetime | None = None
+    commitment: AdminCommitmentResponse | None = None
+
+
+class PaymentCommitmentRequest(BaseModel):
+    """`PUT /admin/users/{id}/payment-commitment`: precio mensual acordado,
+    en pesos enteros."""
+
+    plan_code: str = Field(min_length=1, max_length=40)
+    price_ars: int = Field(gt=0, le=100_000_000)
+
+
 class AdminUserDetailResponse(BaseModel):
     """Ficha de una persona (`GET /admin/users/{id}`)."""
 
@@ -95,6 +125,7 @@ class AdminUserDetailResponse(BaseModel):
     company: AdminCompanySummaryResponse | None = None
     recent_shifts: list[AdminShiftRowResponse] = []
     tickets: list[AdminTicketRowResponse] = []
+    subscription: AdminSubscriptionSummaryResponse | None = None
 
 
 class ImpersonateResponse(BaseModel):
@@ -160,6 +191,9 @@ class SubscriptionStatsResponse(BaseModel):
     total_companies: int
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
+    companies_with_chosen_plan: dict[str, int] = {}
+    committed_companies: int = 0
+    committed_mrr_ars: Decimal = Decimal("0")
     billing_enabled: bool
 
 
