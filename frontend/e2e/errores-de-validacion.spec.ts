@@ -136,7 +136,8 @@ test("«Llegué» que el servidor rechaza avisa con un aviso flotante, no con un
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: -34.58, longitude: -58.43 });
   await setupChat(page);
-  await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json(200, [shift])));
+  await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json(200, [{ ...shift, start_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() }]))
+  );
   await page.route("**/api/v1/shifts/s1/check-in", (route) =>
     route.fulfill(json(409, { detail: "Todavía falta para marcar tu llegada" }))
   );
