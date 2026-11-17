@@ -390,3 +390,25 @@ async def test_repository_stores_long_notification_clipped(session_factory):
         row = (await session.execute(select(NotificationModel))).scalars().one()
     assert len(row.title) == 255 and row.title.endswith("…")
     assert len(row.message) == 500 and row.message.endswith("…")
+
+
+@pytest.mark.asyncio
+async def test_finish_notifies_worker_to_rate_the_company(client: AsyncClient):
+    """U018: al finalizar, el trabajador recibe «Cerró tu turno» con link a ese turno en Mis turnos."""
+    from tests.test_admin import _run_shift_to_finish  # noqa: PLC0415
+
+    employer_headers = await _employer_with_company(client, "n_emp_fin@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "n_worker_fin@staffya.com"
+    )
+    await _run_shift_to_finish(client, employer_headers, worker_headers, worker_profile_id)
+    mine = (await client.get("/api/v1/shifts/mine", headers=worker_headers)).json()
+    shift_id = next(s["id"] for s in mine if s["status"] == "finalizado")
+
+    body = (await client.get("/api/v1/notifications", headers=worker_headers)).json()
+    finished = [n for n in body if n["type"] == "shift_finished"]
+    assert len(finished) == 1
+    assert finished[0]["title"] == "Cerró tu turno"
+    assert finished[0]["message"].startswith("Calificá a ")
+    assert finished[0]["link"] == f"/my-shifts?turno={shift_id}"
+    assert "Bar Palermo" in finished[0]["message"]
