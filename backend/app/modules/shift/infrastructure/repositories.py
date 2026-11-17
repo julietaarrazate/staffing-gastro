@@ -20,6 +20,7 @@ from app.modules.shift.domain.repositories import (
     ShiftPeriodStats,
     ShiftPublicationStats,
     ShiftRepository,
+    ShiftLiveCounts,
     ShiftTodayCounts,
     WorkerEarningsTotals,
 )
@@ -248,6 +249,23 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             .order_by(ShiftModel.created_at.desc())
             .limit(limit)
             .offset(offset)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_history_by_worker(
+        self, worker_profile_id: UUID, *, limit: int = 50
+    ) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(
+                or_(
+                    ShiftModel.worker_profile_id == worker_profile_id,
+                    ShiftModel.last_no_show_worker_profile_id == worker_profile_id,
+                )
+            )
+            .order_by(ShiftModel.created_at.desc())
+            .limit(limit)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
@@ -551,12 +569,37 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 ShiftModel.urgent.desc(),
                 # `IS NULL` da falso para los escalados: van antes.
                 ShiftModel.escalated_at.is_(None),
-                ShiftModel.published_at.asc(),
+                # Más reciente primero: con tope, lo que se corta es lo viejo
+                # y no los turnos recién publicados.
+                ShiftModel.published_at.desc(),
             )
             .limit(limit)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def count_live(self, *, day_start: datetime, day_end: datetime) -> ShiftLiveCounts:
+        live = ShiftModel.status.in_(
+            [s.value for s in UNCOVERED_ELIGIBLE_STATUSES]
+        ) & ShiftModel.published_at.is_not(None)
+        no_show_today = (ShiftModel.no_show_at >= day_start) & (ShiftModel.no_show_at < day_end)
+        stmt = select(
+            func.sum(case((live, 1), else_=0)).label("total"),
+            func.sum(case((live & ShiftModel.urgent.is_(True), 1), else_=0)).label("urgent"),
+            func.sum(case((live & ShiftModel.escalated_at.is_not(None), 1), else_=0)).label(
+                "escalated"
+            ),
+            func.sum(case((no_show_today & ShiftModel.published_at.is_not(None), 1), else_=0)).label(
+                "no_shows"
+            ),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return ShiftLiveCounts(
+            total=row.total or 0,
+            urgent=row.urgent or 0,
+            escalated=row.escalated or 0,
+            no_shows=row.no_shows or 0,
+        )
 
     async def list_no_shows(
         self, *, day_start: datetime, day_end: datetime, limit: int = 200

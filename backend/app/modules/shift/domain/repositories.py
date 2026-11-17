@@ -64,6 +64,18 @@ class WorkerEarningsTotals:
 
 
 @dataclass
+class ShiftLiveCounts:
+    """Totales de "Turnos en vivo" sobre TODOS los turnos sin cubrir (no sobre
+    la página que se muestra): total, urgentes, escalados, y las ausencias
+    del día argentino."""
+
+    total: int
+    urgent: int
+    escalated: int
+    no_shows: int
+
+
+@dataclass
 class ShiftTodayCounts:
     """Lo que la portada "Hoy" del panel de admin pide mirar ya: turnos
     urgentes todavía sin nadie asignado, y ausencias (no-show) marcadas en
@@ -169,6 +181,15 @@ class ShiftRepository(ABC):
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Shift]:
         """Lista los turnos asignados a un trabajador (más recientes primero, paginado)."""
+
+    @abstractmethod
+    async def list_history_by_worker(
+        self, worker_profile_id: UUID, *, limit: int = 50
+    ) -> list[Shift]:
+        """Historial de un trabajador para el panel de admin: los turnos que
+        tiene asignados MÁS aquellos donde faltó (`last_no_show_worker_profile_id`),
+        que ya no lo tienen como asignado (`no_show()` limpia
+        `worker_profile_id`). Más recientes primero."""
 
     @abstractmethod
     async def sum_worker_earnings(
@@ -279,8 +300,15 @@ class ShiftRepository(ABC):
         ASIGNADO sin confirmar), para "Turnos en vivo" del panel de admin.
 
         Ordenados por lo que más apura: urgentes primero, dentro de ellos
-        los escalados por el sistema, y después el que lleva más tiempo
-        publicado sin cubrir. Una sola consulta, acotada a `limit`."""
+        los escalados por el sistema, y después el publicado más reciente
+        (si hay más que `limit`, lo que queda afuera es lo más viejo, y la
+        pantalla lo avisa con `count_live`). Una sola consulta, acotada."""
+
+    @abstractmethod
+    async def count_live(self, *, day_start: datetime, day_end: datetime) -> ShiftLiveCounts:
+        """Totales de la lista en vivo (mismo criterio que `list_live`) más
+        las ausencias con `no_show_at` en `[day_start, day_end)`, sin el
+        tope de `limit`. Una sola consulta con SUM/CASE."""
 
     @abstractmethod
     async def list_no_shows(

@@ -176,6 +176,7 @@ class AdminService:
         worker_summary = None
         company_summary = None
         shifts = []
+        worker_profile_id = None
         if user.role == UserRole.WORKER:
             profile = await self._workers.get_by_user_id(user.id)
             if profile is not None:
@@ -191,7 +192,11 @@ class AdminService:
                     no_shows=profile.no_shows,
                     level=profile.level.value,
                 )
-                shifts = await self._shifts.list_by_worker(profile.id, limit=limit)
+                worker_profile_id = profile.id
+                # Incluye los turnos donde faltó: `no_show()` lo desasigna, así
+                # que buscar sólo por asignado dejaba "No se presentó 1" junto
+                # a "Todavía no tiene turnos".
+                shifts = await self._shifts.list_history_by_worker(profile.id, limit=limit)
         elif user.role == UserRole.EMPLOYER:
             company = await self._companies.get_by_user_id(user.id)
             if company is not None:
@@ -221,6 +226,11 @@ class AdminService:
                     start_at=s.start_at,
                     status=s.status.value,
                     pay_amount=s.pay_amount,
+                    absent=(
+                        worker_profile_id is not None
+                        and s.worker_profile_id != worker_profile_id
+                        and s.last_no_show_worker_profile_id == worker_profile_id
+                    ),
                 )
                 for s in shifts
             ],
@@ -316,7 +326,7 @@ class AdminService:
     ) -> LiveShiftsBoard:
         """"Turnos en vivo": publicados y sin nadie confirmado, con los
         minutos que llevan sin cubrir, el comercio y cuántas postulaciones
-        tienen. Cuatro consultas fijas (turnos en vivo, ausencias de hoy,
+        tienen. Cinco consultas fijas (turnos en vivo, totales, ausencias de hoy,
         comercios, postulaciones), sin importar cuántos turnos haya.
 
         Con `no_shows_only` la lista son las ausencias del día argentino de
@@ -363,12 +373,17 @@ class AdminService:
                 for r in rows
                 if (not urgent_only or r.urgent) and (not escalated_only or r.escalated)
             ]
+        # Totales sobre TODO (consulta de conteo aparte), no sobre las filas
+        # cortadas por el tope.
+        counts = await self._shifts.count_live(day_start=day_start, day_end=day_end)
         return LiveShiftsBoard(
             generated_at=now,
-            total=len(rows),
-            urgent=sum(1 for r in rows if r.urgent),
-            escalated=sum(1 for r in rows if r.escalated),
-            no_shows=len(absent_rows),
+            total=counts.total,
+            urgent=counts.urgent,
+            escalated=counts.escalated,
+            no_shows=counts.no_shows,
+            shown_live=len(rows),
+            limit=self.LIVE_SHIFTS_LIMIT,
             shifts=shown,
         )
 
