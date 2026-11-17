@@ -88,7 +88,7 @@ export default function EncuestaPanel() {
           <StatCard
             label={
               resumen.pay_per_shift_samples > 0
-                ? `Mediana del pago por jornada (${resumen.pay_per_shift_samples} respuestas)`
+                ? `Mediana del pago por jornada (${resumen.pay_per_shift_samples} ${resumen.pay_per_shift_samples === 1 ? "respuesta" : "respuestas"})`
                 : "Mediana del pago por jornada"
             }
             value={
