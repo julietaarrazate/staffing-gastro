@@ -247,6 +247,7 @@ def test_notifications_websocket_closes_after_too_many_frames():
                     "full_name": "Worker Flood",
                     "role": "worker",
                     "accepted_terms": True,
+                "birth_date": "1995-05-20",
                 },
             )
             assert register.status_code == 201

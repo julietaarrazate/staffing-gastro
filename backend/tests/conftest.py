@@ -126,6 +126,8 @@ async def client(
 # (`from tests.conftest import ...`) para evitar duplicar estos patrones.
 
 DEFAULT_PASSWORD = "supersecreta123"
+# El alta pública pide la fecha de nacimiento de un mayor de 18 (U101).
+ADULT_BIRTH_DATE = "1995-05-20"
 
 
 async def register_user(
@@ -144,6 +146,7 @@ async def register_user(
         "full_name": full_name,
         "role": role,
         "accepted_terms": True,
+        "birth_date": ADULT_BIRTH_DATE,
     }
     payload.update(overrides)
     return await client.post("/api/v1/auth/register", json=payload)

@@ -477,7 +477,7 @@ con opciones en el triaje; implementar sin repreguntar):
 | U018 · aviso al trabajador al finalizar el turno | Sí, aviso nuevo en la campanita y por push: «Cerró tu turno · Calificalo» |
 | U039 · Google sobre una cuenta con mail sin confirmar | Sigue reclamándola, más un mail de aviso al mail de la cuenta |
 | U084 · cancelar un evento entero | Sí, un botón, con los mismos avisos y la misma penalidad por cancelación tardía que cancelar cada puesto |
-| U101 · edad | Pedir fecha de nacimiento y bloquear a menores de 18 en el alta (cambia el flujo y sube la versión legal) |
+| U101 · edad | Pedir fecha de nacimiento y bloquear a menores de 18 en el alta (cambia el flujo y sube la versión legal) · 🔵 PR abierto, espera el «sí» de Julieta por lo legal |
 | U106 · asistente y verificación | Se corrige la documentación: el asistente no responde por la verificación (Julieta sin preferencia; se tomó la recomendada) |
 | U109 · dorso del DNI | No: sigue frente y selfie |
 | U111 · calificación | Definitiva; la pantalla lo avisa antes de enviar |

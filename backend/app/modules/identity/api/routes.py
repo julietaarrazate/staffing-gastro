@@ -58,6 +58,8 @@ from app.modules.identity.application.two_factor import (
 )
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import (
+    BirthDateInvalidError,
+    BirthDateRequiredError,
     EmailAlreadyExistsError,
     EmailVerificationTokenInvalidError,
     GoogleAuthNotConfiguredError,
@@ -78,6 +80,7 @@ from app.modules.identity.domain.exceptions import (
     TwoFactorNotEnabledError,
     TwoFactorReauthRequiredError,
     TwoFactorTooManyAttemptsError,
+    UnderageError,
     UserNotFoundError,
 )
 from app.modules.identity.domain.two_factor import AdminGate
@@ -184,6 +187,21 @@ def _terms_not_accepted() -> HTTPException:
     )
 
 
+_BIRTH_DATE_MESSAGES: dict[type[Exception], str] = {
+    BirthDateRequiredError: "Para crear la cuenta necesitamos tu fecha de nacimiento",
+    BirthDateInvalidError: "Revisá tu fecha de nacimiento",
+    UnderageError: "Oído es sólo para mayores de 18 años",
+}
+
+
+def _birth_date_rejected(exc: Exception) -> HTTPException:
+    """U101: el alta sin fecha, con una fecha imposible o de un menor."""
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=_BIRTH_DATE_MESSAGES[type(exc)],
+    )
+
+
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -202,8 +220,11 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
                 full_name=payload.full_name,
                 role=UserRole(payload.role.value),
                 accepted_terms=True,
+                birth_date=payload.birth_date,
             )
         )
+    except (BirthDateRequiredError, BirthDateInvalidError, UnderageError) as exc:
+        raise _birth_date_rejected(exc) from exc
     except EmailAlreadyExistsError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -329,8 +350,11 @@ async def google_auth(
                 id_token=payload.id_token,
                 role=UserRole(payload.role.value) if payload.role else None,
                 accepted_terms=payload.accepted_terms,
+                birth_date=payload.birth_date,
             )
         )
+    except (BirthDateRequiredError, BirthDateInvalidError, UnderageError) as exc:
+        raise _birth_date_rejected(exc) from exc
     except GoogleAuthNotConfiguredError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

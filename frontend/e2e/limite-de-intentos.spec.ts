@@ -29,6 +29,7 @@ test("alta bien hecha con el ingreso automático frenado: va a /login con el avi
 
   await page.goto("/register?next=%2Fturno%2Fabc");
   await page.getByPlaceholder("Nombre completo").fill("Nueva Persona");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("nueva@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
   await page.getByRole("checkbox").check();
@@ -92,6 +93,7 @@ test("si el alta misma falla con 429, sigue mostrando el error y no manda al ing
 
   await page.goto("/register");
   await page.getByPlaceholder("Nombre completo").fill("Nueva Persona");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("nueva@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
   await page.getByRole("checkbox").check();
