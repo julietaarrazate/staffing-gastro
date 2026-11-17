@@ -32,11 +32,22 @@ UsersDep = Annotated[UserRepository, Depends(get_user_repository)]
 EmployerDep = Annotated[User, Depends(require_roles(UserRole.EMPLOYER))]
 
 
+_CAMPOS_PARCIALES = (
+    "cover_photo_url",
+    "category",
+    "description",
+    "capacity",
+    "opening_hours",
+)
+
+
 def _to_data(payload: CompanyProfileInput) -> CompanyProfileData:
     fields = payload.model_dump()
-    # "No vino" y "vino en null" no son lo mismo para la foto del local.
-    if "cover_photo_url" not in payload.model_fields_set:
-        fields["cover_photo_url"] = UNSET
+    # "No vino" y "vino en null" no son lo mismo: lo que no vino no se toca
+    # (foto del local, rubro, descripción, capacidad y horarios).
+    for campo in _CAMPOS_PARCIALES:
+        if campo not in payload.model_fields_set:
+            fields[campo] = UNSET
     return CompanyProfileData(**fields)
 
 
