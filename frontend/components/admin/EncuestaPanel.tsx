@@ -177,7 +177,7 @@ export default function EncuestaPanel() {
                       </a>
                     )}
                     {r.email && (
-                      <a href={`mailto:${r.email}`} className="font-medium text-ink underline">
+                      <a href={`mailto:${encodeURIComponent(r.email)}`} className="font-medium text-ink underline">
                         {r.email}
                       </a>
                     )}

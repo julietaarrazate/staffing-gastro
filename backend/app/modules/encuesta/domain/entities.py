@@ -29,6 +29,14 @@ def _clean(value: str | None) -> str | None:
     return value or None
 
 
+def _clean_source(value: str | None) -> str | None:
+    """El `?ref=` del link, con la misma limpieza que hace la página
+    (`limpiarRef` en frontend/lib/encuesta.ts): un POST directo no deja texto
+    arbitrario en la columna."""
+    limpio = re.sub(r"[^a-z0-9._-]", "-", (value or "").strip().lower())[:60]
+    return limpio or None
+
+
 def _phone_digits(phone: str) -> int:
     return len(re.sub(r"\D", "", phone))
 
@@ -141,7 +149,7 @@ class SurveyResponse:
             business_name=business_name,
             phone=phone,
             email=email,
-            source=_clean(source),
+            source=_clean_source(source),
             client_key=_clean(client_key),
         )
         if response.has_contact:

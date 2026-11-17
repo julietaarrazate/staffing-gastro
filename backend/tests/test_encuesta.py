@@ -351,3 +351,15 @@ async def test_script_dry_run_counts_and_apply_clears(session_factory):
     assert await run(session_factory, apply=False) == 1  # no cambió nada
     assert await run(session_factory, apply=True) == 1
     assert await run(session_factory, apply=False) == 0
+
+
+def test_source_se_limpia_en_el_servidor():
+    """Un POST directo no deja texto arbitrario en `source`: misma limpieza
+    que `limpiarRef` en la página."""
+    from app.modules.encuesta.domain.entities import _clean_source
+
+    assert _clean_source(" Belen WhatsApp<script> ") == "belen-whatsapp-script-"
+    assert _clean_source("grupo.palermo_1") == "grupo.palermo_1"
+    assert _clean_source("   ") is None
+    assert _clean_source(None) is None
+    assert len(_clean_source("x" * 200)) == 60
