@@ -43,8 +43,8 @@ const STATS = {
   no_show_rate_pct: 12.5,
   worker_completion_repeat_sample_size: 6,
   worker_completion_repeat_rate_pct: 33,
-  employer_repeat_sample_size: 4,
-  employer_repeat_rate_pct: 50,
+  employer_return_30d_sample_size: 4,
+  employer_return_30d_rate_pct: 50,
 };
 
 const json = (body: unknown) => ({

@@ -551,8 +551,9 @@ export interface PlatformStats {
   worker_completion_repeat_sample_size: number;
   worker_completion_repeat_rate_pct: number | null;
 
-  employer_repeat_sample_size: number;
-  employer_repeat_rate_pct: number | null;
+  /** Comercios con un turno cubierto que publicaron otro dentro de los 30 días. */
+  employer_return_30d_sample_size: number;
+  employer_return_30d_rate_pct: number | null;
 }
 
 /** Un turno de "Turnos en vivo" (`GET /admin/live-shifts`): publicado y
@@ -606,6 +607,17 @@ export interface PeriodSummary {
   covered_under_10_min_pct: number | null;
   avg_minutes_to_cover: number | null;
   applications: number;
+  /** Cubierto = la persona confirmó. */
+  median_minutes_to_cover: number | null;
+  /** Cubiertos de un turno que empezaba dentro de las 24 h de publicado. */
+  short_notice_covered: number;
+  short_notice_under_10_min_pct: number | null;
+  /** Cubiertos con check-in en el local. */
+  fulfilled: number;
+  fulfilled_pct: number | null;
+  /** Comercios distintos que publicaron en el período. */
+  active_companies: number;
+  companies_with_covered: number;
 }
 
 /** "Métricas" con período (`GET /admin/period-metrics?period=7|30`). */

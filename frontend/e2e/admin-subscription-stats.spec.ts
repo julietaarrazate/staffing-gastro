@@ -38,8 +38,8 @@ const STATS = {
   no_show_rate_pct: null,
   worker_completion_repeat_sample_size: 0,
   worker_completion_repeat_rate_pct: null,
-  employer_repeat_sample_size: 0,
-  employer_repeat_rate_pct: null,
+  employer_return_30d_sample_size: 0,
+  employer_return_30d_rate_pct: null,
 };
 
 const SUBSCRIPTION_STATS = {
