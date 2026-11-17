@@ -111,7 +111,7 @@ export default function Navbar() {
               <NavLink href="/feed">Turnos</NavLink>
               <NavLink href="/buscar">Buscar</NavLink>
               <NavLink href="/map">Mapa</NavLink>
-              <NavLink href="/my-shifts">Mis turnos</NavLink>
+              <NavLink href="/my-shifts">Matches</NavLink>
               <NavLink href="/chats">Mensajes</NavLink>
               <NavLink href="/profile">Mi perfil</NavLink>
             </>

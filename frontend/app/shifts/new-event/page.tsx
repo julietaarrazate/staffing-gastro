@@ -18,6 +18,7 @@ import { Button, PesosInput, TextField, Toggle, useToast } from "@/components/ui
 import { pesosDesdeApi } from "@/lib/pesos";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 import { LIMITES } from "@/lib/limites";
+import { plural } from "@/lib/format";
 
 interface RoleRow {
   key: string;
@@ -207,11 +208,11 @@ function NewEventForm() {
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
           </h1>
           <p className="mt-2 text-ink/60">
-            Se publicaron {result.shifts.length} de {result.requested} turnos.
+            {result.shifts.length === 1 ? "Se publicó 1" : `Se publicaron ${result.shifts.length}`} de {plural(result.requested, "turno", "turnos")}.
           </p>
           {missing > 0 && (
             <p className="mt-3 max-w-xs rounded-2xl bg-primary-tint p-3 text-sm text-primary-text">
-              Tu plan no alcanza para los {missing} turnos restantes.{" "}
+              {missing === 1 ? "Tu plan no alcanza para el turno que falta." : `Tu plan no alcanza para los ${missing} turnos restantes.`}{" "}
               <button
                 type="button"
                 onClick={() => router.push("/subscription")}

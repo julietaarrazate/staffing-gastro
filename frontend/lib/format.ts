@@ -22,3 +22,20 @@ export function formatDecimal1(n: number): string {
 export function formatKm(km: number): string {
   return `${formatDecimal1(km)} km`;
 }
+
+/**
+ * Distancia legible, la única de la app: bajo 1 km en metros redondeados
+ * ("800 m"), desde 1 km con un decimal y coma ("1,5 km").
+ */
+export function formatDistance(km: number): string {
+  return km < 1 ? `${Math.round(km * 1000)} m` : formatKm(km);
+}
+
+/**
+ * Cantidad con su sustantivo en singular o plural: `plural(1, "turno", "turnos")`
+ * -> "1 turno", `plural(3, "turno", "turnos")` -> "3 turnos". Para no escribir
+ * a mano «{n} turnos» y terminar en «1 turnos».
+ */
+export function plural(n: number, uno: string, varios: string): string {
+  return `${n} ${n === 1 ? uno : varios}`;
+}

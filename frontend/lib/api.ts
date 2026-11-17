@@ -1,5 +1,6 @@
 import { RANGOS_NUMERICOS } from "@/lib/limites";
 import { turnstileHeaders } from "@/lib/turnstile";
+import { plural } from "@/lib/format";
 
 // El backend siempre es el servicio remoto en Render. NEXT_PUBLIC_API_URL
 // (inyectado en next.config.ts) permite sobrescribirlo si algún día hiciera
@@ -62,8 +63,6 @@ const num = (v: unknown): number | undefined => {
   const n = typeof v === "string" ? Number(v) : v;
   return typeof n === "number" && Number.isFinite(n) ? n : undefined;
 };
-
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Texto en castellano de un error de validación de Pydantic v2, por su
  * `type` (y `ctx`, del que el backend sólo deja pasar las cotas numéricas
@@ -211,6 +210,14 @@ export class NetworkError extends Error {
   }
 }
 
+/** Los tres avisos de red, UNO solo cada uno: sin conexión, el servidor tardó
+ * y el límite de intentos (429). Las pantallas y `auth-context` los importan
+ * en vez de escribir su propia versión. */
+export const NO_CONNECTION_MESSAGE =
+  "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo.";
+export const TIMEOUT_MESSAGE = "El servidor tardó demasiado en responder.";
+export const RATE_LIMITED_MESSAGE = "Demasiados intentos. Esperá un momento y volvé a probar.";
+
 const ENGLISH_HTTP_TEXT =
   /^(internal server error|bad gateway|service unavailable|gateway time-?out|server error|bad request|not found|unauthorized|forbidden)\.?$/i;
 
@@ -222,8 +229,8 @@ export function statusFallbackMessage(status: number): string {
     return "El servidor no está disponible en este momento. Probá de nuevo en unos minutos.";
   }
   if (status >= 500) return "Algo falló de nuestro lado. Probá de nuevo en unos minutos.";
-  if (status === 429) return "Demasiados intentos. Esperá un momento y volvé a probar.";
-  if (status === 408) return "El servidor tardó demasiado en responder. Probá de nuevo.";
+  if (status === 429) return RATE_LIMITED_MESSAGE;
+  if (status === 408) return `${TIMEOUT_MESSAGE} Probá de nuevo.`;
   if (status === 401) return "Tu sesión no es válida. Volvé a ingresar.";
   if (status === 403) return "No tenés permiso para hacer esto.";
   if (status === 404) return "No encontramos lo que buscás.";
@@ -233,11 +240,11 @@ export function statusFallbackMessage(status: number): string {
 /** «30 segundos», «1 minuto», «15 minutos», «2 horas» (redondea para arriba). */
 export function waitText(seconds: number): string {
   const s = Math.max(1, Math.ceil(seconds));
-  if (s < 60) return `${s} ${s === 1 ? "segundo" : "segundos"}`;
+  if (s < 60) return plural(s, "segundo", "segundos");
   const m = Math.ceil(s / 60);
-  if (m < 60) return `${m} ${m === 1 ? "minuto" : "minutos"}`;
+  if (m < 60) return plural(m, "minuto", "minutos");
   const h = Math.ceil(m / 60);
-  return `${h} ${h === 1 ? "hora" : "horas"}`;
+  return plural(h, "hora", "horas");
 }
 
 /** Si el 429 no dice cuánto esperar, lo agrega desde `Retry-After`. */
@@ -250,7 +257,6 @@ export function withRetryAfter(message: string, retryAfter: string | null): stri
 
 /** Texto fijo para el 429 de las pantallas que no revelan nada de la cuenta
  * (recuperar, verificar email): el límite es por conexión, no dice nada del mail. */
-export const RATE_LIMITED_MESSAGE = "Demasiados intentos, esperá un minuto.";
 
 /** El backend frenó el pedido por el límite de intentos (HTTP 429, ver
  * `core/rate_limit.py`). */
@@ -421,8 +427,8 @@ async function request<T>(
   } catch (err) {
     throw new NetworkError(
       err instanceof Error && err.name === "AbortError"
-        ? "El servidor tardó demasiado en responder."
-        : "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
+        ? TIMEOUT_MESSAGE
+        : NO_CONNECTION_MESSAGE
     );
   } finally {
     if (timer != null) clearTimeout(timer);
@@ -446,9 +452,7 @@ async function request<T>(
     // No se pudo renovar. Lo que nunca sale es el «No autorizado» del
     // servidor: o no hay conexión (y la sesión sigue), o la sesión terminó.
     if (outcome.kind === "transient") {
-      throw new NetworkError(
-        "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
-      );
+      throw new NetworkError(NO_CONNECTION_MESSAGE);
     }
     if (outcome.kind === "error") throw outcome.error;
     throw new ApiError(401, SESSION_EXPIRED_MESSAGE, SESSION_EXPIRED_CODE);

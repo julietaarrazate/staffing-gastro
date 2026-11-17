@@ -33,7 +33,7 @@ describe("notificationHref", () => {
     expect(notificationHref(aviso({ type: "urgent_shift_nearby" }))).toBe("/feed");
   });
 
-  it("el turno que el comercio canceló antes de confirmar abre «Mis turnos»", () => {
+  it("el turno que el comercio canceló antes de confirmar abre «Matches»", () => {
     expect(notificationHref(aviso({ type: "shift_cancelled" }))).toBe("/my-shifts");
   });
 

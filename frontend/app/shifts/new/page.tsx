@@ -59,6 +59,7 @@ import {
 import { useTapGuard } from "@/lib/use-tap-guard";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { LIMITES } from "@/lib/limites";
+import { formatArs } from "@/lib/format";
 
 // Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
@@ -884,7 +885,7 @@ function NewShiftWizard() {
                 </div>
                 {payPerHour != null && durationMinutes != null && (
                   <p className="mt-2 text-sm text-ink/55">
-                    ≈ ${payPerHour.toLocaleString("es-AR")} por hora
+                    ≈ {formatArs(payPerHour)} por hora
                     <span className="text-ink/40"> · jornada de {formatDuration(durationMinutes)}</span>
                   </p>
                 )}
@@ -993,8 +994,7 @@ function NewShiftWizard() {
                     </p>
                   )}
                   <p className="mt-1 text-ink/50">
-                    {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
-                    {Number(payAmount || 0).toLocaleString("es-AR")}
+                    {quantity} {quantity === 1 ? "persona" : "personas"} · {formatArs(Number(payAmount || 0))}
                     {meal && " · con comida"}
                     {urgent && " · Urgente"}
                   </p>
@@ -1133,7 +1133,7 @@ function WizardPreview({
     startAt && endAt
       ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
       : null;
-  const pay = Number(payAmount) > 0 ? `ARS ${Number(payAmount).toLocaleString("es-AR")}` : null;
+  const pay = Number(payAmount) > 0 ? formatArs(Number(payAmount)) : null;
 
   return (
     <div className={className}>

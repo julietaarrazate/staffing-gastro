@@ -7,12 +7,9 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatShiftWhen } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
+import { formatDistance } from "@/lib/format";
 import { ChevronRightIcon, FlameIcon, ShieldIcon } from "@/components/icons";
 import { shiftHeroPhoto } from "@/lib/company-photo";
-
-function formatDistance(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-}
 
 function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | null }) {
   const [broken, setBroken] = useState(false);

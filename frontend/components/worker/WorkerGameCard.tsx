@@ -29,6 +29,7 @@ import {
 } from "@/components/icons";
 import CountUp from "@/components/ui/CountUp";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
+import { formatArs } from "@/lib/format";
 
 // `accent` sigue el criterio que tenía la landing anterior (StatsStrip/bento): un color
 // por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
@@ -239,7 +240,7 @@ export default function WorkerGameCard() {
               </p>
             </div>
             <p className="shrink-0 text-right text-xs font-bold text-ink/70">
-              ${Number(earnings.total_earned).toLocaleString("es-AR")}
+              {formatArs(Number(earnings.total_earned))}
               <span className="block text-label font-medium text-ink/45">total</span>
             </p>
           </div>

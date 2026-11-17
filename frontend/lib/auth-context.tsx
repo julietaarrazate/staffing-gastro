@@ -14,6 +14,8 @@ import {
   resolveToken,
   setTwoFactorGateHandler,
   setUnauthorizedHandler,
+  NO_CONNECTION_MESSAGE,
+  TIMEOUT_MESSAGE,
 } from "@/lib/api";
 import { emitLiveRefresh } from "@/lib/live-refresh";
 import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
@@ -359,13 +361,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // sale otra (dos a la vez se pisan la cookie). Se contesta como «sin
     // conexión», nunca como sesión terminada.
     if (refreshInFlight.current && refreshInFlight.current.epoch !== sessionEpoch.current) {
-      return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+      return Promise.reject(new NetworkError(NO_CONNECTION_MESSAGE));
     }
     if (!refreshInFlight.current) {
       // Hay un ingreso en curso: no se sabe todavía de quién va a ser la
       // sesión. Se contesta como «sin conexión» (no cierra nada).
       if (signingIn.current > 0) {
-        return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+        return Promise.reject(new NetworkError(NO_CONNECTION_MESSAGE));
       }
       // La respuesta es de la sesión que había al pedirla. Si mientras tanto
       // cambió de manos (ingreso, salida, cierre desde otra pestaña, «ver
@@ -374,7 +376,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // le contesta «sin conexión», no «tu sesión venció»: de la sesión de
       // ahora no dice nada.
       const epoch = sessionEpoch.current;
-      const staleSession = () => new NetworkError("No se pudo conectar con el servidor.");
+      const staleSession = () => new NetworkError(NO_CONNECTION_MESSAGE);
       const attempt: Promise<string | null> = api
         .post<{ access_token: string }>("/auth/refresh", undefined, null, REFRESH_HARD_TIMEOUT_MS)
         .then(
@@ -408,7 +410,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (timeoutMs == null) return inFlight;
     return new Promise<string | null>((resolve, reject) => {
       const timer = setTimeout(
-        () => reject(new NetworkError("El servidor tardó demasiado en responder.")),
+        () => reject(new NetworkError(TIMEOUT_MESSAGE)),
         timeoutMs
       );
       inFlight.then(resolve, reject).finally(() => clearTimeout(timer));
