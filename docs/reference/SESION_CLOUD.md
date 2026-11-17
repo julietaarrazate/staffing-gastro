@@ -145,6 +145,14 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   (`create_pull_request`, `pull_request_read` con `get_check_runs`).
 - **No se pueden borrar ramas remotas desde la sesión.** `git push --delete`
   corta con *"unexpected disconnect"*. Hay que pedírselo a Julieta.
+- **gitleaks escanea el historial de TODAS las ramas** (`--log-opts=--all`),
+  y toma como `generic-api-key` un literal con forma de UUID o token en un
+  test (visto el 2026-11-17 con `Idempotency-Key` en `test_support.py`). Un
+  commit que lo corrige no alcanza: el commit viejo sigue en la rama y
+  además **pone en rojo el Security de todos los demás PRs abiertos**, porque
+  cada corrida ve todas las ramas. Usá strings legibles
+  (`"abrir-ticket-reintento"`, como el resto del repo) y, si ya se pusheó,
+  rehacé la rama propia sin ese commit y pusheá con `--force-with-lease`.
 - **La plantilla de PR** está en `.github/pull_request_template.md` (desde el
   2026-10-03; antes no había, y cada sesión la buscaba).
 - **Si después del push no aparece ninguna corrida de CI en el PR, mirá

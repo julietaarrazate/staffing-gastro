@@ -414,23 +414,38 @@ U121, U087), 2 parciales (U130, U133), 10 esperan una decisión de Julieta y
 2 quedan fuera (U141 va con el tope del plan, apagado en la beta; U102 se
 cierra al apagar el ingreso de invitado, decisión 5).
 
-**Arreglos, un PR por grupo** (⚪ todos sin empezar):
+**Arreglos, un PR por grupo** (tanda 1 en `main` el 2026-11-17, con revisión
+independiente de cada PR; el resto ⚪ sin empezar):
 
-| Grupo | Hallazgos | Tanda |
-|---|---|---|
-| A · Perfil del comercio | U119, U136 | 1 |
-| B · Dirección, zona y mapa | U037, U040, U048, U049, U107 | 1 |
-| C · Alta y verificación de mail | U041, U042, U043, U122 | 1 |
-| F · Chat y soporte | U012, U017, U092, U099, U130 (U110 aparte: lleva migración) | 1 |
-| G · Candidatos, perfil y Buscar | U022, U027, U074 | 1 |
-| I · Subidas de archivos y perfil del trabajador | U051, U052, U091 | 1 |
-| K · Detalles sueltos de pantalla | U044, U046, U047, U061 | 1 |
-| D · Mensajes de error y de límites | U113, U144 | 2 |
-| L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 |
-| M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 |
-| H · Matches del trabajador | U066, U068, U088 | 3 |
-| N · Guardas de rol y 2FA de admin | U098, U133 | 3 |
-| E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) |
+| Grupo | Hallazgos | Tanda | Estado |
+|---|---|---|---|
+| A · Perfil del comercio | U119, U136 | 1 | ✅ #596 |
+| B · Dirección, zona y mapa | U037, U040, U048, U049, U107 | 1 | ✅ #594 |
+| C · Alta y verificación de mail | U041, U042, U043, U122 | 1 | ✅ #597 |
+| F · Chat y soporte | U012, U017, U092, U099, U130 (U110 aparte: lleva migración) | 1 | ✅ #595 (U110 ⚪) |
+| G · Candidatos, perfil y Buscar | U022, U027, U074 | 1 | ✅ #598 |
+| I · Subidas de archivos y perfil del trabajador | U051, U052, U091 | 1 | ✅ #599 |
+| K · Detalles sueltos de pantalla | U044, U046, U047, U061 | 1 | ✅ #600 |
+| D · Mensajes de error y de límites | U113, U144 | 2 | ⚪ |
+| L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 | ⚪ |
+| M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 | ⚪ |
+| H · Matches del trabajador | U066, U068, U088 | 3 | ⚪ |
+| N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ⚪ |
+| E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) | ⚪ |
+
+**Lo que dejó abierto la tanda 1** (⚪):
+
+- U110 (soporte: reportar un turno o un comercio), PR aparte con migración.
+- El token `danger-text` en claro da ~3,9:1 sobre la tarjeta celeste
+  (por debajo de 4,5:1 para texto chico); en oscuro está bien. Ajustar el
+  token, no cada pantalla (salió de la revisión de #599).
+- Zonas ya guardadas como «Mi ubicación actual» quedan sin selector
+  precargado hasta que la persona elige una; no se migran (#594).
+- La «Garantía Oído» sigue visible en Candidatos de un turno cerrado (#598).
+- Inputs a 16 px en celular (#600, para que iOS no haga zoom al enfocar):
+  mirar en un iPhone real que ningún formulario quede apretado.
+- U068 (visual, grupo H) se confirma renderizado en claro y oscuro en la
+  tanda 3.
 
 Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
