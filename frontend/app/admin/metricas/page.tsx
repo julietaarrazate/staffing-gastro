@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AR_TIMEZONE } from "@/lib/datetime";
+import { formatArs } from "@/lib/format";
 import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } from "@/lib/types";
 import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
@@ -352,6 +353,39 @@ export default function AdminMetricsPage() {
             </Card>
             <StatCard label="Comercios" value={subscriptionStats.total_companies} />
             <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div data-testid="eligieron-plan">
+            <Card className="p-5">
+              <p className="text-2xl font-extrabold text-ink">
+                {Object.values(subscriptionStats.companies_with_chosen_plan ?? {}).reduce(
+                  (a, b) => a + b,
+                  0
+                )}
+              </p>
+              <p className="text-xs font-medium text-ink/50">Eligieron un plan al darse de alta</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {Object.entries(subscriptionStats.companies_with_chosen_plan ?? {}).map(
+                  ([planCode, count]) => (
+                    <Badge key={planCode} tone="neutral">
+                      {PLAN_LABELS[planCode] ?? planCode}: {count}
+                    </Badge>
+                  )
+                )}
+              </div>
+            </Card>
+            </div>
+            <div data-testid="se-comprometieron">
+            <Card className="p-5">
+              <p className="text-2xl font-extrabold text-ink">
+                {subscriptionStats.committed_companies ?? 0}
+              </p>
+              <p className="text-xs font-medium text-ink/50">Se comprometieron a pagar</p>
+              <p className="mt-2 text-sm font-semibold text-ink">
+                {formatArs(subscriptionStats.committed_mrr_ars ?? 0)}/mes
+              </p>
+            </Card>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(subscriptionStats.companies_by_plan).map(([planCode, count]) => (

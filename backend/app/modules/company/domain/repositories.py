@@ -86,8 +86,9 @@ class CompanyProfileRepository(ABC):
         `PAYMENT_TOLERANCE`."""
 
     @abstractmethod
-    async def count_total(self) -> int:
+    async def count_total(self, *, exclude_user_emails: frozenset[str] = frozenset()) -> int:
         """Total de comercios registrados (panel de admin, distribución de
         planes de suscripción): incluye a los que todavía no tienen fila en
         `subscriptions` (implícitamente en el plan por defecto, ver
-        `SubscriptionRepository.get_or_create`)."""
+        `SubscriptionRepository.get_or_create`). Sin los comercios de esos emails
+        (cuentas de prueba e invitadas)."""

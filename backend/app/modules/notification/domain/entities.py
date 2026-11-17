@@ -8,6 +8,20 @@ from uuid import UUID, uuid4
 from app.modules.notification.domain.value_objects import NotificationType
 
 
+# Topes de las columnas `title` (255) y `message` (500) de `notifications`.
+# Viven acá, en un solo lugar: un nombre o título largo (de comercio, de turno,
+# de quien escribe en el chat) no debe romper el aviso DESPUÉS de que la
+# acción de fondo ya se guardó.
+TITLE_MAX = 255
+MESSAGE_MAX = 500
+
+
+def clip_text(text: str, limit: int) -> str:
+    """Recorta a `limit` caracteres, con «…» al final si hubo que cortar.
+    Un valor ausente (None) pasa tal cual: lo rechaza la base, no se disfraza."""
+    return text if text is None or len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
 @dataclass
 class Notification:
     """Raíz de agregado Notificación: un aviso in-app para un usuario."""
@@ -25,6 +39,10 @@ class Notification:
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        self.title = clip_text(self.title, TITLE_MAX)
+        self.message = clip_text(self.message, MESSAGE_MAX)
 
 
 def _same_key(one: str, other: str) -> bool:

@@ -43,6 +43,15 @@ export function formatShiftDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE });
 }
 
+/** "17/11": día y mes en hora argentina. */
+export function formatDayMonth(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
 export function formatShiftTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-AR", {
     timeZone: AR_TIMEZONE,
