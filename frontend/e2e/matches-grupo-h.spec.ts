@@ -39,7 +39,7 @@ const saved = [
 ];
 
 
-async function abrir(page: import("@playwright/test").Page) {
+async function abrir(page: import("@playwright/test").Page, guardados: unknown[] = saved) {
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
@@ -47,7 +47,7 @@ async function abrir(page: import("@playwright/test").Page) {
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json({ id: "u", email: "m@x.com", full_name: "Mozo", role: "worker", status: "activo", is_active: true, is_verified: true })));
   await page.route("**/api/v1/shifts/mine", (r) => r.fulfill(json(assigned)));
   await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json(apps)));
-  await page.route("**/api/v1/saved-shifts", (r) => r.request().method() === "GET" ? r.fulfill(json(saved)) : r.continue());
+  await page.route("**/api/v1/saved-shifts", (r) => r.request().method() === "GET" ? r.fulfill(json(guardados)) : r.continue());
   await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({ id: "p", user_id: "u", full_name: "Mozo", skills: ["mozo"], latitude: -34.58, longitude: -58.42, city: "Palermo", badges: [], level: "plata", rating: 4.5 })));
   await page.goto("/my-shifts");
   await page.getByRole("heading", { name: "Matches" }).waitFor();
@@ -69,10 +69,25 @@ test("en 360 px las tres pestañas entran y la página no se desborda", async ({
   for (const name of [/^Asignados/, /^Postulaciones/, /^Guardados/]) {
     const box = await page.getByRole("button", { name }).boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+    // Contra el margen de la página (16 px), no sólo contra el borde.
+    expect(box!.x + box!.width).toBeLessThanOrEqual(344);
   }
   const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(ancho).toBeLessThanOrEqual(360);
+});
+
+test("en 320 px y con un contador de tres cifras la pista no desborda y el número se ve", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  const muchos = Array.from({ length: 120 }, (_, i) => shift({ id: `guardado-${i}`, company_name: "Bodegón Sur" }));
+  await abrir(page, muchos);
+  for (const name of [/^Asignados/, /^Postulaciones/, /^Guardados/]) {
+    const box = await page.getByRole("button", { name }).boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(16);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(304);
+  }
+  await expect(page.getByRole("button", { name: "Guardados (120)" }).getByText("120", { exact: true })).toBeVisible();
+  const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(ancho).toBeLessThanOrEqual(320);
 });
 
 test("postulación a un turno cerrado dice que se cerró, no «esperando respuesta»", async ({ page }) => {

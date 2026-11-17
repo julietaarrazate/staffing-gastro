@@ -50,7 +50,7 @@ export default function SegmentedControl<T extends string>({
             // Debajo de `sm`, 13 px y menos relleno (como el control de iOS):
             // con 14 px las tres pestañas de Matches entraban en 360 px con
             // la fuente local y se pasaban 4 px con la de CI (#609).
-            className="relative flex-1 whitespace-nowrap rounded-full px-1.5 py-2 sm:px-3 text-[13px] sm:text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="relative min-w-0 flex-auto whitespace-nowrap rounded-full px-1.5 py-2 sm:px-3 text-[13px] sm:text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {active && (
               <motion.span
@@ -59,10 +59,18 @@ export default function SegmentedControl<T extends string>({
                 className="absolute inset-0 rounded-full bg-raised shadow-[var(--shadow-soft)]"
               />
             )}
-            <span className={cn("relative z-10 transition-colors", active ? "text-ink" : "text-ink/60")}>
-              {o.label}
+            {/* Último recurso si igual no entra (contadores de tres cifras,
+                celulares de 320 px): se recorta el nombre con «…» y el número
+                queda a la vista; la pista nunca desborda la pantalla. */}
+            <span
+              className={cn(
+                "relative z-10 flex min-w-0 items-baseline justify-center transition-colors",
+                active ? "text-ink" : "text-ink/60",
+              )}
+            >
+              <span className="truncate">{o.label}</span>
               {o.count ? (
-                <span className="ml-1 text-xs font-bold tabular-nums opacity-80">{o.count}</span>
+                <span className="ml-1 shrink-0 text-xs font-bold tabular-nums opacity-80">{o.count}</span>
               ) : null}
             </span>
           </button>
