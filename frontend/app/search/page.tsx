@@ -42,6 +42,23 @@ function isWorkerSkill(value: string | null): value is WorkerSkill {
   return value !== null && (WORKER_SKILLS as string[]).includes(value);
 }
 
+const FILTERS_KEY = "oido.buscar.filtros";
+
+function readSavedFilters(): { skill?: string; radiusKm?: number } {
+  try {
+    const raw = window.sessionStorage.getItem(FILTERS_KEY);
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    const radiusKm = Number(data?.radiusKm);
+    return {
+      skill: typeof data?.skill === "string" ? data.skill : undefined,
+      radiusKm: Number.isFinite(radiusKm) && radiusKm >= 1 && radiusKm <= 100 ? radiusKm : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default function SearchPage() {
   // useSearchParams exige un boundary de Suspense en build estático.
   return (
@@ -83,6 +100,29 @@ function SearchPageContent() {
     return isWorkerSkill(fromUrl) ? fromUrl : "";
   });
   const [radiusKm, setRadiusKm] = useState(15);
+  const [filtersRestored, setFiltersRestored] = useState(false);
+  useEffect(() => {
+    if (!filtersRestored) return;
+    try {
+      window.sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ skill, radiusKm }));
+    } catch {
+      // Sin almacenamiento: los filtros simplemente no se recuerdan.
+    }
+  }, [skill, radiusKm, filtersRestored]);
+
+  // Los filtros sobreviven a entrar a un perfil y volver: viven en
+  // sessionStorage (la URL ?skill= del asistente manda si viene).
+  useEffect(() => {
+    // Después de montar (no en el estado inicial) para no desfasar la
+    // hidratación. Con ?skill= en la URL, el rol de la URL manda.
+    const saved = readSavedFilters();
+    if (saved.radiusKm) setRadiusKm(saved.radiusKm);
+    if (!isWorkerSkill(searchParams.get("skill")) && isWorkerSkill(saved.skill ?? null)) {
+      setSkill(saved.skill as WorkerSkill);
+    }
+    setFiltersRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [workers, setWorkers] = useState<WorkerMapResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   // Arranca en `true`: la búsqueda inicial se dispara en un efecto apenas hay
@@ -111,7 +151,7 @@ function SearchPageContent() {
   }, [origin]);
 
   async function search() {
-    if (!token) return;
+    if (!token || !filtersRestored) return;
     if (origin === "esperando" || origin === "sin-local" || origin === "error") {
       if (origin === "sin-local" || origin === "error") {
         setWorkers([]);
@@ -146,10 +186,10 @@ function SearchPageContent() {
   useEffect(() => {
     search();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, center, origin]);
+  }, [token, center, origin, filtersRestored]);
 
   const filterControls = (
-    <div className="flex items-center gap-2 rounded-full bg-white/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
+    <div className="flex items-center gap-2 rounded-full bg-card/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
@@ -169,8 +209,12 @@ function SearchPageContent() {
         value={radiusKm}
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
-        className="w-14 rounded-full bg-surface px-2 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        aria-label="Radio en kilómetros"
+        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
       />
+      <span className="-ml-1 text-sm font-medium text-ink/60" aria-hidden>
+        km
+      </span>
       <button
         onClick={search}
         disabled={loading}
