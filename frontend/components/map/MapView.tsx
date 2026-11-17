@@ -99,6 +99,13 @@ export function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
   }
 }
 
+/** Carteles de `cooperativeGestures` en español (MapLibre los trae en inglés). */
+export const MAP_LOCALE_ES = {
+  "CooperativeGesturesHandler.WindowsHelpText": "Usá Ctrl + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MacHelpText": "Usá ⌘ + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa",
+};
+
 // Mismo problema que arriba, pero con `cooperativeGestures` — el gesto que
 // exige dos dedos para panear un mapa embebido en una página con scroll
 // (reporte real de Julieta, ver el prop más abajo). `cooperativeGestures` es
@@ -229,6 +236,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           reuseMaps
           interactive={interactive}
           cooperativeGestures={cooperativeGestures}
+          locale={MAP_LOCALE_ES}
           initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
           mapStyle={MAP_STYLE_URL}
           attributionControl={false}

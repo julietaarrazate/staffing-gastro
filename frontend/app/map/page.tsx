@@ -11,10 +11,10 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
-import { nearbyOnly, sortByDistance } from "@/lib/current-location";
+import { getStoredLocation, nearbyOnly, originFor, sortByDistance } from "@/lib/current-location";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
-import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
+import { SKILL_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
@@ -27,6 +27,7 @@ const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
 });
 
+// Último recurso: sin GPS, sin ubicación guardada y sin zona en el perfil.
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
 
 /** Enter/Espacio activan igual que un click — necesario para que las
@@ -169,7 +170,14 @@ export default function MapPage() {
   // Buenos Aires (Obelisco) sin avisar, indistinguible de "estás ahí" para
   // quien no reconoce la zona (auditoría UX 2026-08-16, reporte de Julieta:
   // el mapa mostraba Recoleta/Retiro sin ser su ubicación real).
-  const [locationUnavailable, setLocationUnavailable] = useState(false);
+  const [gpsFailed, setGpsFailed] = useState(false);
+  // Sin GPS se mide desde la misma fuente que Inicio y Buscar (`originFor`):
+  // la ubicación guardada o, si no hay, la zona del perfil. El Obelisco queda
+  // sólo si no hay ninguna (U107).
+  const [fallbackOrigin, setFallbackOrigin] = useState<[number, number] | null>(null);
+  const [profileChecked, setProfileChecked] = useState(false);
+  const locationUnavailable = gpsFailed && profileChecked && !fallbackOrigin;
+  const usingZone = gpsFailed && fallbackOrigin !== null;
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -217,26 +225,48 @@ export default function MapPage() {
     setUserInteracted(true);
   }, []);
 
+  const applyOrigin = useCallback((origin: [number, number]) => {
+    originRef.current = origin;
+    setCenter(origin);
+    setHasOrigin(true);
+    // Lo que queda lejos de acá se va siempre. El orden, en cambio, sólo
+    // se toca si todavía no estaba eligiendo tarjetas: no le reordenamos
+    // la lista abajo.
+    const reorder = !userInteractedRef.current;
+    setShifts((prev) => {
+      const near = nearbyOnly(prev, origin);
+      return reorder ? sortByDistance(near, origin) : near;
+    });
+    setFarFromHere(nearbyOnly(fetchedRef.current, origin).length < fetchedRef.current.length);
+    if (reorder) setActiveIndex(0);
+  }, []);
+
   useEffect(() => {
     getCurrentPosition()
-      .then((p) => {
-        const origin: [number, number] = [p.latitude, p.longitude];
-        originRef.current = origin;
-        setCenter(origin);
-        setHasOrigin(true);
-        // Lo que queda lejos de acá se va siempre. El orden, en cambio, sólo
-        // se toca si todavía no estaba eligiendo tarjetas: no le reordenamos
-        // la lista abajo.
-        const reorder = !userInteractedRef.current;
-        setShifts((prev) => {
-          const near = nearbyOnly(prev, origin);
-          return reorder ? sortByDistance(near, origin) : near;
-        });
-        setFarFromHere(nearbyOnly(fetchedRef.current, origin).length < fetchedRef.current.length);
-        if (reorder) setActiveIndex(0);
-      })
-      .catch(() => setLocationUnavailable(true)); // fallback al Obelisco, avisado
-  }, []);
+      .then((p) => applyOrigin([p.latitude, p.longitude]))
+      .catch(() => setGpsFailed(true));
+  }, [applyOrigin]);
+
+  // Perfil: sólo para saber desde dónde medir si el GPS no llega.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    api
+      .get<WorkerProfile>("/workers/me/profile", token)
+      .catch(() => null)
+      .then((profile) => {
+        if (cancelled) return;
+        setFallbackOrigin(originFor(getStoredLocation(), profile));
+        setProfileChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (gpsFailed && fallbackOrigin && !originRef.current) applyOrigin(fallbackOrigin);
+  }, [gpsFailed, fallbackOrigin, applyOrigin]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -381,7 +411,9 @@ export default function MapPage() {
               ? "Buscando turnos..."
               : locationUnavailable
                 ? "Turnos en el centro de Buenos Aires"
-                : `${shifts.length} turnos cerca tuyo`}
+                : usingZone
+                  ? `${shifts.length} turnos cerca de tu zona`
+                  : `${shifts.length} turnos cerca tuyo`}
           </h1>
           {!loading && locationUnavailable && (
             <p className="mt-1 text-sm text-ink/50">
@@ -454,7 +486,9 @@ export default function MapPage() {
             ? "Buscando turnos cerca..."
             : locationUnavailable
               ? "Turnos en el centro de Buenos Aires"
-              : `${shifts.length} turnos cerca tuyo`}
+              : usingZone
+                ? `${shifts.length} turnos cerca de tu zona`
+                : `${shifts.length} turnos cerca tuyo`}
         </div>
         {!loading && locationUnavailable && (
           <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-night/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
