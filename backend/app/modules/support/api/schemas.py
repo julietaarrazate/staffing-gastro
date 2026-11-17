@@ -40,8 +40,17 @@ class TicketResponse(BaseModel):
     updated_at: datetime | None = None
 
 
+class TicketOpenerResponse(BaseModel):
+    """Quién abrió el ticket (sólo se completa para el admin)."""
+
+    user_id: UUID
+    full_name: str
+    role: str
+
+
 class TicketDetailResponse(TicketResponse):
     messages: list[MessageResponse]
+    opened_by: TicketOpenerResponse | None = None
 
 
 class TicketSuggestionResponse(BaseModel):
