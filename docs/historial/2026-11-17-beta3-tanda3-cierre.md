@@ -7,8 +7,10 @@ literales con forma de UUID o token en los tests, y merge con CI y Security en
 verde. U068 se confirmaba renderizado en claro y oscuro.
 
 **Qué cambió:** entraron #608 (N: guardas de rol por URL y 2FA pendiente del
-admin) y #609 (H: Matches del trabajador); el detalle de cada uno está en
-`2026-11-17-guardas-de-rol-y-2fa-admin.md` y `2026-11-17-matches-grupo-h.md`.
+admin), #609 (H: Matches del trabajador) y #611 (pendientes de N: la barra de
+abajo entra en 320 px y la campanita no pide nada con el 2FA pendiente); el
+detalle de cada uno está en `2026-11-17-guardas-de-rol-y-2fa-admin.md`,
+`2026-11-17-matches-grupo-h.md` y `2026-11-17-beta3-grupo-n-pendientes.md`.
 Este PR pasa esas filas a ✅ en `docs/planning/BETA_TABLERO.md`, anota lo que
 quedó abierto y actualiza la etapa en `docs/STATUS.md`.
 
@@ -31,7 +33,14 @@ neutro.
 desde la corrida siguiente) por un advisory de picomatch (GHSA-fc5q-39xc-vjpf,
 ReDoS, `<=4.0.7`) sin versión arreglada publicada: no es de estos diffs.
 
-**Queda abierto:** en el tablero, etapa 3, «Lo que dejó abierto la tanda 3»:
-el aviso al quitar una postulación de un turno cerrado, el ámbar repetido en
-Matches, «Perfil» cortado en la barra del trabajador a 360 px y el primer
-pedido de la campanita con el 2FA pendiente.
+Julieta pidió además resolver lo que había quedado abierto en la tanda antes
+de seguir. En #609: el aviso al quitar una postulación de un turno cerrado,
+un solo ámbar por tarjeta según lo que el backend deja hacer («Voy en camino»
+desde 2 h antes, «Llegué» desde 30 min antes y deshabilitado hasta entonces),
+el círculo de comparar en azul de marca y los recordatorios que abren el
+turno (`/my-shifts?turno=`, que se limpia de la URL tras saltar). En #611:
+el login y `/auth/me` dicen si el admin tiene el alta de 2FA pendiente, así
+la campanita no pide nada desde la primera carga; la revisión encontró que
+entrar con otra cuenta sin cerrar sesión heredaba la marca, y se corrigió.
+
+**Queda abierto:** en el tablero, etapa 3, «Lo que dejó abierto la tanda 3».

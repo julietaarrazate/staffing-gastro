@@ -430,7 +430,7 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 | L · Backend: robustez y privacidad menor | U100, U103, U118 | 2 | ✅ #604 |
 | M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 | ✅ #605 |
 | H · Matches del trabajador | U066, U068, U088 | 3 | ✅ #609 |
-| N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ✅ #608 |
+| N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ✅ #608, #611 |
 | E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) | ⚪ |
 
 **Lo que dejó abierto la tanda 1** (⚪):
@@ -463,21 +463,19 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 - «Turnos en vivo» ordena urgentes, escalados y lo más reciente primero; con
   más de 200, lo que queda afuera es lo más viejo (y el aviso lo dice).
 
-**Lo que dejó abierto la tanda 3** (⚪):
+**Lo que dejó abierto la tanda 3** (⚪; lo que salió de las revisiones se
+resolvió en #609 y #611 antes del merge):
 
-- Matches (#609): «Quitar de la lista» en una postulación a un turno cerrado
-  usa el retiro de siempre, y el aviso dice «Cancelaste tu postulación»
-  (impreciso para un turno que ya se cerró; va bien con el grupo E). Los
-  recordatorios de llegada y de salida llevan a Matches, sin ancla al turno.
-- Un solo ámbar por pantalla, todavía no en Matches: en modo comparar
-  conviven el círculo ámbar de selección y cada «Postularme», y en
-  «Asignados» «Llegué», «Voy en camino» y el paso actual (ya estaba así).
-- A 360 px la barra de abajo del trabajador (seis pestañas) corta «Perfil»
-  en el borde derecho (ya estaba así).
-- Admin con el alta de 2FA pendiente (#608): la campanita hace un único
-  `GET /notifications` en la primera carga, antes de que el primer 403 marque
-  el alta pendiente; cortarlo pide tocar `auth-context.tsx`. `/feed` y
-  `/search` siguen sin guarda de rol (no dan el síntoma de U098).
+- Matches: el paso actual del indicador de etapas sigue en ámbar junto al
+  botón ámbar de la tarjeta (componente compartido, no se tocó). Los
+  recordatorios ya enviados antes de #609 abren Matches sin resaltar el turno.
+- «Llegué» deshabilitado (antes de los 30 min) se ve muy tenue en claro: el
+  estado deshabilitado del botón `surface` tiene poco contraste en toda la
+  app.
+- `/feed` y `/search` siguen sin guarda de rol (no dan el síntoma de U098).
+- `e2e/descubrir-rapido.spec.ts:8` falló una vez con la máquina cargada (tras
+  `ArrowRight` seguía en «2 de 3»); solo pasa 5/5. Si aparece en CI, mirar la
+  espera del foco o de la animación antes del `keyboard.press`.
 
 Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
