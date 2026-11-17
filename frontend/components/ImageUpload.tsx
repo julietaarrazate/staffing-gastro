@@ -6,6 +6,7 @@ import { uploadImage } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon } from "@/components/icons";
 import ImageCropModal from "@/components/ImageCropModal";
+import { checkPhotoFile } from "@/lib/upload-validation";
 
 export default function ImageUpload({
   value,
@@ -44,6 +45,12 @@ export default function ImageUpload({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    // Un PDF o un archivo raro no debe abrir el encuadre con una imagen rota.
+    const problem = checkPhotoFile(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setError(null);
     setPendingFile(file);
   }
@@ -152,7 +159,7 @@ export default function ImageUpload({
           {uploading ? "Subiendo..." : value ? "Cambiar foto" : "Subir foto"}
         </button>
       )}
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
       <ImageCropModal
         file={pendingFile}
         shape={shape}
