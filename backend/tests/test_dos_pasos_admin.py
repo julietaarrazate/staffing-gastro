@@ -99,6 +99,28 @@ async def test_admin_sin_verificacion_ve_quien_es_y_su_estado(client, session_fa
     assert status.json() == {"enabled": False, "enabled_at": None, "recovery_codes_left": 0}
 
 
+async def test_admin_sin_verificacion_lo_sabe_al_abrir_la_sesion(client, session_factory):
+    # El login y `/auth/me` lo dicen, así el frontend no espera al primer 403.
+    email = "pend3@oido.com.ar"
+    await register_user(client, email=email, role="employer", full_name="Admin Nueva")
+    await promote_to_admin(session_factory, email)
+    body = await login(client, email)
+    assert body["two_factor_setup_required"] is True
+    me = await client.get(f"{API}/auth/me", headers=_bearer(body["access_token"]))
+    assert me.json()["two_factor_setup_required"] is True
+
+
+async def test_admin_con_verificacion_no_queda_pendiente(client, session_factory):
+    admin = await enroll_admin(client, session_factory, "activa@oido.com.ar")
+    challenge = await _challenge(client, "activa@oido.com.ar")
+    ok = await _verify(client, challenge, current_totp(admin["secret"], 1))
+    assert ok.status_code == 200 and ok.json()["two_factor_setup_required"] is False
+    me = await client.get(
+        f"{API}/auth/me", headers=_bearer(ok.json()["access_token"])
+    )
+    assert me.json()["two_factor_setup_required"] is False
+
+
 # --- Alta -----------------------------------------------------------------------
 
 
@@ -327,8 +349,9 @@ async def test_trabajador_y_comercio_entran_como_siempre(client):
         await register_user(client, email=email, role=role)
         body = await login(client, email)
         assert "access_token" in body and "two_factor_required" not in body
+        assert body["two_factor_setup_required"] is False
         me = await client.get(f"{API}/auth/me", headers=_bearer(body["access_token"]))
-        assert me.status_code == 200
+        assert me.status_code == 200 and me.json()["two_factor_setup_required"] is False
         notifications = await client.get(
             f"{API}/notifications", headers=_bearer(body["access_token"])
         )

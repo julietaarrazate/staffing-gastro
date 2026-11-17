@@ -38,6 +38,10 @@ class TokenPair:
     # remoto en cada login y en cada arranque de la app (ver auth-context).
     user: User
     token_type: str = "bearer"
+    # Admin que entra sin la verificación en dos pasos activada: la sesión sólo
+    # le deja activarla (ADR-0023). Va en la respuesta para que el frontend lo
+    # sepa al abrir la sesión, sin esperar al primer 403.
+    two_factor_setup_required: bool = False
 
 
 @dataclass(frozen=True)
