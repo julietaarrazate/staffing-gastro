@@ -45,4 +45,12 @@ describe("notificationHref", () => {
     expect(notificationHref(aviso({ type: "shift_no_show" }))).toBe("/profile");
     expect(notificationHref(aviso({ type: "shift_no_show", link: "/profile" }))).toBe("/profile");
   });
+
+  it("los recordatorios de llegada y de salida abren Matches (donde están «Llegué» y «Va en camino»)", () => {
+    expect(notificationHref(aviso({ type: "checkin_reminder", link: "/my-shifts" }))).toBe("/my-shifts");
+    expect(notificationHref(aviso({ type: "departure_reminder", link: "/my-shifts" }))).toBe("/my-shifts");
+    // Avisos anteriores a `link`: mismo destino por tipo.
+    expect(notificationHref(aviso({ type: "checkin_reminder" }))).toBe("/my-shifts");
+    expect(notificationHref(aviso({ type: "departure_reminder" }))).toBe("/my-shifts");
+  });
 });

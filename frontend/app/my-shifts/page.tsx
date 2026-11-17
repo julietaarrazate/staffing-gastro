@@ -55,6 +55,19 @@ const APPLICATION_LABELS: Record<string, string> = {
   retirada: "Retiraste la postulación",
 };
 
+// Una postulación pendiente sólo «espera respuesta» mientras el turno sigue
+// abierto (U088). Si el turno se cerró sin llegar a nadie, decirlo.
+const OPEN_SHIFT_STATUSES = ["publicado", "buscando_personal"];
+
+function closedShiftLabel(status: string): string {
+  if (status === "cancelado") return "El comercio canceló el turno";
+  if (status === "no_cubierto") return "El turno se cerró sin cubrir";
+  return "El turno ya no está abierto";
+}
+
+// Estados terminados: en «Asignados» van aparte, debajo de lo que hay que hacer (U066).
+const FINISHED_STATUSES = ["finalizado", "pagado", "cancelado", "no_cubierto"];
+
 const CONFIRM_COPY = {
   reject: { title: "¿Rechazar este turno?", yes: "Sí, rechazar" },
   "worker-cancel": { title: "¿Cancelar tu asignación?", yes: "Sí, cancelar" },
@@ -334,51 +347,8 @@ export default function MatchesPage() {
     }
   }
 
-  // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
-  const pending = applications.filter((a) => a.status === "pendiente");
-
-  const origin = originFor(here, profile);
-  // En el orden en que se fueron tocando (no el orden de la lista): más
-  // fácil de seguir mientras se arma la comparación.
-  const compareShifts = selectedForCompare
-    .map((id) => savedShifts.find((s) => s.id === id))
-    .filter((s): s is Shift => s !== undefined);
-
-  return (
-    <div className="app-container px-4 pb-10 pt-6">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Matches</h1>
-      <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados, postulaciones y guardados.</p>
-
-      <div className="mt-4 -mx-4 overflow-x-auto px-4 no-scrollbar">
-        <SegmentedControl
-          value={tab}
-          onChange={(next) => {
-            setTab(next);
-            exitCompareMode();
-          }}
-          className="min-w-[420px]"
-          options={[
-            { value: "asignados", label: `Asignados${shifts.length > 0 ? ` (${shifts.length})` : ""}` },
-            { value: "postulaciones", label: `Postulaciones${pending.length > 0 ? ` (${pending.length})` : ""}` },
-            { value: "guardados", label: `Guardados${savedShifts.length > 0 ? ` (${savedShifts.length})` : ""}` },
-          ]}
-        />
-      </div>
-
-      {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={() => load()} />}
-
-      {!loading && !error && tab === "asignados" && (
-        <div className="mt-5">
-          {shifts.length === 0 ? (
-            <EmptyState
-              icon={<BriefcaseIcon size={28} />}
-              title="Todavía no tenés turnos asignados"
-              subtitle="Cuando un comercio te elija de entre los postulantes, el turno aparece acá."
-            />
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {shifts.map((shift) => (
+  function renderAssigned(shift: Shift) {
+    return (
               <ShiftCard key={shift.id} shift={shift} perspective="worker">
                 {shift.status !== "cancelado" && (
                   <div className="mb-2 flex flex-wrap gap-2">
@@ -504,8 +474,82 @@ export default function MatchesPage() {
                   </div>
                 )}
               </ShiftCard>
-            ))}
-            </div>
+    );
+  }
+
+  const activeShifts = shifts.filter((s) => !FINISHED_STATUSES.includes(s.status));
+  const finishedShifts = shifts.filter((s) => FINISHED_STATUSES.includes(s.status));
+
+  // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
+  const pending = applications.filter((a) => a.status === "pendiente");
+
+  const origin = originFor(here, profile);
+  // En el orden en que se fueron tocando (no el orden de la lista): más
+  // fácil de seguir mientras se arma la comparación.
+  const compareShifts = selectedForCompare
+    .map((id) => savedShifts.find((s) => s.id === id))
+    .filter((s): s is Shift => s !== undefined);
+
+  return (
+    <div className="app-container px-4 pb-10 pt-6">
+      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Matches</h1>
+      <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados, postulaciones y guardados.</p>
+
+      <div className="mt-4">
+        <SegmentedControl
+          value={tab}
+          onChange={(next) => {
+            setTab(next);
+            exitCompareMode();
+          }}
+          options={[
+            { value: "asignados", label: "Asignados", count: shifts.length },
+            {
+              value: "postulaciones",
+              label: "Postulaciones",
+              count: pending.filter((a) => {
+                const st = appShifts[a.shift_id]?.status;
+                return st !== undefined && OPEN_SHIFT_STATUSES.includes(st);
+              }).length,
+            },
+            { value: "guardados", label: "Guardados", count: savedShifts.length },
+          ]}
+        />
+      </div>
+
+      {loading && <CardSkeletons />}
+      {error && <ErrorBanner message={error} onRetry={() => load()} />}
+
+      {!loading && !error && tab === "asignados" && (
+        <div className="mt-5">
+          {shifts.length === 0 ? (
+            <EmptyState
+              icon={<BriefcaseIcon size={28} />}
+              title="Todavía no tenés turnos asignados"
+              subtitle="Cuando un comercio te elija de entre los postulantes, el turno aparece acá."
+            />
+          ) : (
+            activeShifts.length > 0 && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {activeShifts.map(renderAssigned)}
+              </div>
+            )
+          )}
+          {/* U066: lo terminado (pagado, cancelado, no cubierto) va aparte,
+              debajo de lo que todavía hay que hacer. */}
+          {finishedShifts.length > 0 && (
+            <>
+              <h2
+                className={`mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50 ${
+                  activeShifts.length > 0 ? "mt-8" : ""
+                }`}
+              >
+                Terminados
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {finishedShifts.map(renderAssigned)}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -519,31 +563,52 @@ export default function MatchesPage() {
               subtitle="Postulate a un turno desde Inicio. Acá vas a seguir su estado."
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
               if (!shift) return null;
+              const isOpen = OPEN_SHIFT_STATUSES.includes(shift.status);
               return (
                 <ShiftCard key={application.id} shift={shift} perspective="worker">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
-                      <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
-                    </p>
-                    {/* Compartir a un colega: este turno sigue abierto, pasarlo
-                        por WhatsApp suma gente a la plataforma (mismas piezas
-                        que el feed y la página pública). */}
-                    <ShareShiftButton shift={shift} shiftId={shift.id} />
-                    <Button
-                      size="sm"
-                      variant="surface"
-                      leftIcon={<CloseIcon size={16} />}
-                      onClick={() => void tapGuard.run(() => setConfirmWithdrawId(application.id))}
-                      loading={withdrawing === application.id}
-                      disabled={withdrawing !== null || tapGuard.locked}
-                    >
-                      Cancelar postulación
-                    </Button>
-                  </div>
+                  {isOpen ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                        <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
+                      </p>
+                      {/* Compartir a un colega: este turno sigue abierto, pasarlo
+                          por WhatsApp suma gente a la plataforma (mismas piezas
+                          que el feed y la página pública). */}
+                      <ShareShiftButton shift={shift} shiftId={shift.id} />
+                      <Button
+                        size="sm"
+                        variant="surface"
+                        leftIcon={<CloseIcon size={16} />}
+                        onClick={() => void tapGuard.run(() => setConfirmWithdrawId(application.id))}
+                        loading={withdrawing === application.id}
+                        disabled={withdrawing !== null || tapGuard.locked}
+                      >
+                        Cancelar postulación
+                      </Button>
+                    </div>
+                  ) : (
+                    // U088: el turno ya no se abre; no hay nada que esperar.
+                    // Sin compartir (nadie puede postularse) y con una sola
+                    // acción: sacarlo de la lista.
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70 ring-1 ring-line">
+                        <CloseIcon size={15} /> {closedShiftLabel(shift.status)}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="surface"
+                        onClick={() => void tapGuard.run(() => withdrawApplication(application.id))}
+                        loading={withdrawing === application.id}
+                        disabled={withdrawing !== null || tapGuard.locked}
+                      >
+                        Quitar de la lista
+                      </Button>
+                    </div>
+                  )}
                 </ShiftCard>
               );
             })}
@@ -583,7 +648,7 @@ export default function MatchesPage() {
                 </div>
               )}
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {savedShifts.map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
                   return (
@@ -640,6 +705,8 @@ export default function MatchesPage() {
       {compareMode && selectedForCompare.length >= 2 && (
         <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 md:bottom-4">
           <Button
+            // Un solo ámbar por pantalla: «Postularme» ya lo es; este va neutro.
+            variant="surface"
             leftIcon={<ScaleIcon size={16} />}
             onClick={() => setCompareOpen(true)}
             className="shadow-[var(--shadow-float)]"

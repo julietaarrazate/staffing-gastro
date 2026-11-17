@@ -20,7 +20,9 @@ export default function SegmentedControl<T extends string>({
   onChange,
   className,
 }: {
-  options: { value: T; label: string }[];
+  // `count`: cuántos hay, como numerito aparte (más angosto que «(3)» pegado
+  // al texto: tres pestañas con cantidad entran en 360 px sin scroll).
+  options: { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
   className?: string;
@@ -35,6 +37,7 @@ export default function SegmentedControl<T extends string>({
             key={o.value}
             type="button"
             aria-pressed={active}
+            aria-label={o.count ? `${o.label} (${o.count})` : undefined}
             onClick={() => onChange(o.value)}
             // `whitespace-nowrap`: sin esto una etiqueta larga
             // ("Postulaciones (1)" en /my-shifts) envuelve a dos líneas y,
@@ -44,7 +47,7 @@ export default function SegmentedControl<T extends string>({
             // diferente"). Con nowrap todos miden una línea; si la suma no
             // entra, el contenedor de la página ya scrollea en horizontal
             // (ver `overflow-x-auto` en my-shifts/shifts).
-            className="relative flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="relative flex-1 whitespace-nowrap rounded-full px-2 py-2 sm:px-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {active && (
               <motion.span
@@ -55,6 +58,9 @@ export default function SegmentedControl<T extends string>({
             )}
             <span className={cn("relative z-10 transition-colors", active ? "text-ink" : "text-ink/60")}>
               {o.label}
+              {o.count ? (
+                <span className="ml-1 text-xs font-bold tabular-nums opacity-80">{o.count}</span>
+              ) : null}
             </span>
           </button>
         );
