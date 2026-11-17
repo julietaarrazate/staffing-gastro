@@ -202,7 +202,51 @@ function isGateCode(code: string | undefined): code is TwoFactorGateCode {
  * conexión) — distinto de un ApiError con status HTTP. Se usa para NO
  * cerrar la sesión cuando el problema es que el server no está, no que el
  * token sea inválido. */
-export class NetworkError extends Error {}
+export class NetworkError extends Error {
+  /** true si fue por el timeout (el server tardó), no por falta de conexión. */
+  timeout: boolean;
+  constructor(message: string, opts?: { timeout?: boolean }) {
+    super(message);
+    this.timeout = opts?.timeout ?? message.includes("tardó");
+  }
+}
+
+const ENGLISH_HTTP_TEXT =
+  /^(internal server error|bad gateway|service unavailable|gateway time-?out|server error|bad request|not found|unauthorized|forbidden)\.?$/i;
+
+/** Mensaje para una respuesta con error SIN `detail` propio (o con el
+ * `statusText` en inglés del servidor/proxy: «Bad Gateway»). Nunca se muestra
+ * el statusText crudo. */
+export function statusFallbackMessage(status: number): string {
+  if (status === 502 || status === 503 || status === 504) {
+    return "El servidor no está disponible en este momento. Probá de nuevo en unos minutos.";
+  }
+  if (status >= 500) return "Algo falló de nuestro lado. Probá de nuevo en unos minutos.";
+  if (status === 429) return "Demasiados intentos. Esperá un momento y volvé a probar.";
+  if (status === 408) return "El servidor tardó demasiado en responder. Probá de nuevo.";
+  if (status === 401) return "Tu sesión no es válida. Volvé a ingresar.";
+  if (status === 403) return "No tenés permiso para hacer esto.";
+  if (status === 404) return "No encontramos lo que buscás.";
+  return "No pudimos completar la acción. Probá de nuevo.";
+}
+
+/** «30 segundos», «1 minuto», «15 minutos», «2 horas» (redondea para arriba). */
+export function waitText(seconds: number): string {
+  const s = Math.max(1, Math.ceil(seconds));
+  if (s < 60) return `${s} ${s === 1 ? "segundo" : "segundos"}`;
+  const m = Math.ceil(s / 60);
+  if (m < 60) return `${m} ${m === 1 ? "minuto" : "minutos"}`;
+  const h = Math.ceil(m / 60);
+  return `${h} ${h === 1 ? "hora" : "horas"}`;
+}
+
+/** Si el 429 no dice cuánto esperar, lo agrega desde `Retry-After`. */
+export function withRetryAfter(message: string, retryAfter: string | null): string {
+  const secs = retryAfter == null ? NaN : Number(retryAfter);
+  if (!Number.isFinite(secs) || secs <= 0) return message;
+  if (/\d+\s*(segundo|minuto|hora)/i.test(message)) return message;
+  return `${message.replace(/\s*[.]?\s*$/, "")}. Esperá ${waitText(secs)} y volvé a probar.`;
+}
 
 /** Texto fijo para el 429 de las pantallas que no revelan nada de la cuenta
  * (recuperar, verificar email): el límite es por conexión, no dice nada del mail. */
@@ -378,7 +422,7 @@ async function request<T>(
     throw new NetworkError(
       err instanceof Error && err.name === "AbortError"
         ? "El servidor tardó demasiado en responder."
-        : "No se pudo conectar con el servidor."
+        : "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
     );
   } finally {
     if (timer != null) clearTimeout(timer);
@@ -410,7 +454,14 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    const { message, code } = parseErrorDetail(body?.detail ?? res.statusText);
+    const parsed = body?.detail == null ? null : parseErrorDetail(body.detail);
+    let message = parsed?.message ?? statusFallbackMessage(res.status);
+    const code = parsed?.code;
+    // Un 5xx sin JSON propio puede traer el texto en inglés del proxy.
+    if (res.status >= 500 && parsed && !parsed.code && ENGLISH_HTTP_TEXT.test(message.trim())) {
+      message = statusFallbackMessage(res.status);
+    }
+    if (res.status === 429) message = withRetryAfter(message, res.headers?.get?.("Retry-After") ?? null);
     if (res.status === 403 && isGateCode(code) && !skipTwoFactorGate) onTwoFactorGate?.(code);
     throw new ApiError(res.status, message, code);
   }

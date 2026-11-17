@@ -4,12 +4,12 @@ import { blockExternalHosts, mockEmptyNotifications, skipSplash } from "./mocks"
 /**
  * G10 (U138, U139): el límite de intentos no se dice con mensajes falsos.
  * La forma del 429 es la real de `core/rate_limit.py`: status 429 y
- * `{"detail": "Demasiados intentos. Esperá un momento y volvé a probar."}`.
+ * `{"detail": "Demasiados intentos. Esperá 1 minuto y volvé a probar."}`.
  */
 const RATE_LIMIT_429 = {
   status: 429,
   contentType: "application/json",
-  body: JSON.stringify({ detail: "Demasiados intentos. Esperá un momento y volvé a probar." }),
+  body: JSON.stringify({ detail: "Demasiados intentos. Esperá 1 minuto y volvé a probar." }),
 };
 
 test("alta bien hecha con el ingreso automático frenado: va a /login con el aviso, sin error", async ({ page }) => {

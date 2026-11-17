@@ -1,4 +1,4 @@
-import { ApiError } from "./api";
+import { ApiError, NetworkError } from "./api";
 
 /**
  * Traduce cualquier error atrapado en un `catch` a un mensaje apto para
@@ -8,9 +8,24 @@ import { ApiError } from "./api";
  * de red crudo en inglés que nunca debe llegar a la UI, así que lo pisamos
  * con un mensaje genérico.
  */
+const SIN_CONEXION = "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo.";
+
 export function getErrorMessage(err: unknown, fallback?: string): string {
   if (err instanceof ApiError) return err.message;
-  return fallback ?? "No pudimos conectar. Revisá tu conexión e intentá de nuevo.";
+  // Sin red o timeout: se dice qué pasó. Con fallback (el texto de la acción,
+  // «No se pudo publicar el turno») se le suma el motivo, no se lo pisa.
+  const sinRed =
+    err instanceof NetworkError
+      ? err.message
+      : err instanceof TypeError && /fetch|network|load failed/i.test(err.message)
+        ? SIN_CONEXION
+        : null;
+  if (sinRed) {
+    if (!fallback) return sinRed;
+    const accion = fallback.replace(/[\s.:]+$/, "");
+    return `${accion}: ${sinRed.charAt(0).toLowerCase()}${sinRed.slice(1)}`;
+  }
+  return fallback ?? SIN_CONEXION;
 }
 
 /** Azúcar para el caso más común de manejo por status: recurso no encontrado. */

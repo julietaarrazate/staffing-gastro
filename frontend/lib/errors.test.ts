@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ApiError } from "./api";
+import { ApiError, NetworkError } from "./api";
 import { getErrorMessage, isNotFound, isPlanLimitError } from "./errors";
 
 describe("getErrorMessage", () => {
@@ -9,15 +9,24 @@ describe("getErrorMessage", () => {
     );
   });
 
-  it("pisa cualquier otro error (p. ej. 'Failed to fetch') con el fallback por defecto", () => {
-    expect(getErrorMessage(new TypeError("Failed to fetch"))).toBe(
-      "No pudimos conectar. Revisá tu conexión e intentá de nuevo."
+  it("un 'Failed to fetch' crudo dice que no hay conexión, en español, aunque haya fallback", () => {
+    const sinConexion = "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo.";
+    expect(getErrorMessage(new TypeError("Failed to fetch"))).toBe(sinConexion);
+    expect(getErrorMessage(new TypeError("Failed to fetch"), "No se pudo guardar.")).toBe(
+      "No se pudo guardar: no hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
     );
   });
 
-  it("usa el fallback provisto en vez del genérico, si se pasa uno", () => {
-    expect(getErrorMessage(new TypeError("Failed to fetch"), "No se pudo guardar")).toBe(
-      "No se pudo guardar"
+  it("NetworkError: sin conexión vs timeout se distinguen", () => {
+    expect(getErrorMessage(new NetworkError("El servidor tardó demasiado en responder."))).toBe(
+      "El servidor tardó demasiado en responder."
+    );
+  });
+
+  it("otro error desconocido usa el fallback provisto o el genérico", () => {
+    expect(getErrorMessage(new Error("boom"), "No se pudo guardar")).toBe("No se pudo guardar");
+    expect(getErrorMessage(new Error("boom"))).toBe(
+      "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo."
     );
   });
 
