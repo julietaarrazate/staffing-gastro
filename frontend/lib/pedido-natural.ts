@@ -29,10 +29,10 @@ const PUESTOS: [RegExp, string][] = [
 ];
 
 // "pasado mañana" antes que "mañana", así no se queda con la palabra corta.
+// Un día explícito (viernes) gana sobre "mañana" suelto: va antes en la lista.
 const DIAS: [RegExp, string][] = [
   [/\bhoy\b/, "Hoy"],
   [/\bpasado mañana\b/, "Pasado mañana"],
-  [/\bmañana\b/, "Mañana"],
   [/\blunes\b/, "Lunes"],
   [/\bmartes\b/, "Martes"],
   [/\bmi[eé]rcoles\b/, "Miércoles"],
@@ -41,14 +41,19 @@ const DIAS: [RegExp, string][] = [
   [/\bs[aá]bado\b/, "Sábado"],
   [/\bdomingo\b/, "Domingo"],
   [/\bfinde\b/, "El finde"],
+  [/\bmañana\b/, "Mañana"],
 ];
+
+// "2 de la mañana", "a la mañana", "por la mañana": es la parte del día, no el
+// día siguiente. Se saca antes de buscar el día ("mañana" suelto sí cuenta).
+const MOMENTO_DEL_DIA = /\b(?:de|a|por|en)\s+la\s+mañana\b/g;
 
 const NUMEROS: Record<string, number> = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5 };
 
 const hora = (h: string, m?: string) => `${String(Number(h) % 24).padStart(2, "0")}:${m ?? "00"}`;
 
 export function leerPedido(texto: string): PedidoLeido {
-  const t = texto.toLowerCase();
+  const t = texto.toLowerCase().replace(MOMENTO_DEL_DIA, "");
   const leido: PedidoLeido = {};
 
   leido.puesto = PUESTOS.find(([re]) => re.test(t))?.[1];

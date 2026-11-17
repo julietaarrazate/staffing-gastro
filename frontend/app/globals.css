@@ -799,6 +799,17 @@ textarea,
   user-select: text;
 }
 
+/* iOS Safari hace zoom solo al enfocar un campo con letra menor a 16px. Como
+ * el viewport ya deja hacer zoom (U044), en celular los campos de texto van en
+ * 16px; sólo cambia la letra, no el alto ni el padding. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Foco visible, por sistema y no por componente (2026-09).
  *
  * Antes el anillo de foco se declaraba a mano en cada componente: sólo tres

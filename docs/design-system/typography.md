@@ -89,6 +89,8 @@ listadas ahí).
 | `text-metadata` | 12px | Horas, letra chica. |
 | `text-label` | 11px | Eyebrows y chips. **Piso**: debajo no va texto. |
 
+**Inputs en celular: 16px** (2026-11-17, U044). `globals.css` lleva `input`, `select` y `textarea` a 16px bajo 768px de ancho: con menos, iOS Safari hace zoom al enfocar. Es una excepción a `text-body`; el alto y el padding no cambian.
+
 **Cuerpo en 14, no en 15** (decisión de Julieta, 2026-09-24): medido
 renderizado, 14px era el tamaño de 199 textos contra 13 en 15px. La escala
 decía 15 y describía una app que no era la que se veía; pasar todo a 15 habría
