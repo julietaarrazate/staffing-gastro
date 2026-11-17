@@ -43,10 +43,14 @@ const TABS_BY_ROLE: Record<string, typeof WORKER_TABS> = {
 };
 
 export default function BottomNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, twoFactorSetupPending } = useAuth();
   const pathname = usePathname();
 
   if (loading || !user) return null;
+  // Admin con el alta de la verificación en dos pasos pendiente (ADR-0023): el
+  // backend le rechaza todo lo demás, así que la barra sólo llevaría a pantallas
+  // con error (U133). Mismo criterio que el menú de `admin/layout.tsx`.
+  if (twoFactorSetupPending) return null;
   // El onboarding es una pantalla de configuración inicial a pantalla completa:
   // la barra tapaba su botón principal, y navegar a otra sección antes de
   // terminar deja el perfil a medias (sin zona ni oficio el feed no sirve).

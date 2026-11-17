@@ -48,7 +48,7 @@ export default function NewEventPage() {
 }
 
 function NewEventForm() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();

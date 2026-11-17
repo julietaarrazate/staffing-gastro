@@ -71,7 +71,7 @@ function confirmCopy(path: "reject" | "worker-cancel" | "check-out"): string {
 }
 
 export default function MatchesPage() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["worker"] });
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("asignados");
   const [shifts, setShifts] = useState<Shift[]>([]);
