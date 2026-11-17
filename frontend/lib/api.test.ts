@@ -284,7 +284,7 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
         detail: { code: "two_factor_setup_required", message: "Activá la verificación" },
       })
     );
-    const err = (await api.get("/admin/stats", "tok").catch((e) => e)) as ApiError;
+    const err = (await api.get("/admin/stats", "tok").catch((e: unknown) => e as ApiError)) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.code).toBe("two_factor_setup_required");
     expect(err.message).toBe("Activá la verificación");
@@ -302,10 +302,10 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
 
     const alta = (await backgroundApi
       .post("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
-      .catch((e) => e)) as ApiError;
+      .catch((e: unknown) => e as ApiError)) as ApiError;
     const baja = (await backgroundApi
       .del("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
-      .catch((e) => e)) as ApiError;
+      .catch((e: unknown) => e as ApiError)) as ApiError;
 
     expect(alta.code).toBe("two_factor_required");
     expect(baja.code).toBe("two_factor_required");
@@ -326,8 +326,74 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
         detail: { code: "two_factor_challenge_invalid", message: "El ingreso venció." },
       })
     );
-    const err = (await api.post("/auth/2fa/verify", { code: "1" }).catch((e) => e)) as ApiError;
+    const err = (await api.post("/auth/2fa/verify", { code: "1" }).catch((e: unknown) => e as ApiError)) as ApiError;
     expect(err.code).toBe("two_factor_challenge_invalid");
     expect(gate).not.toHaveBeenCalled();
+  });
+});
+
+const fail = (p: Promise<unknown>) =>
+  p.then(
+    () => {
+      throw new Error("tenía que fallar");
+    },
+    (e: unknown) => e as ApiError
+  );
+
+describe("errores del servidor y sin conexión (U113, U144)", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    bindSessionToken(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sin red: NetworkError con mensaje claro en español", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    const err = await fail(api.get("/x"));
+    expect(err).toBeInstanceOf(NetworkError);
+    expect(err.message).toMatch(/no hay conexión/i);
+  });
+
+  it("502 con statusText en inglés nunca muestra «Bad Gateway»", async () => {
+    fetchMock.mockResolvedValue(new Response("<html>", { status: 502, statusText: "Bad Gateway" }));
+    const err = await fail(api.get("/x"));
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.message).not.toMatch(/bad gateway/i);
+    expect(err.message).toMatch(/servidor no está disponible/i);
+  });
+
+  it("500 con detail en inglés se traduce; con detail propio en español se respeta", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(500, { detail: "Internal Server Error" }));
+    expect((await fail(api.get("/x"))).message).toMatch(/falló de nuestro lado/i);
+    fetchMock.mockResolvedValueOnce(jsonResponse(500, { detail: "No se pudo enviar el mail." }));
+    expect((await fail(api.get("/x"))).message).toBe("No se pudo enviar el mail.");
+  });
+
+  it("429 sin tiempo en el detail agrega cuánto esperar desde Retry-After", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Demasiados intentos." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "120" },
+      })
+    );
+    const err = await fail(api.get("/x"));
+    expect(err.message).toBe("Demasiados intentos. Esperá 2 minutos y volvé a probar.");
+  });
+
+  it("429 cuyo detail ya dice cuánto, no se repite", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Esperá 15 minutos y volvé a probar." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "900" },
+      })
+    );
+    const err = await fail(api.get("/x"));
+    expect(err.message).toBe("Esperá 15 minutos y volvé a probar.");
   });
 });
