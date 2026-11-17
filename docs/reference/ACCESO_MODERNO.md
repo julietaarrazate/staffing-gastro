@@ -33,7 +33,9 @@ y:
    es la primera prueba de que el email es de quien entra: la cuenta se marca
    verificada, la contraseña anterior deja de servir y se cierran todas las
    sesiones (desde 2026-10-10; antes, quien hubiera creado la cuenta con un
-   email ajeno la seguía compartiendo con la dueña). Si era la misma persona,
+   email ajeno la seguía compartiendo con la dueña; desde 2026-11-17 además se
+   manda un mail de aviso a la dirección de la cuenta, best-effort, que explica
+   qué pasó y cómo volver a tener contraseña). Si era la misma persona,
    recupera la contraseña con "Olvidé mi contraseña".
 3. Si el email es nuevo y no se mandó `role` → responde
    `{"requires_role": true, "email", "full_name"}` (200): el frontend muestra
