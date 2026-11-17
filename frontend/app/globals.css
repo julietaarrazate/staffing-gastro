@@ -818,6 +818,13 @@ textarea,
   outline-offset: 2px;
 }
 
+/* Campos cuyo contenedor ya dibuja el anillo de foco (focus-within): sin esto
+ * el piso de arriba suma un segundo anillo (el layer de utilities de Tailwind
+ * pierde contra una regla sin layer, así que `outline-none` no alcanza). */
+input[data-foco-contenedor]:focus-visible {
+  outline: none;
+}
+
 /* Oculta scrollbars en carruseles/filas horizontales sin perder el scroll. */
 .no-scrollbar {
   scrollbar-width: none;
