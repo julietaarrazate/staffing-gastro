@@ -52,7 +52,8 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   0019 comercios a captar desde OpenStreetMap · 0020 sin plan gratis (el
   escalón de entrada del comercio es pago) · 0021 documentos de identidad
   privados con link que vence · 0022 cobro mensual sin débito automático ·
-  0023 verificación en dos pasos obligatoria para las cuentas admin.
+  0023 verificación en dos pasos obligatoria para las cuentas admin ·
+  0024 efectos de una suspensión · 0025 encuesta para locales (módulo propio, sin IP, retención a 12 meses).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
