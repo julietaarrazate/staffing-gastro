@@ -7,6 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { isCancellable } from "@/lib/cancelar-turno";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch, SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
@@ -95,9 +96,12 @@ function ShiftCandidatesContent() {
   const [shiftError, setShiftError] = useState(false);
   // Sin el estado del turno no se ofrece «Asignar»: se carga o se reintenta.
   const canAssign = shift !== null && ASSIGNABLE_STATUSES.includes(shift.status);
-  // La garantía le habla a quien todavía elige: con el turno cerrado no aplica.
-  // Si el estado no cargó (shift null) no se sabe, y se deja como estaba.
-  const mostrarGarantia = shift === null || canAssign;
+  // La «Garantía Oído» vale mientras el turno está vivo: buscando, o con
+  // alguien asignado o confirmado («si no se presenta, reabrís el turno»).
+  // Con el turno cerrado (cancelado, terminado, pagado, sin cubrir) ya no
+  // aplica. Mientras no se sabe el estado (cargando o con error) no se
+  // muestra, para que no aparezca y desaparezca.
+  const mostrarGarantia = shift !== null && isCancellable(shift.status);
   // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
   // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
   // contestó bien con cero postulantes. Si ya había datos y una recarga

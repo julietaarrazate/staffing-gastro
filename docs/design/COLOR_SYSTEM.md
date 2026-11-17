@@ -169,8 +169,8 @@ coherente. Contraste tinta-sobre-naranja del botón: **5.89** (AA ✅).
 | Blanco | Verde Éxito `#2E8B57` (botón/badge sólido) | **4.25** | ✅ (era 2.28 con el semáforo) |
 
 **Nota de alcance:** `--color-danger`/`--color-danger-text` quedaron sin tocar
-(el style-guide no especifica un rojo). El `danger-text` sobre `red-50` da 4.15
-(marginal), pendiente pre-existente, no una regresión de esta versión.
+(el style-guide no especifica un rojo). El `danger-text` sobre `red-50` daba 4.15;
+desde 2026-11-17 (`#C22F2F`) da 5.13.
 
 ### 0.3 Tipografía
 
@@ -264,7 +264,7 @@ agrega una variante accesible para el rol de texto.
 | `--color-danger` | `#EF4444` | **Superficie** de error | — |
 | `--color-danger-text` | **`#C22F2F`** | **Texto** de error sobre claro | Sobre blanco: **5.61** ✅ |
 
-**Los tres valores nuevos (`#C65300`, `#17853F`, `#D73D3D`) no son
+**Los tres valores nuevos (`#C65300`, `#17853F` y el rojo, hoy `#C22F2F`) no son
 arbitrarios:** son el resultado de oscurecer progresivamente cada color de
 marca hasta el primer valor que cruza 4.5:1 sobre blanco. Conservan el matiz
 —siguen siendo *el* naranja, *el* verde, *el* rojo de Staffya— y ganan

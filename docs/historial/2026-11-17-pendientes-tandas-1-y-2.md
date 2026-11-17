@@ -14,10 +14,13 @@
   3,86 / 3,75 / 4,15. Se actualizaron los valores listados en
   `docs/design-system/color-system.md`, `docs/design/DESIGN_TOKENS.md` y
   `docs/design/COLOR_SYSTEM.md`.
-- **«Garantía Oído»** ya no aparece en Candidatos de un turno que no admite
-  asignar (`app/shifts/[id]/candidates/page.tsx`): usa el mismo `canAssign`
-  de la pantalla (sólo `publicado` y `buscando_personal` cuentan). Si el
-  estado del turno no cargó, se deja visible como antes. Specs en
+- **«Garantía Oído»** ya no aparece en Candidatos de un turno cerrado
+  (cancelado, finalizado, pagado o sin cubrir; `isCancellable` de
+  `lib/cancelar-turno.ts`) (`app/shifts/[id]/candidates/page.tsx`). Con alguien
+  asignado o confirmado sigue, porque su promesa («si no se presenta, reabrís
+  el turno y elegís a otro») todavía vale; lo ajustó la revisión, que vio que
+  ocultarla ahí cambiaba qué ve el comercio. Mientras el estado carga o si
+  falla, no se muestra (antes aparecía y desaparecía). Specs en
   `e2e/candidatos-buscar-grupo-g.spec.ts`.
 - **Avisos largos**: la entidad `Notification`
   (`backend/app/modules/notification/domain/entities.py`) recorta `title` a
