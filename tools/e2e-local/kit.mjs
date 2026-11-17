@@ -446,7 +446,7 @@ export async function registerViaApi({ role = "worker", email, password = DEFAUL
   email = email || uniq(role);
   fullName = fullName || (role === "worker" ? "Trabajadora de Prueba" : "Comercio de Prueba");
   const sinceMs = Date.now() - 2000;
-  const user = must(await api("POST", "/auth/register", { body: { email, password, full_name: fullName, role, accepted_terms: true } }), "registro");
+  const user = must(await api("POST", "/auth/register", { body: { email, password, full_name: fullName, role, accepted_terms: true, birth_date: "1990-01-01" } }), "registro");
 
   if (verify) {
     const mail = await waitForMail(email, { subject: /Confirm[aá] tu email/i, sinceMs });

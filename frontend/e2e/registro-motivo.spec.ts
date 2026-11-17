@@ -15,6 +15,12 @@ test("el botón de crear cuenta explica qué falta", async ({ page }) => {
   await expect(boton).toBeDisabled();
 
   await page.getByPlaceholder("Nombre completo").fill("Ana Pérez");
+  await expect(motivo).toHaveText("Escribí tu fecha de nacimiento para seguir.");
+  // U101: un menor de 18 no puede crear la cuenta; el campo lo dice.
+  await page.getByLabel("Fecha de nacimiento").fill("2012-03-01");
+  await expect(motivo).toHaveText("Oído es sólo para mayores de 18 años.");
+  await expect(page.getByRole("alert").filter({ hasText: "mayores de 18" })).toBeVisible();
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("ana@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("aaaaaaaa");
   await expect(motivo).toContainText("un solo carácter repetido");
