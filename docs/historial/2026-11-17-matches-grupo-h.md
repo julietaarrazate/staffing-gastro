@@ -22,8 +22,16 @@ un turno cerrado leía «esperando respuesta».
   implícita crece con el nombre largo): ahora lleva `grid-cols-1`. Las tres
   pestañas ya no scrollean en horizontal: `SegmentedControl` acepta `count`
   y lo muestra como numerito aparte (el nombre accesible sigue siendo
-  «Postulaciones (1)»). «Comparar (n)» pasa a `variant="surface"`: el único
-  ámbar de la pantalla es «Postularme».
+  «Postulaciones (1)»). Debajo de `sm` el control usa `text-caption`
+  (13 px), menos relleno y menos espacio, y cada pestaña mide según su
+  contenido (`flex-auto`): con 14 px las pestañas se pasaban del margen de la
+  página (en CI, 4 px de la pantalla). Si igual no entran (contadores de tres
+  cifras, 320 px), se recorta el nombre con «…» y el número queda a la vista.
+  Specs a 360 px con contadores de dos cifras (sin recorte) y a 320 px con
+  120 guardados (sin desborde). El cambio alcanza a todos los usos del
+  control en celular (registro, `/shifts`, admin), revisados en pantalla.
+  «Comparar (n)» pasa a `variant="surface"`: el único ámbar de la pantalla es
+  «Postularme».
 - **U088.** Una postulación `pendiente` cuyo turno ya no está abierto
   (`publicado`/`buscando_personal`) muestra «El turno se cerró sin cubrir» o
   «El comercio canceló el turno», sin compartir y con «Quitar de la lista»
