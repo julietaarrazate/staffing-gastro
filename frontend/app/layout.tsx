@@ -115,8 +115,8 @@ export const viewport: Viewport = {
   themeColor: THEME_COLOR_LIGHT,
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Sin `maximumScale` ni `userScalable:false`: la persona puede hacer zoom con
+  // pellizco (accesibilidad, WCAG 1.4.4).
   // SIN esto, `env(safe-area-inset-*)` vale SIEMPRE 0 en iOS y todo el código
   // de safe-area del repo queda muerto: la barra inferior se dibuja debajo
   // del indicador de home del iPhone y el último tab queda medio tapado.
