@@ -29,7 +29,7 @@ export default function SegmentedControl<T extends string>({
 }) {
   const id = useId();
   return (
-    <div className={cn("flex gap-1 rounded-full bg-surface p-1 ring-1 ring-line", className)}>
+    <div className={cn("flex gap-0.5 sm:gap-1 rounded-full bg-surface p-1 ring-1 ring-line", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -47,7 +47,10 @@ export default function SegmentedControl<T extends string>({
             // diferente"). Con nowrap todos miden una línea; si la suma no
             // entra, el contenedor de la página ya scrollea en horizontal
             // (ver `overflow-x-auto` en my-shifts/shifts).
-            className="relative flex-1 whitespace-nowrap rounded-full px-2 py-2 sm:px-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            // Debajo de `sm`, 13 px y menos relleno (como el control de iOS):
+            // con 14 px las tres pestañas de Matches entraban en 360 px con
+            // la fuente local y se pasaban 4 px con la de CI (#609).
+            className="relative flex-1 whitespace-nowrap rounded-full px-1.5 py-2 sm:px-3 text-[13px] sm:text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {active && (
               <motion.span
