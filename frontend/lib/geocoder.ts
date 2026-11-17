@@ -40,6 +40,11 @@ export interface GeocodeResult {
 export class GeocoderError extends Error {}
 
 interface NominatimAddress {
+  road?: string;
+  pedestrian?: string;
+  footway?: string;
+  house_number?: string;
+  neighbourhood?: string;
   city?: string;
   town?: string;
   village?: string;
@@ -70,9 +75,31 @@ function pickCity(address: NominatimAddress | undefined): string {
   );
 }
 
-/** `display_name` trae toda la jerarquía administrativa; nos quedamos con los
- * primeros segmentos (calle + altura + barrio/ciudad), más legible y editable. */
-function shortAddress(displayName: string | undefined): string {
+/**
+ * Dirección corta «Calle 1234, Barrio/Localidad». Se arma con los campos
+ * estructurados de Nominatim (`address.road`, `house_number`, barrio/ciudad):
+ * `display_name` viene en orden anglosajón (altura primero) y termina en la
+ * jerarquía completa, así que sus primeros segmentos daban «1234, Calle,
+ * Buenos Aires». Si no hay calle estructurada, cae a los primeros segmentos de
+ * `display_name`.
+ */
+export function shortAddress(
+  displayName: string | undefined,
+  address?: NominatimAddress
+): string {
+  const road = address?.road || address?.pedestrian || address?.footway || "";
+  if (road) {
+    const calle = address?.house_number ? `${road} ${address.house_number}` : road;
+    const zona =
+      address?.suburb ||
+      address?.neighbourhood ||
+      address?.city_district ||
+      address?.city ||
+      address?.town ||
+      address?.village ||
+      "";
+    return zona && zona !== road ? `${calle}, ${zona}` : calle;
+  }
   if (!displayName) return "";
   return displayName
     .split(",")
@@ -137,7 +164,7 @@ export async function searchAddress(
   return (data as NominatimResult[])
     .filter((raw) => raw.lat != null && raw.lon != null)
     .map((raw) => ({
-      address: shortAddress(raw.display_name),
+      address: shortAddress(raw.display_name, raw.address),
       city: pickCity(raw.address),
       latitude: Number(raw.lat),
       longitude: Number(raw.lon),
