@@ -323,6 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAllCached();
     impersonatingRef.current = false;
     setImpersonating(null);
+    setResuming(false);
     setTwoFactorSetupPending(false);
     setReconnecting(false);
     setJustLoggedOut(false);
@@ -653,7 +654,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (hasImpersonationMark()) setResuming(true);
       const result = await restoreOnce();
       running = false;
-      if (cancelled) return;
+      if (cancelled) {
+        setResuming(false);
+        return;
+      }
       if (result === "transient") {
         attempt += 1;
         schedule();
@@ -738,6 +742,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       impersonatingRef.current = false;
       forgetImpersonation();
       setImpersonating(null);
+      setResuming(false);
       setTwoFactorSetupPending(false);
       setReconnecting(false);
       setJustLoggedOut(true);
@@ -794,6 +799,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** Abre la sesión con los tokens de una respuesta de login. */
   async function startSession(tokens: SessionTokens): Promise<SesionAbierta> {
     sessionEpoch.current += 1;
+    // Un ingreso nuevo en esta pestaña deja sin efecto un «ver como» por retomar.
+    forgetImpersonation();
+    setResuming(false);
     setReconnecting(false);
     persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
@@ -1000,13 +1008,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Sólo se retiene la cuenta de la admin mientras la marca siga vigente: si
+  // algo la borró (cierre de sesión, otra pestaña, ingreso) y `resuming`
+  // quedó arriba, no se deja la pantalla cargando para siempre.
+  const holdBack = resuming && hasImpersonationMark();
+
   return (
     <AuthContext.Provider
       value={{
         // Con «ver como» por retomar no se asoma la cuenta de la admin.
-        user: resuming ? null : user,
-        token: resuming ? null : token,
-        loading: loading || (resuming && !reconnecting),
+        user: holdBack ? null : user,
+        token: holdBack ? null : token,
+        loading: loading || (holdBack && !reconnecting),
         login,
         register,
         loginWithGoogle,

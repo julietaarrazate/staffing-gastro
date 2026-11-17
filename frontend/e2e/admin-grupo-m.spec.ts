@@ -78,12 +78,22 @@ test("«Ver como»: el cartel muestra el nombre en un celular y al recargar en u
     await new Promise((r) => setTimeout(r, 600));
     return route.fulfill(json({ access_token: "e2e-impersonated-token", user: WORKER_VIEW }));
   });
-  await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json([])));
-  await page.route("**/api/v1/saved-shifts", (route) => route.fulfill(json([])));
+  // Con el token de la admin, los endpoints del trabajador contestan 403 (como
+  // el backend real): si la pantalla pidiera con él, se vería el error.
+  const asWorker = (body: unknown) => (route: import("@playwright/test").Route) =>
+    route.request().headers()["authorization"] === `Bearer ${ADMIN_TOKEN}`
+      ? route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({ detail: "Permisos insuficientes" }),
+        })
+      : route.fulfill(json(body));
+  await page.route("**/api/v1/shifts/mine", asWorker([]));
+  await page.route("**/api/v1/saved-shifts", asWorker([]));
+  await page.route("**/api/v1/applications/mine", asWorker([]));
 
   // Pedidos con el token de la admin a algo que no sea sesión: no debería haber.
   const withAdminToken: string[] = [];
-  const forbidden: string[] = [];
   page.on("request", (req) => {
     const url = req.url();
     if (
@@ -93,9 +103,6 @@ test("«Ver como»: el cartel muestra el nombre en un celular y al recargar en u
     ) {
       withAdminToken.push(url);
     }
-  });
-  page.on("response", (res) => {
-    if (res.status() === 403) forbidden.push(res.url());
   });
 
   await markImpersonation(page, ADMIN_ID, WORKER_ID);
@@ -109,7 +116,6 @@ test("«Ver como»: el cartel muestra el nombre en un celular y al recargar en u
   expect(impersonations).toBe(1);
   await expect(page.getByText("Permisos insuficientes")).toHaveCount(0);
   expect(withAdminToken).toEqual([]);
-  expect(forbidden).toEqual([]);
 });
 
 test("«Ver como»: una marca de otra admin, o con ids que no son UUID, se descarta", async ({
@@ -125,7 +131,9 @@ test("«Ver como»: una marca de otra admin, o con ids que no son UUID, se desca
   await markImpersonation(page, crypto.randomUUID(), WORKER_ID);
   await page.goto("/admin");
   await expect(page.getByText("Viendo como")).toHaveCount(0);
-  expect(await page.evaluate(() => sessionStorage.getItem("staffya_impersonating"))).toBeNull();
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("staffya_impersonating")))
+    .toBeNull();
 
   await page.evaluate(() =>
     sessionStorage.setItem(
@@ -134,7 +142,12 @@ test("«Ver como»: una marca de otra admin, o con ids que no son UUID, se desca
     )
   );
   await page.reload();
+  // Terminó de cargar: el panel de admin (y su navegación) está a la vista.
+  await expect(page.getByRole("link", { name: "Hoy" }).first()).toBeVisible();
   await expect(page.getByText("Viendo como")).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("staffya_impersonating")))
+    .toBeNull();
   expect(impersonations).toBe(0);
 });
 
@@ -158,6 +171,26 @@ test("«Ver como»: si la persona ya no se puede ver, vuelve limpio al panel de 
   await expect(page).toHaveURL(/\/admin/);
   await expect(page.getByText("Permisos insuficientes")).toHaveCount(0);
   await expect(page.getByText("Viendo como")).toHaveCount(0);
+});
+
+test("«Ver como»: con el servidor dormido al recargar, si se cierra la sesión el cargador no queda girando", async ({
+  page,
+}) => {
+  await base(page);
+  // El servidor no contesta (503): la app queda «reconectando» con la marca pendiente.
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ status: 503, contentType: "application/json", body: "{}" })
+  );
+  await markImpersonation(page, ADMIN_ID, WORKER_ID);
+  await page.goto("/my-shifts");
+  await page.waitForTimeout(800);
+  // Otra pestaña cierra la sesión: se borra la marca de sesión.
+  await page.evaluate(() => {
+    localStorage.removeItem("staffya_has_session");
+    localStorage.removeItem("staffya_token");
+    window.dispatchEvent(new StorageEvent("storage", { key: null, storageArea: localStorage }));
+  });
+  await expect(page).toHaveURL(/\/(login|$)/, { timeout: 10_000 });
 });
 
 function liveShift(i: number) {
