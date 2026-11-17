@@ -7,6 +7,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import { AdminSupportTicket, TICKET_CATEGORY_LABELS, TicketStatus } from "@/lib/types";
+import { formatShiftDate } from "@/lib/datetime";
 import {
   Badge,
   CardSkeletons,
@@ -96,6 +97,15 @@ export default function AdminSupportPage() {
                 {t.user_full_name} · {t.user_role === "worker" ? "Trabajador" : "Comercio"} ·{" "}
                 {TICKET_CATEGORY_LABELS[t.category]}
               </p>
+              {/* La tarjeta entera es un link: la referencia va como texto, el
+                  link al turno o al comercio está en el detalle del ticket. */}
+              {(t.shift_title || t.company_name) && (
+                <p className="mt-1 break-words text-sm text-ink/70">
+                  {t.shift_title
+                    ? `Turno: ${t.shift_title}${t.shift_start_at ? ` · ${formatShiftDate(t.shift_start_at)}` : ""}`
+                    : `Comercio: ${t.company_name}`}
+                </p>
+              )}
               <p className="mt-1 text-xs text-ink/40">
                 {t.message_count} mensaje{t.message_count !== 1 ? "s" : ""}
               </p>

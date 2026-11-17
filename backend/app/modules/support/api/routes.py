@@ -15,8 +15,11 @@ from app.modules.support.api.dependencies import get_support_service
 from app.modules.support.api.schemas import (
     AdminTicketResponse,
     CreateTicketRequest,
+    CompanyRefResponse,
     MessageResponse,
+    ReferencesResponse,
     SendMessageRequest,
+    ShiftRefResponse,
     TicketDetailResponse,
     TicketOpenerResponse,
     TicketResponse,
@@ -25,6 +28,7 @@ from app.modules.support.api.schemas import (
 from app.modules.support.application.services import SupportService
 from app.modules.support.domain.exceptions import (
     EmptyMessageError,
+    ReferenceNotFoundError,
     TicketClosedError,
     TicketNotClosedError,
     TicketNotFoundError,
@@ -59,6 +63,34 @@ _ai_suggestion_rate_limit = RateLimiter(
 _TICKET_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND, detail="Ticket no encontrado"
 )
+# U110: mismo texto para el turno/comercio inexistente y para el ajeno.
+_REFERENCE_NOT_FOUND = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND, detail="No encontramos ese turno o comercio"
+)
+
+
+def _references_response(refs, *, is_admin: bool) -> ReferencesResponse:
+    return ReferencesResponse(
+        shift=(
+            ShiftRefResponse(
+                id=refs.shift.id,
+                title=refs.shift.title,
+                start_at=refs.shift.start_at,
+                company_name=refs.shift.company_name,
+            )
+            if refs.shift
+            else None
+        ),
+        company=(
+            CompanyRefResponse(
+                id=refs.company.id,
+                name=refs.company.name,
+                user_id=refs.company.user_id if is_admin else None,
+            )
+            if refs.company
+            else None
+        ),
+    )
 
 
 @router.post(
@@ -76,8 +108,15 @@ async def create_ticket(
     _create_ticket_rate_limit.check(str(current_user.id))
     try:
         ticket, _first_message = await service.create_ticket(
-            current_user.id, payload.category, payload.subject, payload.body
+            current_user.id,
+            payload.category,
+            payload.subject,
+            payload.body,
+            shift_id=payload.shift_id,
+            company_id=payload.company_id,
         )
+    except ReferenceNotFoundError as exc:
+        raise _REFERENCE_NOT_FOUND from exc
     except EmptyMessageError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -87,6 +126,27 @@ async def create_ticket(
     response = TicketResponse.model_validate(ticket, from_attributes=True)
     await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
     return response
+
+
+@router.get(
+    "/reference",
+    response_model=ReferencesResponse,
+    summary="Qué turno o comercio se va a atar a un ticket nuevo (para confirmarlo)",
+)
+async def get_reference(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    shift_id: UUID | None = None,
+    company_id: UUID | None = None,
+):
+    # Mismas reglas y mismo 404 que al crear el ticket: ajeno = inexistente.
+    try:
+        refs = await service.resolve_references(
+            current_user.id, shift_id=shift_id, company_id=company_id
+        )
+    except ReferenceNotFoundError as exc:
+        raise _REFERENCE_NOT_FOUND from exc
+    return _references_response(refs, is_admin=False)
 
 
 @router.get(
@@ -136,13 +196,20 @@ async def get_ticket(ticket_id: UUID, current_user: CurrentUserDep, service: Ser
             opened_by = TicketOpenerResponse(
                 user_id=opener.user_id, full_name=opener.full_name, role=opener.role
             )
+    references = _references_response(
+        await service.describe_references(ticket),
+        is_admin=current_user.role == UserRole.ADMIN,
+    )
     return TicketDetailResponse(
         opened_by=opened_by,
+        references=references,
         id=ticket.id,
         user_id=ticket.user_id,
         category=ticket.category,
         subject=ticket.subject,
         status=ticket.status,
+        shift_id=ticket.shift_id,
+        company_id=ticket.company_id,
         created_at=ticket.created_at,
         updated_at=ticket.updated_at,
         messages=[MessageResponse.model_validate(m, from_attributes=True) for m in messages],

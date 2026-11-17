@@ -430,3 +430,201 @@ test("la persona común no ve «Abierto por» en su ticket", async ({ page }) =>
   await expect(page.getByText("No puedo subir mi CV")).toBeVisible();
   await expect(page.getByText("Abierto por")).toHaveCount(0);
 });
+
+/**
+ * U110: «Reportar un problema» desde el perfil de un comercio o el detalle de
+ * un turno abre el formulario de ticket precargado, muestra de qué se trata y
+ * manda el ticket con la referencia.
+ */
+// Ids armados en el momento: un literal con forma de UUID lo marca gitleaks.
+const COMPANY_ID = ["aaaaaaaa", "1111", "4222", "8333", "bbbbbbbbbbbb"].join("-");
+const SHIFT_ID = ["cccccccc", "2222", "4333", "9444", "dddddddddddd"].join("-");
+
+const COMPANY = {
+  id: COMPANY_ID,
+  user_id: "user-77",
+  owner_full_name: "Dueño del Bar",
+  name: "Bar Palermo",
+  logo_url: null,
+  category: "bar",
+  description: "Un bar de barrio.",
+  address: null,
+  city: "Palermo",
+  latitude: null,
+  longitude: null,
+  capacity: null,
+  opening_hours: null,
+  rating: 4.5,
+  events_published: 3,
+  on_time_payment_rate: 1,
+  payments_recorded: 2,
+  late_cancellations: 0,
+};
+
+test("el trabajador reporta un comercio desde su perfil y el ticket lleva la referencia", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  await page.route(`**/api/v1/companies/${COMPANY_ID}`, (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(COMPANY) })
+  );
+  await page.route("**/api/v1/support/reference?**", (route) => {
+    expect(new URL(route.request().url()).searchParams.get("company_id")).toBe(COMPANY_ID);
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        shift: null,
+        company: { id: COMPANY_ID, name: "Bar Palermo", user_id: null },
+      }),
+    });
+  });
+  await page.route("**/api/v1/support/tickets/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  let posted: Record<string, unknown> | null = null;
+  const created = { ...TICKET, category: "comercio", subject: "No paga", company_id: COMPANY_ID };
+  await page.route("**/api/v1/support/tickets", (route) => {
+    if (route.request().method() === "POST") {
+      posted = route.request().postDataJSON();
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(created) });
+    }
+    return route.continue();
+  });
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...created,
+        references: { shift: null, company: { id: COMPANY_ID, name: "Bar Palermo", user_id: null } },
+        messages: [],
+      }),
+    })
+  );
+
+  await page.goto(`/companies/${COMPANY_ID}`);
+  await page.getByRole("link", { name: "Reportar un problema" }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/support\\?categoria=comercio&comercio=${COMPANY_ID}`));
+  const dialog = page.getByRole("dialog", { name: "Nuevo ticket de soporte" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Categoría")).toHaveValue("comercio");
+  await expect(dialog.getByTestId("ticket-reference")).toContainText("Bar Palermo");
+
+  await dialog.getByLabel("Asunto").fill("No paga");
+  await dialog.getByLabel("Contanos qué pasa").fill("No me pagaron el turno del sábado.");
+  await dialog.getByRole("button", { name: "Enviar" }).click();
+
+  await expect(page).toHaveURL(`/support/${TICKET.id}`);
+  expect(posted).toMatchObject({ category: "comercio", company_id: COMPANY_ID });
+  expect(posted).not.toHaveProperty("shift_id");
+  await expect(page.getByTestId("ticket-reference")).toContainText("Bar Palermo");
+});
+
+test("un turno que no se puede atar no frena el ticket: se manda sin referencia", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  await page.route("**/api/v1/support/reference?**", (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: "No encontramos ese turno o comercio" }),
+    })
+  );
+  await page.route("**/api/v1/support/tickets/mine", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+  );
+  let posted: Record<string, unknown> | null = null;
+  await page.route("**/api/v1/support/tickets", (route) => {
+    if (route.request().method() === "POST") {
+      posted = route.request().postDataJSON();
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(TICKET) });
+    }
+    return route.continue();
+  });
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...TICKET, messages: [] }),
+    })
+  );
+
+  await page.goto(`/support?categoria=turno&turno=${SHIFT_ID}`);
+  const dialog = page.getByRole("dialog", { name: "Nuevo ticket de soporte" });
+  await expect(dialog.getByLabel("Categoría")).toHaveValue("turno");
+  await expect(dialog.getByTestId("ticket-reference")).toContainText("No pudimos asociar");
+
+  await dialog.getByLabel("Asunto").fill("Turno raro");
+  await dialog.getByLabel("Contanos qué pasa").fill("Pasó algo.");
+  await dialog.getByRole("button", { name: "Enviar" }).click();
+  await expect(page).toHaveURL(`/support/${TICKET.id}`);
+  expect(posted).toMatchObject({ category: "turno" });
+  expect(posted).not.toHaveProperty("shift_id");
+});
+
+test("el admin ve el turno y el comercio del ticket, con link", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, ADMIN_SESSION);
+
+  const refTicket = { ...TICKET, category: "turno", subject: "Turno raro", shift_id: SHIFT_ID, company_id: COMPANY_ID };
+  await page.route("**/api/v1/support/tickets?status=abierto", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          ...refTicket,
+          user_full_name: "Trabajadora Soporte",
+          user_email: "worker.support@staffya.com",
+          user_role: "worker",
+          message_count: 1,
+          last_message_at: "2026-08-10T12:00:00-03:00",
+          shift_title: "Mozo para el sábado",
+          shift_start_at: "2026-08-15T20:00:00-03:00",
+          company_name: "Bar Palermo",
+        },
+      ]),
+    })
+  );
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...refTicket,
+        references: {
+          shift: { id: SHIFT_ID, title: "Mozo para el sábado", start_at: "2026-08-15T20:00:00-03:00", company_name: "Bar Palermo" },
+          company: { id: COMPANY_ID, name: "Bar Palermo", user_id: "user-77" },
+        },
+        messages: [],
+      }),
+    })
+  );
+
+  await page.goto("/admin/support");
+  await expect(page.getByText("Turno: Mozo para el sábado")).toBeVisible();
+  await page.getByText("Turno raro").click();
+
+  const ref = page.getByTestId("ticket-reference");
+  await expect(ref.getByRole("link", { name: "Mozo para el sábado" })).toHaveAttribute(
+    "href",
+    `/turno/${SHIFT_ID}`
+  );
+  await expect(ref.getByRole("link", { name: "Bar Palermo" })).toHaveAttribute(
+    "href",
+    "/admin/personas/user-77"
+  );
+});

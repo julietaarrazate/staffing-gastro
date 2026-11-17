@@ -19,3 +19,8 @@ class EmptyMessageError(SupportError):
 
 class TicketNotClosedError(SupportError):
     """El ticket no está cerrado: no hay nada que reabrir."""
+
+
+class ReferenceNotFoundError(SupportError):
+    """El turno o el comercio al que se quiere atar el ticket no existe o la
+    persona no tiene por qué verlo (no-disclosure: es el mismo error)."""
