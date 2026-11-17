@@ -14,3 +14,8 @@ Mover el aviso al paso destino es más simple y seguro que impedir el salto, que
 
 ## Queda abierto
 - Relevar inputs crudos con tamaño de letra menor a 16 px (auto-zoom en iOS).
+
+## Ronda de revisión
+- U044: `globals.css` lleva input/select/textarea a 16px bajo 768px (sin tocar alto ni padding); anotado en `typography.md`. Verificado a 390 en claro y oscuro (Datos del comercio, publicar, chat): sin desborde.
+- U047: la barra de uso del plan pasa de ámbar a `--focus-ring` (azul hondo / celeste); queda un solo ámbar.
+- U061: «Me falta saber…» se apaga al completar a mano el dato del paso.

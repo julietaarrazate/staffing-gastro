@@ -111,7 +111,7 @@ export default function SubscriptionStatusCard({
         {conTope && !unlimited && (
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface">
             <div
-              className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-primary"}`}
+              className={`h-full rounded-full transition-all ${atLimit ? "bg-danger" : "bg-[color:var(--focus-ring)]"}`}
               style={{ width: `${pct}%` }}
             />
           </div>

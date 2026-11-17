@@ -436,16 +436,6 @@ function NewShiftWizard() {
   // «Continuar» caería sobre «Publicar turno» y publicaría sin revisar.
   const tapGuard = useTapGuard();
 
-  // «Me falta saber…» se dice donde la persona está: el wizard salta de paso
-  // al completar con IA, y en el paso 0 el aviso quedaba fuera de vista (U061).
-  // En el paso 0 lo muestra el recuadro de «Describí tu turno».
-  const avisoFalta =
-    step > 0 && missingFields.length > 0 ? (
-      <p role="status" className="mt-2 rounded-xl bg-warning-tint px-3 py-2 text-sm font-medium text-warning-text">
-        Me falta saber {missingFields.join(", ")}. Completalo acá.
-      </p>
-    ) : null;
-
   function go(next: number, reemplazar = false) {
     setDir(next > step ? 1 : -1);
     setStep(next);
@@ -477,6 +467,21 @@ function NewShiftWizard() {
     (step === STEP_CUANDO && horario.valido) ||
     (step === 2 && Number(payAmount) > 0) ||
     (step === 3 && hasPlace);
+
+  // «Me falta saber…» se dice donde la persona está: el wizard salta de paso
+  // al completar con IA, y en el paso 0 el aviso quedaba fuera de vista (U061).
+  // En el paso 0 lo muestra el recuadro de «Describí tu turno».
+  // Se apaga cuando la persona completa a mano lo que este paso pedía.
+  const resueltoAca =
+    (step === STEP_CUANDO && horario.valido) ||
+    (step === 2 && Number(payAmount) > 0) ||
+    (step === 3 && hasPlace);
+  const avisoFalta =
+    step > 0 && missingFields.length > 0 && !resueltoAca ? (
+      <p role="status" className="mt-2 rounded-xl bg-warning-tint px-3 py-2 text-sm font-medium text-warning-text">
+        Me falta saber {missingFields.join(", ")}. Completalo acá.
+      </p>
+    ) : null;
 
   // Duración del turno, derivada de inicio/fin (feedback de Julieta 2026-08-06:
   // "no se entiende si es 1 día o más"). Se muestra en vivo en el paso "Cuándo"

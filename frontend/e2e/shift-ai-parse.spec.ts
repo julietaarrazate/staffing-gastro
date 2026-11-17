@@ -235,4 +235,8 @@ test("«Me falta saber…» se ve en el paso al que salta el asistente", async (
   await page.getByRole("button", { name: "Completar" }).click();
   await expect(page.getByRole("heading", { name: "¿Cuándo?" })).toBeVisible();
   await expect(page.getByText("Me falta saber el horario, cuánto se paga.")).toBeVisible();
+  // Al completar a mano el horario, el aviso de este paso se apaga.
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(31, "02:00"));
+  await expect(page.getByText("Me falta saber el horario, cuánto se paga.")).toHaveCount(0);
 });
