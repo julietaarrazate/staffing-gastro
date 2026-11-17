@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, suggest_ticket_reply
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
@@ -17,6 +18,7 @@ from app.modules.support.api.schemas import (
     MessageResponse,
     SendMessageRequest,
     TicketDetailResponse,
+    TicketOpenerResponse,
     TicketResponse,
     TicketSuggestionResponse,
 )
@@ -33,6 +35,7 @@ router = APIRouter(prefix="/support", tags=["support"])
 
 ServiceDep = Annotated[SupportService, Depends(get_support_service)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
@@ -65,7 +68,10 @@ _TICKET_NOT_FOUND = HTTPException(
     summary="Abrir un ticket de soporte",
 )
 async def create_ticket(
-    payload: CreateTicketRequest, current_user: CurrentUserDep, service: ServiceDep
+    payload: CreateTicketRequest,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     _create_ticket_rate_limit.check(str(current_user.id))
     try:
@@ -77,7 +83,10 @@ async def create_ticket(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El asunto y el mensaje no pueden estar vacíos",
         ) from exc
-    return ticket
+    # Reintento con la misma Idempotency-Key: mismo ticket, sin duplicar (U012).
+    response = TicketResponse.model_validate(ticket, from_attributes=True)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.get(
@@ -118,7 +127,17 @@ async def get_ticket(ticket_id: UUID, current_user: CurrentUserDep, service: Ser
         )
     except TicketNotFoundError as exc:
         raise _TICKET_NOT_FOUND from exc
+    opened_by = None
+    if current_user.role == UserRole.ADMIN:
+        # Sólo el admin ve quién abrió el ticket (no-disclosure: un usuario
+        # común sólo ve sus propios tickets y no necesita ese dato).
+        opener = await service.get_opener(ticket.id)
+        if opener is not None:
+            opened_by = TicketOpenerResponse(
+                user_id=opener.user_id, full_name=opener.full_name, role=opener.role
+            )
     return TicketDetailResponse(
+        opened_by=opened_by,
         id=ticket.id,
         user_id=ticket.user_id,
         category=ticket.category,
@@ -177,11 +196,12 @@ async def send_message(
     payload: SendMessageRequest,
     current_user: CurrentUserDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     _send_message_rate_limit.check(str(current_user.id))
     is_admin = current_user.role == UserRole.ADMIN
     try:
-        return await service.add_message(
+        message = await service.add_message(
             current_user.id, ticket_id, payload.body, is_admin=is_admin
         )
     except TicketNotFoundError as exc:
@@ -196,6 +216,9 @@ async def send_message(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El mensaje no puede estar vacío",
         ) from exc
+    response = MessageResponse.model_validate(message, from_attributes=True)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(

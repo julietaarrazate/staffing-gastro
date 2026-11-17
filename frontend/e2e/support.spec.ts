@@ -348,3 +348,85 @@ test("la persona ve su ticket cerrado sin forma de reabrirlo, y reabierto puede 
   await expect(page.getByPlaceholder("Escribí tu respuesta...")).toBeVisible();
   await expect(page.getByRole("button", { name: "Reabrir" })).toHaveCount(0);
 });
+
+/**
+ * U092: «Cerrar ticket» pide confirmación (diálogo del Design System) antes
+ * de cerrar; «Volver» no cierra nada.
+ */
+test("cerrar un ticket pide confirmación y sólo cierra con «Sí, cerrar»", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+
+  let closed = false;
+  let closeCalls = 0;
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...(closed ? CLOSED_TICKET : TICKET), messages: [FIRST_MESSAGE] }),
+    })
+  );
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}/close`, (route) => {
+    closeCalls += 1;
+    closed = true;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(CLOSED_TICKET) });
+  });
+
+  await page.goto(`/support/${TICKET.id}`);
+  await page.getByRole("button", { name: "Cerrar ticket" }).click();
+  const dialog = page.getByRole("dialog", { name: "¿Cerrar este ticket?" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Volver" }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(closeCalls).toBe(0);
+
+  await page.getByRole("button", { name: "Cerrar ticket" }).click();
+  await page.getByRole("dialog", { name: "¿Cerrar este ticket?" }).getByRole("button", { name: "Sí, cerrar" }).click();
+  await expect(page.getByText("Cerrado", { exact: true })).toBeVisible();
+  expect(closeCalls).toBe(1);
+});
+
+/** U130: el admin ve quién abrió el ticket, con acceso a su ficha. */
+test("el admin ve quién abrió el ticket y llega a su ficha", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, ADMIN_SESSION);
+
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...TICKET,
+        messages: [FIRST_MESSAGE],
+        opened_by: { user_id: "user-1", full_name: "Trabajadora Soporte", role: "worker" },
+      }),
+    })
+  );
+
+  await page.goto(`/support/${TICKET.id}`);
+  await expect(page.getByText("Abierto por")).toBeVisible();
+  const link = page.getByRole("link", { name: "Trabajadora Soporte" });
+  await expect(link).toHaveAttribute("href", "/admin/personas/user-1");
+  await expect(page.getByText("(Trabajador)")).toBeVisible();
+});
+
+test("la persona común no ve «Abierto por» en su ticket", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+  await page.route(`**/api/v1/support/tickets/${TICKET.id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...TICKET, messages: [FIRST_MESSAGE], opened_by: null }),
+    })
+  );
+  await page.goto(`/support/${TICKET.id}`);
+  await expect(page.getByText("No puedo subir mi CV")).toBeVisible();
+  await expect(page.getByText("Abierto por")).toHaveCount(0);
+});

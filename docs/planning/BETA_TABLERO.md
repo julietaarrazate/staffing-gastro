@@ -20,7 +20,7 @@ descuidado.
 |---|---|---|
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
-| 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | en curso: tanda 1 (grupos A, B, C, F, G, I, K) desde el 2026-11-17 |
+| 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | 🟡 triaje hecho (2026-11-16): ver abajo |
 | 4 | Identidad, marca e isotipo | ⚪ (la landing «con convicción» ya está en producción, #543) |
 | 5 | Lista de salida a beta | ⚪ |
 | 6 | SEO y GEO | ⚪ |
@@ -412,8 +412,7 @@ grupo) en [`BETA_ETAPA3_TRIAJE.md`](./BETA_ETAPA3_TRIAJE.md). De los 60
 menores: 5 ya resueltos por los arreglos de la etapa 2 (U059, U116, U117,
 U121, U087), 2 parciales (U130, U133), 10 esperan una decisión de Julieta y
 2 quedan fuera (U141 va con el tope del plan, apagado en la beta; U102 se
-cierra al apagar el ingreso de invitado, decisión 5). Las 10 decisiones se
-tomaron el 2026-11-17 (abajo).
+cierra al apagar el ingreso de invitado, decisión 5).
 
 **Arreglos, un PR por grupo** (⚪ todos sin empezar):
 
@@ -437,32 +436,12 @@ Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
 entran a la etapa 3 con estos.
 
-### Decisiones tomadas el 2026-11-17
-
-Julieta decidió las diez preguntas del triaje:
-
-- **U018:** al cerrar el turno el comercio, el trabajador recibe un aviso en
-  la campanita y por push: «Calificalo».
-- **U039:** Google sigue reclamando la cuenta con clave y mail sin confirmar,
-  como hoy, y se manda un mail de aviso al mail de la cuenta.
-- **U084:** se puede cancelar un evento entero con un botón, con la misma
-  penalidad y los mismos avisos que cancelar puesto por puesto; la
-  confirmación dice cuántos confirmados hay.
-- **U101:** se pide la fecha de nacimiento al trabajador y se bloquea a los
-  menores de 18. El texto legal no cambia (ya lo dice).
-- **U106:** se corrige el doc (el asistente del trabajador no responde por su
-  verificación).
-- **U109:** la verificación de identidad queda con frente y selfie (sin
-  dorso).
-- **U111:** la calificación es definitiva; la pantalla lo avisa antes de
-  enviar.
-- **U140, U142 y U143:** diferidas hasta que se prenda el cobro, como U094,
-  U137 y U141. Regla futura: **antes de prender el cobro (o el tope del
-  plan) se deciden y se arreglan U094, U137, U140, U141, U142 y U143**, con
-  las opciones que dejó el triaje.
-
-**Decisiones para implementar** (⚪, tanda a definir; U106 y U109 sólo tocan
-docs): U018, U039, U084, U101, U106, U109, U111.
+**Esperan una decisión de Julieta:** U018 (aviso al trabajador al finalizar
+el turno), U039 (Google sobre una cuenta con mail sin confirmar), U084
+(cancelar un evento entero), U101 (verificación de edad o corregir el texto
+legal), U106 (asistente y verificación: implementar o corregir el doc), U109
+(dorso del DNI), U111 (calificación definitiva o editable), U140, U142 y U143
+(tope del plan). Las preguntas con opciones están en el triaje.
 
 ## Cómo se trabaja (acordado con Julieta el 2026-11-13)
 

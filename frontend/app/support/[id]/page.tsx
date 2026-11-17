@@ -5,9 +5,17 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useIdempotencyKeys } from "@/lib/idempotency";
+import Link from "next/link";
 import { SupportTicketDetail, TicketSuggestion, TICKET_CATEGORY_LABELS } from "@/lib/types";
-import { Badge, Button, CardSkeletons, ErrorBanner, MessageBubble, useToast } from "@/components/ui";
+import { Badge, Button, CardSkeletons, ErrorBanner, MessageBubble, Modal, useToast } from "@/components/ui";
 import { ChevronLeftIcon, SparklesIcon } from "@/components/icons";
+
+const ROLE_LABELS: Record<string, string> = {
+  worker: "Trabajador",
+  employer: "Comercio",
+  admin: "Admin",
+};
 
 export default function SupportTicketPage() {
   const { token, user } = useRequireAuth();
@@ -20,6 +28,8 @@ export default function SupportTicketPage() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const { keyFor, clear } = useIdempotencyKeys();
   const [reopening, setReopening] = useState(false);
   // Sugerencia interna de IA (sólo admin): resume el ticket y precarga una
   // respuesta propuesta en el campo de abajo — nunca contesta directo,
@@ -48,8 +58,17 @@ export default function SupportTicketPage() {
     e.preventDefault();
     if (!token || !reply.trim()) return;
     setSending(true);
+    // U012: reintentar el mismo texto reusa la key (no duplica el mensaje).
+    const attempt = `reply:${reply}`;
     try {
-      await api.post(`/support/tickets/${params.id}/messages`, { body: reply }, token);
+      await api.post(
+        `/support/tickets/${params.id}/messages`,
+        { body: reply },
+        token,
+        undefined,
+        keyFor(attempt)
+      );
+      clear(attempt);
       setReply("");
       load();
     } catch (err) {
@@ -80,6 +99,7 @@ export default function SupportTicketPage() {
   async function closeTicket() {
     if (!token) return;
     setClosing(true);
+    setConfirmClose(false);
     try {
       await api.post(`/support/tickets/${params.id}/close`, undefined, token);
       toast("Ticket cerrado");
@@ -146,6 +166,19 @@ export default function SupportTicketPage() {
         </Badge>
       </div>
 
+      {isAdmin && ticket.opened_by && (
+        <p className="mt-3 text-sm text-ink/60">
+          Abierto por{" "}
+          <Link
+            href={`/admin/personas/${ticket.opened_by.user_id}`}
+            className="font-semibold text-primary-text underline-offset-2 hover:underline"
+          >
+            {ticket.opened_by.full_name}
+          </Link>{" "}
+          ({ROLE_LABELS[ticket.opened_by.role] ?? ticket.opened_by.role})
+        </p>
+      )}
+
       <div className="mt-5 space-y-3">
         {ticket.messages.map((m) => {
           const isMine = m.sender_user_id === user?.id;
@@ -202,7 +235,7 @@ export default function SupportTicketPage() {
               Enviar
             </Button>
             {!isClosed && (
-              <Button type="button" variant="surface" onClick={closeTicket} loading={closing}>
+              <Button type="button" variant="surface" onClick={() => setConfirmClose(true)} loading={closing}>
                 Cerrar ticket
               </Button>
             )}
@@ -218,6 +251,21 @@ export default function SupportTicketPage() {
           Este ticket está cerrado. Si necesitás algo más, abrí uno nuevo.
         </p>
       )}
+      <Modal open={confirmClose} onClose={() => setConfirmClose(false)} title="¿Cerrar este ticket?">
+        <p className="text-sm text-ink/60">
+          {isAdmin
+            ? "La persona ya no va a poder contestar. Podés reabrirlo cuando quieras."
+            : "Ya no vas a poder escribir en este ticket. Si necesitás algo más, vas a tener que abrir uno nuevo."}
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmClose(false)}>
+            Volver
+          </Button>
+          <Button size="sm" onClick={closeTicket}>
+            Sí, cerrar
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

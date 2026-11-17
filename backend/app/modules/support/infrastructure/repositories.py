@@ -12,7 +12,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.infrastructure.models import UserModel
-from app.modules.support.domain.entities import EnrichedTicket, SupportMessage, SupportTicket
+from app.modules.support.domain.entities import (
+    EnrichedTicket,
+    SupportMessage,
+    SupportTicket,
+    TicketOpener,
+)
 from app.modules.support.domain.repositories import (
     SupportMessageRepository,
     SupportTicketRepository,
@@ -85,6 +90,18 @@ class SqlAlchemySupportTicketRepository(SupportTicketRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_ticket(m) for m in result.scalars().all()]
+
+    async def get_opener(self, ticket_id: UUID) -> TicketOpener | None:
+        row = (
+            await self._session.execute(
+                select(UserModel.id, UserModel.full_name, UserModel.role)
+                .join(SupportTicketModel, SupportTicketModel.user_id == UserModel.id)
+                .where(SupportTicketModel.id == ticket_id)
+            )
+        ).first()
+        if row is None:
+            return None
+        return TicketOpener(user_id=row[0], full_name=row[1], role=row[2])
 
     async def list_all_enriched(
         self, *, status: TicketStatus | None = None, limit: int = 50, offset: int = 0
