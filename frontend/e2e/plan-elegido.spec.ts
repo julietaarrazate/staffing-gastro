@@ -98,6 +98,7 @@ test("Empezar con Básico: alta, bienvenida y Mi plan con Básico resaltado", as
   await expect(page).toHaveURL(/\/register\?rol=comercio&plan=basico$/);
   await expect(page.getByRole("button", { name: "Soy comercio" })).toHaveAttribute("aria-pressed", "true");
   await page.getByPlaceholder("Nombre completo").fill("Dueña Nueva");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("nuevo.bodegon@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
   await page.getByRole("checkbox").check();

@@ -128,8 +128,10 @@ expira_en: (si aplica)              expira_en (si aplica)
 `email_verificado` · `telefono_verificado` · `documento_verificado` ·
 `selfie_verificada` · `prueba_de_vida` · `mayoria_de_edad`.
 
-> **Nota sobre `mayoria_de_edad`:** hoy la edad es **auto-declarada**
-> (`WorkerProfile.birth_date`). En el modelo nuevo se distingue edad
+> **Nota sobre `mayoria_de_edad`:** hoy la edad es **auto-declarada** en el
+> alta (`User.birth_date`, U101, 2026-11-17: sin 18 cumplidos no se crea la
+> cuenta). `WorkerProfile.birth_date` queda de antes y ninguna pantalla lo
+> carga. En el modelo nuevo se distingue edad
 > **declarada** (perfil, sin garantía) de `mayoria_de_edad` **verificada**
 > contra el documento (claim de identidad, con peso legal para trabajo de
 > personas menores de edad). Son cosas distintas y no deben confundirse.

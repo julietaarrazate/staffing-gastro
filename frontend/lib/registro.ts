@@ -1,4 +1,5 @@
 import { LIMITES } from "@/lib/limites";
+import { motivoFechaNacimiento } from "@/lib/edad";
 
 /** Por qué el botón "Crear cuenta" todavía no se puede apretar (U041). Mismo
  * patrón que `motivoBloqueo` de "Publicar turno": una frase que dice qué falta,
@@ -6,12 +7,16 @@ import { LIMITES } from "@/lib/limites";
  * de `RegisterRequest` (backend/app/modules/identity/api/schemas.py). */
 export function motivoBloqueoRegistro(v: {
   nombre: string;
+  /** Fecha de nacimiento, `AAAA-MM-DD` (U101). */
+  nacimiento: string;
   email: string;
   clave: string;
   terminos: boolean;
   falta_verificacion: boolean;
 }): string | null {
   if (v.nombre.trim() === "") return "Escribí tu nombre para seguir.";
+  const nacimiento = motivoFechaNacimiento(v.nacimiento);
+  if (nacimiento) return nacimiento;
   if (v.email.trim() === "") return "Escribí tu email para seguir.";
   if (v.clave.length < LIMITES.contrasenaMin)
     return `La contraseña necesita al menos ${LIMITES.contrasenaMin} caracteres.`;

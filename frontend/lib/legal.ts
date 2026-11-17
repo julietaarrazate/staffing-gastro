@@ -7,7 +7,7 @@
  * páginas, subí la versión acá y allá en el mismo cambio. Si no, el registro
  * diría que alguien aceptó una versión que no fue la que leyó.
  */
-export const LEGAL_TERMS_VERSION = "2026-11-17-1";
+export const LEGAL_TERMS_VERSION = "2026-11-17-2";
 
 export const LEGAL_LAST_UPDATED = "Última actualización: noviembre 2026";
 

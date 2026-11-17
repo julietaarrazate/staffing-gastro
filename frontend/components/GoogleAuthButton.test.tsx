@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -60,11 +60,24 @@ describe("GoogleAuthButton: cuenta nueva", () => {
     loginWithGoogle.mockResolvedValueOnce({ requiresRole: false });
 
     await user.click(screen.getByRole("checkbox"));
+    // U101: sin fecha de nacimiento los botones siguen deshabilitados.
+    expect(screen.getByRole("button", { name: "Busco trabajo" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Fecha de nacimiento"), { target: { value: "1995-05-20" } });
     await user.click(screen.getByRole("button", { name: "Busco trabajo" }));
 
-    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker");
+    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker", "1995-05-20");
     // El rol viaja con `onDone` para el plan elegido en la landing (/register).
     expect(onDone).toHaveBeenCalledWith(true, "worker", undefined);
+  });
+
+  it("a un menor de 18 no le deja crear la cuenta (U101)", async () => {
+    const user = userEvent.setup();
+    await renderAtRoleStep();
+    await user.click(screen.getByRole("checkbox"));
+    fireEvent.change(screen.getByLabelText("Fecha de nacimiento"), { target: { value: "2012-03-01" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Oído es sólo para mayores de 18 años.");
+    expect(screen.getByRole("button", { name: "Busco trabajo" })).toBeDisabled();
+    expect(loginWithGoogle).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -90,11 +103,13 @@ describe("GoogleAuthButton: desde /register con el formulario ya completo (U043)
     loginWithGoogle.mockResolvedValueOnce({ requiresRole: false });
     vi.resetModules();
     const { default: GoogleAuthButton } = await import("./GoogleAuthButton");
-    render(<GoogleAuthButton onDone={onDone} rolElegido="employer" terminosAceptados />);
+    render(
+      <GoogleAuthButton onDone={onDone} rolElegido="employer" terminosAceptados nacimientoElegido="1995-05-20" />
+    );
     await act(async () => {
       googleCallback?.({ credential: "id-token" });
     });
-    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "employer");
+    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "employer", "1995-05-20");
     expect(onDone).toHaveBeenCalledWith(true, "employer", undefined);
     expect(screen.queryByRole("checkbox")).toBeNull();
     expect(screen.queryByRole("button", { name: "Busco trabajo" })).toBeNull();
@@ -110,9 +125,9 @@ describe("GoogleAuthButton: desde /register con el formulario ya completo (U043)
     expect(boton).toBeDisabled();
 
     loginWithGoogle.mockResolvedValueOnce({ requiresRole: false });
-    rerender({ rolElegido: "worker", terminosAceptados: true });
+    rerender({ rolElegido: "worker", terminosAceptados: true, nacimientoElegido: "1995-05-20" });
     await user.click(screen.getByRole("button", { name: "Crear cuenta con Google" }));
-    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker");
+    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker", "1995-05-20");
     expect(onDone).toHaveBeenCalledWith(true, "worker", undefined);
   });
 });
@@ -126,13 +141,13 @@ async function renderAtRoleStepRerender(onDone: () => void) {
     fullName: "Nueva Persona",
   });
   const view = render(
-    <GoogleAuthButton onDone={onDone} rolElegido="worker" terminosAceptados={false} />
+    <GoogleAuthButton onDone={onDone} rolElegido="worker" terminosAceptados={false} nacimientoElegido="1995-05-20" />
   );
   await act(async () => {
     googleCallback?.({ credential: "id-token" });
   });
   return {
-    rerender: (p: { rolElegido: "worker" | "employer"; terminosAceptados: boolean }) =>
+    rerender: (p: { rolElegido: "worker" | "employer"; terminosAceptados: boolean; nacimientoElegido: string }) =>
       view.rerender(<GoogleAuthButton onDone={onDone} {...p} />),
   };
 }
