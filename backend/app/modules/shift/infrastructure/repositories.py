@@ -378,6 +378,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_by_event(self, company_id: UUID, event_id: UUID) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(ShiftModel.company_id == company_id, ShiftModel.event_id == event_id)
+            .order_by(ShiftModel.start_at, ShiftModel.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_by_company_and_statuses(
         self, company_id: UUID, statuses: frozenset[ShiftStatus]
     ) -> list[Shift]:
