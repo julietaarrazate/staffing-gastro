@@ -8,8 +8,8 @@ Columnas nuevas en `subscriptions`, todas nullable y sin backfill:
   `payment_commitment_price_ars`: el compromiso de pago («precio fundador»)
   que registra la admin a mano.
 
-Revision ID: 0048
-Revises: 0047 (encuesta para locales)
+Revision ID: 0049
+Revises: 0048 (fecha de nacimiento en el alta)
 """
 
 from collections.abc import Sequence
@@ -18,8 +18,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0048"
-down_revision: str | None = "0047"
+revision: str = "0049"
+down_revision: str | None = "0048"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

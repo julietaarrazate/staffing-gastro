@@ -41,7 +41,7 @@ registra desde el primer comercio no se recupera después.
   `set_chosen_plan` (`UPDATE ... WHERE chosen_plan_code IS NULL`: la primera
   gana en la base, aun con dos pedidos simultáneos), `set_payment_commitment` y
   `clear_payment_commitment`.
-- Migración `0048` (columnas nullable, sin backfill).
+- Migración `0049`, sobre la `0048` de la fecha de nacimiento (#616) (columnas nullable, sin backfill).
 
 **Por qué así:** no hay pantalla ni oferta de precio para el comercio (decisión
 de Julieta pendiente). El compromiso vive en la suscripción y no como estado
@@ -54,5 +54,4 @@ aparte. Las fechas se guardan en UTC y se muestran en hora argentina.
 permiten publicar. «Comprometido» (`committed_mrr_ars`) es el precio acordado
 con cada comercio, no el de lista del plan.
 
-**Queda abierto:** si otro PR abierto también usa `0048`, quien mergee segundo
-la renumera. Falta M7 (serie semanal).
+**Queda abierto:** M7 (serie semanal).
