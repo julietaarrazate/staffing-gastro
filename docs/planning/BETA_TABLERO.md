@@ -469,12 +469,19 @@ Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
 entran a la etapa 3 con estos.
 
-**Esperan una decisión de Julieta:** U018 (aviso al trabajador al finalizar
-el turno), U039 (Google sobre una cuenta con mail sin confirmar), U084
-(cancelar un evento entero), U101 (verificación de edad o corregir el texto
-legal), U106 (asistente y verificación: implementar o corregir el doc), U109
-(dorso del DNI), U111 (calificación definitiva o editable), U140, U142 y U143
-(tope del plan). Las preguntas con opciones están en el triaje.
+**Decisiones de Julieta (2026-11-17)** sobre los que esperaban (preguntas
+con opciones en el triaje; implementar sin repreguntar):
+
+| Hallazgo | Decisión |
+|---|---|
+| U018 · aviso al trabajador al finalizar el turno | Sí, aviso nuevo en la campanita y por push: «Cerró tu turno · Calificalo» |
+| U039 · Google sobre una cuenta con mail sin confirmar | Sigue reclamándola, más un mail de aviso al mail de la cuenta |
+| U084 · cancelar un evento entero | Sí, un botón, con los mismos avisos y la misma penalidad por cancelación tardía que cancelar cada puesto |
+| U101 · edad | Pedir fecha de nacimiento y bloquear a menores de 18 en el alta (cambia el flujo y sube la versión legal) |
+| U106 · asistente y verificación | Se corrige la documentación: el asistente no responde por la verificación (Julieta sin preferencia; se tomó la recomendada) |
+| U109 · dorso del DNI | No: sigue frente y selfie |
+| U111 · calificación | Definitiva; la pantalla lo avisa antes de enviar |
+| U140, U142, U143 · tope del plan | Diferidos hasta encender el cobro, junto con U094 y U137 |
 
 ## Antes de abrir: medir la beta (anotado el 2026-11-17)
 
