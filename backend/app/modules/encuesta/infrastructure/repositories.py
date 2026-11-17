@@ -14,6 +14,7 @@ from app.modules.encuesta.domain.value_objects import (
     EventualRange,
     LocalKind,
     PricingPreference,
+    RespondentRole,
     Role,
     TeamModel,
 )
@@ -21,10 +22,10 @@ from app.modules.encuesta.infrastructure.models import SurveyResponseModel
 
 _PLAIN = (
     "barrio",
+    "business_name",
     "pay_per_shift_ars",
     "wants_beta",
     "contact_name",
-    "business_name",
     "phone",
     "email",
     "consent_at",
@@ -34,7 +35,6 @@ _PLAIN = (
 )
 _CONTACT = (
     SurveyResponseModel.contact_name,
-    SurveyResponseModel.business_name,
     SurveyResponseModel.phone,
     SurveyResponseModel.email,
 )
@@ -43,6 +43,7 @@ _CONTACT = (
 def _to_entity(m: SurveyResponseModel) -> SurveyResponse:
     return SurveyResponse(
         id=m.id,
+        respondent_role=RespondentRole(m.respondent_role),
         local_kind=LocalKind(m.local_kind),
         team_model=TeamModel(m.team_model),
         eventuals_normal_month=EventualRange(m.eventuals_normal_month),
@@ -58,6 +59,7 @@ def _to_entity(m: SurveyResponseModel) -> SurveyResponse:
 def _to_model(r: SurveyResponse) -> SurveyResponseModel:
     return SurveyResponseModel(
         id=r.id,
+        respondent_role=r.respondent_role.value,
         local_kind=r.local_kind.value,
         team_model=r.team_model.value,
         eventuals_normal_month=r.eventuals_normal_month.value,
@@ -115,7 +117,7 @@ class SqlAlchemySurveyRepository(SurveyRepository):
         result = await self._session.execute(
             update(SurveyResponseModel)
             .where(SurveyResponseModel.created_at < cutoff, has_contact)
-            .values(contact_name=None, business_name=None, phone=None, email=None)
+            .values(contact_name=None, phone=None, email=None)
         )
         await self._session.commit()
         return result.rowcount or 0

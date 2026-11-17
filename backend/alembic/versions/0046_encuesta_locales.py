@@ -1,7 +1,9 @@
 """encuesta para locales (ADR-0025)
 
 - `survey_responses`: una fila por respuesta a la encuesta pública. Sin IP.
-  El contacto (`contact_name`, `business_name`, `phone`, `email`) es opcional,
+  `business_name` y `barrio` son obligatorios y `business_name` queda al
+  purgar (es un comercio, no una persona). El contacto (`contact_name`,
+  `phone`, `email`) es opcional,
   exige `consent_at` y se borra a los 12 meses (`created_at`); la respuesta
   queda como estadística anónima.
 - `client_key` único: la clave de reintento del cliente (un reintento no
@@ -28,8 +30,10 @@ def upgrade() -> None:
     op.create_table(
         "survey_responses",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("respondent_role", sa.String(20), nullable=False),
+        sa.Column("business_name", sa.String(160), nullable=False),
+        sa.Column("barrio", sa.String(80), nullable=False),
         sa.Column("local_kind", sa.String(20), nullable=False),
-        sa.Column("barrio", sa.String(80), nullable=True),
         sa.Column("team_model", sa.String(20), nullable=False),
         sa.Column("eventuals_normal_month", sa.String(12), nullable=False),
         sa.Column("eventuals_peak_month", sa.String(12), nullable=False),
@@ -40,7 +44,6 @@ def upgrade() -> None:
         sa.Column("pricing_preference", sa.String(20), nullable=False),
         sa.Column("wants_beta", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("contact_name", sa.String(120), nullable=True),
-        sa.Column("business_name", sa.String(160), nullable=True),
         sa.Column("phone", sa.String(40), nullable=True),
         sa.Column("email", sa.String(200), nullable=True),
         sa.Column("consent_at", sa.DateTime(timezone=True), nullable=True),

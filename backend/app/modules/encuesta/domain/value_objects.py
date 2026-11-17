@@ -13,6 +13,19 @@ class LocalKind(str, Enum):
     OTRO = "otro"
 
 
+class RespondentRole(str, Enum):
+    """Quién contesta. Sólo quienes deciden (dueño y encargado) entran al
+    resumen que se usa para fijar precios."""
+
+    DUENO = "dueno"
+    ENCARGADO = "encargado"
+    TRABAJO_EN_EL_LOCAL = "trabajo_en_el_local"
+    OTRO = "otro"
+
+
+DECIDES = (RespondentRole.DUENO, RespondentRole.ENCARGADO)
+
+
 class TeamModel(str, Enum):
     EQUIPO_FIJO = "equipo_fijo"
     POR_TURNO = "por_turno"

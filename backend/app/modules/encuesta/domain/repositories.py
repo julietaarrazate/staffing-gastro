@@ -28,5 +28,5 @@ class SurveyRepository(ABC):
 
     @abstractmethod
     async def purge_contact_before(self, cutoff: datetime) -> int:
-        """Borra nombre, local, teléfono y email de las respuestas anteriores a
+        """Borra nombre, teléfono y email (el nombre del local queda) de las respuestas anteriores a
         `cutoff`. Devuelve cuántas tenían contacto."""

@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 from app.modules.encuesta.domain.exceptions import InvalidSurveyError
 from app.modules.encuesta.domain.value_objects import (
+    DECIDES,
     PAY_PER_SHIFT_MAX_ARS,
     PAY_PER_SHIFT_MIN_ARS,
     AbsenceOutcome,
@@ -15,6 +16,7 @@ from app.modules.encuesta.domain.value_objects import (
     EventualRange,
     LocalKind,
     PricingPreference,
+    RespondentRole,
     Role,
     TeamModel,
 )
@@ -37,6 +39,9 @@ class SurveyResponse:
     que la persona contestó y, si quiso, cómo escribirle (ADR-0025)."""
 
     id: UUID
+    respondent_role: RespondentRole
+    business_name: str
+    barrio: str
     local_kind: LocalKind
     team_model: TeamModel
     eventuals_normal_month: EventualRange
@@ -47,10 +52,8 @@ class SurveyResponse:
     pricing_preference: PricingPreference
     wants_beta: bool
     created_at: datetime
-    barrio: str | None = None
     pay_per_shift_ars: int | None = None
     contact_name: str | None = None
-    business_name: str | None = None
     phone: str | None = None
     email: str | None = None
     consent_at: datetime | None = None
@@ -59,12 +62,21 @@ class SurveyResponse:
 
     @property
     def has_contact(self) -> bool:
-        return any((self.contact_name, self.business_name, self.phone, self.email))
+        """Dato personal de contacto. El nombre del local no cuenta: es el
+        nombre de un comercio y es obligatorio."""
+        return any((self.contact_name, self.phone, self.email))
+
+    @property
+    def decides(self) -> bool:
+        return self.respondent_role in DECIDES
 
     @classmethod
     def create(
         cls,
         *,
+        respondent_role: RespondentRole,
+        business_name: str,
+        barrio: str,
         local_kind: LocalKind,
         team_model: TeamModel,
         eventuals_normal_month: EventualRange,
@@ -73,11 +85,9 @@ class SurveyResponse:
         roles: list[Role] | tuple[Role, ...] = (),
         current_channels: list[Channel] | tuple[Channel, ...] = (),
         last_absence_outcome: list[AbsenceOutcome] | tuple[AbsenceOutcome, ...] = (),
-        barrio: str | None = None,
         pay_per_shift_ars: int | None = None,
         wants_beta: bool = False,
         contact_name: str | None = None,
-        business_name: str | None = None,
         phone: str | None = None,
         email: str | None = None,
         consent: bool = False,
@@ -94,6 +104,15 @@ class SurveyResponse:
                 "El pago por jornada tiene que estar entre "
                 f"${PAY_PER_SHIFT_MIN_ARS:,} y ${PAY_PER_SHIFT_MAX_ARS:,}".replace(",", ".")
             )
+        business_name, barrio = _clean(business_name), _clean(barrio)
+        if not business_name:
+            raise InvalidSurveyError("Escribí el nombre del local")
+        if len(business_name) > 160:
+            raise InvalidSurveyError("El nombre del local es demasiado largo")
+        if not barrio:
+            raise InvalidSurveyError("Escribí el barrio del local")
+        if len(barrio) > 80:
+            raise InvalidSurveyError("El barrio es demasiado largo")
         phone, email = _clean(phone), _clean(email)
         if phone is not None and _phone_digits(phone) < 8:
             raise InvalidSurveyError("El teléfono parece incompleto")
@@ -105,6 +124,7 @@ class SurveyResponse:
             )
         response = cls(
             id=uuid4(),
+            respondent_role=respondent_role,
             local_kind=local_kind,
             team_model=team_model,
             eventuals_normal_month=eventuals_normal_month,
@@ -115,10 +135,10 @@ class SurveyResponse:
             pricing_preference=pricing_preference,
             wants_beta=wants_beta,
             created_at=now,
-            barrio=_clean(barrio),
+            barrio=barrio,
             pay_per_shift_ars=pay_per_shift_ars,
             contact_name=_clean(contact_name),
-            business_name=_clean(business_name),
+            business_name=business_name,
             phone=phone,
             email=email,
             source=_clean(source),
@@ -135,13 +155,16 @@ class SurveyResponse:
     def without_contact(self) -> "SurveyResponse":
         """La misma respuesta como estadística anónima (retención a 12 meses)."""
         return replace(
-            self, contact_name=None, business_name=None, phone=None, email=None
+            self, contact_name=None, phone=None, email=None
         )
 
 
 @dataclass(frozen=True)
 class SurveySummary:
     total: int
+    # Cuántas contestó quien decide (dueño o encargado): sobre ellas se
+    # calculan las distribuciones y la mediana.
+    deciders: int
     with_contact: int
     team_model: dict[str, int]
     eventuals_normal_month: dict[str, int]
@@ -159,13 +182,17 @@ def _count(values: list[str], options: list[str]) -> dict[str, int]:
 
 
 def summarize(responses: list[SurveyResponse]) -> SurveySummary:
-    """Totales y distribuciones. Todas las opciones aparecen, también con 0."""
+    """Totales y distribuciones. Las distribuciones y la mediana usan sólo las
+    respuestas de quien decide (dueño o encargado); `total` y `with_contact`
+    cuentan todas. Todas las opciones aparecen, también con 0."""
+    everyone, responses = responses, [r for r in responses if r.decides]
     pays = [r.pay_per_shift_ars for r in responses if r.pay_per_shift_ars is not None]
     return SurveySummary(
-        total=len(responses),
+        total=len(everyone),
+        deciders=len(responses),
         # «Con contacto para la beta»: quiso sumarse y dejó cómo escribirle.
         # Una respuesta vieja, ya sin contacto, no cuenta.
-        with_contact=sum(1 for r in responses if r.wants_beta and r.has_contact),
+        with_contact=sum(1 for r in everyone if r.wants_beta and r.has_contact),
         team_model=_count([r.team_model.value for r in responses], [o.value for o in TeamModel]),
         eventuals_normal_month=_count(
             [r.eventuals_normal_month.value for r in responses],

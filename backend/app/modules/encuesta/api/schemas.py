@@ -11,14 +11,17 @@ from app.modules.encuesta.domain.value_objects import (
     EventualRange,
     LocalKind,
     PricingPreference,
+    RespondentRole,
     Role,
     TeamModel,
 )
 
 
 class SurveySubmitRequest(BaseModel):
+    respondent_role: RespondentRole
+    business_name: str = Field(max_length=160)
+    barrio: str = Field(max_length=80)
     local_kind: LocalKind
-    barrio: str | None = Field(default=None, max_length=80)
     team_model: TeamModel
     eventuals_normal_month: EventualRange
     eventuals_peak_month: EventualRange
@@ -29,7 +32,6 @@ class SurveySubmitRequest(BaseModel):
     pricing_preference: PricingPreference
     wants_beta: bool = False
     contact_name: str | None = Field(default=None, max_length=120)
-    business_name: str | None = Field(default=None, max_length=160)
     phone: str | None = Field(default=None, max_length=40)
     email: str | None = Field(default=None, max_length=200)
     consent: bool = False
@@ -45,8 +47,10 @@ class SurveyReceivedResponse(BaseModel):
 class SurveyResponseOut(BaseModel):
     id: UUID
     created_at: datetime
+    respondent_role: RespondentRole
+    business_name: str
+    barrio: str
     local_kind: LocalKind
-    barrio: str | None = None
     team_model: TeamModel
     eventuals_normal_month: EventualRange
     eventuals_peak_month: EventualRange
@@ -57,7 +61,6 @@ class SurveyResponseOut(BaseModel):
     pricing_preference: PricingPreference
     wants_beta: bool
     contact_name: str | None = None
-    business_name: str | None = None
     phone: str | None = None
     email: str | None = None
     consent_at: datetime | None = None
@@ -71,6 +74,7 @@ class SurveyListResponse(BaseModel):
 
 class SurveySummaryResponse(BaseModel):
     total: int
+    deciders: int
     with_contact: int
     team_model: dict[str, int]
     eventuals_normal_month: dict[str, int]

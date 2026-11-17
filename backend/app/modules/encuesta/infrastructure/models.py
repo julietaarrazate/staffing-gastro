@@ -15,8 +15,11 @@ class SurveyResponseModel(Base):
     __table_args__ = (UniqueConstraint("client_key", name="uq_survey_responses_client_key"),)
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
+    respondent_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Nombre del local: es de un comercio, no un dato personal; queda al borrar el contacto.
+    business_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    barrio: Mapped[str] = mapped_column(String(80), nullable=False)
     local_kind: Mapped[str] = mapped_column(String(20), nullable=False)
-    barrio: Mapped[str | None] = mapped_column(String(80), nullable=True)
     team_model: Mapped[str] = mapped_column(String(20), nullable=False)
     eventuals_normal_month: Mapped[str] = mapped_column(String(12), nullable=False)
     eventuals_peak_month: Mapped[str] = mapped_column(String(12), nullable=False)
@@ -28,7 +31,6 @@ class SurveyResponseModel(Base):
     wants_beta: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Contacto: opcional y con retención de 12 meses (ADR-0025).
     contact_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    business_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
