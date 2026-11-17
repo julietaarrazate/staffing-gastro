@@ -16,7 +16,7 @@ export type UploadKind = "cv" | "business" | "image";
 const RULES: Record<UploadKind, { exts: string[]; label: string }> = {
   cv: { exts: ["pdf", "doc", "docx", "jpg", "jpeg", "png"], label: "PDF, Word, JPG o PNG" },
   business: { exts: ["pdf", "jpg", "jpeg", "png"], label: "PDF, JPG o PNG" },
-  image: { exts: ["jpg", "jpeg", "png", "webp", "heic", "heif"], label: "JPG, PNG o WebP" },
+  image: { exts: ["jpg", "jpeg", "png", "webp", "heic", "heif"], label: "JPG, PNG, WebP o HEIC" },
 };
 
 const MIME_EXT: Record<string, string> = {

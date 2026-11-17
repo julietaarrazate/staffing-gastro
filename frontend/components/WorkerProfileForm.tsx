@@ -162,6 +162,8 @@ export default function WorkerProfileForm() {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
       }
       setExists(true);
+      // Lo guardado es lo que se muestra: un campo vaciado queda en «0».
+      setYearsExperience(String(parseYears(yearsExperience)));
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo guardar el perfil"));
