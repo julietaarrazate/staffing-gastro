@@ -27,6 +27,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_no_show` | el comercio marca «No se presentó» (`manual`) o el sistema no vio su llegada pasado el plazo (`automatic`, scheduler de asistencia, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)); el turno vuelve a buscar personal | trabajador ausente (el comercio no recibe aviso de este tipo); abre `/profile` |
 | `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado, o el turno se cancela porque se suspendió la cuenta del comercio ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)) | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
+| `shift_finished` | el comercio finaliza el turno (U018): «Cerró tu turno» / «Calificá a <comercio> por el turno "<título>".»; abre `/my-shifts` (todavía no hay deep link por turno). Push con la política por defecto (24 h) | trabajador asignado |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
 

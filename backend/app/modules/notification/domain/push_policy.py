@@ -85,6 +85,7 @@ _RULES: dict[NotificationType, PushPolicy] = {
 DEFAULT_POLICY_TYPES: frozenset[NotificationType] = frozenset(
     {
         _N.SHIFT_PAID,
+        _N.SHIFT_FINISHED,
         _N.REVIEW_RECEIVED,
         _N.VERIFICATION_DECIDED,
         _N.SUPPORT_REPLY,

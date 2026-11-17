@@ -12,6 +12,9 @@ class NotificationType(str, Enum):
     SHIFT_REJECTED = "shift_rejected"
     SHIFT_CHECKED_OUT = "shift_checked_out"
     SHIFT_PAID = "shift_paid"
+    # U018: el comercio cerró el turno; al trabajador se le avisa que ya puede
+    # calificar al comercio.
+    SHIFT_FINISHED = "shift_finished"
     SHIFT_REOPENED = "shift_reopened"
     CHAT_MESSAGE = "chat_message"
     REVIEW_RECEIVED = "review_received"
@@ -72,6 +75,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # Trabajador
     NotificationType.SHIFT_ASSIGNED: "/my-shifts",
     NotificationType.SHIFT_PAID: "/my-shifts",
+    NotificationType.SHIFT_FINISHED: "/my-shifts",
     NotificationType.SHIFT_NO_SHOW: "/profile",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
     # El turno cancelado sigue en «Asignados», con su sello de cancelado.
