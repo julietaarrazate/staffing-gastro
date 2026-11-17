@@ -113,6 +113,13 @@ export function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
 // mapa reciclado queda con la protección apagada aunque el prop diga
 // `true` — un dedo vuelve a panear el mapa en vez de scrollear la página.
 // Mismo mecanismo de sincronización manual en cada `load` que `interactive`.
+/** Carteles de `cooperativeGestures` en español (MapLibre los trae en inglés). */
+export const MAP_LOCALE_ES = {
+  "CooperativeGesturesHandler.WindowsHelpText": "Usá Ctrl + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MacHelpText": "Usá ⌘ + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa",
+};
+
 export function syncCooperativeGestures(raw: unknown, cooperativeGestures: boolean) {
   const handler = (raw as { cooperativeGestures?: { enable(): void; disable(): void } })
     .cooperativeGestures;
@@ -229,6 +236,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           reuseMaps
           interactive={interactive}
           cooperativeGestures={cooperativeGestures}
+          locale={MAP_LOCALE_ES}
           initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
           mapStyle={MAP_STYLE_URL}
           attributionControl={false}
