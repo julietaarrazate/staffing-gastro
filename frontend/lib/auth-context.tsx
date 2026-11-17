@@ -520,6 +520,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (sessionMovedOn(me)) return "none";
           setUser(me);
           rememberSessionUser(me);
+          if (me.two_factor_setup_required) setTwoFactorSetupPending(true);
           return "ok";
         } catch (err) {
           if (isTransientFailure(err)) throw err;
@@ -544,6 +545,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sessionMovedOn(me)) return "none";
         setUser(me);
         rememberSessionUser(me);
+        if (me.two_factor_setup_required) setTwoFactorSetupPending(true);
         return "ok";
       } catch (err) {
         if (isTransientFailure(err)) throw err;
@@ -815,6 +817,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
     setUser(account);
     rememberSessionUser(account);
+    // Se sabe acá, antes de que monten las pantallas (la campanita no pide
+    // nada). Se ASIGNA lo que dice el servidor: entrar con otra cuenta sin
+    // cerrar sesión no debe heredar la marca de la admin anterior. Un 403
+    // tardío (`setupRequired`, sesiones viejas) la sigue prendiendo.
+    setTwoFactorSetupPending(
+      Boolean(tokens.two_factor_setup_required || account.two_factor_setup_required)
+    );
     return { token: tokens.access_token, user: account };
   }
 

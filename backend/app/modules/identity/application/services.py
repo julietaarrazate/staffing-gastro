@@ -7,6 +7,7 @@ No conoce detalles de HTTP ni de SQLAlchemy.
 import hashlib
 import logging
 import secrets
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -68,6 +69,7 @@ from app.modules.identity.domain.repositories import (
     TermsAcceptanceRepository,
     UserRepository,
 )
+from app.modules.identity.domain.two_factor import AdminGate, admin_gate
 from app.modules.identity.domain.value_objects import (
     LEGAL_TERMS_VERSION,
     TermsAcceptanceChannel,
@@ -628,13 +630,24 @@ class IdentityService:
         verificación activa recibe un desafío en vez de la sesión. Un admin
         sin activarla entra igual, con una sesión que sólo le deja activarla
         (ver `resolve_session`): así nadie queda afuera al prenderla."""
-        if (
+        enabled = (
             self._two_factor is not None
             and TwoFactorService.applies_to(user)
             and await self._two_factor.is_enabled(user.id)
-        ):
+        )
+        if enabled and self._two_factor is not None:
             return await self._two_factor.issue_challenge(user)
-        return await self._issue_tokens(user)
+        pair = await self._issue_tokens(user)
+        # La regla de qué puede hacer una sesión admin vive en `admin_gate`: un
+        # admin sin la verificación activada recibe una sesión que sólo sirve
+        # para activarla, y el frontend lo sabe desde el login.
+        if (
+            self._two_factor is not None
+            and admin_gate(user, enabled=enabled, session_verified=False)
+            is AdminGate.SETUP_REQUIRED
+        ):
+            return replace(pair, two_factor_setup_required=True)
+        return pair
 
     async def _issue_tokens(self, user: User, *, two_factor_verified: bool = False) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""

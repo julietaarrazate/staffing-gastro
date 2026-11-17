@@ -131,6 +131,9 @@ class TokenResponse(BaseModel):
     # remoto). Forward-ref porque `UserResponse` se define más abajo; se
     # resuelve con `TokenResponse.model_rebuild()` al final del módulo.
     user: "UserResponse | None" = None
+    # Admin sin la verificación en dos pasos: la sesión sólo le deja activarla
+    # (ADR-0023). Lo mismo que `MeResponse`, para el login.
+    two_factor_setup_required: bool = False
 
 
 class GoogleAuthRequest(BaseModel):
@@ -164,6 +167,15 @@ class UserResponse(BaseModel):
     status: UserStatus
     is_verified: bool
     created_at: datetime | None = None
+
+
+class MeResponse(UserResponse):
+    """`GET /auth/me`: el usuario y, para un admin sin la verificación en dos
+    pasos activada, `two_factor_setup_required` (ADR-0023). Así el frontend
+    sabe al abrir la sesión que sólo puede ir al alta y no dispara pedidos que
+    el backend rechaza con 403."""
+
+    two_factor_setup_required: bool = False
 
 
 # Resuelve el forward-ref `user: "UserResponse"` de TokenResponse ahora que
