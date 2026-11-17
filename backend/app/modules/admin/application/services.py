@@ -15,8 +15,10 @@ from app.core.dt import naive as _naive
 from app.core.security import create_access_token, hash_password_async
 from app.core.tz import now_art, to_art
 from app.modules.admin.application.dtos import (
+    AdminCommitmentSummary,
     AdminCompanySummary,
     AdminShiftRow,
+    AdminSubscriptionSummary,
     AdminTicketRow,
     AdminUserDetail,
     AdminUserRow,
@@ -33,6 +35,7 @@ from app.modules.admin.application.dtos import (
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
+    TargetCompanyNotFoundError,
     TargetUserNotFoundError,
 )
 from app.modules.admin.application.periods import day_bounds, period_bounds
@@ -218,6 +221,10 @@ class AdminService:
                 )
                 shifts = await self._shifts.list_by_company(company.id, limit=limit)
 
+        subscription_summary = None
+        if user.role == UserRole.EMPLOYER and company is not None:
+            subscription_summary = await self._subscription_summary(company.id)
+
         tickets = await self._tickets.list_by_user(user.id, limit=limit)
         return AdminUserDetail(
             user=row,
@@ -254,7 +261,67 @@ class AdminService:
                 )
                 for t in tickets
             ],
+            subscription=subscription_summary,
         )
+
+    async def _subscription_summary(self, company_id: UUID) -> AdminSubscriptionSummary:
+        """Plan vigente, plan elegido al darse de alta y compromiso de pago
+        de un comercio. Sin fila en `subscriptions` está en el plan por
+        defecto. Sólo lee: no crea la fila."""
+        sub = await self._subscriptions.get_by_company_id(company_id)
+        if sub is None:
+            return AdminSubscriptionSummary(
+                plan_code=DEFAULT_PLAN_CODE, plan_name=get_plan(DEFAULT_PLAN_CODE).name
+            )
+        commitment = None
+        if (
+            sub.payment_commitment_at is not None
+            and sub.payment_commitment_plan_code is not None
+            and sub.payment_commitment_price_ars is not None
+        ):
+            commitment = AdminCommitmentSummary(
+                at=sub.payment_commitment_at,
+                plan_code=sub.payment_commitment_plan_code,
+                plan_name=get_plan(sub.payment_commitment_plan_code).name,
+                price_ars=sub.payment_commitment_price_ars,
+            )
+        return AdminSubscriptionSummary(
+            plan_code=sub.plan_code,
+            plan_name=get_plan(sub.plan_code).name,
+            chosen_plan_code=sub.chosen_plan_code,
+            chosen_plan_name=get_plan(sub.chosen_plan_code).name if sub.chosen_plan_code else None,
+            chosen_plan_at=sub.chosen_plan_at,
+            commitment=commitment,
+        )
+
+    async def _company_subscription(self, user_id: UUID):
+        """Suscripción del comercio de `user_id` (la crea si falta). Un
+        usuario inexistente, que no es comercio o sin perfil es 404."""
+        user = await self._users.get_by_id(user_id)
+        if user is None or user.role != UserRole.EMPLOYER:
+            raise TargetCompanyNotFoundError()
+        company = await self._companies.get_by_user_id(user.id)
+        if company is None:
+            raise TargetCompanyNotFoundError()
+        return await self._subscriptions.get_or_create(company.id)
+
+    async def set_payment_commitment(
+        self, user_id: UUID, plan_code: str, price_ars: int
+    ) -> AdminSubscriptionSummary:
+        """La admin registra (o corrige) el compromiso de pago de un comercio.
+        `UnknownPlanError` si el plan no existe; precio inválido,
+        `InvalidPaymentCommitmentError`."""
+        get_plan(plan_code)
+        sub = await self._company_subscription(user_id)
+        sub.register_payment_commitment(plan_code, price_ars, datetime.now(timezone.utc))
+        await self._subscriptions.update(sub)
+        return await self._subscription_summary(sub.company_id)
+
+    async def clear_payment_commitment(self, user_id: UUID) -> AdminSubscriptionSummary:
+        sub = await self._company_subscription(user_id)
+        sub.clear_payment_commitment()
+        await self._subscriptions.update(sub)
+        return await self._subscription_summary(sub.company_id)
 
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma, incluida la promesa
@@ -501,6 +568,34 @@ class AdminService:
             if status == SubscriptionStatus.ACTIVA.value:
                 mrr += get_plan(plan_code).price_ars * count
 
+        # Medición de la beta (M6): sin cuentas de prueba ni invitadas.
+        rows = await self._subscriptions.list_for_metrics(
+            exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        )
+        now = datetime.now(timezone.utc)
+        chosen_by_plan: dict[str, int] = {}
+        committed = 0
+        committed_mrr = Decimal("0")
+        paid_mrr = Decimal("0")
+        for sub in rows:
+            if sub.chosen_plan_code is not None:
+                chosen_by_plan[sub.chosen_plan_code] = (
+                    chosen_by_plan.get(sub.chosen_plan_code, 0) + 1
+                )
+            if sub.payment_commitment_price_ars is not None:
+                committed += 1
+                committed_mrr += sub.payment_commitment_price_ars
+            if (
+                sub.status == SubscriptionStatus.ACTIVA
+                and sub.paid_until is not None
+                and _naive(sub.paid_until) > _naive(now)
+            ):
+                paid_mrr += get_plan(sub.plan_code).price_ars
+        if self._billing.enabled:
+            # Con el cobro prendido sólo cuenta quien tiene un mes pago
+            # vigente: una suscripción `activa` sin pago no es ingreso.
+            mrr = paid_mrr
+
         companies_by_plan[DEFAULT_PLAN_CODE] = companies_by_plan.get(
             DEFAULT_PLAN_CODE, 0
         ) + max(total_companies - subscribed_total, 0)
@@ -515,6 +610,9 @@ class AdminService:
             total_companies=total_companies,
             companies_by_plan=companies_by_plan,
             companies_at_plan_limit=companies_at_plan_limit,
+            companies_with_chosen_plan=chosen_by_plan,
+            committed_companies=committed,
+            committed_mrr_ars=committed_mrr,
             billing_enabled=self._billing.enabled,
         )
 

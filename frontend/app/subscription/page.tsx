@@ -99,6 +99,16 @@ function SubscriptionContent() {
     load();
   }, [load]);
 
+  // Medición de la beta (M6): el plan elegido al darse de alta se guarda en
+  // el servidor una vez. Sin esperar, sin error a la vista y sin cambiar lo
+  // que ve el comercio; si falla, se pierde ese dato y nada más.
+  const planRegistrado = useRef(false);
+  useEffect(() => {
+    if (!token || !planPedido || planRegistrado.current) return;
+    planRegistrado.current = true;
+    api.post("/subscription/plan-elegido", { plan_code: planPedido }, token).catch(() => undefined);
+  }, [token, planPedido]);
+
   // Al volver de Mercado Pago con el pago aprobado, el webhook suele llegar
   // unos segundos después: se vuelve a leer el estado una vez más.
   const returnTone = returnMessage?.tone;

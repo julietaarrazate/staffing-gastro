@@ -505,6 +505,25 @@ export interface AdminUserDetail {
     absent?: boolean;
   }[];
   tickets: { id: string; subject: string; status: string; created_at: string | null }[];
+  /** Sólo en la ficha de un comercio (medición de la beta, M6). */
+  subscription?: AdminSubscriptionSummary | null;
+}
+
+/** Bloque «Plan» de la ficha de un comercio. */
+export interface AdminSubscriptionSummary {
+  plan_code: string;
+  plan_name: string;
+  /** El plan que eligió en los precios de la landing al darse de alta. */
+  chosen_plan_code: string | null;
+  chosen_plan_name: string | null;
+  chosen_plan_at: string | null;
+  /** Compromiso de pago («precio fundador») que registró la admin. */
+  commitment: {
+    at: string;
+    plan_code: string;
+    plan_name: string;
+    price_ars: number | string;
+  } | null;
 }
 
 /** Cuántos turnos toca suspender una cuenta (ADR-0024), antes de confirmar. */
@@ -643,6 +662,11 @@ export interface SubscriptionStats {
    * tienen fila en `subscriptions`, contados en el plan por defecto, `inicial`). */
   companies_by_plan: Record<string, number>;
   companies_at_plan_limit: number;
+  /** Comercios por plan elegido al darse de alta (sin cuentas de prueba). */
+  companies_with_chosen_plan?: Record<string, number>;
+  /** Comercios con compromiso de pago y suma de sus precios mensuales. */
+  committed_companies?: number;
+  committed_mrr_ars?: number | string;
   /** False mientras no haya credenciales de Mercado Pago: `mrr_ars` es
    * entonces un monto POTENCIAL (lo que se cobraría), nunca ingreso real —
    * el panel lo tiene que mostrar distinguible (auditoría 2026-08-15, F1). */

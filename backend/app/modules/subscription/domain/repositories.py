@@ -51,6 +51,13 @@ class SubscriptionRepository(ABC):
         que ya tienen fila (panel de admin, MRR)."""
 
     @abstractmethod
+    async def list_for_metrics(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> list[Subscription]:
+        """Las suscripciones que ya tienen fila, sin las de los comercios con
+        esos emails (cuentas de prueba e invitadas; medición de la beta, M6)."""
+
+    @abstractmethod
     async def count_at_plan_limit(self, limits: dict[str, int], *, now: datetime) -> int:
         """Cuenta comercios cuyo `turnos_usados_mes` ya alcanzó el tope de su
         plan, sólo con la ventana de uso vigente (auditoría 2026-08-15, F3)."""

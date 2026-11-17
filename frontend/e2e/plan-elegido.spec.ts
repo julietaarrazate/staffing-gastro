@@ -188,3 +188,43 @@ test("con el cobro prendido, el aviso lleva a pagar el plan elegido con Mercado 
   await expect(page.getByRole("dialog")).toContainText("del plan Pro");
   await expect(page.getByRole("button", { name: "Ir a Mercado Pago" })).toBeVisible();
 });
+
+test("al abrir Mi plan con un plan elegido se avisa al servidor una sola vez, sin cambiar lo que se ve", async ({ page }) => {
+  await comercioConSesion(page);
+  await mockMiPlan(page);
+  const registros: unknown[] = [];
+  await page.route("**/api/v1/subscription/plan-elegido", (route) => {
+    registros.push(route.request().postDataJSON());
+    return route.fulfill(json({ ok: true }));
+  });
+  await page.goto("/subscription?plan=basico");
+  await expect(page.getByTestId("plan-elegido")).toContainText("Elegiste el plan Básico");
+  await expect.poll(() => registros).toEqual([{ plan_code: "basico" }]);
+});
+
+test("si el servidor no registra el plan elegido, Mi plan no muestra ningún error", async ({ page }) => {
+  await comercioConSesion(page);
+  await mockMiPlan(page);
+  await page.route("**/api/v1/subscription/plan-elegido", (route) => route.fulfill(json({}, 500)));
+  await page.goto("/subscription?plan=pro");
+  await expect(page.getByTestId("plan-elegido")).toContainText("Elegiste el plan Pro");
+  // Ni banner de error ni aviso: el anunciador de rutas de Next también es
+  // un `alert`, pero vacío.
+  await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: /\S/ })).toHaveCount(0);
+});
+
+test("sin ?plan= o con uno inválido no se avisa nada al servidor", async ({ page }) => {
+  await comercioConSesion(page);
+  await mockMiPlan(page);
+  const registros: unknown[] = [];
+  await page.route("**/api/v1/subscription/plan-elegido", (route) => {
+    registros.push(1);
+    return route.fulfill(json({ ok: true }));
+  });
+  await page.goto("/subscription");
+  await expect(page.getByRole("heading", { name: "Planes disponibles" })).toBeVisible();
+  await page.goto("/subscription?plan=gratis");
+  await expect(page.getByRole("heading", { name: "Planes disponibles" })).toBeVisible();
+  expect(registros).toEqual([]);
+});

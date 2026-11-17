@@ -7,6 +7,8 @@ from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dt import naive as _naive
+from app.modules.company.infrastructure.models import CompanyProfileModel
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.subscription.domain.entities import (
     PERIOD_LENGTH,
     Subscription,
@@ -40,6 +42,11 @@ def _to_entity(model: SubscriptionModel) -> Subscription:
         paid_until=model.paid_until,
         renews=model.renews,
         expiry_notice=ExpiryNotice(model.expiry_notice) if model.expiry_notice else None,
+        chosen_plan_code=model.chosen_plan_code,
+        chosen_plan_at=model.chosen_plan_at,
+        payment_commitment_at=model.payment_commitment_at,
+        payment_commitment_plan_code=model.payment_commitment_plan_code,
+        payment_commitment_price_ars=model.payment_commitment_price_ars,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -61,6 +68,11 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
             paid_until=subscription.paid_until,
             renews=subscription.renews,
             expiry_notice=subscription.expiry_notice.value if subscription.expiry_notice else None,
+            chosen_plan_code=subscription.chosen_plan_code,
+            chosen_plan_at=subscription.chosen_plan_at,
+            payment_commitment_at=subscription.payment_commitment_at,
+            payment_commitment_plan_code=subscription.payment_commitment_plan_code,
+            payment_commitment_price_ars=subscription.payment_commitment_price_ars,
         )
         self._session.add(model)
         await self._session.commit()
@@ -81,6 +93,11 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         model.expiry_notice = (
             subscription.expiry_notice.value if subscription.expiry_notice else None
         )
+        model.chosen_plan_code = subscription.chosen_plan_code
+        model.chosen_plan_at = subscription.chosen_plan_at
+        model.payment_commitment_at = subscription.payment_commitment_at
+        model.payment_commitment_plan_code = subscription.payment_commitment_plan_code
+        model.payment_commitment_price_ars = subscription.payment_commitment_price_ars
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
@@ -124,6 +141,20 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         ).group_by(SubscriptionModel.plan_code, SubscriptionModel.status)
         result = await self._session.execute(stmt)
         return [(plan_code, status, count) for plan_code, status, count in result.all()]
+
+    async def list_for_metrics(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> list[Subscription]:
+        stmt = select(SubscriptionModel)
+        if exclude_company_emails:
+            excluded = (
+                select(CompanyProfileModel.id)
+                .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+                .where(UserModel.email.in_(exclude_company_emails))
+            )
+            stmt = stmt.where(SubscriptionModel.company_id.not_in(excluded))
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
 
     async def count_at_plan_limit(self, limits: dict[str, int], *, now: datetime) -> int:
         if not limits:
