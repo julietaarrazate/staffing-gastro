@@ -80,6 +80,9 @@ export interface User {
   role: UserRole;
   status: string;
   is_verified: boolean;
+  /** Sólo en `/auth/me`: admin sin la verificación en dos pasos activada
+   * (ADR-0023). Con eso la sesión sólo puede ir al alta. */
+  two_factor_setup_required?: boolean;
 }
 
 export interface Shift {

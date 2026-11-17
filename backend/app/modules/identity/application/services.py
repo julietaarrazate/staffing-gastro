@@ -7,6 +7,7 @@ No conoce detalles de HTTP ni de SQLAlchemy.
 import hashlib
 import logging
 import secrets
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -619,7 +620,12 @@ class IdentityService:
             and await self._two_factor.is_enabled(user.id)
         ):
             return await self._two_factor.issue_challenge(user)
-        return await self._issue_tokens(user)
+        pair = await self._issue_tokens(user)
+        if self._two_factor is not None and TwoFactorService.applies_to(user):
+            # Admin sin la verificación activada (si la tuviera, arriba salió
+            # el desafío): la sesión recién emitida sólo sirve para activarla.
+            return replace(pair, two_factor_setup_required=True)
+        return pair
 
     async def _issue_tokens(self, user: User, *, two_factor_verified: bool = False) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""

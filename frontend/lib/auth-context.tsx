@@ -517,6 +517,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (sessionMovedOn(me)) return "none";
           setUser(me);
           rememberSessionUser(me);
+          if (me.two_factor_setup_required) setTwoFactorSetupPending(true);
           return "ok";
         } catch (err) {
           if (isTransientFailure(err)) throw err;
@@ -541,6 +542,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sessionMovedOn(me)) return "none";
         setUser(me);
         rememberSessionUser(me);
+        if (me.two_factor_setup_required) setTwoFactorSetupPending(true);
         return "ok";
       } catch (err) {
         if (isTransientFailure(err)) throw err;
@@ -812,6 +814,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
     setUser(account);
     rememberSessionUser(account);
+    // Admin sin la verificación activada: se sabe acá, antes de que monten las
+    // pantallas (la campanita no pide nada). Sólo prende: apagarlo es del alta.
+    if (tokens.two_factor_setup_required || account.two_factor_setup_required) {
+      setTwoFactorSetupPending(true);
+    }
     return { token: tokens.access_token, user: account };
   }
 

@@ -283,6 +283,53 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     expect(claim).toHaveBeenCalledWith("token-verificado");
   });
 
+  // La campanita se dibuja y pide cuando hay usuario y NO hay alta pendiente
+  // (`Navbar`): si el usuario llega antes que el aviso, hace un pedido que el
+  // backend rechaza (U133). Por eso la marca llega en el mismo paso que el
+  // usuario, sin esperar al primer 403.
+  it("admin sin dos pasos: al recuperar la sesión, el alta pendiente llega con el usuario", async () => {
+    localStorage.setItem("staffya_token", "token-sin-verificar");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, { ...ADMIN, two_factor_setup_required: true }];
+
+    const vistos: Array<{ user: boolean; pendiente: boolean }> = [];
+    const { result } = renderHook(
+      () => {
+        const a = useAuth();
+        vistos.push({ user: a.user !== null, pendiente: a.twoFactorSetupPending });
+        return a;
+      },
+      { wrapper: AuthProvider }
+    );
+    await waitFor(() => expect(result.current.user?.id).toBe(ADMIN.id));
+
+    expect(result.current.twoFactorSetupPending).toBe(true);
+    // Nunca hubo un render con usuario y sin la marca.
+    expect(vistos.filter((v) => v.user && !v.pendiente)).toEqual([]);
+    expect(requestsSent()).toEqual(["GET /auth/me"]);
+  });
+
+  it("admin sin dos pasos: el login también lo avisa", async () => {
+    const auth = await mountApp();
+    backend["POST /auth/login"] = [
+      200,
+      { access_token: "token-sin-verificar", user: ADMIN, two_factor_setup_required: true },
+    ];
+    await act(async () => {
+      await auth().login(ADMIN.email, "una-clave");
+    });
+    expect(auth().twoFactorSetupPending).toBe(true);
+  });
+
+  it("una cuenta que no tiene el alta pendiente no la marca", async () => {
+    localStorage.setItem("staffya_token", "token-guardado");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, { ...ADMIN, two_factor_setup_required: false }];
+    const auth = await mountApp();
+    expect(auth().user?.id).toBe(ADMIN.id);
+    expect(auth().twoFactorSetupPending).toBe(false);
+  });
+
   it("admin a la que le falta el código: registra recién cuando lo completa", async () => {
     const auth = await mountApp();
     backend["POST /auth/login"] = [
