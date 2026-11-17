@@ -83,9 +83,11 @@ export default function TerminosPage() {
 
           <Section title="Tu cuenta">
             <p>
-              Para usar Oído tenés que ser mayor de 18 años y cargar datos
-              reales tuyos o de tu comercio: nombre, contacto y lo que te
-              pidamos en el perfil. Nada de datos inventados.
+              Para usar Oído tenés que ser mayor de 18 años: al crear la
+              cuenta te pedimos tu fecha de nacimiento y, si sos menor, no la
+              creamos. También tenés que cargar datos reales tuyos o de tu
+              comercio: nombre, contacto y lo que te pidamos en el perfil.
+              Nada de datos inventados.
             </p>
             <p>
               Cada persona tiene una sola cuenta, y sos responsable de lo que

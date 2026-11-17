@@ -85,7 +85,12 @@ async def test_google_new_account_records_acceptance(client: AsyncClient, sessio
     app.dependency_overrides[get_google_verifier] = lambda: _FakeGoogleVerifier("g2@gmail.com")
     response = await client.post(
         "/api/v1/auth/google",
-        json={"id_token": "tok", "role": "employer", "accepted_terms": True},
+        json={
+            "id_token": "tok",
+            "role": "employer",
+            "accepted_terms": True,
+            "birth_date": "1995-05-20",
+        },
     )
     assert response.status_code == 200
 

@@ -4,6 +4,7 @@ Separan los comandos/resultados de los casos de uso de los esquemas HTTP (API).
 """
 
 from dataclasses import dataclass
+from datetime import date
 
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.two_factor import AdminGate, admin_gate
@@ -20,6 +21,9 @@ class RegisterCommand:
     # exige que sea True; los scripts internos (seed de demo) no lo pasan, y
     # entonces no queda constancia, porque nadie aceptó nada.
     accepted_terms: bool = False
+    # Fecha de nacimiento (U101). Obligatoria y de un mayor de 18 cuando el
+    # alta es pública (`accepted_terms`); los scripts internos no la pasan.
+    birth_date: date | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +57,7 @@ class GoogleLoginCommand:
     role: UserRole | None = None
     # Igual que en `RegisterCommand`: sólo cuenta si se crea una cuenta nueva.
     accepted_terms: bool = False
+    birth_date: date | None = None
 
 
 @dataclass(frozen=True)
