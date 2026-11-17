@@ -405,3 +405,61 @@ async def test_other_worker_cannot_reopen_nor_see_foreign_ticket(client: AsyncCl
             f"/api/v1/support/tickets/{ticket_id}/messages", headers=other, json={"body": "x"}
         )
     ).status_code == 404
+
+
+async def test_create_ticket_twice_same_key_creates_one_ticket(client: AsyncClient):
+    """U012: reintentar «abrir ticket» con la misma Idempotency-Key no duplica."""
+    worker = await auth_headers(client, "worker", "w_sup_idem1@staffya.com")
+    headers = {**worker, "Idempotency-Key": "abrir-ticket-reintento"}
+    payload = {"category": "otro", "subject": "Consulta", "body": "Hola, necesito ayuda."}
+    first = await client.post("/api/v1/support/tickets", headers=headers, json=payload)
+    second = await client.post("/api/v1/support/tickets", headers=headers, json=payload)
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert second.json() == first.json()
+    mine = await client.get("/api/v1/support/tickets/mine", headers=worker)
+    assert len(mine.json()) == 1
+
+
+async def test_ticket_reply_twice_same_key_creates_one_message(client: AsyncClient):
+    worker = await auth_headers(client, "worker", "w_sup_idem2@staffya.com")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "otro", "subject": "Consulta", "body": "Primero"},
+    )
+    ticket_id = created.json()["id"]
+    headers = {**worker, "Idempotency-Key": "responder-ticket-reintento"}
+    first = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages", headers=headers, json={"body": "Segundo"}
+    )
+    second = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages", headers=headers, json={"body": "Segundo"}
+    )
+    assert first.status_code == 201
+    assert second.json() == first.json()
+    detail = await client.get(f"/api/v1/support/tickets/{ticket_id}", headers=worker)
+    assert len(detail.json()["messages"]) == 2  # el primero + UNA respuesta
+
+
+async def test_ticket_detail_shows_opener_only_to_admin(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """U130: el admin ve quién abrió el ticket; la persona común no recibe ese dato."""
+    worker = await auth_headers(client, "worker", "w_sup_opener@staffya.com", "Juana Soporte")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "otro", "subject": "Consulta", "body": "Hola"},
+    )
+    ticket = created.json()
+    admin = await _make_admin(client, session_factory, "adm_sup_opener@staffya.com")
+
+    as_admin = await client.get(f"/api/v1/support/tickets/{ticket['id']}", headers=admin)
+    assert as_admin.json()["opened_by"] == {
+        "user_id": ticket["user_id"],
+        "full_name": "Juana Soporte",
+        "role": "worker",
+    }
+    as_owner = await client.get(f"/api/v1/support/tickets/{ticket['id']}", headers=worker)
+    assert as_owner.json()["opened_by"] is None

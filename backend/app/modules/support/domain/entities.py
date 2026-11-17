@@ -38,6 +38,15 @@ class SupportTicket:
         self.status = TicketStatus.ABIERTO
 
 
+@dataclass(frozen=True)
+class TicketOpener:
+    """Quién abrió un ticket (nombre y rol), para el detalle del admin."""
+
+    user_id: UUID
+    full_name: str
+    role: str
+
+
 @dataclass
 class SupportMessage:
     """Un mensaje dentro de un ticket (del usuario o de un admin)."""
