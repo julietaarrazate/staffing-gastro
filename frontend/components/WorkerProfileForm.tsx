@@ -202,6 +202,7 @@ export default function WorkerProfileForm() {
         </p>
         <div className="mt-2">
           <LocationPicker
+            initialCity={city}
             onSelect={(loc: LocationSelection) => {
               setCity(loc.city);
               setLatitude(loc.latitude);

@@ -150,6 +150,7 @@ export default function CompanyProfileForm() {
           {useManualPicker ? (
             <div className="flex flex-col gap-2">
               <LocationPicker
+                initialCity={city}
                 onSelect={(loc: LocationSelection) => {
                   setCity(loc.city);
                   setLatitude(loc.latitude);
