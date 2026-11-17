@@ -32,6 +32,11 @@ neutro.
 `npm audit` se puso rojo a mitad de la tanda en todos los PRs (y en `main`
 desde la corrida siguiente) por un advisory de picomatch (GHSA-fc5q-39xc-vjpf,
 ReDoS, `<=4.0.7`) sin versión arreglada publicada: no es de estos diffs.
+Julieta eligió primero esperar el arreglo y después decidió una excepción con
+vencimiento (#612, hasta el 2026-12-17); con eso #611, #609 y este PR se
+mergearon con CI y Security en verde. Al traer `main`, #609 chocó con #603 en
+`shift/infrastructure/repositories.py` (dos funciones nuevas en el mismo
+lugar): quedaron las dos.
 
 Julieta pidió además resolver lo que había quedado abierto en la tanda antes
 de seguir. En #609: el aviso al quitar una postulación de un turno cerrado,

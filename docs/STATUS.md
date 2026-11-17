@@ -27,7 +27,8 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 - 🔴 **Salida a beta (en curso, etapa 3: los menores; tandas 1, 2 y 3
-  hechas, sigue la 4 con E y U110 aparte).** Qué está hecho,
+  hechas, sigue la 4 con E y U110 aparte, y después lo que Julieta decidió
+  el 2026-11-17 sobre U018, U039, U084, U101, U106 y U111).** Qué está hecho,
   qué está en curso, qué falta y qué espera una decisión de Julieta, fila por
   fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
   primero que se lee y lo que se edita en cada PR de la beta.
