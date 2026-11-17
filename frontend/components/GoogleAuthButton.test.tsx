@@ -31,7 +31,7 @@ beforeEach(() => {
   };
 });
 
-async function renderAtRoleStep(onDone = vi.fn()) {
+async function renderAtRoleStep(onDone = vi.fn(), props: Record<string, unknown> = {}) {
   vi.resetModules();
   const { default: GoogleAuthButton } = await import("./GoogleAuthButton");
   loginWithGoogle.mockResolvedValueOnce({
@@ -39,7 +39,7 @@ async function renderAtRoleStep(onDone = vi.fn()) {
     email: "nueva@gmail.com",
     fullName: "Nueva Persona",
   });
-  render(<GoogleAuthButton onDone={onDone} />);
+  render(<GoogleAuthButton onDone={onDone} {...props} />);
   await act(async () => {
     googleCallback?.({ credential: "id-token" });
   });
@@ -77,3 +77,62 @@ describe("GoogleAuthButton: botón de Google", () => {
     expect(screen.queryByTestId("gis")).toBeNull();
   });
 });
+
+describe("GoogleAuthButton: desde /register con el formulario ya completo (U043)", () => {
+  it("crea la cuenta con el rol y los términos del formulario, sin volver a preguntar", async () => {
+    const onDone = vi.fn();
+    // 1ª llamada: pide rol (cuenta nueva); 2ª: la crea.
+    loginWithGoogle.mockResolvedValueOnce({
+      requiresRole: true,
+      email: "nueva@gmail.com",
+      fullName: "Nueva Persona",
+    });
+    loginWithGoogle.mockResolvedValueOnce({ requiresRole: false });
+    vi.resetModules();
+    const { default: GoogleAuthButton } = await import("./GoogleAuthButton");
+    render(<GoogleAuthButton onDone={onDone} rolElegido="employer" terminosAceptados />);
+    await act(async () => {
+      googleCallback?.({ credential: "id-token" });
+    });
+    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "employer");
+    expect(onDone).toHaveBeenCalledWith(true, "employer", undefined);
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Busco trabajo" })).toBeNull();
+  });
+
+  it("sin términos aceptados no crea la cuenta y espera la casilla del formulario", async () => {
+    const user = userEvent.setup();
+    const onDone = vi.fn();
+    const { rerender } = await renderAtRoleStepRerender(onDone);
+    expect(loginWithGoogle).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    const boton = screen.getByRole("button", { name: "Crear cuenta con Google" });
+    expect(boton).toBeDisabled();
+
+    loginWithGoogle.mockResolvedValueOnce({ requiresRole: false });
+    rerender({ rolElegido: "worker", terminosAceptados: true });
+    await user.click(screen.getByRole("button", { name: "Crear cuenta con Google" }));
+    expect(loginWithGoogle).toHaveBeenLastCalledWith("id-token", "worker");
+    expect(onDone).toHaveBeenCalledWith(true, "worker", undefined);
+  });
+});
+
+async function renderAtRoleStepRerender(onDone: () => void) {
+  vi.resetModules();
+  const { default: GoogleAuthButton } = await import("./GoogleAuthButton");
+  loginWithGoogle.mockResolvedValueOnce({
+    requiresRole: true,
+    email: "nueva@gmail.com",
+    fullName: "Nueva Persona",
+  });
+  const view = render(
+    <GoogleAuthButton onDone={onDone} rolElegido="worker" terminosAceptados={false} />
+  );
+  await act(async () => {
+    googleCallback?.({ credential: "id-token" });
+  });
+  return {
+    rerender: (p: { rolElegido: "worker" | "employer"; terminosAceptados: boolean }) =>
+      view.rerender(<GoogleAuthButton onDone={onDone} {...p} />),
+  };
+}

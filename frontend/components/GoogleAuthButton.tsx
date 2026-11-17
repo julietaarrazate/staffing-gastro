@@ -52,17 +52,30 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default function GoogleAuthButton({
   onDone,
+  rolElegido,
+  terminosAceptados,
 }: {
   /** Se llama cuando la sesión queda lista. `isNewAccount` distingue "recién
    * creada" (para mandar a completar perfil) de "ya existía" (a home). En
    * una cuenta nueva llega también el rol elegido (lo usa /register para el
    * plan que se eligió en la landing, `lib/plan-elegido.ts`). */
   onDone: (isNewAccount: boolean, role?: "worker" | "employer", sesion?: SesionAbierta) => void;
+  /** Desde /register (U043): el rol y la aceptación de términos que ya se
+   * eligieron en el formulario. Con `rolElegido`, una cuenta nueva se crea
+   * directo con ese rol, sin volver a preguntar ni mostrar otra casilla. La
+   * aceptación sigue siendo la misma casilla de siempre (el formulario);
+   * sin ella la cuenta no se crea. Sin `rolElegido` (p. ej. /login) queda el
+   * paso propio de rol + casilla. */
+  rolElegido?: "worker" | "employer";
+  terminosAceptados?: boolean;
 }) {
   const { loginWithGoogle } = useAuth();
   const isDark = useResolvedTheme() === "dark";
   const buttonHostRef = useRef<HTMLDivElement>(null);
   const idTokenRef = useRef<string | null>(null);
+  // El callback de Google se registra una sola vez: lee el formulario por ref.
+  const formularioRef = useRef({ rolElegido, terminosAceptados });
+  formularioRef.current = { rolElegido, terminosAceptados };
   const [scriptReady, setScriptReady] = useState(false);
   const [pendingRole, setPendingRole] = useState<{ email: string; fullName: string } | null>(
     null
@@ -82,6 +95,11 @@ export default function GoogleAuthButton({
     try {
       const result = await loginWithGoogle(idToken);
       if (result.requiresRole) {
+        const { rolElegido: rol, terminosAceptados: aceptados } = formularioRef.current;
+        if (rol && aceptados) {
+          await crearConRol(rol);
+          return;
+        }
         setPendingRole({ email: result.email, fullName: result.fullName });
       } else if (!result.twoFactor) {
         onDone(false, undefined, result.sesion);
@@ -133,7 +151,12 @@ export default function GoogleAuthButton({
   }, [scriptReady, isDark]);
 
   async function chooseRole(role: "worker" | "employer") {
-    if (!idTokenRef.current || !acceptedTerms) return;
+    if (!acceptedTerms) return;
+    await crearConRol(role);
+  }
+
+  async function crearConRol(role: "worker" | "employer") {
+    if (!idTokenRef.current) return;
     setError(null);
     setRoleLoading(role);
     try {
@@ -171,7 +194,26 @@ export default function GoogleAuthButton({
           mismo `<div>` al pasar de un lado al otro del ternario, y el botón
           que Google inyectó a mano adentro (fuera de React) quedaba visible
           encima de la pregunta del rol. */}
-      {pendingRole ? (
+      {pendingRole && rolElegido ? (
+        // Rol y términos vienen del formulario: sólo falta tildar la casilla.
+        <div key="terminos" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
+          <p className="text-sm text-ink/70">
+            Para crear tu cuenta con Google como {rolElegido === "employer" ? "comercio" : "trabajador/a"},
+            aceptá los términos y la política de privacidad (casilla de arriba).
+          </p>
+          <div className="mt-3">
+            <Button
+              size="sm"
+              fullWidth
+              loading={roleLoading !== null}
+              disabled={roleLoading !== null || !terminosAceptados}
+              onClick={() => crearConRol(rolElegido)}
+            >
+              Crear cuenta con Google
+            </Button>
+          </div>
+        </div>
+      ) : pendingRole ? (
         <div key="role" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
           <p className="text-sm font-semibold text-ink">
             ¿Buscás trabajo o buscás personal?

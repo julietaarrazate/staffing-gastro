@@ -78,6 +78,7 @@ import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 import { WelcomeIllustration } from "@/components/illustrations";
 import { LIMITES } from "@/lib/limites";
+import { AVISO_MAIL, tomarAvisoMail } from "@/lib/aviso-mail";
 
 // maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
 // mapa, no con la página (medido 2026-10-22, ver historial).
@@ -127,10 +128,25 @@ function Bienvenida() {
  * (ver más abajo), que sigue siendo el "momento de marca" del primer paso
  * pero como acento, no como pantalla completa. */
 function Shell({ children }: { children: React.ReactNode }) {
+  // Tras el alta con email: aviso (una sola vez) de que llegó el mail de
+  // confirmación (U042).
+  const [avisoMail, setAvisoMail] = useState(false);
+  useEffect(() => {
+    if (tomarAvisoMail()) setAvisoMail(true);
+  }, []);
   return (
     <div className="-mb-20 flex min-h-[100dvh] flex-col bg-paper px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-ink md:mb-0">
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
         <Logo size={34} withWordmark={false} />
+        {avisoMail && (
+          <p
+            role="status"
+            data-testid="aviso-mail"
+            className="mt-4 rounded-xl bg-surface px-4 py-3 text-sm text-ink/70 ring-1 ring-line"
+          >
+            {AVISO_MAIL}
+          </p>
+        )}
         {children}
       </div>
     </div>

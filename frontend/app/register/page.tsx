@@ -13,6 +13,8 @@ import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 import { loginHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
 import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
 import { LIMITES } from "@/lib/limites";
+import { guardarAvisoMail } from "@/lib/aviso-mail";
+import { motivoBloqueoRegistro } from "@/lib/registro";
 
 type Role = "worker" | "employer";
 
@@ -56,12 +58,25 @@ function RegisterForm() {
   const [turnstileReset, setTurnstileReset] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  // Qué falta para poder crear la cuenta: se dice debajo del botón en vez de
+  // dejarlo gris sin explicación (U041).
+  const motivoBloqueo = motivoBloqueoRegistro({
+    nombre: fullName,
+    email,
+    clave: password,
+    terminos: acceptedTerms,
+    falta_verificacion: Boolean(TURNSTILE_SITE_KEY) && !turnstileToken,
+  });
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (motivoBloqueo) return;
     setError(null);
     setSubmitting(true);
     try {
-      const { signedIn } = await register(email, password, fullName, role);
+      const { signedIn } = await register(email, password, fullName.trim(), role);
+      // La cuenta ya existe y el mail de confirmación salió: /bienvenida lo avisa.
+      guardarAvisoMail();
       if (role === "employer" && planElegido) guardarPlanElegido(planElegido);
       if (!signedIn) {
         // La cuenta se creó pero el ingreso automático fue frenado: sin cartel
@@ -169,21 +184,24 @@ function RegisterForm() {
               </p>
             )}
             <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
-            <Button
-              type="submit"
-              fullWidth
-              loading={submitting}
-              disabled={!acceptedTerms || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
-            >
+            {motivoBloqueo && (
+              <p className="text-center text-sm text-ink/60" data-testid="motivo-crear-cuenta">
+                {motivoBloqueo}
+              </p>
+            )}
+            <Button type="submit" fullWidth loading={submitting} disabled={Boolean(motivoBloqueo)}>
               Crear cuenta
             </Button>
           </form>
 
           {/* Cuenta nueva por Google → onboarding. `/bienvenida` reenvía solo
               al comercio a su panel (o a "Mi plan" si eligió uno en la
-              landing); el rol lo elige el usuario dentro del propio botón de
-              Google y llega acá sólo para guardar ese plan. */}
+              landing). El rol y la aceptación de términos son los del formulario
+              (una sola casilla, sin volver a preguntar); el rol vuelve acá para
+              guardar el plan. */}
           <GoogleAuthButton
+            rolElegido={role}
+            terminosAceptados={acceptedTerms}
             onDone={async (isNewAccount, nuevoRol, sesion) => {
               if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
               router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next));

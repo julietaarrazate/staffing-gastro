@@ -34,6 +34,26 @@ class RegisterRequest(BaseModel):
     # rechaza el alta sin él y guarda la constancia (`TermsAcceptance`).
     accepted_terms: bool = False
 
+    @field_validator("full_name")
+    @classmethod
+    def _name_not_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Escribí tu nombre")
+        return stripped
+
+    @field_validator("password")
+    @classmethod
+    def _password_not_one_char(cls, value: str) -> str:
+        # Sólo la regla mínima: una clave de un único carácter repetido
+        # («aaaaaaaa», «11111111») no cuenta como clave.
+        if len(set(value)) == 1:
+            raise ValueError(
+                "La contraseña no puede ser un solo carácter repetido. "
+                "Combiná letras y números."
+            )
+        return value
+
 
 class UpdateMeRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=255)
