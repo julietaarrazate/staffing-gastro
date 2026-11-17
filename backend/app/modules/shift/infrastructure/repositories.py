@@ -28,6 +28,7 @@ from app.modules.shift.domain.repositories import (
 )
 from app.modules.shift.domain.value_objects import (
     OPEN_STATUSES,
+    TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
     ShiftStatus,
 )
@@ -172,6 +173,24 @@ def _from_active_company():
     return ShiftModel.company_id.not_in(inactive)
 
 
+def _worker_shifts_order():
+    """Orden de «Asignados» (U066): arriba lo que la persona tiene que hacer
+    (los estados no terminales, por hora de inicio ascendente: el próximo
+    primero) y abajo lo terminado (pagado, cancelado, no cubierto…, el más
+    reciente primero). Va en la consulta, no en Python, para que el límite de
+    la página no corte lo próximo. `CASE` anda igual en Postgres y SQLite."""
+    terminal = [s.value for s in TERMINAL_STATUSES]
+    is_terminal = ShiftModel.status.in_(terminal)
+    return (
+        case((is_terminal, 1), else_=0),
+        # Activos: inicio ascendente. En los terminados queda NULL (empatan)
+        # y desempata la tercera clave.
+        case((is_terminal, None), else_=ShiftModel.start_at).asc(),
+        ShiftModel.start_at.desc(),
+        ShiftModel.id,
+    )
+
+
 def _not_from_companies_of(emails: frozenset[str]):
     """Condición «el comercio del turno NO es una de estas cuentas» (cuentas
     de prueba e invitadas que se excluyen de las métricas de la beta). Mismo
@@ -314,7 +333,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         stmt = (
             select(ShiftModel)
             .where(ShiftModel.worker_profile_id == worker_profile_id)
-            .order_by(ShiftModel.created_at.desc())
+            .order_by(*_worker_shifts_order())
             .limit(limit)
             .offset(offset)
         )
