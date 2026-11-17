@@ -498,6 +498,8 @@ export interface AdminUserDetail {
     start_at: string;
     status: string;
     pay_amount: string;
+    /** La persona de la ficha faltó a este turno (ya no figura asignada). */
+    absent?: boolean;
   }[];
   tickets: { id: string; subject: string; status: string; created_at: string | null }[];
 }
@@ -588,6 +590,10 @@ export interface LiveShiftsBoard {
   escalated: number;
   /** Ausencias del día argentino de hoy. */
   no_shows?: number;
+  /** Cuántos turnos en vivo entraron en la lista (tope del servidor): si es
+   *  menor que `total`, faltan los más viejos. */
+  shown_live?: number;
+  limit?: number;
   shifts: LiveShift[];
 }
 

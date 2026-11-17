@@ -171,10 +171,10 @@ export default function AdminPersonPage() {
         <Avatar src={u.photo_url} name={u.full_name} size="lg" />
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 font-display text-h1 font-semibold tracking-tight text-ink">
-            <span className="truncate">{u.full_name}</span>
+            <span className="min-w-0 break-words">{u.full_name}</span>
             {u.is_verified && <CheckCircleIcon size={20} className="shrink-0 text-success-text" />}
           </h1>
-          <p className="truncate text-sm text-ink/50">{u.email}</p>
+          <p className="break-all text-sm text-ink/50">{u.email}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge tone="neutral">{ROLE_LABELS[u.role] ?? u.role}</Badge>
             <Badge tone={u.status === "active" ? "secondary" : "danger"}>
@@ -361,9 +361,13 @@ export default function AdminPersonPage() {
                       {formatShiftDate(s.start_at)} · {formatArs(s.pay_amount)}
                     </p>
                   </div>
-                  <Badge tone="neutral">
-                    {SHIFT_STATUS_LABELS[s.status as ShiftStatus] ?? s.status}
-                  </Badge>
+                  {s.absent ? (
+                    <Badge tone="danger">No se presentó</Badge>
+                  ) : (
+                    <Badge tone="neutral">
+                      {SHIFT_STATUS_LABELS[s.status as ShiftStatus] ?? s.status}
+                    </Badge>
+                  )}
                 </li>
               ))}
             </ul>

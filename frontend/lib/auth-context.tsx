@@ -94,9 +94,10 @@ interface AuthState {
   /** "Ver como": una admin entra a la cuenta de `userId` sin conocer su
    * contraseña (`POST /admin/users/{id}/impersonate`). La sesión de admin
    * queda en memoria (no en localStorage) para volver con `stopImpersonating`;
-   * si se recarga la página mientras se impersona, se vuelve a la cuenta admin
-   * automáticamente — es la conducta más segura por diseño (nunca persiste el
-   * token impersonado). */
+   * si se recarga la página mientras se impersona, se recupera la sesión de la
+   * admin y se vuelve a pedir "ver como" a esa misma persona (sólo se guarda
+   * su id en sessionStorage, nunca el token impersonado). Si no se puede, se
+   * vuelve a la cuenta admin sin error. */
   impersonate: (userId: string) => Promise<void>;
   stopImpersonating: () => void;
   /** Cambia el nombre del usuario autenticado (único dato de identidad
@@ -166,6 +167,37 @@ const SESSION_USER_KEY = "staffya_session_user";
 // Para qué cuenta ya se recargó esta pestaña (ver `sessionMovedOn`).
 const RELOADED_FOR_KEY = "staffya_reloaded_for";
 
+// A quién se está "viendo como" en esta pestaña (el id de la persona, que no
+// es un secreto; el token impersonado NUNCA se guarda). Vive en
+// sessionStorage: sólo sobrevive a recargar la misma pestaña. Al recargar, la
+// sesión que se recupera es la de la admin (cookie de renovación) y, si esta
+// marca está, se vuelve a pedir "ver como" con ese token de admin (U131).
+const IMPERSONATING_KEY = "staffya_impersonating";
+
+function rememberImpersonation(userId: string) {
+  try {
+    sessionStorage.setItem(IMPERSONATING_KEY, userId);
+  } catch {
+    /* sin sessionStorage: al recargar se vuelve a la cuenta admin */
+  }
+}
+
+function pendingImpersonation(): string | null {
+  try {
+    return sessionStorage.getItem(IMPERSONATING_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function forgetImpersonation() {
+  try {
+    sessionStorage.removeItem(IMPERSONATING_KEY);
+  } catch {
+    /* nada que olvidar */
+  }
+}
+
 function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
   localStorage.setItem(HAS_SESSION_KEY, "1");
@@ -181,6 +213,7 @@ function clearSession() {
   localStorage.removeItem("staffya_token");
   localStorage.removeItem(HAS_SESSION_KEY);
   localStorage.removeItem(SESSION_USER_KEY);
+  forgetImpersonation();
   // Borradores de la pestaña (publicar, bienvenida): no pasan a la próxima cuenta.
   borrarBorradores();
 }
@@ -201,7 +234,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // como otra persona). Ver `SESSION_USER_KEY`.
   const sessionUserId = useRef<string | null>(null);
 
+  // La cuenta que se acaba de recuperar al abrir la app (ver `resumeImpersonation`).
+  const restoredAccount = useRef<User | null>(null);
+
   function rememberSessionUser(account: User) {
+    restoredAccount.current = account;
     sessionUserId.current = account.id;
     localStorage.setItem(SESSION_USER_KEY, account.id);
   }
@@ -497,12 +534,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /** Entra a la cuenta de `userId` con la sesión de la admin dada (`adminToken`
+   * y `adminUser`). Lo usan `impersonate` y la recuperación al recargar. */
+  async function enterImpersonation(adminToken: string, adminUser: User, userId: string) {
+    const data = await api.post<{ access_token: string; user: User }>(
+      `/admin/users/${userId}/impersonate`,
+      undefined,
+      adminToken
+    );
+    // Una renovación de la admin que quedó en vuelo no se aplica sobre la
+    // sesión de la persona que pasa a ver (saldría con el token de la admin).
+    sessionEpoch.current += 1;
+    setImpersonating({ adminToken, adminUser });
+    impersonatingRef.current = true;
+    rememberImpersonation(userId);
+    // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
+    // el feed o el perfil de la admin como si fueran del usuario impersonado.
+    clearAllCached();
+    setToken(data.access_token);
+    setUser(data.user);
+  }
+
+  /** Tras recuperar la sesión, si la pestaña estaba "viendo como" alguien
+   * (marca en sessionStorage), vuelve a entrar a esa cuenta con el token de
+   * la admin recuperada. Si no se puede (la persona ya no existe, el
+   * servidor falla, la sesión recuperada no es de una admin) se vuelve
+   * limpio a la sesión de la admin, sin error y sin quedar en una pantalla
+   * de otro rol. */
+  async function resumeImpersonation(result: "ok" | "none" | "transient") {
+    const targetId = pendingImpersonation();
+    if (!targetId) return;
+    const admin = restoredAccount.current;
+    const adminToken = localStorage.getItem("staffya_token");
+    if (result !== "ok" || !admin || admin.role !== "admin" || !adminToken) {
+      forgetImpersonation();
+      return;
+    }
+    try {
+      await enterImpersonation(adminToken, admin, targetId);
+    } catch {
+      forgetImpersonation();
+      router.replace("/admin");
+    }
+  }
+
   useEffect(() => {
-    restoreOnce().then((result) => {
+    restoreOnce().then(async (result) => {
       // Servidor dormido al abrir (U114): la app deja de esperar, pero queda
       // dicho que hay una sesión por confirmar. Antes caía a la cabecera de
       // visitante («Ingresar», «Crear cuenta») con la sesión intacta.
       if (result === "transient") setReconnecting(true);
+      else await resumeImpersonation(result);
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez, al abrir la app
@@ -532,6 +614,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         attempt += 1;
         schedule();
       } else {
+        await resumeImpersonation(result);
+        if (cancelled) return;
         setReconnecting(false);
         // Las pantallas que cargaron con el servidor dormido quedaron con su
         // error («Error al cargar tus turnos»): ahora que contesta, se les
@@ -608,6 +692,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionUserId.current = null;
       clearAllCached();
       impersonatingRef.current = false;
+      forgetImpersonation();
       setImpersonating(null);
       setTwoFactorSetupPending(false);
       setReconnecting(false);
@@ -795,27 +880,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function impersonate(userId: string) {
     if (!token || !user || impersonating) return;
-    const data = await api.post<{ access_token: string; user: User }>(
-      `/admin/users/${userId}/impersonate`,
-      undefined,
-      token
-    );
-    // Una renovación de la admin que quedó en vuelo no se aplica sobre la
-    // sesión de la persona que pasa a ver (saldría con el token de la admin).
-    sessionEpoch.current += 1;
-    setImpersonating({ adminToken: token, adminUser: user });
-    impersonatingRef.current = true;
-    // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
-    // el feed o el perfil de la admin como si fueran del usuario impersonado.
-    clearAllCached();
-    setToken(data.access_token);
-    setUser(data.user);
+    await enterImpersonation(token, user, userId);
   }
 
   function stopImpersonating() {
     if (!impersonating) return;
     sessionEpoch.current += 1;
     impersonatingRef.current = false;
+    forgetImpersonation();
     clearAllCached();
     // El token de la admin pudo haber vencido durante la impersonación (el
     // auto-refresh estaba apagado): la primera request da 401 y se renueva.
