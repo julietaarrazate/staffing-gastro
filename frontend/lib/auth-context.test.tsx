@@ -321,6 +321,21 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     expect(auth().twoFactorSetupPending).toBe(true);
   });
 
+  it("entrar con otra cuenta sin cerrar sesión no hereda el alta pendiente de la admin", async () => {
+    const auth = await mountApp();
+    backend["POST /auth/login"] = [
+      200,
+      { access_token: "token-sin-verificar", user: ADMIN, two_factor_setup_required: true },
+    ];
+    await act(async () => {
+      await auth().login(ADMIN.email, "una-clave");
+    });
+    expect(auth().twoFactorSetupPending).toBe(true);
+
+    await loginAs(auth, TRABAJADORA, "token-trabajadora");
+    expect(auth().twoFactorSetupPending).toBe(false);
+  });
+
   it("una cuenta que no tiene el alta pendiente no la marca", async () => {
     localStorage.setItem("staffya_token", "token-guardado");
     localStorage.setItem("staffya_has_session", "1");

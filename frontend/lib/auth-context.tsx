@@ -814,11 +814,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
     setUser(account);
     rememberSessionUser(account);
-    // Admin sin la verificación activada: se sabe acá, antes de que monten las
-    // pantallas (la campanita no pide nada). Sólo prende: apagarlo es del alta.
-    if (tokens.two_factor_setup_required || account.two_factor_setup_required) {
-      setTwoFactorSetupPending(true);
-    }
+    // Se sabe acá, antes de que monten las pantallas (la campanita no pide
+    // nada). Se ASIGNA lo que dice el servidor: entrar con otra cuenta sin
+    // cerrar sesión no debe heredar la marca de la admin anterior. Un 403
+    // tardío (`setupRequired`, sesiones viejas) la sigue prendiendo.
+    setTwoFactorSetupPending(
+      Boolean(tokens.two_factor_setup_required || account.two_factor_setup_required)
+    );
     return { token: tokens.access_token, user: account };
   }
 

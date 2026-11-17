@@ -8,6 +8,8 @@
 
 **Por qué así:** la señal viaja con datos que el backend ya tiene en cada pedido de sesión (no hace falta otra consulta ni otro endpoint). Sólo se prende la marca; apagarla sigue siendo del alta (`adoptSession`). El campo va en `MeResponse` (hereda de `UserResponse`) y no en `UserResponse`, para no sumarlo a las respuestas embebidas que no lo calculan.
 
+**Ajuste tras la revisión:** `startSession` ahora asigna lo que dice el servidor (no sólo prende la marca): entrar con otra cuenta sin cerrar sesión ya no hereda el alta pendiente de la admin anterior (el 403 tardío de sesiones viejas la sigue prendiendo). En el login, la regla sale de `admin_gate` y no se repite en `services.py`.
+
 **Pruebas:** `e2e/barra-de-abajo.spec.ts` (las pestañas de cada rol entran enteras, repartidas y con 44 px de alto a 360 y 320 px; el admin con el alta pendiente no pide `/notifications`), `lib/auth-context.test.tsx` (la marca llega junto con el usuario, nunca hay un render con usuario y sin marca), `backend/tests/test_dos_pasos_admin.py`.
 
 **Queda abierto:** nada de este grupo. Si el admin con el alta pendiente cae en una pantalla que no pide nada del panel, no se lo lleva solo a `/admin/seguridad` (lo hace el primer 403, como antes).
