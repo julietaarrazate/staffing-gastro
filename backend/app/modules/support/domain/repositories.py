@@ -3,7 +3,12 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.modules.support.domain.entities import EnrichedTicket, SupportMessage, SupportTicket
+from app.modules.support.domain.entities import (
+    EnrichedTicket,
+    SupportMessage,
+    SupportTicket,
+    TicketOpener,
+)
 from app.modules.support.domain.value_objects import TicketStatus
 
 
@@ -34,6 +39,10 @@ class SupportTicketRepository(ABC):
     ) -> list[EnrichedTicket]:
         """Lista TODOS los tickets (uso admin), enriquecidos con datos del
         usuario y resumen de mensajes, más recientes primero, paginado."""
+
+    @abstractmethod
+    async def get_opener(self, ticket_id: UUID) -> TicketOpener | None:
+        """Nombre y rol de quien abrió el ticket (uso admin)."""
 
 
 class SupportMessageRepository(ABC):
