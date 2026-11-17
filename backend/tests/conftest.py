@@ -49,6 +49,7 @@ from app.modules.application.infrastructure import models as application_models 
 from app.modules.assistant.infrastructure import models as assistant_models  # noqa: F401
 from app.modules.chat.infrastructure import models as chat_models  # noqa: F401
 from app.modules.company.infrastructure import models as company_models  # noqa: F401
+from app.modules.encuesta.infrastructure import models as encuesta_models  # noqa: F401
 from app.modules.favorite.infrastructure import models as favorite_models  # noqa: F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
 from app.modules.lead.infrastructure import models as lead_models  # noqa: F401

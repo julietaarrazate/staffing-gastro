@@ -109,6 +109,9 @@ class ShiftModel(Base):
     first_assigned_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    first_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Publicación masiva para un evento (sin tabla propia ni FK: sólo un UUID

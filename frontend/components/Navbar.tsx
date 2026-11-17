@@ -92,6 +92,8 @@ export default function Navbar() {
   // /historia (la landing anterior, guardada para grabar reels) trae su
   // propio encabezado, con o sin sesión.
   if (pathname === "/historia") return null;
+  // La encuesta para locales es una pantalla propia, con su cielo y sin barras.
+  if (pathname === "/encuesta") return null;
 
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
