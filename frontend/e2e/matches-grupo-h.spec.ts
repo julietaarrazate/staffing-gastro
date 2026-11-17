@@ -39,14 +39,19 @@ const saved = [
 ];
 
 
-async function abrir(page: import("@playwright/test").Page, guardados: unknown[] = saved) {
+async function abrir(
+  page: import("@playwright/test").Page,
+  guardados: unknown[] = saved,
+  asignados: unknown[] = assigned,
+  postulaciones: unknown[] = apps,
+) {
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json({ id: "u", email: "m@x.com", full_name: "Mozo", role: "worker", status: "activo", is_active: true, is_verified: true })));
-  await page.route("**/api/v1/shifts/mine", (r) => r.fulfill(json(assigned)));
-  await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json(apps)));
+  await page.route("**/api/v1/shifts/mine", (r) => r.fulfill(json(asignados)));
+  await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json(postulaciones)));
   await page.route("**/api/v1/saved-shifts", (r) => r.request().method() === "GET" ? r.fulfill(json(guardados)) : r.continue());
   await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({ id: "p", user_id: "u", full_name: "Mozo", skills: ["mozo"], latitude: -34.58, longitude: -58.42, city: "Palermo", badges: [], level: "plata", rating: 4.5 })));
   await page.goto("/my-shifts");
@@ -74,6 +79,24 @@ test("en 360 px las tres pestañas entran y la página no se desborda", async ({
   }
   const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(ancho).toBeLessThanOrEqual(360);
+});
+
+test("en 360 px con contadores de dos cifras ningún nombre se recorta", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  const n = (k: number, f: (i: number) => unknown) => Array.from({ length: k }, (_, i) => f(i));
+  await abrir(
+    page,
+    n(11, (i) => shift({ id: `guardado-${i}` })),
+    n(12, (i) => shift({ id: `asignado-${i}`, status: "confirmado", worker_profile_id: "p" })),
+    n(10, (i) => ({ id: `post-${i}`, shift_id: `abierto-${i}`, worker_profile_id: "p", status: "pendiente", created_at: isoEnDias(-1), shift: shift({ id: `abierto-${i}` }) })),
+  );
+  for (const name of ["Asignados (12)", "Postulaciones (10)", "Guardados (11)"]) {
+    const recortado = await page
+      .getByRole("button", { name })
+      .locator(".truncate")
+      .evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(recortado, name).toBe(false);
+  }
 });
 
 test("en 320 px y con un contador de tres cifras la pista no desborda y el número se ve", async ({ page }) => {
