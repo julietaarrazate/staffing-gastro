@@ -196,7 +196,7 @@ _PRIVATE_PROFILE_FIELDS = ("latitude", "longitude", "birth_date")
 # comercio que tenga o haya tenido un turno o una postulación con esa persona.
 # Antes lo veía cualquier sesión con el `profile_id` del mapa (revisión de
 # seguridad 2026-10-20).
-_CONTACT_PROFILE_FIELDS = ("cv_url",)
+_CONTACT_PROFILE_FIELDS = ("cv_url", "cv_filename")
 
 
 @router.get(
