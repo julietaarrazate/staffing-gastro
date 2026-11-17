@@ -60,7 +60,7 @@ interesados en la beta. La responde gente sin cuenta, desde el celular.
 
 ## Consecuencias
 
-- Tabla nueva `survey_responses` (migración 0046).
+- Tabla nueva `survey_responses` (migración 0047).
 - `POST /api/v1/encuesta` es de los pocos endpoints públicos de escritura;
   su límite es por proceso, como el resto (ver `SECURITY.md`).
 - Una respuesta sin contacto conserva rol, nombre del local, tipo de

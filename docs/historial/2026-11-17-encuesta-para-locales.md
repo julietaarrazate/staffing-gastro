@@ -15,7 +15,7 @@ locales interesados en la beta.
   `sessionStorage` hasta enviar. `frontend/components/encuesta/`,
   `frontend/lib/encuesta.ts`.
 - Backend: módulo `backend/app/modules/encuesta/` (`SurveyResponse`),
-  migración `0046_encuesta_locales`. `POST /api/v1/encuesta` público (límite
+  migración `0047_encuesta_locales`. `POST /api/v1/encuesta` público (límite
   por IP, honeypot, `Idempotency-Key`), `GET /admin/encuesta` y
   `GET /admin/encuesta/summary` sólo admin.
 - Contacto: se guarda mientras dure la beta y el lanzamiento; sin borrado
