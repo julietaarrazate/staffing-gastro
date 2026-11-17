@@ -14,7 +14,7 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - **Cuándo:** sólo sobre turnos **cerrados** (`finalizado` o `pagado`).
 - **Quién:** el comercio y el trabajador **asignado** al turno.
 - **Qué:** una calificación de **1 a 5** y un comentario opcional.
-- **Unicidad:** una sola reseña por usuario por turno.
+- **Unicidad:** una sola reseña por usuario por turno. **Es definitiva (U111):** no se edita ni se borra (no hay endpoint para eso); un segundo intento da 409 «Ya calificaste este turno…», y la pantalla lo avisa antes de enviar.
 - **Efecto:** cada reseña **recalcula el rating promedio** del calificado y le
   genera una notificación (`review_received`).
 
