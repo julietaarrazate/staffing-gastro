@@ -26,9 +26,13 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
-- 🔴 **Salida a beta (en curso, etapa 3: los menores; tandas 1, 2 y 3
-  hechas, sigue la 4 con E y U110 aparte, y después lo que Julieta decidió
-  el 2026-11-17 sobre U018, U039, U084, U101, U106 y U111).** Qué está hecho,
+- 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** Sigue, en sesiones
+  nuevas: lo de la etapa 2 que quedó «para revisar con Fable» (G4, U080,
+  U081, U072, P1 a P5, la pasada por clase de error), y en paralelo las
+  etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
+  cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
+  U143. Antes del 17/12: revisar la excepción de picomatch (#612).
+  Qué está hecho,
   qué está en curso, qué falta y qué espera una decisión de Julieta, fila por
   fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
   primero que se lee y lo que se edita en cada PR de la beta.
