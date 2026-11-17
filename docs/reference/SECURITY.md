@@ -152,6 +152,20 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   severidad ERROR. Complementa a pip-audit y npm audit, que sólo miran las
   librerías. No es CodeQL porque en un repo privado eso es pago.
 
+## Excepciones del control de dependencias
+
+El job «Frontend dependency audit» del workflow Security corre
+`.github/scripts/npm-audit.mjs`. El script falla igual que
+`npm audit --audit-level=high`, salvo los avisos listados en su
+`EXCEPCIONES`. Cada excepción tiene motivo y fecha de vencimiento; pasada la
+fecha, el control vuelve a fallar aunque el aviso siga, para obligar a
+revisarla. Si un aviso exceptuado desaparece, el log avisa que la excepción
+sobra. Se agrega una excepción sólo con el «sí» de Julieta.
+
+| Aviso | Paquete | Por qué se exceptúa | Vence |
+|---|---|---|---|
+| [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) | picomatch (ReDoS) | No hay versión corregida: la última publicada, 4.0.7, está en el rango afectado, y todo lo que lo trae (vite, vitest, tinyglobby, el lint de Next, los plugins de rollup de Sentry) pide `^4`. Sólo corre al compilar y al probar, nunca en la app que usa la gente, y el ataque necesita patrones de archivos escritos por un tercero. Decisión de Julieta, 2026-11-17. | 2026-12-17 |
+
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 
 > Deudas reales pendientes (ver [TECH_DEBT.md](../TECH_DEBT.md),
