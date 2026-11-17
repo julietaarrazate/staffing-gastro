@@ -60,17 +60,20 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginOutcome>;
+  /** `birthDate`: `AAAA-MM-DD`, obligatoria y de un mayor de 18 (U101). */
   register: (
     email: string,
     password: string,
     full_name: string,
-    role: "worker" | "employer"
+    role: "worker" | "employer",
+    birthDate: string
   ) => Promise<RegisterOutcome>;
-  /** `role` sólo hace falta si el email es nuevo (ver `GoogleLoginResult`);
-   * se ignora si el email ya tiene cuenta. */
+  /** `role` y `birthDate` sólo hacen falta si el email es nuevo (ver
+   * `GoogleLoginResult`); se ignoran si el email ya tiene cuenta. */
   loginWithGoogle: (
     idToken: string,
-    role?: "worker" | "employer"
+    role?: "worker" | "employer",
+    birthDate?: string
   ) => Promise<GoogleLoginResult>;
   /** Acceso de invitado para la beta ("Explorar sin cuenta"): entra sin
    * registrarse validando un PIN (ver `POST /auth/guest`). */
@@ -879,7 +882,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     full_name: string,
-    role: "worker" | "employer"
+    role: "worker" | "employer",
+    birthDate: string
   ): Promise<RegisterOutcome> {
     // La pantalla de registro sólo llega acá con el checkbox de términos
     // marcado, y el backend guarda la constancia (versión, medio y fecha).
@@ -889,6 +893,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       full_name,
       role,
       accepted_terms: true,
+      birth_date: birthDate,
     });
     // Desde acá la cuenta ya existe: si el ingreso automático falla (el 429 de
     // `/auth/login` por IP es lo más común: misma red que ya probó ingresos),
@@ -903,7 +908,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function loginWithGoogle(
     idToken: string,
-    role?: "worker" | "employer"
+    role?: "worker" | "employer",
+    birthDate?: string
   ): Promise<GoogleLoginResult> {
     const data = await signIn(() =>
       api.post<
@@ -916,6 +922,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // El rol sólo viaja cuando se crea la cuenta, y `GoogleAuthButton` no
         // deja elegirlo sin marcar términos y privacidad.
         accepted_terms: role !== undefined,
+        // Con el rol va la fecha de nacimiento (U101): el backend no crea la
+        // cuenta sin ella ni a un menor de 18.
+        birth_date: role !== undefined ? birthDate : undefined,
       })
     );
 
