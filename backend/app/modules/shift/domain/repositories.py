@@ -253,6 +253,12 @@ class ShiftRepository(ABC):
         al confirmar un turno (regla de doble turno, `COMMITTED_STATUSES`)."""
 
     @abstractmethod
+    async def list_by_event(self, company_id: UUID, event_id: UUID) -> list[Shift]:
+        """Los puestos de un evento de este comercio, en todos los estados y
+        sin paginar (un evento tiene pocos). Vacío si el evento no existe o es
+        de otro comercio: quien llama no distingue los dos casos (U084)."""
+
+    @abstractmethod
     async def list_by_company_and_statuses(
         self, company_id: UUID, statuses: frozenset[ShiftStatus]
     ) -> list[Shift]:

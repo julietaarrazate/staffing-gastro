@@ -11,7 +11,12 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { coberturaPorEvento } from "@/lib/evento-cobertura";
-import { cancelConfirmCopy, isCancellable, withFreshState } from "@/lib/cancelar-turno";
+import {
+  cancelConfirmCopy,
+  cancelEventConfirmCopy,
+  isCancellable,
+  withFreshState,
+} from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
@@ -226,6 +231,10 @@ function MyShiftsPanel() {
   const [cancelChecking, setCancelChecking] = useState(false);
   const cancelCheckRef = useRef(0);
   const [confirmMarkPaidId, setConfirmMarkPaidId] = useState<string | null>(null);
+  // U084: cancelar un evento entero. Mientras se relee el panel al abrir el
+  // diálogo (`askCancelEvent`), el texto queda en espera.
+  const [confirmEventId, setConfirmEventId] = useState<string | null>(null);
+  const [eventChecking, setEventChecking] = useState(false);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
   // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
@@ -311,6 +320,7 @@ function MyShiftsPanel() {
       confirmNoShowId !== null ||
       confirmCancelId !== null ||
       confirmMarkPaidId !== null ||
+      confirmEventId !== null ||
       planLimitMessage !== null ||
       justPublishedId !== null,
   });
@@ -400,6 +410,43 @@ function MyShiftsPanel() {
     await run(id, "cancel");
   }
 
+  // Cancelar un evento entero (U084): mismas reglas que cada puesto, y el
+  // texto dice cuántos puestos se cancelan y cuántas tardías suma. Igual que
+  // `askCancel`, al abrir se relee el panel para que ese texto sea el de ahora.
+  async function askCancelEvent(eventId: string) {
+    // Abrir pasa por la guarda (como «Marcar como pagado»): el segundo toque
+    // de un doble toque no confirma. La relectura va afuera, para que la
+    // guarda no siga trabada mientras llega.
+    const opened = await tapGuard.run(() => setConfirmEventId(eventId));
+    if (!opened) return;
+    setEventChecking(true);
+    try {
+      await load({ silent: true });
+    } finally {
+      setEventChecking(false);
+    }
+  }
+
+  async function confirmCancelEvent(eventId: string) {
+    if (!token) return;
+    const key = `${eventId}:cancel-event`;
+    await tapGuard.run(async () => {
+      setConfirmEventId(null);
+      setBusy(key);
+      try {
+        await api.post(`/shifts/events/${eventId}/cancel`, undefined, token, undefined, keyFor(key));
+        clearIdempotencyKey(key);
+        toast("Cancelaste el evento.", "success");
+      } catch (err) {
+        toast(getErrorMessage(err, "No se pudo cancelar el evento"), "error");
+      } finally {
+        // También al fallar: algún puesto pudo haber cambiado.
+        await load({ silent: true });
+        setBusy(null);
+      }
+    });
+  }
+
   // «Marcar como pagado» no se puede deshacer y le avisa al trabajador que
   // cobró: primero se pregunta. Abrir el diálogo también pasa por la guarda,
   // así el toque que cae justo después de «Cerrar turno» no lo abre, y el
@@ -438,6 +485,9 @@ function MyShiftsPanel() {
 
   const cancelCopy = cancelConfirmCopy(
     confirmCancelId ? shifts.find((s) => s.id === confirmCancelId) : undefined
+  );
+  const eventCopy = cancelEventConfirmCopy(
+    confirmEventId ? shifts.filter((s) => s.event_id === confirmEventId) : []
   );
   const payingWorkerName = confirmMarkPaidId
     ? shifts.find((s) => s.id === confirmMarkPaidId)?.worker_name
@@ -525,7 +575,7 @@ function MyShiftsPanel() {
               key={event.eventId}
               className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-line"
             >
-              <p className="truncate text-sm font-semibold text-ink">{event.name}</p>
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{event.name}</p>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
                   event.covered === event.total
@@ -535,6 +585,17 @@ function MyShiftsPanel() {
               >
                 {event.covered}/{event.total} cubiertos
               </span>
+              {shifts.some((s) => s.event_id === event.eventId && isCancellable(s.status)) && (
+                <button
+                  type="button"
+                  onClick={() => void askCancelEvent(event.eventId)}
+                  disabled={busy !== null || tapGuard.locked}
+                  aria-label={`Cancelar el evento ${event.name}`}
+                  className="-my-2 -mr-2 min-h-[44px] shrink-0 rounded-full px-2 text-sm font-semibold text-danger-text hover:underline disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -692,6 +753,44 @@ function MyShiftsPanel() {
             onClick={() => confirmCancelId && confirmCancel(confirmCancelId)}
           >
             Sí, cancelar turno
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmEventId !== null}
+        onClose={() => {
+          if (!tapGuard.locked) setConfirmEventId(null);
+        }}
+        title="¿Cancelar el evento entero?"
+      >
+        {eventChecking ? (
+          <div role="status" aria-busy="true" data-testid="cancel-event-checking">
+            <span className="sr-only">Revisando el estado del evento…</span>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </div>
+        ) : eventCopy.count === 0 ? (
+          <p className="text-sm text-ink/60">Este evento ya no tiene puestos para cancelar.</p>
+        ) : (
+          <>
+            <p className="text-sm text-ink/60">{eventCopy.body}</p>
+            {eventCopy.lateCancellation && (
+              <p className="mt-2 text-sm font-semibold text-ink">{eventCopy.lateCancellation}</p>
+            )}
+          </>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmEventId(null)}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={eventChecking || tapGuard.locked || eventCopy.count === 0}
+            onClick={() => confirmEventId && confirmCancelEvent(confirmEventId)}
+          >
+            Sí, cancelar evento
           </Button>
         </div>
       </Modal>
