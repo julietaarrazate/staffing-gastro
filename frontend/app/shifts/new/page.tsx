@@ -952,6 +952,7 @@ function NewShiftWizard() {
                     </p>
                     <div className="mt-5">
                       <LocationPicker
+                        initialCity={city}
                         onSelect={(loc: LocationSelection) => {
                           tocar("place");
                           setCity(loc.city);
