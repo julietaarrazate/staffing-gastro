@@ -36,6 +36,7 @@ from app.modules.shift.domain.pay_benchmark import (
 from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
     AssigneeUnavailableError,
+    InvalidShiftTransitionError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -55,6 +56,7 @@ from app.modules.shift.domain.suspension import (
 )
 from app.modules.shift.domain.value_objects import (
     COMMITTED_STATUSES,
+    TERMINAL_STATUSES,
     OPEN_STATUSES,
     ShiftStatus,
     TAKEN_NOT_STARTED_STATUSES,
@@ -700,6 +702,38 @@ class ShiftService(AccountSuspensionEffects):
         contador del comercio) y recién después salen los avisos, que no
         pueden hacer fallar una cancelación que ya está hecha."""
         shift = await self._get_owned(company_id, shift_id)
+        return await self._cancel_owned(company_id, shift)
+
+    async def cancel_event(self, company_id: UUID, event_id: UUID) -> list[Shift]:
+        """El comercio cancela un evento entero de una vez (U084, decisión de
+        Julieta del 2026-11-17): **las mismas reglas que cancelar cada
+        puesto**, porque es eso, puesto por puesto. A cada asignado y a cada
+        postulación pendiente le llega su aviso, y cada puesto con alguien ya
+        comprometido suma su propia cancelación tardía al comercio.
+
+        Los puestos que ya terminaron, se pagaron, quedaron sin cubrir o ya
+        estaban cancelados no se tocan. Devuelve los que se cancelaron ahora.
+        Un evento inexistente o de otro comercio es `ShiftNotFoundError` (no
+        se revela cuál de los dos); uno sin nada para cancelar,
+        `InvalidShiftTransitionError`.
+
+        Cada puesto se guarda por separado: si algo falla a mitad de camino,
+        reintentar cancela los que quedaron (los ya cancelados se saltean)."""
+        puestos = await self._shifts.list_by_event(company_id, event_id)
+        if not puestos:
+            raise ShiftNotFoundError(str(event_id))
+        pendientes = [p for p in puestos if p.status not in TERMINAL_STATUSES]
+        if not pendientes:
+            raise InvalidShiftTransitionError(
+                "Este evento ya no tiene puestos para cancelar."
+            )
+        return [await self._cancel_owned(company_id, puesto) for puesto in pendientes]
+
+    async def _cancel_owned(self, company_id: UUID, shift: Shift) -> Shift:
+        """Cancela un turno que ya se sabe del comercio: guarda, rechaza las
+        postulaciones pendientes, suma la tardía si correspondía y avisa. Lo
+        comparten cancelar un turno y cancelar un evento entero."""
+        shift_id = shift.id
         was_committed = shift.status in COMMITTED_STATUSES
         affected_worker_profile_id = shift.worker_profile_id
         shift.cancel()
