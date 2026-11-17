@@ -27,7 +27,7 @@ describe("CvUpload", () => {
     const bigFile = makeFile("cv-gigante.pdf", 11 * 1024 * 1024);
     await user.upload(input, bigFile);
 
-    expect(await screen.findByText(/pesa más de 10MB/)).toBeInTheDocument();
+    expect(await screen.findByText(/demasiado pesado.*máximo es 10MB/)).toBeInTheDocument();
     expect(uploadCv).not.toHaveBeenCalled();
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -49,5 +49,26 @@ describe("CvUpload", () => {
       )
     );
     expect(uploadCv).toHaveBeenCalledWith(okFile, "tok");
+  });
+
+  it("un tipo no permitido muestra su propio mensaje y no sube", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    render(<CvUpload value="" fileName={null} token="tok" onChange={vi.fn()} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, new File(["x"], "cv.exe", { type: "application/x-msdownload" }));
+    expect(await screen.findByText(/tipo de archivo no está permitido/)).toBeInTheDocument();
+    expect(uploadCv).not.toHaveBeenCalled();
+  });
+
+  it("con un CV ya subido ofrece «Reemplazar»", () => {
+    render(
+      <CvUpload
+        value="https://res.cloudinary.com/demo/raw/upload/cv.pdf"
+        fileName="cv.pdf"
+        token="tok"
+        onChange={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Reemplazar" })).toBeInTheDocument();
   });
 });
