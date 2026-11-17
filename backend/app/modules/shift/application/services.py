@@ -1504,7 +1504,7 @@ class ShiftService(AccountSuspensionEffects):
                 NotificationType.SHIFT_FINISHED,
                 "Cerró tu turno",
                 f"Calificá a {company_name} por el turno \"{updated.title or updated.position.label}\".",
-                link="/my-shifts",
+                link=f"/my-shifts?turno={updated.id}",
             )
         return updated
 
