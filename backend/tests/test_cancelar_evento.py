@@ -165,4 +165,24 @@ async def test_un_trabajador_no_puede_cancelar_un_evento(client: AsyncClient):
         f"/api/v1/shifts/events/{evento['event_id']}/cancel", headers=worker
     )
 
-    assert response.status_code in (403, 404)
+    assert response.status_code == 403
+
+
+async def test_asignado_sin_confirmar_recibe_aviso_sin_tardia(client: AsyncClient):
+    employer = await _employer(client, "ev_emp5@staffya.com")
+    asignada, asignada_id = await _worker(client, "ev_w5@staffya.com")
+    evento = await _evento(client, employer, mozos=1)
+    puesto = evento["shifts"][0]["id"]
+    await client.post(f"/api/v1/applications/shifts/{puesto}", headers=asignada)
+    assigned = await client.post(
+        f"/api/v1/shifts/{puesto}/assign", headers=employer, json={"worker_profile_id": asignada_id}
+    )
+    assert assigned.json()["status"] == "asignado"
+
+    response = await client.post(
+        f"/api/v1/shifts/events/{evento['event_id']}/cancel", headers=employer
+    )
+
+    assert response.status_code == 200
+    assert [n["type"] for n in await _avisos(client, asignada)] == ["shift_cancelled"]
+    assert await _tardias(client, employer) == 0
