@@ -719,6 +719,8 @@ export interface SupportTicket {
 
 export interface SupportTicketDetail extends SupportTicket {
   messages: SupportMessage[];
+  /** Quién abrió el ticket: sólo viene para el admin (no-disclosure). */
+  opened_by?: { user_id: string; full_name: string; role: string } | null;
 }
 
 /** Sugerencia interna de IA para un ticket (sólo admin) — nunca se le manda

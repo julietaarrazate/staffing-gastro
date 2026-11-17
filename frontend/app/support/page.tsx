@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 import {
   SupportTicket,
   TICKET_CATEGORY_LABELS,
@@ -29,6 +30,7 @@ export default function SupportPage() {
   const { token } = useRequireAuth();
   const router = useRouter();
   const toast = useToast();
+  const { keyFor, clear } = useIdempotencyKeys();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,12 +68,17 @@ export default function SupportPage() {
     e.preventDefault();
     if (!token) return;
     setSubmitting(true);
+    // U012: mismo formulario reintentado = misma key (no duplica el ticket).
+    const attempt = JSON.stringify([category, subject, body]);
     try {
       const ticket = await api.post<SupportTicket>(
         "/support/tickets",
         { category, subject, body },
-        token
+        token,
+        undefined,
+        keyFor(attempt)
       );
+      clear(attempt);
       setShowNew(false);
       resetForm();
       router.push(`/support/${ticket.id}`);

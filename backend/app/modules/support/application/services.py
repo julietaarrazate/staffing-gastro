@@ -5,7 +5,12 @@ from uuid import UUID
 from app.modules.notification.domain.entities import Notification
 from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
-from app.modules.support.domain.entities import EnrichedTicket, SupportMessage, SupportTicket
+from app.modules.support.domain.entities import (
+    EnrichedTicket,
+    SupportMessage,
+    SupportTicket,
+    TicketOpener,
+)
 from app.modules.support.domain.exceptions import (
     EmptyMessageError,
     TicketClosedError,
@@ -88,6 +93,10 @@ class SupportService:
     ) -> list[EnrichedTicket]:
         """Sólo para admin — la restricción de rol se aplica en la capa API."""
         return await self._tickets.list_all_enriched(status=status, limit=limit, offset=offset)
+
+    async def get_opener(self, ticket_id: UUID) -> TicketOpener | None:
+        """Sólo admin (la restricción de rol se aplica en la capa API)."""
+        return await self._tickets.get_opener(ticket_id)
 
     async def close_ticket(
         self, requester_id: UUID, ticket_id: UUID, *, is_admin: bool
