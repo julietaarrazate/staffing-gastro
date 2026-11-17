@@ -141,9 +141,17 @@ class Shift:
     # `first_assigned_at` cuándo se encontró el primer candidato — sólo la
     # PRIMERA vez (`assign()` no lo pisa en reasignaciones tras rechazo/
     # no-show, para no mezclar "cuánto tardó el matching" con "cuántas veces
-    # se tuvo que reintentar"). Panel admin: `AdminService.get_stats`.
+    # se tuvo que reintentar"). Dato interno del embudo: desde 2026-11-17 la
+    # promesa se mide hasta `first_confirmed_at` (ver abajo). Panel admin:
+    # `AdminService.get_stats`.
     published_at: datetime | None = None
     first_assigned_at: datetime | None = None
+    # Cuándo confirmó la persona por primera vez (`confirm()`, sólo la primera
+    # vez, igual que `first_assigned_at`). Define «cubierto» en las métricas de
+    # la beta (Julieta, 2026-11-17): un turno está cubierto cuando alguien
+    # confirmó, no cuando el comercio eligió. Sin backfill: los turnos
+    # confirmados antes de la migración 0046 no la tienen.
+    first_confirmed_at: datetime | None = None
 
     # Escalada automática de urgencia: si un turno abierto (PUBLICADO/
     # BUSCANDO_PERSONAL) no se cubre rápido, el scheduler lo marca `urgent`
@@ -258,6 +266,10 @@ class Shift:
                     "Ya tenés un turno confirmado que se superpone con este horario."
                 )
         self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO, "confirmar")
+        # Sólo la primera confirmación: si después la persona cancela y otra
+        # confirma, el tiempo hasta cubrir sigue siendo el de la primera vez.
+        if self.first_confirmed_at is None:
+            self.first_confirmed_at = datetime.now(timezone.utc)
 
     def reject(self) -> None:
         """ASIGNADO → BUSCANDO_PERSONAL: el trabajador asignado rechaza el turno."""

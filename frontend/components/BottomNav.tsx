@@ -57,6 +57,8 @@ export default function BottomNav() {
   if (pathname === "/bienvenida") return null;
   // /historia es la landing anterior, para grabar reels: sin barra de la app.
   if (pathname === "/historia") return null;
+  // La encuesta para locales es una pantalla propia, con su cielo y sin barras.
+  if (pathname === "/encuesta") return null;
 
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 

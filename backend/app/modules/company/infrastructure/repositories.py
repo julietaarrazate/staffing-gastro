@@ -2,12 +2,11 @@
 
 from uuid import UUID
 
-from sqlalchemy import case, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.company.domain.entities import CompanyProfile
 from app.modules.company.domain.repositories import (
-    CompanyEngagementStats,
     CompanyProfileRepository,
 )
 from app.modules.company.domain.value_objects import CompanyCategory
@@ -164,21 +163,6 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         ) / new_payments
         model.payments_recorded = new_payments
         await self._session.commit()
-
-    async def count_engagement_stats(self) -> CompanyEngagementStats:
-        stmt = select(
-            func.sum(case((CompanyProfileModel.events_published >= 1, 1), else_=0)).label(
-                "companies_1plus"
-            ),
-            func.sum(case((CompanyProfileModel.events_published >= 2, 1), else_=0)).label(
-                "companies_2plus"
-            ),
-        )
-        row = (await self._session.execute(stmt)).one()
-        return CompanyEngagementStats(
-            companies_with_1plus_shifts=row.companies_1plus or 0,
-            companies_with_2plus_shifts=row.companies_2plus or 0,
-        )
 
     async def count_total(self) -> int:
         stmt = select(func.count()).select_from(CompanyProfileModel)

@@ -98,8 +98,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Instalar dependencias
         run: npm ci
+      # Igual que `npm audit --audit-level=high`, salvo las excepciones con
+      # vencimiento del script (decisión de Julieta, 2026-11-17; ver
+      # docs/reference/SECURITY.md, «Excepciones del control de dependencias»).
       - name: npm audit
-        run: npm audit --audit-level=high
+        run: node ../.github/scripts/npm-audit.mjs
 
   # Análisis estático del código propio (2026-10-21). pip-audit y npm audit
   # miran las librerías; esto mira lo que escribimos nosotros (inyecciones,
