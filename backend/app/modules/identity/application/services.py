@@ -76,6 +76,7 @@ from app.modules.identity.domain.value_objects import (
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
+    render_google_claimed_account_email_html,
     render_password_reset_email_html,
     render_welcome_employer_email_html,
     render_welcome_worker_email_html,
@@ -295,12 +296,33 @@ class IdentityService:
         Ahora la cuenta queda de quien probó el email: se marca verificada, la
         contraseña anterior deja de servir y se cierran todas las sesiones
         abiertas. Si era la misma persona, pierde la contraseña que nunca
-        confirmó y la recupera con "Olvidé mi contraseña"."""
+        confirmó y la recupera con "Olvidé mi contraseña". Desde 2026-11-17
+        se avisa además por mail a la dirección de la cuenta (U039)."""
         user.verify()
         user.hashed_password = await _google_local_password()
         await self._users.update(user)
         await self._sessions.revoke_all_for_user(user.id)
         logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
+        await self._send_claimed_account_email(user)
+
+    async def _send_claimed_account_email(self, user: User) -> None:
+        """Avisa al mail de la cuenta que se la reclamó con Google (la
+        contraseña dejó de servir y las sesiones se cerraron). Best-effort,
+        mismo contrato que el resto: si el envío falla, el ingreso sigue. El
+        mail no va a los logs, sólo el id."""
+        html = render_google_claimed_account_email_html(
+            user.full_name, f"{settings.frontend_url}/recuperar"
+        )
+        try:
+            await self._email_sender.send(
+                to=user.email,
+                subject="Entraron a tu cuenta de Oído con Google",
+                html=html,
+            )
+        except Exception:
+            logger.exception(
+                "No se pudo enviar el aviso de cuenta reclamada a %s", user.id
+            )
 
     async def _record_terms_acceptance(
         self, user: User, channel: TermsAcceptanceChannel
