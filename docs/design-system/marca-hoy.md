@@ -128,7 +128,8 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
   https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS); el recomendado es
   «grito y respuesta», los dos signos de «¡Oído!», para encargar a un
   fileteador con el brief de [`direccion-relieve.md`](./direccion-relieve.md).
-  Falta que Julieta elija. Hasta entonces, «oí».
+  **Julieta lo eligió el 2026-11-18**, sólo como ícono de la app; falta
+  llevarlo al código. Hasta entonces, «oí».
 - **Llevar la dirección «con relieve» a la app** (Julieta, 2026-11-17: la sombra
   dura azul hondo del filete como profundidad de la interfaz), pantalla por
   pantalla: [`direccion-relieve.md`](./direccion-relieve.md).

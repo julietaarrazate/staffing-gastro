@@ -206,14 +206,22 @@ como exploración abierta):
   Android;
 - sin Sol de Mayo, sin orejas ni manos, sin papel con renglones.
 
+## Decidido por Julieta (2026-11-18)
+
+- **Letra mixta:** brocha (Sedgwick Ave Display) sólo en el título del
+  inicio, el cierre y los nombres de la carta; **Abril Fatface** en los
+  títulos de sección, en lugar de Young Serif; Mansalva para lo anotado a
+  mano; Inter para el texto. Todavía no rige: `typography.md` y `marca-hoy.md`
+  se actualizan en el PR que lo lleve al código.
+- **Isotipo: «grito y respuesta»**, sólo como ícono de la app (no va junto al
+  «oído»). Reemplaza al «oí» cuando se lleve al código.
+- **Los planes como carta**, y la base de la landing es el híbrido.
+
 ## Falta que decida Julieta
 
 1. Qué le cambia al híbrido (es la base desde el 2026-11-18).
-2. La letra: la mixta le gusta (brocha en el inicio, el cierre y la carta);
-   falta que elija la de los títulos de sección entre Abril Fatface,
-   Alegreya y Caprasimo. Cuando quede, se actualiza `typography.md`.
-3. El isotipo: va sólo como ícono de la app; falta que confirme «grito y
-   respuesta» y si se encarga al fileteador.
+2. Si el isotipo se encarga a un fileteador o se usa el vector de la prueba.
+3. Qué de la prueba de la app entra a la app real, y en qué orden.
 4. Antes de producción, confirmar contra el producto lo que la prueba afirma:
    «Gratis para quien trabaja», «gente verificada» y «Hecho en Buenos Aires».
 
