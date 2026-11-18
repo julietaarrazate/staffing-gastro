@@ -58,6 +58,16 @@ export function textoCartel(texto: string): ReactNode {
   );
 }
 
+/** La flechita dibujada a mano que acompaña un apunte y señala hacia abajo a
+ *  la derecha (a lo que se recomienda). Toma el color de la letra. */
+export function Flechita({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 34 26" className={cn("flechita", className)}>
+      <path d="M3 4C16 3 26 9 28 22M28 22L21 16M28 22L32 14" />
+    </svg>
+  );
+}
+
 /** Un apunte a mano, rodeado con un óvalo: uno por pantalla, corto. */
 export function Apunte({ children, className }: { children: ReactNode; className?: string }) {
   return (

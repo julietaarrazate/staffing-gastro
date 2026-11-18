@@ -83,8 +83,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    2026-11-18). Hecho: el Inicio del trabajador
    ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)) y el
    Panel del comercio
-   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)).
-   **Sigue:** Candidatos, Mis turnos (le alcanza con pasar `comanda` a
+   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)) y
+   Candidatos ([historial](./historial/2026-11-18-candidatos-relieve.md)).
+   **Sigue:** Mis turnos (le alcanza con pasar `comanda` a
    `ShiftCard`), y lo que es de toda la app, cada cosa en su PR: la barra de
    abajo, los botones (`Button`) y las pestañas. Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
