@@ -2120,6 +2120,17 @@ class ShiftService(AccountSuspensionEffects):
             now = datetime.now(timezone.utc)
             checked_out = format_inicio_art(updated.check_out_at, now)
             closes_at = format_inicio_art(updated.check_out_at + AUTO_FINISH_DELAY, now)
+            # El pago registrado después de `PAYMENT_TOLERANCE` desde el fin
+            # cuenta como tardío (`_was_paid_on_time`): se dice antes de que
+            # pase, con la fecha (Julieta, 2026-11-18).
+            paid_on_time_until = updated.end_at + PAYMENT_TOLERANCE
+            if _naive(now) < _naive(paid_on_time_until):
+                pago = (
+                    "Para que cuente como pago a tiempo, registralo hasta "
+                    f"{format_inicio_art(paid_on_time_until, now)}."
+                )
+            else:
+                pago = "Si registrás el pago ahora, ya cuenta como pago tardío."
             await self._notify_company(
                 updated.company_id,
                 NotificationType.SHIFT_FINISH_REMINDER,
@@ -2127,7 +2138,7 @@ class ShiftService(AccountSuspensionEffects):
                 (
                     f"La persona marcó la salida de \"{updated.title or updated.position.label}\" "
                     f"{checked_out}. Cerralo para poder calificarla y registrar el pago. "
-                    f"Si no lo cerrás, se cierra solo {closes_at}."
+                    f"{pago} Si no lo cerrás, se cierra solo {closes_at}."
                 ),
                 link="/shifts",
             )
@@ -2155,7 +2166,8 @@ class ShiftService(AccountSuspensionEffects):
                 (
                     f"Cerramos automáticamente \"{updated.title or updated.position.label}\": "
                     "pasaron 72 horas desde que la persona marcó la salida. "
-                    "Te queda marcarlo como pagado."
+                    "Te queda marcarlo como pagado: como pasaron más de 48 horas "
+                    "desde el fin del turno, cuenta como pago tardío."
                 ),
                 link="/shifts",
             )

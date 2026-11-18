@@ -237,9 +237,14 @@ depender del comercio; avisar antes le da al comercio dos días para cerrarlo
 `finalizado`, y `mark_paid` y su tolerancia siguen como estaban. Cancelar no
 era una salida (el turno ya se trabajó, ADR-0007 act. 2026-11-18).
 
-**Para decidir (Julieta).** Marcar pagado después del cierre automático
-cuenta como pago tardío: `PAYMENT_TOLERANCE` son 48 h desde el fin del turno
-y el cierre llega a las 72 h de la salida. No se tocó.
+**El pago tardío se avisa antes** (Julieta, 2026-11-18). Marcar pagado
+después del cierre automático cuenta como pago tardío (`PAYMENT_TOLERANCE`
+son 48 h desde el fin del turno y el cierre llega a las 72 h de la salida), y
+así queda: un comercio que deja pasar 72 horas sin cerrar ya llegó tarde, y
+no contarlo le sacaría el incentivo a cerrar a tiempo. Lo que cambia son los
+avisos: el recordatorio de las 24 h dice hasta cuándo registrar el pago para
+que cuente a tiempo (o que ya cuenta como tardío, si la pasada llegó tarde),
+y el del cierre automático dice que cuenta como pago tardío.
 
 **Fuera de alcance.** Plazos por comercio; avisar también a la persona a las
 24 h (lo que puede hacer es escribirle al comercio por el chat). Al desplegar,

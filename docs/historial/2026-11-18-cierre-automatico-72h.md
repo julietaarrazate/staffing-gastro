@@ -10,11 +10,15 @@ cierre automático a las 72, con la puntualidad ya registrada en la llegada.
 
 - **Comercio:** a las 24 h de la salida le llega «Te falta cerrar un turno»
   («La persona marcó la salida de "X" el martes 17/11 a las 15:00. Cerralo
-  para poder calificarla y registrar el pago. Si no lo cerrás, se cierra solo
-  el viernes 20/11 a las 15:00.», fechas reales en hora argentina), una sola
+  para poder calificarla y registrar el pago. Para que cuente como pago a
+  tiempo, registralo hasta el jueves 19/11 a las 23:00. Si no lo cerrás, se
+  cierra solo el viernes 20/11 a las 15:00.», fechas reales en hora
+  argentina; si el plazo de pago ya pasó, «Si registrás el pago ahora, ya
+  cuenta como pago tardío.»), una sola
   vez. A las 72 h, «Oído cerró
   un turno» («Cerramos automáticamente "X": pasaron 72 horas desde que la
-  persona marcó la salida. Te queda marcarlo como pagado.»). Con la cuenta
+  persona marcó la salida. Te queda marcarlo como pagado: como pasaron más
+  de 48 horas desde el fin del turno, cuenta como pago tardío.»). Con la cuenta
   suspendida no recibe ninguno de los dos. En el panel, la línea de estado
   del turno con la salida marcada suma «Si no lo cerrás, se cierra solo el
   viernes 20/11 a las 15:00.» (`frontend/components/ShiftActions.tsx`).
@@ -56,4 +60,5 @@ salida marcada se cierra en la primera pasada, sin recordatorio previo. El
 recordatorio cae a la misma hora del día de la salida (de noche, si la salida
 fue de noche; el push va con urgencia normal). Marcar pagado después del
 cierre automático cuenta como pago tardío (`PAYMENT_TOLERANCE` son 48 h desde
-el fin del turno): queda para que lo decida Julieta.
+el fin del turno): Julieta decidió dejarlo así y avisarlo antes, en el
+recordatorio y en el aviso del cierre.

@@ -24,6 +24,7 @@ from app.modules.shift.application import scheduler
 from app.modules.shift.application.services import (
     AUTO_FINISH_DELAY,
     FINISH_REMINDER_DELAY,
+    PAYMENT_TOLERANCE,
 )
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
@@ -138,9 +139,17 @@ async def test_reminder_at_24_hours_goes_once_and_only_to_the_company(
     assert avisos[0]["title"] == "Te falta cerrar un turno"
     salida = format_inicio_art(checked_out)
     cierre = format_inicio_art(checked_out + AUTO_FINISH_DELAY)
-    assert avisos[0]["message"] == (
+    assert avisos[0]["message"].startswith(
         f'La persona marcó la salida de "{_TITLE}" {salida}. Cerralo para poder '
-        f"calificarla y registrar el pago. Si no lo cerrás, se cierra solo {cierre}."
+        "calificarla y registrar el pago. "
+    )
+    assert avisos[0]["message"].endswith(f"Si no lo cerrás, se cierra solo {cierre}.")
+    # El turno de prueba termina cuando marca la salida: a las 25 h todavía
+    # le quedan 23 para registrar el pago a tiempo.
+    pago_hasta = format_inicio_art(checked_out + PAYMENT_TOLERANCE)
+    assert (
+        f"Para que cuente como pago a tiempo, registralo hasta {pago_hasta}."
+        in avisos[0]["message"]
     )
     assert avisos[0]["link"] == "/shifts"
     # Al trabajador no le llega nada.
@@ -173,6 +182,8 @@ async def test_late_reminder_says_the_real_checkout_date_in_argentine_time(
     assert len(avisos) == 1
     salida_art = to_art(checked_out)
     assert "hace un día" not in avisos[0]["message"]
+    # A las 60 h ya pasaron las 48 del plazo de pago: lo dice.
+    assert "Si registrás el pago ahora, ya cuenta como pago tardío." in avisos[0]["message"]
     # Hace 60 h no es «hoy» ni «mañana»: va con día de la semana y fecha.
     assert f"{salida_art:%d/%m} a las {salida_art:%H:%M}. Cerralo" in avisos[0]["message"]
     assert avisos[0]["message"].endswith(
@@ -303,7 +314,8 @@ async def test_auto_finish_at_72_hours_with_punctual_arrival(
     assert company_avisos[0]["title"] == "Oído cerró un turno"
     assert company_avisos[0]["message"] == (
         f'Cerramos automáticamente "{_TITLE}": pasaron 72 horas desde que la persona '
-        "marcó la salida. Te queda marcarlo como pagado."
+        "marcó la salida. Te queda marcarlo como pagado: como pasaron más de 48 "
+        "horas desde el fin del turno, cuenta como pago tardío."
     )
     assert company_avisos[0]["link"] == "/shifts"
     # Nada más: ni recordatorio tardío ni aviso de cierre del comercio.
