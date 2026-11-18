@@ -87,7 +87,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | ✅ en `main` | #549 |
 | U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
 | U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | ✅ en `main` | #550 |
-| U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ✅ en `main` | #PRU081 · con la salida marcada no se cancela: el comercio finaliza y paga ([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización 2026-11-18) |
+| U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ✅ en `main` | #632 · con la salida marcada no se cancela: el comercio finaliza y paga ([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización 2026-11-18) |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ✅ en `main` | #562 |
 | U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | ✅ en `main` | #553 |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ✅ en `main` | #629 · G4, [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md): estado `desasignada` con su motivo |

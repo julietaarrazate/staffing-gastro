@@ -1,4 +1,4 @@
-# U081: un turno con la salida marcada no se cancela (#PRU081)
+# U081: un turno con la salida marcada no se cancela (#632)
 
 **Pedido:** Julieta, salida a beta, etapa 2 (decisión 2 del tablero): «un
 turno ya trabajado no se cancela. Con la salida marcada, el comercio finaliza
