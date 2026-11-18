@@ -347,7 +347,10 @@ async function main() {
   const out = { base: BASE, runs: RUNS, throttle: THROTTLE, date: new Date().toISOString(), scenarios: {} };
   for (const sc of SCENARIOS.filter((s) => !ONLY || ONLY.includes(s.name))) {
     const runs = [];
-    for (let i = 0; i < RUNS; i++) runs.push(await runScenario(browser, sc));
+    for (let i = 0; i < RUNS; i++) {
+      // Un reintento si el navegador cierra la página a mitad de camino.
+      runs.push(await runScenario(browser, sc).catch((e) => (console.error(`${sc.name}: reintento (${e.message.split("\n")[0]})`), runScenario(browser, sc))));
+    }
     const last = runs[runs.length - 1];
     const med = (f) => median(runs.map(f));
     out.scenarios[sc.name] = {
