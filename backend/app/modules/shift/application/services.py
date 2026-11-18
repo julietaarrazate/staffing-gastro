@@ -1058,6 +1058,12 @@ class ShiftService(AccountSuspensionEffects):
         profile = await self._workers.get_by_id(worker_profile_id)
         if profile is None:
             raise AssigneeNotFoundError()
+        # Primero el turno: si no admite la asignación, el error es el de
+        # siempre y no depende de quién sea la persona (si no, el 409 de
+        # abajo le diría al comercio que esa cuenta está suspendida sin que
+        # pase nada: no-disclosure). `assign` lo vuelve a exigir.
+        if not shift.admits_assignment:
+            shift.assign(worker_profile_id)
         # Cuenta suspendida (ADR-0024): no podría entrar a confirmar y el
         # turno quedaría «Esperando que confirme» para siempre. Se corta acá,
         # antes de tocar el turno y a los demás postulantes.
@@ -1516,6 +1522,10 @@ class ShiftService(AccountSuspensionEffects):
             for shift in shifts_taken_not_started(taken, datetime.now(timezone.utc)):
                 await self._reopen_for_worker_suspension(shift)
                 reopened += 1
+            # Los que quedaron a medias en un intento anterior: el turno ya se
+            # reabrió pero falló la cola (restaurar rechazados, soltar la
+            # postulación, avisar). Se repite la cola, que es idempotente.
+            await self._finish_half_reopened(worker.id)
         return SuspensionImpact(hidden=hidden_count, cancelled=cancelled, reopened=reopened)
 
     async def _cancel_for_company_suspension(self, shift: Shift) -> None:
@@ -1550,6 +1560,33 @@ class ShiftService(AccountSuspensionEffects):
                 updated.id,
             )
 
+    async def _finish_half_reopened(self, worker_profile_id: UUID) -> None:
+        """Repite la cola de la reapertura para los turnos que esta persona
+        soltó a medias: su postulación sigue ACEPTADA pero el turno ya está
+        abierto y ya no la tiene asignada. Sin esto, si la reapertura fallaba
+        después de guardar el turno, la repetición no lo veía entre los
+        tomados y los postulantes rechazados quedaban así para siempre."""
+        accepted = [
+            a
+            for a in await self._applications.list_by_worker(
+                worker_profile_id, limit=500
+            )
+            if a.status == ApplicationStatus.ACEPTADA
+        ]
+        if not accepted:
+            return
+        shifts = await self._shifts.list_by_ids([a.shift_id for a in accepted])
+        by_id = {s.id: s for s in shifts}
+        for application in accepted:
+            shift = by_id.get(application.shift_id)
+            if (
+                shift is None
+                or shift.status not in OPEN_STATUSES
+                or shift.worker_profile_id == worker_profile_id
+            ):
+                continue
+            await self._finish_reopen(shift, worker_profile_id)
+
     async def _reopen_for_worker_suspension(self, shift: Shift) -> None:
         """Reabre un turno de un trabajador suspendido, como `worker_cancel`
         (vuelve a buscar personal y los demás postulantes vuelven a estar en
@@ -1562,9 +1599,27 @@ class ShiftService(AccountSuspensionEffects):
             "shift.reopened_by_suspension",
             extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
         )
-        await self._restore_rejected_applicants(updated.id)
-        if released_worker_profile_id is not None:
-            await self._release_application(updated.id, released_worker_profile_id)
+        await self._finish_reopen(updated, released_worker_profile_id)
+
+    async def _finish_reopen(
+        self, updated: Shift, released_worker_profile_id: UUID | None
+    ) -> None:
+        """La cola de reabrir por suspensión, con el turno ya guardado como
+        abierto: restaurar a los rechazados, soltar la postulación de quien
+        perdió el turno y avisarle al comercio. Un fallo al restaurar se
+        registra y NO impide el aviso; en ese caso la postulación sigue
+        ACEPTADA a propósito, para que `_finish_half_reopened` lo reintente
+        en la repetición de la suspensión."""
+        try:
+            await self._restore_rejected_applicants(updated.id)
+            if released_worker_profile_id is not None:
+                await self._release_application(updated.id, released_worker_profile_id)
+        except Exception:
+            logger.exception(
+                "Reabrir por suspensión: no se pudo restaurar a los postulantes, "
+                "se reintenta al repetir la suspensión (shift_id=%s)",
+                updated.id,
+            )
         name = updated.title or updated.position.label
         try:
             await self._notify_company(

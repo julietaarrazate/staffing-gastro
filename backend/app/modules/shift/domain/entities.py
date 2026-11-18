@@ -241,6 +241,13 @@ class Shift:
             ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL, "buscar"
         )
 
+    @property
+    def admits_assignment(self) -> bool:
+        """¿El turno está en un estado desde el que se puede asignar a alguien?
+        Es la misma condición que exige `assign` (sólo lectura, para que los
+        casos de uso la consulten sin duplicarla)."""
+        return self.status in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
+
     def assign(self, worker_profile_id: UUID) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato.
 
@@ -248,7 +255,7 @@ class Shift:
         PRIMERA vez (no se pisa en una reasignación posterior a un
         rechazo/no-show) — mide cuánto tardó el matching en encontrar UN
         candidato, no cuántas veces hizo falta reintentar."""
-        if self.status not in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL):
+        if not self.admits_assignment:
             raise InvalidShiftTransitionError(
                 no_se_puede("asignar", self.status)
             )
