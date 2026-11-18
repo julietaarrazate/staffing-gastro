@@ -14,8 +14,9 @@ import {
   RouteIcon,
   ShieldIcon,
 } from "@/components/icons";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { formatAgo, formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
+import { effectiveStatus } from "@/lib/shift-next-step";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
@@ -423,11 +424,14 @@ export default function ShiftCard({
             sin que haya que limpiar nada acá. Es la pregunta que se hace un
             comercio a las 20:45 con el turno confirmado: "¿viene?". */}
         {perspective === "employer" &&
-          shift.en_route_latitude != null &&
-          shift.en_route_longitude != null &&
           shift.en_route_at != null &&
+          // Sólo mientras viaja: si quedara un `en_route_at` viejo en un turno
+          // que ya llegó o se canceló, acá no se muestra.
+          effectiveStatus(shift) === "en_camino" &&
+          (shift.en_route_latitude != null &&
+          shift.en_route_longitude != null &&
           shift.latitude != null &&
-          shift.longitude != null && (
+          shift.longitude != null ? (
             <div className="mt-3">
               <EnRouteMap
                 venueLatitude={shift.latitude}
@@ -438,7 +442,25 @@ export default function ShiftCard({
                 workerName={shift.worker_name}
               />
             </div>
-          )}
+          ) : (
+            // Sin coordenadas no se puede dibujar el mapa, pero el reporte de
+            // viaje existe. Que va en camino ya lo dice el próximo paso
+            // (`nextStepFor`): acá va lo que el mapa agregaba, hace cuánto
+            // fue la última señal, y por qué no hay mapa.
+            <div
+              data-testid="en-route-note"
+              className="mt-3 rounded-[var(--radius-card)] bg-card px-3 py-2 ring-1 ring-line"
+            >
+              <p className="text-sm font-semibold text-ink">
+                Última señal: {formatAgo(shift.en_route_at)}
+              </p>
+              {(shift.latitude == null || shift.longitude == null) && (
+                <p className="text-xs text-ink/60">
+                  Sin mapa: este turno no tiene la ubicación marcada.
+                </p>
+              )}
+            </div>
+          ))}
 
         {/* Mini-mapa + "Cómo llegar"/"Agendar": sólo tiene sentido del lado
             del trabajador (es quien tiene que viajar hasta el local y
