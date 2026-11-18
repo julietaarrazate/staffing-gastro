@@ -54,7 +54,6 @@ const APPLICATION_LABELS: Record<string, string> = {
   aceptada: "¡Te eligieron!",
   rechazada: "No quedaste esta vez",
   retirada: "Retiraste la postulación",
-  desasignada: "Ya tuviste este turno asignado",
 };
 
 // Una postulación pendiente sólo «espera respuesta» mientras el turno sigue

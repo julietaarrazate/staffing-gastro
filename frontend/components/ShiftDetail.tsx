@@ -53,6 +53,9 @@ type Detail = ShiftPublic & Partial<Shift>;
 // `released`: tuvo este turno asignado y lo dejó (G4). No se postula otra vez:
 // sigue en la lista del comercio, que decide si lo vuelve a elegir.
 type ApplyState = "unknown" | "can_apply" | "applying" | "applied" | "released";
+// Comienzo del 409 de `POST /applications/shifts/{id}` para quien tuvo el
+// turno y lo dejó (`backend/app/modules/application/api/routes.py`).
+const ALREADY_UNASSIGNED_PREFIX = "Ya tuviste este turno asignado";
 
 /**
  * Detalle de un turno (`/turno/[id]`), con la composición del board: cabecera
@@ -198,7 +201,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         clear(shift.id);
-        setApply("applied");
+        // Con la pestaña vieja, el 409 puede ser «Ya tuviste este turno
+        // asignado» (G4), no «Ya te postulaste»: lo distingue el servidor.
+        setApply(err.message.startsWith(ALREADY_UNASSIGNED_PREFIX) ? "released" : "applied");
         return;
       }
       setApply("can_apply");

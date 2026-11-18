@@ -53,8 +53,9 @@ recomendada.
 
 ## Datos que ya estaban (migración 0051)
 
-En los turnos abiertos, una postulación `aceptada` de alguien que ya no es el
-asignado pasa a `desasignada`/`ausencia` si el turno registra su ausencia
+En los turnos que siguen vivos (abiertos, o que hoy tiene otra persona), una
+postulación `aceptada` de alguien que ya no es el asignado pasa a
+`desasignada`/`ausencia` si el turno registra su ausencia
 (`last_no_show_worker_profile_id`). Si no, no se puede saber si rechazó o
 canceló y no se inventa: pasa a `retirada` (sale de la lista y puede volver a
 postularse). En los turnos con alguien asignado, la `retirada` de esa persona
@@ -65,7 +66,17 @@ pasa a `aceptada` (punto 5).
 - La lista de postulantes dice la verdad y el comercio decide con el dato:
   sirve a «cubrir rápido» sin esconder a nadie.
 - `application_to_acceptance_rate` (panel de admin) deja de contar como
-  aceptadas las postulaciones de quien después dejó el turno.
+  aceptadas las postulaciones de quien después dejó el turno. Las filas del
+  punto 2 suman al total de postulaciones y a las del período, aunque nadie
+  se postuló: son pocas (asignación directa que después se cae) y se acepta.
+  El contador de postulaciones en pie de «Turnos en vivo» no cuenta las
+  `desasignada`.
+- **Carreras.** El turno se guarda reabierto antes de escribir la marca. Si
+  en ese hueco el comercio vuelve a asignar a la misma persona, no se la
+  marca; si la persona se postula justo, la marca se escribe en la segunda
+  vuelta. Si la escritura falla, la sesión se recupera
+  (`_commit_or_reset`) y el pedido termina bien: se pierde la marca, no la
+  reapertura, la cancelación contada ni el aviso al comercio.
 - Hay filas de postulación que no nacieron de una postulación (punto 2). Se
   aceptó para no sumar otra tabla: lo que la pantalla necesita es una fila
   por persona y turno con su estado.

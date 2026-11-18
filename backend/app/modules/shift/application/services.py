@@ -1144,47 +1144,65 @@ class ShiftService(AccountSuspensionEffects):
         siempre y nada registraba el rechazo, la cancelación ni la ausencia.
 
         El turno ya se reabrió cuando se llega acá: si esto falla se registra
-        y no se propaga (se pierde la marca, no la reapertura)."""
-        try:
-            application = await self._applications.get_by_shift_and_worker(
-                shift_id, worker_profile_id
-            )
-            if application is None:
-                await self._applications.add(
-                    ShiftApplication.unassigned(shift_id, worker_profile_id, motivo)
-                )
-            else:
-                if application.status in ASSIGNABLE_FROM:
-                    # Fila de antes de la migración 0051: se la asignó sin
-                    # que su postulación pasara a ACEPTADA.
-                    application.accept()
-                if application.status != ApplicationStatus.ACEPTADA:
-                    logger.warning(
-                        "application.unassign_skipped",
+        y no se propaga (se pierde la marca, no la reapertura). Se intenta dos
+        veces: si entre leer y escribir otro pedido creó la fila (la persona
+        se postuló justo), la segunda vuelta la encuentra y la marca."""
+        for attempt in (1, 2):
+            try:
+                if await self._write_unassigned(shift_id, worker_profile_id, motivo):
+                    logger.info(
+                        "application.unassigned",
                         extra={
                             "shift_id": str(shift_id),
                             "worker_profile_id": str(worker_profile_id),
-                            "status": application.status.value,
+                            "motivo": motivo.value,
                         },
                     )
-                    return
-                application.unassign(motivo)
-                await self._applications.update(application)
-        except Exception:
-            logger.exception(
-                "No se pudo marcar la desasignación (shift_id=%s, motivo=%s)",
-                shift_id,
-                motivo.value,
-            )
-            return
-        logger.info(
-            "application.unassigned",
-            extra={
-                "shift_id": str(shift_id),
-                "worker_profile_id": str(worker_profile_id),
-                "motivo": motivo.value,
-            },
+                return
+            except Exception:
+                logger.exception(
+                    "No se pudo marcar la desasignación (shift_id=%s, motivo=%s, intento=%s)",
+                    shift_id,
+                    motivo.value,
+                    attempt,
+                )
+
+    async def _write_unassigned(
+        self, shift_id: UUID, worker_profile_id: UUID, motivo: MotivoDesasignacion
+    ) -> bool:
+        """Una vuelta de `_mark_unassigned`. Devuelve si dejó la marca."""
+        # El turno se guardó reabierto antes de llegar acá. Si en ese hueco el
+        # comercio volvió a asignar a la misma persona, hoy lo tiene: marcarla
+        # la dejaría «desasignada» con el turno en la mano.
+        shift = await self._shifts.get_by_id(shift_id)
+        if shift is not None and shift.worker_profile_id == worker_profile_id:
+            return False
+        application = await self._applications.get_by_shift_and_worker(
+            shift_id, worker_profile_id
         )
+        if application is None:
+            await self._applications.add(
+                ShiftApplication.unassigned(shift_id, worker_profile_id, motivo)
+            )
+            return True
+        if application.status in ASSIGNABLE_FROM:
+            # No estaba ACEPTADA: una fila de antes de la migración 0051 (se
+            # la asignó sin tocar su postulación), o se postuló en el hueco
+            # entre que el turno se reabrió y esta escritura.
+            application.accept()
+        if application.status != ApplicationStatus.ACEPTADA:
+            logger.warning(
+                "application.unassign_skipped",
+                extra={
+                    "shift_id": str(shift_id),
+                    "worker_profile_id": str(worker_profile_id),
+                    "status": application.status.value,
+                },
+            )
+            return False
+        application.unassign(motivo)
+        await self._applications.update(application)
+        return True
 
     async def _release_application(self, shift_id: UUID, worker_profile_id: UUID) -> None:
         """La postulación ACEPTADA de quien perdió el turno por la suspensión

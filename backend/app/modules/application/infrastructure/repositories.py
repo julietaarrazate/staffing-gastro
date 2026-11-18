@@ -48,6 +48,23 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def _commit_or_reset(self) -> None:
+        """Guarda; si la base lo rechaza, deja la sesión usable y propaga el
+        error (mismo criterio que el repositorio de avisos).
+
+        Una escritura rechazada (p. ej. la fila única por turno y trabajador,
+        si dos pedidos llegan a la vez) deja la sesión con la transacción
+        rota, y esa sesión es la del pedido: todo lo que venga después falla
+        con `PendingRollbackError`. Quien atrapa el error para seguir
+        (`ShiftService._mark_unassigned`) terminaba igual en 500. El
+        `rollback` no deshace nada anterior: cada repositorio confirma su
+        propia escritura."""
+        try:
+            await self._session.commit()
+        except Exception:
+            await self._session.rollback()
+            raise
+
     async def add(self, application: ShiftApplication) -> ShiftApplication:
         model = ShiftApplicationModel(
             id=application.id,
@@ -57,7 +74,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             motivo=application.motivo.value if application.motivo else None,
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._commit_or_reset()
         await self._session.refresh(model)
         return _to_entity(model)
 
@@ -72,7 +89,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         # misma que se leyó y no se reescribe.
         if application.created_at is not None:
             model.created_at = application.created_at
-        await self._session.commit()
+        await self._commit_or_reset()
         await self._session.refresh(model)
         return _to_entity(model)
 
@@ -218,7 +235,10 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             select(ShiftApplicationModel.shift_id, func.count())
             .where(
                 ShiftApplicationModel.shift_id.in_(shift_ids),
-                ShiftApplicationModel.status != ApplicationStatus.RETIRADA.value,
+                # Ni las retiradas ni quien tuvo el turno y lo dejó (G4).
+                ShiftApplicationModel.status.notin_(
+                    [ApplicationStatus.RETIRADA.value, ApplicationStatus.DESASIGNADA.value]
+                ),
             )
             .group_by(ShiftApplicationModel.shift_id)
         )

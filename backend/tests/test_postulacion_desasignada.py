@@ -435,3 +435,76 @@ async def test_el_aviso_de_una_sola_postulacion_la_nombra(client: AsyncClient):
         "Palermo, que es en el mismo horario. Si el turno confirmado se cae, podés "
         "volver a postularte."
     )
+
+
+# --- Revisión independiente: carreras ------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_si_la_marca_choca_con_otra_escritura_el_pedido_igual_termina_bien(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    """Entre leer y escribir, otro pedido creó la fila (la persona se postuló
+    justo): el INSERT choca con la fila única. Antes el error se atrapaba pero
+    la sesión quedaba rota y el pedido terminaba en 500, sin contar la
+    cancelación ni avisar al comercio. Ahora la sesión se recupera y la
+    segunda vuelta encuentra la fila y la marca."""
+    from app.modules.application.infrastructure.repositories import (
+        SqlAlchemyShiftApplicationRepository as Repo,
+    )
+
+    employer = await _employer(client, "g4_emp14@staffya.com")
+    ana, ana_id = await _worker(client, "g4_ana14@staffya.com", "Ana Carrera")
+    shift_id = await _published(client, employer, minutes=600)
+    await _apply(client, shift_id, ana)
+    assert (await _assign(client, shift_id, employer, ana_id)).status_code == 200
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=ana)).status_code == 200
+
+    real = Repo.get_by_shift_and_worker
+    calls = {"n": 0}
+
+    async def primero_no_la_ve(self, shift_id_, worker_profile_id_):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return None
+        return await real(self, shift_id_, worker_profile_id_)
+
+    monkeypatch.setattr(Repo, "get_by_shift_and_worker", primero_no_la_ve)
+
+    cancelled = await client.post(f"/api/v1/shifts/{shift_id}/worker-cancel", headers=ana)
+
+    assert cancelled.status_code == 200, cancelled.text
+    assert calls["n"] == 2
+    monkeypatch.setattr(Repo, "get_by_shift_and_worker", real)
+    mine = await _mine(client, ana, shift_id)
+    assert (mine["status"], mine["motivo"]) == ("desasignada", "cancelacion")
+    # Lo que viene después de la marca en el mismo pedido también se hizo.
+    profile = await client.get("/api/v1/workers/me/profile", headers=ana)
+    assert profile.json()["cancellations"] == 1
+    assert len(await _notices(client, employer, "shift_reopened")) == 1
+
+
+@pytest.mark.asyncio
+async def test_no_marca_a_quien_volvio_a_tener_el_turno(client: AsyncClient, session_factory):
+    """El turno se guarda reabierto antes de escribir la marca. Si en ese
+    hueco el comercio vuelve a asignar a la misma persona, no se la marca:
+    quedaría «desasignada» con el turno en la mano."""
+    from app.modules.application.domain.value_objects import MotivoDesasignacion as Motivo
+    from uuid import UUID
+
+    from fastapi import BackgroundTasks
+
+    from app.modules.shift.api.dependencies import get_shift_service
+
+    employer = await _employer(client, "g4_emp15@staffya.com")
+    ana, ana_id = await _worker(client, "g4_ana15@staffya.com", "Ana Reasignada")
+    shift_id = await _published(client, employer, minutes=600)
+    await _apply(client, shift_id, ana)
+    assert (await _assign(client, shift_id, employer, ana_id)).status_code == 200
+
+    async with session_factory() as session:
+        service = get_shift_service(session, email_sender=None, background_tasks=BackgroundTasks())
+        await service._mark_unassigned(UUID(shift_id), UUID(ana_id), Motivo.RECHAZO)
+
+    mine = await _mine(client, ana, shift_id)
+    assert (mine["status"], mine["motivo"]) == ("aceptada", None)

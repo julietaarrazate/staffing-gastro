@@ -48,4 +48,19 @@ que el diseño no decía y se resolvió acá:
   de las `aceptada` huérfanas de turnos abiertos pasa a `retirada`, porque no
   se sabe si fue rechazo o cancelación.
 
-**Queda abierto:** nada de G4. Siguen U081, U080 y U072 (mismo tablero).
+**Revisión independiente y prueba en la app:** otro agente intentó romperlo
+y encontró dos cosas que se corrigieron antes del merge: el `try/except` de
+la marca no protegía nada (una escritura rechazada dejaba la sesión rota y el
+pedido terminaba en 500, sin contar la cancelación ni avisar al comercio:
+ahora el repositorio recupera la sesión y hay una segunda vuelta), y la
+migración sólo arreglaba los turnos abiertos (ahora también los que hoy tiene
+otra persona). También: no marcar a quien volvió a tener el turno en el
+hueco, y el 409 nuevo con la pestaña vieja. Recorrido con `tools/e2e-local`
+(comercio y dos trabajadoras, claro y oscuro, backend y Postgres reales):
+lista, marcas, reasignar desde la pantalla, detalle de la trabajadora, 409 y
+el aviso de U123; la migración se probó de ida y vuelta sobre una copia de la
+base.
+
+**Queda abierto:** nada de G4. La decisión 7 (cancelar desde «llegada
+marcada») todavía no está hecha: cuando se haga tiene que pasar por
+`worker_cancel`, que es quien deja la marca. Siguen U081, U080 y U072.

@@ -5,7 +5,8 @@
   estado nuevo no necesita cambio de esquema (`status` es un `String(20)`).
 - Datos que ya estaban. Antes de este cambio, cuando la persona asignada
   rechazaba, cancelaba o faltaba, su postulación quedaba `aceptada` para
-  siempre. En los turnos que hoy están abiertos:
+  siempre. En los turnos que siguen vivos (abiertos, o que hoy tiene otra
+  persona; los terminados y cancelados no se tocan):
     * si el turno registra su ausencia (`last_no_show_worker_profile_id`),
       pasa a `desasignada` con motivo `ausencia`;
     * si no, no se puede saber si rechazó o canceló, y no se inventa: pasa a
@@ -13,7 +14,9 @@
   Y en los turnos que hoy tienen a alguien asignado, la postulación `retirada`
   de esa persona (se la asignó desde «Recomendados» después de retirarla) pasa
   a `aceptada`, que es lo que el código hace desde ahora al asignar.
-- La vuelta atrás deja las `desasignada` como `aceptada`, que es como estaban.
+- La vuelta atrás deja las `desasignada` como `aceptada`, que es como estaban
+  antes (también las de quien fue asignado sin postularse, que antes no
+  tenían fila: no hay cómo distinguirlas).
 
 Revision ID: 0051
 Revises: 0050 (soporte: referencia a un turno o un comercio)
@@ -32,6 +35,9 @@ depends_on: str | Sequence[str] | None = None
 
 _CHECK = "ck_shift_applications_motivo_desasignada"
 
+# Turnos que siguen vivos: los abiertos y los que hoy tiene otra persona.
+_TURNO_VIVO = "s.status NOT IN ('finalizado', 'pagado', 'cancelado', 'no_cubierto')"
+
 # La persona de esta postulación ya no es la asignada al turno.
 _YA_NO_ASIGNADA = (
     "(s.worker_profile_id IS NULL "
@@ -46,7 +52,7 @@ def upgrade() -> None:
         "UPDATE shift_applications SET status = 'desasignada', motivo = 'ausencia' "
         "WHERE status = 'aceptada' AND EXISTS ("
         "SELECT 1 FROM shifts s WHERE s.id = shift_applications.shift_id "
-        "AND s.status IN ('publicado', 'buscando_personal') "
+        f"AND {_TURNO_VIVO} "
         "AND s.last_no_show_worker_profile_id = shift_applications.worker_profile_id "
         f"AND {_YA_NO_ASIGNADA})"
     )
@@ -54,7 +60,7 @@ def upgrade() -> None:
         "UPDATE shift_applications SET status = 'retirada' "
         "WHERE status = 'aceptada' AND EXISTS ("
         "SELECT 1 FROM shifts s WHERE s.id = shift_applications.shift_id "
-        "AND s.status IN ('publicado', 'buscando_personal') "
+        f"AND {_TURNO_VIVO} "
         f"AND {_YA_NO_ASIGNADA})"
     )
     op.execute(

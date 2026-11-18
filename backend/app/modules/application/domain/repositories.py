@@ -91,8 +91,9 @@ class ShiftApplicationRepository(ABC):
 
     @abstractmethod
     async def count_active_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
-        """Postulaciones no retiradas por turno, para una lista de turnos en
-        UNA consulta (GROUP BY). Los turnos sin postulaciones no aparecen."""
+        """Postulaciones en pie por turno (ni retiradas ni desasignadas), para
+        una lista de turnos en UNA consulta (GROUP BY). Los turnos sin
+        postulaciones no aparecen."""
 
     @abstractmethod
     async def count_created_by_period(
