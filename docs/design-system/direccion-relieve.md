@@ -2,9 +2,14 @@
 
 > Elegida por Julieta el 2026-11-17 para seguir: afinarla y llevarla a la app
 > pantalla por pantalla, un PR cada una, **sin tocar la lógica**. Todavía no
-> rige: lo vigente es [`marca-hoy.md`](./marca-hoy.md). Prueba navegable (en
-> claro, con letra y acento intercambiables):
-> https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan
+> rige: lo vigente es [`marca-hoy.md`](./marca-hoy.md). Pruebas navegables
+> (privadas; se comparten desde su menú Share):
+>
+> - Primera, landing y app (en claro, con letra y acento intercambiables):
+>   https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan
+> - Segunda, la landing en tres direcciones (2026-11-18, claro y noche):
+>   https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR
+> - Cinco isotipos (2026-11-18): https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS
 
 ## La idea
 
@@ -54,11 +59,103 @@ Son ejemplos de nivel de cuidado, no estilos para copiar.
   sobre el mapa de Palermo en «va en camino».
 
 **Qué no se toma de ninguna:** la base crema con azul francia y la
-ilustración de línea (es el terreno de Bachero; ver `marca-hoy.md`, regla 5).
+ilustración de línea (es el terreno de otra marca del rubro; ver
+`marca-hoy.md`, regla 5).
+
+## Segunda prueba de la landing (2026-11-18)
+
+De la pizzería se tomó cómo está armada, no su estilo. Julieta pidió ver las
+tres direcciones; están en una sola página, con pestañas. Las tres comparten
+el sistema y cambian el héroe, el objeto grande y el orden.
+
+| Dirección | Primera pantalla | Objeto | A favor / en contra |
+|---|---|---|---|
+| **El pase** (recomendada) | «¡Marcha un bartender!» (la palabra cambia) y la comanda colgada del riel con el «¡Oído!» encima | El riel de comandas | Explica el producto con el gesto que le da nombre; no depende de fotos. «Marcha» necesita la bajada para quien no es del rubro |
+| **El bodegón** | «Sacá el cartelito de la vidriera.» | El cartel de «se busca mozo/a» pegado con cinta | El más gracioso y el más quieto. Habla de contratar, no de cubrir hoy |
+| **Un servicio en vivo** | «Se te cayó uno. Ya va otro.» | El reloj de la cocina, de 20:02 a 20:11 | El más claro. Los minutos se leen como dato real aunque diga «ejemplo» |
+
+Lo que comparten, cada pieza con su objeto de cocina:
+
+- **Títulos con voz de cocina:** «Cantá la comanda», «Instructivo para cubrir
+  un turno (sin llamar a tu primo)», «La carta», «¿Libre esta noche? Hay
+  turno a la vuelta.», «Andá abriendo. Alguien va.».
+- **Letra de cartel pintado** en los títulos, con un interruptor contra
+  Young Serif: Carter One (la letra «casual» de los letristas) y Knewave
+  (pincel). Las notas a mano van en Mansalva, de una tipógrafa argentina, y
+  siempre en azul hondo. Se probaron y se descartaron Barrio, Bahiana,
+  Londrina y Sedgwick (infantiles o de grafiti).
+- **La comanda que se imprime** sale hacia arriba de la impresora de la
+  cocina, renglón por renglón, y recibe la cinta «¡Oído!». Es papel de
+  cocina: sin número, sin raya punteada, datos en Inter.
+- **El instructivo:** un celular con tres zonas y tres notas a mano con el
+  número en un círculo dibujado. Lleva números porque es una secuencia.
+- **La carta:** los planes vigentes (Inicial, Básico, Pro, leídos de
+  `components/landing/planes.ts`) como carta de bodegón, con doble filete,
+  «sugerencia de la casa» y «No cobramos cubierto». Al elegir un plato se
+  imprime la comanda de la caja con el total del mes y comisión $ 0.
+- **Para trabajar:** la pizarra del día, con turnos de ejemplo.
+- **Botones rectos con relieve** (radio 10 px), no píldoras; el ámbar con
+  letra tinta queda sólo en «Necesito personal». **Pie de color** azul hondo.
+- **Sin números inventados:** no hay contador en vivo ni pago del turno; los
+  pedidos, las personas y los horarios dicen que son ejemplos.
+
+Mirada con Playwright en 1280 y 390 px, en claro y en noche, sin desborde ni
+errores de consola.
+
+## Isotipo (2026-11-18)
+
+Cinco conceptos en vector, a 16, 32, 180 y 512 px, en claro y oscuro, en la
+pestaña y en el celular junto al «oí» de hoy: la voluta (filete), el pinche
+(la comanda clavada), la campanita (el pase), grito y respuesta, y la o que
+grita.
+
+**Recomendado: «grito y respuesta».** Los dos signos de «¡Oído!»: el blanco
+abre (el local que pide) y el ámbar cierra (quien contesta). Sólo existe en
+castellano, aguanta los 16 px y arma el logo con la palabra («¡oído!»). El
+riesgo es que un signo solo se lee como alerta: van siempre los dos,
+espejados y de distinto color. La voluta queda como adorno, no como ícono.
+
+**Brief para un fileteador** (conviene encargarlo con el concepto cerrado, no
+como exploración abierta):
+
+- dos pinceladas y dos puntos, «¡» y «!», inclinados como la Shrikhand;
+- legible a 16 px sin relieve; relieve azul hondo y luz de pincel sólo de
+  48 px para arriba;
+- blanco y un solo ámbar (`#D97706`) sobre azul hondo (`#1C5478`), y versión
+  sobre noche azul;
+- entrega en vector, más una versión de un solo color y una con margen para
+  Android;
+- sin Sol de Mayo, sin orejas ni manos, sin papel con renglones.
+
+## Falta que decida Julieta
+
+1. La dirección de la landing (o una mezcla: el héroe de una con piezas de
+   otra).
+2. La letra de los títulos: cartel pintado o Young Serif. Si cambia, se
+   actualiza `typography.md`.
+3. El isotipo, y si se encarga al fileteador.
+4. Antes de producción, confirmar contra el producto lo que la prueba afirma:
+   «Gratis para quien trabaja», «gente verificada» y «Hecho en Buenos Aires».
+
+## Qué conviene llevar a producción, y en qué orden
+
+1. **La comanda como papel de cocina que se imprime** (`Comanda.tsx`): es
+   chica, no depende de las otras decisiones y cierra el ítem 3 de
+   `STATUS.md`.
+2. **Los tokens del relieve** en `globals.css` (sombra dura, botón recto,
+   radio), sin romper los que hay y con ADR si cambia el sistema.
+3. **El isotipo**, cuando esté elegido: primero el vector provisorio en lugar
+   del «oí» (`scripts/build-icons.mjs`), después el del fileteador.
+4. **Los precios como carta** (`Precios.tsx`): toca cómo se muestran los
+   planes, así que se pregunta antes.
+5. **El héroe elegido, los títulos y la letra**, con el instructivo y el pie
+   de color.
+6. **La app**, pantalla por pantalla, en el orden de abajo.
 
 ## Antes de llevarla a la app
 
-1. Afinar la prueba con lo que marque Julieta y mirarla en oscuro.
+1. Afinar la prueba con lo que marque Julieta (la landing ya se miró en
+   oscuro el 2026-11-18; la app, todavía no).
 2. Definir los tokens nuevos (sombra dura, radio, tamaños del botón) en
    `globals.css` sin romper los que hay, con su ADR si cambia el sistema.
 3. Un PR por pantalla, en este orden: Inicio del trabajador, Panel del

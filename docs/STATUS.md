@@ -35,16 +35,23 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 0. 🟡 **Marca: Shrikhand e ícono «oí» (beta, etapa 4).** Julieta eligió el
    2026-11-17 la letra Shrikhand y seguir con el ámbar. El «oí» es
-   provisorio: falta **diseñar un isotipo propio** (Julieta: «no ese
-   genérico»). La app, la landing,
+   provisorio: falta **elegir el isotipo propio** (Julieta: «no ese
+   genérico»). Hay cinco conceptos en vector desde el 2026-11-18
+   (https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS); el recomendado es
+   «grito y respuesta», los dos signos de «¡Oído!». La app, la landing,
    los íconos, la miniatura, los vectores y el manual en PDF de
    `design-system/marca/` y el brand system navegable ya están
    ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). Sigue
    **la dirección «con relieve»** (Julieta eligió
    seguirla: la sombra dura azul hondo del filete como profundidad de la
-   interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan),
-   afinarla y llevarla a la app pantalla por pantalla, un PR cada una, sin
-   tocar la lógica. Qué tiene, las referencias de Julieta y el orden, en
+   interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan).
+   La **segunda prueba de la landing** (2026-11-18) tiene tres direcciones
+   para comparar, «El pase», «El bodegón» y «Un servicio en vivo»
+   (https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR): **falta que Julieta
+   elija una**, la letra de los títulos (cartel pintado o Young Serif) y el
+   isotipo. Después, afinarla y llevarla a la app pantalla por pantalla, un
+   PR cada una, sin tocar la lógica. Qué tiene, las referencias de Julieta,
+   lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
 Revisado contra el código y los PRs el 2026-10-03.
 
@@ -67,8 +74,8 @@ Revisado contra el código y los PRs el 2026-10-03.
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
-3. 🟡 **Que la marca no se parezca a Bachero** (crema, azul francia,
-   grabados y un ticket). Análisis del 2026-11-17:
+3. 🟡 **Que la marca no se parezca a otra marca del rubro** (crema, azul
+   francia, grabados y un ticket). Análisis del 2026-11-17:
    https://claude.ai/artifact/KunFKqPLnUuuaZCDNy9WWW. El ícono y la letra ya
    se resolvieron (ítem 0). Falta que **la comanda** de la landing deje de
    parecer un ticket (sin número, sin raya punteada, datos en Inter); las

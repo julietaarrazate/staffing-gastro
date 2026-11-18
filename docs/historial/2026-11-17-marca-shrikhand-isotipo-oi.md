@@ -5,7 +5,7 @@ isotipo»). Antes de rehacer la marca, decidir la letra del «oído» y el acent
 viéndolos renderizados en claro y oscuro, sobre la landing y sobre el ícono
 chico. Después, llevar la letra al resto de la marca, revisar el ícono en
 todos sus tamaños, dejar la lista de fotos de la landing y contestar si la
-marca se diferencia lo suficiente de Bachero.
+marca se diferencia lo suficiente de otra marca del rubro.
 
 **Qué cambió:**
 
@@ -44,7 +44,7 @@ marca se diferencia lo suficiente de Bachero.
   vectores, la miniatura y este PDF.
 - **Fotos de la landing:** qué va en cada lugar, con tamaño, encuadre y
   permisos, en `docs/design-system/fotos-landing.md`.
-- **Bachero** (análisis en https://claude.ai/artifact/KunFKqPLnUuuaZCDNy9WWW):
+- **Parecido con otra marca del rubro** (análisis en https://claude.ai/artifact/KunFKqPLnUuuaZCDNy9WWW):
   en lo que más se ve ya no se parece (cielo y blanco con fotos contra crema y
   azul francia con grabados). Quedaban cuatro cruces: el ícono (una mano
   blanca sobre azul, resuelto con «oí»), la letra (gorda, recta y con remate
@@ -55,14 +55,14 @@ marca se diferencia lo suficiente de Bachero.
 
 **Por qué así:** Shrikhand es gorda e inclinada como la letra fantasía de los
 carteles fileteados, la inclinación dice «rápido», su «o» sola se lee hasta en
-16 px y es otra familia que la de Bachero. Sancreek tenía más «cartel
+16 px y es otra familia que la de esa marca. Sancreek tenía más «cartel
 antiguo» pero se iba al Far West, y su «o» sola parecía un cero. El ámbar es
 el opuesto del celeste en el círculo de color (con un solo acento, el que más
 salta) y el color del sol y del dorado del filete; el bordó se apagaba sobre
 celeste y en oscuro tenía que pasar a rosado. Se descartaron mostaza (con el
 azul hondo es Boca), rojo (errores y PedidosYa) y verde (es «Disponible»). El
 ícono «oí» reemplaza a las manos porque en chico eran «una mano blanca sobre
-azul», como el de Bachero, y porque la marca ya tenía su letra.
+azul», como el de esa marca, y porque la marca ya tenía su letra.
 
 El Sol de Mayo del final de la landing queda como estaba hasta que Julieta
 confirme con la asesoría legal el uso de símbolos nacionales; no se usó en
