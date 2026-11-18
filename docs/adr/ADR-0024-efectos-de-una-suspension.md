@@ -73,6 +73,10 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
 10. **Reactivar** devuelve la cuenta a como estaba: lo oculto vuelve a verse si
    sigue vigente; lo cancelado o reabierto no se deshace.
 
+11. **No se le puede escribir por chat a una cuenta suspendida.** Un mensaje
+    nuevo se rechaza como un chat ajeno (404, sin decir «suspendida»); leer lo
+    ya escrito sigue permitido.
+
 ## Consecuencias
 
 - La suspensión pasa a tener efectos sobre turnos ajenos (los de quien había
@@ -97,10 +101,11 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
 
 ## Actualización 2026-11-18 (segunda mirada)
 
-Cinco arreglos de una auditoría de esta misma decisión; ninguno cambia lo decidido arriba.
+Seis arreglos de una auditoría de esta misma decisión; ninguno cambia lo decidido arriba.
 
 1. **Reabrir a medias:** si falla la cola de reabrir un turno (restaurar rechazados, soltar la postulación), se registra y no impide el aviso al comercio; `apply_account_suspension` repasa las postulaciones aceptadas de un turno ya abierto y sin esa persona y repite la cola, así que repetir la suspensión ya no deja rechazados para siempre.
 2. **`assign_worker`:** primero valida que el turno admita la asignación (`Shift.admits_assignment`) y recién después mira la cuenta: ya no sirve para saber si alguien está suspendido.
-3. **Avisos:** al suspender se cortan los WebSockets de avisos de esa cuenta (puerto `LiveConnectionCloser` del admin) y no se le manda push; el aviso in-app se sigue guardando.
-4. **«Mis postulaciones»:** las del turno de un comercio suspendido vienen con `shift: null` (salvo el turno asignado a la misma persona); el estado de la postulación no cambia.
-5. **Asistente de IA:** `find_applicant_by_name` excluye cuentas suspendidas, como la lista de postulantes.
+3. **Chat:** no se le puede escribir a una cuenta suspendida (11 más arriba); se responde como un chat ajeno.
+4. **Avisos:** al suspender se cortan los WebSockets de avisos de esa cuenta (puerto `LiveConnectionCloser` del admin) y no se le manda push; el aviso in-app se sigue guardando.
+5. **«Mis postulaciones»:** las del turno de un comercio suspendido vienen con `shift: null` (salvo el turno asignado a la misma persona); el estado de la postulación no cambia.
+6. **Asistente de IA:** `find_applicant_by_name` excluye cuentas suspendidas, como la lista de postulantes.
