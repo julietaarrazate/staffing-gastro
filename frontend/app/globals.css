@@ -65,6 +65,11 @@
    * sombras se declaran con la paleta, más abajo, porque cambian con el tema. */
   --radius-relieve: 0.625rem; /* 10px — botón recto con relieve */
   --relieve-btn: 3px; /* cuánto se corre el botón al apretarlo */
+  /* El papel de la comanda (`components/ui/Comanda.tsx`): blanco, y un punto
+   * más bajo sobre la noche. Va acá y no con la paleta a propósito: adentro
+   * la comanda se fuerza a claro, y este color tiene que seguir al tema de
+   * afuera. */
+  --comanda-papel: #ffffff;
 
   /* Glows semánticos de acción (2026-09). Un botón de acción no proyecta una
    * sombra neutra: proyecta su PROPIO color, apenas, para despegarse del
@@ -486,6 +491,14 @@
   /* Relieve sobre la noche azul: un azul más claro que el lienzo, para que
      la sombra dura se despegue (el #1c5478 de claro se perdía). */
   --relieve: #2e6e99;
+  --comanda-papel: #eef3f6;
+  /* De noche el cielo es azul noche, con las nubes apenas insinuadas. */
+  --app-cielo-0: #0b1a28;
+  --app-cielo-1: #0f2233;
+  --app-cielo-2: #12283b;
+  --app-cielo-nube: 0.08;
+  --app-cielo-tinta: #eef3f6;
+  --color-cartel: #eef3f6;
 
   /* MODO OSCURO REAL (board v5.0). A diferencia del híbrido anterior (lienzo
      claro que no invertía, sólo las tarjetas), acá el LIENZO también se
@@ -721,6 +734,14 @@
   --shadow-relieve: var(--relieve-btn) var(--relieve-btn) 0 var(--relieve);
   --shadow-relieve-md: 5px 5px 0 var(--relieve);
   --shadow-relieve-lg: 8px 8px 0 var(--relieve);
+  /* El cielo de arriba de una pantalla de la app (`.app-cielo`) y la tinta
+     que se lee encima; el azul de los títulos en brocha (`.letra-cartel`). */
+  --app-cielo-0: #6fb0df;
+  --app-cielo-1: #8cc2e7;
+  --app-cielo-2: #b4d8ef;
+  --app-cielo-nube: 0.85;
+  --app-cielo-tinta: #0f3a5b;
+  --color-cartel: #0f3a5b;
   /* PROTOTIPO esmerilado (2026-10-09). */
   --color-chrome: rgba(255, 255, 255, 0.92);
   /* El cielo de la landing arriba de cada pantalla (2026-10-19); antes era
@@ -1024,6 +1045,191 @@ input[data-foco-contenedor]:focus-visible {
    franja de lienzo de 80px debajo del footer oscuro. */
 body:has([data-landing]) main {
   padding-bottom: 0;
+}
+
+/* ── Dirección «con relieve» en la app (ADR-0027): piezas compartidas ──
+   Las letras llegan por `lib/letras.ts`: cada pantalla migrada pone
+   `LETRAS_APP` en su contenedor. */
+
+/* La brocha: el título de la pantalla y el puesto de la comanda. */
+.letra-cartel {
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  text-transform: uppercase;
+  line-height: 1.02;
+  letter-spacing: 0;
+  color: var(--color-cartel);
+}
+/* La barra de «Mozo/a», en la letra de texto (ver `textoCartel`). */
+.letra-cartel .barra {
+  margin-inline: 0.06em;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-weight: 300;
+}
+/* Lo anotado a mano, en azul hondo (celeste sobre la noche). */
+.letra-mano {
+  font-family: var(--font-mano), "Comic Sans MS", cursive;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  line-height: 1.1;
+  color: var(--color-primary-text);
+}
+.apunte {
+  position: relative;
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 1.25rem;
+  white-space: nowrap;
+  transform: rotate(-6deg);
+}
+.apunte svg {
+  position: absolute;
+  inset: -4px -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 8px);
+  pointer-events: none;
+}
+.apunte path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Un estado como sello de goma: borde del color de la letra, apenas torcido. */
+.sello-goma {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+
+/* El cielo de arriba de una pantalla: celeste pleno con dos nubes de día,
+   azul noche de noche. Lo que va encima se lee en `--app-cielo-tinta`. */
+.app-cielo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) 45%, var(--app-cielo-2));
+  color: var(--app-cielo-tinta);
+}
+.app-cielo::before,
+.app-cielo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  background: #ffffff;
+  filter: blur(14px);
+  opacity: var(--app-cielo-nube);
+  pointer-events: none;
+}
+.app-cielo::before {
+  right: -70px;
+  top: 40%;
+  width: 240px;
+  height: 70px;
+}
+.app-cielo::after {
+  left: -90px;
+  bottom: -40px;
+  width: 300px;
+  height: 90px;
+}
+
+/* La comanda: papel de cocina con el relieve del filete. */
+.comanda {
+  position: relative;
+  border-radius: 2px;
+  background: var(--comanda-papel);
+  box-shadow: 4px 4px 0 var(--relieve);
+}
+.comanda-papel {
+  border-radius: inherit;
+  color: var(--color-ink);
+}
+.comanda-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-line);
+  font-size: 14px;
+  color: var(--color-ink-soft);
+}
+.comanda-fila dd {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: right;
+}
+
+/* «Disponible» como el cartelito de la puerta: cuelga de su hilo y se da
+   vuelta al tocarlo. Verde como el de «abierto»; blanco cuando no. */
+.cartelito {
+  position: relative;
+  flex: none;
+  padding-top: 14px;
+  perspective: 400px;
+}
+/* El hilo y el clavo de donde cuelga. */
+.cartelito-hilo {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 60px;
+  height: 14px;
+  margin-left: -30px;
+}
+.cartelito-hilo path {
+  fill: none;
+  stroke: var(--app-cielo-tinta);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.cartelito-hilo circle {
+  fill: var(--app-cielo-tinta);
+}
+.cartelito > span {
+  display: block;
+  min-width: 112px;
+  padding: 9px 12px;
+  border: 1.5px solid #0b5d2b;
+  border-radius: 5px;
+  background: #15803d;
+  color: #ffffff;
+  box-shadow: 2px 2px 0 var(--relieve);
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+.cartelito-no > span {
+  border-color: #4b5563;
+  background: #ffffff;
+  color: #4b5563;
+}
+.cartelito-gira > span {
+  animation: cartelitoGira 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+@keyframes cartelitoGira {
+  from {
+    transform: rotateY(90deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cartelito-gira > span {
+    animation: none;
+  }
 }
 
 /* `--lh` es el alto del encabezado propio de la landing y `--lht` le suma

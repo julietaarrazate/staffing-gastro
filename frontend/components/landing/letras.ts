@@ -1,10 +1,11 @@
-import { Abril_Fatface, Mansalva, Sedgwick_Ave_Display } from "next/font/google";
+import { Abril_Fatface } from "next/font/google";
+import { brocha, mano } from "@/lib/letras";
 
 /**
  * La letra mixta de la landing (decisión de Julieta, 2026-11-18; ver
- * docs/design-system/typography.md). Las tres son libres (OFL) y se cargan
- * sólo acá, no en el layout raíz: la app todavía no las usa y no tiene por
- * qué bajarlas.
+ * docs/design-system/typography.md). Las tres son libres (OFL). La brocha y
+ * la letra a mano se comparten con la app (`lib/letras.ts`); Abril Fatface es
+ * sólo de la landing. Ninguna va en el layout raíz.
  *
  * - Brocha (Sedgwick Ave Display): sólo donde habría un cartel pintado, es
  *   decir el título del inicio, el cierre y los nombres de la carta. Va en
@@ -14,23 +15,8 @@ import { Abril_Fatface, Mansalva, Sedgwick_Ave_Display } from "next/font/google"
  * - Mansalva: lo anotado a mano («sugerencia de la casa», la tiza de la
  *   pizarra). De una tipógrafa argentina.
  */
-const brocha = Sedgwick_Ave_Display({
-  variable: "--font-brocha",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
-
 const abril = Abril_Fatface({
   variable: "--font-abril",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-  preload: false,
-});
-
-const mano = Mansalva({
-  variable: "--font-mano",
   subsets: ["latin"],
   weight: "400",
   display: "swap",

@@ -68,9 +68,13 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    pizarra, mapa sin reloj, final de cielo con el «oído» entero y sólo lo
    legal debajo, sin el Sol de Mayo; tokens del
    relieve y ADR-0027;
-   [historial](./historial/2026-11-18-landing-hibrida.md)). **Sigue:** la
-   app pantalla por pantalla, un PR cada una, sin tocar la lógica; falta que
-   Julieta diga qué de la segunda prueba de la app entra y en qué orden. Qué tiene, las referencias de Julieta,
+   [historial](./historial/2026-11-18-landing-hibrida.md)). **La app va
+   pantalla por pantalla**, un PR cada una, sin tocar la lógica (Julieta,
+   2026-11-18). Hecho: el Inicio del trabajador
+   ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)).
+   **Sigue:** Panel del comercio, Candidatos, Mis turnos, y la barra de abajo
+   (es de toda la app, en su propio PR). Las piezas compartidas ya están
+   (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
 Revisado contra el código y los PRs el 2026-10-03.

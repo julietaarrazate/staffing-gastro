@@ -20,7 +20,7 @@ servidor y no se pueden mockear con `page.route` (ver
 
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
-| `/feed` (Inicio) | ¿Qué turno tomo ahora? | `worker/FeedHero`, `worker/DiscoverDeck` + `worker/SwipeDeck` ("Descubrir rápido": deslizar recorre, postularse es botón), `worker/OpportunityCard` (en la grilla de escritorio lleva a `/turno/[id]`), `worker/NearbyRow`, `AIAssistantBar` | `/shifts/feed`, `/applications/mine` |
+| `/feed` (Inicio) | ¿Qué turno tomo ahora? Con la dirección «con relieve» desde el 2026-11-18: cielo arriba (`.app-cielo`), saludo en brocha (`lib/letras.ts`), «Disponible» como cartelito, el recomendado como comanda (`ui/Comanda`) y «Cerca tuyo» en lista | `worker/FeedHero`, `worker/DiscoverDeck` + `worker/SwipeDeck` ("Descubrir rápido": deslizar recorre, postularse es botón), `worker/OpportunityCard` (en la grilla de escritorio lleva a `/turno/[id]`), `worker/NearbyRow`, `AIAssistantBar` | `/shifts/feed`, `/applications/mine` |
 | `/buscar` | Buscar turnos con filtros, de cualquier zona; tocar la tarjeta abre `/turno/[id]` | `worker/OpportunityCard` (`href`) | `/shifts/feed?scope=all`, `/applications/mine` |
 | `/map` | Turnos en el mapa, con el pago en el pin | `worker/MapSheet`, `lib/map/` | `/shifts/feed` |
 | `/my-shifts` | Mis turnos y en qué paso están | `ShiftCard`, `ShiftLifecycleStepper`, `worker/EnRouteToggle` ("Va en camino"), `worker/CompareShiftsModal`, `ReviewBox` | `/shifts/mine`, `/applications/mine`, `/saved-shifts` |

@@ -264,5 +264,22 @@ como exploración abierta):
    oscuro el 2026-11-18; la app, todavía no).
 2. ~~Definir los tokens nuevos~~ Hechos (ADR-0027): usar `--shadow-relieve*`
    y `--radius-relieve`, no valores sueltos.
-3. Un PR por pantalla, en este orden: Inicio del trabajador, Panel del
-   comercio, Candidatos, Mis turnos, la landing. Capturas en claro y oscuro.
+3. Un PR por pantalla, en este orden: ~~Inicio del trabajador~~ (hecho el
+   2026-11-18, [historial](../historial/2026-11-18-inicio-trabajador-relieve.md)),
+   Panel del comercio, Candidatos, Mis turnos; ~~la landing~~ (hecha). La
+   barra de abajo es de toda la app y va aparte. Capturas en claro y oscuro.
+
+## Piezas compartidas de la app (desde el Inicio del trabajador)
+
+Antes de dibujar algo nuevo en una pantalla, usar éstas:
+
+| Pieza | Dónde | Para qué |
+|---|---|---|
+| `LETRAS_APP` | `frontend/lib/letras.ts` | La brocha y Mansalva. Va en el contenedor de cada pantalla migrada (no en el layout raíz) |
+| `.letra-cartel` + `textoCartel()` | `globals.css`, `components/ui/Comanda.tsx` | Título de la pantalla y puesto de la comanda, en brocha. `textoCartel` saca la barra de «Mozo/a» a la letra de texto |
+| `.app-cielo` | `globals.css` | El cielo de arriba de la pantalla (celeste de día, azul noche de noche). Lo de encima hereda `--app-cielo-tinta` |
+| `Comanda`, `ComandaFila` | `components/ui/Comanda.tsx` | El turno como papel de cocina, con relieve. Adentro va forzada a claro: el papel es papel en los dos temas |
+| `Apunte`, `.letra-mano` | ídem | Un apunte a mano con óvalo. Uno por pantalla |
+| `.sello-goma` | `globals.css` | Un estado como sello de goma (toma el color de la letra) |
+| `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
+| `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
