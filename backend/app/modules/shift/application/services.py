@@ -1260,8 +1260,19 @@ class ShiftService(AccountSuspensionEffects):
         Dispara `Shift.mark_not_covered()` (sin reputación, sin reabrir —ver
         su docstring) y avisa SÓLO al comercio: si había alguien asignado sin
         confirmar, no se le manda nada — no hay nada que ese trabajador tenga
-        que hacer con esa noticia, el momento ya pasó."""
+        que hacer con esa noticia, el momento ya pasó.
+
+        El scheduler decide llamar con una foto del turno leída antes: si en
+        el medio se reofreció (U080), su plazo pasó a `end_at`. Con el turno
+        recién leído, si todavía no corresponde (`coverage_deadline`), no se
+        hace nada: la próxima pasada decide con el estado nuevo."""
         shift = await self.get_shift(shift_id)
+        if _naive(datetime.now(timezone.utc)) < coverage_deadline(shift):
+            logger.info(
+                "scheduler.skipped",
+                extra={"shift_id": str(shift.id), "reason": "coverage_deadline_moved"},
+            )
+            return shift
         # Una ausencia previa (`no_show_at`, que sólo pone `Shift.no_show()` y
         # nunca se limpia) hace falso decir «nadie confirmó» (U082). El texto de
         # la ausencia vale en todos los caminos: aun si después se asignó a otra

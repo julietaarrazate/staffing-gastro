@@ -1050,3 +1050,24 @@ async def test_la_ficha_del_admin_muestra_lo_que_se_cobra(client: AsyncClient, s
     [fila] = [s for s in ficha["recent_shifts"] if s["id"] == shift_id]
     assert Decimal(fila["pay_amount"]) == Decimal("40000")
     assert Decimal(fila["amount_due"]) == fijo < Decimal("40000")
+
+
+@asyncio
+async def test_no_cubierto_con_una_foto_vieja_no_cierra_un_turno_reofrecido(
+    client: AsyncClient, session_factory
+):
+    """Carrera: el scheduler leyó el turno cuando su plazo ya había vencido y,
+    antes de actuar, el turno se reofreció (su plazo pasó a `end_at`). El caso
+    de uso relee el turno y, si todavía no corresponde, no hace nada."""
+    shift_id, comercio, _a, _a_id = await _turno_confirmado_y_empezado(client, "carrera")
+    await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=comercio)
+
+    async with session_factory() as session:
+        service = scheduler._build_service(session)
+        resultado = await service.mark_not_covered(UUID(shift_id))
+        await session.commit()
+
+    assert resultado.status == ShiftStatus.BUSCANDO_PERSONAL
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)).json()
+    assert detalle["status"] == "buscando_personal"
+    assert await _avisos(client, comercio, "shift_not_covered") == []
