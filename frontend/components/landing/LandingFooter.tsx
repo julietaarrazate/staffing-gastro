@@ -1,50 +1,33 @@
 import Link from "next/link";
 import { useId } from "react";
-import { Degrades, Letras, Sol } from "./Filete";
+import { Degrades, Letras } from "./Filete";
 
 /**
- * El final, como el cierre de coofounder: arriba, sobre blanco, los links y
- * la firma; abajo, un domo de cielo que sube desde el borde de la página
- * (`.landing-firma`) con la palabra «oído» fileteada, grande y cortada por el
- * borde, y el Sol de Mayo saliendo detrás.
+ * El final: la palabra «oído» fileteada, grande y cortada por el borde, cierra
+ * el panel de cielo que empieza en «¿Te falta alguien hoy?»
+ * (`.landing-cierre` arriba, `.landing-firma` abajo); debajo, los caminos de
+ * la página y el © en un panel azul hondo.
  *
- * 2026-10-30 (Julieta: "es abismal lo mal que se ve al lado de coofounder"):
- * el cielo era una franja lineal que arrancaba de golpe debajo de los links,
- * y el brillo del sol, más grande que el dibujo, quedaba recortado por el
- * borde del SVG en un rectángulo más claro. Ahora el degradado es un domo
- * radial (CSS) y el brillo se apaga antes del borde; la palabra va sin la
- * sombra beige y con menos relieve, que a este tamaño la volvían pesada.
- *
- * 2026-11-13: la firma va primero y cierra el panel de cielo que empieza en
- * «¿Te falta alguien hoy?» (`.landing-cierre`); los links y el © quedan
- * debajo, sobre blanco. Los rayos del sol giran muy despacio.
+ * 2026-11-18 (el híbrido, docs/design-system/direccion-relieve.md): se fue
+ * el Sol de Mayo que salía detrás de la palabra, con su brillo y sus rayos
+ * girando, y el pie pasó de blanco a azul hondo. La palabra sigue sin la
+ * sombra beige y con menos relieve, que a este tamaño la volvían pesada
+ * (2026-10-30). El `Sol` sigue en `Filete.tsx` para las otras piezas de la
+ * marca.
  */
 export default function LandingFooter() {
   const id = `pie-${useId().replace(/:/g, "")}`;
   return (
     <footer className="landing-pie">
-      {/* Desde el 2026-11-13 la firma va antes de los links: el cierre
-          («¿Te falta alguien hoy?») y la palabra grande forman un solo panel
-          de cielo, y los caminos de la página quedan debajo, sobre blanco. */}
       <div className="landing-firma">
-        <svg aria-hidden viewBox="0 0 1000 340">
+        <svg aria-hidden viewBox="0 130 1000 210">
           <Degrades id={id} />
-          <defs>
-            <radialGradient id={`${id}-brillo`} cx=".5" cy=".5" r=".5">
-              <stop offset="0" stopColor="#ffd77a" stopOpacity=".7" />
-              <stop offset=".5" stopColor="#ffe9b0" stopOpacity=".3" />
-              <stop offset="1" stopColor="#ffe9b0" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx={500} cy={175} r={170} fill={`url(#${id}-brillo)`} />
-          <Sol cx={500} cy={175} r={88} id={id} claseRayos="landing-sol-rayos" />
           <Letras x={500} y={440} tam={380} texto="oído" id={`${id}-p`} anchor="middle" e={1.3} sombra={false} />
         </svg>
       </div>
       <div className="landing-pie-fila">
-        {/* Como el pie de coofounder: los caminos de la página además de los
-            legales (2026-10-30). Ayudan a moverse y a que Google entienda las
-            secciones. */}
+        {/* Los caminos de la página además de los legales (2026-10-30):
+            ayudan a moverse y a que Google entienda las secciones. */}
         <nav aria-label="Pie" className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm lg:justify-start">
           <Link href="/#precios">Precios</Link>
           <Link href="/#trabajar">Para trabajar</Link>

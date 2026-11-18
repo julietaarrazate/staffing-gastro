@@ -7,6 +7,7 @@ import ParaTrabajar from "./ParaTrabajar";
 import Preguntas from "./Preguntas";
 import Cierre from "./Cierre";
 import LandingFooter from "./LandingFooter";
+import { LETRAS_LANDING } from "./letras";
 
 /**
  * La landing corta (2026-10-12). Reemplaza a la historia fijada al scroll
@@ -22,6 +23,12 @@ import LandingFooter from "./LandingFooter";
  * la ficha, precios, para trabajar, preguntas, cierre y "oído" grande.
  * Recorrido y decisiones: docs/historial/2026-10-18-landing-cielo.md.
  *
+ * Desde el 2026-11-18 ("híbrido", docs/design-system/direccion-relieve.md):
+ * la misma landing con letra mixta (brocha en el inicio, el cierre y la
+ * carta; Abril Fatface en los títulos de sección; `letras.ts`), los botones
+ * con el relieve del filete, los planes como carta de bodegón, el mapa sin
+ * reloj y el pie azul hondo, sin el Sol de Mayo.
+ *
  * El contenido sale entero en el HTML del servidor; las animaciones (rueda,
  * palabra, comanda, mapa) arrancan en el navegador y se apagan con "reducir
  * movimiento". Nada se fija al scroll.
@@ -32,7 +39,7 @@ export default function LandingCorta() {
     // son tramos, no un tema). globals.css redeclara los tokens claros para
     // este subárbol. `overflow-x-clip` y no `hidden`: `hidden` rompería el
     // encabezado `sticky`.
-    <div data-landing data-theme="light" data-palette="celeste" className="overflow-x-clip bg-card text-ink">
+    <div data-landing data-theme="light" data-palette="celeste" className={`${LETRAS_LANDING} overflow-x-clip bg-card text-ink`}>
       <LandingHeader heroCtaId={HERO_CTA_ID} />
       <HeroRueda />
       <Comanda />

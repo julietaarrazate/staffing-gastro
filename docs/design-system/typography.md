@@ -12,6 +12,24 @@ paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
 | **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
 | **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 
+## La landing: letra mixta (2026-11-18)
+
+Decisión de Julieta sobre la prueba híbrida
+([`direccion-relieve.md`](./direccion-relieve.md)). La landing ya **no usa
+Young Serif ni DM Mono**. Sus tres letras se cargan sólo ahí
+(`frontend/components/landing/letras.ts`), no en el layout raíz:
+
+| Familia | Dónde | Variable / clase |
+|---|---|---|
+| **Sedgwick Ave Display** («brocha») | Sólo donde habría un cartel pintado: el título del inicio, el del cierre y los nombres de la carta (y el plan en la pizarra). Siempre en mayúsculas | `--font-brocha` → `.landing-cartel` |
+| **Abril Fatface** | Títulos de sección. Es la hermana derecha de la Shrikhand del «oído». Un solo peso | `--font-abril` → `.landing-h2` |
+| **Mansalva** | Lo anotado a mano: «sugerencia de la casa», la tiza de la pizarra. En azul hondo sobre papel | `--font-mano` → `.landing-mano` |
+| **Inter** | Todo el texto, los precios y las preguntas | `font-sans` |
+
+La brocha no va con barras ni signos raros («Mozo/a» se leía «MOZOIA»): si un
+texto los tiene, va en Inter. En la app todavía no rige; ahí sigue la tabla de
+arriba hasta que cada pantalla migre.
+
 ## Cambio de títulos a Young Serif (2026-11-16)
 
 El medidor de diseño marcó la letra de los títulos (Schibsted Grotesk) como

@@ -6,7 +6,7 @@ import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { StarIcon } from "./iconos";
 import { cn } from "@/lib/cn";
 import { formatDecimal1 } from "@/lib/format";
-import { CANDIDATES, DISTANCIA_M, LOCAL, RELOJ } from "./fixtures";
+import { CANDIDATES, DISTANCIA_M, LOCAL } from "./fixtures";
 
 /**
  * "Alguien libre, a pocas cuadras": el "va en camino" de la app
@@ -19,10 +19,14 @@ import { CANDIDATES, DISTANCIA_M, LOCAL, RELOJ } from "./fixtures";
  * onda desde Tu bar y cada punto aparece cuando la onda lo alcanza; tres
  * crecen (los que se postularon, Lucía última); Lucía se pone ámbar y viene
  * hacia el local con su línea recta (recta a propósito, como en la app: es la
- * distancia que falta, no el camino), mientras bajan los metros y los
- * minutos. Un relojito arriba pasa de 20:46 a 20:54 ✓, la hora del ticket de
- * la comanda. El pie aparece una sola vez, con Lucía en camino. Vuelve a
- * empezar si el mapa salió del todo. Con "reducir movimiento" se ve el final.
+ * distancia que falta, no el camino), mientras bajan los metros. El pie
+ * aparece una sola vez, con Lucía en camino. Vuelve a empezar si el mapa
+ * salió del todo. Con "reducir movimiento" se ve el final.
+ *
+ * Sin reloj ni minutos desde el 2026-11-18 (Julieta, sobre la prueba
+ * híbrida): antes un relojito pasaba de 20:46 a 20:54 ✓ y el pie decía
+ * «~3 min». En la landing una hora o un tiempo de llegada se leen como una
+ * promesa; la distancia, que es lo que la app sí sabe, queda.
  */
 const LOCAL_XY = { x: 0.62, y: 0.4 };
 
@@ -41,7 +45,6 @@ const LUCIA = CANDIDATES[0];
 /** Cuánto tarda en acercarse y hasta dónde llega (fracción del camino). */
 const VIAJE_MS = 5500;
 const LLEGA = 0.68;
-const RELOJES = [RELOJ.sinCubrir, RELOJ.avisado, RELOJ.postulantes, RELOJ.cubierto];
 
 /** Coordenadas del dibujo de las líneas: el mapa es 4:3. */
 const sx = (x: number) => x * 100;
@@ -123,8 +126,6 @@ export default function MapaCamino() {
     y: origen.y + (LOCAL_XY.y - origen.y) * avance,
   };
   const metros = Math.round((DISTANCIA_M * (1 - avance)) / 10) * 10;
-  const eta = Math.max(1, Math.round(4 - 3 * (avance / LLEGA)));
-  const reloj = RELOJES[fase];
 
   return (
     <section aria-labelledby="mapa-titulo" data-tone="light" className="landing-sec landing-sec-dos">
@@ -134,14 +135,6 @@ export default function MapaCamino() {
       <figure className="landing-mapa landing-sec-cosa">
         <div ref={caja} className="landing-mapa-calles">
           <Image src="/landing/mapa-palermo.webp" alt="" fill sizes="560px" className="object-cover" />
-          <span aria-hidden className={cn("landing-mapa-reloj", fase >= 3 && "landing-cubierto")}>
-            {reloj.hora.slice(0, 2)}
-            <i className={cn(fase < 3 && "landing-titila")}>:</i>
-            <span key={reloj.hora} className="landing-tic">
-              {reloj.hora.slice(3)}
-            </span>
-            {fase >= 3 && " ✓"}
-          </span>
           {fase === 1 && (
             <span aria-hidden className="landing-mapa-onda" style={{ left: `${LOCAL_XY.x * 100}%`, top: `${LOCAL_XY.y * 100}%` }} />
           )}
@@ -210,7 +203,6 @@ export default function MapaCamino() {
                 <IdentityVerifiedBadge verified />
               </span>
             </span>
-            <span className="landing-mapa-eta">~{eta} min</span>
           </div>
         </figcaption>
       </figure>

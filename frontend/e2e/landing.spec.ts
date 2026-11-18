@@ -158,12 +158,28 @@ test("los precios salen de la API cuando contesta", async ({ page }) => {
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$21.500");
   await expect(precios).toContainText("$47.000");
-  // Cada plan lleva su botón al alta de comercio con el plan (2026-10-30).
-  for (const [nombre, code] of [["Inicial", "inicial"], ["Básico", "basico"], ["Pro", "pro"]]) {
-    await expect(precios.getByRole("link", { name: `Empezar con ${nombre}` })).toHaveAttribute(
-      "href",
-      `/register?rol=comercio&plan=${code}`
-    );
+  // La carta (2026-11-18): cada plan es un plato que se elige, y el camino
+  // al alta es un solo botón que lleva el plan elegido. Sale el Básico.
+  const empezar = precios.getByRole("link", { name: /^Empezar con / });
+  await expect(empezar).toHaveCount(1);
+  await expect(empezar).toHaveAccessibleName("Empezar con Básico");
+  await expect(precios.getByRole("button", { name: /Básico/ })).toHaveAttribute("aria-pressed", "true");
+  const pizarra = precios.locator(".landing-pizarra");
+  await expect(pizarra).toContainText("$21.500");
+  for (const [nombre, code, tope] of [
+    ["Inicial", "inicial", "hasta 5 turnos por mes"],
+    ["Pro", "pro", "turnos sin tope"],
+    ["Básico", "basico", "hasta 15 turnos por mes"],
+  ]) {
+    const plato = precios.getByRole("button", { name: new RegExp(`^${nombre}`) });
+    await plato.click();
+    await expect(plato).toHaveAttribute("aria-pressed", "true");
+    await expect(precios.getByRole("button", { pressed: true })).toHaveCount(1);
+    await expect(empezar).toHaveAccessibleName(`Empezar con ${nombre}`);
+    await expect(empezar).toHaveAttribute("href", `/register?rol=comercio&plan=${code}`);
+    // La pizarra escribe el plan elegido, con su tope y sin comisión.
+    await expect(pizarra).toContainText(tope);
+    await expect(pizarra).toContainText("comisión por turno: $0");
   }
 });
 
@@ -173,9 +189,13 @@ test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ p
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$20.000");
   await expect(precios).toContainText("$45.000");
-  // Lo que suma cada plan, y su botón (sin botones del 2026-10-18 al 2026-10-30).
+  // Lo que suma cada plan, los tres platos y el botón del elegido.
   await expect(precios).toContainText("Soporte por email");
-  await expect(precios.getByRole("link", { name: /^Empezar con / })).toHaveCount(3);
+  await expect(precios.getByRole("button", { name: /por mes/ })).toHaveCount(3);
+  await expect(precios.getByRole("link", { name: "Empezar con Básico" })).toHaveAttribute(
+    "href",
+    "/register?rol=comercio&plan=basico"
+  );
 });
 
 test("con el tema oscuro elegido, la landing mantiene su paleta propia", async ({ page }) => {

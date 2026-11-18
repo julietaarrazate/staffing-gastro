@@ -59,11 +59,11 @@ function PalabraQueCambia() {
   return (
     <span ref={ref} aria-hidden className="landing-palabra block text-primary-strong">
       {par.antes !== null && (
-        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-medium">
+        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-normal">
           {PUESTOS[par.antes]}
         </b>
       )}
-      <b key={`e${par.i}`} className="font-medium">
+      <b key={`e${par.i}`} className="font-normal">
         {PUESTOS[par.i]}
       </b>
     </span>
@@ -255,7 +255,7 @@ export default function HeroRueda() {
       <div className="relative z-[2]">
         <h1
           id="hero-titulo"
-          className="landing-entra font-display text-[clamp(3.25rem,6.4vw,6rem)] font-medium leading-[0.97] tracking-[-0.045em] text-ink"
+          className="landing-entra landing-cartel landing-cartel-inicio"
         >
           <span className="block">Encontrá tu</span>
           <span className="sr-only">mozo, bartender, bachero o cocinero</span>

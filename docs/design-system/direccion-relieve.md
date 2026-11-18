@@ -1,8 +1,9 @@
 # Dirección «con relieve» (en prueba)
 
 > Elegida por Julieta el 2026-11-17 para seguir: afinarla y llevarla a la app
-> pantalla por pantalla, un PR cada una, **sin tocar la lógica**. Todavía no
-> rige: lo vigente es [`marca-hoy.md`](./marca-hoy.md). Pruebas navegables
+> pantalla por pantalla, un PR cada una, **sin tocar la lógica**. **En la
+> landing ya rige** (2026-11-18, ADR-0027); en la app todavía no: ahí lo
+> vigente es [`marca-hoy.md`](./marca-hoy.md). Pruebas navegables
 > (privadas; se comparten desde su menú Share):
 >
 > - Primera, landing y app (en claro, con letra y acento intercambiables):
@@ -217,8 +218,8 @@ como exploración abierta):
 - **Letra mixta:** brocha (Sedgwick Ave Display) sólo en el título del
   inicio, el cierre y los nombres de la carta; **Abril Fatface** en los
   títulos de sección, en lugar de Young Serif; Mansalva para lo anotado a
-  mano; Inter para el texto. Todavía no rige: `typography.md` y `marca-hoy.md`
-  se actualizan en el PR que lo lleve al código.
+  mano; Inter para el texto. Rige en la landing desde el 2026-11-18
+  (`typography.md`, `marca-hoy.md`).
 - **Isotipo: el pinche con «oído»**, elegido por Julieta el 2026-11-18 después
   de verlo, sólo como ícono de la app (no va junto al «oído»). Ya reemplazó al
   «oí» en el código.
@@ -237,23 +238,28 @@ como exploración abierta):
 1. ~~La comanda como papel de cocina~~ **Hecho el 2026-11-18:** la comanda
    de la landing va en Inter, con filete liso y corte recto
    ([historial](../historial/2026-11-18-comanda-papel-de-cocina.md)).
-2. **Los tokens del relieve** en `globals.css` (sombra dura, botón recto,
-   radio), sin romper los que hay y con ADR si cambia el sistema.
+2. ~~**Los tokens del relieve** en `globals.css` (sombra dura, botón recto,
+   radio), sin romper los que hay y con ADR si cambia el sistema.~~ **Hecho
+   el 2026-11-18:** `--relieve`, `--shadow-relieve` (y `-md`, `-lg`),
+   `--radius-relieve`; [ADR-0027](../adr/ADR-0027-relieve-como-profundidad.md).
 3. ~~**El isotipo**: primero el vector provisorio en lugar del «oí»
    (`scripts/build-icons.mjs`), después el del fileteador.~~ **Hecho el
    2026-11-18:** el pinche con «oído» es el ícono de la app (vectores en
    `marca/isotipo-pinche*.svg`); lo del fileteador queda opcional.
-4. **Los precios como carta** (`Precios.tsx`): toca cómo se muestran los
-   planes, así que se pregunta antes.
-5. **El héroe elegido, los títulos y la letra**, con el instructivo y el pie
-   de color.
+4. ~~**Los precios como carta** (`Precios.tsx`)~~ **Hecho el 2026-11-18**,
+   con la pizarra. Los planes y los precios no cambiaron.
+5. ~~**El héroe elegido, los títulos y la letra**, con el pie de color.~~
+   **Hecho el 2026-11-18** sobre el híbrido (el héroe es el de la landing
+   publicada, en brocha; el instructivo era de la segunda prueba y no entró).
+   Detalle y lo que se apartó de la prueba, en el
+   [historial](../historial/2026-11-18-landing-hibrida.md).
 6. **La app**, pantalla por pantalla, en el orden de abajo.
 
 ## Antes de llevarla a la app
 
 1. Afinar la prueba con lo que marque Julieta (la landing ya se miró en
    oscuro el 2026-11-18; la app, todavía no).
-2. Definir los tokens nuevos (sombra dura, radio, tamaños del botón) en
-   `globals.css` sin romper los que hay, con su ADR si cambia el sistema.
+2. ~~Definir los tokens nuevos~~ Hechos (ADR-0027): usar `--shadow-relieve*`
+   y `--radius-relieve`, no valores sueltos.
 3. Un PR por pantalla, en este orden: Inicio del trabajador, Panel del
    comercio, Candidatos, Mis turnos, la landing. Capturas en claro y oscuro.
