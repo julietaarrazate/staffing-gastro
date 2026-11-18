@@ -26,9 +26,12 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
-- 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** Sigue, en sesiones
-  nuevas: lo de la etapa 2 que quedó «para revisar con Fable» (G4, U080,
-  U081, U072, P1 a P5, la pasada por clase de error), y en paralelo las
+- 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
+  «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072 y la
+  segunda mirada a G6. Sigue, en una sesión nueva y en este orden: U080
+  (diseñado y con sus datos decididos), las tres reglas nuevas decididas ese
+  día (21, 22 y 24 del tablero), la pasada por clase de error con los tests
+  de contrato, y P1 a P5. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
@@ -68,9 +71,13 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    pizarra, mapa sin reloj, final de cielo con el «oído» entero y sólo lo
    legal debajo, sin el Sol de Mayo; tokens del
    relieve y ADR-0027;
-   [historial](./historial/2026-11-18-landing-hibrida.md)). **Sigue:** la
-   app pantalla por pantalla, un PR cada una, sin tocar la lógica; falta que
-   Julieta diga qué de la segunda prueba de la app entra y en qué orden. Qué tiene, las referencias de Julieta,
+   [historial](./historial/2026-11-18-landing-hibrida.md)). **La app va
+   pantalla por pantalla**, un PR cada una, sin tocar la lógica (Julieta,
+   2026-11-18). Hecho: el Inicio del trabajador
+   ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)).
+   **Sigue:** Panel del comercio, Candidatos, Mis turnos, y la barra de abajo
+   (es de toda la app, en su propio PR). Las piezas compartidas ya están
+   (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
 Revisado contra el código y los PRs el 2026-10-03.
@@ -206,6 +213,12 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Estrategia de crecimiento, fase 1:** leer el diagnóstico y la propuesta
+  de Go-To-Market (documento privado:
+  https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk), aprobarlo o corregirlo
+  y resolver las decisiones de su sección 8. Las fases siguientes esperan esa
+  aprobación
+  ([`historial/2026-11-18-diagnostico-growth-gtm.md`](./historial/2026-11-18-diagnostico-growth-gtm.md)).
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
   generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
   panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en

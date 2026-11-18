@@ -22,14 +22,19 @@ import { SparklesIcon } from "@/components/icons";
  * `/assistant`; blanco + sombra es el mismo tratamiento que el resto de las
  * superficies flotantes de la app (`ShiftCard`, barra de ubicación).
  */
-export default function AIAssistantBar() {
+/** `recto`: la versión de la dirección «con relieve» (2026-11-18), plana y
+ *  con esquinas de botón en lugar de píldora con sombra. La usan las
+ *  pantallas que ya migraron; las demás siguen con la de siempre. */
+export default function AIAssistantBar({ recto = false }: { recto?: boolean }) {
   const router = useRouter();
 
   return (
     <button
       type="button"
       onClick={() => router.push("/assistant")}
-      className="flex w-full items-center gap-3 rounded-full bg-card px-4 py-3.5 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+      className={`flex w-full items-center gap-3 bg-card px-4 py-3.5 text-left ring-1 ring-line transition active:scale-[0.99] ${
+        recto ? "rounded-[var(--radius-relieve)]" : "rounded-full shadow-[var(--shadow-soft)]"
+      }`}
     >
       {/* Sin tile naranja ni isotipo (2026-09, reporte de Julieta sobre el
           feed: "está sobrecargado el ícono del asistente, el ícono de oído, el

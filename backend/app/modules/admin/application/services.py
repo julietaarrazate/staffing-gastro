@@ -47,6 +47,7 @@ from app.modules.identity.domain.repositories import RefreshSessionRepository, U
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
+from app.modules.admin.application.ports import LiveConnectionCloser
 from app.modules.shift.domain.suspension import AccountSuspensionEffects, SuspensionImpact
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
@@ -113,8 +114,10 @@ class AdminService:
         # del módulo de turnos. Sin él (tests que no lo necesitan), suspender
         # sólo cambia el estado de la cuenta, como antes.
         suspension_effects: AccountSuspensionEffects | None = None,
+        connection_closer: LiveConnectionCloser | None = None,
     ) -> None:
         self._suspension_effects = suspension_effects
+        self._connection_closer = connection_closer
         self._users = users
         self._shifts = shifts
         self._workers = workers
@@ -651,6 +654,17 @@ class AdminService:
         user.suspend()
         updated = await self._users.update(user)
         await self._sessions.revoke_all_for_user(user_id)
+        if self._connection_closer is not None:
+            # El socket de avisos abierto no depende de la sesión de refresh:
+            # sin cortarlo seguiría recibiendo avisos. Best-effort.
+            try:
+                await self._connection_closer.close_for_user(user_id)
+            except Exception:
+                logger.exception(
+                    "Cortar conexiones en vivo al suspender: fallo inesperado "
+                    "(user_id=%s)",
+                    user_id,
+                )
         if self._suspension_effects is not None:
             # Segunda pasada, ya con la cuenta suspendida: levanta lo que se
             # haya tomado en el intervalo (un comercio que asignó, o alguien

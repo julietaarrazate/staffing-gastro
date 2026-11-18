@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.config import settings as app_settings
 from app.core.database import sessions_like
 from app.core.ws_manager import ws_manager
+from app.modules.identity.domain.value_objects import UserStatus
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.notification.domain.entities import Notification, PushSubscription
 from app.modules.notification.domain.push_policy import push_policy_for
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
@@ -299,6 +301,19 @@ async def _schedule_pushes(session: AsyncSession, notifications: list[Notificati
     el request ya no espera los POST al servicio de push, que pueden tardar
     hasta 10 s cada uno. Un solo aviso (`add`) o muchos (`add_many`), igual."""
     by_user = {n.user_id: n for n in notifications}
+    # Una cuenta que no está activa (suspendida, ADR-0024) no recibe push. El
+    # aviso dentro de la app se guardó igual.
+    active = (
+        await session.execute(
+            select(UserModel.id).where(
+                UserModel.id.in_(list(by_user)),
+                UserModel.status == UserStatus.ACTIVE.value,
+            )
+        )
+    ).scalars().all()
+    by_user = {user_id: n for user_id, n in by_user.items() if user_id in set(active)}
+    if not by_user:
+        return
     subscriptions = await SqlAlchemyPushSubscriptionRepository(session).list_by_users(list(by_user))
     if not subscriptions:
         return
